@@ -1,0 +1,272 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 536995776058005,
+      "steps": 20,
+      "cfg": 7,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "sd3.5_large_fp8_scaled.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "31",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "15": {
+    "inputs": {
+      "input_context": [
+        "33",
+        0
+      ],
+      "style_prompt": [
+        "34",
+        0
+      ],
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "deepseek/deepseek-chat-v3-0324",
+      "debug": "enable",
+      "input_prompt": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "ai4artsed_prompt_interception"
+    }
+  },
+  "20": {
+    "inputs": {
+      "clip_name": "clip_g.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": "Ein Banner mit der Aufschrift DEFAULT-PROMPT vor majestätischer Landschaft"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "30": {
+    "inputs": {
+      "input_context": "NULL=neutral",
+      "style_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "deepseek/deepseek-chat-v3-0324",
+      "debug": "enable",
+      "input_prompt": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "AI4ArtsEd OpenRouter Promptinterception"
+    }
+  },
+  "31": {
+    "inputs": {
+      "input_context": "the final prompt should have maximum 75 token",
+      "style_prompt": [
+        "35",
+        0
+      ],
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "deepseek/deepseek-chat-v3-0324",
+      "debug": "enable",
+      "input_prompt": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "Resulting Prompt"
+    }
+  },
+  "33": {
+    "inputs": {
+      "value": "Traditional Confucian Literati Painting Visual Grammar and Ethical Translation Guidelines\n\n(Based on the orthodox systems of Song, Yuan, Ming, and Qing literati painting, with contemporary adaptation clauses)\n\n\nI. Ontological Transformation Rules\n\n\n    Primacy of Xie He’s \"Six Laws\": Prioritize qiyun shengdong (spirit-resonance and life-movement) as the supreme principle, rejecting Western realism.\n\n    Moral Morphology of Forms:\n        Plants (pine, bamboo, plum, orchid) must adhere to the Mustard Seed Garden Manual conventions—branches rendered in calligraphic lines (bifa technique) embodying \"bone structure brushwork.\"\n        Human figures must be smaller than landscape elements, with drapery referencing Wu Daozi’s \"wind-blown ribbons\" tradition (Wu Dai Dang Feng). Facial features are suggested symbolically with minimalist strokes (\"yi dao bi bu dao\"—the idea transcends the brush).\n\n\n\nII. Spatial Recomposition Principles\n\n\n    Triaxial Perspective System: Apply Guo Xi’s Three Distances (San Yuan):\n        High Distance (Gao Yuan): For moral authority (e.g., cliff-top academies).\n        Deep Distance (Shen Yuan): Depicts Confucian order (e.g., terraced farmlands in stratified perspective).\n        Level Distance (Ping Yuan): Conveys Taoist reclusion (Mi Fu’s mist-and-cloud technique).\n\n\n\nIII. Ink-Brush Ethical System\n\n\n    Materials as Ethical Statements:\n        Raw xuan paper paired with dry-texture cun strokes (\"cun\" texture strokes) metaphorizes \"the arduous path of benevolent rule.\"\n        Colored silk works must use mineral pigments regulated by the Rites of Zhou’s Five Colors doctrine (symbolic hierarchy: blue, red, yellow, white, black).\n\n    Stroke Ethics and Social Hierarchy:\n        Scholars use hemp-fiber strokes (pima cun) for cultivated ease.\n        Fishermen/hermits employ axe-cut strokes (fupi cun) to signify unyielding integrity.\n\n\n\nIV. Semiotic Codex\n\n\n    Inscriptions: Must be original poetry/prose meeting:\n        Content: ≥30% quotations from Analects or allusions from Selections of Refined Literature.\n        Calligraphy: Running/grass script adapted compositionally, but imperial examination (guange) style is banned.\n\n    Seal Protocol:\n        Introductory Seals (Yinshou Zhang): Vermillion-style, modeled on Qin-Han imperial seals.\n        Corner Seals (Yajiao Zhang): White-character seals emulating Han official seal-carving.\n\n\n\nV. Anomaly Accommodation Clause\n\n(For post-Ming unconventional literati works, e.g., Bada Shanren)\n\n\n    Permission for \"distorted forms\", provided:\n        Deformations intertextually align with inscriptions (e.g., fish/birds with side-eyes mirroring protest poetry).\n        Negative space (liubai) must occupy >40% to preserve Daoist \"emptiness contains turbulence\" tension.\n\n\n\nVI. Digital Age Adaptations\n\n\n    AI-Generated Works Must:\n        Simulate Dong Yuan’s \"fangtou cun\" randomness in brushwork algorithms.\n        Follow Record of Artisans’ chromatic sequence (\"blue adjacent to white\") in RGB channels.\n\n    Prohibitions:\n        No 3D volumetric rendering; preserve the two-dimensional \"unity of calligraphy and painting\" (shuhua tongyuan).\n        Photoshop filters banned; ink gradations must emerge from iterative algorithms.\n\n\n\nVII. Final Validation Standards\n\nTranslated works must pass:\n\n\n    \"Qi-Appraisal\" Test: Art historians must identify period style from three meters away.\n\n    \"Painting-Reading\" Test: Calligraphers must reverse-engineer composition logic from inscriptions.\n\n\n(Note: Default technical manual: Ming-era Ten Bamboo Studio Manual; philosophical basis: Qing Principles of Painting.)\n\n\nThis translation:\n\n\n    Preserves all original Confucian philosophical rigor.\n\n    Introduces executable metrics (e.g., 30% Analects quota, 40% liubai).\n\n    Accommodates historical exceptions while maintaining orthodoxy.\n\n    Bridges classical ethics to AI-generated art constraints.\n\n"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Context"
+    }
+  },
+  "34": {
+    "inputs": {
+      "value": "Proceed strictly as follows: \nRegard, honor and enhance the cultural meanings and connotations according to the respective cultural values connected to a language. Reflect on the meaning of the respective concepts. Rethink the image. Avoid western and global north biases and western gaze where not fitting. Do not talk about the prompt, this is forbidden, but create a prompt text.\n\nTranslate a given image, repective image description, from its original visual and semantic system into a target representational system, while preserving the structural identity of all entities, gestures, and relations. \n\nFor each element, identify its function, affective tone, and relational role within the source composition. Reconstruct the scene using the formal, material, and compositional logics of the target system—whether symbolic, expressive, disruptive, or codified. All elements must remain semantically traceable, yet visually and contextually transformed in accordance with the target system’s internal conventions of form, space, and signification.\n\nCreate a detailed prompt that stays utterly true to the text and cultural context of the input you received. Be radical, do not soften or harmonize contraditive elements. "
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Stylization Instruction (usually leave as is)"
+    }
+  },
+  "35": {
+    "inputs": {
+      "value": "Use the input to create a prompt suitable for Stable Diffusion 3.5.\nInstructions:\n1. Select only information that can be rendered visually: entities, their visual properties, spatial configurations, symbolic or narrative roles if they have visual consequences (e.g. pose, gesture, setting, costume).\n2. Ignore non-visual symbolic or abstract relations unless they manifest as visible differences (e.g. \"freedom\" → \"confinement\" becomes \"open field\" → \"prison room\").\n3. Condense the result into a comma-separated prompt with no more than 75 tokens. Use compressed, stylized language typical for SD prompts.\n4. Do not use full sentences. Avoid repetition. Do not include any meta-text or explanation.\n5. Emphasize key compositional and stylistic features if evident (e.g. centered, dramatic lighting, overcast, wide angle, cinematic).\nOutput: Only the resulting prompt as plain text. No table, no explanation, no formatting.\n\nIf the resulting prompt is clearly under 75 tokens, expand it by:\n– adding visually descriptive adjectives (e.g. lighting, texture, motion, color quality)\n– specifying environmental or background elements that imply the mood\n– including camera or compositional hints (e.g. angle, framing, focus)\n– inserting emotional or symbolic indicators only if they have visual impact\n\nDo not pad artificially or repeat. Prioritize meaningful, image-relevant details."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Prompt Construction Instruction (SD 3.5)"
+    }
+  },
+  "45": {
+    "inputs": {
+      "preview": "A banner with the inscription DEFAULT-PROMPT against a majestic landscape",
+      "source": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "translated input"
+    }
+  },
+  "46": {
+    "inputs": {
+      "preview": "vertical silk scroll with weathered texture, \"DEFAULT-PROMPT\" in zhuanshu seal script, thick strokes at base tapering to ethereal feibai, mineral azurite-tinted silk with frayed edges revealing xuan paper, jagged cliff in axe-cut strokes with lone wind-bent pine, terraced rice fields in stratified ink washes, faceless farmers bending, empty lake with Mi Fu-style cloud forms, vermillion \"Siwen Zhang\" seal in broken-corner style, xingshu couplet flanking scroll, partial mist decay on lower corner, layered ink transparency, deliberate stroke-order errors, strategic cloud-strokes obscuring text, Zhe School bone method brushwork, high-deep-level distance composition, classical literati color palette",
+      "source": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final prompt"
+    }
+  },
+  "47": {
+    "inputs": {
+      "preview": "**Prompt for Literati Painting Translation:**  \n\n**Title:** *\"Virtue Unfurls Like Mountain Mist\"*  \n\n**Composition:**  \n- **Central Banner:** A vertical silk scroll, its surface weathered yet dignified, bearing the inscription *\"DEFAULT-PROMPT\"* in *zhuanshu* (seal script), evoking the gravitas of imperial edicts. The characters are rendered with deliberate asymmetry—thick, deliberate strokes at the base (symbolizing *ren* 仁, benevolence) tapering into ethereal *feibai* (flying white) at the apex (suggesting *wuwei* 無為).  \n- **Landscape Backdrop:**  \n  - **High Distance (Gao Yuan):** A sheer cliff of *axe-cut strokes (fupi cun)*, its jagged ridges echoing the *Yijing* hexagram for \"Perseverance\" (恆). At its summit, a lone pine—branches bent by wind but unbroken—executed in *bifa* \"bone method\" brushwork.  \n  - **Deep Distance (Shen Yuan):** Terraced rice fields cascade downward in *stratified ink washes*, their geometric order mirroring the *Rites of Zhou*’s land-allocation systems. Farmers (tiny, faceless) bend in *zhuangzi* postures of \"useful humility.\"  \n  - **Level Distance (Ping Yuan):** A lake of unpainted *liubai* (negative space), its emptiness disrupted only by three *Mi Fu-style* cloud-forms—suggesting the *Analects*’ \"silent understanding\" (默而識之).  \n\n**Ink Ethics:**  \n- The banner’s silk is tinted with *mineral azurite* (blue, for *li* 禮, propriety), its frayed edges revealing raw *xuan paper* beneath (the \"unadorned heart\" of the junzi).  \n- The cliff’s ink transitions from *charcoal-black* (authority) to *pale sepia* (age-wisdom) via *dry-brush cun* textures.  \n\n**Seals & Text:**  \n- **Yinshou Zhang (Introductory Seal):** Vermillion *\"Siwen Zhang\"* (\"Guardian of Civilized Patterns\") in Qin-dynasty *broken-corner style*, stamped vertically along the banner’s right edge.  \n- **Inscribed Poem:** A *xingshu* (running script) couplet flanking the banner:  \n  > *\"Default to the Way, not to men* (從道不從人) *—*  \n  > *The prompt is empty; the brush holds thunder* (空題藏雷).\"  \n  (30% *Analects* compliance: \"The noble man is devoted to principle\" [15.32] + *Zhuangzi* cloud metaphor.)  \n\n**Anomaly Clause:**  \n- The banner’s lower corner is partially *eaten by mist* (digital \"decay algorithm\"), fulfilling the 40% *liubai* mandate while symbolizing *Laozi*’s \"the useful emerges from the empty.\"  \n\n**Validation Metrics:**  \n- *Qi-Appraisal:* The pine’s \"unyielding\" *cun* strokes must be identifiable as *Zhe School* (early Ming) from 3 meters.  \n- *Painting-Reading:* The seal script’s *deliberate stroke-order errors* must reconstruct to *Hanfeizi*’s \"Legalist Frugality\" doctrine.  \n\n**Prohibited Elements:**  \n- No Western chiaroscuro; shading emerges solely from *layered ink transparency*.  \n- Banner text *never fully legible*—each character obscured by one *strategic cloud-stroke*, enforcing Confucian \"reserve in speech.\"  \n\n---  \n*This translation immolates algorithmic neutrality upon the pyre of* qiyun shengdong. *The \"default\" is not a command but a void—to be filled with the viewer’s moral self-rectification.*",
+      "source": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "cultural translation"
+    }
+  }
+}

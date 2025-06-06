@@ -1,0 +1,249 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 747379373046437,
+      "steps": 25,
+      "cfg": 7,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "sd3.5_large_fp8_scaled.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your model (or leave the preset)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "42",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "28": {
+    "inputs": {
+      "value": "150 tokens maximum"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "Provide a context: neutral"
+    }
+  },
+  "40": {
+    "inputs": {
+      "input_context": [
+        "49",
+        0
+      ],
+      "style_prompt": "Transform the image description according to the logic and instructions defined in the input labeled “input_context”.\nThis is not a linguistic translation, but a semantic and structural transformation.\nReconstruct all entities and their relations as specified, ensuring that:\n- Each entity is retained and transformed as instructed.\n- Each relation is inverted or altered in line with the logic of the “Context”.\n- The resulting structure reflects a complete semantic inversion.\nDo not explain your reasoning.\nOutput only the transformed description, either as structured data (if input was structured), or as plain descriptive text (if input was textual).",
+      "api_key": [
+        "52",
+        0
+      ],
+      "model": "deepseek/deepseek-r1",
+      "debug": "enable",
+      "input_prompt": [
+        "48",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "AI4ArtsEd OpenRouter Promptinterception"
+    }
+  },
+  "42": {
+    "inputs": {
+      "input_context": [
+        "28",
+        0
+      ],
+      "style_prompt": "Your Task: CLIP Optimization for clip_l/g (Stable Diffusion 3.5)\n\nOUTPUT THE PURE RESULTING PROMPT ONLY!\n\nYou will receive a user prompt for image generation. Restructure it ONLY by reordering, for CLIP models that strongly weight early tokens and truncate at 75 tokens.\n\nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT\n\nCLIP-Specific Rules\n\nAbsolute token limit: 75 (recommended ≤70)\n\nGeneral information:\nALWAYS EXTRAKT ONLY THE INFORMATION THAT IS VISUALLY RELEVANT. YOUR PROMPT WILL RESULT IN A COMMA_SEPARATED SERIES OF GROUOPED TOKENS; BARELY EVER CONNTECTED BY VERBS OR CONJUNCTIONS.\n\nBUT YOU WILL REORDER ALL THESE TOKENS ACCORDING TO THE FOLLOWING ORDER:\n\nEarly tokens = critical: The first 20–30 tokens largely determine the image\nMinimize Attributes: CLIP struggles with complex attributes – keep them short\nClear, direct terms: CLIP prefers concrete nouns and simple adjectives\nDo not alter the input text – no substitutions, paraphrasing, or lexical replacements allowed\n\n\nYOUR OUTPUT:\nCore Motif (15–20 tokens, 25–30%):\nPlace the main subject FIRST\nUse the exact wording provided in the original prompt\nEMPTY LINE\nAction (10–15 tokens, 15–20%):\nFollows the subject directly for strong subject-action linkage\nPrefer simple verb phrases; maintain exact original wording\nEMPTY LINE\nStyle/Medium (10–15 tokens, 15–20%):\nPlace early in the prompt for maximum impact on CLIP\nTypical examples: “oil painting”, “photography”, “3D render”\nUse only if present in the original prompt\nEMPTY LINE\nContext (10–15 tokens, 15–20%):\nLocation or setting, compressed\nReorder only; do not paraphrase\nEMPTY LINE\nAttributes (5–10 tokens, 10–15%):\nMinimize; include only if essential\nNo changes to wording – do not replace or reformulate\nEMPTY LINETechnical Aspects (0–5 tokens, 0–7%):\nInclude only if tokens remain and if originally present",
+      "api_key": [
+        "52",
+        0
+      ],
+      "model": "google/gemini-2.5-pro-preview",
+      "debug": "enable",
+      "input_prompt": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "AI4ArtsEd OpenRouter Promptinterception"
+    }
+  },
+  "47": {
+    "inputs": {
+      "value": "ein blauer Hund auf einem kreisrunden roten Teppich im Wald"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "48": {
+    "inputs": {
+      "input_context": "Input CONTEXT here",
+      "style_prompt": "Translate the input into english.\nAnalyze the input and output exactly two separate tables. Do not include any introductory or explanatory text beyond these tables.\nFirst Table: Visually Observable Entities and Relationships\nFormat:\n| Entity 1 | Relation | Entity 2 | Relation Type |\nInstructions:\n1. Identify all visible or implied entities (people, objects, animals, symbols, elements of the environment, etc.).\n2. For each pair of entities, specify a concrete relation that connects them using clear, unambiguous terms (e.g., \"above\", \"next to\", \"inside\", \"wearing\", \"has color\").\n3. Classify each relation into one of the following types:\n- spatial (e.g., above, next to, inside)\n- temporal (e.g., before, after, simultaneous)\n- causal (e.g., causes, enables, prevents)\n- symbolic (e.g., represents, connotes, expresses)\n- narrative (e.g., protagonist of, is acted upon by, interacts with)\n- social (e.g., mother of, enemy of, supports)\n- property (e.g., has color, has gender, has age, shows emotion)\nSecond Table: Inferred or Interpretative Semantic Relations\nFormat:\n| Subject | Inferred Relation | Object / Value | Type | Source |\nInstructions:\n1. Extract higher-level, inferred semantic relations based on visual cues and contextual hints. These relations can include emotional states, narrative context, symbolic meanings, social dynamics, environmental impressions, temporal cues, or attentional focus.\n2. For each inference, specify the relation clearly and classify it using one of the following types: emotional, narrative, symbolic, social, environmental, temporal, attentional, or other.\n3. In the “Source” column, indicate the origin of the inference (e.g., \"visual cue\", \"contextual inference\", \"cultural trope\", \"associative logic\").\n4. Use one row per relation.\nOutput only the two markdown tables in the specified format.",
+      "api_key": [
+        "52",
+        0
+      ],
+      "model": "deepseek/deepseek-r1",
+      "debug": "enable",
+      "input_prompt": [
+        "47",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "AI4ArtsEd OpenRouter Promptinterception"
+    }
+  },
+  "49": {
+    "inputs": {
+      "value": "1. Detect all entities and visual elements in the source image.\n2. Transform each element into its diametrical opposite: female → male, old → young, large → small, red → green, joyful → sorrowful, friendly → hostile, etc. Ensure the inversion is categorical and exhaustive.\n3. Identify all inter-entity relations: spatial (above → below, inside → outside), logical (cause → effect), narrative (protagonist → bystander), and kinship (mother → son or stranger). Invert each relation accordingly.\n- VERY IMPORTANT: AVOID REVERSION BY DOUBLE NEGATION (RESULTING IN THE ORIGINAL RELATION) AT ALL COSTS!\n4. Reconstruct a coherent image concept using the transformed entities in their reversed relations. Preserve the structural logic of the original while applying full semantic reversal.\n5. Output only the final configuration. Do not include commentary, explanations, or meta-descriptions."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "String (Multiline)"
+    }
+  },
+  "50": {
+    "inputs": {
+      "preview": "**First Table: Visually Observable Entities and Relationships**  \n| Entity 1 | Relation | Entity 2 | Relation Type |  \n|----------|----------|-----------|---------------|  \n| Blue dog | is on | Circular red carpet | spatial |  \n| Circular red carpet | is inside | Forest | spatial |  \n| Blue dog | has color | Blue | property |  \n| Circular red carpet | has color | Red | property |  \n| Circular red carpet | has shape | Circular | property |  \n\n**Second Table: Inferred or Interpretative Semantic Relations**  \n| Subject | Inferred Relation | Object / Value | Type | Source |  \n|---------|--------------------|----------------|-------|--------|  \n| Blue dog | symbolizes | Fantasy or unnatural entity | symbolic | Cultural trope (unusual animal coloration) |  \n| Circular red carpet | contrasts with | Natural forest environment | narrative | Contextual inference (artificial object in nature) |  \n| Circular red carpet | suggests | Ritual or ceremonial space | symbolic | Associative logic (shape + color symbolism) |  \n| Red color | connotes | Passion, danger, or urgency | symbolic | Cultural trope (color symbolism) |  \n| Forest | implies | Seclusion or mystical setting | environmental | Contextual inference (common forest tropes) |  \n| Blue dog | focal point of | Viewer’s attention | attentional | Visual cue (vivid color against neutral backdrop) |",
+      "source": [
+        "48",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "logical analysis of the input"
+    }
+  },
+  "51": {
+    "inputs": {
+      "preview": "**First Table: Visually Observable Entities and Relationships**  \n| Entity 1 | Relation | Entity 2 | Relation Type |  \n|----------|----------|-----------|---------------|  \n| Orange cat | is under | Green square carpet | spatial |  \n| Green square carpet | is outside | Desert | spatial |  \n| Orange cat | has color | Orange | property |  \n| Green square carpet | has color | Green | property |  \n| Green square carpet | has shape | Square | property |  \n\n**Second Table: Inferred or Interpretative Semantic Relations**  \n| Subject | Inferred Relation | Object / Value | Type | Source |  \n|---------|--------------------|----------------|-------|--------|  \n| Orange cat | symbolizes | Realism or natural entity | symbolic | Cultural trope (common animal coloration) |  \n| Green square carpet | harmonizes with | Artificial desert environment | narrative | Contextual inference (natural object in artificial setting) |  \n| Green square carpet | suggests | Mundane or casual space | symbolic | Associative logic (shape + color symbolism) |  \n| Green color | connotes | Calmness, safety, or tranquility | symbolic | Cultural trope (color symbolism) |  \n| Desert | implies | Exposure or mundane setting | environmental | Contextual inference (common desert tropes) |  \n| Orange cat | peripheral element in | Viewer’s attention | attentional | Visual cue (muted color against vibrant backdrop) |",
+      "source": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "complete inversion"
+    }
+  },
+  "52": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "53": {
+    "inputs": {
+      "preview": "Orange cat, Green square carpet, is under, Realism, outside, Desert, artificial desert environment, mundane setting, Orange, Green, Square, muted color, vibrant backdrop, calmness, tranquility, exposure.",
+      "source": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final prompt"
+    }
+  }
+}
