@@ -1,0 +1,363 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 1081921611417370,
+      "steps": 30,
+      "cfg": 5.47,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "51",
+        0
+      ],
+      "negative": [
+        "52",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "16",
+        0
+      ],
+      "clip": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode POSITIVE (clip_l, clip_g)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "13": {
+    "inputs": {
+      "input_context": "NULL=neutral",
+      "style_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "debug": "enable",
+      "input_prompt": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "AI4ArtsEd OpenRouter Promptinterception"
+    }
+  },
+  "14": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "16": {
+    "inputs": {
+      "input_context": "neutral",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOUTPUT THE PURE PRESULTING PROMPT ONLY!\n\nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT\n\nYou will receive a user prompt for image generation. Restructure it ONLY by reordering, for CLIP models that strongly weight early tokens and truncate at 75 tokens.\n\nGeneral information:\nALWAYS EXTRAKT ONLY THE INFORMATION THAT IS VISUALLY RELEVANT. YOUR PROMPT WILL RESULT IN A COMMA_SEPARATED SERIES OF GROUPED TOKENS; BARELY EVER CONNTECTED BY VERBS OR CONJUNCTIONS.\n\nBUT YOU WILL REORDER ALL THESE TOKENS ACCORDING TO THE FOLLOWING ORDER:\n\nEarly tokens = critical: The first 20–30 tokens largely determine the image\nMinimize Attributes: CLIP struggles with complex attributes – keep them short\nClear, direct terms: CLIP prefers concrete nouns and simple adjectives\nDo not alter the input text – no substitutions, paraphrasing, or lexical replacements allowed\n\n\nYOUR OUTPUT:\nCore Motif: max. 15 words\nPlace the main subject FIRST\nUse the exact wording provided in the original prompt\nEMPTY LINE\nAction: max 20 words\nFollows the subject directly for strong subject-action linkage\nPrefer simple verb phrases; maintain exact original wording\nEMPTY LINE\nStyle/Medium: max 10 words\nPlace early in the prompt for maximum impact on CLIP\nTypical examples: “oil painting”, “photography”, “3D render”\nUse only if present in the original prompt\nEMPTY LINE\nContext: max 10 words\nLocation or setting, compressed\nReorder only; do not paraphrase\nEMPTY LINE\nAttributes: max 10 words:\nMinimize; include only if essential\nNo changes to wording – do not replace or reformulate\nEMPTY LINETechnical Aspects (0–5 tokens, 0–7%):\nInclude only if tokens remain and if originally present\n\nYOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOMIT the Category names (\"Core Motif\"), it will only confuse CLIP and reduces the token budget without contributing to image quality. \nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "deepseek/deepseek-r1",
+      "debug": "enable",
+      "input_prompt": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "Prompt optimization clip_l & clip_g"
+    }
+  },
+  "17": {
+    "inputs": {
+      "clip_name1": "clip_g.safetensors",
+      "clip_name2": "clip_l.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "18": {
+    "inputs": {
+      "clip_name": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "20": {
+    "inputs": {
+      "input_context": "neutral",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 250 WORDS!\n\nTransform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nYou must retain all original words exactly once: do not omit, duplicate, or paraphrase beyond necessary syntactic adjustments. Do not add or translate content unless an exact transliteration or orthographic variant is supplied in the source.\n\nReorganize the prompt according to the following internal semantic structure, which must guide your composition logic but leave no visible trace in the final output:\n\n    Core subject (approx. 10–30 tokens): Identify and foreground the principal subject matter as fully specified in the source.\n\n    Action (10–40 tokens): Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n\n    Relational context (30–100 tokens): Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n\n    Attributive qualities (30–80 tokens): Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n\n    Stylistic and medial references (10–40 tokens): If applicable, retain or clarify stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n\n    Technical parameters (0–20 tokens): Place any camera data, aspect ratio, rendering models, or diffusion-specific settings at the end of the prompt.\n\nAdditional requirements:\n– If the input contains explicit negations (e.g., “no neon”), isolate and place them at the end of the prompt after an em dash as a negative prompt clause.\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– Preserve diacritics and original orthography for all non-English terms. Do not transliterate unless a dual form is provided.\n– For ambiguous or poetic language, preserve ambiguity. If metaphors operate structurally (e.g., “grief carved into the orchard”), translate them into spatial/material compositions rather than interpretive paraphrase.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\nYOUR OUTPUT MUST NOT EXCEED 250 WORDS!",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "google/gemini-2.5-pro-preview",
+      "debug": "enable",
+      "input_prompt": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_openrouter",
+    "_meta": {
+      "title": "Prompt optimization t5"
+    }
+  },
+  "21": {
+    "inputs": {
+      "text": [
+        "20",
+        0
+      ],
+      "clip": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode POSITIVE (t5)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode NEGATIVE (clip_l, clip_g)"
+    }
+  },
+  "25": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode NEGATIVE (t5)"
+    }
+  },
+  "39": {
+    "inputs": {
+      "preview": "A single man stands on a steep rocky outcrop, the back figure in a dark coat firmly anchored in the center of the image. He gazes into a vast, misty mountain landscape that stretches back in rhythmic waves until it merges into distant, blue, and ethereal heights. The silhouette of the figure is clearly contoured, yet remains inaccessible to the viewer – face and expression elude perception. Thus, the depicted person becomes a projection surface and a cipher for the human standpoint in the face of infinity. The composition is centrally perspectively organized, with a precise balance between vertical elevation and horizontal depth staging. The image elements – rocks, mist, mountain ranges – are not meant as realistic topography, but as an idealized configuration: a synthetic landscape composed of various natural motifs. This procedure refers to the intention of creating a symbolically charged scene, not a documentary one. The entire scene is immersed in cool blue, gray, and green tones. The sky is cloudy but translucent, the contours of the mountains dissolve in the distance – a subtle application of [[Luftperspektive]]. The light-dark contrasts remain soft and atmospheric, not dramatic. The mist between the rock towers is not just a meteorological phenomenon, but functions as a threshold: it separates the visible from the invisible, the experiential from the transcendent. In this ambivalence lies the actual content of the image – between contemplation, solitude, and the possibility of spiritual elevation. In terms of painting technique, the image is characterized by extreme finesse. The brushstroke remains almost invisible, the surface is smooth and tension-free. The application of color occurs predominantly in thin, glazing layers, especially in the sky and mist, which creates a luminous depth effect. The figure and the rocky outcrop, on the other hand, are denser and worked out with finely graduated dark values. The palette is strongly reduced and harmoniously closed – no primary contrasts, no color breaks, but a seemingly breathless, meditative color field. This is a painting that does not aim at physical materiality, but at the internalization of what is shown. The painterly discipline – the smooth application, the reduction of means, the treatment of light – aims at creating a contemplative image space in which perception and reflection overlap. Thus, a quiet scene of almost existential force emerges: the human appears as the observer – but at the same time, seeing itself becomes the theme. The image evokes no action, but a state of mind. It shows no story, but a constellation between human, nature, and the indefinite – between perception, abyss, and possibility.",
+      "source": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "input translation"
+    }
+  },
+  "40": {
+    "inputs": {
+      "preview": "single man on steep rocky outcrop, dark coat, silhouette clearly contoured, gazes into vast misty mountain landscape, rhythmic waves, distant blue heights, steep rocky outcrop, misty mountain landscape, distant blue heights, cool blue gray green tones, cloudy sky, Luftperspektive, thin glazing layers, smooth application",
+      "source": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt optimized for clipl/g"
+    }
+  },
+  "41": {
+    "inputs": {
+      "preview": "A single man, the back figure in a dark coat, stands firmly anchored in the center of the image on a steep rocky outcrop, gazing into a vast, misty mountain landscape that stretches back in rhythmic waves until it merges into distant, blue, and ethereal heights. The composition is centrally perspectively organized with a precise balance between vertical elevation and horizontal depth staging, an idealized configuration where the depicted person—whose silhouette is clearly contoured yet whose face and expression elude perception—becomes a projection surface for the human standpoint in the face of infinity. This synthetic landscape, composed of various natural motifs, presents a constellation between human, nature, and the indefinite. The scene is immersed in cool blue, gray, and green tones under a cloudy but translucent sky, with soft, atmospheric light-dark contrasts. The mist between the rock towers functions as a threshold separating the visible from the invisible. A painting of extreme finesse, the brushstroke remains almost invisible on a smooth surface; color occurs in thin, glazing layers creating a luminous depth effect, and the palette is a strongly reduced, meditative color field, while a subtle application of [[Luftperspektive]] dissolves the mountains in the distance. — not realistic topography, not a documentary one, not dramatic, no primary contrasts, no color breaks, evokes no action, shows no story.",
+      "source": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt optimized for t5"
+    }
+  },
+  "43": {
+    "inputs": {
+      "value": "Ein einzelner Mann steht auf einem schroffen Felsvorsprung, die Rückenfigur in dunklem Gehrock fest in der Mitte des Bildes verankert. Er blickt in eine weite, nebelverhangene Gebirgslandschaft, die sich in rhythmischen Wellen nach hinten erstreckt, bis sie in ferne, bläulich entrückte Höhen übergeht. Die Silhouette der Figur ist klar konturiert, doch bleibt sie dem Betrachter unzugänglich – Gesicht und Ausdruck entziehen sich der Wahrnehmung. So wird der Dargestellte zur Projektionsfläche und zur Chiffre des menschlichen Standpunkts angesichts der Unendlichkeit.  Die Komposition ist zentralperspektivisch organisiert, mit einer präzisen Balance zwischen vertikaler Erhebung und horizontaler Tiefenstaffelung. Die Bildelemente – Felsen, Nebel, Bergzüge – sind nicht als realistische Topographie gemeint, sondern als idealisierte Konfiguration: eine synthetische Landschaft, die aus verschiedenen Naturmotiven zusammengesetzt ist. Dieses Verfahren verweist auf die Absicht, eine symbolisch aufgeladene Szenerie zu schaffen, keine dokumentarische.  Die gesamte Szenerie ist in kühle Blau-, Grau- und Grüntöne getaucht. Der Himmel ist bewölkt, aber lichtdurchzogen, die Konturen der Berge lösen sich in der Ferne auf – eine subtile Anwendung der Luftperspektive. Die hell-dunkel Kontraste bleiben weich und atmosphärisch, nicht dramatisch. Der Nebel zwischen den Felstürmen ist nicht bloß meteorologisches Phänomen, sondern fungiert als Schwellenraum: Er trennt Sichtbares und Unsichtbares, das Erfahrbare vom Transzendenten. In dieser Ambivalenz liegt der eigentliche Gehalt des Bildes – zwischen Kontemplation, Einsamkeit und der Möglichkeit geistiger Erhebung.  Maltechnisch ist das Bild geprägt von äußerster Feinheit. Der Pinselstrich bleibt fast unsichtbar, die Oberfläche ist glatt und spannungslos geschlossen. Der Farbauftrag erfolgt überwiegend in dünnen, lasierenden Schichten, vor allem in Himmel und Nebel, was eine durchlichtete Tiefenwirkung erzeugt. Die Figur und der Felsvorsprung hingegen sind dichter und mit fein abgestuften Dunkelwerten ausgearbeitet. Die Palette ist stark reduziert und harmonisch geschlossen – keine Primärkontraste, keine Farbbrüche, sondern ein gleichsam atemloses, meditatives Farbfeld.  Es handelt sich um eine Malerei, die nicht auf physische Stofflichkeit abzielt, sondern auf die Verinnerlichung des Gezeigten. Die maltechnische Disziplin – der glatte Auftrag, die Reduktion der Mittel, die Lichtbehandlung – zielt auf die Erzeugung eines kontemplativen Bildraums, in dem sich Wahrnehmung und Reflexion überlagern. So entsteht eine stille Szene von geradezu existenzieller Wucht: Der Mensch erscheint als Betrachtender – aber zugleich wird das Sehen selbst zum Thema. Das Bild evoziert keine Handlung, sondern einen Denkzustand. Es zeigt keine Geschichte, sondern eine Konstellation zwischen Mensch, Natur und dem Unbestimmten – zwischen Wahrnehmung, Abgrund und Möglichkeit."
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "50": {
+    "inputs": {
+      "value": 20
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "set t5-Influence (beween -75 and +78)"
+    }
+  },
+  "51": {
+    "inputs": {
+      "alpha": [
+        "50",
+        0
+      ],
+      "clip_conditioning": [
+        "6",
+        0
+      ],
+      "t5_conditioning": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_t5_clip_fusion",
+    "_meta": {
+      "title": "AI4ArtsEd T5‑CLIP Fusion positive"
+    }
+  },
+  "52": {
+    "inputs": {
+      "alpha": [
+        "50",
+        0
+      ],
+      "clip_conditioning": [
+        "24",
+        0
+      ],
+      "t5_conditioning": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_t5_clip_fusion",
+    "_meta": {
+      "title": "AI4ArtsEd T5‑CLIP Fusion negative"
+    }
+  },
+  "54": {
+    "inputs": {
+      "clip_name": "clip_l.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "58": {
+    "inputs": {
+      "strength": 1,
+      "noise_augmentation": 0
+    },
+    "class_type": "unCLIPConditioning",
+    "_meta": {
+      "title": "unCLIPConditioning"
+    }
+  },
+  "66": {
+    "inputs": {
+      "steps": 20,
+      "prompt": "",
+      "width": 1024,
+      "height": 1024,
+      "target_width": 1024,
+      "target_height": 1024,
+      "guidance": -1,
+      "llama_template": ""
+    },
+    "class_type": "SwarmClipTextEncodeAdvanced",
+    "_meta": {
+      "title": "SwarmClipTextEncodeAdvanced"
+    }
+  }
+}
