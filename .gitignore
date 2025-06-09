@@ -1,0 +1,54 @@
+# -------------------------------------
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# -------------------------------------
+# Editor/IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -------------------------------------
+# macOS system files
+.DS_Store
+
+# -------------------------------------
+# Python virtual environments
+venv/
+.venv/
+.env/ 
+
+# -------------------------------------
+# Logs, caches, backups, system dumps
+*.log
+*.tmp
+*.bak
+*.orig
+
+# -------------------------------------
+# ComfyUI-specific temp/config paths
+comfyui_temp/
+output/
+input/
+
+# -------------------------------------
+# PyInstaller / packaging
+*.spec
+dist/
+build/
+
+# -------------------------------------
+# Jupyter/IPython
+*.ipynb_checkpoints/
+
+# -------------------------------------
+# Windows / system files
+Thumbs.db
+ehthumbs.db
+
+# -------------------------------------
+# API keys / sensitive configuration
+*.key
