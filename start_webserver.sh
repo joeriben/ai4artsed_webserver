@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# -----------------------------------------------------------------------------
-# start_webserver_only.sh
-#
-# Dieses Skript stellt sicher, dass keine bereits laufende Instanz des
-# workflow_server.py auf Port 5000 existiert. Ist dennoch eine vorhanden, wird
-# sie beendet, bevor der Server neu gestartet wird.
-#
-# Nutzung:
-#   chmod +x start_webserver_only.sh
-#   cd /home/joerissen/ai/ai4artsed_webserver_api-format
-#   ./start_webserver_only.sh
-#
-# Erwartetes Arbeitsverzeichnis: /home/joerissen/ai/ai4artsed_webserver_api-format
-# -----------------------------------------------------------------------------
 
 # 1) Definition von Port, Projektverzeichnis und Server-Skript
 PORT=5000

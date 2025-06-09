@@ -11,6 +11,12 @@ import traceback
 # Präfix für alle ComfyUI-Proxy-Routen
 COMFYUI_PREFIX = "comfyui"
 
+<<<<<<< HEAD
+=======
+COMFYUI_PORT = "7821"
+#7801 for ComfyUI inside SwarmUI; 8188 for ComfyUI original installation)
+
+>>>>>>> c88ba78 (Initial commit)
 # 1. Ermittelt den absoluten Pfad zu dieser Datei (server.py)
 THIS_FILE = Path(__file__).resolve()
 
@@ -105,7 +111,11 @@ def get_workflow(name):
 # ----------------------------------------------------------------------
 @app.route(f"/{COMFYUI_PREFIX}/<path:path>", methods=["GET", "POST", "OPTIONS"])
 def proxy_to_comfyui(path):
+<<<<<<< HEAD
     comfyui_url = f"http://localhost:8188/{path}"
+=======
+    comfyui_url = f"http://localhost:{COMFYUI_PORT}/{path}"
+>>>>>>> c88ba78 (Initial commit)
 
     # 1) Preflight (CORS) abfangen
     if request.method == "OPTIONS":
@@ -141,7 +151,11 @@ def proxy_to_comfyui(path):
         return jsonify({
             "error": "Verbindung zu ComfyUI fehlgeschlagen.",
             "action": (
+<<<<<<< HEAD
                 "Bitte starten Sie den ComfyUI-Server oder prüfen Sie, ob er auf Port 8188 lauscht. "
+=======
+                "Bitte starten Sie den ComfyUI-Server oder prüfen Sie, ob er auf Port {COMFYUI_PORT} lauscht. "
+>>>>>>> c88ba78 (Initial commit)
                 "Dieses Fenster muss nicht geschlossen werden; der Server wartet weiterhin auf neue Anfragen."
             )
         }), 502
