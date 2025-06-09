@@ -1,1 +1,49 @@
-European Union Public License v1.2 (EUPL-1.2)
+LICENSE (EUPL-1.2)
+------------------
+
+European Union Public Licence v. 1.2
+
+This European Union Public Licence (the "EUPL") applies to the software component known as "AI4ArtsEd ComfyUI Extensions" (the "Work").
+
+The Work is licensed under the EUPL v1.2. You may obtain a copy of the full licence text at:
+https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+
+By using, modifying, or distributing this Work, you accept the terms and conditions of the EUPL v1.2.
+
+This Work is provided "as is" without warranty of any kind, either express or implied. The licensor is not liable for any damages resulting from its use.
+
+Original work copyright:
+(c) 2025 AI4ArtsEd Research Group / Prof. Dr. Benjamin Jörissen, Friedrich-Alexander-Universität Erlangen-Nürnberg
+
+Compatibility:
+The EUPL v1.2 is compatible with the GNU General Public License (GPL) v2, v3, and AGPL, the Mozilla Public License (MPL), and several other open-source licenses. You may relicense under a compatible license if necessary.
+
+---
+
+Lizenz (deutsche Zusammenfassung, nicht rechtsverbindlich)
+-----------------------------------------------------------
+
+Diese Software steht unter der **European Union Public Licence (EUPL), Version 1.2**.
+
+Sie dürfen diese Software verwenden, studieren, ändern und weitergeben. Wenn Sie Änderungen vornehmen und diese weiterverbreiten, müssen Sie den Quellcode offenlegen und ebenfalls unter einer kompatiblen Lizenz bereitstellen.
+
+Diese Lizenz gewährleistet, dass Software ein Gemeingut bleibt ("digital commons") und unterstützt insbesondere gemeinwohlorientierte, kulturelle und bildungsbezogene Softwareentwicklung.
+
+Original work copyright:
+(c) 2025 AI4ArtsEd Research Group / Prof. Dr. Benjamin Jörissen, Friedrich-Alexander-Universität Erlangen-Nürnberg
+
+Bitte beachten Sie: Die rechtsverbindliche Version der Lizenz ist in mehreren Sprachen online verfügbar unter:
+https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+
+---
+
+README.md (Lizenzabschnitt)
+----------------------------
+
+## License
+
+This repository is licensed under the **European Union Public License (EUPL) v1.2**.
+
+The EUPL ensures that this software remains part of the cultural and educational commons. It guarantees your freedom to use, study, modify, and share the code, while requiring openness for derivative works.
+
+Full license text: [EUPL v1.2](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
