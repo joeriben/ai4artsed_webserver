@@ -221,7 +221,7 @@ function setupWebSocket(clientId) {
     };
     const timeout = setTimeout(() => {
       if (websocket.readyState !== WebSocket.OPEN) {
-        setStatus('Timeout bei Verbindung', 'error');
+        setStatus('Die Bearbeitung kann bis zu ca. 2,5 Minuten dauern', 'error');
         websocket.close();
       }
     }, 120000); // 2 Minuten gewartet
@@ -229,7 +229,7 @@ function setupWebSocket(clientId) {
     websocket.onopen = () => clearTimeout(timeout);
   } catch (e) {
     console.error('WebSocket-Einrichtungsfehler:', e);
-    setStatus('WebSocket-Fehler', 'error');
+    setStatus('Die Bearbeitung kann bis zu ca. 2,5 Minuten dauern', 'error');
   }
 }
 
