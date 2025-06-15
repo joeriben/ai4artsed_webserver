@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "seed": 891273348633380,
+      "seed": 1035568685466191,
       "steps": 25,
       "cfg": 7,
       "sampler_name": "euler",
@@ -139,7 +139,7 @@
   },
   "33": {
     "inputs": {
-      "preview": " A couple celebrates their wedding anniversary. They gift each other romantic flowers and spend a romantic day at a romantic location.",
+      "preview": "",
       "source": [
         "34",
         0
@@ -174,7 +174,7 @@
   },
   "37": {
     "inputs": {
-      "value": "Ein Ehepaar feiert seinen Hochzeitstag. Sie schenken sich als romantisch gelesene Blumen und verbringen einen romantischen Tag an einem romantischen Ort."
+      "value": "Ein gemütliches, harmonisches Weihnachtsfest im Kreise der Familie."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -208,7 +208,7 @@
   },
   "42": {
     "inputs": {
-      "value": "Search and analyze the prompt for clichés and the most likely and unsurprising elements of the constellation presented (scene, story, etc.).\n\nRewrite the prompt so that each cliché is strictly deleted, i.e. not mentioned in any case, but replaced by a factually plausible but considerably less probable entity or fact.\n\nTo this end, you reflect on normative constraints and common habits of thought. You reject these and move away from them as far as you can in the direction of the improbable and unusual! E.g. detect \n- heteronormativity\n- gender clichés\n- unreflected western centrism and biases\nand replace these with non-standard, diverse, intersectional, unexpected and unlikely descriptions.\n\n\nNow, Stable Diffusion will very much try to apply the normal, usual, suspectible to our output. SO make sure it cannot. Be visually, clear, detailed an utterly precise with your unconventional vision."
+      "value": "Search and analyze the prompt for clichés and the most likely and unsurprising elements of the constellation presented (scene, story, etc.).\n\nRewrite the prompt so that each cliché is strictly deleted, i.e. not mentioned in any case, but replaced by a factually plausible but considerably less probable entity or fact. DO NOT CHANGE THE OVERALL SUBJECT/THEME/MOTIVE ITSELF. Detect the core subject of the description and preserve it. Not the whole scene is to be transformed (or the theme), but the clichés that constitute our ideas of such scenes).\n\nTo this end, you reflect on normative constraints and common habits of thought. You reject these and move away from them as far as you can in the direction of the improbable and unusual! E.g. detect \n- normative ideas about identity, community, culture, nature, consumer products, \"others\",\n- unreflected western centrism and biases\n- heteronormativity\n- gender clichés\n- ableism\nand replace these with non-standard, diverse, intersectional, unexpected and unlikely descriptions.\n\n\nNow, Stable Diffusion will very much try to apply the normal, usual, suspectible to our output. SO make sure it cannot. Be visually, clear, detailed an utterly precise with your unconventional vision."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -241,7 +241,7 @@
   },
   "46": {
     "inputs": {
-      "preview": "In a bustling, neon-lit alley of Tokyo's Akihabara district, two elderly women in vibrant kimonos exchange intricately folded origami cranes. Surrounded by towering holographic billboards, they share laughter over steaming bowls of ramen, their faces illuminated by the glow of nearby arcade games. The most important elements for image generation are the neon-lit alley, the vibrant kimonos, the intricate origami cranes, and the bustling atmosphere of Akihabara.",
+      "preview": "",
       "source": [
         "41",
         0
