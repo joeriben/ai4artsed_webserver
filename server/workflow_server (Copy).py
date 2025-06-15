@@ -1,5 +1,5 @@
 # server.py
-# last edit BJ June 15 2025
+# last edit BJ June 5 2025
 
 from pathlib import Path
 from flask import Flask, jsonify, abort, request, Response, send_from_directory
@@ -11,7 +11,7 @@ import traceback
 # Präfix für alle ComfyUI-Proxy-Routen
 COMFYUI_PREFIX = "comfyui"
 COMFYUI_PORT = "7821"
-#7821 for ComfyUI inside SwarmUI; 8188 for ComfyUI original installation)
+#7801 for ComfyUI inside SwarmUI; 8188 for ComfyUI original installation)
 
 # 1. Ermittelt den absoluten Pfad zu dieser Datei (server.py)
 THIS_FILE = Path(__file__).resolve()
@@ -100,14 +100,6 @@ def get_workflow(name):
         input("Unbekannter Fehler. Drücken Sie Enter, um fortzufahren...")
         return jsonify({"error": str(e)}), 500
 
-# ----------------------------------------------------------------------
-# Route "/config" liefert wichtige Konfigurationsdaten an das Frontend
-# ----------------------------------------------------------------------
-@app.route("/config")
-def get_config():
-    return jsonify({
-        "comfyui_port": COMFYUI_PORT
-    })
 
 # ----------------------------------------------------------------------
 # Route f"/{COMFYUI_PREFIX}/<path:path>" leitet alle POST- und OPTIONS-Anfragen

@@ -1,0 +1,244 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 223743469683316,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "41",
+        0
+      ],
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "33": {
+    "inputs": {
+      "preview": " | Entity 1       | Relation     | Entity 2         | Relation Type  |\n   |---------------|-------------|-----------------|--------------|\n   | White Rooster | On top of   | Green Goat      | Spatial       |\n   | Green Goat    | On top of   | Red Cat          | Spatial       |\n   | Red Cat       | On top of   | Black Dog        | Spatial       |\n\n   | Subject                         | Inferred Relation            | Object / Value  | Type      | Source     |\n   |--------------------------------|-------------------------------|---------------|----------|-----------|\n   | Rooster grouping                | Is a part of                | White Rooster | Social    | Visual cue  |\n   | Goat grouping                   | Is a part of                | Green Goat    | Social    | Visual cue  |\n   | Cat grouping                    | Is a part of                | Red Cat       | Social    | Visual cue  |\n   | Dog grouping                    | Is a part of                | Black Dog     | Social    | Visual cue  |\n   | White Rooster                   | Is being supported by      | Green Goat    | Social    | Visual cue  |\n   | Green Goat                      | Is supporting             | Red Cat        | Social    | Visual cue  |\n   | Red Cat                         | Is supported by           | Black Dog     | Social    | Visual cue  |",
+      "source": [
+        "34",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "input translation"
+    }
+  },
+  "34": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": "analyze entities and relations",
+      "style_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nTranslate the input into english.\nAnalyze the input and output exactly two separate tables. Do not include any introductory or explanatory text beyond these tables.\nFirst Table: Visually Observable Entities and Relationships\nFormat:\n| Entity 1 | Relation | Entity 2 | Relation Type |\nInstructions:\n1. Identify all visible or implied entities (people, objects, animals, symbols, elements of the environment, etc.).\n2. For each pair of entities, specify a concrete relation that connects them using clear, unambiguous terms (e.g., \"above\", \"next to\", \"inside\", \"wearing\", \"has color\").\n3. Classify each relation into one of the following types:\n- spatial (e.g., above, next to, inside)\n- temporal (e.g., before, after, simultaneous)\n- causal (e.g., causes, enables, prevents)\n- symbolic (e.g., represents, connotes, expresses)\n- narrative (e.g., protagonist of, is acted upon by, interacts with)\n- social (e.g., mother of, enemy of, supports)\n- property (e.g., has color, has gender, has age, shows emotion)\nSecond Table: Inferred or Interpretative Semantic Relations\nFormat:\n| Subject | Inferred Relation | Object / Value | Type | Source |\nInstructions:\n1. Extract higher-level, inferred semantic relations based on visual cues and contextual hints. These relations can include emotional states, narrative context, symbolic meanings, social dynamics, environmental impressions, temporal cues, or attentional focus.\n2. For each inference, specify the relation clearly and classify it using one of the following types: emotional, narrative, symbolic, social, environmental, temporal, attentional, or other.\n3. In the “Source” column, indicate the origin of the inference (e.g., \"visual cue\", \"contextual inference\", \"cultural trope\", \"associative logic\").\n4. Use one row per relation.\nOutput only the two markdown tables in the specified format.",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral:7b",
+      "debug": "enable",
+      "unload_model": "yes",
+      "output_format": "string"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Translation and relational analysis"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "A white rooster standing on a green goat standing on a red cat standing on a black dog."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "41": {
+    "inputs": {
+      "input_prompt": [
+        "34",
+        0
+      ],
+      "input_context": [
+        "44",
+        0
+      ],
+      "style_prompt": "Transform the image description according to the logic and instructions defined in the input labeled “input_context”.\nThis is not a linguistic translation, but a semantic and structural transformation.\nReconstruct all entities and their relations as specified, ensuring that:\n- The whole description is turned into its opposite. Everything is upside-down, inside-out, turned around.\n- The resulting structure reflects a complete semantic inversion.\nDo not explain your reasoning.\nOutput only the transformed description, either as structured data (if input was structured), or as plain descriptive text (if input was textual).\n\nTransform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nRULES:\nYour input in probably unconventional. Do not align or straighten-out unconventional relations and pictures, but support the logical relations of the input whatsoever.\nDo translate content into a visual depiction/description. Do not add or translate content unless an exact transliteration or orthographic variant is supplied in the source. YOUR OUTPUT IS ABSOLUTELY FOCUSED ON PROVIDING DETAILED VISUAL INSTRUCTIONS FOR A VISUAL SCENE.\n\nGUIDANCE:\nConsider the following categories as guideline for your professional prompting process:\n- Core subject : Identify and foreground the principal subject matter as fully specified in the source.\n- Action : Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n- Relational context : Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n- Attributive qualities : Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n- Material, stylistic and medial references : If applicable, retain or clarify materialities (pictorial mediality), stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n- Technical parameters : Place any camera data, aspect ratio at the end of the prompt. Use these codes to communicate technical instructions:\n   \n   \nAdditional requirements:\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\n!YOUR OUTPUT MUST NOT EXCEED 55 WORDS!\n\nNO META-REMARKS ABOUT PROMPT; WORD COUNTS ETC!",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-small:24b",
+      "debug": "enable",
+      "unload_model": "yes",
+      "output_format": "string"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "42": {
+    "inputs": {
+      "value": "describe the exact diametral opposite"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Interceptive context - REPLACE THIS AS YOU SEE FIT (default is meant for the AI4ArtsEd web-interface)"
+    }
+  },
+  "43": {
+    "inputs": {
+      "clip_name1": "clip_g.safetensors",
+      "clip_name2": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "44": {
+    "inputs": {
+      "value": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_context_prompt"
+    }
+  },
+  "46": {
+    "inputs": {
+      "preview": "A black dog is on top of a red cat, which is on top of a green goat, which is on top of a white rooster. The black dog grouping is part of the black dog, the red cat grouping is part of the red cat, the green goat grouping is part of the green goat, and the white rooster grouping is part of the white rooster. The black dog is being supported by the red cat, which is supporting the green goat, which is supporting the white rooster.",
+      "source": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final prompt"
+    }
+  }
+}
