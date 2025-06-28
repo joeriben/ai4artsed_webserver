@@ -137,25 +137,9 @@
       "title": "ai4artsed_text_prompt"
     }
   },
-  "33": {
-    "inputs": {
-      "preview": "",
-      "source": [
-        "34",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "input translation"
-    }
-  },
   "34": {
     "inputs": {
-      "input_prompt": [
-        "26",
-        0
-      ],
+      "input_prompt": "",
       "input_context": "professional translator",
       "style_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
       "api_key": [
@@ -164,8 +148,7 @@
       ],
       "model": "local/mistral:7b",
       "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "string"
+      "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -184,7 +167,7 @@
   "41": {
     "inputs": {
       "input_prompt": [
-        "34",
+        "26",
         0
       ],
       "input_context": [
@@ -198,8 +181,7 @@
       ],
       "model": "local/mistral-small:24b",
       "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "string"
+      "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {

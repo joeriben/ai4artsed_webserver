@@ -1,9 +1,9 @@
 {
   "3": {
     "inputs": {
-      "seed": 103286692927213,
-      "steps": 8,
-      "cfg": 1,
+      "seed": 392371737554951,
+      "steps": 25,
+      "cfg": 5.5,
       "sampler_name": "euler",
       "scheduler": "normal",
       "denoise": 1,
@@ -31,7 +31,7 @@
   },
   "4": {
     "inputs": {
-      "ckpt_name": "Flux1/flux1-schnell.safetensors"
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
@@ -56,7 +56,7 @@
         0
       ],
       "clip": [
-        "42",
+        "39",
         0
       ]
     },
@@ -69,7 +69,7 @@
     "inputs": {
       "text": "text, watermark",
       "clip": [
-        "42",
+        "39",
         0
       ]
     },
@@ -85,8 +85,8 @@
         0
       ],
       "vae": [
-        "41",
-        0
+        "4",
+        2
       ]
     },
     "class_type": "VAEDecode",
@@ -105,6 +105,13 @@
     "class_type": "SaveImage",
     "_meta": {
       "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
     }
   },
   "20": {
@@ -139,24 +146,15 @@
       "title": "Just a more convenient input for your prompt"
     }
   },
-  "41": {
+  "39": {
     "inputs": {
-      "vae_name": "Flux/ae.safetensors"
+      "clip_name": "clip_g.safetensors",
+      "type": "sd3",
+      "device": "default"
     },
-    "class_type": "VAELoader",
+    "class_type": "CLIPLoader",
     "_meta": {
-      "title": "Load VAE"
-    }
-  },
-  "42": {
-    "inputs": {
-      "clip_name1": "clip_l.safetensors",
-      "clip_name2": "clip_g.safetensors",
-      "clip_name3": "t5xxl_enconly.safetensors"
-    },
-    "class_type": "TripleCLIPLoader",
-    "_meta": {
-      "title": "TripleCLIPLoader"
+      "title": "Models without CLIP need this"
     }
   }
 }

@@ -1,9 +1,9 @@
 {
   "3": {
     "inputs": {
-      "seed": 577284311910,
-      "steps": 8,
-      "cfg": 1,
+      "seed": 639457674885194,
+      "steps": 20,
+      "cfg": 5.5,
       "sampler_name": "euler",
       "scheduler": "normal",
       "denoise": 1,
@@ -31,7 +31,7 @@
   },
   "4": {
     "inputs": {
-      "ckpt_name": "Flux1/flux1-schnell.safetensors"
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
@@ -52,11 +52,11 @@
   "6": {
     "inputs": {
       "text": [
-        "43",
+        "26",
         0
       ],
       "clip": [
-        "42",
+        "41",
         0
       ]
     },
@@ -67,9 +67,12 @@
   },
   "7": {
     "inputs": {
-      "text": "text, watermark",
+      "text": [
+        "26",
+        0
+      ],
       "clip": [
-        "42",
+        "40",
         0
       ]
     },
@@ -85,8 +88,8 @@
         0
       ],
       "vae": [
-        "41",
-        0
+        "4",
+        2
       ]
     },
     "class_type": "VAEDecode",
@@ -139,16 +142,7 @@
       "title": "Just a more convenient input for your prompt"
     }
   },
-  "41": {
-    "inputs": {
-      "vae_name": "Flux/ae.safetensors"
-    },
-    "class_type": "VAELoader",
-    "_meta": {
-      "title": "Load VAE"
-    }
-  },
-  "42": {
+  "40": {
     "inputs": {
       "clip_name1": "clip_l.safetensors",
       "clip_name2": "clip_g.safetensors",
@@ -159,36 +153,15 @@
       "title": "TripleCLIPLoader"
     }
   },
-  "43": {
+  "41": {
     "inputs": {
-      "input_prompt": [
-        "26",
-        0
-      ],
-      "input_context": "professional translator",
-      "style_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
-      "api_key": "",
-      "model": "local/mistral:7b",
-      "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "string"
+      "clip_name": "t5xxl_enconly.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
     },
-    "class_type": "ai4artsed_prompt_interception",
+    "class_type": "CLIPLoader",
     "_meta": {
-      "title": "AI4ArtsEd Translation_english"
-    }
-  },
-  "44": {
-    "inputs": {
-      "preview": " A billboard with the inscription \"NICHT DEIN PROMPT\" on a green meadow.",
-      "source": [
-        "43",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "translated prompt"
+      "title": "Load CLIP"
     }
   }
 }

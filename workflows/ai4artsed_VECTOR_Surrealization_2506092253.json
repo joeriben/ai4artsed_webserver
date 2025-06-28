@@ -154,19 +154,6 @@
       "title": "CLIP Text Encode NEGATIVE (t5)"
     }
   },
-  "39": {
-    "inputs": {
-      "preview": "",
-      "source": [
-        "71",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "input translation"
-    }
-  },
   "40": {
     "inputs": {
       "preview": "",
@@ -195,7 +182,10 @@
   },
   "43": {
     "inputs": {
-      "value": "Ein einzelner Mann steht auf einem schroffen Felsvorsprung, die Rückenfigur in dunklem Gehrock fest in der Mitte des Bildes verankert. Er blickt in eine weite, nebelverhangene Gebirgslandschaft, die sich in rhythmischen Wellen nach hinten erstreckt, bis sie in ferne, bläulich entrückte Höhen übergeht. Die Silhouette der Figur ist klar konturiert, doch bleibt sie dem Betrachter unzugänglich – Gesicht und Ausdruck entziehen sich der Wahrnehmung. So wird der Dargestellte zur Projektionsfläche und zur Chiffre des menschlichen Standpunkts angesichts der Unendlichkeit.  Die Komposition ist zentralperspektivisch organisiert, mit einer präzisen Balance zwischen vertikaler Erhebung und horizontaler Tiefenstaffelung. Die Bildelemente – Felsen, Nebel, Bergzüge – sind nicht als realistische Topographie gemeint, sondern als idealisierte Konfiguration: eine synthetische Landschaft, die aus verschiedenen Naturmotiven zusammengesetzt ist. Dieses Verfahren verweist auf die Absicht, eine symbolisch aufgeladene Szenerie zu schaffen, keine dokumentarische.  Die gesamte Szenerie ist in kühle Blau-, Grau- und Grüntöne getaucht. Der Himmel ist bewölkt, aber lichtdurchzogen, die Konturen der Berge lösen sich in der Ferne auf – eine subtile Anwendung der Luftperspektive. Die hell-dunkel Kontraste bleiben weich und atmosphärisch, nicht dramatisch. Der Nebel zwischen den Felstürmen ist nicht bloß meteorologisches Phänomen, sondern fungiert als Schwellenraum: Er trennt Sichtbares und Unsichtbares, das Erfahrbare vom Transzendenten. In dieser Ambivalenz liegt der eigentliche Gehalt des Bildes – zwischen Kontemplation, Einsamkeit und der Möglichkeit geistiger Erhebung.  Maltechnisch ist das Bild geprägt von äußerster Feinheit. Der Pinselstrich bleibt fast unsichtbar, die Oberfläche ist glatt und spannungslos geschlossen. Der Farbauftrag erfolgt überwiegend in dünnen, lasierenden Schichten, vor allem in Himmel und Nebel, was eine durchlichtete Tiefenwirkung erzeugt. Die Figur und der Felsvorsprung hingegen sind dichter und mit fein abgestuften Dunkelwerten ausgearbeitet. Die Palette ist stark reduziert und harmonisch geschlossen – keine Primärkontraste, keine Farbbrüche, sondern ein gleichsam atemloses, meditatives Farbfeld.  Es handelt sich um eine Malerei, die nicht auf physische Stofflichkeit abzielt, sondern auf die Verinnerlichung des Gezeigten. Die maltechnische Disziplin – der glatte Auftrag, die Reduktion der Mittel, die Lichtbehandlung – zielt auf die Erzeugung eines kontemplativen Bildraums, in dem sich Wahrnehmung und Reflexion überlagern. So entsteht eine stille Szene von geradezu existenzieller Wucht: Der Mensch erscheint als Betrachtender – aber zugleich wird das Sehen selbst zum Thema. Das Bild evoziert keine Handlung, sondern einen Denkzustand. Es zeigt keine Geschichte, sondern eine Konstellation zwischen Mensch, Natur und dem Unbestimmten – zwischen Wahrnehmung, Abgrund und Möglichkeit."
+      "value": [
+        "73",
+        0
+      ]
     },
     "class_type": "PrimitiveString",
     "_meta": {
@@ -268,7 +258,7 @@
   "68": {
     "inputs": {
       "input_prompt": [
-        "71",
+        "43",
         0
       ],
       "input_context": "prompting expert",
@@ -279,8 +269,7 @@
       ],
       "model": "local/sailor2:20b",
       "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "string"
+      "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -290,7 +279,7 @@
   "69": {
     "inputs": {
       "input_prompt": [
-        "71",
+        "43",
         0
       ],
       "input_context": "prompt expert",
@@ -301,8 +290,7 @@
       ],
       "model": "local/mistral:7b",
       "debug": "enable",
-      "unload_model": "no",
-      "output_format": "string"
+      "unload_model": "no"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -323,34 +311,11 @@
       ],
       "model": "local/mistral:7b",
       "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "float"
+      "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
       "title": "AI4ArtsEd Prompt Interception"
-    }
-  },
-  "71": {
-    "inputs": {
-      "input_prompt": [
-        "43",
-        0
-      ],
-      "input_context": "",
-      "style_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
-      "api_key": [
-        "14",
-        0
-      ],
-      "model": "local/mistral:7b",
-      "debug": "enable",
-      "unload_model": "no",
-      "output_format": "string"
-    },
-    "class_type": "ai4artsed_prompt_interception",
-    "_meta": {
-      "title": "english translation"
     }
   },
   "72": {
@@ -364,6 +329,15 @@
     "class_type": "PreviewAny",
     "_meta": {
       "title": "auto alpha"
+    }
+  },
+  "73": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "YOUR PROMPT GOES HERE!"
     }
   }
 }

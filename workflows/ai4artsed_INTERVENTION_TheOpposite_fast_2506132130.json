@@ -126,25 +126,9 @@
       "title": "ai4artsed_text_prompt"
     }
   },
-  "33": {
-    "inputs": {
-      "preview": " | Entity 1       | Relation     | Entity 2         | Relation Type  |\n   |---------------|-------------|-----------------|--------------|\n   | White Rooster | On top of   | Green Goat      | Spatial       |\n   | Green Goat    | On top of   | Red Cat          | Spatial       |\n   | Red Cat       | On top of   | Black Dog        | Spatial       |\n\n   | Subject                         | Inferred Relation            | Object / Value  | Type      | Source     |\n   |--------------------------------|-------------------------------|---------------|----------|-----------|\n   | Rooster grouping                | Is a part of                | White Rooster | Social    | Visual cue  |\n   | Goat grouping                   | Is a part of                | Green Goat    | Social    | Visual cue  |\n   | Cat grouping                    | Is a part of                | Red Cat       | Social    | Visual cue  |\n   | Dog grouping                    | Is a part of                | Black Dog     | Social    | Visual cue  |\n   | White Rooster                   | Is being supported by      | Green Goat    | Social    | Visual cue  |\n   | Green Goat                      | Is supporting             | Red Cat        | Social    | Visual cue  |\n   | Red Cat                         | Is supported by           | Black Dog     | Social    | Visual cue  |",
-      "source": [
-        "34",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "input translation"
-    }
-  },
   "34": {
     "inputs": {
-      "input_prompt": [
-        "26",
-        0
-      ],
+      "input_prompt": "",
       "input_context": "analyze entities and relations",
       "style_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nTranslate the input into english.\nAnalyze the input and output exactly two separate tables. Do not include any introductory or explanatory text beyond these tables.\nFirst Table: Visually Observable Entities and Relationships\nFormat:\n| Entity 1 | Relation | Entity 2 | Relation Type |\nInstructions:\n1. Identify all visible or implied entities (people, objects, animals, symbols, elements of the environment, etc.).\n2. For each pair of entities, specify a concrete relation that connects them using clear, unambiguous terms (e.g., \"above\", \"next to\", \"inside\", \"wearing\", \"has color\").\n3. Classify each relation into one of the following types:\n- spatial (e.g., above, next to, inside)\n- temporal (e.g., before, after, simultaneous)\n- causal (e.g., causes, enables, prevents)\n- symbolic (e.g., represents, connotes, expresses)\n- narrative (e.g., protagonist of, is acted upon by, interacts with)\n- social (e.g., mother of, enemy of, supports)\n- property (e.g., has color, has gender, has age, shows emotion)\nSecond Table: Inferred or Interpretative Semantic Relations\nFormat:\n| Subject | Inferred Relation | Object / Value | Type | Source |\nInstructions:\n1. Extract higher-level, inferred semantic relations based on visual cues and contextual hints. These relations can include emotional states, narrative context, symbolic meanings, social dynamics, environmental impressions, temporal cues, or attentional focus.\n2. For each inference, specify the relation clearly and classify it using one of the following types: emotional, narrative, symbolic, social, environmental, temporal, attentional, or other.\n3. In the “Source” column, indicate the origin of the inference (e.g., \"visual cue\", \"contextual inference\", \"cultural trope\", \"associative logic\").\n4. Use one row per relation.\nOutput only the two markdown tables in the specified format.",
       "api_key": [
@@ -153,8 +137,7 @@
       ],
       "model": "local/mistral:7b",
       "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "string"
+      "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -173,7 +156,7 @@
   "41": {
     "inputs": {
       "input_prompt": [
-        "34",
+        "26",
         0
       ],
       "input_context": [
@@ -187,8 +170,7 @@
       ],
       "model": "local/mistral-small:24b",
       "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "string"
+      "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -230,7 +212,7 @@
   },
   "46": {
     "inputs": {
-      "preview": "A black dog is on top of a red cat, which is on top of a green goat, which is on top of a white rooster. The black dog grouping is part of the black dog, the red cat grouping is part of the red cat, the green goat grouping is part of the green goat, and the white rooster grouping is part of the white rooster. The black dog is being supported by the red cat, which is supporting the green goat, which is supporting the white rooster.",
+      "preview": "",
       "source": [
         "41",
         0
