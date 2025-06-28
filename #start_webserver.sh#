@@ -2,7 +2,7 @@
 
 # 1) Definition von Port, Projektverzeichnis und Server-Skript
 PORT=5000
-PROJECT_DIR="."
+PROJECT_DIR="/home/joerissen/ai/ai4artsed_webserve.r"
 SERVER_SCRIPT="server/workflow_server.py"
 
 # 2) Prüfen, ob bereits ein Prozess auf PORT läuft; PID ermitteln (falls vorhanden)

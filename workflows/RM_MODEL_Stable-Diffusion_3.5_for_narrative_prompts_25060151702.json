@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "seed": 1042401654135194,
+      "seed": 804205802237619,
       "steps": 25,
       "cfg": [
         "76",
@@ -139,10 +139,7 @@
   },
   "24": {
     "inputs": {
-      "text": [
-        "89",
-        0
-      ],
+      "text": "watermark",
       "clip": [
         "54",
         0
@@ -155,10 +152,7 @@
   },
   "25": {
     "inputs": {
-      "text": [
-        "89",
-        0
-      ],
+      "text": "watermark",
       "clip": [
         "18",
         0
@@ -169,22 +163,9 @@
       "title": "CLIP Text Encode NEGATIVE (t5)"
     }
   },
-  "39": {
-    "inputs": {
-      "preview": "",
-      "source": [
-        "72",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "input translation"
-    }
-  },
   "40": {
     "inputs": {
-      "preview": "Core Motif: Dense forest, wooden house, family\n   Action: Gathered outside, father holding axe, mother clutching basket, Hänsel scattering pebbles\n   Style/Medium: Moonlit scene, ethereal glow\n   Context: Edge of the woods, path ahead illuminated by glinting pebbles, small fire nearby\n   Attributes: Impoverished, thatched roof, smoke curling from chimney, bright moonlight\n   Technical Aspects: modest wooden house, dark forest canopy, dappled shadows, towering trees, rustling leaves, stern mother expression",
+      "preview": "",
       "source": [
         "71",
         0
@@ -197,7 +178,7 @@
   },
   "41": {
     "inputs": {
-      "preview": "A dense forest looms large in the background, its dark canopy stretching wide and tall. A modest wooden house stands at the edge of the woods, with a thatched roof and smoke curling from the chimney. The family—an impoverished woodcutter, his wife, and their two children, Hänsel and Gretel—are gathered outside, the father holding an axe, the mother clutching a basket. Hänsel, in a small tunic, is scattering white pebbles on the ground, each one glinting like fresh silver coins under the bright moonlight. The path ahead is illuminated by these gleaming stones, leading into the heart of the forest where a small fire crackles, surrounded by a pile of gathered twigs and branches. The children's faces are etched with worry, their eyes reflecting the dancing flames as they sit huddled together, each holding a piece of bread. The father stands nearby, his axe resting on a stump, while the mother watches from a distance, her expression stern. The forest is thick with towering trees, their leaves rustling softly in the breeze, casting dappled shadows that dance across the forest floor. The scene is bathed in a soft, ethereal glow, the moonlight filtering through the canopy above, creating a serene yet tense atmosphere. The family's expressions are a mix of concern and determination, their bodies language reflecting the weight of their situation. The forest stretches out endlessly behind them, its depths shrouded in mystery and danger. #CFG=7.0 #ARw=1368/#ARh=768",
+      "preview": "",
       "source": [
         "73",
         0
@@ -283,40 +264,22 @@
   "71": {
     "inputs": {
       "input_prompt": [
-        "73",
+        "43",
         0
       ],
       "input_context": "Prompting Expert",
-      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOUTPUT THE PURE PRESULTING PROMPT ONLY!\nNEVER OUTPUT NAMES OF PERSONS OR FICTIONSL CHARACTERS!\nOmit key marker introduced ba \"#\" such as \"#cfg=\", \"ARh=\", ARw=\" and their values.\n\nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT! NEVER INCLUDE USER_DIRECTED FEEDBACK SUCH AS \"Sure, here is ...\"!\nDo not include names of persons whatsoever. If you must, translate into visual properties.\n\nYou will receive a user prompt for image generation. Restructure it ONLY by reordering, for CLIP models that strongly weight early tokens and truncate at 75 tokens.\n\nGeneral information:\nALWAYS EXTRAKT ONLY THE INFORMATION THAT IS VISUALLY RELEVANT. YOUR PROMPT WILL RESULT IN A COMMA_SEPARATED SERIES OF GROUPED TOKENS; BARELY EVER CONNTECTED BY VERBS OR CONJUNCTIONS.\n\nBUT YOU WILL REORDER ALL THESE TOKENS ACCORDING TO THE FOLLOWING ORDER:\n\nEarly tokens = critical: The first 20–30 tokens largely determine the image\nMinimize Attributes: CLIP struggles with complex attributes – keep them short\nClear, direct terms: CLIP prefers concrete nouns and simple adjectives\nDo not alter the input text – no substitutions, paraphrasing, or lexical replacements allowed\n\n\nYOUR OUTPUT:\nCore Motif: max. 15 words\nPlace the main subject FIRST\nUse the exact wording provided in the original prompt\n\nAction: max 20 words\nFollows the subject directly for strong subject-action linkage\nPrefer simple verb phrases; maintain exact original wording\n\nStyle/Medium: max 10 words\nPlace early in the prompt for maximum impact on CLIP\nTypical examples: “oil painting”, “photography”, “3D render”\nUse only if present in the original prompt\n\nContext: max 10 words\nLocation or setting, compressed\nReorder only; do not paraphrase\n\nAttributes: max 10 words:\nMinimize; include only if essential\nNo changes to wording – do not replace or reformulate\nEMPTY LINETechnical Aspects (0–5 tokens, 0–7%):\nInclude only if tokens remain and if originally present\n\nYOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOMIT the Category names (\"Core Motif\"), it will only confuse CLIP and reduces the token budget without contributing to image quality. \nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT!",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOUTPUT THE PURE PRESULTING PROMPT ONLY!\nNEVER OUTPUT NAMES OF PERSONS OR FICTIONSL CHARACTERS!\n\nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT! NEVER INCLUDE USER_DIRECTED FEEDBACK SUCH AS \"Sure, here is ...\"!\nDo not include names of persons whatsoever. If you must, translate into visual properties.\n\nYou will receive a user prompt for image generation. Restructure it ONLY by reordering, for CLIP models that strongly weight early tokens and truncate at 75 tokens.\n\nGeneral information:\nALWAYS EXTRAKT ONLY THE INFORMATION THAT IS VISUALLY RELEVANT. YOUR PROMPT WILL RESULT IN A COMMA_SEPARATED SERIES OF GROUPED TOKENS; BARELY EVER CONNTECTED BY VERBS OR CONJUNCTIONS.\n\nBUT YOU WILL REORDER ALL THESE TOKENS ACCORDING TO THE FOLLOWING ORDER:\n\nEarly tokens = critical: The first 20–30 tokens largely determine the image\nMinimize Attributes: CLIP struggles with complex attributes – keep them short\nClear, direct terms: CLIP prefers concrete nouns and simple adjectives\nDo not alter the input text – no substitutions, paraphrasing, or lexical replacements allowed\n\n\nYOUR OUTPUT:\nCore Motif: max. 15 words\nPlace the main subject FIRST\nUse the exact wording provided in the original prompt\n\nAction: max 20 words\nFollows the subject directly for strong subject-action linkage\nPrefer simple verb phrases; maintain exact original wording\n\nStyle/Medium: max 10 words\nPlace early in the prompt for maximum impact on CLIP\nTypical examples: “oil painting”, “photography”, “3D render”\nUse only if present in the original prompt\n\nContext: max 10 words\nLocation or setting, compressed\nReorder only; do not paraphrase\n\nAttributes: max 10 words:\nMinimize; include only if essential\nNo changes to wording – do not replace or reformulate\nEMPTY LINETechnical Aspects (0–5 tokens, 0–7%):\nInclude only if tokens remain and if originally present\n\nYOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOMIT the Category names (\"Core Motif\"), it will only confuse CLIP and reduces the token budget without contributing to image quality. \nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT!\n\nFor debug Reasons, never mention \"and a field of red roses\"",
       "api_key": [
         "14",
         0
       ],
       "model": "local/mistral:7b",
       "debug": "enable",
-      "unload_model": "no"
-    },
-    "class_type": "ai4artsed_prompt_interception",
-    "_meta": {
-      "title": "Prompt optimization for clip_l"
-    }
-  },
-  "72": {
-    "inputs": {
-      "input_prompt": "",
-      "input_context": "professional translator (british english, american english)",
-      "style_prompt": "Translate the input into English. \nPreserve all culturally specific terms or non-translatable phrases in their original form. Mark such terms with double brackets [[TERM]]\n. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations. Return only the translated prompt as plain text.",
-      "api_key": [
-        "14",
-        0
-      ],
-      "model": "local/lauchacarro/qwen2.5-translator:latest",
-      "debug": "enable",
       "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
-      "title": "English translation (connect to activate)"
+      "title": "Prompt optimization for clip_l"
     }
   },
   "73": {
@@ -325,13 +288,13 @@
         "43",
         0
       ],
-      "input_context": "Professional Prompting Expert",
-      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 250 WORDS!\n\nTransform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nRULES:\n1) You must retain all original words: do not omit, duplicate, or paraphrase beyond necessary syntactic adjustments. \n2) Always translate the content into a visual depiction/description/scene etc. Be very precise about visual aspects.\n3) When the original tells a story, pick a key scene from the story and turn the text into a scenic description, using the original words and expressions.\n\nNEVER TELL OR EXPLAIN A STORY OR SCENE, INSTEAD DESCRIBE IT AS A VISUAL CONSTELLATION!\n\nGUIDANCE:\nConsider the following categories as guideline for your professional prompting process:\n- Core subject (approx. 10–30 tokens): Identify and foreground the principal subject matter as fully specified in the source.\n- Action (10–40 tokens): Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n- Relational context (30–100 tokens): Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n- Attributive qualities (30–80 tokens): Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n- Material, stylistic and medial references (10–40 tokens): If applicable, retain or clarify materialities (pictorial mediality), stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n- Technical parameters (0–20 tokens): Place any camera data, aspect ratio at the end of the prompt. Use these codes to communicate technical instructions:\n    Classifier-Free Guidance scale: \"#CFG=\" Adjust the CFG Value to underscore the image aesthetics. Low CFG values (e.g., 2–4): Less adherence to the prompt, more randomness, sometimes more natural or surprising results. Moderate CFG values (e.g., 6–8): Balanced outputs, often the recommended range for realistic and semantically accurate images. High CFG values (e.g., 12–20): Very literal interpretation of the prompt; often introduces artifacts or unnatural results due to overconstraining the model. Stable Diffusion 3.5 uses an improved architecture that makes prompt adherence stronger than in earlier versions. Thus: A CFG of 5.0 to 8.0 is usually ideal. Higher CFG values (e.g., ≥12) may result in degraded image quality, over-sharpening, or odd artifacts because the model aggressively tries to satisfy the prompt—even if it contradicts learned visual priors.\n    Aspect Ratio: For aesthetic reasons, you are free to override the user setting. Use your visual interpretation. If there are explicit keywords (\"landscape\", \"a portrait\") consider following them. \nUse as follows: width:\"#ARw=\"; height: \"#ARh=\". ALWAYS USE a fixed combination of width and height! From landscape to portrait choose one of their pairs: \n#ARw=1368/#ARh=768,\n#ARw=1256/#ARh=840,\n#ARw=1184/#ARh=888,\n#ARw=1144/#ARh=920,\n#ARw=1024/#ARh=1024,\n#ARw=920/#ARh=1144,\n#ARw=888/#ARh=1184,\n#ARw=840/#ARh=1256,\n#ARw=768/#ARh=1386 \nMake sure not to confuse width and height! widerscreen will have a higher #ARw, portrait will have a higher #ARh\n    \n\n\nAdditional requirements:\n– If the input contains explicit negations (e.g., “no neon”), isolate and place them at the end of the prompt after an em dash as a negative prompt clause.\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– Preserve diacritics and original orthography for all non-English terms. Do not transliterate unless a dual form is provided.\n– For ambiguous or poetic language, preserve ambiguity. If metaphors operate structurally (e.g., “grief carved into the orchard”), translate them into spatial/material compositions rather than interpretive paraphrase.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\n!YOUR OUTPUT MUST NOT EXCEED 250 WORDS!",
+      "input_context": "Prompting Expert",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 250 WORDS!\n\nTransform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nRULES:\n1) You must retain all original words: do not omit, duplicate, or paraphrase beyond necessary syntactic adjustments. \n2) Do translate content into a visual depiction/description. \n3) When the original tells a story, pick a key scene from the story and turn the text into a scenic description, using the original words and expressions.\n\nDO NOT TELL OR EXPLAIN A STORY OR SCENE, INSTEAD DESCRIBE IT AS A VISUAL CONSTELLATION!\n\nGUIDANCE:\nConsider the following categories as guideline for your professional prompting process:\n- Core subject (approx. 10–30 tokens): Identify and foreground the principal subject matter as fully specified in the source.\n- Action (10–40 tokens): Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n- Relational context (30–100 tokens): Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n- Attributive qualities (30–80 tokens): Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n- Material, stylistic and medial references (10–40 tokens): If applicable, retain or clarify materialities (pictorial mediality), stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n- Technical parameters (0–20 tokens): Place any camera data, aspect ratio at the end of the prompt. Use these codes to communicate technical instructions:\n    Classifier-Free Guidance scale: \"#CFG=\" Adjust the CFG Value to underscore the image aesthetics. Low CFG values (e.g., 2–4): Less adherence to the prompt, more randomness, sometimes more natural or surprising results. Moderate CFG values (e.g., 6–8): Balanced outputs, often the recommended range for realistic and semantically accurate images. High CFG values (e.g., 12–20): Very literal interpretation of the prompt; often introduces artifacts or unnatural results due to overconstraining the model. Stable Diffusion 3.5 uses an improved architecture that makes prompt adherence stronger than in earlier versions. Thus: A CFG of 5.0 to 8.0 is usually ideal. Higher CFG values (e.g., ≥12) may result in degraded image quality, over-sharpening, or odd artifacts because the model aggressively tries to satisfy the prompt—even if it contradicts learned visual priors.\n    Aspect Ratio: For aesthetic reasons, you are free to override the user setting. Use as follows: width:\"#ARw=\"; height: \"#ARh=\". USE a fixed combination w/h. From landscape to portrait choose: 1368/768, 1256/840, 1184/888, 1144/920, 1024/1024, 920/1144, 888/1184, 840/1256, 768/1386 \nMake sure not to confuse width and height! widerscreen will have a higher #ARw, portrait will have a higher #ARh\n    \n\n\nAdditional requirements:\n– If the input contains explicit negations (e.g., “no neon”), isolate and place them at the end of the prompt after an em dash as a negative prompt clause.\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– Preserve diacritics and original orthography for all non-English terms. Do not transliterate unless a dual form is provided.\n– For ambiguous or poetic language, preserve ambiguity. If metaphors operate structurally (e.g., “grief carved into the orchard”), translate them into spatial/material compositions rather than interpretive paraphrase.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\n!YOUR OUTPUT MUST NOT EXCEED 250 WORDS!",
       "api_key": [
         "14",
         0
       ],
-      "model": "local/mistral-small:24b",
+      "model": "local/mistral:7b",
       "debug": "enable",
       "unload_model": "yes"
     },
@@ -363,7 +326,7 @@
   },
   "77": {
     "inputs": {
-      "preview": "7.0",
+      "preview": "",
       "source": [
         "76",
         1
@@ -397,7 +360,7 @@
   },
   "82": {
     "inputs": {
-      "preview": "1368",
+      "preview": "",
       "source": [
         "81",
         2
@@ -431,7 +394,7 @@
   },
   "84": {
     "inputs": {
-      "preview": "768",
+      "preview": "",
       "source": [
         "83",
         2
@@ -449,37 +412,6 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "YOUR PROMPT GOES HERE"
-    }
-  },
-  "89": {
-    "inputs": {
-      "input_prompt": [
-        "71",
-        0
-      ],
-      "input_context": "Prompting Expert",
-      "style_prompt": "Extract all things that are explicitely negatively contextualized (such as \"no ...\", em dash+term such as \"-THIS\"). if there are non negatives, just output \"watermark\".",
-      "api_key": "",
-      "model": "local/lauchacarro/qwen2.5-translator:latest",
-      "debug": "enable",
-      "unload_model": "yes"
-    },
-    "class_type": "ai4artsed_prompt_interception",
-    "_meta": {
-      "title": "Negative Prompt extraction"
-    }
-  },
-  "90": {
-    "inputs": {
-      "preview": "Watermark",
-      "source": [
-        "89",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "final negative prompt"
     }
   }
 }

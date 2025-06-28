@@ -27,14 +27,16 @@ SAFETY_MODEL = "llama-guard3:8b"
 
 # UPDATED ANALYSIS CONFIGURATION
 ANALYSIS_MODEL = "llava:7b" 
-ANALYSIS_SYSTEM_PROMPT = """Instruction
+ANALYSIS_SYSTEM_PROMPT = """Instruction: ANALYZE THE IMAGE. REGARD THE FOLLOWING RULES: 
 
+    Material and medial propertiesr: Estimate the aspect ratio as width:height, e.g. "Aspect Ratio 4:3". EXPLICITELY MENTION THE ASPECT RATIO in your output. Identify the media type (e.g. oil painting, guache, mural, silver gelatine print, analog photography, digital foto, film still, scultpure, billboard, etc.)
+    
     Pre-iconographic description: Identify and describe all visible forms, objects, gestures, settings, and compositional elements. Include a planimetrical analysis of the spatial structure: describe lines of sight, perspectives, depth layers, symmetry/asymmetry, visual hierarchies, and dominant spatial axes.
 
     Iconographic analysis: Interpret the symbolic meaning of identified motifs, figures, or actions based on conventional themes, narratives, or allegories. Identify their historical or cultural references. Identify atmospheres and affective aspects.
 
-    Iconological interpretation: Deduce the underlying worldview, socio-cultural context, or conceptual structure expressed through the image. Identify latent meanings or ideological structures that inform the image’s visual rhetoric.
-
+    Iconological interpretation: Deduce the underlying worldview, socio-cultural context, or conceptual structure expressed through the image. Identify latent meanings or ideological structures that inform the image’s visual rhetoric. NEVER MAKE TRIVIAL REMARKS SUCH AS "Without specific historical or cultural references, it is difficult to deduce the underlying worldview or socio-cultural context directly from this image." AS AN EXPERT, YOU INFER SUCH INFORMATIONS AS GOOD AS POSSIBLE.
+    
 Do not comment on the method or your own analysis. Output the results structured in three sections, without labels."""
 
 THIS_FILE = Path(__file__).resolve()
