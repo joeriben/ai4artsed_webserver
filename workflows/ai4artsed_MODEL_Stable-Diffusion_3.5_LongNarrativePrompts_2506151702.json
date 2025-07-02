@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "seed": 255385638889147,
+      "seed": 392061641194918,
       "steps": 25,
       "cfg": [
         "76",
@@ -65,7 +65,7 @@
         0
       ],
       "clip": [
-        "54",
+        "96",
         0
       ]
     },
@@ -110,17 +110,6 @@
       "title": "Secure Access to OpenRouter API Key"
     }
   },
-  "18": {
-    "inputs": {
-      "clip_name": "t5xxl_enconly.safetensors",
-      "type": "sd3",
-      "device": "default"
-    },
-    "class_type": "CLIPLoader",
-    "_meta": {
-      "title": "Load CLIP"
-    }
-  },
   "21": {
     "inputs": {
       "text": [
@@ -128,7 +117,7 @@
         0
       ],
       "clip": [
-        "18",
+        "94",
         0
       ]
     },
@@ -144,7 +133,7 @@
         0
       ],
       "clip": [
-        "54",
+        "96",
         0
       ]
     },
@@ -160,7 +149,7 @@
         0
       ],
       "clip": [
-        "18",
+        "94",
         0
       ]
     },
@@ -171,7 +160,7 @@
   },
   "40": {
     "inputs": {
-      "preview": "man, rocky outcrop, landscape, dramatic skies, foggy valleys, majestic mountains, cloudy sky, elongated aspect ratio, contemplation, solitude, human condition, vast universe",
+      "preview": "man, rocky outcrop, landscape, dramatic skies, foggy valleys, majestic mountains, cloudy sky, elongated aspect ratio, contemplation, solitude, romanticism, existentialism, human condition, nature, sublime, smallness, grandeur.",
       "source": [
         "71",
         0
@@ -184,7 +173,7 @@
   },
   "41": {
     "inputs": {
-      "preview": "A solitary man stands on a weathered, grey rocky outcrop, dominating the foreground, positioned with a strong diagonal line leading the viewer’s eye toward immense, cloudy mountains under a dramatic, overcast sky; foggy valleys stretch out into the midground, creating a sense of atmospheric depth and uncertainty; the mountainous horizon occupies the background, exhibiting dramatic, layered textures and forms; a panoramic view, aspect ratio w:\"1368\"; h: \"768\", #CFG=7, no neon – evoking a sense of contemplation and solitude, a visual representation of the human condition in relation to the sublime, with a deliberate stylistic reference to early Romantic landscape painting, emphasizing the scale of the natural world versus human presence, incorporating a sense of existential inquiry, #ARw=1368, #ARh=768.",
+      "preview": "A solitary male figure stands upon a jagged, grey-toned rocky outcrop, dominating the foreground, while a vast, foggy valley stretches into the distance, illuminated by a cloudy, overcast sky. Distant, majestic mountains rise dramatically, their peaks partially obscured by swirling mist, creating a strong diagonal perspective that draws the eye towards them. The overall composition suggests a panoramic vista, possibly intended for escape. The rocky outcrop is rendered in detailed textures, reflecting subtle gradients of grey and brown. The valley floor is filled with dense, indeterminate fog, creating an atmosphere of profound depth and uncertainty. The sky exhibits a diffuse, grey light. Negative prompt: no neon. Aspect Ratio: width:#ARw=1368; height: #ARh=768.",
       "source": [
         "73",
         0
@@ -256,17 +245,6 @@
       "title": "AI4ArtsEd T5‑CLIP Fusion negative"
     }
   },
-  "54": {
-    "inputs": {
-      "clip_name": "clip_g.safetensors",
-      "type": "sd3",
-      "device": "default"
-    },
-    "class_type": "CLIPLoader",
-    "_meta": {
-      "title": "Load CLIP"
-    }
-  },
   "71": {
     "inputs": {
       "input_prompt": [
@@ -279,9 +257,9 @@
         "14",
         0
       ],
-      "model": "local/gemma3:4b",
+      "model": "local/gemma3:4b [local / $0.00]",
       "debug": "enable",
-      "unload_model": "no"
+      "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -316,12 +294,12 @@
         0
       ],
       "input_context": "number extraction",
-      "style_prompt": "if the text contains the string \"#CFG=\", output the number - and only the number - that follows the string \"#CFG=\".\nif the text does not contain this string, output this number: 7\nOUTPUT ONLY THIS NUMBER; NOTHING ELSE; THIS IS VITAL!",
+      "style_prompt": "if the text contains the string \"#CFG=\", output the number - and only the number - that follows the string \"#CFG=\".\nif the text does not contain this string, output this number: 7",
       "api_key": [
         "14",
         0
       ],
-      "model": "local/gemma3:4b",
+      "model": "local/gemma3:4b [local / $0.00]",
       "debug": "enable",
       "unload_model": "yes"
     },
@@ -350,12 +328,12 @@
         0
       ],
       "input_context": "number extraction",
-      "style_prompt": "if the text contains the string \"#ARw=\", output the number - and only the number - that follows the string \"#ARw=\".\nif the text does not contain this string, output this number: 1024\nOUTPUT ONLY THE NUMBER; NOTHING ELSE; THIS IS VITAL!",
+      "style_prompt": "if the text contains the string \"#ARw=\", output the number - and only the number - that follows the string \"#ARw=\".\nif the text does not contain this string, output this number: 1024",
       "api_key": [
         "14",
         0
       ],
-      "model": "local/gemma3:4b",
+      "model": "local/gemma3:4b [local / $0.00]",
       "debug": "enable",
       "unload_model": "no"
     },
@@ -384,12 +362,12 @@
         0
       ],
       "input_context": "number extraction",
-      "style_prompt": "if the text contains the string \"#ARh=\", output the number - and only the number - that follows the string \"#ARh=\".\nif the text does not contain this string, output this number: 1024\nOUTPUT ONLY THE NUMBER; NOTHING ELSE; THIS IS VITAL!",
+      "style_prompt": "if the text contains the string \"#ARh=\", output the number - and only the number - that follows the string \"#ARh=\".\nif the text does not contain this string, output this number: 1024",
       "api_key": [
         "14",
         0
       ],
-      "model": "local/gemma3:4b",
+      "model": "local/gemma3:4b [local / $0.00]",
       "debug": "enable",
       "unload_model": "no"
     },
@@ -400,7 +378,7 @@
   },
   "84": {
     "inputs": {
-      "preview": "1368",
+      "preview": "768",
       "source": [
         "83",
         2
@@ -413,7 +391,7 @@
   },
   "86": {
     "inputs": {
-      "value": "The image depicts a man standing on a rocky outcrop amidst a landscape with dramatic skyscapes and foggy valleys. He is gazing into the distance towards majestic mountains under a cloudy sky. The aspect ratio of the painting appears to be elongated, possibly suggesting a panoramic view or the desire for escape.\n\nIn terms of media type, this artwork could be classified as a romantic landscape, possibly a part of a larger series or collection given the style and composition.\n\nPlanimetrically, the artist has used perspective to create depth, with a strong diagonal line leading the viewer's eye towards the distant mountains. The foreground is dominated by the man on the rocky outcrop, who serves as the focal point of the painting. There are no other figures or significant elements in the immediate vicinity, which directs attention to the solitary figure and his surroundings.\n\nIconographically, the image evokes a sense of contemplation and solitude, often associated with romanticism's emphasis on emotion and individualism. The foggy valleys could symbolize the misty uncertainties or the grandeur and mystery of nature. The distant mountains may represent aspiration or goals, suggesting the journey or quest ahead.\n\nIconologically, the painting might be commenting on the human condition in relation to nature or the sublime. The landscape's scale compared to the man underscores our smallness in the face of grandeur. This could be interpreted as a commentary on existentialism, personal identity, or the search for meaning in a vast and indifferent universe!"
+      "value": "The image depicts a man standing on a rocky outcrop amidst a landscape with dramatic skyscapes and foggy valleys. He is gazing into the distance towards majestic mountains under a cloudy sky. The aspect ratio of the painting appears to be elongated, possibly suggesting a panoramic view or the desire for escape.\n\nIn terms of media type, this artwork could be classified as a romantic landscape, possibly a part of a larger series or collection given the style and composition.\n\nPlanimetrically, the artist has used perspective to create depth, with a strong diagonal line leading the viewer's eye towards the distant mountains. The foreground is dominated by the man on the rocky outcrop, who serves as the focal point of the painting. There are no other figures or significant elements in the immediate vicinity, which directs attention to the solitary figure and his surroundings.\n\nIconographically, the image evokes a sense of contemplation and solitude, often associated with romanticism's emphasis on emotion and individualism. The foggy valleys could symbolize the misty uncertainties or the grandeur and mystery of nature. The distant mountains may represent aspiration or goals, suggesting the journey or quest ahead.\n\nIconologically, the painting might be commenting on the human condition in relation to nature or the sublime. The landscape's scale compared to the man underscores our smallness in the face of grandeur. This could be interpreted as a commentary on existentialism, personal identity, or the search for meaning in a vast and indifferent universe."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -427,6 +405,28 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "SD 3.5 minimal negative prompt"
+    }
+  },
+  "94": {
+    "inputs": {
+      "clip_name": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "96": {
+    "inputs": {
+      "clip_name": "clip_g.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
     }
   }
 }

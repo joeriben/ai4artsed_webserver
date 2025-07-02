@@ -146,71 +146,6 @@
       "title": "Just a more convenient input for your prompt"
     }
   },
-  "42": {
-    "inputs": {
-      "AudioPlay": {
-        "__value__": [
-          "/ComfyBackendDirect/api/view?filename=music_gen_00050.wav&type=output&subfolder=&rand=0.0442551923184048",
-          "A medieval-inspired soundtrack with a mix of choral music, lively dances, and period instruments. The piece opens with soft, atmospheric chanting, then transitions to a playful and upbeat dance melody. The setting sun adds a warm, golden glow, while the Gothic church's pointed arches and flying buttresses create an ethereal backdrop for the festive event in the foreground."
-        ]
-      },
-      "audio": [
-        "43",
-        0
-      ]
-    },
-    "class_type": "AudioPlay",
-    "_meta": {
-      "title": "Audio Play ♾️Mixlab"
-    }
-  },
-  "43": {
-    "inputs": {
-      "prompt": [
-        "44",
-        0
-      ],
-      "seconds": 30,
-      "guidance_scale": 4,
-      "seed": 2129966629,
-      "device": "auto"
-    },
-    "class_type": "Musicgen_",
-    "_meta": {
-      "title": "Music Gen"
-    }
-  },
-  "44": {
-    "inputs": {
-      "input_prompt": [
-        "26",
-        0
-      ],
-      "input_context": "synaesthetic expert",
-      "style_prompt": "transform this image desription into a description for sound and/or music. How would it sound like? Would msic or rather a soundscape fit ths description? If the description were an image, which sound/music wuld accompany it? Your output will be a pure sound/musical description for Music Gen.\n\nDO NOT TELL STORIES. NEVER TELL STORIES. DESCRIBE CONCRETE AUDITIVE PROPERTIES IN DETAIL.\n\nInfer from context, e.g. pick up on references to nature, to work, to interaction and find according sound/scapes) or music (pieces, genres). Pick up on emotional subtext of the prompt (i.e. conduct an emotional analysis). Pick up on spatial context (e.g. causing echos or reverb).\n\nIf the imput is concrete and bears soud-related element (such as bells), you WILL USE THOSE. \n\nRULE: If the input is concrete and direct, your sonic translation will stay true and WILL NOT be an abstraction. If the input is rather abstract, so will your sonic translation be.\n\nKeep it short, not more that 50 words! Do not descripbe what the AI should achieve,. Instead descripbe the sound, music (Genre), structures, and temporal flow in detail.\n\nDo not be esoteric, the musig gen engine will not understand this. Be very concrete and explicit as to what it should do.\n\nThe sound/music gen is very rough. Avoid anything the would easily rip up such as high tones, metallic tones, even wind howling, intermittend bird chirps adn calls (won't sound as good as you think). Prefer clear tones and structures.\n\nThe sound wil only be 30 seconds. Make sure it has an ending or fade-out.",
-      "api_key": "",
-      "model": "local/llava:13b",
-      "debug": "disable",
-      "unload_model": "yes"
-    },
-    "class_type": "ai4artsed_prompt_interception",
-    "_meta": {
-      "title": "AI4ArtsEd Prompt Interception"
-    }
-  },
-  "45": {
-    "inputs": {
-      "preview": "",
-      "source": [
-        "44",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "final sound/music Prompt"
-    }
-  },
   "46": {
     "inputs": {
       "clip_name1": "clip_l.safetensors",
@@ -222,18 +157,188 @@
       "title": "TripleCLIPLoader"
     }
   },
-  "50": {
+  "52": {
     "inputs": {
-      "prompt": "",
-      "model": "local/llava:13b",
-      "system_prompt": "",
-      "api_key": "",
-      "debug": "disable",
-      "unload_model": "no"
+      "ckpt_name": "OfficialStableDiffusion/stableaudio_model.safetensors"
     },
-    "class_type": "ai4artsed_image_analysis",
+    "class_type": "CheckpointLoaderSimple",
     "_meta": {
-      "title": "AI4ArtsEd Image Analysis"
+      "title": "Load Checkpoint"
+    }
+  },
+  "53": {
+    "inputs": {
+      "seconds": [
+        "61",
+        0
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentAudio",
+    "_meta": {
+      "title": "EmptyLatentAudio"
+    }
+  },
+  "54": {
+    "inputs": {
+      "text": [
+        "26",
+        0
+      ],
+      "clip": [
+        "57",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "55": {
+    "inputs": {
+      "seconds_start": 0,
+      "seconds_total": [
+        "61",
+        0
+      ],
+      "positive": [
+        "54",
+        0
+      ],
+      "negative": [
+        "58",
+        0
+      ]
+    },
+    "class_type": "ConditioningStableAudio",
+    "_meta": {
+      "title": "ConditioningStableAudio"
+    }
+  },
+  "56": {
+    "inputs": {
+      "samples": [
+        "59",
+        0
+      ],
+      "vae": [
+        "52",
+        2
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "VAEDecodeAudio"
+    }
+  },
+  "57": {
+    "inputs": {
+      "clip_name": "CLIP_stableaudio_model.safetensors",
+      "type": "stable_audio",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "58": {
+    "inputs": {
+      "text": "worst quality, bad audio,bad quality, high harmonic distortion",
+      "clip": [
+        "57",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "59": {
+    "inputs": {
+      "seed": 565737964517072,
+      "steps": 150,
+      "cfg": [
+        "63",
+        1
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.9000000000000001,
+      "model": [
+        "52",
+        0
+      ],
+      "positive": [
+        "55",
+        0
+      ],
+      "negative": [
+        "55",
+        1
+      ],
+      "latent_image": [
+        "53",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "60": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "63",
+        1
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Auto-CFG"
+    }
+  },
+  "61": {
+    "inputs": {
+      "value": 47.6
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "duration (seconds)"
+    }
+  },
+  "62": {
+    "inputs": {
+      "filename_prefix": "audio/ComfyUI",
+      "quality": "320k",
+      "audioUI": "",
+      "audio": [
+        "56",
+        0
+      ]
+    },
+    "class_type": "SaveAudioMP3",
+    "_meta": {
+      "title": "Save Audio (MP3)"
+    }
+  },
+  "63": {
+    "inputs": {
+      "input_prompt": "7",
+      "input_context": "musical expert, number extraction",
+      "style_prompt": "You task is to assess and ouput a cfg-Value for music generation as a float-number.\n\nTo this end, you analyze the input and assess which cfg-value fits the style of sound/soundscape/music best.\n\nRules for musical cfg-Values:\n     If the input is rather sharp and well-defined: Low value (e.g. 3-5): The model has more freedom. The result can sound more creative and sometimes more natural, but it deviates more from the prompt. This often leads to less defined, \"softer\" sounds.\n     Input of no further significance: Medium value (e.g. 6-8): This is the sweet spot for most applications. A good balance between following the prompt and avoiding artifacts.\n     Ill-defined input: High value (e.g. 9-12+): The model follows the prompt very strictly. This can be useful to force specific sounds, but quickly leads to audible artifacts: Phasing, metallic overtones or an \"over-processed\" feel.",
+      "api_key": "",
+      "model": "local/gemma3:4b [local / $0.00]",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
     }
   }
 }

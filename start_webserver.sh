@@ -31,9 +31,8 @@ if [ -f "venv/bin/activate" ]; then
   source venv/bin/activate
 fi
 
-# 5) Flask-Server starten (errechnet und zeigt URL in der Konsole an)
-echo "Starte Flask-Webserver: ${PROJECT_DIR}/${SERVER_SCRIPT} …"
+# 5) Waitress-Server starten (errechnet und zeigt URL in der Konsole an)
+echo "Starte Waitress-Webserver: ${PROJECT_DIR}/${SERVER_SCRIPT} …"
 python3 "${SERVER_SCRIPT}"
 
 # Wenn der Prozess durch STRG+C oder SIGINT/SIGTERM beendet wird, endet das Skript automatisch.
-

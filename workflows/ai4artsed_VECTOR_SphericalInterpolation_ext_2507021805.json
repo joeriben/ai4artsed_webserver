@@ -1,0 +1,345 @@
+{
+  "3": {
+    "inputs": {
+      "seed": [
+        "104",
+        0
+      ],
+      "steps": 20,
+      "cfg": 5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "133",
+        0
+      ],
+      "negative": [
+        "134",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "102",
+        0
+      ],
+      "clip": [
+        "101",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode prompt#2 POSITIVE"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "vector-fused"
+    }
+  },
+  "14": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "21": {
+    "inputs": {
+      "text": [
+        "72",
+        0
+      ],
+      "clip": [
+        "101",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode POSITIVE (t5)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode prompt#2  NEGATIVE"
+    }
+  },
+  "25": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode NEGATIVE (t5)"
+    }
+  },
+  "39": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "72",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt #1"
+    }
+  },
+  "43": {
+    "inputs": {
+      "value": [
+        "86",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "50": {
+    "inputs": {
+      "value": 0.5
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "set t5-optimized prompt Influence (beween -75 and +78)"
+    }
+  },
+  "72": {
+    "inputs": {
+      "input_prompt": [
+        "43",
+        0
+      ],
+      "input_context": "prompting expert",
+      "style_prompt": "Extract the most foremost thing or aspect of the input. \n\nOf course, adjectives, adverbs and phrases that describe the main thing BELONG TO THE MAIN ASPECT AND WILL BE EXTRACTED AS A SEMANTIC GROUP. Pass on only this part of the desription. \n\nIf the input contains [expressions in brackets], treat those a one unit (and select the main unit)\n\nNO META-REMARKS OR COMMENTS WHATSOEVER!",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "openrouter/mistralai/mistral-medium-3 [rule-oriented / $0.40/$2.00]",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Prompt Splitter"
+    }
+  },
+  "86": {
+    "inputs": {
+      "value": "[a huge meteroid in vast space] [a silver spoon in the cutlery drawer]"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "YOUR PROMPT GOES HERE"
+    }
+  },
+  "91": {
+    "inputs": {
+      "value": "extra fingers, extra legs, disconnected limbs, extra arms, extra limbs, extra hands, fused fingers, gross proportions, long neck, poorly drawn hands, poorly drawn face, poorly drawn feet"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "SD 3.5 minimal negative prompt"
+    }
+  },
+  "94": {
+    "inputs": {
+      "clip_name": "clip_l.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "101": {
+    "inputs": {
+      "clip_name1": "clip_g.safetensors",
+      "clip_name2": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "102": {
+    "inputs": {
+      "input_prompt": [
+        "43",
+        0
+      ],
+      "input_context": [
+        "72",
+        0
+      ],
+      "style_prompt": "You reseived two prompt: first, a complete input prompt. Second, a subset of this prompt. \n\nYour task: LEAVE OUT the subset. ONLY PASS ON THE REST of the input as a semantic unity. \n\nIf the input contains [expressions in brackets], treat those as one unit (but strip the brackets off your output).\n\nNO META-REMARKS OR COMMENTS WHATSOEVER!",
+      "api_key": "",
+      "model": "openrouter/mistralai/mistral-medium-3 [rule-oriented / $0.40/$2.00]",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Prompt Splitter"
+    }
+  },
+  "103": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "102",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt #2"
+    }
+  },
+  "104": {
+    "inputs": {
+      "value": 123456789
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "seed"
+    }
+  },
+  "132": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "104",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "seed"
+    }
+  },
+  "133": {
+    "inputs": {
+      "alpha": [
+        "50",
+        0
+      ],
+      "interpolation_method": "spherical",
+      "steps": 2,
+      "conditioning_a": [
+        "21",
+        0
+      ],
+      "conditioning_b": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_conditioning_fusion",
+    "_meta": {
+      "title": "AI4ArtsEd Conditioning Fusion POSITIVE"
+    }
+  },
+  "134": {
+    "inputs": {
+      "alpha": [
+        "50",
+        0
+      ],
+      "interpolation_method": "spherical",
+      "steps": 2,
+      "conditioning_a": [
+        "25",
+        0
+      ],
+      "conditioning_b": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_conditioning_fusion",
+    "_meta": {
+      "title": "AI4ArtsEd Conditioning Fusion NEGATIVE"
+    }
+  }
+}

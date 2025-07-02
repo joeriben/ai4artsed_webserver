@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "seed": 992429900799381,
+      "seed": 336059198222469,
       "steps": 25,
       "cfg": [
         "76",
@@ -65,7 +65,7 @@
         0
       ],
       "clip": [
-        "54",
+        "95",
         0
       ]
     },
@@ -110,17 +110,6 @@
       "title": "Secure Access to OpenRouter API Key"
     }
   },
-  "18": {
-    "inputs": {
-      "clip_name": "t5xxl_enconly.safetensors",
-      "type": "sd3",
-      "device": "default"
-    },
-    "class_type": "CLIPLoader",
-    "_meta": {
-      "title": "Load CLIP"
-    }
-  },
   "21": {
     "inputs": {
       "text": [
@@ -128,7 +117,7 @@
         0
       ],
       "clip": [
-        "18",
+        "94",
         0
       ]
     },
@@ -144,7 +133,7 @@
         0
       ],
       "clip": [
-        "54",
+        "95",
         0
       ]
     },
@@ -160,7 +149,7 @@
         0
       ],
       "clip": [
-        "18",
+        "94",
         0
       ]
     },
@@ -171,7 +160,7 @@
   },
   "40": {
     "inputs": {
-      "preview": "",
+      "preview": "A solitary figure standing on a rocky outcrop, gazing into the distance, majestic mountains, cloudy sky, foggy valleys, dramatic skyscapes, romantic landscape, elongated aspect ratio, panoramic view, depth perspective, strong diagonal line, contemplation, solitude, foggy valleys, distant mountains.",
       "source": [
         "71",
         0
@@ -184,7 +173,7 @@
   },
   "41": {
     "inputs": {
-      "preview": "Core subject: Armer Holzhacker's family in a forest with Hänsel and Gretel\n   Action: Family embarks on a journey to the dense woods, leaving their children alone near a fire while they work\n   Relational context: Dense woods, poor woodcutter family struggling during famine, mother manipulating husband for abandonment, children aware and fearful of the plan\n   Attributive qualities: Moonlight illuminating white pebbles like piles of coins, children unable to sleep due to hunger\n   Material, stylistic and medial references: No specific references given\n   Technical parameters: Aspect Ratio: width:\"#ARw=1368\"; height: \"#ARh=768\"\n   Classifier-Free Guidance scale: #CFG=5.0\n\nIn a dense forest, home to an impoverished woodcutter family consisting of the father, mother, Hänsel, and Gretel, hunger has become a relentless companion during a time of great famine. As evening approached, the father, filled with worry, contemplated their dire situation in his bed, voicing concerns about their survival to his wife: \"What will happen to us? How can we feed ourselves, let alone our poor children?\" The mother suggested an ill-intended plan: \"We'll take the children out to the thickest part of the forest tomorrow morning, make a fire for them and give each one a piece of bread. Then we'll return to our work, leaving them behind.\" The father hesitated, but the wife's persistence eventually wore him down, unable to ignore the weight of their desperation. \"But what about the children?\" he pleaded.\n\nUnable to sleep due to the sound of their parents' distress and the knowledge of their impending fate, Hänsel and Gretel shared their concerns. Gretel wept bitter tears as she spoke to Hänsel: \"This has happened to us.\" Hänsel reassured her: \"I will help us.\" As the adults slept, Hänsel rose, donned his little smock, untied his bed, and slipped away unnoticed. The moon shone brightly, casting an eerie glow over the white pebbles that lay scattered before their home. Hänsel carefully gathered as many as possible into his tunic, preparing to use them as a guide when he returned.\n\nAs dawn broke, the mother woke the children and led them into the woods to collect firewood. She gave each child a piece of bread but cautioned: \"Eat it not beforehand, or you'll receive no more.\" Gretel hid her portion under her apron, while Hänsel carried the pebbles in his pocket. As they walked deeper into the forest, Hänsel occasionally paused to look back at their home and throw a stone in its direction. His father scolded him, fearing he would lose sight of his feet. \"Hänsel, what are you staring at, pay attention, or you'll trip,\" he said. Hänsel claimed he was watching for his white cat that sat on the roof, but in truth, he threw stones to mark their path.\n\nUpon reaching a secluded area of the woods, the father instructed the children to gather wood while he prepared a fire. Hänsel and Gretel gathered armfuls of twigs, creating a small mountain as flames danced above them. The mother then ordered them to rest near the fire while she ventured further into the forest for more wood. As noon approached, the children ate their bread and believed their father was nearby. They could hear the sound of an axe but soon realized it was not their father's. It was a branch tied to a dead tree that swayed in the wind, mimicking the rhythm of his work. Exhausted from their labor and worry, they eventually fell asleep.\n\nAs night descended, Gretel awoke and wept, fearing they were trapped in the woods forever. Hänsel comforted her: \"Wait a while until the moon rises, then I will guide us home.\" And when the full moon ascended, Hänsel took Gretel by the hand and followed the path of shimmering pebbles that led them through the night. They journeyed all night long and finally returned to their father's house at daybreak. The mother, surprised to see them again, scolded: \"Wicked children, you stayed in the woods too long; we thought you didn't want to return.\" But the father rejoiced, relieved that they had survived his neglect.",
+      "preview": "A solitary man stands on a rugged rocky outcrop in a vast landscape, his gaze fixed on the distant majestic mountains under a cloudy sky, where dramatic skyscapes meet foggy valleys stretching into the horizon. The elongated aspect ratio of the scene suggests a panoramic view, emphasizing the expansive and possibly escapist nature of the setting. The composition follows a romantic landscape style, with a strong diagonal perspective leading the viewer’s eye from the foreground, dominated by the man’s contemplative figure, toward the depth of the distant peaks. The absence of other figures or significant elements in the immediate vicinity directs full attention to the solitary figure, reinforcing the sense of solitude and introspection. The foggy valleys, shrouded in mist, contrast with the solid, towering mountains, evoking a sense of mystery and the sublime power of nature. The man’s smallness against the grandeur of the landscape underscores themes of existential contemplation, individualism, and the human condition in relation to the vast, indifferent universe. The muted, natural tones of the scene, combined with the soft diffusion of light through the clouds, create an atmosphere of quiet reflection, where the interplay of shadow and light on the rocky terrain adds texture and depth to the composition. The painting’s stylistic provenance aligns with Romanticism, emphasizing emotion, nature’s grandeur, and the solitary figure’s introspective journey—#CFG=7 #ARw=1368 #ARh=768.",
       "source": [
         "73",
         0
@@ -256,17 +245,6 @@
       "title": "AI4ArtsEd T5‑CLIP Fusion negative"
     }
   },
-  "54": {
-    "inputs": {
-      "clip_name": "clip_g.safetensors",
-      "type": "sd3",
-      "device": "default"
-    },
-    "class_type": "CLIPLoader",
-    "_meta": {
-      "title": "Load CLIP"
-    }
-  },
   "71": {
     "inputs": {
       "input_prompt": [
@@ -316,7 +294,7 @@
         0
       ],
       "input_context": "number extraction",
-      "style_prompt": "if the text contains the string \"#CFG=\", output the number - and only the number - that follows the string \"#CFG=\".\nif the text does not contain this string, output this number: 7\nOUTPUT ONLY THIS NUMBER; NOTHING ELSE; THIS IS VITAL!",
+      "style_prompt": "if the text contains the string \"#CFG=\", output the number - and only the number - that follows the string \"#CFG=\".\nif the text does not contain this string, output this number: 7",
       "api_key": [
         "14",
         0
@@ -332,7 +310,7 @@
   },
   "77": {
     "inputs": {
-      "preview": "",
+      "preview": "7.0",
       "source": [
         "76",
         1
@@ -350,7 +328,7 @@
         0
       ],
       "input_context": "number extraction",
-      "style_prompt": "if the text contains the string \"#ARw=\", output the number - and only the number - that follows the string \"#ARw=\".\nif the text does not contain this string, output this number: 1024\nOUTPUT ONLY THE NUMBER; NOTHING ELSE; THIS IS VITAL!",
+      "style_prompt": "if the text contains the string \"#ARw=\", output the number - and only the number - that follows the string \"#ARw=\".\nif the text does not contain this string, output this number: 1024",
       "api_key": [
         "14",
         0
@@ -384,7 +362,7 @@
         0
       ],
       "input_context": "number extraction",
-      "style_prompt": "if the text contains the string \"#ARh=\", output the number - and only the number - that follows the string \"#ARh=\".\nif the text does not contain this string, output this number: 1024\nOUTPUT ONLY THE NUMBER; NOTHING ELSE; THIS IS VITAL!",
+      "style_prompt": "if the text contains the string \"#ARh=\", output the number - and only the number - that follows the string \"#ARh=\".\nif the text does not contain this string, output this number: 1024",
       "api_key": [
         "14",
         0
@@ -400,7 +378,7 @@
   },
   "84": {
     "inputs": {
-      "preview": "1024",
+      "preview": "768",
       "source": [
         "83",
         2
@@ -427,6 +405,54 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "SD 3.5 minimal negative prompt"
+    }
+  },
+  "94": {
+    "inputs": {
+      "clip_name": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "95": {
+    "inputs": {
+      "clip_name": "clip_g.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "96": {
+    "inputs": {
+      "preview": "768",
+      "source": [
+        "83",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview Any"
+    }
+  },
+  "97": {
+    "inputs": {
+      "preview": "1368",
+      "source": [
+        "81",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview Any"
     }
   }
 }

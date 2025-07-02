@@ -1,0 +1,217 @@
+{
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "Large bell ringing at the bell tower of a medieval metropolis (Notre Dame de Paris)"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "93": {
+    "inputs": {
+      "text": "worst quality, bad audio,bad quality, high harmonic distortion",
+      "clip": [
+        "102",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "94": {
+    "inputs": {
+      "filename_prefix": "audio/ComfyUI",
+      "quality": "320k",
+      "audioUI": "",
+      "audio": [
+        "100",
+        0
+      ]
+    },
+    "class_type": "SaveAudioMP3",
+    "_meta": {
+      "title": "Save Audio (MP3)"
+    }
+  },
+  "95": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "103",
+        1
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Auto-CFG"
+    }
+  },
+  "96": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/stableaudio_model.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "97": {
+    "inputs": {
+      "seconds": [
+        "107",
+        0
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentAudio",
+    "_meta": {
+      "title": "EmptyLatentAudio"
+    }
+  },
+  "98": {
+    "inputs": {
+      "text": [
+        "26",
+        0
+      ],
+      "clip": [
+        "102",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "99": {
+    "inputs": {
+      "seconds_start": 0,
+      "seconds_total": [
+        "107",
+        0
+      ],
+      "positive": [
+        "98",
+        0
+      ],
+      "negative": [
+        "93",
+        0
+      ]
+    },
+    "class_type": "ConditioningStableAudio",
+    "_meta": {
+      "title": "ConditioningStableAudio"
+    }
+  },
+  "100": {
+    "inputs": {
+      "samples": [
+        "101",
+        0
+      ],
+      "vae": [
+        "96",
+        2
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "VAEDecodeAudio"
+    }
+  },
+  "101": {
+    "inputs": {
+      "seed": 565737964517072,
+      "steps": 150,
+      "cfg": [
+        "103",
+        1
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.9000000000000001,
+      "model": [
+        "96",
+        0
+      ],
+      "positive": [
+        "99",
+        0
+      ],
+      "negative": [
+        "99",
+        1
+      ],
+      "latent_image": [
+        "97",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "102": {
+    "inputs": {
+      "clip_name": "CLIP_stableaudio_model.safetensors",
+      "type": "stable_audio",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "103": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": "musical expert, number extraction",
+      "style_prompt": "You task is to assess and ouput a cfg-Value for music generation as a float-number.\n\nTo this end, you analyze the input and assess which cfg-value fits the style of sound/soundscape/music best.\n\nRules for musical cfg-Values:\n     If the input is rather sharp and well-defined: Low value (e.g. 3-5): The model has more freedom. The result can sound more creative and sometimes more natural, but it deviates more from the prompt. This often leads to less defined, \"softer\" sounds.\n     Input of no further significance: Medium value (e.g. 6-8): This is the sweet spot for most applications. A good balance between following the prompt and avoiding artifacts.\n     Ill-defined input: High value (e.g. 9-12+): The model follows the prompt very strictly. This can be useful to force specific sounds, but quickly leads to audible artifacts: Phasing, metallic overtones or an \"over-processed\" feel.",
+      "api_key": "",
+      "model": "local/gemma3:4b [local / $0.00]",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "107": {
+    "inputs": {
+      "value": 47.6
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "duration (seconds)"
+    }
+  }
+}

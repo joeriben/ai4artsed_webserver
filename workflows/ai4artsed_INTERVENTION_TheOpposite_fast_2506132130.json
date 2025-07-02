@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "seed": 223743469683316,
+      "seed": 246570017651904,
       "steps": 8,
       "cfg": 1,
       "sampler_name": "euler",
@@ -126,27 +126,9 @@
       "title": "ai4artsed_text_prompt"
     }
   },
-  "34": {
-    "inputs": {
-      "input_prompt": "",
-      "input_context": "analyze entities and relations",
-      "style_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nTranslate the input into english.\nAnalyze the input and output exactly two separate tables. Do not include any introductory or explanatory text beyond these tables.\nFirst Table: Visually Observable Entities and Relationships\nFormat:\n| Entity 1 | Relation | Entity 2 | Relation Type |\nInstructions:\n1. Identify all visible or implied entities (people, objects, animals, symbols, elements of the environment, etc.).\n2. For each pair of entities, specify a concrete relation that connects them using clear, unambiguous terms (e.g., \"above\", \"next to\", \"inside\", \"wearing\", \"has color\").\n3. Classify each relation into one of the following types:\n- spatial (e.g., above, next to, inside)\n- temporal (e.g., before, after, simultaneous)\n- causal (e.g., causes, enables, prevents)\n- symbolic (e.g., represents, connotes, expresses)\n- narrative (e.g., protagonist of, is acted upon by, interacts with)\n- social (e.g., mother of, enemy of, supports)\n- property (e.g., has color, has gender, has age, shows emotion)\nSecond Table: Inferred or Interpretative Semantic Relations\nFormat:\n| Subject | Inferred Relation | Object / Value | Type | Source |\nInstructions:\n1. Extract higher-level, inferred semantic relations based on visual cues and contextual hints. These relations can include emotional states, narrative context, symbolic meanings, social dynamics, environmental impressions, temporal cues, or attentional focus.\n2. For each inference, specify the relation clearly and classify it using one of the following types: emotional, narrative, symbolic, social, environmental, temporal, attentional, or other.\n3. In the “Source” column, indicate the origin of the inference (e.g., \"visual cue\", \"contextual inference\", \"cultural trope\", \"associative logic\").\n4. Use one row per relation.\nOutput only the two markdown tables in the specified format.",
-      "api_key": [
-        "11",
-        0
-      ],
-      "model": "local/mistral:7b",
-      "debug": "enable",
-      "unload_model": "yes"
-    },
-    "class_type": "ai4artsed_prompt_interception",
-    "_meta": {
-      "title": "AI4ArtsEd Translation and relational analysis"
-    }
-  },
   "37": {
     "inputs": {
-      "value": "A white rooster standing on a green goat standing on a red cat standing on a black dog."
+      "value": "Material and medial properties: The image is an oil painting depicting a landscape scene with a figure standing in the foreground, gazing out at a mountainous vista.\n\nPre-iconographic description: The central figure is a man dressed in attire suggestive of the 19th century. He has a contemplative expression and is holding what appears to be a compass or similar navigational tool. His pose suggests he is surveying or planning his route, possibly in preparation for a journey through the landscape before him. The setting includes a rugged mountain range in the background, with rolling clouds and mist partially obscuring the view. The lighting suggests either dawn or dusk due to the soft diffuse light illuminating the scene.\n\nIconographic analysis: The man's posture and attire could suggest themes of exploration, the unknown, or the journey into the wilderness. His contemplative pose may also symbolize introspection or planning before embarking on a significant endeavor. The misty mountain landscape might be interpreted as both a natural environment and as a metaphor for challenges or obstacles that one might encounter on such a journey.\n\nIconological interpretation: The painting could be reflecting on the human condition, the relationship between man and nature, or the concept of personal growth through challenge and exploration. It may also comment on the ephemeral nature of moments in time, as represented by the clouds and mist that partially obscure the view, reinforcing the transient aspect of life's journey. The painting might also be seen as a commentary on the importance of planning and preparation for life's journeys."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -168,7 +150,7 @@
         "11",
         0
       ],
-      "model": "local/mistral-small:24b",
+      "model": "local/mistral-nemo:latest [local / $0.00]",
       "debug": "enable",
       "unload_model": "yes"
     },
@@ -212,7 +194,7 @@
   },
   "46": {
     "inputs": {
-      "preview": "",
+      "preview": "The image is a digital artwork depicting an urban scene with a figure standing in the background, facing away from a cityscape. The central figure is a woman dressed in modern attire, wearing an expression of distraction while engaged in a task unrelated to her surroundings, such as texting on a smartphone or listening to music. The setting includes towering skyscrapers and bustling streets filled with people going about their daily routines. The lighting suggests the peak of midday due to the harsh direct sunlight illuminating the scene.",
       "source": [
         "41",
         0

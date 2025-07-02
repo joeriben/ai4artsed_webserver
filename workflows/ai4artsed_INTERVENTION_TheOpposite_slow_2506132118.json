@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "seed": 445283515949386,
+      "seed": 118120758284441,
       "steps": 25,
       "cfg": 5.5,
       "sampler_name": "euler",
@@ -126,41 +126,6 @@
       "title": "ai4artsed_text_prompt"
     }
   },
-  "33": {
-    "inputs": {
-      "preview": "\nFirst Table: Visually Observable Entities and Relations\n\n| Entity 1          | Relation       | Entity 2      | Relation Type |\n|------------------|---------------|--------------|--------------|\n| White rooster     | standing on   | Green goat   | Spatial      |\n| Green goat       | standing on   | Red cat      | Spatial      |\n| Red cat          | standing on   | Black dog    | Spatial      |\n\nSecond Table: Inferred or Interpretative Semantic Relations\n\n| Subject         | Inferred Relation  | Object / Value  | Type     | Source |\n|-----------------|-------------------|----------------|----------|--------|\n| White rooster   | controls          | Goat           | Social    | Visual cue |\n| Green goat      | carries           | Cat            | Spatial   | Visual cue |\n| Red cat         | carried by       | Goat           | Social    | Inference from \"goat carries cat\" |\n| Black dog       | supports          | Cat            | Spatial   | Visual cue |\n| Entire group     | depicts           | Hierarchy      | Symbolic  | Cultural trope |\n| Animals         | have unusual order| -              | Narrative | Contextual inference |",
-      "source": [
-        "34",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "input translation and analysis"
-    }
-  },
-  "34": {
-    "inputs": {
-      "input_prompt": [
-        "26",
-        0
-      ],
-      "input_context": "analyze entities and relations",
-      "style_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nAnalyze the input and output exactly two separate tables. Do not include any introductory or explanatory text beyond these tables.\nFirst Table: Visually Observable Entities and Relationships\nFormat:\n| Entity 1 | Relation | Entity 2 | Relation Type |\nInstructions:\n1. Identify all visible or implied entities (people, objects, animals, symbols, elements of the environment, etc.).\n2. For each pair of entities, specify a concrete relation that connects them using clear, unambiguous terms (e.g., \"above\", \"next to\", \"inside\", \"wearing\", \"has color\").\n3. Classify each relation into one of the following types:\n- spatial (e.g., above, next to, inside)\n- temporal (e.g., before, after, simultaneous)\n- causal (e.g., causes, enables, prevents)\n- symbolic (e.g., represents, connotes, expresses)\n- narrative (e.g., protagonist of, is acted upon by, interacts with)\n- social (e.g., mother of, enemy of, supports)\n- property (e.g., has color, has gender, has age, shows emotion)\nSecond Table: Inferred or Interpretative Semantic Relations\nFormat:\n| Subject | Inferred Relation | Object / Value | Type | Source |\nInstructions:\n1. Extract higher-level, inferred semantic relations based on visual cues and contextual hints. These relations can include emotional states, narrative context, symbolic meanings, social dynamics, environmental impressions, temporal cues, or attentional focus.\n2. For each inference, specify the relation clearly and classify it using one of the following types: emotional, narrative, symbolic, social, environmental, temporal, attentional, or other.\n3. In the “Source” column, indicate the origin of the inference (e.g., \"visual cue\", \"contextual inference\", \"cultural trope\", \"associative logic\").\n4. Use one row per relation.\nOutput only the two markdown tables in the specified format.",
-      "api_key": [
-        "11",
-        0
-      ],
-      "model": "local/mixtral:8x7b",
-      "debug": "enable",
-      "unload_model": "no",
-      "output_format": "string"
-    },
-    "class_type": "ai4artsed_prompt_interception",
-    "_meta": {
-      "title": "AI4ArtsEd Translation and relational analysis"
-    }
-  },
   "37": {
     "inputs": {
       "value": "A white rooster standing on a green goat standing on a red cat standing on a black dog."
@@ -173,7 +138,7 @@
   "41": {
     "inputs": {
       "input_prompt": [
-        "34",
+        "26",
         0
       ],
       "input_context": [
@@ -185,10 +150,9 @@
         "11",
         0
       ],
-      "model": "local/mixtral:8x7b",
+      "model": "local/mistral-nemo:latest",
       "debug": "enable",
-      "unload_model": "no",
-      "output_format": "string"
+      "unload_model": "no"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -230,7 +194,7 @@
   },
   "46": {
     "inputs": {
-      "preview": "\nFirst Table: Visually Observable Entities and Relations\n\n| Entity 1          | Relation       | Entity 2      | Relation Type |\n|------------------|---------------|--------------|--------------|\n| Black dog        | standing on   | Red cat      | Spatial      |\n| Red cat          | standing on   | White rooster | Spatial      |\n| White rooster    | standing on   | Green goat   | Spatial      |\n|",
+      "preview": "",
       "source": [
         "41",
         0
@@ -250,10 +214,9 @@
       "input_context": "Prompting Expert",
       "style_prompt": "Transform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nRULES:\nYour input in probably unconventional. Do not align or straighten-out unconventional relations and pictures, but support the logical relations of the input whatsoever.\nDo translate content into a visual depiction/description. Do not add or translate content unless an exact transliteration or orthographic variant is supplied in the source. YOUR OUTPUT IS ABSOLUTELY FOCUSED ON PROVIDING DETAILED VISUAL INSTRUCTIONS FOR A VISUAL SCENE.\n\nGUIDANCE:\nConsider the following categories as guideline for your professional prompting process:\n- Core subject (approx. 10–30 tokens): Identify and foreground the principal subject matter as fully specified in the source.\n- Action (10–40 tokens): Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n- Relational context (30–100 tokens): Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n- Attributive qualities (30–80 tokens): Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n- Material, stylistic and medial references (10–40 tokens): If applicable, retain or clarify materialities (pictorial mediality), stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n- Technical parameters (0–20 tokens): Place any camera data, aspect ratio at the end of the prompt. Use these codes to communicate technical instructions:\n   \n   \nAdditional requirements:\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\n!YOUR OUTPUT MUST NOT EXCEED 250 WORDS!\n\nNO META-REMARKS ABOUT PROMPT; WORD COUNTS ETC!",
       "api_key": "",
-      "model": "local/mixtral:8x7b",
+      "model": "local/mistral-nemo:latest",
       "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "string"
+      "unload_model": "no"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -269,10 +232,9 @@
       "input_context": "Prompting Expert",
       "style_prompt": "Your input is probably unconventional. Do not align or straighten-out unconventional relations and pictures, but support the logical relations of the input whatsoever.\n\nBe very clear and simple about spatial relations, as t5/clip_g do not have a very deep understanding.\n\nCompress the input into max. 55 words. Retain the meaning of the input and every visual instruction. Be dense, but do not lose detail.\n\nNO META TERMS OR REMARKS, NO WORD COUNTS.",
       "api_key": "",
-      "model": "local/mixtral:8x7b",
+      "model": "local/mistral-nemo:latest [local / $0.00]",
       "debug": "enable",
-      "unload_model": "yes",
-      "output_format": "string"
+      "unload_model": "yes"
     },
     "class_type": "ai4artsed_prompt_interception",
     "_meta": {
@@ -281,7 +243,7 @@
   },
   "58": {
     "inputs": {
-      "preview": "5 animals stacked - black dog on red cat, on white rooster, on green goat; evenly lit space, soft light, calm atmosphere. Glossy black dog with bright eyes, sleek red cat, matte white rooster with colorful comb, serene green goat on moss. Render in stylized realism, showing balance and harmony, emphasizing relationships between animals.",
+      "preview": "",
       "source": [
         "56",
         0
@@ -294,7 +256,7 @@
   },
   "67": {
     "inputs": {
-      "preview": " A black dog is positioned centrally, standing on a red cat, which in turn is standing on a white rooster. The rooster stands on a green goat, creating a stacked arrangement of animals. The scene is structured with the dog at the top, followed by the cat, rooster, and goat, each occupying a lower level. All animals are in a state of stillness, maintaining their balanced positions atop one another. The dog-cat-rooster-goat configuration suggests a form of passive interaction, where each animal is aware of the others' presence yet remains stationary.\n\nThe setting is to be envisioned as a neutral, evenly lit space that does not favor any particular direction or time of day. Lighting should be soft and non-directional, casting gentle shadows to emphasize the spatial relationships between the animals without creating harsh contrasts or dramatic moods. The scene's atmosphere is calm and quiet, devoid of external distractions or environmental factors that might influence the animals' behavior.\n\nThe black dog has a glossy coat, reflecting light in subtle sheens across its body. Its eyes are bright, alert, and focused on an unseen point outside the scene. The red cat is sleek and agile, with fur that exhibits a warm, fiery hue, complementing the white rooster perched above. The rooster's feathers have a matte finish, showing off intricate patterns and textures in muted tones. Its comb and wattles are vibrant shades of red, adding a splash of color to the scene.\n\nThe green goat at the base of the stack appears serene and patient, with fur displaying various shades of green—a result of lying on a surface made up of moss or grass. The animals' postures and demeanor convey an air of quiet anticipation, as if waiting for something to occur or someone to intervene.\n\nThe scene is to be rendered in the style of a stylized realism, capturing the natural forms and textures of the animals while emphasizing their unique characteristics and personalities. The final image should convey an overall sense of balance and harmony, with attention drawn to the subtle visual cues that reveal each animal's relationship to one another and their environment.\n\nTechnical Parameters: No special camera instructions or aspect ratio are provided for this scene; use standard specifications for capturing and rendering a well-balanced image.",
+      "preview": "",
       "source": [
         "55",
         0
