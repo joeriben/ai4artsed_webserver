@@ -52,3 +52,7 @@ ehthumbs.db
 # -------------------------------------
 # API keys / sensitive configuration
 *.key
+
+# -------------------------------------
+#exported media/research data
+exports/
