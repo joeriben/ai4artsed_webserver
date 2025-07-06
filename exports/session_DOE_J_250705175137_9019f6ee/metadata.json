@@ -1,0 +1,12 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "9019f6ee",
+  "timestamp": "250705175137",
+  "workflow_name": "ai4artsed_SOUND_MODEL_StableAudio_Simple_2506291524.json",
+  "prompt": "a Roland TR-808",
+  "export_date": "2025-07-05T17:51:37.960972",
+  "media_files": [
+    "audio_001.wav"
+  ],
+  "output_count": 2
+}

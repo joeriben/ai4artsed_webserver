@@ -1,0 +1,12 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "abd3c62e",
+  "timestamp": "250706233342",
+  "workflow_name": "ai4artsed_SOUND_MODEL_StableAudio_Simple_2506291524.json",
+  "prompt": "Ska musisicans playing classical Ska",
+  "export_date": "2025-07-06T23:33:42.341742",
+  "media_files": [
+    "audio_001.wav"
+  ],
+  "output_count": 2
+}

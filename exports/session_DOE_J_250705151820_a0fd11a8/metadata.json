@@ -1,0 +1,12 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "a0fd11a8",
+  "timestamp": "250705151820",
+  "workflow_name": "ai4artsed_MODEL_Stable-Diffusion-3.5_simple_turbo_2506151231.json",
+  "prompt": "测试",
+  "export_date": "2025-07-05T15:18:20.404838",
+  "media_files": [
+    "image_001.png"
+  ],
+  "output_count": 1
+}

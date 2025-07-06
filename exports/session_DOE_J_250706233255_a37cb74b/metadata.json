@@ -1,0 +1,12 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "a37cb74b",
+  "timestamp": "250706233255",
+  "workflow_name": "ai4artsed_SOUND_MODEL_StableAudio_Simple_2506291524.json",
+  "prompt": "Bob Marley and The Wailers playing Reggae",
+  "export_date": "2025-07-06T23:32:55.944228",
+  "media_files": [
+    "audio_001.wav"
+  ],
+  "output_count": 2
+}

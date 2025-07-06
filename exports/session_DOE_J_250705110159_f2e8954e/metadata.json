@@ -1,0 +1,13 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "f2e8954e",
+  "timestamp": "250705110159",
+  "workflow_name": "ai4artsed_ACROSS_ImageAndSound_2506270842.json",
+  "prompt": "Eine Calla-Lilie in Nahaufnahme, fotografiert im Stil von Imogen Cunningham. Weiches, diffuses Licht von der Seite, sanfte Schatten auf einem neutralen Hintergrund. Die Textur der Blütenblätter ist fein abgestuft sichtbar, die Form betont durch minimale Tiefenschärfe. Klassische Schwarzweißaufnahme, aufgenommen mit einer Großformatkamera der 1930er Jahre. Stimmung zurückhaltend, fast meditativer Blick auf das organische Motiv.",
+  "export_date": "2025-07-05T11:01:59.990451",
+  "media_files": [
+    "audio_001.wav",
+    "image_002.png"
+  ],
+  "output_count": 3
+}

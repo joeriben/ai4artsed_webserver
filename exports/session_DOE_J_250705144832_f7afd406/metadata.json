@@ -1,0 +1,12 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "f7afd406",
+  "timestamp": "250705144832",
+  "workflow_name": "ai4artsed_MODEL_Stable-Diffusion-3.5_simple_turbo_2506151231.json",
+  "prompt": "Calla Lily, in the style of photographer Imogen Cunningham",
+  "export_date": "2025-07-05T14:48:32.481459",
+  "media_files": [
+    "image_001.png"
+  ],
+  "output_count": 1
+}

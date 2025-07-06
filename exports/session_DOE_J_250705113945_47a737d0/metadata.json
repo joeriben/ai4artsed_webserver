@@ -1,0 +1,12 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "47a737d0",
+  "timestamp": "250705113945",
+  "workflow_name": "ai4artsed_INTERVENTION_ClichéFilter_V1_2506160013.json",
+  "prompt": "A close-up of a Calla Lily photographed in the style of Imogen Cunningham. Soft, diffused light from the side, gentle shadows on a neutral background. The texture of the flower petals is visible through fine gradation, while the form is emphasized by minimal depth focus. A classical black-and-white photograph taken with a large-format camera from the 1930s. A restrained mood, almost meditative gaze at the organic motif.",
+  "export_date": "2025-07-05T11:39:45.082137",
+  "media_files": [
+    "image_001.png"
+  ],
+  "output_count": 2
+}

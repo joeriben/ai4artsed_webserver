@@ -1,0 +1,12 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "2b088ca3",
+  "timestamp": "250705151528",
+  "workflow_name": "ai4artsed_INTERVENTION_ClichéFilter_V2_2506211602.json",
+  "prompt": "测试",
+  "export_date": "2025-07-05T15:15:28.559247",
+  "media_files": [
+    "image_001.png"
+  ],
+  "output_count": 3
+}

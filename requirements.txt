@@ -1,0 +1,19 @@
+# AI4ArtsEd Web Server Requirements
+
+# Web Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# HTTP Server
+waitress==2.1.2
+
+# HTTP Client
+requests==2.31.0
+
+# Utilities
+python-dotenv==1.0.0
+
+# Optional: For development
+# flask-debugtoolbar==0.13.1
+# pytest==7.4.3
+# pytest-flask==1.3.0

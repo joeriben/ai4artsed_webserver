@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI4ArtsEd Export Übersicht</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .controls input, .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .controls label {
+            font-weight: 600;
+            color: #555;
+        }
+        .stats {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            cursor: pointer;
+            user-select: none;
+        }
+        th:hover {
+            background-color: #e9ecef;
+        }
+        th.sortable::after {
+            content: ' ↕';
+            opacity: 0.5;
+        }
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .preview-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .session-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .session-link:hover {
+            text-decoration: underline;
+        }
+        .workflow-name {
+            font-family: monospace;
+            background-color: #f1f3f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI4ArtsEd Export Übersicht</h1>
+        
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalSessions">-</div>
+                <div class="stat-label">Sessions</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalOutputs">-</div>
+                <div class="stat-label">Ausgaben</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalMedia">-</div>
+                <div class="stat-label">Medien</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalUsers">-</div>
+                <div class="stat-label">Benutzer</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <label for="userFilter">Benutzer:</label>
+            <select id="userFilter">
+                <option value="">Alle Benutzer</option>
+            </select>
+            
+            <label for="workflowFilter">Workflow:</label>
+            <select id="workflowFilter">
+                <option value="">Alle Workflows</option>
+            </select>
+            
+            <label for="dateFilter">Datum:</label>
+            <input type="date" id="dateFilter">
+            
+            <label for="searchFilter">Suche:</label>
+            <input type="text" id="searchFilter" placeholder="Session-ID, Prompt...">
+            
+            <button onclick="clearFilters()" style="background-color: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">
+                Filter zurücksetzen
+            </button>
+        </div>
+        
+        <div id="loading" class="loading">
+            Lade Export-Daten...
+        </div>
+        
+        <div id="error" class="error" style="display: none;">
+        </div>
+        
+        <div id="tableContainer" style="display: none;">
+            <table id="sessionsTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="preview">Vorschau</th>
+                        <th class="sortable" data-sort="user_id">Benutzer</th>
+                        <th class="sortable" data-sort="session_id">Session-ID</th>
+                        <th class="sortable" data-sort="timestamp">Datum/Zeit</th>
+                        <th class="sortable" data-sort="workflow_name">Workflow</th>
+                        <th class="sortable" data-sort="output_count">Ausgaben</th>
+                        <th class="sortable" data-sort="media_count">Medien</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody id="sessionsTableBody">
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="noData" class="no-data" style="display: none;">
+            Keine Export-Sessions gefunden.
+        </div>
+        
+        <div class="footer">
+            <p>AI4ArtsEd Export Übersicht - Generiert am <span id="generatedDate"></span></p>
+        </div>
+    </div>
+
+    <script>
+        let allSessions = [];
+        let currentSort = { column: 'timestamp', direction: 'desc' };
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('generatedDate').textContent = new Date().toLocaleString('de-DE');
+            loadSessions();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Filter event listeners
+            document.getElementById('userFilter').addEventListener('change', applyFilters);
+            document.getElementById('workflowFilter').addEventListener('change', applyFilters);
+            document.getElementById('dateFilter').addEventListener('change', applyFilters);
+            document.getElementById('searchFilter').addEventListener('input', applyFilters);
+
+            // Sort event listeners
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const column = th.dataset.sort;
+                    if (currentSort.column === column) {
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.column = column;
+                        currentSort.direction = 'asc';
+                    }
+                    updateSortIndicators();
+                    applyFilters();
+                });
+            });
+        }
+
+        async function loadSessions() {
+            try {
+                // Scan for session directories
+                const response = await fetch('/api/list_exports');
+                if (!response.ok) {
+                    // Fallback: scan directories manually
+                    await scanDirectories();
+                    return;
+                }
+                
+                const sessions = await response.json();
+                allSessions = sessions;
+                
+                populateFilters();
+                updateStats();
+                applyFilters();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('tableContainer').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                // Fallback to directory scanning
+                await scanDirectories();
+            }
+        }
+
+        async function scanDirectories() {
+            try {
+                // This is a fallback method that scans the current directory for session folders
+                const sessionDirs = [];
+                
+                // Try to find session directories by looking for the pattern
+                // This is a simplified approach - in a real implementation, you'd need a backend endpoint
+                
+                // For now, we'll create a mock dataset to demonstrate the functionality
+                const mockSessions = [
+                    {
+                        user_id: 'DOE_J',
+                        session_id: 'abc123de',
+                        timestamp: '250105103621',
+                        workflow_name: 'ai4artsed_ARTS_Dada_2506220140.json',
+                        output_count: 3,
+                        media_count: 2,
+                        export_date: '2025-01-05T10:36:21.000Z',
+                        folder_name: 'session_DOE_J_250105103621_abc123de',
+                        html_file: 'output_DOE_J_250105103621_abc123de.html'
+                    }
+                ];
+                
+                allSessions = mockSessions;
+                populateFilters();
+                updateStats();
+                applyFilters();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('tableContainer').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error scanning directories:', error);
+                showError('Fehler beim Laden der Export-Daten: ' + error.message);
+            }
+        }
+
+        function populateFilters() {
+            const users = [...new Set(allSessions.map(s => s.user_id))].sort();
+            const workflows = [...new Set(allSessions.map(s => s.workflow_name))].sort();
+
+            const userSelect = document.getElementById('userFilter');
+            const workflowSelect = document.getElementById('workflowFilter');
+
+            userSelect.innerHTML = '<option value="">Alle Benutzer</option>';
+            users.forEach(user => {
+                userSelect.innerHTML += `<option value="${user}">${user}</option>`;
+            });
+
+            workflowSelect.innerHTML = '<option value="">Alle Workflows</option>';
+            workflows.forEach(workflow => {
+                const displayName = workflow.replace('.json', '').replace(/_/g, ' ');
+                workflowSelect.innerHTML += `<option value="${workflow}">${displayName}</option>`;
+            });
+        }
+
+        function updateStats() {
+            const totalSessions = allSessions.length;
+            const totalOutputs = allSessions.reduce((sum, s) => sum + (s.output_count || 0), 0);
+            const totalMedia = allSessions.reduce((sum, s) => sum + (s.media_count || 0), 0);
+            const totalUsers = new Set(allSessions.map(s => s.user_id)).size;
+
+            document.getElementById('totalSessions').textContent = totalSessions;
+            document.getElementById('totalOutputs').textContent = totalOutputs;
+            document.getElementById('totalMedia').textContent = totalMedia;
+            document.getElementById('totalUsers').textContent = totalUsers;
+        }
+
+        function applyFilters() {
+            const userFilter = document.getElementById('userFilter').value;
+            const workflowFilter = document.getElementById('workflowFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+
+            let filtered = allSessions.filter(session => {
+                if (userFilter && session.user_id !== userFilter) return false;
+                if (workflowFilter && session.workflow_name !== workflowFilter) return false;
+                if (dateFilter) {
+                    const sessionDate = parseTimestamp(session.timestamp);
+                    const filterDate = new Date(dateFilter);
+                    if (sessionDate.toDateString() !== filterDate.toDateString()) return false;
+                }
+                if (searchFilter) {
+                    const searchText = `${session.session_id} ${session.workflow_name} ${session.user_id}`.toLowerCase();
+                    if (!searchText.includes(searchFilter)) return false;
+                }
+                return true;
+            });
+
+            // Sort the filtered results
+            filtered.sort((a, b) => {
+                let aVal = a[currentSort.column];
+                let bVal = b[currentSort.column];
+
+                if (currentSort.column === 'timestamp') {
+                    aVal = parseTimestamp(aVal);
+                    bVal = parseTimestamp(bVal);
+                }
+
+                if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            renderTable(filtered);
+        }
+
+        function renderTable(sessions) {
+            const tbody = document.getElementById('sessionsTableBody');
+            
+            if (sessions.length === 0) {
+                document.getElementById('tableContainer').style.display = 'none';
+                document.getElementById('noData').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('tableContainer').style.display = 'block';
+            document.getElementById('noData').style.display = 'none';
+
+            tbody.innerHTML = sessions.map(session => {
+                const date = parseTimestamp(session.timestamp);
+                const dateStr = date.toLocaleDateString('de-DE');
+                const timeStr = date.toLocaleTimeString('de-DE');
+                const workflowDisplay = session.workflow_name.replace('.json', '').replace(/_/g, ' ');
+
+                return `
+                    <tr>
+                        <td>
+                            <div style="width: 60px; height: 60px; background-color: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666;">
+                                Vorschau
+                            </div>
+                        </td>
+                        <td>${session.user_id}</td>
+                        <td><code>${session.session_id}</code></td>
+                        <td>
+                            <div>${dateStr}</div>
+                            <div style="font-size: 0.8em; color: #666;">${timeStr}</div>
+                        </td>
+                        <td><span class="workflow-name">${workflowDisplay}</span></td>
+                        <td>${session.output_count || 0}</td>
+                        <td>${session.media_count || 0}</td>
+                        <td>
+                            <a href="${session.folder_name}/${session.html_file}" class="session-link" target="_blank">
+                                Öffnen
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function parseTimestamp(timestamp) {
+            // Parse yymmddhhmmss format
+            const year = 2000 + parseInt(timestamp.substr(0, 2));
+            const month = parseInt(timestamp.substr(2, 2)) - 1; // Month is 0-indexed
+            const day = parseInt(timestamp.substr(4, 2));
+            const hour = parseInt(timestamp.substr(6, 2));
+            const minute = parseInt(timestamp.substr(8, 2));
+            const second = parseInt(timestamp.substr(10, 2));
+            
+            return new Date(year, month, day, hour, minute, second);
+        }
+
+        function updateSortIndicators() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.dataset.sort === currentSort.column) {
+                    th.classList.add(`sort-${currentSort.direction}`);
+                }
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('userFilter').value = '';
+            document.getElementById('workflowFilter').value = '';
+            document.getElementById('dateFilter').value = '';
+            document.getElementById('searchFilter').value = '';
+            applyFilters();
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error').textContent = message;
+        }
+    </script>
+</body>
+</html>

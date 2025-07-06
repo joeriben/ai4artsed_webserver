@@ -1,0 +1,12 @@
+{
+  "user_id": "DOE_J",
+  "session_id": "55aacb52",
+  "timestamp": "250705153712",
+  "workflow_name": "ai4artsed_MODEL_Stable-Diffusion-3.5_simple_2506151231.json",
+  "prompt": "Tiananmen Square, Revolution, 1989, Student stands before tank",
+  "export_date": "2025-07-05T15:37:12.761088",
+  "media_files": [
+    "image_001.png"
+  ],
+  "output_count": 1
+}
