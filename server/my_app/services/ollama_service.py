@@ -168,12 +168,21 @@ class OllamaService:
                 "cached": True
             }
         
-        # Translate prompt
-        translated_prompt = self.translate_text(prompt)
-        if not translated_prompt:
-            return {"success": False, "error": "Übersetzungs-Service fehlgeschlagen."}
+        # Check if this is an image analysis prompt (already in English)
+        is_image_analysis = prompt.strip().startswith("Material and medial properties:")
         
-        # Check safety
+        # Translate prompt only if it's not already in English and not an image analysis
+        if is_image_analysis:
+            # Image analysis prompts are already in English, skip translation
+            translated_prompt = prompt
+            logger.info("Skipping translation for image analysis prompt")
+        else:
+            # Translate prompt (handles English detection internally)
+            translated_prompt = self.translate_text(prompt)
+            if not translated_prompt:
+                return {"success": False, "error": "Übersetzungs-Service fehlgeschlagen."}
+        
+        # Check safety for ALL prompts
         safety_result = self.check_safety(translated_prompt)
         if not safety_result["is_safe"]:
             return {"success": False, "error": safety_result.get("reason", "Prompt rejected for safety reasons.")}

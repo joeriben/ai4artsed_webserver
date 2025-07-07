@@ -62,6 +62,23 @@
                     <label for="fast-mode">Schnell (Cloud)</label>
                 </div>
             </div>
+
+            <div>
+                <label>Seed-Kontrolle</label>
+                <div class="seed-control">
+                    <input type="radio" id="seed-random" name="seed-mode" value="random" checked>
+                    <label for="seed-random">Zufallszahl</label>
+                    
+                    <input type="radio" id="seed-standard" name="seed-mode" value="standard">
+                    <label for="seed-standard">Projekt-Standard (123456789)</label>
+                    
+                    <input type="radio" id="seed-fixed" name="seed-mode" value="fixed">
+                    <label for="seed-fixed">Letzten Seed verwenden</label>
+                </div>
+                <div id="seed-info" style="display: none; font-size: 0.9em; color: #666; margin-top: 5px;">
+                    Letzter Seed: <span id="last-seed-value">-</span>
+                </div>
+            </div>
             
             <button id="submitBtn" onclick="submitPrompt()">Generieren<span class="spinner"></span></button>
             <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
@@ -78,7 +95,7 @@
 
         <div class="results">
             <div id="promptDisplay" style="display: none;">
-                <h4>Verwendeter Prompt / Modus:</h4>
+                <h4>Verwendeter Prompt:</h4>
                 <div id="promptDisplayText"></div>
             </div>
             <div id="imageOutputs" style="display: none;">

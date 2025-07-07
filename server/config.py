@@ -17,7 +17,7 @@ COMFYUI_PREFIX = "comfyui"
 COMFYUI_PORT = "7821"
 
 # Model Configuration
-ANALYSIS_MODEL = "llava:7b"
+ANALYSIS_MODEL = "llava:13b"
 TRANSLATION_MODEL = "thinkverse/towerinstruct"
 SAFETY_MODEL = "llama-guard3:8b"
 

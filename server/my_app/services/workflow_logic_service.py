@@ -220,18 +220,47 @@ class WorkflowLogicService:
                 if not isinstance(node_data["inputs"].get("height"), list):
                     node_data["inputs"]["height"] = dims["height"]
     
-    def randomize_seeds(self, workflow: Dict[str, Any]):
+    def apply_seed_control(self, workflow: Dict[str, Any], seed_mode: str, custom_seed: Optional[int] = None) -> int:
         """
-        Randomize all seed values in the workflow
+        Apply seed control to ALL seed-sensitive nodes in the workflow
+        Ignores external seed connections and applies the same seed everywhere
         
         Args:
             workflow: Workflow definition
+            seed_mode: 'random', 'standard', or 'fixed'
+            custom_seed: Custom seed value for 'fixed' mode
+            
+        Returns:
+            The seed value that was used
         """
+        # Determine the seed value to use
+        if seed_mode == 'standard':
+            seed_value = 123456789
+        elif seed_mode == 'fixed' and custom_seed is not None:
+            seed_value = custom_seed
+        else:  # random
+            seed_value = random.randint(0, 2**32 - 1)
+        
+        # List of all sampler node types
+        sampler_types = [
+            "KSampler", "KSamplerAdvanced", "SamplerCustom",
+            "StableAudioSampler", "MusicGenGenerate",
+            "AudioScheduledSampler"  # Add more sampler types as needed
+        ]
+        
+        # Apply seed to all sampler nodes
         for node_data in workflow.values():
-            if "KSampler" in node_data["class_type"] and "seed" in node_data["inputs"]:
-                node_data["inputs"]["seed"] = random.randint(0, 2**32 - 1)
+            # Check if it's a sampler
+            if node_data.get("class_type") in sampler_types:
+                if "inputs" in node_data and "seed" in node_data["inputs"]:
+                    # Override seed, regardless of connections
+                    node_data["inputs"]["seed"] = seed_value
+                    logger.info(f"Set seed {seed_value} in {node_data.get('class_type')} node")
+        
+        return seed_value
     
-    def prepare_workflow(self, workflow_name: str, prompt: str, aspect_ratio: str, mode: str) -> Dict[str, Any]:
+    def prepare_workflow(self, workflow_name: str, prompt: str, aspect_ratio: str, mode: str, 
+                        seed_mode: str = "random", custom_seed: Optional[int] = None) -> Dict[str, Any]:
         """
         Prepare a workflow for execution
         
@@ -240,9 +269,11 @@ class WorkflowLogicService:
             prompt: Prompt text
             aspect_ratio: Aspect ratio
             mode: Execution mode ('eco' or 'fast')
+            seed_mode: Seed control mode ('random', 'standard', or 'fixed')
+            custom_seed: Custom seed value for 'fixed' mode
             
         Returns:
-            Dictionary with workflow, status_updates, and success flag
+            Dictionary with workflow, status_updates, used_seed, and success flag
         """
         # Load workflow
         workflow = self.load_workflow(workflow_name)
@@ -263,14 +294,15 @@ class WorkflowLogicService:
         if not self.inject_prompt(workflow, prompt):
             return {"success": False, "error": "Workflow hat keinen vorgesehenen Prompt-Eingabeknoten."}
         
-        # Update dimensions and randomize seeds
+        # Update dimensions and apply seed control
         self.update_dimensions(workflow, aspect_ratio)
-        self.randomize_seeds(workflow)
+        used_seed = self.apply_seed_control(workflow, seed_mode, custom_seed)
         
         return {
             "success": True,
             "workflow": workflow,
-            "status_updates": status_updates
+            "status_updates": status_updates,
+            "used_seed": used_seed
         }
 
 

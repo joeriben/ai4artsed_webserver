@@ -251,6 +251,10 @@ class ExportManager:
                 f"Auto-export completed for session {session_id}: "
                 f"{session_dir_name} ({len(media_files)} media, {len(processed_outputs)} outputs)"
             )
+            
+            # Update the sessions overview
+            self._update_sessions_js()
+            
             return True
             
         except Exception as e:
@@ -322,6 +326,9 @@ class ExportManager:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
             
             logger.info(f"Successfully exported session {session_id} to {session_dir_name}")
+            
+            # Update the sessions overview
+            self._update_sessions_js()
             
             return {
                 "success": True,
@@ -457,6 +464,47 @@ class ExportManager:
             logger.error(f"Failed to create download ZIP: {e}")
             return None
 
+
+    def _update_sessions_js(self):
+        """
+        Scans the export directory and updates a sessions.js file
+        for the local overview page.
+        """
+        try:
+            sessions = []
+            for item in self.exports_dir.iterdir():
+                if item.is_dir() and item.name.startswith('session_'):
+                    metadata_path = item / 'metadata.json'
+                    if metadata_path.exists():
+                        with open(metadata_path, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                        
+                        user_id = data.get('user_id', 'N/A')
+                        session_id = data.get('session_id', 'N/A')
+                        timestamp = data.get('timestamp', 'N/A')
+                        html_file = f"output_{user_id}_{timestamp}_{session_id}.html"
+
+                        sessions.append({
+                            'user_id': user_id,
+                            'session_id': session_id,
+                            'timestamp': timestamp,
+                            'workflow_name': data.get('workflow_name', 'N/A'),
+                            'output_count': data.get('output_count', 0),
+                            'media_count': len(data.get('media_files', [])),
+                            'export_date': data.get('export_date'),
+                            'folder_name': item.name,
+                            'html_file': html_file
+                        })
+            
+            # Write to sessions.js
+            js_content = f"const allSessions = {json.dumps(sessions, indent=2, ensure_ascii=False)};"
+            with open(self.exports_dir / "sessions.js", 'w', encoding='utf-8') as f:
+                f.write(js_content)
+            
+            logger.info(f"Successfully updated sessions.js with {len(sessions)} sessions.")
+
+        except Exception as e:
+            logger.error(f"Failed to update sessions.js: {e}")
 
 # Create a singleton instance
 export_manager = ExportManager()

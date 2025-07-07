@@ -8,6 +8,34 @@ import { currentSessionData, updateSessionData } from './session.js';
 
 let pollingInterval = null;
 
+// Initialize seed control
+document.addEventListener('DOMContentLoaded', () => {
+    initializeSeedControl();
+});
+
+function initializeSeedControl() {
+    const seedRadios = document.querySelectorAll('input[name="seed-mode"]');
+    const seedInfo = document.getElementById('seed-info');
+    const lastSeedSpan = document.getElementById('last-seed-value');
+    
+    // Load last seed from localStorage
+    const lastSeed = localStorage.getItem('lastUsedSeed');
+    if (lastSeed) {
+        lastSeedSpan.textContent = lastSeed;
+    }
+    
+    // Add event listeners to radio buttons
+    seedRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.value === 'fixed' && lastSeed) {
+                seedInfo.style.display = 'block';
+            } else {
+                seedInfo.style.display = 'none';
+            }
+        });
+    });
+}
+
 export async function loadWorkflows() {
     try {
         const response = await fetch('/list_workflows');
@@ -52,11 +80,24 @@ export async function submitPrompt() {
         return;
     }
 
+    // Get seed control settings
+    const seedMode = document.querySelector('input[name="seed-mode"]:checked').value;
+    let customSeed = null;
+    
+    if (seedMode === 'fixed') {
+        const lastSeed = localStorage.getItem('lastUsedSeed');
+        if (lastSeed) {
+            customSeed = parseInt(lastSeed);
+        }
+    }
+
     const payload = { 
         prompt: promptText, 
         workflow: workflowName, 
         aspectRatio: aspectRatio, 
-        mode: executionMode 
+        mode: executionMode,
+        seedMode: seedMode,
+        customSeed: customSeed
     };
 
     try {
@@ -95,11 +136,12 @@ export async function submitPrompt() {
             cycleStatus();
         }
 
-        // Bei Bildanalyse: Original-Prompt behalten, wenn kein translated_prompt vorhanden
-        if (result.translated_prompt) {
+        // Bei Bildanalyse: Analysetext behalten (bereits gesetzt)
+        if (isImageAnalysis && ui.promptDisplayText.textContent) {
+            // Bildanalyse-Text ist bereits gesetzt, nichts ändern
+        } else if (result.translated_prompt) {
+            // Bei normalen Prompts: übersetzten Prompt anzeigen
             ui.promptDisplayText.textContent = result.translated_prompt;
-        } else if (isImageAnalysis && ui.promptDisplayText.textContent) {
-            // Bildanalyse-Text ist bereits gesetzt, nichts tun
         } else {
             // Fallback: ursprünglichen Prompt anzeigen
             ui.promptDisplayText.textContent = promptText;
@@ -112,6 +154,12 @@ export async function submitPrompt() {
             workflowName: workflowName,
             prompt: promptText
         });
+        
+        // Save used seed if returned
+        if (result.used_seed) {
+            localStorage.setItem('lastUsedSeed', result.used_seed.toString());
+            document.getElementById('last-seed-value').textContent = result.used_seed;
+        }
         
         startPollingForResult(result.prompt_id);
     } catch (e) {

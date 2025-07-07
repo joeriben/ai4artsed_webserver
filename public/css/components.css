@@ -167,6 +167,35 @@ button.processing .spinner {
   margin-right: 5px;
 }
 
+/* Seed Control */
+.seed-control {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  background-color: var(--mode-switch-bg);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.seed-control label {
+  margin-bottom: 0;
+  font-weight: normal;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.seed-control input {
+  margin-right: 5px;
+}
+
+#seed-info {
+  background-color: var(--info-bg);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--info-border);
+}
+
 /* Processing Info */
 #processingInfo {
   display: none;

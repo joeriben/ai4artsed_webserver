@@ -75,6 +75,8 @@ def execute_workflow():
         prompt = data.get('prompt', '').strip()
         aspect_ratio = data.get('aspectRatio', '1:1')
         mode = data.get('mode', 'eco')
+        seed_mode = data.get('seedMode', 'random')
+        custom_seed = data.get('customSeed', None)
         
         if not workflow_name:
             return jsonify({"error": "Kein Workflow angegeben."}), 400
@@ -84,14 +86,27 @@ def execute_workflow():
         
         logger.info(f"Executing workflow: {workflow_name} with prompt: {prompt[:50]}...")
         
+        # Validate prompt (translation + safety check) if enabled
+        if ENABLE_VALIDATION_PIPELINE:
+            validation_result = ollama_service.validate_and_translate_prompt(prompt)
+            
+            if not validation_result["success"]:
+                # Safety check failed
+                return jsonify({"error": validation_result.get("error", "Prompt-Validierung fehlgeschlagen.")}), 400
+            
+            # Use translated prompt
+            prompt = validation_result["translated_prompt"]
+            logger.info(f"Using validated prompt: {prompt[:50]}...")
+        
         # Prepare workflow
-        result = workflow_logic_service.prepare_workflow(workflow_name, prompt, aspect_ratio, mode)
+        result = workflow_logic_service.prepare_workflow(workflow_name, prompt, aspect_ratio, mode, seed_mode, custom_seed)
         
         if not result["success"]:
             return jsonify({"error": result["error"]}), 400
         
         workflow = result["workflow"]
         status_updates = result.get("status_updates", [])
+        used_seed = result.get("used_seed")
         
         # Submit to ComfyUI
         prompt_id = comfyui_service.submit_workflow(workflow)
@@ -109,7 +124,9 @@ def execute_workflow():
         return jsonify({
             "success": True,
             "prompt_id": prompt_id,
-            "status_updates": status_updates
+            "status_updates": status_updates,
+            "translated_prompt": prompt,  # This is now the validated/translated prompt
+            "used_seed": used_seed  # Return the seed that was used
         })
         
     except Exception as e:
