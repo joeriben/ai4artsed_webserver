@@ -32,6 +32,17 @@ def list_workflows():
         return jsonify({"error": "Failed to list workflows"}), 500
 
 
+@workflow_bp.route('/workflow_has_safety_node/<workflow_name>', methods=['GET'])
+def workflow_has_safety_node(workflow_name):
+    """Check if a workflow contains the safety node"""
+    try:
+        has_safety_node = workflow_logic_service.check_safety_node(workflow_name)
+        return jsonify({"has_safety_node": has_safety_node})
+    except Exception as e:
+        logger.error(f"Error checking workflow safety node: {e}")
+        return jsonify({"error": "Failed to check workflow"}), 500
+
+
 @workflow_bp.route('/validate-prompt', methods=['POST'])
 def validate_prompt():
     """Validate and translate a prompt"""
@@ -77,6 +88,7 @@ def execute_workflow():
         mode = data.get('mode', 'eco')
         seed_mode = data.get('seedMode', 'random')
         custom_seed = data.get('customSeed', None)
+        safety_level = data.get('safetyLevel', 'off')
         
         if not workflow_name:
             return jsonify({"error": "Kein Workflow angegeben."}), 400
@@ -99,7 +111,7 @@ def execute_workflow():
             logger.info(f"Using validated prompt: {prompt[:50]}...")
         
         # Prepare workflow
-        result = workflow_logic_service.prepare_workflow(workflow_name, prompt, aspect_ratio, mode, seed_mode, custom_seed)
+        result = workflow_logic_service.prepare_workflow(workflow_name, prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level)
         
         if not result["success"]:
             return jsonify({"error": result["error"]}), 400

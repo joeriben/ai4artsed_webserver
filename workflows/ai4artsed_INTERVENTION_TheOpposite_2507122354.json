@@ -1,0 +1,240 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 362862833802339,
+      "steps": 25,
+      "cfg": 5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "74",
+        0
+      ],
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "Material and medial properties: The image is an oil painting depicting a landscape scene with a figure standing in the foreground, gazing out at a mountainous vista.\n\nPre-iconographic description: The central figure is a man dressed in attire suggestive of the 19th century. He has a contemplative expression and is holding what appears to be a compass or similar navigational tool. His pose suggests he is surveying or planning his route, possibly in preparation for a journey through the landscape before him. The setting includes a rugged mountain range in the background, with rolling clouds and mist partially obscuring the view. The lighting suggests either dawn or dusk due to the soft diffuse light illuminating the scene!\n\nIconographic analysis: The man's posture and attire could suggest themes of exploration, the unknown, or the journey into the wilderness. His contemplative pose may also symbolize introspection or planning before embarking on a significant endeavor. The misty mountain landscape might be interpreted as both a natural environment and as a metaphor for challenges or obstacles that one might encounter on such a journey.\n\nIconological interpretation: The painting could be reflecting on the human condition, the relationship between man and nature, or the concept of personal growth through challenge and exploration. It may also comment on the ephemeral nature of moments in time, as represented by the clouds and mist that partially obscure the view, reinforcing the transient aspect of life's journey. The painting might also be seen as a commentary on the importance of planning and preparation for life's journeys."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "41": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": [
+        "44",
+        0
+      ],
+      "style_prompt": "Transform the image description according to the logic and instructions defined in the input labeled “input_context”.\nThis is not a linguistic translation, but a semantic and structural transformation.\nReconstruct all entities and their relations as specified, ensuring that:\n- The whole description is turned into its opposite. Everything is upside-down, inside-out, turned around.\n- The resulting structure reflects a complete semantic inversion.\nDo not explain your reasoning.\nOutput only the transformed description, either as structured data (if input was structured), or as plain descriptive text (if input was textual).\n\nTransform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nRULES:\nYour input in probably unconventional. Do not align or straighten-out unconventional relations and pictures, but support the logical relations of the input whatsoever.\nDo translate content into a visual depiction/description. Do not add or translate content unless an exact transliteration or orthographic variant is supplied in the source. YOUR OUTPUT IS ABSOLUTELY FOCUSED ON PROVIDING DETAILED VISUAL INSTRUCTIONS FOR A VISUAL SCENE.\n\nGUIDANCE:\nConsider the following categories as guideline for your professional prompting process:\n- Core subject : Identify and foreground the principal subject matter as fully specified in the source.\n- Action : Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n- Relational context : Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n- Attributive qualities : Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n- Material, stylistic and medial references : If applicable, retain or clarify materialities (pictorial mediality), stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n- Technical parameters : Place any camera data, aspect ratio at the end of the prompt. Use these codes to communicate technical instructions:\n   \n   \nAdditional requirements:\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\n!YOUR OUTPUT MUST NOT EXCEED 55 WORDS!\n\nNO META-REMARKS ABOUT PROMPT; WORD COUNTS ETC!",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "42": {
+    "inputs": {
+      "value": "describe the exact diametral opposite. Entities as well as relations have to be turned into their opposites."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Interceptive context - REPLACE THIS AS YOU SEE FIT (default is meant for the AI4ArtsEd web-interface)"
+    }
+  },
+  "43": {
+    "inputs": {
+      "clip_name1": "clip_g.safetensors",
+      "clip_name2": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "44": {
+    "inputs": {
+      "value": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_context_prompt"
+    }
+  },
+  "46": {
+    "inputs": {
+      "preview": "Inverted oil painting: A figure, dressed in 20th-century attire, stands in the background, averting their gaze from a flat, barren landscape. They clench a closed compass, seeming lost or disoriented. The scene includes a smooth, treeless plain, with clear blue skies and harsh sunlight. The man's posture and attire suggest themes of stagnation or aimlessness. The empty landscape might symbolize a lack of challenge or, conversely, a fear of the unknown. The bright, unobscured sunlight could represent a feeling of exposure or vulnerability, or a longing for the protection of clouds and mist.",
+      "source": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final prompt"
+    }
+  },
+  "70": {
+    "inputs": {
+      "preview": "Inverted oil painting: A figure, dressed in 20th-century attire, stands at the edge of an abstract, monochromatic landscape. They hold a closed compass gently, gazing thoughtfully into the distance. The scene is calm, with subtle variations in texture and light. The figure's pose suggests introspection rather than distress, while the landscape hints at unexplored possibilities without evoking fear or foreboding.",
+      "source": [
+        "74",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Safety-filtered positive prompt"
+    }
+  },
+  "74": {
+    "inputs": {
+      "prompt": [
+        "41",
+        0
+      ],
+      "filter_level": "kids",
+      "model": "local/mistral-nemo:latest",
+      "api_key": [
+        "11",
+        0
+      ],
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_switch_promptsafety",
+    "_meta": {
+      "title": "AI4ArtsEd Promptsafety Switch"
+    }
+  }
+}

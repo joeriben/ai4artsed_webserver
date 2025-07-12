@@ -72,6 +72,27 @@ class WorkflowLogicService:
             logger.error(f"Failed to list workflows: {e}")
             return []
     
+    def check_safety_node(self, workflow_name: str) -> bool:
+        """
+        Check if a workflow contains the safety node
+        
+        Args:
+            workflow_name: Name of the workflow file
+            
+        Returns:
+            True if workflow contains safety node, False otherwise
+        """
+        workflow = self.load_workflow(workflow_name)
+        if not workflow:
+            return False
+        
+        # Check if any node has the safety switch class type
+        for node_data in workflow.values():
+            if node_data.get("class_type") == "ai4artsed_switch_promptsafety":
+                return True
+        
+        return False
+    
     def switch_to_eco_mode(self, workflow: Dict[str, Any]) -> Tuple[Dict[str, Any], list]:
         """
         Switch workflow to eco mode (local models)
@@ -259,8 +280,36 @@ class WorkflowLogicService:
         
         return seed_value
     
+    def apply_safety_level(self, workflow: Dict[str, Any], safety_level: str) -> bool:
+        """
+        Apply safety level to the workflow if the safety node exists
+        
+        Args:
+            workflow: Workflow definition
+            safety_level: Safety level ('off', 'youth', or 'kids')
+            
+        Returns:
+            True if safety node was found and updated, False otherwise
+        """
+        # Look for the safety switch node
+        safety_node_found = False
+        
+        for node_data in workflow.values():
+            if node_data.get("class_type") == "ai4artsed_switch_promptsafety":
+                # Found the safety node, update its filter_level
+                if "inputs" in node_data:
+                    node_data["inputs"]["filter_level"] = safety_level
+                    logger.info(f"Applied safety level '{safety_level}' to workflow")
+                    safety_node_found = True
+        
+        if not safety_node_found:
+            logger.info("No safety node found in workflow, safety level not applied")
+        
+        return safety_node_found
+    
     def prepare_workflow(self, workflow_name: str, prompt: str, aspect_ratio: str, mode: str, 
-                        seed_mode: str = "random", custom_seed: Optional[int] = None) -> Dict[str, Any]:
+                        seed_mode: str = "random", custom_seed: Optional[int] = None,
+                        safety_level: str = "off") -> Dict[str, Any]:
         """
         Prepare a workflow for execution
         
@@ -271,6 +320,7 @@ class WorkflowLogicService:
             mode: Execution mode ('eco' or 'fast')
             seed_mode: Seed control mode ('random', 'standard', or 'fixed')
             custom_seed: Custom seed value for 'fixed' mode
+            safety_level: Safety level ('off', 'youth', or 'kids')
             
         Returns:
             Dictionary with workflow, status_updates, used_seed, and success flag
@@ -297,6 +347,11 @@ class WorkflowLogicService:
         # Update dimensions and apply seed control
         self.update_dimensions(workflow, aspect_ratio)
         used_seed = self.apply_seed_control(workflow, seed_mode, custom_seed)
+        
+        # Apply safety level if safety node exists (failsafe)
+        safety_applied = self.apply_safety_level(workflow, safety_level)
+        if safety_applied and safety_level != "off":
+            status_updates.append(f"Sicherheitsstufe '{safety_level}' aktiviert.")
         
         return {
             "success": True,

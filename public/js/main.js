@@ -3,7 +3,8 @@ import { config, loadConfig } from './config.js';
 import { ui } from './ui-elements.js';
 import { setStatus, updateDimensions } from './ui-utils.js';
 import { setupImageHandlers } from './image-handler.js';
-import { loadWorkflows, submitPrompt } from './workflow.js';
+import { loadWorkflows } from './workflow.js';
+import { submitPromptWithFastPolling as submitPrompt } from './workflow-streaming.js';
 import { downloadSession } from './session.js';
 
 // Make submitPrompt available globally for onclick handler

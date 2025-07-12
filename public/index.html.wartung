@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI4ArtsEd - Artificial Intelligence for Arts Education</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<h1>Werkraum ist wegen Wartungsarbeiten voraussichtlich bis ca. morgen 9.00 Uhr nicht erreichbar</h1>
+<div class="footer">
+            <div class="footer-links">
+                <a href="https://www.bmfsfj.de/" target="_blank" rel="noopener noreferrer">Gefördert vom Bundesministerium für Bildung, Familie, Senioren, Frauen und Jugend</a>
+                <a href="https://cris.fau.de/projects/318044853/" target="_blank">about</a>
+                <a href="impressum.html">Impressum</a>
+            </div>
+        </div>
+</body>
+</html>

@@ -56,9 +56,9 @@
             <div>
                 <label>Ausführungsmodus</label>
                 <div class="mode-switch">
-                    <input type="radio" id="eco-mode" name="execution-mode" value="eco" checked>
+                    <input type="radio" id="eco-mode" name="execution-mode" value="eco">
                     <label for="eco-mode">Eco (Lokal)</label>
-                    <input type="radio" id="fast-mode" name="execution-mode" value="fast">
+                    <input type="radio" id="fast-mode" name="execution-mode" value="fast" checked>
                     <label for="fast-mode">Schnell (Cloud)</label>
                 </div>
             </div>
@@ -79,10 +79,24 @@
                     Letzter Seed: <span id="last-seed-value">-</span>
                 </div>
             </div>
+
+            <div>
+                <label>Sicherheitsstufe</label>
+                <div class="mode-switch">
+                    <input type="radio" id="safety-off" name="safety-level" value="off" checked>
+                    <label for="safety-off">Aus</label>
+                    
+                    <input type="radio" id="safety-youth" name="safety-level" value="youth">
+                    <label for="safety-youth">Youth</label>
+                    
+                    <input type="radio" id="safety-kids" name="safety-level" value="kids">
+                    <label for="safety-kids">Kids</label>
+                </div>
+            </div>
             
             <button id="submitBtn" onclick="submitPrompt()">Generieren<span class="spinner"></span></button>
             <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
-                Hinweis: Generierte Inhalte werden automatisch auf dem Server gespeichert.
+                Hinweis: Generierte Inhalte werden zu Forschungszwecken auf dem Server gespeichert. Hochgeladene Bilder werden nicht gespeichert.
             </div>
         </div>
 

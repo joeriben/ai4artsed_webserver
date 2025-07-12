@@ -44,9 +44,64 @@ export async function loadWorkflows() {
             const workflows = result.workflows || [];
             ui.workflow.innerHTML = '<option value="">-- Workflow auswählen --</option>' + 
                 workflows.map(wf => `<option value="${wf}">${wf.replace('.json', '').replace(/_/g, ' ')}</option>`).join('');
+            
+            // Add event listener for workflow selection
+            ui.workflow.addEventListener('change', checkWorkflowSafetyNode);
         }
     } catch (error) {
         console.error('Failed to load workflows:', error);
+    }
+}
+
+async function checkWorkflowSafetyNode() {
+    const workflowName = ui.workflow.value;
+    const safetyRadios = document.querySelectorAll('input[name="safety-level"]');
+    const safetyLabels = document.querySelectorAll('input[name="safety-level"] + label');
+    
+    if (!workflowName) {
+        // No workflow selected, disable safety controls
+        setSafetyControlsEnabled(false);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/workflow_has_safety_node/${encodeURIComponent(workflowName)}`);
+        if (response.ok) {
+            const result = await response.json();
+            setSafetyControlsEnabled(result.has_safety_node);
+        }
+    } catch (error) {
+        console.error('Failed to check workflow safety node:', error);
+        setSafetyControlsEnabled(false);
+    }
+}
+
+function setSafetyControlsEnabled(enabled) {
+    const safetyRadios = document.querySelectorAll('input[name="safety-level"]');
+    const safetyLabels = document.querySelectorAll('input[name="safety-level"] + label');
+    
+    // Find container by looking for the parent of the first safety radio
+    const firstSafetyRadio = document.querySelector('input[name="safety-level"]');
+    const safetyContainer = firstSafetyRadio ? firstSafetyRadio.closest('.mode-switch').parentElement : null;
+    
+    safetyRadios.forEach(radio => {
+        radio.disabled = !enabled;
+        if (!enabled && radio.value === 'off') {
+            radio.checked = true; // Reset to "off" when disabled
+        }
+    });
+    
+    safetyLabels.forEach(label => {
+        label.style.opacity = enabled ? '1' : '0.5';
+        label.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    });
+    
+    // Update the container label as well
+    if (safetyContainer) {
+        const containerLabel = safetyContainer.querySelector('label:first-child');
+        if (containerLabel && !containerLabel.hasAttribute('for')) {
+            containerLabel.style.opacity = enabled ? '1' : '0.5';
+        }
     }
 }
 
@@ -68,6 +123,7 @@ export async function submitPrompt() {
     const promptText = ui.prompt.value.trim();
     const aspectRatio = ui.aspectRatio.value;
     const executionMode = document.querySelector('input[name="execution-mode"]:checked').value;
+    const safetyLevel = document.querySelector('input[name="safety-level"]:checked').value;
 
     if (!workflowName) {
         setStatus('Bitte wählen Sie einen Workflow aus.', 'warning');
@@ -97,7 +153,8 @@ export async function submitPrompt() {
         aspectRatio: aspectRatio, 
         mode: executionMode,
         seedMode: seedMode,
-        customSeed: customSeed
+        customSeed: customSeed,
+        safetyLevel: safetyLevel
     };
 
     try {

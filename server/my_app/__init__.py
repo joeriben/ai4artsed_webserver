@@ -26,6 +26,7 @@ def create_app():
     
     # Register blueprints
     from my_app.routes.workflow_routes import workflow_bp
+    from my_app.routes.workflow_streaming_routes import workflow_streaming_bp
     from my_app.routes.export_routes import export_bp
     from my_app.routes.static_routes import static_bp
     from my_app.routes.config_routes import config_bp
@@ -33,6 +34,7 @@ def create_app():
     app.register_blueprint(static_bp)
     app.register_blueprint(config_bp)
     app.register_blueprint(workflow_bp)
+    app.register_blueprint(workflow_streaming_bp)
     app.register_blueprint(export_bp)
     
     # Configure logging filter for ComfyUI proxy
