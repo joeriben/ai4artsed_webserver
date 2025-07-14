@@ -8,6 +8,8 @@ import io
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional, List
+from xml.etree import ElementTree as ET
+from xml.dom import minidom
 
 from config import (
     EXPORTS_DIR,
@@ -21,6 +23,22 @@ from my_app.services.comfyui_service import comfyui_service
 
 logger = logging.getLogger(__name__)
 
+# Import export libraries
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
+    logger.warning("WeasyPrint not available - PDF export disabled")
+
+try:
+    from docx import Document
+    from docx.shared import Inches
+    PYTHON_DOCX_AVAILABLE = True
+except ImportError:
+    PYTHON_DOCX_AVAILABLE = False
+    logger.warning("python-docx not available - DOCX export disabled")
+
 
 class ExportManager:
     """Manager for session exports"""
@@ -28,6 +46,19 @@ class ExportManager:
     def __init__(self):
         self.exports_dir = EXPORTS_DIR
         self.exports_dir.mkdir(exist_ok=True)
+        
+        # Create subdirectories for different export formats
+        self.html_dir = self.exports_dir / "html"
+        self.html_dir.mkdir(exist_ok=True)
+        
+        self.pdf_dir = self.exports_dir / "pdf"
+        self.pdf_dir.mkdir(exist_ok=True)
+        
+        self.xml_dir = self.exports_dir / "xml"
+        self.xml_dir.mkdir(exist_ok=True)
+        
+        self.docx_dir = self.exports_dir / "docx"
+        self.docx_dir.mkdir(exist_ok=True)
     
     def generate_export_html(self, session_data: Dict[str, Any], media_files: List[str]) -> str:
         """Generate HTML file for a session export"""
@@ -36,6 +67,9 @@ class ExportManager:
         session_id = session_data.get('session_id', 'unknown')
         workflow_name = session_data.get('workflow_name', 'Unknown Workflow')
         prompt = session_data.get('prompt', '')
+        translated_prompt = session_data.get('translated_prompt', '')
+        used_seed = session_data.get('used_seed', 'N/A')
+        safety_level = session_data.get('safety_level', 'off')
         outputs = session_data.get('outputs', [])
         
         html_content = f"""<!DOCTYPE html>
@@ -75,6 +109,8 @@ class ExportManager:
             <div class="metadata-item"><span class="metadata-label">Session ID:</span> {session_id}</div>
             <div class="metadata-item"><span class="metadata-label">Timestamp:</span> {timestamp}</div>
             <div class="metadata-item"><span class="metadata-label">Workflow:</span> {workflow_name}</div>
+            <div class="metadata-item"><span class="metadata-label">Seed:</span> {used_seed}</div>
+            <div class="metadata-item"><span class="metadata-label">Filter-Status:</span> {safety_level}</div>
             <div class="metadata-item"><span class="metadata-label">Export Date:</span> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</div>
         </div>
         
@@ -82,6 +118,11 @@ class ExportManager:
             <h3>Original Prompt</h3>
             <div class="text-content">{prompt}</div>
         </div>
+        
+        {f'''<div class="prompt-section" style="background-color: #f0f8ff;">
+            <h3>Übersetzter Prompt</h3>
+            <div class="text-content">{translated_prompt}</div>
+        </div>''' if translated_prompt and translated_prompt != prompt else ''}
         
         <h3>Workflow Outputs (in Processing Order)</h3>
 """
@@ -119,15 +160,28 @@ class ExportManager:
         return html_content
     
     def process_outputs(self, outputs: Dict[str, Any], workflow_def: Dict[str, Any], 
-                       media_dir: Path) -> tuple:
+                       media_dir: Path, session_prefix: str = None, 
+                       workflow_name: str = None) -> tuple:
         """
         Process workflow outputs and download media files
         
+        Args:
+            outputs: ComfyUI outputs
+            workflow_def: Workflow definition
+            media_dir: Directory to save media files
+            session_prefix: Prefix for media filenames (e.g., "session_DOE_J_250714202907_206a5e28")
+            workflow_name: Workflow name to include in filenames
+            
         Returns:
             Tuple of (processed_outputs, media_files)
         """
         processed_outputs = []
         media_files = []
+        image_counter = 0
+        audio_counter = 0
+        
+        # Clean workflow name for filename
+        workflow_clean = workflow_name.replace('.json', '') if workflow_name else 'unknown'
         
         for node_id, output in outputs.items():
             node_title = workflow_def.get(node_id, {}).get("_meta", {}).get("title", f"Node {node_id}")
@@ -143,7 +197,12 @@ class ExportManager:
             
             if output.get("images"):
                 for idx, img in enumerate(output["images"]):
-                    filename = f"image_{len(media_files)+1:03d}.png"
+                    image_counter += 1
+                    if session_prefix and workflow_name:
+                        filename = f"{session_prefix}_{workflow_clean}_image_{image_counter:03d}.png"
+                    else:
+                        filename = f"image_{image_counter:03d}.png"
+                    
                     img_url = f"view?filename={img['filename']}&subfolder={img['subfolder']}&type={img['type']}"
                     
                     # Download image
@@ -158,7 +217,12 @@ class ExportManager:
             
             if output.get("audio"):
                 for idx, aud in enumerate(output["audio"]):
-                    filename = f"audio_{len(media_files)+1:03d}.wav"
+                    audio_counter += 1
+                    if session_prefix and workflow_name:
+                        filename = f"{session_prefix}_{workflow_clean}_audio_{audio_counter:03d}.wav"
+                    else:
+                        filename = f"audio_{audio_counter:03d}.wav"
+                    
                     aud_url = f"view?filename={aud['filename']}&subfolder={aud['subfolder']}&type={aud['type']}"
                     
                     # Download audio
@@ -176,7 +240,9 @@ class ExportManager:
         
         return processed_outputs, media_files
     
-    def auto_export_session(self, prompt_id: str, workflow_name: str, prompt_text: str) -> bool:
+    def auto_export_session(self, prompt_id: str, workflow_name: str, prompt_text: str,
+                          translated_prompt: str = None, used_seed: int = None, 
+                          safety_level: str = 'off') -> bool:
         """
         Automatically export a session after successful completion
         
@@ -204,16 +270,20 @@ class ExportManager:
             session_id = prompt_id[:8]
             user_id = "DOE_J"  # Default user for auto-export
             
-            # Create export directory structure
+            # Create export directory structure in html subdirectory
             session_dir_name = f"session_{user_id}_{timestamp}_{session_id}"
-            session_dir = self.exports_dir / session_dir_name
+            session_dir = self.html_dir / session_dir_name
             session_dir.mkdir(exist_ok=True)
             
             media_dir = session_dir / "media"
             media_dir.mkdir(exist_ok=True)
             
-            # Process outputs and collect media
-            processed_outputs, media_files = self.process_outputs(outputs, workflow_def, media_dir)
+            # Process outputs and collect media with new naming convention
+            processed_outputs, media_files = self.process_outputs(
+                outputs, workflow_def, media_dir, 
+                session_prefix=session_dir_name,
+                workflow_name=workflow_name
+            )
             
             # Create session data
             session_data = {
@@ -222,15 +292,34 @@ class ExportManager:
                 "timestamp": timestamp,
                 "workflow_name": workflow_name,
                 "prompt": prompt_text,
-                "outputs": processed_outputs
+                "translated_prompt": translated_prompt or prompt_text,
+                "used_seed": used_seed,
+                "safety_level": safety_level,
+                "outputs": processed_outputs,
+                "session_dir_name": session_dir_name
             }
             
-            # Generate HTML file
-            html_filename = f"output_{user_id}_{timestamp}_{session_id}.html"
+            # Clean workflow name for filename
+            workflow_clean = workflow_name.replace('.json', '')
+            
+            # Generate HTML file with workflow name
+            html_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.html"
             html_content = self.generate_export_html(session_data, media_files)
             
             with open(session_dir / html_filename, 'w', encoding='utf-8') as f:
                 f.write(html_content)
+            
+            # Generate PDF export
+            pdf_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.pdf"
+            self.generate_export_pdf(html_content, session_data, self.pdf_dir / pdf_filename)
+            
+            # Generate XML export
+            xml_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.xml"
+            self.generate_export_xml(session_data, self.xml_dir / xml_filename, session_dir)
+            
+            # Generate DOCX export
+            docx_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.docx"
+            self.generate_export_docx(session_data, self.docx_dir / docx_filename, session_dir)
             
             # Create metadata.json
             metadata = {
@@ -239,6 +328,9 @@ class ExportManager:
                 "timestamp": timestamp,
                 "workflow_name": workflow_name,
                 "prompt": prompt_text,
+                "translated_prompt": translated_prompt or prompt_text,
+                "used_seed": used_seed,
+                "safety_level": safety_level,
                 "export_date": datetime.now().isoformat(),
                 "media_files": media_files,
                 "output_count": len(processed_outputs)
@@ -282,16 +374,20 @@ class ExportManager:
             timestamp = generate_timestamp()
             session_id = prompt_id[:8]
             
-            # Create export directory structure
+            # Create export directory structure in html subdirectory
             session_dir_name = f"session_{user_id}_{timestamp}_{session_id}"
-            session_dir = self.exports_dir / session_dir_name
+            session_dir = self.html_dir / session_dir_name
             session_dir.mkdir(exist_ok=True)
             
             media_dir = session_dir / "media"
             media_dir.mkdir(exist_ok=True)
             
-            # Process outputs and collect media
-            processed_outputs, media_files = self.process_outputs(outputs, workflow_def, media_dir)
+            # Process outputs and collect media with new naming convention
+            processed_outputs, media_files = self.process_outputs(
+                outputs, workflow_def, media_dir,
+                session_prefix=session_dir_name,
+                workflow_name=workflow_name
+            )
             
             # Create session data
             session_data = {
@@ -300,15 +396,31 @@ class ExportManager:
                 "timestamp": timestamp,
                 "workflow_name": workflow_name,
                 "prompt": prompt_text,
-                "outputs": processed_outputs
+                "outputs": processed_outputs,
+                "session_dir_name": session_dir_name
             }
             
-            # Generate HTML file
-            html_filename = f"output_{user_id}_{timestamp}_{session_id}.html"
+            # Clean workflow name for filename
+            workflow_clean = workflow_name.replace('.json', '')
+            
+            # Generate HTML file with workflow name
+            html_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.html"
             html_content = self.generate_export_html(session_data, media_files)
             
             with open(session_dir / html_filename, 'w', encoding='utf-8') as f:
                 f.write(html_content)
+            
+            # Generate PDF export
+            pdf_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.pdf"
+            self.generate_export_pdf(html_content, session_data, self.pdf_dir / pdf_filename)
+            
+            # Generate XML export
+            xml_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.xml"
+            self.generate_export_xml(session_data, self.xml_dir / xml_filename, session_dir)
+            
+            # Generate DOCX export
+            docx_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.docx"
+            self.generate_export_docx(session_data, self.docx_dir / docx_filename, session_dir)
             
             # Create metadata.json
             metadata = {
@@ -335,7 +447,10 @@ class ExportManager:
                 "export_path": session_dir_name,
                 "html_file": html_filename,
                 "media_count": len(media_files),
-                "output_count": len(processed_outputs)
+                "output_count": len(processed_outputs),
+                "pdf_file": pdf_filename,
+                "xml_file": xml_filename,
+                "docx_file": docx_filename
             }
             
         except Exception as e:
@@ -472,28 +587,48 @@ class ExportManager:
         """
         try:
             sessions = []
-            for item in self.exports_dir.iterdir():
-                if item.is_dir() and item.name.startswith('session_'):
-                    metadata_path = item / 'metadata.json'
-                    if metadata_path.exists():
-                        with open(metadata_path, 'r', encoding='utf-8') as f:
-                            data = json.load(f)
+            # Look for sessions in both old location and new html subdirectory
+            for location in [self.exports_dir, self.html_dir]:
+                for item in location.iterdir():
+                    if item.is_dir() and item.name.startswith('session_'):
+                        metadata_path = item / 'metadata.json'
+                        if metadata_path.exists():
+                            with open(metadata_path, 'r', encoding='utf-8') as f:
+                                data = json.load(f)
                         
                         user_id = data.get('user_id', 'N/A')
                         session_id = data.get('session_id', 'N/A')
                         timestamp = data.get('timestamp', 'N/A')
-                        html_file = f"output_{user_id}_{timestamp}_{session_id}.html"
+                        workflow_name = data.get('workflow_name', 'N/A')
+                        workflow_clean = workflow_name.replace('.json', '') if workflow_name != 'N/A' else 'N/A'
+                        
+                        # Look for actual HTML file in the directory
+                        html_files = list(item.glob(f"output_{user_id}_{timestamp}_{session_id}_*.html"))
+                        if html_files:
+                            html_file = html_files[0].name
+                        else:
+                            # Fallback to old naming convention
+                            html_file = f"output_{user_id}_{timestamp}_{session_id}.html"
+                        
+                        # Generate PDF, XML, DOCX filenames
+                        pdf_file = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.pdf"
+                        xml_file = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.xml"
+                        docx_file = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.docx"
 
                         sessions.append({
                             'user_id': user_id,
                             'session_id': session_id,
                             'timestamp': timestamp,
-                            'workflow_name': data.get('workflow_name', 'N/A'),
+                            'workflow_name': workflow_name,
+                            'workflow_clean': workflow_clean,
                             'output_count': data.get('output_count', 0),
                             'media_count': len(data.get('media_files', [])),
                             'export_date': data.get('export_date'),
                             'folder_name': item.name,
-                            'html_file': html_file
+                            'html_file': html_file,
+                            'pdf_file': pdf_file,
+                            'xml_file': xml_file,
+                            'docx_file': docx_file
                         })
             
             # Write to sessions.js
@@ -505,6 +640,193 @@ class ExportManager:
 
         except Exception as e:
             logger.error(f"Failed to update sessions.js: {e}")
+    
+    def generate_export_pdf(self, html_content: str, session_data: Dict[str, Any], 
+                           output_path: Path) -> bool:
+        """
+        Generate PDF from HTML content
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if not WEASYPRINT_AVAILABLE:
+            logger.warning("PDF export skipped - WeasyPrint not available")
+            return False
+        
+        try:
+            # Create CSS for single-page PDF
+            css = CSS(string="""
+                @page {
+                    size: A4;
+                    margin: 0;
+                }
+                @media print {
+                    body { 
+                        height: auto;
+                        page-break-inside: avoid;
+                    }
+                    .container {
+                        box-shadow: none;
+                    }
+                }
+            """)
+            
+            # Convert paths to absolute for PDF generation
+            session_dir = self.html_dir / session_data['session_dir_name']
+            base_url = f"file://{session_dir}/"
+            
+            # Generate PDF with metadata
+            pdf = HTML(string=html_content, base_url=base_url).write_pdf(
+                stylesheets=[css],
+                pdf_variant='pdf/ua-1'  # For accessibility
+            )
+            
+            # Write PDF with metadata
+            output_path.write_bytes(pdf)
+            
+            logger.info(f"PDF export successful: {output_path.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"PDF export failed: {e}")
+            return False
+    
+    def generate_export_xml(self, session_data: Dict[str, Any], output_path: Path, 
+                           session_dir: Path) -> bool:
+        """
+        Generate XML export for QDA software
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Create root element
+            root = ET.Element("export")
+            session = ET.SubElement(root, "session")
+            
+            # Add metadata
+            ET.SubElement(session, "id").text = session_data["session_dir_name"]
+            ET.SubElement(session, "user").text = session_data["user_id"]
+            ET.SubElement(session, "timestamp").text = session_data["timestamp"]
+            ET.SubElement(session, "workflow").text = session_data["workflow_name"].replace('.json', '')
+            ET.SubElement(session, "seed").text = str(session_data.get("used_seed", "N/A"))
+            ET.SubElement(session, "safety_level").text = session_data.get("safety_level", "off")
+            
+            # Add prompts
+            prompts = ET.SubElement(session, "prompts")
+            ET.SubElement(prompts, "original").text = session_data["prompt"]
+            ET.SubElement(prompts, "translated").text = session_data.get("translated_prompt", session_data["prompt"])
+            
+            # Add outputs
+            outputs_elem = ET.SubElement(session, "outputs")
+            for idx, output in enumerate(session_data["outputs"], 1):
+                output_elem = ET.SubElement(outputs_elem, "output")
+                output_elem.set("order", str(idx))
+                output_elem.set("type", output["type"])
+                output_elem.set("node_title", output["title"])
+                
+                if output["type"] == "text":
+                    ET.SubElement(output_elem, "content").text = output["content"]
+                elif output["type"] in ["image", "audio"]:
+                    ET.SubElement(output_elem, "filename").text = output["filename"]
+                    ET.SubElement(output_elem, "path").text = f"{session_data['session_dir_name']}/media/{output['filename']}"
+            
+            # Pretty print XML
+            xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
+            
+            # Write to file
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(xml_str)
+            
+            logger.info(f"XML export successful: {output_path.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"XML export failed: {e}")
+            return False
+    
+    def generate_export_docx(self, session_data: Dict[str, Any], output_path: Path, 
+                            session_dir: Path) -> bool:
+        """
+        Generate DOCX export for QDA software
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if not PYTHON_DOCX_AVAILABLE:
+            logger.warning("DOCX export skipped - python-docx not available")
+            return False
+        
+        try:
+            doc = Document()
+            
+            # Add title
+            doc.add_heading('AI4ArtsEd Workflow Export', 0)
+            
+            # Add metadata table
+            doc.add_heading('Session Information', level=1)
+            table = doc.add_table(rows=7, cols=2)
+            table.style = 'Light List Accent 1'
+            
+            metadata_items = [
+                ('User ID', session_data["user_id"]),
+                ('Session ID', session_data["session_id"]),
+                ('Timestamp', session_data["timestamp"]),
+                ('Workflow', session_data["workflow_name"]),
+                ('Seed', str(session_data.get("used_seed", "N/A"))),
+                ('Filter-Status', session_data.get("safety_level", "off")),
+                ('Export Date', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            ]
+            
+            for i, (label, value) in enumerate(metadata_items):
+                table.rows[i].cells[0].text = label
+                table.rows[i].cells[1].text = value
+            
+            # Add prompts
+            doc.add_heading('Prompts', level=1)
+            doc.add_heading('Original Prompt', level=2)
+            doc.add_paragraph(session_data["prompt"])
+            
+            if session_data.get("translated_prompt") and session_data["translated_prompt"] != session_data["prompt"]:
+                doc.add_heading('Translated Prompt', level=2)
+                doc.add_paragraph(session_data["translated_prompt"])
+            
+            # Add outputs
+            doc.add_heading('Workflow Outputs (in Processing Order)', level=1)
+            
+            for idx, output in enumerate(session_data["outputs"], 1):
+                doc.add_heading(f'{idx}. {output["title"]} ({output["type"].upper()})', level=2)
+                
+                if output["type"] == "text":
+                    doc.add_paragraph(output["content"])
+                elif output["type"] == "image":
+                    try:
+                        img_path = session_dir / "media" / output["filename"]
+                        if img_path.exists():
+                            doc.add_picture(str(img_path), width=Inches(6))
+                            doc.add_paragraph(f'Image: {output["filename"]}', style='Caption')
+                    except Exception as e:
+                        doc.add_paragraph(f'[Image: {output["filename"]} - Could not embed]')
+                        logger.warning(f"Could not embed image in DOCX: {e}")
+                elif output["type"] == "audio":
+                    doc.add_paragraph(f'Audio file: {output["filename"]}')
+            
+            # Add footer
+            doc.add_page_break()
+            footer_para = doc.add_paragraph()
+            footer_para.alignment = 1  # Center alignment
+            footer_para.add_run('Generated by AI4ArtsEd - Artificial Intelligence for Arts Education\n').italic = True
+            footer_para.add_run(f'Export created: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}').italic = True
+            
+            # Save document
+            doc.save(str(output_path))
+            
+            logger.info(f"DOCX export successful: {output_path.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"DOCX export failed: {e}")
+            return False
 
 # Create a singleton instance
 export_manager = ExportManager()

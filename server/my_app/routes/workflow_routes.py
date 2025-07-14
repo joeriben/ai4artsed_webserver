@@ -83,7 +83,7 @@ def execute_workflow():
     try:
         data = request.json
         workflow_name = data.get('workflow')
-        prompt = data.get('prompt', '').strip()
+        original_prompt = data.get('prompt', '').strip()
         aspect_ratio = data.get('aspectRatio', '1:1')
         mode = data.get('mode', 'eco')
         seed_mode = data.get('seedMode', 'random')
@@ -93,25 +93,28 @@ def execute_workflow():
         if not workflow_name:
             return jsonify({"error": "Kein Workflow angegeben."}), 400
         
-        if not prompt:
+        if not original_prompt:
             return jsonify({"error": "Kein Prompt angegeben."}), 400
         
-        logger.info(f"Executing workflow: {workflow_name} with prompt: {prompt[:50]}...")
+        logger.info(f"Executing workflow: {workflow_name} with prompt: {original_prompt[:50]}...")
+        
+        # Initialize workflow_prompt with original
+        workflow_prompt = original_prompt
         
         # Validate prompt (translation + safety check) if enabled
         if ENABLE_VALIDATION_PIPELINE:
-            validation_result = ollama_service.validate_and_translate_prompt(prompt)
+            validation_result = ollama_service.validate_and_translate_prompt(original_prompt)
             
             if not validation_result["success"]:
                 # Safety check failed
                 return jsonify({"error": validation_result.get("error", "Prompt-Validierung fehlgeschlagen.")}), 400
             
-            # Use translated prompt
-            prompt = validation_result["translated_prompt"]
-            logger.info(f"Using validated prompt: {prompt[:50]}...")
+            # Use translated prompt for workflow execution
+            workflow_prompt = validation_result["translated_prompt"]
+            logger.info(f"Using validated prompt: {workflow_prompt[:50]}...")
         
-        # Prepare workflow
-        result = workflow_logic_service.prepare_workflow(workflow_name, prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level)
+        # Prepare workflow with the workflow_prompt
+        result = workflow_logic_service.prepare_workflow(workflow_name, workflow_prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level)
         
         if not result["success"]:
             return jsonify({"error": result["error"]}), 400
@@ -129,7 +132,10 @@ def execute_workflow():
         # Store pending export info
         current_app.pending_exports[prompt_id] = {
             "workflow_name": workflow_name,
-            "prompt": prompt,
+            "prompt": original_prompt,  # Always store the original prompt
+            "translated_prompt": workflow_prompt,  # Store the workflow prompt (translated or original)
+            "used_seed": used_seed,
+            "safety_level": safety_level,
             "timestamp": time.time()
         }
         
@@ -137,7 +143,7 @@ def execute_workflow():
             "success": True,
             "prompt_id": prompt_id,
             "status_updates": status_updates,
-            "translated_prompt": prompt,  # This is now the validated/translated prompt
+            "translated_prompt": workflow_prompt,  # Return the workflow prompt
             "used_seed": used_seed  # Return the seed that was used
         })
         
@@ -172,7 +178,10 @@ def workflow_status(prompt_id):
                 export_manager.auto_export_session(
                     prompt_id,
                     export_info["workflow_name"],
-                    export_info["prompt"]
+                    export_info["prompt"],
+                    export_info.get("translated_prompt"),
+                    export_info.get("used_seed"),
+                    export_info.get("safety_level", "off")
                 )
                 del current_app.pending_exports[prompt_id]
             
@@ -241,7 +250,10 @@ def comfyui_proxy(path):
                         export_manager.auto_export_session(
                             prompt_id,
                             export_info["workflow_name"],
-                            export_info["prompt"]
+                            export_info["prompt"],
+                            export_info.get("translated_prompt"),
+                            export_info.get("used_seed"),
+                            export_info.get("safety_level", "off")
                         )
                         
                         # Remove from pending exports
