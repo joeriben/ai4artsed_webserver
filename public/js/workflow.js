@@ -55,12 +55,13 @@ export async function loadWorkflows() {
 
 async function checkWorkflowSafetyNode() {
     const workflowName = ui.workflow.value;
-    const safetyRadios = document.querySelectorAll('input[name="safety-level"]');
-    const safetyLabels = document.querySelectorAll('input[name="safety-level"] + label');
+    const safetyPlusIndicator = document.getElementById('safety-plus-indicator');
     
     if (!workflowName) {
-        // No workflow selected, disable safety controls
-        setSafetyControlsEnabled(false);
+        // No workflow selected, hide Safety+ indicator
+        if (safetyPlusIndicator) {
+            safetyPlusIndicator.style.display = 'none';
+        }
         return;
     }
     
@@ -68,39 +69,15 @@ async function checkWorkflowSafetyNode() {
         const response = await fetch(`/workflow_has_safety_node/${encodeURIComponent(workflowName)}`);
         if (response.ok) {
             const result = await response.json();
-            setSafetyControlsEnabled(result.has_safety_node);
+            // Show/hide Safety+ indicator based on whether workflow has safety node
+            if (safetyPlusIndicator) {
+                safetyPlusIndicator.style.display = result.has_safety_node ? 'inline' : 'none';
+            }
         }
     } catch (error) {
         console.error('Failed to check workflow safety node:', error);
-        setSafetyControlsEnabled(false);
-    }
-}
-
-function setSafetyControlsEnabled(enabled) {
-    const safetyRadios = document.querySelectorAll('input[name="safety-level"]');
-    const safetyLabels = document.querySelectorAll('input[name="safety-level"] + label');
-    
-    // Find container by looking for the parent of the first safety radio
-    const firstSafetyRadio = document.querySelector('input[name="safety-level"]');
-    const safetyContainer = firstSafetyRadio ? firstSafetyRadio.closest('.mode-switch').parentElement : null;
-    
-    safetyRadios.forEach(radio => {
-        radio.disabled = !enabled;
-        if (!enabled && radio.value === 'off') {
-            radio.checked = true; // Reset to "off" when disabled
-        }
-    });
-    
-    safetyLabels.forEach(label => {
-        label.style.opacity = enabled ? '1' : '0.5';
-        label.style.cursor = enabled ? 'pointer' : 'not-allowed';
-    });
-    
-    // Update the container label as well
-    if (safetyContainer) {
-        const containerLabel = safetyContainer.querySelector('label:first-child');
-        if (containerLabel && !containerLabel.hasAttribute('for')) {
-            containerLabel.style.opacity = enabled ? '1' : '0.5';
+        if (safetyPlusIndicator) {
+            safetyPlusIndicator.style.display = 'none';
         }
     }
 }

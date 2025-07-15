@@ -123,6 +123,17 @@ def execute_workflow():
         status_updates = result.get("status_updates", [])
         used_seed = result.get("used_seed")
         
+        # Log workflow if kids safety is enabled (for debugging)
+        if safety_level == "kids":
+            logger.info("=== Workflow being sent to ComfyUI (kids safety enabled) ===")
+            # Log negative prompts to verify they were enhanced
+            for node_id, node_data in workflow.items():
+                if node_data.get("class_type") == "CLIPTextEncode":
+                    # Check if this is connected to a negative input
+                    text = node_data.get("inputs", {}).get("text", "")
+                    if any(term in text for term in ["violence", "blood", "horror"]):
+                        logger.info(f"Node {node_id} negative prompt (first 200 chars): {text[:200]}...")
+        
         # Submit to ComfyUI
         prompt_id = comfyui_service.submit_workflow(workflow)
         

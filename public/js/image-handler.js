@@ -1,6 +1,7 @@
 // AI4ArtsEd - Image Handler Module
 import { ui } from './ui-elements.js';
 import { setStatus, clearOutputDisplays, startProcessingDisplay, stopProcessingDisplay } from './ui-utils.js';
+import { reportUploadProgress } from './sse-connection.js';
 
 export let uploadedImageData = null;
 
@@ -22,15 +23,25 @@ export async function handleFile(file) {
         startProcessingDisplay("Analysiere Bild...");
 
         let analysisTimer = null;
+        let progressReportTimer = null;
         try {
             const analysisDuration = 60000; // 60 seconds in ms
             const analysisStartTime = Date.now();
+            
+            // Update UI progress
             analysisTimer = setInterval(() => {
                 const elapsedTime = Date.now() - analysisStartTime;
                 const progress = Math.min(100, Math.floor((elapsedTime / analysisDuration) * 100));
                 ui.processingMessage.textContent = `Analysiere Bild... ${progress}%`;
                 if (progress >= 100) clearInterval(analysisTimer);
             }, 500);
+            
+            // Report progress to server to keep connection alive (every 5 seconds)
+            progressReportTimer = setInterval(async () => {
+                const elapsedTime = Date.now() - analysisStartTime;
+                const progress = Math.min(100, Math.floor((elapsedTime / analysisDuration) * 100));
+                await reportUploadProgress(progress, 'analyzing');
+            }, 5000);
 
             // Längerer Timeout für Bildanalyse (2 Minuten)
             const controller = new AbortController();
@@ -68,6 +79,9 @@ export async function handleFile(file) {
             removeImage();
         } finally {
             if (analysisTimer) clearInterval(analysisTimer);
+            if (progressReportTimer) clearInterval(progressReportTimer);
+            // Report completion
+            await reportUploadProgress(100, 'completed');
             stopProcessingDisplay();
         }
     };

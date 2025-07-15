@@ -24,13 +24,42 @@ body {
   padding-bottom: 80px;
 }
 
+/* Header and User Status */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.user-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background-color: var(--border-lighter);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+}
+
+.user-icon {
+  font-size: var(--font-size-base);
+}
+
+#active-users-count {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 /* Typography */
 h1 {
   font-size: var(--font-size-xl);
   color: var(--heading-color);
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: var(--spacing-md);
   margin-top: 0;
+  margin-bottom: 0;
 }
 
 h4 {
@@ -100,6 +129,20 @@ label {
   .container {
     padding: var(--spacing-lg);
     padding-bottom: 100px;
+  }
+  
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .user-status {
+    align-self: flex-end;
+  }
+  
+  h1 {
+    font-size: var(--font-size-lg);
   }
   
   .footer {

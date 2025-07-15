@@ -12,7 +12,8 @@ from config import (
     LOCAL_WORKFLOWS_DIR,
     OLLAMA_TO_OPENROUTER_MAP,
     OPENROUTER_TO_OLLAMA_MAP,
-    ENABLE_VALIDATION_PIPELINE
+    ENABLE_VALIDATION_PIPELINE,
+    KIDS_SAFETY_NEGATIVE_TERMS
 )
 from my_app.utils.helpers import (
     calculate_dimensions,
@@ -307,6 +308,88 @@ class WorkflowLogicService:
         
         return safety_node_found
     
+    def enhance_negative_prompts_for_kids(self, workflow: Dict[str, Any]) -> int:
+        """
+        Enhance negative prompts with kids safety terms
+        
+        Args:
+            workflow: Workflow definition
+            
+        Returns:
+            Number of negative prompts enhanced
+        """
+        enhanced_count = 0
+        
+        logger.info("=== Starting kids safety enhancement ===")
+        logger.info(f"Total nodes in workflow: {len(workflow)}")
+        
+        # First, identify which CLIPTextEncode nodes are connected to negative inputs of KSamplers
+        negative_clip_nodes = set()
+        
+        # List of sampler node types that have negative conditioning
+        sampler_types = ["KSampler", "KSamplerAdvanced", "SamplerCustom"]
+        
+        # Find all sampler nodes and trace their negative inputs
+        for node_id, node_data in workflow.items():
+            node_type = node_data.get("class_type")
+            logger.debug(f"Checking node {node_id}: type={node_type}")
+            
+            if node_type in sampler_types:
+                logger.info(f"Found sampler node {node_id} of type {node_type}")
+                # Check if this sampler has a negative input
+                inputs = node_data.get("inputs", {})
+                logger.debug(f"Sampler inputs: {list(inputs.keys())}")
+                
+                if "negative" in inputs:
+                    negative_input = inputs["negative"]
+                    logger.info(f"Sampler node {node_id} has negative input: {negative_input}")
+                    
+                    # If it's a connection (list with node_id and output_index)
+                    if isinstance(negative_input, list) and len(negative_input) >= 2:
+                        connected_node_id = str(negative_input[0])
+                        negative_clip_nodes.add(connected_node_id)
+                        logger.info(f"Added node {connected_node_id} to negative_clip_nodes")
+                    else:
+                        logger.warning(f"Negative input is not a proper connection: {negative_input}")
+        
+        logger.info(f"Found {len(negative_clip_nodes)} nodes connected to negative inputs: {negative_clip_nodes}")
+        
+        # Now enhance the text in those CLIPTextEncode nodes
+        safety_terms = ", ".join(KIDS_SAFETY_NEGATIVE_TERMS)
+        logger.info(f"Safety terms to add (length: {len(safety_terms)} chars)")
+        
+        for node_id in negative_clip_nodes:
+            if node_id in workflow:
+                node_data = workflow[node_id]
+                node_type = node_data.get("class_type")
+                logger.info(f"Processing negative node {node_id} with class_type: {node_type}")
+                
+                if node_type == "CLIPTextEncode":
+                    current_text = node_data.get("inputs", {}).get("text", "")
+                    logger.info(f"Current negative prompt text: '{current_text}'")
+                    
+                    # Only add safety terms if they're not already present
+                    if safety_terms not in current_text:
+                        # Append safety terms with proper separation
+                        if current_text.strip():
+                            new_text = f"{current_text}, {safety_terms}"
+                        else:
+                            new_text = safety_terms
+                        
+                        node_data["inputs"]["text"] = new_text
+                        logger.info(f"Enhanced negative prompt in node {node_id}")
+                        logger.info(f"New text (first 100 chars): '{new_text[:100]}...'")
+                        enhanced_count += 1
+                    else:
+                        logger.info(f"Safety terms already present in node {node_id}")
+                else:
+                    logger.warning(f"Node {node_id} is not a CLIPTextEncode, it's a {node_type}")
+            else:
+                logger.error(f"Node {node_id} not found in workflow!")
+        
+        logger.info(f"=== Enhancement complete. Enhanced {enhanced_count} negative prompts ===")
+        return enhanced_count
+    
     def prepare_workflow(self, workflow_name: str, prompt: str, aspect_ratio: str, mode: str, 
                         seed_mode: str = "random", custom_seed: Optional[int] = None,
                         safety_level: str = "off") -> Dict[str, Any]:
@@ -352,6 +435,23 @@ class WorkflowLogicService:
         safety_applied = self.apply_safety_level(workflow, safety_level)
         if safety_applied and safety_level != "off":
             status_updates.append(f"Sicherheitsstufe '{safety_level}' aktiviert.")
+        
+        # Enhance negative prompts for kids safety
+        if safety_level == "kids":
+            logger.info("Kids safety level selected - enhancing negative prompts")
+            enhanced_count = self.enhance_negative_prompts_for_kids(workflow)
+            if enhanced_count > 0:
+                status_updates.append(f"Negative Prompts wurden mit Kindersicherheitsbegriffen erweitert ({enhanced_count} Nodes).")
+                logger.info(f"Enhanced {enhanced_count} negative prompts for kids safety")
+                
+                # Log the enhanced negative prompts for verification
+                for node_id, node_data in workflow.items():
+                    if node_data.get("class_type") == "CLIPTextEncode":
+                        text = node_data.get("inputs", {}).get("text", "")
+                        if isinstance(text, str) and len(text) > 100:
+                            logger.info(f"Verified enhanced negative prompt in node {node_id}: {text[:100]}...")
+            else:
+                logger.warning("Kids safety selected but no negative prompts were enhanced!")
         
         return {
             "success": True,

@@ -6,6 +6,7 @@ import { setupImageHandlers } from './image-handler.js';
 import { loadWorkflows } from './workflow.js';
 import { submitPromptWithFastPolling as submitPrompt } from './workflow-streaming.js';
 import { downloadSession } from './session.js';
+import { initSSEConnection, pollUserCount } from './sse-connection.js';
 
 // Make submitPrompt available globally for onclick handler
 window.submitPrompt = submitPrompt;
@@ -28,6 +29,12 @@ async function initializeApp() {
         
         // Initialize dimensions display
         updateDimensions();
+        
+        // Initialize SSE connection for real-time updates
+        initSSEConnection();
+        
+        // Fallback: Poll user count every 60 seconds if SSE fails
+        setInterval(pollUserCount, 60000);
         
     } catch (error) {
         setStatus('Initialisierung fehlgeschlagen: ' + error.message, 'error');

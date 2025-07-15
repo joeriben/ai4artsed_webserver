@@ -96,3 +96,28 @@ MEDIA_DOWNLOAD_TIMEOUT = 30
 HOST = "0.0.0.0"
 PORT = 5000
 THREADS = 8
+
+# Kids Safety Configuration
+KIDS_SAFETY_NEGATIVE_TERMS = [
+    # Violence and Death
+    "violence", "violent", "execution", "killing", "murder", "death", "corpse", 
+    "torture", "pain", "suffering", "injury", "wound", "bleeding",
+    
+    # Blood and Gore
+    "blood", "bloody", "gore", "gory", "mutilation", "dismemberment",
+    
+    # Psychological Distress
+    "despair", "suicide", "suicidal", "self-harm", "depression", "hatred", "hate",
+    "horror", "scary", "frightening", "terror", "nightmare", "disturbing",
+    
+    # Supernatural/Scary Elements
+    "demon", "zombie", "skeleton", "skull", "evil",
+    "haunted", "creepy", "eerie", "sinister", "dark", "macabre",
+    
+    # Pornographic/Sexual Elements  
+    "nude", "naked", "nsfw", "sexual", "erotic", "pornographic",
+    "genital",
+    
+    # Other Problematic Content
+    "abuse"
+]

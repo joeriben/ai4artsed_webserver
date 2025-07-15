@@ -12,7 +12,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>AI4ArtsEd - Artificial Intelligence for Arts Education</h1>
+        <div class="header-container">
+            <h1>AI4ArtsEd - Artificial Intelligence for Arts Education</h1>
+            <div class="user-status">
+                <span class="user-icon">👥</span>
+                <span id="active-users-count">0</span> User online
+            </div>
+        </div>
         
         <div class="controls">
             <div>
@@ -81,7 +87,7 @@
             </div>
 
             <div>
-                <label>Sicherheitsstufe</label>
+                <label>Sicherheitsstufe <span id="safety-plus-indicator" style="display: none; color: #4CAF50; font-weight: bold;" title="Dieses Workflow unterstützt erweiterte Sicherheitsfunktionen">Safety+</span></label>
                 <div class="mode-switch">
                     <input type="radio" id="safety-off" name="safety-level" value="off" checked>
                     <label for="safety-off">Aus</label>
@@ -96,7 +102,7 @@
             
             <button id="submitBtn" onclick="submitPrompt()">Generieren<span class="spinner"></span></button>
             <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
-                Hinweis: Generierte Inhalte werden zu Forschungszwecken auf dem Server gespeichert. Hochgeladene Bilder werden nicht gespeichert.
+                Hinweis: Generierte Inhalte werden zu Forschungszwecken auf dem Server gespeichert. Es werden keine User- oder IP-Daten erfasst. Hochgeladene Bilder werden nicht gespeichert.
             </div>
         </div>
 

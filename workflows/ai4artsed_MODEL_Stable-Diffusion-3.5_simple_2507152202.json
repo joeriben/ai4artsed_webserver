@@ -52,7 +52,7 @@
   "6": {
     "inputs": {
       "text": [
-        "26",
+        "42",
         0
       ],
       "clip": [
@@ -148,6 +148,45 @@
     "class_type": "TripleCLIPLoader",
     "_meta": {
       "title": "TripleCLIPLoader"
+    }
+  },
+  "41": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Safety-filtered positive prompt"
+    }
+  },
+  "42": {
+    "inputs": {
+      "prompt": [
+        "26",
+        0
+      ],
+      "filter_level": "off",
+      "model": "local/mistral-nemo:latest",
+      "api_key": [
+        "43",
+        0
+      ],
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_switch_promptsafety",
+    "_meta": {
+      "title": "AI4ArtsEd Promptsafety Switch"
+    }
+  },
+  "43": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
     }
   }
 }

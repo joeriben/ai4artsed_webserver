@@ -34,6 +34,13 @@ class ComfyUIService:
             prompt_id if successful, None otherwise
         """
         try:
+            # Debug logging for kids safety
+            for node_id, node_data in workflow.items():
+                if node_data.get("class_type") == "CLIPTextEncode":
+                    text = node_data.get("inputs", {}).get("text", "")
+                    if isinstance(text, str) and len(text) > 100:
+                        logger.info(f"[COMFYUI SUBMIT] Node {node_id} negative prompt being sent: {text[:150]}...")
+            
             payload = {
                 "prompt": workflow,
                 "client_id": str(uuid.uuid4())

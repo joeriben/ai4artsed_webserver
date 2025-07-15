@@ -2,6 +2,7 @@
 Flask application factory and initialization
 """
 import logging
+import os
 from flask import Flask
 from flask_cors import CORS
 
@@ -21,8 +22,14 @@ def create_app():
     # Create Flask app
     app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path="")
     
-    # Enable CORS
-    CORS(app)
+    # Configure session
+    app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    
+    # Enable CORS with session support
+    CORS(app, supports_credentials=True)
     
     # Register blueprints
     from my_app.routes.workflow_routes import workflow_bp
@@ -30,12 +37,14 @@ def create_app():
     from my_app.routes.export_routes import export_bp
     from my_app.routes.static_routes import static_bp
     from my_app.routes.config_routes import config_bp
+    from my_app.routes.sse_routes import sse_bp
     
     app.register_blueprint(static_bp)
     app.register_blueprint(config_bp)
     app.register_blueprint(workflow_bp)
     app.register_blueprint(workflow_streaming_bp)
     app.register_blueprint(export_bp)
+    app.register_blueprint(sse_bp)
     
     # Configure logging filter for ComfyUI proxy
     class ComfyUIFilter(logging.Filter):

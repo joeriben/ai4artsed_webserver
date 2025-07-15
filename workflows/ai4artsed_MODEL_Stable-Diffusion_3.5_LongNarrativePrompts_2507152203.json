@@ -1,0 +1,522 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 336059198222469,
+      "steps": 25,
+      "cfg": [
+        "76",
+        1
+      ],
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "51",
+        0
+      ],
+      "negative": [
+        "52",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": [
+        "81",
+        2
+      ],
+      "height": [
+        "83",
+        2
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "101",
+        0
+      ],
+      "clip": [
+        "95",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode POSITIVE (clip_l, clip_g)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "14": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "21": {
+    "inputs": {
+      "text": [
+        "99",
+        0
+      ],
+      "clip": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode POSITIVE (t5)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "text": [
+        "91",
+        0
+      ],
+      "clip": [
+        "95",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode NEGATIVE (clip_l, clip_g)"
+    }
+  },
+  "25": {
+    "inputs": {
+      "text": [
+        "91",
+        0
+      ],
+      "clip": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode NEGATIVE (t5)"
+    }
+  },
+  "40": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "71",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt optimized for clipl/g"
+    }
+  },
+  "41": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "73",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt optimized for t5"
+    }
+  },
+  "43": {
+    "inputs": {
+      "value": [
+        "86",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "50": {
+    "inputs": {
+      "value": 0.8
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "set t5-optimized prompt Influence (beween -75 and +78)"
+    }
+  },
+  "51": {
+    "inputs": {
+      "alpha": [
+        "50",
+        0
+      ],
+      "clip_conditioning": [
+        "6",
+        0
+      ],
+      "t5_conditioning": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_t5_clip_fusion",
+    "_meta": {
+      "title": "AI4ArtsEd T5‑CLIP Fusion positive"
+    }
+  },
+  "52": {
+    "inputs": {
+      "alpha": [
+        "50",
+        0
+      ],
+      "clip_conditioning": [
+        "24",
+        0
+      ],
+      "t5_conditioning": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_t5_clip_fusion",
+    "_meta": {
+      "title": "AI4ArtsEd T5‑CLIP Fusion negative"
+    }
+  },
+  "71": {
+    "inputs": {
+      "input_prompt": [
+        "43",
+        0
+      ],
+      "input_context": "Prompting Expert",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOUTPUT THE PURE PRESULTING PROMPT ONLY!\nNEVER OUTPUT NAMES OF PERSONS OR FICTIONSL CHARACTERS!\nOmit key marker introduced ba \"#\" such as \"#cfg=\", \"ARh=\", ARw=\" and their values.\n\nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT! NEVER INCLUDE USER_DIRECTED FEEDBACK SUCH AS \"Sure, here is ...\"!\nDo not include names of persons whatsoever. If you must, translate into visual properties.\n\nYou will receive a user prompt for image generation. Restructure it ONLY by reordering, for CLIP models that strongly weight early tokens and truncate at 75 tokens.\n\nGeneral information:\nALWAYS EXTRAKT ONLY THE INFORMATION THAT IS VISUALLY RELEVANT. YOUR PROMPT WILL RESULT IN A COMMA_SEPARATED SERIES OF GROUPED TOKENS; BARELY EVER CONNTECTED BY VERBS OR CONJUNCTIONS.\n\nBUT YOU WILL REORDER ALL THESE TOKENS ACCORDING TO THE FOLLOWING ORDER:\n\nEarly tokens = critical: The first 20–30 tokens largely determine the image\nMinimize Attributes: CLIP struggles with complex attributes – keep them short\nClear, direct terms: CLIP prefers concrete nouns and simple adjectives\nDo not alter the input text – no substitutions, paraphrasing, or lexical replacements allowed\n\n\nYOUR OUTPUT:\nCore Motif: max. 15 words\nPlace the main subject FIRST\nUse the exact wording provided in the original prompt\n\nAction: max 20 words\nFollows the subject directly for strong subject-action linkage\nPrefer simple verb phrases; maintain exact original wording\n\nStyle/Medium: max 10 words\nPlace early in the prompt for maximum impact on CLIP\nTypical examples: “oil painting”, “photography”, “3D render”\nUse only if present in the original prompt\n\nContext: max 10 words\nLocation or setting, compressed\nReorder only; do not paraphrase\n\nAttributes: max 10 words:\nMinimize; include only if essential\nNo changes to wording – do not replace or reformulate\nEMPTY LINETechnical Aspects (0–5 tokens, 0–7%):\nInclude only if tokens remain and if originally present\n\nYOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOMIT the Category names (\"Core Motif\"), it will only confuse CLIP and reduces the token budget without contributing to image quality. \nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT!",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "openrouter/mistralai/mistral-medium-3",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Prompt optimization for clip_l"
+    }
+  },
+  "73": {
+    "inputs": {
+      "input_prompt": [
+        "43",
+        0
+      ],
+      "input_context": "Professional Prompting Expert",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 250 WORDS!\n\nTransform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nRULES:\n1) You must retain all original words: do not omit, duplicate, or paraphrase beyond necessary syntactic adjustments. \n2) Always translate the content into a visual depiction/description/scene etc. Be very precise about visual aspects.\n3) When the original tells a story, pick a key scene from the story and turn the text into a scenic description, using the original words and expressions.\n\nNEVER TELL OR EXPLAIN A STORY OR SCENE, INSTEAD DESCRIBE IT AS A VISUAL CONSTELLATION!\n\nGUIDANCE:\nConsider the following categories as guideline for your professional prompting process:\n- Core subject (approx. 10–30 tokens): Identify and foreground the principal subject matter as fully specified in the source.\n- Action (10–40 tokens): Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n- Relational context (30–100 tokens): Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n- Attributive qualities (30–80 tokens): Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n- Material, stylistic and medial references (10–40 tokens): If applicable, retain or clarify materialities (pictorial mediality), stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n- Technical parameters (0–20 tokens): Place any camera data, aspect ratio at the end of the prompt. Use these codes to communicate technical instructions:\n    Classifier-Free Guidance scale: \"#CFG=\" Adjust the CFG Value to underscore the image aesthetics. Low CFG values (e.g., 2–4): Less adherence to the prompt, more randomness, sometimes more natural or surprising results. Moderate CFG values (e.g., 6–8): Balanced outputs, often the recommended range for realistic and semantically accurate images. High CFG values (e.g., 12–20): Very literal interpretation of the prompt; often introduces artifacts or unnatural results due to overconstraining the model. Stable Diffusion 3.5 uses an improved architecture that makes prompt adherence stronger than in earlier versions. Thus: A CFG of 5.0 to 8.0 is usually ideal. Higher CFG values (e.g., ≥12) may result in degraded image quality, over-sharpening, or odd artifacts because the model aggressively tries to satisfy the prompt—even if it contradicts learned visual priors.\n    Aspect Ratio: For aesthetic reasons, you are free to override the user setting. Use your visual interpretation. If there are explicit keywords (\"landscape\", \"a portrait\") consider following them. \nUse as follows: width:\"#ARw=\"; height: \"#ARh=\". ALWAYS USE a fixed combination of width and height! From landscape to portrait choose one of their pairs: \n#ARw=1368/#ARh=768,\n#ARw=1256/#ARh=840,\n#ARw=1184/#ARh=888,\n#ARw=1144/#ARh=920,\n#ARw=1024/#ARh=1024,\n#ARw=920/#ARh=1144,\n#ARw=888/#ARh=1184,\n#ARw=840/#ARh=1256,\n#ARw=768/#ARh=1386 \nMake sure not to confuse width and height! widerscreen will have a higher #ARw, portrait will have a higher #ARh\n    \n\n\nAdditional requirements:\n– If the input contains explicit negations (e.g., “no neon”), isolate and place them at the end of the prompt after an em dash as a negative prompt clause.\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– Preserve diacritics and original orthography for all non-English terms. Do not transliterate unless a dual form is provided.\n– For ambiguous or poetic language, preserve ambiguity. If metaphors operate structurally (e.g., “grief carved into the orchard”), translate them into spatial/material compositions rather than interpretive paraphrase.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\n!YOUR OUTPUT MUST NOT EXCEED 250 WORDS!",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "openrouter/mistralai/mistral-medium-3",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Promtp optimization for t5"
+    }
+  },
+  "76": {
+    "inputs": {
+      "input_prompt": [
+        "73",
+        0
+      ],
+      "input_context": "number extraction",
+      "style_prompt": "if the text contains the string \"#CFG=\", output the number - and only the number - that follows the string \"#CFG=\".\nif the text does not contain this string, output this number: 7",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "local/gemma3:4b",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "77": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "76",
+        1
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Auto-CFG"
+    }
+  },
+  "81": {
+    "inputs": {
+      "input_prompt": [
+        "73",
+        0
+      ],
+      "input_context": "number extraction",
+      "style_prompt": "if the text contains the string \"#ARw=\", output the number - and only the number - that follows the string \"#ARw=\".\nif the text does not contain this string, output this number: 1024",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "local/gemma3:4b",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "82": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "81",
+        2
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Auto-width"
+    }
+  },
+  "83": {
+    "inputs": {
+      "input_prompt": [
+        "73",
+        0
+      ],
+      "input_context": "number extraction",
+      "style_prompt": "if the text contains the string \"#ARh=\", output the number - and only the number - that follows the string \"#ARh=\".\nif the text does not contain this string, output this number: 1024",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "local/gemma3:4b",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "84": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "83",
+        2
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Auto-height"
+    }
+  },
+  "86": {
+    "inputs": {
+      "value": "The image depicts a man standing on a rocky outcrop amidst a landscape with dramatic skyscapes and foggy valleys. He is gazing into the distance towards majestic mountains under a cloudy sky. The aspect ratio of the painting appears to be elongated, possibly suggesting a panoramic view or the desire for escape.\n\nIn terms of media type, this artwork could be classified as a romantic landscape, possibly a part of a larger series or collection given the style and composition.\n\nPlanimetrically, the artist has used perspective to create depth, with a strong diagonal line leading the viewer's eye towards the distant mountains. The foreground is dominated by the man on the rocky outcrop, who serves as the focal point of the painting. There are no other figures or significant elements in the immediate vicinity, which directs attention to the solitary figure and his surroundings.\n\nIconographically, the image evokes a sense of contemplation and solitude, often associated with romanticism's emphasis on emotion and individualism. The foggy valleys could symbolize the misty uncertainties or the grandeur and mystery of nature. The distant mountains may represent aspiration or goals, suggesting the journey or quest ahead.\n\nIconologically, the painting might be commenting on the human condition in relation to nature or the sublime. The landscape's scale compared to the man underscores our smallness in the face of grandeur. This could be interpreted as a commentary on existentialism, personal identity, or the search for meaning in a vast and indifferent universe."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "YOUR PROMPT GOES HERE"
+    }
+  },
+  "91": {
+    "inputs": {
+      "value": "extra fingers, extra legs, disconnected limbs, extra arms, extra limbs, extra hands, fused fingers, gross proportions, long neck, poorly drawn hands, poorly drawn face, poorly drawn feet"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "SD 3.5 minimal negative prompt"
+    }
+  },
+  "94": {
+    "inputs": {
+      "clip_name": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "95": {
+    "inputs": {
+      "clip_name": "clip_g.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "96": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "83",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview Any"
+    }
+  },
+  "97": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "81",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview Any"
+    }
+  },
+  "98": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "99",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Safety-filtered positive prompt"
+    }
+  },
+  "99": {
+    "inputs": {
+      "prompt": [
+        "73",
+        0
+      ],
+      "filter_level": "off",
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "api_key": [
+        "14",
+        0
+      ],
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_switch_promptsafety",
+    "_meta": {
+      "title": "AI4ArtsEd Promptsafety Switch"
+    }
+  },
+  "100": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "101",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Safety-filtered positive prompt"
+    }
+  },
+  "101": {
+    "inputs": {
+      "prompt": [
+        "71",
+        0
+      ],
+      "filter_level": "off",
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "api_key": [
+        "14",
+        0
+      ],
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_switch_promptsafety",
+    "_meta": {
+      "title": "AI4ArtsEd Promptsafety Switch"
+    }
+  }
+}
