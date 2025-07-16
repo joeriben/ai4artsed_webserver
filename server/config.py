@@ -97,27 +97,28 @@ HOST = "0.0.0.0"
 PORT = 5000
 THREADS = 8
 
-# Kids Safety Configuration
-KIDS_SAFETY_NEGATIVE_TERMS = [
-    # Violence and Death
-    "violence", "violent", "execution", "killing", "murder", "death", "corpse", 
-    "torture", "pain", "suffering", "injury", "wound", "bleeding",
-    
-    # Blood and Gore
-    "blood", "bloody", "gore", "gory", "mutilation", "dismemberment",
-    
-    # Psychological Distress
-    "despair", "suicide", "suicidal", "self-harm", "depression", "hatred", "hate",
-    "horror", "scary", "frightening", "terror", "nightmare", "disturbing",
-    
-    # Supernatural/Scary Elements
-    "demon", "zombie", "skeleton", "skull", "evil",
-    "haunted", "creepy", "eerie", "sinister", "dark", "macabre",
-    
-    # Pornographic/Sexual Elements  
-    "nude", "naked", "nsfw", "sexual", "erotic", "pornographic",
-    "genital",
-    
-    # Other Problematic Content
-    "abuse"
-]
+# Safety Filter Configuration
+SAFETY_NEGATIVE_TERMS = {
+    "kids": [
+        "violence", "violent", "execution", "killing", "murder", "death", "corpse", 
+        "torture", "pain", "suffering", "injury", "wound", "bleeding",
+        "blood", "bloody", "gore", "gory", "mutilation", "dismemberment",
+        "despair", "suicide", "suicidal", "self-harm", "depression", "hatred", "hate",
+        "horror", "scary", "frightening", "terror", "nightmare", "disturbing",
+        "demon", "zombie", "skeleton", "skull", "evil",
+        "haunted", "creepy", "eerie", "sinister", "dark", "macabre",
+        "nude", "naked", "nsfw", "sexual", "rape", "pornographic",
+        "genital", "abuse"
+    ],
+    "youth": [
+     "explicit", "hardcore", "brutal", "savage",
+        "cruelty", "sadistic", 
+        "pornographic", "sexual", "nsfw", "rape", "abuse",
+        "genitals", "penis", "vagina",
+        "self-harm", "suicide",
+        "cutting", 
+    ]
+}
+
+# Backwards compatibility
+KIDS_SAFETY_NEGATIVE_TERMS = SAFETY_NEGATIVE_TERMS["kids"]
