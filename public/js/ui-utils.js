@@ -36,6 +36,8 @@ export function clearOutputDisplays() {
     ui.audioContainer.style.display = 'none';
     ui.audioPlayer.pause();
     ui.audioPlayer.removeAttribute('src');
+    ui.imageAnalysisDisplay.style.display = 'none';
+    ui.imageAnalysisText.textContent = '';
     
     // Remove any existing unified output containers
     const existingUnified = document.getElementById('unifiedOutputs');
@@ -45,7 +47,9 @@ export function clearOutputDisplays() {
 }
 
 export function updateDimensions() {
-    const dims = calculateDimensions('1024', ui.aspectRatio.value);
+    const selectedRadio = document.querySelector('input[name="aspectRatio"]:checked');
+    const aspectRatio = selectedRadio ? selectedRadio.value : '1:1';
+    const dims = calculateDimensions('1024', aspectRatio);
     document.getElementById('dimensionsDisplay').textContent = `Auflösung (ca.): ${dims.width} x ${dims.height}px`;
 }
 

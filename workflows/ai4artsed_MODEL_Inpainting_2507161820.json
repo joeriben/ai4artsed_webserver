@@ -1,14 +1,14 @@
 {
   "3": {
     "inputs": {
-      "seed": 392371737554951,
-      "steps": 25,
-      "cfg": 5.5,
-      "sampler_name": "euler",
+      "seed": 205462062026772,
+      "steps": 20,
+      "cfg": 8,
+      "sampler_name": "uni_pc_bh2",
       "scheduler": "normal",
       "denoise": 1,
       "model": [
-        "4",
+        "29",
         0
       ],
       "positive": [
@@ -20,7 +20,7 @@
         0
       ],
       "latent_image": [
-        "5",
+        "26",
         0
       ]
     },
@@ -29,35 +29,15 @@
       "title": "KSampler"
     }
   },
-  "4": {
-    "inputs": {
-      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
-    },
-    "class_type": "CheckpointLoaderSimple",
-    "_meta": {
-      "title": "Choose your checkpoint ( = image generation model)"
-    }
-  },
-  "5": {
-    "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
-    },
-    "class_type": "EmptyLatentImage",
-    "_meta": {
-      "title": "Empty Latent Image"
-    }
-  },
   "6": {
     "inputs": {
       "text": [
-        "26",
+        "34",
         0
       ],
       "clip": [
-        "39",
-        0
+        "29",
+        1
       ]
     },
     "class_type": "CLIPTextEncode",
@@ -67,10 +47,10 @@
   },
   "7": {
     "inputs": {
-      "text": "text, watermark",
+      "text": "watermark, text\n",
       "clip": [
-        "39",
-        0
+        "29",
+        1
       ]
     },
     "class_type": "CLIPTextEncode",
@@ -85,7 +65,7 @@
         0
       ],
       "vae": [
-        "4",
+        "29",
         2
       ]
     },
@@ -107,54 +87,81 @@
       "title": "Save Image"
     }
   },
-  "11": {
-    "inputs": {},
-    "class_type": "ai4artsed_openrouter_key",
-    "_meta": {
-      "title": "Secure Access to OpenRouter API Key"
-    }
-  },
   "20": {
     "inputs": {
-      "clip_name": "clip_g.safetensors",
-      "type": "stable_diffusion",
-      "device": "default"
+      "image": "clipspace/clipspace-mask-56672.png [input]"
     },
-    "class_type": "CLIPLoader",
+    "class_type": "LoadImage",
     "_meta": {
-      "title": "Load CLIP"
+      "title": "Load Image"
     }
   },
   "26": {
     "inputs": {
-      "value": [
-        "37",
+      "grow_mask_by": 6,
+      "pixels": [
+        "20",
         0
+      ],
+      "vae": [
+        "29",
+        2
+      ],
+      "mask": [
+        "20",
+        1
       ]
+    },
+    "class_type": "VAEEncodeForInpaint",
+    "_meta": {
+      "title": "VAE Encode (for Inpainting)"
+    }
+  },
+  "29": {
+    "inputs": {
+      "ckpt_name": "512-inpainting-ema.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "32": {
+    "inputs": {
+      "value": "a modern skyscraper, steel and glas, reflecting the nature"
     },
     "class_type": "PrimitiveString",
     "_meta": {
       "title": "ai4artsed_text_prompt"
     }
   },
-  "37": {
+  "33": {
     "inputs": {
-      "value": "Ein Werbeplakat mit der Aufschrift NICHT DEIN PROMPT auf einer grünen Wiese"
+      "preview": "",
+      "source": [
+        "34",
+        0
+      ]
     },
-    "class_type": "PrimitiveStringMultiline",
+    "class_type": "PreviewAny",
     "_meta": {
-      "title": "Just a more convenient input for your prompt"
+      "title": "Safety-filtered positive prompt"
     }
   },
-  "39": {
+  "34": {
     "inputs": {
-      "clip_name": "clip_g.safetensors",
-      "type": "sd3",
-      "device": "default"
+      "prompt": [
+        "32",
+        0
+      ],
+      "filter_level": "off",
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "api_key": "",
+      "unload_model": "yes"
     },
-    "class_type": "CLIPLoader",
+    "class_type": "ai4artsed_switch_promptsafety",
     "_meta": {
-      "title": "Models without CLIP need this"
+      "title": "AI4ArtsEd Promptsafety Switch"
     }
   }
 }

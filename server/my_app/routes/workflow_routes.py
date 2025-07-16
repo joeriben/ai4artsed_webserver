@@ -14,6 +14,7 @@ from my_app.services.ollama_service import ollama_service
 from my_app.services.comfyui_service import comfyui_service
 from my_app.services.workflow_logic_service import workflow_logic_service
 from my_app.services.export_manager import export_manager
+from my_app.services.inpainting_service import inpainting_service
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,28 @@ def workflow_has_safety_node(workflow_name):
     except Exception as e:
         logger.error(f"Error checking workflow safety node: {e}")
         return jsonify({"error": "Failed to check workflow"}), 500
+
+
+@workflow_bp.route('/workflow-type/<workflow_name>', methods=['GET'])
+def workflow_type(workflow_name):
+    """Check if a workflow is an inpainting workflow"""
+    try:
+        is_inpainting = workflow_logic_service.is_inpainting_workflow(workflow_name)
+        return jsonify({"isInpainting": is_inpainting})
+    except Exception as e:
+        logger.error(f"Error checking workflow type: {e}")
+        return jsonify({"error": "Failed to check workflow type"}), 500
+
+
+@workflow_bp.route('/workflow-info/<workflow_name>', methods=['GET'])
+def workflow_info(workflow_name):
+    """Get comprehensive workflow information"""
+    try:
+        info = workflow_logic_service.get_workflow_info(workflow_name)
+        return jsonify(info)
+    except Exception as e:
+        logger.error(f"Error getting workflow info: {e}")
+        return jsonify({"error": "Failed to get workflow info"}), 500
 
 
 @workflow_bp.route('/validate-prompt', methods=['POST'])
@@ -79,7 +102,7 @@ def validate_prompt():
 
 @workflow_bp.route('/run_workflow', methods=['POST'])
 def execute_workflow():
-    """Execute a workflow"""
+    """Execute a workflow with support for three modes: text_only, image_with_text, inpainting"""
     try:
         data = request.json
         workflow_name = data.get('workflow')
@@ -90,28 +113,41 @@ def execute_workflow():
         custom_seed = data.get('customSeed', None)
         safety_level = data.get('safetyLevel', 'off')
         
+        # Input mode and image data
+        image_data = data.get('imageData')
+        input_mode = data.get('inputMode', 'text_only')
+        skip_translation = data.get('skipTranslation', False)
+        
         if not workflow_name:
             return jsonify({"error": "Kein Workflow angegeben."}), 400
         
+        # The frontend already handles the concatenation and sends the final prompt
+        # We just need to validate and process it
         if not original_prompt:
             return jsonify({"error": "Kein Prompt angegeben."}), 400
         
-        logger.info(f"Executing workflow: {workflow_name} with prompt: {original_prompt[:50]}...")
-        
-        # Initialize workflow_prompt with original
         workflow_prompt = original_prompt
+        logger.info(f"Executing workflow: {workflow_name} in mode: {input_mode}")
         
         # Validate prompt (translation + safety check) if enabled
         if ENABLE_VALIDATION_PIPELINE:
-            validation_result = ollama_service.validate_and_translate_prompt(original_prompt)
-            
-            if not validation_result["success"]:
-                # Safety check failed
-                return jsonify({"error": validation_result.get("error", "Prompt-Validierung fehlgeschlagen.")}), 400
-            
-            # Use translated prompt for workflow execution
-            workflow_prompt = validation_result["translated_prompt"]
-            logger.info(f"Using validated prompt: {workflow_prompt[:50]}...")
+            # For image_with_text mode, skip translation as frontend already translated
+            if skip_translation:
+                logger.info("Skipping translation as requested by frontend")
+                # Still do safety check
+                safety_result = ollama_service.check_safety(workflow_prompt)
+                if not safety_result["is_safe"]:
+                    return jsonify({"error": safety_result.get("reason", "Prompt rejected for safety reasons.")}), 400
+            else:
+                validation_result = ollama_service.validate_and_translate_prompt(workflow_prompt)
+                
+                if not validation_result["success"]:
+                    # Safety check failed
+                    return jsonify({"error": validation_result.get("error", "Prompt-Validierung fehlgeschlagen.")}), 400
+                
+                # Use translated prompt for workflow execution
+                workflow_prompt = validation_result["translated_prompt"]
+                logger.info(f"Using validated prompt: {workflow_prompt[:50]}...")
         
         # Prepare workflow with the workflow_prompt
         result = workflow_logic_service.prepare_workflow(workflow_name, workflow_prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level)
@@ -122,6 +158,12 @@ def execute_workflow():
         workflow = result["workflow"]
         status_updates = result.get("status_updates", [])
         used_seed = result.get("used_seed")
+        
+        # Handle inpainting workflows - inject image data
+        if input_mode == 'inpainting' and image_data:
+            logger.info("Injecting image into inpainting workflow")
+            workflow = inpainting_service.inject_image_to_workflow(workflow, image_data)
+            status_updates.append("Bild wurde in Inpainting-Workflow eingefügt.")
         
         # Log workflow if kids safety is enabled (for debugging)
         if safety_level == "kids":

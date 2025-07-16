@@ -9,6 +9,8 @@ export const ui = {
         this.processingTimer = document.querySelector('#processingInfo .timer');
         this.promptDisplay = document.getElementById('promptDisplay');
         this.promptDisplayText = document.getElementById('promptDisplayText');
+        this.imageAnalysisDisplay = document.getElementById('imageAnalysisDisplay');
+        this.imageAnalysisText = document.getElementById('imageAnalysisText');
         this.imageOutputs = document.getElementById('imageOutputs');
         this.imageOutputsContent = document.getElementById('imageOutputsContent');
         this.textOutputs = document.getElementById('textOutputs');
@@ -18,10 +20,11 @@ export const ui = {
         this.prompt = document.getElementById('prompt');
         this.addMediaBtn = document.getElementById('add-media-btn');
         this.fileInput = document.getElementById('fileInput');
-        this.imagePreviewContainer = document.getElementById('image-preview-container');
+        this.imageUploadArea = document.getElementById('image-upload-area');
+        this.imagePreviewWrapper = document.getElementById('image-preview-wrapper');
         this.imagePreview = document.getElementById('image-preview');
         this.removeImageBtn = document.getElementById('remove-image-btn');
         this.workflow = document.getElementById('workflow');
-        this.aspectRatio = document.getElementById('aspectRatio');
+        // aspectRatio is now accessed via radio buttons, not a single element
     }
 };

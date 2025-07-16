@@ -98,7 +98,8 @@ export async function submitPrompt() {
 
     const workflowName = ui.workflow.value;
     const promptText = ui.prompt.value.trim();
-    const aspectRatio = ui.aspectRatio.value;
+    const selectedRadio = document.querySelector('input[name="aspectRatio"]:checked');
+    const aspectRatio = selectedRadio ? selectedRadio.value : '1:1';
     const executionMode = document.querySelector('input[name="execution-mode"]:checked').value;
     const safetyLevel = document.querySelector('input[name="safety-level"]:checked').value;
 

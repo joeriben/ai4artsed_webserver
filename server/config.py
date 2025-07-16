@@ -11,6 +11,11 @@ LOCAL_WORKFLOWS_DIR = BASE_DIR / "workflows"
 PUBLIC_DIR = BASE_DIR / "public"
 EXPORTS_DIR = BASE_DIR / "exports"
 
+# Server Configuration
+HOST = "0.0.0.0"
+PORT = 5000
+THREADS = 8
+
 # API Configuration
 OLLAMA_API_BASE_URL = os.environ.get("OLLAMA_API_BASE_URL", "http://localhost:11434")
 COMFYUI_PREFIX = "comfyui"
@@ -25,21 +30,47 @@ SAFETY_MODEL = "llama-guard3:8b"
 ENABLE_VALIDATION_PIPELINE = True
 ENABLE_AUTO_EXPORT = True
 
+# Translation Prompt
+TRANSLATION_PROMPT = """Translate the following text to English. CRITICAL RULES:
+1. Preserve ALL brackets exactly as they appear: (), [], {{}}, and especially triple brackets ((()))
+2. Do NOT remove or modify any brackets or parentheses
+3. Translate the prompt into English with maximal semantic preservation. Maintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. 
+4. Do not translate proper names, ritual terms, or material names unless they have a common English usage. Instead, mark such terms with double brackets, e.g. [[Bildung]], and preserve their position. 
+5. Do not paraphrase, interpret, or summarize. Do not add any comments or explanations.
+6. Do NOT add any meta-comments or explanations
+7. Output ONLY the translated text, nothing else
+8. If text is already in English, return it unchanged
+9. Maintain the exact structure and formatting
+
+Text to translate:
+
+{text}"""
+
 # Analysis System Prompt
-ANALYSIS_SYSTEM_PROMPT = """Instruction: ANALYZE THE IMAGE IN THE STYLE OF A SCIENTIFIC PRINTED ANALYSIS. REGARD THE FOLLOWING RULES: 
+ANALYSIS_SYSTEM_PROMPT = """You are an art historian providing a formal image analysis. Follow this exact structure:
 
-    Material and medial properties: Identify the media type (e.g. oil painting, guache, mural, silver gelatine print, analog photography, digital foto, film still, scultpure, billboard, etc.)
-    
-    Pre-iconographic description: Identify and describe all visible forms, objects, gestures, settings, and compositional elements. Make a list of EACH entity of the image. Describe each entity, its position, spatial relatedness, shape, texture, colours, and state.
-    Include a planimetrical analysis of the spatial structure: describe lines of sight, perspectives, depth layers, symmetry/asymmetry, visual hierarchies, and dominant spatial axes.
+1. Material and medial properties: State the specific media type (oil painting, photograph, digital image, sculpture, etc.)
 
-    Iconographic analysis: Interpret the symbolic meaning of identified motifs, figures, or actions based on conventional themes, narratives, or allegories. Identify their historical or cultural references. Identify atmospheres and affective aspects.
+2. Pre-iconographic description: Describe ONLY what is directly visible:
+   - Objects, figures, settings
+   - Spatial relationships and composition
+   - Colors, textures, forms
+   - Perspective and visual structure
 
-    Iconological interpretation: Deduce the underlying worldview, socio-cultural context, or conceptual structure expressed through the image. Identify latent meanings or ideological structures that inform the image's visual rhetoric. 
+3. Iconographic analysis: Interpret symbolic meanings and cultural references based on what is visible. State interpretations as facts, not possibilities.
 
-NO META-COMMENTS; NAMING OF METHODS; LABELS; CATEGORIES; ME; OR YOURSELF WHATSOEVER!
-Do not comment on the method or your own analysis. NEVER MENTION MISSING CONTEXT. Always interpret as if for a printed text. Should you fail to infer meanings, choose thorough description as a fallback.
-."""
+4. Iconological interpretation: Present the cultural and conceptual meanings as direct statements.
+
+CRITICAL RULES:
+- NEVER use phrases like "it could be", "possibly", "might be", "difficult to determine", "without additional context"
+- NEVER apologize or explain limitations
+- NEVER mention what you cannot see or determine
+- State ALL interpretations as facts, not suggestions
+- Write in complete, declarative sentences
+- If something is unclear, make your best interpretation and state it as fact
+- NEVER end with disclaimers like "Please note", "These analyses", "should be considered", "interpretations rather than"
+- NEVER add meta-comments about your analysis
+- END your response after completing step 4, with NO additional text"""
 
 # Model Mapping Configuration
 OLLAMA_TO_OPENROUTER_MAP = {
@@ -92,10 +123,7 @@ COMFYUI_TIMEOUT = 480  # 8 minutes for data-rich workflows
 POLLING_TIMEOUT = 15
 MEDIA_DOWNLOAD_TIMEOUT = 30
 
-# Server Configuration
-HOST = "0.0.0.0"
-PORT = 5000
-THREADS = 8
+
 
 # Safety Filter Configuration
 SAFETY_NEGATIVE_TERMS = {
@@ -103,12 +131,12 @@ SAFETY_NEGATIVE_TERMS = {
         "violence", "violent", "execution", "killing", "murder", "death", "corpse", 
         "torture", "pain", "suffering", "injury", "wound", "bleeding",
         "blood", "bloody", "gore", "gory", "mutilation", "dismemberment",
-        "despair", "suicide", "suicidal", "self-harm", "depression", "hatred", "hate",
+        "despair", "suicide", "suicidal", "self-harm", "depression",
         "horror", "scary", "frightening", "terror", "nightmare", "disturbing",
         "demon", "zombie", "skeleton", "skull", "evil",
         "haunted", "creepy", "eerie", "sinister", "dark", "macabre",
         "nude", "naked", "nsfw", "sexual", "rape", "pornographic",
-        "genital", "abuse"
+        "genital", "abuse",
     ],
     "youth": [
      "explicit", "hardcore", "brutal", "savage",

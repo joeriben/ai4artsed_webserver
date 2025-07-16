@@ -94,6 +94,71 @@ class WorkflowLogicService:
         
         return False
     
+    def is_inpainting_workflow(self, workflow_name: str) -> bool:
+        """
+        Check if a workflow is an inpainting workflow by looking for inpainting models
+        
+        Args:
+            workflow_name: Name of the workflow file
+            
+        Returns:
+            True if workflow uses inpainting models, False otherwise
+        """
+        workflow = self.load_workflow(workflow_name)
+        if not workflow:
+            return False
+        
+        # Look for CheckpointLoaderSimple nodes with inpainting models
+        for node_data in workflow.values():
+            if node_data.get("class_type") == "CheckpointLoaderSimple":
+                ckpt_name = node_data.get("inputs", {}).get("ckpt_name", "").lower()
+                if "inpaint" in ckpt_name:
+                    return True
+        
+        return False
+    
+    def get_workflow_info(self, workflow_name: str) -> Dict[str, Any]:
+        """
+        Get comprehensive workflow information
+        
+        Args:
+            workflow_name: Name of the workflow file
+            
+        Returns:
+            Dict with workflow information
+        """
+        workflow = self.load_workflow(workflow_name)
+        if not workflow:
+            return {
+                "isInpainting": False,
+                "hasLoadImageNode": False,
+                "requiresBothInputs": False,
+                "error": "Workflow not found"
+            }
+        
+        is_inpainting = False
+        has_load_image = False
+        
+        # Check for inpainting models and load image nodes
+        for node_data in workflow.values():
+            class_type = node_data.get("class_type")
+            
+            # Check for inpainting model
+            if class_type == "CheckpointLoaderSimple":
+                ckpt_name = node_data.get("inputs", {}).get("ckpt_name", "").lower()
+                if "inpaint" in ckpt_name:
+                    is_inpainting = True
+            
+            # Check for load image node
+            if class_type in ["LoadImage", "LoadImageMask"]:
+                has_load_image = True
+        
+        return {
+            "isInpainting": is_inpainting,
+            "hasLoadImageNode": has_load_image,
+            "requiresBothInputs": is_inpainting  # Inpainting requires both inputs
+        }
+    
     def switch_to_eco_mode(self, workflow: Dict[str, Any]) -> Tuple[Dict[str, Any], list]:
         """
         Switch workflow to eco mode (local models)

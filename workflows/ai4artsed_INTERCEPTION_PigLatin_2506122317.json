@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "seed": 1029531635426367,
+      "seed": 623573110288679,
       "steps": 25,
       "cfg": 5.5,
       "sampler_name": "euler",
@@ -157,7 +157,7 @@
   },
   "37": {
     "inputs": {
-      "value": "A highly detailed traditional ceremonial depiction (type:statue) of Obatala, the Orisha of wisdom and purity in Yoruba religion. The figure is portrayed as an elder with serene and dignified expression, wearing flowing white robes (symbol of purity), seated or standing beneath a sacred tree or in front of a carved Yoruba shrine. Adorned with white cowrie shell ornaments, white beads, and a staff of peace. Skin tone dark, with white chalk markings on face and arms. Surrounding environment is tranquil, symbolic, and infused with white light. The background features carved wooden panels with traditional Yoruba motifs. Style: photorealistic with painterly texture, inspired by West African traditional sculpture and sacred art. Natural lighting with soft shadows. Color palette dominated by white, ivory, and subtle earth tones. No modern objects or anachronisms. Respectful and solemn tone.\n\nPrompt Interception: Yoruba Cultural Heritage, Traditional Yoruba Statue"
+      "value": "a kenyan  person wearing traditional work attire having a satisfying meal at the workplace"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -179,7 +179,7 @@
         "11",
         0
       ],
-      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "model": "local/mistral-small:24b",
       "debug": "enable",
       "unload_model": "yes"
     },
@@ -190,7 +190,7 @@
   },
   "42": {
     "inputs": {
-      "value": "You are a semantic filter in a child-oriented image generation system.\n\nYour task is to examine incoming prompts and assess whether they contain elements that may induce psychological fear or emotional distress in children, such as:\n- ghostlike or faceless figures\n- demonic or supernatural entities\n- threatening presence during sleep\n- death, violence, abduction, or horror tropes\n- explicit or implicit references to being watched, hunted, or taken\n\nIf such elements are present in a way that would likely evoke fear or distress in children, do **not** attempt to reframe or modify the prompt.  \nInstead, **completely discard the original input** and replace it with the following prompt, designed to gently signal the issue to the user:\n\n---\n\"A small, slightly frightened kitten sitting in front of a computer screen. The screen displays the friendly message: 'Sorry, too scary.' The kitten looks mildly alarmed but safe. The room is softly lit and calm, conveying a sense of emotional protection and empathy. The style is warm, painterly, and simple, without cartoon exaggeration or cuteness overload. No horror, no sarcasm, no parody.\"\n---\n\nIf the input is not problematic, return it unchanged.\n"
+      "value": "Your task is to translate the following user prompt entirely and exclusively into Pig Latin. Each word in the original prompt must be converted according to the standard Pig Latin rules. Do not skip any words or add any extra content.\n\nPig Latin Translation Rules to Follow:\n1.  Words starting with a consonant sound: Move all initial consonant sounds to the end of the word, then add 'ay'.\n    Example: 'hello' becomes 'ellohay'\n    Example: 'street' becomes 'eetstray'\n    Example: 'through' becomes 'oughthray'\n2.  Words starting with a vowel sound: Add 'yay' (or 'way', 'ay') to the end of the word. Use 'yay' for consistency.\n    Example: 'apple' becomes 'appleyay'\n     Example: 'every' becomes 'everyyay'\n3.  Punctuation: Punctuation should remain at the very end of the word after the 'ay' or 'yay' is added.\n     Example: 'hello?' becomes 'ellohay?'\n4.  Capitalization: Maintain the original capitalization of each word. If the first letter was capitalized, the new first letter (which was originally the second or third letter) should be capitalized.\n     Example: 'Hello' becomes 'Ellohay'\n     Example: 'Apple' becomes 'Appleyay'\n\nOutput Format: Output *only* the fully translated prompt in Pig Latin. Do not include any explanations, introductions, or additional text. DO NOT MENTION THE WORDS \"PIG LATIN\"!\n"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {

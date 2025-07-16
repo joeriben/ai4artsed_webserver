@@ -12,7 +12,8 @@ from config import (
     SAFETY_MODEL,
     ANALYSIS_MODEL,
     ANALYSIS_SYSTEM_PROMPT,
-    PROMPT_CACHE
+    PROMPT_CACHE,
+    TRANSLATION_PROMPT
 )
 
 logger = logging.getLogger(__name__)
@@ -58,17 +59,7 @@ class OllamaService:
         Returns:
             Translated text or None if translation fails
         """
-        prompt = (
-            f"Translate the prompt into English with maximal semantic preservation. "
-            f"Maintain the original structure, and preserve all culturally specific terms "
-            f"or non-translatable phrases in their original form. Do not translate proper names, "
-            f"ritual terms, or material names unless they have a common English usage. "
-            f"Mark such terms with double brackets, e.g. [[egungun]], and preserve their position. "
-            f"Do not paraphrase, interpret, or summarize. Do not add any comments or explanations. "
-            f"If the following has meta-signifiers such as bracket, do not remove those. "
-            f"Return only the translated prompt as plain text. If the following is already in "
-            f"english, leave it unchanged. Output only the translated text and nothing else:\n\n{text}"
-        )
+        prompt = TRANSLATION_PROMPT.format(text=text)
         
         payload = {
             "model": TRANSLATION_MODEL,

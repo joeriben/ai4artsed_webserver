@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "seed": 1029531635426367,
+      "seed": 145420931348616,
       "steps": 25,
       "cfg": 5.5,
       "sampler_name": "euler",
@@ -137,9 +137,27 @@
       "title": "ai4artsed_text_prompt"
     }
   },
+  "34": {
+    "inputs": {
+      "input_prompt": "",
+      "input_context": "professional translator",
+      "style_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral:7b",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Translation_english"
+    }
+  },
   "37": {
     "inputs": {
-      "value": "A highly detailed traditional ceremonial depiction (type:statue) of Obatala, the Orisha of wisdom and purity in Yoruba religion. The figure is portrayed as an elder with serene and dignified expression, wearing flowing white robes (symbol of purity), seated or standing beneath a sacred tree or in front of a carved Yoruba shrine. Adorned with white cowrie shell ornaments, white beads, and a staff of peace. Skin tone dark, with white chalk markings on face and arms. Surrounding environment is tranquil, symbolic, and infused with white light. The background features carved wooden panels with traditional Yoruba motifs. Style: photorealistic with painterly texture, inspired by West African traditional sculpture and sacred art. Natural lighting with soft shadows. Color palette dominated by white, ivory, and subtle earth tones. No modern objects or anachronisms. Respectful and solemn tone.\n\nPrompt Interception: Yoruba Cultural Heritage, Traditional Yoruba Statue"
+      "value": "a student at university"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -172,7 +190,7 @@
   },
   "42": {
     "inputs": {
-      "value": "search the input_prompt for contextsindicated by\n\"context:\"\n\"Kontext:\"\n\"Kunstform\"\n\"art form:\"\n\"Style:\"\n\"Stil:\"\n\"Prompt Interception\"\n\"PromptInterceptioN\" and so on.\n\nand the likes."
+      "value": "Your sole and absolute task is to fully rewrite the following user prompt into modern, authentic UK youth slang and informal language, leaving no trace of the original's formality. The entire linguistic transformation into this specific sociolect is your primary focus.\n\n**Instructions for the Translation:**\n1.  Total Transformation: Every phrase, concept, and descriptive element from the original prompt must be converted into its corresponding youth slang equivalent. There should be absolutely no remnants of the initial, formal tone.\n2.  Target Audience: The language must sound precisely like it's spoken by 13-18 year olds in urban areas of the United Kingdom, those highly familiar with current street culture and music genres (specifically UK Drill, Grime, and Trap).\n3.  Vocabulary & Idioms: Utilize prevalent British street slang, contemporary idioms, common abbreviations, and highly informal expressions. Actively incorporate words like 'fam', 'mandem', 'yute', 'peng', 'sick', 'bare', 'safe', 'proper', 'whip', 'crib', 'drip', 'no cap', 'innit', 'allow it', 'jheeze', 'grinding', 'balling', 'skrr', 'init', 'wagwan', 'ends', and similar terms that define this demographic's speech.\n4.  Tone & Style: The tone must be casual, direct, confident, and genuinely authentic. It needs to fully embody the 'vibe' and 'attitude' of contemporary UK youth culture.\n5.  Core Meaning Retention: The original meaning and all visual elements intended by the prompt must be preserved, but expressed entirely through this new linguistic form.\n6.  Output Format: Output *only* the rephrased prompt in youth slang. Do not include any explanations, introductions, or additional text.\n"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {

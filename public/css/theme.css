@@ -25,8 +25,8 @@
   --info-bg: #e7f3ff;
   --info-border: #b8daff;
   
-  /* Background Colors */
-  --body-bg: #f0f2f5;
+  /* Background Colors --body-bg: #f0f2f5; */ 
+  --body-bg: #444444;
   --container-bg: #ffffff;
   --input-bg: #ffffff;
   --code-bg: #f0f2f5;

@@ -65,19 +65,31 @@ button.processing .spinner {
   display: block;
 }
 
-/* Prompt Input Area */
-#prompt-wrapper {
-  position: relative;
+/* Dual Input Layout */
+#dual-input-wrapper {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: stretch;
 }
 
+#prompt-container {
+  flex: 4;
+  display: flex;
+}
+
+#image-input-container {
+  flex: 1;
+  display: flex;
+}
+
+/* Prompt Input Area */
 #prompt {
+  width: 100%;
   min-height: 120px;
   resize: vertical;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   padding: 10px;
-  padding-right: 40px;
-  width: 100%;
   box-sizing: border-box;
 }
 
@@ -86,15 +98,86 @@ button.processing .spinner {
   background-color: var(--hover-bg);
 }
 
-/* Icon Buttons */
-.icon-btn {
-  position: absolute;
+/* Image Upload Area */
+#image-upload-area {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: var(--mode-switch-bg);
+  transition: all var(--transition-speed);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+#image-upload-area:hover {
+  border-color: var(--primary-color);
+  background-color: var(--hover-bg);
+}
+
+#image-upload-area.has-image {
+  border-style: solid;
+  cursor: default;
+}
+
+/* Upload Button */
+.upload-btn {
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  opacity: 0.6;
+  width: 40px;
+  height: 40px;
+  opacity: 0.7;
   transition: opacity var(--transition-speed), transform var(--transition-speed);
+}
+
+.upload-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.upload-btn img {
+  width: 100%;
+  height: 100%;
+}
+
+/* Image Preview */
+#image-preview-wrapper {
+  display: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+#image-preview-wrapper.active {
+  display: block;
+}
+
+#image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: calc(var(--radius-md) - 2px);
+}
+
+/* Icon Buttons */
+.icon-btn {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.8;
+  transition: opacity var(--transition-speed), transform var(--transition-speed);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--box-shadow-sm);
 }
 
 .icon-btn:hover {
@@ -102,41 +185,16 @@ button.processing .spinner {
   transform: scale(1.1);
 }
 
-#add-media-btn {
-  bottom: var(--spacing-sm);
-  right: var(--spacing-sm);
-  width: 24px;
-  height: 24px;
-}
-
 #remove-image-btn {
   top: var(--spacing-sm);
   right: var(--spacing-sm);
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
 }
 
 .icon-btn img {
   width: 100%;
   height: 100%;
-}
-
-/* Image Preview */
-#image-preview-container {
-  display: none;
-  position: relative;
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  min-height: 142px;
-}
-
-#image-preview {
-  max-width: 100%;
-  max-height: 200px;
-  border-radius: var(--radius-sm);
-  display: block;
-  margin: 0 auto;
 }
 
 /* Dimensions Display */
@@ -167,6 +225,44 @@ button.processing .spinner {
   margin-right: 5px;
 }
 
+/* Aspect Ratio Control */
+.aspect-ratio-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  background-color: var(--mode-switch-bg);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.aspect-ratio-control input[type="radio"] {
+  display: none;
+}
+
+.aspect-ratio-control label {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: normal;
+  margin-bottom: 0;
+}
+
+.aspect-ratio-control input[type="radio"]:checked + label {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.aspect-ratio-control label:hover {
+  background-color: var(--hover-bg);
+}
+
+.aspect-ratio-control input[type="radio"]:checked + label:hover {
+  background-color: var(--primary-hover);
+}
+
 /* Seed Control */
 .seed-control {
   display: flex;
@@ -176,6 +272,12 @@ button.processing .spinner {
   padding: var(--spacing-sm);
   border-radius: var(--radius-md);
   flex-wrap: wrap;
+}
+
+.seed-option {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .seed-control label {
@@ -257,6 +359,28 @@ button.processing .spinner {
   font-style: italic;
   color: var(--text-secondary);
   white-space: pre-wrap;
+}
+
+/* Image Analysis Display */
+#imageAnalysisDisplay {
+  background-color: var(--code-bg);
+  border: 1px solid var(--border-light);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-xl);
+  display: none;
+}
+
+#imageAnalysisDisplay h4 {
+  margin-top: 0;
+  margin-bottom: var(--spacing-sm);
+  color: var(--heading-color);
+}
+
+#imageAnalysisText {
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.6;
 }
 
 /* Image Outputs */
@@ -362,11 +486,48 @@ button.processing .spinner {
     gap: var(--spacing-md);
   }
   
+  /* Dual input layout stacks on mobile */
+  #dual-input-wrapper {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  #prompt-container,
+  #image-input-container {
+    flex: 1;
+    width: 100%;
+  }
+  
+  #image-upload-area {
+    aspect-ratio: 16/9;
+    max-height: 150px;
+  }
+  
   #prompt {
     min-height: 100px;
   }
   
   .mode-switch {
     flex-wrap: wrap;
+  }
+  
+  /* Aspect ratio adjustments for mobile */
+  .aspect-ratio-control {
+    gap: 8px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .aspect-ratio-control label {
+    padding: 4px 8px;
+    font-size: 0.9em;
+  }
+  
+  /* Prevent seed control wrapping issues */
+  .seed-control {
+    justify-content: space-between;
+  }
+  
+  .seed-option {
+    flex: 0 0 auto;
   }
 }

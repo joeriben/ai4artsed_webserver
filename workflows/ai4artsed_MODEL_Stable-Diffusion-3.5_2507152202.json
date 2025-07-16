@@ -170,7 +170,7 @@
         0
       ],
       "filter_level": "off",
-      "model": "local/mistral-nemo:latest",
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
       "api_key": [
         "43",
         0

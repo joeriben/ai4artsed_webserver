@@ -16,6 +16,7 @@ from my_app.services.comfyui_service import comfyui_service
 from my_app.services.workflow_logic_service import workflow_logic_service
 from my_app.services.export_manager import export_manager
 from my_app.services.streaming_response import create_streaming_response
+from my_app.services.inpainting_service import inpainting_service
 
 logger = logging.getLogger(__name__)
 
@@ -32,31 +33,59 @@ def execute_workflow_stream():
         try:
             data = request.json
             workflow_name = data.get('workflow')
-            prompt = data.get('prompt', '').strip()
+            original_prompt = data.get('prompt', '').strip()
             aspect_ratio = data.get('aspectRatio', '1:1')
             mode = data.get('mode', 'eco')
             seed_mode = data.get('seedMode', 'random')
             custom_seed = data.get('customSeed', None)
             safety_level = data.get('safetyLevel', 'off')
             
+            # New dual input parameters
+            image_data = data.get('imageData')
+            input_mode = data.get('inputMode', 'standard')
+            requires_image_analysis = data.get('requiresImageAnalysis', False)
+            
             if not workflow_name:
                 return {"error": "Kein Workflow angegeben."}
             
-            if not prompt:
-                return {"error": "Kein Prompt angegeben."}
+            # Handle different input modes
+            if input_mode == 'inpainting':
+                # Inpainting mode requires both prompt and image
+                if not original_prompt or not image_data:
+                    return {"error": "Inpainting-Workflows erfordern sowohl einen Prompt als auch ein Bild."}
+                workflow_prompt = original_prompt
+                
+            elif input_mode == 'standard_combined' and requires_image_analysis:
+                # Standard workflow with both prompt and image - need to analyze and concatenate
+                if not image_data:
+                    return {"error": "Bildanalyse angefordert, aber kein Bild bereitgestellt."}
+                
+                # Analyze image and concatenate with prompt
+                workflow_prompt = inpainting_service.analyze_and_concatenate(
+                    original_prompt, image_data, ollama_service
+                )
+                logger.info(f"Combined prompt after image analysis: {workflow_prompt[:50]}...")
+                
+            else:
+                # Standard mode with just prompt
+                if not original_prompt:
+                    return {"error": "Kein Prompt angegeben."}
+                workflow_prompt = original_prompt
+            
+            logger.info(f"Executing workflow: {workflow_name} in mode: {input_mode}")
             
             # Validate prompt if enabled
             if ENABLE_VALIDATION_PIPELINE:
-                validation_result = ollama_service.validate_and_translate_prompt(prompt)
+                validation_result = ollama_service.validate_and_translate_prompt(workflow_prompt)
                 
                 if not validation_result["success"]:
                     return {"error": validation_result.get("error", "Prompt-Validierung fehlgeschlagen.")}
                 
-                prompt = validation_result["translated_prompt"]
+                workflow_prompt = validation_result["translated_prompt"]
             
             # Prepare workflow
             result = workflow_logic_service.prepare_workflow(
-                workflow_name, prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level
+                workflow_name, workflow_prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level
             )
             
             if not result["success"]:
@@ -65,6 +94,12 @@ def execute_workflow_stream():
             workflow = result["workflow"]
             status_updates = result.get("status_updates", [])
             used_seed = result.get("used_seed")
+            
+            # Handle inpainting workflows - inject image data
+            if input_mode == 'inpainting' and image_data:
+                logger.info("Injecting image into inpainting workflow")
+                workflow = inpainting_service.inject_image_to_workflow(workflow, image_data)
+                status_updates.append("Bild wurde in Inpainting-Workflow eingefügt.")
             
             # Submit to ComfyUI
             prompt_id = comfyui_service.submit_workflow(workflow)
@@ -75,7 +110,10 @@ def execute_workflow_stream():
             # Store pending export info
             current_app.pending_exports[prompt_id] = {
                 "workflow_name": workflow_name,
-                "prompt": prompt,
+                "prompt": original_prompt,  # Always store the original prompt
+                "translated_prompt": workflow_prompt,  # Store the workflow prompt (translated or original)
+                "used_seed": used_seed,
+                "safety_level": safety_level,
                 "timestamp": time.time()
             }
             
@@ -99,7 +137,10 @@ def execute_workflow_stream():
                             export_manager.auto_export_session(
                                 prompt_id,
                                 export_info["workflow_name"],
-                                export_info["prompt"]
+                                export_info["prompt"],
+                                export_info.get("translated_prompt"),
+                                export_info.get("used_seed"),
+                                export_info.get("safety_level", "off")
                             )
                             del current_app.pending_exports[prompt_id]
                         
@@ -109,7 +150,7 @@ def execute_workflow_stream():
                             "status": "completed",
                             "outputs": outputs,
                             "status_updates": status_updates,
-                            "translated_prompt": prompt,
+                            "translated_prompt": workflow_prompt,
                             "used_seed": used_seed
                         }
                 
