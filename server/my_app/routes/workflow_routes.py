@@ -239,15 +239,23 @@ def workflow_status(prompt_id):
             # Trigger auto-export if enabled
             if prompt_id in current_app.pending_exports:
                 export_info = current_app.pending_exports[prompt_id]
-                export_manager.auto_export_session(
-                    prompt_id,
-                    export_info["workflow_name"],
-                    export_info["prompt"],
-                    export_info.get("translated_prompt"),
-                    export_info.get("used_seed"),
-                    export_info.get("safety_level", "off")
-                )
+                logger.info(f"[AUTO-EXPORT DEBUG] Starting auto-export for {prompt_id}")
+                logger.info(f"[AUTO-EXPORT DEBUG] Export info: {export_info}")
+                try:
+                    result = export_manager.auto_export_session(
+                        prompt_id,
+                        export_info["workflow_name"],
+                        export_info["prompt"],  # Original prompt
+                        export_info.get("translated_prompt"),  # Keep for documentation
+                        export_info.get("used_seed"),
+                        export_info.get("safety_level", "off")
+                    )
+                    logger.info(f"[AUTO-EXPORT DEBUG] Auto-export result: {result}")
+                except Exception as e:
+                    logger.error(f"[AUTO-EXPORT DEBUG] Auto-export failed with exception: {e}")
                 del current_app.pending_exports[prompt_id]
+            else:
+                logger.warning(f"[AUTO-EXPORT DEBUG] No pending export found for {prompt_id}")
             
             return jsonify(response)
         else:
@@ -314,8 +322,8 @@ def comfyui_proxy(path):
                         export_manager.auto_export_session(
                             prompt_id,
                             export_info["workflow_name"],
-                            export_info["prompt"],
-                            export_info.get("translated_prompt"),
+                            export_info["prompt"],  # Original prompt
+                            export_info.get("translated_prompt"),  # Keep for documentation
                             export_info.get("used_seed"),
                             export_info.get("safety_level", "off")
                         )
