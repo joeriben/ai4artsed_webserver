@@ -1,0 +1,531 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 59968023341309,
+      "steps": 25,
+      "cfg": 5.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your model (or leave the preset)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "95",
+        0
+      ],
+      "clip": [
+        "93",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "93",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "58": {
+    "inputs": {},
+    "class_type": "ai4artsed_random_language_selector",
+    "_meta": {
+      "title": "Random Language Selector"
+    }
+  },
+  "92": {
+    "inputs": {
+      "value": "Eine Schnecke kriecht auf der Straße, ein Schuh fliegt durch die Luft."
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "93": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "95": {
+    "inputs": {
+      "input_prompt": [
+        "97",
+        0
+      ],
+      "input_context": [
+        "107",
+        0
+      ],
+      "style_prompt": "!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!Translate the prompt into english. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "97": {
+    "inputs": {
+      "input_prompt": [
+        "103",
+        0
+      ],
+      "input_context": [
+        "58",
+        3
+      ],
+      "style_prompt": "Only translate to the given language in the context. Do not additionally translate into english.!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!Translate the prompt according to the language given in the input_context. Use only the language provided in the input_context. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "103": {
+    "inputs": {
+      "input_prompt": [
+        "106",
+        0
+      ],
+      "input_context": [
+        "58",
+        2
+      ],
+      "style_prompt": "Only translate to the given language in the context. Do not additionally translate into english.!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!Translate the prompt according to the language given in the input_context. Use only the language provided in the input_context. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "105": {
+    "inputs": {
+      "input_prompt": [
+        "92",
+        0
+      ],
+      "input_context": [
+        "58",
+        0
+      ],
+      "style_prompt": "Only translate to the given language in the context. Do not additionally translate into english.\n!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!\nTranslate the prompt according to the language given in the input_context. Use only the language provided in the input_context. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "106": {
+    "inputs": {
+      "input_prompt": [
+        "105",
+        0
+      ],
+      "input_context": [
+        "58",
+        1
+      ],
+      "style_prompt": "Only translate to the given language in the context. Do not additionally translate into english.!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!Translate the prompt according to the language given in the input_context. Use only the language provided in the input_context. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "107": {
+    "inputs": {
+      "value": "english"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "String"
+    }
+  },
+  "112": {
+    "inputs": {
+      "preview": "Lujoza walka yeh chal waaley shu awaakash ka talay pakhaadwaaley theya",
+      "source": [
+        "97",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Stille Post 4"
+    }
+  },
+  "113": {
+    "inputs": {
+      "preview": "Deluxwala razma yeh chal waaley shu awaakash ka talay pakhaadwaaley theya",
+      "source": [
+        "103",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Stille Post 3"
+    }
+  },
+  "114": {
+    "inputs": {
+      "preview": "دلuxwala razma ye chalo walay shu awakash ka talay pakhadwalay thaya.",
+      "source": [
+        "106",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Stille Post 2"
+    }
+  },
+  "115": {
+    "inputs": {
+      "preview": "ಸ್ನೇಹಿ ರಸ್ತೆಯ ಮೇಲೆ ಚಲಿಸುತ್ತದೆ, ಒಬ್ಬರು ಷೂ ಆಕಾಶಕ್ಕೆ ತಳ್ಳಲ್ಪಡುತ್ತದೆ",
+      "source": [
+        "105",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Stille Post 1"
+    }
+  },
+  "119": {
+    "inputs": {
+      "preview": "Luxurious walk this way waveringly cloudy sky's horizon pierced",
+      "source": [
+        "95",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final prompt"
+    }
+  },
+  "123": {
+    "inputs": {
+      "preview": "Italian",
+      "source": [
+        "58",
+        2
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "randomly selected language"
+    }
+  },
+  "124": {
+    "inputs": {
+      "preview": "Pashto",
+      "source": [
+        "58",
+        1
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "randomly selected language"
+    }
+  },
+  "129": {
+    "inputs": {
+      "preview": "Kannada",
+      "source": [
+        "58",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "randomly selected language"
+    }
+  },
+  "137": {
+    "inputs": {
+      "preview": "Spanish",
+      "source": [
+        "58",
+        3
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "randomly selected language"
+    }
+  },
+  "138": {
+    "inputs": {
+      "input_prompt": [
+        "105",
+        0
+      ],
+      "input_context": [
+        "147",
+        0
+      ],
+      "style_prompt": "Only translate to the given language in the context. Do not additionally translate into english.!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!Translate the prompt according to the language given in the input_context. Use only the language provided in the input_context. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "140": {
+    "inputs": {
+      "preview": "\"Freundlich rassthey auf dem Himmel tanzt, beide Schuhe in den Wolken werfen.\"",
+      "source": [
+        "138",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "1 übersetzt:"
+    }
+  },
+  "141": {
+    "inputs": {
+      "input_prompt": [
+        "106",
+        0
+      ],
+      "input_context": [
+        "147",
+        0
+      ],
+      "style_prompt": "Only translate to the given language in the context. Do not additionally translate into english.!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!Translate the prompt according to the language given in the input_context. Use only the language provided in the input_context. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "142": {
+    "inputs": {
+      "preview": "\"Dieser Luxuswald, der zum Sammeln von Blumen aufbricht.\"",
+      "source": [
+        "141",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "2 übersetzt:"
+    }
+  },
+  "143": {
+    "inputs": {
+      "input_prompt": [
+        "103",
+        0
+      ],
+      "input_context": [
+        "147",
+        0
+      ],
+      "style_prompt": "Only translate to the given language in the context. Do not additionally translate into english.!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!Translate the prompt according to the language given in the input_context. Use only the language provided in the input_context. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "144": {
+    "inputs": {
+      "preview": "Luxuswälder Razzia ist eine Bewegung von Sternen, die von Talpakha-Adlern angeführt wird.",
+      "source": [
+        "143",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "3 übersetzt:"
+    }
+  },
+  "145": {
+    "inputs": {
+      "input_prompt": [
+        "97",
+        0
+      ],
+      "input_context": [
+        "147",
+        0
+      ],
+      "style_prompt": "Only translate to the given language in the context. Do not additionally translate into english.!Do not add any commentaries, error messages, questions about the task, and the likes. Just translate the text!Translate the prompt according to the language given in the input_context. Use only the language provided in the input_context. Do not add anything to the translation, only translate the input text. Do mot add any commentaries, error messages, and the likes. Just translate the text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "146": {
+    "inputs": {
+      "preview": "Luxuriöse Kampfmusik für den Lauf durch die endlosen Himmel des Talay pakhaadwaaley",
+      "source": [
+        "145",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "4 übersetzt:"
+    }
+  },
+  "147": {
+    "inputs": {
+      "value": "german"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "String"
+    }
+  },
+  "148": {
+    "inputs": {
+      "value": "Stille Post\nSimuliert den Stille-Post-Effekt durch mehrfache Übersetzungen\nDer Prompt durchläuft mehrere Sprachen und kehrt verändert zurück. Übersetzungsfehler und -ungenauigkeiten der Sprachmodelle werden im Bildergebnis sichtbar. Eignet sich für Spiele (wie ist es zu dem Bild gekommen)?"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "149": {
+    "inputs": {
+      "value": "Chinese Whispers\nSimulates the Chinese whispers effect through multiple translations\nThe prompt passes through several languages and returns changed. Translation errors and inaccuracies of language models become visible in the image result. Suitable for games (how did this image come about)?"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
+  }
+}

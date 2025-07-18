@@ -130,8 +130,8 @@ button.processing .spinner {
   border: none;
   cursor: pointer;
   padding: 0;
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   opacity: 0.7;
   transition: opacity var(--transition-speed), transform var(--transition-speed);
 }
@@ -530,4 +530,85 @@ button.processing .spinner {
   .seed-option {
     flex: 0 0 auto;
   }
+}
+
+/* Workflow Description */
+.workflow-description {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Workflow Select optgroup styling */
+#workflow-select optgroup {
+  font-weight: bold;
+  font-style: normal;
+  color: var(--heading-color);
+}
+
+#workflow-select option {
+  font-weight: normal;
+  padding-left: var(--spacing-md);
+}
+
+/* Header Container */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Language Selector */
+.language-selector {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.lang-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-weight: normal;
+  transition: all 0.2s;
+  width: auto;
+}
+
+.lang-btn:hover {
+  color: var(--primary-color);
+  background-color: transparent;
+}
+
+.lang-btn.active {
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.lang-separator {
+  color: #999;
+  user-select: none;
+}
+
+/* User Status */
+.user-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #666;
+  font-size: 14px;
 }

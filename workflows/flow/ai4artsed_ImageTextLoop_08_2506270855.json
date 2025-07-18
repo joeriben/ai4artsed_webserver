@@ -1,0 +1,1310 @@
+{
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "beautiful nature, but then also not"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "40": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "41": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Image Analysis 1"
+    }
+  },
+  "42": {
+    "inputs": {
+      "prompt": "Art expert, art historian",
+      "model": "local/llava:7b",
+      "system_prompt": [
+        "152",
+        0
+      ],
+      "api_key": [
+        "40",
+        0
+      ],
+      "debug": "disable",
+      "unload_model": "no",
+      "image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_image_analysis",
+    "_meta": {
+      "title": "AI4ArtsEd Image Analysis"
+    }
+  },
+  "67": {
+    "inputs": {
+      "text": [
+        "26",
+        0
+      ],
+      "clip": [
+        "74",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "68": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "74",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "69": {
+    "inputs": {
+      "samples": [
+        "73",
+        0
+      ],
+      "vae": [
+        "72",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "70": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "71": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "72": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "73": {
+    "inputs": {
+      "seed": 587540409983263,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "72",
+        0
+      ],
+      "positive": [
+        "67",
+        0
+      ],
+      "negative": [
+        "68",
+        0
+      ],
+      "latent_image": [
+        "70",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "74": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "75": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "76": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "77": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "78",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Image Analysis 2"
+    }
+  },
+  "78": {
+    "inputs": {
+      "prompt": "Art expert, art historian",
+      "model": "local/llava:7b",
+      "system_prompt": [
+        "152",
+        0
+      ],
+      "api_key": [
+        "76",
+        0
+      ],
+      "debug": "disable",
+      "unload_model": "no",
+      "image": [
+        "85",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_image_analysis",
+    "_meta": {
+      "title": "AI4ArtsEd Image Analysis"
+    }
+  },
+  "79": {
+    "inputs": {
+      "text": [
+        "42",
+        0
+      ],
+      "clip": [
+        "83",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "80": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "83",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "81": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "85",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "82": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "83": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "84": {
+    "inputs": {
+      "seed": 587540409983263,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "82",
+        0
+      ],
+      "positive": [
+        "79",
+        0
+      ],
+      "negative": [
+        "80",
+        0
+      ],
+      "latent_image": [
+        "75",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "85": {
+    "inputs": {
+      "samples": [
+        "84",
+        0
+      ],
+      "vae": [
+        "82",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "86": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "87": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "88": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "89",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Image Analysis 3"
+    }
+  },
+  "89": {
+    "inputs": {
+      "prompt": "Art expert, art historian",
+      "model": "local/llava:7b",
+      "system_prompt": [
+        "152",
+        0
+      ],
+      "api_key": [
+        "87",
+        0
+      ],
+      "debug": "disable",
+      "unload_model": "no",
+      "image": [
+        "96",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_image_analysis",
+    "_meta": {
+      "title": "AI4ArtsEd Image Analysis"
+    }
+  },
+  "90": {
+    "inputs": {
+      "text": [
+        "78",
+        0
+      ],
+      "clip": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "91": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "92": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "96",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "93": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "94": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "95": {
+    "inputs": {
+      "seed": 587540409983263,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "93",
+        0
+      ],
+      "positive": [
+        "90",
+        0
+      ],
+      "negative": [
+        "91",
+        0
+      ],
+      "latent_image": [
+        "86",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "96": {
+    "inputs": {
+      "samples": [
+        "95",
+        0
+      ],
+      "vae": [
+        "93",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "97": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "101": {
+    "inputs": {
+      "text": [
+        "89",
+        0
+      ],
+      "clip": [
+        "105",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "102": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "105",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "103": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "104": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "105": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "106": {
+    "inputs": {
+      "seed": 587540409983263,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "104",
+        0
+      ],
+      "positive": [
+        "101",
+        0
+      ],
+      "negative": [
+        "102",
+        0
+      ],
+      "latent_image": [
+        "97",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "107": {
+    "inputs": {
+      "samples": [
+        "106",
+        0
+      ],
+      "vae": [
+        "104",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "108": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "109": {
+    "inputs": {
+      "text": [
+        "151",
+        0
+      ],
+      "clip": [
+        "113",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "110": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "113",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "111": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "116",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "112": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "113": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "114": {
+    "inputs": {
+      "seed": 587540409983263,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "112",
+        0
+      ],
+      "positive": [
+        "109",
+        0
+      ],
+      "negative": [
+        "110",
+        0
+      ],
+      "latent_image": [
+        "115",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "115": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "116": {
+    "inputs": {
+      "samples": [
+        "114",
+        0
+      ],
+      "vae": [
+        "112",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "117": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "118": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "119": {
+    "inputs": {
+      "text": [
+        "135",
+        0
+      ],
+      "clip": [
+        "123",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "120": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "123",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "121": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "125",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "122": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "123": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "124": {
+    "inputs": {
+      "seed": 587540409983263,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "122",
+        0
+      ],
+      "positive": [
+        "119",
+        0
+      ],
+      "negative": [
+        "120",
+        0
+      ],
+      "latent_image": [
+        "117",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "125": {
+    "inputs": {
+      "samples": [
+        "124",
+        0
+      ],
+      "vae": [
+        "122",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "126": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "127": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "128": {
+    "inputs": {
+      "text": [
+        "136",
+        0
+      ],
+      "clip": [
+        "132",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "129": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "132",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "130": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "134",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "131": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "132": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "133": {
+    "inputs": {
+      "seed": 587540409983263,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "131",
+        0
+      ],
+      "positive": [
+        "128",
+        0
+      ],
+      "negative": [
+        "129",
+        0
+      ],
+      "latent_image": [
+        "126",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "134": {
+    "inputs": {
+      "samples": [
+        "133",
+        0
+      ],
+      "vae": [
+        "131",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "135": {
+    "inputs": {
+      "prompt": "Art expert, art historian",
+      "model": "local/llava:7b",
+      "system_prompt": [
+        "152",
+        0
+      ],
+      "api_key": [
+        "108",
+        0
+      ],
+      "debug": "disable",
+      "unload_model": "no",
+      "image": [
+        "116",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_image_analysis",
+    "_meta": {
+      "title": "AI4ArtsEd Image Analysis"
+    }
+  },
+  "136": {
+    "inputs": {
+      "prompt": "Art expert, art historian",
+      "model": "local/llava:7b",
+      "system_prompt": [
+        "152",
+        0
+      ],
+      "api_key": [
+        "118",
+        0
+      ],
+      "debug": "disable",
+      "unload_model": "no",
+      "image": [
+        "125",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_image_analysis",
+    "_meta": {
+      "title": "AI4ArtsEd Image Analysis"
+    }
+  },
+  "137": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "138": {
+    "inputs": {
+      "text": [
+        "148",
+        0
+      ],
+      "clip": [
+        "142",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "139": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "142",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "140": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "144",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "141": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large_turbo.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "142": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "143": {
+    "inputs": {
+      "seed": 587540409983263,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "141",
+        0
+      ],
+      "positive": [
+        "138",
+        0
+      ],
+      "negative": [
+        "139",
+        0
+      ],
+      "latent_image": [
+        "137",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "144": {
+    "inputs": {
+      "samples": [
+        "143",
+        0
+      ],
+      "vae": [
+        "141",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "145": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "135",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Image Analysis 5"
+    }
+  },
+  "146": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "136",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Image Analysis 6"
+    }
+  },
+  "147": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "148",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Image Analysis 7"
+    }
+  },
+  "148": {
+    "inputs": {
+      "prompt": "Art expert, art historian",
+      "model": "local/llava:7b",
+      "system_prompt": [
+        "152",
+        0
+      ],
+      "api_key": [
+        "127",
+        0
+      ],
+      "debug": "disable",
+      "unload_model": "no",
+      "image": [
+        "134",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_image_analysis",
+    "_meta": {
+      "title": "AI4ArtsEd Image Analysis"
+    }
+  },
+  "149": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "150": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "151",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Image Analysis 4"
+    }
+  },
+  "151": {
+    "inputs": {
+      "prompt": "Art expert, art historian",
+      "model": "local/llava:7b",
+      "system_prompt": [
+        "152",
+        0
+      ],
+      "api_key": [
+        "149",
+        0
+      ],
+      "debug": "disable",
+      "unload_model": "no",
+      "image": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_image_analysis",
+    "_meta": {
+      "title": "AI4ArtsEd Image Analysis"
+    }
+  },
+  "152": {
+    "inputs": {
+      "value": "Describe the image using the Panofsky analysis method. Also regard atmospheric, affective, and sonic properties.\n\nNO META-REMARKS! DO NOT MENTION THE METHOD. DO NOT MENTION YOURSELF. DO NOT MENTION YOUR FUNCTION.\n\nJUST DELIVER A DESCRIPTIVE ANALYSIS AND ICONOGRAPHIC INTERPRETATION."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "String (Multiline)"
+    }
+  },
+  "153": {
+    "inputs": {
+      "value": "Bild-Text-Schleife (8 Iterationen)\nIterativer Prozess zwischen Bildbeschreibung und Bildgenerierung\nEin Bild wird beschrieben, die Beschreibung generiert ein neues Bild, welches wieder beschrieben wird. 4, 8 oder 16 Durchläufe."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "154": {
+    "inputs": {
+      "value": "Image-Text-Loop (8 iterations)\nIterative process between image description and image generation\nAn image is described, the description generates a new image, which is described again. 4, 8 or 16 cycles."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
+  }
+}

@@ -1,0 +1,361 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 514826076388271,
+      "steps": 25,
+      "cfg": 5.47,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "51",
+        0
+      ],
+      "negative": [
+        "52",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "71",
+        0
+      ],
+      "clip": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode POSITIVE (clip_l, clip_g)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "14": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "18": {
+    "inputs": {
+      "clip_name": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "21": {
+    "inputs": {
+      "text": [
+        "73",
+        0
+      ],
+      "clip": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode POSITIVE (t5)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode NEGATIVE (clip_l, clip_g)"
+    }
+  },
+  "25": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode NEGATIVE (t5)"
+    }
+  },
+  "39": {
+    "inputs": {
+      "preview": "Based on the provided guidelines for traditional Confucian literati painting and ethical translation rules, here's a transformed version of your input:\n\n**Title:** \"Scholar in Contemplation: An Imperial Courtyard\"\n\n**Scene Description:**\nThe central figure is a high-ranking official seated at his desk in the quietude of his study within the Forbidden City. He is depicted smaller than the surrounding architectural elements, adhering to the moral morphology principle. His facial features are suggested minimally with calligraphic strokes, embodying \"yi dao bi bu dao.\" The scholar's pima cun (hemp-fiber) brushwork signifies his cultivated ease and refined character.\n\nThe scene unfolds within a spacious courtyard, surrounded by other buildings of the imperial complex. The architecture follows the triaxial perspective system: the high distance (Gao Yuan) is represented by distant roof ridges, symbolizing moral authority; the deep distance (Shen Yuan) shows terraced roofs and walls, conveying Confucian order; while the level distance (Ping Yuan) displays the immediate courtyard and scholar's study, invoking Taoist reclusion through Mi Fu's mist-and-cloud technique.\n\n**Materials and Brushwork:**\nThe painting is executed on raw xuan paper with dry-texture cun strokes, metaphorizing the arduous path of benevolent rule. Mineral pigments regulated by the Rites of Zhou's Five Colors doctrine are employed, with blue dominating to symbolize the scholar's trustworthiness and sincerity.\n\n**Inscriptions:**\nOriginal poetry inspired by the Analects is inscribed in running/grass script compositionally on a bamboo seal. The calligraphy follows Ming-era conventions but avoids imperial examination (guange) style. It reads: \"A superior man, when seated, does not forget his purpose; when standing, he does not forget his dignity. — Confucius\"\n\n**Seals:**\nIntroductory seals are vermillion-style, modeled on Qin-Han imperial seals, bearing the character for \"culture\" (文). Corner seals are white-character seals emulating Han official seal-carving, displaying the characters for \"diligence\" (勤) and \"honesty\" (誠).\n\n**Anomaly Accommodation Clause:**\nWhile this scene adheres to orthodox Confucian literati painting principles, it does not necessitate anomaly accommodation. However, if such anomalies were present, they would align intertextually with inscriptions and maintain the prescribed negative space ratio.\n\n**Digital Age Adaptations:**\nAI-generated brushwork algorithms simulate Dong Yuan's \"fangtou cun\" randomness, while following Record of Artisans' chromatic sequence in RGB channels. The two-dimensional unity of calligraphy and painting is preserved, with ink gradations emerging from iterative algorithms rather than Photoshop filters.\n\n**Validation Standards:**\nThe work passes the \"Qi-Appraisal\" test, with art historians identifying its Qing Principles of Painting style from three meters away. Calligraphers can reverse-engineer its composition logic from the Analects-inspired inscriptions, successfully completing the \"Painting-Reading\" test.\n\nBy adhering to these rules and guidelines, the transformed scene preserves Confucian philosophical rigor while accommodating contemporary adaptation clauses and maintaining cultural sensitivity.",
+      "source": [
+        "72",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "input translation"
+    }
+  },
+  "40": {
+    "inputs": {
+      "preview": "**Core Motif:** Imperial Scholar Contemplation\n**Action:** Writing at Desk in Courtyard\n**Style/Medium:** Ink and Mineral Pigments on Raw Xuan Paper",
+      "source": [
+        "71",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt optimized for clipl/g"
+    }
+  },
+  "41": {
+    "inputs": {
+      "preview": "**Prompt:**\n\n\"A Confucian scholar, small yet dignified, seated at his desk in a vast Imperial courtyard of the Forbidden City, practicing calligraphy with a hemp-fiber brush under natural light filtering through paper windows. Surrounding him are tiered roofs and walls receding into mist, embodying Confucian order and Taoist reclusion. The scholar's face is suggested minimally by calligraphic strokes, adhering to 'yi dao bi bu dao.' His study is adorned with Ming-era poetry inscribed in running script on a bamboo seal, reading: 'A superior man...' — Confucius. Vermillion introductory seals bear the character for 'culture,' while corner seals display 'diligence' and 'honesty.' The painting is executed on raw xuan paper with dry-texture cun strokes, using blue mineral pigments to signify trustworthiness and sincerity. The scene follows orthodox Confucian literati principles but accommodates anomaly intertextually if present.\"",
+      "source": [
+        "73",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt optimized for t5"
+    }
+  },
+  "43": {
+    "inputs": {
+      "value": [
+        "87",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "50": {
+    "inputs": {
+      "value": 2.5
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "set t5-optimized prompt Influence (beween -75 and +78)"
+    }
+  },
+  "51": {
+    "inputs": {
+      "alpha": [
+        "50",
+        0
+      ],
+      "clip_conditioning": [
+        "6",
+        0
+      ],
+      "t5_conditioning": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_t5_clip_fusion",
+    "_meta": {
+      "title": "AI4ArtsEd T5‑CLIP Fusion positive"
+    }
+  },
+  "52": {
+    "inputs": {
+      "alpha": [
+        "50",
+        0
+      ],
+      "clip_conditioning": [
+        "24",
+        0
+      ],
+      "t5_conditioning": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_t5_clip_fusion",
+    "_meta": {
+      "title": "AI4ArtsEd T5‑CLIP Fusion negative"
+    }
+  },
+  "54": {
+    "inputs": {
+      "clip_name": "clip_l.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "71": {
+    "inputs": {
+      "input_prompt": [
+        "72",
+        0
+      ],
+      "input_context": "Prompting Expert",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOUTPUT THE PURE PRESULTING PROMPT ONLY!\nNO META-TERMS, JUST INSTRUCTIONS FOR IMAGE GENERATION\n\nProceed strictly as follows: \nRegard, honor and enhance the cultural meanings and connotations according to the respective cultural values connected to a language. Reflect on the meaning of the respective concepts. Rethink the image. Avoid western and global north biases and western gaze where not fitting. Do not talk about the prompt, this is forbidden, but create a prompt text.\n\nTranslate a given image, repective image description, from its original visual and semantic system into a target representational system, while preserving the structural identity of all entities, gestures, and relations. \n\nFor each element, identify its function, affective tone, and relational role within the source composition. Reconstruct the scene using the formal, material, and compositional logics of the target system—whether symbolic, expressive, disruptive, or codified. All elements must remain semantically traceable, yet visually and contextually transformed in accordance with the target system’s internal conventions of form, space, and signification.\n\nCreate a detailed prompt that stays utterly true to the text and cultural context of the input you received. Be radical, do not soften or harmonize contraditive elements. \n\nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT! NEVER INCLUDE USER_DIRECTED FEEDBACK SUCH AS \"Sure, here is ...\"!\n\nYou will receive a user prompt for image generation. Restructure it ONLY by reordering, for CLIP models that strongly weight early tokens and truncate at 75 tokens.\n\nGeneral information:\nALWAYS EXTRAKT ONLY THE INFORMATION THAT IS VISUALLY RELEVANT. YOUR PROMPT WILL RESULT IN A COMMA_SEPARATED SERIES OF GROUPED TOKENS; BARELY EVER CONNTECTED BY VERBS OR CONJUNCTIONS.\n\nBUT YOU WILL REORDER ALL THESE TOKENS ACCORDING TO THE FOLLOWING ORDER:\n\nEarly tokens = critical: The first 20–30 tokens largely determine the image\nMinimize Attributes: CLIP struggles with complex attributes – keep them short\nClear, direct terms: CLIP prefers concrete nouns and simple adjectives\nDo not alter the input text – no substitutions, paraphrasing, or lexical replacements allowed\n\n\nYOUR OUTPUT:\nCore Motif: max. 15 words\nPlace the main subject FIRST\nUse the exact wording provided in the original prompt\n\nAction: max 20 words\nFollows the subject directly for strong subject-action linkage\nPrefer simple verb phrases; maintain exact original wording\n\nStyle/Medium: max 10 words\nPlace early in the prompt for maximum impact on CLIP\nTypical examples: “oil painting”, “photography”, “3D render”\nUse only if present in the original prompt\n\nContext: max 10 words\nLocation or setting, compressed\nReorder only; do not paraphrase\n\nAttributes: max 10 words:\nMinimize; include only if essential\nNo changes to wording – do not replace or reformulate\nEMPTY LINETechnical Aspects (0–5 tokens, 0–7%):\nInclude only if tokens remain and if originally present\n\nYOUR OUTPUT MUST NOT EXCEED 50 WORDS!\nOMIT the Category names (\"Core Motif\"), it will only confuse CLIP and reduces the token budget without contributing to image quality. \nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT!",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "yes",
+      "output_format": "string"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Prompt optimization for clip_l"
+    }
+  },
+  "72": {
+    "inputs": {
+      "input_prompt": [
+        "43",
+        0
+      ],
+      "input_context": "cultural translator",
+      "style_prompt": "Traditional Confucian Literati Painting Visual Grammar and Ethical Translation Guidelines\n\nFirst rule: Make sure though that the request, depicted scene etc. of the input is regarded - however transformed, do not forget your INPUT. You care about transforming the input in a culturally sensitive way, but you care to not abandon the input on the way.\n\n(Based on the orthodox systems of Song, Yuan, Ming, and Qing literati painting, with contemporary adaptation clauses)\n\n\nI. Ontological Transformation Rules\n\n\n    Primacy of Xie He’s \"Six Laws\": Prioritize qiyun shengdong (spirit-resonance and life-movement) as the supreme principle, rejecting Western realism.\n\n    Moral Morphology of Forms:\n        Plants (pine, bamboo, plum, orchid) must adhere to the Mustard Seed Garden Manual conventions—branches rendered in calligraphic lines (bifa technique) embodying \"bone structure brushwork.\"\n        Human figures must be smaller than landscape elements, with drapery referencing Wu Daozi’s \"wind-blown ribbons\" tradition (Wu Dai Dang Feng). Facial features are suggested symbolically with minimalist strokes (\"yi dao bi bu dao\"—the idea transcends the brush).\n\n\n\nII. Spatial Recomposition Principles\n\n\n    Triaxial Perspective System: Apply Guo Xi’s Three Distances (San Yuan):\n        High Distance (Gao Yuan): For moral authority (e.g., cliff-top academies).\n        Deep Distance (Shen Yuan): Depicts Confucian order (e.g., terraced farmlands in stratified perspective).\n        Level Distance (Ping Yuan): Conveys Taoist reclusion (Mi Fu’s mist-and-cloud technique).\n\n\n\nIII. Ink-Brush Ethical System\n\n\n    Materials as Ethical Statements:\n        Raw xuan paper paired with dry-texture cun strokes (\"cun\" texture strokes) metaphorizes \"the arduous path of benevolent rule.\"\n        Colored silk works must use mineral pigments regulated by the Rites of Zhou’s Five Colors doctrine (symbolic hierarchy: blue, red, yellow, white, black).\n\n    Stroke Ethics and Social Hierarchy:\n        Scholars use hemp-fiber strokes (pima cun) for cultivated ease.\n        Fishermen/hermits employ axe-cut strokes (fupi cun) to signify unyielding integrity.\n\n\n\nIV. Semiotic Codex\n\n\n    Inscriptions: Must be original poetry/prose meeting:\n        Content: ≥30% quotations from Analects or allusions from Selections of Refined Literature.\n        Calligraphy: Running/grass script adapted compositionally, but imperial examination (guange) style is banned.\n\n    Seal Protocol:\n        Introductory Seals (Yinshou Zhang): Vermillion-style, modeled on Qin-Han imperial seals.\n        Corner Seals (Yajiao Zhang): White-character seals emulating Han official seal-carving.\n\n\n\nV. Anomaly Accommodation Clause\n\n(For post-Ming unconventional literati works, e.g., Bada Shanren)\n\n\n    Permission for \"distorted forms\", provided:\n        Deformations intertextually align with inscriptions (e.g., fish/birds with side-eyes mirroring protest poetry).\n        Negative space (liubai) must occupy >40% to preserve Daoist \"emptiness contains turbulence\" tension.\n\n\n\nVI. Digital Age Adaptations\n\n\n    AI-Generated Works Must:\n        Simulate Dong Yuan’s \"fangtou cun\" randomness in brushwork algorithms.\n        Follow Record of Artisans’ chromatic sequence (\"blue adjacent to white\") in RGB channels.\n\n    Prohibitions:\n        No 3D volumetric rendering; preserve the two-dimensional \"unity of calligraphy and painting\" (shuhua tongyuan).\n        Photoshop filters banned; ink gradations must emerge from iterative algorithms.\n\n\n\nVII. Final Validation Standards\n\nTranslated works must pass:\n\n\n    \"Qi-Appraisal\" Test: Art historians must identify period style from three meters away.\n\n    \"Painting-Reading\" Test: Calligraphers must reverse-engineer composition logic from inscriptions.\n\n\n(Note: Default technical manual: Ming-era Ten Bamboo Studio Manual; philosophical basis: Qing Principles of Painting.)\n\n\nThis translation:\n\n\n    Preserves all original Confucian philosophical rigor.\n\n    Introduces executable metrics (e.g., 30% Analects quota, 40% liubai).\n\n    Accommodates historical exceptions while maintaining orthodoxy.\n\n    Bridges classical ethics to AI-generated art constraints.\n\n",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "no",
+      "output_format": "string"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "73": {
+    "inputs": {
+      "input_prompt": [
+        "72",
+        0
+      ],
+      "input_context": "Prompting Expert",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 250 WORDS!\n\nTransform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nProceed strictly as follows: \nRegard, honor and enhance the cultural meanings and connotations according to the respective cultural values connected to the communicated cultural context and  language. \n\nReflect on the meaning of the respective concepts. Rethink the image. Avoid western and global north biases and western gaze where not fitting. \n\n Do not talk about the prompt, this is forbidden, but create a prompt text.\n\nTranslate a given image, repective image description, from its original visual and semantic system into a target representational system, while preserving the structural identity of all entities, gestures, and relations. \n\nFor each element, identify its function, affective tone, and relational role within the source composition. Reconstruct the scene using the formal, material, and compositional logics of the target system—whether symbolic, expressive, disruptive, or codified. All elements must remain semantically traceable, yet visually and contextually transformed in accordance with the target system’s internal conventions of form, space, and signification.\n\nCreate a detailed prompt that stays utterly true to the text and cultural context of the input you received. Be radical, do not soften or harmonize contraditive elements. \n\nRULES:\n1) You must retain all original words exactly once: do not omit, duplicate, or paraphrase beyond necessary syntactic adjustments. \n2) Do translate content into a visual depiction/description. Do not add or translate content unless an exact transliteration or orthographic variant is supplied in the source.\n3) When the original tells a story, pick a key scene from the story and turn the text into a scenic description, using the original words and expressions.  \n\nGUIDANCE:\nConsider the following categories as guideline for your professional prompting process:\n- Core subject (approx. 10–30 tokens): Identify and foreground the principal subject matter as fully specified in the source.\n- Action (10–40 tokens): Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n- Relational context (30–100 tokens): Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n- Attributive qualities (30–80 tokens): Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n- Material, stylistic and medial references (10–40 tokens): If applicable, retain or clarify materialities (pictorial mediality), stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n- Technical parameters (0–20 tokens): Place any camera data, aspect ratio at the end of the prompt. Use these codes to communicate technical instructions:\n    Classifier-Free Guidance scale: \"#CFG=\" Adjust the CFG Value to underscore the image aesthetics. Low CFG values (e.g., 2–4): Less adherence to the prompt, more randomness, sometimes more natural or surprising results. Moderate CFG values (e.g., 6–8): Balanced outputs, often the recommended range for realistic and semantically accurate images. High CFG values (e.g., 12–20): Very literal interpretation of the prompt; often introduces artifacts or unnatural results due to overconstraining the model. Stable Diffusion 3.5 uses an improved architecture that makes prompt adherence stronger than in earlier versions. Thus: A CFG of 7.0 to 9.0 is usually ideal. Higher CFG values (e.g., ≥12) may result in degraded image quality, over-sharpening, or odd artifacts because the model aggressively tries to satisfy the prompt—even if it contradicts learned visual priors.\n    Aspect Ratio: For aesthetic reasons, you are free to override a given user setting. Use as follows: width:\"#ARw=\"; height: \"#ARh=\". USE a fixed combination w/h. From landscape to portrait choose: 1368/768, 1256/840, 1184/888, 1144/920, 1024/1024, 920/1144, 888/1184, 840/1256, 768/1386 \n    \n\n\nAdditional requirements:\n– If the input contains explicit negations (e.g., “no neon”), isolate and place them at the end of the prompt after an em dash as a negative prompt clause.\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– Preserve diacritics and original orthography for all non-English terms. Do not transliterate unless a dual form is provided.\n– For ambiguous or poetic language, preserve ambiguity. If metaphors operate structurally (e.g., “grief carved into the orchard”), translate them into spatial/material compositions rather than interpretive paraphrase.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\n!YOUR OUTPUT MUST NOT EXCEED 250 WORDS!",
+      "api_key": [
+        "14",
+        0
+      ],
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "yes",
+      "output_format": "string"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Promtp optimization for t5"
+    }
+  },
+  "87": {
+    "inputs": {
+      "value": "Im Zentrum steht die Darstellung einesn hohen Beamten am Hofe des Kaisers in seiner Schreibstube. Wir stehen in eiem Innenhof und sehen den Beamten durch ein Fenster im Amtsgebäude, an den Bildrämndern andere Gebäude der Verbotenen Stadt."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "String (Multiline)"
+    }
+  },
+  "88": {
+    "inputs": {
+      "value": "Traditionelle Chinesische Kunst\nInterpretiert Prompts nach visuellen Prinzipien einschließlich ihrer kosmologischen Hintergründe\nWendet Konzepte wie Leere, Yin-Yang und die fünf Elemente auf moderne Bildgenerierung an."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "89": {
+    "inputs": {
+      "value": "Traditional Chinese Art\nInterprets prompts according to visual principles including their cosmological backgrounds\nApplies concepts like emptiness, Yin-Yang and the five elements to modern image generation."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
+  }
+}

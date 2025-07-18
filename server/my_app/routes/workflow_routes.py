@@ -33,6 +33,17 @@ def list_workflows():
         return jsonify({"error": "Failed to list workflows"}), 500
 
 
+@workflow_bp.route('/workflow_metadata', methods=['GET'])
+def workflow_metadata():
+    """Get workflow metadata including categories and descriptions"""
+    try:
+        metadata = workflow_logic_service.get_metadata()
+        return jsonify(metadata)
+    except Exception as e:
+        logger.error(f"Error getting workflow metadata: {e}")
+        return jsonify({"error": "Failed to get workflow metadata"}), 500
+
+
 @workflow_bp.route('/workflow_has_safety_node/<workflow_name>', methods=['GET'])
 def workflow_has_safety_node(workflow_name):
     """Check if a workflow contains the safety node"""

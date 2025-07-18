@@ -7,11 +7,57 @@ import { processAndDisplayResults } from './output-display.js';
 import { currentSessionData, updateSessionData } from './session.js';
 
 let pollingInterval = null;
+let workflowMetadata = null;
+let currentLanguage = 'de'; // Default to German
 
 // Initialize seed control
 document.addEventListener('DOMContentLoaded', () => {
     initializeSeedControl();
+    initializeLanguageSelector();
+    detectLanguage();
 });
+
+function detectLanguage() {
+    // Check localStorage first
+    const savedLang = localStorage.getItem('selectedLanguage');
+    if (savedLang) {
+        currentLanguage = savedLang;
+    } else {
+        // Detect browser language
+        const browserLang = navigator.language || navigator.userLanguage;
+        currentLanguage = browserLang.startsWith('de') ? 'de' : 'en';
+    }
+    
+    // Update active language button
+    updateLanguageButtons();
+}
+
+function initializeLanguageSelector() {
+    const langButtons = document.querySelectorAll('.lang-btn');
+    langButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const newLang = e.target.dataset.lang;
+            if (newLang !== currentLanguage) {
+                currentLanguage = newLang;
+                localStorage.setItem('selectedLanguage', newLang);
+                updateLanguageButtons();
+                loadWorkflows(); // Reload workflows with new language
+                updateWorkflowDescription(); // Update description if workflow selected
+            }
+        });
+    });
+}
+
+function updateLanguageButtons() {
+    const langButtons = document.querySelectorAll('.lang-btn');
+    langButtons.forEach(btn => {
+        if (btn.dataset.lang === currentLanguage) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
 
 function initializeSeedControl() {
     const seedRadios = document.querySelectorAll('input[name="seed-mode"]');
@@ -38,19 +84,142 @@ function initializeSeedControl() {
 
 export async function loadWorkflows() {
     try {
+        // Fetch metadata first
+        const metaResponse = await fetch('/workflow_metadata');
+        if (metaResponse.ok) {
+            workflowMetadata = await metaResponse.json();
+        }
+        
+        // Then fetch workflows list
         const response = await fetch('/list_workflows');
         if (response.ok) {
             const result = await response.json();
             const workflows = result.workflows || [];
-            ui.workflow.innerHTML = '<option value="">-- Workflow auswählen --</option>' + 
-                workflows.map(wf => `<option value="${wf}">${wf.replace('.json', '').replace(/_/g, ' ')}</option>`).join('');
+            
+            // Build dropdown with categories
+            let optionsHtml = '';
+            
+            // Get localized UI text
+            const selectText = workflowMetadata?.ui?.selectWorkflow?.[currentLanguage] || 
+                              workflowMetadata?.ui?.selectWorkflow?.['de'] || 
+                              '-- Workflow auswählen --';
+            
+            optionsHtml += `<option value="">${selectText}</option>`;
+            
+            // Group workflows by category
+            const workflowsByCategory = {};
+            const uncategorized = [];
+            
+            workflows.forEach(filename => {
+                // Extract category from path (e.g., "aesthetics/workflow.json" -> "aesthetics")
+                const pathParts = filename.split('/');
+                let category = null;
+                let workflowId = null;
+                
+                if (pathParts.length > 1) {
+                    // Has category folder
+                    category = pathParts[0];
+                    workflowId = pathParts[pathParts.length - 1].replace('.json', '');
+                } else {
+                    // No category folder
+                    workflowId = filename.replace('.json', '');
+                }
+                
+                const metadata = workflowMetadata?.workflows?.[workflowId];
+                
+                if (category && workflowMetadata?.categories?.[category]) {
+                    if (!workflowsByCategory[category]) {
+                        workflowsByCategory[category] = [];
+                    }
+                    workflowsByCategory[category].push({filename, metadata});
+                } else {
+                    uncategorized.push({filename, metadata: metadata || null});
+                }
+            });
+            
+            // Add categorized workflows
+            Object.keys(workflowsByCategory).sort().forEach(category => {
+                const categoryName = workflowMetadata.categories[category][currentLanguage] || 
+                                   workflowMetadata.categories[category]['de'] || 
+                                   category;
+                
+                optionsHtml += `<optgroup label="${categoryName}">`;
+                
+                workflowsByCategory[category].forEach(({filename, metadata}) => {
+                    const displayName = metadata?.name?.[currentLanguage] || 
+                                      metadata?.name?.['de'] || 
+                                      filename.replace('.json', '')
+                                              .replace(/^ai4artsed_/, '')
+                                              .replace(/_\d+$/, '')
+                                              .replace(/_/g, ' ');
+                    
+                    optionsHtml += `<option value="${filename}">${displayName}</option>`;
+                });
+                
+                optionsHtml += '</optgroup>';
+            });
+            
+            // Add uncategorized workflows
+            if (uncategorized.length > 0) {
+                const otherText = workflowMetadata?.ui?.noCategory?.[currentLanguage] || 
+                                workflowMetadata?.ui?.noCategory?.['de'] || 
+                                'Andere';
+                                
+                optionsHtml += `<optgroup label="${otherText}">`;
+                
+                uncategorized.forEach(({filename}) => {
+                    const displayName = filename.replace('.json', '')
+                                              .replace(/^ai4artsed_/, '')
+                                              .replace(/_\d+$/, '')
+                                              .replace(/_/g, ' ');
+                    optionsHtml += `<option value="${filename}">${displayName}</option>`;
+                });
+                
+                optionsHtml += '</optgroup>';
+            }
+            
+            ui.workflow.innerHTML = optionsHtml;
             
             // Add event listener for workflow selection
-            ui.workflow.addEventListener('change', checkWorkflowSafetyNode);
+            ui.workflow.addEventListener('change', () => {
+                checkWorkflowSafetyNode();
+                updateWorkflowDescription();
+            });
         }
     } catch (error) {
         console.error('Failed to load workflows:', error);
     }
+}
+
+function updateWorkflowDescription() {
+    const workflowName = ui.workflow.value;
+    
+    // Remove any existing description
+    const existingDesc = document.getElementById('workflow-description');
+    if (existingDesc) {
+        existingDesc.remove();
+    }
+    
+    if (!workflowName || !workflowMetadata) return;
+    
+    // Extract workflow ID from path (e.g., "aesthetics/workflow.json" -> "workflow")
+    const pathParts = workflowName.split('/');
+    const workflowId = pathParts[pathParts.length - 1].replace('.json', '');
+    
+    const metadata = workflowMetadata.workflows[workflowId];
+    if (!metadata?.description) return;
+    
+    const description = metadata.description[currentLanguage] || metadata.description['de'];
+    if (!description) return;
+    
+    // Create and insert description element
+    const descDiv = document.createElement('div');
+    descDiv.id = 'workflow-description';
+    descDiv.className = 'workflow-description';
+    descDiv.textContent = description;
+    
+    // Insert after workflow select
+    ui.workflow.parentElement.insertBefore(descDiv, ui.workflow.nextSibling);
 }
 
 async function checkWorkflowSafetyNode() {

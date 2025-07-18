@@ -1,0 +1,185 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 205462062026772,
+      "steps": 20,
+      "cfg": 8,
+      "sampler_name": "uni_pc_bh2",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "29",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "34",
+        0
+      ],
+      "clip": [
+        "29",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "watermark, text\n",
+      "clip": [
+        "29",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "29",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "20": {
+    "inputs": {
+      "image": "clipspace/clipspace-mask-56672.png [input]"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "26": {
+    "inputs": {
+      "grow_mask_by": 6,
+      "pixels": [
+        "20",
+        0
+      ],
+      "vae": [
+        "29",
+        2
+      ],
+      "mask": [
+        "20",
+        1
+      ]
+    },
+    "class_type": "VAEEncodeForInpaint",
+    "_meta": {
+      "title": "VAE Encode (for Inpainting)"
+    }
+  },
+  "29": {
+    "inputs": {
+      "ckpt_name": "512-inpainting-ema.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "32": {
+    "inputs": {
+      "value": "a modern skyscraper, steel and glas, reflecting the nature"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "33": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "34",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Safety-filtered positive prompt"
+    }
+  },
+  "34": {
+    "inputs": {
+      "prompt": [
+        "32",
+        0
+      ],
+      "filter_level": "off",
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "api_key": "",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_switch_promptsafety",
+    "_meta": {
+      "title": "AI4ArtsEd Promptsafety Switch"
+    }
+  },
+  "35": {
+    "inputs": {
+      "value": "Inpainting\nFüllt ausgewählte Bildbereiche mit neuem Inhalt\nErmöglicht gezielte Bildbearbeitung durch Maskierung und Neugenerierung spezifischer Bereiche."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "36": {
+    "inputs": {
+      "value": "Inpainting\nFills selected image areas with new content\nEnables targeted image editing through masking and regeneration of specific areas."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
+  }
+}

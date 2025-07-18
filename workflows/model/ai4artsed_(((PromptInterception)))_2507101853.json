@@ -1,0 +1,322 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 65471008367908,
+      "steps": 25,
+      "cfg": 5.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "65",
+        0
+      ],
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "34": {
+    "inputs": {
+      "input_prompt": "",
+      "input_context": "professional translator",
+      "style_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral:7b",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Translation_english"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "If this is your prompt, put the interception part, or your meta-prompt, in (((triple brackets)))."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "41": {
+    "inputs": {
+      "input_prompt": [
+        "48",
+        0
+      ],
+      "input_context": [
+        "47",
+        0
+      ],
+      "style_prompt": "You received two inputs: 1) the input_prompt and 2) the input_context. \n\nTransform the input_prompt into an image description according to the instructions defined in the input_context. Explicitely communicate the input_context as cultural cf. artistic. cf intervening context. Also communicate genres/artistic traditions in a concrete way (i.e. is it a dance, a photo, a painting, a song, a movie, a statue/sculpture? how should it be translated into an image?)\n\nThis is not a linguistic translation, but a aesthetic, semantic and structural transformation. Be verbose!\n\nReconstruct all entities and their relations as specified, ensuring that:\n- Each entity is retained – or respectively transformed – as instructed.\n- Each relation is altered in line with the particular aesthetics, genre-typical traits, and logic of the “Context”. Be explicit about visual aesthetics in terms of materials, techniques, composition, and overall atmosphere. Mention the input_context als cultural, cf. artistic, c.f intervening context in your OUTPUT explicitely.\n\nOutput only the transformed description as plain descriptive text. Be aware if the output is something depicted (like a ritual or any situation) OR itself a cultural artefact (such as a specific drawing technique). Describe accordingly. In your output, communicate which elements are most important for an succeeding image generation.\n",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "43": {
+    "inputs": {
+      "clip_name1": "clip_g.safetensors",
+      "clip_name2": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "46": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "intercepted prompt"
+    }
+  },
+  "47": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": "context identifier",
+      "style_prompt": "search the input_prompt for contexts indicated triple brackets (((such as this))) or [[[such as this]]].\n\nOutput ONLY THE TEXT INSIDE THE BRACKETS. Be sure to ouput the WHOLE TEXT INSIDE THE BRACKETS.\n\nIf there is no text indicated, only output the word \"NULL\".",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "48": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": [
+        "47",
+        0
+      ],
+      "style_prompt": "You receive two strings: an input_prompt and a context. REMOVE the \"context\" from the \"input_prompt\". Then pass on the complete input_prompt without any alteration.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "enable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "49": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "47",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "identified meta-prompt"
+    }
+  },
+  "50": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "48",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "identified rompt"
+    }
+  },
+  "65": {
+    "inputs": {
+      "input_prompt": [
+        "41",
+        0
+      ],
+      "input_context": "Prompting Expert",
+      "style_prompt": "YOUR OUTPUT MUST NOT EXCEED 250 WORDS!\n\nTransform the following input text—regardless of genre—into a single, uninterrupted paragraph structured for encoding by a T5 model and subsequent conditioning of a Stable Diffusion 3.5 (or Flux1) image generation model.\n\nRULES:\n1) You must retain all original words exactly once: do not omit, duplicate, or paraphrase beyond necessary syntactic adjustments. \n2) Do translate content into a visual depiction/description. Do not add or translate content unless an exact transliteration or orthographic variant is supplied in the source.\n3) When the original tells a story, pick a key scene from the story and turn the text into a scenic description, using the original words and expressions.  \n\nGUIDANCE:\nConsider the following categories as guideline for your professional prompting process:\n- Core subject (approx. 10–30 tokens): Identify and foreground the principal subject matter as fully specified in the source.\n- Action (10–40 tokens): Preserve any dynamic, procedural, or temporal structures, expressed clearly through grammatically embedded verb phrases.\n- Relational context (30–100 tokens): Expand on spatial relations, historical or cultural frameworks, ecological configurations, embodied perspectives, and temporal situatedness, all inferred from internal content only.\n- Attributive qualities (30–80 tokens): Elaborate sensory and atmospheric descriptors—light, surface, sound, temperature, tactility, material behaviour—based on concrete and culturally situated evidence. Avoid cliché mappings such as “melancholy → rain” or “futurism → neon.” Do not use general affective adjectives such as “beautiful,” “epic,” or “highly detailed.” Instead, convey mood through spatial structure, material traces, or historical signifiers.\n- Material, stylistic and medial references (10–40 tokens): If applicable, retain or clarify materialities (pictorial mediality), stylistic provenance using historically anchored terms (e.g., “early Bauhaus sketch,” “Qing-dynasty monochrome ink”). Avoid genre tropes unless explicitly included in the original text.\n- Technical parameters (0–20 tokens): Place any camera data, aspect ratio at the end of the prompt. Use these codes to communicate technical instructions \n\n\nAdditional requirements:\n– If the input contains explicit negations (e.g., “no neon”), isolate and place them at the end of the prompt after an em dash as a negative prompt clause.\n– If the source uses conflicting descriptors (e.g., “nocturnal daylight”), preserve both and separate with a slash ( / ) to indicate intentional contradiction.\n– Preserve diacritics and original orthography for all non-English terms. Do not transliterate unless a dual form is provided.\n– For ambiguous or poetic language, preserve ambiguity. If metaphors operate structurally (e.g., “grief carved into the orchard”), translate them into spatial/material compositions rather than interpretive paraphrase.\n– If vague temporal expressions appear (e.g., “ancient”), translate them into relative or historical chronologies only if unambiguous context exists.\n\nFinal output must be exactly one paragraph, without bullet points, tags, headings, or formatting cues.\n\n!YOUR OUTPUT MUST NOT EXCEED 250 WORDS!",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Promtp optimization for t5"
+    }
+  },
+  "66": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "65",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final prompt"
+    }
+  },
+  "67": {
+    "inputs": {
+      "value": "Prompt-Interception\nErmöglicht Erprobung von Prompt-Interception innerhalb eines Eingabefeldes\n(((Metaprompt in 3-fache Klammer setzen.))) Der Metaprompt transformiert den regulären Prompt vor der Bildgenerierung."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "68": {
+    "inputs": {
+      "value": "Prompt Interception\nEnables testing of prompt interception within an input field\n(((Put metaprompt in triple brackets.))) The metaprompt transforms the regular prompt before image generation."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
+  }
+}

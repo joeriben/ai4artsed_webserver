@@ -1,0 +1,309 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 330696445412987,
+      "steps": 25,
+      "cfg": 5.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your model (or leave the preset)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "73",
+        0
+      ],
+      "clip": [
+        "75",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "75",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "60": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "82",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "randomly chosen art-related instruction"
+    }
+  },
+  "67": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "76",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "english translation"
+    }
+  },
+  "68": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "71",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "contextual transformation"
+    }
+  },
+  "69": {
+    "inputs": {
+      "value": [
+        "70",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "70": {
+    "inputs": {
+      "value": "Ein grüner Elefant schläft auf einer rosafarbenen Blumenwiese. Die Wiese schwebt in der Luft; sie schwebt über einer Sonne, die lächelt. Die Sonne hat einen Hut auf!"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "YOUR PROMPT GOES HERE"
+    }
+  },
+  "71": {
+    "inputs": {
+      "input_prompt": [
+        "76",
+        0
+      ],
+      "input_context": [
+        "82",
+        0
+      ],
+      "style_prompt": "Transform the image description according to the logic and instructions defined in the input labeled “input_context”. Make surfe to communicate genres/artistic traditions, too (i.e. is it a dance, a photo, a painting, a song, a movie?)\nThis is not a linguistic translation, but a aesthetic, semantic and structural transformation. Be verbose!\nReconstruct all entities and their relations as specified, ensuring that:\n- Each entity is retained – or respectively transformed – as instructed. There is, though, no reason to turn every animal of being into a \"creature\".\n- Each relation is altered in line with the particular aesthetics, genre-typical traits, and logic of the “Context”. Be explicit about visual aesthetics in terms of materials, techniques, composition, and overall atmosphere.\nDo not explain your reasoning.\nOutput only the transformed description as plain descriptive text. Be aware if the output is something depicted (like a ritual or any situation) OR itself a cultural artefact (such as a specific drawing technique). Describe accordingly. In your output, communicate which elements are most important for an succeeding image generation.",
+      "api_key": [
+        "72",
+        0
+      ],
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "no",
+      "output_format": "string"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Contextual transformation"
+    }
+  },
+  "72": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "73": {
+    "inputs": {
+      "input_prompt": [
+        "71",
+        0
+      ],
+      "input_context": [
+        "82",
+        0
+      ],
+      "style_prompt": "Transform the input into a prompt for t5 and clip_g (Max 55 words). \n\nBe context sensitive, as your input may be very non-visual (e.g. a dance of a song text) - find ways to translate the aesthetics, atmospheres , items and relations into an image prompt for Stable Diffusion 3.5 - in particular, for CLIP models that strongly weight early tokens and truncate at 55 words.\n\n\nEarly tokens = critical: The first 20–30 tokens largely determine the image\nMinimize Attributes: CLIP struggles with complex attributes – keep them short\nClear, direct terms: CLIP prefers concrete nouns and simple adjectives\nDo not substantially alter the input text – stay true to its meaning.\n\nYOUR OUTPUT has to balance between description and technical prompting.\nCore Motif: max. 15 words\nPlace the main subject FIRST\nUse the exact wording provided in the original prompt\nTell the core story in 1 short sentence. Communicate relations (e.g. spatial, logical, action-related) between the entities/protagonists. \n\nAction: max 20 words\nFollows the subject directly for strong subject-action linkage\nPrefer simple verb phrases; maintain exact original wording\n\nStyle/Medium: max 10 words\nPlace early in the prompt for maximum impact on CLIP\nTypical examples: “oil painting”, “photography”, “3D render”\nUse only if present in the original prompt\n\nContext: max 10 words\nLocation or setting, compressed\nReorder only; do not paraphrase\n\nAttributes: max 10 words:\nMinimize; include only if essential\nNo changes to wording – do not replace or reformulate\nEMPTY LINETechnical Aspects (0–5 tokens, 0–7%):\nInclude only if tokens remain and if originally present\n\nYOUR OUTPUT MUST NOT EXCEED 5 WORDS!\nOMIT the Category names (\"Core Motif\"), it will only confuse CLIP and reduces the token budget without contributing to image quality. \nNEVER INCLUDE ANY META-INFORMATION SUCH AS THE NAMES OF THE DIMENSIONS BELOW OR THE TOKEN COUNT!\n\nMake sure to translate the output into english.",
+      "api_key": [
+        "72",
+        0
+      ],
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "yes",
+      "output_format": "string"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Prompt preparation"
+    }
+  },
+  "74": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "73",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "resulting prompt"
+    }
+  },
+  "75": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "76": {
+    "inputs": {
+      "input_prompt": [
+        "69",
+        0
+      ],
+      "input_context": "professional translator",
+      "style_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest",
+      "debug": "enable",
+      "unload_model": "no",
+      "output_format": "string"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Translation_english"
+    }
+  },
+  "80": {
+    "inputs": {
+      "value": -849313410761712
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "just a dummy, leave as is"
+    }
+  },
+  "82": {
+    "inputs": {
+      "random_seed": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_random_artform_generator",
+    "_meta": {
+      "title": "Random Artform Generator"
+    }
+  },
+  "83": {
+    "inputs": {
+      "value": "Zufälliger Kunststil\nWählt jeweils eine aus 50 globalen Kunst- und kulturellen Ausdrucksformen als Vorlage\nEin experimenteller Workflow zur stilistischen Interpretation von Prompts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "84": {
+    "inputs": {
+      "value": "Random Artistic Style\nSelects one of 50 global art and cultural forms of expression as template\nAn experimental workflow for stylistic interpretation of prompts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
+  }
+}

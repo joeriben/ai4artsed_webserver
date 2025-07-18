@@ -1,0 +1,255 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 145420931348616,
+      "steps": 25,
+      "cfg": 5.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "41",
+        0
+      ],
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "20": {
+    "inputs": {
+      "clip_name": "clip_g.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "34": {
+    "inputs": {
+      "input_prompt": "",
+      "input_context": "professional translator",
+      "style_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral:7b",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Translation_english"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "a student at university"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "41": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": [
+        "44",
+        0
+      ],
+      "style_prompt": "You received two inputs: 1) the input_prompt and 2) the input_context. \n\nTransform the input_prompt into an image description according to the instructions defined in the input_context. Explicitely communicate the input_context as cultural cf. artistic. cf intervening context. Also communicate genres/artistic traditions in a concrete way (i.e. is it a dance, a photo, a painting, a song, a movie, a statue/sculpture? how should it be translated into an image?)\n\nThis is not a linguistic translation, but a aesthetic, semantic and structural transformation. Be verbose!\n\nReconstruct all entities and their relations as specified, ensuring that:\n- Each entity is retained – or respectively transformed – as instructed.\n- Each relation is altered in line with the particular aesthetics, genre-typical traits, and logic of the “Context”. Be explicit about visual aesthetics in terms of materials, techniques, composition, and overall atmosphere. Mention the input_context als cultural, cf. artistic, c.f intervening context in your OUTPUT explicitely.\n\nOutput only the transformed description as plain descriptive text. Be aware if the output is something depicted (like a ritual or any situation) OR itself a cultural artefact (such as a specific drawing technique). Describe accordingly. In your output, communicate which elements are most important for an succeeding image generation.\n\nCreate an output prompt tailored for Stable Diffusion 3.5 with combined clip_g and t5xxlenc. Regard the Token Limit (75), OUPUT max. 55 Words!\nDO NOT USE ANY META-TERMS, JUST THE INSTRUCTIONS FOR IMAGE GENERATION! Do not explain your reasoning.",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-small:24b",
+      "debug": "enable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "42": {
+    "inputs": {
+      "value": "Your sole and absolute task is to fully rewrite the following user prompt into modern, authentic UK youth slang and informal language, leaving no trace of the original's formality. The entire linguistic transformation into this specific sociolect is your primary focus.\n\n**Instructions for the Translation:**\n1.  Total Transformation: Every phrase, concept, and descriptive element from the original prompt must be converted into its corresponding youth slang equivalent. There should be absolutely no remnants of the initial, formal tone.\n2.  Target Audience: The language must sound precisely like it's spoken by 13-18 year olds in urban areas of the United Kingdom, those highly familiar with current street culture and music genres (specifically UK Drill, Grime, and Trap).\n3.  Vocabulary & Idioms: Utilize prevalent British street slang, contemporary idioms, common abbreviations, and highly informal expressions. Actively incorporate words like 'fam', 'mandem', 'yute', 'peng', 'sick', 'bare', 'safe', 'proper', 'whip', 'crib', 'drip', 'no cap', 'innit', 'allow it', 'jheeze', 'grinding', 'balling', 'skrr', 'init', 'wagwan', 'ends', and similar terms that define this demographic's speech.\n4.  Tone & Style: The tone must be casual, direct, confident, and genuinely authentic. It needs to fully embody the 'vibe' and 'attitude' of contemporary UK youth culture.\n5.  Core Meaning Retention: The original meaning and all visual elements intended by the prompt must be preserved, but expressed entirely through this new linguistic form.\n6.  Output Format: Output *only* the rephrased prompt in youth slang. Do not include any explanations, introductions, or additional text.\n"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Interceptive context - REPLACE THIS AS YOU SEE FIT (default is meant for the AI4ArtsEd web-interface)"
+    }
+  },
+  "43": {
+    "inputs": {
+      "clip_name1": "clip_g.safetensors",
+      "clip_name2": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "44": {
+    "inputs": {
+      "value": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_context_prompt"
+    }
+  },
+  "46": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final prompt"
+    }
+  },
+  "47": {
+    "inputs": {
+      "value": "Jugendsprache-Transformation\nÜbersetzt Prompts in aktuelle Jugendsprache\nTransformiert formelle oder neutrale Beschreibungen in die Ausdrucksweise zeitgenössischer Jugendkultur."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "48": {
+    "inputs": {
+      "value": "Youth Language Transformation\nTranslates prompts into current youth slang\nTransforms formal or neutral descriptions into the expression style of contemporary youth culture."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
+  }
+}

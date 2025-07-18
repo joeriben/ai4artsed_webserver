@@ -6,19 +6,24 @@ import json
 import random
 import re
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 
 from config import (
     LOCAL_WORKFLOWS_DIR,
     OLLAMA_TO_OPENROUTER_MAP,
     OPENROUTER_TO_OLLAMA_MAP,
     ENABLE_VALIDATION_PIPELINE,
-    SAFETY_NEGATIVE_TERMS
+    SAFETY_NEGATIVE_TERMS,
+    ENABLE_MODEL_PATH_RESOLUTION,
+    MODEL_RESOLUTION_FALLBACK,
+    SWARMUI_BASE_PATH,
+    COMFYUI_BASE_PATH
 )
 from my_app.utils.helpers import (
     calculate_dimensions,
     parse_model_name
 )
+from my_app.services.model_path_resolver import ModelPathResolver
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +33,130 @@ class WorkflowLogicService:
     
     def __init__(self):
         self.workflows_dir = LOCAL_WORKFLOWS_DIR
+        self.metadata_path = self.workflows_dir / "metadata.json"
+        self.metadata = None
+        self._generate_metadata()  # Generate metadata on startup
+        self._load_metadata()
+        
+        # Initialize model path resolver if enabled
+        if ENABLE_MODEL_PATH_RESOLUTION:
+            self.model_resolver = ModelPathResolver(
+                swarmui_base=SWARMUI_BASE_PATH,
+                comfyui_base=COMFYUI_BASE_PATH
+            )
+            logger.info("Model path resolver initialized")
+        else:
+            self.model_resolver = None
+            logger.info("Model path resolution disabled")
+    
+    def _extract_about_info(self, workflow_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+        """Extract information from über and about nodes"""
+        info = {
+            "name": {"de": "", "en": ""},
+            "description": {"de": "", "en": ""},
+            "longDescription": {"de": "", "en": ""}
+        }
+        
+        # Find über and about nodes
+        for node_id, node in workflow_data.items():
+            if node.get("_meta", {}).get("title") == "über":
+                lines = node.get("inputs", {}).get("value", "").split("\n")
+                if len(lines) >= 1:
+                    info["name"]["de"] = lines[0]
+                if len(lines) >= 2:
+                    info["description"]["de"] = lines[1]
+                if len(lines) >= 3:
+                    info["longDescription"]["de"] = "\n".join(lines[2:])
+                    
+            elif node.get("_meta", {}).get("title") == "about":
+                lines = node.get("inputs", {}).get("value", "").split("\n")
+                if len(lines) >= 1:
+                    info["name"]["en"] = lines[0]
+                if len(lines) >= 2:
+                    info["description"]["en"] = lines[1]
+                if len(lines) >= 3:
+                    info["longDescription"]["en"] = "\n".join(lines[2:])
+        
+        return info
+    
+    def _generate_metadata(self):
+        """Generate metadata.json from workflow files"""
+        try:
+            metadata = {"categories": {}, "workflows": {}}
+            
+            # Define category names
+            category_names = {
+                "across": {"de": "Medienübergreifend", "en": "Cross-Media"},
+                "aesthetics": {"de": "Ästhetik", "en": "Aesthetics"},
+                "arts": {"de": "Kunstrichtungen", "en": "Art Movements"},
+                "culture": {"de": "Kultur", "en": "Culture"},
+                "flow": {"de": "Ablauf", "en": "Flow"},
+                "model": {"de": "Modelle", "en": "Models"},
+                "semantics": {"de": "Semantik", "en": "Semantics"},
+                "sound": {"de": "Klang", "en": "Sound"},
+                "vector": {"de": "Vektorräume", "en": "Vector Spaces"}
+            }
+            
+            # Process each category folder
+            for category_folder in self.workflows_dir.iterdir():
+                if category_folder.is_dir() and category_folder.name in category_names:
+                    category = category_folder.name
+                    
+                    # Add category metadata
+                    metadata["categories"][category] = category_names[category]
+                    
+                    # Process workflow files in this category
+                    for workflow_file in category_folder.glob("*.json"):
+                        workflow_id = workflow_file.stem
+                        
+                        try:
+                            # Read workflow file
+                            with open(workflow_file, 'r', encoding='utf-8') as f:
+                                workflow_data = json.load(f)
+                            
+                            # Extract information from about nodes
+                            info = self._extract_about_info(workflow_data)
+                            
+                            # Add to metadata
+                            metadata["workflows"][workflow_id] = {
+                                "category": category,
+                                "name": info["name"],
+                                "description": info["description"],
+                                "longDescription": info["longDescription"],
+                                "file": f"{category}/{workflow_file.name}"
+                            }
+                            
+                        except Exception as e:
+                            logger.error(f"Error processing {workflow_file}: {e}")
+            
+            # Write metadata.json
+            with open(self.metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"Generated metadata.json with {len(metadata['workflows'])} workflows in {len(metadata['categories'])} categories")
+            
+        except Exception as e:
+            logger.error(f"Failed to generate metadata: {e}")
+    
+    def _load_metadata(self):
+        """Load workflow metadata from metadata.json"""
+        try:
+            if self.metadata_path.exists():
+                with open(self.metadata_path, "r", encoding="utf-8") as f:
+                    self.metadata = json.load(f)
+                logger.info("Workflow metadata loaded successfully")
+            else:
+                logger.warning(f"Metadata file not found at {self.metadata_path}")
+                self.metadata = {"categories": {}, "workflows": {}, "ui": {}}
+        except Exception as e:
+            logger.error(f"Failed to load metadata: {e}")
+            self.metadata = {"categories": {}, "workflows": {}, "ui": {}}
+    
+    def get_metadata(self) -> Dict[str, Any]:
+        """Get workflow metadata"""
+        if self.metadata is None:
+            self._load_metadata()
+        return self.metadata
     
     def load_workflow(self, workflow_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -58,17 +187,25 @@ class WorkflowLogicService:
     
     def list_workflows(self) -> list:
         """
-        List all available workflow files
+        List all available workflow files from subdirectories
         
         Returns:
-            List of workflow filenames
+            List of workflow filenames (including subdirectory paths)
         """
         try:
-            workflows = sorted([
-                f.name for f in self.workflows_dir.glob("*.json")
-                if not f.name.startswith(".")
-            ])
-            return workflows
+            workflows = []
+            
+            # Get all json files from subdirectories
+            for json_file in self.workflows_dir.rglob("*.json"):
+                # Skip metadata.json and hidden files
+                if json_file.name == "metadata.json" or json_file.name.startswith("."):
+                    continue
+                    
+                # Get relative path from workflows directory
+                relative_path = json_file.relative_to(self.workflows_dir)
+                workflows.append(str(relative_path))
+            
+            return sorted(workflows)
         except Exception as e:
             logger.error(f"Failed to list workflows: {e}")
             return []
@@ -96,26 +233,43 @@ class WorkflowLogicService:
     
     def is_inpainting_workflow(self, workflow_name: str) -> bool:
         """
-        Check if a workflow is an inpainting workflow by looking for inpainting models
+        Check if a workflow is an inpainting/image editing workflow.
+        Requires both an appropriate model AND a LoadImage node.
         
         Args:
             workflow_name: Name of the workflow file
             
         Returns:
-            True if workflow uses inpainting models, False otherwise
+            True if workflow is for inpainting/image editing, False otherwise
         """
         workflow = self.load_workflow(workflow_name)
         if not workflow:
             return False
         
-        # Look for CheckpointLoaderSimple nodes with inpainting models
-        for node_data in workflow.values():
-            if node_data.get("class_type") == "CheckpointLoaderSimple":
-                ckpt_name = node_data.get("inputs", {}).get("ckpt_name", "").lower()
-                if "inpaint" in ckpt_name:
-                    return True
+        has_inpainting_model = False
+        has_load_image = False
         
-        return False
+        # Check for both conditions
+        for node_data in workflow.values():
+            class_type = node_data.get("class_type")
+            
+            # Check for inpainting/image editing models
+            if class_type == "CheckpointLoaderSimple":
+                ckpt_name = node_data.get("inputs", {}).get("ckpt_name", "").lower()
+                if "inpaint" in ckpt_name or "omnigen2" in ckpt_name:
+                    has_inpainting_model = True
+            elif class_type == "UNETLoader":
+                # OmniGen2 uses UNETLoader instead of CheckpointLoaderSimple
+                unet_name = node_data.get("inputs", {}).get("unet_name", "").lower()
+                if "omnigen2" in unet_name:
+                    has_inpainting_model = True
+            
+            # Check for LoadImage node
+            if class_type in ["LoadImage", "LoadImageMask"]:
+                has_load_image = True
+        
+        # Both conditions must be met
+        return has_inpainting_model and has_load_image
     
     def get_workflow_info(self, workflow_name: str) -> Dict[str, Any]:
         """
@@ -136,22 +290,30 @@ class WorkflowLogicService:
                 "error": "Workflow not found"
             }
         
-        is_inpainting = False
+        has_inpainting_model = False
         has_load_image = False
         
-        # Check for inpainting models and load image nodes
+        # Check for inpainting/image editing models and load image nodes
         for node_data in workflow.values():
             class_type = node_data.get("class_type")
             
-            # Check for inpainting model
+            # Check for inpainting/image editing models
             if class_type == "CheckpointLoaderSimple":
                 ckpt_name = node_data.get("inputs", {}).get("ckpt_name", "").lower()
-                if "inpaint" in ckpt_name:
-                    is_inpainting = True
+                if "inpaint" in ckpt_name or "omnigen2" in ckpt_name:
+                    has_inpainting_model = True
+            elif class_type == "UNETLoader":
+                # OmniGen2 uses UNETLoader instead of CheckpointLoaderSimple
+                unet_name = node_data.get("inputs", {}).get("unet_name", "").lower()
+                if "omnigen2" in unet_name:
+                    has_inpainting_model = True
             
             # Check for load image node
             if class_type in ["LoadImage", "LoadImageMask"]:
                 has_load_image = True
+        
+        # Only consider it an inpainting workflow if BOTH conditions are met
+        is_inpainting = has_inpainting_model and has_load_image
         
         return {
             "isInpainting": is_inpainting,
@@ -456,6 +618,62 @@ class WorkflowLogicService:
         logger.info(f"=== Enhancement complete. Enhanced {enhanced_count} negative prompts for {safety_level} safety ===")
         return enhanced_count
     
+    def _resolve_model_paths(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve model paths in the workflow using the model path resolver
+        
+        Args:
+            workflow: Workflow definition
+            
+        Returns:
+            Modified workflow with resolved model paths
+        """
+        if not self.model_resolver:
+            logger.debug("Model resolver not available, skipping path resolution")
+            return workflow
+            
+        try:
+            # Create a deep copy to avoid modifying the original
+            import copy
+            workflow_copy = copy.deepcopy(workflow)
+            resolved_count = 0
+            
+            # Find all CheckpointLoaderSimple nodes
+            for node_id, node_data in workflow_copy.items():
+                if node_data.get("class_type") == "CheckpointLoaderSimple":
+                    original_name = node_data.get("inputs", {}).get("ckpt_name", "")
+                    
+                    if original_name:
+                        # Skip if it already looks like a path
+                        if "/" in original_name or "\\" in original_name:
+                            logger.debug(f"Node {node_id}: '{original_name}' already appears to be a path, skipping")
+                            continue
+                        
+                        # Try to resolve the model path
+                        resolved_path = self.model_resolver.find_model(original_name)
+                        
+                        if resolved_path and resolved_path != original_name:
+                            node_data["inputs"]["ckpt_name"] = resolved_path
+                            logger.info(f"Node {node_id}: Resolved '{original_name}' -> '{resolved_path}'")
+                            resolved_count += 1
+                        else:
+                            logger.warning(f"Node {node_id}: Could not resolve path for '{original_name}'")
+            
+            if resolved_count > 0:
+                logger.info(f"Successfully resolved {resolved_count} model path(s)")
+            else:
+                logger.info("No model paths needed resolution")
+                
+            return workflow_copy
+            
+        except Exception as e:
+            logger.error(f"Error resolving model paths: {e}")
+            if MODEL_RESOLUTION_FALLBACK:
+                logger.info("Using original workflow due to resolution error (fallback mode)")
+                return workflow
+            else:
+                raise
+    
     def prepare_workflow(self, workflow_name: str, prompt: str, aspect_ratio: str, mode: str, 
                         seed_mode: str = "random", custom_seed: Optional[int] = None,
                         safety_level: str = "off") -> Dict[str, Any]:
@@ -514,6 +732,18 @@ class WorkflowLogicService:
                 logger.info(f"Enhanced {enhanced_count} negative prompts for {safety_level} safety")
             else:
                 logger.warning(f"{safety_level} safety selected but no negative prompts were enhanced!")
+        
+        # Resolve model paths if enabled
+        if ENABLE_MODEL_PATH_RESOLUTION:
+            try:
+                workflow = self._resolve_model_paths(workflow)
+                logger.info("Model paths resolved successfully")
+            except Exception as e:
+                logger.warning(f"Model path resolution failed: {e}")
+                if not MODEL_RESOLUTION_FALLBACK:
+                    return {"success": False, "error": f"Model-Pfad-Auflösung fehlgeschlagen: {str(e)}"}
+                # If fallback is enabled, continue with original workflow
+                status_updates.append("Warnung: Model-Pfad-Auflösung fehlgeschlagen, verwende Original-Pfade.")
         
         return {
             "success": True,

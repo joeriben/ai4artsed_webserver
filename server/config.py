@@ -123,7 +123,13 @@ COMFYUI_TIMEOUT = 480  # 8 minutes for data-rich workflows
 POLLING_TIMEOUT = 15
 MEDIA_DOWNLOAD_TIMEOUT = 30
 
+# Model Path Resolution Configuration
+ENABLE_MODEL_PATH_RESOLUTION = True  # Enable automatic model path resolution
+MODEL_RESOLUTION_FALLBACK = True     # Fallback to original names if resolution fails
 
+# Base paths for model resolution (configure these to your actual paths)
+SWARMUI_BASE_PATH = os.environ.get("SWARMUI_PATH", None)  # e.g., "/path/to/SwarmUI"
+COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", None)  # e.g., "/path/to/ComfyUI"
 
 # Safety Filter Configuration
 SAFETY_NEGATIVE_TERMS = {

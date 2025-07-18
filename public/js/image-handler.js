@@ -138,11 +138,6 @@ export function setupImageHandlers() {
     
     // Click handlers
     ui.addMediaBtn.addEventListener('click', () => ui.fileInput.click());
-    ui.imageUploadArea.addEventListener('click', (e) => {
-        if (!ui.imageUploadArea.classList.contains('has-image') && e.target !== ui.removeImageBtn) {
-            ui.fileInput.click();
-        }
-    });
     ui.fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
     
     // Drag and drop on prompt

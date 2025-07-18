@@ -1,0 +1,268 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 583935414793685,
+      "steps": 20,
+      "cfg": 7,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "29",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "37",
+        0
+      ],
+      "clip": [
+        "29",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "watermark, text",
+      "clip": [
+        "29",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "29",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "20": {
+    "inputs": {
+      "image": "Wanderer Nebelmeer ImageTextLoop 1.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "26": {
+    "inputs": {
+      "grow_mask_by": 36,
+      "pixels": [
+        "30",
+        0
+      ],
+      "vae": [
+        "29",
+        2
+      ],
+      "mask": [
+        "30",
+        1
+      ]
+    },
+    "class_type": "VAEEncodeForInpaint",
+    "_meta": {
+      "title": "VAE Encode (for Inpainting)"
+    }
+  },
+  "29": {
+    "inputs": {
+      "ckpt_name": "512-inpainting-ema.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "30": {
+    "inputs": {
+      "left": [
+        "57",
+        0
+      ],
+      "top": [
+        "57",
+        1
+      ],
+      "right": [
+        "57",
+        0
+      ],
+      "bottom": [
+        "57",
+        1
+      ],
+      "feathering": 96,
+      "image": [
+        "49",
+        0
+      ]
+    },
+    "class_type": "ImagePadForOutpaint",
+    "_meta": {
+      "title": "Pad Image for Outpainting"
+    }
+  },
+  "35": {
+    "inputs": {
+      "value": "Ein Banner mit der Aufschrift ACHTUNG DEFAULT-PROMPT!"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "36": {
+    "inputs": {
+      "preview": "mountains below, clouds in the sky",
+      "source": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Safety-filtered positive prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "prompt": [
+        "35",
+        0
+      ],
+      "filter_level": "off",
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "api_key": "",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_switch_promptsafety",
+    "_meta": {
+      "title": "AI4ArtsEd Promptsafety Switch"
+    }
+  },
+  "49": {
+    "inputs": {
+      "width": 768,
+      "height": 768,
+      "can_shrink": true,
+      "image": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "SwarmImageScaleForMP",
+    "_meta": {
+      "title": "SwarmImageScaleForMP"
+    }
+  },
+  "50": {
+    "inputs": {
+      "image": [
+        "49",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Get Image Size"
+    }
+  },
+  "54": {
+    "inputs": {
+      "width": 256,
+      "height": 256,
+      "can_shrink": true,
+      "image": [
+        "49",
+        0
+      ]
+    },
+    "class_type": "SwarmImageScaleForMP",
+    "_meta": {
+      "title": "SwarmImageScaleForMP"
+    }
+  },
+  "57": {
+    "inputs": {
+      "image": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Get Image Size"
+    }
+  },
+  "58": {
+    "inputs": {
+      "value": "Outpainting\nErweitert Bilder über ihre ursprünglichen Grenzen hinaus\nGeneriert kohärente Fortsetzungen bestehender Bilder in alle Richtungen. Version 2 mit verbesserter Randintegration."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "59": {
+    "inputs": {
+      "value": "Outpainting\nExtends images beyond their original boundaries\nGenerates coherent continuations of existing images in all directions. Version 2 with improved edge integration."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
+  }
+}
