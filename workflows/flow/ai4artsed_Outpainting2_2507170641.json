@@ -264,5 +264,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "60": {
+    "inputs": {
+      "value": "Outpainting 2\nErweitert Bilder über ihre ursprünglichen Grenzen hinaus\nGeneriert kohärente Fortsetzungen bestehender Bilder in alle Richtungen. Version 2 mit verbesserter Randintegration."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "61": {
+    "inputs": {
+      "value": "Outpainting 2\nExtends images beyond their original boundaries\nGenerates coherent continuations of existing images in all directions. Version 2 with improved edge integration."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

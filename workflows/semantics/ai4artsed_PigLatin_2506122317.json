@@ -251,5 +251,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "49": {
+    "inputs": {
+      "value": "Pig Latin Transformation\nWendet Pig-Latin-Regeln auf Prompts an\nEin spielerischer linguistischer Filter, der Wörter nach Pig-Latin-Prinzipien umformt."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "50": {
+    "inputs": {
+      "value": "Pig Latin Transformation\nApplies Pig Latin rules to prompts\nA playful linguistic filter that transforms words according to Pig Latin principles."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

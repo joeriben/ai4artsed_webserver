@@ -413,5 +413,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "66": {
+    "inputs": {
+      "value": "Bild zu Klang\nWandelt Bildbeschreibungen in Klanglandschaften um\nTransformiert visuelle Prompts in akustische Interpretationen. Der Workflow analysiert die Elemente einer Bildbeschreibung und erzeugt daraus Soundscapes oder Musik."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "67": {
+    "inputs": {
+      "value": "Image to Sound\nConverts image descriptions into soundscapes\nTransforms visual prompts into acoustic interpretations. The workflow analyzes elements of an image description and creates soundscapes or music."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

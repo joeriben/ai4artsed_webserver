@@ -231,5 +231,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "110": {
+    "inputs": {
+      "value": "Stable Audio Standard\nAudiogenerierung mit Stable Audio (auch für AceStep vorbereitet)\nErzeugt Klänge, Geräusche und kurze Musikstücke aus Textbeschreibungen. Unterstützt verschiedene Audio-Backends."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "111": {
+    "inputs": {
+      "value": "Stable Audio Standard\nAudio generation with Stable Audio (also prepared for AceStep)\nCreates sounds, noises and short music pieces from text descriptions. Supports various audio backends."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

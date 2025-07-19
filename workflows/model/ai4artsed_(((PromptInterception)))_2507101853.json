@@ -318,5 +318,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "69": {
+    "inputs": {
+      "value": "Prompt-Interception\nErmöglicht Erprobung von Prompt-Interception innerhalb eines Eingabefeldes\n(((Metaprompt in 3-fache Klammer setzen.))) Der Metaprompt transformiert den regulären Prompt vor der Bildgenerierung."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "70": {
+    "inputs": {
+      "value": "Prompt Interception\nEnables testing of prompt interception within an input field\n(((Put metaprompt in triple brackets.))) The metaprompt transforms the regular prompt before image generation."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

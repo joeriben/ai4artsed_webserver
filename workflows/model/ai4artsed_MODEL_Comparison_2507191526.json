@@ -1,0 +1,510 @@
+{
+  "6": {
+    "inputs": {
+      "text": [
+        "43",
+        0
+      ],
+      "clip": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "blurry, low quality, distorted, ugly, bad anatomy, deformed, poorly drawn",
+      "clip": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "28",
+        0
+      ],
+      "vae": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "OmniGen2"
+    }
+  },
+  "10": {
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_fp16.safetensors",
+      "type": "omnigen2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "11": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "EmptySD3LatentImage"
+    }
+  },
+  "12": {
+    "inputs": {
+      "unet_name": "omnigen2_fp16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "13": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "20": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "23": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 20,
+      "denoise": 1,
+      "model": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "27": {
+    "inputs": {
+      "cfg_conds": 5,
+      "cfg_cond2_negative": 2,
+      "style": "regular",
+      "model": [
+        "12",
+        0
+      ],
+      "cond1": [
+        "6",
+        0
+      ],
+      "cond2": [
+        "7",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "DualCFGGuider",
+    "_meta": {
+      "title": "DualCFGGuider"
+    }
+  },
+  "28": {
+    "inputs": {
+      "noise": [
+        "74",
+        0
+      ],
+      "guider": [
+        "27",
+        0
+      ],
+      "sampler": [
+        "20",
+        0
+      ],
+      "sigmas": [
+        "23",
+        0
+      ],
+      "latent_image": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "42": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Safety-filtered positive prompt"
+    }
+  },
+  "43": {
+    "inputs": {
+      "prompt": [
+        "54",
+        0
+      ],
+      "filter_level": "off",
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "api_key": [
+        "56",
+        0
+      ],
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_switch_promptsafety",
+    "_meta": {
+      "title": "AI4ArtsEd Promptsafety Switch"
+    }
+  },
+  "54": {
+    "inputs": {
+      "value": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "55": {
+    "inputs": {
+      "value": "case with flowers on a board"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "YOUR PROMPT GOES HERE"
+    }
+  },
+  "56": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "58": {
+    "inputs": {
+      "text": [
+        "43",
+        0
+      ],
+      "clip": [
+        "64",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "59": {
+    "inputs": {
+      "samples": [
+        "65",
+        0
+      ],
+      "vae": [
+        "62",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "60": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "61": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "59",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "62": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "63": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "64",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "64": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "65": {
+    "inputs": {
+      "seed": [
+        "75",
+        0
+      ],
+      "steps": 20,
+      "cfg": 5.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "62",
+        0
+      ],
+      "positive": [
+        "58",
+        0
+      ],
+      "negative": [
+        "63",
+        0
+      ],
+      "latent_image": [
+        "60",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "66": {
+    "inputs": {
+      "text": [
+        "43",
+        0
+      ],
+      "clip": [
+        "70",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "67": {
+    "inputs": {
+      "samples": [
+        "73",
+        0
+      ],
+      "vae": [
+        "70",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "68": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "69": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "67",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "70": {
+    "inputs": {
+      "ckpt_name": "Flux1/flux_dev.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "71": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "70",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "73": {
+    "inputs": {
+      "seed": [
+        "75",
+        0
+      ],
+      "steps": 20,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "70",
+        0
+      ],
+      "positive": [
+        "66",
+        0
+      ],
+      "negative": [
+        "71",
+        0
+      ],
+      "latent_image": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "74": {
+    "inputs": {
+      "noise_seed": [
+        "75",
+        0
+      ]
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "75": {
+    "inputs": {
+      "value": 0
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Seed"
+    }
+  },
+  "76": {
+    "inputs": {},
+    "class_type": "Note",
+    "_meta": {
+      "title": "about"
+    },
+    "widgets_values": ["Model Comparison (Image)\nComparison of several image generating models (some of which provide no safety-by-design!)\nComparison of several image generating models (some of which provide no safety-by-design!). For those models, only our safety measures are available."]
+  },
+  "77": {
+    "inputs": {},
+    "class_type": "Note",
+    "_meta": {
+      "title": "über"
+    },
+    "widgets_values": ["Modellvergleich (Bild)\nVergleich mehrerer bildgenerierender Modelle (einige ohne kein Safety-by-Design!)\nVergleich mehrerer bildgenerierender Modelle ohne zusätzliche Verarbeitungsschritte. Einige Modelle nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter."]
+  }
+}

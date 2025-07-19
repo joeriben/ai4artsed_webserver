@@ -692,5 +692,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "137": {
+    "inputs": {
+      "value": "Lineare Vektoraufteilung\nMathematische Dekonstruktion von Bedeutungsräumen, lineare Variante\nZerlegt Prompts in Vektorkomponenten und sucht den direkten (linearen) Weg zwischen den Punkten im latenten Bedeutungsraum. Ergebnisse können überraschen oder auch konventionell ausfallen."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "138": {
+    "inputs": {
+      "value": "Linear Vector Split\nMathematical deconstruction of meaning spaces, linear variant\nBreaks down prompts into vector components and finds the direct (linear) path between points in latent meaning space. Results can be surprising or conventional."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

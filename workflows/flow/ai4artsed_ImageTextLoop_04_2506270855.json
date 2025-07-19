@@ -654,5 +654,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "155": {
+    "inputs": {
+      "value": "Bild-Text-Schleife (4 Iterationen)\nIterativer Prozess zwischen Bildbeschreibung und Bildgenerierung\nEin Bild wird beschrieben, die Beschreibung generiert ein neues Bild, welches wieder beschrieben wird. 4, 8 oder 16 Durchläufe."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "156": {
+    "inputs": {
+      "value": "Image-Text-Loop (4 iterations)\nIterative process between image description and image generation\nAn image is described, the description generates a new image, which is described again. 4, 8 or 16 cycles."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

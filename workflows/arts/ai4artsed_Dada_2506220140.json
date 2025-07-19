@@ -233,5 +233,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "49": {
+    "inputs": {
+      "value": "Dadaismus Transformation\nVersetzt sich in die Zeit und Situation dadaistischer Künstler_innen\nNutzt Absurdität, Zufall und Anti-Kunst-Prinzipien zur Transformation alltäglicher Prompts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "50": {
+    "inputs": {
+      "value": "Dadaism Transformation\nPlaces itself in the time and situation of Dadaist artists\nUses absurdity, chance and anti-art principles to transform everyday prompts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

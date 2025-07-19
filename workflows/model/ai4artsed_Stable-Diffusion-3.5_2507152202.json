@@ -206,5 +206,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "46": {
+    "inputs": {
+      "value": "Stable Diffusion 3.5 Standard\nBasis-Implementation des SD 3.5 Modells\nDirekter Zugang zum Stable Diffusion 3.5 Modell ohne zusätzliche Verarbeitungsschritte."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "47": {
+    "inputs": {
+      "value": "Stable Diffusion 3.5 Standard\nBasic implementation of the SD 3.5 model\nDirect access to the Stable Diffusion 3.5 model without additional processing steps."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

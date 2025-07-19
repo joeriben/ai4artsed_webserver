@@ -59,5 +59,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "16": {
+    "inputs": {
+      "value": "MusicGen Einfach\nBasis-Musikgenerierung mit MusicGen\nWandelt Textbeschreibungen in Musikstücke um. Einfache, direkte Anwendung des MusicGen-Modells."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "17": {
+    "inputs": {
+      "value": "MusicGen Simple\nBasic music generation with MusicGen\nConverts text descriptions into music pieces. Simple, direct application of the MusicGen model."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

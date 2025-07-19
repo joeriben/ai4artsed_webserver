@@ -269,5 +269,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "110": {
+    "inputs": {
+      "value": "Stable Audio - Geschichtenerzähler\nNarrative Audiogenerierung (auch für AceStep vorbereitet)\nOptimiert für die Erzeugung von Klanglandschaften, die Geschichten unterstützen oder erzählen. Unterstützt verschiedene Audio-Backends."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "111": {
+    "inputs": {
+      "value": "Stable Audio - Tell A Story\nNarrative audio generation (also prepared for AceStep)\nOptimized for creating soundscapes that support or tell stories. Supports various audio backends."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

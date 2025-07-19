@@ -181,5 +181,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "37": {
+    "inputs": {
+      "value": "Inpainting\nFüllt ausgewählte Bildbereiche mit neuem Inhalt\nErmöglicht gezielte Bildbearbeitung durch Maskierung und Neugenerierung spezifischer Bereiche."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "38": {
+    "inputs": {
+      "value": "Inpainting\nFills selected image areas with new content\nEnables targeted image editing through masking and regeneration of specific areas."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

@@ -358,5 +358,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "66": {
+    "inputs": {
+      "value": "Bild und Klang\nErzeugt gleichzeitig Bild und Audio aus einem Prompt\nDieser Workflow generiert sowohl ein Bild als auch eine passende Audiodatei aus einem einzigen Prompt für multimediale Kunstprojekte."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "67": {
+    "inputs": {
+      "value": "Image and Sound\nGenerates both image and audio from a single prompt\nThis workflow creates both an image and matching audio file from one prompt for multimedia art projects."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

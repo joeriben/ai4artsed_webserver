@@ -60,7 +60,14 @@ class WorkflowLogicService:
         # Find über and about nodes
         for node_id, node in workflow_data.items():
             if node.get("_meta", {}).get("title") == "über":
-                lines = node.get("inputs", {}).get("value", "").split("\n")
+                # For Note nodes, text is in widgets_values
+                text = ""
+                if "widgets_values" in node and isinstance(node["widgets_values"], list) and len(node["widgets_values"]) > 0:
+                    text = node["widgets_values"][0]
+                else:
+                    text = node.get("inputs", {}).get("value", "")
+                
+                lines = text.split("\n") if text else []
                 if len(lines) >= 1:
                     info["name"]["de"] = lines[0]
                 if len(lines) >= 2:
@@ -69,7 +76,14 @@ class WorkflowLogicService:
                     info["longDescription"]["de"] = "\n".join(lines[2:])
                     
             elif node.get("_meta", {}).get("title") == "about":
-                lines = node.get("inputs", {}).get("value", "").split("\n")
+                # For Note nodes, text is in widgets_values
+                text = ""
+                if "widgets_values" in node and isinstance(node["widgets_values"], list) and len(node["widgets_values"]) > 0:
+                    text = node["widgets_values"][0]
+                else:
+                    text = node.get("inputs", {}).get("value", "")
+                
+                lines = text.split("\n") if text else []
                 if len(lines) >= 1:
                     info["name"]["en"] = lines[0]
                 if len(lines) >= 2:

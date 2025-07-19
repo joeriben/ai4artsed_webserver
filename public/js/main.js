@@ -7,6 +7,7 @@ import { loadWorkflows } from './workflow.js';
 import { submitPromptWithFastPolling as submitPrompt } from './workflow-streaming.js';
 import { downloadSession } from './session.js';
 import { initSSEConnection, pollUserCount } from './sse-connection.js';
+import { initSimpleTranslation } from './simple-translation.js';
 
 // Make submitPrompt available globally for onclick handler
 window.submitPrompt = submitPrompt;
@@ -18,6 +19,9 @@ async function initializeApp() {
     ui.init();
     
     try {
+        // Initialize simple translation for static UI elements
+        initSimpleTranslation();
+        
         // Load configuration
         await loadConfig();
         

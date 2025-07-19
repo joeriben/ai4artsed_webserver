@@ -153,8 +153,8 @@
     "ai4artsed_Dada_2506220140": {
       "category": "arts",
       "name": {
-        "de": "Dadaismus",
-        "en": "Dadaism"
+        "de": "Dadaismus Transformation",
+        "en": "Dadaism Transformation"
       },
       "description": {
         "de": "Versetzt sich in die Zeit und Situation dadaistischer Künstler_innen",
@@ -326,22 +326,6 @@
       },
       "file": "model/ai4artsed_(((PromptInterception)))_2507101853.json"
     },
-    "ai4artsed_Flux1dev-versus-StableDiffusion3.5_2507011342": {
-      "category": "model",
-      "name": {
-        "de": "Flux1dev vs. Stable Diffusion 3.5 vs. MetaGen2",
-        "en": "Flux1dev vs. Stable Diffusion 3.5 vs. MetaGen2"
-      },
-      "description": {
-        "de": "Vergleicht drei Bildgenerierungsmodelle direkt",
-        "en": "Directly compares three image generation models"
-      },
-      "longDescription": {
-        "de": "Generiert dasselbe Motiv mit drei Modellen zur direkten Gegenüberstellung ihrer Charakteristika. (MetaGen2 wird noch ergänzt)",
-        "en": "Generates the same motif with three models for direct comparison of their characteristics. (MetaGen2 to be added)"
-      },
-      "file": "model/ai4artsed_Flux1dev-versus-StableDiffusion3.5_2507011342.json"
-    },
     "ai4artsed_Stable-Diffusion-3.5_2507152202": {
       "category": "model",
       "name": {
@@ -373,6 +357,38 @@
         "en": "Also expands short prompts into narrative image concepts. Specialized in transforming literary texts."
       },
       "file": "model/ai4artsed_Stable-Diffusion_3.5_TellAStory_2507152203.json"
+    },
+    "ai4artsed_MODEL_OmniGen2_2507171527": {
+      "category": "model",
+      "name": {
+        "de": "OmniGen2",
+        "en": "OmniGen2"
+      },
+      "description": {
+        "de": "Basis-Implementation des OmniGen2 Modells (kein Safety-by-Design!)",
+        "en": "Basic implementation of the OmniGen2 model (no safety-by-design!)"
+      },
+      "longDescription": {
+        "de": "Direkter Zugang zum OmniGen2 Modell ohne zusätzliche Verarbeitungsschritte. Das Modell ist nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter.",
+        "en": "Direct Access to the OmniGen2 model without additional processing steps. This model provides no \"safety-by-design\", thus only our safety measures are active."
+      },
+      "file": "model/ai4artsed_MODEL_OmniGen2_2507171527.json"
+    },
+    "ai4artsed_MODEL_Comparison_2507191526": {
+      "category": "model",
+      "name": {
+        "de": "Modellvergleich (Bild)",
+        "en": "Model Comparison (Image)"
+      },
+      "description": {
+        "de": "Vergleich mehrerer bildgenerierender Modelle (einige ohne kein Safety-by-Design!)",
+        "en": "Comparison of several image generating models (some of which provide no safety-by-design!)"
+      },
+      "longDescription": {
+        "de": "Vergleich mehrerer bildgenerierender Modelle ohne zusätzliche Verarbeitungsschritte. Einige Modelle nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter.",
+        "en": "Comparison of several image generating models (some of which provide no safety-by-design!). For those models, only our safety measures are available."
+      },
+      "file": "model/ai4artsed_MODEL_Comparison_2507191526.json"
     },
     "ai4artsed_Jugendsprache_2506122317": {
       "category": "semantics",

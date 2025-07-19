@@ -357,5 +357,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "76": {
+    "inputs": {
+      "value": "Surrealisierung\nVerschiebt Prompts in surreale Dimensionen\nNutzt Vektormanipulation um realistische Konzepte systematisch zu verfremden."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "77": {
+    "inputs": {
+      "value": "Surrealization\nShifts prompts into surreal dimensions\nUses vector manipulation to systematically alienate realistic concepts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

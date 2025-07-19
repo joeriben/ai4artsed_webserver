@@ -90,7 +90,7 @@
             </div>
 
             <div>
-                <label>Ausführungsmodus</label>
+                <label id="execution-mode-label">Ausführungsmodus</label>
                 <div class="mode-switch">
                     <input type="radio" id="eco-mode" name="execution-mode" value="eco">
                     <label for="eco-mode">Eco (Lokal)</label>
@@ -100,7 +100,7 @@
             </div>
 
             <div>
-                <label>Seed-Kontrolle</label>
+                <label id="seed-control-label">Seed-Kontrolle</label>
                 <div class="seed-control">
                     <div class="seed-option">
                         <input type="radio" id="seed-random" name="seed-mode" value="random" checked>
@@ -123,7 +123,7 @@
             </div>
 
             <div>
-                <label>Sicherheitsstufe <span id="safety-plus-indicator" style="display: none; color: #4CAF50; font-weight: bold;" title="Dieses Workflow unterstützt erweiterte Sicherheitsfunktionen">Safety+ verfügbar</span></label>
+                <label id="safety-level-label">Sicherheitsstufe <span id="safety-plus-indicator" style="display: none; color: #4CAF50; font-weight: bold;" title="Dieses Workflow unterstützt erweiterte Sicherheitsfunktionen">Safety+ verfügbar</span></label>
                 <div class="mode-switch">
                     <input type="radio" id="safety-off" name="safety-level" value="off" checked>
                     <label for="safety-off">Aus</label>
@@ -137,7 +137,7 @@
             </div>
             
             <button id="submitBtn" onclick="submitPrompt()">Generieren<span class="spinner"></span></button>
-            <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
+            <div id="privacy-hint" style="font-size: 0.8em; color: #666; margin-top: 5px;">
                 Hinweis: Generierte Inhalte werden zu Forschungszwecken auf dem Server gespeichert. Es werden keine User- oder IP-Daten erfasst. Hochgeladene Bilder werden nicht gespeichert.
             </div>
         </div>

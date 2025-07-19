@@ -251,5 +251,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "53": {
+    "inputs": {
+      "value": "Klischee-Filter V3\nErkennt klischeehafte Bildmotive und verfolgt verschiedene Strategien, Klischees zu vermeiden\nV1: Direkte Inversion von Klischees. V2: Kontextuelle Neuinterpretation. V3: Kombination beider Ansätze mit verstärktem Negativprompt für maximale Klischee-Vermeidung."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "54": {
+    "inputs": {
+      "value": "Cliché Filter V3\nDetects clichéd image motifs and pursues different strategies to avoid clichés\nV1: Direct inversion of clichés. V2: Contextual reinterpretation. V3: Combination of both approaches with enhanced negative prompt for maximum cliché avoidance."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

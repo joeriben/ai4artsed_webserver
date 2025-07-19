@@ -254,5 +254,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "77": {
+    "inputs": {
+      "value": "Das Gegenteil\nKehrt die Bedeutung von Prompts ins Gegenteil um\nErsetzt semantische Elemente und auch ihre Beziehungen zueinander ins Gegenteil. Systematische Inversion von Konzepten."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "78": {
+    "inputs": {
+      "value": "The Opposite\nReverses the meaning of prompts to their opposite\nReplaces semantic elements and also their relationships to each other with opposites. Systematic inversion of concepts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

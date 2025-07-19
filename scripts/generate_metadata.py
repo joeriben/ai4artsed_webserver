@@ -17,7 +17,14 @@ def extract_about_info(workflow_data):
     # Find über and about nodes
     for node_id, node in workflow_data.items():
         if node.get("_meta", {}).get("title") == "über":
-            lines = node.get("inputs", {}).get("value", "").split("\n")
+            # For Note nodes, text is in widgets_values
+            text = ""
+            if "widgets_values" in node and isinstance(node["widgets_values"], list) and len(node["widgets_values"]) > 0:
+                text = node["widgets_values"][0]
+            else:
+                text = node.get("inputs", {}).get("value", "")
+            
+            lines = text.split("\n") if text else []
             if len(lines) >= 1:
                 info["name"]["de"] = lines[0]
             if len(lines) >= 2:
@@ -26,7 +33,14 @@ def extract_about_info(workflow_data):
                 info["longDescription"]["de"] = "\n".join(lines[2:])
                 
         elif node.get("_meta", {}).get("title") == "about":
-            lines = node.get("inputs", {}).get("value", "").split("\n")
+            # For Note nodes, text is in widgets_values
+            text = ""
+            if "widgets_values" in node and isinstance(node["widgets_values"], list) and len(node["widgets_values"]) > 0:
+                text = node["widgets_values"][0]
+            else:
+                text = node.get("inputs", {}).get("value", "")
+            
+            lines = text.split("\n") if text else []
             if len(lines) >= 1:
                 info["name"]["en"] = lines[0]
             if len(lines) >= 2:
@@ -73,6 +87,17 @@ def generate_metadata():
                     
                     # Extract information from about nodes
                     info = extract_about_info(workflow_data)
+                    
+                    # Debug output for problematic workflows
+                    if workflow_id in ["ai4artsed_MODEL_OmniGen2_2507171527", "ai4artsed_MODEL_Comparison_2507191526"]:
+                        print(f"\nDEBUG {workflow_id}:")
+                        print(f"  Name: {info['name']}")
+                        print(f"  Description: {info['description']}")
+                        print(f"  Has 'über' node: {'76' in workflow_data or '77' in workflow_data}")
+                        if '76' in workflow_data:
+                            print(f"  Node 76: {workflow_data['76']}")
+                        if '77' in workflow_data:
+                            print(f"  Node 77: {workflow_data['77']}")
                     
                     # Add to metadata
                     metadata["workflows"][workflow_id] = {

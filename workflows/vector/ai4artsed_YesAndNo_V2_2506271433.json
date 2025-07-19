@@ -181,5 +181,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "44": {
+    "inputs": {
+      "value": "Ja und Nein V2\nErzeugt gegensätzliche Interpretationen desselben Prompts\nV1: Binäre Opposition durch Antonymersetzung. V2: Dialektische Synthese - sucht nach der Vereinigung der Gegensätze in einem Bild. Exploration von Ambivalenz und Dualität."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "45": {
+    "inputs": {
+      "value": "Yes and No V2\nCreates opposing interpretations of the same prompt\nV1: Binary opposition through antonym replacement. V2: Dialectical synthesis - seeks unification of opposites in one image. Exploration of ambivalence and duality."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

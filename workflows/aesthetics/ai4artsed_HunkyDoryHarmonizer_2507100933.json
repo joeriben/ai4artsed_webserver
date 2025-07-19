@@ -251,5 +251,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "49": {
+    "inputs": {
+      "value": "Harmonisierer\nNebenprodukt einer frühen Version des \"Kids-Safety\"-Filters\nVerniedlicht, versüßlicht, harmonisiert. Erzeugt bewusst übertrieben harmonische Bildkompositionen."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "50": {
+    "inputs": {
+      "value": "Harmonizer\nByproduct of an early version of the \"Kids-Safety\" filter\nCutifies, sweetens, harmonizes. Creates deliberately exaggerated harmonic image compositions."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

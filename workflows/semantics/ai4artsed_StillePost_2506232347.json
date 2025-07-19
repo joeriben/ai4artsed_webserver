@@ -527,5 +527,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "150": {
+    "inputs": {
+      "value": "Stille Post\nSimuliert den Stille-Post-Effekt durch mehrfache Übersetzungen\nDer Prompt durchläuft mehrere Sprachen und kehrt verändert zurück. Übersetzungsfehler und -ungenauigkeiten der Sprachmodelle werden im Bildergebnis sichtbar. Eignet sich für Spiele (wie ist es zu dem Bild gekommen)?"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "151": {
+    "inputs": {
+      "value": "Chinese Whispers\nSimulates the Chinese whispers effect through multiple translations\nThe prompt passes through several languages and returns changed. Translation errors and inaccuracies of language models become visible in the image result. Suitable for games (how did this image come about)?"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

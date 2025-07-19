@@ -357,5 +357,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "90": {
+    "inputs": {
+      "value": "Traditionelle Chinesische Kunst\nInterpretiert Prompts nach visuellen Prinzipien einschließlich ihrer kosmologischen Hintergründe\nWendet Konzepte wie Leere, Yin-Yang und die fünf Elemente auf moderne Bildgenerierung an."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "91": {
+    "inputs": {
+      "value": "Traditional Chinese Art\nInterprets prompts according to visual principles including their cosmological backgrounds\nApplies concepts like emptiness, Yin-Yang and the five elements to modern image generation."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

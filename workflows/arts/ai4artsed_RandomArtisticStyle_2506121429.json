@@ -305,5 +305,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "85": {
+    "inputs": {
+      "value": "Zufälliger Kunststil\nWählt jeweils eine aus 50 globalen Kunst- und kulturellen Ausdrucksformen als Vorlage\nEin experimenteller Workflow zur stilistischen Interpretation von Prompts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "86": {
+    "inputs": {
+      "value": "Random Artistic Style\nSelects one of 50 global art and cultural forms of expression as template\nAn experimental workflow for stylistic interpretation of prompts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

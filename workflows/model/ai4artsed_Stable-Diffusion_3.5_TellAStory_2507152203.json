@@ -536,5 +536,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "104": {
+    "inputs": {
+      "value": "Stable Diffusion 3.5 - Geschichtenerzähler\nÜbersetzt Geschichten und Gedichte in Prompts\nErweitert auch kurze Prompts zu narrativen Bildkonzepten. Spezialisiert auf die Transformation literarischer Texte."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "105": {
+    "inputs": {
+      "value": "Stable Diffusion 3.5 - Tell A Story\nTranslates stories and poems into prompts\nAlso expands short prompts into narrative image concepts. Specialized in transforming literary texts."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

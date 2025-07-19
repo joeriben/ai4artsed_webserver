@@ -251,5 +251,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "49": {
+    "inputs": {
+      "value": "Jugendsprache-Transformation\nÜbersetzt Prompts in aktuelle Jugendsprache\nTransformiert formelle oder neutrale Beschreibungen in die Ausdrucksweise zeitgenössischer Jugendkultur."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "50": {
+    "inputs": {
+      "value": "Youth Language Transformation\nTranslates prompts into current youth slang\nTransforms formal or neutral descriptions into the expression style of contemporary youth culture."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

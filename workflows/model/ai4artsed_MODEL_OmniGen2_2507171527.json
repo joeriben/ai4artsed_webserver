@@ -2,7 +2,7 @@
   "6": {
     "inputs": {
       "text": [
-        "46",
+        "43",
         0
       ],
       "clip": [
@@ -17,7 +17,7 @@
   },
   "7": {
     "inputs": {
-      "text": "deformed, blurry, over saturation, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra_limb, ugly, poorly drawn hands, fused fingers, messy drawing, broken legs censor, censored, censor_bar",
+      "text": "blurry, low quality, distorted, ugly, bad anatomy, deformed, poorly drawn",
       "clip": [
         "10",
         0
@@ -54,7 +54,7 @@
     },
     "class_type": "SaveImage",
     "_meta": {
-      "title": "Save Image"
+      "title": "OmniGen2"
     }
   },
   "10": {
@@ -70,14 +70,8 @@
   },
   "11": {
     "inputs": {
-      "width": [
-        "32",
-        0
-      ],
-      "height": [
-        "32",
-        1
-      ],
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     },
     "class_type": "EmptySD3LatentImage",
@@ -104,61 +98,6 @@
       "title": "Load VAE"
     }
   },
-  "14": {
-    "inputs": {
-      "pixels": [
-        "17",
-        0
-      ],
-      "vae": [
-        "13",
-        0
-      ]
-    },
-    "class_type": "VAEEncode",
-    "_meta": {
-      "title": "VAE Encode"
-    }
-  },
-  "15": {
-    "inputs": {
-      "conditioning": [
-        "6",
-        0
-      ],
-      "latent": [
-        "14",
-        0
-      ]
-    },
-    "class_type": "ReferenceLatent",
-    "_meta": {
-      "title": "ReferenceLatent"
-    }
-  },
-  "16": {
-    "inputs": {
-      "image": "ComfyUI_256804_.png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "Load Image"
-    }
-  },
-  "17": {
-    "inputs": {
-      "upscale_method": "area",
-      "megapixels": 1,
-      "image": [
-        "16",
-        0
-      ]
-    },
-    "class_type": "ImageScaleToTotalPixels",
-    "_meta": {
-      "title": "Scale Image to Total Pixels"
-    }
-  },
   "20": {
     "inputs": {
       "sampler_name": "euler"
@@ -166,15 +105,6 @@
     "class_type": "KSamplerSelect",
     "_meta": {
       "title": "KSamplerSelect"
-    }
-  },
-  "21": {
-    "inputs": {
-      "noise_seed": 822957660815591
-    },
-    "class_type": "RandomNoise",
-    "_meta": {
-      "title": "RandomNoise"
     }
   },
   "23": {
@@ -196,16 +126,17 @@
     "inputs": {
       "cfg_conds": 5,
       "cfg_cond2_negative": 2,
+      "style": "regular",
       "model": [
         "12",
         0
       ],
       "cond1": [
-        "15",
+        "6",
         0
       ],
       "cond2": [
-        "29",
+        "7",
         0
       ],
       "negative": [
@@ -221,7 +152,7 @@
   "28": {
     "inputs": {
       "noise": [
-        "21",
+        "74",
         0
       ],
       "guider": [
@@ -246,48 +177,11 @@
       "title": "SamplerCustomAdvanced"
     }
   },
-  "29": {
-    "inputs": {
-      "conditioning": [
-        "7",
-        0
-      ],
-      "latent": [
-        "14",
-        0
-      ]
-    },
-    "class_type": "ReferenceLatent",
-    "_meta": {
-      "title": "ReferenceLatent"
-    }
-  },
-  "32": {
-    "inputs": {
-      "image": [
-        "17",
-        0
-      ]
-    },
-    "class_type": "GetImageSize",
-    "_meta": {
-      "title": "Get Image Size"
-    }
-  },
-  "44": {
-    "inputs": {
-      "value": "Transform character into crystal material, transparent crystal texture, sparkling surface, prismatic light effects, magical appearance, elegant translucent look"
-    },
-    "class_type": "PrimitiveString",
-    "_meta": {
-      "title": "ai4artsed_text_prompt"
-    }
-  },
-  "45": {
+  "42": {
     "inputs": {
       "preview": "",
       "source": [
-        "46",
+        "43",
         0
       ]
     },
@@ -296,16 +190,16 @@
       "title": "Safety-filtered positive prompt"
     }
   },
-  "46": {
+  "43": {
     "inputs": {
       "prompt": [
-        "44",
+        "54",
         0
       ],
       "filter_level": "off",
       "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
       "api_key": [
-        "47",
+        "56",
         0
       ],
       "unload_model": "yes"
@@ -315,47 +209,57 @@
       "title": "AI4ArtsEd Promptsafety Switch"
     }
   },
-  "47": {
+  "54": {
+    "inputs": {
+      "value": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "55": {
+    "inputs": {
+      "value": "THIS IS THE PLACE WHERE YOUR PROMPT SHOULD BE"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "YOUR PROMPT GOES HERE"
+    }
+  },
+  "56": {
     "inputs": {},
     "class_type": "ai4artsed_openrouter_key",
     "_meta": {
       "title": "Secure Access to OpenRouter API Key"
     }
   },
-  "48": {
+  "74": {
     "inputs": {
-      "value": "OmniGen2 Bildbearbeitung\nNutzt OmniGen2 für instruktionsbasierte Bildbearbeitung\nVersteht natürlichsprachliche Anweisungen zur Bildmanipulation ohne Maskierung."
+      "noise_seed": 130991003197907
     },
-    "class_type": "PrimitiveStringMultiline",
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "76": {
+    "inputs": {},
+    "class_type": "Note",
     "_meta": {
       "title": "über"
-    }
-  },
-  "49": {
-    "inputs": {
-      "value": "OmniGen2 Image Editing\nUses OmniGen2 for instruction-based image editing\nUnderstands natural language instructions for image manipulation without masking."
     },
-    "class_type": "PrimitiveStringMultiline",
+    "widgets_values": ["OmniGen2\nBasis-Implementation des OmniGen2 Modells (kein Safety-by-Design!)\nDirekter Zugang zum OmniGen2 Modell ohne zusätzliche Verarbeitungsschritte. Das Modell ist nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter."]
+  },
+  "77": {
+    "inputs": {},
+    "class_type": "Note",
     "_meta": {
       "title": "about"
-    }
-  },
-  "50": {
-    "inputs": {
-      "value": "OmniGen2 Bildbearbeitung\nNutzt OmniGen2 für instruktionsbasierte Bildbearbeitung\nVersteht natürlichsprachliche Anweisungen zur Bildmanipulation ohne Maskierung."
     },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "über"
-    }
-  },
-  "51": {
-    "inputs": {
-      "value": "OmniGen2 Image Editing\nUses OmniGen2 for instruction-based image editing\nUnderstands natural language instructions for image manipulation without masking."
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "about"
-    }
+    "widgets_values": ["OmniGen2\nBasic implementation of the OmniGen2 model (no safety-by-design!)\nDirect Access to the OmniGen2 model without additional processing steps. This model provides no \"safety-by-design\", thus only our safety measures are active."]
   }
 }

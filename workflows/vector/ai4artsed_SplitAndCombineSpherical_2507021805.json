@@ -692,5 +692,23 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "137": {
+    "inputs": {
+      "value": "Sphärische Vektoraufteilung\nMathematische Dekonstruktion von Bedeutungsräumen, sphärische Variante\nZerlegt Prompts in Vektorkomponenten und sucht kurvige Wege zwischen den Punkten im latenten Bedeutungsraum. Tendiert zu organischeren, weniger vorhersehbaren Ergebnissen."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "über"
+    }
+  },
+  "138": {
+    "inputs": {
+      "value": "Spherical Vector Split\nMathematical deconstruction of meaning spaces, spherical variant\nBreaks down prompts into vector components and finds curved paths between points in latent meaning space. Tends towards more organic, less predictable results."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "about"
+    }
   }
 }
