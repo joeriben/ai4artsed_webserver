@@ -14,6 +14,7 @@ from config import (
     OPENROUTER_TO_OLLAMA_MAP,
     ENABLE_VALIDATION_PIPELINE,
     SAFETY_NEGATIVE_TERMS,
+    DEFAULT_NEGATIVE_TERMS,
     ENABLE_MODEL_PATH_RESOLUTION,
     MODEL_RESOLUTION_FALLBACK,
     SWARMUI_BASE_PATH,
@@ -35,7 +36,6 @@ class WorkflowLogicService:
         self.workflows_dir = LOCAL_WORKFLOWS_DIR
         self.metadata_path = self.workflows_dir / "metadata.json"
         self.metadata = None
-        self._generate_metadata()  # Generate metadata on startup
         self._load_metadata()
         
         # Initialize model path resolver if enabled
@@ -49,108 +49,6 @@ class WorkflowLogicService:
             self.model_resolver = None
             logger.info("Model path resolution disabled")
     
-    def _extract_about_info(self, workflow_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
-        """Extract information from über and about nodes"""
-        info = {
-            "name": {"de": "", "en": ""},
-            "description": {"de": "", "en": ""},
-            "longDescription": {"de": "", "en": ""}
-        }
-        
-        # Find über and about nodes
-        for node_id, node in workflow_data.items():
-            if node.get("_meta", {}).get("title") == "über":
-                # For Note nodes, text is in widgets_values
-                text = ""
-                if "widgets_values" in node and isinstance(node["widgets_values"], list) and len(node["widgets_values"]) > 0:
-                    text = node["widgets_values"][0]
-                else:
-                    text = node.get("inputs", {}).get("value", "")
-                
-                lines = text.split("\n") if text else []
-                if len(lines) >= 1:
-                    info["name"]["de"] = lines[0]
-                if len(lines) >= 2:
-                    info["description"]["de"] = lines[1]
-                if len(lines) >= 3:
-                    info["longDescription"]["de"] = "\n".join(lines[2:])
-                    
-            elif node.get("_meta", {}).get("title") == "about":
-                # For Note nodes, text is in widgets_values
-                text = ""
-                if "widgets_values" in node and isinstance(node["widgets_values"], list) and len(node["widgets_values"]) > 0:
-                    text = node["widgets_values"][0]
-                else:
-                    text = node.get("inputs", {}).get("value", "")
-                
-                lines = text.split("\n") if text else []
-                if len(lines) >= 1:
-                    info["name"]["en"] = lines[0]
-                if len(lines) >= 2:
-                    info["description"]["en"] = lines[1]
-                if len(lines) >= 3:
-                    info["longDescription"]["en"] = "\n".join(lines[2:])
-        
-        return info
-    
-    def _generate_metadata(self):
-        """Generate metadata.json from workflow files"""
-        try:
-            metadata = {"categories": {}, "workflows": {}}
-            
-            # Define category names
-            category_names = {
-                "across": {"de": "Medienübergreifend", "en": "Cross-Media"},
-                "aesthetics": {"de": "Ästhetik", "en": "Aesthetics"},
-                "arts": {"de": "Kunstrichtungen", "en": "Art Movements"},
-                "culture": {"de": "Kultur", "en": "Culture"},
-                "flow": {"de": "Ablauf", "en": "Flow"},
-                "model": {"de": "Modelle", "en": "Models"},
-                "semantics": {"de": "Semantik", "en": "Semantics"},
-                "sound": {"de": "Klang", "en": "Sound"},
-                "vector": {"de": "Vektorräume", "en": "Vector Spaces"}
-            }
-            
-            # Process each category folder
-            for category_folder in self.workflows_dir.iterdir():
-                if category_folder.is_dir() and category_folder.name in category_names:
-                    category = category_folder.name
-                    
-                    # Add category metadata
-                    metadata["categories"][category] = category_names[category]
-                    
-                    # Process workflow files in this category
-                    for workflow_file in category_folder.glob("*.json"):
-                        workflow_id = workflow_file.stem
-                        
-                        try:
-                            # Read workflow file
-                            with open(workflow_file, 'r', encoding='utf-8') as f:
-                                workflow_data = json.load(f)
-                            
-                            # Extract information from about nodes
-                            info = self._extract_about_info(workflow_data)
-                            
-                            # Add to metadata
-                            metadata["workflows"][workflow_id] = {
-                                "category": category,
-                                "name": info["name"],
-                                "description": info["description"],
-                                "longDescription": info["longDescription"],
-                                "file": f"{category}/{workflow_file.name}"
-                            }
-                            
-                        except Exception as e:
-                            logger.error(f"Error processing {workflow_file}: {e}")
-            
-            # Write metadata.json
-            with open(self.metadata_path, 'w', encoding='utf-8') as f:
-                json.dump(metadata, f, ensure_ascii=False, indent=2)
-            
-            logger.info(f"Generated metadata.json with {len(metadata['workflows'])} workflows in {len(metadata['categories'])} categories")
-            
-        except Exception as e:
-            logger.error(f"Failed to generate metadata: {e}")
     
     def _load_metadata(self):
         """Load workflow metadata from metadata.json"""
@@ -549,13 +447,14 @@ class WorkflowLogicService:
         
         return safety_node_found
     
-    def enhance_negative_prompts(self, workflow: Dict[str, Any], safety_level: str) -> int:
+    def enhance_negative_prompts(self, workflow: Dict[str, Any], safety_level: str, input_negative_terms: str = "") -> int:
         """
-        Enhance negative prompts with safety terms based on the safety level
+        Enhance negative prompts with default, input, and safety terms
         
         Args:
             workflow: Workflow definition
             safety_level: Safety level ('kids' or 'youth')
+            input_negative_terms: Additional negative terms from user input
             
         Returns:
             Number of negative prompts enhanced
@@ -596,9 +495,33 @@ class WorkflowLogicService:
         
         logger.info(f"Found {len(negative_clip_nodes)} nodes connected to negative inputs: {negative_clip_nodes}")
         
-        # Get the appropriate safety terms based on the safety level
-        safety_terms = ", ".join(SAFETY_NEGATIVE_TERMS.get(safety_level, []))
-        logger.info(f"Safety terms to add (length: {len(safety_terms)} chars)")
+        # Build the additional terms to add in order:
+        # 1. DEFAULT_NEGATIVE_TERMS (from config)
+        # 2. INPUT_NEGATIVE_TERMS (from user)
+        # 3. SAFETY_NEGATIVE_TERMS (based on safety level)
+        
+        terms_to_add = []
+        
+        # Add DEFAULT_NEGATIVE_TERMS if not empty
+        if DEFAULT_NEGATIVE_TERMS and DEFAULT_NEGATIVE_TERMS.strip():
+            terms_to_add.append(DEFAULT_NEGATIVE_TERMS.strip())
+            logger.info(f"Adding DEFAULT_NEGATIVE_TERMS: {DEFAULT_NEGATIVE_TERMS[:50]}...")
+        
+        # Add INPUT_NEGATIVE_TERMS if provided
+        if input_negative_terms and input_negative_terms.strip():
+            terms_to_add.append(input_negative_terms.strip())
+            logger.info(f"Adding INPUT_NEGATIVE_TERMS: {input_negative_terms[:50]}...")
+        
+        # Add SAFETY_NEGATIVE_TERMS based on safety level
+        if safety_level in ["kids", "youth"]:
+            safety_terms = ", ".join(SAFETY_NEGATIVE_TERMS.get(safety_level, []))
+            if safety_terms:
+                terms_to_add.append(safety_terms)
+                logger.info(f"Adding SAFETY_NEGATIVE_TERMS for {safety_level} (length: {len(safety_terms)} chars)")
+        
+        # Combine all terms
+        all_additional_terms = ", ".join(terms_to_add) if terms_to_add else ""
+        logger.info(f"Total additional terms to add (length: {len(all_additional_terms)} chars)")
         
         for node_id in negative_clip_nodes:
             if node_id in workflow:
@@ -610,20 +533,25 @@ class WorkflowLogicService:
                     current_text = node_data.get("inputs", {}).get("text", "")
                     logger.info(f"Current negative prompt text: '{current_text}'")
                     
-                    # Only add safety terms if they're not already present
-                    if safety_terms not in current_text:
-                        # Append safety terms with proper separation
-                        if current_text.strip():
-                            new_text = f"{current_text}, {safety_terms}"
+                    # Append additional terms if we have any
+                    if all_additional_terms:
+                        # Check if the terms are not already present
+                        # Note: This is a simple check, may need refinement for partial matches
+                        if all_additional_terms not in current_text:
+                            # Append terms with proper separation
+                            if current_text.strip():
+                                new_text = f"{current_text}, {all_additional_terms}"
+                            else:
+                                new_text = all_additional_terms
+                            
+                            node_data["inputs"]["text"] = new_text
+                            logger.info(f"Enhanced negative prompt in node {node_id}")
+                            logger.info(f"New text (first 200 chars): '{new_text[:200]}...'")
+                            enhanced_count += 1
                         else:
-                            new_text = safety_terms
-                        
-                        node_data["inputs"]["text"] = new_text
-                        logger.info(f"Enhanced negative prompt in node {node_id}")
-                        logger.info(f"New text (first 100 chars): '{new_text[:100]}...'")
-                        enhanced_count += 1
+                            logger.info(f"Additional terms already present in node {node_id}")
                     else:
-                        logger.info(f"Safety terms already present in node {node_id}")
+                        logger.info(f"No additional terms to add for node {node_id}")
                 else:
                     logger.warning(f"Node {node_id} is not a CLIPTextEncode, it's a {node_type}")
             else:
@@ -631,6 +559,58 @@ class WorkflowLogicService:
         
         logger.info(f"=== Enhancement complete. Enhanced {enhanced_count} negative prompts for {safety_level} safety ===")
         return enhanced_count
+    
+    def apply_sampler_parameters(self, workflow: Dict[str, Any], parameters: Dict[str, Any]) -> Dict[str, int]:
+        """
+        Apply multiple parameters to sampler nodes
+        
+        Args:
+            workflow: Workflow definition
+            parameters: Dictionary of parameters to apply (e.g., {'cfg': 7.5, 'steps': 20})
+            
+        Returns:
+            Dict with counts of updated nodes per parameter
+        """
+        # Define which parameters apply to which node types
+        SAMPLER_PARAM_MAPPING = {
+            'cfg': {'type': float, 'nodes': ['KSampler', 'KSamplerAdvanced', 'SamplerCustom']},
+            'steps': {'type': int, 'nodes': ['KSampler', 'KSamplerAdvanced', 'SamplerCustom']},
+            'denoise': {'type': float, 'nodes': ['KSampler', 'KSamplerAdvanced']},
+            'sampler_name': {'type': str, 'nodes': ['KSampler', 'KSamplerAdvanced']},
+            'scheduler': {'type': str, 'nodes': ['KSampler', 'KSamplerAdvanced']}
+        }
+        
+        update_counts = {}
+        
+        for param_name, param_value in parameters.items():
+            if param_name not in SAMPLER_PARAM_MAPPING:
+                logger.warning(f"Unknown sampler parameter: {param_name}")
+                continue
+                
+            param_config = SAMPLER_PARAM_MAPPING[param_name]
+            target_nodes = param_config['nodes']
+            param_type = param_config['type']
+            
+            # Value is already typed by parse_hidden_commands, but double-check
+            try:
+                typed_value = param_type(param_value)
+            except (ValueError, TypeError):
+                logger.error(f"Invalid value for {param_name}: {param_value}")
+                continue
+            
+            # Apply to all matching nodes
+            count = 0
+            for node_data in workflow.values():
+                if node_data.get("class_type") in target_nodes:
+                    if "inputs" in node_data and param_name in node_data["inputs"]:
+                        node_data["inputs"][param_name] = typed_value
+                        count += 1
+            
+            update_counts[param_name] = count
+            if count > 0:
+                logger.info(f"Set {param_name}={typed_value} in {count} nodes")
+        
+        return update_counts
     
     def _resolve_model_paths(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -690,7 +670,8 @@ class WorkflowLogicService:
     
     def prepare_workflow(self, workflow_name: str, prompt: str, aspect_ratio: str, mode: str, 
                         seed_mode: str = "random", custom_seed: Optional[int] = None,
-                        safety_level: str = "off") -> Dict[str, Any]:
+                        safety_level: str = "off", input_negative_terms: str = "",
+                        hidden_commands: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Prepare a workflow for execution
         
@@ -702,6 +683,8 @@ class WorkflowLogicService:
             seed_mode: Seed control mode ('random', 'standard', or 'fixed')
             custom_seed: Custom seed value for 'fixed' mode
             safety_level: Safety level ('off', 'youth', or 'kids')
+            input_negative_terms: Additional negative terms from user input
+            hidden_commands: Hidden commands parsed from the prompt
             
         Returns:
             Dictionary with workflow, status_updates, used_seed, and success flag
@@ -710,6 +693,16 @@ class WorkflowLogicService:
         workflow = self.load_workflow(workflow_name)
         if not workflow:
             return {"success": False, "error": f"Workflow '{workflow_name}' nicht gefunden."}
+        
+        # Remove Note nodes - they are GUI-only and not executable by ComfyUI
+        nodes_to_remove = []
+        for node_id, node_data in workflow.items():
+            if isinstance(node_data, dict) and node_data.get("class_type") == "Note":
+                nodes_to_remove.append(node_id)
+        
+        for node_id in nodes_to_remove:
+            del workflow[node_id]
+            logger.info(f"Removed Note node {node_id} from workflow")
         
         status_updates = []
         
@@ -734,18 +727,38 @@ class WorkflowLogicService:
         if safety_applied and safety_level != "off":
             status_updates.append(f"Sicherheitsstufe '{safety_level}' aktiviert.")
         
-        # Enhance negative prompts for safety
-        if safety_level in ["kids", "youth"]:
-            logger.info(f"{safety_level} safety level selected - enhancing negative prompts")
-            enhanced_count = self.enhance_negative_prompts(workflow, safety_level)
+        # Enhance negative prompts if we have any terms to add
+        # (DEFAULT_NEGATIVE_TERMS, input_negative_terms, or safety terms)
+        should_enhance = (
+            (DEFAULT_NEGATIVE_TERMS and DEFAULT_NEGATIVE_TERMS.strip()) or
+            (input_negative_terms and input_negative_terms.strip()) or
+            safety_level in ["kids", "youth"]
+        )
+        
+        if should_enhance:
+            logger.info(f"Enhancing negative prompts (safety_level: {safety_level}, has_input_terms: {bool(input_negative_terms)})")
+            enhanced_count = self.enhance_negative_prompts(workflow, safety_level, input_negative_terms)
             if enhanced_count > 0:
+                status_messages = []
+                
+                # Add messages based on what was added
+                if DEFAULT_NEGATIVE_TERMS and DEFAULT_NEGATIVE_TERMS.strip():
+                    status_messages.append("Standard-Negativ-Begriffe")
+                
+                if input_negative_terms and input_negative_terms.strip():
+                    status_messages.append("benutzerdefinierte Negativ-Begriffe")
+                
                 if safety_level == "kids":
-                    status_updates.append(f"Negative Prompts wurden mit Kindersicherheitsbegriffen erweitert ({enhanced_count} Nodes).")
-                else:  # youth
-                    status_updates.append(f"Negative Prompts wurden mit Jugendschutzbegriffen erweitert ({enhanced_count} Nodes).")
-                logger.info(f"Enhanced {enhanced_count} negative prompts for {safety_level} safety")
+                    status_messages.append("Kindersicherheitsbegriffe")
+                elif safety_level == "youth":
+                    status_messages.append("Jugendschutzbegriffe")
+                
+                if status_messages:
+                    message = f"Negative Prompts wurden erweitert mit: {', '.join(status_messages)} ({enhanced_count} Nodes)."
+                    status_updates.append(message)
+                    logger.info(f"Enhanced {enhanced_count} negative prompts")
             else:
-                logger.warning(f"{safety_level} safety selected but no negative prompts were enhanced!")
+                logger.warning("Negative prompt enhancement was requested but no prompts were enhanced!")
         
         # Resolve model paths if enabled
         if ENABLE_MODEL_PATH_RESOLUTION:
@@ -758,6 +771,26 @@ class WorkflowLogicService:
                     return {"success": False, "error": f"Model-Pfad-Auflösung fehlgeschlagen: {str(e)}"}
                 # If fallback is enabled, continue with original workflow
                 status_updates.append("Warnung: Model-Pfad-Auflösung fehlgeschlagen, verwende Original-Pfade.")
+        
+        # Apply hidden commands at the end (these override UI settings)
+        if hidden_commands:
+            logger.info(f"Applying hidden commands: {hidden_commands}")
+            
+            # Handle seed override
+            if 'seed' in hidden_commands:
+                # Override the seed that was set earlier
+                used_seed = self.apply_seed_control(workflow, 'fixed', hidden_commands['seed'])
+                status_updates.append(f"Seed durch Hidden Command auf {used_seed} überschrieben.")
+            
+            # Apply other sampler parameters
+            sampler_params = {k: v for k, v in hidden_commands.items() 
+                            if k not in ['seed', 'notranslate']}  # Exclude already processed
+            
+            if sampler_params:
+                update_counts = self.apply_sampler_parameters(workflow, sampler_params)
+                for param, count in update_counts.items():
+                    if count > 0:
+                        status_updates.append(f"Parameter '{param}' durch Hidden Command in {count} Nodes gesetzt.")
         
         return {
             "success": True,

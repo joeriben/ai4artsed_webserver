@@ -15,6 +15,7 @@ from my_app.services.comfyui_service import comfyui_service
 from my_app.services.workflow_logic_service import workflow_logic_service
 from my_app.services.export_manager import export_manager
 from my_app.services.inpainting_service import inpainting_service
+from my_app.utils.helpers import parse_hidden_commands
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ def workflow_metadata():
         return jsonify({"error": "Failed to get workflow metadata"}), 500
 
 
-@workflow_bp.route('/workflow_has_safety_node/<workflow_name>', methods=['GET'])
+@workflow_bp.route('/workflow_has_safety_node/<path:workflow_name>', methods=['GET'])
 def workflow_has_safety_node(workflow_name):
     """Check if a workflow contains the safety node"""
     try:
@@ -55,7 +56,7 @@ def workflow_has_safety_node(workflow_name):
         return jsonify({"error": "Failed to check workflow"}), 500
 
 
-@workflow_bp.route('/workflow-type/<workflow_name>', methods=['GET'])
+@workflow_bp.route('/workflow-type/<path:workflow_name>', methods=['GET'])
 def workflow_type(workflow_name):
     """Check if a workflow is an inpainting workflow"""
     try:
@@ -66,7 +67,7 @@ def workflow_type(workflow_name):
         return jsonify({"error": "Failed to check workflow type"}), 500
 
 
-@workflow_bp.route('/workflow-info/<workflow_name>', methods=['GET'])
+@workflow_bp.route('/workflow-info/<path:workflow_name>', methods=['GET'])
 def workflow_info(workflow_name):
     """Get comprehensive workflow information"""
     try:
@@ -123,6 +124,7 @@ def execute_workflow():
         seed_mode = data.get('seedMode', 'random')
         custom_seed = data.get('customSeed', None)
         safety_level = data.get('safetyLevel', 'off')
+        input_negative_terms = data.get('inputNegativeTerms', '')
         
         # Input mode and image data
         image_data = data.get('imageData')
@@ -132,13 +134,22 @@ def execute_workflow():
         if not workflow_name:
             return jsonify({"error": "Kein Workflow angegeben."}), 400
         
-        # The frontend already handles the concatenation and sends the final prompt
-        # We just need to validate and process it
-        if not original_prompt:
-            return jsonify({"error": "Kein Prompt angegeben."}), 400
+        # Parse hidden commands from the prompt
+        clean_prompt, hidden_commands = parse_hidden_commands(original_prompt)
         
-        workflow_prompt = original_prompt
+        # Handle server-level commands
+        if hidden_commands.get('notranslate'):
+            skip_translation = True
+            logger.info("Hidden command #notranslate# detected, skipping translation")
+        
+        # Check for empty prompt after command removal
+        if not clean_prompt:
+            return jsonify({"error": "Kein Prompt angegeben (nach Entfernen von Hidden Commands)."}), 400
+        
+        workflow_prompt = clean_prompt
         logger.info(f"Executing workflow: {workflow_name} in mode: {input_mode}")
+        if hidden_commands:
+            logger.info(f"Hidden commands found: {hidden_commands}")
         
         # Validate prompt (translation + safety check) if enabled
         if ENABLE_VALIDATION_PIPELINE:
@@ -160,8 +171,18 @@ def execute_workflow():
                 workflow_prompt = validation_result["translated_prompt"]
                 logger.info(f"Using validated prompt: {workflow_prompt[:50]}...")
         
-        # Prepare workflow with the workflow_prompt
-        result = workflow_logic_service.prepare_workflow(workflow_name, workflow_prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level)
+        # Prepare workflow with the workflow_prompt and input_negative_terms and hidden commands
+        result = workflow_logic_service.prepare_workflow(
+            workflow_name, 
+            workflow_prompt, 
+            aspect_ratio, 
+            mode, 
+            seed_mode, 
+            custom_seed, 
+            safety_level, 
+            input_negative_terms,
+            hidden_commands
+        )
         
         if not result["success"]:
             return jsonify({"error": result["error"]}), 400

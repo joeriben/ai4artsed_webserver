@@ -97,3 +97,60 @@ def calculate_node_execution_order(node_id, workflow_def):
         return order
     
     return visit(node_id)
+
+
+def parse_hidden_commands(prompt):
+    """
+    Parse and remove hidden commands from prompt.
+    Commands format: #command# or #parameter:value#
+    
+    Args:
+        prompt: The input prompt containing hidden commands
+        
+    Returns:
+        tuple: (clean_prompt, commands_dict)
+    """
+    import re
+    commands = {}
+    
+    while True:
+        # Find next command pattern
+        match = re.search(r'#([^:#]+)(?::([^#]+))?#', prompt)
+        if not match:
+            break
+            
+        command = match.group(1).lower()
+        value = match.group(2)
+        
+        # Parse commands with appropriate type conversion
+        if command == 'cfg' and value:
+            try:
+                commands['cfg'] = float(value)
+            except ValueError:
+                pass  # Skip invalid values
+        elif command == 'seed' and value:
+            try:
+                commands['seed'] = int(value)
+            except ValueError:
+                pass  # Skip invalid values
+        elif command == 'steps' and value:
+            try:
+                commands['steps'] = int(value)
+            except ValueError:
+                pass  # Skip invalid values
+        elif command == 'denoise' and value:
+            try:
+                commands['denoise'] = float(value)
+            except ValueError:
+                pass  # Skip invalid values
+        elif command == 'notranslate':
+            commands['notranslate'] = True
+        # Add more commands as needed
+        
+        # Remove command from prompt
+        prompt = prompt[:match.start()] + prompt[match.end():]
+    
+    # Clean up multiple spaces
+    clean_prompt = re.sub(r'\s+', ' ', prompt).strip()
+    
+    return clean_prompt, commands
