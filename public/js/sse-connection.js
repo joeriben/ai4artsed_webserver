@@ -19,12 +19,12 @@ export function initSSEConnection() {
             const data = JSON.parse(event.data);
             console.log('SSE connected:', data);
             reconnectAttempts = 0;
-            updateUserCount(data.active_users);
+            updateQueueStatus(data.queue_status);
         });
         
-        eventSource.addEventListener('user_count', (event) => {
+        eventSource.addEventListener('queue_update', (event) => {
             const data = JSON.parse(event.data);
-            updateUserCount(data.active_users);
+            updateQueueStatus(data.queue_status);
         });
         
         eventSource.addEventListener('heartbeat', (event) => {
@@ -63,14 +63,22 @@ function handleConnectionError() {
         }, reconnectDelay);
     } else {
         console.error('Max reconnection attempts reached');
-        updateUserCount('?');
+        updateQueueStatus({ total: '?' });
     }
 }
 
-function updateUserCount(count) {
-    const userCountElement = document.getElementById('active-users-count');
-    if (userCountElement) {
-        userCountElement.textContent = count;
+function updateQueueStatus(queueStatus) {
+    const queueCountElement = document.getElementById('queue-count');
+    if (queueCountElement && queueStatus) {
+        const count = queueStatus.total || 0;
+        queueCountElement.textContent = count;
+        
+        // Add or remove the 'has-queue' class based on count
+        if (count > 0) {
+            queueCountElement.classList.add('has-queue');
+        } else {
+            queueCountElement.classList.remove('has-queue');
+        }
     }
 }
 
@@ -97,19 +105,19 @@ export async function reportUploadProgress(progress, status = 'uploading') {
     }
 }
 
-// Fallback: Poll for user count if SSE fails
-export async function pollUserCount() {
+// Fallback: Poll for queue status if SSE fails
+export async function pollQueueStatus() {
     try {
-        const response = await fetch('/api/active-users', {
+        const response = await fetch('/api/queue-status', {
             credentials: 'include'
         });
         
         if (response.ok) {
             const data = await response.json();
-            updateUserCount(data.active_users);
+            updateQueueStatus(data);
         }
     } catch (error) {
-        console.error('Error polling user count:', error);
+        console.error('Error polling queue status:', error);
     }
 }
 

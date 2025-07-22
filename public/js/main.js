@@ -6,7 +6,7 @@ import { setupImageHandlers } from './image-handler.js';
 import { loadWorkflows } from './workflow.js';
 import { submitPromptWithFastPolling as submitPrompt } from './workflow-streaming.js';
 import { downloadSession } from './session.js';
-import { initSSEConnection, pollUserCount } from './sse-connection.js';
+import { initSSEConnection, pollQueueStatus } from './sse-connection.js';
 import { initSimpleTranslation } from './simple-translation.js';
 
 // Make submitPrompt available globally for onclick handler
@@ -37,8 +37,8 @@ async function initializeApp() {
         // Initialize SSE connection for real-time updates
         initSSEConnection();
         
-        // Fallback: Poll user count every 60 seconds if SSE fails
-        setInterval(pollUserCount, 60000);
+        // Fallback: Poll queue status every 10 seconds if SSE fails
+        setInterval(pollQueueStatus, 10000);
         
     } catch (error) {
         setStatus('Initialisierung fehlgeschlagen: ' + error.message, 'error');

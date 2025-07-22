@@ -174,6 +174,40 @@ class ComfyUIService:
             params=params,
             timeout=POLLING_TIMEOUT * 2
         )
+    
+    def get_queue_status(self) -> Dict[str, Any]:
+        """
+        Get the current queue status from ComfyUI
+        
+        Returns:
+            Dictionary with queue status information
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/queue",
+                timeout=POLLING_TIMEOUT
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            # Extract queue length
+            queue_running = len(data.get("queue_running", []))
+            queue_pending = len(data.get("queue_pending", []))
+            total_queue = queue_running + queue_pending
+            
+            return {
+                "queue_running": queue_running,
+                "queue_pending": queue_pending,
+                "total": total_queue
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get queue status: {e}")
+            return {
+                "queue_running": 0,
+                "queue_pending": 0,
+                "total": 0
+            }
 
 
 # Create a singleton instance

@@ -9,6 +9,8 @@ from flask import Blueprint, Response, request, session
 from collections import defaultdict
 from threading import Lock
 
+from my_app.services.comfyui_service import comfyui_service
+
 logger = logging.getLogger(__name__)
 
 # Create blueprint
@@ -75,34 +77,58 @@ def sse_connect():
         track_user_activity(user_id)
         
         try:
-            # Send initial connection event
+            # Send initial connection event with queue status
+            try:
+                queue_status = comfyui_service.get_queue_status()
+            except Exception as e:
+                logger.error(f"Error getting initial queue status: {e}")
+                queue_status = {"total": 0, "queue_running": 0, "queue_pending": 0}
+            
             yield generate_sse_event('connected', {
                 'user_id': user_id,
-                'active_users': get_active_users_count()
+                'queue_status': queue_status
             })
             
             # Keep connection alive with periodic updates
             last_update = time.time()
-            update_interval = 30  # Send update every 30 seconds
+            update_interval = 10  # Send update every 10 seconds
+            heartbeat_interval = 15  # Send heartbeat every 15 seconds
+            last_heartbeat = time.time()
             
             while True:
                 current_time = time.time()
                 
-                # Send periodic updates
+                # Send periodic queue status updates
                 if current_time - last_update >= update_interval:
                     track_user_activity(user_id)
-                    yield generate_sse_event('user_count', {
-                        'active_users': get_active_users_count(),
-                        'timestamp': current_time
-                    })
+                    
+                    # Get queue status with error handling
+                    try:
+                        queue_status = comfyui_service.get_queue_status()
+                        yield generate_sse_event('queue_update', {
+                            'queue_status': queue_status,
+                            'timestamp': current_time
+                        })
+                    except Exception as e:
+                        logger.error(f"Error getting queue status update: {e}")
+                        # Send error state but continue
+                        yield generate_sse_event('queue_update', {
+                            'queue_status': {"total": 0, "queue_running": 0, "queue_pending": 0},
+                            'timestamp': current_time,
+                            'error': True
+                        })
+                    
                     last_update = current_time
                 
                 # Send heartbeat to keep connection alive
-                yield generate_sse_event('heartbeat', {
-                    'timestamp': current_time
-                })
+                if current_time - last_heartbeat >= heartbeat_interval:
+                    yield generate_sse_event('heartbeat', {
+                        'timestamp': current_time
+                    })
+                    last_heartbeat = current_time
                 
-                time.sleep(15)  # Send heartbeat every 15 seconds
+                # Short sleep to prevent CPU spinning
+                time.sleep(1)
                 
         except GeneratorExit:
             # Clean up when connection closes
@@ -111,6 +137,13 @@ def sse_connect():
                 if not active_connections[user_id]:
                     del active_connections[user_id]
             logger.info(f"SSE connection closed for user {user_id}")
+        except Exception as e:
+            logger.error(f"Unexpected error in SSE generator: {e}")
+            # Clean up on any error
+            with connections_lock:
+                active_connections[user_id].discard(connection_id)
+                if not active_connections[user_id]:
+                    del active_connections[user_id]
     
     response = Response(generate(), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
@@ -152,5 +185,24 @@ def get_active_users():
     
     return json.dumps({
         'active_users': get_active_users_count(),
+        'timestamp': time.time()
+    })
+
+
+@sse_bp.route('/api/queue-status')
+def get_queue_status_endpoint():
+    """Simple endpoint to get ComfyUI queue status"""
+    
+    # Track this request as user activity
+    if 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
+    
+    user_id = session['user_id']
+    track_user_activity(user_id)
+    
+    queue_status = comfyui_service.get_queue_status()
+    
+    return json.dumps({
+        **queue_status,
         'timestamp': time.time()
     })

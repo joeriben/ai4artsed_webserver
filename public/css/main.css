@@ -45,6 +45,33 @@ body {
   border-radius: var(--radius-md);
 }
 
+.queue-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background-color: var(--border-lighter);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+}
+
+.queue-icon {
+  opacity: 0.7;
+  width: 20px;
+  height: 20px;
+}
+
+#queue-count {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: calc(var(--font-size-sm) + 2px);  /* 2px bigger */
+}
+
+#queue-count.has-queue {
+  color: #dc3545;  /* Red color when queue is not zero */
+}
+
 .user-icon {
   font-size: var(--font-size-base);
 }
@@ -138,6 +165,10 @@ label {
   }
   
   .user-status {
+    align-self: flex-end;
+  }
+  
+  .queue-status {
     align-self: flex-end;
   }
   
