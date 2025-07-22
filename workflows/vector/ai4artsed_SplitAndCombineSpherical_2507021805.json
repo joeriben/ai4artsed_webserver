@@ -710,5 +710,14 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "139": {
+    "inputs": {
+      "text": "ai4artsed_VECTOR_TwoThings_ext_2506230017\n\nThis experimental workflow takes a prompt and tries to split it up into two parts: part A containing the most significant aspect of the prompt, part B containing the rest. A DECONTEXTUALIZER of sorts.\n\nBoth parts are then handled separately, but the resulting vectors are fused to equal parts, i.e. mathematically combined (not semantically).\n\nTHe split-up prompts and the original prompts are processed into images for comparison.\n\nAll images use the same seed, model, cfg, and dimensions.\n\nCLIP: clip_g + t5xxl"
+    },
+    "class_type": "Note",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

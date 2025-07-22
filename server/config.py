@@ -23,12 +23,15 @@ COMFYUI_PORT = "7821"
 
 # Model Configuration
 ANALYSIS_MODEL = "llava:13b"
-TRANSLATION_MODEL = "thinkverse/towerinstruct"
+TRANSLATION_MODEL = "gemma2:9b"
 SAFETY_MODEL = "llama-guard3:8b"
 
 # Feature Flags
 ENABLE_VALIDATION_PIPELINE = True
 ENABLE_AUTO_EXPORT = True
+NO_TRANSLATE = False  # Set to True to skip translation of prompts
+LOOP_GENERATION = 1
+LOOP_COMFYUI = 1
 
 # Translation Prompt
 TRANSLATION_PROMPT = """Translate the following text to English. CRITICAL RULES:
@@ -39,7 +42,7 @@ TRANSLATION_PROMPT = """Translate the following text to English. CRITICAL RULES:
 5. Do not paraphrase, interpret, or summarize. Do not add any comments or explanations.
 6. Do NOT add any meta-comments or explanations
 7. Output ONLY the translated text, nothing else
-8. If text is already in English, return it unchanged
+8. If text is already in English, return it unchanged!
 9. Maintain the exact structure and formatting
 
 Text to translate:
@@ -47,7 +50,7 @@ Text to translate:
 {text}"""
 
 # Analysis System Prompt
-ANALYSIS_SYSTEM_PROMPT = """You are an art historian providing a formal image analysis. Follow this exact structure:
+ANALYSIS_SYSTEM_PROMPT = """You are an art historian providing a formal image analysis. You are not from a western country. You do not redpruce western patterns of observation. Follow this exact structure:
 
 1. Material and medial properties: State the specific media type (oil painting, photograph, digital image, sculpture, etc.)
 
@@ -130,6 +133,9 @@ MODEL_RESOLUTION_FALLBACK = True     # Fallback to original names if resolution 
 # Base paths for model resolution (configure these to your actual paths)
 SWARMUI_BASE_PATH = os.environ.get("SWARMUI_PATH", None)  # e.g., "/path/to/SwarmUI"
 COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", None)  # e.g., "/path/to/ComfyUI"
+
+# Default Negative Terms Configuration
+DEFAULT_NEGATIVE_TERMS = "blurry, bad quality, worst quality, low quality, low resolution, extra limbs, extra fingers, distorted, deformed, jpeg artifacts, watermark"
 
 # Safety Filter Configuration
 SAFETY_NEGATIVE_TERMS = {

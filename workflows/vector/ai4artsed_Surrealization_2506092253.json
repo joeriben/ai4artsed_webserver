@@ -375,5 +375,14 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "78": {
+    "inputs": {
+      "text": "THIS workflow was supposed to do something different, not it mixed clip_l and t5-encoding in a way that produces wirdly surreal imags - without prompting anything \"surreal\" or referring to surrealism.\n\nThis is achieved by interpolating on the Token/Vektor-Level of clip_l & t5, which are fed two optimized prompts.\n\nclip_l works completely different from clip_g here. \n\nChange alpha-Values (\"set t5 influence\") to get more normal or even weirder results."
+    },
+    "class_type": "Note",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

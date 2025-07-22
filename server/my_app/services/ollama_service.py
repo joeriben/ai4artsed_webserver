@@ -13,7 +13,8 @@ from config import (
     ANALYSIS_MODEL,
     ANALYSIS_SYSTEM_PROMPT,
     PROMPT_CACHE,
-    TRANSLATION_PROMPT
+    TRANSLATION_PROMPT,
+    NO_TRANSLATE
 )
 
 logger = logging.getLogger(__name__)
@@ -162,8 +163,12 @@ class OllamaService:
         # Check if this is an image analysis prompt (already in English)
         is_image_analysis = prompt.strip().startswith("Material and medial properties:")
         
-        # Translate prompt only if it's not already in English and not an image analysis
-        if is_image_analysis:
+        # Check if translation is disabled
+        if NO_TRANSLATE:
+            # Skip translation entirely when NO_TRANSLATE is True
+            translated_prompt = prompt
+            logger.info("Translation disabled by NO_TRANSLATE flag, using original prompt")
+        elif is_image_analysis:
             # Image analysis prompts are already in English, skip translation
             translated_prompt = prompt
             logger.info("Skipping translation for image analysis prompt")

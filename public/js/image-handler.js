@@ -5,6 +5,11 @@ import { reportUploadProgress } from './sse-connection.js';
 
 export let uploadedImageData = null;
 
+// Setter function to update uploadedImageData from external modules
+export function setUploadedImageData(data) {
+    uploadedImageData = data;
+}
+
 /**
  * Perform image analysis and return the generated text
  * @param {boolean} isPartOfWorkflow - If true, won't manage UI state

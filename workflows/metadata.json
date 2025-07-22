@@ -5,7 +5,7 @@
       "en": "Culture"
     },
     "across": {
-      "de": "Medienübergreifend",
+      "de": "Cross-Media",
       "en": "Cross-Media"
     },
     "aesthetics": {
@@ -13,11 +13,11 @@
       "en": "Aesthetics"
     },
     "arts": {
-      "de": "Kunstrichtungen",
+      "de": "Künstlerische Positionen",
       "en": "Art Movements"
     },
     "flow": {
-      "de": "Ablauf",
+      "de": "Flow",
       "en": "Flow"
     },
     "model": {
@@ -29,19 +29,19 @@
       "en": "Semantics"
     },
     "sound": {
-      "de": "Klang",
+      "de": "Sound",
       "en": "Sound"
     },
     "vector": {
-      "de": "Vektorräume",
-      "en": "Vector Spaces"
+      "de": "Vektor-Manipulation",
+      "en": "Vector Manipulation"
     }
   },
   "workflows": {
     "ai4artsed_ImageAndSound_2506270842": {
       "category": "across",
       "name": {
-        "de": "Bild und Klang",
+        "de": "Bild und Sound",
         "en": "Image and Sound"
       },
       "description": {
@@ -57,7 +57,7 @@
     "ai4artsed_ImageToSound_2506270842": {
       "category": "across",
       "name": {
-        "de": "Bild zu Klang",
+        "de": "Bild zu Sound",
         "en": "Image to Sound"
       },
       "description": {
@@ -125,8 +125,8 @@
         "en": "Harmonizer"
       },
       "description": {
-        "de": "Nebenprodukt einer frühen Version des \"Kids-Safety\"-Filters",
-        "en": "Byproduct of an early version of the \"Kids-Safety\" filter"
+        "de": "Alles wird supi. Nebenprodukt einer frühen Version des \"Kids-Safety\"-Filters",
+        "en": "Everything bevomes hunky dory. Byproduct of an early version of the \"Kids-Safety\" filter"
       },
       "longDescription": {
         "de": "Verniedlicht, versüßlicht, harmonisiert. Erzeugt bewusst übertrieben harmonische Bildkompositionen.",
@@ -137,12 +137,12 @@
     "ai4artsed_Overdrive_2506152234": {
       "category": "aesthetics",
       "name": {
-        "de": "Overdrive",
+        "de": "Übertreiber",
         "en": "Overdrive"
       },
       "description": {
-        "de": "Inspiriert vom gleichnamigen Gitarreneffekt",
-        "en": "Inspired by the guitar effect of the same name"
+        "de": "Mehr von allem, und davon noch mehr.",
+        "en": "More of everything, and then some."
       },
       "longDescription": {
         "de": "Treibt visuelle Elemente an und über ihre Grenzen. Verstärkt Farben, Kontraste und Strukturen bis zur Verzerrung.",
@@ -153,24 +153,24 @@
     "ai4artsed_Dada_2506220140": {
       "category": "arts",
       "name": {
-        "de": "Dadaismus Transformation",
-        "en": "Dadaism Transformation"
+        "de": "Dadaismus",
+        "en": "Dadaism"
       },
       "description": {
         "de": "Versetzt sich in die Zeit und Situation dadaistischer Künstler_innen",
         "en": "Places itself in the time and situation of Dadaist artists"
       },
       "longDescription": {
-        "de": "Nutzt Absurdität, Zufall und Anti-Kunst-Prinzipien zur Transformation alltäglicher Prompts.",
-        "en": "Uses absurdity, chance and anti-art principles to transform everyday prompts."
+        "de": "Nutzt Absurdität, Zufall und Anti-Kunst-Prinzipien.",
+        "en": "Uses absurdity, chance and anti-art principles."
       },
       "file": "arts/ai4artsed_Dada_2506220140.json"
     },
     "ai4artsed_RandomArtisticStyle_2506121429": {
       "category": "arts",
       "name": {
-        "de": "Zufälliger Kunststil",
-        "en": "Random Artistic Style"
+        "de": "Überraschungskunst!",
+        "en": "Art Surprise!"
       },
       "description": {
         "de": "Wählt jeweils eine aus 50 globalen Kunst- und kulturellen Ausdrucksformen als Vorlage",
@@ -185,8 +185,8 @@
     "ai4artsed_TraditionalChinese_long_prompts_2506121345(1)": {
       "category": "arts",
       "name": {
-        "de": "Traditionelle Chinesische Kunst",
-        "en": "Traditional Chinese Art"
+        "de": "Traditionelle Chinesische Kunst (Literati)",
+        "en": "Traditional Chinese Art (Literati)"
       },
       "description": {
         "de": "Interpretiert Prompts nach visuellen Prinzipien einschließlich ihrer kosmologischen Hintergründe",
@@ -253,8 +253,8 @@
         "en": "Inpainting"
       },
       "description": {
-        "de": "Füllt ausgewählte Bildbereiche mit neuem Inhalt",
-        "en": "Fills selected image areas with new content"
+        "de": "Füllt ausgewählte Bildbereiche mit neuem Inhalt (Bilder mit alpha-Maskierung!)",
+        "en": "Fills selected image areas with new content (Images with alpha-mask!"
       },
       "longDescription": {
         "de": "Ermöglicht gezielte Bildbearbeitung durch Maskierung und Neugenerierung spezifischer Bereiche.",
@@ -262,21 +262,21 @@
       },
       "file": "flow/ai4artsed_Inpainting_2507161820.json"
     },
-    "ai4artsed_OmniGen2ImageEdit_2507171341": {
+      "ai4artsed_Outpainting_2507170641": {
       "category": "flow",
       "name": {
-        "de": "OmniGen2 Bildbearbeitung",
-        "en": "OmniGen2 Image Editing"
+        "de": "Outpainting 1",
+        "en": "Outpainting 1"
       },
       "description": {
-        "de": "Nutzt OmniGen2 für instruktionsbasierte Bildbearbeitung",
-        "en": "Uses OmniGen2 for instruction-based image editing"
+        "de": "Erweitert Bilder über ihre ursprünglichen Grenzen hinaus",
+        "en": "Extends images beyond their original boundaries"
       },
       "longDescription": {
-        "de": "Versteht natürlichsprachliche Anweisungen zur Bildmanipulation ohne Maskierung.",
-        "en": "Understands natural language instructions for image manipulation without masking."
+        "de": "Generiert kohärente Fortsetzungen bestehender Bilder in alle Richtungen. Version 2 mit verbesserter Randintegration.",
+        "en": "Generates coherent continuations of existing images in all directions. Version 2 with improved edge integration."
       },
-      "file": "flow/ai4artsed_OmniGen2ImageEdit_2507171341.json"
+      "file": "flow/ai4artsed_Outpainting_2507170641.json"
     },
     "ai4artsed_Outpainting2_2507170641": {
       "category": "flow",
@@ -294,21 +294,21 @@
       },
       "file": "flow/ai4artsed_Outpainting2_2507170641.json"
     },
-    "ai4artsed_Outpainting_2507170641": {
+    "ai4artsed_OmniGen2ImageEdit_2507171341": {
       "category": "flow",
       "name": {
-        "de": "Outpainting",
-        "en": "Outpainting"
+        "de": "Bilder durch Sprachanweisung verändern (OmniGen2)",
+        "en": "Edit images with verbal instructions (OmniGen2)"
       },
       "description": {
-        "de": "Erweitert Bilder über ihre ursprünglichen Grenzen hinaus",
-        "en": "Extends images beyond their original boundaries"
+        "de": "Nutzt OmniGen2 für instruktionsbasierte Bildbearbeitung",
+        "en": "Uses OmniGen2 for instruction-based image editing"
       },
       "longDescription": {
-        "de": "Generiert kohärente Fortsetzungen bestehender Bilder in alle Richtungen. Version 2 mit verbesserter Randintegration.",
-        "en": "Generates coherent continuations of existing images in all directions. Version 2 with improved edge integration."
+        "de": "Versteht natürlichsprachliche Anweisungen zur Bildmanipulation ohne Maskierung",
+        "en": "Understands natural language instructions for image manipulation without masking."
       },
-      "file": "flow/ai4artsed_Outpainting_2507170641.json"
+      "file": "flow/ai4artsed_OmniGen2ImageEdit_2507171341.json"
     },
     "ai4artsed_(((PromptInterception)))_2507101853": {
       "category": "model",
@@ -317,8 +317,8 @@
         "en": "Prompt Interception"
       },
       "description": {
-        "de": "Ermöglicht Erprobung von Prompt-Interception innerhalb eines Eingabefeldes",
-        "en": "Enables testing of prompt interception within an input field"
+        "de": "Ermöglicht Erprobung von (((Prompt-Interception))) durch 3-fach-Klammern innerhalb eines Eingabefeldes",
+        "en": "Enables testing of (((prompt interception))) using triple brackets within an input field"
       },
       "longDescription": {
         "de": "(((Metaprompt in 3-fache Klammer setzen.))) Der Metaprompt transformiert den regulären Prompt vor der Bildgenerierung.",
@@ -345,12 +345,12 @@
     "ai4artsed_Stable-Diffusion_3.5_TellAStory_2507152203": {
       "category": "model",
       "name": {
-        "de": "Stable Diffusion 3.5 - Geschichtenerzähler",
-        "en": "Stable Diffusion 3.5 - Tell A Story"
+        "de": "Stable Diffusion 3.5 - Erzähle eine Geschichte als Prompt",
+        "en": "Stable Diffusion 3.5 - Tell A Story as a prompt"
       },
       "description": {
-        "de": "Übersetzt Geschichten und Gedichte in Prompts",
-        "en": "Translates stories and poems into prompts"
+        "de": "Übersetzt Geschichten und Gedichte in Prompts. Erweitert kurze Prompts sinnvoll.",
+        "en": "Translates stories and poems into prompts. Expands short prompt in a meaningful way."
       },
       "longDescription": {
         "de": "Erweitert auch kurze Prompts zu narrativen Bildkonzepten. Spezialisiert auf die Transformation literarischer Texte.",
@@ -358,11 +358,11 @@
       },
       "file": "model/ai4artsed_Stable-Diffusion_3.5_TellAStory_2507152203.json"
     },
-    "ai4artsed_MODEL_OmniGen2_2507171527": {
+    "ai4artsed_OmniGen2_2507171527": {
       "category": "model",
       "name": {
-        "de": "OmniGen2",
-        "en": "OmniGen2"
+        "de": "OmniGen2 (komplexeste Sprachverarbeitung)",
+        "en": "OmniGen2 (most complex language processing)"
       },
       "description": {
         "de": "Basis-Implementation des OmniGen2 Modells (kein Safety-by-Design!)",
@@ -372,9 +372,9 @@
         "de": "Direkter Zugang zum OmniGen2 Modell ohne zusätzliche Verarbeitungsschritte. Das Modell ist nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter.",
         "en": "Direct Access to the OmniGen2 model without additional processing steps. This model provides no \"safety-by-design\", thus only our safety measures are active."
       },
-      "file": "model/ai4artsed_MODEL_OmniGen2_2507171527.json"
+      "file": "model/ai4artsed_OmniGen2_2507171527.json"
     },
-    "ai4artsed_MODEL_Comparison_2507191526": {
+    "ai4artsed_Comparison_2507191526": {
       "category": "model",
       "name": {
         "de": "Modellvergleich (Bild)",
@@ -388,13 +388,13 @@
         "de": "Vergleich mehrerer bildgenerierender Modelle ohne zusätzliche Verarbeitungsschritte. Einige Modelle nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter.",
         "en": "Comparison of several image generating models (some of which provide no safety-by-design!). For those models, only our safety measures are available."
       },
-      "file": "model/ai4artsed_MODEL_Comparison_2507191526.json"
+      "file": "model/ai4artsed_Comparison_2507191526.json"
     },
     "ai4artsed_Jugendsprache_2506122317": {
       "category": "semantics",
       "name": {
-        "de": "Jugendsprache-Transformation",
-        "en": "Youth Language Transformation"
+        "de": "Jugendsprache",
+        "en": "Youth Language"
       },
       "description": {
         "de": "Übersetzt Prompts in aktuelle Jugendsprache",
@@ -409,8 +409,8 @@
     "ai4artsed_PigLatin_2506122317": {
       "category": "semantics",
       "name": {
-        "de": "Pig Latin Transformation",
-        "en": "Pig Latin Transformation"
+        "de": "Pig Latin",
+        "en": "Pig Latin"
       },
       "description": {
         "de": "Wendet Pig-Latin-Regeln auf Prompts an",

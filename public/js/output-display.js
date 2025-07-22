@@ -136,15 +136,143 @@ function displayOutputsInOrder(outputs) {
         contentDiv.className = 'output-content';
         
         if (output.type === 'image') {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'result-image-container';
+            imgContainer.style.cssText = 'position: relative; display: inline-block; width: 100%;';
+            
             const img = document.createElement('img');
             img.src = output.url;
             img.className = 'result-image';
             img.style.cssText = 'width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
             img.alt = 'Generated Image';
-            contentDiv.appendChild(img);
+            
+            // Add hover overlay with + button
+            const overlay = document.createElement('div');
+            overlay.className = 'image-hover-overlay';
+            overlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                border-radius: 8px;
+                cursor: pointer;
+            `;
+            
+            const plusButton = document.createElement('button');
+            plusButton.className = 'use-as-input-btn';
+            plusButton.style.cssText = `
+                background: white;
+                border: none;
+                width: 48px;
+                height: 48px;
+                padding: 0;
+                border-radius: 50%;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                transition: transform 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            plusButton.innerHTML = '<img src="icons/redo-circle.svg" alt="Als Input verwenden" style="width: 24px; height: 24px;">';
+            plusButton.title = 'Als Input verwenden';
+            
+            // Add click handler
+            plusButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await useImageAsInput(output.url);
+            });
+            
+            // Add hover effects
+            imgContainer.addEventListener('mouseenter', () => {
+                overlay.style.opacity = '1';
+                plusButton.style.transform = 'scale(1.1)';
+            });
+            
+            imgContainer.addEventListener('mouseleave', () => {
+                overlay.style.opacity = '0';
+                plusButton.style.transform = 'scale(1)';
+            });
+            
+            overlay.appendChild(plusButton);
+            imgContainer.appendChild(img);
+            imgContainer.appendChild(overlay);
+            contentDiv.appendChild(imgContainer);
         } else if (output.type === 'text') {
-            contentDiv.style.cssText = 'white-space: pre-wrap; word-wrap: break-word; font-family: monospace, monospace; background: white; padding: 8px; border-radius: 4px; border: 1px solid #ddd;';
-            contentDiv.textContent = output.content;
+            const textContainer = document.createElement('div');
+            textContainer.className = 'result-text-container';
+            textContainer.style.cssText = 'position: relative;';
+            
+            const textDiv = document.createElement('div');
+            textDiv.style.cssText = 'white-space: pre-wrap; word-wrap: break-word; font-family: monospace, monospace; background: white; padding: 8px; border-radius: 4px; border: 1px solid #ddd;';
+            textDiv.textContent = output.content;
+            
+            // Add hover overlay with recycle button for text
+            const overlay = document.createElement('div');
+            overlay.className = 'text-hover-overlay';
+            overlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                border-radius: 4px;
+                cursor: pointer;
+            `;
+            
+            const recycleButton = document.createElement('button');
+            recycleButton.className = 'use-as-input-btn';
+            recycleButton.style.cssText = `
+                background: white;
+                border: none;
+                width: 48px;
+                height: 48px;
+                padding: 0;
+                border-radius: 50%;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                transition: transform 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            recycleButton.innerHTML = '<img src="icons/redo-circle.svg" alt="Als Prompt verwenden" style="width: 24px; height: 24px;">';
+            recycleButton.title = 'Als Prompt verwenden';
+            
+            // Add click handler for text
+            recycleButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                useTextAsInput(output.content);
+            });
+            
+            // Add hover effects
+            textContainer.addEventListener('mouseenter', () => {
+                overlay.style.opacity = '1';
+                recycleButton.style.transform = 'scale(1.1)';
+            });
+            
+            textContainer.addEventListener('mouseleave', () => {
+                overlay.style.opacity = '0';
+                recycleButton.style.transform = 'scale(1)';
+            });
+            
+            overlay.appendChild(recycleButton);
+            textContainer.appendChild(textDiv);
+            textContainer.appendChild(overlay);
+            contentDiv.appendChild(textContainer);
         } else if (output.type === 'audio') {
             const audioNote = document.createElement('div');
             audioNote.style.cssText = 'font-style: italic; color: #666; padding: 8px; background: white; border-radius: 4px; border: 1px solid #ddd;';
@@ -178,7 +306,77 @@ function displaySimpleResults(outputs, workflowDef) {
     }
 
     if (imageNodes.length > 0) {
-        ui.imageOutputsContent.innerHTML = imageNodes.map(url => `<img src="${url}" class="result-image" alt="Generated Image">`).join('');
+        ui.imageOutputsContent.innerHTML = '';
+        imageNodes.forEach(url => {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'result-image-container';
+            imgContainer.style.cssText = 'position: relative; display: inline-block; width: 100%; margin-bottom: 10px;';
+            
+            const img = document.createElement('img');
+            img.src = url;
+            img.className = 'result-image';
+            img.alt = 'Generated Image';
+            img.style.cssText = 'width: 100%; display: block;';
+            
+            // Add hover overlay with + button
+            const overlay = document.createElement('div');
+            overlay.className = 'image-hover-overlay';
+            overlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                cursor: pointer;
+            `;
+            
+            const plusButton = document.createElement('button');
+            plusButton.className = 'use-as-input-btn';
+            plusButton.style.cssText = `
+                background: white;
+                border: none;
+                width: 48px;
+                height: 48px;
+                padding: 0;
+                border-radius: 50%;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                transition: transform 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            plusButton.innerHTML = '<img src="icons/redo-circle.svg" alt="Als Input verwenden" style="width: 24px; height: 24px;">';
+            plusButton.title = 'Als Input verwenden';
+            
+            // Add click handler
+            plusButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await useImageAsInput(url);
+            });
+            
+            // Add hover effects
+            imgContainer.addEventListener('mouseenter', () => {
+                overlay.style.opacity = '1';
+                plusButton.style.transform = 'scale(1.1)';
+            });
+            
+            imgContainer.addEventListener('mouseleave', () => {
+                overlay.style.opacity = '0';
+                plusButton.style.transform = 'scale(1)';
+            });
+            
+            overlay.appendChild(plusButton);
+            imgContainer.appendChild(img);
+            imgContainer.appendChild(overlay);
+            ui.imageOutputsContent.appendChild(imgContainer);
+        });
         ui.imageOutputs.style.display = 'block';
     }
     
@@ -187,14 +385,80 @@ function displaySimpleResults(outputs, workflowDef) {
         textNodes.forEach(node => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'text-output-item';
+            itemDiv.style.cssText = 'position: relative; margin-bottom: 10px;';
+            
             const labelDiv = document.createElement('div');
             labelDiv.className = 'text-output-label';
             labelDiv.textContent = node.label;
+            
+            const textContainer = document.createElement('div');
+            textContainer.className = 'result-text-container';
+            textContainer.style.cssText = 'position: relative;';
+            
             const contentDiv = document.createElement('div');
             contentDiv.className = 'text-output-content';
             contentDiv.textContent = node.content;
+            
+            // Add hover overlay with recycle button for text
+            const overlay = document.createElement('div');
+            overlay.className = 'text-hover-overlay';
+            overlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                cursor: pointer;
+            `;
+            
+            const recycleButton = document.createElement('button');
+            recycleButton.className = 'use-as-input-btn';
+            recycleButton.style.cssText = `
+                background: white;
+                border: none;
+                width: 48px;
+                height: 48px;
+                padding: 0;
+                border-radius: 50%;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                transition: transform 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            recycleButton.innerHTML = '<img src="icons/redo-circle.svg" alt="Als Prompt verwenden" style="width: 24px; height: 24px;">';
+            recycleButton.title = 'Als Prompt verwenden';
+            
+            // Add click handler for text
+            recycleButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                useTextAsInput(node.content);
+            });
+            
+            // Add hover effects
+            textContainer.addEventListener('mouseenter', () => {
+                overlay.style.opacity = '1';
+                recycleButton.style.transform = 'scale(1.1)';
+            });
+            
+            textContainer.addEventListener('mouseleave', () => {
+                overlay.style.opacity = '0';
+                recycleButton.style.transform = 'scale(1)';
+            });
+            
+            overlay.appendChild(recycleButton);
+            textContainer.appendChild(contentDiv);
+            textContainer.appendChild(overlay);
+            
             itemDiv.appendChild(labelDiv);
-            itemDiv.appendChild(contentDiv);
+            itemDiv.appendChild(textContainer);
             ui.textOutputsContent.appendChild(itemDiv);
         });
         ui.textOutputs.style.display = 'block';
@@ -229,4 +493,79 @@ function addExportContainer(container) {
     `;
     
     container.appendChild(exportContainer);
+}
+
+// Function to use a generated image as input
+async function useImageAsInput(imageUrl) {
+    try {
+        // Show loading status
+        setStatus('Lade Bild...', 'info');
+        
+        // Fetch the image
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden des Bildes');
+        }
+        
+        // Convert to blob
+        const blob = await response.blob();
+        
+        // Convert blob to base64
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Import the image-handler module dynamically
+            import('./image-handler.js').then(module => {
+                // Update the uploadedImageData through the setter function
+                module.setUploadedImageData(e.target.result);
+                
+                // Update UI elements
+                ui.addMediaBtn.style.display = 'none';
+                ui.imagePreviewWrapper.style.display = 'block';
+                ui.imagePreviewWrapper.classList.add('active');
+                ui.imagePreview.src = e.target.result;
+                ui.imageUploadArea.classList.add('has-image');
+                
+                // Update placeholder
+                ui.prompt.placeholder = 'Optionaler Text (wird mit Bildanalyse kombiniert)...';
+                
+                // Show success status
+                setStatus('Bild als Input gesetzt. Sie können zusätzlichen Text eingeben und auf "Generieren" klicken.', 'success');
+                
+                // Scroll to input area
+                ui.prompt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }).catch(error => {
+                console.error('Error importing image-handler:', error);
+                setStatus('Fehler beim Setzen des Bildes als Input', 'error');
+            });
+        };
+        
+        reader.onerror = function() {
+            setStatus('Fehler beim Verarbeiten des Bildes', 'error');
+        };
+        
+        reader.readAsDataURL(blob);
+        
+    } catch (error) {
+        console.error('Error using image as input:', error);
+        setStatus('Fehler: Bild konnte nicht als Input verwendet werden', 'error');
+    }
+}
+
+// Function to use generated text as input
+function useTextAsInput(text) {
+    try {
+        // Update the prompt field with the text
+        ui.prompt.value = text;
+        
+        // Show success status
+        setStatus('Text als Prompt gesetzt. Sie können auf "Generieren" klicken.', 'success');
+        
+        // Scroll to input area and focus
+        ui.prompt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        ui.prompt.focus();
+        
+    } catch (error) {
+        console.error('Error using text as input:', error);
+        setStatus('Fehler: Text konnte nicht als Prompt verwendet werden', 'error');
+    }
 }

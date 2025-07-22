@@ -138,7 +138,7 @@
   },
   "16": {
     "inputs": {
-      "image": "ComfyUI_256804_.png"
+      "image": "image_001.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -170,7 +170,7 @@
   },
   "21": {
     "inputs": {
-      "noise_seed": 822957660815591
+      "noise_seed": 412927115194542
     },
     "class_type": "RandomNoise",
     "_meta": {
@@ -196,6 +196,7 @@
     "inputs": {
       "cfg_conds": 5,
       "cfg_cond2_negative": 2,
+      "style": "regular",
       "model": [
         "12",
         0
@@ -276,7 +277,7 @@
   },
   "44": {
     "inputs": {
-      "value": "Transform character into crystal material, transparent crystal texture, sparkling surface, prismatic light effects, magical appearance, elegant translucent look"
+      "value": "Transform character into crystal material, transparent crystal texture, sparkling surface, prismatic light effects, magical appearance, elegant translucent look!"
     },
     "class_type": "PrimitiveString",
     "_meta": {
@@ -285,7 +286,7 @@
   },
   "45": {
     "inputs": {
-      "preview": "",
+      "preview": "Transform character into crystal material, transparent crystal texture, sparkling surface, prismatic light effects, magical appearance, elegant translucent look!",
       "source": [
         "46",
         0
@@ -320,42 +321,6 @@
     "class_type": "ai4artsed_openrouter_key",
     "_meta": {
       "title": "Secure Access to OpenRouter API Key"
-    }
-  },
-  "48": {
-    "inputs": {
-      "value": "OmniGen2 Bildbearbeitung\nNutzt OmniGen2 für instruktionsbasierte Bildbearbeitung\nVersteht natürlichsprachliche Anweisungen zur Bildmanipulation ohne Maskierung."
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "über"
-    }
-  },
-  "49": {
-    "inputs": {
-      "value": "OmniGen2 Image Editing\nUses OmniGen2 for instruction-based image editing\nUnderstands natural language instructions for image manipulation without masking."
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "about"
-    }
-  },
-  "50": {
-    "inputs": {
-      "value": "OmniGen2 Bildbearbeitung\nNutzt OmniGen2 für instruktionsbasierte Bildbearbeitung\nVersteht natürlichsprachliche Anweisungen zur Bildmanipulation ohne Maskierung."
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "über"
-    }
-  },
-  "51": {
-    "inputs": {
-      "value": "OmniGen2 Image Editing\nUses OmniGen2 for instruction-based image editing\nUnderstands natural language instructions for image manipulation without masking."
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "about"
     }
   }
 }

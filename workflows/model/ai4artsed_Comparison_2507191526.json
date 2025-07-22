@@ -484,7 +484,7 @@
   },
   "75": {
     "inputs": {
-      "value": 0
+      "value": -1047329998025166
     },
     "class_type": "PrimitiveInt",
     "_meta": {
@@ -492,19 +492,21 @@
     }
   },
   "76": {
-    "inputs": {},
-    "class_type": "Note",
-    "_meta": {
-      "title": "about"
+    "inputs": {
+      "text": "Modellvergleich (Bild)\nVergleich mehrerer bildgenerierender Modelle (einige ohne kein Safety-by-Design!)\nVergleich mehrerer bildgenerierender Modelle ohne zusätzliche Verarbeitungsschritte. Einige Modelle nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter."
     },
-    "widgets_values": ["Model Comparison (Image)\nComparison of several image generating models (some of which provide no safety-by-design!)\nComparison of several image generating models (some of which provide no safety-by-design!). For those models, only our safety measures are available."]
-  },
-  "77": {
-    "inputs": {},
     "class_type": "Note",
     "_meta": {
       "title": "über"
+    }
+  },
+  "77": {
+    "inputs": {
+      "text": "Model Comparison (Image)\nComparison of several image generating models (some of which provide no safety-by-design!)\nComparison of several image generating models (some of which provide no safety-by-design!). For those models, only our safety measures are available."
     },
-    "widgets_values": ["Modellvergleich (Bild)\nVergleich mehrerer bildgenerierender Modelle (einige ohne kein Safety-by-Design!)\nVergleich mehrerer bildgenerierender Modelle ohne zusätzliche Verarbeitungsschritte. Einige Modelle nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter."]
+    "class_type": "Note",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

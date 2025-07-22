@@ -179,7 +179,7 @@
   },
   "42": {
     "inputs": {
-      "preview": "",
+      "preview": "THIS IS THE PLACE WHERE YOUR PROMPT SHOULD BE",
       "source": [
         "43",
         0
@@ -239,27 +239,11 @@
   },
   "74": {
     "inputs": {
-      "noise_seed": 130991003197907
+      "noise_seed": 121228537045659
     },
     "class_type": "RandomNoise",
     "_meta": {
       "title": "RandomNoise"
     }
-  },
-  "76": {
-    "inputs": {},
-    "class_type": "Note",
-    "_meta": {
-      "title": "über"
-    },
-    "widgets_values": ["OmniGen2\nBasis-Implementation des OmniGen2 Modells (kein Safety-by-Design!)\nDirekter Zugang zum OmniGen2 Modell ohne zusätzliche Verarbeitungsschritte. Das Modell ist nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter."]
-  },
-  "77": {
-    "inputs": {},
-    "class_type": "Note",
-    "_meta": {
-      "title": "about"
-    },
-    "widgets_values": ["OmniGen2\nBasic implementation of the OmniGen2 model (no safety-by-design!)\nDirect Access to the OmniGen2 model without additional processing steps. This model provides no \"safety-by-design\", thus only our safety measures are active."]
   }
 }

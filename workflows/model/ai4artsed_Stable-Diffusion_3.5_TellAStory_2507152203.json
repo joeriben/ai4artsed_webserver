@@ -554,5 +554,14 @@
     "_meta": {
       "title": "about"
     }
+  },
+  "106": {
+    "inputs": {
+      "text": "This workflow takes very long inputs, such as short stories of poems, and tries to handle them in an optimal way. It will take some decisions concerning the resulting aesthetic impression, such as choosing a CFG value and aspect ratio."
+    },
+    "class_type": "Note",
+    "_meta": {
+      "title": "about"
+    }
   }
 }

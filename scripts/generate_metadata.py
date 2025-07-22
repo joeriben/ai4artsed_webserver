@@ -14,45 +14,49 @@ def extract_about_info(workflow_data):
         "longDescription": {"de": "", "en": ""}
     }
     
-    # Find über and about nodes
+    # Find über and about nodes (can be Note or PrimitiveStringMultiline)
     for node_id, node in workflow_data.items():
-        if node.get("_meta", {}).get("title") == "über":
-            # For Note nodes, text is in widgets_values
-            text = ""
-            if "widgets_values" in node and isinstance(node["widgets_values"], list) and len(node["widgets_values"]) > 0:
-                text = node["widgets_values"][0]
-            else:
-                text = node.get("inputs", {}).get("value", "")
+        if isinstance(node, dict):
+            class_type = node.get("class_type", "")
+            title = node.get("_meta", {}).get("title", "")
             
-            lines = text.split("\n") if text else []
-            if len(lines) >= 1:
-                info["name"]["de"] = lines[0]
-            if len(lines) >= 2:
-                info["description"]["de"] = lines[1]
-            if len(lines) >= 3:
-                info["longDescription"]["de"] = "\n".join(lines[2:])
+            # Check if this is a Note or PrimitiveStringMultiline with über/about title
+            if (class_type == "Note" and title in ["über", "about"]) or \
+               (class_type == "PrimitiveStringMultiline" and title in ["über", "about"]):
                 
-        elif node.get("_meta", {}).get("title") == "about":
-            # For Note nodes, text is in widgets_values
-            text = ""
-            if "widgets_values" in node and isinstance(node["widgets_values"], list) and len(node["widgets_values"]) > 0:
-                text = node["widgets_values"][0]
-            else:
-                text = node.get("inputs", {}).get("value", "")
-            
-            lines = text.split("\n") if text else []
-            if len(lines) >= 1:
-                info["name"]["en"] = lines[0]
-            if len(lines) >= 2:
-                info["description"]["en"] = lines[1]
-            if len(lines) >= 3:
-                info["longDescription"]["en"] = "\n".join(lines[2:])
+                # Get text based on node type
+                if class_type == "Note":
+                    # For Note nodes in API format, text is in inputs.text
+                    text = node.get("inputs", {}).get("text", "")
+                else:
+                    # For PrimitiveStringMultiline, text is in inputs.value
+                    text = node.get("inputs", {}).get("value", "")
+                
+                if title == "über":
+                    lines = text.split("\n") if text else []
+                    if len(lines) >= 1:
+                        info["name"]["de"] = lines[0]
+                    if len(lines) >= 2:
+                        info["description"]["de"] = lines[1]
+                    if len(lines) >= 3:
+                        info["longDescription"]["de"] = "\n".join(lines[2:])
+                        
+                elif title == "about":
+                    lines = text.split("\n") if text else []
+                    if len(lines) >= 1:
+                        info["name"]["en"] = lines[0]
+                    if len(lines) >= 2:
+                        info["description"]["en"] = lines[1]
+                    if len(lines) >= 3:
+                        info["longDescription"]["en"] = "\n".join(lines[2:])
     
     return info
 
 def generate_metadata():
     """Generate metadata.json from workflow files"""
-    workflows_dir = Path("../workflows")
+    # Get the path relative to the script location
+    script_dir = Path(__file__).parent
+    workflows_dir = script_dir.parent / "workflows"
     metadata = {"categories": {}, "workflows": {}}
     
     # Define category names
@@ -89,15 +93,22 @@ def generate_metadata():
                     info = extract_about_info(workflow_data)
                     
                     # Debug output for problematic workflows
-                    if workflow_id in ["ai4artsed_MODEL_OmniGen2_2507171527", "ai4artsed_MODEL_Comparison_2507191526"]:
+                    if workflow_id in ["ai4artsed_OmniGen2ImageEdit_2507171341", "ai4artsed_Comparison_2507191526", "ai4artsed_(((PromptInterception)))_2507101853"]:
                         print(f"\nDEBUG {workflow_id}:")
                         print(f"  Name: {info['name']}")
                         print(f"  Description: {info['description']}")
-                        print(f"  Has 'über' node: {'76' in workflow_data or '77' in workflow_data}")
-                        if '76' in workflow_data:
-                            print(f"  Node 76: {workflow_data['76']}")
-                        if '77' in workflow_data:
-                            print(f"  Node 77: {workflow_data['77']}")
+                        print(f"  Looking for Note/PrimitiveStringMultiline nodes...")
+                        for node_id, node_data in workflow_data.items():
+                            if isinstance(node_data, dict):
+                                class_type = node_data.get("class_type", "")
+                                title = node_data.get("_meta", {}).get("title", "")
+                                if title in ["über", "about"] and class_type in ["Note", "PrimitiveStringMultiline"]:
+                                    if class_type == "Note":
+                                        text = node_data.get("inputs", {}).get("text", "")
+                                    else:
+                                        text = node_data.get("inputs", {}).get("value", "")
+                                    print(f"  Found {title} node (ID: {node_id}, type: {class_type}), text length: {len(text)}")
+                                    print(f"  First 100 chars: {text[:100]}")
                     
                     # Add to metadata
                     metadata["workflows"][workflow_id] = {
