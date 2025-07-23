@@ -57,13 +57,7 @@
                     <li><a href="#custom-nodes">4.2. Custom Nodes</a></li>
                 </ul>
             </li>
-            <li><a href="#sicherheitsfeatures">5. Sicherheitsfeatures</a>
-                <ul>
-                    <li><a href="#prompt-validierung">5.1. Prompt-Validierung und -Übersetzung</a></li>
-                    <li><a href="#safety-node">5.2. Safety Node (ai4artsed_switch_promptsafety.py)</a></li>
-                    <li><a href="#negative-prompts">5.3. Dynamische negative Prompts</a></li>
-                </ul>
-            </li>
+            <li><a href="#sicherheitsfeatures">5. Sicherheitsfeatures: Eine mehrstufige Verteidigung</a></li>
             <li><a href="#weitere-features">6. Weitere wichtige Features</a>
                 <ul>
                     <li><a href="#bild-upload">6.1. Bild-Upload und -Analyse</a></li>
@@ -151,9 +145,9 @@
         <li><code>/list_workflows</code>: Listet alle verfügbaren JSON-Workflows auf.</li>
         <li><code>/workflow_metadata</code>: Liefert die Metadaten (Namen, Kategorien, etc.) aus <code>workflows/metadata.json</code>.</li>
         <li><code>/run_workflow</code>: Der zentrale Endpunkt. Nimmt den Prompt, den ausgewählten Workflow und andere Parameter entgegen, orchestriert die gesamte Logik und reicht den Job an ComfyUI weiter.</li>
-        <li><code>/workflow-status/<prompt_id></code>: Fragt den Status eines laufenden Jobs bei ComfyUI ab.</li>
+        <li><code>/workflow-status/&lt;prompt_id&gt;</code>: Fragt den Status eines laufenden Jobs bei ComfyUI ab.</li>
         <li><code>/analyze_image</code>: Nimmt ein Bild entgegen und sendet es zur Analyse an den Ollama-Service.</li>
-        <li><code>/comfyui/<path:path></code>: Ein Proxy, der Anfragen direkt an das ComfyUI-Backend weiterleitet. Dies ist entscheidend, damit das Frontend z.B. generierte Bilder direkt von ComfyUI laden kann, ohne dass der Flask-Server als zwischengeschalteter Downloader agieren muss.</li>
+        <li><code>/comfyui/&lt;path:path&gt;</code>: Ein Proxy, der Anfragen direkt an das ComfyUI-Backend weiterleitet. Dies ist entscheidend, damit das Frontend z.B. generierte Bilder direkt von ComfyUI laden kann, ohne dass der Flask-Server als zwischengeschalteter Downloader agieren muss.</li>
     </ul>
 
     <h3 id="services">2.4. Services</h3>
@@ -219,7 +213,7 @@
     </p>
     <ul>
         <li><code>submit_workflow</code>: Sendet ein Workflow-JSON an den <code>/prompt</code>-Endpunkt von ComfyUI.</li>
-        <li><code>get_history</code>: Fragt den <code>/history/<prompt_id></code>-Endpunkt ab, um den Status und die Ergebnisse eines Jobs zu erhalten.</li>
+        <li><code>get_history</code>: Fragt den <code>/history/&lt;prompt_id&gt;</code>-Endpunkt ab, um den Status und die Ergebnisse eines Jobs zu erhalten.</li>
         <li><code>download_media</code>: Lädt generierte Medien (Bilder etc.) von ComfyUI.</li>
         <li><code>proxy_request</code>: Leitet Anfragen direkt an ComfyUI weiter.</li>
     </ul>
