@@ -22,8 +22,9 @@ from config import (
 )
 from my_app.utils.helpers import (
     calculate_dimensions,
-    parse_model_name
+    parse_model_name,
 )
+from my_app.utils.negative_terms import normalize_negative_terms
 from my_app.services.model_path_resolver import ModelPathResolver
 
 logger = logging.getLogger(__name__)
@@ -459,6 +460,7 @@ class WorkflowLogicService:
         Returns:
             Number of negative prompts enhanced
         """
+        input_negative_terms = normalize_negative_terms(input_negative_terms)
         enhanced_count = 0
         
         logger.info(f"=== Starting {safety_level} safety enhancement ===")
@@ -689,6 +691,8 @@ class WorkflowLogicService:
         Returns:
             Dictionary with workflow, status_updates, used_seed, and success flag
         """
+        input_negative_terms = normalize_negative_terms(input_negative_terms)
+
         # Load workflow
         workflow = self.load_workflow(workflow_name)
         if not workflow:

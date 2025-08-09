@@ -16,6 +16,7 @@ from my_app.services.workflow_logic_service import workflow_logic_service
 from my_app.services.export_manager import export_manager
 from my_app.services.inpainting_service import inpainting_service
 from my_app.utils.helpers import parse_hidden_commands
+from my_app.utils.negative_terms import normalize_negative_terms
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ def execute_workflow():
         seed_mode = data.get('seedMode', 'random')
         custom_seed = data.get('customSeed', None)
         safety_level = data.get('safetyLevel', 'off')
-        input_negative_terms = data.get('inputNegativeTerms', '')
+        input_negative_terms = normalize_negative_terms(data.get('inputNegativeTerms'))
         
         # Input mode and image data
         image_data = data.get('imageData')
