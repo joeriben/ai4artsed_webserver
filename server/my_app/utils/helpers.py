@@ -152,5 +152,6 @@ def parse_hidden_commands(prompt):
     
     # Clean up multiple spaces
     clean_prompt = re.sub(r'\s+', ' ', prompt).strip()
-    
+
     return clean_prompt, commands
+
