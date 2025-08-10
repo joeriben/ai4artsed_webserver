@@ -25,7 +25,10 @@ logger = logging.getLogger(__name__)
 
 # Import export libraries
 try:
+    import logging as weasy_logging
     from weasyprint import HTML, CSS
+    # Suppress WeasyPrint CSS warnings
+    weasy_logging.getLogger('weasyprint').setLevel(weasy_logging.ERROR)
     WEASYPRINT_AVAILABLE = True
 except ImportError:
     WEASYPRINT_AVAILABLE = False
@@ -82,16 +85,16 @@ class ExportManager:
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
                background-color: #f0f2f5; color: #1c1e21; padding: 20px; line-height: 1.6; }}
         .container {{ max-width: 800px; margin: 0 auto; background-color: #ffffff;
-                     border-radius: 8px; padding: 24px; }}
+                     border-radius: 8px; padding: 24px; border: 1px solid #ddd; }}
         h1 {{ color: #333; border-bottom: 2px solid #007bff; padding-bottom: 12px; }}
-        .metadata {{ background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; }}
+        .metadata {{ background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e0e0e0; }}
         .metadata-item {{ margin-bottom: 8px; }}
         .metadata-label {{ font-weight: bold; color: #495057; }}
-        .prompt-section {{ background-color: #e7f3ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; }}
+        .prompt-section {{ background-color: #e7f3ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #b8daff; }}
         .output-item {{ margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; 
                        border-radius: 6px; background-color: #f9f9f9; }}
         .output-header {{ font-weight: bold; color: #555; margin-bottom: 10px; font-size: 1.1em; }}
-        .output-content img {{ max-width: 100%; height: auto; border-radius: 8px; }}
+        .output-content img {{ max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #ddd; }}
         .output-content audio {{ width: 100%; margin-top: 10px; }}
         .text-content {{ white-space: pre-wrap; word-wrap: break-word; font-family: monospace; 
                         background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd; }}
@@ -723,28 +726,36 @@ class ExportManager:
             return False
         
         try:
-            # Create CSS for single-page PDF
+            # Log the HTML content to debug potential box-shadow references
+            logger.info(f"[PDF DEBUG] Generating PDF for session {session_data.get('session_id', 'unknown')}")
+            
+            # Create CSS for single-page PDF with explicit box-shadow removal
             css = CSS(string="""
                 @page {
                     size: A4;
-                    margin: 0;
+                    margin: 20mm;
                 }
-                @media print {
-                    body {
-                        height: auto;
-                        page-break-inside: avoid;
-                    }
+                body {
+                    font-family: Arial, sans-serif !important;
+                    background-color: white !important;
+                    color: black !important;
+                    line-height: 1.4 !important;
+                }
+                .container {
+                    max-width: none !important;
+                    background-color: white !important;
+                    border: none !important;
+                    padding: 10px !important;
+                }
+                * {
+                    background: white !important;
+                    border-radius: 0 !important;
                 }
             """)
             
-            # Convert paths to absolute for PDF generation
-            session_dir = self.html_dir / session_data['session_dir_name']
-            base_url = f"file://{session_dir}/"
-            
-            # Generate PDF with metadata
-            pdf = HTML(string=html_content, base_url=base_url).write_pdf(
-                stylesheets=[css],
-                pdf_variant='pdf/ua-1'  # For accessibility
+            # Generate PDF with metadata (no base_url to avoid CSS file conflicts)
+            pdf = HTML(string=html_content).write_pdf(
+                stylesheets=[css]
             )
             
             # Write PDF with metadata
