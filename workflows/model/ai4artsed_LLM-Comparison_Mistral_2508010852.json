@@ -1,0 +1,146 @@
+{
+  "1": {
+    "inputs": {
+      "value": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "2": {
+    "inputs": {
+      "input_prompt": [
+        "1",
+        0
+      ],
+      "input_context": "conversationalist",
+      "style_prompt": "react to this prompt",
+      "api_key": [
+        "4",
+        0
+      ],
+      "model": "openrouter/mistralai/mistral-medium-3 [reasoning / $0.40/$2.00]",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "3": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Mistral Medium 3"
+    }
+  },
+  "4": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "5": {
+    "inputs": {
+      "input_prompt": [
+        "1",
+        0
+      ],
+      "input_context": "conversationalist",
+      "style_prompt": "react to this prompt",
+      "api_key": [
+        "4",
+        0
+      ],
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "6": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Mistral Nemo"
+    }
+  },
+  "7": {
+    "inputs": {
+      "input_prompt": [
+        "1",
+        0
+      ],
+      "input_context": "conversationalist",
+      "style_prompt": "react to this prompt",
+      "api_key": [
+        "4",
+        0
+      ],
+      "model": "openrouter/mistralai/ministral-3b [rule-oriented / $0.05/$0.10]",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "8": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Ministral 3B"
+    }
+  },
+  "9": {
+    "inputs": {
+      "value": "Ein Test"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Prompt"
+    }
+  },
+  "11": {
+    "inputs": {
+      "string_a": [
+        "9",
+        0
+      ],
+      "string_b": " #notranslate#",
+      "delimiter": ""
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  }
+}

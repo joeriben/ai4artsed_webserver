@@ -1,0 +1,379 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 523347958541076,
+      "steps": 25,
+      "cfg": 5.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "26",
+        0
+      ],
+      "clip": [
+        "46",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "46",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "20": {
+    "inputs": {
+      "clip_name": "clip_g.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "Ein Glockenturm läutet das große Stadtfest ein."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "46": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "64": {
+    "inputs": {
+      "model": [
+        "71",
+        0
+      ],
+      "operation": [
+        "72",
+        0
+      ]
+    },
+    "class_type": "LatentApplyOperationCFG",
+    "_meta": {
+      "title": "LatentApplyOperationCFG"
+    }
+  },
+  "67": {
+    "inputs": {
+      "samples": [
+        "76",
+        0
+      ],
+      "vae": [
+        "73",
+        2
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "VAEDecodeAudio"
+    }
+  },
+  "70": {
+    "inputs": {
+      "conditioning": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "71": {
+    "inputs": {
+      "shift": 5.000000000000001,
+      "model": [
+        "73",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "ModelSamplingSD3"
+    }
+  },
+  "72": {
+    "inputs": {
+      "multiplier": 1.0000000000000002
+    },
+    "class_type": "LatentOperationTonemapReinhard",
+    "_meta": {
+      "title": "LatentOperationTonemapReinhard"
+    }
+  },
+  "73": {
+    "inputs": {
+      "ckpt_name": "ace_step_v1_3.5b.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "74": {
+    "inputs": {
+      "seconds": 90,
+      "batch_size": 1
+    },
+    "class_type": "EmptyAceStepLatentAudio",
+    "_meta": {
+      "title": "EmptyAceStepLatentAudio"
+    }
+  },
+  "76": {
+    "inputs": {
+      "seed": 170478668234129,
+      "steps": 300,
+      "cfg": 5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.8700000000000002,
+      "model": [
+        "64",
+        0
+      ],
+      "positive": [
+        "77",
+        0
+      ],
+      "negative": [
+        "70",
+        0
+      ],
+      "latent_image": [
+        "74",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "77": {
+    "inputs": {
+      "tags": [
+        "80",
+        0
+      ],
+      "lyrics": [
+        "79",
+        0
+      ],
+      "lyrics_strength": 0.9900000000000002,
+      "clip": [
+        "73",
+        1
+      ]
+    },
+    "class_type": "TextEncodeAceStepAudio",
+    "_meta": {
+      "title": "TextEncodeAceStepAudio"
+    }
+  },
+  "78": {
+    "inputs": {
+      "filename_prefix": "audio/ComfyUI",
+      "quality": "320k",
+      "audioUI": "",
+      "audio": [
+        "67",
+        0
+      ]
+    },
+    "class_type": "SaveAudioMP3",
+    "_meta": {
+      "title": "Save Audio (MP3)"
+    }
+  },
+  "79": {
+    "inputs": {
+      "input_prompt": [
+        "80",
+        0
+      ],
+      "input_context": "Lyricist, Song writer, word smith",
+      "style_prompt": "Your task is to analyze the input. If it is a song, which lyrics would it have? Write the lyrics for this song. Output ONLY the lyrics! Any comments would be sung, too! Keep the lines short, and regard the poetic rhythm (metrical feed).\n\nIf is it a souncscape, sharply reflect if it needs words, or not. If not, just output \".\"",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "80": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": "Write a prompt for a music generating AI. No remarks or comments, just the description for the Audio/Music AI.",
+      "style_prompt": "Your task is to analyze the input. If it where a song, which kind of song would it be? Wich epoch, which style? Or would it rather be a soundscape? Describe the song or soundsscape meticulously!",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "81": {
+    "inputs": {
+      "preview": "\"Create a grand fanfare in the style of late Romantic era brass band marches, evoking images of bustling city streets and joyous celebrations. The piece should start with a single, powerful tolling of a large cathedral bell, followed by a majestic, triumphant melody played by a full brass section, featuring intricate harmonies and dynamic contrasts. The march should build to a climactic finish with a festive, lively rhythm reminiscent of a boisterous parade.\"",
+      "source": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Song/soundscape description"
+    }
+  },
+  "82": {
+    "inputs": {
+      "preview": "In city streets where echoes ring,\nA mighty bell its tone doth sing.\nBrass voices join in grand array,\nEvoking joy on festival day.\n\nMarch forth! March forth!\nBanners high, spirits soar,\nThrough the throng, we shall not ignore.",
+      "source": [
+        "79",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview Any"
+    }
+  }
+}
