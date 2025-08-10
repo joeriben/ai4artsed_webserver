@@ -25,6 +25,7 @@ from my_app.utils.helpers import (
     parse_model_name,
 )
 from my_app.utils.negative_terms import normalize_negative_terms
+from my_app.utils.workflow_node_injection import inject_concatenate_for_safety_terms
 from my_app.services.model_path_resolver import ModelPathResolver
 
 logger = logging.getLogger(__name__)
@@ -510,8 +511,8 @@ class WorkflowLogicService:
             logger.info(f"Adding DEFAULT_NEGATIVE_TERMS: {DEFAULT_NEGATIVE_TERMS[:50]}...")
         
         # Add INPUT_NEGATIVE_TERMS if provided
-        if input_negative_terms and input_negative_terms.strip():
-            terms_to_add.append(input_negative_terms.strip())
+        if input_negative_terms:
+            terms_to_add.append(input_negative_terms)
             logger.info(f"Adding INPUT_NEGATIVE_TERMS: {input_negative_terms[:50]}...")
         
         # Add SAFETY_NEGATIVE_TERMS based on safety level
@@ -533,27 +534,56 @@ class WorkflowLogicService:
                 
                 if node_type == "CLIPTextEncode":
                     current_text = node_data.get("inputs", {}).get("text", "")
-                    logger.info(f"Current negative prompt text: '{current_text}'")
+                    logger.info(f"Current negative prompt input type: {type(current_text)}")
                     
-                    # Append additional terms if we have any
-                    if all_additional_terms:
-                        # Check if the terms are not already present
-                        # Note: This is a simple check, may need refinement for partial matches
-                        if all_additional_terms not in current_text:
-                            # Append terms with proper separation
-                            if current_text.strip():
-                                new_text = f"{current_text}, {all_additional_terms}"
-                            else:
-                                new_text = all_additional_terms
+                    # Check if it's a node connection (list) or a string
+                    if isinstance(current_text, list) and len(current_text) >= 2:
+                        # It's a node connection [node_id, output_idx]
+                        logger.info(f"Node {node_id} has a connection: {current_text}")
+                        
+                        if all_additional_terms:
+                            # Use our new helper to inject a StringConcatenate node
+                            success = inject_concatenate_for_safety_terms(
+                                workflow=workflow,
+                                target_node_id=node_id,
+                                target_input_name="text",
+                                source_connection=current_text,
+                                safety_terms=all_additional_terms,
+                                title=f"Safety Terms ({safety_level})"
+                            )
                             
-                            node_data["inputs"]["text"] = new_text
-                            logger.info(f"Enhanced negative prompt in node {node_id}")
-                            logger.info(f"New text (first 200 chars): '{new_text[:200]}...'")
-                            enhanced_count += 1
+                            if success:
+                                logger.info(f"Successfully injected StringConcatenate node for negative prompt in node {node_id}")
+                                enhanced_count += 1
+                            else:
+                                logger.error(f"Failed to inject StringConcatenate node for node {node_id}")
                         else:
-                            logger.info(f"Additional terms already present in node {node_id}")
+                            logger.info(f"No additional terms to add for node {node_id}")
+                    
+                    elif isinstance(current_text, str):
+                        # It's a regular string, use existing logic
+                        logger.info(f"Current negative prompt text: '{current_text}'")
+                        
+                        # Append additional terms if we have any
+                        if all_additional_terms:
+                            # Check if the terms are not already present
+                            if all_additional_terms not in current_text:
+                                # Append terms with proper separation
+                                if current_text.strip():
+                                    new_text = f"{current_text}, {all_additional_terms}"
+                                else:
+                                    new_text = all_additional_terms
+                                
+                                node_data["inputs"]["text"] = new_text
+                                logger.info(f"Enhanced negative prompt in node {node_id}")
+                                logger.info(f"New text (first 200 chars): '{new_text[:200]}...'")
+                                enhanced_count += 1
+                            else:
+                                logger.info(f"Additional terms already present in node {node_id}")
+                        else:
+                            logger.info(f"No additional terms to add for node {node_id}")
                     else:
-                        logger.info(f"No additional terms to add for node {node_id}")
+                        logger.warning(f"Unexpected text input type in node {node_id}: {type(current_text)}")
                 else:
                     logger.warning(f"Node {node_id} is not a CLIPTextEncode, it's a {node_type}")
             else:
@@ -735,7 +765,7 @@ class WorkflowLogicService:
         # (DEFAULT_NEGATIVE_TERMS, input_negative_terms, or safety terms)
         should_enhance = (
             (DEFAULT_NEGATIVE_TERMS and DEFAULT_NEGATIVE_TERMS.strip()) or
-            (input_negative_terms and input_negative_terms.strip()) or
+            (input_negative_terms) or
             safety_level in ["kids", "youth"]
         )
         
@@ -749,7 +779,7 @@ class WorkflowLogicService:
                 if DEFAULT_NEGATIVE_TERMS and DEFAULT_NEGATIVE_TERMS.strip():
                     status_messages.append("Standard-Negativ-Begriffe")
                 
-                if input_negative_terms and input_negative_terms.strip():
+                if input_negative_terms:
                     status_messages.append("benutzerdefinierte Negativ-Begriffe")
                 
                 if safety_level == "kids":

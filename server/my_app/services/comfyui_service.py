@@ -68,9 +68,20 @@ class ComfyUIService:
             if hasattr(e, 'response') and e.response is not None:
                 try:
                     error_details = e.response.json()
+                    logger.error(f"ComfyUI API error response: {error_details}")
                 except:
                     error_details = e.response.text
+                    logger.error(f"ComfyUI API raw response: {error_details}")
             logger.error(f"ComfyUI request failed: {error_details}")
+            
+            # Log the workflow that failed for debugging
+            logger.error(f"Failed workflow submission. First 500 chars: {str(workflow)[:500]}")
+            
+            # Check for specific Concatenate nodes
+            for node_id, node_data in workflow.items():
+                if node_data.get("class_type") == "Concatenate":
+                    logger.error(f"Found Concatenate node {node_id}: {node_data}")
+            
             return None
     
     def get_history(self, prompt_id: str) -> Optional[Dict[str, Any]]:

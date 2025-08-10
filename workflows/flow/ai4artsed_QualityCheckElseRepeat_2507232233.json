@@ -1,0 +1,266 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 872626058165962,
+      "steps": 25,
+      "cfg": 5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "42",
+        0
+      ],
+      "clip": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "20": {
+    "inputs": {
+      "clip_name": "clip_g.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "48",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "Ein Werbeplakat mit der Aufschrift NICHT DEIN PROMPT auf einer grünen Wiese"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "40": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "clip_g.safetensors",
+      "clip_name3": "t5xxl_enconly.safetensors"
+    },
+    "class_type": "TripleCLIPLoader",
+    "_meta": {
+      "title": "TripleCLIPLoader"
+    }
+  },
+  "41": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Safety-filtered positive prompt"
+    }
+  },
+  "42": {
+    "inputs": {
+      "prompt": [
+        "26",
+        0
+      ],
+      "filter_level": "off",
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "api_key": [
+        "43",
+        0
+      ],
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_switch_promptsafety",
+    "_meta": {
+      "title": "AI4ArtsEd Promptsafety Switch"
+    }
+  },
+  "43": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "44": {
+    "inputs": {
+      "prompt": "image expert ",
+      "model": "local/llava:13b",
+      "system_prompt": "Is this an image of high quality? No missing limbs, good composition, no extra hands etc.? No human hands with more than 5 fingers? No \"half bodies\" where the lower half is missing without reason? Is the spatial composition plausible? \n\nIf the image if flawed by any means? Or is it perfect?",
+      "api_key": [
+        "43",
+        0
+      ],
+      "debug": "disable",
+      "unload_model": "yes",
+      "image": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "ai4artsed_image_analysis",
+    "_meta": {
+      "title": "AI4ArtsEd Image Quality Analysis"
+    }
+  },
+  "45": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "46",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "REPEAT-PROMPT"
+    }
+  },
+  "46": {
+    "inputs": {
+      "input_prompt": [
+        "44",
+        0
+      ],
+      "input_context": "",
+      "style_prompt": "You received an image description. If the description mentioned that the image is flawed in any way, just output the exact term \"#repeat:true#\".\n\nThis flag will cause the system to generate a new, better image with your new prompt.\n\nBut if the image is fine, just output \"#repeat:false#\".\n\n",
+      "api_key": "",
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "47": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "44",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "image analysis"
+    }
+  },
+  "48": {
+    "inputs": {
+      "value": "EIn Hund sitzt am Fenster"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "String"
+    }
+  }
+}

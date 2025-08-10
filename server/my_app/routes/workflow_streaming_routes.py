@@ -17,6 +17,7 @@ from my_app.services.workflow_logic_service import workflow_logic_service
 from my_app.services.export_manager import export_manager
 from my_app.services.streaming_response import create_streaming_response
 from my_app.services.inpainting_service import inpainting_service
+from my_app.utils.negative_terms import normalize_negative_terms
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ def execute_workflow_stream():
             seed_mode = data.get('seedMode', 'random')
             custom_seed = data.get('customSeed', None)
             safety_level = data.get('safetyLevel', 'off')
+            input_negative_terms = normalize_negative_terms(data.get('inputNegativeTerms'))
             
             # New dual input parameters
             image_data = data.get('imageData')
@@ -85,7 +87,7 @@ def execute_workflow_stream():
             
             # Prepare workflow
             result = workflow_logic_service.prepare_workflow(
-                workflow_name, workflow_prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level
+                workflow_name, workflow_prompt, aspect_ratio, mode, seed_mode, custom_seed, safety_level, input_negative_terms
             )
             
             if not result["success"]:
