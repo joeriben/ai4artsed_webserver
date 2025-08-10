@@ -163,6 +163,7 @@ function displayOutputsInOrder(outputs) {
                 transition: opacity 0.3s ease;
                 border-radius: 8px;
                 cursor: pointer;
+                pointer-events: none;
             `;
             
             const plusButton = document.createElement('button');
@@ -193,11 +194,13 @@ function displayOutputsInOrder(outputs) {
             // Add hover effects
             imgContainer.addEventListener('mouseenter', () => {
                 overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
                 plusButton.style.transform = 'scale(1.1)';
             });
-            
+
             imgContainer.addEventListener('mouseleave', () => {
                 overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
                 plusButton.style.transform = 'scale(1)';
             });
             
@@ -231,6 +234,7 @@ function displayOutputsInOrder(outputs) {
                 transition: opacity 0.3s ease;
                 border-radius: 4px;
                 cursor: pointer;
+                pointer-events: none;
             `;
             
             const recycleButton = document.createElement('button');
@@ -261,11 +265,13 @@ function displayOutputsInOrder(outputs) {
             // Add hover effects
             textContainer.addEventListener('mouseenter', () => {
                 overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
                 recycleButton.style.transform = 'scale(1.1)';
             });
-            
+
             textContainer.addEventListener('mouseleave', () => {
                 overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
                 recycleButton.style.transform = 'scale(1)';
             });
             
@@ -334,6 +340,7 @@ function displaySimpleResults(outputs, workflowDef) {
                 opacity: 0;
                 transition: opacity 0.3s ease;
                 cursor: pointer;
+                pointer-events: none;
             `;
             
             const plusButton = document.createElement('button');
@@ -364,11 +371,13 @@ function displaySimpleResults(outputs, workflowDef) {
             // Add hover effects
             imgContainer.addEventListener('mouseenter', () => {
                 overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
                 plusButton.style.transform = 'scale(1.1)';
             });
-            
+
             imgContainer.addEventListener('mouseleave', () => {
                 overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
                 plusButton.style.transform = 'scale(1)';
             });
             
@@ -415,6 +424,7 @@ function displaySimpleResults(outputs, workflowDef) {
                 opacity: 0;
                 transition: opacity 0.3s ease;
                 cursor: pointer;
+                pointer-events: none;
             `;
             
             const recycleButton = document.createElement('button');
@@ -445,11 +455,13 @@ function displaySimpleResults(outputs, workflowDef) {
             // Add hover effects
             textContainer.addEventListener('mouseenter', () => {
                 overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
                 recycleButton.style.transform = 'scale(1.1)';
             });
-            
+
             textContainer.addEventListener('mouseleave', () => {
                 overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
                 recycleButton.style.transform = 'scale(1)';
             });
             
