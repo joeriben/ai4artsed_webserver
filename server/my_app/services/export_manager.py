@@ -81,8 +81,8 @@ class ExportManager:
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
                background-color: #f0f2f5; color: #1c1e21; padding: 20px; line-height: 1.6; }}
-        .container {{ max-width: 800px; margin: 0 auto; background-color: #ffffff; 
-                     border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 24px; }}
+        .container {{ max-width: 800px; margin: 0 auto; background-color: #ffffff;
+                     border-radius: 8px; padding: 24px; }}
         h1 {{ color: #333; border-bottom: 2px solid #007bff; padding-bottom: 12px; }}
         .metadata {{ background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; }}
         .metadata-item {{ margin-bottom: 8px; }}
@@ -91,8 +91,7 @@ class ExportManager:
         .output-item {{ margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; 
                        border-radius: 6px; background-color: #f9f9f9; }}
         .output-header {{ font-weight: bold; color: #555; margin-bottom: 10px; font-size: 1.1em; }}
-        .output-content img {{ max-width: 100%; height: auto; border-radius: 8px; 
-                              box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+        .output-content img {{ max-width: 100%; height: auto; border-radius: 8px; }}
         .output-content audio {{ width: 100%; margin-top: 10px; }}
         .text-content {{ white-space: pre-wrap; word-wrap: break-word; font-family: monospace; 
                         background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd; }}
@@ -731,12 +730,9 @@ class ExportManager:
                     margin: 0;
                 }
                 @media print {
-                    body { 
+                    body {
                         height: auto;
                         page-break-inside: avoid;
-                    }
-                    .container {
-                        box-shadow: none;
                     }
                 }
             """)
