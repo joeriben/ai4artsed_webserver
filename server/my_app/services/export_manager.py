@@ -250,177 +250,127 @@ class ExportManager:
         processed_outputs.sort(key=lambda x: x["execution_order"])
         
         logger.info(f"[EXPORT DEBUG] Processed {len(processed_outputs)} outputs, {len(media_files)} media files")
-        
+
         return processed_outputs, media_files
+
+    def _create_export_files(self, session_data: Dict[str, Any], media_files: List[str],
+                             session_dir: Path, workflow_name: str) -> Dict[str, Any]:
+        """Generate all export formats and metadata for a session.
+
+        This helper centralizes export creation so that manual and
+        automatic exports share the same code path.
+        """
+
+        user_id = session_data["user_id"]
+        timestamp = session_data["timestamp"]
+        session_id = session_data["session_id"]
+
+        # Clean workflow name and ensure safe filenames
+        workflow_clean = workflow_name.replace('.json', '').replace('/', '_').replace('\\', '_')
+
+        # Generate HTML export
+        html_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.html"
+        html_content = self.generate_export_html(session_data, media_files)
+        with open(session_dir / html_filename, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        # Generate additional formats
+        pdf_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.pdf"
+        self.generate_export_pdf(html_content, session_data, self.pdf_dir / pdf_filename)
+
+        xml_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.xml"
+        self.generate_export_xml(session_data, self.xml_dir / xml_filename, session_dir)
+
+        docx_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.docx"
+        self.generate_export_docx(session_data, self.docx_dir / docx_filename, session_dir)
+
+        # Create metadata.json with optional fields
+        metadata = {
+            "user_id": user_id,
+            "session_id": session_id,
+            "timestamp": timestamp,
+            "workflow_name": workflow_name,
+            "prompt": session_data["prompt"],
+            "export_date": datetime.now().isoformat(),
+            "media_files": media_files,
+            "output_count": len(session_data["outputs"])
+        }
+
+        for field in ["translated_prompt", "used_seed", "safety_level"]:
+            if field in session_data:
+                metadata[field] = session_data[field]
+
+        with open(session_dir / "metadata.json", 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+        return {
+            "html_file": html_filename,
+            "pdf_file": pdf_filename,
+            "xml_file": xml_filename,
+            "docx_file": docx_filename,
+            "media_count": len(media_files),
+            "output_count": len(session_data["outputs"])
+        }
     
     def auto_export_session(self, prompt_id: str, workflow_name: str, prompt_text: str,
-                          translated_prompt: str = None, used_seed: int = None, 
+                          translated_prompt: str = None, used_seed: int = None,
                           safety_level: str = 'off') -> bool:
         """
         Automatically export a session after successful completion
-        
+
         Returns:
             True if export successful, False otherwise
         """
         if not ENABLE_AUTO_EXPORT:
             logger.info(f"Auto-export disabled for session {prompt_id}")
             return False
-        
+
         try:
-            # Get session data from ComfyUI - EXACT COPY FROM MANUAL EXPORT
             result = comfyui_service.get_workflow_outputs(prompt_id)
             if not result:
                 return False
-            
+
             outputs = result["outputs"]
             workflow_def = result["workflow_def"]
-            
-            # Generate session identifiers
+
             timestamp = generate_timestamp()
             session_id = prompt_id[:8]
             user_id = "DOE_J"  # Default user for auto-export
-            
-            # Create export directory structure in html subdirectory
+
             session_dir_name = f"session_{user_id}_{timestamp}_{session_id}"
             session_dir = self.html_dir / session_dir_name
             session_dir.mkdir(exist_ok=True)
-            
+
             media_dir = session_dir / "media"
             media_dir.mkdir(exist_ok=True)
-            
-            # Process outputs and collect media - USING CODE FROM create_download_zip
-            processed_outputs = []
-            media_files = []
-            media_counter = 1
-            
-            # Clean workflow name for filename - remove path separators
-            workflow_clean = workflow_name.replace('.json', '').replace('/', '_').replace('\\', '_')
-            
-            for node_id, output in outputs.items():
-                node_title = workflow_def.get(node_id, {}).get("_meta", {}).get("title", f"Node {node_id}")
-                execution_order = calculate_node_execution_order(node_id, workflow_def)
-                
-                if output.get("text"):
-                    processed_outputs.append({
-                        "title": node_title,
-                        "type": "text",
-                        "content": "\n".join(output["text"]),
-                        "execution_order": execution_order
-                    })
-                
-                if output.get("images"):
-                    for idx, img in enumerate(output["images"]):
-                        filename = f"{session_dir_name}_{workflow_clean}_image_{media_counter:03d}.png"
-                        img_url = f"view?filename={img['filename']}&subfolder={img['subfolder']}&type={img['type']}"
-                        
-                        # Download directly using proxy_request like create_download_zip
-                        try:
-                            response = comfyui_service.proxy_request(img_url)
-                            if response.status_code == 200:
-                                # Save to media directory
-                                with open(media_dir / filename, 'wb') as f:
-                                    f.write(response.content)
-                                
-                                processed_outputs.append({
-                                    "title": node_title,
-                                    "type": "image",
-                                    "filename": filename,
-                                    "execution_order": execution_order
-                                })
-                                media_files.append(filename)
-                                media_counter += 1
-                                logger.info(f"Auto-export: Downloaded image {filename}")
-                        except Exception as e:
-                            logger.error(f"Failed to download image: {e}")
-                
-                if output.get("audio"):
-                    for idx, aud in enumerate(output["audio"]):
-                        filename = f"{session_dir_name}_{workflow_clean}_audio_{media_counter:03d}.wav"
-                        aud_url = f"view?filename={aud['filename']}&subfolder={aud['subfolder']}&type={aud['type']}"
-                        
-                        # Download directly using proxy_request like create_download_zip
-                        try:
-                            response = comfyui_service.proxy_request(aud_url)
-                            if response.status_code == 200:
-                                # Save to media directory
-                                with open(media_dir / filename, 'wb') as f:
-                                    f.write(response.content)
-                                
-                                processed_outputs.append({
-                                    "title": node_title,
-                                    "type": "audio",
-                                    "filename": filename,
-                                    "execution_order": execution_order
-                                })
-                                media_files.append(filename)
-                                media_counter += 1
-                                logger.info(f"Auto-export: Downloaded audio {filename}")
-                        except Exception as e:
-                            logger.error(f"Failed to download audio: {e}")
-            
-            # Sort outputs by execution order
-            processed_outputs.sort(key=lambda x: x["execution_order"])
-            logger.info(f"Auto-export: Processed {len(processed_outputs)} outputs, {len(media_files)} media files")
-            
-            # Create session data - INCLUDING AUTO-EXPORT SPECIFIC FIELDS
+
+            processed_outputs, media_files = self.process_outputs(
+                outputs, workflow_def, media_dir,
+                session_prefix=session_dir_name,
+                workflow_name=workflow_name
+            )
+
             session_data = {
                 "user_id": user_id,
                 "session_id": session_id,
                 "timestamp": timestamp,
                 "workflow_name": workflow_name,
                 "prompt": prompt_text,
-                "translated_prompt": translated_prompt or prompt_text,  # Auto-export specific
-                "used_seed": used_seed,  # Auto-export specific
-                "safety_level": safety_level,  # Auto-export specific
                 "outputs": processed_outputs,
-                "session_dir_name": session_dir_name
+                "session_dir_name": session_dir_name,
+                "translated_prompt": translated_prompt or prompt_text,
+                "used_seed": used_seed,
+                "safety_level": safety_level
             }
-            
-            
-            # Generate HTML file with workflow name
-            html_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.html"
-            html_content = self.generate_export_html(session_data, media_files)
-            
-            with open(session_dir / html_filename, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-            
-            # Generate PDF export
-            pdf_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.pdf"
-            self.generate_export_pdf(html_content, session_data, self.pdf_dir / pdf_filename)
-            
-            # Generate XML export
-            xml_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.xml"
-            self.generate_export_xml(session_data, self.xml_dir / xml_filename, session_dir)
-            
-            # Generate DOCX export
-            docx_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.docx"
-            self.generate_export_docx(session_data, self.docx_dir / docx_filename, session_dir)
-            
-            # Create metadata.json
-            metadata = {
-                "user_id": user_id,
-                "session_id": session_id,
-                "timestamp": timestamp,
-                "workflow_name": workflow_name,
-                "prompt": prompt_text,
-                "translated_prompt": translated_prompt or prompt_text,  # Auto-export specific
-                "used_seed": used_seed,  # Auto-export specific
-                "safety_level": safety_level,  # Auto-export specific
-                "export_date": datetime.now().isoformat(),
-                "media_files": media_files,
-                "output_count": len(processed_outputs)
-            }
-            
-            with open(session_dir / "metadata.json", 'w', encoding='utf-8') as f:
-                json.dump(metadata, f, indent=2, ensure_ascii=False)
-            
+
+            self._create_export_files(session_data, media_files, session_dir, workflow_name)
+
             logger.info(f"Successfully auto-exported session {session_id} to {session_dir_name}")
-            
-            # Update the sessions overview
+
             self._update_sessions_js()
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Auto-export failed: {e}")
             return False
@@ -471,58 +421,23 @@ class ExportManager:
                 "outputs": processed_outputs,
                 "session_dir_name": session_dir_name
             }
-            
-            # Clean workflow name for filename
-            workflow_clean = workflow_name.replace('.json', '')
-            
-            # Generate HTML file with workflow name
-            html_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.html"
-            html_content = self.generate_export_html(session_data, media_files)
-            
-            with open(session_dir / html_filename, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-            
-            # Generate PDF export
-            pdf_filename = f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.pdf"
-            self.generate_export_pdf(html_content, session_data, self.pdf_dir / pdf_filename)
-            
-            # Generate XML export
-            xml_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.xml"
-            self.generate_export_xml(session_data, self.xml_dir / xml_filename, session_dir)
-            
-            # Generate DOCX export
-            docx_filename = f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.docx"
-            self.generate_export_docx(session_data, self.docx_dir / docx_filename, session_dir)
-            
-            # Create metadata.json
-            metadata = {
-                "user_id": user_id,
-                "session_id": session_id,
-                "timestamp": timestamp,
-                "workflow_name": workflow_name,
-                "prompt": prompt_text,
-                "export_date": datetime.now().isoformat(),
-                "media_files": media_files,
-                "output_count": len(processed_outputs)
-            }
-            
-            with open(session_dir / "metadata.json", 'w', encoding='utf-8') as f:
-                json.dump(metadata, f, indent=2, ensure_ascii=False)
-            
+
+            export_info = self._create_export_files(session_data, media_files, session_dir, workflow_name)
+
             logger.info(f"Successfully exported session {session_id} to {session_dir_name}")
-            
+
             # Update the sessions overview
             self._update_sessions_js()
-            
+
             return {
                 "success": True,
                 "export_path": session_dir_name,
-                "html_file": html_filename,
-                "media_count": len(media_files),
-                "output_count": len(processed_outputs),
-                "pdf_file": pdf_filename,
-                "xml_file": xml_filename,
-                "docx_file": docx_filename
+                "html_file": export_info["html_file"],
+                "media_count": export_info["media_count"],
+                "output_count": export_info["output_count"],
+                "pdf_file": export_info["pdf_file"],
+                "xml_file": export_info["xml_file"],
+                "docx_file": export_info["docx_file"]
             }
             
         except Exception as e:
