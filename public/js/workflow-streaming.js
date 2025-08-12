@@ -24,12 +24,31 @@ export async function submitPromptWithFastPolling() {
     clearOutputDisplays();
     startProcessingDisplay("Generierung...");
 
-    const workflowName = ui.workflow.value;
+    let workflowName = ui.workflow.value;
     const promptText = ui.prompt.value.trim();
     const selectedRadio = document.querySelector('input[name="aspectRatio"]:checked');
     const aspectRatio = selectedRadio ? selectedRadio.value : '1:1';
     const executionMode = document.querySelector('input[name="execution-mode"]:checked').value;
     const safetyLevel = document.querySelector('input[name="safety-level"]:checked').value;
+
+    if (workflowName === '__random__') {
+        const allowedCategories = ['semantics', 'arts', 'aesthetics'];
+        const randomOptions = Array.from(ui.workflow.options).filter(opt => {
+            if (!opt.value || opt.value === '__random__') return false;
+            return allowedCategories.some(cat => opt.value.startsWith(`${cat}/`));
+        });
+
+        if (randomOptions.length > 0) {
+            const randomOption = randomOptions[Math.floor(Math.random() * randomOptions.length)];
+            workflowName = randomOption.value;
+            ui.workflow.value = workflowName;
+            ui.workflow.dispatchEvent(new Event('change'));
+        } else {
+            setStatus('Keine Workflows verfügbar.', 'error');
+            stopProcessingDisplay();
+            return;
+        }
+    }
 
     if (!workflowName) {
         setStatus('Bitte wählen Sie einen Workflow aus.', 'warning');

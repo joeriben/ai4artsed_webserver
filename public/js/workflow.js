@@ -99,12 +99,15 @@ export async function loadWorkflows() {
             // Build dropdown with categories
             let optionsHtml = '';
             
-            // Get localized UI text
-            const selectText = workflowMetadata?.ui?.selectWorkflow?.[currentLanguage] || 
-                              workflowMetadata?.ui?.selectWorkflow?.['de'] || 
-                              '-- Workflow auswählen --';
-            
-            optionsHtml += `<option value="">${selectText}</option>`;
+            // Get localized UI text for random selection
+            const randomText = workflowMetadata?.ui?.randomWorkflow?.[currentLanguage] ||
+                               workflowMetadata?.ui?.randomWorkflow?.['de'] ||
+                               (currentLanguage === 'de'
+                                   ? '🎲 Zufälliger Workflow (oder auswählen)'
+                                   : '🎲 Random workflow (or choose)');
+
+            // First option: random workflow selected by default
+            optionsHtml += `<option value="__random__" selected>${randomText}</option>`;
             
             // Group workflows by category
             const workflowsByCategory = {};
@@ -179,7 +182,11 @@ export async function loadWorkflows() {
             }
             
             ui.workflow.innerHTML = optionsHtml;
-            
+
+            // Ensure description and safety indicator reset
+            checkWorkflowSafetyNode();
+            updateWorkflowDescription();
+
             // Add event listener for workflow selection
             ui.workflow.addEventListener('change', () => {
                 checkWorkflowSafetyNode();
@@ -200,7 +207,7 @@ function updateWorkflowDescription() {
         existingDesc.remove();
     }
     
-    if (!workflowName || !workflowMetadata) return;
+    if (!workflowName || workflowName === '__random__' || !workflowMetadata) return;
     
     // Extract workflow ID from path (e.g., "aesthetics/workflow.json" -> "workflow")
     const pathParts = workflowName.split('/');
@@ -226,8 +233,8 @@ async function checkWorkflowSafetyNode() {
     const workflowName = ui.workflow.value;
     const safetyPlusIndicator = document.getElementById('safety-plus-indicator');
     
-    if (!workflowName) {
-        // No workflow selected, hide Safety+ indicator
+    if (!workflowName || workflowName === '__random__') {
+        // No workflow selected or random selection, hide Safety+ indicator
         if (safetyPlusIndicator) {
             safetyPlusIndicator.style.display = 'none';
         }
@@ -265,13 +272,32 @@ export async function submitPrompt() {
     
     startProcessingDisplay("Generierung...");
 
-    const workflowName = ui.workflow.value;
+    let workflowName = ui.workflow.value;
     const promptText = ui.prompt.value.trim();
     const selectedRadio = document.querySelector('input[name="aspectRatio"]:checked');
     const aspectRatio = selectedRadio ? selectedRadio.value : '1:1';
     const executionMode = document.querySelector('input[name="execution-mode"]:checked').value;
     const safetyLevel = document.querySelector('input[name="safety-level"]:checked').value;
 
+    if (workflowName === '__random__') {
+        const allowedCategories = ['semantics', 'arts', 'aesthetics'];
+        const randomOptions = Array.from(ui.workflow.options).filter(opt => {
+            if (!opt.value || opt.value === '__random__') return false;
+            return allowedCategories.some(cat => opt.value.startsWith(`${cat}/`));
+        });
+
+        if (randomOptions.length > 0) {
+            const randomOption = randomOptions[Math.floor(Math.random() * randomOptions.length)];
+            workflowName = randomOption.value;
+            ui.workflow.value = workflowName;
+            checkWorkflowSafetyNode();
+            updateWorkflowDescription();
+        } else {
+            setStatus('Keine Workflows verfügbar.', 'error');
+            stopProcessingDisplay();
+            return;
+        }
+    }
     if (!workflowName) {
         setStatus('Bitte wählen Sie einen Workflow aus.', 'warning');
         stopProcessingDisplay();
