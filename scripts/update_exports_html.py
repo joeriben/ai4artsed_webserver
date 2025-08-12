@@ -46,7 +46,17 @@ def generate_exports_html():
                         pdf_file = pdf_dir / f"output_{user_id}_{timestamp}_{session_id}_{workflow_clean}.pdf"
                         xml_file = xml_dir / f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.xml"
                         docx_file = docx_dir / f"export_{user_id}_{timestamp}_{session_id}_{workflow_clean}.docx"
-                        
+
+                        # Determine thumbnail
+                        thumbnail = None
+                        media_dir = session_dir / 'media'
+                        if media_dir.exists():
+                            for pattern in ['*.png', '*.jpg', '*.jpeg', '*.webp', '*.gif']:
+                                files = list(media_dir.glob(pattern))
+                                if files:
+                                    thumbnail = files[0].name
+                                    break
+
                         sessions.append({
                             'folder_name': session_dir.name,
                             'html_file': html_file,
@@ -62,7 +72,8 @@ def generate_exports_html():
                             'has_docx': docx_file.exists(),
                             'pdf_file': pdf_file.name if pdf_file.exists() else None,
                             'xml_file': xml_file.name if xml_file.exists() else None,
-                            'docx_file': docx_file.name if docx_file.exists() else None
+                            'docx_file': docx_file.name if docx_file.exists() else None,
+                            'thumbnail': thumbnail
                         })
                     except Exception as e:
                         print(f"Error reading metadata for {session_dir.name}: {e}")
@@ -133,9 +144,15 @@ def generate_exports_html():
         }}
         .session-header {{
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 15px;
             margin-bottom: 10px;
+        }}
+        .session-thumb {{
+            width: 80px;
+            height: auto;
+            border-radius: 4px;
+            border: 1px solid #ddd;
         }}
         .session-info {{
             flex: 1;
@@ -229,9 +246,12 @@ def generate_exports_html():
         except:
             display_date = session['timestamp']
         
+        thumb_html = f"<img src=\"html/{session['folder_name']}/media/{session['thumbnail']}\" class=\"session-thumb\" alt=\"Thumbnail\">" if session.get('thumbnail') else ""
+
         html_content += f"""
         <div class="session">
             <div class="session-header">
+                {thumb_html}
                 <div class="session-info">
                     <div class="session-title">{session['workflow_clean']}</div>
                     <div class="session-meta">

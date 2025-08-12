@@ -139,6 +139,27 @@ class ComfyUIService:
         except Exception as e:
             logger.error(f"Failed to download media file {url}: {e}")
             return False
+
+    def download_media_bytes(self, url: str) -> Optional[bytes]:
+        """Download a media file and return its content as bytes.
+
+        Args:
+            url: Relative URL of the media file
+
+        Returns:
+            File content as bytes if successful, otherwise None
+        """
+        try:
+            if url.startswith('/'):
+                url = url[1:]
+
+            full_url = f"{self.base_url}/{url}"
+            response = requests.get(full_url, timeout=MEDIA_DOWNLOAD_TIMEOUT)
+            response.raise_for_status()
+            return response.content
+        except Exception as e:
+            logger.error(f"Failed to download media bytes {url}: {e}")
+            return None
     
     def get_workflow_outputs(self, prompt_id: str) -> Optional[Dict[str, Any]]:
         """
