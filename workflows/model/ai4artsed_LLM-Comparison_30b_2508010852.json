@@ -23,7 +23,7 @@
         "4",
         0
       ],
-      "model": "openrouter/mistralai/mistral-medium-3 [reasoning / $0.40/$2.00]",
+      "model": "local/mistral-small:24b [local / $0.00]",
       "debug": "disable",
       "unload_model": "yes"
     },
@@ -42,7 +42,7 @@
     },
     "class_type": "PreviewAny",
     "_meta": {
-      "title": "Mistral Medium 3"
+      "title": "Mistral Small 24b"
     }
   },
   "4": {
@@ -64,7 +64,7 @@
         "4",
         0
       ],
-      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "model": "local/gemma3:27b [local / $0.00]",
       "debug": "disable",
       "unload_model": "yes"
     },
@@ -83,7 +83,7 @@
     },
     "class_type": "PreviewAny",
     "_meta": {
-      "title": "Mistral Nemo"
+      "title": "Gemma3:27b"
     }
   },
   "7": {
@@ -98,7 +98,7 @@
         "4",
         0
       ],
-      "model": "openrouter/mistralai/ministral-3b [rule-oriented / $0.05/$0.10]",
+      "model": "local/qwen3:30b [local / $0.00]",
       "debug": "disable",
       "unload_model": "yes"
     },
@@ -117,7 +117,7 @@
     },
     "class_type": "PreviewAny",
     "_meta": {
-      "title": "Ministral 3B"
+      "title": "Qwen3:30b"
     }
   },
   "9": {
@@ -141,6 +141,74 @@
     "class_type": "StringConcatenate",
     "_meta": {
       "title": "Concatenate"
+    }
+  },
+  "12": {
+    "inputs": {
+      "input_prompt": [
+        "1",
+        0
+      ],
+      "input_context": "conversationalist",
+      "style_prompt": "react to this prompt",
+      "api_key": [
+        "4",
+        0
+      ],
+      "model": "local/deepseek-r1:32b [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "13": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "DeepSeek 32b"
+    }
+  },
+  "14": {
+    "inputs": {
+      "input_prompt": [
+        "1",
+        0
+      ],
+      "input_context": "conversationalist",
+      "style_prompt": "react to this prompt",
+      "api_key": [
+        "4",
+        0
+      ],
+      "model": "local/mixtral:8x7b [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "Mixtral 8x7b"
+    }
+  },
+  "15": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Mixtral 8x7b"
     }
   }
 }

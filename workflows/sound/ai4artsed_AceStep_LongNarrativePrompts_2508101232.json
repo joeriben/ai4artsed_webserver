@@ -1,0 +1,290 @@
+{
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "Large bell ringing at the bell tower of a medieval metropolis (Notre Dame de Paris)"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "44": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": "synaesthetic expert",
+      "style_prompt": "Take the input. Analyze it structurally (relations, objects, dynamicy, rhythms). Analyze it with regard to atmosphere adn emotionality.\n\nAsk yourself the question: \"Are there any sounding things in the input?\"\n\nIf there are sounding things, be it entities or environmental sounds, make them the central part of your output.\n\nYour output will be a sonic scene, a structural, truthful translation of the input into a sonic output (for StableAudio).",
+      "api_key": [
+        "52",
+        0
+      ],
+      "model": "openrouter/google/gemma-3-27b-it [translator / $0.10/$0.18]",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "45": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "44",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final sound/music Prompt"
+    }
+  },
+  "52": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "124": {
+    "inputs": {
+      "model": [
+        "130",
+        0
+      ],
+      "operation": [
+        "131",
+        0
+      ]
+    },
+    "class_type": "LatentApplyOperationCFG",
+    "_meta": {
+      "title": "LatentApplyOperationCFG"
+    }
+  },
+  "127": {
+    "inputs": {
+      "samples": [
+        "135",
+        0
+      ],
+      "vae": [
+        "132",
+        2
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "VAEDecodeAudio"
+    }
+  },
+  "129": {
+    "inputs": {
+      "conditioning": [
+        "136",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "130": {
+    "inputs": {
+      "shift": 5.000000000000001,
+      "model": [
+        "132",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "ModelSamplingSD3"
+    }
+  },
+  "131": {
+    "inputs": {
+      "multiplier": 1.0000000000000002
+    },
+    "class_type": "LatentOperationTonemapReinhard",
+    "_meta": {
+      "title": "LatentOperationTonemapReinhard"
+    }
+  },
+  "132": {
+    "inputs": {
+      "ckpt_name": "ace_step_v1_3.5b.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "133": {
+    "inputs": {
+      "seconds": 90,
+      "batch_size": 1
+    },
+    "class_type": "EmptyAceStepLatentAudio",
+    "_meta": {
+      "title": "EmptyAceStepLatentAudio"
+    }
+  },
+  "135": {
+    "inputs": {
+      "seed": 170478668234129,
+      "steps": 300,
+      "cfg": 5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.8700000000000002,
+      "model": [
+        "124",
+        0
+      ],
+      "positive": [
+        "136",
+        0
+      ],
+      "negative": [
+        "129",
+        0
+      ],
+      "latent_image": [
+        "133",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "136": {
+    "inputs": {
+      "tags": [
+        "138",
+        0
+      ],
+      "lyrics": [
+        "140",
+        0
+      ],
+      "lyrics_strength": 0.9900000000000002,
+      "clip": [
+        "132",
+        1
+      ]
+    },
+    "class_type": "TextEncodeAceStepAudio",
+    "_meta": {
+      "title": "TextEncodeAceStepAudio"
+    }
+  },
+  "137": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "140",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview Any"
+    }
+  },
+  "138": {
+    "inputs": {
+      "input_prompt": [
+        "44",
+        0
+      ],
+      "input_context": "Write a prompt for a music generating AI. No remarks or comments, just the description for the Audio/Music AI.",
+      "style_prompt": "Your task is to analyze the input. If it where a song, which kind of song would it be? Wich epoch, which style? Or would it rather be a soundscape? Describe the song or soundsscape meticulously!",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "139": {
+    "inputs": {
+      "filename_prefix": "audio/ComfyUI",
+      "quality": "320k",
+      "audioUI": "",
+      "audio": [
+        "127",
+        0
+      ]
+    },
+    "class_type": "SaveAudioMP3",
+    "_meta": {
+      "title": "Save Audio (MP3)"
+    }
+  },
+  "140": {
+    "inputs": {
+      "input_prompt": [
+        "138",
+        0
+      ],
+      "input_context": "Lyricist, Song writer, word smith",
+      "style_prompt": "Your task is to analyze the input. If it is a song, which lyrics would it have? Write the lyrics for this song. Output ONLY the lyrics! Any comments would be sung, too! Keep the lines short, and regard the poetic rhythm (metrical feed).\n\nIf is it a souncscape, sharply reflect if it needs words, or not. If not, just output \".\"",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "141": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "138",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Song/soundscape description"
+    }
+  }
+}

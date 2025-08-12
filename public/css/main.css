@@ -12,16 +12,37 @@ body {
   margin: 0;
 }
 
-/* Container Layout */
+/* Container Layout - CSS Grid */
 .container {
-  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas: 
+    "header"
+    "main"
+    "footer";
+  min-height: calc(100vh - 2 * var(--spacing-xl)); /* Account for body padding */
   width: 100%;
   max-width: var(--container-max-width);
   background-color: var(--container-bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--box-shadow);
   padding: var(--spacing-xxl);
-  padding-bottom: 80px;
+  gap: var(--spacing-lg);
+}
+
+.header-container {
+  grid-area: header;
+}
+
+.main-content {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Allow content to shrink */
+}
+
+.footer {
+  grid-area: footer;
 }
 
 /* Header and User Status */
@@ -31,7 +52,6 @@ body {
   align-items: center;
   border-bottom: 1px solid var(--border-light);
   padding-bottom: var(--spacing-md);
-  margin-bottom: var(--spacing-xl);
 }
 
 .user-status {
@@ -116,15 +136,12 @@ label {
 
 /* Footer */
 .footer {
-  position: absolute;
-  bottom: 15px;
-  left: var(--spacing-xxl);
-  right: var(--spacing-xxl);
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid var(--border-lighter);
-  padding-top: 15px;
+  padding-top: var(--spacing-md);
+  margin-top: var(--spacing-lg);
 }
 
 .sponsor-text {
@@ -155,7 +172,7 @@ label {
   
   .container {
     padding: var(--spacing-lg);
-    padding-bottom: 100px;
+    min-height: calc(100vh - 2 * var(--spacing-md)); /* Adjust for smaller body padding */
   }
   
   .header-container {

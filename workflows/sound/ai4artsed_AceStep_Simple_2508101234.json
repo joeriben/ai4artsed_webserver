@@ -1,0 +1,249 @@
+{
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "Large bell ringing at the bell tower of a medieval metropolis (Notre Dame de Paris)"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "125": {
+    "inputs": {
+      "model": [
+        "131",
+        0
+      ],
+      "operation": [
+        "132",
+        0
+      ]
+    },
+    "class_type": "LatentApplyOperationCFG",
+    "_meta": {
+      "title": "LatentApplyOperationCFG"
+    }
+  },
+  "128": {
+    "inputs": {
+      "samples": [
+        "136",
+        0
+      ],
+      "vae": [
+        "133",
+        2
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "VAEDecodeAudio"
+    }
+  },
+  "130": {
+    "inputs": {
+      "conditioning": [
+        "137",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "131": {
+    "inputs": {
+      "shift": 5.000000000000001,
+      "model": [
+        "133",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "ModelSamplingSD3"
+    }
+  },
+  "132": {
+    "inputs": {
+      "multiplier": 1.0000000000000002
+    },
+    "class_type": "LatentOperationTonemapReinhard",
+    "_meta": {
+      "title": "LatentOperationTonemapReinhard"
+    }
+  },
+  "133": {
+    "inputs": {
+      "ckpt_name": "ace_step_v1_3.5b.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "134": {
+    "inputs": {
+      "seconds": 90,
+      "batch_size": 1
+    },
+    "class_type": "EmptyAceStepLatentAudio",
+    "_meta": {
+      "title": "EmptyAceStepLatentAudio"
+    }
+  },
+  "136": {
+    "inputs": {
+      "seed": 170478668234129,
+      "steps": 300,
+      "cfg": 5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.8700000000000002,
+      "model": [
+        "125",
+        0
+      ],
+      "positive": [
+        "137",
+        0
+      ],
+      "negative": [
+        "130",
+        0
+      ],
+      "latent_image": [
+        "134",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "137": {
+    "inputs": {
+      "tags": [
+        "139",
+        0
+      ],
+      "lyrics": [
+        "141",
+        0
+      ],
+      "lyrics_strength": 0.9900000000000002,
+      "clip": [
+        "133",
+        1
+      ]
+    },
+    "class_type": "TextEncodeAceStepAudio",
+    "_meta": {
+      "title": "TextEncodeAceStepAudio"
+    }
+  },
+  "138": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "141",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview Any"
+    }
+  },
+  "139": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": "Write a prompt for a music generating AI. No remarks or comments, just the description for the Audio/Music AI.",
+      "style_prompt": "Your task is to analyze the input. If it where a song, which kind of song would it be? Wich epoch, which style? Or would it rather be a soundscape? Describe the song or soundsscape meticulously!",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "140": {
+    "inputs": {
+      "filename_prefix": "audio/ComfyUI",
+      "quality": "320k",
+      "audioUI": "",
+      "audio": [
+        "128",
+        0
+      ]
+    },
+    "class_type": "SaveAudioMP3",
+    "_meta": {
+      "title": "Save Audio (MP3)"
+    }
+  },
+  "141": {
+    "inputs": {
+      "input_prompt": [
+        "139",
+        0
+      ],
+      "input_context": "Lyricist, Song writer, word smith",
+      "style_prompt": "Your task is to analyze the input. If it is a song, which lyrics would it have? Write the lyrics for this song. Output ONLY the lyrics! Any comments would be sung, too! Keep the lines short, and regard the poetic rhythm (metrical feed).\n\nIf is it a souncscape, sharply reflect if it needs words, or not. If not, just output \".\"",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "local/mistral-nemo:latest [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "142": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "139",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Song/soundscape description"
+    }
+  }
+}

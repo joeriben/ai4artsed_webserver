@@ -23,7 +23,7 @@
         "4",
         0
       ],
-      "model": "openrouter/mistralai/mistral-medium-3 [reasoning / $0.40/$2.00]",
+      "model": "local/llava:13b [local / $0.00]",
       "debug": "disable",
       "unload_model": "yes"
     },
@@ -42,7 +42,7 @@
     },
     "class_type": "PreviewAny",
     "_meta": {
-      "title": "Mistral Medium 3"
+      "title": "LLava 13b"
     }
   },
   "4": {
@@ -64,7 +64,7 @@
         "4",
         0
       ],
-      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "model": "local/mistral-nemo:latest [local / $0.00]",
       "debug": "disable",
       "unload_model": "yes"
     },
@@ -83,7 +83,7 @@
     },
     "class_type": "PreviewAny",
     "_meta": {
-      "title": "Mistral Nemo"
+      "title": "Mistral Nemo (14b)"
     }
   },
   "7": {
@@ -98,7 +98,7 @@
         "4",
         0
       ],
-      "model": "openrouter/mistralai/ministral-3b [rule-oriented / $0.05/$0.10]",
+      "model": "local/qwen3:14b [local / $0.00]",
       "debug": "disable",
       "unload_model": "yes"
     },
@@ -117,7 +117,7 @@
     },
     "class_type": "PreviewAny",
     "_meta": {
-      "title": "Ministral 3B"
+      "title": "Qwen3:14b"
     }
   },
   "9": {
@@ -141,6 +141,105 @@
     "class_type": "StringConcatenate",
     "_meta": {
       "title": "Concatenate"
+    }
+  },
+  "12": {
+    "inputs": {
+      "input_prompt": [
+        "1",
+        0
+      ],
+      "input_context": "conversationalist",
+      "style_prompt": "react to this prompt",
+      "api_key": [
+        "4",
+        0
+      ],
+      "model": "local/gemma3:12b [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "13": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Gemma3 12b"
+    }
+  },
+  "14": {
+    "inputs": {
+      "input_prompt": "",
+      "input_context": "conversationalist",
+      "style_prompt": "react to this prompt",
+      "api_key": [
+        "4",
+        0
+      ],
+      "model": "local/deepseek-r1:14b [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "15": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "DeepSeek-R1 14b"
+    }
+  },
+  "16": {
+    "inputs": {
+      "input_prompt": [
+        "1",
+        0
+      ],
+      "input_context": "conversationalist",
+      "style_prompt": "react to this prompt",
+      "api_key": [
+        "4",
+        0
+      ],
+      "model": "local/mistral:7b [local / $0.00]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "17": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Mistral 7b"
     }
   }
 }
