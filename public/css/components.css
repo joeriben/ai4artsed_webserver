@@ -544,6 +544,34 @@ button.processing .spinner {
   font-style: italic;
 }
 
+/* Workflow Mode Info */
+.workflow-mode-info {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--mode-switch-bg);
+}
+
+.mode-indicator {
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-base);
+}
+
+.mode-indicator.fixed-mode {
+  color: #e67e22;
+}
+
+.mode-indicator.system-mode {
+  color: #3498db;
+}
+
+.mode-description {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 /* Workflow Select optgroup styling */
 #workflow-select optgroup {
   font-weight: bold;

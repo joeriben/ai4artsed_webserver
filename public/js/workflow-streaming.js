@@ -31,11 +31,20 @@ export async function submitPromptWithFastPolling() {
     const executionMode = document.querySelector('input[name="execution-mode"]:checked').value;
     const safetyLevel = document.querySelector('input[name="safety-level"]:checked').value;
 
+    /*
+    // Workflow validation removed: Backend now handles all workflow selection logic.
+    // - USER mode + "random": Backend selects random workflow from all available workflows
+    // - USER mode + specific workflow: Backend uses the selected workflow  
+    // - FIXED mode: Backend always uses configured workflow (ignores frontend value)
+    // - SYSTEM mode: Backend always uses random selection from defined categories
+    // All modes now guarantee a valid workflow will be selected server-side, making
+    // frontend validation obsolete and preventing false-positive error messages.
     if (!workflowName) {
         setStatus('Bitte wählen Sie einen Workflow aus.', 'warning');
         stopProcessingDisplay();
         return;
     }
+    */
 
     // Determine input mode
     let inputMode = 'text_only';

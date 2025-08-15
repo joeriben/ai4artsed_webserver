@@ -46,6 +46,22 @@ def workflow_metadata():
         return jsonify({"error": "Failed to get workflow metadata"}), 500
 
 
+@workflow_bp.route('/workflow_selection_config', methods=['GET'])
+def workflow_selection_config():
+    """Get current workflow selection configuration"""
+    try:
+        from config import WORKFLOW_SELECTION, FIXED_WORKFLOW, SYSTEM_WORKFLOW_FOLDERS
+        
+        return jsonify({
+            "mode": WORKFLOW_SELECTION,
+            "fixed_workflow": FIXED_WORKFLOW,
+            "system_folders": SYSTEM_WORKFLOW_FOLDERS
+        })
+    except Exception as e:
+        logger.error(f"Error getting workflow selection config: {e}")
+        return jsonify({"error": "Failed to get workflow selection config"}), 500
+
+
 @workflow_bp.route('/workflow_has_safety_node/<path:workflow_name>', methods=['GET'])
 def workflow_has_safety_node(workflow_name):
     """Check if a workflow contains the safety node"""
@@ -117,6 +133,8 @@ def validate_prompt():
 def execute_workflow():
     """Execute a workflow with support for three modes: text_only, image_with_text, inpainting"""
     try:
+        from config import WORKFLOW_SELECTION, FIXED_WORKFLOW
+        
         data = request.json
         workflow_name = data.get('workflow')
         original_prompt = data.get('prompt', '').strip()
@@ -132,8 +150,24 @@ def execute_workflow():
         input_mode = data.get('inputMode', 'text_only')
         skip_translation = data.get('skipTranslation', False)
         
-        if not workflow_name:
-            return jsonify({"error": "Kein Workflow angegeben."}), 400
+        # Backend-side workflow selection based on configuration
+        if WORKFLOW_SELECTION == "fixed":
+            workflow_name = FIXED_WORKFLOW
+            logger.info(f"Using fixed workflow: {workflow_name}")
+        elif WORKFLOW_SELECTION == "system":
+            workflow_name = workflow_logic_service.get_random_workflow_from_folders()
+            if not workflow_name:
+                return jsonify({"error": "System konnte keinen Workflow auswählen."}), 500
+            logger.info(f"System selected workflow: {workflow_name}")
+        elif WORKFLOW_SELECTION == "user":
+            if workflow_name == "random":
+                workflow_name = workflow_logic_service.get_random_workflow_from_folders()
+                if not workflow_name:
+                    return jsonify({"error": "System konnte keinen zufälligen Workflow auswählen."}), 500
+                logger.info(f"User requested random workflow: {workflow_name}")
+            elif not workflow_name:
+                return jsonify({"error": "Kein Workflow angegeben."}), 400
+            # else: workflow_name remains the user-selected workflow
         
         # Parse hidden commands from the prompt
         clean_prompt, hidden_commands = parse_hidden_commands(original_prompt)

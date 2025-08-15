@@ -162,3 +162,11 @@ SAFETY_NEGATIVE_TERMS = {
 
 # Backwards compatibility
 KIDS_SAFETY_NEGATIVE_TERMS = SAFETY_NEGATIVE_TERMS["kids"]
+
+# Workflow Selection Configuration
+WORKFLOW_SELECTION = "system"  # "user", "fixed", "system"
+FIXED_WORKFLOW = "model/ai4artsed_Stable-Diffusion-3.5_2507152202.json"  # Only used when WORKFLOW_SELECTION = "fixed"
+
+# System mode: Random workflow selection from specified folders
+# These correspond directly to folder names under /workflows/
+SYSTEM_WORKFLOW_FOLDERS = ["aesthetics", "semantics", "arts"]

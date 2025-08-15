@@ -84,13 +84,27 @@ function initializeSeedControl() {
 
 export async function loadWorkflows() {
     try {
-        // Fetch metadata first
+        // Fetch workflow selection configuration first
+        const configResponse = await fetch('/workflow_selection_config');
+        let workflowConfig = null;
+        if (configResponse.ok) {
+            workflowConfig = await configResponse.json();
+        }
+        
+        // Fetch metadata
         const metaResponse = await fetch('/workflow_metadata');
         if (metaResponse.ok) {
             workflowMetadata = await metaResponse.json();
         }
         
-        // Then fetch workflows list
+        // Handle different workflow selection modes
+        if (workflowConfig && workflowConfig.mode !== "user") {
+            handleNonUserMode(workflowConfig);
+            return;
+        }
+        
+        // User mode: normal workflow dropdown
+        // Fetch workflows list
         const response = await fetch('/list_workflows');
         if (response.ok) {
             const result = await response.json();
@@ -99,12 +113,10 @@ export async function loadWorkflows() {
             // Build dropdown with categories
             let optionsHtml = '';
             
-            // Get localized UI text
-            const selectText = workflowMetadata?.ui?.selectWorkflow?.[currentLanguage] || 
-                              workflowMetadata?.ui?.selectWorkflow?.['de'] || 
-                              '-- Workflow auswählen --';
+            // Get localized UI text for random selection option
+            const selectText = "Zufallsauswahl oder WORKFLOW auswählen";
             
-            optionsHtml += `<option value="">${selectText}</option>`;
+            optionsHtml += `<option value="random">${selectText}</option>`;
             
             // Group workflows by category
             const workflowsByCategory = {};
@@ -191,6 +203,81 @@ export async function loadWorkflows() {
     }
 }
 
+function handleNonUserMode(workflowConfig) {
+    // Hide workflow dropdown and show info instead
+    const workflowContainer = ui.workflow.parentElement;
+    const label = workflowContainer.querySelector('label');
+    
+    // Clear the select dropdown
+    ui.workflow.innerHTML = '';
+    ui.workflow.style.display = 'none';
+    
+    // Remove any existing info div
+    const existingInfo = document.getElementById('workflow-mode-info');
+    if (existingInfo) {
+        existingInfo.remove();
+    }
+    
+    // Create info display
+    const infoDiv = document.createElement('div');
+    infoDiv.id = 'workflow-mode-info';
+    infoDiv.className = 'workflow-mode-info';
+    
+    if (workflowConfig.mode === "fixed") {
+        // Extract display name from fixed workflow
+        const pathParts = workflowConfig.fixed_workflow.split('/');
+        const workflowId = pathParts[pathParts.length - 1].replace('.json', '');
+        
+        let displayName = workflowConfig.fixed_workflow;
+        if (workflowMetadata?.workflows?.[workflowId]) {
+            const metadata = workflowMetadata.workflows[workflowId];
+            displayName = metadata.name?.[currentLanguage] || 
+                         metadata.name?.['de'] || 
+                         workflowId.replace(/^ai4artsed_/, '').replace(/_\d+$/, '').replace(/_/g, ' ');
+        }
+        
+        infoDiv.innerHTML = `
+            <div class="mode-indicator fixed-mode">
+                <strong>Fixed Modus:</strong> ${displayName}
+            </div>
+            <div class="mode-description">
+                Der Server verwendet automatisch diesen Workflow.
+            </div>
+        `;
+    } else if (workflowConfig.mode === "system") {
+        const folderNames = workflowConfig.system_folders || [];
+        
+        // Get localized category names
+        const localizedFolders = folderNames.map(folder => {
+            if (workflowMetadata?.categories?.[folder]) {
+                return workflowMetadata.categories[folder][currentLanguage] || 
+                       workflowMetadata.categories[folder]['de'] || 
+                       folder;
+            }
+            return folder;
+        });
+        
+        infoDiv.innerHTML = `
+            <div class="mode-indicator system-mode">
+                <strong>System Modus:</strong> Zufallsauswahl
+            </div>
+            <div class="mode-description">
+                Das System wählt zufällig einen Workflow aus den Kategorien: ${localizedFolders.join(', ')}
+            </div>
+        `;
+    }
+    
+    // Insert after label
+    label.insertAdjacentElement('afterend', infoDiv);
+    
+    // Update the label text to reflect the mode
+    if (workflowConfig.mode === "fixed") {
+        label.textContent = "Workflow (Fest konfiguriert)";
+    } else if (workflowConfig.mode === "system") {
+        label.textContent = "Workflow (Automatische Auswahl)";
+    }
+}
+
 function updateWorkflowDescription() {
     const workflowName = ui.workflow.value;
     
@@ -251,128 +338,36 @@ async function checkWorkflowSafetyNode() {
     }
 }
 
+// ====================================================================
+// 🚨 DEPRECATED FUNCTION - MIGRATION TO WORKFLOW-STREAMING MODULE 🚨
+// ====================================================================
+// This function is deprecated as of 2025-08-16. All submit functionality
+// has been consolidated into the workflow-streaming.js module for better
+// code organization and to avoid duplication.
+//
+// DEPRECATION STRATEGY:
+// - This function remains as a fallback with debug logging
+// - It redirects to the active implementation in workflow-streaming.js
+// - Debug messages help identify any remaining calls to this deprecated function
+// - Once confirmed no calls exist, this function can be safely removed
+//
+// ACTIVE IMPLEMENTATION: submitPromptWithFastPolling() in workflow-streaming.js
+// ====================================================================
 export async function submitPrompt() {
-    if (ui.submitBtn.disabled) return;
+    // Debug logging to identify deprecated function calls
+    console.error('🚨 DEPRECATED: submitPrompt() from workflow.js called!');
+    console.error('📍 Call stack:', new Error().stack);
+    console.error('🔄 Auto-redirecting to submitPromptWithFastPolling from workflow-streaming.js');
+    console.error('🛠️  Please update calling code to use the active implementation');
     
-    clearOutputDisplays();
-    
-    // Don't overwrite promptDisplay if it was already set by image analysis
-    const isImageAnalysis = uploadedImageData !== null;
-    if (!isImageAnalysis) {
-        ui.promptDisplayText.textContent = ui.prompt.value;
-        ui.promptDisplay.style.display = 'block';
-    }
-    
-    startProcessingDisplay("Generierung...");
-
-    const workflowName = ui.workflow.value;
-    const promptText = ui.prompt.value.trim();
-    const selectedRadio = document.querySelector('input[name="aspectRatio"]:checked');
-    const aspectRatio = selectedRadio ? selectedRadio.value : '1:1';
-    const executionMode = document.querySelector('input[name="execution-mode"]:checked').value;
-    const safetyLevel = document.querySelector('input[name="safety-level"]:checked').value;
-
-    if (!workflowName) {
-        setStatus('Bitte wählen Sie einen Workflow aus.', 'warning');
-        stopProcessingDisplay();
-        return;
-    }
-    if (!promptText) {
-        setStatus('Prompt darf nicht leer sein.', 'warning');
-        stopProcessingDisplay();
-        return;
-    }
-
-    // Get seed control settings
-    const seedMode = document.querySelector('input[name="seed-mode"]:checked').value;
-    let customSeed = null;
-    
-    if (seedMode === 'fixed') {
-        const lastSeed = localStorage.getItem('lastUsedSeed');
-        if (lastSeed) {
-            customSeed = parseInt(lastSeed);
-        }
-    }
-
-    const payload = { 
-        prompt: promptText, 
-        workflow: workflowName, 
-        aspectRatio: aspectRatio, 
-        mode: executionMode,
-        seedMode: seedMode,
-        customSeed: customSeed,
-        safetyLevel: safetyLevel
-    };
-
     try {
-        // Erhöhter Timeout für datenreiche Workflows (5 Minuten)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 Minuten
-        
-        const response = await fetch('/run_workflow', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            const result = await response.json();
-            throw new Error(result.reason || result.error || 'Unbekannter Server-Fehler');
-        }
-        
-        const result = await response.json();
-        if (!result.prompt_id) throw new Error('Keine prompt_id vom Server erhalten.');
-        
-        if (result.status_updates && result.status_updates.length > 0) {
-            let statusIndex = 0;
-            const cycleStatus = () => {
-                if (statusIndex < result.status_updates.length) {
-                    ui.processingMessage.textContent = result.status_updates[statusIndex] + '...';
-                    statusIndex++;
-                    setTimeout(cycleStatus, 750);
-                } else {
-                    ui.processingMessage.textContent = 'Warte auf Generierungs-Engine...';
-                }
-            };
-            cycleStatus();
-        }
-
-        // Bei Bildanalyse: Analysetext behalten (bereits gesetzt)
-        if (isImageAnalysis && ui.promptDisplayText.textContent) {
-            // Bildanalyse-Text ist bereits gesetzt, nichts ändern
-        } else if (result.translated_prompt) {
-            // Bei normalen Prompts: übersetzten Prompt anzeigen
-            ui.promptDisplayText.textContent = result.translated_prompt;
-        } else {
-            // Fallback: ursprünglichen Prompt anzeigen
-            ui.promptDisplayText.textContent = promptText;
-        }
-        ui.promptDisplay.style.display = 'block';
-        
-        // Update session data
-        updateSessionData({
-            promptId: result.prompt_id,
-            workflowName: workflowName,
-            prompt: promptText
-        });
-        
-        // Save used seed if returned
-        if (result.used_seed) {
-            localStorage.setItem('lastUsedSeed', result.used_seed.toString());
-            document.getElementById('last-seed-value').textContent = result.used_seed;
-        }
-        
-        startPollingForResult(result.prompt_id);
-    } catch (e) {
-        if (e.name === 'AbortError') {
-            setStatus('Timeout: Der Workflow dauert zu lange. Versuchen Sie es mit einem einfacheren Prompt oder im Eco-Modus.', 'error');
-        } else {
-            setStatus(`Error: ${e.message}`, 'error');
-        }
-        stopProcessingDisplay();
+        // Dynamic import to avoid circular dependencies
+        const { submitPromptWithFastPolling } = await import('./workflow-streaming.js');
+        return await submitPromptWithFastPolling();
+    } catch (error) {
+        console.error('❌ Failed to redirect to active implementation:', error);
+        setStatus('Fehler beim Laden der Workflow-Engine. Bitte Seite neu laden.', 'error');
+        throw error;
     }
 }
 

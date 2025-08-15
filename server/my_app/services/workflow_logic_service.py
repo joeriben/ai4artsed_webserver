@@ -41,7 +41,7 @@ class WorkflowLogicService:
         self._load_metadata()
         
         # Initialize model path resolver if enabled
-        if ENABLE_MODEL_PATH_RESOLUTION:
+        if ENABLE_MODEL_PATH_RESOLUTION and SWARMUI_BASE_PATH and COMFYUI_BASE_PATH:
             self.model_resolver = ModelPathResolver(
                 swarmui_base=SWARMUI_BASE_PATH,
                 comfyui_base=COMFYUI_BASE_PATH
@@ -49,7 +49,10 @@ class WorkflowLogicService:
             logger.info("Model path resolver initialized")
         else:
             self.model_resolver = None
-            logger.info("Model path resolution disabled")
+            if ENABLE_MODEL_PATH_RESOLUTION:
+                logger.warning("Model path resolution enabled but paths not configured")
+            else:
+                logger.info("Model path resolution disabled")
     
     
     def _load_metadata(self):
@@ -70,7 +73,47 @@ class WorkflowLogicService:
         """Get workflow metadata"""
         if self.metadata is None:
             self._load_metadata()
-        return self.metadata
+        return self.metadata or {"categories": {}, "workflows": {}, "ui": {}}
+    
+    def get_random_workflow_from_folders(self, folders: Optional[List[str]] = None) -> Optional[str]:
+        """
+        Get a random workflow from specified folders.
+        
+        Args:
+            folders: List of folder names under /workflows/ 
+                    (defaults to SYSTEM_WORKFLOW_FOLDERS from config)
+                    
+        Returns:
+            Workflow filename like "aesthetics/workflow.json" or None if no workflows found
+        """
+        if folders is None:
+            from config import SYSTEM_WORKFLOW_FOLDERS
+            folders = SYSTEM_WORKFLOW_FOLDERS
+        
+        eligible_workflows = []
+        
+        for folder in folders:
+            folder_path = self.workflows_dir / folder
+            if folder_path.exists():
+                # Collect all .json files in this folder
+                for workflow_file in folder_path.glob("*.json"):
+                    # Skip metadata.json and hidden files
+                    if workflow_file.name == "metadata.json" or workflow_file.name.startswith("."):
+                        continue
+                    # Create relative path: "aesthetics/workflow.json"
+                    relative_path = f"{folder}/{workflow_file.name}"
+                    eligible_workflows.append(relative_path)
+                    
+            else:
+                logger.warning(f"Workflow folder '{folder}' does not exist")
+        
+        if eligible_workflows:
+            selected = random.choice(eligible_workflows)
+            logger.info(f"Random workflow selected from {folders}: {selected}")
+            return selected
+        else:
+            logger.error(f"No workflows found in folders: {folders}")
+            return None
     
     def load_workflow(self, workflow_name: str) -> Optional[Dict[str, Any]]:
         """
