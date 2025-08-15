@@ -15,7 +15,16 @@ const translations = {
         'fast-mode': 'Schnell (Cloud)',
         'safety-off': 'Aus',
         'safety-youth': 'Youth',
-        'safety-kids': 'Kids'
+        'safety-kids': 'Kids',
+        // Workflow selection texts
+        'workflow-random-option': 'Zufallsauswahl oder WORKFLOW auswählen',
+        'workflow-fixed-mode': 'Fixed Modus:',
+        'workflow-fixed-description': 'Der Server verwendet automatisch diesen Workflow.',
+        'workflow-fixed-label': 'Workflow (Fest konfiguriert)',
+        'workflow-system-mode': 'System Modus:',
+        'workflow-system-random': 'Zufallsauswahl',
+        'workflow-system-description': 'Das System wählt zufällig einen Workflow aus den Kategorien:',
+        'workflow-system-label': 'Workflow (Automatische Auswahl)'
     },
     en: {
         'execution-mode-label': 'Execution Mode',
@@ -30,7 +39,16 @@ const translations = {
         'fast-mode': 'Fast (Cloud)',
         'safety-off': 'Off',
         'safety-youth': 'Youth',
-        'safety-kids': 'Kids'
+        'safety-kids': 'Kids',
+        // Workflow selection texts
+        'workflow-random-option': 'Random selection or choose WORKFLOW',
+        'workflow-fixed-mode': 'Fixed Mode:',
+        'workflow-fixed-description': 'The server automatically uses this workflow.',
+        'workflow-fixed-label': 'Workflow (Fixed Configuration)',
+        'workflow-system-mode': 'System Mode:',
+        'workflow-system-random': 'Random Selection',
+        'workflow-system-description': 'The system randomly selects a workflow from categories:',
+        'workflow-system-label': 'Workflow (Automatic Selection)'
     }
 };
 
@@ -122,4 +140,14 @@ export function initSimpleTranslation() {
     
     // Initial text update
     updateTexts();
+}
+
+// Export translation function for other modules
+export function t(key) {
+    return translations[currentLanguage]?.[key] || translations['de'][key] || key;
+}
+
+// Export current language getter
+export function getCurrentLanguage() {
+    return currentLanguage;
 }

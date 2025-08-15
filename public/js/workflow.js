@@ -5,6 +5,7 @@ import { uploadedImageData } from './image-handler.js';
 import { setStatus, startProcessingDisplay, stopProcessingDisplay, clearOutputDisplays } from './ui-utils.js';
 import { processAndDisplayResults } from './output-display.js';
 import { currentSessionData, updateSessionData } from './session.js';
+import { t, getCurrentLanguage } from './simple-translation.js';
 
 let pollingInterval = null;
 let workflowMetadata = null;
@@ -114,7 +115,7 @@ export async function loadWorkflows() {
             let optionsHtml = '';
             
             // Get localized UI text for random selection option
-            const selectText = "Zufallsauswahl oder WORKFLOW auswählen";
+            const selectText = t('workflow-random-option');
             
             optionsHtml += `<option value="random">${selectText}</option>`;
             
@@ -238,10 +239,10 @@ function handleNonUserMode(workflowConfig) {
         
         infoDiv.innerHTML = `
             <div class="mode-indicator fixed-mode">
-                <strong>Fixed Modus:</strong> ${displayName}
+                <strong>${t('workflow-fixed-mode')}</strong> ${displayName}
             </div>
             <div class="mode-description">
-                Der Server verwendet automatisch diesen Workflow.
+                ${t('workflow-fixed-description')}
             </div>
         `;
     } else if (workflowConfig.mode === "system") {
@@ -259,10 +260,10 @@ function handleNonUserMode(workflowConfig) {
         
         infoDiv.innerHTML = `
             <div class="mode-indicator system-mode">
-                <strong>System Modus:</strong> Zufallsauswahl
+                <strong>${t('workflow-system-mode')}</strong> ${t('workflow-system-random')}
             </div>
             <div class="mode-description">
-                Das System wählt zufällig einen Workflow aus den Kategorien: ${localizedFolders.join(', ')}
+                ${t('workflow-system-description')} ${localizedFolders.join(', ')}
             </div>
         `;
     }
@@ -272,9 +273,9 @@ function handleNonUserMode(workflowConfig) {
     
     // Update the label text to reflect the mode
     if (workflowConfig.mode === "fixed") {
-        label.textContent = "Workflow (Fest konfiguriert)";
+        label.textContent = t('workflow-fixed-label');
     } else if (workflowConfig.mode === "system") {
-        label.textContent = "Workflow (Automatische Auswahl)";
+        label.textContent = t('workflow-system-label');
     }
 }
 
