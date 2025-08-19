@@ -106,6 +106,9 @@ function calculateNodeExecutionOrder(nodeId, workflowDef) {
 }
 
 function displayOutputsInOrder(outputs) {
+    // PATCH: Remove any existing unified containers FIRST to prevent output accumulation
+    document.querySelectorAll('#unifiedOutputs').forEach(el => el.remove());
+    
     // Clear existing displays
     ui.imageOutputs.style.display = 'none';
     ui.imageOutputsContent.innerHTML = '';
