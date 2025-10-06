@@ -54,6 +54,11 @@ body {
   padding-bottom: var(--spacing-md);
 }
 
+.header-title {
+  display: flex;
+  flex-direction: column;
+}
+
 .user-status {
   display: flex;
   align-items: center;
@@ -107,6 +112,14 @@ h1 {
   color: var(--heading-color);
   margin-top: 0;
   margin-bottom: 0;
+}
+
+h2 {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
+  margin-bottom: 0;
+  font-weight: normal;
 }
 
 h4 {

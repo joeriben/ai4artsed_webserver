@@ -4,7 +4,7 @@
   "workflow.loading": "Lädt...",
   "workflow.placeholder": "-- Workflow auswählen --",
   "prompt.label": "Prompt eingeben oder Bild ablegen",
-  "prompt.placeholder": "z.B. Eine Calla-Lilie in Nahaufnahme, fotografiert im Stil der Westcoats-Fotografie (f64-Bewegung). Weiches, diffuses Licht von der Seite, sanfte Schatten auf einem neutralen Hintergrund. Die Textur der Blütenblätter ist fein abgestuft sichtbar, die Form betont durch minimale Tiefenschärfe. Klassische Schwarzweißaufnahme, aufgenommen mit einer Großformatkamera der 1930er Jahre. Stimmung zurückhaltend, fast meditativer Blick auf das organische Motiv.",
+  "prompt.placeholder": "Schreibe etwas hier hinein und schaue, was passiert!",
   "prompt.upload": "Bild hochladen",
   "prompt.remove": "Bild entfernen",
   "prompt.preview": "Bildvorschau",
