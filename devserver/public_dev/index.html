@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Exploration Lab</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <div class="header-title">
+                <h1>AI Exploration Lab - DEV SERVER</h1>
+                <h2>UNESCO Chair in Digital Culture and Arts in Education</h2>
+            </div>
+            <div class="header-controls">
+                <div class="language-selector">
+                    <button class="lang-btn active" data-lang="de">DE</button>
+                    <span class="lang-separator">|</span>
+                    <button class="lang-btn" data-lang="en">EN</button>
+                </div>
+                <div class="queue-status">
+                    <img src="icons/refresh-circle-solid.svg" alt="Queue" class="queue-icon">
+                    <span id="queue-count">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="controls">
+                <div>
+                    <label for="workflow">Workflow auswählen</label>
+                    <select id="workflow"><option value="">Lädt...</option></select>
+                </div>
+                
+                <div>
+                    <label for="prompt">Prompt eingeben und/oder Bild hochladen</label>
+                    <div id="dual-input-wrapper">
+                        <div id="prompt-container">
+                            <textarea id="prompt" placeholder="z.B. Eine Calla-Lilie in Nahaufnahme. Weiches, diffuses Licht von der Seite, sanfte Schatten auf einem neutralen Hintergrund. Die Textur der Blütenblätter ist fein abgestuft sichtbar, die Form betont durch minimale Tiefenschärfe. Klassische Schwarzweißaufnahme, aufgenommen mit einer Großformatkamera der 1930er Jahre. Stimmung zurückhaltend, fast meditativer Blick auf das organische Motiv."></textarea>
+                        </div>
+                        <div id="image-input-container">
+                            <div id="image-upload-area">
+                                <button id="add-media-btn" class="upload-btn" title="Bild hochladen">
+                                    <img src="plus-square-solid.svg" alt="Bild hinzufügen">
+                                </button>
+                                <div id="image-preview-wrapper">
+                                    <img id="image-preview" src="" alt="Bildvorschau"/>
+                                    <button id="remove-image-btn" class="icon-btn" title="Bild entfernen">
+                                        <img src="trash-solid.svg" alt="Bild entfernen">
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+
+                <div>
+                    <label>Seitenverhältnis</label>
+                    <div class="aspect-ratio-control">
+                        <input type="radio" id="ar-16-9" name="aspectRatio" value="16:9" onchange="updateDimensions()">
+                        <label for="ar-16-9">▭ 16:9</label>
+                        
+                        <input type="radio" id="ar-3-2" name="aspectRatio" value="3:2" onchange="updateDimensions()">
+                        <label for="ar-3-2">3:2</label>
+                        
+                        <input type="radio" id="ar-4-3" name="aspectRatio" value="4:3" onchange="updateDimensions()">
+                        <label for="ar-4-3">4:3</label>
+                        
+                        <input type="radio" id="ar-5-4" name="aspectRatio" value="5:4" onchange="updateDimensions()">
+                        <label for="ar-5-4">5:4</label>
+                        
+                        <input type="radio" id="ar-1-1" name="aspectRatio" value="1:1" checked onchange="updateDimensions()">
+                        <label for="ar-1-1">■ 1:1</label>
+                        
+                        <input type="radio" id="ar-4-5" name="aspectRatio" value="4:5" onchange="updateDimensions()">
+                        <label for="ar-4-5">4:5</label>
+                        
+                        <input type="radio" id="ar-3-4" name="aspectRatio" value="3:4" onchange="updateDimensions()">
+                        <label for="ar-3-4">3:4</label>
+                        
+                        <input type="radio" id="ar-2-3" name="aspectRatio" value="2:3" onchange="updateDimensions()">
+                        <label for="ar-2-3">2:3</label>
+                        
+                        <input type="radio" id="ar-9-16" name="aspectRatio" value="9:16" onchange="updateDimensions()">
+                        <label for="ar-9-16">9:16 ▯</label>
+                    </div>
+                    <div id="dimensionsDisplay"></div>
+                </div>
+
+                <div>
+                    <label id="execution-mode-label">Ausführungsmodus</label>
+                    <div class="mode-switch">
+                        <input type="radio" id="eco-mode" name="execution-mode" value="eco">
+                        <label for="eco-mode">Eco (Lokal)</label>
+                        <input type="radio" id="fast-mode" name="execution-mode" value="fast" checked>
+                        <label for="fast-mode">Schnell (Cloud)</label>
+                    </div>
+                </div>
+
+                <div>
+                    <label id="seed-control-label">Seed-Kontrolle</label>
+                    <div class="seed-control">
+                        <div class="seed-option">
+                            <input type="radio" id="seed-random" name="seed-mode" value="random" checked>
+                            <label for="seed-random">Zufall</label>
+                        </div>
+                        
+                        <div class="seed-option">
+                            <input type="radio" id="seed-standard" name="seed-mode" value="standard">
+                            <label for="seed-standard">123456789</label>
+                        </div>
+                        
+                        <div class="seed-option">
+                            <input type="radio" id="seed-fixed" name="seed-mode" value="fixed">
+                            <label for="seed-fixed">letzter Seed</label>
+                        </div>
+                    </div>
+                    <div id="seed-info" style="display: none; font-size: 0.9em; color: #666; margin-top: 5px;">
+                        Letzter Seed: <span id="last-seed-value">-</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label id="safety-level-label">Sicherheitsstufe <span id="safety-plus-indicator" style="display: none; color: #4CAF50; font-weight: bold;" title="Dieses Workflow unterstützt erweiterte Sicherheitsfunktionen">Safety+ verfügbar</span></label>
+                    <div class="mode-switch">
+                        <input type="radio" id="safety-off" name="safety-level" value="off" checked>
+                        <label for="safety-off">Aus</label>
+                        
+                        <input type="radio" id="safety-youth" name="safety-level" value="youth">
+                        <label for="safety-youth">Youth</label>
+                        
+                        <input type="radio" id="safety-kids" name="safety-level" value="kids">
+                        <label for="safety-kids">Kids</label>
+                    </div>
+                </div>
+                
+                <button id="submitBtn" onclick="submitPrompt()">Generieren<span class="spinner"></span></button>
+                <div id="privacy-hint" style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                    Hinweis: Generierte Inhalte werden zu Forschungszwecken auf dem Server gespeichert. Es werden keine User- oder IP-Daten erfasst. Hochgeladene Bilder werden nicht gespeichert.
+                </div>
+            </div>
+
+            <div id="processingInfo" style="display: none;">
+                <div class="message">Processing...</div>
+                <div class="timer">Elapsed time: 0s</div>
+            </div>
+
+            <div id="status"></div>
+
+            <div class="results">
+                <div id="promptDisplay" style="display: none;">
+                    <h4>Verwendeter Prompt:</h4>
+                    <div id="promptDisplayText"></div>
+                </div>
+                <div id="imageAnalysisDisplay" style="display: none;">
+                    <h4>Bildanalyse:</h4>
+                    <div id="imageAnalysisText"></div>
+                </div>
+                <div id="imageOutputs" style="display: none;">
+                    <h4>Bild-Ausgaben:</h4>
+                    <div id="imageOutputsContent"></div>
+                </div>
+                 <div id="audioContainer" style="display: none;">
+                    <h4>Generiertes Audio</h4>
+                    <audio id="audioPlayer" controls style="width: 100%;"></audio>
+                </div>
+                <div id="textOutputs" style="display: none;">
+                    <h4>Text-Ausgaben:</h4>
+                    <div id="textOutputsContent"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-links">
+                <a href="https://www.bmfsfj.de/" target="_blank" rel="noopener noreferrer">Gefördert vom Bundesministerium für Bildung, Familie, Senioren, Frauen und Jugend</a>
+                <a href="about.html">about</a>
+                <a href="impressum.html">Impressum</a>
+                <br>
+                <a href="documentation/end_users.html" target="_blank" rel="noopener noreferrer">Anleitung</a>
+                <a href="documentation/end_users_en.html" target="_blank" rel="noopener noreferrer">Manual</a>
+                <a href="documentation/programmers.html" target="_blank" rel="noopener noreferrer">Dev. Dokumentation</a>
+                <a href="documentation/programmers_en.html" target="_blank" rel="noopener noreferrer">Dev. Documentation</a>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- JavaScript Modules -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

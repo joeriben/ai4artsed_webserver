@@ -1,0 +1,20 @@
+{
+  "name": "video_generation",
+  "description": "Multi-Media Video Generation Pipeline",
+  "pipeline_type": "video_generation",
+  "chunks": [
+    "prompt_interception",
+    "comfyui_video_generation"
+  ],
+  "config_mappings": {
+    "prompt_interception": "media_prompt_optimization.video_dummy",
+    "comfyui_video_generation": "video_generation.dummy_placeholder"
+  },
+  "meta": {
+    "version": "1.0",
+    "description_de": "Videogenerierung (Dummy-Implementation)",
+    "description_en": "Video Generation (Dummy Implementation)", 
+    "output_type": "video",
+    "model": "dummy_video_model.placeholder"
+  }
+}

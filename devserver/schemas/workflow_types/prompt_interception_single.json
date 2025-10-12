@@ -1,0 +1,27 @@
+{
+  "name": "prompt_interception_single",
+  "description": "Single Prompt Interception Pipeline: Input → PI-Call → Output",
+  "chunks": [
+    "prompt_interception"
+  ],
+  "required_configs": [
+    "prompt_interception_config"
+  ],
+  "config_mappings": {
+    "prompt_interception_config": "{{PROMPT_INTERCEPTION_CONFIG}}"
+  },
+  "meta": {
+    "workflow_type": "prompt_interception_single",
+    "reusable": true,
+    "universal_interface": true,
+    "format": "task_context_prompt",
+    "steps": [
+      {
+        "step": 1,
+        "chunk": "prompt_interception",
+        "description": "Prompt Interception Call",
+        "config_key": "prompt_interception_config"
+      }
+    ]
+  }
+}

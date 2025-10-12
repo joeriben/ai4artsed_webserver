@@ -1,0 +1,15 @@
+{
+  "backend_type": "ollama",
+  "model": "{{MODEL}}",
+  "parameters": {
+    "temperature": "{{TEMPERATURE}}",
+    "max_tokens": "{{MAX_TOKENS}}"
+  },
+  "task": "{{TASK}}",
+  "context": "{{CONTEXT}}",
+  "placeholders": {
+    "INPUT_TEXT": "{{INPUT_TEXT}}",
+    "PREVIOUS_OUTPUT": "{{PREVIOUS_OUTPUT}}",
+    "USER_INPUT": "{{USER_INPUT}}"
+  }
+}

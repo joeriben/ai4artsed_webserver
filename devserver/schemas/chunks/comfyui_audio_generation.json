@@ -1,0 +1,22 @@
+{
+  "backend_type": "comfyui",
+  "model": "{{MODEL}}",
+  "workflow_template": "{{WORKFLOW_TEMPLATE}}",
+  "parameters": {
+    "prompt_node": "{{PROMPT_NODE}}",
+    "negative_prompt": "{{NEGATIVE_PROMPT}}",
+    "duration": "{{DURATION}}",
+    "steps": "{{STEPS}}",
+    "cfg": "{{CFG}}",
+    "sampler": "{{SAMPLER}}",
+    "scheduler": "{{SCHEDULER}}",
+    "seed": "{{SEED}}",
+    "checkpoint": "{{CHECKPOINT}}",
+    "clip_model": "{{CLIP_MODEL}}"
+  },
+  "placeholders": {
+    "INPUT_TEXT": "{{previous_output}}",
+    "PREVIOUS_OUTPUT": "{{previous_output}}",
+    "USER_INPUT": "{{user_input}}"
+  }
+}

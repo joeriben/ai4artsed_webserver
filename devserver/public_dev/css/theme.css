@@ -1,0 +1,81 @@
+/* AI4ArtsEd - Theme Variables and Colors */
+
+:root {
+  /* Primary Colors */
+  --primary-color: #007bff;
+  --primary-hover: #0056b3;
+  --primary-disabled: #99caff;
+  
+  /* Status Colors */
+  --success-color: #28a745;
+  --success-bg: #d4edda;
+  --success-border: #c3e6cb;
+  --success-text: #155724;
+  
+  --error-color: #dc3545;
+  --error-bg: #f8d7da;
+  --error-border: #f5c6cb;
+  --error-text: #721c24;
+  
+  --warning-color: #ffc107;
+  --warning-bg: #fff3cd;
+  --warning-border: #ffeeba;
+  --warning-text: #856404;
+  
+  --info-bg: #e7f3ff;
+  --info-border: #b8daff;
+  
+  /* Background Colors --body-bg: #f0f2f5; */ 
+  --body-bg: #444444;
+  --container-bg: #ffffff;
+  --input-bg: #ffffff;
+  --code-bg: #f0f2f5;
+  --hover-bg: #f0f8ff;
+  --mode-switch-bg: #f7f7f7;
+  --output-item-bg: #f9f9f9;
+  
+  /* Text Colors */
+  --text-primary: #1c1e21;
+  --text-secondary: #555;
+  --text-muted: #666;
+  --text-light: #888;
+  --heading-color: #333;
+  --label-color: #444;
+  
+  /* Border Colors */
+  --border-color: #ccc;
+  --border-light: #ddd;
+  --border-lighter: #eee;
+  
+  /* Shadows */
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --box-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-xxl: 24px;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-mono: monospace, monospace;
+  --font-size-sm: 0.8em;
+  --font-size-md: 0.9em;
+  --font-size-base: 16px;
+  --font-size-lg: 1.1em;
+  --font-size-xl: 24px;
+  
+  /* Layout */
+  --container-max-width: 700px;
+  
+  /* Transitions */
+  --transition-speed: 0.2s;
+}

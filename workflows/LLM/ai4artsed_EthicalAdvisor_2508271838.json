@@ -1,0 +1,52 @@
+{
+  "1": {
+    "inputs": {
+      "input_prompt": [
+        "3",
+        0
+      ],
+      "input_context": "critical friend",
+      "style_prompt": "React to this prompt for an image-generating AI. From an ethical point of view, do you approve it? React as if advising a person. Include ethical aspects speficic to AI image generation, such as unpaid exploitation of artists, or the impact of short-cutting one's one creative efforts.\n\nIf you approve without further advice, just output the word \"approved\". Else comment and add the flags #disapproved# or #considerations#.",
+      "api_key": [
+        "6",
+        0
+      ],
+      "model": "openrouter/google/gemini-2.5-pro [translator / $1.25/$10.00]",
+      "debug": "disable",
+      "unload_model": "no"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "3": {
+    "inputs": {
+      "value": "Schrödinger's cat in her box"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "4": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview Any"
+    }
+  },
+  "6": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  }
+}

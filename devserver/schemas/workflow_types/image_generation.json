@@ -1,0 +1,20 @@
+{
+  "name": "image_generation",
+  "description": "Multi-Media Image Generation Pipeline",
+  "pipeline_type": "image_generation",
+  "chunks": [
+    "prompt_interception",
+    "comfyui_image_generation"
+  ],
+  "config_mappings": {
+    "prompt_interception": "media_prompt_optimization.image_sd35",
+    "comfyui_image_generation": "image_generation.sd35_standard"
+  },
+  "meta": {
+    "version": "1.0",
+    "description_de": "Bildgenerierung mit Stable Diffusion 3.5 Large",
+    "description_en": "Image Generation with Stable Diffusion 3.5 Large",
+    "output_type": "image",
+    "model": "sd3.5_large.safetensors"
+  }
+}

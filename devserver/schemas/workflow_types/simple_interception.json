@@ -1,0 +1,34 @@
+{
+  "name": "simple_interception",
+  "description": "Simple Pipeline: Input → Translation → Manipulation → Output", 
+  "chunks": [
+    "translate",
+    "manipulate"
+  ],
+  "required_configs": [
+    "translate_config",
+    "manipulate_config"
+  ],
+  "config_mappings": {
+    "translate_config": "{{TRANSLATE_CONFIG}}",
+    "manipulate_config": "{{MANIPULATE_CONFIG}}"
+  },
+  "meta": {
+    "workflow_type": "simple_interception",
+    "reusable": true,
+    "steps": [
+      {
+        "step": 1,
+        "chunk": "translate",
+        "description": "Input translation", 
+        "config_key": "translate_config"
+      },
+      {
+        "step": 2,
+        "chunk": "manipulate",
+        "description": "Text manipulation",
+        "config_key": "manipulate_config"
+      }
+    ]
+  }
+}

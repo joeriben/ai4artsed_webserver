@@ -1,0 +1,26 @@
+{
+  "name": "simple_manipulation",
+  "description": "Simple Pipeline: Input → Manipulation → Output (Translation als Pre-Pipeline)",
+  "chunks": [
+    "manipulate"
+  ],
+  "required_configs": [
+    "manipulate_config"
+  ],
+  "config_mappings": {
+    "manipulate_config": "{{MANIPULATE_CONFIG}}"
+  },
+  "meta": {
+    "workflow_type": "simple_manipulation",
+    "reusable": true,
+    "pre_translation": true,
+    "steps": [
+      {
+        "step": 1,
+        "chunk": "manipulate",
+        "description": "Text manipulation",
+        "config_key": "manipulate_config"
+      }
+    ]
+  }
+}

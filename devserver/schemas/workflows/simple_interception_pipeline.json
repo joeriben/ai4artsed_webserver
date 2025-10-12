@@ -1,0 +1,17 @@
+{
+  "name": "simple_interception_pipeline",
+  "description": "Input → Translation → Manipulation → Output Pipeline",
+  "chunks": [
+    "translate", 
+    "manipulate"
+  ],
+  "config_path": "translate.standard|manipulate.jugendsprache",
+  "meta": {
+    "pipeline_type": "simple_interception",
+    "legacy_source": "workflows/semantics/ai4artsed_Jugendsprache_2506122317.json",
+    "description_de": "Einfache Interception-Pipeline: Eingabe → Übersetzung → Manipulation → Ausgabe",
+    "description_en": "Simple Interception Pipeline: Input → Translation → Manipulation → Output",
+    "target_transformation": "uk_youth_slang",
+    "estimated_duration": "medium"
+  }
+}

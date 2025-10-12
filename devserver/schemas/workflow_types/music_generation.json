@@ -1,0 +1,22 @@
+{
+  "name": "music_generation",
+  "description": "Multi-Media Music Generation Pipeline",
+  "pipeline_type": "music_generation",
+  "chunks": [
+    "prompt_interception_tags", 
+    "prompt_interception_lyrics",
+    "comfyui_music_generation"
+  ],
+  "config_mappings": {
+    "prompt_interception_tags": "media_prompt_optimization.music_acestep_tags",
+    "prompt_interception_lyrics": "media_prompt_optimization.music_acestep_lyrics", 
+    "comfyui_music_generation": "music_generation.acestep_standard"
+  },
+  "meta": {
+    "version": "1.0",
+    "description_de": "Musikgenerierung mit AceStep (Tags + Lyrics)",
+    "description_en": "Music Generation with AceStep (Tags + Lyrics)",
+    "output_type": "music",
+    "model": "ace_step_v1_3.5b.safetensors"
+  }
+}

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Guide: AI4ArtsEd Workspace</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 1000px; margin: auto; }
+        h1, h2, h3 { color: #333; }
+        code { background-color: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .toc { border: 1px solid #ccc; padding: 10px 20px; border-radius: 5px; background-color: #f9f9f9; }
+        .toc ul { list-style-type: none; padding-left: 0; }
+        .toc > ul > li > a { font-weight: bold; }
+        .toc ul ul { padding-left: 20px; }
+        .feature { border-left: 5px solid #5bc0de; padding: 10px; margin-bottom: 15px; background-color: #eef7f9; }
+        .tip { border-left: 5px solid #4CAF50; padding: 10px; margin-bottom: 15px; background-color: #e8f5e9; }
+        .warn { border-left: 5px solid #f0ad4e; padding: 10px; background-color: #fcf8e3; }
+        .lang-switch { text-align: right; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="lang-switch">
+        <a href="end_users.html">Deutsche Version</a>
+    </div>
+
+    <h1>User Guide: The AI4ArtsEd Workspace</h1>
+
+    <div class="toc">
+        <h2>Table of Contents</h2>
+        <ul>
+            <li><a href="#what-is-it">1. What is the Workspace?</a></li>
+            <li><a href="#first-steps">2. First Steps: The User Interface</a>
+                <ul>
+                    <li><a href="#select-workflow">2.1. Selecting the Right Workflow</a></li>
+                    <li><a href="#prompt-input">2.2. The Input: Text and Image</a></li>
+                    <li><a href="#settings">2.3. Settings: Aspect Ratio, Mode, and More</a></li>
+                    <li><a href="#start">2.4. Starting and Viewing Results</a></li>
+                </ul>
+            </li>
+            <li><a href="#creative-techniques">3. Creative Techniques and Features</a>
+                <ul>
+                    <li><a href="#text-prompting">3.1. Creating Images with Text</a></li>
+                    <li><a href="#image-as-inspiration">3.2. Using an Image as Inspiration</a></li>
+                    <li><a href="#image-editing">3.3. Modifying an Existing Image (Inpainting)</a></li>
+                    <li><a href="#reuse-results">3.4. Reusing Results (Recycle Function)</a></li>
+                </ul>
+            </li>
+            <li><a href="#safety">4. Our Safety Features</a></li>
+            <li><a href="#saving-exporting">5. Saving and Exporting</a></li>
+            <li><a href="#hidden-commands">6. Advanced Tips: Hidden Commands</a></li>
+        </ul>
+    </div>
+
+    <h2 id="what-is-it">1. What is the Workspace?</h2>
+    <p>
+        Welcome to the AI4ArtsEd Workspace! This is a creative platform that allows you to create images and texts with artificial intelligence (AI). You don't need to be a tech expert to get started. The Workspace is like a digital workshop where your ideas are brought to life with the help of AI.
+    </p>
+    <p>
+        You give the AI instructions (a "prompt") and choose a method ("workflow"). The AI then creates a unique visual representation based on your specifications.
+    </p>
+
+    <h2 id="first-steps">2. First Steps: The User Interface</h2>
+    <p>The interface is kept simple so you can focus on being creative.</p>
+
+    <h3 id="select-workflow">2.1. Selecting the Right Workflow</h3>
+    <p>
+        A "workflow" is like a recipe for the AI. It determines how your idea is implemented.
+    </p>
+    <div class="feature">
+        <strong>Workflow Dropdown:</strong> At the top of the page, you'll find a selection list. The workflows are sorted into categories like "Art," "Culture," or "Sound." When you hover over a name, a short description appears. Click on a workflow to learn more details and select it.
+    </div>
+
+    <h3 id="prompt-input">2.2. The Input: Text and Image</h3>
+    <p>You have two ways to communicate your ideas to the AI:</p>
+    <ul>
+        <li><strong>Text Input:</strong> Write your idea in the large text box ("Prompt Window"). This can be a single word, a sentence, or a whole story. Be as descriptive as possible!</li>
+        <li><strong>Image Input:</strong> You can also use an image as a starting point.
+            <ul>
+                <li>Click the <strong>Plus symbol (+)</strong> to upload an image from your device.</li>
+                <li><strong>Drag & Drop</strong> an image directly into the prompt window.</li>
+                <li>On a mobile phone or tablet, you can also <strong>take a photo</strong> directly.</li>
+            </ul>
+        </li>
+    </ul>
+    <div class="tip">
+        <strong>Tip:</strong> You can also combine text and image! If you enter both, the AI will first analyze the image and append the description to your text. This allows you to guide the AI even more precisely.
+    </div>
+
+    <h3 id="settings">2.3. Settings: Aspect Ratio, Mode, and More</h3>
+    <p>Below the prompt window, you'll find some switches to customize your result:</p>
+    <ul>
+        <li><strong>Aspect Ratio:</strong> Choose whether your image should be created in square, portrait, or landscape format.</li>
+        <li><strong>Mode (Eco vs. Fast):</strong>
+            <ul>
+                <li><strong>Eco (Local):</strong> Uses local computer resources. This is resource-friendly but may take a bit longer.</li>
+                <li><strong>Fast (Cloud):</strong> Uses powerful computers in the cloud. This is faster and often delivers more complex results.</li>
+            </ul>
+        </li>
+        <li><strong>Seed (Randomness):</strong> The "seed" is the random starting point for the AI.
+            <ul>
+                <li><strong>Random Number:</strong> A completely new, unique result every time. (Default)</li>
+                <li><strong>Project Standard:</strong> Always uses the same starting point. Good for testing small changes to a prompt.</li>
+                <li><strong>Fixed Number:</strong> Keeps the last random seed for the next generation.</li>
+            </ul>
+        </li>
+        <li><strong>Safety Level:</strong> Here you can activate filters to make the results safer. More on this in the <a href="#safety">Safety chapter</a>.</li>
+    </ul>
+
+    <h3 id="start">2.4. Starting and Viewing Results</h3>
+    <p>
+        When you are satisfied with your inputs and settings, click the <strong>"Start" button</strong>. The creation might take a moment. Your finished image or text will then appear in the lower section of the page.
+    </p>
+
+    <h2 id="creative-techniques">3. Creative Techniques and Features</h2>
+
+    <h3 id="text-prompting">3.1. Creating Images with Text</h3>
+    <p>
+        This is the most basic technique. Choose a workflow, enter a descriptive text, and start the generation. Experiment with different styles, moods, and details. Example: "A cat sitting on the moon watching the stars, painted with thick, visible brushstrokes."
+    </p>
+
+    <h3 id="image-as-inspiration">3.2. Using an Image as Inspiration</h3>
+    <p>
+        Upload an image and write a text to go with it. The AI will not use the image directly but will analyze it and use the analysis as part of the prompt.
+    </p>
+    <div class="feature">
+        <strong>Example:</strong> You upload a photo of a forest and write "in cyberpunk style" as the prompt. The AI analyzes the image ("A dense forest with tall trees and sunlight filtering through the leaves") and combines it with your text. The result could be a cyberpunk forest with neon trees.
+    </div>
+
+    <h3 id="image-editing">3.3. Modifying an Existing Image (Inpainting)</h3>
+    <p>
+        Some workflows (often with "Inpaint" in the name) are specifically designed to change parts of an image. If you select such a workflow and upload an image, the image is used as a canvas. Your text prompt then describes what should be added or changed in a specific area of the image.
+    </p>
+    <div class="tip">
+        <strong>Note:</strong> This feature requires specially prepared images with a "mask" (a marked area). You can create such masks in ComfyUI. For the Workspace, this is an advanced technique.
+    </div>
+
+    <h3 id="reuse-results">3.4. Reusing Results (Recycle Function)</h3>
+    <p>
+        You can directly reuse any result you create!
+    </p>
+    <ul>
+        <li><strong>Reuse Image:</strong> Hover your mouse over a generated image. A <strong>recycle symbol</strong> will appear. Click it, and the image will be loaded into the image input area above, ready for the next step.</li>
+        <li><strong>Reuse Text:</strong> Click on a generated text, and it will be automatically copied into the prompt field above.</li>
+    </ul>
+
+    <h2 id="safety">4. Our Safety Features: How We Ensure a Safe Space</h2>
+    <p class="warn">
+        <strong>Important Note:</strong> Artificial intelligence is a complex technology. Despite all safeguards, <strong>absolute safety cannot be guaranteed</strong>. Unexpected or undesirable results may occur. For this reason, this system must <strong>never be used by children or adolescents alone</strong>. It is intended exclusively for use in pedagogical situations under the supervision and guidance of trained individuals.
+    </p>
+    <p>
+        Your safety and well-being are very important to us. That's why we have developed a multi-layered protection system that works in the background to make your experience in the Workspace positive and safe. Here we explain what happens after you click "Start."
+    </p>
+
+    <div class="feature">
+        <h4>Layer 1: The Guardian at the Gate</h4>
+        <p>
+            First, your text input is checked by a specialized "guardian AI." This AI is trained to detect specific, primarily legally relevant, problematic content. It is a first hurdle, but not a perfect protection against all forms of e.g., hate speech or depictions of violence, especially when they are in the context of an artistic genre (like horror). If the guardian finds something that violates the defined rules, the process is stopped immediately. Only if the guardian gives the green light does it proceed.
+        </p>
+    </div>
+
+    <div class="feature">
+        <h4>Layer 2: The Invisible Guardrails</h4>
+        <p>
+            If you have activated the "Youth" or "Kids" safety levels, something special happens now. The system automatically adds a list of terms in the background that the AI should avoid. Imagine it as us telling the AI: "No matter what you do, do not use these things." For the "Kids" level, this list is particularly long and includes everything from scary words to depictions of violence. This helps prevent unwanted results, even if your input was actually harmless.
+        </p>
+    </div>
+
+    <div class="feature">
+        <h4>Layer 3: The Creative Translator</h4>
+        <p>
+            This is the final step before the image is created, and it is only active if you have selected "Youth" or "Kids." Another AI looks at your idea and acts as a creative filter:
+        </p>
+        <ul>
+            <li><strong>In "Youth" mode:</strong> If your idea contains potentially unsettling elements, the AI tries to "translate them artistically" – making them more abstract or symbolic, so that the creative tension is maintained but without directly causing fear.</li>
+            <li><strong>In "Kids" mode:</strong> Here, the AI is strictest. If it deems an idea too scary for children, it discards it completely and instead creates a standard image (a small cat in front of a screen) that signals to you that the input was too scary. This is our emergency brake to ensure that no frightening images are created for our youngest users.</li>
+        </ul>
+    </div>
+    <p class="tip">
+        <strong>In summary:</strong> Your prompt is checked and adjusted multiple times. This system of a guardian, guardrails, and a creative translator works together to offer you the safest and most creative space possible.
+    </p>
+     <p class="warn">
+        <strong>Important Note (Reminder):</strong> Even this complex system does not offer 100% security. Generative AI can be unpredictable. Therefore, please always use the tool responsibly and under pedagogical supervision.
+    </p>
+
+    <h2 id="saving-exporting">5. Saving and Exporting</h2>
+    <p>
+        You have the option to download your results directly to your own computer. At the same time, some data is stored on our server for research and documentation purposes.
+    </p>
+    <div class="feature">
+        <strong>What is stored and how is it used?</strong>
+        <p>
+            For each generated result, we store the following information:
+        </p>
+        <ul>
+            <li>The workflow you selected.</li>
+            <li>Your original text prompt (the exact words you entered).</li>
+            <li>The prompt, possibly translated into English.</li>
+            <li>The safety level used ('off', 'youth', 'kids').</li>
+            <li>The "seed" number used for the generation.</li>
+            <li>A timestamp of the creation.</li>
+        </ul>
+        <p>
+            <strong>No</strong> personal data such as names or IP addresses are stored. The storage serves the scientific monitoring of the project and the traceability of the results.
+        </p>
+        <p class="warn">
+            <strong>Use for Research and Dissemination Purposes:</strong> The AI4ArtsEd research project reserves the right to evaluate created materials for research purposes and to cite them as a block quote in the context of dissemination activities (e.g., publications and presentations). This applies with the <strong>EXCEPTION</strong> of workflows that directly manipulate uploaded images (e.g., inpainting). The images generated from these inpainting processes will be evaluated, but <strong>not</strong> cited in the context of dissemination activities. We reserve the right to delete data stored on our servers at any time.
+        </p>
+    </div>
+
+    <h2 id="hidden-commands">6. Advanced Tips: Hidden Commands</h2>
+    <p>
+        If you want more control, you can write special commands directly into your prompt field. These override the normal settings from the user interface.
+    </p>
+    <div class="tip">
+        <ul>
+            <li><code>#cfg:3#</code>: Changes the "prompt strength" (CFG Scale). A lower value (e.g., 3) gives the AI more creative freedom, while a higher value (e.g., 10) forces it to adhere more closely to your prompt. In practice, this value often also significantly affects the image contrast: higher values tend to lead to higher-contrast images.</li>
+            <li><code>#steps:15#</code>: Changes the number of calculation steps. Fewer steps (e.g., 15) are faster but may be less detailed. More steps (e.g., 30) take longer but can improve quality.</li>
+            <li><code>#seed:12345#</code>: Sets the random starting point to a specific number. This allows you to reproduce an image exactly and change only small details in the prompt to see the effect.</li>
+        </ul>
+    </div>
+
+    <p>Have fun experimenting and creating in the AI4ArtsEd Workspace!</p>
+
+</body>
+</html>
