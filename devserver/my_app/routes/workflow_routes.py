@@ -3,7 +3,10 @@ Flask routes for workflow operations
 """
 import logging
 import time
+import asyncio
+from typing import Optional
 from flask import Blueprint, jsonify, request, current_app
+from pathlib import Path
 
 from config import (
     ENABLE_VALIDATION_PIPELINE,
@@ -22,6 +25,158 @@ logger = logging.getLogger(__name__)
 
 # Create blueprint
 workflow_bp = Blueprint('workflow', __name__)
+
+
+# ============================================================================
+# AUTO-MEDIA-GENERATION HELPERS
+# ============================================================================
+
+def detect_output_type(final_output: str, schema_info: dict) -> str:
+    """
+    Detect the desired output media type from pipeline result
+    
+    Priority:
+    1. Explicit tags in output (#image#, #music#, etc.)
+    2. Meta output_type in schema
+    3. Default: image
+    
+    Args:
+        final_output: The final text output from pipeline
+        schema_info: Schema metadata dict
+        
+    Returns:
+        Output type: 'image', 'music', 'audio', 'video', or 'text'
+    """
+    # 1. Check for explicit tags in output
+    if "#image#" in final_output:
+        return "image"
+    elif "#music#" in final_output:
+        return "music"
+    elif "#audio#" in final_output:
+        return "audio"
+    elif "#video#" in final_output:
+        return "video"
+    
+    # 2. Check schema meta
+    meta = schema_info.get("meta", {})
+    if "output_type" in meta:
+        return meta["output_type"]
+    
+    # 3. Default to image for text-only pipelines
+    return "image"
+
+
+async def generate_image_from_text(text_prompt: str, schema_name: str = None) -> Optional[str]:
+    """
+    Generate image from text using ComfyUI
+    
+    Args:
+        text_prompt: The text to convert to image
+        schema_name: Optional schema name for logging
+        
+    Returns:
+        prompt_id from ComfyUI or None on error
+    """
+    try:
+        # Import ComfyUI components
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+        
+        from schemas.engine.comfyui_workflow_generator import get_workflow_generator
+        from my_app.services.comfyui_client import get_comfyui_client
+        
+        # Get paths
+        schemas_path = Path(__file__).parent.parent.parent / "schemas"
+        
+        # Generate workflow
+        generator = get_workflow_generator(schemas_path)
+        workflow = generator.generate_workflow(
+            template_name="sd35_standard",
+            schema_output=text_prompt,
+            parameters={}  # Use defaults
+        )
+        
+        if not workflow:
+            logger.error("Failed to generate ComfyUI workflow")
+            return None
+        
+        logger.info(f"Generated ComfyUI workflow for auto-image-generation (schema: {schema_name})")
+        
+        # Submit to ComfyUI
+        client = get_comfyui_client()
+        prompt_id = await client.submit_workflow(workflow)
+        
+        if prompt_id:
+            logger.info(f"Auto-generated image queued: {prompt_id}")
+        else:
+            logger.error("Failed to submit workflow to ComfyUI")
+        
+        return prompt_id
+        
+    except Exception as e:
+        logger.error(f"Error in auto-image-generation: {e}", exc_info=True)
+        return None
+
+
+async def generate_audio_from_text(text_prompt: str, schema_name: str = None) -> Optional[str]:
+    """
+    Generate audio from text using ComfyUI Stable Audio
+    
+    Args:
+        text_prompt: The text to convert to audio
+        schema_name: Optional schema name for logging
+        
+    Returns:
+        prompt_id from ComfyUI or None on error
+    """
+    try:
+        # Import ComfyUI components
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+        
+        from schemas.engine.comfyui_workflow_generator import get_workflow_generator
+        from my_app.services.comfyui_client import get_comfyui_client
+        
+        logger.info(f"[AUTO-AUDIO] Generating audio via ComfyUI for schema: {schema_name}")
+        
+        # Get paths
+        schemas_path = Path(__file__).parent.parent.parent / "schemas"
+        
+        # Generate Stable Audio workflow
+        generator = get_workflow_generator(schemas_path)
+        workflow = generator.generate_workflow(
+            template_name="stable_audio_standard",
+            schema_output=text_prompt,
+            parameters={}  # Use defaults (47s, 150 steps, cfg 7.0)
+        )
+        
+        if not workflow:
+            logger.error("[AUTO-AUDIO] Failed to generate ComfyUI audio workflow")
+            return None
+        
+        logger.info(f"[AUTO-AUDIO] Generated ComfyUI Stable Audio workflow (schema: {schema_name})")
+        
+        # Submit to ComfyUI
+        client = get_comfyui_client()
+        prompt_id = await client.submit_workflow(workflow)
+        
+        if prompt_id:
+            logger.info(f"[AUTO-AUDIO] Audio generation queued: {prompt_id}")
+        else:
+            logger.error("[AUTO-AUDIO] Failed to submit audio workflow to ComfyUI")
+        
+        return prompt_id
+        
+    except Exception as e:
+        logger.error(f"[AUTO-AUDIO] Error in auto-audio-generation: {e}", exc_info=True)
+        return None
+
+
+# ============================================================================
+# ROUTES
+# ============================================================================
 
 
 @workflow_bp.route('/list_workflows', methods=['GET'])
@@ -230,18 +385,6 @@ def execute_workflow():
         input_mode = data.get('inputMode', 'text_only')
         skip_translation = data.get('skipTranslation', False)
         
-        # Parse hidden commands from the prompt (moved up)
-        clean_prompt, hidden_commands = parse_hidden_commands(original_prompt)
-        
-        # Handle server-level commands
-        if hidden_commands.get('notranslate'):
-            skip_translation = True
-            logger.info("Hidden command #notranslate# detected, skipping translation")
-        
-        # Check for empty prompt after command removal
-        if not clean_prompt:
-            return jsonify({"error": "Kein Prompt angegeben (nach Entfernen von Hidden Commands)."}), 400
-        
         # CHECK: Schema-Pipeline (dev/) vs Legacy-Workflow
         if workflow_name and workflow_name.startswith("dev/"):
             # Schema-Pipeline ausführen (synchron mit asyncio.run)
@@ -257,15 +400,33 @@ def execute_workflow():
                 
                 from schemas.engine.pipeline_executor import PipelineExecutor
                 
+                # Parse hidden commands AFTER any LLM processing (which could add #audio# etc)
+                # but BEFORE pipeline execution
+                clean_prompt, hidden_commands = parse_hidden_commands(original_prompt)
+                
+                logger.info(f"Clean prompt for pipeline: {clean_prompt[:50]}...")
+                if hidden_commands:
+                    logger.info(f"Hidden commands detected: {hidden_commands}")
+                
                 schemas_path = Path(__file__).parent.parent.parent / "schemas"
                 executor = PipelineExecutor(schemas_path)
                 executor.schema_registry.initialize(schemas_path)
                 
-                # Schema-Pipeline ausführen (synchron)
+                # Execution Mode → Model Mapping
+                # 'eco' = Ollama (lokal), 'fast' = OpenRouter (cloud)
+                execution_mode_models = {
+                    'eco': 'local/gemma2:9b',
+                    'fast': 'openrouter/anthropic/claude-3.5-haiku'
+                }
+                override_model = execution_mode_models.get(mode, 'local/gemma2:9b')
+                logger.info(f"[EXECUTION-MODE] {mode} → Model: {override_model}")
+                
+                # Schema-Pipeline ausführen (synchron) mit Model-Override
                 result = asyncio.run(executor.execute_pipeline(
                     schema_name=schema_name,
                     input_text=clean_prompt,
-                    user_input=original_prompt
+                    user_input=original_prompt,
+                    model_override=override_model
                 ))
                 
                 if result.status.value == 'completed':
@@ -290,6 +451,55 @@ def execute_workflow():
                             prompt_id = step.metadata['prompt_id']
                             break
                     
+                    # ===== AUTO-POST-PROCESSING: Auto-Media-Generation =====
+                    # If no media was generated by pipeline, use hidden_commands to decide media type
+                    if not prompt_id:
+                        logger.info(f"[AUTO-MEDIA] No media generated by pipeline '{schema_name}'")
+                        
+                        # Check hidden_commands from original prompt for media type
+                        # (hidden_commands already parsed earlier in execute_workflow)
+                        if hidden_commands.get('audio'):
+                            logger.info(f"[AUTO-MEDIA] User requested audio via #audio# tag")
+                            prompt_id = asyncio.run(generate_audio_from_text(
+                                text_prompt=final_output,
+                                schema_name=schema_name
+                            ))
+                            if prompt_id:
+                                media_type = "audio"
+                                logger.info(f"[AUTO-MEDIA] Audio generation queued: {prompt_id}")
+                            else:
+                                logger.error(f"[AUTO-MEDIA] Failed to queue audio generation")
+                        
+                        elif hidden_commands.get('music'):
+                            logger.info(f"[AUTO-MEDIA] Music generation not yet implemented (reserved for AceStep)")
+                            media_type = "text"  # Fallback to text for now
+                        
+                        else:
+                            # Default: Generate image (unless user explicitly requested something else)
+                            logger.info(f"[AUTO-MEDIA] No media tag specified, defaulting to image generation")
+                            prompt_id = asyncio.run(generate_image_from_text(
+                                text_prompt=final_output,
+                                schema_name=schema_name
+                            ))
+                            if prompt_id:
+                                media_type = "image"
+                                logger.info(f"[AUTO-MEDIA] Image generation queued: {prompt_id}")
+                            else:
+                                logger.error(f"[AUTO-MEDIA] Failed to queue image generation")
+                    
+                    # Collect backend & model info from pipeline steps
+                    backend_info = []
+                    for step in result.steps:
+                        if step.metadata:
+                            if 'model_used' in step.metadata:
+                                backend_type = step.metadata.get('backend_type', 'unknown')
+                                model_used = step.metadata['model_used']
+                                backend_info.append({
+                                    'step': step.step_id,
+                                    'backend': backend_type,
+                                    'model': model_used
+                                })
+                    
                     response_data = {
                         "success": True,
                         "schema_pipeline": True,
@@ -299,16 +509,19 @@ def execute_workflow():
                         "execution_time": result.execution_time,
                         "original_prompt": original_prompt,
                         "translated_prompt": final_output,
-                        "status_updates": [f"Schema-Pipeline '{schema_name}' erfolgreich ausgeführt"]
+                        "status_updates": [f"Schema-Pipeline '{schema_name}' erfolgreich ausgeführt"],
+                        "backend_info": backend_info if backend_info else None
                     }
                     
-                    # Add media info if ComfyUI generated something
+                    # Add media info if ComfyUI generated something (or auto-generated)
                     if media_type != "text" and prompt_id:
                         response_data["media"] = {
                             "type": media_type,
                             "prompt_id": prompt_id,
                             "url": f"/api/media/{media_type}/{prompt_id}"
                         }
+                        if not any('auto-image' in s.lower() for s in response_data["status_updates"]):
+                            response_data["status_updates"].append("Bild wird automatisch generiert...")
                     
                     return jsonify(response_data)
                 else:

@@ -144,7 +144,13 @@ class PromptInterceptionEngine:
     async def _call_openrouter(self, prompt: str, model: str, debug: bool) -> Tuple[str, str]:
         """OpenRouter API Call mit Fallback"""
         try:
+            logger.info(f"[BACKEND] ☁️  OpenRouter Request: {model}")
+            
             api_url, api_key = self._get_openrouter_credentials()
+            
+            if not api_key:
+                raise Exception("OpenRouter API Key not configured")
+            
             headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
             messages = [
                 {"role": "system", "content": "You are a fresh assistant instance. Forget all previous conversation history."},
@@ -156,6 +162,7 @@ class PromptInterceptionEngine:
             if response.status_code == 200:
                 result = response.json()
                 output_text = result["choices"][0]["message"]["content"]
+                logger.info(f"[BACKEND] ✅ OpenRouter Success: {model} ({len(output_text)} chars)")
                 
                 if debug:
                     self._log_debug("OpenRouter", model, prompt, output_text)
@@ -180,6 +187,8 @@ class PromptInterceptionEngine:
     async def _call_ollama(self, prompt: str, model: str, debug: bool, unload_model: bool) -> Tuple[str, str]:
         """Ollama API Call mit Fallback"""
         try:
+            logger.info(f"[BACKEND] 🏠 Ollama Request: {model}")
+            
             payload = {
                 "model": model,
                 "prompt": prompt,
@@ -192,6 +201,7 @@ class PromptInterceptionEngine:
             if response.status_code == 200:
                 output = response.json().get("response", "")
                 if output:
+                    logger.info(f"[BACKEND] ✅ Ollama Success: {model} ({len(output)} chars)")
                     if unload_model:
                         try:
                             unload_payload = {"model": model, "prompt": "", "keep_alive": 0, "stream": False}
@@ -221,10 +231,32 @@ class PromptInterceptionEngine:
     
     def _get_openrouter_credentials(self) -> Tuple[str, str]:
         """OpenRouter Credentials aus Environment oder Key-File"""
-        # TODO: Implementation der Credential-Logik
-        api_key = os.environ.get("OPENROUTER_API_KEY", "")
         api_url = "https://openrouter.ai/api/v1/chat/completions"
-        return api_url, api_key
+        
+        # 1. Try Environment Variable
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        if api_key:
+            logger.debug("OpenRouter API Key from environment variable")
+            return api_url, api_key
+        
+        # 2. Try Key-File (devserver/openrouter.key)
+        try:
+            # Relative to devserver root
+            key_file = Path(__file__).parent.parent.parent / "openrouter.key"
+            if key_file.exists():
+                api_key = key_file.read_text().strip()
+                # Validate key format (OpenRouter keys start with "sk-or-")
+                if api_key and api_key.startswith("sk-or-"):
+                    logger.info(f"OpenRouter API Key loaded from {key_file}")
+                    return api_url, api_key
+                elif api_key:
+                    logger.error(f"Invalid OpenRouter API key format in {key_file} (must start with 'sk-or-')")
+        except Exception as e:
+            logger.warning(f"Failed to read openrouter.key: {e}")
+        
+        # 3. No key found
+        logger.error("OpenRouter API Key not found! Set OPENROUTER_API_KEY environment variable or create devserver/openrouter.key file")
+        return api_url, ""
     
     def _find_openrouter_fallback(self, failed_model: str, debug: bool) -> str:
         """Fallback für OpenRouter Modelle"""

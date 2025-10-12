@@ -341,12 +341,24 @@ function displaySchemaPipelineResult(result) {
     contentContainer.id = 'unifiedOutputsContent';
     
     // CHECK: Media-Output (Bild/Audio/Video) oder Text?
-    if (result.media && window.mediaOutputManager) {
-        const displayed = window.mediaOutputManager.display(result, contentContainer);
-        if (displayed) {
-            // Media wurde angezeigt - auch Pipeline-Info zeigen
+    if (result.media && result.media.prompt_id) {
+        // Auto-generated media - need to poll for completion
+        console.log(`[AUTO-MEDIA] Starting polling for ${result.media.type} generation:`, result.media.prompt_id);
+        
+        // Show pipeline info
             const pipelineInfo = document.createElement('div');
             pipelineInfo.style.cssText = 'margin-bottom: 15px; padding: 10px; border: 1px solid #007bff; border-radius: 6px; background-color: #e3f2fd;';
+            
+            let backendInfoHTML = '';
+            if (result.backend_info && result.backend_info.length > 0) {
+                backendInfoHTML = '<div style="font-size: 0.85em; color: #666; margin-top: 5px; border-top: 1px solid #ccc; padding-top: 5px;">';
+                result.backend_info.forEach(info => {
+                    const backendIcon = info.backend === 'ollama' ? '🏠' : '☁️';
+                    backendInfoHTML += `<div>📡 ${info.step}: ${backendIcon} ${info.backend} → ${info.model}</div>`;
+                });
+                backendInfoHTML += '</div>';
+            }
+            
             pipelineInfo.innerHTML = `
                 <div style="font-weight: bold; color: #0056b3; margin-bottom: 5px;">
                     🔀 Schema: ${result.schema_name}
@@ -357,13 +369,27 @@ function displaySchemaPipelineResult(result) {
                 <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
                     🖼️ Media-Typ: ${result.media.type}
                 </div>
+                ${backendInfoHTML}
             `;
-            contentContainer.insertBefore(pipelineInfo, contentContainer.firstChild);
-            unifiedContainer.appendChild(contentContainer);
-            ui.promptDisplay.parentNode.insertBefore(unifiedContainer, ui.promptDisplay.nextSibling);
-            setStatus(`Schema-Pipeline '${result.schema_name}' erfolgreich - ${result.media.type} generiert!`, 'success');
-            return;
-        }
+        contentContainer.appendChild(pipelineInfo);
+        unifiedContainer.appendChild(contentContainer);
+        ui.promptDisplay.parentNode.insertBefore(unifiedContainer, ui.promptDisplay.nextSibling);
+        
+        // Update status and start polling for media
+        setStatus(`Schema-Pipeline '${result.schema_name}' erfolgreich - ${result.media.type} wird generiert...`, 'success');
+        ui.processingMessage.textContent = `${result.media.type} wird generiert (ca. 20s)...`;
+        
+        // Update session data with media prompt_id
+        updateSessionData({
+            promptId: result.media.prompt_id,
+            workflowName: `schema_${result.schema_name}`,
+            prompt: result.original_prompt || '',
+            schemaPipeline: true
+        });
+        
+        // Start polling for the auto-generated media
+        startFastPolling(result.media.prompt_id);
+        return;
     }
     
     // Pipeline-Info anzeigen
