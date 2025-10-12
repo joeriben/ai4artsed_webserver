@@ -87,7 +87,7 @@ class PipelineExecutor:
         self._initialized = True
         logger.info("Pipeline-Executor initialisiert")
     
-    async def execute_pipeline(self, schema_name: str, input_text: str, user_input: Optional[str] = None) -> PipelineResult:
+    async def execute_pipeline(self, schema_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco') -> PipelineResult:
         """Komplette Pipeline ausführen"""
         # Auto-Initialisierung wenn noch nicht erfolgt
         if not self._initialized:
@@ -96,6 +96,8 @@ class PipelineExecutor:
             # Backend-Router braucht keine Legacy-Services mehr (verwendet ComfyUI-Client direkt)
             self.backend_router.initialize()
             self._initialized = True
+        
+        logger.info(f"[EXECUTION-MODE] Pipeline '{schema_name}' mit execution_mode='{execution_mode}'")
         
         # Schema abrufen
         schema = self.schema_registry.get_schema(schema_name)
@@ -116,17 +118,19 @@ class PipelineExecutor:
         # Pipeline-Schritte planen
         steps = self._plan_pipeline_steps(schema)
         
-        # Pipeline ausführen
-        result = await self._execute_pipeline_steps(schema_name, steps, context)
+        # Pipeline ausführen mit execution_mode
+        result = await self._execute_pipeline_steps(schema_name, steps, context, execution_mode)
         
         logger.info(f"Pipeline '{schema_name}' abgeschlossen: {result.status}")
         return result
     
-    async def stream_pipeline(self, schema_name: str, input_text: str, user_input: Optional[str] = None) -> AsyncGenerator[Tuple[str, Any], None]:
+    async def stream_pipeline(self, schema_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco') -> AsyncGenerator[Tuple[str, Any], None]:
         """Pipeline mit Streaming-Updates ausführen"""
         if not self._initialized:
             yield ("error", "Pipeline-Executor nicht initialisiert")
             return
+        
+        logger.info(f"[EXECUTION-MODE] Streaming pipeline '{schema_name}' mit execution_mode='{execution_mode}'")
         
         schema = self.schema_registry.get_schema(schema_name)
         if not schema:
@@ -143,11 +147,12 @@ class PipelineExecutor:
         yield ("pipeline_started", {
             "schema_name": schema_name,
             "total_steps": len(steps),
-            "input_text": input_text
+            "input_text": input_text,
+            "execution_mode": execution_mode
         })
         
-        # Pipeline-Schritte mit Streaming ausführen
-        async for event_type, event_data in self._stream_pipeline_steps(schema_name, steps, context):
+        # Pipeline-Schritte mit Streaming ausführen mit execution_mode
+        async for event_type, event_data in self._stream_pipeline_steps(schema_name, steps, context, execution_mode):
             yield (event_type, event_data)
     
     def _plan_pipeline_steps(self, schema: SchemaDefinition) -> List[PipelineStep]:
@@ -168,7 +173,7 @@ class PipelineExecutor:
         logger.debug(f"Pipeline geplant: {len(steps)} Schritte für Schema '{schema.name}' (Pipeline-Typ: {schema.pipeline_type})")
         return steps
     
-    async def _execute_pipeline_steps(self, schema_name: str, steps: List[PipelineStep], context: PipelineContext) -> PipelineResult:
+    async def _execute_pipeline_steps(self, schema_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> PipelineResult:
         """Pipeline-Schritte sequenziell ausführen"""
         import time
         start_time = time.time()
@@ -179,7 +184,7 @@ class PipelineExecutor:
             try:
                 # Schritt ausführen
                 step.status = PipelineStatus.RUNNING
-                output = await self._execute_single_step(step, context)
+                output = await self._execute_single_step(step, context, execution_mode)
                 
                 # Erfolgreicher Schritt
                 step.status = PipelineStatus.COMPLETED
@@ -222,7 +227,7 @@ class PipelineExecutor:
             }
         )
     
-    async def _stream_pipeline_steps(self, schema_name: str, steps: List[PipelineStep], context: PipelineContext) -> AsyncGenerator[Tuple[str, Any], None]:
+    async def _stream_pipeline_steps(self, schema_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> AsyncGenerator[Tuple[str, Any], None]:
         """Pipeline-Schritte mit Streaming-Updates ausführen"""
         for i, step in enumerate(steps):
             yield ("step_started", {
@@ -236,7 +241,7 @@ class PipelineExecutor:
                 step.status = PipelineStatus.RUNNING
                 
                 # Schritt ausführen
-                output = await self._execute_single_step(step, context)
+                output = await self._execute_single_step(step, context, execution_mode)
                 
                 step.status = PipelineStatus.COMPLETED
                 step.output_data = output
@@ -273,7 +278,7 @@ class PipelineExecutor:
             "total_steps": len(steps)
         })
     
-    async def _execute_single_step(self, step: PipelineStep, context: PipelineContext) -> str:
+    async def _execute_single_step(self, step: PipelineStep, context: PipelineContext, execution_mode: str = 'eco') -> str:
         """Einzelnen Pipeline-Schritt ausführen"""
         # Chunk erstellen
         chunk_context = {
@@ -286,7 +291,8 @@ class PipelineExecutor:
         chunk_request = self.chunk_builder.build_chunk(
             chunk_name=step.chunk_name,
             config_path=step.config_path,
-            context=chunk_context
+            context=chunk_context,
+            execution_mode=execution_mode
         )
         
         # Backend-Request erstellen

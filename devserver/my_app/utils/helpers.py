@@ -145,6 +145,12 @@ def parse_hidden_commands(prompt):
                 pass  # Skip invalid values
         elif command == 'notranslate':
             commands['notranslate'] = True
+        elif command == 'audio':
+            commands['audio'] = True
+        elif command == 'image':
+            commands['image'] = True
+        elif command == 'music':
+            commands['music'] = True
         # Add more commands as needed
         
         # Remove command from prompt
@@ -154,4 +160,3 @@ def parse_hidden_commands(prompt):
     clean_prompt = re.sub(r'\s+', ' ', prompt).strip()
 
     return clean_prompt, commands
-

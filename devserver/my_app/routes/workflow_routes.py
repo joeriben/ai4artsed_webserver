@@ -412,21 +412,15 @@ def execute_workflow():
                 executor = PipelineExecutor(schemas_path)
                 executor.schema_registry.initialize(schemas_path)
                 
-                # Execution Mode → Model Mapping
-                # 'eco' = Ollama (lokal), 'fast' = OpenRouter (cloud)
-                execution_mode_models = {
-                    'eco': 'local/gemma2:9b',
-                    'fast': 'openrouter/anthropic/claude-3.5-haiku'
-                }
-                override_model = execution_mode_models.get(mode, 'local/gemma2:9b')
-                logger.info(f"[EXECUTION-MODE] {mode} → Model: {override_model}")
+                # Execution Mode: 'eco' = Ollama (lokal), 'fast' = OpenRouter (cloud)
+                logger.info(f"[EXECUTION-MODE] Using mode: {mode}")
                 
-                # Schema-Pipeline ausführen (synchron) mit Model-Override
+                # Schema-Pipeline ausführen (synchron) mit execution_mode
                 result = asyncio.run(executor.execute_pipeline(
                     schema_name=schema_name,
                     input_text=clean_prompt,
                     user_input=original_prompt,
-                    model_override=override_model
+                    execution_mode=mode
                 ))
                 
                 if result.status.value == 'completed':

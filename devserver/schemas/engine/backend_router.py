@@ -56,17 +56,29 @@ class BackendRouter:
     async def process_request(self, request: BackendRequest) -> Union[BackendResponse, AsyncGenerator[str, None]]:
         """Request an entsprechendes Backend weiterleiten"""
         try:
+            # IMPORTANT: Detect actual backend from model prefix, not template backend_type
+            # This allows execution_mode to override the template's backend_type
+            actual_backend = self._detect_backend_from_model(request.model, request.backend_type)
+            
             # Schema-Pipelines: Ollama/OpenRouter über Prompt Interception Engine
-            if request.backend_type in [BackendType.OLLAMA, BackendType.OPENROUTER]:
-                return await self._process_prompt_interception_request(request)
-            elif request.backend_type == BackendType.COMFYUI:
+            if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER]:
+                # Create modified request with actual backend
+                modified_request = BackendRequest(
+                    backend_type=actual_backend,
+                    model=request.model,
+                    prompt=request.prompt,
+                    parameters=request.parameters,
+                    stream=request.stream
+                )
+                return await self._process_prompt_interception_request(modified_request)
+            elif actual_backend == BackendType.COMFYUI:
                 # ComfyUI braucht kein registriertes Backend - verwendet direkt ComfyUI-Client
                 return await self._process_comfyui_request(None, request)
             else:
                 return BackendResponse(
                     success=False,
                     content="",
-                    error=f"Backend-Typ {request.backend_type.value} nicht implementiert"
+                    error=f"Backend-Typ {actual_backend.value} nicht implementiert"
                 )
         except Exception as e:
             logger.error(f"Fehler bei Backend-Verarbeitung: {e}")
@@ -76,6 +88,29 @@ class BackendRouter:
                 error=str(e)
             )
     
+    def _detect_backend_from_model(self, model: str, fallback_backend: BackendType) -> BackendType:
+        """
+        Detect backend from model prefix
+        This allows execution_mode to override template's backend_type
+        
+        Args:
+            model: Model string (may have local/ or openrouter/ prefix)
+            fallback_backend: Fallback if no prefix detected
+            
+        Returns:
+            Detected backend type
+        """
+        if model.startswith("openrouter/"):
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → OPENROUTER")
+            return BackendType.OPENROUTER
+        elif model.startswith("local/"):
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → OLLAMA")
+            return BackendType.OLLAMA
+        else:
+            # No prefix, use fallback
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → {fallback_backend.value} (fallback)")
+            return fallback_backend
+    
     async def _process_prompt_interception_request(self, request: BackendRequest) -> BackendResponse:
         """Schema-Pipeline-Request über Prompt Interception Engine"""
         try:
@@ -84,11 +119,9 @@ class BackendRouter:
             # Parse Template+Config zu Task+Context+Prompt
             input_prompt, input_context, style_prompt = self._parse_template_to_prompt_format(request.prompt)
             
-            # Model-String für Prompt Interception Engine
-            if request.backend_type == BackendType.OLLAMA:
-                model = f"local/{request.model}"
-            else:  # OPENROUTER
-                model = f"openrouter/{request.model}"
+            # Model already has prefix from ModelSelector - use as-is!
+            model = request.model
+            logger.info(f"[BACKEND] Using model: {model}")
             
             # Prompt Interception Request
             pi_engine = PromptInterceptionEngine()

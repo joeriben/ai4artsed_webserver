@@ -121,6 +121,106 @@ class ComfyUIWorkflowGenerator:
                 "checkpoint": "{{CHECKPOINT}}"
             }
         )
+        
+        # Stable Audio Template (ComfyUI Custom Nodes)
+        self.templates["stable_audio_standard"] = WorkflowTemplate(
+            name="stable_audio_standard",
+            base_nodes={
+                "93": {
+                    "inputs": {
+                        "text": "{{NEGATIVE_PROMPT}}",
+                        "clip": ["102", 0]
+                    },
+                    "class_type": "CLIPTextEncode",
+                    "_meta": {"title": "CLIP Text Encode (Negative)"}
+                },
+                "94": {
+                    "inputs": {
+                        "filename_prefix": "AI4ArtsEd_Audio",
+                        "quality": "320k",
+                        "audioUI": "",
+                        "audio": ["100", 0]
+                    },
+                    "class_type": "SaveAudioMP3",
+                    "_meta": {"title": "Save Audio (MP3)"}
+                },
+                "96": {
+                    "inputs": {
+                        "ckpt_name": "OfficialStableDiffusion/stableaudio_model.safetensors"
+                    },
+                    "class_type": "CheckpointLoaderSimple",
+                    "_meta": {"title": "Load Checkpoint"}
+                },
+                "97": {
+                    "inputs": {
+                        "seconds": "{{DURATION}}",
+                        "batch_size": 1
+                    },
+                    "class_type": "EmptyLatentAudio",
+                    "_meta": {"title": "EmptyLatentAudio"}
+                },
+                "98": {
+                    "inputs": {
+                        "text": "{{PROMPT}}",
+                        "clip": ["102", 0]
+                    },
+                    "class_type": "CLIPTextEncode",
+                    "_meta": {"title": "CLIP Text Encode (Positive)"}
+                },
+                "99": {
+                    "inputs": {
+                        "seconds_start": 0,
+                        "seconds_total": "{{DURATION}}",
+                        "positive": ["98", 0],
+                        "negative": ["93", 0]
+                    },
+                    "class_type": "ConditioningStableAudio",
+                    "_meta": {"title": "ConditioningStableAudio"}
+                },
+                "100": {
+                    "inputs": {
+                        "samples": ["101", 0],
+                        "vae": ["96", 2]
+                    },
+                    "class_type": "VAEDecodeAudio",
+                    "_meta": {"title": "VAEDecodeAudio"}
+                },
+                "101": {
+                    "inputs": {
+                        "seed": "{{SEED}}",
+                        "steps": "{{STEPS}}",
+                        "cfg": "{{CFG}}",
+                        "sampler_name": "euler",
+                        "scheduler": "simple",
+                        "denoise": 0.9,
+                        "model": ["96", 0],
+                        "positive": ["99", 0],
+                        "negative": ["99", 1],
+                        "latent_image": ["97", 0]
+                    },
+                    "class_type": "KSampler",
+                    "_meta": {"title": "KSampler"}
+                },
+                "102": {
+                    "inputs": {
+                        "clip_name": "CLIP_stableaudio_model.safetensors",
+                        "type": "stable_audio",
+                        "device": "default"
+                    },
+                    "class_type": "CLIPLoader",
+                    "_meta": {"title": "Load CLIP"}
+                }
+            },
+            prompt_injection_node="98",
+            parameter_mappings={
+                "prompt": "{{PROMPT}}",
+                "negative_prompt": "{{NEGATIVE_PROMPT}}",
+                "duration": "{{DURATION}}",
+                "steps": "{{STEPS}}",
+                "cfg": "{{CFG}}",
+                "seed": "{{SEED}}"
+            }
+        )
     
     def generate_workflow(
         self,
@@ -135,19 +235,30 @@ class ComfyUIWorkflowGenerator:
             logger.error(f"Template '{template_name}' nicht gefunden")
             return None
         
-        # Default-Parameter für SD 3.5 (mit korrekten Typen!)
-        default_params = {
-            "PROMPT": schema_output,
-            "NEGATIVE_PROMPT": "watermark, text, bad quality",
-            "WIDTH": 1024,  # Integer
-            "HEIGHT": 1024,  # Integer
-            "STEPS": 25,  # Integer
-            "CFG": 5.5,  # Float
-            "SAMPLER": "euler",
-            "SCHEDULER": "normal",
-            "SEED": self._generate_seed(),  # Integer
-            "CHECKPOINT": "OfficialStableDiffusion/sd3.5_large.safetensors"
-        }
+        # Default-Parameter je nach Template
+        if template_name == "stable_audio_standard":
+            default_params = {
+                "PROMPT": schema_output,
+                "NEGATIVE_PROMPT": "worst quality, bad audio, high harmonic distortion",
+                "DURATION": 47.0,  # Float (max 47s)
+                "STEPS": 150,  # Integer
+                "CFG": 7.0,  # Float
+                "SEED": self._generate_seed()  # Integer
+            }
+        else:
+            # SD 3.5 Default-Parameter
+            default_params = {
+                "PROMPT": schema_output,
+                "NEGATIVE_PROMPT": "watermark, text, bad quality",
+                "WIDTH": 1024,  # Integer
+                "HEIGHT": 1024,  # Integer
+                "STEPS": 25,  # Integer
+                "CFG": 5.5,  # Float
+                "SAMPLER": "euler",
+                "SCHEDULER": "normal",
+                "SEED": self._generate_seed(),  # Integer
+                "CHECKPOINT": "OfficialStableDiffusion/sd3.5_large.safetensors"
+            }
         
         # Parameter mit übergebenen Werten überschreiben (Typ-Konvertierung)
         final_params = {**default_params}
@@ -155,7 +266,7 @@ class ComfyUIWorkflowGenerator:
             # Typ-Konvertierung für numerische Parameter
             if key in ["WIDTH", "HEIGHT", "STEPS", "SEED"]:
                 final_params[key] = int(value) if not isinstance(value, int) else value
-            elif key == "CFG":
+            elif key in ["CFG", "DURATION"]:
                 final_params[key] = float(value) if not isinstance(value, float) else value
             else:
                 final_params[key] = value

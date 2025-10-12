@@ -133,7 +133,7 @@ class ChunkBuilder:
             logger.error(f"Fehler beim Importieren von {config_file}: {e}")
             return None
     
-    def build_chunk(self, chunk_name: str, config_path: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def build_chunk(self, chunk_name: str, config_path: str, context: Dict[str, Any], execution_mode: str = 'eco') -> Dict[str, Any]:
         """Chunk mit Template und Config erstellen"""
         template = self.templates.get(chunk_name)
         if not template:
@@ -150,21 +150,28 @@ class ChunkBuilder:
             config
         )
         
+        # Model-Override basierend auf execution_mode
+        from .model_selector import model_selector
+        final_model = model_selector.select_model_for_mode(template.model, execution_mode)
+        
         # Chunk-Request zusammenstellen
         chunk_request = {
             'backend_type': template.backend_type,
-            'model': template.model,
+            'model': final_model,  # Override statt template.model
             'prompt': processed_template,
             'parameters': {**template.parameters, **config.parameters},
             'metadata': {
                 'chunk_name': chunk_name,
                 'config_path': config_path,
                 'template_placeholders': template.placeholders,
+                'execution_mode': execution_mode,
+                'template_model': template.model,
+                'final_model': final_model,
                 **config.metadata
             }
         }
         
-        logger.debug(f"Chunk erstellt: {chunk_name} mit Config {config_path}")
+        logger.debug(f"Chunk erstellt: {chunk_name} mit Config {config_path} (execution_mode: {execution_mode}, model: {final_model})")
         return chunk_request
     
     def _replace_placeholders(self, template: str, context: Dict[str, Any], config: ChunkConfig) -> str:

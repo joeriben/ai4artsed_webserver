@@ -1,6 +1,7 @@
 """
 Prompt Interception Engine - Migration der AI4ArtsEd Custom Node
 Zentrale KI-Request-Funktionalität mit Multi-Backend und Fallback-System
+Uses centralized ModelSelector for all model operations
 """
 
 import os
@@ -13,6 +14,9 @@ from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Import centralized model selector
+from .model_selector import model_selector
 
 @dataclass
 class PromptInterceptionRequest:
@@ -39,52 +43,18 @@ class PromptInterceptionEngine:
     """
     Prompt Interception Engine - Zentrale KI-Request-Funktionalität
     Migration der ai4artsed_prompt_interception Custom Node
+    Now uses centralized ModelSelector for all model operations
     """
     
     def __init__(self):
-        self.openrouter_models = self._get_openrouter_models()
-        self.ollama_models = self._get_ollama_models()
-        
-    def _get_openrouter_models(self) -> Dict[str, Dict[str, str]]:
-        """OpenRouter Modelle mit Metadaten"""
-        return {
-            "anthropic/claude-3.5-haiku": {"price": "$0.80/$4.00", "tag": "multilingual"},
-            "anthropic/claude-3-haiku": {"price": "$0.80/$4.00", "tag": "multilingual"},
-            "deepseek/deepseek-chat-v3-0324": {"price": "$0.27/$1.10", "tag": "rule-oriented"},
-            "deepseek/deepseek-r1-0528": {"price": "$0.50/$2.15", "tag": "reasoning"},
-            "google/gemini-2.5-flash": {"price": "$0.20/$2.50", "tag": "multilingual"},
-            "google/gemma-3-27b-it": {"price": "$0.10/$0.18", "tag": "translator"},
-            "meta-llama/llama-3.3-70b-instruct": {"price": "$0.59/$0.79", "tag": "rule-oriented"},
-            "meta-llama/llama-guard-3-8b": {"price": "$0.05/$0.10", "tag": "rule-oriented"},
-            "meta-llama/llama-3.2-1b-instruct": {"price": "$0.05/$0.10", "tag": "reasoning"},
-            "mistralai/mistral-medium-3": {"price": "$0.40/$2.00", "tag": "reasoning"},
-            "mistralai/mistral-small-3.1-24b-instruct": {"price": "$0.10/$0.30", "tag": "rule-oriented, vision"},
-            "mistralai/mistral-nemo": {"price": "$0.01/$0.001", "tag": "multilingual"},
-            "mistralai/ministral-8b": {"price": "$0.05/$0.10", "tag": "rule-oriented"},
-            "mistralai/ministral-3b": {"price": "$0.05/$0.10", "tag": "rule-oriented"},
-            "mistralai/mixtral-8x7b-instruct": {"price": "$0.45/$0.70", "tag": "cultural-expert"},
-            "qwen/qwen3-32b": {"price": "$0.10/$0.30", "tag": "translator"},
-        }
-    
-    def _get_ollama_models(self) -> List[str]:
-        """Verfügbare Ollama Modelle abrufen"""
-        try:
-            response = requests.get("http://localhost:11434/api/tags", timeout=5)
-            response.raise_for_status()
-            return [m.get('name', '') for m in response.json().get("models", [])]
-        except Exception:
-            return []
+        # Use centralized model selector instead of local methods
+        self.model_selector = model_selector
+        self.openrouter_models = self.model_selector.get_openrouter_models()
+        self.ollama_models = self.model_selector.get_ollama_models()
     
     def extract_model_name(self, full_model_string: str) -> str:
-        """Extrahiert echten Modellnamen aus Dropdown-Format"""
-        if full_model_string.startswith("openrouter/"):
-            without_prefix = full_model_string[11:]
-            return without_prefix.split(" [")[0]
-        elif full_model_string.startswith("local/"):
-            without_prefix = full_model_string[6:]
-            return without_prefix.split(" [")[0]
-        else:
-            return full_model_string
+        """Extract model name using centralized selector"""
+        return self.model_selector.extract_model_name(full_model_string)
     
     def build_full_prompt(self, input_prompt: str, input_context: str = "", style_prompt: str = "") -> str:
         """Baut vollständigen Prompt im Custom Node Format"""
@@ -107,7 +77,10 @@ class PromptInterceptionEngine:
             # Modellnamen extrahieren
             real_model_name = self.extract_model_name(request.model)
             
-            # Backend-spezifische Verarbeitung
+            # Backend-spezifische Verarbeitung (check fresh model lists)
+            self.openrouter_models = self.model_selector.get_openrouter_models()
+            self.ollama_models = self.model_selector.get_ollama_models()
+            
             if request.model.startswith("openrouter/") or real_model_name in self.openrouter_models:
                 output_text, model_used = await self._call_openrouter(
                     full_prompt, real_model_name, request.debug
@@ -244,13 +217,23 @@ class PromptInterceptionEngine:
             # Relative to devserver root
             key_file = Path(__file__).parent.parent.parent / "openrouter.key"
             if key_file.exists():
-                api_key = key_file.read_text().strip()
-                # Validate key format (OpenRouter keys start with "sk-or-")
-                if api_key and api_key.startswith("sk-or-"):
+                # Read file and skip comment lines
+                lines = key_file.read_text().strip().split('\n')
+                api_key = None
+                for line in lines:
+                    line = line.strip()
+                    # Skip empty lines and comments
+                    if line and not line.startswith('#') and not line.startswith('//'):
+                        # Check if this looks like an API key (starts with sk-or- or sk-ant-)
+                        if line.startswith("sk-"):
+                            api_key = line
+                            break
+                
+                if api_key:
                     logger.info(f"OpenRouter API Key loaded from {key_file}")
                     return api_url, api_key
-                elif api_key:
-                    logger.error(f"Invalid OpenRouter API key format in {key_file} (must start with 'sk-or-')")
+                else:
+                    logger.error(f"No valid API key found in {key_file} (looking for lines starting with 'sk-')")
         except Exception as e:
             logger.warning(f"Failed to read openrouter.key: {e}")
         
@@ -259,34 +242,12 @@ class PromptInterceptionEngine:
         return api_url, ""
     
     def _find_openrouter_fallback(self, failed_model: str, debug: bool) -> str:
-        """Fallback für OpenRouter Modelle"""
-        # Simplified fallback logic
-        fallbacks = [
-            "anthropic/claude-3.5-haiku",
-            "meta-llama/llama-3.2-1b-instruct",
-            "mistralai/ministral-8b"
-        ]
-        
-        for fallback in fallbacks:
-            if fallback in self.openrouter_models and fallback != failed_model:
-                return fallback
-        
-        return "anthropic/claude-3-haiku"
+        """Use centralized OpenRouter fallback logic"""
+        return self.model_selector.find_openrouter_fallback(failed_model, debug)
     
     def _find_ollama_fallback(self, failed_model: str, debug: bool) -> Optional[str]:
-        """Fallback für Ollama Modelle"""
-        available_models = self._get_ollama_models()
-        if not available_models:
-            return None
-        
-        # Präferierte Fallbacks
-        preferred = ["gemma2:9b", "llama3.2:1b", "llama3.1:8b"]
-        for pref in preferred:
-            if pref in available_models and pref != failed_model:
-                return pref
-        
-        # Erstes verfügbares Modell
-        return available_models[0] if available_models else None
+        """Use centralized Ollama fallback logic"""
+        return self.model_selector.find_ollama_fallback(failed_model, debug)
     
     def _format_outputs(self, output_text: str) -> Tuple[str, float, int, bool]:
         """Formatiert Output in alle vier Rückgabeformate (Custom Node Logic)"""
