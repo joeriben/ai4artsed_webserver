@@ -15,15 +15,59 @@ logger = logging.getLogger(__name__)
 class ComfyUIClient:
     """Client für ComfyUI API-Kommunikation"""
     
-    def __init__(self, base_url: str = "http://127.0.0.1:8188"):
+    def __init__(self, base_url: str = None):
         """
-        Initialize ComfyUI client
+        Initialize ComfyUI client with auto-discovery
         
         Args:
-            base_url: ComfyUI server URL (default: http://127.0.0.1:8188)
+            base_url: ComfyUI server URL (default: auto-discover)
         """
-        self.base_url = base_url
+        self.base_url = base_url or self._discover_comfyui_port()
         self.client_id = str(uuid.uuid4())
+        logger.info(f"ComfyUI client initialized for: {self.base_url}")
+    
+    @staticmethod
+    def _discover_comfyui_port() -> str:
+        """
+        Auto-discover ComfyUI port by checking common ports
+        
+        Returns:
+            Base URL of discovered ComfyUI instance or default
+        """
+        import socket
+        
+        # Common ComfyUI ports to check
+        ports_to_check = [
+            (8188, "ComfyUI standalone"),
+            (7821, "SwarmUI integrated ComfyUI"),
+            (8189, "ComfyUI alternative"),
+            (7860, "SwarmUI main"),
+        ]
+        
+        for port, description in ports_to_check:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.5)
+            try:
+                result = sock.connect_ex(('127.0.0.1', port))
+                sock.close()
+                
+                if result == 0:
+                    # Port is open, verify it's actually ComfyUI
+                    url = f"http://127.0.0.1:{port}"
+                    try:
+                        import requests
+                        response = requests.get(f"{url}/system_stats", timeout=2)
+                        if response.status_code == 200:
+                            logger.info(f"✅ Discovered ComfyUI on port {port} ({description})")
+                            return url
+                    except:
+                        pass
+            except:
+                pass
+        
+        # Default fallback
+        logger.warning("⚠️ No ComfyUI instance found, using default port 8188")
+        return "http://127.0.0.1:8188"
         
     async def submit_workflow(self, workflow: Dict[str, Any]) -> Optional[str]:
         """
@@ -243,8 +287,13 @@ class ComfyUIClient:
 # Singleton instance
 _client = None
 
-def get_comfyui_client(base_url: str = "http://127.0.0.1:8188") -> ComfyUIClient:
-    """Get ComfyUI client singleton"""
+def get_comfyui_client(base_url: str = None) -> ComfyUIClient:
+    """
+    Get ComfyUI client singleton with auto-discovery
+    
+    Args:
+        base_url: Optional explicit URL, otherwise auto-discover
+    """
     global _client
     if _client is None:
         _client = ComfyUIClient(base_url)
