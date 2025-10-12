@@ -8,6 +8,7 @@ import { submitPromptWithFastPolling as submitPrompt } from './workflow-streamin
 import { downloadSession } from './session.js';
 import { initSSEConnection, pollQueueStatus } from './sse-connection.js';
 import { initSimpleTranslation } from './simple-translation.js';
+import './media-output.js'; // Media-Output-Manager für Bild/Audio/Video
 
 // Make submitPrompt available globally for onclick handler
 window.submitPrompt = submitPrompt;

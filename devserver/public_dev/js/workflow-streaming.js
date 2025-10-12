@@ -340,6 +340,32 @@ function displaySchemaPipelineResult(result) {
     const contentContainer = document.createElement('div');
     contentContainer.id = 'unifiedOutputsContent';
     
+    // CHECK: Media-Output (Bild/Audio/Video) oder Text?
+    if (result.media && window.mediaOutputManager) {
+        const displayed = window.mediaOutputManager.display(result, contentContainer);
+        if (displayed) {
+            // Media wurde angezeigt - auch Pipeline-Info zeigen
+            const pipelineInfo = document.createElement('div');
+            pipelineInfo.style.cssText = 'margin-bottom: 15px; padding: 10px; border: 1px solid #007bff; border-radius: 6px; background-color: #e3f2fd;';
+            pipelineInfo.innerHTML = `
+                <div style="font-weight: bold; color: #0056b3; margin-bottom: 5px;">
+                    🔀 Schema: ${result.schema_name}
+                </div>
+                <div style="font-size: 0.9em; color: #666;">
+                    ⚡ ${result.steps_completed} Schritte in ${(result.execution_time || 0).toFixed(1)}s
+                </div>
+                <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
+                    🖼️ Media-Typ: ${result.media.type}
+                </div>
+            `;
+            contentContainer.insertBefore(pipelineInfo, contentContainer.firstChild);
+            unifiedContainer.appendChild(contentContainer);
+            ui.promptDisplay.parentNode.insertBefore(unifiedContainer, ui.promptDisplay.nextSibling);
+            setStatus(`Schema-Pipeline '${result.schema_name}' erfolgreich - ${result.media.type} generiert!`, 'success');
+            return;
+        }
+    }
+    
     // Pipeline-Info anzeigen
     const pipelineInfo = document.createElement('div');
     pipelineInfo.style.cssText = 'margin-bottom: 15px; padding: 10px; border: 1px solid #007bff; border-radius: 6px; background-color: #e3f2fd;';

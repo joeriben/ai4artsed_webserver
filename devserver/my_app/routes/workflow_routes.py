@@ -269,18 +269,48 @@ def execute_workflow():
                 ))
                 
                 if result.status.value == 'completed':
-                    # Schema-Pipeline erfolgreich - als Text-Output zurückgeben
-                    return jsonify({
+                    # Tag-Detection für Media-Typ
+                    final_output = result.final_output or ""
+                    media_type = "text"  # Default
+                    
+                    # Check for media tags
+                    if "#image#" in final_output:
+                        media_type = "image"
+                    elif "#music#" in final_output:
+                        media_type = "music"
+                    elif "#audio#" in final_output:
+                        media_type = "audio"
+                    elif "#video#" in final_output:
+                        media_type = "video"
+                    
+                    # Check for ComfyUI prompt_id in metadata
+                    prompt_id = None
+                    for step in result.steps:
+                        if step.metadata and 'prompt_id' in step.metadata:
+                            prompt_id = step.metadata['prompt_id']
+                            break
+                    
+                    response_data = {
                         "success": True,
                         "schema_pipeline": True,
                         "schema_name": schema_name,
-                        "final_output": result.final_output,
+                        "final_output": final_output,
                         "steps_completed": len(result.steps),
                         "execution_time": result.execution_time,
                         "original_prompt": original_prompt,
-                        "translated_prompt": result.final_output,  # Use the actual pipeline output as translated prompt
+                        "translated_prompt": final_output,
                         "status_updates": [f"Schema-Pipeline '{schema_name}' erfolgreich ausgeführt"]
-                    })
+                    }
+                    
+                    # Add media info if ComfyUI generated something
+                    if media_type != "text" and prompt_id:
+                        response_data["media"] = {
+                            "type": media_type,
+                            "prompt_id": prompt_id,
+                            "url": f"/api/media/{media_type}/{prompt_id}"
+                        }
+                    
+                    return jsonify(response_data)
                 else:
                     return jsonify({
                         "error": f"Schema-Pipeline fehlgeschlagen: {result.error}",

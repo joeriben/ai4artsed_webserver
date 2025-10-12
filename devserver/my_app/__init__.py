@@ -39,6 +39,7 @@ def create_app():
     from my_app.routes.config_routes import config_bp
     from my_app.routes.sse_routes import sse_bp
     from my_app.routes.schema_pipeline_routes import schema_bp
+    from my_app.routes.media_routes import media_bp
     
     app.register_blueprint(static_bp)
     app.register_blueprint(config_bp)
@@ -47,6 +48,7 @@ def create_app():
     app.register_blueprint(export_bp)
     app.register_blueprint(sse_bp)
     app.register_blueprint(schema_bp)
+    app.register_blueprint(media_bp)
     
     # Configure logging filter for ComfyUI proxy
     class ComfyUIFilter(logging.Filter):
