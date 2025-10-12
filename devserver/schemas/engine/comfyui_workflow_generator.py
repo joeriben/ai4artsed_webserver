@@ -135,22 +135,30 @@ class ComfyUIWorkflowGenerator:
             logger.error(f"Template '{template_name}' nicht gefunden")
             return None
         
-        # Default-Parameter für SD 3.5
+        # Default-Parameter für SD 3.5 (mit korrekten Typen!)
         default_params = {
             "PROMPT": schema_output,
             "NEGATIVE_PROMPT": "watermark, text, bad quality",
-            "WIDTH": 1024,
-            "HEIGHT": 1024,
-            "STEPS": 25,
-            "CFG": 5.5,
+            "WIDTH": 1024,  # Integer
+            "HEIGHT": 1024,  # Integer
+            "STEPS": 25,  # Integer
+            "CFG": 5.5,  # Float
             "SAMPLER": "euler",
             "SCHEDULER": "normal",
-            "SEED": self._generate_seed(),
+            "SEED": self._generate_seed(),  # Integer
             "CHECKPOINT": "OfficialStableDiffusion/sd3.5_large.safetensors"
         }
         
-        # Parameter mit übergebenen Werten überschreiben
-        final_params = {**default_params, **parameters}
+        # Parameter mit übergebenen Werten überschreiben (Typ-Konvertierung)
+        final_params = {**default_params}
+        for key, value in parameters.items():
+            # Typ-Konvertierung für numerische Parameter
+            if key in ["WIDTH", "HEIGHT", "STEPS", "SEED"]:
+                final_params[key] = int(value) if not isinstance(value, int) else value
+            elif key == "CFG":
+                final_params[key] = float(value) if not isinstance(value, float) else value
+            else:
+                final_params[key] = value
         
         # Workflow generieren
         workflow = {}
@@ -161,8 +169,7 @@ class ComfyUIWorkflowGenerator:
         return workflow
     
     def _process_node(self, node_data: Dict[str, Any], parameters: Dict[str, Any]) -> Dict[str, Any]:
-        """Node-Daten verarbeiten und Platzhalter ersetzen"""
-        # Arbeite mit Dictionary statt JSON-String für saubere Ersetzung
+        """Node-Daten verarbeiten und Platzhalter ersetzen (mit Typ-Erhaltung!)"""
         import copy
         node = copy.deepcopy(node_data)
         
@@ -173,14 +180,16 @@ class ComfyUIWorkflowGenerator:
             elif isinstance(obj, list):
                 return [replace_placeholders(item) for item in obj]
             elif isinstance(obj, str):
-                # Platzhalter in Strings ersetzen
-                result = obj
+                # Check if this is a pure placeholder (entire string)
                 for param, value in parameters.items():
                     placeholder = f"{{{{{param}}}}}"
-                    if placeholder in result:
-                        # Wert korrekt als String behandeln (escaped für JSON-Sicherheit)
-                        result = result.replace(placeholder, str(value))
-                return result
+                    if obj == placeholder:
+                        # Replace entire value with original type preserved!
+                        return value
+                    elif placeholder in obj:
+                        # Partial replacement - must remain string
+                        obj = obj.replace(placeholder, str(value))
+                return obj
             else:
                 return obj
         

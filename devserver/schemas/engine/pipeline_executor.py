@@ -91,8 +91,10 @@ class PipelineExecutor:
         """Komplette Pipeline ausführen"""
         # Auto-Initialisierung wenn noch nicht erfolgt
         if not self._initialized:
-            logger.info("Auto-Initialisierung: Schema-Registry wird initialisiert")
+            logger.info("Auto-Initialisierung: Schema-Registry und Backend-Router werden initialisiert")
             self.schema_registry.initialize(self.schemas_path)
+            # Backend-Router braucht keine Legacy-Services mehr (verwendet ComfyUI-Client direkt)
+            self.backend_router.initialize()
             self._initialized = True
         
         # Schema abrufen

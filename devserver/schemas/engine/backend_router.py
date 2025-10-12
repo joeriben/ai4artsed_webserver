@@ -60,10 +60,8 @@ class BackendRouter:
             if request.backend_type in [BackendType.OLLAMA, BackendType.OPENROUTER]:
                 return await self._process_prompt_interception_request(request)
             elif request.backend_type == BackendType.COMFYUI:
-                backend = self.backends.get(request.backend_type)
-                if not backend:
-                    return BackendResponse(success=False, content="", error="ComfyUI-Backend nicht verfügbar")
-                return await self._process_comfyui_request(backend, request)
+                # ComfyUI braucht kein registriertes Backend - verwendet direkt ComfyUI-Client
+                return await self._process_comfyui_request(None, request)
             else:
                 return BackendResponse(
                     success=False,
