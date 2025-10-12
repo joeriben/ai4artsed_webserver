@@ -229,9 +229,16 @@ class BackendRouter:
             # ComfyUI-Workflow-Generator verwenden
             try:
                 from .comfyui_workflow_generator import get_workflow_generator
-                generator = get_workflow_generator(Path(__file__).parent.parent)
+                # Import relativ zum devserver root
+                import sys
+                from pathlib import Path
+                devserver_path = Path(__file__).parent.parent.parent
+                if str(devserver_path) not in sys.path:
+                    sys.path.insert(0, str(devserver_path))
+                from my_app.services.comfyui_client import get_comfyui_client
                 
-                # Workflow generieren
+                # 1. Workflow generieren
+                generator = get_workflow_generator(Path(__file__).parent.parent)
                 workflow = generator.generate_workflow(
                     template_name=workflow_template,
                     schema_output=schema_output,
@@ -247,9 +254,71 @@ class BackendRouter:
                 
                 logger.info(f"ComfyUI-Workflow generiert: {len(workflow)} Nodes für Template '{workflow_template}'")
                 
-                # Workflow an ComfyUI senden
-                if hasattr(comfyui_service, 'submit_workflow'):
-                    prompt_id = comfyui_service.submit_workflow(workflow)
+                # 2. ComfyUI Client holen und Health Check
+                client = get_comfyui_client()
+                is_healthy = await client.health_check()
+                
+                if not is_healthy:
+                    logger.warning("ComfyUI server not reachable, returning workflow only")
+                    return BackendResponse(
+                        success=True,
+                        content="workflow_generated_only",
+                        metadata={
+                            'workflow_generated': True,
+                            'template': workflow_template,
+                            'workflow': workflow,
+                            'comfyui_available': False,
+                            'message': 'Workflow generated but ComfyUI server not available'
+                        }
+                    )
+                
+                # 3. Workflow an ComfyUI senden
+                prompt_id = await client.submit_workflow(workflow)
+                
+                if not prompt_id:
+                    return BackendResponse(
+                        success=False,
+                        content="",
+                        error="Failed to submit workflow to ComfyUI"
+                    )
+                
+                logger.info(f"Workflow submitted to ComfyUI: {prompt_id}")
+                
+                # 4. Optional: Auf Fertigstellung warten (wenn wait_for_completion Parameter gesetzt)
+                if request.parameters.get('wait_for_completion', False):
+                    timeout = request.parameters.get('timeout', 300)
+                    history = await client.wait_for_completion(prompt_id, timeout=timeout)
+                    
+                    if history:
+                        # Generierte Bilder extrahieren
+                        images = await client.get_generated_images(history)
+                        return BackendResponse(
+                            success=True,
+                            content=prompt_id,
+                            metadata={
+                                'workflow_generated': True,
+                                'template': workflow_template,
+                                'prompt_id': prompt_id,
+                                'completed': True,
+                                'images': images,
+                                'comfyui_available': True
+                            }
+                        )
+                    else:
+                        return BackendResponse(
+                            success=False,
+                            content=prompt_id,
+                            error="Timeout or error waiting for completion",
+                            metadata={
+                                'workflow_generated': True,
+                                'template': workflow_template,
+                                'prompt_id': prompt_id,
+                                'completed': False,
+                                'comfyui_available': True
+                            }
+                        )
+                else:
+                    # Sofort zurückkehren mit prompt_id
                     return BackendResponse(
                         success=True,
                         content=prompt_id,
@@ -257,31 +326,24 @@ class BackendRouter:
                             'workflow_generated': True,
                             'template': workflow_template,
                             'prompt_id': prompt_id,
-                            'workflow': workflow  # Für Debugging
-                        }
-                    )
-                else:
-                    # Fallback: Nur Workflow zurückgeben
-                    return BackendResponse(
-                        success=True,
-                        content="workflow_generated",
-                        metadata={
-                            'workflow_generated': True,
-                            'template': workflow_template,
-                            'workflow': workflow
+                            'submitted': True,
+                            'comfyui_available': True,
+                            'message': 'Workflow submitted to ComfyUI queue'
                         }
                     )
                     
             except ImportError as e:
-                logger.error(f"ComfyUI Workflow Generator nicht verfügbar: {e}")
+                logger.error(f"ComfyUI modules nicht verfügbar: {e}")
                 return BackendResponse(
                     success=False,
                     content="",
-                    error="ComfyUI Workflow Generator nicht verfügbar"
+                    error="ComfyUI integration not available"
                 )
             
         except Exception as e:
             logger.error(f"ComfyUI-Backend-Fehler: {e}")
+            import traceback
+            traceback.print_exc()
             return BackendResponse(
                 success=False,
                 content="",

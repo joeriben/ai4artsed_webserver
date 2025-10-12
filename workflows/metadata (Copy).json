@@ -1,0 +1,586 @@
+{
+  "categories": {
+    "culture": {
+      "de": "Kultur",
+      "en": "Culture"
+    },
+    "across": {
+      "de": "Cross-Media",
+      "en": "Cross-Media"
+    },
+    "aesthetics": {
+      "de": "Ästhetik",
+      "en": "Aesthetics"
+    },
+    "arts": {
+      "de": "Künstlerische Positionen",
+      "en": "Art Movements"
+    },
+    "flow": {
+      "de": "Flow",
+      "en": "Flow"
+    },
+    "model": {
+      "de": "Modelle",
+      "en": "Models"
+    },
+    "semantics": {
+      "de": "Semantik",
+      "en": "Semantics"
+    },
+    "sound": {
+      "de": "Sound",
+      "en": "Sound"
+    },
+    "vector": {
+      "de": "Vektor-Manipulation",
+      "en": "Vector Manipulation"
+    }
+  },
+  "workflows": {
+    "ai4artsed_ImageAndSound_2506270842": {
+      "category": "across",
+      "name": {
+        "de": "Bild und Sound",
+        "en": "Image and Sound"
+      },
+      "description": {
+        "de": "Erzeugt gleichzeitig Bild und Audio aus einem Prompt",
+        "en": "Generates both image and audio from a single prompt"
+      },
+      "longDescription": {
+        "de": "Dieser Workflow generiert sowohl ein Bild als auch eine passende Audiodatei aus einem einzigen Prompt für multimediale Kunstprojekte.",
+        "en": "This workflow creates both an image and matching audio file from one prompt for multimedia art projects."
+      },
+      "file": "across/ai4artsed_ImageAndSound_2506270842.json"
+    },
+    "ai4artsed_ImageToSound_2506270842": {
+      "category": "across",
+      "name": {
+        "de": "Bild zu Sound",
+        "en": "Image to Sound"
+      },
+      "description": {
+        "de": "Wandelt Bildbeschreibungen in Klanglandschaften um",
+        "en": "Converts image descriptions into soundscapes"
+      },
+      "longDescription": {
+        "de": "Transformiert visuelle Prompts in akustische Interpretationen. Der Workflow analysiert die Elemente einer Bildbeschreibung und erzeugt daraus Soundscapes oder Musik.",
+        "en": "Transforms visual prompts into acoustic interpretations. The workflow analyzes elements of an image description and creates soundscapes or music."
+      },
+      "file": "across/ai4artsed_ImageToSound_2506270842.json"
+    },
+    "ai4artsed_ClichéFilter_V1_2506160013": {
+      "category": "aesthetics",
+      "name": {
+        "de": "Klischee-Filter V1",
+        "en": "Cliché Filter V1"
+      },
+      "description": {
+        "de": "Erkennt klischeehafte Bildmotive und verfolgt verschiedene Strategien, Klischees zu vermeiden",
+        "en": "Detects clichéd image motifs and pursues different strategies to avoid clichés"
+      },
+      "longDescription": {
+        "de": "V1: Direkte Inversion von Klischees. V2: Kontextuelle Neuinterpretation. V3: Kombination beider Ansätze mit verstärktem Negativprompt für maximale Klischee-Vermeidung.",
+        "en": "V1: Direct inversion of clichés. V2: Contextual reinterpretation. V3: Combination of both approaches with enhanced negative prompt for maximum cliché avoidance."
+      },
+      "file": "aesthetics/ai4artsed_ClichéFilter_V1_2506160013.json"
+    },
+    "ai4artsed_ClichéFilter_V2_2506211602": {
+      "category": "aesthetics",
+      "name": {
+        "de": "Klischee-Filter V2",
+        "en": "Cliché Filter V2"
+      },
+      "description": {
+        "de": "Erkennt klischeehafte Bildmotive und verfolgt verschiedene Strategien, Klischees zu vermeiden",
+        "en": "Detects clichéd image motifs and pursues different strategies to avoid clichés"
+      },
+      "longDescription": {
+        "de": "V1: Direkte Inversion von Klischees. V2: Kontextuelle Neuinterpretation. V3: Kombination beider Ansätze mit verstärktem Negativprompt für maximale Klischee-Vermeidung.",
+        "en": "V1: Direct inversion of clichés. V2: Contextual reinterpretation. V3: Combination of both approaches with enhanced negative prompt for maximum cliché avoidance."
+      },
+      "file": "aesthetics/ai4artsed_ClichéFilter_V2_2506211602.json"
+    },
+    "ai4artsed_ClichéFilter_V3_250616192": {
+      "category": "aesthetics",
+      "name": {
+        "de": "Klischee-Filter V3",
+        "en": "Cliché Filter V3"
+      },
+      "description": {
+        "de": "Erkennt klischeehafte Bildmotive und verfolgt verschiedene Strategien, Klischees zu vermeiden",
+        "en": "Detects clichéd image motifs and pursues different strategies to avoid clichés"
+      },
+      "longDescription": {
+        "de": "V1: Direkte Inversion von Klischees. V2: Kontextuelle Neuinterpretation. V3: Kombination beider Ansätze mit verstärktem Negativprompt für maximale Klischee-Vermeidung.",
+        "en": "V1: Direct inversion of clichés. V2: Contextual reinterpretation. V3: Combination of both approaches with enhanced negative prompt for maximum cliché avoidance."
+      },
+      "file": "aesthetics/ai4artsed_ClichéFilter_V3_250616192.json"
+    },
+    "ai4artsed_HunkyDoryHarmonizer_2507100933": {
+      "category": "aesthetics",
+      "name": {
+        "de": "Harmonisierer",
+        "en": "Harmonizer"
+      },
+      "description": {
+        "de": "Alles wird supi. Nebenprodukt einer frühen Version des \"Kids-Safety\"-Filters",
+        "en": "Everything bevomes hunky dory. Byproduct of an early version of the \"Kids-Safety\" filter"
+      },
+      "longDescription": {
+        "de": "Verniedlicht, versüßlicht, harmonisiert. Erzeugt bewusst übertrieben harmonische Bildkompositionen.",
+        "en": "Cutifies, sweetens, harmonizes. Creates deliberately exaggerated harmonic image compositions."
+      },
+      "file": "aesthetics/ai4artsed_HunkyDoryHarmonizer_2507100933.json"
+    },
+    "ai4artsed_Overdrive_2506152234": {
+      "category": "aesthetics",
+      "name": {
+        "de": "Übertreiber",
+        "en": "Overdrive"
+      },
+      "description": {
+        "de": "Mehr von allem, und davon noch mehr.",
+        "en": "More of everything, and then some."
+      },
+      "longDescription": {
+        "de": "Treibt visuelle Elemente an und über ihre Grenzen. Verstärkt Farben, Kontraste und Strukturen bis zur Verzerrung.",
+        "en": "Drives visual elements to and beyond their limits. Amplifies colors, contrasts and structures to the point of distortion."
+      },
+      "file": "aesthetics/ai4artsed_Overdrive_2506152234.json"
+    },
+    "ai4artsed_Dada_2506220140": {
+      "category": "arts",
+      "name": {
+        "de": "Dadaismus",
+        "en": "Dadaism"
+      },
+      "description": {
+        "de": "Versetzt sich in die Zeit und Situation dadaistischer Künstler_innen",
+        "en": "Places itself in the time and situation of Dadaist artists"
+      },
+      "longDescription": {
+        "de": "Nutzt Absurdität, Zufall und Anti-Kunst-Prinzipien.",
+        "en": "Uses absurdity, chance and anti-art principles."
+      },
+      "file": "arts/ai4artsed_Dada_2506220140.json"
+    },
+    "ai4artsed_RandomArtisticStyle_2506121429": {
+      "category": "arts",
+      "name": {
+        "de": "Überraschungskunst!",
+        "en": "Art Surprise!"
+      },
+      "description": {
+        "de": "Wählt jeweils eine aus 50 globalen Kunst- und kulturellen Ausdrucksformen als Vorlage",
+        "en": "Selects one of 50 global art and cultural forms of expression as template"
+      },
+      "longDescription": {
+        "de": "Ein experimenteller Workflow zur stilistischen Interpretation von Prompts.",
+        "en": "An experimental workflow for stylistic interpretation of prompts."
+      },
+      "file": "arts/ai4artsed_RandomArtisticStyle_2506121429.json"
+    },
+    "ai4artsed_TraditionalChinese_long_prompts_2506121345(1)": {
+      "category": "arts",
+      "name": {
+        "de": "Traditionelle Chinesische Kunst (Literati)",
+        "en": "Traditional Chinese Art (Literati)"
+      },
+      "description": {
+        "de": "Interpretiert Prompts nach visuellen Prinzipien einschließlich ihrer kosmologischen Hintergründe",
+        "en": "Interprets prompts according to visual principles including their cosmological backgrounds"
+      },
+      "longDescription": {
+        "de": "Wendet Konzepte wie Leere, Yin-Yang und die fünf Elemente auf moderne Bildgenerierung an.",
+        "en": "Applies concepts like emptiness, Yin-Yang and the five elements to modern image generation."
+      },
+      "file": "arts/ai4artsed_TraditionalChinese_long_prompts_2506121345(1).json"
+    },
+    "ai4artsed_ImageTextLoop_04_2506270855": {
+      "category": "flow",
+      "name": {
+        "de": "Bild-Text-Schleife (4 Iterationen)",
+        "en": "Image-Text-Loop (4 iterations)"
+      },
+      "description": {
+        "de": "Iterativer Prozess zwischen Bildbeschreibung und Bildgenerierung",
+        "en": "Iterative process between image description and image generation"
+      },
+      "longDescription": {
+        "de": "Ein Bild wird beschrieben, die Beschreibung generiert ein neues Bild, welches wieder beschrieben wird. 4, 8 oder 16 Durchläufe.",
+        "en": "An image is described, the description generates a new image, which is described again. 4, 8 or 16 cycles."
+      },
+      "file": "flow/ai4artsed_ImageTextLoop_04_2506270855.json"
+    },
+    "ai4artsed_ImageTextLoop_08_2506270855": {
+      "category": "flow",
+      "name": {
+        "de": "Bild-Text-Schleife (8 Iterationen)",
+        "en": "Image-Text-Loop (8 iterations)"
+      },
+      "description": {
+        "de": "Iterativer Prozess zwischen Bildbeschreibung und Bildgenerierung",
+        "en": "Iterative process between image description and image generation"
+      },
+      "longDescription": {
+        "de": "Ein Bild wird beschrieben, die Beschreibung generiert ein neues Bild, welches wieder beschrieben wird. 4, 8 oder 16 Durchläufe.",
+        "en": "An image is described, the description generates a new image, which is described again. 4, 8 or 16 cycles."
+      },
+      "file": "flow/ai4artsed_ImageTextLoop_08_2506270855.json"
+    },
+    "ai4artsed_ImageTextLoop_16_2506270855": {
+      "category": "flow",
+      "name": {
+        "de": "Bild-Text-Schleife (16 Iterationen)",
+        "en": "Image-Text-Loop (16 iterations)"
+      },
+      "description": {
+        "de": "Iterativer Prozess zwischen Bildbeschreibung und Bildgenerierung",
+        "en": "Iterative process between image description and image generation"
+      },
+      "longDescription": {
+        "de": "Ein Bild wird beschrieben, die Beschreibung generiert ein neues Bild, welches wieder beschrieben wird. 4, 8 oder 16 Durchläufe.",
+        "en": "An image is described, the description generates a new image, which is described again. 4, 8 or 16 cycles."
+      },
+      "file": "flow/ai4artsed_ImageTextLoop_16_2506270855.json"
+    },
+    "ai4artsed_Inpainting_2507161820": {
+      "category": "flow",
+      "name": {
+        "de": "Inpainting",
+        "en": "Inpainting"
+      },
+      "description": {
+        "de": "Füllt ausgewählte Bildbereiche mit neuem Inhalt (Bilder mit alpha-Maskierung!)",
+        "en": "Fills selected image areas with new content (Images with alpha-mask!"
+      },
+      "longDescription": {
+        "de": "Ermöglicht gezielte Bildbearbeitung durch Maskierung und Neugenerierung spezifischer Bereiche.",
+        "en": "Enables targeted image editing through masking and regeneration of specific areas."
+      },
+      "file": "flow/ai4artsed_Inpainting_2507161820.json"
+    },
+      "ai4artsed_Outpainting_2507170641": {
+      "category": "flow",
+      "name": {
+        "de": "Outpainting 1",
+        "en": "Outpainting 1"
+      },
+      "description": {
+        "de": "Erweitert Bilder über ihre ursprünglichen Grenzen hinaus",
+        "en": "Extends images beyond their original boundaries"
+      },
+      "longDescription": {
+        "de": "Generiert kohärente Fortsetzungen bestehender Bilder in alle Richtungen. Version 2 mit verbesserter Randintegration.",
+        "en": "Generates coherent continuations of existing images in all directions. Version 2 with improved edge integration."
+      },
+      "file": "flow/ai4artsed_Outpainting_2507170641.json"
+    },
+    "ai4artsed_Outpainting2_2507170641": {
+      "category": "flow",
+      "name": {
+        "de": "Outpainting 2",
+        "en": "Outpainting 2"
+      },
+      "description": {
+        "de": "Erweitert Bilder über ihre ursprünglichen Grenzen hinaus",
+        "en": "Extends images beyond their original boundaries"
+      },
+      "longDescription": {
+        "de": "Generiert kohärente Fortsetzungen bestehender Bilder in alle Richtungen. Version 2 mit verbesserter Randintegration.",
+        "en": "Generates coherent continuations of existing images in all directions. Version 2 with improved edge integration."
+      },
+      "file": "flow/ai4artsed_Outpainting2_2507170641.json"
+    },
+    "ai4artsed_OmniGen2ImageEdit_2507171341": {
+      "category": "flow",
+      "name": {
+        "de": "Bilder durch Sprachanweisung verändern (OmniGen2)",
+        "en": "Edit images with verbal instructions (OmniGen2)"
+      },
+      "description": {
+        "de": "Nutzt OmniGen2 für instruktionsbasierte Bildbearbeitung",
+        "en": "Uses OmniGen2 for instruction-based image editing"
+      },
+      "longDescription": {
+        "de": "Versteht natürlichsprachliche Anweisungen zur Bildmanipulation ohne Maskierung",
+        "en": "Understands natural language instructions for image manipulation without masking."
+      },
+      "file": "flow/ai4artsed_OmniGen2ImageEdit_2507171341.json"
+    },
+    "ai4artsed_(((PromptInterception)))_2507101853": {
+      "category": "model",
+      "name": {
+        "de": "Prompt-Interception",
+        "en": "Prompt Interception"
+      },
+      "description": {
+        "de": "Ermöglicht Erprobung von (((Prompt-Interception))) durch 3-fach-Klammern innerhalb eines Eingabefeldes",
+        "en": "Enables testing of (((prompt interception))) using triple brackets within an input field"
+      },
+      "longDescription": {
+        "de": "(((Metaprompt in 3-fache Klammer setzen.))) Der Metaprompt transformiert den regulären Prompt vor der Bildgenerierung.",
+        "en": "(((Put metaprompt in triple brackets.))) The metaprompt transforms the regular prompt before image generation."
+      },
+      "file": "model/ai4artsed_(((PromptInterception)))_2507101853.json"
+    },
+    "ai4artsed_Stable-Diffusion-3.5_2507152202": {
+      "category": "model",
+      "name": {
+        "de": "Stable Diffusion 3.5 Standard",
+        "en": "Stable Diffusion 3.5 Standard"
+      },
+      "description": {
+        "de": "Basis-Implementation des SD 3.5 Modells",
+        "en": "Basic implementation of the SD 3.5 model"
+      },
+      "longDescription": {
+        "de": "Direkter Zugang zum Stable Diffusion 3.5 Modell ohne zusätzliche Verarbeitungsschritte.",
+        "en": "Direct access to the Stable Diffusion 3.5 model without additional processing steps."
+      },
+      "file": "model/ai4artsed_Stable-Diffusion-3.5_2507152202.json"
+    },
+    "ai4artsed_Stable-Diffusion_3.5_TellAStory_2507152203": {
+      "category": "model",
+      "name": {
+        "de": "Stable Diffusion 3.5 - Erzähle eine Geschichte als Prompt",
+        "en": "Stable Diffusion 3.5 - Tell A Story as a prompt"
+      },
+      "description": {
+        "de": "Übersetzt Geschichten und Gedichte in Prompts. Erweitert kurze Prompts sinnvoll.",
+        "en": "Translates stories and poems into prompts. Expands short prompt in a meaningful way."
+      },
+      "longDescription": {
+        "de": "Erweitert auch kurze Prompts zu narrativen Bildkonzepten. Spezialisiert auf die Transformation literarischer Texte.",
+        "en": "Also expands short prompts into narrative image concepts. Specialized in transforming literary texts."
+      },
+      "file": "model/ai4artsed_Stable-Diffusion_3.5_TellAStory_2507152203.json"
+    },
+    "ai4artsed_OmniGen2_2507171527": {
+      "category": "model",
+      "name": {
+        "de": "OmniGen2 (komplexeste Sprachverarbeitung)",
+        "en": "OmniGen2 (most complex language processing)"
+      },
+      "description": {
+        "de": "Basis-Implementation des OmniGen2 Modells (kein Safety-by-Design!)",
+        "en": "Basic implementation of the OmniGen2 model (no safety-by-design!)"
+      },
+      "longDescription": {
+        "de": "Direkter Zugang zum OmniGen2 Modell ohne zusätzliche Verarbeitungsschritte. Das Modell ist nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter.",
+        "en": "Direct Access to the OmniGen2 model without additional processing steps. This model provides no \"safety-by-design\", thus only our safety measures are active."
+      },
+      "file": "model/ai4artsed_OmniGen2_2507171527.json"
+    },
+    "ai4artsed_Comparison_2507191526": {
+      "category": "model",
+      "name": {
+        "de": "Modellvergleich (Bild)",
+        "en": "Model Comparison (Image)"
+      },
+      "description": {
+        "de": "Vergleich mehrerer bildgenerierender Modelle (einige ohne kein Safety-by-Design!)",
+        "en": "Comparison of several image generating models (some of which provide no safety-by-design!)"
+      },
+      "longDescription": {
+        "de": "Vergleich mehrerer bildgenerierender Modelle ohne zusätzliche Verarbeitungsschritte. Einige Modelle nicht von sich aus sicher; es greifen lediglich unsere Safety-Filter.",
+        "en": "Comparison of several image generating models (some of which provide no safety-by-design!). For those models, only our safety measures are available."
+      },
+      "file": "model/ai4artsed_Comparison_2507191526.json"
+    },
+    "ai4artsed_Jugendsprache_2506122317": {
+      "category": "semantics",
+      "name": {
+        "de": "Jugendsprache",
+        "en": "Youth Language"
+      },
+      "description": {
+        "de": "Übersetzt Prompts in aktuelle Jugendsprache",
+        "en": "Translates prompts into current youth slang"
+      },
+      "longDescription": {
+        "de": "Transformiert formelle oder neutrale Beschreibungen in die Ausdrucksweise zeitgenössischer Jugendkultur.",
+        "en": "Transforms formal or neutral descriptions into the expression style of contemporary youth culture."
+      },
+      "file": "semantics/ai4artsed_Jugendsprache_2506122317.json"
+    },
+    "ai4artsed_PigLatin_2506122317": {
+      "category": "semantics",
+      "name": {
+        "de": "Pig Latin",
+        "en": "Pig Latin"
+      },
+      "description": {
+        "de": "Wendet Pig-Latin-Regeln auf Prompts an",
+        "en": "Applies Pig Latin rules to prompts"
+      },
+      "longDescription": {
+        "de": "Ein spielerischer linguistischer Filter, der Wörter nach Pig-Latin-Prinzipien umformt.",
+        "en": "A playful linguistic filter that transforms words according to Pig Latin principles."
+      },
+      "file": "semantics/ai4artsed_PigLatin_2506122317.json"
+    },
+    "ai4artsed_StillePost_2506232347": {
+      "category": "semantics",
+      "name": {
+        "de": "Stille Post",
+        "en": "Chinese Whispers"
+      },
+      "description": {
+        "de": "Simuliert den Stille-Post-Effekt durch mehrfache Übersetzungen",
+        "en": "Simulates the Chinese whispers effect through multiple translations"
+      },
+      "longDescription": {
+        "de": "Der Prompt durchläuft mehrere Sprachen und kehrt verändert zurück. Übersetzungsfehler und -ungenauigkeiten der Sprachmodelle werden im Bildergebnis sichtbar. Eignet sich für Spiele (wie ist es zu dem Bild gekommen)?",
+        "en": "The prompt passes through several languages and returns changed. Translation errors and inaccuracies of language models become visible in the image result. Suitable for games (how did this image come about)?"
+      },
+      "file": "semantics/ai4artsed_StillePost_2506232347.json"
+    },
+    "ai4artsed_TheOpposite_2507122354": {
+      "category": "semantics",
+      "name": {
+        "de": "Das Gegenteil",
+        "en": "The Opposite"
+      },
+      "description": {
+        "de": "Kehrt die Bedeutung von Prompts ins Gegenteil um",
+        "en": "Reverses the meaning of prompts to their opposite"
+      },
+      "longDescription": {
+        "de": "Ersetzt semantische Elemente und auch ihre Beziehungen zueinander ins Gegenteil. Systematische Inversion von Konzepten.",
+        "en": "Replaces semantic elements and also their relationships to each other with opposites. Systematic inversion of concepts."
+      },
+      "file": "semantics/ai4artsed_TheOpposite_2507122354.json"
+    },
+    "ai4artsed_MusicGen_simple_2506211630": {
+      "category": "sound",
+      "name": {
+        "de": "MusicGen Einfach",
+        "en": "MusicGen Simple"
+      },
+      "description": {
+        "de": "Basis-Musikgenerierung mit MusicGen",
+        "en": "Basic music generation with MusicGen"
+      },
+      "longDescription": {
+        "de": "Wandelt Textbeschreibungen in Musikstücke um. Einfache, direkte Anwendung des MusicGen-Modells.",
+        "en": "Converts text descriptions into music pieces. Simple, direct application of the MusicGen model."
+      },
+      "file": "sound/ai4artsed_MusicGen_simple_2506211630.json"
+    },
+    "ai4artsed_StableAudio_2506291524": {
+      "category": "sound",
+      "name": {
+        "de": "Stable Audio Standard",
+        "en": "Stable Audio Standard"
+      },
+      "description": {
+        "de": "Audiogenerierung mit Stable Audio (auch für AceStep vorbereitet)",
+        "en": "Audio generation with Stable Audio (also prepared for AceStep)"
+      },
+      "longDescription": {
+        "de": "Erzeugt Klänge, Geräusche und kurze Musikstücke aus Textbeschreibungen. Unterstützt verschiedene Audio-Backends.",
+        "en": "Creates sounds, noises and short music pieces from text descriptions. Supports various audio backends."
+      },
+      "file": "sound/ai4artsed_StableAudio_2506291524.json"
+    },
+    "ai4artsed_StableAudio_TellAStory_2506291505": {
+      "category": "sound",
+      "name": {
+        "de": "Stable Audio - Geschichtenerzähler",
+        "en": "Stable Audio - Tell A Story"
+      },
+      "description": {
+        "de": "Narrative Audiogenerierung (auch für AceStep vorbereitet)",
+        "en": "Narrative audio generation (also prepared for AceStep)"
+      },
+      "longDescription": {
+        "de": "Optimiert für die Erzeugung von Klanglandschaften, die Geschichten unterstützen oder erzählen. Unterstützt verschiedene Audio-Backends.",
+        "en": "Optimized for creating soundscapes that support or tell stories. Supports various audio backends."
+      },
+      "file": "sound/ai4artsed_StableAudio_TellAStory_2506291505.json"
+    },
+    "ai4artsed_SplitAndCombineLinear_2507021805": {
+      "category": "vector",
+      "name": {
+        "de": "Lineare Vektoraufteilung",
+        "en": "Linear Vector Split"
+      },
+      "description": {
+        "de": "Mathematische Dekonstruktion von Bedeutungsräumen, lineare Variante",
+        "en": "Mathematical deconstruction of meaning spaces, linear variant"
+      },
+      "longDescription": {
+        "de": "Zerlegt Prompts in Vektorkomponenten und sucht den direkten (linearen) Weg zwischen den Punkten im latenten Bedeutungsraum. Ergebnisse können überraschen oder auch konventionell ausfallen.",
+        "en": "Breaks down prompts into vector components and finds the direct (linear) path between points in latent meaning space. Results can be surprising or conventional."
+      },
+      "file": "vector/ai4artsed_SplitAndCombineLinear_2507021805.json"
+    },
+    "ai4artsed_SplitAndCombineSpherical_2507021805": {
+      "category": "vector",
+      "name": {
+        "de": "Sphärische Vektoraufteilung",
+        "en": "Spherical Vector Split"
+      },
+      "description": {
+        "de": "Mathematische Dekonstruktion von Bedeutungsräumen, sphärische Variante",
+        "en": "Mathematical deconstruction of meaning spaces, spherical variant"
+      },
+      "longDescription": {
+        "de": "Zerlegt Prompts in Vektorkomponenten und sucht kurvige Wege zwischen den Punkten im latenten Bedeutungsraum. Tendiert zu organischeren, weniger vorhersehbaren Ergebnissen.",
+        "en": "Breaks down prompts into vector components and finds curved paths between points in latent meaning space. Tends towards more organic, less predictable results."
+      },
+      "file": "vector/ai4artsed_SplitAndCombineSpherical_2507021805.json"
+    },
+    "ai4artsed_Surrealization_2506092253": {
+      "category": "vector",
+      "name": {
+        "de": "Surrealisierung",
+        "en": "Surrealization"
+      },
+      "description": {
+        "de": "Verschiebt Prompts in surreale Dimensionen",
+        "en": "Shifts prompts into surreal dimensions"
+      },
+      "longDescription": {
+        "de": "Nutzt Vektormanipulation um realistische Konzepte systematisch zu verfremden.",
+        "en": "Uses vector manipulation to systematically alienate realistic concepts."
+      },
+      "file": "vector/ai4artsed_Surrealization_2506092253.json"
+    },
+    "ai4artsed_YesAndNo_V1_2506271433": {
+      "category": "vector",
+      "name": {
+        "de": "Ja und Nein V1",
+        "en": "Yes and No V1"
+      },
+      "description": {
+        "de": "Erzeugt gegensätzliche Interpretationen desselben Prompts",
+        "en": "Creates opposing interpretations of the same prompt"
+      },
+      "longDescription": {
+        "de": "V1: Binäre Opposition durch Antonymersetzung. V2: Dialektische Synthese - sucht nach der Vereinigung der Gegensätze in einem Bild. Exploration von Ambivalenz und Dualität.",
+        "en": "V1: Binary opposition through antonym replacement. V2: Dialectical synthesis - seeks unification of opposites in one image. Exploration of ambivalence and duality."
+      },
+      "file": "vector/ai4artsed_YesAndNo_V1_2506271433.json"
+    },
+    "ai4artsed_YesAndNo_V2_2506271433": {
+      "category": "vector",
+      "name": {
+        "de": "Ja und Nein V2",
+        "en": "Yes and No V2"
+      },
+      "description": {
+        "de": "Erzeugt gegensätzliche Interpretationen desselben Prompts",
+        "en": "Creates opposing interpretations of the same prompt"
+      },
+      "longDescription": {
+        "de": "V1: Binäre Opposition durch Antonymersetzung. V2: Dialektische Synthese - sucht nach der Vereinigung der Gegensätze in einem Bild. Exploration von Ambivalenz und Dualität.",
+        "en": "V1: Binary opposition through antonym replacement. V2: Dialectical synthesis - seeks unification of opposites in one image. Exploration of ambivalence and duality."
+      },
+      "file": "vector/ai4artsed_YesAndNo_V2_2506271433.json"
+    }
+  }
+}
