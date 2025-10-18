@@ -124,12 +124,20 @@ class PromptInterceptionEngine:
             if not api_key:
                 raise Exception("OpenRouter API Key not configured")
             
-            headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            # WICHTIG: OpenRouter-Modelle (speziell Gemma) ignorieren System-Messages oft
+            # Daher: Kompletter Prompt als User-Message (wie Legacy Custom Node)
             messages = [
-                {"role": "system", "content": "You are a fresh assistant instance. Forget all previous conversation history."},
                 {"role": "user", "content": prompt}
             ]
-            payload = {"model": model, "messages": messages, "temperature": 0.7}
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": 0.7
+            }
 
             response = requests.post(api_url, headers=headers, data=json.dumps(payload))
             if response.status_code == 200:
@@ -162,10 +170,11 @@ class PromptInterceptionEngine:
         try:
             logger.info(f"[BACKEND] 🏠 Ollama Request: {model}")
             
+            # WICHTIG: Kein System-Prompt für Ollama
+            # Der Prompt enthält bereits alle Instructions (Task/Context/Input)
             payload = {
                 "model": model,
                 "prompt": prompt,
-                "system": "You are a fresh assistant instance. Forget all previous conversation history.",
                 "stream": False
             }
 

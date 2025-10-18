@@ -400,13 +400,32 @@ def execute_workflow():
                 
                 from schemas.engine.pipeline_executor import PipelineExecutor
                 
-                # Parse hidden commands AFTER any LLM processing (which could add #audio# etc)
-                # but BEFORE pipeline execution
+                # Parse hidden commands BEFORE translation
                 clean_prompt, hidden_commands = parse_hidden_commands(original_prompt)
+                
+                # Handle server-level commands
+                if hidden_commands.get('notranslate'):
+                    skip_translation = True
+                    logger.info("Hidden command #notranslate# detected, skipping translation")
                 
                 logger.info(f"Clean prompt for pipeline: {clean_prompt[:50]}...")
                 if hidden_commands:
                     logger.info(f"Hidden commands detected: {hidden_commands}")
+                
+                # PRE-PIPELINE TRANSLATION (wie Legacy-Workflows!)
+                translated_prompt = clean_prompt
+                if ENABLE_VALIDATION_PIPELINE and not skip_translation:
+                    logger.info("[PRE-PIPELINE] Translating input for Schema-Pipeline...")
+                    validation_result = ollama_service.validate_and_translate_prompt(clean_prompt)
+                    
+                    if not validation_result["success"]:
+                        # Safety check failed
+                        return jsonify({"error": validation_result.get("error", "Prompt-Validierung fehlgeschlagen.")}), 400
+                    
+                    translated_prompt = validation_result["translated_prompt"]
+                    logger.info(f"[PRE-PIPELINE] Translated: {translated_prompt[:50]}...")
+                else:
+                    logger.info("[PRE-PIPELINE] Translation skipped (disabled or #notranslate#)")
                 
                 schemas_path = Path(__file__).parent.parent.parent / "schemas"
                 executor = PipelineExecutor(schemas_path)
@@ -415,10 +434,10 @@ def execute_workflow():
                 # Execution Mode: 'eco' = Ollama (lokal), 'fast' = OpenRouter (cloud)
                 logger.info(f"[EXECUTION-MODE] Using mode: {mode}")
                 
-                # Schema-Pipeline ausführen (synchron) mit execution_mode
+                # Schema-Pipeline mit ÜBERSETZTEM Text ausführen
                 result = asyncio.run(executor.execute_pipeline(
                     schema_name=schema_name,
-                    input_text=clean_prompt,
+                    input_text=translated_prompt,  # ÜBERSETZT!
                     user_input=original_prompt,
                     execution_mode=mode
                 ))

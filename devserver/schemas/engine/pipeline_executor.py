@@ -295,6 +295,9 @@ class PipelineExecutor:
             execution_mode=execution_mode
         )
         
+        # WICHTIG: Input-Data für Debugging setzen
+        step.input_data = chunk_request['prompt']
+        
         # Backend-Request erstellen
         backend_request = BackendRequest(
             backend_type=BackendType(chunk_request['backend_type']),

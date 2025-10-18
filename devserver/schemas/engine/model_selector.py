@@ -102,7 +102,7 @@ class ModelSelector:
             # === LANGUAGE & TRANSLATION ===
             "translation": {
                 "eco": "local/qwen2.5-translator",
-                "fast": "openrouter/google/gemma-3-27b-it",
+                "fast": "openrouter/anthropic/claude-3.5-haiku",
                 "description": "Language translation, multilingual tasks"
             },
             
