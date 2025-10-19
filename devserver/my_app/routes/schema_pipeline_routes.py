@@ -29,8 +29,8 @@ def init_schema_engine():
         schemas_path = Path(__file__).parent.parent.parent / "schemas"
         pipeline_executor = PipelineExecutor(schemas_path)
         
-        # Registry initialisieren (ohne Legacy-Services vorerst)
-        pipeline_executor.schema_registry.initialize(schemas_path)
+        # Config Loader initialisieren (ohne Legacy-Services vorerst)
+        pipeline_executor.config_loader.initialize(schemas_path)
         
         logger.info("Schema-Engine initialisiert")
 
@@ -82,7 +82,7 @@ def execute_pipeline():
         
         # Pipeline ausführen (synchron für einfache Integration)
         result = asyncio.run(pipeline_executor.execute_pipeline(
-            schema_name=schema_name,
+            config_name=schema_name,  # config_name parameter (backward compatible variable name)
             input_text=input_text,
             user_input=data.get('user_input', input_text)
         ))

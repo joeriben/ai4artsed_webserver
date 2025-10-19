@@ -198,7 +198,7 @@ def list_workflows():
             
             schemas_path = Path(__file__).parent.parent.parent / "schemas"
             executor = PipelineExecutor(schemas_path)
-            executor.schema_registry.initialize(schemas_path)
+            executor.config_loader.initialize(schemas_path)
             
             # Schema-Pipelines als dev/schema_name format
             for schema_name in executor.get_available_schemas():
@@ -236,7 +236,7 @@ def workflow_metadata():
             
             schemas_path = Path(__file__).parent.parent.parent / "schemas"
             executor = PipelineExecutor(schemas_path)
-            executor.schema_registry.initialize(schemas_path)
+            executor.config_loader.initialize(schemas_path)
             
             # Dev-Kategorie hinzufügen falls noch nicht vorhanden
             if "categories" not in metadata:
@@ -429,14 +429,14 @@ def execute_workflow():
                 
                 schemas_path = Path(__file__).parent.parent.parent / "schemas"
                 executor = PipelineExecutor(schemas_path)
-                executor.schema_registry.initialize(schemas_path)
+                executor.config_loader.initialize(schemas_path)
                 
                 # Execution Mode: 'eco' = Ollama (lokal), 'fast' = OpenRouter (cloud)
                 logger.info(f"[EXECUTION-MODE] Using mode: {mode}")
                 
                 # Schema-Pipeline mit ÜBERSETZTEM Text ausführen
                 result = asyncio.run(executor.execute_pipeline(
-                    schema_name=schema_name,
+                    config_name=schema_name,  # config_name parameter (backward compatible variable name)
                     input_text=translated_prompt,  # ÜBERSETZT!
                     user_input=original_prompt,
                     execution_mode=mode

@@ -1,22 +1,21 @@
 """
-Pipeline-Executor: Central orchestration for config-based pipelines
-REFACTORED for new architecture (config_loader instead of schema_registry)
+Pipeline-Executor: Zentrale Orchestrierung der Schema-basierten Pipeline
 """
 from typing import Dict, Any, Optional, List, AsyncGenerator, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
+import asyncio
 from pathlib import Path
-import time
 
-from .config_loader import config_loader, ResolvedConfig
+from .schema_registry import SchemaRegistry, SchemaDefinition
 from .chunk_builder import ChunkBuilder
 from .backend_router import BackendRouter, BackendRequest, BackendResponse, BackendType
 
 logger = logging.getLogger(__name__)
 
 class PipelineStatus(Enum):
-    """Pipeline execution status"""
+    """Pipeline-Status"""
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -25,9 +24,10 @@ class PipelineStatus(Enum):
 
 @dataclass
 class PipelineStep:
-    """Single pipeline step"""
+    """Einzelner Pipeline-Schritt"""
     step_id: str
     chunk_name: str
+    config_path: str
     status: PipelineStatus = PipelineStatus.PENDING
     input_data: Optional[str] = None
     output_data: Optional[str] = None
@@ -36,7 +36,7 @@ class PipelineStep:
 
 @dataclass
 class PipelineContext:
-    """Pipeline context for data exchange between steps"""
+    """Pipeline-Kontext für Datenaustausch zwischen Schritten"""
     input_text: str
     user_input: str
     previous_outputs: List[str] = field(default_factory=list)
@@ -44,17 +44,17 @@ class PipelineContext:
     pipeline_metadata: Dict[str, Any] = field(default_factory=dict)
     
     def get_previous_output(self) -> str:
-        """Get last pipeline output"""
+        """Letzten Pipeline-Output abrufen"""
         return self.previous_outputs[-1] if self.previous_outputs else self.input_text
     
     def add_output(self, output: str) -> None:
-        """Add pipeline output"""
+        """Pipeline-Output hinzufügen"""
         self.previous_outputs.append(output)
 
 @dataclass
 class PipelineResult:
-    """Pipeline execution result"""
-    config_name: str  # Changed from schema_name
+    """Pipeline-Ausführungs-Ergebnis"""
+    schema_name: str
     status: PipelineStatus
     steps: List[PipelineStep]
     final_output: Optional[str] = None
@@ -63,153 +63,159 @@ class PipelineResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 class PipelineExecutor:
-    """Central pipeline orchestration"""
+    """Zentrale Pipeline-Orchestrierung"""
     
     def __init__(self, schemas_path: Path):
         self.schemas_path = schemas_path
-        self.config_loader = config_loader
+        self.schema_registry = SchemaRegistry()
         self.chunk_builder = ChunkBuilder(schemas_path)
         self.backend_router = BackendRouter()
         self._initialized = False
-        self._current_config = None  # Store for _execute_single_step access
         
     def initialize(self, ollama_service=None, workflow_logic_service=None, comfyui_service=None):
-        """Initialize pipeline executor with legacy services"""
-        self.config_loader.initialize(self.schemas_path)
+        """Pipeline-Executor mit Legacy-Services initialisieren"""
+        # Schema-Registry initialisieren
+        self.schema_registry.initialize(self.schemas_path)
+        
+        # Backend-Router mit Legacy-Services initialisieren
         self.backend_router.initialize(
             ollama_service=ollama_service,
             workflow_logic_service=workflow_logic_service,
             comfyui_service=comfyui_service
         )
+        
         self._initialized = True
-        logger.info("Pipeline-Executor initialized")
+        logger.info("Pipeline-Executor initialisiert")
     
-    async def execute_pipeline(self, config_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco') -> PipelineResult:
-        """Execute complete pipeline"""
-        # Auto-initialization if needed
+    async def execute_pipeline(self, schema_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco') -> PipelineResult:
+        """Komplette Pipeline ausführen"""
+        # Auto-Initialisierung wenn noch nicht erfolgt
         if not self._initialized:
-            logger.info("Auto-initialization: Config-Loader and Backend-Router")
-            self.config_loader.initialize(self.schemas_path)
+            logger.info("Auto-Initialisierung: Schema-Registry und Backend-Router werden initialisiert")
+            self.schema_registry.initialize(self.schemas_path)
+            # Backend-Router braucht keine Legacy-Services mehr (verwendet ComfyUI-Client direkt)
             self.backend_router.initialize()
             self._initialized = True
         
-        logger.info(f"[EXECUTION-MODE] Pipeline for config '{config_name}' with execution_mode='{execution_mode}'")
+        logger.info(f"[EXECUTION-MODE] Pipeline '{schema_name}' mit execution_mode='{execution_mode}'")
         
-        # Get config
-        resolved_config = self.config_loader.get_config(config_name)
-        if not resolved_config:
+        # Schema abrufen
+        schema = self.schema_registry.get_schema(schema_name)
+        if not schema:
             return PipelineResult(
-                config_name=config_name,
+                schema_name=schema_name,
                 status=PipelineStatus.FAILED,
                 steps=[],
-                error=f"Config '{config_name}' not found"
+                error=f"Schema '{schema_name}' nicht gefunden"
             )
         
-        logger.info(f"Config '{config_name}' loaded: Pipeline='{resolved_config.pipeline_name}', Chunks={resolved_config.chunks}")
-        
-        # Store config for step execution
-        self._current_config = resolved_config
-        
-        # Create pipeline context
+        # Pipeline-Kontext erstellen
         context = PipelineContext(
             input_text=input_text,
             user_input=user_input or input_text
         )
         
-        # Plan pipeline steps
-        steps = self._plan_pipeline_steps(resolved_config)
+        # Pipeline-Schritte planen
+        steps = self._plan_pipeline_steps(schema)
         
-        # Execute pipeline with execution_mode
-        result = await self._execute_pipeline_steps(config_name, steps, context, execution_mode)
+        # Pipeline ausführen mit execution_mode
+        result = await self._execute_pipeline_steps(schema_name, steps, context, execution_mode)
         
-        logger.info(f"Pipeline for config '{config_name}' completed: {result.status}")
+        logger.info(f"Pipeline '{schema_name}' abgeschlossen: {result.status}")
         return result
     
-    async def stream_pipeline(self, config_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco') -> AsyncGenerator[Tuple[str, Any], None]:
-        """Execute pipeline with streaming updates"""
+    async def stream_pipeline(self, schema_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco') -> AsyncGenerator[Tuple[str, Any], None]:
+        """Pipeline mit Streaming-Updates ausführen"""
         if not self._initialized:
-            yield ("error", "Pipeline-Executor not initialized")
+            yield ("error", "Pipeline-Executor nicht initialisiert")
             return
         
-        logger.info(f"[EXECUTION-MODE] Streaming pipeline for config '{config_name}' with execution_mode='{execution_mode}'")
+        logger.info(f"[EXECUTION-MODE] Streaming pipeline '{schema_name}' mit execution_mode='{execution_mode}'")
         
-        resolved_config = self.config_loader.get_config(config_name)
-        if not resolved_config:
-            yield ("error", f"Config '{config_name}' not found")
+        schema = self.schema_registry.get_schema(schema_name)
+        if not schema:
+            yield ("error", f"Schema '{schema_name}' nicht gefunden")
             return
-        
-        # Store config for step execution
-        self._current_config = resolved_config
         
         context = PipelineContext(
             input_text=input_text,
             user_input=user_input or input_text
         )
         
-        steps = self._plan_pipeline_steps(resolved_config)
+        steps = self._plan_pipeline_steps(schema)
         
         yield ("pipeline_started", {
-            "config_name": config_name,
-            "pipeline_name": resolved_config.pipeline_name,
+            "schema_name": schema_name,
             "total_steps": len(steps),
             "input_text": input_text,
             "execution_mode": execution_mode
         })
         
-        # Execute pipeline steps with streaming
-        async for event_type, event_data in self._stream_pipeline_steps(config_name, steps, context, execution_mode):
+        # Pipeline-Schritte mit Streaming ausführen mit execution_mode
+        async for event_type, event_data in self._stream_pipeline_steps(schema_name, steps, context, execution_mode):
             yield (event_type, event_data)
     
-    def _plan_pipeline_steps(self, resolved_config: ResolvedConfig) -> List[PipelineStep]:
-        """Plan pipeline steps from resolved config"""
+    def _plan_pipeline_steps(self, schema: SchemaDefinition) -> List[PipelineStep]:
+        """Pipeline-Schritte aus Schema-Definition planen"""
         steps = []
         
-        for i, chunk_name in enumerate(resolved_config.chunks):
+        for i, chunk_name in enumerate(schema.chunks):
+            # Config-Path aus config_mappings abrufen
+            config_path = schema.config_mappings.get(chunk_name, f"{chunk_name}.default")
+            
             step = PipelineStep(
                 step_id=f"step_{i+1}_{chunk_name}",
-                chunk_name=chunk_name
+                chunk_name=chunk_name,
+                config_path=config_path
             )
             steps.append(step)
         
-        logger.debug(f"Pipeline planned: {len(steps)} steps for config '{resolved_config.name}' (Pipeline: {resolved_config.pipeline_name})")
+        logger.debug(f"Pipeline geplant: {len(steps)} Schritte für Schema '{schema.name}' (Pipeline-Typ: {schema.pipeline_type})")
         return steps
     
-    async def _execute_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> PipelineResult:
-        """Execute pipeline steps sequentially"""
+    async def _execute_pipeline_steps(self, schema_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> PipelineResult:
+        """Pipeline-Schritte sequenziell ausführen"""
+        import time
         start_time = time.time()
+        
         completed_steps = []
         
         for step in steps:
             try:
+                # Schritt ausführen
                 step.status = PipelineStatus.RUNNING
                 output = await self._execute_single_step(step, context, execution_mode)
                 
+                # Erfolgreicher Schritt
                 step.status = PipelineStatus.COMPLETED
                 step.output_data = output
                 context.add_output(output)
                 
                 completed_steps.append(step)
-                logger.debug(f"Step {step.step_id} successful: {len(output)} chars output")
+                logger.debug(f"Schritt {step.step_id} erfolgreich: {len(output)} Zeichen Output")
                 
             except Exception as e:
+                # Fehlgeschlagener Schritt
                 step.status = PipelineStatus.FAILED
                 step.error = str(e)
                 completed_steps.append(step)
                 
-                logger.error(f"Step {step.step_id} failed: {e}")
+                logger.error(f"Schritt {step.step_id} fehlgeschlagen: {e}")
                 
+                # Pipeline abbrechen bei Fehler
                 return PipelineResult(
-                    config_name=config_name,
+                    schema_name=schema_name,
                     status=PipelineStatus.FAILED,
                     steps=completed_steps,
-                    error=f"Step {step.step_id} failed: {e}",
+                    error=f"Schritt {step.step_id} fehlgeschlagen: {e}",
                     execution_time=time.time() - start_time
                 )
         
+        # Pipeline erfolgreich abgeschlossen
         final_output = context.get_previous_output()
         
         return PipelineResult(
-            config_name=config_name,
+            schema_name=schema_name,
             status=PipelineStatus.COMPLETED,
             steps=completed_steps,
             final_output=final_output,
@@ -217,23 +223,24 @@ class PipelineExecutor:
             metadata={
                 "total_steps": len(steps),
                 "input_length": len(context.input_text),
-                "output_length": len(final_output),
-                "pipeline_name": self._current_config.pipeline_name if self._current_config else None,
-                "instruction_type": self._current_config.instruction_type if self._current_config else None
+                "output_length": len(final_output)
             }
         )
     
-    async def _stream_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> AsyncGenerator[Tuple[str, Any], None]:
-        """Execute pipeline steps with streaming updates"""
+    async def _stream_pipeline_steps(self, schema_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> AsyncGenerator[Tuple[str, Any], None]:
+        """Pipeline-Schritte mit Streaming-Updates ausführen"""
         for i, step in enumerate(steps):
             yield ("step_started", {
                 "step_id": step.step_id,
                 "step_number": i + 1,
-                "chunk_name": step.chunk_name
+                "chunk_name": step.chunk_name,
+                "config_path": step.config_path
             })
             
             try:
                 step.status = PipelineStatus.RUNNING
+                
+                # Schritt ausführen
                 output = await self._execute_single_step(step, context, execution_mode)
                 
                 step.status = PipelineStatus.COMPLETED
@@ -255,22 +262,25 @@ class PipelineExecutor:
                     "error": str(e)
                 })
                 
+                # Pipeline abbrechen
                 yield ("pipeline_failed", {
-                    "config_name": config_name,
+                    "schema_name": schema_name,
                     "failed_step": step.step_id,
                     "error": str(e)
                 })
                 return
         
+        # Pipeline erfolgreich abgeschlossen
         final_output = context.get_previous_output()
         yield ("pipeline_completed", {
-            "config_name": config_name,
+            "schema_name": schema_name,
             "final_output": final_output,
             "total_steps": len(steps)
         })
     
     async def _execute_single_step(self, step: PipelineStep, context: PipelineContext, execution_mode: str = 'eco') -> str:
-        """Execute single pipeline step"""
+        """Einzelnen Pipeline-Schritt ausführen"""
+        # Chunk erstellen
         chunk_context = {
             "input_text": context.input_text,
             "user_input": context.user_input,
@@ -280,14 +290,15 @@ class PipelineExecutor:
         
         chunk_request = self.chunk_builder.build_chunk(
             chunk_name=step.chunk_name,
-            resolved_config=self._current_config,
+            config_path=step.config_path,
             context=chunk_context,
             execution_mode=execution_mode
         )
         
+        # WICHTIG: Input-Data für Debugging setzen
         step.input_data = chunk_request['prompt']
-        step.metadata.update(chunk_request['metadata'])
         
+        # Backend-Request erstellen
         backend_request = BackendRequest(
             backend_type=BackendType(chunk_request['backend_type']),
             model=chunk_request['model'],
@@ -295,47 +306,36 @@ class PipelineExecutor:
             parameters=chunk_request['parameters']
         )
         
+        # Backend-Verarbeitung
         response = await self.backend_router.process_request(backend_request)
         
         if isinstance(response, BackendResponse):
             if response.success:
-                step.metadata['model_used'] = chunk_request['model']
-                step.metadata['backend_type'] = chunk_request['backend_type']
                 return response.content
             else:
-                raise RuntimeError(f"Backend error: {response.error}")
+                raise RuntimeError(f"Backend-Fehler: {response.error}")
         else:
-            raise RuntimeError("Streaming not supported in single steps")
+            # AsyncGenerator (Streaming) - für jetzt nicht unterstützt in einzelnen Schritten
+            raise RuntimeError("Streaming in Einzelschritten nicht unterstützt")
     
-    def get_available_configs(self) -> List[str]:
-        """List all available configs"""
-        return self.config_loader.list_configs()
+    def get_available_schemas(self) -> List[str]:
+        """Liste aller verfügbaren Schemas"""
+        return self.schema_registry.list_schemas()
     
-    def get_config_info(self, config_name: str) -> Optional[Dict[str, Any]]:
-        """Get config information"""
-        resolved_config = self.config_loader.get_config(config_name)
-        if not resolved_config:
+    def get_schema_info(self, schema_name: str) -> Optional[Dict[str, Any]]:
+        """Schema-Informationen abrufen"""
+        schema = self.schema_registry.get_schema(schema_name)
+        if not schema:
             return None
         
         return {
-            "name": resolved_config.name,
-            "display_name": resolved_config.display_name,
-            "description": resolved_config.description,
-            "pipeline_name": resolved_config.pipeline_name,
-            "chunks": resolved_config.chunks,
-            "instruction_type": resolved_config.instruction_type,
-            "parameters": resolved_config.parameters,
-            "meta": resolved_config.meta
+            "name": schema.name,
+            "description": schema.description,
+            "pipeline_type": schema.pipeline_type,
+            "chunks": schema.chunks,
+            "config_mappings": schema.config_mappings,
+            "meta": schema.meta
         }
-    
-    # Backward compatibility aliases
-    def get_available_schemas(self) -> List[str]:
-        """Backward compatibility: List all available configs"""
-        return self.get_available_configs()
-    
-    def get_schema_info(self, schema_name: str) -> Optional[Dict[str, Any]]:
-        """Backward compatibility: Get config information"""
-        return self.get_config_info(schema_name)
 
-# Singleton instance
+# Singleton-Instanz
 executor = PipelineExecutor(Path(__file__).parent.parent)

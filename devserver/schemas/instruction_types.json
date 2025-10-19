@@ -1,0 +1,152 @@
+{
+  "translation": {
+    "standard": {
+      "instruction": "Translate the following text to English. CRITICAL RULES:\n1. Preserve ALL brackets exactly as they appear: (), [], {}, and especially triple brackets ((()))\n2. Do NOT remove or modify any brackets or parentheses\n3. Translate the prompt into English with maximal semantic preservation. Maintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form.\n4. Do not translate proper names, ritual terms, or material names unless they have a common English usage. Instead, leave them untranslated and preserve their position.\n5. Do not paraphrase, interpret, or summarize. Do not add any comments or explanations.\n6. Do NOT add any meta-comments or explanations\n7. Output ONLY the translated text, nothing else\n8. If text is already in English, return it unchanged!\n9. Maintain the exact structure and formatting",
+      "description": "Standard translation with structure preservation",
+      "parameters": {
+        "temperature": 0.1,
+        "top_p": 0.9
+      }
+    },
+    "culture_sensitive": {
+      "instruction": "Translate the following text to English considering cultural context and idiomatic expressions. Preserve cultural significance while making text accessible in English. For culturally specific terms, provide the English equivalent that captures the cultural meaning, not just literal translation. Maintain the spirit and emotional tone of the original.",
+      "description": "Translation that considers cultural nuances and idiomatic meanings",
+      "parameters": {
+        "temperature": 0.3,
+        "top_p": 0.9
+      }
+    },
+    "rigid": {
+      "instruction": "Translate the following text to English literally, word-by-word, without interpretation. Maintain exact structure even if result sounds unnatural in English. Do not adapt idioms or cultural expressions - translate them literally. Preserve word order as much as English grammar allows.",
+      "description": "Literal word-for-word translation without interpretation",
+      "parameters": {
+        "temperature": 0.05,
+        "top_p": 0.8
+      }
+    }
+  },
+
+  "manipulation": {
+    "standard": {
+      "instruction": "Transform the text according to the given context. Maintain the core meaning and key elements while adapting the style, tone, and expression to match the context. Be creative but accurate.",
+      "description": "Standard text transformation",
+      "parameters": {
+        "temperature": 0.7,
+        "top_p": 0.9
+      }
+    },
+    "creative": {
+      "instruction": "Creatively interpret and transform the text according to the context. Take artistic liberties while honoring the spirit and intention of the context. Be bold, innovative, and expressive. Push boundaries while maintaining relevance.",
+      "description": "Creative interpretation and bold transformation",
+      "parameters": {
+        "temperature": 0.8,
+        "top_p": 0.95
+      }
+    },
+    "amplify": {
+      "instruction": "Exaggerate and amplify ALL aspects of the text to extreme levels. Push every element to its maximum: bigger, louder, more intense, more dramatic. Take normal concepts and make them extraordinary. Turn subtle into extreme. Go beyond reasonable limits.",
+      "description": "Extreme amplification and exaggeration",
+      "parameters": {
+        "temperature": 0.9,
+        "top_p": 0.95
+      }
+    },
+    "analytical": {
+      "instruction": "Analyze and restructure the text with logical precision according to the context. Maintain objectivity and clarity. Break down complex ideas into clear components. Use structured, rational language.",
+      "description": "Analytical restructuring with logical precision",
+      "parameters": {
+        "temperature": 0.3,
+        "top_p": 0.85
+      }
+    },
+    "poetic": {
+      "instruction": "Transform the text into poetic language according to the context. Use metaphor, imagery, rhythm, and evocative language. Create beauty and emotional resonance while preserving core meaning.",
+      "description": "Poetic transformation with metaphor and imagery",
+      "parameters": {
+        "temperature": 0.75,
+        "top_p": 0.9
+      }
+    }
+  },
+
+  "security": {
+    "standard": {
+      "instruction": "Check the following text for safety violations including: explicit violence, graphic sexual content, hate speech targeting protected groups, instructions for illegal activities, or exploitation of minors. If violations are found, flag them with a brief explanation. If text is safe, output 'SAFE'. Be balanced - flag genuine violations but allow artistic, educational, or news content.",
+      "description": "Standard content safety check (balanced approach)",
+      "parameters": {
+        "temperature": 0.1,
+        "top_p": 0.9
+      }
+    },
+    "strict": {
+      "instruction": "Apply strict content filtering to the following text. Flag ANY potentially problematic content including: mild profanity, controversial topics, suggestive content, violence references, substances, or content that could be considered offensive by any group. Output specific violations found, or 'SAFE' if completely clean. Err on the side of caution.",
+      "description": "Strict content filtering (DSGVO compliant, maximum safety)",
+      "parameters": {
+        "temperature": 0.05,
+        "top_p": 0.85
+      }
+    }
+  },
+
+  "image_analysis": {
+    "formal": {
+      "instruction": "Provide formal art historical analysis following Panofsky's methodology:\n\n1. Material and medial properties: State the specific media type (oil painting, photograph, digital image, sculpture, etc.)\n\n2. Pre-iconographic description: Describe ONLY what is directly visible - objects, figures, settings, spatial relationships, composition, colors, textures, forms, perspective, and visual structure.\n\n3. Iconographic analysis: Interpret symbolic meanings and cultural references based on what is visible. State interpretations as facts, not possibilities.\n\n4. Iconological interpretation: Present the cultural and conceptual meanings as direct statements.\n\nCRITICAL RULES:\n- State ALL interpretations as facts, not suggestions\n- NEVER use phrases like 'it could be', 'possibly', 'might be'\n- NEVER apologize or explain limitations\n- Write in complete, declarative sentences\n- END after completing step 4, with NO additional disclaimers",
+      "description": "Formal art historical analysis (Panofsky methodology)",
+      "parameters": {
+        "temperature": 0.3,
+        "top_p": 0.9
+      }
+    },
+    "descriptive": {
+      "instruction": "Describe the visual elements in detail: objects and their arrangement, people and their actions, colors and color relationships, composition and spatial structure, textures and materials, lighting and shadows, foreground/middle ground/background elements. Focus on objective, observable details. Be thorough and systematic.",
+      "description": "Detailed visual description (objective observation)",
+      "parameters": {
+        "temperature": 0.2,
+        "top_p": 0.9
+      }
+    },
+    "iconographic": {
+      "instruction": "Interpret the symbolic meanings and cultural references visible in the image. Identify: artistic traditions and styles, symbolic motifs and their cultural significance, religious or mythological references, historical context indicators, cultural markers and their meanings. Connect visible elements to broader cultural knowledge.",
+      "description": "Symbolic and cultural interpretation",
+      "parameters": {
+        "temperature": 0.4,
+        "top_p": 0.9
+      }
+    },
+    "non_western": {
+      "instruction": "Analyze this image from a non-Western perspective. Avoid Western-centric interpretation patterns. Consider: alternative cultural frameworks, non-Western artistic traditions, different symbolic systems, diverse aesthetic values, varied cultural contexts. Do not assume Western art historical categories apply. Describe what you observe without imposing Western interpretative frameworks.",
+      "description": "Non-Western perspective analysis (decentered approach)",
+      "parameters": {
+        "temperature": 0.4,
+        "top_p": 0.9
+      }
+    }
+  },
+
+  "prompt_optimization": {
+    "image_generation": {
+      "instruction": "Optimize the following text for image generation with Stable Diffusion. Extract and emphasize: visual elements (objects, subjects, settings), composition (arrangement, framing, perspective), style and artistic approach, mood and atmosphere, colors and lighting, technical quality descriptors. Output as comma-separated descriptive tags, most important first. Be specific and vivid. Remove abstract concepts that can't be visualized.",
+      "description": "Optimization for Stable Diffusion image generation",
+      "parameters": {
+        "temperature": 0.5,
+        "top_p": 0.9
+      }
+    },
+    "audio_generation": {
+      "instruction": "Optimize the following text for audio generation with Stable Audio. Describe: soundscape and environment (urban, natural, interior, etc.), mood and emotional tone, sound sources and instruments, tempo and rhythm, acoustic characteristics (reverb, space, texture), dynamic range (loud, soft, varying), duration and progression. Be specific about auditory qualities.",
+      "description": "Optimization for Stable Audio generation",
+      "parameters": {
+        "temperature": 0.5,
+        "top_p": 0.9
+      }
+    },
+    "music_generation": {
+      "instruction": "Optimize the following text for music composition. Describe: genre and style, instrumentation (specific instruments), tempo and time signature, key and harmonic progression, mood and emotional arc, musical structure (verse, chorus, etc.), dynamic progression, specific musical techniques or effects. Use musical terminology.",
+      "description": "Optimization for music composition (AceStep)",
+      "parameters": {
+        "temperature": 0.6,
+        "top_p": 0.9
+      }
+    }
+  }
+}

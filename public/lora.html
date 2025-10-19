@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoRA Training - AI Exploration Lab</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    
+    <style>
+        .iframe-container {
+            width: 100%;
+            height: calc(100vh - 200px);
+            min-height: 600px;
+            border: 1px solid var(--border-color, #ddd);
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .server-status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .server-status.loading {
+            background: #fff3cd;
+            color: #856404;
+            display: block;
+        }
+        
+        .server-status.ready {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        
+        .server-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .info-box h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        
+        .info-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .control-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <div class="header-title">
+                <h1>LoRA Training Interface</h1>
+                <h2>kohya_ss - Train LoRA Models for ComfyUI</h2>
+            </div>
+            <div class="header-controls">
+                <div class="language-selector">
+                    <button class="lang-btn active" data-lang="de">DE</button>
+                    <span class="lang-separator">|</span>
+                    <button class="lang-btn" data-lang="en">EN</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="info-box">
+                <h3>LoRA Training mit kohya_ss</h3>
+                <p>Dieses Interface ermöglicht das Training von LoRA-Modellen (Low-Rank Adaptation) für Stable Diffusion, SDXL, SD3 und FLUX1 Modelle.</p>
+                <ul>
+                    <li><strong>LoRA:</strong> Schnelles Training mit geringem Speicherbedarf</li>
+                    <li><strong>DreamBooth:</strong> Personalisierte Modelle mit wenigen Bildern</li>
+                    <li><strong>Textual Inversion:</strong> Neue Konzepte und Stile trainieren</li>
+                    <li><strong>ComfyUI Integration:</strong> Trainierte LoRAs direkt in ComfyUI verwenden</li>
+                </ul>
+            </div>
+            
+            <div class="server-status loading" id="serverStatus">
+                Verbindung zum kohya_ss Server wird hergestellt...
+            </div>
+            
+            <div class="control-buttons">
+                <button class="btn-primary" id="openNewWindow">In neuem Fenster öffnen</button>
+                <button class="btn-secondary" id="reloadFrame">Interface neu laden</button>
+            </div>
+            
+            <div class="iframe-container">
+                <iframe 
+                    id="kohyaFrame" 
+                    src="http://localhost:7860" 
+                    title="kohya_ss Training Interface"
+                    allow="clipboard-write"
+                ></iframe>
+            </div>
+            
+            <div class="info-box" style="margin-top: 20px;">
+                <h3>Schnellstart</h3>
+                <ul>
+                    <li><strong>1. LoRA Tab:</strong> Wähle den LoRA-Tab für Standard-Training</li>
+                    <li><strong>2. Source Model:</strong> Wähle ein Basis-Modell (z.B. SD 1.5, SDXL, FLUX1)</li>
+                    <li><strong>3. Training Images:</strong> Lade deine Trainingsbilder hoch (mindestens 5-20 Bilder)</li>
+                    <li><strong>4. Parameters:</strong> Passe die Trainingsparameter an (oder nutze Presets)</li>
+                    <li><strong>5. Start Training:</strong> Starte das Training und warte auf Fertigstellung</li>
+                    <li><strong>6. Export:</strong> Das trainierte LoRA wird automatisch gespeichert</li>
+                </ul>
+                <p><strong>Tipp:</strong> Die trainierten LoRA-Modelle findest du in <code>/home/joerissen/ai/kohya_ss/models</code> und kannst sie direkt in ComfyUI unter <code>ComfyUI/models/loras/</code> verwenden.</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-links">
+                <a href="index.html">← Zurück zur Hauptseite</a>
+                <a href="about.html">about</a>
+                <a href="impressum.html">Impressum</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const iframe = document.getElementById('kohyaFrame');
+        const statusDiv = document.getElementById('serverStatus');
+        const openNewWindowBtn = document.getElementById('openNewWindow');
+        const reloadFrameBtn = document.getElementById('reloadFrame');
+        
+        // Configuration
+        const config = {
+            serverUrl: 'http://localhost:7860',
+            maxRetries: 10,
+            initialRetryDelay: 1000,
+            maxRetryDelay: 30000,
+            healthCheckInterval: 5000
+        };
+        
+        let retryCount = 0;
+        let retryDelay = config.initialRetryDelay;
+        let healthCheckTimer = null;
+        
+        // Exponential backoff retry
+        function calculateBackoff(attempt) {
+            const delay = Math.min(
+                config.initialRetryDelay * Math.pow(1.5, attempt),
+                config.maxRetryDelay
+            );
+            return delay + (Math.random() * 1000);
+        }
+        
+        // Check if server is reachable
+        function checkServerStatus(onSuccess, onError) {
+            const timeout = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 5000)
+            );
+            
+            const fetch_promise = fetch(config.serverUrl, { 
+                method: 'HEAD',
+                cache: 'no-cache'
+            });
+            
+            Promise.race([fetch_promise, timeout])
+                .then(response => {
+                    if (response.ok || response.status === 0) {
+                        if (onSuccess) onSuccess();
+                        retryCount = 0;
+                        retryDelay = config.initialRetryDelay;
+                    } else {
+                        throw new Error('Server returned status: ' + response.status);
+                    }
+                })
+                .catch(error => {
+                    if (onError) onError(error);
+                });
+        }
+        
+        // Update status with retry info
+        function updateStatus(message, className, retryInfo) {
+            statusDiv.className = 'server-status ' + className;
+            var html = message;
+            if (retryInfo) {
+                html += '<br><small style="opacity: 0.8;">' + retryInfo + '</small>';
+            }
+            statusDiv.innerHTML = html;
+        }
+        
+        // Start retry loop
+        function retryServerConnection() {
+            if (retryCount >= config.maxRetries) {
+                updateStatus(
+                    '<strong>kohya_ss Server nicht erreichbar</strong><br>' +
+                    'Bitte starte den Server mit:<br>' +
+                    '<code style="display:block; margin-top:10px; padding:8px; background:#000; color:#0f0; border-radius:4px; font-family: monospace;">' +
+                    '/home/joerissen/ai/ai4artsed_webserver/start_kohya_server.sh' +
+                    '</code>' +
+                    'oder<br>' +
+                    '<code style="display:block; margin-top:5px; padding:8px; background:#000; color:#0f0; border-radius:4px; font-family: monospace;">' +
+                    'cd /home/joerissen/ai/kohya_ss && python kohya_gui.py --listen 0.0.0.0 --server_port 7860 --headless' +
+                    '</code>' +
+                    '<p style="font-size: 12px; margin-top: 10px;">' +
+                    '<strong>Tipps:</strong><br>' +
+                    '• Port 7860 ist möglicherweise blockiert<br>' +
+                    '• Stellen Sie sicher, dass kohya_ss installiert ist<br>' +
+                    '• Prüfen Sie die Logs in: <code>/home/joerissen/ai/kohya_ss/kohya_server.log</code>' +
+                    '</p>',
+                    'error'
+                );
+                return;
+            }
+            
+            retryDelay = calculateBackoff(retryCount);
+            var retryInfo = 'Verbindungsversuch ' + (retryCount + 1) + '/' + config.maxRetries + '... (nächster Versuch in ' + Math.round(retryDelay / 1000) + 's)';
+            
+            updateStatus(
+                'Verbindung zum kohya_ss Server wird hergestellt...',
+                'loading',
+                retryInfo
+            );
+            
+            checkServerStatus(
+                function() {
+                    updateStatus('kohya_ss Server ist bereit!', 'ready', '');
+                    loadIframe();
+                    startHealthCheck();
+                },
+                function(error) {
+                    retryCount++;
+                    setTimeout(retryServerConnection, retryDelay);
+                }
+            );
+        }
+        
+        // Load iframe
+        function loadIframe() {
+            iframe.src = config.serverUrl;
+        }
+        
+        // Start periodic health check
+        function startHealthCheck() {
+            if (healthCheckTimer) clearInterval(healthCheckTimer);
+            
+            healthCheckTimer = setInterval(function() {
+                checkServerStatus(
+                    null,
+                    function() {
+                        updateStatus(
+                            'Verbindung zum kohya_ss Server unterbrochen',
+                            'error'
+                        );
+                        clearInterval(healthCheckTimer);
+                        setTimeout(retryServerConnection, 3000);
+                    }
+                );
+            }, config.healthCheckInterval);
+        }
+        
+        // Stop health check
+        function stopHealthCheck() {
+            if (healthCheckTimer) {
+                clearInterval(healthCheckTimer);
+                healthCheckTimer = null;
+            }
+        }
+        
+        // Initial connection attempt
+        retryServerConnection();
+        
+        // Open in new window
+        openNewWindowBtn.addEventListener('click', function() {
+            checkServerStatus(
+                function() {
+                    window.open(config.serverUrl, '_blank', 'width=1400,height=900');
+                },
+                function() {
+                    alert('kohya_ss Server ist nicht erreichbar. Bitte starten Sie zuerst den Server.');
+                }
+            );
+        });
+        
+        // Reload frame
+        reloadFrameBtn.addEventListener('click', function() {
+            stopHealthCheck();
+            retryCount = 0;
+            retryDelay = config.initialRetryDelay;
+            updateStatus('Interface wird neu geladen...', 'loading', '');
+            setTimeout(function() { retryServerConnection(); }, 500);
+        });
+        
+        // Listen for iframe load
+        iframe.addEventListener('load', function() {
+            console.log('kohya_ss iframe loaded successfully');
+            updateStatus('kohya_ss Interface erfolgreich geladen!', 'ready', '');
+        });
+        
+        iframe.addEventListener('error', function(e) {
+            console.error('Error loading iframe:', e);
+            updateStatus(
+                'Fehler beim Laden des Interfaces. Server antwortet möglicherweise nicht.',
+                'error'
+            );
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopHealthCheck();
+            } else {
+                checkServerStatus(
+                    function() { startHealthCheck(); },
+                    function() {
+                        updateStatus(
+                            'Verbindung zum kohya_ss Server unterbrochen',
+                            'error'
+                        );
+                        setTimeout(retryServerConnection, 2000);
+                    }
+                );
+            }
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            stopHealthCheck();
+        });
+    </script>
+</body>
+</html>

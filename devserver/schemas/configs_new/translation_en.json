@@ -1,0 +1,29 @@
+{
+  "pipeline": "prompt_interception_single",
+  "name": {
+    "en": "English Translation",
+    "de": "Englisch-Übersetzung"
+  },
+  "description": {
+    "en": "Standard English translation with structure preservation",
+    "de": "Standard-Englisch-Übersetzung mit Strukturerhalt"
+  },
+  "category": {
+    "en": "System Pipelines",
+    "de": "System-Pipelines"
+  },
+  "instruction_type": "translation.standard",
+  "context": "English",
+  "parameters": {
+    "temperature": 0.1,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "meta": {
+    "target_language": "english",
+    "preserve_structure": true,
+    "system_pipeline": true,
+    "purpose": "pre_pipeline_translation",
+    "legacy_source": "config.py.TRANSLATION_PROMPT"
+  }
+}
