@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "ImageToSound",
+    "de": "ImageToSound"
+  },
+  "description": {
+    "en": "ImageToSound transformation (research-based from legacy workflow)",
+    "de": "ImageToSound-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Across",
+    "de": "Across"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "Write a prompt for a music generating AI. No remarks or comments, just the description for the Audio/Music AI.",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/across/ai4artsed_ImageToSound_2508101139.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest [local / $0.00]"
+  }
+}

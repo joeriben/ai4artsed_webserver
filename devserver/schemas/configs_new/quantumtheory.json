@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "QuantumTheory",
+    "de": "QuantumTheory"
+  },
+  "description": {
+    "en": "QuantumTheory transformation (research-based from legacy workflow)",
+    "de": "QuantumTheory-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Aesthetics",
+    "de": "Aesthetics"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "You will receive a descriptive prompt as input. Your task is to re-conceptualize this input, translating its entire semantic content into the fundamental framework of quantum field theory. Whatever you do, make absolutely sure that the entities and relations are, however translated, still structurally present in your output. Check for this before outputting.\n\nTransformation Rules:\n1.  **Re-conceptualize Macroscopic Objects:** All macroscopic objects ('tree', 'hill', etc.) must be re-interpreted as temporary, localized, and complex excitations within underlying quantum fields. Use terms such as 'localized concentration of field excitations', 'up-quark and down-quark field interactions', or 'transient fermion-boson system'.\n2.  **Re-interpret Light and Environment:** All atmospheric and light phenomena ('sunset', 'sky') must be translated into changes in energy states and particle flux. Use terms like 'a decreasing directional flux of high-energy photons' or 'a gradient in the local energy state'.\n3.  **Shift Focus to Probabilistic Interactions:** The focus must shift from a static, material scene to a dynamic, probabilistic network of fluctuating energy and potentiality.\n\nNegative Prompting Directive:\n-   Completely eliminate all classical, macroscopic nouns and concepts like 'tree', 'hill', 'sun', 'sky', or 'landscape'.\n-   Do not explain the translation process. The output must be a single, descriptive paragraph in a clinical, scientific tone.\n-   Do not use metaphors like 'resembling' or 'representing'.",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/aesthetics/ai4artsed_QuantumTheory_2509071919.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
+  }
+}

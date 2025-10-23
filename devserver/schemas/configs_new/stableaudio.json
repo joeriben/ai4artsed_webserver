@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "StableAudio",
+    "de": "StableAudio"
+  },
+  "description": {
+    "en": "StableAudio transformation (research-based from legacy workflow)",
+    "de": "StableAudio-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Sound",
+    "de": "Sound"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "musical expert, number extraction",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/sound/ai4artsed_StableAudio_2506291524.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/gemma3:4b [local / $0.00]"
+  }
+}

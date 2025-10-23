@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "LLM-Comparison 14b",
+    "de": "LLM-Comparison 14b"
+  },
+  "description": {
+    "en": "LLM-Comparison 14b transformation (research-based from legacy workflow)",
+    "de": "LLM-Comparison 14b-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Model",
+    "de": "Model"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "conversationalist",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/model/ai4artsed_LLM-Comparison_14b_2508010852.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/llava:13b [local / $0.00]"
+  }
+}

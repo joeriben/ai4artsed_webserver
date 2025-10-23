@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 OLLAMA_TO_OPENROUTER_MAP = {
     "deepcoder": "agentica-org/deepcoder-14b-preview",
     "deepseek-r1": "deepseek/deepseek-r1",
-    "gemma-2-9b-it": "google/gemma-2-9b-it",
+    # NOTE: google/gemma-2-9b-it NOT available on OpenRouter, fallback to mistral-nemo
+    # "gemma-2-9b-it": "google/gemma-2-9b-it",  # REMOVED - not available
     "gemma-2-27b-it": "google/gemma-2-27b-it",
     "gemma-3-1b-it": "google/gemma-3-1b-it",
     "gemma-3-4b-it": "google/gemma-3-4b-it",
@@ -43,8 +44,9 @@ OLLAMA_TO_OPENROUTER_MAP = {
     "qwq-32b": "qwen/qwq-32b",
     "sailor2-20b": "sailor2/sailor2-20b",
     # Add common mappings without qualifiers
-    "gemma2": "google/gemma-2-9b-it",
-    "gemma2:9b": "google/gemma-2-9b-it",
+    # NOTE: gemma2:9b fallback to mistral-nemo (gemma-2-9b-it not on OpenRouter)
+    "gemma2": "mistralai/mistral-nemo",
+    "gemma2:9b": "mistralai/mistral-nemo",
     "gemma2:27b": "google/gemma-2-27b-it",
 }
 
@@ -52,10 +54,10 @@ OPENROUTER_TO_OLLAMA_MAP = {v: k for k, v in OLLAMA_TO_OPENROUTER_MAP.items()}
 
 # Add reverse mappings for common OpenRouter models
 OPENROUTER_TO_OLLAMA_MAP.update({
-    "google/gemma-2-9b-it": "gemma2:9b",
     "google/gemma-2-27b-it": "gemma2:27b",
-    "anthropic/claude-3.5-haiku": "gemma2:9b",  # Fallback for Claude
-    "anthropic/claude-3-haiku": "gemma2:9b",
+    "anthropic/claude-3.5-haiku": "mistral-nemo",  # Fallback for Claude
+    "anthropic/claude-3-haiku": "mistral-nemo",
+    "mistralai/mistral-nemo": "mistral-nemo",
 })
 
 

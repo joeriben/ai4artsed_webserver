@@ -277,6 +277,10 @@ class PipelineExecutor:
             "previous_output": context.get_previous_output(),
             "custom_placeholders": context.custom_placeholders
         }
+
+        # Debug: Log chunk context
+        logger.info(f"[CHUNK-CONTEXT] input_text: '{chunk_context['input_text'][:50]}...'")
+        logger.info(f"[CHUNK-CONTEXT] previous_output: '{chunk_context['previous_output'][:50]}...'")
         
         chunk_request = self.chunk_builder.build_chunk(
             chunk_name=step.chunk_name,

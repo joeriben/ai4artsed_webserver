@@ -1,5 +1,5 @@
 {
-  "pipeline": "simple_interception",
+  "pipeline": "simple_manipulation",
   "name": {
     "en": "Dadaism",
     "de": "Dadaismus"

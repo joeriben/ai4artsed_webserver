@@ -124,6 +124,9 @@ class ChunkBuilder:
             replacement_context
         )
 
+        # Debug: Log the built prompt
+        logger.debug(f"[CHUNK-BUILD] Chunk '{chunk_name}' prompt preview: {processed_template[:200]}...")
+
         # Model-Override basierend auf execution_mode
         from .model_selector import model_selector
         final_model = model_selector.select_model_for_mode(template.model, execution_mode)

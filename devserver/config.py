@@ -23,7 +23,7 @@ COMFYUI_PORT = "7821"
 
 # Model Configuration
 ANALYSIS_MODEL = "llava:13b"
-TRANSLATION_MODEL = "gemma2:9b"
+TRANSLATION_MODEL = "mistral-nemo"  # Changed from gemma2:9b for better translation quality
 SAFETY_MODEL = "llama-guard3:8b"
 
 # Feature Flags

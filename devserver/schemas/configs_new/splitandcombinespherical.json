@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "SplitAndCombineSpherical",
+    "de": "SplitAndCombineSpherical"
+  },
+  "description": {
+    "en": "SplitAndCombineSpherical transformation (research-based from legacy workflow)",
+    "de": "SplitAndCombineSpherical-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Vector",
+    "de": "Vector"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "prompting expert",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/vector/ai4artsed_SplitAndCombineSpherical_2507021805.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/mistralai/mistral-medium-3 [rule-oriented / $0.40/$2.00]"
+  }
+}

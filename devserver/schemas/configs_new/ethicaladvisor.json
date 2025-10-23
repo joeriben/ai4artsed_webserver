@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "EthicalAdvisor",
+    "de": "EthicalAdvisor"
+  },
+  "description": {
+    "en": "EthicalAdvisor transformation (research-based from legacy workflow)",
+    "de": "EthicalAdvisor-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Llm",
+    "de": "Llm"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "critical friend",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/LLM/ai4artsed_EthicalAdvisor_2508271838.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/google/gemini-2.5-pro [translator / $1.25/$10.00]"
+  }
+}

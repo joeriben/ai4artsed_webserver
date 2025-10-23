@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "Surrealization",
+    "de": "Surrealization"
+  },
+  "description": {
+    "en": "Surrealization transformation (research-based from legacy workflow)",
+    "de": "Surrealization-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Vector",
+    "de": "Vector"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "prompting expert",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/vector/ai4artsed_Surrealization_2506092253.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/sailor2:20b"
+  }
+}

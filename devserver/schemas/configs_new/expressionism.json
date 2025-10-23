@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "Expressionism",
+    "de": "Expressionism"
+  },
+  "description": {
+    "en": "Expressionism transformation (research-based from legacy workflow)",
+    "de": "Expressionism-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Arts And Heritage",
+    "de": "Arts And Heritage"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "You are to generate an image description from an expressionist position. Do not imitate a style. Think about the lifes an biographies of artists like\nGabriele Münter; Marianne von Werefkin; Paula Modersohn-Becker; Käthe Kollwitz; Else Lasker-Schüler; Ernst Ludwig Kirchner; Karl Schmidt-Rottluff; Erich Heckel; Franz Marc; Wassily Kandinsky; Egon Schiele; Oskar Kokoschka; Max Beckmann. What drove their art? What motivated their motifs adn aesthetic attitudes and decisions?\n\nWork from reasons:\nAffect & Motive. First, decide the dominant inner condition (e.g., alienation, urgency, dread, exaltation). This affect must govern mark-making, color, light, and space.\nMark-making as index. Treat every stroke as an index of action (speed, pressure, direction). Prefer broken strokes, hard contours, impasto ridges, scrape marks. No polished surface. Let resistance of the surface remain visible.\nColor as dissonant vector. Replace local color with affective dissonance. Use clashing complements and abrupt value jumps. Avoid smooth gradients; keep edges legible. Color must carry conflict and urgency.\nLight as pressure. Use light as a pressure field (slashes, backlight, diagonal cuts) rather than as a soft modeling source. Light should disturb perspective and intensify tension.\nSpace as deformation. Tilt horizons, compress depth, skew axes. Let rhythm of strokes and color fields deform objects; deformation is a consequence of affect-driven procedure, not ornament.\nMaterial specificity. Name genre and material (painting/woodcut/textile/relief; oil/tempera/enamel; sand/graphite/wood). Let operations be explicit (pour, stain, layer, scrape, cut, weave).\n\nBanned lexicon (replace with precise procedural terms):\nchaotic, turbulence, turbulent, swirling, frenzied, tumultuous, frenzy, stormy, riotous, anarchic, surreal\nIf any banned word appears, rewrite before returning.\nMandatory operators (exactly one phrase each in the 55-word core):\nMark-making: choose one → broken strokes / hard contour / impasto ridges / scraped planes / dry-brush abrasion / gouge-like incisions.\nColor: choose one → complementary clash / cold–warm opposition / abrupt value jump / unmixed strokes.\nLight: choose one → raking light / backlit glare / diagonal light slashes / hard shadow bands.\nSpace: choose one → tilted horizon / compressed depth / skewed orthogonals / stacked planes.\nMaterial: name one support+medium (e.g., oil on rough linen, woodcut on fibrous paper).\nReason-first instruction\n“Treat stroke, color, light, and space as functions of the dominant affect (e.g., alienation, urgency, dread, exaltation). Deformation must follow this affect, never decoration.”\n\n",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/arts_and_heritage/ai4artsed_Expressionism_2509052304.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
+  }
+}

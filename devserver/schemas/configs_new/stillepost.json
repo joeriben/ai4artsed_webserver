@@ -1,0 +1,33 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "StillePost",
+    "de": "StillePost"
+  },
+  "description": {
+    "en": "StillePost transformation (research-based from legacy workflow)",
+    "de": "StillePost-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Semantics",
+    "de": "Semantics"
+  },
+  "instruction_type": "manipulation.creative",
+  "context": "english",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/semantics/ai4artsed_StillePost_2506232347.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest"
+  }
+}

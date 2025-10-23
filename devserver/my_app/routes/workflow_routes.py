@@ -412,21 +412,24 @@ def execute_workflow():
                 if hidden_commands:
                     logger.info(f"Hidden commands detected: {hidden_commands}")
                 
-                # PRE-PIPELINE TRANSLATION (wie Legacy-Workflows!)
+                # PRE-PIPELINE TRANSLATION (für ALLE Schema-Pipelines!)
+                # Translation passiert IMMER vor der Pipeline, nicht innerhalb
                 translated_prompt = clean_prompt
+
                 if ENABLE_VALIDATION_PIPELINE and not skip_translation:
                     logger.info("[PRE-PIPELINE] Translating input for Schema-Pipeline...")
                     validation_result = ollama_service.validate_and_translate_prompt(clean_prompt)
-                    
+
                     if not validation_result["success"]:
                         # Safety check failed
                         return jsonify({"error": validation_result.get("error", "Prompt-Validierung fehlgeschlagen.")}), 400
-                    
+
                     translated_prompt = validation_result["translated_prompt"]
                     logger.info(f"[PRE-PIPELINE] Translated: {translated_prompt[:50]}...")
                 else:
                     logger.info("[PRE-PIPELINE] Translation skipped (disabled or #notranslate#)")
-                
+
+                # Initialize executor and config loader
                 schemas_path = Path(__file__).parent.parent.parent / "schemas"
                 executor = PipelineExecutor(schemas_path)
                 executor.config_loader.initialize(schemas_path)
