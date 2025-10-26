@@ -1,5 +1,5 @@
 {
-  "pipeline": "simple_manipulation",
+  "pipeline": "text_transformation",
   "name": {
     "en": "SplitAndCombineSpherical",
     "de": "SplitAndCombineSpherical"

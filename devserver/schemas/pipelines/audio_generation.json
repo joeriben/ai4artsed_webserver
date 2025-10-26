@@ -3,11 +3,11 @@
   "description": "Multi-Media Audio Generation Pipeline",
   "pipeline_type": "audio_generation", 
   "chunks": [
-    "prompt_interception",
+    "manipulate",
     "comfyui_audio_generation"
   ],
   "config_mappings": {
-    "prompt_interception": "media_prompt_optimization.audio_stable_audio",
+    "manipulate": "media_prompt_optimization.audio_stable_audio",
     "comfyui_audio_generation": "audio_generation.stable_audio_standard"
   },
   "meta": {

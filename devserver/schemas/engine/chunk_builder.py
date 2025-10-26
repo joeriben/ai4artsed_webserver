@@ -92,9 +92,7 @@ class ChunkBuilder:
         # Build context for placeholder replacement
         replacement_context = {
             'INSTRUCTION': instruction_text,
-            'INSTRUCTIONS': instruction_text,  # Support both singular and plural
-            'TASK': instruction_text,  # For prompt_interception template
-            'CONTEXT': instruction_text,  # Also support CONTEXT placeholder
+            'INSTRUCTIONS': instruction_text,  # Backward compatibility alias
             'INPUT_TEXT': context.get('input_text', ''),
             'PREVIOUS_OUTPUT': context.get('previous_output', ''),
             'USER_INPUT': context.get('user_input', ''),

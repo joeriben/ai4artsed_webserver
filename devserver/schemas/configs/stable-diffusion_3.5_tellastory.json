@@ -1,5 +1,5 @@
 {
-  "pipeline": "simple_manipulation",
+  "pipeline": "text_transformation",
   "name": {
     "en": "Stable-Diffusion 3.5 TellAStory",
     "de": "Stable-Diffusion 3.5 TellAStory"

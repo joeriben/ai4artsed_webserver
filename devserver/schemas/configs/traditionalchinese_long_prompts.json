@@ -1,5 +1,5 @@
 {
-  "pipeline": "simple_manipulation",
+  "pipeline": "text_transformation",
   "name": {
     "en": "TraditionalChinese long prompts",
     "de": "TraditionalChinese long prompts"

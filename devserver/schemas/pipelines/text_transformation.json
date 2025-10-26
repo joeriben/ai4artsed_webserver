@@ -1,6 +1,6 @@
 {
-  "name": "simple_manipulation",
-  "description": "Simple Pipeline: Input → Manipulation → Output (Translation als Pre-Pipeline)",
+  "name": "text_transformation",
+  "description": "Text Transformation Pipeline: Input Text → Manipulated Text (supports pre-translation)",
   "chunks": [
     "manipulate"
   ],
@@ -11,7 +11,7 @@
     "manipulate_config": "{{MANIPULATE_CONFIG}}"
   },
   "meta": {
-    "workflow_type": "simple_manipulation",
+    "workflow_type": "text_transformation",
     "reusable": true,
     "pre_translation": true,
     "steps": [

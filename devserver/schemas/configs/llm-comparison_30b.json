@@ -1,5 +1,5 @@
 {
-  "pipeline": "simple_manipulation",
+  "pipeline": "text_transformation",
   "name": {
     "en": "LLM-Comparison 30b",
     "de": "LLM-Comparison 30b"

@@ -1,5 +1,5 @@
 {
-  "pipeline": "prompt_interception_single",
+  "pipeline": "text_transformation",
   "name": {
     "en": "English Translation",
     "de": "Englisch-Übersetzung"

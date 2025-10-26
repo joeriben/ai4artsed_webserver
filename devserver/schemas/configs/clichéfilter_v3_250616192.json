@@ -1,5 +1,5 @@
 {
-  "pipeline": "simple_manipulation",
+  "pipeline": "text_transformation",
   "name": {
     "en": "ClichéFilter V3 250616192",
     "de": "ClichéFilter V3 250616192"

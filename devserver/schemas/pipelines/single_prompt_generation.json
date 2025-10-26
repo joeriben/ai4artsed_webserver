@@ -1,0 +1,22 @@
+{
+  "name": "single_prompt_generation",
+  "description": "Single Prompt Generation Pipeline: Input Text → Prompt Optimization → Media Generation (image/audio/video)",
+  "pipeline_type": "single_prompt_generation",
+  "chunks": [
+    "manipulate",
+    "comfyui_media_generation"
+  ],
+  "config_mappings": {
+    "manipulate": "media_prompt_optimization.{{MEDIA_TYPE}}",
+    "comfyui_media_generation": "{{MEDIA_TYPE}}_generation.{{MODEL_CONFIG}}"
+  },
+  "meta": {
+    "version": "2.0",
+    "description_de": "Medien-Generierung aus einem einzigen Text-Prompt (Bild, Audio, Video)",
+    "description_en": "Media Generation from Single Text Prompt (Image, Audio, Video)",
+    "input_type": "single_text",
+    "output_types": ["image", "audio", "video"],
+    "backend_agnostic": true,
+    "replaces": ["audio_generation", "image_generation"]
+  }
+}

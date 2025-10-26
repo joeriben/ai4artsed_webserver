@@ -3,13 +3,11 @@
   "description": "Multi-Media Music Generation Pipeline",
   "pipeline_type": "music_generation",
   "chunks": [
-    "prompt_interception_tags", 
-    "prompt_interception_lyrics",
+    "manipulate",
     "comfyui_music_generation"
   ],
   "config_mappings": {
-    "prompt_interception_tags": "media_prompt_optimization.music_acestep_tags",
-    "prompt_interception_lyrics": "media_prompt_optimization.music_acestep_lyrics", 
+    "manipulate": "media_prompt_optimization.music_acestep", 
     "comfyui_music_generation": "music_generation.acestep_standard"
   },
   "meta": {

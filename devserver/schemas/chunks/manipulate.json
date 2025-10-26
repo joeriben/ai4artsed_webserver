@@ -1,7 +1,7 @@
 {
   "name": "manipulate",
   "description": "Text-Manipulation mit spezifischen Styleguide-Instruktionen",
-  "template": "{{INSTRUCTIONS}}\n\n{{CONTEXT}}\n\nText to manipulate:\n\n{{PREVIOUS_OUTPUT}}",
+  "template": "{{INSTRUCTION}}\n\nText to manipulate:\n\n{{PREVIOUS_OUTPUT}}",
   "backend_type": "ollama",
   "model": "gemma2:9b",
   "parameters": {

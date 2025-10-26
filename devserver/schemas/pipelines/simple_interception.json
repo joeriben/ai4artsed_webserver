@@ -1,8 +1,8 @@
 {
   "name": "simple_interception",
-  "description": "Simple Pipeline: Input → Translation → Manipulation → Output", 
+  "description": "Simple Pipeline: Input → Manipulation → Manipulation → Output",
   "chunks": [
-    "translate",
+    "manipulate",
     "manipulate"
   ],
   "required_configs": [
@@ -19,8 +19,8 @@
     "steps": [
       {
         "step": 1,
-        "chunk": "translate",
-        "description": "Input translation", 
+        "chunk": "manipulate",
+        "description": "First manipulation",
         "config_key": "translate_config"
       },
       {

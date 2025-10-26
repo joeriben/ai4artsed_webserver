@@ -3,11 +3,11 @@
   "description": "Multi-Media Video Generation Pipeline",
   "pipeline_type": "video_generation",
   "chunks": [
-    "prompt_interception",
+    "manipulate",
     "comfyui_video_generation"
   ],
   "config_mappings": {
-    "prompt_interception": "media_prompt_optimization.video_dummy",
+    "manipulate": "media_prompt_optimization.video_dummy",
     "comfyui_video_generation": "video_generation.dummy_placeholder"
   },
   "meta": {
