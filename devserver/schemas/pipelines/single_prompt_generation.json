@@ -4,19 +4,20 @@
   "pipeline_type": "single_prompt_generation",
   "chunks": [
     "manipulate",
-    "comfyui_media_generation"
+    "output_image"
   ],
   "config_mappings": {
     "manipulate": "media_prompt_optimization.{{MEDIA_TYPE}}",
-    "comfyui_media_generation": "{{MEDIA_TYPE}}_generation.{{MODEL_CONFIG}}"
+    "output_image": "{{MEDIA_TYPE}}_generation.{{MODEL_CONFIG}}"
   },
   "meta": {
-    "version": "2.0",
+    "version": "2.1",
     "description_de": "Medien-Generierung aus einem einzigen Text-Prompt (Bild, Audio, Video)",
     "description_en": "Media Generation from Single Text Prompt (Image, Audio, Video)",
     "input_type": "single_text",
     "output_types": ["image", "audio", "video"],
     "backend_agnostic": true,
-    "replaces": ["audio_generation", "image_generation"]
+    "replaces": ["audio_generation", "image_generation"],
+    "note": "Now uses Output-Chunk system (output_image chunk) instead of deprecated workflow_generator"
   }
 }

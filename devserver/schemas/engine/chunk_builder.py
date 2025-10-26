@@ -96,10 +96,11 @@ class ChunkBuilder:
             'INPUT_TEXT': context.get('input_text', ''),
             'PREVIOUS_OUTPUT': context.get('previous_output', ''),
             'USER_INPUT': context.get('user_input', ''),
-            **context.get('custom_placeholders', {})
+            **context.get('custom_placeholders', {}),
+            **resolved_config.parameters  # Add config parameters for placeholder replacement
         }
 
-        # Placeholder-Replacement
+        # Placeholder-Replacement in template
         processed_template = self._replace_placeholders(
             template.template,
             replacement_context
@@ -112,12 +113,18 @@ class ChunkBuilder:
         from .model_selector import model_selector
         final_model = model_selector.select_model_for_mode(template.model, execution_mode)
 
+        # Merge parameters: template params + config params (config overrides template)
+        merged_parameters = {**template.parameters, **resolved_config.parameters}
+
+        # Apply placeholder replacement to parameter values
+        processed_parameters = self._replace_placeholders_in_dict(merged_parameters, replacement_context)
+
         # Chunk-Request zusammenstellen
         chunk_request = {
             'backend_type': template.backend_type,
             'model': final_model,
             'prompt': processed_template,
-            'parameters': {**template.parameters, **resolved_config.parameters},
+            'parameters': processed_parameters,
             'metadata': {
                 'chunk_name': chunk_name,
                 'config_name': resolved_config.name,
@@ -145,6 +152,33 @@ class ChunkBuilder:
         remaining_placeholders = re.findall(r'\{\{([^}]+)\}\}', result)
         if remaining_placeholders:
             logger.warning(f"Nicht ersetzte Placeholders: {remaining_placeholders}")
+
+        return result
+
+    def _replace_placeholders_in_dict(self, data: Dict[str, Any], replacements: Dict[str, Any]) -> Dict[str, Any]:
+        """Recursively replace placeholders in dictionary values"""
+        result = {}
+
+        for key, value in data.items():
+            if isinstance(value, str):
+                # Apply placeholder replacement to string values
+                processed_value = value
+                for placeholder, replacement in replacements.items():
+                    pattern = f'{{{{{placeholder}}}}}'
+                    processed_value = processed_value.replace(pattern, str(replacement))
+                result[key] = processed_value
+            elif isinstance(value, dict):
+                # Recursively process nested dictionaries
+                result[key] = self._replace_placeholders_in_dict(value, replacements)
+            elif isinstance(value, list):
+                # Process lists (in case there are string elements)
+                result[key] = [
+                    self._replace_placeholders(item, replacements) if isinstance(item, str) else item
+                    for item in value
+                ]
+            else:
+                # Keep non-string values as-is
+                result[key] = value
 
         return result
 

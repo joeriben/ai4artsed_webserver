@@ -1,0 +1,28 @@
+{
+  "name": "output_image",
+  "type": "processing_chunk",
+  "backend_type": "comfyui",
+  "description": "Output-Chunk-based image generation - uses embedded ComfyUI workflows",
+
+  "template": "",
+
+  "model": "",
+
+  "parameters": {
+    "output_chunk": "{{OUTPUT_CHUNK}}",
+    "prompt": "{{PREVIOUS_OUTPUT}}",
+    "negative_prompt": "{{NEGATIVE_PROMPT}}",
+    "width": "{{WIDTH}}",
+    "height": "{{HEIGHT}}",
+    "steps": "{{STEPS}}",
+    "cfg": "{{CFG}}",
+    "sampler_name": "{{SAMPLER}}",
+    "scheduler": "{{SCHEDULER}}",
+    "seed": "{{SEED}}"
+  },
+
+  "meta": {
+    "note": "This chunk passes parameters to backend_router which routes to Output-Chunk system",
+    "replaces": "comfyui_image_generation (legacy workflow_template system)"
+  }
+}

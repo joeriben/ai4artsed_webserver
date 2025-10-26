@@ -7,6 +7,96 @@
 
 ---
 
+## 2025-10-27: AUTO-MEDIA GENERATION - Output-Config Defaults System
+
+### Decision
+**Centralized default Output-Config mapping via `output_config_defaults.json`**
+- Pre-pipeline configs (dada.json) suggest media type via `media_preferences.default_output`
+- Pre-pipeline configs DO NOT choose specific models
+- DevServer uses `output_config_defaults.json` to map `media_type + execution_mode → output_config`
+
+### Reasoning
+
+**Separation of Concerns:**
+- Text manipulation configs should not dictate which image/audio model to use
+- Dada says "I produce visual content" not "I use SD3.5 Large"
+- Content transformation is separate from media generation
+
+**Problem with Alternative Approaches:**
+
+❌ **Adding `output_configs` to pre-pipeline configs (dada.json):**
+```json
+{
+  "output_configs": {
+    "image": {"eco": "sd35_large", "fast": "flux1"}
+  }
+}
+```
+- Violates separation of concerns
+- Text manipulation shouldn't know about specific models
+- 34+ configs would all need to specify output models
+- Changes to default image model require editing 34+ files
+
+✅ **Centralized `output_config_defaults.json`:**
+```json
+{
+  "image": {"eco": "sd35_large", "fast": "flux1_openrouter"},
+  "audio": {"eco": "stable_audio", "fast": "stable_audio_api"},
+  "music": {"eco": "acestep", "fast": null},
+  "video": {"eco": "animatediff", "fast": null}
+}
+```
+- One central place defines defaults
+- Pre-pipeline configs stay focused on text transformation
+- Change default image model: edit one line
+- Pedagogically clear: separation between content and generation
+
+**Data Flow:**
+```
+1. User runs dada.json config
+2. Dada outputs optimized text
+3. DevServer reads: media_preferences.default_output = "image"
+4. DevServer reads: execution_mode = "eco"
+5. DevServer lookup: output_config_defaults["image"]["eco"] → "sd35_large"
+6. DevServer executes: single_prompt_generation with sd35_large config
+7. Image generated via Output-Chunk system
+```
+
+**User Override Options:**
+- `#image#`, `#audio#`, `#music#`, `#video#` tags override default
+- `default_output = "text"` → no auto-media generation
+
+### Files Affected
+- **Created:**
+  - `schemas/output_config_defaults.json` (central mapping)
+  - `schemas/engine/output_config_selector.py` (loader/selector)
+  - `ExecutionContext` class (media tracking throughout execution)
+  - `MediaOutput` dataclass (structured media output tracking)
+- **Updated:**
+  - `my_app/routes/workflow_routes.py` (replace deprecated generate_image_from_text)
+  - `docs/ARCHITECTURE.md` (Pattern 5: Auto-Media Generation + DevServer awareness)
+
+### DevServer Media Awareness
+**Decision:** DevServer must track expected and actual media types throughout execution
+
+**Why:**
+1. **Media Collection** - Track all media in multi-step processes (text → image → audio)
+2. **Presentation Logic** - Format API response based on media type
+3. **Pipeline Chaining** - Reuse execution context for multiple generations
+4. **Error Handling** - Validate expected vs actual media type
+5. **Frontend Communication** - Tell UI what media to expect/display
+
+**Implementation:**
+- `ExecutionContext` tracks: expected_media_type, generated_media[], text_outputs[]
+- `MediaOutput` tracks: media_type, prompt_id, output_mapping, config_name, status
+- Validation: Output-Chunk.media_type matches expected type
+
+### Implementation Status
+- ✅ **Design:** Documented in ARCHITECTURE.md + DEVELOPMENT_DECISIONS.md
+- ⚠️ **Implementation:** READY TO BEGIN
+
+---
+
 ## 2025-10-26: OUTPUT-CHUNK ARCHITECTURE - Embedded ComfyUI Workflows
 
 ### Decision

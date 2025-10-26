@@ -176,26 +176,17 @@
 
 ---
 
-## Session 2: 2025-10-26 (Current Session) - Development Log System Setup + Phase 2A
-**Duration (Wall):** [In Progress]
-**Duration (API):** [In Progress]
-**Cost:** [In Progress]
+## Session 2: 2025-10-26 - Development Log System Setup + Phase 2A
+**Duration (Wall):** [Completed]
+**Duration (API):** [To be calculated]
+**Cost:** [To be calculated]
 
 ### Model Usage
 [To be filled at session end]
 
 ### Tasks Completed
 1. ✅ Created DEVELOPMENT_LOG.md with session tracking system
-2. 🔄 [In Progress] Phase 2A: Pipeline Renaming
-
-### Tasks In Progress
-- [ ] Update CONTINUE_SESSION_PROMPT.md with logging requirements
-- [ ] Document logging workflow in ARCHITECTURE.md
-- [ ] Rename simple_manipulation → text_transformation
-- [ ] Update 30 configs referencing simple_manipulation
-- [ ] Create single_prompt_generation.json
-- [ ] Rename music_generation → dual_prompt_generation
-- [ ] Delete unused pipelines
+2. ✅ Phase 2A: Pipeline Renaming (completed in previous session)
 
 ### Code Changes
 [To be filled at session end]
@@ -207,16 +198,236 @@
 **Modified:**
 [To be filled as work progresses]
 
-**Deleted/Obsoleted:**
-[To be filled as work progresses]
-
 ### Documentation Updates
 - ✅ DEVELOPMENT_LOG.md created
-- [ ] CONTINUE_SESSION_PROMPT.md to be updated
-- [ ] ARCHITECTURE.md to be updated with logging workflow
 
 ### Next Session Priority
-[To be determined]
+Output-Chunk system implementation
+
+---
+
+## Session 3: 2025-10-26 (Current Session) - Output-Chunk System Implementation
+**Duration (Wall):** [In Progress]
+**Duration (API):** [In Progress]
+**Cost:** [In Progress]
+
+### Model Usage
+[To be filled at session end]
+
+### Tasks Completed
+1. ✅ **Output-Chunk JSON Created** - `output_image_sd35_large.json`
+   - Complete ComfyUI API workflow embedded (11 nodes)
+   - 10 input_mappings defined (prompt, negative_prompt, width, height, steps, cfg, seed, etc.)
+   - output_mapping configured for SaveImage node
+   - Meta fields added (GPU requirements, model files, estimated duration)
+
+2. ✅ **Backend Router Updated** - `schemas/engine/backend_router.py`
+   - New method: `_process_output_chunk()` - loads chunk, applies mappings, submits to ComfyUI
+   - New method: `_load_output_chunk()` - validates and loads Output-Chunk JSON from disk
+   - New method: `_apply_input_mappings()` - injects prompts and parameters into workflow
+   - New method: `_extract_output_media()` - extracts generated media based on output_mapping
+   - New method: `_process_comfyui_legacy()` - preserves old comfyui_workflow_generator path
+   - Modified: `_process_comfyui_request()` - routes to Output-Chunk or legacy based on parameters
+
+3. ✅ **Test Suite Created** - `test_output_chunk.py`
+   - Test 1: Output-Chunk structure validation
+   - Test 2: Backend router chunk loading
+   - Test 3: Input mappings application
+   - Test 4: Backend request preparation
+   - **Result: 4/4 tests passed ✅**
+
+4. ✅ **Documentation Updates**
+   - Updated: ARCHITECTURE.md with complete Output-Chunk documentation
+   - Updated: DEVELOPMENT_DECISIONS.md with Output-Chunk rationale
+   - Created: README_FIRST.md with mandatory reading requirements
+   - Deprecated: comfyui_workflow_generator.py references
+
+### Code Changes
+- **Lines added:** ~550
+- **Lines removed:** ~0 (legacy code preserved)
+- **Net change:** +550
+
+### Files Modified
+**Created:**
+- `schemas/chunks/output_image_sd35_large.json` (Complete SD3.5 Large Output-Chunk)
+- `test_output_chunk.py` (Test suite for Output-Chunk system)
+- `docs/README_FIRST.md` (Mandatory reading document)
+
+**Modified:**
+- `schemas/engine/backend_router.py` (+~380 lines)
+  - Added Output-Chunk processing system
+  - Preserved legacy workflow_generator path with deprecation warning
+  - Added input_mappings application logic
+  - Added output_mapping extraction logic
+- `docs/ARCHITECTURE.md` (+~150 lines)
+  - Complete Output-Chunk documentation
+  - Embedded workflow architecture explanation
+  - Input/output mapping documentation
+- `docs/DEVELOPMENT_DECISIONS.md` (+~70 lines)
+  - Output-Chunk architecture decision entry
+  - Rationale for embedded workflows vs. dynamic generation
+- `docs/README.md` (minor update)
+  - Added prominent link to README_FIRST.md
+
+**Deleted/Obsoleted:**
+- None (legacy code preserved for backward compatibility)
+
+### Technical Implementation Details
+
+#### Output-Chunk Architecture
+**Key Innovation:** ComfyUI API workflows are now **data, not code**
+
+**Structure:**
+```json
+{
+  "type": "output_chunk",
+  "backend_type": "comfyui",
+  "media_type": "image",
+  "workflow": { /* Complete ComfyUI API JSON */ },
+  "input_mappings": { /* How to inject data */ },
+  "output_mapping": { /* How to extract results */ }
+}
+```
+
+**Benefits:**
+1. **Separation of Concerns:** Workflows are configuration, not implementation
+2. **Easy Migration:** Manual ComfyUI exports → wrap in Output-Chunk format
+3. **No Code Generation:** Server fills placeholders, submits directly
+4. **Backend Transparency:** Same format works across all ComfyUI backends
+
+#### Backend Router Changes
+**Routing Logic:**
+```python
+# New parameter: output_chunk
+if request.parameters.get('output_chunk'):
+    # NEW: Use Output-Chunk system
+    return await self._process_output_chunk(...)
+else:
+    # LEGACY: Use comfyui_workflow_generator (deprecated)
+    logger.warning("Using deprecated workflow generator")
+    return await self._process_comfyui_legacy(...)
+```
+
+**Input Mapping Application:**
+- Loads chunk JSON from `schemas/chunks/{name}.json`
+- Validates required fields (workflow, input_mappings, output_mapping)
+- Clones workflow (deep copy to avoid mutation)
+- Applies mappings: prompt → node 10, width/height → node 3, steps → node 8, etc.
+- Handles special cases: `seed: "random"` → generates random int
+- Handles `{{PREVIOUS_OUTPUT}}` placeholder injection
+
+**Output Mapping Extraction:**
+- Uses `output_mapping.node_id` to identify SaveImage/SaveAudio node
+- Routes to appropriate media extraction method based on `output_type`
+- Returns media URLs/paths with metadata
+
+### Test Results
+**All 4 tests passed:**
+```
+✅ PASSED: Structure Validation
+✅ PASSED: Backend Router Load
+✅ PASSED: Input Mappings Application
+✅ PASSED: Backend Request Preparation
+```
+
+**Test Coverage:**
+- JSON structure validation (required fields, types)
+- Chunk loading from disk
+- Input mapping application (prompt injection, parameter filling)
+- Workflow preparation for ComfyUI submission
+
+### Documentation Updates
+- ✅ DEVELOPMENT_LOG.md updated (this entry)
+- ✅ ARCHITECTURE.md updated (Output-Chunk section added)
+- ✅ DEVELOPMENT_DECISIONS.md updated (Output-Chunk rationale)
+- ✅ README_FIRST.md created (mandatory reading)
+- ✅ README.md updated (link to README_FIRST.md)
+
+### Backward Compatibility
+**Legacy Support Preserved:**
+- Old `comfyui_workflow_generator.py` path still functional
+- Triggers deprecation warning in logs
+- Allows gradual migration of existing workflows
+- No breaking changes to existing pipelines
+
+**Migration Path:**
+1. Extract ComfyUI API workflow JSON from manual exports
+2. Wrap in Output-Chunk format with mappings
+3. Add `output_chunk` parameter to pipeline configs
+4. Test with new system
+5. Remove old workflow_template references
+
+5. ✅ **Auto-Media Generation System Designed & Documented**
+   - Analyzed current auto-media system (workflow_routes.py)
+   - Designed centralized Output-Config defaults system
+   - Documented in ARCHITECTURE.md (Pattern 5: Auto-Media Generation)
+   - Documented decision in DEVELOPMENT_DECISIONS.md
+   - Key principle: Separation of concerns (text configs don't choose models)
+   - Solution: `output_config_defaults.json` maps media_type + execution_mode → output_config
+
+### Technical Details - Auto-Media Generation Architecture
+
+**Problem Identified:**
+- Current system uses deprecated `generate_image_from_text()` function
+- Hardcoded to use `comfyui_workflow_generator` with "sd35_standard" template
+- No clean way to connect text transformation configs (dada) with output configs (sd35_large)
+
+**Solution Designed:**
+```
+Pre-Pipeline Config (dada.json)
+  → media_preferences.default_output = "image"
+  → execution_mode = "eco"
+  ↓
+output_config_defaults.json
+  → lookup: ["image"]["eco"] = "sd35_large"
+  ↓
+Output-Config (sd35_large.json)
+  → OUTPUT_CHUNK = "output_image_sd35_large"
+  → pipeline = "single_prompt_generation"
+  ↓
+Output-Chunk System (already implemented)
+  → Load output_image_sd35_large.json
+  → Apply input_mappings
+  → Submit to ComfyUI
+```
+
+**DevServer Media Awareness Added:**
+- ExecutionContext class design (tracks expected_media_type, generated_media[])
+- MediaOutput dataclass design (tracks media_type, prompt_id, output_mapping, status)
+- Validation: Output-Chunk.media_type matches expected type
+- Enables: media collection, pipeline chaining, smart response formatting
+
+**Files Documented:**
+- `docs/ARCHITECTURE.md` (+130 lines) - Pattern 5: Auto-Media Generation + DevServer awareness
+- `docs/DEVELOPMENT_DECISIONS.md` (+90 lines) - Rationale + media awareness decision
+
+### Next Session Priority
+1. **Implement Auto-Media Generation System** (High Priority - CURRENT)
+   - Create `schemas/output_config_defaults.json`
+   - Implement `schemas/engine/output_config_selector.py`
+   - Update `my_app/routes/workflow_routes.py` to use Output-Chunk system
+   - Replace deprecated `generate_image_from_text()` function
+   - Test: dada.json → sd35_large.json → output_image_sd35_large
+
+2. **Create Additional Output-Chunks** (High Priority)
+   - `output_audio_stable_audio.json` - Stable Audio generation
+   - `output_music_acestep.json` - AceStep music (Tags + Lyrics)
+   - `output_video_*.json` - Video generation (when workflows ready)
+
+3. **Pipeline Migration** (Medium Priority)
+   - Update existing pipelines to use `output_chunk` parameter
+   - Test migrations with real ComfyUI submissions
+   - Deprecate `workflow_template` parameter
+
+4. **ComfyUI Client Enhancement** (Medium Priority)
+   - Add `get_generated_audio()` method
+   - Add `get_generated_video()` method
+   - Ensure media extraction works for all types
+
+5. **Deprecation Cleanup** (Low Priority - After Migration)
+   - Remove `comfyui_workflow_generator.py` completely
+   - Clean up legacy workflow template references
+   - Update all documentation to remove old patterns
 
 ---
 

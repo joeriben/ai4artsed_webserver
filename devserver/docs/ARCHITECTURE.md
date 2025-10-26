@@ -837,6 +837,125 @@ Output: Music (WAV, 47 seconds)
 
 ---
 
+### Pattern 5: Auto-Media Generation (Text Transformation + Auto Output)
+
+**Purpose:** Text transformation configs (like dada.json) can suggest a media type for automatic media generation after text transformation completes.
+
+**Architecture Principle:** **Separation of Concerns**
+- Pre-pipeline configs (dada.json) suggest media type via `media_preferences.default_output`
+- Pre-pipeline configs DO NOT choose specific models or output configs
+- DevServer uses a central `output_config_defaults.json` to map media types to output configs
+
+**Data Flow:**
+```
+User Input: "A surreal dream"
+  ↓
+Config: dada.json (pipeline: text_transformation)
+  media_preferences.default_output = "image"
+  ↓
+Pipeline: text_transformation
+  ↓
+Output: "Ein surrealistischer Traum in dadaistischer Ästhetik..."
+  ↓
+DevServer Auto-Media Logic:
+  1. Read: config.media_preferences.default_output = "image"
+  2. Read: execution_mode = "eco"
+  3. Lookup: output_config_defaults["image"]["eco"] → "sd35_large"
+  4. Execute: single_prompt_generation pipeline with sd35_large config
+  ↓
+Output: Image (PNG) generated via SD3.5 Large
+```
+
+**output_config_defaults.json Structure:**
+```json
+{
+  "image": {
+    "eco": "sd35_large",
+    "fast": "flux1_openrouter"
+  },
+  "audio": {
+    "eco": "stable_audio",
+    "fast": "stable_audio_api"
+  },
+  "music": {
+    "eco": "acestep",
+    "fast": null
+  },
+  "video": {
+    "eco": "animatediff",
+    "fast": null
+  }
+}
+```
+
+**Why This Architecture:**
+
+1. **Separation of Concerns:** Text manipulation configs don't know about specific models
+2. **Centralized Defaults:** One file defines system-wide output defaults
+3. **Easy Maintenance:** Change default image model by editing one line
+4. **Pedagogically Clear:** Dada says "I produce visual content" not "I use SD3.5 Large"
+5. **Execution Mode Aware:** Different defaults for eco (local) vs fast (cloud)
+
+**User Override Options:**
+
+Users can override the auto-media generation:
+- `#image#` tag in input → force image generation
+- `#audio#` tag → force audio generation
+- `#music#` tag → force music generation
+- `#video#` tag → force video generation
+- No tag + `default_output = "text"` → no auto-media, return text only
+
+**Implementation Location:**
+- File: `schemas/output_config_defaults.json`
+- Loader: `schemas/engine/output_config_selector.py`
+- Usage: `my_app/routes/workflow_routes.py` (auto-media generation logic)
+
+**DevServer Media Awareness:**
+
+DevServer tracks expected output types throughout execution:
+
+```python
+# ExecutionContext tracks media generation
+class ExecutionContext:
+    config_name: str
+    execution_mode: str
+    expected_media_type: str  # "image", "audio", "music", "video", "text"
+    generated_media: List[MediaOutput]  # Collect all media generated
+    text_outputs: List[str]  # Track text at each step
+
+@dataclass
+class MediaOutput:
+    media_type: str  # From Output-Chunk
+    prompt_id: str   # ComfyUI queue ID
+    output_mapping: dict  # How to extract media
+    config_name: str  # Which output config was used
+    status: str  # "queued", "generating", "completed", "failed"
+```
+
+**Why DevServer Needs Awareness:**
+1. **Media Collection** - Track all media in multi-step processes
+2. **Presentation Logic** - Format response based on media type
+3. **Pipeline Chaining** - Reuse context for additional generations
+4. **Error Handling** - Different validation per media type
+5. **Frontend Communication** - Tell UI what to expect/display
+
+**Data Flow with Awareness:**
+```
+1. workflow_routes.py receives request
+2. Loads pre-pipeline config → reads media_preferences.default_output
+3. Creates ExecutionContext with expected_media_type
+4. Executes text transformation pipeline
+5. Looks up output config via output_config_selector
+6. Loads output config → reads OUTPUT_CHUNK parameter
+7. Loads Output-Chunk → reads media_type field
+8. Validates: expected_media_type matches Output-Chunk.media_type
+9. Executes output pipeline
+10. Tracks MediaOutput in context
+11. Returns response with media_type + prompt_id + status
+```
+
+---
+
 ## Engine Modules
 
 ### Core Engine Architecture

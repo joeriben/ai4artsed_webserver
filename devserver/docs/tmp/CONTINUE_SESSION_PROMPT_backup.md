@@ -285,8 +285,70 @@ Whenever you make implementation changes:
 
 ---
 
+## ⚠️ MANDATORY: Documentation Review Before Any Task
+
+**CRITICAL RULE FOR ALL NEW TASKS/SESSIONS:**
+
+Before starting **ANY** implementation work, you **MUST** read and understand:
+
+### Required Reading (in this order):
+
+1. **`docs/README.md`** (5 min)
+   - Overview of documentation structure
+   - Where to find what information
+
+2. **`docs/LEGACY_SERVER_ARCHITECTURE.md`** (20 min)
+   - **WHY** the system was built this way
+   - Pedagogical concepts (Prompt Interception, Gegenhegemoniale Pädagogik)
+   - How Legacy Server worked (ComfyUI Custom Nodes)
+   - Critical difference: Legacy vs DevServer
+
+3. **`docs/ARCHITECTURE.md`** (15 min)
+   - **HOW** DevServer works now
+   - Three-layer system (Chunks → Pipelines → Configs)
+   - Backend routing (eco/fast, local/remote)
+   - Data flow patterns
+
+4. **`docs/devserver_todos.md`** (5 min)
+   - Current priorities
+   - What needs to be done next
+
+5. **`docs/DEVELOPMENT_DECISIONS.md`** (10 min)
+   - WHY architectural decisions were made
+   - Alternatives that were rejected
+
+### Why This Matters:
+
+**Without reading the documentation, you will:**
+- ❌ Propose solutions that already exist
+- ❌ Break pedagogical concepts (e.g., Prompt Interception)
+- ❌ Misunderstand the difference between Legacy (ComfyUI Custom Nodes) and DevServer (Pipeline-based)
+- ❌ Ask questions already answered in docs
+- ❌ Waste time and money on wrong approaches
+
+**Example from this session:**
+- I proposed an implementation strategy **without** reading `LEGACY_SERVER_ARCHITECTURE.md`
+- I didn't understand that DevServer replaces ComfyUI Custom Nodes with Pipeline Chunks
+- User had to stop me and ask: "HAST DU DIE DOKUMENTE IN /docs NICHT GELESEN??"
+
+### Verification:
+
+Before proceeding with implementation, you should be able to answer:
+1. What is "Prompt Interception" and why is it pedagogically important?
+2. How did Legacy Server implement Prompt Interception (ComfyUI Custom Node)?
+3. How does DevServer implement Prompt Interception (Pipeline Chunk)?
+4. What is `ComfyUIWorkflowGenerator` and why does it exist?
+5. What is the difference between Pre-Pipeline and Output-Pipeline?
+
+**If you cannot answer these questions, STOP and read the documentation first.**
+
+---
+
 **Ready to continue!**
 
 Please start with one of the recommended next steps. All necessary documentation is in `docs/devserver_todos.md`.
 
-**First action in new session:** Read `docs/devserver_todos.md` to see current status and priorities.
+**First action in new session:**
+1. ✅ Read **ALL** required documentation (above)
+2. ✅ Verify understanding
+3. ✅ Then read `docs/devserver_todos.md` for current priorities
