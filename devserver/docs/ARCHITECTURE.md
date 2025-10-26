@@ -1035,15 +1035,14 @@ DSGVO: Compliant (all data stays local)
 
 **fast mode:**
 ```python
-Backend: OpenRouter (cloud)
+Backend: OpenRouter (cloud) - or configured alternative
 Models: claude-3.5-haiku, gemini-2.5-pro, mistral-nemo (cloud)
 Cost: ~$0.10-0.18 per 1M tokens
-DSGVO: Non-compliant (data sent to US/UK servers)
-```
+DSGVO: Depends on provider (OpenRouter: non-compliant)
 
-**Force Local (regardless of mode):**
-- task_type: `security` (content moderation must stay local)
-- task_type: `vision` (DSGVO requirements for image analysis)
+Note: Cloud provider is configured in server.config.py
+      Administrator decides which services to use based on DSGVO research
+```
 
 ---
 
@@ -1178,22 +1177,23 @@ if task_category == "LLM":
         backend = "ollama"
         model = model_selector.get_local_model(task_type)
     elif execution_mode == "fast":
-        if task_type in ["security", "vision"]:
-            backend = "ollama"  # Force local for DSGVO
-        else:
-            backend = "openrouter"
-            model = model_selector.get_cloud_model(task_type)
+        # Use cloud service configured in server.config.py
+        backend = server_config.LLM_SERVICES["cloud"]["provider"]  # "openrouter"
+        model = model_selector.get_cloud_model(task_type)
 
 elif task_category == "MEDIA_GENERATION":
     if execution_mode == "eco":
         backend = "comfyui"
         workflow = get_comfyui_workflow(media_type, config.meta.model)
     elif execution_mode == "fast":
-        if media_type == "image":
-            backend = "openrouter"  # GPT-5 Image
-            model = "gpt-5-image"  # Placeholder
-        elif media_type in ["audio", "music", "video"]:
-            # Fallback to local (no cloud alternative yet)
+        # Check if remote service is configured for this media type
+        remote_service = server_config.REMOTE_SERVICES.get(media_type)
+
+        if remote_service and remote_service["provider"]:
+            backend = remote_service["provider"]
+            model = remote_service["model"]
+        else:
+            # Fallback to local if no remote service configured
             backend = "comfyui"
             workflow = get_comfyui_workflow(media_type, config.meta.model)
 ```
@@ -1266,16 +1266,25 @@ LLM_SERVICES = {
 
 **Current Status:**
 - ✅ **eco mode:** Fully DSGVO-compliant (all data stays local)
-- ❌ **fast mode:** Non-compliant (OpenRouter routes through US/UK)
+- ❌ **fast mode (OpenRouter):** Non-compliant (data routed through US/UK servers)
 
-**Planned Solutions:**
-1. **Alternative Cloud Provider:** Find EU-based API provider (e.g., Mistral AI direct, DeepL, etc.)
-2. **Enterprise OpenAI:** Use OpenAI Enterprise for DSGVO compliance (more expensive)
-3. **Workshop Mode:** Force eco mode for educational workshops (config.meta.force_eco = true)
+**Administrator Responsibilities:**
+- Research and select DSGVO-compliant cloud providers for fast mode
+- Update `server.config.py` with compliant services
+- Potential EU-based alternatives:
+  - Mistral AI (direct API, France-based)
+  - DeepL (for translation, Germany-based)
+  - OpenAI Enterprise (with DSGVO BAA, expensive)
+  - Self-hosted Ollama on EU servers (slower than cloud, compliant)
 
-**Current Workaround:**
-- Default to eco mode for all educational workshops
-- Only allow fast mode for research/development (non-student data)
+**Implementation Options:**
+1. **Default eco mode:** Keep all educational workshops on local processing
+2. **Dual configuration:** Separate server.config.py for research vs workshop environments
+3. **Config-level override:** Add `meta.force_eco = true` for sensitive workflows
+
+**Current Default:**
+- eco mode for all operations
+- fast mode available but requires explicit activation + DSGVO review
 
 ---
 
