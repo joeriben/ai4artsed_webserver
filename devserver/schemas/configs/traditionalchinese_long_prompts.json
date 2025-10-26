@@ -1,0 +1,48 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "TraditionalChinese long prompts",
+    "de": "TraditionalChinese long prompts"
+  },
+  "description": {
+    "en": "TraditionalChinese long prompts transformation (research-based from legacy workflow)",
+    "de": "TraditionalChinese long prompts-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Arts And Heritage",
+    "de": "Arts And Heritage"
+  },
+  "context": "Prompting Expert",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/arts_and_heritage/ai4artsed_TraditionalChinese_long_prompts_2506121345(1).json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest"
+  },
+  "display": {
+    "icon": "🎨",
+    "color": "#E91E63",
+    "category": "arts_and_heritage",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

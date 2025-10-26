@@ -1,6 +1,6 @@
 """
 Chunk-Builder: Template-System mit Placeholder-Replacement
-REFACTORED for new architecture (JSON configs, instruction types)
+REFACTORED for new architecture (JSON configs)
 """
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
@@ -8,8 +8,6 @@ from pathlib import Path
 import json
 import re
 import logging
-
-from .instruction_resolver import instruction_resolver
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +28,6 @@ class ChunkBuilder:
         self.schemas_path = schemas_path
         self.templates: Dict[str, ChunkTemplate] = {}
         self._load_templates()
-
-        # Initialize instruction resolver if not already initialized
-        if not instruction_resolver._initialized or instruction_resolver.schemas_path != schemas_path:
-            instruction_resolver.initialize(schemas_path)
 
     def _load_templates(self) -> None:
         """Alle Chunk-Templates laden"""
@@ -92,26 +86,15 @@ class ChunkBuilder:
         if not template:
             raise ValueError(f"Template '{chunk_name}' nicht gefunden")
 
-        # Resolve instruction type
-        instruction_text = ""
-        if resolved_config.instruction_type:
-            instruction_data = instruction_resolver.resolve(resolved_config.instruction_type)
-            if instruction_data:
-                instruction_text = instruction_data['instruction']
-
-                # Merge instruction parameters with config parameters
-                if 'parameters' in instruction_data:
-                    instruction_params = instruction_data['parameters']
-                    resolved_config.parameters = {**instruction_params, **resolved_config.parameters}
-            else:
-                logger.warning(f"Could not resolve instruction_type: {resolved_config.instruction_type}")
+        # Get instruction text from config context (former metaprompt)
+        instruction_text = resolved_config.context or ''
 
         # Build context for placeholder replacement
         replacement_context = {
             'INSTRUCTION': instruction_text,
             'INSTRUCTIONS': instruction_text,  # Support both singular and plural
             'TASK': instruction_text,  # For prompt_interception template
-            'CONTEXT': resolved_config.context or '',
+            'CONTEXT': instruction_text,  # Also support CONTEXT placeholder
             'INPUT_TEXT': context.get('input_text', ''),
             'PREVIOUS_OUTPUT': context.get('previous_output', ''),
             'USER_INPUT': context.get('user_input', ''),
@@ -140,7 +123,6 @@ class ChunkBuilder:
             'metadata': {
                 'chunk_name': chunk_name,
                 'config_name': resolved_config.name,
-                'instruction_type': resolved_config.instruction_type,
                 'template_placeholders': template.placeholders,
                 'execution_mode': execution_mode,
                 'template_model': template.model,

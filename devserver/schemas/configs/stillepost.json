@@ -1,0 +1,48 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "StillePost",
+    "de": "StillePost"
+  },
+  "description": {
+    "en": "StillePost transformation (research-based from legacy workflow)",
+    "de": "StillePost-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Semantics",
+    "de": "Semantics"
+  },
+  "context": "Translate to the given language. Do not add any commentaries, error messages, or questions. Only translate. The prompt passes through several languages (Chinese Whispers / Stille Post effect).",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "text",
+    "supported_types": [
+      "text"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/semantics/ai4artsed_StillePost_2506232347.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest"
+  },
+  "display": {
+    "icon": "💬",
+    "color": "#2196F3",
+    "category": "semantics",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

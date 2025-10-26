@@ -1,0 +1,48 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "ImageAndSound",
+    "de": "ImageAndSound"
+  },
+  "description": {
+    "en": "ImageAndSound transformation (research-based from legacy workflow)",
+    "de": "ImageAndSound-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Across",
+    "de": "Across"
+  },
+  "context": "Lyricist, Song writer, word smith",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/across/ai4artsed_ImageAndSound_2508101117.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest [local / $0.00]"
+  },
+  "display": {
+    "icon": "🔀",
+    "color": "#00BCD4",
+    "category": "cross_modal",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

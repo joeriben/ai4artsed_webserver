@@ -1,0 +1,48 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "TheOpposite",
+    "de": "TheOpposite"
+  },
+  "description": {
+    "en": "TheOpposite transformation (research-based from legacy workflow)",
+    "de": "TheOpposite-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Semantics",
+    "de": "Semantics"
+  },
+  "context": "describe the exact diametral opposite. Entities as well as relations have to be turned into their opposites.",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "text",
+    "supported_types": [
+      "text"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/semantics/ai4artsed_TheOpposite_2507122354.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest [local / $0.00]"
+  },
+  "display": {
+    "icon": "💬",
+    "color": "#2196F3",
+    "category": "semantics",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

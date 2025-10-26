@@ -1,0 +1,50 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "Overdrive",
+    "de": "Übertreiben"
+  },
+  "description": {
+    "en": "Exaggerate and amplify text to extreme levels - make everything bigger, louder, more intense",
+    "de": "Text extrem übertreiben und verstärken - alles größer, lauter, intensiver machen"
+  },
+  "category": {
+    "en": "Aesthetic Transformations",
+    "de": "Ästhetische Transformationen"
+  },
+  "context": "Exaggeration and amplification to extreme levels. Take every element and push it beyond reasonable limits. Make the subtle into the extreme. Transform the ordinary into the extraordinary. Amplify emotions, scale, intensity, drama - everything to maximum.",
+  "parameters": {
+    "temperature": 0.9,
+    "top_p": 0.95,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image",
+      "audio",
+      "video"
+    ]
+  },
+  "meta": {
+    "transformation_type": "amplification",
+    "intensity": "extreme",
+    "legacy_source": "workflows/aesthetics/ai4artsed_Overdrive_2506152234.json"
+  },
+  "display": {
+    "icon": "💫",
+    "color": "#9C27B0",
+    "category": "aesthetics",
+    "difficulty": 2,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 10,
+    "complexity": "intermediate"
+  }
+}

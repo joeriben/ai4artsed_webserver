@@ -28,7 +28,6 @@ class Config:
     display_name: Dict[str, str]  # Multilingual names {"en": "...", "de": "..."}
     description: Dict[str, str]  # Multilingual descriptions
     category: Optional[Dict[str, str]] = None
-    instruction_type: Optional[str] = None
     context: Optional[str] = None
     parameters: Optional[Dict[str, Any]] = None
     media_preferences: Optional[Dict[str, Any]] = None
@@ -42,7 +41,6 @@ class ResolvedConfig:
     description: Dict[str, str]
     pipeline_name: str
     chunks: List[str]
-    instruction_type: str
     context: Optional[str]
     parameters: Dict[str, Any]
     media_preferences: Optional[Dict[str, Any]]
@@ -117,13 +115,13 @@ class ConfigLoader:
             return None
 
     def _load_configs(self) -> None:
-        """Load config definitions from configs_new/*.json"""
+        """Load config definitions from configs/*.json"""
         if not self.base_path:
             logger.error("ConfigLoader not initialized")
             return
 
-        # Try configs_new first (new architecture), fall back to old structure
-        configs_path = self.base_path / "configs_new"
+        # Try configs first (new architecture), fall back to old structure
+        configs_path = self.base_path / "configs"
         if not configs_path.exists():
             # Fallback: try old schema_data directory
             configs_path = self.base_path / "schema_data"
@@ -192,7 +190,6 @@ class ConfigLoader:
                 display_name=display_name,
                 description=description,
                 category=data.get('category'),
-                instruction_type=data.get('instruction_type'),
                 context=data.get('context'),
                 parameters=data.get('parameters'),
                 media_preferences=data.get('media_preferences'),
@@ -213,10 +210,6 @@ class ConfigLoader:
                 continue
 
             # Merge pipeline defaults + config overrides
-            instruction_type = config.instruction_type
-            if not instruction_type and pipeline.defaults:
-                instruction_type = pipeline.defaults.get('instruction_type')
-
             parameters = {}
             if pipeline.defaults and 'parameters' in pipeline.defaults:
                 parameters.update(pipeline.defaults['parameters'])
@@ -230,7 +223,6 @@ class ConfigLoader:
                 description=config.description,
                 pipeline_name=config.pipeline,
                 chunks=pipeline.chunks,
-                instruction_type=instruction_type,
                 context=config.context,
                 parameters=parameters,
                 media_preferences=config.media_preferences,

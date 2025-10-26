@@ -6,10 +6,12 @@ import { setStatus, startProcessingDisplay, stopProcessingDisplay, clearOutputDi
 import { processAndDisplayResults } from './output-display.js';
 import { currentSessionData, updateSessionData } from './session.js';
 import { t, getCurrentLanguage } from './simple-translation.js';
+import { initWorkflowBrowser } from './workflow-browser.js';
 
 let pollingInterval = null;
 let workflowMetadata = null;
 let currentLanguage = 'de'; // Default to German
+let selectedWorkflowPath = null; // Track selected workflow from browser
 
 // Initialize seed control
 document.addEventListener('DOMContentLoaded', () => {
@@ -91,39 +93,68 @@ export async function loadWorkflows() {
         if (configResponse.ok) {
             workflowConfig = await configResponse.json();
         }
-        
+
         // Fetch metadata
         const metaResponse = await fetch('/workflow_metadata');
         if (metaResponse.ok) {
             workflowMetadata = await metaResponse.json();
         }
-        
+
         // Handle different workflow selection modes
         if (workflowConfig && workflowConfig.mode !== "user") {
             handleNonUserMode(workflowConfig);
             return;
         }
-        
-        // DEVSERVER: Statisches Schema-Pipeline-Dropdown für Test-Zwecke
-        ui.workflow.innerHTML = `
-            <optgroup label="🧪 Schema-Pipeline Tests">
-                <option value="dev/TEST_dadaismus">🎨 Dadaismus-Transformation</option>
-                <option value="dev/jugendsprache">💬 UK Youth Slang</option>
-            </optgroup>
-            <optgroup label="Legacy Workflows (Auswahl)">
-                <option value="aesthetics/ai4artsed_Impressionismus_2506220140.json">🖼️ Impressionismus</option>
-                <option value="semantics/ai4artsed_Jugendsprache_2506122317.json">💭 Jugendsprache (Legacy)</option>
-            </optgroup>
-        `;
-        
-        // Auto-select TEST_dadaismus für sofortige Tests
-        ui.workflow.value = "dev/TEST_dadaismus";
-        
-        // Add event listener for workflow selection
-        ui.workflow.addEventListener('change', () => {
-            checkWorkflowSafetyNode();
-            updateWorkflowDescription();
-        });
+
+        // EXPERT MODE: Initialize workflow browser
+        try {
+            console.log('Initializing Expert Mode workflow browser...');
+
+            // Clear and prepare the hidden dropdown
+            ui.workflow.innerHTML = '';
+            ui.workflow.style.display = 'none';
+            document.querySelector('.workflow-dropdown-label').style.display = 'none';
+
+            // Mark body as having browser active
+            document.body.classList.add('workflow-browser-active');
+
+            // Initialize the new browser
+            await initWorkflowBrowser((workflowPath, config) => {
+                console.log('[WORKFLOW.JS] Workflow selected from browser:', workflowPath);
+                selectedWorkflowPath = workflowPath;
+
+                // Create an option element dynamically and select it
+                console.log('[WORKFLOW.JS] Creating option for:', workflowPath);
+                ui.workflow.innerHTML = `<option value="${workflowPath}" selected>${workflowPath}</option>`;
+                console.log('[WORKFLOW.JS] ui.workflow.value is now:', ui.workflow.value);
+
+                // Check safety features
+                checkWorkflowSafetyNode();
+            });
+
+            console.log('Expert Mode workflow browser initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize workflow browser:', error);
+
+            // Fallback to dropdown on error
+            console.log('Falling back to dropdown mode');
+            ui.workflow.style.display = 'block';
+            document.querySelector('.workflow-dropdown-label').style.display = 'block';
+
+            // Show legacy dropdown with schema pipelines
+            ui.workflow.innerHTML = `
+                <optgroup label="🧪 Schema-Pipeline Tests">
+                    <option value="dev/dada">🎨 Dadaismus-Transformation</option>
+                    <option value="dev/jugendsprache">💬 UK Youth Slang</option>
+                </optgroup>
+            `;
+
+            ui.workflow.addEventListener('change', () => {
+                selectedWorkflowPath = ui.workflow.value;
+                checkWorkflowSafetyNode();
+                updateWorkflowDescription();
+            });
+        }
     } catch (error) {
         console.error('Failed to load workflows:', error);
     }

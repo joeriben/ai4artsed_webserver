@@ -1,0 +1,48 @@
+{
+  "pipeline": "simple_manipulation",
+  "name": {
+    "en": "HunkyDoryHarmonizer",
+    "de": "HunkyDoryHarmonizer"
+  },
+  "description": {
+    "en": "HunkyDoryHarmonizer transformation (research-based from legacy workflow)",
+    "de": "HunkyDoryHarmonizer-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Aesthetics",
+    "de": "Aesthetics"
+  },
+  "context": "professional translator",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "legacy_source": "workflows/aesthetics/ai4artsed_HunkyDoryHarmonizer_2507100933.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral:7b"
+  },
+  "display": {
+    "icon": "✨",
+    "color": "#9C27B0",
+    "category": "aesthetics",
+    "difficulty": 2,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 10,
+    "complexity": "intermediate"
+  }
+}

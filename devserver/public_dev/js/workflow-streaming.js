@@ -20,11 +20,13 @@ export async function submitPromptWithStreaming() {
 // Alternative: Fast polling approach for environments where SSE doesn't work well
 export async function submitPromptWithFastPolling() {
     if (ui.submitBtn.disabled) return;
-    
+
     clearOutputDisplays();
     startProcessingDisplay("Generierung...");
 
     const workflowName = ui.workflow.value;
+    console.log('[WORKFLOW-STREAMING] Workflow name from ui.workflow.value:', workflowName);
+
     const promptText = ui.prompt.value.trim();
     const selectedRadio = document.querySelector('input[name="aspectRatio"]:checked');
     const aspectRatio = selectedRadio ? selectedRadio.value : '1:1';

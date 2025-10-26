@@ -218,8 +218,7 @@ class PipelineExecutor:
                 "total_steps": len(steps),
                 "input_length": len(context.input_text),
                 "output_length": len(final_output),
-                "pipeline_name": self._current_config.pipeline_name if self._current_config else None,
-                "instruction_type": self._current_config.instruction_type if self._current_config else None
+                "pipeline_name": self._current_config.pipeline_name if self._current_config else None
             }
         )
     
@@ -320,14 +319,13 @@ class PipelineExecutor:
         resolved_config = self.config_loader.get_config(config_name)
         if not resolved_config:
             return None
-        
+
         return {
             "name": resolved_config.name,
             "display_name": resolved_config.display_name,
             "description": resolved_config.description,
             "pipeline_name": resolved_config.pipeline_name,
             "chunks": resolved_config.chunks,
-            "instruction_type": resolved_config.instruction_type,
             "parameters": resolved_config.parameters,
             "meta": resolved_config.meta
         }
