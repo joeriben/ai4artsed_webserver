@@ -76,6 +76,51 @@
 
 ---
 
+## 2025-10-26: REMOVAL of Legacy DevServer Code
+
+### Decision
+**All legacy engine modules removed** - DevServer no longer needs legacy code from pre-refactoring phase
+
+### Reasoning (Joerissen)
+> "der legacy-server läuft auf Port 5000 stabil (und wird nicht angetastet, wird aktuell verwendet). Devserver braucht m.E. keine Legacy-codes mehr. [...] Pipeline-Config-System ist so leistungsfähig dass wir alles 'übersetzen' können. Und zur Not kann legacy immer parallel betrieben werden."
+
+**Context:**
+- Legacy-Server (Port 5000) runs independently and stably
+- DevServer's new Pipeline-Config-System is fully capable
+- No need for code duplication between legacy and devserver
+- Parallel operation possible when needed (no integration required)
+
+### What Was Done
+1. ✅ `schemas/engine/schema_registry.py` → `.OBSOLETE`
+2. ✅ `schemas/engine/chunk_builder_old.py` → `.OBSOLETE`
+3. ✅ `schemas/engine/pipeline_executor_old.py` → `.OBSOLETE`
+4. ✅ Updated `schemas/__init__.py` - removed SchemaRegistry import
+5. ✅ `schemas/schema_data/` → `schemas/schema_data_LEGACY_TESTS/`
+6. ✅ All tests still passing (34 configs loaded)
+
+### Files Marked OBSOLETE
+**Engine Modules:**
+- `schemas/engine/schema_registry.py.OBSOLETE` (pre-refactoring registry)
+- `schemas/engine/chunk_builder_old.py.OBSOLETE` (pre-refactoring builder)
+- `schemas/engine/pipeline_executor_old.py.OBSOLETE` (pre-refactoring executor)
+
+**Test Data:**
+- `schemas/schema_data_LEGACY_TESTS/` (old test configs)
+
+### Active Engine Architecture (Post-Cleanup)
+**Core Modules (ONLY):**
+- `config_loader.py` - Config + Pipeline loader
+- `chunk_builder.py` - Template-based chunk builder
+- `pipeline_executor.py` - Pipeline orchestration
+- `backend_router.py` - Backend routing (Ollama/ComfyUI/OpenRouter)
+- `model_selector.py` - Model selection (eco/fast modes)
+- `comfyui_workflow_generator.py` - ComfyUI workflow generation
+- `prompt_interception_engine.py` - Legacy bridge for prompt interception
+
+**Status:** Clean, no legacy code dependencies ✅
+
+---
+
 ## 2025-10-26: Directory Restructure (configs_new → configs)
 
 ### Decision
