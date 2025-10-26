@@ -73,33 +73,43 @@ DevServer implements a **template-based pipeline system** with three distinct la
 **Location:** `schemas/chunks/*.json`
 **Count:** 3 core chunks (post-consolidation)
 
-#### Current Chunks
+#### Chunk Types
 
+**1. Processing Chunks** (Text transformation via LLM)
 | Chunk Name | Backend | Purpose | Task Type |
 |------------|---------|---------|-----------|
-| `manipulate` | Ollama | Universal text transformation | `standard` / `advanced` |
-| `comfyui_image_generation` | ComfyUI | Image generation (SD3.5, Flux, etc.) | N/A |
-| `comfyui_audio_generation` | ComfyUI | Audio/Music generation | N/A |
+| `manipulate` | Ollama/OpenRouter | Universal text transformation | `standard` / `advanced` |
 
-**Note:** After consolidation, we have ONE text transformation chunk (`manipulate`) instead of multiple redundant chunks (translate, prompt_interception, etc. were deleted).
+**2. Output Chunks** (Media generation via ComfyUI)
+| Chunk Name | Backend | Purpose | Media Type |
+|------------|---------|---------|-----------|
+| `output_image_sd35_standard` | ComfyUI | SD3.5 Large image generation | Image |
+| `output_audio_stable_audio` | ComfyUI | Stable Audio generation | Audio |
+| `output_music_acestep` | ComfyUI | AceStep music (Tags + Lyrics) | Music |
+
+**Note:**
+- After consolidation, we have ONE text transformation chunk (`manipulate`) instead of multiple redundant chunks
+- Output-Chunks contain complete ComfyUI API workflows embedded in JSON (not generated dynamically)
 
 #### Chunk Structure
+
+**Type 1: Processing Chunk (LLM-based text transformation)**
 
 ```json
 {
   "name": "manipulate",
+  "type": "processing_chunk",
   "description": "Universal text transformation with instruction-based prompting",
   "template": "{{INSTRUCTION}}\n\nText to manipulate:\n\n{{PREVIOUS_OUTPUT}}",
   "backend_type": "ollama",
-  "model": "task:standard",  // Task-based model selection
+  "model": "task:standard",
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,
     "stream": false
   },
   "meta": {
-    "chunk_type": "manipulation",
-    "task_type": "standard",       // Links to model_selector categories
+    "task_type": "standard",
     "output_format": "text",
     "estimated_duration": "medium"
   }
@@ -113,6 +123,168 @@ DevServer implements a **template-based pipeline system** with three distinct la
 - `{{USER_INPUT}}` - Original user input (available in all steps)
 
 **Historical Note:** We removed `{{TASK}}` and `{{CONTEXT}}` placeholders - they were redundant aliases that caused instruction text to appear twice in rendered prompts.
+
+---
+
+**Type 2: Output Chunk (ComfyUI media generation)**
+
+Output-Chunks contain **complete ComfyUI API workflows** embedded directly in the JSON, along with metadata for input/output mapping.
+
+```json
+{
+  "name": "output_audio_stable_audio",
+  "type": "output_chunk",
+  "backend_type": "comfyui",
+  "media_type": "audio",
+  "description": "Stable Audio Open - 47 second audio generation",
+
+  "workflow": {
+    "3": {
+      "inputs": {
+        "seed": "{{SEED}}",
+        "steps": "{{STEPS}}",
+        "cfg": "{{CFG}}",
+        "sampler_name": "{{SAMPLER}}",
+        "scheduler": "{{SCHEDULER}}",
+        "denoise": 1,
+        "model": ["4", 0],
+        "positive": ["6", 0],
+        "negative": ["7", 0],
+        "latent_image": ["11", 0]
+      },
+      "class_type": "KSampler",
+      "_meta": {"title": "KSampler"}
+    },
+    "4": {
+      "inputs": {
+        "ckpt_name": "stable-audio-open-1.0.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {"title": "Load Checkpoint"}
+    },
+    "6": {
+      "inputs": {
+        "text": "{{PROMPT}}",
+        "clip": ["10", 0]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {"title": "CLIP Text Encode (Prompt)"}
+    },
+    "7": {
+      "inputs": {
+        "text": "{{NEGATIVE_PROMPT}}",
+        "clip": ["10", 0]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {"title": "CLIP Text Encode (Negative)"}
+    },
+    "10": {
+      "inputs": {
+        "clip_name": "t5-base.safetensors",
+        "type": "stable_audio",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {"title": "Load CLIP"}
+    },
+    "11": {
+      "inputs": {
+        "seconds": "{{DURATION}}",
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentAudio",
+      "_meta": {"title": "Empty Latent Audio"}
+    },
+    "12": {
+      "inputs": {
+        "samples": ["3", 0],
+        "vae": ["4", 2]
+      },
+      "class_type": "VAEDecodeAudio",
+      "_meta": {"title": "VAE Decode Audio"}
+    },
+    "19": {
+      "inputs": {
+        "filename_prefix": "audio/ComfyUI",
+        "quality": "V0",
+        "audioUI": "",
+        "audio": ["12", 0]
+      },
+      "class_type": "SaveAudioMP3",
+      "_meta": {"title": "Save Audio (MP3)"}
+    }
+  },
+
+  "input_mappings": {
+    "prompt": {
+      "node_id": "6",
+      "field": "inputs.text",
+      "source": "{{PREVIOUS_OUTPUT}}"
+    },
+    "negative_prompt": {
+      "node_id": "7",
+      "field": "inputs.text",
+      "default": ""
+    },
+    "duration": {
+      "node_id": "11",
+      "field": "inputs.seconds",
+      "default": 47.6
+    },
+    "steps": {
+      "node_id": "3",
+      "field": "inputs.steps",
+      "default": 50
+    },
+    "cfg": {
+      "node_id": "3",
+      "field": "inputs.cfg",
+      "default": 4.98
+    },
+    "seed": {
+      "node_id": "3",
+      "field": "inputs.seed",
+      "default": "random"
+    }
+  },
+
+  "output_mapping": {
+    "node_id": "19",
+    "output_type": "audio",
+    "format": "mp3",
+    "field": "filename_prefix"
+  },
+
+  "meta": {
+    "estimated_duration": "30-60s",
+    "requires_gpu": true,
+    "model_file": "stable-audio-open-1.0.safetensors",
+    "clip_file": "t5-base.safetensors"
+  }
+}
+```
+
+**Key Design Principles:**
+
+1. **Embedded Workflows:** Complete ComfyUI API JSON workflow is stored in the chunk
+   - No dynamic generation required
+   - No dependency on `comfyui_workflow_generator.py` (deprecated)
+   - Server simply fills placeholders and submits to ComfyUI
+
+2. **Input Mappings:** Define where to inject data into the workflow
+   - Maps semantic names (`prompt`, `duration`) to specific node fields
+   - Supports defaults and placeholder replacement
+   - DevServer knows where to put user input/pipeline output
+
+3. **Output Mapping:** Define where to extract generated media
+   - Identifies the SaveImage/SaveAudio node
+   - Specifies expected format (png, mp3, wav)
+   - Enables proper media retrieval after generation
+
+4. **Backend Transparency:** Workflow could theoretically work with any ComfyUI-compatible backend
+   - SwarmUI
+   - ComfyUI forks
+   - Any system that accepts ComfyUI API format
 
 ---
 
@@ -676,8 +848,8 @@ schemas/engine/
 ├── pipeline_executor.py       # Execute complete pipelines
 ├── backend_router.py          # Route to appropriate backend
 ├── model_selector.py          # Task-based model selection
-├── comfyui_workflow_generator.py  # Generate ComfyUI workflows
-└── prompt_interception_engine.py  # Legacy bridge (deprecated)
+├── comfyui_workflow_generator.py  # DEPRECATED - workflows now embedded in chunks
+└── prompt_interception_engine.py  # DEPRECATED - replaced by pipeline system
 ```
 
 ---
@@ -912,83 +1084,21 @@ def _define_task_categories(self) -> Dict[str, Dict[str, str]]:
 
 ### 6. comfyui_workflow_generator.py
 
-**Purpose:** Generate ComfyUI workflows from templates
+**Status:** ⚠️ **DEPRECATED** - Will be removed in future cleanup
 
-**Workflow Templates:**
-```python
-class ComfyUIWorkflowGenerator:
-    def __init__(self, schemas_path: Path):
-        self.templates = {}
-        self._load_templates()
+**Historical Purpose:** Generated ComfyUI workflows dynamically from Python templates
 
-    def _load_templates(self):
-        # SD 3.5 Large Standard
-        self.templates["sd35_standard"] = WorkflowTemplate(
-            name="sd35_standard",
-            base_nodes={
-                "3": {"inputs": {...}, "class_type": "KSampler"},
-                "4": {"inputs": {"ckpt_name": "{{CHECKPOINT}}"}, "class_type": "CheckpointLoaderSimple"},
-                "6": {"inputs": {"text": "{{PROMPT}}", "clip": ["43", 0]}, "class_type": "CLIPTextEncode"},
-                "43": {"inputs": {"clip_name1": "clip_g.safetensors", "clip_name2": "t5xxl_enconly.safetensors"}, "class_type": "DualCLIPLoader"},
-                ...
-            },
-            parameter_mappings={
-                "PROMPT": "{{PROMPT}}",
-                "STEPS": 20,
-                "CFG": 5.5,
-                "CHECKPOINT": "sd3.5_large.safetensors",
-                ...
-            }
-        )
+**Why Deprecated:**
+- Output-Chunks now contain complete ComfyUI API workflows embedded in JSON
+- No dynamic generation needed - server fills placeholders and submits directly
+- Simplifies architecture - workflows are data, not code
+- See "Output Chunk" documentation above for new approach
 
-        # Flux1 Dev
-        self.templates["flux1_dev"] = WorkflowTemplate(...)
-
-        # AceStep Music
-        self.templates["acestep_music"] = WorkflowTemplate(...)
-
-        # Stable Audio
-        self.templates["stable_audio_standard"] = WorkflowTemplate(...)
-
-    def generate_workflow(
-        self,
-        template_name: str,
-        schema_output: str,
-        parameters: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
-        template = self.templates.get(template_name)
-
-        # Merge default parameters with overrides
-        final_params = {**template.default_params, **parameters}
-
-        # Replace placeholders in workflow
-        workflow = self._process_template(template, final_params)
-
-        return workflow
-```
-
-**Standard Parameters by Template:**
-
-**SD3.5 Standard:**
-- Checkpoint: `sd3.5_large.safetensors`
-- CLIP: Dual CLIP (`clip_g.safetensors` + `t5xxl_enconly.safetensors`)
-- Steps: 20
-- CFG: 5.5
-- Sampler: euler
-- Scheduler: normal
-- Size: 1024x1024
-
-**Flux1 Dev:**
-- Checkpoint: `flux1_dev.safetensors`
-- Steps: 25
-- CFG: 1.0
-- Guidance: 3.5
-- Size: 1024x1024
-
-**Stable Audio:**
-- Duration: 47.0 seconds
-- Steps: 150
-- CFG: 7.0
+**Migration Path:**
+- Extract workflows from `comfyui_workflow_generator.py` templates
+- Convert to Output-Chunk JSON format with `input_mappings` and `output_mapping`
+- Store in `schemas/chunks/output_*.json`
+- Update backend_router to process Output-Chunks instead of calling generator
 
 ---
 
@@ -1377,7 +1487,7 @@ devserver/
 │       ├── pipeline_executor.py               # Execute pipelines
 │       ├── backend_router.py                  # Route to backends
 │       ├── model_selector.py                  # Task-based model selection
-│       └── comfyui_workflow_generator.py      # ComfyUI workflows
+│       └── comfyui_workflow_generator.py      # DEPRECATED (workflows in chunks now)
 │
 ├── my_app/
 │   ├── routes/

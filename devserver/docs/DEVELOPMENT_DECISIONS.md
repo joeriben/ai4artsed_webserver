@@ -7,6 +7,241 @@
 
 ---
 
+## 2025-10-26: OUTPUT-CHUNK ARCHITECTURE - Embedded ComfyUI Workflows
+
+### Decision
+**Output-Chunks now contain complete ComfyUI API workflows embedded in JSON**
+- ComfyUI workflows are stored directly in chunk files (not generated dynamically)
+- Each Output-Chunk includes: `workflow`, `input_mappings`, `output_mapping`, `meta`
+- Deprecate: `comfyui_workflow_generator.py` (will be removed in future cleanup)
+
+### Reasoning
+
+**Problem with Dynamic Generation:**
+- `comfyui_workflow_generator.py` hardcoded workflows in Python code
+- Workflows were generated at runtime from templates
+- Separated workflow structure from data (against "data over code" principle)
+- Made workflows harder to edit for non-programmers
+
+**New Approach - Embedded Workflows:**
+```json
+{
+  "name": "output_audio_stable_audio",
+  "type": "output_chunk",
+  "workflow": {
+    "3": { "class_type": "KSampler", "inputs": {...} },
+    "4": { "class_type": "CheckpointLoaderSimple", ... },
+    ...
+  },
+  "input_mappings": {
+    "prompt": {"node_id": "6", "field": "inputs.text"},
+    ...
+  },
+  "output_mapping": {
+    "node_id": "19", "output_type": "audio", "format": "mp3"
+  }
+}
+```
+
+**Advantages:**
+1. **Workflows are Data:** JSON format, not Python code
+2. **Easier to Edit:** Can be modified without code changes
+3. **Transparency:** Complete workflow visible in chunk file
+4. **No Generation:** Server fills placeholders and submits directly to ComfyUI
+5. **Backend Agnostic:** Same format works with ComfyUI, SwarmUI, etc.
+
+**Migration Strategy:**
+- Extract existing workflows from `comfyui_workflow_generator.py`
+- Convert to Output-Chunk JSON format
+- Add `input_mappings` metadata (server needs to know where to inject prompts)
+- Add `output_mapping` metadata (server needs to know where to extract media)
+- Update `backend_router.py` to process Output-Chunks directly
+
+### Files Affected
+- **Deprecated:**
+  - `schemas/engine/comfyui_workflow_generator.py` (marked for removal)
+- **To Create:**
+  - `schemas/chunks/output_image_sd35_standard.json`
+  - `schemas/chunks/output_audio_stable_audio.json`
+  - `schemas/chunks/output_music_acestep.json`
+- **To Update:**
+  - `schemas/engine/backend_router.py` (process Output-Chunks)
+  - `docs/ARCHITECTURE.md` (document Output-Chunk structure)
+
+### Implementation Status
+- ⚠️ **Design:** Documented in ARCHITECTURE.md
+- ⚠️ **Implementation:** NOT YET IMPLEMENTED
+- ⚠️ **Migration:** Old system still in place (comfyui_workflow_generator.py still used)
+
+---
+
+## 2025-10-26: CHUNK CONSOLIDATION - Single manipulate Chunk
+
+### Decision
+**Consolidated all text transformation chunks into ONE `manipulate.json` chunk**
+- Deleted: `translate.json`, `prompt_interception.json`, `prompt_interception_lyrics.json`, `prompt_interception_tags.json`
+- Fixed: `manipulate.json` template (removed duplicate placeholder)
+- Updated: All pipelines to use `manipulate` chunk only
+
+### Reasoning (Joerissen)
+> "Dann reicht ein manipulate-Chunk [...] 'Prompt interception' ist ein kritisches pädagogisches Konzept das auf dieser Ebene nicht auftauchen sollte"
+
+**Technical Problem:**
+- Multiple chunks (translate, prompt_interception, manipulate) were functionally identical
+- Only difference: placeholder naming and temperature settings
+- `translate` = `manipulate` with translation context + low temperature
+- `prompt_interception` = `manipulate` with explicit Task/Context structure
+- Content belongs in Configs, not in separate chunks
+
+**Placeholder Redundancy:**
+```python
+# Before:
+replacement_context = {
+    'INSTRUCTION': instruction_text,
+    'INSTRUCTIONS': instruction_text,  # Duplicate!
+    'TASK': instruction_text,          # Duplicate!
+    'CONTEXT': instruction_text,       # Duplicate!
+}
+```
+All four resolved to same value (config.context) → caused duplication in rendered prompts
+
+**Template Duplication Example:**
+```
+# manipulate.json before:
+{{INSTRUCTIONS}}
+
+{{CONTEXT}}      ← Duplicate!
+
+Text to manipulate:
+{{PREVIOUS_OUTPUT}}
+```
+Instruction appeared TWICE in all 29 configs using simple_manipulation pipeline!
+
+### What Was Done
+
+**Deleted Chunks:**
+1. ✅ `translate.json` - Unused (0 configs), redundant
+2. ✅ `prompt_interception.json` - Only 1 config used it, now uses simple_manipulation
+3. ✅ `prompt_interception_lyrics.json` - BROKEN (invalid structure)
+4. ✅ `prompt_interception_tags.json` - BROKEN (invalid structure)
+
+**Fixed Template:**
+```json
+// manipulate.json - BEFORE
+{
+  "template": "{{INSTRUCTIONS}}\n\n{{CONTEXT}}\n\nText to manipulate:\n\n{{PREVIOUS_OUTPUT}}"
+}
+
+// manipulate.json - AFTER
+{
+  "template": "{{INSTRUCTION}}\n\nText to manipulate:\n\n{{PREVIOUS_OUTPUT}}"
+}
+```
+
+**Updated chunk_builder.py:**
+```python
+# Removed TASK and CONTEXT aliases
+replacement_context = {
+    'INSTRUCTION': instruction_text,
+    'INSTRUCTIONS': instruction_text,  # Backward compatibility only
+    'INPUT_TEXT': context.get('input_text', ''),
+    'PREVIOUS_OUTPUT': context.get('previous_output', ''),
+    'USER_INPUT': context.get('user_input', ''),
+    **context.get('custom_placeholders', {})
+}
+```
+
+**Updated Pipelines:**
+- `audio_generation.json`: prompt_interception → manipulate
+- `image_generation.json`: prompt_interception → manipulate
+- `music_generation.json`: [prompt_interception_tags, prompt_interception_lyrics] → [manipulate]
+- `simple_interception.json`: [translate, manipulate] → [manipulate, manipulate]
+- Deleted: `prompt_interception_single.json`
+
+**Updated Configs:**
+- `translation_en.json`: prompt_interception_single → simple_manipulation
+
+### Current Architecture (Post-Consolidation)
+
+**Chunk Inventory:**
+1. ✅ `manipulate.json` - Universal text transformation
+2. ✅ `comfyui_image_generation.json` - Image generation
+3. ✅ `comfyui_audio_generation.json` - Audio generation
+
+**Pipeline Structure:**
+- 6 pipelines (down from 7)
+- All text operations use `manipulate` chunk
+- Content differentiation via `config.context` field
+
+**Test Results:**
+- ✅ 34 configs loaded successfully
+- ✅ 6 pipelines loaded successfully
+- ✅ All tests passing
+- ✅ No duplication in rendered prompts
+- ✅ Token efficiency improved (instruction appears once, not twice)
+
+### Impact Analysis
+
+**Affected Configs:**
+- 29 configs using `simple_manipulation` → Cleaner prompts, no duplication
+- 2 configs using `music_generation` → Simplified pipeline structure
+- 2 configs using `audio_generation` → Updated to manipulate chunk
+- 1 config using `prompt_interception_single` → Now uses simple_manipulation
+
+**Token Savings:**
+- Removed ~50-200 tokens per request (instruction no longer duplicated)
+- Affects 30 configs
+
+**Pedagogical Clarity:**
+- "Prompt interception" remains a pedagogical concept at Config level
+- Chunk level now purely technical (manipulate = transform text)
+- No semantic confusion between chunk names and content
+
+### Future Considerations
+
+**Prompt Interception as Pedagogical Concept:**
+- Configs can still use "Task / Context / Prompt" structure in their `config.context` field
+- Example:
+```json
+{
+  "context": "Task:\nTransform this prompt...\n\nContext:\nYou are a Dadaist artist...\n\nPrompt:"
+}
+```
+- The structure is content, not template architecture
+
+**Task-Type Metadata (Next Phase):**
+- Add `task_type` to chunk metadata
+- Link to model_selector.py categories (translation, vision, etc.)
+- Enable task-based LLM selection
+
+### Files Modified
+
+**Chunks (Deleted):**
+- `schemas/chunks/translate.json` ❌
+- `schemas/chunks/prompt_interception.json` ❌
+- `schemas/chunks/prompt_interception_lyrics.json` ❌
+- `schemas/chunks/prompt_interception_tags.json` ❌
+
+**Chunks (Modified):**
+- `schemas/chunks/manipulate.json` (fixed template)
+
+**Pipelines (Deleted):**
+- `schemas/pipelines/prompt_interception_single.json` ❌
+
+**Pipelines (Modified):**
+- `schemas/pipelines/audio_generation.json`
+- `schemas/pipelines/image_generation.json`
+- `schemas/pipelines/music_generation.json`
+- `schemas/pipelines/simple_interception.json`
+
+**Configs (Modified):**
+- `schemas/configs/translation_en.json`
+
+**Engine (Modified):**
+- `schemas/engine/chunk_builder.py` (removed TASK/CONTEXT aliases)
+
+---
+
 ## 2025-10-26: REMOVAL of instruction_types System
 
 ### Decision
@@ -16,9 +251,35 @@
 > "Instruction type war eine eigenständige Fehlentscheidung des LLM. Sie ist redundant und erzeugt ambivalente Datenverteilung."
 
 **Technisches Problem:**
-- Instruction_types beschrieben 6 unterschiedliche Typen von Textmanipulation (Zwecke)
+- Instruction_types beschrieben 6 Kategorien mit 17 Varianten von Textmanipulation/Analyse
 - Das Auslagern führte zu komplizierten und redundanten Informationsverweisen
 - Widersprach der sauberen 3-Schichten-Architektur (Chunks → Pipelines → Configs)
+
+**Die 6 Kategorien waren:**
+1. **translation** (3 variants: standard, culture_sensitive, rigid)
+   - Zweck: Übersetzung mit unterschiedlichen Ansätzen
+   - Problem: Übersetzungs-Nuancen gehören in Config-context, nicht in externes System
+
+2. **manipulation** (5 variants: standard, creative, amplify, analytical, poetic)
+   - Zweck: Texttransformation mit verschiedenen Stilen
+   - Problem: "Creative" widerspricht theoretischem Ansatz (Haltungen statt Stile)
+   - Problem: Diese "Stile" sind eigentlich Inhalte und gehören in Configs
+
+3. **security** (2 variants: standard, strict)
+   - Zweck: Content-Filtering unterschiedlicher Strenge
+   - Problem: Sicherheits-Policy gehört in Config-Parameter, nicht in separate Typen
+
+4. **image_analysis** (4 variants: formal, descriptive, iconographic, non_western)
+   - Zweck: Bildanalyse-Methoden (Panofsky etc.)
+   - Problem: Analyse-Methode ist Inhalt (gehört in Config), nicht Struktur
+
+5. **prompt_optimization** (3 variants: image_generation, audio_generation, music_generation)
+   - Zweck: Optimierung für verschiedene Medien-Backends
+   - Problem: Media-spezifische Optimierung gehört in Chunk-Templates, nicht in Typen
+
+6. **[weitere ungenutzte Kategorien]**
+   - Viele instruction_types wurden in keinem Config referenziert
+   - Redundanz: Configs enthielten bereits komplette instruction-Texte im context-Feld
 
 **Architektonisches Problem:**
 - Instruction_types waren ein viertes Layer zwischen Pipeline (Struktur) und Config (Inhalt)

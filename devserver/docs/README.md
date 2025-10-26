@@ -1,5 +1,15 @@
 # DevServer Documentation Structure
 
+## ⚠️ NEW TO THIS PROJECT? START HERE
+
+**→ Read `README_FIRST.md` before doing ANYTHING else! ←**
+
+That file contains mandatory reading requirements and verification questions you must answer before starting work.
+
+**Why?** This project implements pedagogical concepts (Prompt Interception, Gegenhegemoniale Pädagogik) that are NOT obvious from code alone. Without reading documentation, you WILL break critical features.
+
+---
+
 ## Documentation Organization
 
 ### Core Documentation (Permanent)
