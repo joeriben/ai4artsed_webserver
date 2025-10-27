@@ -93,14 +93,20 @@ class BackendRouter:
         """
         Detect backend from model prefix
         This allows execution_mode to override template's backend_type
-        
+
         Args:
             model: Model string (may have local/ or openrouter/ prefix)
             fallback_backend: Fallback if no prefix detected
-            
+
         Returns:
             Detected backend type
         """
+        # Empty model or prefix-only (e.g., "local/" with no model name) → use fallback
+        # This is important for Proxy-Chunks (output_image) which have empty model
+        if not model or model in ["local/", "openrouter/", ""]:
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' empty or prefix-only → {fallback_backend.value} (fallback)")
+            return fallback_backend
+
         if model.startswith("openrouter/"):
             logger.debug(f"[BACKEND-DETECT] Model '{model}' → OPENROUTER")
             return BackendType.OPENROUTER
@@ -465,7 +471,7 @@ class BackendRouter:
 
                         if not image_url:
                             logger.error("No image found in API response")
-                            return BackendResponse(success=False, content="", error="No image found in response")
+                            return BackendResponse(success=False, content="", error="No image found in response", metadata={})
 
                         logger.info(f"API generation successful: {image_url[:80]}...")
 

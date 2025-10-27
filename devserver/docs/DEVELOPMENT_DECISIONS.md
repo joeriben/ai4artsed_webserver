@@ -7,6 +7,127 @@
 
 ---
 
+## 2025-10-27: GPT-5 Image OpenRouter Integration + API Output-Chunks
+
+### Decision
+**Add API-based Output-Chunks alongside ComfyUI-based Output-Chunks**
+- Created new `api_output_chunk` type for cloud API-based media generation
+- GPT-5 Image via OpenRouter as first implementation
+- API keys stored in `.key` files (excluded from git) for easy end-user setup
+
+### Reasoning
+
+**User Request:**
+> "secure but easy solution, not some deep system diving with variables. end users of the system will be amateurs"
+
+**Problem:**
+- ComfyUI Output-Chunks contain embedded workflows (complex JSON)
+- Cloud APIs (OpenRouter, OpenAI, Replicate) don't use ComfyUI workflows
+- Need clean separation between workflow-based and API-based backends
+
+**Solution - API Output-Chunk Structure:**
+```json
+{
+  "name": "output_image_gpt5",
+  "type": "api_output_chunk",
+  "backend_type": "openrouter",
+  "media_type": "image",
+  "api_config": {
+    "provider": "openrouter",
+    "model": "openai/gpt-5-image",
+    "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+    "method": "POST",
+    "request_body": {...},
+    "input_mappings": {...},
+    "output_mapping": {...}
+  }
+}
+```
+
+**Key Architectural Decisions:**
+
+1. **API Key Management:** `.key` files (not environment variables)
+   - Simple for end users (just paste key into file)
+   - Excluded from git via `*.key` pattern
+   - Location: devserver root (e.g., `openrouter_api.key`)
+
+2. **GPT-5 Image as Multimodal Chat Model:**
+   - Uses `/api/v1/chat/completions` endpoint (NOT `/images/generations`)
+   - Response format: `message.images[]` array with image URLs
+   - Cost: ~$0.00004 per image
+
+3. **Backend Router Enhancement:**
+   - Added `_process_api_output_chunk()` method
+   - Checks chunk type: `api_output_chunk` vs `output_chunk`
+   - Routes accordingly: API call vs ComfyUI workflow
+
+### What Was Done
+
+**New Files:**
+- `schemas/chunks/output_image_gpt5.json` - API Output-Chunk for GPT-5 Image
+- `schemas/configs/gpt5_image.json` - Output Config (fast mode cloud generation)
+- `schemas/configs/passthrough.json` - Interception Config with NULL-manipulation
+- `schemas/engine/output_config_selector.py` - Auto-media config selection
+- `schemas/output_config_defaults.json` - Central output config mapping
+- `openrouter_api.key` - API key file (git-ignored)
+- `test_gpt5_image.py`, `test_gpt5_simple.py` - Test scripts
+- `OPENROUTER_SETUP.md` - Setup guide for end users
+
+**Modified Files:**
+- `schemas/engine/backend_router.py`:
+  - `_process_api_output_chunk()` - Process API-based Output-Chunks
+  - `_extract_image_from_chat_completion()` - Extract image from GPT-5 response
+  - `_load_api_key()` - Load API keys from `.key` files
+  - Updated `_process_comfyui_request()` to route by chunk type
+- `my_app/routes/workflow_routes.py`:
+  - Fixed `execution_mode` undefined bug (variable was named `mode`)
+- `schemas/output_config_defaults.json`:
+  - `image.fast = "gpt5_image"` (cloud)
+  - `image.eco = "sd35_large"` (local)
+
+### Future Considerations
+
+**Extensibility:**
+- Can now easily add more API-based Output-Chunks:
+  - DALL-E 3 (OpenAI)
+  - Midjourney (via API)
+  - Replicate models
+  - Stability AI API
+
+**Known Issues:**
+1. Frontend shows Output Configs (`sd35_large`, `gpt5_image`) as user-selectable
+   - These should only be used by auto-media system
+   - Need filtering mechanism (e.g., `meta.system_config: true`)
+
+2. No clear architectural separation between:
+   - Interception Configs (user-facing, text manipulation)
+   - Output Configs (system-only, media generation)
+
+**Deferred Refactoring:**
+- Separate directory structure (`interception/` and `output/` folders)
+- Attempted but rolled back due to complexity
+- Would require updates to 5+ engine modules
+- Postponed until system is stable and tested
+
+### Files Modified
+- schemas/engine/backend_router.py
+- my_app/routes/workflow_routes.py
+- schemas/output_config_defaults.json
+
+### Files Created
+- schemas/chunks/output_image_gpt5.json
+- schemas/configs/gpt5_image.json
+- schemas/configs/passthrough.json
+- schemas/engine/output_config_selector.py
+- schemas/output_config_defaults.json
+- openrouter_api.key
+- test_gpt5_image.py
+- test_gpt5_simple.py
+- OPENROUTER_SETUP.md
+- docs/tmp/GPT5_IMAGE_OPENROUTER_PLAN.md
+
+---
+
 ## 2025-10-27: AUTO-MEDIA GENERATION - Output-Config Defaults System
 
 ### Decision

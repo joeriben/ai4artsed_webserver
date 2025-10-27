@@ -62,6 +62,11 @@ class PipelineResult:
     execution_time: Optional[float] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def success(self) -> bool:
+        """Pipeline succeeded if status is COMPLETED"""
+        return self.status == PipelineStatus.COMPLETED
+
 class PipelineExecutor:
     """Central pipeline orchestration"""
     

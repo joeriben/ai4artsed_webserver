@@ -1,6 +1,47 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-10-26
+**Last Updated:** 2025-10-27
 **Context:** Post-analysis TODOs for completing devserver architecture
+
+---
+
+## 🎯 CURRENT WORK (2025-10-27)
+
+### GPT-5 Image OpenRouter Integration
+**Status:** ✅ COMPLETED (Code), ⚠️ NEEDS TESTING
+**Priority:** HIGH
+
+**What Was Done:**
+1. ✅ Created `output_image_gpt5.json` - API Output-Chunk for GPT-5 Image via OpenRouter
+2. ✅ Created `gpt5_image.json` - Output Config for cloud image generation (fast mode)
+3. ✅ Created `passthrough.json` - Interception Config with NULL-manipulation for direct image generation
+4. ✅ Added API Output-Chunk processing to `backend_router.py`
+   - `_process_api_output_chunk()` method
+   - `_extract_image_from_chat_completion()` method
+   - `_load_api_key()` method from `.key` files
+5. ✅ Fixed `execution_mode` undefined bug in `workflow_routes.py` (variable was named `mode`)
+6. ✅ Created `output_config_selector.py` and `output_config_defaults.json` for auto-media generation
+7. ✅ Test scripts: `test_gpt5_image.py`, `test_gpt5_simple.py`
+8. ✅ Documentation: `OPENROUTER_SETUP.md`, `docs/tmp/GPT5_IMAGE_OPENROUTER_PLAN.md`
+
+**What Needs Testing:**
+- [ ] Test `passthrough.json` in Frontend (direct image generation without prompt modification)
+- [ ] Test auto-media generation with eco mode (SD3.5 local)
+- [ ] Test auto-media generation with fast mode (GPT-5 cloud)
+- [ ] Verify Frontend doesn't show Output Configs (`sd35_large`, `gpt5_image`) - only user-facing configs
+
+**Known Issues:**
+1. **Frontend shows Output Configs** - `sd35_large.json` and `gpt5_image.json` appear as user-selectable options, but should only be used by auto-media system
+2. **No Config Type Distinction** - System can't distinguish between Interception Configs (user-facing) and Output Configs (system-only)
+
+**Proposed Solution (NOT IMPLEMENTED):**
+- Add `meta.system_config: true` flag to Output Configs
+- Filter out system configs in Frontend config list endpoint
+- OR: Separate directory structure (deferred due to complexity)
+
+**Next Steps:**
+1. Test the system with real usage
+2. Address Frontend config visibility issue
+3. Verify auto-media generation works end-to-end
 
 ---
 

@@ -455,11 +455,13 @@ User Input → Config (e.g., dada.json)
 
 **Data Flow:**
 ```
-Text Prompt → Config (e.g., sd35_standard.json)
+Text Prompt → Config (e.g., sd35_large.json)
   → single_prompt_generation Pipeline
-    → Backend Router (checks config.backend)
-      → ComfyUI Workflow Generator OR OpenRouter API
-        → Media Output (Image/Audio/etc.)
+    → Proxy-Chunk (output_image.json)
+      → Backend Router (loads OUTPUT_CHUNK from config)
+        → Specialized Output-Chunk (output_image_sd35_large.json)
+          → ComfyUI API OR OpenRouter API
+            → Media Output (Image/Audio/etc.)
 ```
 
 **Use Cases:**
@@ -605,43 +607,50 @@ result = execute_chunk(
 
 ---
 
-### Chunk Selection Matrix
+### Output-Config Selection Matrix
 
-| Media Type | eco Mode Chunk | fast Mode Chunk | Status |
-|------------|----------------|-----------------|--------|
-| **image** | `comfyui_image_generation` | `openrouter_image_generation` | eco: ✅, fast: Planned |
-| **audio** | `comfyui_audio_generation` | `(fallback to local)` | eco: ✅, fast: Not available |
-| **music** | `comfyui_music_generation` | `(fallback to local)` | eco: ✅, fast: Not available |
-| **video** | `comfyui_video_generation` | `openai_video_generation` (Sora2) | eco: Planned, fast: Planned |
+Server selects OUTPUT-CONFIGS (not chunks directly) using `output_config_defaults.json`:
 
-**Important:** Chunks are **NOT** hardcoded in pipelines. Instead:
-- Pipeline reads `config.media_preferences.default_output`
-- Pipeline checks `execution_mode` (eco/fast)
-- Pipeline dynamically selects appropriate chunk
-- Chunk contains either:
-  - **Option A:** ComfyUI API JSON workflow (Standard-Template)
-  - **Option B:** Python code for API calls (OpenRouter, OpenAI, etc.)
+| Media Type | eco Mode Config | fast Mode Config | Status |
+|------------|-----------------|------------------|--------|
+| **image** | `sd35_large` | `flux1_openrouter` | eco: ✅, fast: Planned |
+| **audio** | `stable_audio` | `(fallback to eco)` | eco: ✅, fast: Not available |
+| **music** | `acestep` | `(fallback to eco)` | eco: ✅, fast: Not available |
+| **video** | `animatediff` | `sora2` | eco: Planned, fast: Planned |
+
+**Implementation:** `schemas/output_config_defaults.json`
+
+**Important:** Server selects CONFIGS, configs specify CHUNKS via OUTPUT_CHUNK parameter:
+1. Server reads Interception-Config's `media_preferences.default_output` (e.g., "image")
+2. Server reads `execution_mode` (eco/fast)
+3. Server looks up `output_config_defaults["image"]["eco"]` → "sd35_large"
+4. Server executes Output-Pipeline with config "sd35_large"
+5. Config has `"OUTPUT_CHUNK": "output_image_sd35_large"`
+6. Proxy-Chunk (output_image.json) receives this parameter
+7. backend_router loads specialized Output-Chunk
+8. Output-Chunk contains complete ComfyUI API workflow
 
 ---
 
-### Chunk Naming Convention (Planned Refactoring)
+### Output-Chunk Naming Convention
 
-**Current (Backend-Specific):**
-- `comfyui_image_generation` ❌ (exposes backend in name)
-- `comfyui_audio_generation` ❌
-- `comfyui_music_generation` ❌
+Output-Chunks are **highly specialized** for specific backend+model combinations:
 
-**Planned (Execution-Mode-Specific):**
-- `local_media_generation` ✅ (works with ComfyUI, SwarmUI, or any local backend)
-- `remote_media_generation` ✅ (works with OpenRouter, OpenAI, Replicate, etc.)
+**Format:** `output_[media]_[model]_[variant]`
 
-**Alternative (Media-Type-Specific):**
-- `local_image_generation`, `remote_image_generation`
-- `local_audio_generation`, `remote_audio_generation`
-- `local_music_generation`, `remote_music_generation`
-- `local_video_generation`, `remote_video_generation`
+**Examples:**
+- ✅ `output_image_sd35_large` - SD3.5 Large via ComfyUI
+- ✅ `output_image_gpt5` - GPT-5 Image via OpenRouter
+- ✅ `output_audio_stable_audio` - Stable Audio via ComfyUI
+- ✅ `output_music_acestep` - AceStep via ComfyUI
 
-**Decision:** TBD - depends on how different media types require different chunk logic
+**NOT Config-Level Terms:**
+- ❌ `output_image_sd35_standard` - "standard" is config concept, not chunk!
+
+**Each Output-Chunk contains:**
+- Complete backend-specific workflow (e.g., ComfyUI API JSON)
+- input_mappings (where to inject prompts/parameters)
+- output_mapping (where to extract generated media)
 
 ---
 
@@ -671,47 +680,84 @@ result = execute_chunk(
 {
   "name": "single_prompt_generation",
   "description": "Single text → Media (image/audio/video)",
-  "chunks": ["manipulate", "{{MEDIA_GENERATION_CHUNK}}"],
+  "chunks": ["output_image"],
   "meta": {
     "input_type": "single_text",
     "output_types": ["image", "audio", "music", "video"],
-    "backend_agnostic": true
+    "backend_agnostic": true,
+    "note": "Uses Proxy-Chunk system - NO manipulate (Output-Pipeline is primitive!)"
   }
 }
 ```
 
-**Chunk Selection (Runtime):**
-```python
-# Server determines chunk based on media_type + execution_mode
-media_type = config.media_preferences.default_output  # "audio"
-execution_mode = "eco"  # From frontend or server default
+**Key Design: Proxy-Chunk System**
 
-if execution_mode == "eco":
-    chunk_name = f"comfyui_{media_type}_generation"
-    # → "comfyui_audio_generation"
-else:
-    chunk_name = f"openrouter_{media_type}_generation"
-    # → "openrouter_audio_generation" (fallback if doesn't exist)
-```
+Output-Pipeline uses a **Proxy-Chunk** (`output_image.json`) that delegates to specialized Output-Chunks:
 
-**Chunk: comfyui_audio_generation.json**
+**Proxy-Chunk: output_image.json**
 ```json
 {
-  "name": "comfyui_audio_generation",
-  "description": "Audio generation via ComfyUI (Stable Audio Open)",
+  "name": "output_image",
+  "type": "processing_chunk",
   "backend_type": "comfyui",
-  "workflow_template": "stable_audio_open",
-  "input_mapping": {
-    "text_prompt": "node_4_text_input"
+  "template": "",
+  "model": "",
+  "parameters": {
+    "output_chunk": "{{OUTPUT_CHUNK}}",
+    "prompt": "{{PREVIOUS_OUTPUT}}",
+    "negative_prompt": "{{NEGATIVE_PROMPT}}",
+    "width": "{{WIDTH}}",
+    "height": "{{HEIGHT}}"
+  }
+}
+```
+
+**Config Selection (Runtime):**
+```python
+# Server determines OUTPUT-CONFIG based on media_type + execution_mode
+# Using output_config_defaults.json
+
+media_type = interception_config.media_preferences.default_output  # "image"
+execution_mode = "eco"  # From frontend or server default
+
+# Lookup in output_config_defaults.json
+output_config_name = output_config_defaults[media_type][execution_mode]
+# → "sd35_large"
+
+# Execute Output-Pipeline with selected config
+result = executor.execute_pipeline(
+    config_name="sd35_large",  # Output-Config
+    input_text=transformed_text
+)
+```
+
+**Output-Config: sd35_large.json**
+```json
+{
+  "pipeline": "single_prompt_generation",
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_sd35_large",  // Specialized chunk
+    "WIDTH": 1024,
+    "HEIGHT": 1024,
+    "STEPS": 25
+  }
+}
+```
+
+**Specialized Output-Chunk: output_image_sd35_large.json**
+```json
+{
+  "name": "output_image_sd35_large",
+  "type": "output_chunk",
+  "backend_type": "comfyui",
+  "media_type": "image",
+  "workflow": {
+    // Complete ComfyUI API workflow (11 nodes)
+    // See Output-Chunk section for full structure
   },
-  "parameters_mapping": {
-    "cfg": "node_5_cfg",
-    "steps": "node_5_steps",
-    "duration_seconds": "node_3_duration"
-  },
-  "meta": {
-    "media_type": "audio",
-    "model": "stable_audio_open.safetensors"
+  "input_mappings": {
+    "prompt": {"node_id": "10", "field": "inputs.value", ...},
+    "negative_prompt": {"node_id": "11", ...}
   }
 }
 ```
