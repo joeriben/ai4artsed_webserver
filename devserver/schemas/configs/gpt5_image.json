@@ -1,0 +1,63 @@
+{
+  "pipeline": "single_prompt_generation",
+  "name": {
+    "en": "GPT-5 Image",
+    "de": "GPT-5 Image"
+  },
+  "description": {
+    "en": "Cloud-based image generation using GPT-5 Image via OpenRouter (multimodal chat model)",
+    "de": "Cloud-basierte Bildgenerierung mit GPT-5 Image via OpenRouter (multimodales Chat-Modell)"
+  },
+  "category": {
+    "en": "Image Generation (Cloud)",
+    "de": "Bildgenerierung (Cloud)"
+  },
+  "context": "Transform the input text into an optimized image generation prompt. Focus on visual details, composition, lighting, and artistic style. The model will generate an image directly.",
+
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_gpt5",
+    "max_tokens": 4096
+  },
+
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image", "text"]
+  },
+
+  "meta": {
+    "model": "gpt-5-image",
+    "model_id": "openai/gpt-5-image",
+    "provider_model_id": "gpt-5-2025-08-07",
+    "backend": "openrouter",
+    "backend_type": "openrouter",
+    "requires_gpu": false,
+    "requires_api_key": "OPENROUTER_API_KEY",
+    "estimated_duration_seconds": "5-15",
+    "cost_model": "api_call",
+    "cost_per_image": "$0.00004",
+    "context_length": 400000,
+    "modalities": ["image", "text"],
+    "features": ["reasoning", "text_rendering", "image_editing"],
+    "notes": "GPT-5 Image via OpenRouter. Multimodal chat model with advanced image generation. Requires API key.",
+    "version": "1.0"
+  },
+
+  "display": {
+    "icon": "☁️",
+    "color": "#4A90E2",
+    "category": "image_generation_cloud",
+    "difficulty": 1,
+    "order": 20
+  },
+
+  "tags": {
+    "en": ["image", "gpt-5", "cloud", "fast", "openrouter", "multimodal", "reasoning"],
+    "de": ["bild", "gpt-5", "cloud", "schnell", "openrouter", "multimodal", "reasoning"]
+  },
+
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 10,
+    "complexity": "beginner"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "_description": "Central mapping of media types to default Output-Configs per execution mode",
+  "_note": "DevServer uses this to determine which Output-Config to use for auto-media generation",
+  "_architecture": "Separation of concerns: text manipulation configs suggest media type, this file chooses which model/config",
+
+  "image": {
+    "eco": "sd35_large",
+    "fast": "gpt5_image",
+    "_note": "eco=local ComfyUI, fast=cloud OpenRouter GPT-5 Image"
+  },
+
+  "audio": {
+    "eco": null,
+    "fast": null,
+    "_note": "Future: stable_audio for eco, stable_audio_api for fast"
+  },
+
+  "music": {
+    "eco": null,
+    "fast": null,
+    "_note": "Future: acestep for eco (requires tags+lyrics dual-prompt)"
+  },
+
+  "video": {
+    "eco": null,
+    "fast": null,
+    "_note": "Future: animatediff or similar for eco"
+  },
+
+  "text": {
+    "eco": null,
+    "fast": null,
+    "_note": "text output means no media generation - return text only"
+  }
+}

@@ -259,8 +259,23 @@ class BackendRouter:
             output_chunk_name = request.parameters.get('output_chunk')
 
             if output_chunk_name:
-                # NEW PATH: Use Output-Chunk system
-                return await self._process_output_chunk(output_chunk_name, schema_output, request.parameters)
+                # Load chunk to check type
+                chunk = self._load_output_chunk(output_chunk_name)
+
+                if not chunk:
+                    return BackendResponse(
+                        success=False,
+                        content="",
+                        error=f"Output-Chunk '{output_chunk_name}' not found"
+                    )
+
+                # Route based on chunk type
+                if chunk.get('type') == 'api_output_chunk':
+                    # API-based generation (OpenRouter, Replicate, etc.)
+                    return await self._process_api_output_chunk(output_chunk_name, schema_output, request.parameters, chunk)
+                else:
+                    # ComfyUI workflow-based generation
+                    return await self._process_output_chunk(output_chunk_name, schema_output, request.parameters)
             else:
                 # LEGACY PATH: Use deprecated comfyui_workflow_generator
                 # This will be removed after all chunks are migrated
@@ -397,6 +412,156 @@ class BackendRouter:
                 error=f"Output-Chunk processing error: {str(e)}"
             )
 
+    async def _process_api_output_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
+        """Process API-based Output-Chunk (OpenRouter, Replicate, etc.)"""
+        try:
+            logger.info(f"Processing API Output-Chunk: {chunk_name} ({chunk.get('media_type', 'unknown')} media)")
+
+            # Build API request with deep copy to avoid mutation
+            import copy
+            api_config = chunk['api_config']
+            request_body = copy.deepcopy(api_config['request_body'])
+
+            # Apply input mappings
+            for param_name, mapping in chunk['input_mappings'].items():
+                field_path = mapping['field']
+                value = parameters.get(param_name, prompt if param_name == 'prompt' else mapping.get('default'))
+
+                # Set nested value (e.g., "request_body.messages[1].content")
+                self._set_nested_value(request_body, field_path.replace('request_body.', ''), value)
+
+            # Get API key from .key file
+            api_key = self._load_api_key('openrouter_api.key')
+            if not api_key:
+                logger.error("OpenRouter API key not found. Create 'openrouter_api.key' file in devserver root.")
+                return BackendResponse(success=False, error="OpenRouter API key not found. Create 'openrouter_api.key' file in devserver root.")
+
+            # Build headers
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://ai4artsed.com",
+                "X-Title": "AI4ArtsEd DevServer"
+            }
+
+            # Make API call
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                logger.debug(f"POST {api_config['endpoint']} with model {api_config['model']}")
+                async with session.post(
+                    api_config['endpoint'],
+                    json=request_body,
+                    headers=headers
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+
+                        # Debug: Log the response structure
+                        logger.debug(f"API Response: {json.dumps(data, indent=2)[:500]}...")
+
+                        # Extract image URL from multimodal chat completion response
+                        # For GPT-5 Image: choices[0].message.content is a list with type="image_url"
+                        image_url = self._extract_image_from_chat_completion(data, chunk['output_mapping'])
+
+                        if not image_url:
+                            logger.error("No image found in API response")
+                            return BackendResponse(success=False, content="", error="No image found in response")
+
+                        logger.info(f"API generation successful: {image_url[:80]}...")
+
+                        return BackendResponse(
+                            success=True,
+                            content=image_url,
+                            metadata={
+                                'chunk_name': chunk_name,
+                                'media_type': chunk['media_type'],
+                                'provider': api_config['provider'],
+                                'model': api_config['model'],
+                                'image_url': image_url
+                            }
+                        )
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"API error {response.status}: {error_text}")
+                        return BackendResponse(success=False, content="", error=f"API error: {response.status}")
+
+        except Exception as e:
+            logger.error(f"Error processing API Output-Chunk '{chunk_name}': {e}")
+            import traceback
+            traceback.print_exc()
+            return BackendResponse(
+                success=False,
+                content="",
+                error=f"API Output-Chunk processing error: {str(e)}"
+            )
+
+    def _extract_image_from_chat_completion(self, data: Dict, output_mapping: Dict) -> Optional[str]:
+        """Extract image URL from chat completion response with multimodal content"""
+        try:
+            message = data['choices'][0]['message']
+
+            # GPT-5 Image: Check message.images array first
+            if 'images' in message and isinstance(message['images'], list) and len(message['images']) > 0:
+                first_image = message['images'][0]
+                if 'image_url' in first_image and 'url' in first_image['image_url']:
+                    return first_image['image_url']['url']
+
+            # Fallback: Check message.content for image_url items
+            content = message.get('content', '')
+            if isinstance(content, list):
+                for item in content:
+                    if item.get('type') == 'image_url':
+                        return item['image_url']['url']
+
+            return None
+        except (KeyError, IndexError, TypeError) as e:
+            logger.error(f"Failed to extract image from response: {e}")
+            return None
+
+    def _set_nested_value(self, obj: Any, path: str, value: Any):
+        """Set nested value in dict or list using path notation (e.g., 'messages[1].content')"""
+        import re
+        parts = re.split(r'\.|\[|\]', path)
+        parts = [p for p in parts if p]  # Remove empty strings
+
+        current = obj
+        for i, part in enumerate(parts[:-1]):
+            if part.isdigit():
+                current = current[int(part)]
+            else:
+                current = current[part]
+
+        final_key = parts[-1]
+        if final_key.isdigit():
+            current[int(final_key)] = value
+        else:
+            current[final_key] = value
+
+    def _load_api_key(self, key_filename: str) -> Optional[str]:
+        """Load API key from .key file in devserver root directory"""
+        try:
+            # Path to devserver root (3 levels up from this file)
+            devserver_root = Path(__file__).parent.parent.parent
+            key_path = devserver_root / key_filename
+
+            if not key_path.exists():
+                logger.warning(f"API key file not found: {key_path}")
+                return None
+
+            with open(key_path, 'r', encoding='utf-8') as f:
+                api_key = f.read().strip()
+
+            if not api_key:
+                logger.warning(f"API key file is empty: {key_path}")
+                return None
+
+            logger.info(f"Loaded API key from {key_filename}")
+            return api_key
+
+        except Exception as e:
+            logger.error(f"Error reading API key file '{key_filename}': {e}")
+            return None
+
     def _load_output_chunk(self, chunk_name: str) -> Optional[Dict[str, Any]]:
         """Load Output-Chunk from schemas/chunks/ directory"""
         try:
@@ -409,13 +574,18 @@ class BackendRouter:
             with open(chunk_path, 'r', encoding='utf-8') as f:
                 chunk = json.load(f)
 
-            # Validate it's an Output-Chunk
-            if chunk.get('type') != 'output_chunk':
-                logger.error(f"Chunk '{chunk_name}' is not an Output-Chunk (type: {chunk.get('type')})")
+            # Validate it's an Output-Chunk (either 'output_chunk' or 'api_output_chunk')
+            chunk_type = chunk.get('type')
+            if chunk_type not in ['output_chunk', 'api_output_chunk']:
+                logger.error(f"Chunk '{chunk_name}' is not an Output-Chunk (type: {chunk_type})")
                 return None
 
-            # Validate required fields
-            required_fields = ['workflow', 'input_mappings', 'output_mapping', 'backend_type']
+            # Validate required fields based on type
+            if chunk_type == 'output_chunk':
+                required_fields = ['workflow', 'input_mappings', 'output_mapping', 'backend_type']
+            elif chunk_type == 'api_output_chunk':
+                required_fields = ['api_config', 'input_mappings', 'output_mapping', 'backend_type']
+
             missing = [f for f in required_fields if f not in chunk]
             if missing:
                 logger.error(f"Output-Chunk '{chunk_name}' missing fields: {missing}")
