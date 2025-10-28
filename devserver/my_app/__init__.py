@@ -32,7 +32,7 @@ def create_app():
     CORS(app, supports_credentials=True)
     
     # Register blueprints
-    from my_app.routes.workflow_routes import workflow_bp
+    # REMOVED: workflow_routes (deprecated, replaced by schema_pipeline_routes)
     from my_app.routes.workflow_streaming_routes import workflow_streaming_bp
     from my_app.routes.export_routes import export_bp
     from my_app.routes.static_routes import static_bp
@@ -40,10 +40,10 @@ def create_app():
     from my_app.routes.sse_routes import sse_bp
     from my_app.routes.schema_pipeline_routes import schema_bp
     from my_app.routes.media_routes import media_bp
-    
+
     app.register_blueprint(static_bp)
     app.register_blueprint(config_bp)
-    app.register_blueprint(workflow_bp)
+    # REMOVED: workflow_bp (deprecated, replaced by schema_bp)
     app.register_blueprint(workflow_streaming_bp)
     app.register_blueprint(export_bp)
     app.register_blueprint(sse_bp)

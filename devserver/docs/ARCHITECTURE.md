@@ -954,7 +954,9 @@ Users can override the auto-media generation:
 **Implementation Location:**
 - File: `schemas/output_config_defaults.json`
 - Loader: `schemas/engine/output_config_selector.py`
-- Usage: `my_app/routes/workflow_routes.py` (auto-media generation logic)
+- Usage: `my_app/routes/schema_pipeline_routes.py` (auto-media generation logic)
+- API Endpoint: `/api/schema/pipeline/execute`
+- Note: Replaced deprecated `workflow_routes.py` as of 2025-10-28
 
 **DevServer Media Awareness:**
 
@@ -987,17 +989,16 @@ class MediaOutput:
 
 **Data Flow with Awareness:**
 ```
-1. workflow_routes.py receives request
-2. Loads pre-pipeline config → reads media_preferences.default_output
-3. Creates ExecutionContext with expected_media_type
-4. Executes text transformation pipeline
-5. Looks up output config via output_config_selector
-6. Loads output config → reads OUTPUT_CHUNK parameter
-7. Loads Output-Chunk → reads media_type field
-8. Validates: expected_media_type matches Output-Chunk.media_type
-9. Executes output pipeline
-10. Tracks MediaOutput in context
-11. Returns response with media_type + prompt_id + status
+1. schema_pipeline_routes.py receives request at /api/schema/pipeline/execute
+2. Loads config → reads media_preferences.default_output
+3. Executes Interception-Pipeline (text transformation)
+4. Auto-Media Detection: checks if media output requested
+5. Looks up Output-Config via output_config_defaults.json
+6. Loads Output-Config → reads OUTPUT_CHUNK parameter
+7. Executes Output-Pipeline with transformed text
+8. Loads Output-Chunk → reads media_type field
+9. Submits workflow to ComfyUI (or API backend)
+10. Returns response with final_output (text) + media_output (prompt_id)
 ```
 
 ---
@@ -1656,7 +1657,11 @@ devserver/
 │
 ├── my_app/
 │   ├── routes/
-│   │   └── workflow_routes.py                 # Main API endpoint
+│   │   ├── schema_pipeline_routes.py          # Main API endpoint (NEW)
+│   │   ├── workflow_streaming_routes.py       # SSE streaming endpoints
+│   │   ├── export_routes.py                   # Export management
+│   │   ├── media_routes.py                    # Media file serving
+│   │   └── workflow_routes.py.obsolete        # DEPRECATED (removed 2025-10-28)
 │   ├── services/
 │   │   ├── ollama_service.py                  # Ollama integration
 │   │   ├── comfyui_service.py                 # ComfyUI integration
