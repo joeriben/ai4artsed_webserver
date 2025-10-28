@@ -1,5 +1,28 @@
 """
 Flask routes for workflow operations
+
+⚠️ DEPRECATED: This file and its endpoints are deprecated as of 2025-10-28
+==================================================================================
+
+USE INSTEAD: my_app/routes/schema_pipeline_routes.py
+ENDPOINT:    /api/schema/pipeline/execute
+
+REASON:      This file contains legacy code (41 KB) that mixes concerns and uses
+             deprecated services. The new schema_pipeline_routes.py (11 KB) has
+             cleaner architecture, better separation of concerns, and uses the
+             new Chunks/Pipelines/Configs system.
+
+MIGRATION:   See docs/API_MIGRATION.md for detailed migration guide
+
+TIMELINE:
+  - Phase 1: Mark as deprecated (NOW)
+  - Phase 2: Add backward compatibility wrapper
+  - Phase 3: Migrate frontend
+  - Phase 4: Remove this file (move to .obsolete)
+
+DO NOT ADD NEW FEATURES TO THIS FILE!
+Use schema_pipeline_routes.py for all new development.
+==================================================================================
 """
 import logging
 import time
@@ -471,7 +494,16 @@ def validate_prompt():
 
 @workflow_bp.route('/run_workflow', methods=['POST'])
 def execute_workflow():
-    """Execute a workflow with support for three modes: text_only, image_with_text, inpainting"""
+    """
+    Execute a workflow with support for three modes: text_only, image_with_text, inpainting
+
+    ⚠️ DEPRECATED: This endpoint is deprecated as of 2025-10-28
+    USE INSTEAD: /api/schema/pipeline/execute
+    See docs/API_MIGRATION.md for migration guide
+    """
+    # Log deprecation warning
+    logger.warning("⚠️ DEPRECATED ENDPOINT: /run_workflow called. Use /api/schema/pipeline/execute instead. See docs/API_MIGRATION.md")
+
     try:
         from config import WORKFLOW_SELECTION, FIXED_WORKFLOW
         

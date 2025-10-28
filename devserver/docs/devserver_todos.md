@@ -1,10 +1,43 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-10-27
+**Last Updated:** 2025-10-28
 **Context:** Post-analysis TODOs for completing devserver architecture
 
 ---
 
-## 🎯 CURRENT WORK (2025-10-27)
+## 🎯 CURRENT WORK (2025-10-28)
+
+### API Migration: workflow_routes → schema_pipeline_routes
+**Status:** 🟢 CRITICAL PATH - IN PROGRESS
+**Priority:** HIGHEST
+**Blocker:** Must complete before further development
+
+**Why Critical:**
+- Two APIs doing the same thing (workflow_routes vs schema_pipeline_routes)
+- Confusing terminology ("workflow" is legacy)
+- 41 KB legacy code vs 11 KB clean code
+- Blocks all future development on clean architecture
+
+**What Was Done:**
+1. ✅ Implemented Auto-Media in schema_pipeline_routes.py
+2. ✅ Fixed prompt_id extraction in both routes (final_output vs metadata)
+3. ✅ Tested Auto-Media with dada config (eco mode) - **WORKS!**
+4. ✅ Created API_MIGRATION.md documentation
+5. ✅ All Interception-Configs run locally - **HUGE MILESTONE!**
+
+**Next Steps (IN THIS ORDER):**
+1. [ ] Mark workflow_routes.py as DEPRECATED in code (comments + warnings)
+2. [ ] Update ARCHITECTURE.md to reflect new API structure
+3. [ ] Create backward compatibility wrapper for /run_workflow
+4. [ ] Update Frontend to use /api/schema/pipeline/execute
+5. [ ] Test all Frontend workflows with new API
+6. [ ] Remove /run_workflow endpoint
+7. [ ] Move workflow_routes.py → workflow_routes.py.obsolete
+
+**See:** [API_MIGRATION.md](./API_MIGRATION.md) for detailed migration plan
+
+---
+
+## 🎯 PREVIOUS WORK (2025-10-27)
 
 ### GPT-5 Image OpenRouter Integration
 **Status:** ✅ COMPLETED (Code), ⚠️ NEEDS TESTING
