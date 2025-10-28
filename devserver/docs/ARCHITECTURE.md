@@ -1954,7 +1954,11 @@ python3 test_pipeline_execution.py
 
 ### Phase 2: Advanced Features
 - [ ] `image_plus_text_generation` pipeline implementation
+  - **Status:** NOT IMPLEMENTED (as of 2025-10-28)
+  - **Note:** WorkflowClassifier removed - Config metadata will handle validation
+  - **See:** DEVELOPMENT_DECISIONS.md (2025-10-28) for Inpainting implementation plan
 - [ ] Inpainting support
+  - **Note:** Requires image_plus_text_generation pipeline + inpainting config
 - [ ] ControlNet support
 - [ ] Video generation support
 

@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 # Blueprint erstellen
 schema_bp = Blueprint('schema', __name__, url_prefix='/api/schema')
 
+# Backward compatibility blueprint (no prefix) for legacy frontend endpoints
+# TODO: Remove after frontend migration complete
+schema_compat_bp = Blueprint('schema_compat', __name__)
+
 # Global Pipeline-Executor (wird bei App-Start initialisiert)
 pipeline_executor = None
 
@@ -285,21 +289,155 @@ def list_schemas():
     """Verfügbare Schemas auflisten"""
     try:
         init_schema_engine()
-        
+
         schemas = []
         for schema_name in pipeline_executor.get_available_schemas():
             schema_info = pipeline_executor.get_schema_info(schema_name)
             if schema_info:
                 schemas.append(schema_info)
-        
+
         return jsonify({
             'status': 'success',
             'schemas': schemas
         })
-        
+
     except Exception as e:
         logger.error(f"Schema-List Fehler: {e}")
         return jsonify({
             'status': 'error',
             'error': str(e)
         }), 500
+
+
+# ============================================================================
+# BACKWARD COMPATIBILITY ENDPOINTS (Legacy Frontend Support)
+# These endpoints have NO URL prefix and match the old workflow_routes.py API
+# ============================================================================
+# STATUS: DEPRECATED as of 2025-10-28
+# REASON: workflow.js (dropdown system) replaced by workflow-browser.js (cards)
+# KEEP: /pipeline_configs_metadata (used by workflow-browser.js)
+# REMOVE: /list_workflows, /workflow_metadata (only used by deprecated workflow.js)
+# ============================================================================
+
+# DEPRECATED: /list_workflows - Only used by old dropdown system (workflow.js.obsolete)
+# @schema_compat_bp.route('/list_workflows', methods=['GET'])
+# def list_workflows_compat():
+#     """List available Schema-Pipeline configs (replaces workflow_routes.py)"""
+#     try:
+#         init_schema_engine()
+#
+#         # Return Schema-Pipelines as dev/config_name format (matches old API)
+#         schema_workflows = []
+#         for schema_name in pipeline_executor.get_available_schemas():
+#             schema_workflows.append(f"dev/{schema_name}")
+#
+#         logger.info(f"Schema-Pipelines returned: {len(schema_workflows)}")
+#
+#         return jsonify({"workflows": schema_workflows})
+#     except Exception as e:
+#         logger.error(f"Error listing workflows: {e}")
+#         return jsonify({"error": "Failed to list workflows"}), 500
+
+
+# DEPRECATED: /workflow_metadata - Only used by old dropdown system (workflow.js.obsolete)
+# @schema_compat_bp.route('/workflow_metadata', methods=['GET'])
+# def workflow_metadata_compat():
+#     """Get Schema-Pipeline metadata (replaces workflow_routes.py)"""
+#     try:
+#         init_schema_engine()
+#
+#         metadata = {
+#             "categories": {
+#                 "dev": {
+#                     "de": "Schema-Pipelines (Interception Configs)",
+#                     "en": "Schema Pipelines (Interception Configs)"
+#                 }
+#             },
+#             "workflows": {}
+#         }
+#
+#         # Add Schema-Pipeline metadata
+#         for schema_name in pipeline_executor.get_available_schemas():
+#             schema_info = pipeline_executor.get_schema_info(schema_name)
+#             if schema_info:
+#                 # Format: dev_config_name (workflow.js expects this format)
+#                 workflow_id = f"dev_{schema_name}"
+#
+#                 config = schema_info.get('config', {})
+#                 meta = config.get('meta', {})
+#
+#                 metadata["workflows"][workflow_id] = {
+#                     "category": "dev",
+#                     "name": config.get('name', {'de': schema_name, 'en': schema_name}),
+#                     "description": config.get('description', {
+#                         'de': schema_info.get('description', ''),
+#                         'en': schema_info.get('description', '')
+#                     }),
+#                     "file": f"dev/{schema_name}"
+#                 }
+#
+#         logger.info(f"Schema-Pipeline metadata returned: {len(metadata['workflows'])} configs")
+#
+#         return jsonify(metadata)
+#     except Exception as e:
+#         logger.error(f"Error getting workflow metadata: {e}")
+#         return jsonify({"error": "Failed to get workflow metadata"}), 500
+
+
+@schema_compat_bp.route('/pipeline_configs_metadata', methods=['GET'])
+def pipeline_configs_metadata_compat():
+    """
+    Get metadata for all pipeline configs (Expert Mode Karten-Browser)
+    Reads directly from config files
+    """
+    try:
+        init_schema_engine()
+
+        # Read metadata directly from config files
+        configs_metadata = []
+        schemas_path = Path(__file__).parent.parent.parent / "schemas"
+        configs_path = schemas_path / "configs"
+
+        if not configs_path.exists():
+            return jsonify({"error": "Configs directory not found"}), 404
+
+        for config_file in sorted(configs_path.glob("*.json")):
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+
+                # Extract metadata fields directly from config
+                metadata = {
+                    "id": config_file.stem,  # Filename without .json
+                    "name": config_data.get("name", {}),  # Multilingual
+                    "description": config_data.get("description", {}),  # Multilingual
+                    "category": config_data.get("category", {}),  # Multilingual
+                    "pipeline": config_data.get("pipeline", "unknown")
+                }
+
+                # Add optional metadata fields if present
+                if "display" in config_data:
+                    metadata["display"] = config_data["display"]
+
+                if "tags" in config_data:
+                    metadata["tags"] = config_data["tags"]
+
+                if "audience" in config_data:
+                    metadata["audience"] = config_data["audience"]
+
+                if "media_preferences" in config_data:
+                    metadata["media_preferences"] = config_data["media_preferences"]
+
+                configs_metadata.append(metadata)
+
+            except Exception as e:
+                logger.error(f"Error reading config {config_file}: {e}")
+                continue
+
+        logger.info(f"Loaded metadata for {len(configs_metadata)} pipeline configs")
+
+        return jsonify({"configs": configs_metadata})
+
+    except Exception as e:
+        logger.error(f"Error loading pipeline configs metadata: {e}")
+        return jsonify({"error": "Failed to load configs metadata"}), 500

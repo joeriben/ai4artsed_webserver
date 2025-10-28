@@ -1,16 +1,15 @@
-// AI4ArtsEd - Main Application Module
+// AI4ArtsEd - Main Application Module (NEW Schema-Pipeline Architecture)
 import { config, loadConfig } from './config.js';
 import { ui } from './ui-elements.js';
 import { setStatus, updateDimensions } from './ui-utils.js';
 import { setupImageHandlers } from './image-handler.js';
-import { loadWorkflows } from './workflow.js';
-import { submitPromptWithFastPolling as submitPrompt } from './workflow-streaming.js';
+import { initConfigBrowser } from './config-browser.js';
+import { submitPrompt } from './execution-handler.js';
 import { downloadSession } from './session.js';
 import { initSSEConnection, pollQueueStatus } from './sse-connection.js';
 import { initSimpleTranslation } from './simple-translation.js';
-import './media-output.js'; // Media-Output-Manager für Bild/Audio/Video
 
-// Make submitPrompt available globally for onclick handler
+// Make functions available globally for onclick handlers
 window.submitPrompt = submitPrompt;
 window.updateDimensions = updateDimensions;
 
@@ -18,30 +17,33 @@ window.updateDimensions = updateDimensions;
 async function initializeApp() {
     // Initialize UI elements
     ui.init();
-    
+
     try {
         // Initialize simple translation for static UI elements
         initSimpleTranslation();
-        
+
         // Load configuration
         await loadConfig();
-        
-        // Load workflows
-        await loadWorkflows();
-        
+
+        // Initialize config browser (card-based UI)
+        await initConfigBrowser();
+
         // Setup image handlers
         setupImageHandlers();
-        
+
         // Initialize dimensions display
         updateDimensions();
-        
+
         // Initialize SSE connection for real-time updates
         initSSEConnection();
-        
+
         // Fallback: Poll queue status every 10 seconds if SSE fails
         setInterval(pollQueueStatus, 10000);
-        
+
+        console.log('[MAIN] Application initialized successfully');
+
     } catch (error) {
+        console.error('[MAIN] Initialization error:', error);
         setStatus('Initialisierung fehlgeschlagen: ' + error.message, 'error');
     }
 }

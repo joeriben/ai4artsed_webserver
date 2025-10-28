@@ -1,3 +1,20 @@
+// ============================================================================
+// DEPRECATED: AI4ArtsEd - Workflow Module (OLD DROPDOWN SYSTEM)
+// ============================================================================
+// This file implements the OLD dropdown-based workflow selection system.
+//
+// REPLACED BY: workflow-browser.js (card-based Expert Mode UI)
+//
+// STATUS: Deprecated as of 2025-10-28
+// TODO: Remove after confirming workflow-browser.js works in all scenarios
+//
+// REASON:
+// - Uses legacy "workflow" terminology (should be "config")
+// - Simple dropdown doesn't support filtering, search, or categorization
+// - Not suitable for 37+ configs
+// - Replaced by visual card-based browser with better UX
+// ============================================================================
+
 // AI4ArtsEd - Workflow Module
 import { ui } from './ui-elements.js';
 import { config } from './config.js';

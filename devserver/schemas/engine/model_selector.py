@@ -224,8 +224,8 @@ class ModelSelector:
                 logger.info(f"[ECO MODE] {model} → {result}")
                 return result
             else:
-                logger.warning(f"[ECO MODE] No local equivalent for {model}, using gemma2:9b")
-                return "local/gemma2:9b"
+                logger.warning(f"[ECO MODE] No local equivalent for {model}, using mistral-nemo")
+                return "local/mistral-nemo"
         
         # No prefix, assume it's a local model name
         return f"local/{model}"
@@ -443,9 +443,9 @@ class ModelSelector:
         if not available_models:
             logger.error("[FALLBACK] No Ollama models available")
             return None
-        
-        # Preferred fallbacks in order
-        preferred = ["gemma2:9b", "llama3.2:1b", "llama3.1:8b"]
+
+        # Preferred fallbacks in order (mistral-nemo is faster than gemma2:9b)
+        preferred = ["mistral-nemo", "llama3.2:1b", "llama3.1:8b"]
         for pref in preferred:
             if pref in available_models and pref != failed_model:
                 if debug:

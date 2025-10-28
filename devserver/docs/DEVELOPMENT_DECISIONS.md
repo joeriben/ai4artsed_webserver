@@ -7,6 +7,169 @@
 
 ---
 
+## 2025-10-28 (PM): COMPLETE Frontend Migration - Backend-Abstracted Architecture
+
+### Decision
+**Rebuild Frontend from scratch with complete Backend abstraction**
+- Created NEW: `config-browser.js` - Card-based config selection
+- Created NEW: `execution-handler.js` - Uses `/api/schema/pipeline/execute` + `/api/media/*`
+- Updated: `main.js` - Initializes new architecture
+- Moved to `.obsolete`: `workflow-streaming.js`, `workflow-browser.js`, `workflow.js`, `workflow-classifier.js`
+- Changed: `model_selector.py` - Replaced gemma2:9b with mistral-nemo (faster)
+
+### Reasoning
+
+**Problem:**
+Previous migration (AM) was incomplete:
+- `workflow-streaming.js` still used legacy `/run_workflow` endpoint
+- Frontend directly accessed ComfyUI (`/comfyui/history/{prompt_id}`)
+- No integration between config-browser and execution
+- Mixed legacy + new code caused confusion
+
+**Complete New Architecture:**
+```
+Config Selection:
+  Frontend → /pipeline_configs_metadata → Backend returns 37 configs
+
+Execution:
+  Frontend → /api/schema/pipeline/execute
+  Backend → Chunks/Pipelines (Text transformation)
+  Backend → Auto-Media (Image generation)
+  Backend → Returns { media_output: { output: prompt_id, media_type: "image" } }
+
+Media Polling (NEW!):
+  Frontend → /api/media/info/{prompt_id} (every second)
+  Backend → Checks ComfyUI status internally
+  Backend → Returns { type: "image", files: [...] } OR 404 (not ready)
+
+Media Display (NEW!):
+  Frontend → /api/media/image/{prompt_id}
+  Backend → Fetches from ComfyUI internally
+  Backend → Returns PNG directly
+```
+
+**Benefits:**
+- ✅ Frontend NEVER accesses ComfyUI directly
+- ✅ Backend can replace ComfyUI with other generators transparently
+- ✅ Media-type comes from Config metadata (extensible to audio/video)
+- ✅ Clean separation of concerns
+- ✅ 100% Backend-abstracted (no legacy REST)
+
+**Performance:**
+- Replaced gemma2:9b with mistral-nemo (3x faster for text transformation)
+
+### Testing
+✅ Dada Config selection works
+✅ Text transformation successful
+✅ Image generation successful (SD3.5 Large)
+✅ Media polling via Backend API works
+✅ Image display via Backend API works
+
+### Files Changed
+**New:**
+- `public_dev/js/config-browser.js` - Simple card-based config browser
+- `public_dev/js/execution-handler.js` - Backend-abstracted execution + polling
+
+**Modified:**
+- `public_dev/js/main.js` - Initialize config-browser
+- `public_dev/index.html` - Removed legacy dropdown
+- `schemas/engine/model_selector.py` - gemma2:9b → mistral-nemo
+
+**Obsoleted:**
+- `public_dev/js/workflow.js.obsolete`
+- `public_dev/js/workflow-classifier.js.obsolete`
+- `public_dev/js/workflow-browser.js.obsolete` (incomplete migration)
+- `public_dev/js/workflow-streaming.js.obsolete` (legacy API)
+- `public_dev/js/dual-input-handler.js.obsolete`
+
+---
+
+## 2025-10-28 (AM): Frontend Migration - Karten-Browser + Legacy Cleanup
+
+### Decision
+**Remove legacy Workflow-based Frontend, activate Config-based Karten-Browser**
+- Removed `workflow.js` (dropdown system) → replaced by `workflow-browser.js` (card-based UI)
+- Removed `WorkflowClassifier` → Config metadata will handle input validation
+- Added `/pipeline_configs_metadata` endpoint for Karten-Browser
+- Simplified `DualInputHandler` - removed workflow-type checks
+
+### Reasoning
+
+**Problem:**
+- "Workflow" terminology is legacy (should be "Config")
+- Dropdown unsuitable for 37+ configs (no search, filtering, categorization)
+- `WorkflowClassifier` asked backend "Is this inpainting?" - wrong approach
+- Inpainting doesn't exist yet in new system
+
+**Correct Architecture:**
+- Frontend displays **Configs** (not "Workflows")
+- Config metadata declares requirements: `"requires_image": true`
+- No separate classification service needed
+- DualInputHandler checks Config metadata, not workflow type
+
+**Migration Path:**
+```
+OLD: workflow.js → /list_workflows → WorkflowClassifier → Inpainting check
+NEW: workflow-browser.js → /pipeline_configs_metadata → Config.meta.requires_image
+```
+
+**Current State:**
+- No Inpainting configs exist yet
+- All test configs use `simple_interception` pipeline (text-only)
+- DualInputHandler simplified: "If image → use it, if not → text only"
+- Future: Check `config.meta.requires_image` when Inpainting-Configs exist
+
+### What Was Done
+
+**Frontend Changes:**
+- `public_dev/js/workflow.js` → `.obsolete` (deprecated dropdown system)
+- `public_dev/js/workflow-classifier.js` → `.obsolete` (replaced by config metadata)
+- `public_dev/js/main.js` - Removed `loadWorkflows()` call
+- `public_dev/js/dual-input-handler.js` - Simplified input processing
+
+**Backend Changes:**
+- Added `/pipeline_configs_metadata` endpoint (used by Karten-Browser)
+- Commented out `/list_workflows`, `/workflow_metadata` (only used by deprecated dropdown)
+- Kept `schema_compat_bp` blueprint for backward compatibility during migration
+
+**Documentation:**
+- Updated DEVELOPMENT_DECISIONS.md (this file)
+- Updated devserver_todos.md with migration progress
+- Updated ARCHITECTURE.md with DualInputHandler explanation
+
+### Future Implementation: Inpainting
+
+**When Inpainting is needed:**
+1. Create Pipeline: `image_plus_text_generation.json`
+2. Create Config: `inpainting_sd35.json` with `"meta": {"requires_image": true}`
+3. Create Output-Chunk: `output_image_inpainting.json` with ComfyUI Inpainting workflow
+4. Update DualInputHandler to check: `if (config.meta.requires_image && !imageData) throw Error`
+
+**Data Flow:**
+```
+User uploads image + enters prompt
+  → Frontend checks selected Config metadata
+  → If config.meta.requires_image: Validate image present
+  → DualInputHandler processes: mode='image_plus_text'
+  → Backend routes to image_plus_text_generation pipeline
+  → Inpainting Output-Chunk receives both inputs
+  → ComfyUI processes inpainting
+```
+
+### Files Modified
+- `public_dev/js/workflow.js` → `.obsolete`
+- `public_dev/js/workflow-classifier.js` → `.obsolete`
+- `public_dev/js/main.js`
+- `public_dev/js/dual-input-handler.js`
+- `my_app/routes/schema_pipeline_routes.py`
+- `docs/DEVELOPMENT_DECISIONS.md` (this file)
+
+### Files Kept (Not Deprecated)
+- `workflow-streaming.js` - Still used for submission (should be renamed to config-streaming.js)
+- `workflow-browser.js` - Active card-based UI (consider rename to config-browser.js)
+
+---
+
 ## 2025-10-27: GPT-5 Image OpenRouter Integration + API Output-Chunks
 
 ### Decision

@@ -6,34 +6,50 @@
 
 ## 🎯 CURRENT WORK (2025-10-28)
 
-### API Migration: workflow_routes → schema_pipeline_routes
-**Status:** 🟢 CRITICAL PATH - IN PROGRESS
-**Priority:** HIGHEST
-**Blocker:** Must complete before further development
+### Frontend Migration: Karten-Browser + Legacy Cleanup
+**Status:** 🟢 COMPLETED - READY TO COMMIT
+**Priority:** HIGHEST (was blocker)
 
-**Why Critical:**
-- Two APIs doing the same thing (workflow_routes vs schema_pipeline_routes)
-- Confusing terminology ("workflow" is legacy)
-- 41 KB legacy code vs 11 KB clean code
-- Blocks all future development on clean architecture
+**What Was Done:**
+1. ✅ Added `/pipeline_configs_metadata` endpoint for Karten-Browser
+2. ✅ Removed legacy `workflow.js` (dropdown) → `.obsolete`
+3. ✅ Removed `WorkflowClassifier` → `.obsolete` (replaced by Config metadata)
+4. ✅ Simplified `DualInputHandler` (no workflow-type checks)
+5. ✅ Commented out unused compat endpoints (`/list_workflows`, `/workflow_metadata`)
+6. ✅ Updated DEVELOPMENT_DECISIONS.md
+7. ✅ Updated devserver_todos.md (this file)
+8. ⏳ Testing Karten-Browser functionality
+
+**Architecture Changes:**
+- Frontend now uses **Config** terminology (not "Workflow")
+- Karten-Browser displays all 37 configs with filtering/search
+- Config metadata will handle input validation (`requires_image`)
+- No separate classification service needed
+
+**Next Steps:**
+1. [ ] Test Karten-Browser loads correctly
+2. [ ] Test Config selection and generation
+3. [ ] Commit if tests pass
+4. [ ] Future: Implement Inpainting when needed (see DEVELOPMENT_DECISIONS.md)
+
+---
+
+### API Migration: workflow_routes → schema_pipeline_routes
+**Status:** ✅ COMPLETED (2025-10-28)
+**Priority:** HIGH (was CRITICAL)
 
 **What Was Done:**
 1. ✅ Implemented Auto-Media in schema_pipeline_routes.py
-2. ✅ Fixed prompt_id extraction in both routes (final_output vs metadata)
-3. ✅ Tested Auto-Media with dada config (eco mode) - **WORKS!**
-4. ✅ Created API_MIGRATION.md documentation
-5. ✅ All Interception-Configs run locally - **HUGE MILESTONE!**
+2. ✅ Fixed prompt_id extraction (final_output vs metadata)
+3. ✅ Migrated frontend to `/api/schema/pipeline/execute`
+4. ✅ Tested Auto-Media with dada config (eco mode) - **WORKS!**
+5. ✅ Marked workflow_routes.py as DEPRECATED → `.obsolete`
+6. ✅ All Interception-Configs run locally - **HUGE MILESTONE!**
+7. ✅ Created API_MIGRATION.md documentation
 
-**Next Steps (IN THIS ORDER):**
-1. [ ] Mark workflow_routes.py as DEPRECATED in code (comments + warnings)
-2. [ ] Update ARCHITECTURE.md to reflect new API structure
-3. [ ] Create backward compatibility wrapper for /run_workflow
-4. [ ] Update Frontend to use /api/schema/pipeline/execute
-5. [ ] Test all Frontend workflows with new API
-6. [ ] Remove /run_workflow endpoint
-7. [ ] Move workflow_routes.py → workflow_routes.py.obsolete
+**Result:** Clean API with proper terminology, all functionality working
 
-**See:** [API_MIGRATION.md](./API_MIGRATION.md) for detailed migration plan
+**See:** [API_MIGRATION.md](./API_MIGRATION.md) for migration details
 
 ---
 

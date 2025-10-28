@@ -1,3 +1,14 @@
+// ============================================================================
+// DEPRECATED: AI4ArtsEd - Workflow Classifier Module
+// ============================================================================
+// STATUS: Deprecated as of 2025-10-28
+// REASON: Inpainting will be handled by Interception-Pipelines in the future
+// TODO: Create inpainting-specific Interception-Pipeline, then remove this file
+//
+// CURRENT ISSUE: No inpainting pipeline exists yet, so this file is kept
+// temporarily for backward compatibility with dual-input-handler.js
+// ============================================================================
+
 // AI4ArtsEd - Workflow Classifier Module
 // Handles classification of workflow types (inpainting vs standard)
 

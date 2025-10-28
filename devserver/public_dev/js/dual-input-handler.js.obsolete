@@ -1,7 +1,8 @@
 // AI4ArtsEd - Dual Input Handler Module
 // Handles processing of combined prompt + image inputs based on workflow type
 
-import { WorkflowClassifier } from './workflow-classifier.js';
+// DEPRECATED: WorkflowClassifier removed - Config metadata will handle validation in future
+// import { WorkflowClassifier } from './workflow-classifier.js';
 import { uploadedImageData, performImageAnalysis } from './image-handler.js';
 import { ui } from './ui-elements.js';
 import { setStatus } from './ui-utils.js';
@@ -14,17 +15,23 @@ export class DualInputHandler {
     }
     
     /**
-     * Process inputs based on workflow type
+     * Process inputs based on what's available
      * @returns {Promise<Object>} Processed input object ready for workflow submission
+     *
+     * NOTE: Config-based validation (requires_image) will be implemented later
+     * when Inpainting-Configs exist. For now: If image present, use it; if not, text only.
      */
     async process() {
-        // Check workflow type
-        const workflowInfo = await WorkflowClassifier.getWorkflowInfo(this.workflowName);
-        
-        if (workflowInfo.isInpainting) {
-            return await this.processInpaintingInputs(workflowInfo);
+        // Simplified: No workflow-type check needed
+        // Future: Check config.meta.requires_image when Inpainting-Configs exist
+        if (this.imageData) {
+            return await this.processStandardInputs();  // Image analysis happens in workflow-streaming.js
         } else {
-            return await this.processStandardInputs();
+            return {
+                mode: 'text_only',
+                prompt: this.prompt,
+                requiresImageAnalysis: false
+            };
         }
     }
     
