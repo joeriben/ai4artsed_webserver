@@ -104,10 +104,31 @@ Before proceeding with implementation, you should be able to answer:
 
 ### During Implementation
 
-- **Update `DEVELOPMENT_LOG.md`** - Track session progress and costs
-- **Update `DEVELOPMENT_DECISIONS.md`** - When making architectural decisions
-- **Update `ARCHITECTURE.md`** - When changing system architecture
-- **Update `devserver_todos.md`** - Mark tasks as completed
+**⚠️ MANDATORY DOCUMENTATION - MUST BE DONE:**
+
+1. **Update `DEVELOPMENT_LOG.md`** - REQUIRED for EVERY session
+   - Document session start time
+   - Track all tasks completed
+   - Record code changes (files modified, lines added/removed)
+   - Log session duration and costs
+   - **WHY:** Lückenlose Dokumentation ist kritisch für Projektverfolgung
+
+2. **Update `DEVELOPMENT_DECISIONS.md`** - When making architectural decisions
+   - Any change to system architecture
+   - Any new technology/library choices
+   - Any refactoring decisions
+
+3. **Update `ARCHITECTURE.md`** - When changing system architecture
+   - New components added
+   - Component interactions changed
+   - API endpoints modified
+
+4. **Update `devserver_todos.md`** - Mark tasks as completed
+   - Move completed tasks from "CURRENT WORK" to previous sections
+   - Update task statuses (✅/⏳/❌)
+   - Add new tasks discovered during implementation
+
+**⚠️ REMEMBER:** Documentation is not optional. Every session MUST be logged in DEVELOPMENT_LOG.md.
 
 ### Before Context Window Fills
 
