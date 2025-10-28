@@ -617,16 +617,23 @@ def execute_workflow():
                                         execution_mode=mode
                                     ))
 
-                                    # Extract prompt_id from output pipeline steps
-                                    for step in output_result.steps:
-                                        if step.metadata and 'prompt_id' in step.metadata:
-                                            prompt_id = step.metadata['prompt_id']
-                                            media_type = requested_media_type
-                                            logger.info(f"[AUTO-MEDIA] {requested_media_type} generation queued: {prompt_id}")
-                                            break
+                                    # Extract prompt_id from output pipeline
+                                    # NEW: Check final_output first (Proxy-Chunk system returns prompt_id here)
+                                    if output_result.final_output:
+                                        prompt_id = output_result.final_output
+                                        media_type = requested_media_type
+                                        logger.info(f"[AUTO-MEDIA] {requested_media_type} generation queued: {prompt_id}")
+                                    else:
+                                        # LEGACY: Check step metadata (old system)
+                                        for step in output_result.steps:
+                                            if step.metadata and 'prompt_id' in step.metadata:
+                                                prompt_id = step.metadata['prompt_id']
+                                                media_type = requested_media_type
+                                                logger.info(f"[AUTO-MEDIA] {requested_media_type} generation queued (from metadata): {prompt_id}")
+                                                break
 
                                     if not prompt_id:
-                                        logger.error(f"[AUTO-MEDIA] Output pipeline completed but no prompt_id found")
+                                        logger.error(f"[AUTO-MEDIA] Output pipeline completed but no prompt_id found in final_output or metadata")
 
                                 except Exception as e:
                                     logger.error(f"[AUTO-MEDIA] Failed to execute output pipeline: {e}")
