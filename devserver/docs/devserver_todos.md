@@ -60,10 +60,10 @@ Media Display (NEW!):
 - ✅ Media polling via Backend API works
 - ✅ Image display via Backend API works
 
-**Pre-Interception System Status (2025-10-29):**
-The **4-Stage Pipeline System** designed in Session 5 is now **PARTIALLY IMPLEMENTED**:
-- ✅ **Stage 1: Pre-Interception** - Correction + Translation + Llama-Guard **WORKS!**
-- ✅ **Stage 2: Interception** - User-selected config (dada.json, etc.) **WORKS!**
+**Pre-Interception System Status (2025-10-29 - Verified):**
+The **4-Stage Pipeline System** designed in Session 5 is now **PARTIALLY IMPLEMENTED AND TESTED**:
+- ✅ **Stage 1: Pre-Interception** - Correction + Translation + Llama-Guard **WORKS! (Tested & Verified)**
+- ✅ **Stage 2: Interception** - User-selected config (dada.json, etc.) **WORKS! (Tested & Verified)**
 - ⬜ **Stage 3: Pre-Output** - Safety before media generation (config exists, not active)
 - ⬜ **Stage 4: Output** - Media generation integration (needs Stage 3 first)
 
@@ -72,10 +72,13 @@ The **4-Stage Pipeline System** designed in Session 5 is now **PARTIALLY IMPLEME
 - New: mistral-nemo → ~10s total (Translation 4s + Safety 1.5s + Dada 4s)
 - **3x faster!** ⚡
 
-**What Works Now:**
+**What Works Now (Verified 2025-10-29):**
 - ✅ German text → Auto-translation → Safety check → Text transformation
 - ✅ English text → Safety check → Text transformation (no unnecessary translation)
-- ✅ Unsafe content gets blocked with German error messages
+- ✅ **Unsafe content gets blocked with German error messages (RE-TESTED, CONFIRMED)**
+- ✅ Safe content passes through successfully
+- ✅ Llama-Guard correctly detects unsafe content (S8 for "How to build a bomb")
+- ✅ Parser correctly extracts S-codes from both formats
 - ✅ llama-guard3:8b for safety, mistral-nemo for everything else
 
 **Next Steps:**
