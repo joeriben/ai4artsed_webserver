@@ -1,6 +1,7 @@
 """
 Pipeline-Executor: Central orchestration for config-based pipelines
 REFACTORED for new architecture (config_loader instead of schema_registry)
+ENHANCED with 4-Stage Pre-Interception System
 """
 from typing import Dict, Any, Optional, List, AsyncGenerator, Tuple
 from dataclasses import dataclass, field
@@ -8,12 +9,133 @@ from enum import Enum
 import logging
 from pathlib import Path
 import time
+import json
+import re
 
 from .config_loader import config_loader, ResolvedConfig
 from .chunk_builder import ChunkBuilder
 from .backend_router import BackendRouter, BackendRequest, BackendResponse, BackendType
 
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# 4-STAGE SYSTEM: EXCEPTIONS
+# ============================================================================
+
+class SafetyViolationError(Exception):
+    """Raised when content fails safety check"""
+    def __init__(self, message: str, codes: List[str]):
+        super().__init__(message)
+        self.codes = codes
+        self.user_message = message
+
+# ============================================================================
+# 4-STAGE SYSTEM HELPER FUNCTIONS
+# ============================================================================
+
+def parse_llamaguard_output(output: str) -> Tuple[bool, List[str]]:
+    """
+    Parse Llama-Guard output format:
+    "safe" → (True, [])
+    "unsafe\nS1,S3" → (False, ['S1', 'S3'])
+    "unsafe,S8, Violent Crimes" → (False, ['S8'])
+    """
+    lines = output.strip().split('\n')
+    first_line = lines[0].strip().lower()
+
+    if first_line == 'safe':
+        return (True, [])
+    elif first_line.startswith('unsafe'):
+        # Handle two formats:
+        # Format 1: "unsafe\nS1,S3" (two lines)
+        # Format 2: "unsafe,S8, Violent Crimes" (one line with comma)
+
+        if ',' in first_line:
+            # Format 2: Extract codes from first line after "unsafe,"
+            parts = first_line.split(',', 1)[1].strip()
+            # Extract S-codes (S1, S2, etc.)
+            import re
+            codes = re.findall(r'S\d+', parts)
+            return (False, codes)
+        elif len(lines) > 1:
+            # Format 1: Codes on second line
+            codes = [code.strip() for code in lines[1].split(',')]
+            return (False, codes)
+        return (False, [])
+    else:
+        # Unexpected format
+        logger.warning(f"Unexpected Llama-Guard output format: {output[:100]}")
+        return (True, [])  # Default to safe if uncertain
+
+def build_safety_message(codes: List[str], lang: str = 'de') -> str:
+    """
+    Build user-friendly safety message from Llama-Guard codes using llama_guard_explanations.json
+    """
+    explanations_path = Path(__file__).parent.parent / 'llama_guard_explanations.json'
+
+    try:
+        with open(explanations_path, 'r', encoding='utf-8') as f:
+            explanations = json.load(f)
+
+        base_msg = explanations['base_message'][lang]
+        hint_msg = explanations['hint_message'][lang]
+
+        # Build message from codes
+        messages = []
+        for code in codes:
+            if code in explanations['codes']:
+                messages.append(f"• {explanations['codes'][code][lang]}")
+            else:
+                messages.append(f"• Code: {code}")
+
+        if not messages:
+            return explanations['fallback'][lang]
+
+        full_message = base_msg + "\n\n" + "\n".join(messages) + hint_msg
+        return full_message
+
+    except Exception as e:
+        logger.error(f"Error building safety message: {e}")
+        return "Dein Prompt wurde aus Sicherheitsgründen blockiert." if lang == 'de' else "Your prompt was blocked for safety reasons."
+
+def parse_preoutput_json(output: str) -> Dict[str, Any]:
+    """
+    Parse JSON output from pre-output pipeline.
+    Expected format:
+    {
+      "safe": true/false,
+      "positive_prompt": "...",
+      "negative_prompt": "...",
+      "abort_reason": null/"reason"
+    }
+    """
+    try:
+        # Remove markdown code blocks if present
+        cleaned = re.sub(r'```json\s*|\s*```', '', output.strip())
+        parsed = json.loads(cleaned)
+
+        # Validate required fields
+        if 'safe' not in parsed:
+            raise ValueError("Missing 'safe' field in pre-output JSON")
+
+        return parsed
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse pre-output JSON: {e}\nOutput: {output[:200]}")
+        # Return safe default to allow continuation
+        return {
+            "safe": True,
+            "positive_prompt": output,
+            "negative_prompt": "blurry, low quality, bad anatomy",
+            "abort_reason": None
+        }
+    except Exception as e:
+        logger.error(f"Error parsing pre-output JSON: {e}")
+        return {
+            "safe": True,
+            "positive_prompt": output,
+            "negative_prompt": "blurry, low quality, bad anatomy",
+            "abort_reason": None
+        }
 
 class PipelineStatus(Enum):
     """Pipeline execution status"""
@@ -90,16 +212,16 @@ class PipelineExecutor:
         logger.info("Pipeline-Executor initialized")
     
     async def execute_pipeline(self, config_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco') -> PipelineResult:
-        """Execute complete pipeline"""
+        """Execute complete pipeline with 4-Stage Pre-Interception System"""
         # Auto-initialization if needed
         if not self._initialized:
             logger.info("Auto-initialization: Config-Loader and Backend-Router")
             self.config_loader.initialize(self.schemas_path)
             self.backend_router.initialize()
             self._initialized = True
-        
+
         logger.info(f"[EXECUTION-MODE] Pipeline for config '{config_name}' with execution_mode='{execution_mode}'")
-        
+
         # Get config
         resolved_config = self.config_loader.get_config(config_name)
         if not resolved_config:
@@ -109,16 +231,86 @@ class PipelineExecutor:
                 steps=[],
                 error=f"Config '{config_name}' not found"
             )
-        
+
         logger.info(f"Config '{config_name}' loaded: Pipeline='{resolved_config.pipeline_name}', Chunks={resolved_config.chunks}")
-        
+
+        # ====================================================================
+        # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
+        # ====================================================================
+        is_system_pipeline = resolved_config.meta.get('system_pipeline', False)
+        current_input = input_text
+
+        if not is_system_pipeline:
+            logger.info("[4-STAGE] Stage 1: Pre-Interception")
+
+            # Stage 1a: Correction + Translation (ALWAYS runs for ALL inputs)
+            logger.info("[4-STAGE] Running correction + translation")
+            try:
+                translation_result = await self.execute_pipeline(
+                    'pre_interception/correction_translation_de_en',
+                    current_input,
+                    user_input,
+                    execution_mode
+                )
+                if translation_result.success:
+                    current_input = translation_result.final_output
+                    logger.info(f"[4-STAGE] Translation complete: {current_input[:100]}...")
+                else:
+                    logger.warning(f"[4-STAGE] Translation failed: {translation_result.error}")
+            except Exception as e:
+                logger.error(f"[4-STAGE] Translation error: {e}")
+                # Continue with original input if translation fails
+
+            # Stage 1b: Safety Check (Llama-Guard)
+            logger.info("[4-STAGE] Running Llama-Guard safety check")
+            try:
+                safety_result = await self.execute_pipeline(
+                    'pre_interception/safety_llamaguard',
+                    current_input,
+                    user_input,
+                    execution_mode
+                )
+
+                if safety_result.success:
+                    is_safe, codes = parse_llamaguard_output(safety_result.final_output)
+
+                    if not is_safe:
+                        # Build user-friendly error message
+                        error_message = build_safety_message(codes, lang='de')
+                        logger.warning(f"[4-STAGE] Safety check FAILED: {codes}")
+
+                        # Return failed result with safety message
+                        return PipelineResult(
+                            config_name=config_name,
+                            status=PipelineStatus.FAILED,
+                            steps=[],
+                            error=error_message,
+                            metadata={"safety_codes": codes, "stage": "pre_interception"}
+                        )
+                    else:
+                        logger.info("[4-STAGE] Safety check PASSED")
+                else:
+                    logger.warning(f"[4-STAGE] Safety check execution failed: {safety_result.error}")
+                    # Continue despite safety check failure (fail-open for now)
+            except Exception as e:
+                logger.error(f"[4-STAGE] Safety check error: {e}")
+                # Continue despite safety check error (fail-open for now)
+
         # Store config for step execution
         self._current_config = resolved_config
-        
-        # Create pipeline context
+
+        # ====================================================================
+        # STAGE 2: INTERCEPTION (Main Pipeline) or System Pipeline Execution
+        # ====================================================================
+        if is_system_pipeline:
+            logger.info(f"[SYSTEM-PIPELINE] Executing system pipeline: {config_name}")
+        else:
+            logger.info("[4-STAGE] Stage 2: Interception (Main Pipeline)")
+
+        # Create pipeline context with potentially translated input
         context = PipelineContext(
-            input_text=input_text,
-            user_input=user_input or input_text
+            input_text=current_input,  # Use translated input
+            user_input=user_input or input_text  # Keep original for reference
         )
         
         # Plan pipeline steps

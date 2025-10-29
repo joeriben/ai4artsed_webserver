@@ -115,7 +115,7 @@ class ConfigLoader:
             return None
 
     def _load_configs(self) -> None:
-        """Load config definitions from configs/*.json"""
+        """Load config definitions from configs/**/*.json (recursive)"""
         if not self.base_path:
             logger.error("ConfigLoader not initialized")
             return
@@ -131,16 +131,17 @@ class ConfigLoader:
             logger.warning(f"Configs path not found: {configs_path}")
             return
 
-        for config_file in configs_path.glob("*.json"):
+        # Recursive glob to support subdirectories (pre_interception/, pre_output/, etc.)
+        for config_file in configs_path.glob("**/*.json"):
             try:
-                config = self._load_config_file(config_file)
+                config = self._load_config_file(config_file, configs_path)
                 if config:
                     self.configs[config.name] = config
                     logger.debug(f"Config loaded: {config.name}")
             except Exception as e:
                 logger.error(f"Error loading config {config_file}: {e}")
 
-    def _load_config_file(self, config_file: Path) -> Optional[Config]:
+    def _load_config_file(self, config_file: Path, configs_base_path: Path) -> Optional[Config]:
         """Load single config file"""
         try:
             logger.debug(f"Loading config file: {config_file}")
@@ -148,16 +149,26 @@ class ConfigLoader:
                 data = json.load(f)
             logger.debug(f"JSON loaded successfully from {config_file}")
 
+            # Calculate relative path from configs directory for internal name
+            # Example: configs/pre_interception/safety.json → pre_interception/safety
+            try:
+                relative_path = config_file.relative_to(configs_base_path)
+                # Remove .json extension and convert to forward slashes
+                config_name_from_path = str(relative_path.with_suffix('')).replace('\\', '/')
+            except ValueError:
+                # Fallback if relative_to fails
+                config_name_from_path = config_file.stem
+
             # Support both new format and legacy format
-            # IMPORTANT: When "name" field is a dict (multilingual), use filename as internal name
+            # IMPORTANT: When "name" field is a dict (multilingual), use relative path as internal name
             json_name_field = data.get('name')
             if isinstance(json_name_field, dict):
-                # name is multilingual, use filename as internal name
-                config_name = config_file.stem
+                # name is multilingual, use relative path as internal name
+                config_name = config_name_from_path
                 display_name = json_name_field
             else:
-                # name is string or missing, use as internal name
-                config_name = json_name_field or config_file.stem
+                # name is string or missing, use relative path as internal name
+                config_name = json_name_field or config_name_from_path
                 display_name = {'en': config_name, 'de': config_name}
 
             logger.debug(f"Config name: {config_name}, display_name: {display_name}")

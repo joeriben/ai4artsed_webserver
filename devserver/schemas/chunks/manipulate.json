@@ -3,7 +3,7 @@
   "description": "Text-Manipulation mit spezifischen Styleguide-Instruktionen",
   "template": "{{INSTRUCTION}}\n\nText to manipulate:\n\n{{PREVIOUS_OUTPUT}}",
   "backend_type": "ollama",
-  "model": "gemma2:9b",
+  "model": "mistral-nemo:latest",
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,
@@ -12,6 +12,6 @@
   "meta": {
     "chunk_type": "manipulation",
     "output_format": "text",
-    "estimated_duration": "medium"
+    "estimated_duration": "fast"
   }
 }

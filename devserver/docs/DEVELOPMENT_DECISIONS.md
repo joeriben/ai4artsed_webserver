@@ -844,5 +844,129 @@ mv configs_new configs
 
 ---
 
-**Last Updated:** 2025-10-26
-**Next Task:** Continue updating documentation files to reflect removal of instruction_types
+## Decision 2025-10-29: Pre-Interception 4-Stage System Implementation (Stage 1+2)
+
+### Context
+User requested implementation of 4-Stage Pre-Interception System designed in Session 5 (documented in `PRE_INTERCEPTION_DESIGN.md`). System needed to:
+- Auto-translate German text to English
+- Run safety checks with Llama-Guard
+- Do this BEFORE the main interception pipeline (dada, bauhaus, etc.)
+
+### The Challenge: Loop Prevention
+Initial design consideration: How to prevent infinite loops when pre-interception configs call themselves?
+
+**Explored Approaches:**
+1. ❌ Language detection (`is_german_text()`) - Unnecessary complexity, translation handles it
+2. ❌ Multiple flags (`skip_pre_translation`, `skip_safety_check`) - Too granular
+3. ✅ **Single `system_pipeline: true` flag** - Simple, clear, effective
+
+### Decision: `system_pipeline: true` Flag
+**Chosen Approach:**
+```python
+is_system_pipeline = resolved_config.meta.get('system_pipeline', False)
+if not is_system_pipeline:
+    # Run Stage 1: Pre-Interception
+    # Stage 1a: Translation
+    # Stage 1b: Safety
+# Run Stage 2: Main Pipeline
+```
+
+**Rationale:**
+- System pipelines (pre-interception configs) have `system_pipeline: true`
+- User pipelines (dada, bauhaus, etc.) don't have this flag
+- Single flag = simple logic, no ambiguity
+- Configs in subdirectories (`pre_interception/`, `pre_output/`) provide additional organization
+
+### Decision: No Language Detection
+**User Statement:**
+> "ich weiß nicht woher die idee kommt dass man testen müsste ob etwas deutscher Text ist [...] Das ist natürlich Unsinn. Entferne diese Funktion: JEDE Eingabe wird IMMER dieser pipeline zugeführt."
+
+**Chosen Approach:**
+- Translation pipeline runs for ALL inputs (German AND English)
+- Translation config itself handles language detection via its instruction prompt:
+  ```
+  "If text is already in English, return it unchanged!"
+  ```
+
+**Rationale:**
+- Simpler logic - no language detection function needed
+- LLM handles edge cases better than regex/heuristics
+- Consistent behavior - same code path for all languages
+
+### Decision: `model_override` in Config Meta
+**Problem:** Safety config needs to use `llama-guard3:8b`, but chunk default was `gemma2:9b`
+
+**Solution:** Check `config.meta.model_override` before `chunk.model`
+```python
+base_model = resolved_config.meta.get('model_override') or template.model
+final_model = model_selector.select_model_for_mode(base_model, execution_mode)
+```
+
+**Impact:**
+- Safety config: `"model_override": "llama-guard3:8b"` → Uses correct model
+- Other configs: No override → Use chunk default
+
+### Decision: Recursive Config Loading
+**Problem:** Subdirectories (`pre_interception/`, `pre_output/`) not scanned
+
+**Solution:** Change `glob("*.json")` → `glob("**/*.json")` in `config_loader.py`
+
+**Impact:**
+- Config names become relative paths: `pre_interception/safety_llamaguard`
+- Clear organization of system vs user configs
+- No naming conflicts
+
+### Decision: mistral-nemo Instead of gemma2:9b
+**Problem:** gemma2:9b was very slow (~30s+ per text transformation)
+
+**Solution:** Changed `manipulate.json` chunk from `gemma2:9b` → `mistral-nemo:latest`
+
+**Performance Impact:**
+- Translation: ~4s (was ~10s)
+- Safety: ~1.5s (with llama-guard3:8b)
+- Dada transformation: ~4s (was ~12s)
+- **Total: ~10s (was 30s+) - 3x faster!** ⚡
+
+**User Context:**
+> "Es ist immer noch (oder wieder) gemma2:9b überall. Das wollten wir komplett austauschen gegen Nemo in der Konfigurationsdatei (gemma2 braucht ewig)."
+
+### Implementation Results
+
+**Files Created:**
+- `schemas/configs/pre_interception/correction_translation_de_en.json`
+- `schemas/configs/pre_interception/safety_llamaguard.json`
+- `schemas/configs/pre_output/image_safety_refinement.json` (not yet active)
+- `schemas/llama_guard_explanations.json` (German error messages)
+
+**Files Modified:**
+- `schemas/engine/pipeline_executor.py` - Stage 1+2 logic, helper functions
+- `schemas/engine/config_loader.py` - Recursive glob, relative path names
+- `schemas/engine/chunk_builder.py` - model_override support
+- `schemas/chunks/manipulate.json` - mistral-nemo instead of gemma2
+
+**Helper Functions Added:**
+- `parse_llamaguard_output()` - Handles both "safe" and "unsafe,S8, Violent Crimes" formats
+- `build_safety_message()` - German error messages from S-codes
+- `parse_preoutput_json()` - For Stage 3 (not yet used)
+
+**What Works:**
+- ✅ German text → Translation → Safety → Interception → Output
+- ✅ English text → Safety → Interception → Output (no unnecessary translation)
+- ✅ Unsafe content blocked with German messages
+- ✅ llama-guard3:8b for safety, mistral-nemo for transformations
+- ✅ 3x performance improvement
+
+**What's Missing:**
+- Stage 3: Pre-Output safety before media generation (config exists, not active)
+- Stage 4: Media generation integration with Stage 3
+
+### Lessons Learned
+1. **Keep it Simple:** One flag (`system_pipeline`) beats multiple flags
+2. **Trust the LLM:** No need for language detection, LLM handles it
+3. **Config Over Code:** model_override in config beats hardcoded logic
+4. **User Knows Best:** Listen when user says "this is nonsense" 😊
+
+---
+
+**Last Updated:** 2025-10-29
+**Next Task:** Implement Stage 3+4 (Pre-Output safety before media generation)

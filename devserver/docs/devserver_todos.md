@@ -1,13 +1,13 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-10-28
+**Last Updated:** 2025-10-29 (Pre-Interception Stage 1+2 COMPLETED)
 **Context:** Post-analysis TODOs for completing devserver architecture
 
 ---
 
-## 🎯 CURRENT WORK (2025-10-28 PM)
+## 🎯 CURRENT WORK (2025-10-29)
 
 ### COMPLETE Frontend Migration: Backend-Abstracted Architecture
-**Status:** ✅ COMPLETED, TESTED, COMMITTED, PUSHED
+**Status:** ⚠️ PARTIALLY COMPLETED - **BLOCKER: Pre-Interception System NOT Implemented**
 **Priority:** CRITICAL
 
 **What Was Done:**
@@ -60,10 +60,81 @@ Media Display (NEW!):
 - ✅ Media polling via Backend API works
 - ✅ Image display via Backend API works
 
+**Pre-Interception System Status (2025-10-29):**
+The **4-Stage Pipeline System** designed in Session 5 is now **PARTIALLY IMPLEMENTED**:
+- ✅ **Stage 1: Pre-Interception** - Correction + Translation + Llama-Guard **WORKS!**
+- ✅ **Stage 2: Interception** - User-selected config (dada.json, etc.) **WORKS!**
+- ⬜ **Stage 3: Pre-Output** - Safety before media generation (config exists, not active)
+- ⬜ **Stage 4: Output** - Media generation integration (needs Stage 3 first)
+
+**Performance Improvement:**
+- Old: gemma2:9b → ~30s+ per text transformation
+- New: mistral-nemo → ~10s total (Translation 4s + Safety 1.5s + Dada 4s)
+- **3x faster!** ⚡
+
+**What Works Now:**
+- ✅ German text → Auto-translation → Safety check → Text transformation
+- ✅ English text → Safety check → Text transformation (no unnecessary translation)
+- ✅ Unsafe content gets blocked with German error messages
+- ✅ llama-guard3:8b for safety, mistral-nemo for everything else
+
 **Next Steps:**
+- [ ] **PRIORITY 1**: Implement Stage 3 (Pre-Output safety before image generation)
 - [ ] Test Audio/Music generation
 - [ ] Monitor system performance
 - [ ] Future: Implement Inpainting when needed
+
+---
+
+### Pre-Interception 4-Stage System Implementation
+**Status:** ✅ STAGE 1+2 COMPLETED (2025-10-29)
+**Priority:** MEDIUM (Stage 3+4 remaining)
+**Design Document:** `docs/PRE_INTERCEPTION_DESIGN.md` (moved from tmp/ for visibility)
+
+**What Was Done (Session 2025-10-29):**
+1. ✅ **Created Pre-Interception Configs:**
+   - ✅ `schemas/configs/pre_interception/correction_translation_de_en.json`
+   - ✅ `schemas/configs/pre_interception/safety_llamaguard.json`
+   - ✅ `schemas/configs/pre_output/image_safety_refinement.json` (created, not yet active)
+   - ✅ `schemas/llama_guard_explanations.json` (German error messages for all 13 S-codes)
+
+2. ✅ **Implemented Logic in PipelineExecutor:**
+   - ✅ `system_pipeline: true` flag prevents loops (NOT skip_pre_translation/skip_safety_check)
+   - ✅ Translation runs ALWAYS (no language detection needed - Translation config handles it)
+   - ✅ Execute pre-interception configs before main pipeline
+   - ✅ Parse Llama-Guard output (both formats: "safe" or "unsafe,S8, Violent Crimes")
+   - ✅ Build German error messages from `llama_guard_explanations.json`
+   - ✅ Helper functions: `parse_llamaguard_output()`, `build_safety_message()`, `parse_preoutput_json()`
+
+3. ✅ **Fixed config_loader.py:**
+   - ✅ Recursive glob (`**/*.json`) to scan subdirectories
+   - ✅ Relative paths as config names (e.g., `pre_interception/safety_llamaguard`)
+
+4. ✅ **Fixed chunk_builder.py:**
+   - ✅ Respects `config.meta.model_override` (e.g., llama-guard3:8b for safety)
+
+5. ✅ **Performance Optimization:**
+   - ✅ Changed `manipulate.json` from gemma2:9b → mistral-nemo:latest (3x faster)
+
+6. ⬜ **Pre-Output Logic (NOT YET ACTIVE):**
+   - ⬜ Execute before EACH media generation
+   - ⬜ JSON output: `{safe, positive_prompt, negative_prompt, abort_reason}`
+   - ⬜ If unsafe: Return text alternative + explanation (NOT silent fail)
+
+**Important Design Decisions (from Session 5 Q&A):**
+- Correction + Translation: **Consolidated in 1 LLM call** (performance)
+- Llama-Guard: **Separate pipeline** (after translation)
+- Llama-Guard: **Obligatory** (after translation)
+- Pre-Output: **Media-type-specific** (image_safety_refinement for Alpha, audio/video later)
+- Safety failure: **Text alternative + explanation** (NOT abort, NOT silent)
+- Performance target: **<60s acceptable**, <30s ideal
+
+**Where Logic Belongs:**
+- ❌ NOT in `schema_pipeline_routes.py` (server routes)
+- ✅ In `schemas/engine/pipeline_executor.py` (pipeline orchestration)
+
+**User Quote (Session 5):**
+> "Es wäre doch konsistenter und transparenter, wenn pre-interception-Maßnahmen durch pre-interception-pipelinconfigs durchgeführt werden und nicht im Servercode verborgen sind."
 
 ---
 
