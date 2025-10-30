@@ -25,7 +25,7 @@
     ]
   },
   "meta": {
-    "legacy_source": "workflows/arts_and_heritage/ai4artsed_TraditionalChinese_long_prompts_2506121345(1).json",
+    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_TraditionalChinese_long_prompts_2506121345(1).json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral-nemo:latest"
   },

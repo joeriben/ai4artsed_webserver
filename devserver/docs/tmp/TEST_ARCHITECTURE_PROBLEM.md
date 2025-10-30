@@ -103,7 +103,7 @@ await pi_engine.process_request()
 # test_server_statistics.py (already created)
 import requests
 
-SERVER_URL = "http://localhost:5001/api/schema/pipeline/execute"
+SERVER_URL = "http://localhost:17801/api/schema/pipeline/execute"
 
 response = requests.post(
     SERVER_URL,
@@ -123,7 +123,7 @@ if response.status_code == 200:
 
 **Requirements:**
 - Devserver must be running (`python3 devserver.py`)
-- Port 5001 must be accessible
+- Port 17801 must be accessible
 
 ---
 

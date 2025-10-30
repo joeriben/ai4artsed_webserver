@@ -33,7 +33,7 @@
       "grime",
       "trap"
     ],
-    "legacy_source": "workflows/semantics/ai4artsed_Jugendsprache_2506122317.json"
+    "legacy_source": "workflows_legacy/semantics/ai4artsed_Jugendsprache_2506122317.json"
   },
   "display": {
     "icon": "🗣️",

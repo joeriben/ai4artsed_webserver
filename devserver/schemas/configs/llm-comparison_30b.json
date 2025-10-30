@@ -25,7 +25,7 @@
     ]
   },
   "meta": {
-    "legacy_source": "workflows/model/ai4artsed_LLM-Comparison_30b_2508010852.json",
+    "legacy_source": "workflows_legacy/model/ai4artsed_LLM-Comparison_30b_2508010852.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral-small:24b [local / $0.00]"
   },

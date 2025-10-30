@@ -122,6 +122,7 @@ def execute_pipeline():
         schema_name = data.get('schema')
         input_text = data.get('input_text')
         execution_mode = data.get('execution_mode', 'eco')  # eco (local) or fast (cloud)
+        safety_level = data.get('safety_level', 'kids')  # kids (default), youth, or off
 
         if not schema_name or not input_text:
             return jsonify({
@@ -147,7 +148,8 @@ def execute_pipeline():
             config_name=schema_name,
             input_text=input_text,
             user_input=data.get('user_input', input_text),
-            execution_mode=execution_mode
+            execution_mode=execution_mode,
+            safety_level=safety_level
         ))
 
         # Check if pipeline succeeded
@@ -177,7 +179,10 @@ def execute_pipeline():
 
         default_output = media_preferences.get('default_output') if media_preferences else None
 
-        if default_output and default_output != 'text':
+        # Check if Stage 3 blocked media generation
+        stage_3_blocked = result.metadata.get('stage_3_blocked', False) if result.metadata else False
+
+        if default_output and default_output != 'text' and not stage_3_blocked:
             logger.info(f"[AUTO-MEDIA] Config requests media output: {default_output}")
 
             # 3. Lookup Output-Config from defaults
@@ -217,6 +222,13 @@ def execute_pipeline():
                     'status': 'not_available',
                     'message': f'No Output-Config for {default_output}/{execution_mode}'
                 }
+        elif stage_3_blocked:
+            logger.info(f"[AUTO-MEDIA] Media generation blocked by Stage 3 safety check")
+            response_data['media_output'] = {
+                'status': 'blocked',
+                'reason': result.metadata.get('abort_reason', 'Blocked by safety filter'),
+                'safety_level': result.metadata.get('safety_level', 'unknown')
+            }
 
         return jsonify(response_data)
 

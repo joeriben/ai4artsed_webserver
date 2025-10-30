@@ -25,7 +25,7 @@
     ]
   },
   "meta": {
-    "legacy_source": "workflows/semantics/ai4artsed_StillePost_2506232347.json",
+    "legacy_source": "workflows_legacy/semantics/ai4artsed_StillePost_2506232347.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral-nemo:latest"
   },

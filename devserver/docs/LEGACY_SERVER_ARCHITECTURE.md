@@ -292,7 +292,7 @@ def find_openrouter_fallback(self, failed_model, ...):
 
 ### 4.2 Technische Umsetzung im Legacy-Server
 
-**Workflow**: `/workflows/semantics/ai4artsed_StillePost_2506232347.json`
+**Workflow**: `/workflows_legacy/semantics/ai4artsed_StillePost_2506232347.json`
 
 **Struktur** (vereinfacht):
 ```
@@ -1168,7 +1168,7 @@ Diese chronologische Übersicht zeigt die iterative, pragmatische Entwicklung de
 
 **21.7.**: Workflow-Metadata neu programmiert
 - Automatische Lösung war inkonsistent und nicht enduser-sicher
-- **Neue Lösung**: Manuelle Einträge in `workflows/metadata.json`
+- **Neue Lösung**: Manuelle Einträge in `workflows_legacy/metadata.json`
 - Fallback: Dateiname wenn kein Eintrag vorhanden
 - Learning: Robustheit > Automatisierung
 

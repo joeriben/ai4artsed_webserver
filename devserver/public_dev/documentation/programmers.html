@@ -111,7 +111,7 @@
 ├── scripts/                 # Hilfsskripte für Wartung und Metadaten-Generierung
 ├── public/                  # Statische Dateien (HTML, CSS, JS, Bilder)
 │   └── documentation/       # Speicherort für diese Dokumentation
-├── workflows/               # Sammlung der ComfyUI-JSON-Workflows
+├── workflows_legacy/               # Sammlung der ComfyUI-JSON-Workflows
 │   └── metadata.json        # Metadaten für Workflows (Namen, Beschreibungen)
 └── requirements.txt         # Python-Abhängigkeiten
     </pre>
@@ -143,7 +143,7 @@
     </p>
     <ul>
         <li><code>/list_workflows</code>: Listet alle verfügbaren JSON-Workflows auf.</li>
-        <li><code>/workflow_metadata</code>: Liefert die Metadaten (Namen, Kategorien, etc.) aus <code>workflows/metadata.json</code>.</li>
+        <li><code>/workflow_metadata</code>: Liefert die Metadaten (Namen, Kategorien, etc.) aus <code>workflows_legacy/metadata.json</code>.</li>
         <li><code>/run_workflow</code>: Der zentrale Endpunkt. Nimmt den Prompt, den ausgewählten Workflow und andere Parameter entgegen, orchestriert die gesamte Logik und reicht den Job an ComfyUI weiter.</li>
         <li><code>/workflow-status/&lt;prompt_id&gt;</code>: Fragt den Status eines laufenden Jobs bei ComfyUI ab.</li>
         <li><code>/analyze_image</code>: Nimmt ein Bild entgegen und sendet es zur Analyse an den Ollama-Service.</li>
@@ -298,7 +298,7 @@
         (Dev-Log 5.7.25, 19.7.25, 21.7.25) Das System ist bilingual (Deutsch/Englisch) ausgelegt. Die Herausforderung, dies mit der dynamischen Natur der Workflows zu verbinden, wurde durch einen manuellen Ansatz gelöst:
     </p>
     <ul>
-        <li>Workflow-Namen, -Kategorien und -Beschreibungen werden in beiden Sprachen in der zentralen Datei <code>workflows/metadata.json</code> gepflegt.</li>
+        <li>Workflow-Namen, -Kategorien und -Beschreibungen werden in beiden Sprachen in der zentralen Datei <code>workflows_legacy/metadata.json</code> gepflegt.</li>
         <li>Ein Skript (vermutlich <code>scripts/generate_metadata.py</code>) hilft bei der Verwaltung dieser Datei.</li>
         <li>Das Frontend lädt diese Metadaten und zeigt die entsprechende Sprache an. Falls kein Eintrag für einen Workflow existiert, wird der Dateiname als Fallback verwendet.</li>
     </ul>

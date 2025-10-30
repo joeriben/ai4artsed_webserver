@@ -25,7 +25,7 @@
     ]
   },
   "meta": {
-    "legacy_source": "workflows/vector/ai4artsed_SplitAndCombineSpherical_2507021805.json",
+    "legacy_source": "workflows_legacy/vector/ai4artsed_SplitAndCombineSpherical_2507021805.json",
     "extracted_date": "2025-10-19",
     "original_model": "openrouter/mistralai/mistral-medium-3 [rule-oriented / $0.40/$2.00]"
   },

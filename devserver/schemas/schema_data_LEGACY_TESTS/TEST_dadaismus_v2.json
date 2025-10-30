@@ -6,7 +6,7 @@
     "manipulate_config": "manipulate.TEST_dadaismus"
   },
   "meta": {
-    "legacy_source": "workflows/arts/ai4artsed_Dada_2506220140.json",
+    "legacy_source": "workflows_legacy/arts/ai4artsed_Dada_2506220140.json",
     "art_movement": "dadaism",
     "description_de": "[TEST] Dadaismus-Transformation mit Pre-Translation + Manipulation",
     "description_en": "[TEST] Dadaist artwork transformation with Pre-Translation + Manipulation",

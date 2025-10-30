@@ -1,6 +1,6 @@
 """
 Jugendsprache-Config - UK Youth Slang Transformation
-Extrahiert aus Legacy-Workflow: workflows/semantics/ai4artsed_Jugendsprache_2506122317.json
+Extrahiert aus Legacy-Workflow: workflows_legacy/semantics/ai4artsed_Jugendsprache_2506122317.json
 Node 42: Interceptive context
 """
 

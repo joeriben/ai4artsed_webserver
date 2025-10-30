@@ -17,7 +17,7 @@ The complete refactoring of the AI4ArtsEd devserver from legacy "schema" archite
 
 ### Phase 1: Cleanup ✅ COMPLETE
 - Deleted 28 obsolete test/debug files
-- Removed empty directories (schemas/locales/, schemas/workflows/)
+- Removed empty directories (schemas/locales/, schemas/workflows_legacy/)
 - Kept essential documentation (ARCHITECTURE.md, AUTO_MEDIA_GENERATION.md, etc.)
 - Result: Clean codebase with only production code remaining
 
@@ -287,7 +287,7 @@ replacement_context = {
 ## Backward Compatibility
 
 ### Maintained Legacy Support ✅
-- `/workflows/` directory NOT modified
+- `/workflows_legacy/` directory NOT modified
 - Legacy workflow loading still works unchanged
 - Both old and new systems can run in parallel
 - Frontend can offer both options without modification

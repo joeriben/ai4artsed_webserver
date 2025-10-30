@@ -168,5 +168,5 @@ WORKFLOW_SELECTION = "user"  # "user", "fixed", "system"
 FIXED_WORKFLOW = "model/ai4artsed_Stable-Diffusion-3.5_2507152202.json"  # Only used when WORKFLOW_SELECTION = "fixed"
 
 # System mode: Random workflow selection from specified folders
-# These correspond directly to folder names under /workflows/
+# These correspond directly to folder names under /workflows_legacy/
 SYSTEM_WORKFLOW_FOLDERS = ["aesthetics", "semantics", "arts"]

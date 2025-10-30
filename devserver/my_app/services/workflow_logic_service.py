@@ -80,7 +80,7 @@ class WorkflowLogicService:
         Get a random workflow from specified folders.
         
         Args:
-            folders: List of folder names under /workflows/ 
+            folders: List of folder names under /workflows_legacy/ 
                     (defaults to SYSTEM_WORKFLOW_FOLDERS from config)
                     
         Returns:

@@ -23,7 +23,7 @@
 
 **Deleted Empty/Obsolete Directories:**
 - `schemas/locales/` (empty)
-- `schemas/workflows/` (contained obsolete test file)
+- `schemas/workflows_legacy/` (contained obsolete test file)
 
 **Remaining Documentation (Useful):**
 - ✅ ARCHITECTURE.md (canonical reference)
@@ -150,19 +150,19 @@ def build_chunk(chunk_name: str, resolved_config: ResolvedConfig, context: Dict,
    - Pipeline: `simple_interception`
    - Instruction type: `manipulation.creative`
    - Context: Dadaism art movement instructions
-   - Legacy source: `workflows/arts_and_heritage/ai4artsed_Dada_2506220140.json`
+   - Legacy source: `workflows_legacy/arts_and_heritage/ai4artsed_Dada_2506220140.json`
 
 2. **overdrive.json**
    - Pipeline: `simple_interception`
    - Instruction type: `manipulation.amplify`
    - Context: Extreme amplification instructions
-   - Legacy source: `workflows/aesthetics/ai4artsed_Overdrive_2506152234.json`
+   - Legacy source: `workflows_legacy/aesthetics/ai4artsed_Overdrive_2506152234.json`
 
 3. **jugendsprache.json**
    - Pipeline: `simple_interception`
    - Instruction type: `translation.culture_sensitive`
    - Context: UK youth slang transformation
-   - Legacy source: `workflows/semantics/ai4artsed_Jugendsprache_2506122317.json`
+   - Legacy source: `workflows_legacy/semantics/ai4artsed_Jugendsprache_2506122317.json`
 
 4. **translation_en.json**
    - Pipeline: `prompt_interception_single`
@@ -371,7 +371,7 @@ result = asyncio.run(executor.execute_pipeline(
 ## Backward Compatibility
 
 ### Legacy System Untouched ✅
-- `/workflows/` directory NOT modified
+- `/workflows_legacy/` directory NOT modified
 - Legacy workflow loading still works
 - Both systems can run in parallel
 - Frontend can offer both options

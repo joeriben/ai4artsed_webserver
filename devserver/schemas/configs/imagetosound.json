@@ -25,7 +25,7 @@
     ]
   },
   "meta": {
-    "legacy_source": "workflows/across/ai4artsed_ImageToSound_2508101139.json",
+    "legacy_source": "workflows_legacy/across/ai4artsed_ImageToSound_2508101139.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral-nemo:latest [local / $0.00]"
   },

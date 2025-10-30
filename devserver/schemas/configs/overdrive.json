@@ -29,7 +29,7 @@
   "meta": {
     "transformation_type": "amplification",
     "intensity": "extreme",
-    "legacy_source": "workflows/aesthetics/ai4artsed_Overdrive_2506152234.json"
+    "legacy_source": "workflows_legacy/aesthetics/ai4artsed_Overdrive_2506152234.json"
   },
   "display": {
     "icon": "💫",

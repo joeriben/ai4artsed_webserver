@@ -117,7 +117,7 @@
 ├── scripts/                 # Helper scripts for maintenance and metadata generation
 ├── public/                  # Static files (HTML, CSS, JS, images)
 │   └── documentation/       # Location for this documentation
-├── workflows/               # Collection of ComfyUI JSON workflows
+├── workflows_legacy/               # Collection of ComfyUI JSON workflows
 │   └── metadata.json        # Metadata for workflows (names, descriptions)
 └── requirements.txt         # Python dependencies
     </pre>
@@ -149,7 +149,7 @@
     </p>
     <ul>
         <li><code>/list_workflows</code>: Lists all available JSON workflows.</li>
-        <li><code>/workflow_metadata</code>: Returns the metadata (names, categories, etc.) from <code>workflows/metadata.json</code>.</li>
+        <li><code>/workflow_metadata</code>: Returns the metadata (names, categories, etc.) from <code>workflows_legacy/metadata.json</code>.</li>
         <li><code>/run_workflow</code>: The central endpoint. It takes the prompt, the selected workflow, and other parameters, orchestrates the entire logic, and submits the job to ComfyUI.</li>
         <li><code>/workflow-status/<prompt_id></code>: Polls the status of a running job from ComfyUI.</li>
         <li><code>/analyze_image</code>: Accepts an image and sends it to the Ollama service for analysis.</li>
@@ -304,7 +304,7 @@
         (Dev log July 5, July 19, July 21) The system is designed to be bilingual (German/English). The challenge of combining this with the dynamic nature of workflows was solved with a manual approach:
     </p>
     <ul>
-        <li>Workflow names, categories, and descriptions are maintained in both languages in the central file <code>workflows/metadata.json</code>.</li>
+        <li>Workflow names, categories, and descriptions are maintained in both languages in the central file <code>workflows_legacy/metadata.json</code>.</li>
         <li>A script (presumably <code>scripts/generate_metadata.py</code>) helps manage this file.</li>
         <li>The frontend loads this metadata and displays the appropriate language. If no entry exists for a workflow, the filename is used as a fallback.</li>
     </ul>

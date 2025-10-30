@@ -25,7 +25,7 @@
     ]
   },
   "meta": {
-    "legacy_source": "workflows/vector/ai4artsed_Surrealization_2506092253.json",
+    "legacy_source": "workflows_legacy/vector/ai4artsed_Surrealization_2506092253.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/sailor2:20b"
   },

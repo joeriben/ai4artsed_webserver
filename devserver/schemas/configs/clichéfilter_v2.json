@@ -25,7 +25,7 @@
     ]
   },
   "meta": {
-    "legacy_source": "workflows/aesthetics/ai4artsed_ClichéFilter_V2_2506211602.json",
+    "legacy_source": "workflows_legacy/aesthetics/ai4artsed_ClichéFilter_V2_2506211602.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral:7b"
   },

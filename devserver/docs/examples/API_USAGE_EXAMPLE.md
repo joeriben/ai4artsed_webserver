@@ -100,7 +100,7 @@ GET /pipeline_config/jugendsprache
       "supported_types": ["image"]
     },
     "meta": {
-      "legacy_source": "workflows/language/ai4artsed_jugendsprache_2509251702.json",
+      "legacy_source": "workflows_legacy/language/ai4artsed_jugendsprache_2509251702.json",
       "extracted_date": "2025-10-19",
       "original_model": "local/mistral:7b"
     },

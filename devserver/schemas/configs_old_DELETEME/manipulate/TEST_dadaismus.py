@@ -1,6 +1,6 @@
 """
 TEST CONFIG - Dadaismus - Dadaist artwork transformation
-Extrahiert aus Legacy-Workflow: workflows/arts/ai4artsed_Dada_2506220140.json
+Extrahiert aus Legacy-Workflow: workflows_legacy/arts/ai4artsed_Dada_2506220140.json
 Node 42: Interceptive context
 TEMPORARY TEST FILE - NOT FOR PRODUCTION
 """

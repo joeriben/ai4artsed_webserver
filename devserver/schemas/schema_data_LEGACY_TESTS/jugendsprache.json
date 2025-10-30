@@ -7,7 +7,7 @@
     "manipulate_config": "manipulate.jugendsprache"
   },
   "meta": {
-    "legacy_source": "workflows/semantics/ai4artsed_Jugendsprache_2506122317.json",
+    "legacy_source": "workflows_legacy/semantics/ai4artsed_Jugendsprache_2506122317.json",
     "target_language": "uk_youth_slang",
     "description_de": "Jugendsprache-Transformation mit Simple-Interception-Pipeline",
     "description_en": "Youth Language Transformation using Simple Interception Pipeline",

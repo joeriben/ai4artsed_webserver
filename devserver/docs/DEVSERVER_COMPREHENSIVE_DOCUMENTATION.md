@@ -262,7 +262,7 @@ Analog zum Kunstunterricht:
   },
   "meta": {
     "art_movement": "dadaism",
-    "legacy_source": "workflows/arts_and_heritage/ai4artsed_Dada_2506220140.json"
+    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Dada_2506220140.json"
   }
 }
 ```
