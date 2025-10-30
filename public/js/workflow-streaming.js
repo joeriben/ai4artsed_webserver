@@ -140,76 +140,62 @@ export async function submitPromptWithFastPolling() {
         }
     }
 
-    // NEW API: Translate old payload structure to new schema_pipeline API
-    const newPayload = {
-        schema: workflowName,          // workflow → schema
-        input_text: finalPrompt,       // prompt → input_text
-        execution_mode: executionMode, // mode → execution_mode
-        // Legacy params for backward compatibility (not used by new API yet)
-        aspectRatio: aspectRatio,
+    const payload = { 
+        prompt: finalPrompt,
+        workflow: workflowName, 
+        aspectRatio: aspectRatio, 
+        mode: executionMode,
         seedMode: seedMode,
         customSeed: customSeed,
         safetyLevel: safetyLevel,
         imageData: sendImageData,
         inputMode: inputMode,
-        skipTranslation: inputMode === 'image_with_text'
+        skipTranslation: inputMode === 'image_with_text'  // Skip translation for image+text as we already translated
     };
 
     try {
         // Update status for safety check and generation
         ui.processingMessage.textContent = 'Sicherheitsprüfung läuft...';
-
-        // Submit workflow using NEW API
-        const response = await fetch('/api/schema/pipeline/execute', {
+        
+        // Submit workflow
+        const response = await fetch('/run_workflow', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newPayload)
+            body: JSON.stringify(payload)
         });
-
+        
         if (!response.ok) {
             const result = await response.json();
             throw new Error(result.reason || result.error || 'Unbekannter Server-Fehler');
         }
-
-        const result = await response.json();
-
-        // NEW API response structure: Extract prompt_id from media_output
-        let promptId = null;
-        if (result.media_output && result.media_output.output) {
-            promptId = result.media_output.output;
-        } else if (result.prompt_id) {
-            // Fallback for backward compatibility
-            promptId = result.prompt_id;
-        }
-
-        if (!promptId) throw new Error('Keine prompt_id vom Server erhalten.');
         
-        // Update UI - show the final output (transformed text)
-        if (result.final_output) {
-            ui.promptDisplayText.textContent = result.final_output;
-        } else if (result.translated_prompt) {
+        const result = await response.json();
+        if (!result.prompt_id) throw new Error('Keine prompt_id vom Server erhalten.');
+        
+        // Update UI - show the translated prompt
+        if (result.translated_prompt) {
             ui.promptDisplayText.textContent = result.translated_prompt;
         } else {
             ui.promptDisplayText.textContent = promptText;
         }
         ui.promptDisplay.style.display = 'block';
-
+        
         updateSessionData({
-            promptId: promptId,  // Use extracted promptId
+            promptId: result.prompt_id,
             workflowName: workflowName,
             prompt: promptText
         });
-
+        
         if (result.used_seed) {
             localStorage.setItem('lastUsedSeed', result.used_seed.toString());
             document.getElementById('last-seed-value').textContent = result.used_seed;
         }
-
+        
         // Update status for generation
         ui.processingMessage.textContent = 'Generierung läuft...';
-
+        
         // Start fast polling with shorter timeout
-        startFastPolling(promptId);  // Use extracted promptId
+        startFastPolling(result.prompt_id);
         
     } catch (e) {
         setStatus(`Error: ${e.message}`, 'error');
