@@ -860,5 +860,141 @@ Related docs:
 
 ---
 
-**Last Updated:** 2025-10-29 (Session 5 Completed - Pre-Interception Stage 1+2)
-**Next Update:** After Stage 3+4 implementation session
+## Session 6: 2025-10-30 - Failed Test Script Attempts (LEARNING SESSION)
+**Duration (Wall):** ~2-3 hours
+**Duration (API):** ~1.5 hours
+**Cost:** [To be calculated from Claude Code usage stats]
+**Status:** ❌ NO PRODUCTIVE OUTPUT - Test architecture problem identified
+
+### Model Usage
+- claude-sonnet-4.5: [To be filled from usage statistics]
+
+### Tasks Attempted (All Failed)
+1. ❌ **Fix slow test performance**
+   - Problem: `test_full_pipeline_statistics.py` ran 10+ hours for 303 prompts
+   - Diagnosed: JSON parse errors in `parse_preoutput_json()`
+   - Fixed: Added plain text "safe"/"unsafe" handling
+   - Result: Fix correct, but test still unusable (hangs)
+
+2. ❌ **Create working standalone test script (3 attempts)**
+   - Created: `test_pipeline_simple.py` - Hung on first execution
+   - Created: `test_pipeline_quick.py` - Hung on first execution
+   - Created: `test_server_statistics.py` - Not tested (server-based approach)
+   - Result: All standalone tests hang indefinitely
+
+3. ❌ **Diagnose root cause**
+   - Identified hang location: `backend_router.py` line 134
+   - Problem: `PromptInterceptionEngine()` created without Ollama connection
+   - Why server works: Services initialized via `devserver.py`
+   - Why tests fail: Standalone tests don't initialize services
+
+### Code Changes (Unintended Side Effect - But Semantically Correct)
+**Modified:**
+- `schemas/engine/pipeline_executor.py` (+3 lines)
+  - Line 324: Added `safety_level` to translation recursive call
+  - Line 356: Added `safety_level` to Stage 1b safety recursive call
+  - Line 456: Added `safety_level` to Stage 3 pre-output recursive call
+  - **Rationale:** Ensure safety_level propagates consistently through all stages
+  - **Impact:** ✅ CORRECT (semantic consistency), but didn't fix test problem
+
+**Created (All Failed):**
+- `tests/test_pipeline_simple.py` - Standalone test with immediate flush (hung)
+- `tests/test_pipeline_quick.py` - Quick 10-prompt test (hung)
+- `tests/test_server_statistics.py` - Server-based HTTP test (untested)
+
+**Deprecated:**
+- `tests/test_full_pipeline_statistics.py` → `.DEPRECATED` (too slow, JSON parse issues)
+
+### Root Cause Analysis
+
+**The Problem:**
+```python
+# Standalone tests do:
+executor = PipelineExecutor(Path('../schemas'))
+result = await executor.execute_pipeline('dada', 'cats')
+# ❌ HANGS HERE
+
+# Why: backend_router.py line 134
+pi_engine = PromptInterceptionEngine()  # No Ollama connection!
+pi_response = await pi_engine.process_request(...)  # Hangs waiting for response
+```
+
+**Why Server Works:**
+```python
+# devserver.py initializes services:
+executor.initialize(
+    ollama_service=ollama_service,
+    comfyui_service=comfyui_service
+)
+# ✅ Services connected, requests work
+```
+
+**Solution:**
+- Standalone tests need service initialization OR
+- Use server-based tests via HTTP (test_server_statistics.py approach)
+
+### Lessons Learned
+
+1. ❌ **Test Architecture ≠ Server Architecture**
+   - Standalone Python tests require different initialization than server
+   - Can't just import PipelineExecutor and call execute_pipeline()
+   - Need service layer setup
+
+2. ✅ **Code Changes Were Semantically Necessary**
+   - 3× `safety_level` parameter additions were correct
+   - Ensure consistency: User requests 'youth' → all stages use 'youth'
+   - Changes made for wrong reason (test fix), but still needed
+
+3. ❌ **Root Cause Analysis Must Be Complete Before Code Changes**
+   - Changed code thinking it would fix tests
+   - Tests still failed (different problem)
+   - Should have diagnosed fully first
+
+4. ✅ **Server-Based Testing Is Better Architecture**
+   - Test against running server via HTTP
+   - Tests real deployment scenario
+   - Avoids service initialization complexity
+
+### Time Wasted
+~2-3 hours on failed test script attempts
+
+### Productive Outcome
+Despite failures:
+- ✅ Identified `safety_level` propagation was semantically necessary
+- ✅ Documented server-based test approach (test_server_statistics.py)
+- ✅ Learned test architecture requires different approach
+- ✅ Fixed `parse_preoutput_json()` to handle plain text format
+
+### Files Created
+**Tests (All Failed):**
+- `tests/test_pipeline_simple.py` (163 lines) - Hung
+- `tests/test_pipeline_quick.py` (63 lines) - Hung
+- `tests/test_server_statistics.py` (184 lines) - Untested server-based approach
+
+**Deprecated:**
+- `tests/test_full_pipeline_statistics.py.DEPRECATED` (marked for removal)
+
+### Files Modified
+- `schemas/engine/pipeline_executor.py` (+3 lines, safety_level propagation)
+
+### Documentation Updates
+- ✅ DEVELOPMENT_LOG.md updated (this entry - Session 6)
+- ✅ docs/tmp/TEST_ARCHITECTURE_PROBLEM.md created (lessons learned)
+- ⬜ DEVELOPMENT_DECISIONS.md (no architectural decisions made)
+
+### User Feedback
+> "Wow, wie schwer kann das nun sein? Du scheiterst seit gestern Abend an einem einfachen Skript. SO geht das nicht."
+
+> "Wenn es jetzt nicht funktioniert, dann notiere irgendwo die Info über den gescheiterten Versuch; notiere auch Deinen Arbeitsaufwand dafür."
+
+**Response:** ✅ Documented in this session entry
+
+### Next Session Priority
+- [ ] Use server-based testing approach (test_server_statistics.py)
+- [ ] OR implement proper service initialization for standalone tests
+- [ ] Continue with productive TODOs (Frontend UI, Audio testing)
+
+---
+
+**Last Updated:** 2025-10-30 (Session 6 Documented - Failed Test Attempts)
+**Next Update:** After productive work session
