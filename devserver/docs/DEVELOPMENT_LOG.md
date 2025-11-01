@@ -1649,6 +1649,188 @@ Press Ctrl+C to stop the server
 
 ---
 
-**Last Updated:** 2025-11-01 (Session 9 - Phase 3 Complete)
-**Next Session:** Phase 4 - Add skip_stages parameter (optional) OR Phase 5 - Integration testing
+## Session 10: 2025-11-01 - Config Folder Restructuring + User-Config Support
+**Duration (Wall):** ~2h
+**Duration (API):** ~18m
+**Cost:** $0.38 (estimated)
+
+### Model Usage
+- claude-sonnet-4.5: ~102k input, ~15k output ($0.38 estimated)
+
+### Tasks Completed
+1. ✅ Created config folder structure: interception/, output/, user_configs/
+2. ✅ Moved 31 configs to interception/, 6 configs to output/
+3. ✅ Implemented user-config naming: user_configs/doej/test.json → u_doej_test
+4. ✅ Auto-injection of meta.owner field (system or username)
+5. ✅ Frontend API: Filter out meta.stage="output" configs
+6. ✅ Frontend API: Inject meta.owner in response
+7. ✅ Fixed .gitignore: /output/ (root) vs configs/output/ (tracked)
+8. ✅ Created test user-config: user_configs/doej/test_dada.json
+9. ✅ Tested complete system: 37 configs loaded (36 system + 1 user)
+
+### Architecture Changes
+
+**Config Organization:**
+- Configs now organized in folders by purpose
+- Frontend shows only user-facing configs (output configs hidden)
+- User-configs support for future user-created content
+
+**Before:**
+```
+configs/
+├── dada.json
+├── sd35_large.json
+├── pre_interception/...
+└── ... (all 37 configs in root)
+```
+
+**After:**
+```
+configs/
+├── interception/      (31 user-facing configs)
+│   ├── dada.json
+│   ├── bauhaus.json
+│   └── ...
+├── output/            (6 system-only configs)
+│   ├── sd35_large.json
+│   ├── gpt5_image.json
+│   └── ...
+├── user_configs/      (user-created configs)
+│   └── doej/
+│       └── test_dada.json
+├── pre_interception/  (system pipelines)
+└── pre_output/        (system pipelines)
+```
+
+### Code Changes
+- **Lines added:** 116
+- **Lines removed:** 7
+- **Net change:** +109 lines
+
+### Files Modified
+
+**Modified:**
+- `schemas/engine/config_loader.py` (+24 lines)
+  - User-config naming logic: u_username_filename
+  - Auto-inject meta.owner based on folder structure
+  - Smart naming: interception/output use stem, others keep path
+
+- `my_app/routes/schema_pipeline_routes.py` (+31 lines)
+  - Recursive glob for subdirectories
+  - Filter: Skip meta.stage="output" configs (not user-facing)
+  - Inject meta.owner in API response
+
+- `.gitignore` (+3 lines)
+  - Changed output/ to /output/ (root-level only)
+  - Configs/output/ is now tracked
+
+**Created:**
+- `schemas/configs/user_configs/doej/test_dada.json` (Test user-config)
+
+**Moved (37 files):**
+- 31 configs → `interception/`
+- 6 configs → `output/`
+
+### User-Config Naming System
+
+**Design Decision:** Prefix-based naming prevents collisions
+
+**System Configs:**
+```
+interception/dada.json → "dada" (simple name)
+output/sd35_large.json → "sd35_large" (simple name)
+pre_interception/safety.json → "pre_interception/safety" (keep path)
+```
+
+**User Configs:**
+```
+user_configs/doej/my_dada.json → "u_doej_my_dada" (prefixed)
+user_configs/alice/test.json → "u_alice_test" (prefixed)
+```
+
+**Benefits:**
+- ✅ No name collisions (u_ prefix guarantees uniqueness)
+- ✅ Username encoded in config name (easy filtering/display)
+- ✅ meta.owner auto-injected (enables user badges in frontend)
+- ✅ Scalable (no manual mapping/registry needed)
+
+### Frontend API Changes
+
+**Output Config Filtering:**
+```python
+# Frontend API now filters out system-only configs
+stage = config_data.get("meta", {}).get("stage", "")
+if stage == "output":
+    continue  # Don't show in user-facing config browser
+```
+
+**Result:** Frontend shows 36 configs (31 interception + 5 pre_*), hides 6 output configs
+
+**meta.owner Injection:**
+```python
+# Auto-inject owner based on folder structure
+if "owner" not in metadata["meta"]:
+    metadata["meta"]["owner"] = owner  # "system" or username
+```
+
+**Result:** Frontend can display user badges: "by doej", "system config", etc.
+
+### Test Results
+
+**Test 1: Config Loader**
+```
+✅ 42 configs loaded (31 interception + 6 output + 5 pre_*)
+✅ 'dada' accessible as simple name (not 'interception/dada')
+✅ 'sd35_large' accessible as simple name
+✅ meta.owner = "system" auto-injected
+```
+
+**Test 2: Frontend API**
+```
+✅ 37 configs returned (output configs filtered out)
+✅ meta.owner included in response
+✅ User-config visible: u_doej_test_dada with owner="doej"
+```
+
+**Test 3: User Config**
+```json
+{
+  "id": "u_doej_test_dada",
+  "name": {"en": "Test Dada (User Config)", ...},
+  "meta": {
+    "stage": "interception",
+    "owner": "doej",  // ← Auto-injected!
+    "created_by": "doej"
+  }
+}
+```
+
+### Key Design Decisions
+
+1. **Folder-based organization:** Clear separation of concerns
+2. **Smart naming:** interception/output use stem, pre_* keep path
+3. **User prefix system:** u_username_ prevents collisions
+4. **Auto-injection:** meta.owner derived from folder structure
+5. **Frontend filtering:** Output configs hidden (system-internal)
+6. **Dual-location logic:** config_loader.py + frontend API (consistency)
+
+### Documentation Updates
+- ✅ DEVELOPMENT_LOG.md updated (this session)
+- ✅ DEVELOPMENT_DECISIONS.md updated (user-config naming decision)
+- ✅ devserver_todos.md updated (config-reorganisation complete)
+
+### Git Commits
+1. `de259e6` - chore: Reorganize test files into testfiles/
+2. `c93a251` - refactor: Reorganize configs into interception/ and output/ folders
+3. `5e1fd29` - fix: Add meta.owner injection to frontend API endpoint
+
+### Next Steps
+- Phase 5: Integration testing (as per HANDOVER.md)
+- Frontend: Implement user-badge display using meta.owner
+- User-config UI: Enable users to create/edit configs (future)
+
+---
+
+**Last Updated:** 2025-11-01 (Session 10 - Config Restructuring Complete)
+**Next Session:** Phase 5 - Integration testing OR User-Config UI implementation
 

@@ -7,6 +7,157 @@
 
 ---
 
+## 2025-11-01 (Evening): Config Folder Restructuring + User-Config Naming System
+
+### Decision
+**Reorganize configs into purpose-based folders with prefix-based user-config naming**
+
+**Actions Taken:**
+1. ✅ Created folder structure: `interception/`, `output/`, `user_configs/`
+2. ✅ Moved 31 configs to `interception/` (user-facing)
+3. ✅ Moved 6 configs to `output/` (system-only)
+4. ✅ Implemented user-config naming: `user_configs/username/file.json` → `u_username_file`
+5. ✅ Auto-inject `meta.owner` field based on folder structure
+6. ✅ Frontend API: Filter out `meta.stage="output"` configs
+7. ✅ Frontend API: Include `meta.owner` in response
+
+### Reasoning
+
+**Problem 1: Flat Config Structure**
+All 37 configs in root folder made it unclear which are:
+- User-facing (interception configs for browsing)
+- System-internal (output configs for media generation)
+- System pipelines (pre_interception, pre_output)
+
+**Problem 2: Future User-Config Collision Risk**
+When users create their own configs, name collisions are inevitable:
+- User creates `dada.json` → conflicts with system `dada.json`
+- No way to distinguish system vs user configs
+- No tracking of ownership
+
+### Solution: Folder-Based Organization + Prefix Naming
+
+**Folder Structure:**
+```
+configs/
+├── interception/       (31 user-facing configs)
+├── output/             (6 system-only configs)
+├── user_configs/       (user-created configs)
+│   └── username/       (per-user isolation)
+├── pre_interception/   (system pipelines)
+└── pre_output/         (system pipelines)
+```
+
+**Naming Convention:**
+- **System configs:** Simple name (stem)
+  - `interception/dada.json` → `"dada"`
+  - `output/sd35_large.json` → `"sd35_large"`
+
+- **User configs:** Prefixed name
+  - `user_configs/doej/my_dada.json` → `"u_doej_my_dada"`
+  - `user_configs/alice/test.json` → `"u_alice_test"`
+
+**Benefits:**
+1. ✅ **No collisions:** `u_` prefix guarantees uniqueness
+2. ✅ **Scalable:** No manual mapping/registry needed
+3. ✅ **Self-documenting:** Username embedded in config name
+4. ✅ **Easy filtering:** Frontend can filter by prefix or owner
+5. ✅ **Automatic owner tracking:** `meta.owner` injected from folder path
+
+### Alternative Approaches Considered
+
+**Option A: Namespace System (rejected)**
+```python
+SCOPE_MAPPING = {
+    "interception": "system",
+    "user_configs": "user"
+}
+```
+❌ Requires manual mapping maintenance
+❌ Not scalable (new folders = update mapping)
+
+**Option B: Collision Detection + Error (rejected)**
+```python
+if config_name in configs:
+    raise Error("Config name collision")
+```
+❌ Breaks when user creates `dada.json`
+❌ Forces users to pick unique names (bad UX)
+
+**Option C: Prefix System (chosen) ✅**
+```python
+if folder == "user_configs":
+    name = f"u_{username}_{stem}"
+else:
+    name = stem
+```
+✅ Automatic, no maintenance
+✅ Scales infinitely
+✅ Clear ownership
+
+### Implementation Details
+
+**config_loader.py:**
+```python
+# Auto-detect owner from folder structure
+if parts[0] == "user_configs":
+    username = parts[1]
+    config_name = f"u_{username}_{stem}"
+    owner = username
+elif parts[0] in ["interception", "output"]:
+    config_name = stem
+    owner = "system"
+else:
+    config_name = full_path
+    owner = "system"
+
+# Auto-inject meta.owner
+meta["owner"] = owner
+```
+
+**Frontend API (schema_pipeline_routes.py):**
+```python
+# Filter: Don't show output configs in user-facing browser
+if config_data.get("meta", {}).get("stage") == "output":
+    continue
+
+# Inject owner for frontend badges
+metadata["meta"]["owner"] = owner
+```
+
+### Files Modified
+- `schemas/engine/config_loader.py` - User-config naming + owner injection
+- `my_app/routes/schema_pipeline_routes.py` - Output filtering + owner in API
+- `.gitignore` - `/output/` (root-only) vs `configs/output/` (tracked)
+- 37 config files moved to new folder structure
+
+### User Experience Impact
+
+**Before:**
+- Frontend shows all 42 configs (including system-only output configs)
+- No way to distinguish system vs user configs
+- Risk of name collisions
+
+**After:**
+- Frontend shows 36 configs (only user-facing + system pipelines)
+- Output configs hidden (sd35_large, gpt5_image, etc.)
+- User configs clearly marked with owner badge
+- Example: "Test Dada (by doej)"
+
+### Testing
+- ✅ Config loader: 42 configs loaded correctly
+- ✅ Frontend API: 37 returned (output configs filtered)
+- ✅ User config: `u_doej_test_dada` with `meta.owner="doej"`
+- ✅ No breaking changes: System configs still work with simple names
+
+### Future Considerations
+- User-config UI: Users can create/edit configs in `user_configs/username/`
+- Session-based isolation: `username` from session, not hardcoded
+- Config validation: Ensure user configs don't break system
+- Quota system: Limit number of user configs per user
+
+---
+
 ## 2025-11-01 (PM): Documentation Consolidation - Single Source of Truth
 
 ### Decision

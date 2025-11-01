@@ -1,6 +1,47 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-01 (Documentation Consolidated, Implementation Plan Created)
+**Last Updated:** 2025-11-01 Evening (Config Restructuring Complete)
 **Context:** Post-analysis TODOs for completing devserver architecture
+
+---
+
+## ✅ COMPLETED (2025-11-01 Evening): Config Folder Restructuring
+
+**Status:** COMPLETE ✅
+**Duration:** ~2h
+**Commits:** `de259e6`, `c93a251`, `5e1fd29`
+
+### What Was Done
+1. ✅ Created folder structure: `interception/`, `output/`, `user_configs/`
+2. ✅ Moved 31 configs to `interception/` (user-facing)
+3. ✅ Moved 6 configs to `output/` (system-only)
+4. ✅ Implemented user-config naming: `user_configs/doej/test.json` → `u_doej_test`
+5. ✅ Auto-inject `meta.owner` field (system or username)
+6. ✅ Frontend API: Filter out `meta.stage="output"` configs
+7. ✅ Frontend API: Include `meta.owner` in response
+8. ✅ Fixed `.gitignore`: `/output/` (root) vs `configs/output/` (tracked)
+9. ✅ Created test user-config and verified system
+10. ✅ Updated all documentation (DEVELOPMENT_LOG, DEVELOPMENT_DECISIONS, devserver_todos)
+
+### Results
+- **37 configs** shown in frontend (output configs filtered)
+- **42 configs** loaded by system (all configs available)
+- **User-config support** ready for future UI implementation
+- **No breaking changes** - system configs work with simple names
+
+### Files Modified
+- `schemas/engine/config_loader.py` - User-config naming + owner injection
+- `my_app/routes/schema_pipeline_routes.py` - Output filtering + owner in API
+- `.gitignore` - Root-level /output/ only
+- 37 config files moved to new structure
+
+### Documentation Updated
+- ✅ `DEVELOPMENT_LOG.md` - Session 10 entry
+- ✅ `DEVELOPMENT_DECISIONS.md` - User-config naming decision
+- ✅ `devserver_todos.md` - This file
+
+**See:**
+- Full details in `DEVELOPMENT_LOG.md` Session 10
+- Design rationale in `DEVELOPMENT_DECISIONS.md` (2025-11-01 Evening)
 
 ---
 
