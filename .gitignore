@@ -31,8 +31,10 @@ venv/
 # -------------------------------------
 # ComfyUI-specific temp/config paths
 comfyui_temp/
-output/
-input/
+/output/
+/input/
+# Note: /output/ = root-level only (ComfyUI output dir)
+#       devserver/schemas/configs/output/ is NOT ignored
 
 # -------------------------------------
 # PyInstaller / packaging

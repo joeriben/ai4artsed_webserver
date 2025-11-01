@@ -153,11 +153,28 @@ class ConfigLoader:
             # Example: configs/pre_interception/safety.json → pre_interception/safety
             try:
                 relative_path = config_file.relative_to(configs_base_path)
-                # Remove .json extension and convert to forward slashes
-                config_name_from_path = str(relative_path.with_suffix('')).replace('\\', '/')
+                parts = relative_path.parts
+
+                # Determine config name and owner based on folder structure
+                if len(parts) >= 2 and parts[0] == "user_configs":
+                    # User config: user_configs/username/my_config.json → u_username_my_config
+                    username = parts[1]
+                    stem = config_file.stem
+                    config_name_from_path = f"u_{username}_{stem}"
+                    owner = username
+                    logger.debug(f"User config detected: username={username}, name={config_name_from_path}")
+                elif parts[0] in ["interception", "output"]:
+                    # Main system configs: use just the stem (no path prefix)
+                    config_name_from_path = config_file.stem
+                    owner = "system"
+                else:
+                    # Other system configs (pre_interception, pre_output, etc.): keep path
+                    config_name_from_path = str(relative_path.with_suffix('')).replace('\\', '/')
+                    owner = "system"
             except ValueError:
                 # Fallback if relative_to fails
                 config_name_from_path = config_file.stem
+                owner = "system"
 
             # Support both new format and legacy format
             # IMPORTANT: When "name" field is a dict (multilingual), use relative path as internal name
@@ -195,6 +212,12 @@ class ConfigLoader:
 
             logger.debug(f"Creating Config object for {config_name}")
 
+            # Auto-inject meta.owner field
+            meta = data.get('meta', {})
+            if 'owner' not in meta:
+                meta['owner'] = owner  # Set owner from folder structure
+                logger.debug(f"Auto-injected meta.owner = '{owner}' for config '{config_name}'")
+
             return Config(
                 name=config_name,
                 pipeline=pipeline,
@@ -204,7 +227,7 @@ class ConfigLoader:
                 context=data.get('context'),
                 parameters=data.get('parameters'),
                 media_preferences=data.get('media_preferences'),
-                meta=data.get('meta', {})
+                meta=meta
             )
         except Exception as e:
             logger.error(f"Error parsing config {config_file}: {e}")

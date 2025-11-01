@@ -492,14 +492,39 @@ def pipeline_configs_metadata_compat():
         if not configs_path.exists():
             return jsonify({"error": "Configs directory not found"}), 404
 
-        for config_file in sorted(configs_path.glob("*.json")):
+        # Recursive glob to support subdirectories (interception/, output/, user_configs/)
+        for config_file in sorted(configs_path.glob("**/*.json")):
             try:
                 with open(config_file, 'r', encoding='utf-8') as f:
                     config_data = json.load(f)
 
+                # Filter: Skip output configs (system-only, not user-facing)
+                stage = config_data.get("meta", {}).get("stage", "")
+                if stage == "output":
+                    continue  # Don't show output configs in frontend
+
+                # Calculate config ID (relative path without .json)
+                # Example: interception/dada.json → "dada"
+                #          user_configs/doej/test.json → "u_doej_test" (handled by config_loader)
+                relative_path = config_file.relative_to(configs_path)
+                parts = relative_path.parts
+
+                # Use same naming logic as config_loader.py
+                if len(parts) >= 2 and parts[0] == "user_configs":
+                    # User config: u_username_filename
+                    username = parts[1]
+                    stem = config_file.stem
+                    config_id = f"u_{username}_{stem}"
+                elif parts[0] in ["interception", "output"]:
+                    # Main system configs: just the stem
+                    config_id = config_file.stem
+                else:
+                    # Other system configs: keep path
+                    config_id = str(relative_path.with_suffix('')).replace('\\', '/')
+
                 # Extract metadata fields directly from config
                 metadata = {
-                    "id": config_file.stem,  # Filename without .json
+                    "id": config_id,
                     "name": config_data.get("name", {}),  # Multilingual
                     "description": config_data.get("description", {}),  # Multilingual
                     "category": config_data.get("category", {}),  # Multilingual
@@ -518,6 +543,10 @@ def pipeline_configs_metadata_compat():
 
                 if "media_preferences" in config_data:
                     metadata["media_preferences"] = config_data["media_preferences"]
+
+                # Add meta fields (includes stage, owner, etc.)
+                if "meta" in config_data:
+                    metadata["meta"] = config_data["meta"]
 
                 configs_metadata.append(metadata)
 
