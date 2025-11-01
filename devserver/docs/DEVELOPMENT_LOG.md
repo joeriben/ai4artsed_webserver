@@ -2012,6 +2012,259 @@ English, German, French, Spanish, Italian, Portuguese, Dutch, Polish, Russian, C
 
 ---
 
-**Last Updated:** 2025-11-01 (Session 11 - Recursive Pipeline Implementation Complete)
-**Next Session:** Phase 5 - Continue integration testing with more config types
+## Session 11 (continued): 2025-11-01 - Multi-Output Support for Model Comparison
+**Duration (Wall):** ~30m
+**Duration (API):** ~15m
+**Cost:** $0.20 (estimated)
+**Status:** ✅ COMPLETE, TESTED, COMMITTED
+
+### Model Usage
+- claude-sonnet-4.5: ~45k input, ~8k output ($0.20 estimated)
+
+### Tasks Completed
+
+1. ✅ **Implemented Stage 3-4 Loop for Multi-Output**
+   - Modified `schema_pipeline_routes.py` (+199 -75 lines)
+   - Stage 3-4 now loops over `output_configs[]` array
+   - Each output config gets own Stage 3 safety check + Stage 4 execution
+   - Response includes `media_outputs` array with results for each config
+   - Maintains backward compatibility (single `default_output` still works)
+
+2. ✅ **Created Image Comparison Config**
+   - Created `image_comparison.json` config
+   - Uses `output_configs: ["sd35_large", "gpt5_image"]`
+   - Pass-through context (no prompt modification)
+   - Enables side-by-side model comparison (local SD3.5 vs cloud GPT-5)
+
+3. ✅ **Tested Multi-Output System**
+   - Test input: "Eine Blume auf der Wiese"
+   - ✅ Stage 3-4 Loop executed 2x (once per output config)
+   - ✅ SD3.5: ComfyUI workflow generated (ComfyUI_06804_.png)
+   - ✅ GPT-5: OpenRouter API generated (base64 PNG, ~2.1MB)
+   - ✅ Logs confirm proper execution flow
+   - ✅ Backward compatibility verified (single output still works)
+
+### Architecture Changes
+
+**Multi-Output Support Implementation:**
+
+**Before (Single Output Only):**
+```python
+# Stage 3-4 ran once with default_output
+if default_output and default_output != 'text':
+    output_config = lookup_output_config(default_output, execution_mode)
+    # Execute Stage 3-4 for this single config
+```
+
+**After (Multi-Output Support):**
+```python
+# Stage 3-4 loops over output_configs array
+output_configs = media_preferences.get('output_configs', [])
+
+if output_configs:
+    # Multi-Output: Use explicit output_configs array
+    configs_to_execute = output_configs
+elif default_output and default_output != 'text':
+    # Single-Output: Use lookup from default_output
+    configs_to_execute = [lookup_output_config(default_output, execution_mode)]
+
+# Execute Stage 3-4 for EACH output config
+for output_config in configs_to_execute:
+    # Stage 3: Pre-Output Safety (per config)
+    # Stage 4: Media Generation (per config)
+    media_outputs.append(result)
+```
+
+**Key Benefits:**
+1. ✅ **Model Comparison:** Generate same prompt with multiple models
+2. ✅ **Multi-Format Output:** Generate image + audio + text from single input
+3. ✅ **No Redundancy:** Stage 1 runs once, Stage 3-4 loop only for outputs
+4. ✅ **Backward Compatible:** Single-output configs unchanged
+
+### Code Changes
+- **Lines added:** 199
+- **Lines removed:** 75
+- **Net change:** +124 lines
+
+### Files Modified
+
+**Modified:**
+- `my_app/routes/schema_pipeline_routes.py` (+199 -75 lines)
+  - Added `output_configs` array support in media_preferences
+  - Implemented Stage 3-4 Loop (per output config)
+  - Response now includes `media_outputs` array for multi-output
+  - Maintained backward compatibility with single `default_output`
+
+**Created:**
+- `schemas/configs/interception/image_comparison.json` (58 lines)
+  - Pass-through config (no prompt modification)
+  - Uses `output_configs: ["sd35_large", "gpt5_image"]`
+  - Category: Image Generation
+  - Purpose: Model comparison (SD3.5 local vs GPT-5 cloud)
+
+### Test Results
+
+**Test Config:** image_comparison + "Eine Blume auf der Wiese"
+
+```
+✅ Stage 1: Translation + Safety (ran once)
+✅ Stage 2: Pass-through transformation (no modification)
+✅ Stage 3-4 Loop Iteration 1/2: sd35_large
+   ✅ Stage 3: Pre-Output Safety (passed)
+   ✅ Stage 4: ComfyUI workflow submitted (ComfyUI_06804_.png)
+✅ Stage 3-4 Loop Iteration 2/2: gpt5_image
+   ✅ Stage 3: Pre-Output Safety (passed)
+   ✅ Stage 4: OpenRouter API request (base64 PNG, ~2.1MB)
+
+Response: {
+  "status": "success",
+  "final_output": "Eine Blume auf der Wiese",
+  "media_outputs": [
+    {
+      "config": "sd35_large",
+      "output": "prompt_id_1",
+      "media_type": "image"
+    },
+    {
+      "config": "gpt5_image",
+      "output": "base64_data...",
+      "media_type": "image"
+    }
+  ]
+}
+```
+
+**Execution Time:** ~120 seconds (normal for 2 image generations)
+
+### Technical Implementation Details
+
+#### Stage 3-4 Loop Architecture
+
+**Loop Logic:**
+```python
+# Determine which output configs to use
+if output_configs:
+    # Multi-Output: Explicit list
+    configs_to_execute = output_configs
+elif default_output != 'text':
+    # Single-Output: Lookup from default
+    configs_to_execute = [lookup_output_config(default_output, execution_mode)]
+
+# Execute Stage 3-4 for EACH config
+for i, output_config_name in enumerate(configs_to_execute):
+    logger.info(f"[4-STAGE] Stage 3-4 Loop iteration {i+1}/{len(configs_to_execute)}: {output_config_name}")
+
+    # Stage 3: Pre-Output Safety (per config)
+    if safety_level != 'off':
+        safe, codes = execute_stage3_safety(prompt, safety_level, media_type, execution_mode)
+        if not safe:
+            continue  # Skip Stage 4 for unsafe prompts
+
+    # Stage 4: Media Generation (per config)
+    result = await pipeline_executor.execute_pipeline(
+        output_config_name,
+        prompt,
+        execution_mode=execution_mode
+    )
+    media_outputs.append(result)
+```
+
+**Per-Config Safety Checks:**
+- Each output config gets independent Stage 3 safety check
+- Enables different safety thresholds per media type
+- Example: Stricter rules for video than image
+
+**Response Format:**
+- Single output: `media_output: {config, output, media_type}`
+- Multi-output: `media_outputs: [{config, output, media_type}, ...]`
+- Backward compatible: Clients can check for array vs object
+
+### Use Cases Enabled
+
+**1. Model Comparison (image_comparison.json):**
+```json
+{
+  "media_preferences": {
+    "output_configs": ["sd35_large", "gpt5_image"]
+  }
+}
+```
+→ Generates same prompt with SD3.5 (local) and GPT-5 (cloud) for comparison
+
+**2. Multi-Format Output (future):**
+```json
+{
+  "media_preferences": {
+    "output_configs": ["sd35_large", "stableaudio"]
+  }
+}
+```
+→ Generates both image and audio from same prompt
+
+**3. Multi-Resolution Output (future):**
+```json
+{
+  "media_preferences": {
+    "output_configs": ["sd35_1024", "sd35_2048"]
+  }
+}
+```
+→ Generates same image at multiple resolutions
+
+### Key Design Decisions
+
+1. **Loop in DevServer (not PipelineExecutor):**
+   - ✅ Correct: DevServer orchestrates Stage 3-4 loop
+   - ❌ Wrong: PipelineExecutor would trigger redundant Stage 1-3
+   - Validates 4-Stage Architecture design
+
+2. **Per-Config Safety Checks:**
+   - Each output gets independent Stage 3 check
+   - Prevents one unsafe config from blocking all outputs
+   - Enables different safety thresholds per media type
+
+3. **Backward Compatibility:**
+   - Single-output configs unchanged
+   - Frontend doesn't need updates
+   - Clients can detect multi-output by checking array type
+
+### Documentation Updates
+- ✅ DEVELOPMENT_LOG.md updated (this entry)
+- ⏭️ DEVELOPMENT_DECISIONS.md (pending - Multi-Output Design Decision)
+- ⏭️ ARCHITECTURE.md (pending - Multi-Output Flow documentation)
+- ⏭️ devserver_todos.md (pending - mark Multi-Output complete)
+
+### Git Commit
+- Commit: `55bbfca` - "feat: Implement multi-output support for model comparison"
+- Pushed to: `feature/schema-architecture-v2`
+- Branch status: Clean, ready for documentation updates
+
+### Session Summary
+
+**Status:** ✅ IMPLEMENTATION COMPLETE, TESTED, COMMITTED
+**Next:** Documentation updates (DEVELOPMENT_DECISIONS, ARCHITECTURE, devserver_todos)
+
+**Architecture Version:** 3.1 (Multi-Output Support)
+- Previous: 3.0 (4-Stage Architecture)
+- New: Stage 3-4 Loop for multi-output generation
+
+**Key Achievement:** Enables model comparison and multi-format output without redundant processing
+- Stage 1 runs once
+- Stage 2 runs once
+- Stage 3-4 loop per output config only
+- Clean, efficient, backward compatible
+
+Session cost: $0.20 (estimated)
+Session duration: ~30m
+Files changed: +199 -75 lines (2 files)
+
+Related docs:
+- Commit message: 55bbfca (detailed implementation notes)
+- Test results: Verified with image_comparison config
+- Architecture: 4-Stage Flow with Multi-Output Loop
+
+---
+
+**Last Updated:** 2025-11-01 (Session 11 - Recursive Pipeline + Multi-Output Complete)
+**Next Session:** Documentation updates + Phase 5 integration testing
 

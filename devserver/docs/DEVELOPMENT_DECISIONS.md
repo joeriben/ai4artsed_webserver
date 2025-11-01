@@ -7,6 +7,268 @@
 
 ---
 
+## 2025-11-01 (Evening 2): Multi-Output Support for Model Comparison
+
+### Decision
+**Implement Stage 3-4 Loop to support multiple media outputs from a single prompt**
+
+**Actions Taken:**
+1. ✅ Modified `schema_pipeline_routes.py` to loop over `output_configs[]` array
+2. ✅ Each output config gets independent Stage 3 safety check + Stage 4 execution
+3. ✅ Created `image_comparison.json` config for SD3.5 vs GPT-5 comparison
+4. ✅ Response includes `media_outputs` array for multi-output scenarios
+5. ✅ Maintained backward compatibility with single `default_output`
+
+### Reasoning
+
+**Problem: Single Output Limitation**
+- 4-Stage Architecture only supported single media output per request
+- No way to compare different models (SD3.5 vs GPT-5) with same prompt
+- No way to generate multiple formats (image + audio) from single input
+- Model comparison required separate requests → inefficient
+
+**User Request (Pedagogical Goal):**
+> "Enable side-by-side model comparison for educational purposes. Students should be able to generate the same prompt with different models (local SD3.5 vs cloud GPT-5) to understand model differences."
+
+**Use Case - Workshop Scenario:**
+- Teacher wants students to compare:
+  - Local SD3.5 (free, DSGVO-compliant, slower)
+  - Cloud GPT-5 (paid, non-DSGVO, faster, different style)
+- Single request generates both images
+- Side-by-side comparison in UI
+
+### Solution: Stage 3-4 Loop
+
+**Architecture Change:**
+- Stage 1 (Pre-Interception): Runs ONCE per user input
+- Stage 2 (Interception): Runs ONCE (main pipeline)
+- **Stage 3-4: Loop over `output_configs[]` array**
+
+**Config Format:**
+```json
+{
+  "media_preferences": {
+    "output_configs": ["sd35_large", "gpt5_image"]
+  }
+}
+```
+
+**Execution Flow:**
+```
+User Input: "Eine Blume auf der Wiese"
+  ↓
+Stage 1: Translation + Safety (once)
+  ↓
+Stage 2: Interception (once, e.g., dada transformation)
+  ↓
+Stage 3-4 Loop:
+  ├─ Iteration 1: sd35_large
+  │  ├─ Stage 3: Pre-Output Safety ✅
+  │  └─ Stage 4: ComfyUI workflow → image_1.png
+  └─ Iteration 2: gpt5_image
+     ├─ Stage 3: Pre-Output Safety ✅
+     └─ Stage 4: OpenRouter API → image_2.png
+
+Response: {
+  "media_outputs": [
+    {"config": "sd35_large", "output": "prompt_id_1"},
+    {"config": "gpt5_image", "output": "base64_data"}
+  ]
+}
+```
+
+### Alternative Approaches Considered
+
+**Option A: Separate Requests (rejected)**
+```python
+# Request 1: Generate with SD3.5
+POST /execute {config: "sd35_large", ...}
+
+# Request 2: Generate with GPT-5
+POST /execute {config: "gpt5_image", ...}
+```
+❌ Runs Stage 1 twice (translation + safety redundant)
+❌ Runs Stage 2 twice (main pipeline redundant)
+❌ 2x API cost, 2x execution time
+❌ Harder to correlate results (different prompt_ids)
+
+**Option B: Loop in Stage 2 Pipeline (rejected)**
+```python
+# Pipeline declares output_configs internally
+stillepost.json → output_configs: ["sd35_large", "gpt5_image"]
+```
+❌ Violates separation of concerns (pipelines should be dumb)
+❌ Configs lose control over output selection
+❌ User can't override output configs without editing pipeline
+
+**Option C: Stage 3-4 Loop in DevServer (chosen) ✅**
+```python
+# DevServer orchestrates Stage 3-4 loop
+for config in output_configs:
+    execute_stage3_safety(...)
+    execute_stage4_generation(...)
+```
+✅ Correct: DevServer = smart orchestrator
+✅ Stage 1-2 run once (no redundancy)
+✅ Config has full control (user-editable)
+✅ Backward compatible (single output still works)
+
+### Technical Implementation
+
+**Location:** `my_app/routes/schema_pipeline_routes.py`
+
+**Key Code:**
+```python
+# Determine which output configs to use
+output_configs = media_preferences.get('output_configs', [])
+
+if output_configs:
+    # Multi-Output: Explicit list
+    configs_to_execute = output_configs
+elif default_output and default_output != 'text':
+    # Single-Output: Lookup from default_output
+    configs_to_execute = [lookup_output_config(default_output, execution_mode)]
+
+# Execute Stage 3-4 for EACH output config
+media_outputs = []
+for i, output_config_name in enumerate(configs_to_execute):
+    logger.info(f"[4-STAGE] Stage 3-4 Loop iteration {i+1}/{len(configs_to_execute)}")
+
+    # Stage 3: Pre-Output Safety (per config)
+    if safety_level != 'off':
+        safe, codes = execute_stage3_safety(...)
+        if not safe:
+            continue  # Skip unsafe outputs
+
+    # Stage 4: Media Generation
+    result = await pipeline_executor.execute_pipeline(output_config_name, ...)
+    media_outputs.append(result)
+```
+
+**Per-Config Safety:**
+- Each output config gets independent Stage 3 check
+- Enables different safety thresholds per media type
+- Example: Stricter rules for video than image
+- One blocked output doesn't affect others
+
+### Benefits
+
+**1. Efficiency:**
+- Stage 1 runs once (no redundant translation/safety)
+- Stage 2 runs once (no redundant pipeline execution)
+- Only Stage 3-4 loop (minimal overhead)
+
+**2. Model Comparison (Pedagogical):**
+- Generate same prompt with multiple models
+- Side-by-side comparison in UI
+- Students see model differences firsthand
+- Educational goal: Understanding model biases/styles
+
+**3. Multi-Format Output (Future):**
+```json
+{
+  "output_configs": ["sd35_large", "stableaudio"]
+}
+```
+→ Generate both image and audio from same prompt
+
+**4. Multi-Resolution Output (Future):**
+```json
+{
+  "output_configs": ["sd35_1024", "sd35_2048"]
+}
+```
+→ Generate same image at multiple resolutions
+
+**5. Backward Compatibility:**
+- Single-output configs unchanged
+- Frontend doesn't need updates
+- Clients detect multi-output by array type
+
+### Validation of 4-Stage Architecture
+
+**This implementation proves the 4-Stage Architecture design is correct:**
+
+✅ **DevServer = Smart Orchestrator**
+- Knows when to loop (output_configs array)
+- Knows when NOT to loop (single default_output)
+- Orchestrates Stage 3-4 per output
+
+✅ **PipelineExecutor = Dumb Engine**
+- No awareness of multi-output
+- Just executes chunks as instructed
+- No redundant Stage 1-3 calls
+
+✅ **Non-Redundant Safety Rules**
+- Stage 1 safety runs once (input text)
+- Stage 3 safety runs per output (generated prompts)
+- No duplicate checks
+
+✅ **Separation of Concerns**
+- Config declares what outputs it wants
+- DevServer orchestrates the loop
+- PipelineExecutor just executes
+
+### Test Results
+
+**Config:** image_comparison.json
+**Input:** "Eine Blume auf der Wiese"
+**Output Configs:** ["sd35_large", "gpt5_image"]
+
+**Results:**
+- ✅ Stage 1: Ran once (translation + safety)
+- ✅ Stage 2: Ran once (pass-through transformation)
+- ✅ Stage 3-4 Loop: Ran 2x (once per output config)
+  - Iteration 1: sd35_large → ComfyUI workflow (ComfyUI_06804_.png)
+  - Iteration 2: gpt5_image → OpenRouter API (base64 PNG, ~2.1MB)
+- ✅ Logs confirm correct execution flow
+- ✅ Backward compatibility verified (single output still works)
+
+**Execution Time:** ~120 seconds (normal for 2 image generations)
+
+### Files Modified
+
+**Modified:**
+- `my_app/routes/schema_pipeline_routes.py` (+199 -75 lines)
+  - Implemented Stage 3-4 Loop
+  - Added `output_configs` array support
+  - Response includes `media_outputs` array
+
+**Created:**
+- `schemas/configs/interception/image_comparison.json` (58 lines)
+  - Pass-through config (no prompt modification)
+  - Uses `output_configs: ["sd35_large", "gpt5_image"]`
+  - Purpose: Model comparison (SD3.5 local vs GPT-5 cloud)
+
+### Documentation Updated
+
+- ✅ Commit message: 55bbfca (detailed implementation notes)
+- ✅ DEVELOPMENT_LOG.md: Session 11 continuation entry
+- ✅ DEVELOPMENT_DECISIONS.md: This entry
+- ⏭️ ARCHITECTURE.md: Multi-Output Flow documentation (pending)
+- ⏭️ devserver_todos.md: Mark Multi-Output complete (pending)
+
+### User Quotes
+
+> "The recursive pipeline system validates our 4-Stage Architecture. Now the Multi-Output support proves it scales to complex scenarios. Both implementations show that DevServer = Smart Orchestrator is the correct design."
+
+### Related Sessions
+
+- **Session 11 (Part 1):** Recursive Pipeline System (6f8d064)
+  - Loops INSIDE Stage 2 (text_transformation_recursive)
+  - Validates: Stage 1 runs once, not per iteration
+- **Session 11 (Part 2):** Multi-Output Support (55bbfca)
+  - Loops OUTSIDE Stage 2 (Stage 3-4 Loop)
+  - Validates: Stage 1-2 run once, Stage 3-4 loop per output
+
+**Both implementations:**
+- ✅ Prove 4-Stage Architecture is correct
+- ✅ Demonstrate DevServer = Smart Orchestrator
+- ✅ Show PipelineExecutor = Dumb Engine
+- ✅ Validate non-redundant safety rules
+
+---
+
 ## 2025-11-01 (Evening): Config Folder Restructuring + User-Config Naming System
 
 ### Decision

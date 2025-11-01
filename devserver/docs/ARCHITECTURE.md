@@ -217,21 +217,134 @@ STAGE3_RULES = {
    → Wasted time + API calls
 ```
 
-[Additional examples: Stille Post, Multi-Output, Iterative - see original doc]
+#### Example 3: Multi-Output (Model Comparison)
+
+**Scenario:** Generate same prompt with multiple models for comparison
+
+**Config:** `image_comparison.json`
+```json
+{
+  "pipeline": "text_transformation",
+  "context": "Pass through unchanged",
+  "media_preferences": {
+    "output_configs": ["sd35_large", "gpt5_image"]
+  }
+}
+```
+
+**Flow:**
+```
+Input: "Eine Blume auf der Wiese"
+  ↓
+Stage 1: translation + text_safety (once)
+  → "A flower on the meadow" + PASSED
+  ↓
+Stage 2: text_transformation (once)
+  → "A flower on the meadow" (pass-through)
+  ↓
+Stage 3-4 Loop: FOR EACH output_config
+  ├─ Iteration 1: sd35_large
+  │  ├─ Stage 3: Pre-Output Safety ✅
+  │  └─ Stage 4: ComfyUI workflow → image_1.png
+  └─ Iteration 2: gpt5_image
+     ├─ Stage 3: Pre-Output Safety ✅
+     └─ Stage 4: OpenRouter API → image_2.png
+
+Response: {
+  "media_outputs": [
+    {"config": "sd35_large", "output": "prompt_id_1"},
+    {"config": "gpt5_image", "output": "base64_data"}
+  ]
+}
+```
+
+**Key Points:**
+✅ Stage 1 runs once (not 2x) - no redundant translation
+✅ Stage 2 runs once (not 2x) - no redundant pipeline
+✅ Stage 3-4 loop per output - each gets independent safety check
+✅ Efficient: Only outputs require duplication, not inputs
+
+**Use Cases:**
+- Model comparison (SD3.5 vs GPT-5)
+- Multi-format output (image + audio)
+- Multi-resolution output (1024px + 2048px)
+
+**Implementation:** See `schema_pipeline_routes.py` Stage 3-4 Loop
+
+#### Example 4: Recursive Pipeline (Stille Post)
+
+**Scenario:** 8-iteration translation loop (Chinese Whispers)
+
+**Config:** `stillepost.json`
+```json
+{
+  "pipeline": "text_transformation_recursive",
+  "parameters": {
+    "iterations": 8,
+    "use_random_languages": true,
+    "final_language": "en"
+  }
+}
+```
+
+**Flow:**
+```
+Input: "Eine Blume auf der Wiese"
+  ↓
+Stage 1: translation + text_safety (once)
+  → "A flower on the meadow" + PASSED
+  ↓
+Stage 2: text_transformation_recursive (once, loops internally)
+  Iteration 1: translate to Hindi
+  Iteration 2: translate to Polish
+  ...
+  Iteration 8: translate to English
+  → "The Dutch translation of..." (mangled text)
+  ↓
+Stage 3: Pre-Output Safety ✅
+  ↓
+Stage 4: Media Generation → image.png
+```
+
+**Key Points:**
+✅ Stage 1 runs once (not 8x) - Critical test PASSED
+✅ Loop runs INSIDE Stage 2 pipeline
+✅ Config controls loop behavior (iterations, languages, final_language)
+❌ Does NOT call execute_pipeline() recursively (would trigger Stage 1-3 redundancy)
+
+**Pedagogical Goal:**
+- Students see prompt degradation over iterations
+- "Stille Post" (Chinese Whispers) workflow
+- User-editable configs for different iteration counts
+
+**Implementation:** See `pipeline_executor.py` _execute_recursive_pipeline_steps()
 
 ### 1.6 Implementation Status
 
-**Current (2025-11-01):**
-- ❌ Stage 1-3 logic in `pipeline_executor.py` (lines 308-499) - WRONG
-- ❌ Causes redundant calls when AUTO-MEDIA executes output configs
-- ❌ Non-redundant safety rules not implemented
+**Current (2025-11-01 Evening):**
+- ✅ Stage 1-3 logic in `schema_pipeline_routes.py` - CORRECT (Session 9)
+- ✅ PipelineExecutor is DUMB engine - CORRECT (Session 9)
+- ✅ Non-redundant safety rules - IMPLEMENTED (Session 9)
+- ✅ Recursive Pipeline System - IMPLEMENTED (Session 11 Part 1)
+- ✅ Multi-Output Support - IMPLEMENTED (Session 11 Part 2)
 
-**Target Architecture:**
-- ✅ Stage 1-3 logic in `schema_pipeline_routes.py` - Orchestrator
-- ✅ PipelineExecutor just executes chunks - Dumb engine
-- ✅ Safety rules hardcoded in DevServer - One place
+**Validation Tests:**
+- ✅ Stillepost (8 iterations): Stage 1 ran once (not 8x) - PASSED
+- ✅ Image Comparison (2 outputs): Stage 1 ran once (not 2x) - PASSED
+- ✅ Simple config (dada): Stage 1-4 all ran once - PASSED
+- ✅ Logs confirm clean execution (no redundancy) - PASSED
 
-**See:** `docs/DEVELOPMENT_DECISIONS.md` (2025-11-01 entry) for full refactoring plan.
+**Architecture Proven Correct:**
+- DevServer = Smart Orchestrator ✅
+- PipelineExecutor = Dumb Engine ✅
+- Non-Redundant Safety Rules ✅
+- Scalable to Complex Flows ✅
+
+**See:**
+- `docs/DEVELOPMENT_DECISIONS.md` (2025-11-01 entries) for design rationale
+- `docs/DEVELOPMENT_LOG.md` (Session 9, 11) for implementation details
+- `schema_pipeline_routes.py` for orchestration code
+- `pipeline_executor.py` for execution engine
 
 ---
 
