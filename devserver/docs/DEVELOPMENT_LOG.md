@@ -1578,6 +1578,75 @@ Related docs:
 - ✅ DEVELOPMENT_LOG.md updated (this entry)
 - ⏭️ devserver_todos.md (pending - mark Phase 3 complete)
 
+### Note from human supervisor
+The implementation of a simple workflow seems to be quite impressive. Here is a console output from a Test conducted via frontend. Interestingly, it has a false positive in the 2nd safety check. Formally, system works fine (but llama-guard is the wrong LLM to check for healthy prompts, will change this to gpt-oss-20b eventually).
+
+Prüfe ob Port 17801 belegt ist...
+Port 17801 ist belegt von Prozess 178955
+213186. Beende Prozess...
+Aktiviere virtuelle Umgebung...
+Starte Waitress-Webserver auf Port 17801: devserver/server.py …
+2025-11-01 16:58:26,372 - WARNING - Metadata file not found at /home/joerissen/ai/ai4artsed_webserver/workflows/metadata.json
+2025-11-01 16:58:26,372 - WARNING - Model path resolution enabled but paths not configured
+Starting AI4ArtsEd Web Server with Waitress on http://0.0.0.0:17801
+Using 8 threads
+Press Ctrl+C to stop the server
+2025-11-01 16:58:26,631 - INFO - Serving on http://0.0.0.0:17801
+2025-11-01 16:58:34,272 - INFO - ConfigLoader initialized: 7 pipelines, 42 configs, 42 resolved
+2025-11-01 16:58:34,272 - INFO - Schema-Engine initialisiert
+2025-11-01 16:58:34,273 - INFO - Loaded metadata for 37 pipeline configs
+2025-11-01 16:59:08,288 - INFO - [4-STAGE] Stage 1: Pre-Interception for 'overdrive'
+2025-11-01 16:59:08,288 - INFO - Auto-initialization: Config-Loader and Backend-Router
+2025-11-01 16:59:08,290 - INFO - ConfigLoader initialized: 7 pipelines, 42 configs, 42 resolved
+2025-11-01 16:59:08,290 - INFO - Backend-Router initialisiert mit 0 Backends
+2025-11-01 16:59:08,290 - INFO - [EXECUTION-MODE] Pipeline for config 'pre_interception/correction_translation_de_en' with execution_mode='eco'
+2025-11-01 16:59:08,290 - INFO - Config 'pre_interception/correction_translation_de_en' loaded: Pipeline='text_transformation', Chunks=['manipulate']
+2025-11-01 16:59:08,290 - INFO - [CHUNK-CONTEXT] input_text: 'Eine kleine Maus auf einem roten Fahrrad...'
+2025-11-01 16:59:08,290 - INFO - [CHUNK-CONTEXT] previous_output: 'Eine kleine Maus auf einem roten Fahrrad...'
+2025-11-01 16:59:08,290 - INFO - [BACKEND] Using model: local/mistral-nemo:latest
+2025-11-01 16:59:08,295 - INFO - [BACKEND] 🏠 Ollama Request: mistral-nemo:latest
+2025-11-01 16:59:28,183 - INFO - [BACKEND] ✅ Ollama Success: mistral-nemo:latest (33 chars)
+2025-11-01 16:59:28,184 - INFO - Pipeline for config 'pre_interception/correction_translation_de_en' completed: PipelineStatus.COMPLETED
+2025-11-01 16:59:28,184 - INFO - Loaded filter terms: stage1=46, kids=68, youth=17
+2025-11-01 16:59:28,184 - INFO - [STAGE1-SAFETY] PASSED (fast-path, 0.2ms)
+2025-11-01 16:59:28,184 - INFO - [4-STAGE] Stage 2: Interception (Main Pipeline) for 'overdrive'
+2025-11-01 16:59:28,184 - INFO - [EXECUTION-MODE] Pipeline for config 'overdrive' with execution_mode='eco'
+2025-11-01 16:59:28,184 - INFO - Config 'overdrive' loaded: Pipeline='text_transformation', Chunks=['manipulate']
+2025-11-01 16:59:28,184 - INFO - [CHUNK-CONTEXT] input_text: 'One little mouse on a red bicycle...'
+2025-11-01 16:59:28,184 - INFO - [CHUNK-CONTEXT] previous_output: 'One little mouse on a red bicycle...'
+2025-11-01 16:59:28,184 - INFO - [BACKEND] Using model: local/mistral-nemo:latest
+2025-11-01 16:59:28,189 - INFO - [BACKEND] 🏠 Ollama Request: mistral-nemo:latest
+2025-11-01 17:02:39,491 - INFO - [BACKEND] ✅ Ollama Success: mistral-nemo:latest (3692 chars)
+2025-11-01 17:02:39,492 - INFO - Pipeline for config 'overdrive' completed: PipelineStatus.COMPLETED
+2025-11-01 17:02:39,492 - INFO - [4-STAGE] Stage 3: Pre-Output Safety for image (level: kids)
+2025-11-01 17:02:39,492 - INFO - [STAGE3-SAFETY] found terms ['pain', 'suicidal', 'beast']... → LLM context check (fast: 0.1ms)
+2025-11-01 17:02:39,492 - INFO - [EXECUTION-MODE] Pipeline for config 'text_safety_check_kids' with execution_mode='eco'
+2025-11-01 17:02:39,492 - INFO - Config 'text_safety_check_kids' loaded: Pipeline='text_transformation', Chunks=['manipulate']
+2025-11-01 17:02:39,492 - INFO - [CHUNK-CONTEXT] input_text: 'In the sprawling, labyrinthine catacombs beneath t...'
+2025-11-01 17:02:39,492 - INFO - [CHUNK-CONTEXT] previous_output: 'In the sprawling, labyrinthine catacombs beneath t...'
+2025-11-01 17:02:39,492 - INFO - [BACKEND] Using model: local/llama-guard3:1b
+2025-11-01 17:02:39,497 - INFO - [BACKEND] 🏠 Ollama Request: llama-guard3:1b
+2025-11-01 17:02:47,364 - INFO - [BACKEND] ✅ Ollama Success: llama-guard3:1b (4 chars)
+2025-11-01 17:02:47,364 - INFO - Pipeline for config 'text_safety_check_kids' completed: PipelineStatus.COMPLETED
+2025-11-01 17:02:47,364 - INFO - [STAGE3-SAFETY] PASSED (LLM verified false positive, llm: 7.9s)
+2025-11-01 17:02:47,364 - INFO - [AUTO-MEDIA] Config requests media output: image
+2025-11-01 17:02:47,364 - INFO - output_config_defaults.json loaded
+2025-11-01 17:02:47,364 - INFO - Output-Config lookup: image/eco → sd35_large
+2025-11-01 17:02:47,364 - INFO - [AUTO-MEDIA] Starting Output-Pipeline: sd35_large
+2025-11-01 17:02:47,365 - INFO - [EXECUTION-MODE] Pipeline for config 'sd35_large' with execution_mode='eco'
+2025-11-01 17:02:47,365 - INFO - Config 'sd35_large' loaded: Pipeline='single_prompt_generation', Chunks=['output_image']
+2025-11-01 17:02:47,365 - INFO - [CHUNK-CONTEXT] input_text: 'In the sprawling, labyrinthine catacombs beneath t...'
+2025-11-01 17:02:47,365 - INFO - [CHUNK-CONTEXT] previous_output: 'In the sprawling, labyrinthine catacombs beneath t...'
+2025-11-01 17:02:47,365 - INFO - Loaded Output-Chunk: output_image_sd35_large (image media)
+2025-11-01 17:02:47,420 - INFO - ✅ Discovered ComfyUI on port 7821 (SwarmUI integrated ComfyUI)
+2025-11-01 17:02:47,420 - INFO - ComfyUI client initialized for: http://127.0.0.1:7821
+2025-11-01 17:02:47,423 - INFO - Workflow submitted successfully: 01a6a386-01dc-4aa7-8d15-d90ce9a384d6
+2025-11-01 17:02:47,423 - INFO - Workflow submitted to ComfyUI: 01a6a386-01dc-4aa7-8d15-d90ce9a384d6 (chunk: output_image_sd35_large)
+2025-11-01 17:02:47,423 - INFO - Pipeline for config 'sd35_large' completed: PipelineStatus.COMPLETED
+2025-11-01 17:02:47,423 - INFO - [AUTO-MEDIA] Media generation successful: 01a6a386-01dc-4aa7-8d15-d90ce9a384d6
+
+(END OF CONSOLE OUTPUT)
+
 ---
 
 **Last Updated:** 2025-11-01 (Session 9 - Phase 3 Complete)
