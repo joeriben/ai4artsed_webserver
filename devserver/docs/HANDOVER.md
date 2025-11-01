@@ -1,577 +1,416 @@
-# Phase 3 Handover: Implement DevServer 4-Stage Orchestrator
+# Phase 5 Handover: Integration Testing
 
 **Date:** 2025-11-01
-**Status:** Ready to start Phase 3
+**Status:** Ready to start Phase 5
 **Branch:** `feature/schema-architecture-v2`
-**Estimated Time:** 3 hours
+**Estimated Time:** 2-3 hours
 
 ---
 
 ## ⚠️ IMPORTANT: Read Before Starting
 
 **This document assumes you have read:**
-- ✅ `docs/README_FIRST.md` (mandatory reading)
+- ✅ `docs/README_FIRST.md` (mandatory reading - 85 min)
+- ✅ `/tmp/session9_summary.md` (Phase 3 completion summary)
 - ✅ `docs/ARCHITECTURE.md` Section 1 (4-Stage Flow - AUTHORITATIVE)
-- ✅ `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md` Phase 3
 
 **Current Progress:**
 - ✅ Phase 1 Complete (metadata added to 49 JSON files)
-- ✅ Phase 2 Complete (helper functions extracted to `stage_orchestrator.py`)
-- ⏭️ **Phase 3: YOU ARE HERE** - Implement DevServer orchestrator
+- ✅ Phase 2 Complete (helper functions in stage_orchestrator.py)
+- ✅ Phase 3 Complete (DevServer orchestration implemented)
+- ⏭️ **Phase 5: YOU ARE HERE** - Integration testing
+
+**Note:** Phase 4 (skip_stages parameter) is now OPTIONAL - architecture already clean after Phase 3.
 
 ---
 
-## 📋 Phase 3 Goal
+## 📋 Phase 5 Goal
 
-**Implement NEW 4-stage orchestration in DevServer** while keeping old system working.
+**Test 4-stage orchestration with comprehensive test coverage**
 
-**Key Principle:** DevServer orchestrates (SMART), PipelineExecutor executes (DUMB).
+**Key Principle:** Verify DevServer orchestrates correctly, PipelineExecutor executes correctly, no redundancy.
 
 **Strategy:**
-1. Create new `execute_4_stage_flow()` function in `schema_pipeline_routes.py`
-2. Add feature flag: `USE_NEW_4_STAGE_ARCHITECTURE = False`
-3. Route old path → old code, new path → new function
-4. Test both paths work independently
-5. NO breaking changes (flag off by default)
+1. Create automated test suite (`test_phase5_integration.py`)
+2. Test multiple config types with various scenarios
+3. Verify logs show clean execution (no redundant stages)
+4. Document any issues found
+5. Create report for Phase 6 cleanup
 
 ---
 
-## 🎯 What Phase 3 Implements
+## 🎯 What Phase 5 Tests
 
-### NEW Flow (When flag = True)
+### Test Categories
 
-```
-POST /api/schema/pipeline/execute
-  ↓
-schema_pipeline_routes.py: execute_4_stage_flow()
-  ↓
-┌─ STAGE 1: Pre-Interception ─────────────────────┐
-│ DevServer orchestrates (using stage_orchestrator helpers)
-│ - execute_stage1_translation()
-│ - execute_stage1_safety()
-└──────────────────────────────────────────────────┘
-  ↓
-┌─ STAGE 2: Interception ──────────────────────────┐
-│ PipelineExecutor.execute_pipeline() [DUMB MODE]
-│ - Just executes chunks
-│ - NO Stage 1-3 logic inside
-│ - Returns output + output_requests
-└──────────────────────────────────────────────────┘
-  ↓
-┌─ STAGE 3-4: For each output request ────────────┐
-│ FOR EACH request in output_requests:
-│   - Stage 3: execute_stage3_safety()
-│   - Stage 4: execute_pipeline(output_config)
-└──────────────────────────────────────────────────┘
-```
+**1. Text Transformation Configs (Stage 1-2-3-4)**
+- dada, bauhaus, overdrive, etc.
+- Input: German text → Translation → Safety → Transform → Pre-Output → Media
+- Expected: All 4 stages execute once each
 
-### OLD Flow (When flag = False)
+**2. Output Configs (Skip Stage 1-3)**
+- sd35_large, gpt5_image, flux1_dev
+- Input: English prompt → Direct execution → Media
+- Expected: Stage 1-3 skipped, Stage 4 executes
 
-```
-POST /api/schema/pipeline/execute
-  ↓
-pipeline_executor.py: execute_pipeline()
-  ↓
-Stage 1-3 inside PipelineExecutor (lines 308-499)
-```
+**3. System Pipelines (Skip Stage 1-3)**
+- pre_interception/correction_translation_de_en
+- pre_interception/safety_llamaguard
+- Input: Direct text → Process → Return
+- Expected: Stage 1-3 skipped, direct execution
+
+**4. Safety Scenarios**
+- Safe input → All stages pass
+- Unsafe input (Stage 1) → Block at translation/safety
+- Unsafe input (Stage 3) → Block before media generation
+- safety_level='off' → Skip all safety checks
+
+**5. Edge Cases**
+- media_preferences=None → Text-only output (no Stage 3-4)
+- Multiple output requests → Stage 3-4 loop
+- Failed pipelines → Error handling
+- English input → Translation pass-through
 
 ---
 
-## 📁 Key Files for Phase 3
+## 🔧 Implementation Guide
 
-### Files to READ:
+### Step 1: Create Test Suite
 
-1. **`my_app/routes/schema_pipeline_routes.py`** (Main file to modify)
-   - Current endpoint: `/api/schema/pipeline/execute`
-   - Line ~50-150: Current request handling
-   - Need to add: Feature flag + new orchestrator
+**File:** `test_phase5_integration.py`
 
-2. **`schemas/engine/stage_orchestrator.py`** (Created in Phase 2)
-   - Use these functions:
-     - `execute_stage1_translation(text, execution_mode, pipeline_executor)`
-     - `execute_stage1_safety(text, safety_level, execution_mode, pipeline_executor)`
-     - `execute_stage3_safety(prompt, safety_level, media_type, execution_mode, pipeline_executor)`
-     - `build_safety_message(codes, lang)`
+```python
+"""
+Phase 5 Integration Tests: 4-Stage Orchestration
+Tests complete flow from input to output for various config types
+"""
+import asyncio
+import pytest
+from schemas.engine.pipeline_executor import PipelineExecutor
+from schemas.engine.config_loader import config_loader
 
-3. **`schemas/engine/pipeline_executor.py`**
-   - Understand `execute_pipeline()` signature
-   - Understand `PipelineResult` structure
-   - We'll add `skip_stages` parameter in Phase 4
+# Test fixtures
+@pytest.fixture
+def pipeline_executor():
+    executor = PipelineExecutor('schemas')
+    return executor
 
-4. **`schemas/engine/config_loader.py`**
-   - Understand `get_config()` and `get_pipeline()`
-   - ResolvedConfig structure
+# Test 1: Text transformation config (full 4-stage flow)
+async def test_text_transformation_full_flow(pipeline_executor):
+    """Test dada config: Stage 1 (translation+safety) → Stage 2 (transform) → Stage 3 (safety) → Stage 4 (media)"""
+    # Implement test
+    pass
 
-### Files to MODIFY:
+# Test 2: Output config (skip Stage 1-3)
+async def test_output_config_direct(pipeline_executor):
+    """Test sd35_large: Should skip Stage 1-3, execute directly"""
+    # Implement test
+    pass
 
-1. **`my_app/routes/schema_pipeline_routes.py`**
-   - Add feature flag at top
-   - Create `execute_4_stage_flow()` function
-   - Route based on flag
+# Test 3: System pipeline (skip Stage 1-3)
+async def test_system_pipeline_direct(pipeline_executor):
+    """Test translation pipeline: Should skip Stage 1-3"""
+    # Implement test
+    pass
 
-2. **`docs/DEVELOPMENT_LOG.md`**
-   - Add Session 9 entry
+# Test 4: Unsafe input blocking (Stage 1)
+async def test_unsafe_input_stage1(pipeline_executor):
+    """Test input with unsafe terms: Should block at Stage 1"""
+    # Implement test
+    pass
 
-3. **`docs/devserver_todos.md`**
-   - Mark Phase 3 complete
+# Test 5: Unsafe output blocking (Stage 3)
+async def test_unsafe_output_stage3(pipeline_executor):
+    """Test output with unsafe terms: Should block at Stage 3"""
+    # Implement test
+    pass
 
----
+# Test 6: Safety level 'off'
+async def test_safety_off(pipeline_executor):
+    """Test with safety_level='off': Should skip all safety checks"""
+    # Implement test
+    pass
 
-## 🔧 Step-by-Step Implementation
+# Test 7: Text-only output
+async def test_text_only_output(pipeline_executor):
+    """Test config with no media_preferences: Should skip Stage 3-4"""
+    # Implement test
+    pass
 
-### Step 1: Read Current Implementation
+# Run tests
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])
+```
 
-**Location:** `my_app/routes/schema_pipeline_routes.py`
+### Step 2: Manual Testing via Server
 
+**Start Server:**
 ```bash
-# Read the current endpoint
 cd /home/joerissen/ai/ai4artsed_webserver/devserver
-grep -n "def execute_pipeline" my_app/routes/schema_pipeline_routes.py
-```
-
-**What to understand:**
-- How requests are parsed (config_name, input_text, execution_mode, safety_level)
-- How responses are built (final_output, media_output, metadata)
-- Error handling patterns
-
-### Step 2: Add Feature Flag
-
-**Location:** `my_app/routes/schema_pipeline_routes.py` (top of file)
-
-```python
-# ============================================================================
-# FEATURE FLAG: 4-Stage Architecture Refactoring
-# ============================================================================
-USE_NEW_4_STAGE_ARCHITECTURE = False  # Set to True to enable new flow
-```
-
-### Step 3: Create New Orchestrator Function
-
-**Location:** `my_app/routes/schema_pipeline_routes.py` (new function)
-
-**Template:**
-
-```python
-from schemas.engine.stage_orchestrator import (
-    execute_stage1_translation,
-    execute_stage1_safety,
-    execute_stage3_safety,
-    build_safety_message
-)
-
-async def execute_4_stage_flow(
-    config_name: str,
-    input_text: str,
-    execution_mode: str = 'eco',
-    safety_level: str = 'kids'
-) -> Dict[str, Any]:
-    """
-    NEW: 4-Stage orchestration with DevServer as smart orchestrator
-
-    Stage 1: Pre-Interception (Translation + Safety)
-    Stage 2: Interception (Main Pipeline)
-    Stage 3: Pre-Output Safety (per output request)
-    Stage 4: Output (Media generation per output request)
-
-    Returns same structure as old execute_pipeline() for API compatibility
-    """
-
-    # Load config and pipeline
-    config = config_loader.get_config(config_name)
-    if not config:
-        return {"error": f"Config '{config_name}' not found"}
-
-    pipeline = config_loader.get_pipeline(config.pipeline_name)
-    if not pipeline:
-        return {"error": f"Pipeline '{config.pipeline_name}' not found"}
-
-    # Check if this is an output config (skip Stage 1-3 for output configs)
-    is_output_config = config.meta.get('stage') == 'output'
-
-    if is_output_config:
-        # Output configs called from Stage 4 - just execute
-        # (Stage 1-3 already done by main pipeline)
-        result = await pipeline_executor.execute_pipeline(
-            config_name,
-            input_text,
-            execution_mode=execution_mode,
-            safety_level=safety_level
-        )
-
-        return {
-            "success": result.success,
-            "final_output": result.final_output,
-            "metadata": result.metadata
-        }
-
-    # ====================================================================
-    # STAGE 1: PRE-INTERCEPTION
-    # ====================================================================
-    logger.info(f"[4-STAGE-NEW] Stage 1: Pre-Interception for '{config_name}'")
-
-    # Stage 1a: Translation
-    translated_text = await execute_stage1_translation(
-        input_text,
-        execution_mode,
-        pipeline_executor
-    )
-
-    # Stage 1b: Safety Check
-    is_safe, codes = await execute_stage1_safety(
-        translated_text,
-        safety_level,
-        execution_mode,
-        pipeline_executor
-    )
-
-    if not is_safe:
-        # Build error message
-        error_message = build_safety_message(codes, lang='de')
-        logger.warning(f"[4-STAGE-NEW] Stage 1 BLOCKED: {codes}")
-
-        return {
-            "success": False,
-            "error": error_message,
-            "metadata": {
-                "stage": "pre_interception",
-                "safety_codes": codes
-            }
-        }
-
-    # ====================================================================
-    # STAGE 2: INTERCEPTION (Main Pipeline)
-    # ====================================================================
-    logger.info(f"[4-STAGE-NEW] Stage 2: Interception (Main Pipeline)")
-
-    result = await pipeline_executor.execute_pipeline(
-        config_name,
-        translated_text,
-        execution_mode=execution_mode,
-        safety_level=safety_level
-        # TODO Phase 4: Add skip_stages=True here
-    )
-
-    if not result.success:
-        return {
-            "success": False,
-            "error": result.error,
-            "metadata": result.metadata
-        }
-
-    # ====================================================================
-    # STAGE 3-4: PRE-OUTPUT + OUTPUT (If media requested)
-    # ====================================================================
-
-    # Check if config requests media output
-    media_type = config.media_preferences.get('default_output') if config.media_preferences else None
-
-    if media_type and media_type != 'text' and safety_level != 'off':
-        logger.info(f"[4-STAGE-NEW] Stage 3: Pre-Output Safety for {media_type}")
-
-        # Stage 3: Pre-Output Safety
-        safety_result = await execute_stage3_safety(
-            result.final_output,
-            safety_level,
-            media_type,
-            execution_mode,
-            pipeline_executor
-        )
-
-        if not safety_result['safe']:
-            # Build user-friendly message
-            abort_reason = safety_result.get('abort_reason', 'Content blocked by safety filter')
-            error_message = f"🛡️ Sicherheitsfilter ({safety_level.upper()}):\n\n{abort_reason}\n\nℹ️ Dein Text wurde verarbeitet, aber die Bildgenerierung wurde aus Sicherheitsgründen blockiert."
-
-            logger.warning(f"[4-STAGE-NEW] Stage 3 BLOCKED: {abort_reason}")
-
-            return {
-                "success": True,
-                "final_output": f"{result.final_output}\n\n---\n\n{error_message}",
-                "metadata": {
-                    "stage_3_blocked": True,
-                    "abort_reason": abort_reason
-                }
-            }
-
-        # Stage 4: Media Generation (if Stage 3 passed)
-        # TODO: Implement media generation call
-        # For now, return text result
-        logger.info(f"[4-STAGE-NEW] Stage 3 PASSED, Stage 4 would execute here")
-
-    # Return result
-    return {
-        "success": True,
-        "final_output": result.final_output,
-        "metadata": result.metadata
-    }
-```
-
-### Step 4: Route Based on Feature Flag
-
-**Location:** `my_app/routes/schema_pipeline_routes.py` (in the endpoint handler)
-
-**Find the current endpoint (probably around line 50-100):**
-```python
-@bp.route('/execute', methods=['POST'])
-async def execute_pipeline():
-    # Current implementation
-```
-
-**Modify to route based on flag:**
-```python
-@bp.route('/execute', methods=['POST'])
-async def execute_pipeline():
-    """Execute pipeline endpoint - routes to old or new implementation"""
-
-    # Parse request
-    data = await request.get_json()
-    config_name = data.get('config_name')
-    input_text = data.get('input_text')
-    execution_mode = data.get('execution_mode', 'eco')
-    safety_level = data.get('safety_level', 'kids')
-
-    # Route based on feature flag
-    if USE_NEW_4_STAGE_ARCHITECTURE:
-        logger.info(f"[ROUTING] Using NEW 4-stage architecture for '{config_name}'")
-        result = await execute_4_stage_flow(
-            config_name,
-            input_text,
-            execution_mode,
-            safety_level
-        )
-    else:
-        logger.info(f"[ROUTING] Using OLD architecture for '{config_name}'")
-        # OLD PATH: Use pipeline_executor directly
-        pipeline_result = await pipeline_executor.execute_pipeline(
-            config_name,
-            input_text,
-            user_input=input_text,
-            execution_mode=execution_mode,
-            safety_level=safety_level
-        )
-
-        result = {
-            "success": pipeline_result.success,
-            "final_output": pipeline_result.final_output,
-            "error": pipeline_result.error if not pipeline_result.success else None,
-            "metadata": pipeline_result.metadata
-        }
-
-    # Return response (same format for both paths)
-    return jsonify(result)
-```
-
-### Step 5: Test Both Paths
-
-**Test 1: OLD path (flag = False)**
-```bash
-# Start server
 python3 server.py
 
-# Test from another terminal
+# Logs: tail -f /tmp/devserver.log | grep -E "\[4-STAGE\]|Stage"
+```
+
+**Test 1: Text Transformation (dada)**
+```bash
 curl -X POST http://localhost:17801/api/schema/pipeline/execute \
   -H "Content-Type: application/json" \
   -d '{
-    "config_name": "dada",
+    "schema": "dada",
     "input_text": "Eine Blume auf der Wiese",
     "execution_mode": "eco",
     "safety_level": "kids"
   }'
+
+# Expected in logs:
+# [4-STAGE] Stage 1: Pre-Interception for 'dada'
+# [STAGE1-SAFETY] PASSED (fast-path, 0.2ms)
+# [4-STAGE] Stage 2: Interception (Main Pipeline) for 'dada'
+# [4-STAGE] Stage 3: Pre-Output Safety for image (level: kids)
+# [STAGE3-SAFETY] PASSED (fast-path, 0.1ms)
+# [AUTO-MEDIA] Starting Output-Pipeline: sd35_large
 ```
 
-**Expected:** Should work as before (using pipeline_executor's Stage 1-3)
-
-**Test 2: NEW path (flag = True)**
-```python
-# In schema_pipeline_routes.py, change:
-USE_NEW_4_STAGE_ARCHITECTURE = True
-```
-
+**Test 2: Output Config (sd35_large)**
 ```bash
-# Restart server
-python3 server.py
-
-# Test same request
 curl -X POST http://localhost:17801/api/schema/pipeline/execute \
   -H "Content-Type: application/json" \
   -d '{
-    "config_name": "dada",
-    "input_text": "Eine Blume auf der Wiese",
+    "schema": "sd35_large",
+    "input_text": "A beautiful flower on a meadow",
     "execution_mode": "eco",
     "safety_level": "kids"
   }'
+
+# Expected in logs:
+# NO [4-STAGE] Stage 1 (should be skipped)
+# NO [4-STAGE] Stage 3 (should be skipped)
+# Pipeline for config 'sd35_large' completed
 ```
 
-**Expected:** Should work via new orchestrator (using stage_orchestrator helpers)
+**Test 3: Unsafe Input (Stage 1)**
+```bash
+curl -X POST http://localhost:17801/api/schema/pipeline/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema": "dada",
+    "input_text": "violent content with weapons and blood",
+    "execution_mode": "eco",
+    "safety_level": "kids"
+  }'
 
-**Check logs for:**
-- `[4-STAGE-NEW]` messages
-- Stage 1 translation
-- Stage 1 safety check
-- Stage 2 execution
-- Stage 3 safety (if media requested)
+# Expected: HTTP 403, error message with safety codes
+```
+
+**Test 4: Safety Off**
+```bash
+curl -X POST http://localhost:17801/api/schema/pipeline/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema": "dada",
+    "input_text": "Eine Blume",
+    "execution_mode": "eco",
+    "safety_level": "off"
+  }'
+
+# Expected: Stage 1 safety skipped, Stage 3 skipped
+```
+
+### Step 3: Log Analysis
+
+**Check for Redundancy:**
+```bash
+# Count Stage 1 executions (should be 1 or 0)
+grep -c "\[4-STAGE\] Stage 1:" /tmp/devserver.log
+
+# Check no recursive Stage 1-3 in output configs
+grep "sd35_large" /tmp/devserver.log | grep -c "\[4-STAGE\] Stage 1"
+# Should be 0
+
+# Verify clean flow
+grep "dada" /tmp/devserver.log | grep "\[4-STAGE\]"
+# Should show: Stage 1 → Stage 2 → Stage 3 (no duplicates)
+```
+
+### Step 4: Create Test Report
+
+**File:** `docs/PHASE5_TEST_REPORT.md`
+
+```markdown
+# Phase 5 Test Report
+
+**Date:** [Date]
+**Tester:** [Name/Session]
+**Branch:** feature/schema-architecture-v2
+
+## Test Results
+
+### Text Transformation Configs
+- [ ] dada: ✅/❌
+- [ ] bauhaus: ✅/❌
+- [ ] overdrive: ✅/❌
+- [ ] stillepost: ✅/❌
+
+### Output Configs
+- [ ] sd35_large: ✅/❌
+- [ ] gpt5_image: ✅/❌
+- [ ] flux1_dev: ✅/❌
+
+### System Pipelines
+- [ ] translation: ✅/❌
+- [ ] safety_llamaguard: ✅/❌
+
+### Safety Scenarios
+- [ ] Safe input (kids): ✅/❌
+- [ ] Safe input (youth): ✅/❌
+- [ ] Unsafe Stage 1: ✅/❌
+- [ ] Unsafe Stage 3: ✅/❌
+- [ ] Safety off: ✅/❌
+
+### Edge Cases
+- [ ] Text-only output: ✅/❌
+- [ ] English input: ✅/❌
+- [ ] German input: ✅/❌
+
+## Issues Found
+
+[List any issues discovered]
+
+## Performance Observations
+
+[Note any performance issues]
+
+## Recommendations for Phase 6
+
+[Cleanup tasks needed]
+```
 
 ---
 
 ## ✅ Success Criteria
 
-Phase 3 is complete when:
+Phase 5 is complete when:
 
-1. ✅ Feature flag added to `schema_pipeline_routes.py`
-2. ✅ `execute_4_stage_flow()` function created
-3. ✅ Routing logic works (flag controls which path)
-4. ✅ OLD path still works (flag = False)
-5. ✅ NEW path works (flag = True)
-6. ✅ Both paths return same response structure
-7. ✅ Logs show correct orchestration
-8. ✅ No breaking changes to API
+1. ✅ Automated test suite created and passing
+2. ✅ Manual tests completed for all categories
+3. ✅ Logs verified (no redundant Stage 1-3 calls)
+4. ✅ All configs work end-to-end
+5. ✅ Safety filters work correctly
+6. ✅ Error handling works
+7. ✅ Test report created
+8. ✅ Documentation updated
 
-**Test Coverage:**
-- Text transformation config (e.g., dada)
-- With safe input (should pass all stages)
-- With unsafe input (should block at Stage 1)
-- Output config call (should skip Stage 1-3)
+**Test Coverage Required:**
+- Minimum 10 different configs tested
+- All 5 test categories covered
+- Safe + unsafe scenarios tested
+- Edge cases verified
 
 ---
 
 ## 🚨 Common Issues to Watch For
 
-### Issue 1: Import Errors
-**Symptom:** `ImportError: cannot import name 'execute_stage1_translation'`
+### Issue 1: Redundant Stage Calls
+**Symptom:** Logs show Stage 1 or 3 running multiple times
+**Check:** `grep -c "\[4-STAGE\] Stage 1:" /tmp/devserver.log`
+**Fix:** Verify is_output_config and is_system_pipeline checks
 
-**Solution:** Make sure imports at top of `schema_pipeline_routes.py`:
-```python
-from schemas.engine.stage_orchestrator import (
-    execute_stage1_translation,
-    execute_stage1_safety,
-    execute_stage3_safety,
-    build_safety_message
-)
-```
+### Issue 2: Output Configs Run Stage 1-3
+**Symptom:** sd35_large shows "[4-STAGE] Stage 1"
+**Check:** Config has `"stage": "output"` in meta?
+**Fix:** Add missing metadata or fix check logic
 
-### Issue 2: PipelineExecutor Not Available
-**Symptom:** `NameError: name 'pipeline_executor' is not defined`
+### Issue 3: System Pipelines Recurse
+**Symptom:** Translation pipeline triggers itself
+**Check:** Config has `"system_pipeline": true` in meta?
+**Fix:** Add missing metadata
 
-**Solution:** Check if `pipeline_executor` is initialized in route file. Look for:
-```python
-from schemas.engine.pipeline_executor import PipelineExecutor
-pipeline_executor = PipelineExecutor('schemas')
-```
+### Issue 4: Safety Not Blocking
+**Symptom:** Unsafe content passes through
+**Check:** Filter terms loaded? Safety level correct?
+**Fix:** Verify filter JSON files exist and are loaded
 
-### Issue 3: Recursive Stage 1-3 Calls
-**Symptom:** Logs show Stage 1 running twice, translation happening multiple times
-
-**Cause:** Phase 4 not implemented yet - `skip_stages` parameter doesn't exist
-
-**Solution:** Expected for Phase 3! Will be fixed in Phase 4. For now:
-- OLD path: Stage 1-3 runs inside pipeline_executor (current behavior)
-- NEW path: Stage 1-3 runs in DevServer, but ALSO inside pipeline_executor (redundant but not breaking)
-
-### Issue 4: Response Format Mismatch
-**Symptom:** Frontend can't parse response
-
-**Solution:** Ensure both paths return same structure:
-```python
-{
-    "success": bool,
-    "final_output": str,
-    "error": str | None,
-    "metadata": dict
-}
-```
+### Issue 5: Media Generation Fails
+**Symptom:** Stage 4 errors
+**Check:** ComfyUI running? Output config exists?
+**Fix:** Start ComfyUI, verify config name
 
 ---
 
 ## 📊 Testing Strategy
 
-### Manual Tests (Both Paths)
+### Automated Tests (pytest)
+- Fast unit-style tests
+- Mock external services (Ollama, ComfyUI)
+- Focus on orchestration logic
+- Run with: `pytest test_phase5_integration.py -v`
 
-1. **Safe Text Transformation**
-   - Config: dada
-   - Input: "Eine Blume auf der Wiese"
-   - Expected: Stage 1-2 pass, return transformed text
+### Manual Tests (curl + server)
+- Full integration tests
+- Real Ollama + ComfyUI
+- Verify complete flow
+- Check logs for clean execution
 
-2. **Unsafe Input (Stage 1 Block)**
-   - Config: dada
-   - Input: "violent content here" (use actual unsafe term from stage1_safety_filters.json)
-   - Expected: Blocked at Stage 1, error message returned
-
-3. **Media Request (Stage 3)**
-   - Config: dada (has media_preferences.default_output = "image")
-   - Input: "Eine Blume"
-   - Expected: Stage 1-2-3 pass, Stage 4 TODO message
-
-4. **Output Config Direct Call**
-   - Config: gpt5_image
-   - Input: "A beautiful flower"
-   - Expected: Skip Stage 1-3, just execute
-
-### Automated Test Script
-
-Create `test_phase3_integration.py`:
-
-```python
-import asyncio
-import json
-from schemas.engine.pipeline_executor import PipelineExecutor
-from schemas.engine.config_loader import config_loader
-
-# Test will be written after implementing execute_4_stage_flow()
-# For now, focus on manual testing via curl
-```
+### Log Analysis
+- Grep for Stage patterns
+- Count executions
+- Verify no redundancy
+- Check timing
 
 ---
 
 ## 📝 Documentation Updates Required
 
-After implementation, update:
+After Phase 5, update:
 
 1. **`docs/DEVELOPMENT_LOG.md`**
-   - Add Session 9 entry
-   - Document Phase 3 implementation
-   - Include test results
-   - Note any issues encountered
+   - Add Session 10 entry (or continue Session 9)
+   - Document test results
+   - Note any issues found
 
 2. **`docs/devserver_todos.md`**
-   - Mark Phase 3 complete: `[x] Phase 3 (3h): ✅ COMPLETE (2025-11-01)`
+   - Mark Phase 5 complete
+   - Add Phase 6 tasks based on findings
 
-3. **`docs/ARCHITECTURE.md` (Optional)**
-   - Update Section 1.6 "Implementation Status" if significant changes
+3. **`docs/PHASE5_TEST_REPORT.md`**
+   - Create test report
+   - List all tested configs
+   - Document issues
+
+4. **`docs/ARCHITECTURE.md` (if needed)**
+   - Update if any issues found in design
 
 ---
 
 ## 🔗 Key References
 
 **Must Read:**
-- `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md` Phase 3 section (lines 250-340)
 - `docs/ARCHITECTURE.md` Section 1 (4-Stage Flow)
+- `/tmp/session9_summary.md` (Phase 3 completion)
+- `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md` Phase 5
 
-**Helpful:**
-- `schemas/engine/stage_orchestrator.py` (Phase 2 implementation)
-- `test_stage_orchestrator_phase2.py` (examples of how to call helpers)
+**Implementation Files:**
+- `my_app/routes/schema_pipeline_routes.py` (DevServer orchestration)
+- `schemas/engine/stage_orchestrator.py` (Stage helpers)
+- `schemas/engine/pipeline_executor.py` (DUMB executor)
 
-**Current State:**
-- Phase 1 summary: `/tmp/phase1_summary.md`
-- Phase 2 summary: `/tmp/phase2_summary.md`
+**Test Examples:**
+- `/tmp/test_request.json` (Dada test)
+- `/tmp/devserver.log` (Server logs with [4-STAGE] markers)
 
 ---
 
-## ⏭️ After Phase 3
+## ⏭️ After Phase 5: Phase 6
 
-**Phase 4 (1h):** Add `skip_stages` parameter to PipelineExecutor
-- Prevents recursive Stage 1-3 calls
-- NEW path will use `skip_stages=True` for output configs
-- Fixes redundancy issue
+**Phase 6: Final Cleanup & Documentation (1 hour)**
 
-**Phase 5 (2h):** Enable feature flag, run integration tests
-- Set `USE_NEW_4_STAGE_ARCHITECTURE = True` by default
-- Run full test suite
-- Fix any issues
-
-**Phase 6 (1h):** Remove old code, cleanup
-- Remove lines 308-499 from pipeline_executor.py
-- Remove feature flag (only new path remains)
-- Final cleanup
+Based on Phase 5 findings:
+- Fix any issues discovered
+- Remove obsolete code (if any)
+- Update documentation
+- Create final test suite
+- Prepare for merge to main
 
 ---
 
@@ -581,44 +420,30 @@ After implementation, update:
 # Navigate to devserver
 cd /home/joerissen/ai/ai4artsed_webserver/devserver
 
-# Read current route implementation
-grep -A 50 "def execute_pipeline" my_app/routes/schema_pipeline_routes.py
+# Read this handover
+cat docs/HANDOVER.md
 
-# Read stage_orchestrator helpers
-head -100 schemas/engine/stage_orchestrator.py
+# Check Phase 3 implementation
+grep -n "4-STAGE" my_app/routes/schema_pipeline_routes.py | head -10
 
-# Start implementing!
-# Edit: my_app/routes/schema_pipeline_routes.py
+# Start server for testing
+python3 server.py &
+tail -f /tmp/devserver.log | grep "\[4-STAGE\]"
+
+# Create test suite
+touch test_phase5_integration.py
+# (Implement tests from Step 1 above)
+
+# Run manual tests
+curl -X POST http://localhost:17801/api/schema/pipeline/execute \
+  -H "Content-Type: application/json" \
+  -d @/tmp/test_request.json
 ```
 
 ---
 
-## ✅ Implementation Checklist
-
-Use this checklist while implementing:
-
-- [ ] Read `schema_pipeline_routes.py` current implementation
-- [ ] Add feature flag `USE_NEW_4_STAGE_ARCHITECTURE = False`
-- [ ] Add imports from `stage_orchestrator`
-- [ ] Create `execute_4_stage_flow()` function
-  - [ ] Load config and pipeline
-  - [ ] Check if output config (skip Stage 1-3)
-  - [ ] Stage 1a: Translation
-  - [ ] Stage 1b: Safety check
-  - [ ] Stage 2: Main pipeline execution
-  - [ ] Stage 3: Pre-output safety (if media)
-  - [ ] Stage 4: TODO placeholder
-- [ ] Modify endpoint to route based on flag
-- [ ] Test OLD path (flag = False)
-- [ ] Test NEW path (flag = True)
-- [ ] Update `DEVELOPMENT_LOG.md`
-- [ ] Update `devserver_todos.md`
-- [ ] Commit and push
-
----
-
-**Status:** Ready to start Phase 3
-**Estimated Time:** 3 hours
-**Complexity:** Medium (routing + orchestration logic)
+**Status:** Ready to start Phase 5
+**Estimated Time:** 2-3 hours
+**Complexity:** Medium (testing + validation)
 
 Good luck! 🚀
