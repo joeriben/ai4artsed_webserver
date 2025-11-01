@@ -1461,8 +1461,13 @@ Related docs:
 ---
 
 ## Session 9: 2025-11-01 - Phase 3: DevServer 4-Stage Orchestrator
-**Duration (Wall):** ~2 hours
-**Cost:** TBD (Claude Sonnet 4.5 via Claude Code)
+**Duration (Wall):** 5h 10m 39s
+**Duration (API):** 44m 60s
+**Cost:** $1.95
+
+### Model Usage
+- claude-sonnet-4.5: 130k output tokens ($1.95)
+- claude-haiku: 174 output tokens ($0.0009)
 
 ### Tasks Completed
 1. ✅ Read and understood Stage 1-3 logic in pipeline_executor.py (lines 311-505)
