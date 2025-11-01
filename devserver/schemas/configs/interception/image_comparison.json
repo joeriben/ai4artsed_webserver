@@ -1,0 +1,58 @@
+{
+  "pipeline": "text_transformation",
+  "name": {
+    "en": "Image Model Comparison (SD3.5 vs GPT-5)",
+    "de": "Bildmodell-Vergleich (SD3.5 vs GPT-5)"
+  },
+  "description": {
+    "en": "Generate the same prompt with two different image models for comparison: SD3.5 Large (local) and GPT-5 Image (cloud)",
+    "de": "Generiere denselben Prompt mit zwei verschiedenen Bildmodellen zum Vergleich: SD3.5 Large (lokal) und GPT-5 Image (Cloud)"
+  },
+  "category": {
+    "en": "Image Generation",
+    "de": "Bildgenerierung"
+  },
+  "context": "Pass on the input text unchanged. Do not modify, enhance, or transform the prompt in any way. Return it exactly as provided.",
+  "parameters": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_tokens": 50
+  },
+  "media_preferences": {
+    "output_configs": ["sd35_large", "gpt5_image"]
+  },
+  "meta": {
+    "stage": "interception",
+    "task_type": "standard",
+    "purpose": "model_comparison",
+    "multi_output": true,
+    "notes": "Generates images with both SD3.5 Large (eco/local) and GPT-5 Image (fast/cloud) for side-by-side comparison.",
+    "version": "1.0"
+  },
+  "display": {
+    "icon": "⚖️",
+    "color": "#9C27B0",
+    "category": "image_generation",
+    "difficulty": 2,
+    "order": 10
+  },
+  "tags": {
+    "en": [
+      "comparison",
+      "multi-output",
+      "sd3.5",
+      "gpt-5"
+    ],
+    "de": [
+      "vergleich",
+      "multi-output",
+      "sd3.5",
+      "gpt-5"
+    ]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

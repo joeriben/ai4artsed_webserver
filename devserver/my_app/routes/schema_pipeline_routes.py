@@ -225,88 +225,137 @@ def execute_pipeline():
         }
 
         # ====================================================================
-        # STAGE 3: PRE-OUTPUT SAFETY (before media generation)
+        # STAGE 3-4 LOOP: Multi-Output Support
         # ====================================================================
         media_preferences = config.media_preferences or {}
         default_output = media_preferences.get('default_output') if media_preferences else None
-        stage_3_blocked = False
+        output_configs = media_preferences.get('output_configs', [])
 
-        if (not is_system_pipeline and not is_output_config and
-            default_output and default_output != 'text' and
-            safety_level != 'off'):
-
-            logger.info(f"[4-STAGE] Stage 3: Pre-Output Safety for {default_output} (level: {safety_level})")
-
-            safety_result = asyncio.run(execute_stage3_safety(
-                result.final_output,
-                safety_level,
-                default_output,
-                execution_mode,
-                pipeline_executor
-            ))
-
-            if not safety_result['safe']:
-                # Build user-friendly message
-                abort_reason = safety_result.get('abort_reason', 'Content blocked by safety filter')
-                error_message = f"🛡️ Sicherheitsfilter ({safety_level.upper()}):\n\n{abort_reason}\n\nℹ️ Dein Text wurde verarbeitet, aber die Bildgenerierung wurde aus Sicherheitsgründen blockiert."
-
-                logger.warning(f"[4-STAGE] Stage 3 BLOCKED: {abort_reason}")
-
-                # Update response
-                response_data['final_output'] = f"{result.final_output}\n\n---\n\n{error_message}"
-                response_data['metadata']['stage_3_blocked'] = True
-                response_data['metadata']['abort_reason'] = abort_reason
-                stage_3_blocked = True
-
-        # ====================================================================
-        # STAGE 4: OUTPUT (Media Generation via Auto-Media)
-        # ====================================================================
-        if default_output and default_output != 'text' and not stage_3_blocked:
-            logger.info(f"[AUTO-MEDIA] Config requests media output: {default_output}")
-
-            # 3. Lookup Output-Config from defaults
+        # Determine which output configs to use
+        if output_configs:
+            # Multi-Output: Use explicit output_configs array
+            logger.info(f"[MULTI-OUTPUT] Config requests {len(output_configs)} outputs: {output_configs}")
+            configs_to_execute = output_configs
+        elif default_output and default_output != 'text':
+            # Single-Output: Use lookup from default_output
             output_config_name = lookup_output_config(default_output, execution_mode)
-
             if output_config_name:
-                logger.info(f"[AUTO-MEDIA] Starting Output-Pipeline: {output_config_name}")
-
-                # 4. Execute Output-Pipeline with transformed text
-                output_result = asyncio.run(pipeline_executor.execute_pipeline(
-                    config_name=output_config_name,
-                    input_text=result.final_output,  # Use transformed text as input!
-                    user_input=result.final_output,
-                    execution_mode=execution_mode
-                ))
-
-                # Add media output to response
-                if output_result.success:
-                    response_data['media_output'] = {
-                        'config': output_config_name,
-                        'media_type': default_output,
-                        'output': output_result.final_output,  # ComfyUI prompt_id or image URL
-                        'execution_time': output_result.execution_time,
-                        'metadata': output_result.metadata
-                    }
-                    logger.info(f"[AUTO-MEDIA] Media generation successful: {output_result.final_output}")
-                else:
-                    # Media generation failed, but text generation succeeded
-                    response_data['media_output'] = {
-                        'status': 'error',
-                        'error': output_result.error
-                    }
-                    logger.error(f"[AUTO-MEDIA] Media generation failed: {output_result.error}")
+                configs_to_execute = [output_config_name]
             else:
-                logger.info(f"[AUTO-MEDIA] No Output-Config available for {default_output}/{execution_mode}")
-                response_data['media_output'] = {
-                    'status': 'not_available',
-                    'message': f'No Output-Config for {default_output}/{execution_mode}'
-                }
-        elif stage_3_blocked:
-            logger.info(f"[AUTO-MEDIA] Media generation blocked by Stage 3 safety check")
+                configs_to_execute = []
+        else:
+            # Text-only output
+            configs_to_execute = []
+
+        # Execute Stage 3-4 for each output config
+        media_outputs = []
+
+        if configs_to_execute and not is_system_pipeline and not is_output_config:
+            logger.info(f"[4-STAGE] Stage 3-4 Loop: Processing {len(configs_to_execute)} output configs")
+
+            for i, output_config_name in enumerate(configs_to_execute):
+                logger.info(f"[4-STAGE] Stage 3-4 Loop iteration {i+1}/{len(configs_to_execute)}: {output_config_name}")
+
+                # ====================================================================
+                # STAGE 3: PRE-OUTPUT SAFETY (per output config)
+                # ====================================================================
+                stage_3_blocked = False
+
+                if safety_level != 'off':
+                    # Determine media type from output config name
+                    # Simple heuristic: if name contains 'image', 'audio', 'video', etc.
+                    if 'image' in output_config_name.lower() or 'sd' in output_config_name.lower() or 'flux' in output_config_name.lower() or 'gpt' in output_config_name.lower():
+                        media_type = 'image'
+                    elif 'audio' in output_config_name.lower():
+                        media_type = 'audio'
+                    elif 'music' in output_config_name.lower() or 'ace' in output_config_name.lower():
+                        media_type = 'music'
+                    elif 'video' in output_config_name.lower():
+                        media_type = 'video'
+                    else:
+                        media_type = 'image'  # Default fallback
+
+                    logger.info(f"[4-STAGE] Stage 3: Pre-Output Safety for {output_config_name} (type: {media_type}, level: {safety_level})")
+
+                    safety_result = asyncio.run(execute_stage3_safety(
+                        result.final_output,
+                        safety_level,
+                        media_type,
+                        execution_mode,
+                        pipeline_executor
+                    ))
+
+                    if not safety_result['safe']:
+                        # Stage 3 blocked for this output
+                        abort_reason = safety_result.get('abort_reason', 'Content blocked by safety filter')
+                        logger.warning(f"[4-STAGE] Stage 3 BLOCKED for {output_config_name}: {abort_reason}")
+
+                        media_outputs.append({
+                            'config': output_config_name,
+                            'status': 'blocked',
+                            'reason': abort_reason,
+                            'safety_level': safety_level
+                        })
+                        stage_3_blocked = True
+                        continue  # Skip Stage 4 for this output
+
+                # ====================================================================
+                # STAGE 4: OUTPUT (Media Generation)
+                # ====================================================================
+                if not stage_3_blocked:
+                    logger.info(f"[4-STAGE] Stage 4: Executing output config '{output_config_name}'")
+
+                    try:
+                        # Execute Output-Pipeline with transformed text
+                        output_result = asyncio.run(pipeline_executor.execute_pipeline(
+                            config_name=output_config_name,
+                            input_text=result.final_output,  # Use transformed text as input!
+                            user_input=result.final_output,
+                            execution_mode=execution_mode
+                        ))
+
+                        # Add media output to results
+                        if output_result.success:
+                            media_outputs.append({
+                                'config': output_config_name,
+                                'status': 'success',
+                                'output': output_result.final_output,  # ComfyUI prompt_id or image URL
+                                'execution_time': output_result.execution_time,
+                                'metadata': output_result.metadata
+                            })
+                            logger.info(f"[4-STAGE] Stage 4 successful for {output_config_name}: {output_result.final_output}")
+                        else:
+                            # Media generation failed
+                            media_outputs.append({
+                                'config': output_config_name,
+                                'status': 'error',
+                                'error': output_result.error
+                            })
+                            logger.error(f"[4-STAGE] Stage 4 failed for {output_config_name}: {output_result.error}")
+
+                    except Exception as e:
+                        logger.error(f"[4-STAGE] Exception during Stage 4 for {output_config_name}: {e}")
+                        media_outputs.append({
+                            'config': output_config_name,
+                            'status': 'error',
+                            'error': str(e)
+                        })
+
+            # Add media outputs to response
+            if len(media_outputs) == 1:
+                # Single output: Use old format for backward compatibility
+                response_data['media_output'] = media_outputs[0]
+            else:
+                # Multiple outputs: Use array format
+                response_data['media_outputs'] = media_outputs
+                response_data['media_output_count'] = len(media_outputs)
+
+        elif not configs_to_execute and default_output and default_output != 'text':
+            # No output config found for default_output
+            logger.info(f"[AUTO-MEDIA] No Output-Config available for {default_output}/{execution_mode}")
             response_data['media_output'] = {
-                'status': 'blocked',
-                'reason': result.metadata.get('abort_reason', 'Blocked by safety filter'),
-                'safety_level': result.metadata.get('safety_level', 'unknown')
+                'status': 'not_available',
+                'message': f'No Output-Config for {default_output}/{execution_mode}'
             }
 
         return jsonify(response_data)
