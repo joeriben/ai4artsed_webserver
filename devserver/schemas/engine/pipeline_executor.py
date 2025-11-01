@@ -186,29 +186,35 @@ class PipelineExecutor:
         return steps
     
     async def _execute_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> PipelineResult:
-        """Execute pipeline steps sequentially"""
+        """Execute pipeline steps sequentially (or recursively if pipeline supports it)"""
+
+        # Check if this is a recursive pipeline
+        if self._current_config and self._current_config.pipeline_name == 'text_transformation_recursive':
+            return await self._execute_recursive_pipeline_steps(config_name, steps, context, execution_mode)
+
+        # Normal sequential execution
         start_time = time.time()
         completed_steps = []
-        
+
         for step in steps:
             try:
                 step.status = PipelineStatus.RUNNING
                 output = await self._execute_single_step(step, context, execution_mode)
-                
+
                 step.status = PipelineStatus.COMPLETED
                 step.output_data = output
                 context.add_output(output)
-                
+
                 completed_steps.append(step)
                 logger.debug(f"Step {step.step_id} successful: {len(output)} chars output")
-                
+
             except Exception as e:
                 step.status = PipelineStatus.FAILED
                 step.error = str(e)
                 completed_steps.append(step)
-                
+
                 logger.error(f"Step {step.step_id} failed: {e}")
-                
+
                 return PipelineResult(
                     config_name=config_name,
                     status=PipelineStatus.FAILED,
@@ -216,9 +222,9 @@ class PipelineExecutor:
                     error=f"Step {step.step_id} failed: {e}",
                     execution_time=time.time() - start_time
                 )
-        
+
         final_output = context.get_previous_output()
-        
+
         return PipelineResult(
             config_name=config_name,
             status=PipelineStatus.COMPLETED,
@@ -230,6 +236,96 @@ class PipelineExecutor:
                 "input_length": len(context.input_text),
                 "output_length": len(final_output),
                 "pipeline_name": self._current_config.pipeline_name if self._current_config else None
+            }
+        )
+
+    async def _execute_recursive_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> PipelineResult:
+        """Execute recursive pipeline with internal loop (e.g., Stille Post)"""
+        from .random_language_selector import get_random_language, get_language_name
+
+        start_time = time.time()
+        completed_steps = []
+
+        # Read loop configuration from config parameters
+        config_params = self._current_config.parameters or {}
+        iterations = config_params.get('iterations', 8)
+        use_random = config_params.get('use_random_languages', True)
+        final_language = config_params.get('final_language', 'en')
+        fixed_languages = config_params.get('languages', [])
+
+        # Generate language sequence
+        if use_random:
+            # Generate random language sequence
+            languages = []
+            for i in range(iterations - 1):
+                lang = get_random_language(exclude=languages[-1:] if languages else [])
+                languages.append(lang)
+            languages.append(final_language)  # Always end with final_language
+            logger.info(f"[RECURSIVE-PIPELINE] Random language sequence: {languages}")
+        else:
+            # Use fixed language list from config
+            languages = fixed_languages
+            if len(languages) < iterations:
+                logger.warning(f"[RECURSIVE-PIPELINE] Fixed languages list too short ({len(languages)} < {iterations}), padding with final_language")
+                languages = languages + [final_language] * (iterations - len(languages))
+            languages = languages[:iterations]  # Trim to iterations
+            logger.info(f"[RECURSIVE-PIPELINE] Fixed language sequence: {languages}")
+
+        # Execute loop: one step per language
+        for i, target_lang in enumerate(languages):
+            step = PipelineStep(
+                step_id=f"loop_{i+1}_{target_lang}",
+                chunk_name=steps[0].chunk_name if steps else "manipulate"
+            )
+
+            try:
+                step.status = PipelineStatus.RUNNING
+
+                # Add target_language to custom placeholders
+                context.custom_placeholders['TARGET_LANGUAGE'] = get_language_name(target_lang)
+                context.custom_placeholders['TARGET_LANGUAGE_CODE'] = target_lang
+
+                logger.info(f"[RECURSIVE-LOOP] Iteration {i+1}/{iterations}: Translating to {get_language_name(target_lang)} ({target_lang})")
+
+                output = await self._execute_single_step(step, context, execution_mode)
+
+                step.status = PipelineStatus.COMPLETED
+                step.output_data = output
+                context.add_output(output)
+
+                completed_steps.append(step)
+                logger.debug(f"[RECURSIVE-LOOP] Iteration {i+1} successful: {len(output)} chars")
+
+            except Exception as e:
+                step.status = PipelineStatus.FAILED
+                step.error = str(e)
+                completed_steps.append(step)
+
+                logger.error(f"[RECURSIVE-LOOP] Iteration {i+1} failed: {e}")
+
+                return PipelineResult(
+                    config_name=config_name,
+                    status=PipelineStatus.FAILED,
+                    steps=completed_steps,
+                    error=f"Loop iteration {i+1} failed: {e}",
+                    execution_time=time.time() - start_time
+                )
+
+        final_output = context.get_previous_output()
+
+        return PipelineResult(
+            config_name=config_name,
+            status=PipelineStatus.COMPLETED,
+            steps=completed_steps,
+            final_output=final_output,
+            execution_time=time.time() - start_time,
+            metadata={
+                "total_steps": len(completed_steps),
+                "input_length": len(context.input_text),
+                "output_length": len(final_output),
+                "pipeline_name": self._current_config.pipeline_name,
+                "iterations": iterations,
+                "language_sequence": languages
             }
         )
     
