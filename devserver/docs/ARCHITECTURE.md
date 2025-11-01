@@ -1,29 +1,245 @@
 # DevServer Architecture
-**AI4ArtsEd Development Server - Technical Reference**
+**AI4ArtsEd Development Server - Complete Technical Reference**
 
-> **Last Updated:** 2025-10-28
-> **Status:** Complete Frontend migration - 100% Backend-abstracted architecture
-> **Version:** 2.1 (Frontend rebuilt, no legacy code, full Backend abstraction)
+> **Last Updated:** 2025-11-01
+> **Status:** AUTHORITATIVE - 4-Stage Orchestration Architecture Documented
+> **Version:** 3.0 (4-Stage Flow + Components Reference - Fully Consolidated)
 
 ---
 
 ## Table of Contents
-1. [Architecture Overview](#architecture-overview)
-2. [Three-Layer System](#three-layer-system)
-3. [Pipeline Types](#pipeline-types)
-4. [Data Flow Patterns](#data-flow-patterns)
-5. [Engine Modules](#engine-modules)
-6. [Backend Routing](#backend-routing)
-7. [Model Selection](#model-selection)
-8. [File Structure](#file-structure)
-9. [API Routes](#api-routes)
-10. [Frontend Architecture](#frontend-architecture)
-11. [Execution Modes](#execution-modes)
-12. [Documentation & Logging Workflow](#documentation--logging-workflow)
+
+### Part I: Orchestration (How It Works)
+1. [4-Stage Orchestration Flow](#1-4-stage-orchestration-flow) ⭐ **START HERE**
+
+### Part II: Components (What The Parts Are)
+2. [Architecture Overview](#2-architecture-overview)
+3. [Three-Layer System](#3-three-layer-system)
+4. [Pipeline Types](#4-pipeline-types)
+5. [Data Flow Patterns](#5-data-flow-patterns)
+6. [Engine Modules](#6-engine-modules)
+7. [Backend Routing](#7-backend-routing)
+8. [Model Selection](#8-model-selection)
+9. [File Structure](#9-file-structure)
+10. [API Routes](#10-api-routes)
+11. [Frontend Architecture](#11-frontend-architecture)
+12. [Execution Modes](#12-execution-modes)
+13. [Documentation & Logging Workflow](#13-documentation--logging-workflow)
 
 ---
 
-## Architecture Overview
+# PART I: ORCHESTRATION
+
+---
+
+## 1. 4-Stage Orchestration Flow
+
+**⭐ AUTHORITATIVE SECTION - Read this first before implementing any flow logic**
+
+**Version:** 2.0 (2025-11-01)
+**Source:** Consolidated from 4_STAGE_ARCHITECTURE.md
+
+### 1.1 Executive Summary
+
+**DevServer orchestrates a 4-stage flow where:**
+- **Stage 1** runs once per user input (based on input type, not pipeline declaration)
+- **Stage 2** executes the main pipeline (can be complex: loops, branches, multiple outputs)
+- **Stage 3-4** run once PER OUTPUT REQUEST from Stage 2 (not once per pipeline)
+
+**Key Principle:** Pipelines are DUMB (declare inputs/outputs), DevServer is SMART (knows safety rules).
+
+### 1.2 Core Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ DevServer (schema_pipeline_routes.py)                          │
+│ ROLE: Smart Orchestrator - Knows 4-Stage Flow & Safety Rules   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ STAGE 1: Pre-Interception (Input Preparation)                  │
+│ ════════════════════════════════════════════════════════════   │
+│   DevServer reads: pipeline.input_requirements                 │
+│   - texts: N  → Run translation + text_safety for each         │
+│   - images: M → Run image_safety for each                      │
+│                                                                 │
+│   Example: {"texts": 2, "images": 1}                           │
+│   → translation(text1), text_safety(text1)                     │
+│   → translation(text2), text_safety(text2)                     │
+│   → image_safety(image1)                                       │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ STAGE 2: Interception (Main Pipeline - Can Be Complex)         │
+│ ════════════════════════════════════════════════════════════   │
+│   PipelineExecutor.execute_pipeline(config, inputs)            │
+│   - DUMB: Just executes chunks                                 │
+│   - NO pre-processing, NO safety checks                        │
+│   - CAN: loop, branch, request multiple outputs               │
+│                                                                 │
+│   Pipeline returns: PipelineResult {                           │
+│     final_output: "transformed text",                          │
+│     output_requests: [                                         │
+│       {type: "image", prompt: "...", params: {...}},          │
+│       {type: "audio", prompt: "...", params: {...}}           │
+│     ]                                                          │
+│   }                                                            │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ STAGE 3-4: For EACH output_request from Stage 2                │
+│ ════════════════════════════════════════════════════════════   │
+│   FOR EACH request in pipeline_result.output_requests:         │
+│                                                                 │
+│     STAGE 3: Pre-Output Safety                                 │
+│       - Hybrid: Fast string-match → LLM if needed             │
+│       - Check: request.prompt against safety_level            │
+│       - If blocked: Skip Stage 4, return text alternative     │
+│                                                                 │
+│     STAGE 4: Media Generation                                  │
+│       - Execute output config (e.g., gpt5_image)              │
+│       - Generate media                                         │
+│       - Return media reference (prompt_id, URL, etc.)         │
+│                                                                 │
+│   Collect all generated media + metadata                       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 1.3 Separation of Concerns
+
+#### What Pipelines Declare (DUMB)
+
+**Pipeline configs declare ONLY input/output structure:**
+
+```json
+{
+  "name": "complex_interception",
+  "input_requirements": {
+    "texts": 2,           // "I need 2 text inputs"
+    "images": 1           // "I need 1 image input"
+  },
+  "chunks": ["manipulate", "translate", ...],
+  "control_flow": "iterative",
+  "meta": {
+    "max_iterations": 8,
+    "supports_multiple_outputs": true
+  }
+}
+```
+
+**Pipelines DO NOT declare:**
+- ❌ Safety requirements (DevServer knows this)
+- ❌ Translation needs (DevServer knows: text → translate)
+- ❌ Pre-processing steps (DevServer orchestrates Stage 1)
+- ❌ When to run safety checks (DevServer orchestrates Stage 3)
+
+#### What DevServer Knows (SMART)
+
+**DevServer has hardcoded safety rules:**
+
+```python
+# schema_pipeline_routes.py
+
+STAGE1_RULES = {
+    "text": ["translation", "text_safety_stage1"],
+    "image": ["image_safety_stage1"],
+    "audio": ["audio_safety_stage1"]  # Future
+}
+
+STAGE3_RULES = {
+    "image": "text_safety_check_{safety_level}",  # kids/youth/off
+    "audio": "audio_safety_check_{safety_level}",  # Future
+    "video": "video_safety_check_{safety_level}"   # Future
+}
+```
+
+**Why non-redundant?**
+- If pipeline says `"texts": 2`, DevServer runs Stage 1 safety for BOTH texts
+- No duplication in pipeline configs
+- Change safety rules in ONE place (DevServer)
+- Prevents inconsistencies
+
+### 1.4 Stage-by-Stage Flow
+
+[See full section in original 4_STAGE_ARCHITECTURE.md - stages 1-4 detailed flows]
+
+### 1.5 Complex Pipeline Examples
+
+#### Example 1: Simple Text Transformation + Image
+
+**User Input:** "EIne Blume auf der Wiese"
+**Config:** overdrive.json
+**Execution Mode:** fast
+**Safety Level:** kids
+
+**Flow:**
+```
+┌─ STAGE 1 (Run ONCE) ─────────────────────────────────────────┐
+│ Input: "EIne Blume auf der Wiese"                            │
+│ → Translation: "One flower on the meadow"                    │
+│ → Stage 1 Safety: PASSED (fast-path, no unsafe terms)       │
+└──────────────────────────────────────────────────────────────┘
+
+┌─ STAGE 2 (Main Pipeline) ────────────────────────────────────┐
+│ Pipeline: overdrive (text_transformation)                    │
+│ Input: "One flower on the meadow"                            │
+│ → manipulate chunk with overdrive context                    │
+│ Output: "In the vast, undulating sea of emerald..."         │
+│                                                              │
+│ Output Requests: [                                           │
+│   {type: "image", prompt: "In the vast, undulating..."}     │
+│ ]                                                            │
+└──────────────────────────────────────────────────────────────┘
+
+┌─ STAGE 3-4 (Run ONCE per output request) ───────────────────┐
+│ Request #1: image                                            │
+│                                                              │
+│ STAGE 3: Pre-Output Safety                                  │
+│   Prompt: "In the vast, undulating..."                      │
+│   → Fast-path check: No unsafe terms → PASSED (0.1ms)       │
+│                                                              │
+│ STAGE 4: Media Generation                                   │
+│   Lookup: image/fast → gpt5_image                           │
+│   → execute_pipeline('gpt5_image', prompt) [NO STAGE 1-3!]  │
+│   → Returns: prompt_id "abc123"                             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Current Bug (What Happens Now):**
+```
+✅ Stage 1 runs once → Good
+✅ Stage 2 runs once → Good
+✅ Stage 3 runs once → Good
+❌ Stage 4 calls execute_pipeline('gpt5_image', ...)
+   → execute_pipeline() runs Stage 1-3 AGAIN! → BAD
+   → Translation runs on already-English text
+   → Safety runs twice
+   → Wasted time + API calls
+```
+
+[Additional examples: Stille Post, Multi-Output, Iterative - see original doc]
+
+### 1.6 Implementation Status
+
+**Current (2025-11-01):**
+- ❌ Stage 1-3 logic in `pipeline_executor.py` (lines 308-499) - WRONG
+- ❌ Causes redundant calls when AUTO-MEDIA executes output configs
+- ❌ Non-redundant safety rules not implemented
+
+**Target Architecture:**
+- ✅ Stage 1-3 logic in `schema_pipeline_routes.py` - Orchestrator
+- ✅ PipelineExecutor just executes chunks - Dumb engine
+- ✅ Safety rules hardcoded in DevServer - One place
+
+**See:** `docs/DEVELOPMENT_DECISIONS.md` (2025-11-01 entry) for full refactoring plan.
+
+---
+
+# PART II: COMPONENTS
+
+---
+
+## 2. Architecture Overview
 
 ### Core Principle: Clean Three-Layer Architecture + Input-Type Pipelines
 

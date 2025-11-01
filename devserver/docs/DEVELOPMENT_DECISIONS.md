@@ -7,6 +7,328 @@
 
 ---
 
+## 2025-11-01 (PM): Documentation Consolidation - Single Source of Truth
+
+### Decision
+**Consolidate fragmented documentation into clear hierarchy**
+
+**Actions Taken:**
+1. ✅ Merged `4_STAGE_ARCHITECTURE.md` into `ARCHITECTURE.md` as Section 1 (Part I)
+2. ✅ Deleted `4_STAGE_ARCHITECTURE.md` (now redundant)
+3. ✅ Deleted `README.md` (merged into README_FIRST.md)
+4. ✅ Moved historical docs to `docs/tmp/`:
+   - `API_MIGRATION.md` (historical implementation doc)
+   - `PRE_INTERCEPTION_DESIGN.md` (historical planning doc)
+5. ✅ Updated all references in `CLAUDE.md` and `README_FIRST.md`
+
+### Reasoning
+
+**Problem:**
+User correctly identified:
+> "docs are inconsistent now. there is an architecture.md and now a '4_stage_architecture.md', am API-Migration, and PRE-Interception-design.md also I think there should be one readme_first.md and not and additional readme.md)"
+
+**Issues:**
+- 4 documents describing architecture (fragmented)
+- Unclear which is authoritative
+- Historical planning docs (PRE_INTERCEPTION_DESIGN.md) mixed with current docs
+- Two READMEs (README.md + README_FIRST.md) causing confusion
+
+### Final Documentation Structure
+
+```
+docs/
+├── README_FIRST.md              ← Single entry point
+├── ARCHITECTURE.md (v3.0)       ← Complete reference
+│   ├── Part I: Orchestration (Section 1 - 4-Stage Flow)
+│   └── Part II: Components (Sections 2-13 - Implementation)
+├── LEGACY_SERVER_ARCHITECTURE.md  ← Historical context
+├── DEVELOPMENT_DECISIONS.md       ← Decision log
+├── DEVELOPMENT_LOG.md            ← Session tracking
+├── devserver_todos.md            ← Current tasks
+├── DEVSERVER_COMPREHENSIVE_DOCUMENTATION.md  ← Pedagogical perspective
+└── tmp/                          ← Historical/planning docs
+    ├── API_MIGRATION.md           (historical)
+    ├── PRE_INTERCEPTION_DESIGN.md (historical planning)
+    └── (other session-specific docs)
+```
+
+### Benefits
+
+1. **Single Source of Truth:** ARCHITECTURE.md is THE technical reference
+2. **Clear Structure:** Part I (how it works) → Part II (what the parts are)
+3. **No Duplication:** One ARCHITECTURE doc, one README
+4. **Historical Separation:** Planning docs in tmp/, not mixed with current
+5. **Easy Navigation:** Clear TOC with Part I/II division
+
+### Files Modified
+
+**Consolidated:**
+- `docs/4_STAGE_ARCHITECTURE.md` → `docs/ARCHITECTURE.md` Section 1 (deleted original)
+- `docs/README.md` → `docs/README_FIRST.md` (deleted original)
+
+**Moved:**
+- `docs/API_MIGRATION.md` → `docs/tmp/API_MIGRATION.md`
+- `docs/PRE_INTERCEPTION_DESIGN.md` → `docs/tmp/PRE_INTERCEPTION_DESIGN.md`
+
+**Updated References:**
+- `CLAUDE.md`: 4_STAGE_ARCHITECTURE.md → ARCHITECTURE.md Section 1
+- `README_FIRST.md`: Updated reading list with consolidated docs
+- Total reading time: 85 minutes (was 75, added 10 for expanded Section 3)
+
+### Reading Order (README_FIRST.md)
+
+1. **ARCHITECTURE.md Section 1** (20 min) - 4-Stage orchestration flow
+2. **LEGACY_SERVER_ARCHITECTURE.md** (20 min) - Pedagogical foundation
+3. **ARCHITECTURE.md Sections 2-13** (30 min) - Components reference
+4. **devserver_todos.md** (5 min) - Current priorities
+5. **DEVELOPMENT_DECISIONS.md** (10 min) - Decision history
+
+**Total:** 85 minutes of focused reading before any implementation
+
+### Version Updates
+
+- **ARCHITECTURE.md:** v2.1 → v3.0 (major consolidation)
+- **README_FIRST.md:** Updated references, reading time
+- **CLAUDE.md:** Updated to reference ARCHITECTURE.md Section 1
+
+---
+
+## 2025-11-01 (AM): 4-Stage Architecture v2.0 - DevServer as Main Orchestrator
+
+### Decision
+**Complete architectural redesign: Move Stage 1-3 logic from PipelineExecutor to DevServer**
+
+**Core Changes:**
+1. **PipelineExecutor = Dumb Engine** (just executes chunks, no pre/post processing)
+2. **DevServer = Smart Orchestrator** (knows 4-stage flow, orchestrates all stages)
+3. **Non-Redundant Safety Rules** (hardcoded in DevServer, not in pipelines)
+4. **Stage 3-4 Loop** (runs once per output request, not once per pipeline)
+
+### Problem Identified
+
+**Current Bug (2025-11-01 console output):**
+```
+User: "EIne Blume auf der Wiese" with overdrive config
+  ↓
+✅ Stage 1: Translation + Safety (correct)
+✅ Stage 2: Overdrive transformation (correct)
+✅ Stage 3: Pre-Output safety (correct)
+❌ AUTO-MEDIA calls execute_pipeline('gpt5_image', ...)
+   → execute_pipeline() has Stage 1-3 logic inside!
+   → Translation runs AGAIN on already-English text
+   → Safety check runs AGAIN
+   → Stage 2 tries to run (gpt5_image has context field)
+   → Wasted API calls, confusing logs
+```
+
+**Root Cause:**
+- Stage 1-3 logic embedded in `pipeline_executor.py` execute_pipeline() (lines 308-499)
+- Every call to execute_pipeline() triggers all stages
+- When AUTO-MEDIA generates output, it calls execute_pipeline() for output config
+- Output config shouldn't run Stage 1-3 (already done!)
+
+### Reasoning
+
+**Architectural Principle (From User Clarification):**
+> "Pipeline are orchestrators, but devserver is the orchestrator of pipelines."
+> "Stage 2-pipeline only says: i need 2 text inputs and an image; it does not say anything about safety."
+> "Server knows: text -> pre-stage2 safety pipeline for text; image -> pre-stage2 safety for image."
+
+**Why This Matters:**
+
+1. **Separation of Concerns:**
+   - PipelineExecutor = Engine (runs chunks)
+   - DevServer = Orchestrator (knows flow)
+   - Mixing these = loops and redundant calls
+
+2. **Non-Redundant Safety:**
+   - If 37+ configs each declare safety requirements → duplication
+   - If DevServer knows "text → safety" → one place, no duplication
+   - Change safety rules → update one file, not 37+
+
+3. **Complex Pipeline Support:**
+   - Stage 2 can request multiple outputs (image + audio)
+   - Each output request needs Stage 3-4
+   - Stage 3-4 must run OUTSIDE pipeline executor
+   - Example: Multi-media config requests 2 images + 1 audio = 3× Stage 3-4 runs
+
+4. **Looping Pipelines:**
+   - "Stille Post" translates 8× in Stage 2
+   - Stage 1 should run ONCE (before loop)
+   - Stage 3-4 should run ONCE (after loop)
+   - Current architecture can't handle this
+
+### What Was Done
+
+**Documentation (2025-11-01):**
+- ✅ Created: `docs/4_STAGE_ARCHITECTURE.md` (AUTHORITATIVE, 600+ lines)
+  - Complete flow diagrams
+  - Examples: simple, looping, multi-output, iterative
+  - Separation of concerns (what pipelines declare vs DevServer knows)
+  - Output request mechanism
+  - Non-redundant safety rules
+  - Implementation guide with steps
+
+- ✅ Updated: `CLAUDE.md`
+  - Added "AUTHORITATIVE: 4-Stage Architecture" section
+  - Documented current bug
+  - Key principles for future tasks
+
+- ✅ Updated: `DEVELOPMENT_DECISIONS.md` (this entry)
+
+**Implementation (Pending):**
+- [ ] Strip Stage 1-3 from pipeline_executor.py (make dumb)
+- [ ] Move Stage 1 orchestration to schema_pipeline_routes.py
+- [ ] Implement output_request mechanism
+- [ ] Move Stage 3-4 loop to schema_pipeline_routes.py
+- [ ] Add `meta.output_config = true` flag to output configs
+- [ ] Test end-to-end flows
+
+### Correct Architecture (Version 2.0)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ schema_pipeline_routes.py (DevServer - SMART)          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ I. Stage 1: Pre-Interception                           │
+│    Read: pipeline.input_requirements {texts: N}        │
+│    For each text:                                       │
+│      → execute_pipeline('translation', text)           │
+│      → run_hybrid_safety_check(text, 'stage1')         │
+│                                                         │
+│ II. Stage 2: Interception                              │
+│     result = execute_pipeline(user_config, inputs)     │
+│     # PipelineExecutor just runs chunks (DUMB)         │
+│     # Returns: output_requests = [{type, prompt, ...}] │
+│                                                         │
+│ III. For EACH output_request:                          │
+│      Stage 3: run_hybrid_safety_check(prompt, level)   │
+│      Stage 4: execute_pipeline(output_config, prompt)  │
+│                                                         │
+│ IV. Collect all media + metadata                       │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ pipeline_executor.py (PipelineExecutor - DUMB)         │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ def execute_pipeline(config, inputs):                  │
+│   # ONLY:                                               │
+│   # 1. Load config + pipeline                          │
+│   # 2. Execute chunks                                   │
+│   # 3. Return result                                    │
+│   #                                                     │
+│   # NO Stage 1-3 logic!                                │
+│   # NO pre-processing!                                 │
+│   # NO safety checks!                                  │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Pipeline Declarations (Non-Redundant)
+
+**Pipelines declare ONLY structure:**
+```json
+{
+  "name": "text_transformation",
+  "input_requirements": {
+    "texts": 1
+  },
+  "chunks": ["manipulate"]
+}
+```
+
+**Pipelines DO NOT declare:**
+- ❌ Safety requirements (DevServer knows)
+- ❌ Translation needs (DevServer knows: text → translate)
+
+**DevServer hardcodes safety rules:**
+```python
+STAGE1_SAFETY = {
+    "text": "pre_interception/safety_llamaguard",
+    "image": "pre_interception/image_safety_vision"
+}
+
+STAGE3_SAFETY = {
+    ("image", "kids"): "text_safety_check_kids",
+    ("image", "youth"): "text_safety_check_youth"
+}
+```
+
+### Examples
+
+**Simple Flow (overdrive → gpt5_image):**
+```
+Stage 1: translation + safety (RUN ONCE)
+Stage 2: overdrive transformation (RUN ONCE)
+Stage 3: safety check on output (RUN ONCE)
+Stage 4: gpt5_image generation (RUN ONCE)
+```
+
+**Looping Flow (stillepost → 8 translations → image):**
+```
+Stage 1: translation + safety (RUN ONCE)
+Stage 2: 8 translation loops (RUN ONCE, loops inside)
+Stage 3-4: safety + image (RUN ONCE after loop)
+```
+
+**Multi-Output Flow (text → image + audio):**
+```
+Stage 1: translation + safety (RUN ONCE)
+Stage 2: transformation (RUN ONCE, requests 2 outputs)
+Stage 3-4: safety + image (RUN for output #1)
+Stage 3-4: safety + audio (RUN for output #2)
+```
+
+### Files To Modify
+
+**Core Refactoring:**
+- `schemas/engine/pipeline_executor.py` - Remove lines 308-499 (Stage 1-3 logic)
+- `my_app/routes/schema_pipeline_routes.py` - Add Stage 1 + Stage 3-4 loop
+
+**Supporting Changes:**
+- `schemas/pipelines/*.json` - Add `input_requirements` field
+- `schemas/configs/gpt5_image.json` - Add `meta.output_config = true`
+- `schemas/configs/sd35_large.json` - Add `meta.output_config = true`
+
+**Documentation:**
+- `docs/4_STAGE_ARCHITECTURE.md` - AUTHORITATIVE reference (created)
+- `CLAUDE.md` - Points to authoritative doc (updated)
+- `docs/README_FIRST.md` - Add to mandatory reading (pending)
+
+### Implementation Strategy
+
+**Incremental Refactoring (Safe):**
+1. Add `input_requirements` to pipelines (backward compatible)
+2. Implement Stage 1 in DevServer (parallel to existing)
+3. Add flag: `use_new_architecture = False` (toggle)
+4. Test new path thoroughly
+5. Set flag to `True`
+6. Remove old Stage 1-3 code from executor
+
+**NOT Big Bang (Risky):**
+- ❌ Don't delete 400 lines and rewrite everything
+- ❌ Don't break existing functionality
+- ✅ Incremental, testable, rollback-able
+
+### Benefits
+
+1. **No More Loops:** Impossible for pipelines to trigger themselves
+2. **Performance:** No redundant translation/safety calls
+3. **Maintainability:** Change safety rules in ONE place
+4. **Complex Pipelines:** Supports loops, multi-output, evaluation
+5. **Clear Logs:** Each stage logs once, easy to debug
+6. **Testability:** Test orchestration separately from execution
+
+### Related Documentation
+
+- **AUTHORITATIVE:** `docs/4_STAGE_ARCHITECTURE.md` (complete flow reference)
+- **Context:** `docs/PRE_INTERCEPTION_DESIGN.md` (original 4-stage design)
+- **TODOs:** `docs/devserver_todos.md` (implementation tasks)
+
+---
+
 ## 2025-10-28 (PM): COMPLETE Frontend Migration - Backend-Abstracted Architecture
 
 ### Decision

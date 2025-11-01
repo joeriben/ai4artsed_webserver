@@ -20,13 +20,31 @@ This is NOT a typical CRUD app or API server. It implements **pedagogical concep
 
 ---
 
-## 📚 Required Reading (Total: ~55 minutes)
+## 📚 Required Reading (Total: ~85 minutes)
 
 **Read these documents IN ORDER before any implementation work:**
 
-### 1. `docs/README.md` (5 min)
-**What:** Documentation structure overview
-**Why:** Know where to find information
+### 1. `docs/ARCHITECTURE.md` Section 1 (20 min) **⭐ AUTHORITATIVE**
+**What:** Complete 4-stage orchestration flow (Part I of ARCHITECTURE.md)
+**Why:** Understand the CORRECT architecture for implementing flow logic
+
+**🚨 CRITICAL for any work involving:**
+- Pipeline execution
+- Stage 1 (translation + safety)
+- Stage 2 (interception)
+- Stage 3-4 (pre-output + media generation)
+- Output configs (gpt5_image, sd35_large)
+
+**Must understand:**
+- DevServer = Smart Orchestrator (schema_pipeline_routes.py)
+- PipelineExecutor = Dumb Engine (just runs chunks)
+- Non-redundant safety rules (hardcoded in DevServer, not pipelines)
+- Stage 3-4 loop (runs once per output request, not per pipeline)
+
+**Current Bug (as of 2025-11-01):**
+- PipelineExecutor has Stage 1-3 logic inside (WRONG)
+- Causes redundant translation/safety when AUTO-MEDIA calls output configs
+- Must be refactored per Section 1
 
 ### 2. `docs/LEGACY_SERVER_ARCHITECTURE.md` (20 min)
 **What:** How the Legacy Server worked
@@ -39,16 +57,17 @@ This is NOT a typical CRUD app or API server. It implements **pedagogical concep
 - **Hidden Commands** (#notranslate#, #cfg:x#, etc.)
 - **Pädagogische Workflows** (Stille Post, Dada, etc.)
 
-### 3. `docs/ARCHITECTURE.md` (15 min)
-**What:** How DevServer works NOW
-**Why:** Understand current system architecture
+### 3. `docs/ARCHITECTURE.md` Sections 2-13 (30 min)
+**What:** Components reference (Part II of ARCHITECTURE.md)
+**Why:** Understand current system components in detail
 
 **Critical concepts you MUST understand:**
 - **Three-Layer System**: Chunks → Pipelines → Configs
 - **Input-Type-Based Pipelines** (not output-type!)
 - **Backend Routing**: eco vs fast, local vs remote
-- **Pipeline vs Pre-Pipeline**: Text transformation BEFORE media generation
 - **Backend Transparency**: Same pipeline works with ComfyUI, OpenRouter, etc.
+- **Engine Modules**: PipelineExecutor, BackendRouter, ConfigLoader, etc.
+- **Frontend Architecture**: Backend-abstracted media handling
 
 ### 4. `docs/devserver_todos.md` (5 min)
 **What:** Current priorities and tasks

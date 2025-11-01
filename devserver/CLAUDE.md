@@ -16,6 +16,39 @@ After reading, you must be able to answer:
 - What is the Three-Layer System (Chunks → Pipelines → Configs)?
 - Why are pipelines categorized by INPUT type, not output type?
 
+## 📐 AUTHORITATIVE: 4-Stage Architecture
+
+**Before implementing ANY flow logic, read:**
+- **`docs/ARCHITECTURE.md` Section 1** (AUTHORITATIVE - Version 3.0)
+
+Section 1 of ARCHITECTURE.md defines the CORRECT orchestration model:
+
+### Key Principles (Must Understand)
+1. **DevServer = Smart Orchestrator** (schema_pipeline_routes.py)
+   - Knows about 4-stage flow
+   - Orchestrates Stage 1 (translation + safety) based on input types
+   - Orchestrates Stage 3-4 per output request
+
+2. **PipelineExecutor = Dumb Engine** (pipeline_executor.py)
+   - Just executes chunks
+   - NO Stage 1-3 logic inside
+   - Returns output_requests for DevServer to handle
+
+3. **Non-Redundant Safety Rules**
+   - Pipelines declare: `input_requirements: {texts: 2, images: 1}`
+   - DevServer knows: text → translation + safety, image → image safety
+   - Safety rules in ONE place, not duplicated in 37+ configs
+
+4. **Stage 3-4 Loop**
+   - Stage 2 can request multiple outputs (image + audio)
+   - Stage 3-4 run ONCE per output request (not once per pipeline)
+
+**Current Bug (As of 2025-11-01):**
+- PipelineExecutor has Stage 1-3 logic inside (WRONG)
+- When AUTO-MEDIA calls execute_pipeline('gpt5_image'), it triggers Stage 1-3 again
+- Causes redundant translation + safety checks
+- **Fix:** Refactor per ARCHITECTURE.md Section 1
+
 ## 🚨 CRITICAL: Context Window Full Protocol
 
 ### The Problem
