@@ -1460,6 +1460,121 @@ Related docs:
 
 ---
 
-**Last Updated:** 2025-11-01 (Session 8 - Phase 1+2 Complete)
-**Next Session:** Phase 3 - Implement execute_4_stage_flow() in DevServer
+## Session 9: 2025-11-01 - Phase 3: DevServer 4-Stage Orchestrator
+**Duration (Wall):** ~2 hours
+**Cost:** TBD (Claude Sonnet 4.5 via Claude Code)
+
+### Tasks Completed
+1. ✅ Read and understood Stage 1-3 logic in pipeline_executor.py (lines 311-505)
+2. ✅ Implemented Stage 1-3 orchestration in schema_pipeline_routes.py
+3. ✅ Removed Stage 1-3 logic from pipeline_executor.py (made DUMB)
+4. ✅ Removed duplicate helper functions from pipeline_executor.py
+5. ✅ Tested complete 4-stage flow with dada config
+6. ✅ All stages working: Translation → Safety → Dada → Pre-Output Safety → Image Generation
+
+### Architecture Changes
+
+**CRITICAL REFACTORING:** Moved Stage 1-3 orchestration from PipelineExecutor to DevServer
+
+**Before (Phase 2):**
+- PipelineExecutor: Contains Stage 1-3 logic (lines 311-505) + helper functions
+- DevServer: Just calls pipeline_executor.execute_pipeline()
+- **Problem:** Recursive Stage 1-3 calls when output configs executed
+
+**After (Phase 3):**
+- **DevServer = SMART:** Orchestrates Stage 1-3 using stage_orchestrator helpers
+- **PipelineExecutor = DUMB:** Only executes chunks, NO Stage 1-3 logic
+- **Result:** No redundancy, each stage runs exactly once
+
+### Code Changes
+- **Lines removed:** ~195 (Stage 1-3 logic + helper functions from pipeline_executor.py)
+- **Lines added:** ~100 (Stage 1-3 orchestration in schema_pipeline_routes.py)
+- **Net change:** -95 lines
+
+### Files Modified
+
+**Modified:**
+- `my_app/routes/schema_pipeline_routes.py` (+100 lines)
+  - Added imports from stage_orchestrator
+  - Implemented Stage 1-3 orchestration in execute_pipeline() endpoint
+  - Stage 1: Translation + Safety (before main pipeline)
+  - Stage 3: Pre-Output Safety (after main pipeline, before media)
+
+- `schemas/engine/pipeline_executor.py` (-195 lines)
+  - Removed Stage 1 logic (lines 311-389)
+  - Removed Stage 3 logic (lines 413-505)
+  - Removed all helper functions (lines 21-212)
+  - Simplified to DUMB executor: context → plan → execute
+
+### Test Results
+
+**Test Config:** dada + "Eine Blume auf der Wiese"
+
+```
+✅ Stage 1 Translation: "Eine Blume auf der Wiese" → "A flower on the meadow" (20s)
+✅ Stage 1 Safety: PASSED (fast-path, 0.2ms)
+✅ Stage 2 Dada Transformation: "Meadow of Forgotten Timepieces" concept (137s)
+✅ Stage 3 Pre-Output Safety: PASSED (fast-path, 0.1ms)
+✅ Stage 4 Media Generation: ComfyUI workflow submitted successfully
+```
+
+**Total Execution Time:** 137 seconds (normal for 4 LLM stages)
+
+**Response Structure:**
+```json
+{
+  "status": "success",
+  "final_output": "**Title:** 'Meadow of Forgotten Timepieces'...",
+  "media_output": {
+    "config": "sd35_large",
+    "output": "db35c8e5-0e41-4f8a-a36c-502125a4dce2",
+    "media_type": "image"
+  }
+}
+```
+
+### Key Design Decisions
+
+1. **No Feature Flag:** Direct implementation (git provides rollback)
+2. **Check is_output_config:** Skip Stage 1-3 for output configs
+3. **Check is_system_pipeline:** Skip Stage 1-3 for system pipelines
+4. **Use stage_orchestrator helpers:** Consistent implementation across DevServer
+
+### What Phase 3 Achieved
+
+✅ **DevServer = Smart Orchestrator**
+- Reads pipeline.input_requirements
+- Orchestrates Stage 1 (Translation + Safety)
+- Orchestrates Stage 3 (Pre-Output Safety)
+- Orchestrates Stage 4 (Media Generation)
+
+✅ **PipelineExecutor = Dumb Executor**
+- No awareness of stages
+- Just: load config → plan steps → execute chunks → return result
+- Clean, simple, testable
+
+✅ **No Redundancy**
+- Each stage runs exactly once
+- No recursive Stage 1-3 calls
+- No duplicate helper functions
+
+### Progress: 4-Stage Architecture Refactoring
+
+- ✅ **Phase 1 (1h):** Metadata addition (49 JSON files)
+- ✅ **Phase 2 (0.5h):** Helper functions extracted (stage_orchestrator.py)
+- ✅ **Phase 3 (2h):** DevServer orchestrator (THIS SESSION)
+- ⏭️ **Phase 4 (1h):** Add skip_stages parameter (optional optimization)
+- ⏭️ **Phase 5 (2h):** Integration testing
+- ⏭️ **Phase 6 (1h):** Final cleanup
+
+**Overall Progress:** ~60% complete
+
+### Documentation Updates
+- ✅ DEVELOPMENT_LOG.md updated (this entry)
+- ⏭️ devserver_todos.md (pending - mark Phase 3 complete)
+
+---
+
+**Last Updated:** 2025-11-01 (Session 9 - Phase 3 Complete)
+**Next Session:** Phase 4 - Add skip_stages parameter (optional) OR Phase 5 - Integration testing
 

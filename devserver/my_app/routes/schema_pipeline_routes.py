@@ -14,6 +14,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from schemas.engine.pipeline_executor import PipelineExecutor
 from schemas.engine.prompt_interception_engine import PromptInterceptionEngine
+from schemas.engine.stage_orchestrator import (
+    execute_stage1_translation,
+    execute_stage1_safety,
+    execute_stage3_safety,
+    build_safety_message
+)
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +115,7 @@ def get_schema_info():
 
 @schema_bp.route('/pipeline/execute', methods=['POST'])
 def execute_pipeline():
-    """Schema-Pipeline ausführen mit Auto-Media-Unterstützung"""
+    """Schema-Pipeline ausführen mit 4-Stage Orchestration"""
     try:
         # Request-Validation
         data = request.get_json()
@@ -133,7 +139,7 @@ def execute_pipeline():
         # Schema-Engine initialisieren
         init_schema_engine()
 
-        # Get config to check for media_preferences
+        # Get config
         config = pipeline_executor.config_loader.get_config(schema_name)
         if not config:
             return jsonify({
@@ -141,12 +147,57 @@ def execute_pipeline():
                 'error': f'Config "{schema_name}" nicht gefunden'
             }), 404
 
-        logger.info(f"[AUTO-MEDIA] Executing config '{schema_name}' with execution_mode='{execution_mode}'")
+        # Check if this is an output config (skip Stage 1-3 for output configs)
+        is_output_config = config.meta.get('stage') == 'output'
+        is_system_pipeline = config.meta.get('system_pipeline', False)
 
-        # 1. Execute Interception-Pipeline (or direct Output-Pipeline)
+        # ====================================================================
+        # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
+        # ====================================================================
+        current_input = input_text
+
+        if not is_system_pipeline and not is_output_config:
+            logger.info(f"[4-STAGE] Stage 1: Pre-Interception for '{schema_name}'")
+
+            # Stage 1a: Translation
+            translated_text = asyncio.run(execute_stage1_translation(
+                input_text,
+                execution_mode,
+                pipeline_executor
+            ))
+            current_input = translated_text
+
+            # Stage 1b: Safety Check
+            is_safe, codes = asyncio.run(execute_stage1_safety(
+                translated_text,
+                safety_level,
+                execution_mode,
+                pipeline_executor
+            ))
+
+            if not is_safe:
+                # Build error message
+                error_message = build_safety_message(codes, lang='de')
+                logger.warning(f"[4-STAGE] Stage 1 BLOCKED: {codes}")
+
+                return jsonify({
+                    'status': 'error',
+                    'schema': schema_name,
+                    'error': error_message,
+                    'metadata': {
+                        'stage': 'pre_interception',
+                        'safety_codes': codes
+                    }
+                }), 403
+
+        # ====================================================================
+        # STAGE 2: INTERCEPTION (Main Pipeline - DUMB execution)
+        # ====================================================================
+        logger.info(f"[4-STAGE] Stage 2: Interception (Main Pipeline) for '{schema_name}'")
+
         result = asyncio.run(pipeline_executor.execute_pipeline(
             config_name=schema_name,
-            input_text=input_text,
+            input_text=current_input,
             user_input=data.get('user_input', input_text),
             execution_mode=execution_mode,
             safety_level=safety_level
@@ -173,15 +224,43 @@ def execute_pipeline():
             'metadata': result.metadata
         }
 
-        # 2. Check for Auto-Media: Does config request media output?
-        # ResolvedConfig has media_preferences as direct attribute (not in parameters)
+        # ====================================================================
+        # STAGE 3: PRE-OUTPUT SAFETY (before media generation)
+        # ====================================================================
         media_preferences = config.media_preferences or {}
-
         default_output = media_preferences.get('default_output') if media_preferences else None
+        stage_3_blocked = False
 
-        # Check if Stage 3 blocked media generation
-        stage_3_blocked = result.metadata.get('stage_3_blocked', False) if result.metadata else False
+        if (not is_system_pipeline and not is_output_config and
+            default_output and default_output != 'text' and
+            safety_level != 'off'):
 
+            logger.info(f"[4-STAGE] Stage 3: Pre-Output Safety for {default_output} (level: {safety_level})")
+
+            safety_result = asyncio.run(execute_stage3_safety(
+                result.final_output,
+                safety_level,
+                default_output,
+                execution_mode,
+                pipeline_executor
+            ))
+
+            if not safety_result['safe']:
+                # Build user-friendly message
+                abort_reason = safety_result.get('abort_reason', 'Content blocked by safety filter')
+                error_message = f"🛡️ Sicherheitsfilter ({safety_level.upper()}):\n\n{abort_reason}\n\nℹ️ Dein Text wurde verarbeitet, aber die Bildgenerierung wurde aus Sicherheitsgründen blockiert."
+
+                logger.warning(f"[4-STAGE] Stage 3 BLOCKED: {abort_reason}")
+
+                # Update response
+                response_data['final_output'] = f"{result.final_output}\n\n---\n\n{error_message}"
+                response_data['metadata']['stage_3_blocked'] = True
+                response_data['metadata']['abort_reason'] = abort_reason
+                stage_3_blocked = True
+
+        # ====================================================================
+        # STAGE 4: OUTPUT (Media Generation via Auto-Media)
+        # ====================================================================
         if default_output and default_output != 'text' and not stage_3_blocked:
             logger.info(f"[AUTO-MEDIA] Config requests media output: {default_output}")
 
