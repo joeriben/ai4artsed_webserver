@@ -515,12 +515,15 @@ def pipeline_configs_metadata_compat():
                     username = parts[1]
                     stem = config_file.stem
                     config_id = f"u_{username}_{stem}"
+                    owner = username  # User-created
                 elif parts[0] in ["interception", "output"]:
                     # Main system configs: just the stem
                     config_id = config_file.stem
+                    owner = "system"  # System config
                 else:
                     # Other system configs: keep path
                     config_id = str(relative_path.with_suffix('')).replace('\\', '/')
+                    owner = "system"  # System config
 
                 # Extract metadata fields directly from config
                 metadata = {
@@ -547,6 +550,12 @@ def pipeline_configs_metadata_compat():
                 # Add meta fields (includes stage, owner, etc.)
                 if "meta" in config_data:
                     metadata["meta"] = config_data["meta"]
+                else:
+                    metadata["meta"] = {}
+
+                # Inject owner if not present
+                if "owner" not in metadata["meta"]:
+                    metadata["meta"]["owner"] = owner
 
                 configs_metadata.append(metadata)
 
