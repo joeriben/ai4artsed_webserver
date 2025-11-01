@@ -161,7 +161,7 @@ STAGE3_RULES = {
 
 ### 1.4 Stage-by-Stage Flow
 
-[See full section in original 4_STAGE_ARCHITECTURE.md - stages 1-4 detailed flows]
+[See above, 1.2 Core Architecture and IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md]
 
 ### 1.5 Complex Pipeline Examples
 
@@ -528,6 +528,9 @@ Output-Chunks contain **complete ComfyUI API workflows** embedded directly in th
 {
   "name": "text_transformation",
   "description": "Single-step text transformation",
+  "input_requirements": {
+    "texts": 1
+  },
   "chunks": ["manipulate"],
   "required_configs": ["manipulate_config"],
   "config_mappings": {
@@ -550,6 +553,14 @@ Output-Chunks contain **complete ComfyUI API workflows** embedded directly in th
 ```
 
 **Design Principle:** Pipelines define HOW to process (structure), NOT WHAT to process (content).
+
+**Key Field - `input_requirements`:**
+Declares what inputs the pipeline expects. DevServer uses this for Stage 1 orchestration:
+- `{"texts": 1}` - One text input (most configs: dada, bauhaus, overdrive, etc.)
+- `{"texts": 2}` - Two text inputs (music_generation for AceStep: tags + lyrics)
+- Future: `{"texts": 1, "images": 1}` for inpainting/img2img pipelines
+
+DevServer reads this field and runs appropriate Stage 1 processing (translation + safety) for each input before executing the main pipeline.
 
 ---
 
@@ -606,6 +617,7 @@ Output-Chunks contain **complete ComfyUI API workflows** embedded directly in th
   },
 
   "meta": {
+    "stage": "interception",     // Required: "pre_interception" | "interception" | "pre_output" | "output"
     "task_type": "advanced",  // Optional: override chunk's task_type
     "requires_creativity": true,
     "legacy_source": "config.py.DADAISMUS_PROMPT"
@@ -634,6 +646,15 @@ Output-Chunks contain **complete ComfyUI API workflows** embedded directly in th
 
 **Key Field - `context`:**
 The `context` field contains the **complete instruction text** (formerly called "metaprompt"). This is the actual content that gets injected into chunk templates as `{{INSTRUCTION}}`.
+
+**Key Field - `meta.stage`:**
+The `stage` field identifies which stage of the 4-Stage Architecture this config belongs to:
+- `"pre_interception"` - Stage 1 configs (translation, safety checks before main pipeline)
+- `"interception"` - Stage 2 configs (main transformation: dada, bauhaus, overdrive, etc.)
+- `"pre_output"` - Stage 3 configs (safety checks before media generation)
+- `"output"` - Stage 4 configs (media generation: sd35_large, gpt5_image, stableaudio, etc.)
+
+This field helps DevServer orchestrate the correct flow and enables future organization (e.g., moving output configs to separate folder).
 
 ---
 

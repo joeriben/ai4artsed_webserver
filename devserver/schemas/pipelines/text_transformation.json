@@ -1,6 +1,9 @@
 {
   "name": "text_transformation",
   "description": "Text Transformation Pipeline: Input Text → Manipulated Text (supports pre-translation)",
+  "input_requirements": {
+    "texts": 1
+  },
   "chunks": [
     "manipulate"
   ],

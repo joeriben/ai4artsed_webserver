@@ -1,7 +1,10 @@
 {
   "name": "audio_generation",
   "description": "Multi-Media Audio Generation Pipeline",
-  "pipeline_type": "audio_generation", 
+  "pipeline_type": "audio_generation",
+  "input_requirements": {
+    "texts": 1
+  },
   "chunks": [
     "manipulate",
     "comfyui_audio_generation"

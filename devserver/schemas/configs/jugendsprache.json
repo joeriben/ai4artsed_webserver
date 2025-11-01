@@ -26,6 +26,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "target_language": "uk_youth_slang",
     "age_group": "13-18",
     "genres": [

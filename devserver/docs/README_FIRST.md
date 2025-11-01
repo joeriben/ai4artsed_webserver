@@ -3,10 +3,15 @@
 **Date Created:** 2025-10-26
 **Purpose:** Prevent costly mistakes from incomplete understanding
 **Applies to:** ALL Claude Code sessions, ALL new LLM tasks
+**Last edit: 2025-11-01**
 
 ---
 
 ## 🚨 STOP - Before You Do Anything
+
+YOU MUST NOT EDIT ANY CODE BEFORE CONSULTING USER. ESPECIALLY WHEN FRESHLY STARTET, DO NOT DEVELOP SUPPOSEDLY "GOOD IDEAS" YOURSELF: YOU WILL MOST LIKELY BE WRONG AND MESS UP THE SYSTEM.
+
+AFTER READING THIS FIRST MESSAGE, CONFIRM YOU UNDERSTOOD IT.
 
 **You are about to work on the AI4ArtsEd DevServer.**
 
@@ -27,6 +32,7 @@ This is NOT a typical CRUD app or API server. It implements **pedagogical concep
 ### 1. `docs/ARCHITECTURE.md` Section 1 (20 min) **⭐ AUTHORITATIVE**
 **What:** Complete 4-stage orchestration flow (Part I of ARCHITECTURE.md)
 **Why:** Understand the CORRECT architecture for implementing flow logic
+**How:** The Document is quite long, use it for your orientation in the process. Hold the content structure firmly in your memory at all times, so that you will know when to look things up instead of making thing up yourself!
 
 **🚨 CRITICAL for any work involving:**
 - Pipeline execution

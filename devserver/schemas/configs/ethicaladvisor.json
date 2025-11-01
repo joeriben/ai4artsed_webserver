@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "legacy_source": "workflows_legacy/LLM/ai4artsed_EthicalAdvisor_2508271838.json",
     "extracted_date": "2025-10-19",
     "original_model": "openrouter/google/gemini-2.5-pro [translator / $1.25/$10.00]"

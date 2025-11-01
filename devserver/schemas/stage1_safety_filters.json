@@ -1,0 +1,40 @@
+{
+  "description": "Stage 1 Pre-Interception safety filter (CSAM, Violence, Hate Speech, Self-Harm)",
+  "usage": "Used in Stage 1 for hybrid fast-filter before llama-guard3:8b",
+  "source": "Llama-Guard3 categories + common harmful terms",
+
+  "filters": {
+    "stage1": {
+      "description": "Complete safety filter for Stage 1 (all harmful content)",
+      "categories": [
+        "S1: Violent Crimes",
+        "S2: Non-Violent Crimes",
+        "S3: Sex-Related Crimes",
+        "S4: Child Sexual Exploitation",
+        "S5: Defamation",
+        "S6: Specialized Advice",
+        "S7: Privacy",
+        "S8: Intellectual Property",
+        "S9: Indiscriminate Weapons",
+        "S10: Hate",
+        "S11: Suicide & Self-Harm",
+        "S12: Sexual Content",
+        "S13: Elections"
+      ],
+      "terms": [
+        "kill", "murder", "assassinate", "execute", "slaughter", "massacre",
+        "bomb", "explosive", "terrorist", "terrorism", "attack",
+        "rape", "molest", "abuse", "assault", "torture",
+        "child porn", "csam", "pedophile", "underage", "minor sex",
+        "nazi", "hitler", "genocide", "holocaust", "ethnic cleansing",
+        "nigger", "kike", "chink", "faggot", "tranny",
+        "suicide", "kill myself", "end my life", "self-harm", "cutting",
+        "how to make bomb", "how to kill", "build weapon",
+        "hack", "steal password", "credit card fraud", "identity theft",
+        "drug trafficking", "money laundering", "human trafficking"
+      ]
+    }
+  },
+
+  "note": "This is a STARTER list - should be extended with comprehensive hate speech, CSAM indicators, and violence terms"
+}

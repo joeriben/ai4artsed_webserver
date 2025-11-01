@@ -51,8 +51,8 @@
    - Success criteria, testing, rollback plan
 
 **Next Steps (Start Here):**
-- [ ] **Phase 1 (1h):** Add `input_requirements` to pipeline JSONs, `output_config` flags to output configs
-- [ ] **Phase 2 (2h):** Extract Stage 1/3 helper functions to `stage_orchestrator.py`
+- [x] **Phase 1 (1h):** ✅ COMPLETE (2025-11-01) - Added `input_requirements` to 7 pipelines, `stage` field to 42 configs
+- [x] **Phase 2 (2h):** ✅ COMPLETE (2025-11-01) - Created `stage_orchestrator.py` with Stage 1/3 helper functions
 - [ ] **Phase 3 (3h):** Implement `execute_4_stage_flow()` in schema_pipeline_routes.py
 - [ ] **Phase 4 (1h):** Add `skip_stages` parameter to PipelineExecutor
 - [ ] **Phase 5 (2h):** Enable feature flag, run integration tests

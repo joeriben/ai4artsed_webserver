@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_YorubaHeritage_2509071028.json",
     "extracted_date": "2025-10-19",
     "original_model": "openrouter/mistralai/mixtral-8x7b-instruct [cultural-expert / $0.45/$0.70]"

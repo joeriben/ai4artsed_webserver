@@ -2,6 +2,9 @@
   "name": "video_generation",
   "description": "Multi-Media Video Generation Pipeline",
   "pipeline_type": "video_generation",
+  "input_requirements": {
+    "texts": 1
+  },
   "chunks": [
     "manipulate",
     "comfyui_video_generation"

@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "legacy_source": "workflows_legacy/semantics/ai4artsed_PigLatin_2506122317.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral:7b"

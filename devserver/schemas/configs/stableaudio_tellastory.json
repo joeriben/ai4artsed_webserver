@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "output",
     "legacy_source": "workflows_legacy/sound/ai4artsed_StableAudio_TellAStory_2506291505.json",
     "extracted_date": "2025-10-19",
     "original_model": "openrouter/google/gemma-3-27b-it [translator / $0.10/$0.18]"

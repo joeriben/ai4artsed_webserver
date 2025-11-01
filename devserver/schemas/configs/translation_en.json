@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "target_language": "english",
     "preserve_structure": true,
     "system_pipeline": true,

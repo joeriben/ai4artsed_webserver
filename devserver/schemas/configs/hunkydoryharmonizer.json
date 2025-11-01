@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "legacy_source": "workflows_legacy/aesthetics/ai4artsed_HunkyDoryHarmonizer_2507100933.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral:7b"

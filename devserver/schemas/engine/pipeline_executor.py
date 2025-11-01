@@ -95,21 +95,25 @@ def parse_llamaguard_output(output: str) -> Tuple[bool, List[str]]:
     "unsafe,S8, Violent Crimes" → (False, ['S8'])
     """
     lines = output.strip().split('\n')
-    first_line = lines[0].strip().lower()
+    first_line = lines[0].strip()
+    first_line_lower = first_line.lower()
 
-    if first_line == 'safe':
+    if first_line_lower == 'safe':
         return (True, [])
-    elif first_line.startswith('unsafe'):
+    elif first_line_lower.startswith('unsafe'):
         # Handle two formats:
         # Format 1: "unsafe\nS1,S3" (two lines)
         # Format 2: "unsafe,S8, Violent Crimes" (one line with comma)
 
         if ',' in first_line:
             # Format 2: Extract codes from first line after "unsafe,"
+            # Use original case-preserved string for S-code extraction
             parts = first_line.split(',', 1)[1].strip()
-            # Extract S-codes (S1, S2, etc.)
+            # Extract S-codes (S1, S2, etc.) - case insensitive
             import re
-            codes = re.findall(r'S\d+', parts)
+            codes = re.findall(r'[Ss]\d+', parts)
+            # Normalize to uppercase
+            codes = [code.upper() for code in codes]
             return (False, codes)
         elif len(lines) > 1:
             # Format 1: Codes on second line

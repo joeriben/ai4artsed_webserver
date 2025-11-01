@@ -2,6 +2,9 @@
   "name": "image_generation",
   "description": "Multi-Media Image Generation Pipeline",
   "pipeline_type": "image_generation",
+  "input_requirements": {
+    "texts": 1
+  },
   "chunks": [
     "manipulate",
     "comfyui_image_generation"

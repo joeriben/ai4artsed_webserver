@@ -2,6 +2,9 @@
   "name": "single_prompt_generation",
   "description": "Single Prompt Generation Pipeline: Direct Media Generation from text prompt (Output-Pipeline is primitive!)",
   "pipeline_type": "single_prompt_generation",
+  "input_requirements": {
+    "texts": 1
+  },
   "chunks": [
     "output_image"
   ],

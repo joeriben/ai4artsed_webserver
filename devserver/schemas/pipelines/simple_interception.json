@@ -1,6 +1,9 @@
 {
   "name": "simple_interception",
   "description": "Simple Pipeline: Input → Manipulation → Manipulation → Output",
+  "input_requirements": {
+    "texts": 1
+  },
   "chunks": [
     "manipulate",
     "manipulate"

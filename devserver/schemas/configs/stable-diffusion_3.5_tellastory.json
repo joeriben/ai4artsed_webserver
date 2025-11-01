@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "legacy_source": "workflows_legacy/model/ai4artsed_Stable-Diffusion_3.5_TellAStory_2507152203.json",
     "extracted_date": "2025-10-19",
     "original_model": "openrouter/mistralai/mistral-medium-3"

@@ -2,6 +2,9 @@
   "name": "music_generation",
   "description": "Multi-Media Music Generation Pipeline",
   "pipeline_type": "music_generation",
+  "input_requirements": {
+    "texts": 2
+  },
   "chunks": [
     "manipulate",
     "comfyui_music_generation"

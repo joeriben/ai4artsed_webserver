@@ -13,25 +13,24 @@
     "de": "Textmanipulation"
   },
   "context": "Pass on the input text unchanged. Do not modify, enhance, or transform the prompt in any way. Return it exactly as provided.",
-
   "parameters": {
     "temperature": 0.0,
     "top_p": 1.0,
     "max_tokens": 50
   },
-
   "media_preferences": {
     "default_output": "image",
-    "supported_types": ["image"]
+    "supported_types": [
+      "image"
+    ]
   },
-
   "meta": {
+    "stage": "interception",
     "task_type": "standard",
     "purpose": "passthrough",
     "notes": "NULL-Manipulation config for direct image generation without prompt modification.",
     "version": "1.0"
   },
-
   "display": {
     "icon": "🎯",
     "color": "#00BCD4",
@@ -39,12 +38,18 @@
     "difficulty": 1,
     "order": 1
   },
-
   "tags": {
-    "en": ["passthrough", "direct", "no-modification"],
-    "de": ["durchreichen", "direkt", "keine-änderung"]
+    "en": [
+      "passthrough",
+      "direct",
+      "no-modification"
+    ],
+    "de": [
+      "durchreichen",
+      "direkt",
+      "keine-änderung"
+    ]
   },
-
   "audience": {
     "workshop_suitable": true,
     "min_age": 8,

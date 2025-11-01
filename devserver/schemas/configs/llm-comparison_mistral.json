@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "legacy_source": "workflows_legacy/model/ai4artsed_LLM-Comparison_Mistral_2508010852.json",
     "extracted_date": "2025-10-19",
     "original_model": "openrouter/mistralai/mistral-medium-3 [reasoning / $0.40/$2.00]"

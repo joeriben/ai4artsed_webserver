@@ -27,6 +27,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "transformation_type": "amplification",
     "intensity": "extreme",
     "legacy_source": "workflows_legacy/aesthetics/ai4artsed_Overdrive_2506152234.json"

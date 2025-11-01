@@ -25,6 +25,7 @@
   },
 
   "meta": {
+    "stage": "output",
     "model": "gpt-5-image",
     "model_id": "openai/gpt-5-image",
     "provider_model_id": "gpt-5-2025-08-07",

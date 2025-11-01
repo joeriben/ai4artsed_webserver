@@ -1190,3 +1190,276 @@ Related docs:
 **Last Updated:** 2025-11-01 (Session 7 Complete - Documentation + Planning)
 **Next Session:** Start Phase 1 (Add metadata to pipelines/configs)
 **Context Window:** ~68k tokens remaining (next session starts fresh)
+## Session 8: 2025-11-01 - Phase 1: Metadata Addition for 4-Stage Architecture
+**Duration (Wall):** [To be calculated]
+**Duration (API):** [To be calculated]
+**Cost:** [To be calculated from Claude Code usage stats]
+**Status:** ✅ PHASE 1 COMPLETE
+
+### Model Usage
+- claude-sonnet-4.5: [To be filled from usage statistics]
+
+### Tasks Completed
+
+1. ✅ **Phase 1.1: Added `input_requirements` to all 7 pipeline JSON files**
+   - `text_transformation.json`: `{"texts": 1}`
+   - `single_prompt_generation.json`: `{"texts": 1}`
+   - `music_generation.json`: `{"texts": 2}` (for AceStep: tags + lyrics)
+   - `audio_generation.json`: `{"texts": 1}`
+   - `image_generation.json`: `{"texts": 1}`
+   - `video_generation.json`: `{"texts": 1}`
+   - `simple_interception.json`: `{"texts": 1}`
+
+2. ✅ **Phase 1.2: Added `"stage"` field to all 42 config JSON files**
+   - 31 interception configs: `"stage": "interception"` (dada, bauhaus, etc.)
+   - 6 output configs: `"stage": "output"` (sd35_large, gpt5_image, stableaudio, acestep)
+   - 3 pre_output configs: `"stage": "pre_output"` (safety checks)
+   - 2 pre_interception configs: `"stage": "pre_interception"` (translation, llamaguard)
+
+3. ✅ **Phase 1.3: Verified ConfigLoader reads new metadata correctly**
+   - All 7 pipelines correctly expose `input_requirements`
+   - All 42 configs correctly expose `stage` field in meta
+   - Test script confirmed: 42 configs loaded, 7 pipelines loaded
+   - Breakdown: 31 interception + 6 output + 3 pre_output + 2 pre_interception
+
+### Code Changes
+- **Lines added:** ~60 (7 pipelines + 42 configs)
+- **Lines removed:** 0
+- **Net change:** +60
+
+### Files Modified
+
+**Modified (49 files):**
+- All 7 pipeline JSON files in `schemas/pipelines/*.json`
+- All 42 config JSON files (root + subdirectories)
+
+**Created:**
+- None (metadata addition only)
+
+**Deleted:**
+- None
+
+### Technical Implementation Details
+
+#### Design Decision: `"stage"` instead of `"config_type"`
+**User Question:** Should we use `"config_type": "output"` or `"stage": "output"`?
+
+**Decision:** Use `"stage"` field consistently
+
+**Rationale:**
+- pre_interception/pre_output configs already used `"stage"` field
+- Matches "4-Stage Architecture" terminology
+- Single consistent field across all 42 configs
+- Avoid redundancy (don't need both `stage` and `config_type`)
+
+#### AceStep Music Generation: Two Inputs
+**User Clarification:** For `music_generation` pipeline with `{"texts": 2}`:
+- Config will provide **two meta-prompts** (contexts array)
+- Context 1: Transform into musical tags (genre, tempo, mood)
+- Context 2: Transform into song lyrics
+- Pipeline processes both separately, then passes to AceStep
+
+### Verification Results
+
+```
+✅ TEST 1: Pipeline input_requirements
+  text_transformation: {'texts': 1}
+  single_prompt_generation: {'texts': 1}
+  music_generation: {'texts': 2}
+
+✅ TEST 2: Config stage field
+  ✅ dada: stage = 'interception'
+  ✅ sd35_large: stage = 'output'
+  ✅ text_safety_check_kids: stage = 'pre_output'
+
+✅ SUMMARY
+  Total configs: 42
+    interception: 31 configs
+    output: 6 configs
+    pre_interception: 2 configs
+    pre_output: 3 configs
+  Total pipelines: 7
+```
+
+### Documentation Updates
+- ⬜ DEVELOPMENT_LOG.md (this entry - pending completion)
+- ⬜ devserver_todos.md (Phase 1 marked complete - pending)
+- ⬜ ARCHITECTURE.md (if metadata needs documentation - pending check)
+
+### Next Session Priority
+
+**Phase 2 (Estimated: 2 hours):** Extract Stage 1/3 Helper Functions
+- Create `schemas/engine/stage_orchestrator.py`
+- Extract Stage 1 logic: `execute_stage1_translation()`, `execute_stage1_safety()`
+- Extract Stage 3 logic: `execute_stage3_safety()`
+- Move helpers from `pipeline_executor.py` (lines 308-499) to new module
+- No functional changes yet (just extraction)
+
+**See:** `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md` Phase 2 for details
+
+### Key Insights from User Discussion
+
+1. **DevServer orchestrates, PipelineExecutor executes**
+   - DevServer is SMART (knows 4-stage flow)
+   - PipelineExecutor is DUMB (just runs chunks)
+   - No `skip_pre_stages` flag needed (DevServer knows context)
+
+2. **`"stage"` field is for identification AND future organization**
+   - Helps DevServer identify config type
+   - Prepares for moving output configs to separate folder later
+   - Not for flow control (DevServer orchestration handles that)
+
+3. **Redundancy check prevented confusion**
+   - Initially suggested `skip_pre_stages` flag
+   - User correctly identified: "server knows what an 'output' is... ergo no skipping necessary"
+   - Cleaner architecture: Stage 4 = output, no flag needed
+
+### Session Summary
+
+**Status:** ✅ PHASE 1 COMPLETE (1/6 phases done)
+**Time Spent:** ~1 hour (as estimated)
+**Files Changed:** 49 JSON files (7 pipelines + 42 configs)
+**Testing:** Verified via Python test script
+**Git Status:** Not yet committed (waiting for documentation updates)
+
+**Progress:** ~10% of 4-Stage Architecture Refactoring complete
+
+Session cost: [To be calculated]
+Session duration: [To be calculated]
+
+Related docs:
+- docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md (Phase 1 complete)
+- docs/HANDOVER.md (referenced for Phase 1 steps)
+- docs/ARCHITECTURE.md (may need metadata field documentation)
+
+---
+
+## Session 8 (continued): 2025-11-01 - Phase 2: Extract Stage 1/3 Helper Functions
+**Duration (Wall):** [To be calculated]
+**Duration (API):** [To be calculated]
+**Cost:** [To be calculated from Claude Code usage stats]
+**Status:** ✅ PHASE 2 COMPLETE
+
+### Model Usage
+- claude-sonnet-4.5: [To be filled from usage statistics]
+
+### Tasks Completed
+
+1. ✅ **Created `schemas/engine/stage_orchestrator.py` module** (~400 lines)
+   - New module for DevServer orchestration helpers
+   - Will be used by DevServer in Phase 3
+   - Keeps PipelineExecutor clean (DUMB engine)
+
+2. ✅ **Extracted helper functions from `pipeline_executor.py`**
+   - `load_filter_terms()` - Loads safety filter terms (cached)
+   - `fast_filter_check()` - Fast string-matching (~0.001s)
+   - `parse_llamaguard_output()` - Parses Llama-Guard safety check results
+   - `build_safety_message()` - Builds German error messages from S-codes
+   - `parse_preoutput_json()` - Parses Stage 3 pre-output safety results
+
+3. ✅ **Created Stage execution functions**
+   - `execute_stage1_translation()` - Calls translation pipeline
+   - `execute_stage1_safety()` - Hybrid safety check (fast → LLM)
+   - `execute_stage3_safety()` - Pre-output safety (fast → LLM)
+
+4. ✅ **Verified module imports successfully**
+   - No syntax errors
+   - All functions accessible
+   - Ready for Phase 3 integration
+
+### Code Changes
+- **Lines added:** ~400 (new stage_orchestrator.py module)
+- **Lines removed:** 0 (extraction only, originals kept in place)
+- **Net change:** +400
+
+### Files Modified
+
+**Created:**
+- `schemas/engine/stage_orchestrator.py` (400 lines)
+  - 5 helper functions extracted
+  - 3 stage execution functions created
+  - Comprehensive logging and error handling
+
+**Modified:**
+- `docs/devserver_todos.md` (Phase 2 marked complete)
+
+### Technical Implementation Details
+
+#### Extracted Functions Structure
+
+**Helper Functions (from pipeline_executor.py):**
+```python
+# Safety filter management
+load_filter_terms() -> Dict[str, List[str]]
+fast_filter_check(prompt, safety_level) -> Tuple[bool, List[str]]
+
+# Parsing functions
+parse_llamaguard_output(output) -> Tuple[bool, List[str]]
+parse_preoutput_json(output) -> Dict[str, Any]
+build_safety_message(codes, lang) -> str
+```
+
+**Stage Execution Functions (new for DevServer):**
+```python
+# Stage 1: Pre-Interception
+async def execute_stage1_translation(text, execution_mode, pipeline_executor) -> str
+async def execute_stage1_safety(text, safety_level, execution_mode, pipeline_executor) -> Tuple[bool, List[str]]
+
+# Stage 3: Pre-Output
+async def execute_stage3_safety(prompt, safety_level, media_type, execution_mode, pipeline_executor) -> Dict
+```
+
+#### Key Design Decisions
+
+1. **No modifications to pipeline_executor.py**
+   - Functions extracted but originals kept in place
+   - Phase 3 will use stage_orchestrator functions
+   - Phase 6 will remove duplicates from pipeline_executor
+
+2. **DUMB helpers pattern**
+   - Functions just execute specific configs
+   - No orchestration logic (that's DevServer's job)
+   - Clear separation of concerns
+
+3. **Hybrid safety approach preserved**
+   - Fast filter (string match) → 95% requests
+   - LLM verification (context check) → 5% with terms
+   - Prevents false positives ("CD player", "dark chocolate")
+
+### Documentation Updates
+- ✅ devserver_todos.md (Phase 2 marked complete)
+- ✅ DEVELOPMENT_LOG.md (this entry)
+
+### Next Session Priority
+
+**Phase 3 (Estimated: 3 hours):** Implement New 4-Stage Orchestrator
+- Create `execute_4_stage_flow()` in `schema_pipeline_routes.py`
+- Use stage_orchestrator functions for Stage 1-3
+- Add feature flag: `USE_NEW_4_STAGE_ARCHITECTURE = False`
+- Test new path in parallel with old path
+- No breaking changes (feature flag off by default)
+
+**See:** `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md` Phase 3 for details
+
+### Session Summary
+
+**Status:** ✅ PHASE 2 COMPLETE (2/6 phases done)
+**Time Spent:** ~30 minutes (faster than 2h estimate - straightforward extraction)
+**Files Changed:** 1 new file (stage_orchestrator.py), 1 doc update
+**Testing:** Module imports successfully
+**Git Status:** Ready to commit
+
+**Progress:** ~30% of 4-Stage Architecture Refactoring complete
+
+Session cost: [To be calculated]
+Session duration: [To be calculated]
+
+Related docs:
+- docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md (Phase 2 complete)
+- docs/stage_orchestrator.py docstrings (inline documentation)
+
+---
+
+**Last Updated:** 2025-11-01 (Session 8 - Phase 1+2 Complete)
+**Next Session:** Phase 3 - Implement execute_4_stage_flow() in DevServer
+

@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "legacy_source": "workflows_legacy/aesthetics/ai4artsed_QuantumTheory_2509071919.json",
     "extracted_date": "2025-10-19",
     "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"

@@ -25,6 +25,7 @@
     ]
   },
   "meta": {
+    "stage": "interception",
     "legacy_source": "workflows_legacy/aesthetics/ai4artsed_ClichéFilter_V3_250616192.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral:7b"
