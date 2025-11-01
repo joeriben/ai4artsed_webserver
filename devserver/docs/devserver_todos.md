@@ -1,10 +1,73 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-10-29 (Pre-Interception Stage 1+2 COMPLETED)
+**Last Updated:** 2025-11-01 (Documentation Consolidated, Implementation Plan Created)
 **Context:** Post-analysis TODOs for completing devserver architecture
 
 ---
 
-## 🎯 CURRENT WORK (2025-10-29)
+## 🎯 CURRENT WORK (2025-11-01)
+
+### 4-Stage Architecture Refactoring
+**Status:** ⚠️ PLANNING COMPLETE - **READY TO START IMPLEMENTATION**
+**Priority:** CRITICAL
+**Full Plan:** `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md`
+
+**Problem Identified:**
+- Stage 1-3 logic embedded in `pipeline_executor.py` (lines 308-499)
+- Causes redundant API calls when AUTO-MEDIA executes output configs
+- Console evidence: Translation + Safety run twice (once for overdrive, once for gpt5_image)
+
+**Solution:**
+- Move Stage 1-3 orchestration from PipelineExecutor to DevServer (schema_pipeline_routes.py)
+- PipelineExecutor becomes DUMB engine (just executes chunks)
+- DevServer becomes SMART orchestrator (knows 4-stage flow)
+
+**What Was Done (2025-11-01):**
+1. ✅ **Consolidated Documentation**
+   - Merged 4_STAGE_ARCHITECTURE.md into ARCHITECTURE.md Section 1
+   - Deleted redundant docs (README.md, 4_STAGE_ARCHITECTURE.md)
+   - Moved historical docs to tmp/ (API_MIGRATION, PRE_INTERCEPTION_DESIGN)
+   - Updated all cross-references (CLAUDE.md, README_FIRST.md)
+   - Git commit: 85bf54d
+
+2. ✅ **Created ARCHITECTURE.md v3.0**
+   - Part I: Orchestration (Section 1 - 4-Stage Flow) - AUTHORITATIVE
+   - Part II: Components (Sections 2-13 - Implementation)
+   - Clear before/after architecture diagrams
+   - Console log evidence of current bug
+   - Non-redundant safety rules documented
+
+3. ✅ **Created Implementation Plan**
+   - `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md`
+   - 6-phase incremental refactoring strategy
+   - Feature flag approach (rollback-able)
+   - Detailed step-by-step instructions with code examples
+   - Testing strategy per phase
+   - Timeline: ~10 hours
+
+4. ✅ **Created Handover Documentation**
+   - `docs/HANDOVER.md` - Complete context for next session
+   - What to read before starting
+   - Exact first steps (Phase 1)
+   - Success criteria, testing, rollback plan
+
+**Next Steps (Start Here):**
+- [ ] **Phase 1 (1h):** Add `input_requirements` to pipeline JSONs, `output_config` flags to output configs
+- [ ] **Phase 2 (2h):** Extract Stage 1/3 helper functions to `stage_orchestrator.py`
+- [ ] **Phase 3 (3h):** Implement `execute_4_stage_flow()` in schema_pipeline_routes.py
+- [ ] **Phase 4 (1h):** Add `skip_stages` parameter to PipelineExecutor
+- [ ] **Phase 5 (2h):** Enable feature flag, run integration tests
+- [ ] **Phase 6 (1h):** Remove old code (lines 308-499), cleanup feature flag
+
+**Documentation:**
+- See `docs/HANDOVER.md` for complete next-session instructions
+- See `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md` for detailed roadmap
+- See `docs/ARCHITECTURE.md` Section 1 for authoritative 4-stage flow
+
+**Estimated Time:** ~10 hours (1 full work day)
+
+---
+
+## 🎯 PREVIOUS WORK (2025-10-29)
 
 ### COMPLETE Frontend Migration: Backend-Abstracted Architecture
 **Status:** ⚠️ PARTIALLY COMPLETED - **BLOCKER: Pre-Interception System NOT Implemented**

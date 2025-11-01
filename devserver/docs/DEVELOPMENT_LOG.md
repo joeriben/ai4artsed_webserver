@@ -996,5 +996,197 @@ Despite failures:
 
 ---
 
-**Last Updated:** 2025-10-30 (Session 6 Documented - Failed Test Attempts)
-**Next Update:** After productive work session
+## Session 7: 2025-11-01 - Documentation Consolidation & Implementation Planning
+**Duration (Wall):** ~3h
+**Duration (API):** ~2h
+**Cost:** [To be calculated from Claude Code usage stats]
+**Status:** ✅ PLANNING COMPLETE - Ready for Implementation
+
+### Model Usage
+- claude-sonnet-4.5: [To be filled from usage statistics]
+
+### Tasks Completed
+
+1. ✅ **Read Complete Documentation** (~1 hour)
+   - Read docs/README_FIRST.md, CLAUDE.md, ARCHITECTURE.md
+   - Read LEGACY_SERVER_ARCHITECTURE.md
+   - Read DEVELOPMENT_DECISIONS.md, devserver_todos.md
+   - Total reading: ~55+ minutes of documentation
+
+2. ✅ **Identified Architectural Problem**
+   - User provided console logs showing redundant Stage 1-3 calls
+   - Analyzed: Stage 1-3 logic embedded in pipeline_executor.py (lines 308-499)
+   - Root cause: PipelineExecutor orchestrates stages (should be DevServer's job)
+   - Evidence: Translation + Safety run twice (overdrive → gpt5_image)
+
+3. ✅ **Created Authoritative Architecture Documentation**
+   - Created: `docs/4_STAGE_ARCHITECTURE.md` (916 lines, comprehensive flow)
+   - Documented: Correct vs Wrong architecture with diagrams
+   - Explained: Non-redundant safety rules (DevServer knows, pipelines don't declare)
+   - Examples: Simple, Looping (Stille Post), Multi-Output, Iterative flows
+
+4. ✅ **Consolidated Documentation (User Request)**
+   - **Problem:** "docs are inconsistent... multiple architecture docs, multiple READMEs"
+   - **Solution:** Full consolidation into single source of truth
+   - Merged: 4_STAGE_ARCHITECTURE.md → ARCHITECTURE.md Section 1 (Part I)
+   - Deleted: README.md (merged into README_FIRST.md)
+   - Deleted: 4_STAGE_ARCHITECTURE.md (redundant after merge)
+   - Moved to tmp/: API_MIGRATION.md, PRE_INTERCEPTION_DESIGN.md (historical)
+   - Updated: All cross-references in CLAUDE.md, README_FIRST.md
+
+5. ✅ **Updated ARCHITECTURE.md to v3.0**
+   - Part I: Orchestration (Section 1 - 4-Stage Flow) - AUTHORITATIVE
+   - Part II: Components (Sections 2-13 - Implementation Reference)
+   - Clear table of contents with Part I/II division
+   - Updated references throughout documentation
+
+6. ✅ **Created Implementation Plan**
+   - Created: `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md` (60+ pages)
+   - Big picture: Before/After architecture diagrams
+   - Strategy: Incremental refactoring with feature flag (rollback-able)
+   - 6 Phases: Preparation → Extract Helpers → New Orchestrator → Update Executor → Test → Cleanup
+   - Testing strategy per phase
+   - Timeline: ~10 hours estimated
+
+7. ✅ **Created Handover Documentation**
+   - Created: `docs/HANDOVER.md` - Complete context for next session
+   - What to read before coding (ARCHITECTURE.md Section 1, Implementation Plan)
+   - Exact starting point (Phase 1: Add input_requirements, output_config flags)
+   - Success criteria, testing instructions, rollback plan
+   - Console log evidence of current bug
+
+8. ✅ **Git Commit & Push**
+   - Commit: 85bf54d "docs: Consolidate documentation into single source of truth"
+   - Pushed to: feature/schema-architecture-v2
+   - Branch: Clean state, all documentation up to date
+
+### Code Changes
+- **Lines added:** +615 (documentation)
+- **Lines removed:** -115 (redundant docs)
+- **Net change:** +500 (consolidation + new planning docs)
+
+### Files Modified
+
+**Consolidated:**
+- `docs/4_STAGE_ARCHITECTURE.md` → `docs/ARCHITECTURE.md` Section 1 (deleted original)
+- `docs/README.md` → `docs/README_FIRST.md` (deleted original)
+
+**Moved to tmp/:**
+- `docs/API_MIGRATION.md` → `docs/tmp/API_MIGRATION.md`
+- `docs/PRE_INTERCEPTION_DESIGN.md` → `docs/tmp/PRE_INTERCEPTION_DESIGN.md`
+
+**Updated:**
+- `CLAUDE.md` (references to ARCHITECTURE.md Section 1)
+- `docs/ARCHITECTURE.md` (v2.1 → v3.0, consolidated)
+- `docs/DEVELOPMENT_DECISIONS.md` (2 entries: architecture + consolidation)
+- `docs/README_FIRST.md` (updated reading list, 85 min total)
+- `docs/devserver_todos.md` (added current work section)
+
+**Created:**
+- `docs/IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md` (60+ pages, complete roadmap)
+- `docs/HANDOVER.md` (handover for next session)
+
+**Backup:**
+- `docs/ARCHITECTURE.md.backup_20251101` (safety backup before major merge)
+
+### Documentation Updates
+- ✅ ARCHITECTURE.md updated (v3.0, authoritative)
+- ✅ DEVELOPMENT_DECISIONS.md updated (2025-11-01 AM + PM entries)
+- ✅ DEVELOPMENT_LOG.md updated (this entry)
+- ✅ devserver_todos.md updated (current work: 4-stage refactoring)
+- ✅ CLAUDE.md updated (references)
+- ✅ README_FIRST.md updated (reading list)
+
+### Final Documentation Structure
+
+```
+docs/
+├── README_FIRST.md              ← THE single entry point (85 min)
+├── ARCHITECTURE.md (v3.0)       ← THE complete technical reference
+│   ├── Part I: Orchestration    (Section 1 - 4-Stage Flow) ⭐
+│   └── Part II: Components      (Sections 2-13 - Implementation)
+├── HANDOVER.md                  ← Next session starts here
+├── IMPLEMENTATION_PLAN_4_STAGE_REFACTORING.md  ← Roadmap
+├── LEGACY_SERVER_ARCHITECTURE.md  ← Historical context
+├── DEVELOPMENT_DECISIONS.md       ← Decision log
+├── DEVELOPMENT_LOG.md            ← Session tracking (this file)
+├── devserver_todos.md            ← Current tasks
+├── DEVSERVER_COMPREHENSIVE_DOCUMENTATION.md  ← Pedagogical perspective
+└── tmp/                          ← Historical/planning docs
+    ├── API_MIGRATION.md           (historical)
+    ├── PRE_INTERCEPTION_DESIGN.md (historical planning)
+    └── (other session-specific docs)
+```
+
+### Key Decisions
+
+**2025-11-01 (AM): 4-Stage Architecture v2.0**
+- DevServer as main orchestrator (NOT PipelineExecutor)
+- Non-redundant safety rules (hardcoded in DevServer)
+- Stage 3-4 loop per output request (not per pipeline)
+
+**2025-11-01 (PM): Documentation Consolidation**
+- Single source of truth: ARCHITECTURE.md
+- Clear Part I/II division (how it works → what the parts are)
+- Historical docs separated (tmp/)
+- Reading time: 85 minutes (well-structured)
+
+### Next Session Priority
+
+**START HERE:** Phase 1 - Preparation (1 hour)
+1. Add `input_requirements: {texts: 1}` to 3 pipeline JSONs
+2. Add `meta.output_config = true` to 2 output configs (gpt5_image, sd35_large)
+3. Test ConfigLoader reads these correctly
+4. Git commit: "feat: Add metadata for 4-stage orchestration (Phase 1)"
+
+**Then:** Continue with Phase 2-6 per IMPLEMENTATION_PLAN
+
+**Estimated Total:** ~10 hours for complete refactoring
+
+### Lessons Learned
+
+1. **Documentation First, Code Second**
+   - User correctly identified fragmented docs before coding
+   - Consolidation before implementation = clearer context
+   - Single source of truth prevents confusion
+
+2. **User Understanding Is Critical**
+   - User clarified: "devserver is the orchestrator of pipelines"
+   - User quote preserved in DEVELOPMENT_DECISIONS.md
+   - Architecture must match user's mental model
+
+3. **Incremental > Big Bang**
+   - Feature flag approach reduces risk
+   - Test each phase before proceeding
+   - Rollback plan essential
+
+4. **Console Logs Are Evidence**
+   - User-provided console logs proved redundancy bug
+   - Documented in ARCHITECTURE.md Section 1
+   - Clear before/after comparison
+
+### Session Summary
+
+**Status:** ✅ DOCUMENTATION COMPLETE, PLANNING COMPLETE
+**Next:** Implementation Phase 1 (next session)
+
+**Git Status:**
+- Branch: feature/schema-architecture-v2
+- Last commit: 85bf54d
+- Status: Clean, pushed, ready for implementation
+
+Session cost: [To be calculated]
+Session duration: ~3h wall, ~2h API
+Files changed: +615 -115 lines (7 files)
+
+Related docs:
+- Updated DEVELOPMENT_DECISIONS.md (2025-11-01 AM + PM)
+- Updated devserver_todos.md (current work)
+- Created HANDOVER.md (next session guide)
+- Created IMPLEMENTATION_PLAN (roadmap)
+
+---
+
+**Last Updated:** 2025-11-01 (Session 7 Complete - Documentation + Planning)
+**Next Session:** Start Phase 1 (Add metadata to pipelines/configs)
+**Context Window:** ~68k tokens remaining (next session starts fresh)
