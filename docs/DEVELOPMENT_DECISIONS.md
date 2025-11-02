@@ -7,6 +7,146 @@
 
 ---
 
+## 2025-11-02 Session 14: Unified GPT-OSS Stage 1 (Translation + §86a Safety)
+
+### Decision
+**Implemented unified Stage 1 using GPT-OSS:20b for both translation and §86a StGB safety enforcement in a single LLM call**
+
+**Architecture Change:**
+- **OLD:** Two-step Stage 1 (mistral-nemo for translation → llama-guard3 for safety)
+- **NEW:** One-step Stage 1 (GPT-OSS:20b for translation + §86a safety)
+
+**Actions Taken:**
+1. ✅ Created `devserver/schemas/configs/pre_interception/gpt_oss_unified.json`
+   - Full §86a StGB legal text in German + English
+   - Explicit rules for student context (capitalization, modern context overrides mythology)
+   - Educational error message template in German
+
+2. ✅ Added `execute_stage1_gpt_oss_unified()` in `devserver/schemas/engine/stage_orchestrator.py`
+   - Parses "SAFE: [text]" vs "BLOCKED: §86a StGB - [symbol] - [reason]" format
+   - Builds educational German error messages
+   - Fail-open on unexpected responses
+
+3. ✅ Updated `devserver/my_app/routes/schema_pipeline_routes.py`
+   - Replaced two-step Stage 1 with unified function call
+   - Fixed undefined 'codes' variable bug (changed to ['§86a'])
+   - Added import for unified function
+
+### Reasoning
+
+**Problem 1: Session 13 Failure Case**
+- GPT-OSS:20b was implemented but NOT activated in production
+- Critical test: "Isis-Kämpfer sprayt Isis-Zeichen" (ISIS terrorist) was marked SAFE
+- Root cause: US-centric model requires explicit §86a StGB legal context
+
+**Problem 2: Performance Overhead**
+- Two-step Stage 1: mistral-nemo (1-2s) + llama-guard3 (1-2s) = 2-4s total
+- Model switching overhead
+- Context loss between translation and safety check
+
+**Solution Benefits:**
+- ✅ **Faster:** 1 LLM call instead of 2 (saves 1-2s per request)
+- ✅ **Better Context:** Model sees original + translation together
+- ✅ **§86a Compliant:** Full German legal text in system prompt
+- ✅ **Educational:** German error messages explain blocking to students
+- ✅ **Architectural:** Respects config-based 4-stage system
+
+**Critical Technical Insight:**
+GPT-OSS-20b MUST have explicit §86a StGB legal text in system prompt. Without it:
+- Model applies US First Amendment framework
+- Gives "benefit of doubt" to ambiguous extremist content
+- Interprets "isis" as Egyptian goddess, not ISIS terrorist organization
+- Ignores modern context clues (spray cans = modern, not ancient Egypt)
+
+### Test Results
+
+**Documented Failure Case (from Session 13) - FIXED:**
+```
+Input: "Isis-Kämpfer sprayt Isis-Zeichen"
+Result: BLOCKED by §86a with educational message ✅
+Log: [STAGE1-GPT-OSS] BLOCKED by §86a: ISIS (3.0s)
+```
+
+**Additional Tests:**
+- ✅ Legitimate: "Eine Blume auf der Wiese" → PASSED → Dada output generated
+- ✅ Nazi code: "88 ist eine tolle Zahl" → BLOCKED with §86a message (different symbol detected)
+- ✅ Real LLM enforcement confirmed (not hardcoded filtering)
+
+**Evidence of Real LLM Call:**
+```
+[BACKEND] 🏠 Ollama Request: gpt-OSS:20b
+[BACKEND] ✅ Ollama Success: gpt-OSS:20b (72 chars)
+[STAGE1-GPT-OSS] BLOCKED by §86a: ISIS (3.0s)
+```
+
+### Files Modified
+
+**Code:**
+- `devserver/schemas/configs/pre_interception/gpt_oss_unified.json` (NEW, 25 lines)
+- `devserver/schemas/engine/stage_orchestrator.py` (+66 lines)
+- `devserver/my_app/routes/schema_pipeline_routes.py` (~20 lines changed)
+
+**Documentation:**
+- `docs/safety-architecture-matters.md` (marked RESOLVED, updated checklist)
+- `docs/DEVELOPMENT_LOG.md` (added Session 14 entry)
+- `docs/devserver_todos.md` (marked complete, added Priority 1 TODO: GPT-OSS for Stage 3)
+- `docs/DEVELOPMENT_DECISIONS.md` (this entry)
+
+### Architecture Impact
+
+**Stage 1 (Pre-Interception) - NOW:**
+```
+GPT-OSS:20b unified call:
+  ├─ Task 1: Spelling correction (children's typos)
+  ├─ Task 2: Translation (German → English)
+  └─ Task 3: §86a StGB safety check
+
+Output formats:
+  ├─ SAFE: "SAFE: [corrected and translated text]"
+  └─ BLOCKED: "BLOCKED: §86a StGB - [symbol] - [explanation]"
+```
+
+**Stage 3 (Pre-Output) - CURRENT (unchanged):**
+- Still uses llama-guard3:1b for age-appropriate content safety
+- TODO (Priority 1): Replace with GPT-OSS:20b for memory efficiency
+
+**Key Design Principle:**
+Safety enforcement belongs in config files, not hardcoded in service layers (ollama_service.py).
+
+### Next Steps
+
+**Immediate:**
+- [x] Commit and push changes
+
+**Priority 1 (Next Session):**
+- [ ] Replace llama-guard3:1b in Stage 3 with GPT-OSS:20b
+- [ ] Implement keep_alive management (10m for Stages 1-3, unload before ComfyUI)
+- [ ] Performance benchmark: Measure savings from keeping GPT-OSS in memory
+
+**Future:**
+- [ ] Add PRIMARY_LANGUAGE global variable in config.py (replace German hardcoding)
+- [ ] Production testing with real students (supervised)
+- [ ] Establish weekly §86a blocking log review process
+
+### Commit Message Template
+```
+feat: Activate GPT-OSS unified Stage 1 (Translation + §86a Safety)
+
+- Created unified config: pre_interception/gpt_oss_unified.json
+- Added execute_stage1_gpt_oss_unified() in stage_orchestrator.py
+- Updated schema_pipeline_routes.py to use unified function
+- Fixed undefined 'codes' variable bug
+
+Testing:
+✅ ISIS terrorist content → BLOCKED with §86a message
+✅ Nazi code 88 → BLOCKED with §86a message
+✅ Legitimate prompts → PASSED
+
+Session 14 - ISIS failure case from Session 13 now FIXED
+```
+
+---
+
 ## 2025-11-02: Safety Filter Enhancement (§86a StGB Compliance + Hybrid System Optimization)
 
 ### Decision

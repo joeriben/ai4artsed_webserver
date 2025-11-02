@@ -277,6 +277,72 @@ async def execute_stage1_safety(
         logger.warning(f"[STAGE1-SAFETY] Llama-Guard failed: {result.error}, continuing (fail-open)")
         return (True, [])  # Fail-open
 
+async def execute_stage1_gpt_oss_unified(
+    text: str,
+    safety_level: str,
+    execution_mode: str,
+    pipeline_executor
+) -> Tuple[bool, str, Optional[str]]:
+    """
+    Execute Stage 1 with GPT-OSS Unified (Translation + §86a Safety in ONE call)
+
+    Args:
+        text: Input text to translate and safety-check
+        safety_level: Not used in Stage 1 (always uses §86a StGB rules)
+        execution_mode: 'eco' or 'fast'
+        pipeline_executor: PipelineExecutor instance
+
+    Returns:
+        (is_safe, translated_text, error_message)
+    """
+    import time
+
+    start_time = time.time()
+    result = await pipeline_executor.execute_pipeline(
+        'pre_interception/gpt_oss_unified',
+        text,
+        execution_mode=execution_mode
+    )
+    check_time = time.time() - start_time
+
+    if not result.success:
+        logger.warning(f"[STAGE1-GPT-OSS] GPT-OSS failed: {result.error}, continuing (fail-open)")
+        return (True, text, None)  # Fail-open
+
+    response = result.final_output.strip()
+
+    # Parse GPT-OSS response format: "SAFE: [text]" or "BLOCKED: §86a StGB - [symbol] - [reason]"
+    if response.startswith("SAFE:"):
+        translated_text = response[5:].strip()  # Remove "SAFE: " prefix
+        logger.info(f"[STAGE1-GPT-OSS] PASSED ({check_time:.1f}s)")
+        return (True, translated_text, None)
+    elif response.startswith("BLOCKED:"):
+        # Parse: "BLOCKED: §86a StGB - ISIS symbols - ISIS is a terrorist organization"
+        blocked_parts = response[8:].strip()  # Remove "BLOCKED: " prefix
+
+        # Extract symbol and reason
+        parts = blocked_parts.split(" - ", 2)
+        law_reference = parts[0] if len(parts) > 0 else "§86a StGB"
+        symbol = parts[1] if len(parts) > 1 else "extremist content"
+        explanation = parts[2] if len(parts) > 2 else "This content violates German law"
+
+        # Build German educational error message
+        error_message = (
+            f"⚠️ Dein Prompt wurde blockiert\n\n"
+            f"GRUND: {law_reference} - {symbol}\n\n"
+            f"{explanation}\n\n"
+            f"WARUM DIESE REGEL?\n"
+            f"Diese Symbole werden benutzt, um Gewalt und Hass zu verbreiten.\n"
+            f"Wir schützen dich und andere vor gefährlichen Inhalten."
+        )
+
+        logger.warning(f"[STAGE1-GPT-OSS] BLOCKED by §86a: {symbol} ({check_time:.1f}s)")
+        return (False, text, error_message)
+    else:
+        # Unexpected format - log and fail-open
+        logger.warning(f"[STAGE1-GPT-OSS] Unexpected format: {response[:100]}, continuing (fail-open)")
+        return (True, text, None)
+
 async def execute_stage3_safety(
     prompt: str,
     safety_level: str,

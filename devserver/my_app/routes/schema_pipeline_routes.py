@@ -17,6 +17,7 @@ from schemas.engine.prompt_interception_engine import PromptInterceptionEngine
 from schemas.engine.stage_orchestrator import (
     execute_stage1_translation,
     execute_stage1_safety,
+    execute_stage1_gpt_oss_unified,
     execute_stage3_safety,
     build_safety_message
 )
@@ -159,26 +160,17 @@ def execute_pipeline():
         if not is_system_pipeline and not is_output_config:
             logger.info(f"[4-STAGE] Stage 1: Pre-Interception for '{schema_name}'")
 
-            # Stage 1a: Translation
-            translated_text = asyncio.run(execute_stage1_translation(
+            # Stage 1: GPT-OSS Unified (Translation + §86a Safety in ONE call)
+            is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
                 input_text,
+                safety_level,
                 execution_mode,
                 pipeline_executor
             ))
             current_input = translated_text
 
-            # Stage 1b: Safety Check
-            is_safe, codes = asyncio.run(execute_stage1_safety(
-                translated_text,
-                safety_level,
-                execution_mode,
-                pipeline_executor
-            ))
-
             if not is_safe:
-                # Build error message
-                error_message = build_safety_message(codes, lang='de')
-                logger.warning(f"[4-STAGE] Stage 1 BLOCKED: {codes}")
+                logger.warning(f"[4-STAGE] Stage 1 BLOCKED by GPT-OSS §86a")
 
                 return jsonify({
                     'status': 'error',
@@ -186,7 +178,7 @@ def execute_pipeline():
                     'error': error_message,
                     'metadata': {
                         'stage': 'pre_interception',
-                        'safety_codes': codes
+                        'safety_codes': ['§86a']  # Blocked by GPT-OSS §86a StGB check
                     }
                 }), 403
 

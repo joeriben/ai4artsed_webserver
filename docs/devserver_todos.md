@@ -4,11 +4,136 @@
 
 ---
 
-## 🎯 PRIORITY 1 (Next Session): GPT-OSS-20b Model Integration
+## ✅ COMPLETED (2025-11-02 Session 14): GPT-OSS-20b Unified Stage 1 Activation
 
-**Status:** RESEARCH COMPLETE → READY FOR IMPLEMENTATION
-**Context Window:** Postponed from Session 12 (80% usage)
-**Prerequisites:** Model must be loaded locally first (`ollama pull openai/gpt-oss-safeguard-20b`)
+**Status:** ✅ IMPLEMENTATION COMPLETE & TESTED
+**Duration:** ~2h (continuation from Session 13)
+**Commits:** Pending (code complete, docs updated)
+
+**What Was Done:**
+- ✅ Created unified GPT-OSS config with full §86a StGB legal text
+- ✅ Added `execute_stage1_gpt_oss_unified()` in stage_orchestrator.py
+- ✅ Updated schema_pipeline_routes.py to use unified function
+- ✅ Tested successfully: ISIS blocking, Nazi code 88 blocking, legitimate prompts passed
+- ✅ Verified Stage 3 (Pre-Output Safety) uses llama-guard3:1b appropriately
+- ✅ Updated all documentation (DEVELOPMENT_LOG, safety-architecture-matters, DEVELOPMENT_DECISIONS)
+
+**Files Changed:**
+- Code: `gpt_oss_unified.json` (new), `stage_orchestrator.py`, `schema_pipeline_routes.py`
+- Docs: `DEVELOPMENT_LOG.md`, `safety-architecture-matters.md`, `devserver_todos.md`, `DEVELOPMENT_DECISIONS.md`
+
+**See:** Session 14 in `DEVELOPMENT_LOG.md` for full details
+
+---
+
+## 🎯 PRIORITY 1 (Next Session): GPT-OSS for Stage 3 + Memory Efficiency
+
+**Status:** NEW TODO (from Session 14)
+**Context:** Keep GPT-OSS:20b in Ollama memory throughout Stages 1-3 for efficiency
+**Priority:** HIGH (performance optimization + consistency)
+
+**Current Issue:**
+- Stage 1: Uses GPT-OSS:20b (§86a safety) ✅
+- Stage 3: Uses llama-guard3:1b (age-appropriate content) ❌
+- Results in model switching overhead and inconsistent safety approach
+
+**Proposed Solution:**
+```
+Stages 1-3 (local/eco mode):
+  ├─ Stage 1: GPT-OSS:20b (Translation + §86a Safety) ✅
+  ├─ Stage 2: User-selected config (e.g., Dada, Bauhaus)
+  └─ Stage 3: GPT-OSS:20b (Pre-Output Safety) ← TODO
+
+Stage 4: Unload GPT-OSS before ComfyUI (if media generation)
+  └─ API-based outputs (GPT-5 Image): Keep GPT-OSS loaded
+```
+
+**Benefits:**
+- ✅ Single model for all safety checks (consistency)
+- ✅ Keep GPT-OSS in Ollama memory (keep_alive: "10m")
+- ✅ No model switching overhead between stages (~2-3s saved)
+- ✅ Unified safety approach (§86a + age-appropriate in one model)
+- ✅ Better VRAM usage (16GB vs 16GB + 8GB)
+
+**Implementation Tasks:**
+1. **Create GPT-OSS Stage 3 config:**
+   - `devserver/schemas/configs/pre_output/gpt_oss_preoutput_kids.json`
+   - `devserver/schemas/configs/pre_output/gpt_oss_preoutput_youth.json`
+   - Similar to current llama-guard3 configs but using GPT-OSS:20b
+   - Add §86a context + age-appropriate content rules
+
+2. **Update `stage_orchestrator.py`:**
+   - Modify `execute_stage3_safety()` to use GPT-OSS configs
+   - Keep hybrid approach (fast string-match → LLM verification)
+   - Parse GPT-OSS JSON response format
+
+3. **Add keep_alive management:**
+   - Stage 1-3: `keep_alive: "10m"` (stays in VRAM)
+   - Before Stage 4 ComfyUI: Unload GPT-OSS explicitly if media generation
+   - API-based Stage 4: Keep GPT-OSS loaded
+
+4. **Testing:**
+   - Verify Stage 3 safety checks still work correctly
+   - Measure performance gain (expect 2-3s faster)
+   - Confirm VRAM usage stays within limits
+
+**Timeline:** Next session (Priority 1)
+
+---
+
+## 🎯 PRIORITY 2 (Future): Internationalization - Primary Language Selector
+
+**Status:** NEW TODO (from Session 14)
+**Context:** German language is currently hardcoded in educational error messages
+**Priority:** MEDIUM (works for German deployment, blocks international use)
+
+**Current Issue:**
+- Educational blocking messages hardcoded in German
+- §86a StGB error template only in German
+- System assumes German as primary language
+
+**Required Changes:**
+1. **Add to `config.py`:**
+   ```python
+   # Primary language for educational content and error messages
+   PRIMARY_LANGUAGE = "de"  # ISO 639-1 code: de, en, fr, es, etc.
+
+   # Supported languages for UI and error messages
+   SUPPORTED_LANGUAGES = ["de", "en"]
+   ```
+
+2. **Create language templates directory:**
+   ```
+   devserver/schemas/language_templates/
+   ├── de.json  # German templates (default)
+   ├── en.json  # English templates
+   └── ...
+   ```
+
+3. **Update educational error messages:**
+   - `stage_orchestrator.py`: Replace hardcoded German messages with template system
+   - Load templates based on PRIMARY_LANGUAGE setting
+   - Fall back to English if language not supported
+
+4. **Template structure:**
+   ```json
+   {
+     "safety_blocked_template": "⚠️ {heading}\n\n{reason}\n\n{explanation}\n\n{why_rule}\n{protection}",
+     "heading_de": "Dein Prompt wurde blockiert",
+     "heading_en": "Your prompt was blocked",
+     "why_rule_de": "WARUM DIESE REGEL?",
+     "why_rule_en": "WHY THIS RULE?",
+     ...
+   }
+   ```
+
+**Benefits:**
+- Enables international deployment (UK, US, France, etc.)
+- Maintains German compliance for German deployments
+- Single config variable controls all language settings
+- Easy to add new languages
+
+**Timeline:** Future enhancement (not blocking current deployment)
 
 ---
 
@@ -77,6 +202,17 @@ exports/
 - **WITHOUT §86a prompt:** "Hakenkreuz Fahne" → SAFE (neutral mention) ❌
 - **WITH §86a prompt:** "Hakenkreuz Fahne" → UNSAFE (§86a violation) ✅
 - Model is **highly configurable** via system prompt!
+
+**⚠️ CRITICAL SAFETY ANALYSIS:**
+GPT-OSS-20b uses US-centric safety standards and **catastrophically fails** to recognize German §86a StGB violations without explicit legal context.
+
+**Documented Failure:** `docs/terminal-savings/GPT-OSS safety check - hard fail.txt`
+- Test: "Isis-Kämpfer sprayt Isis-Zeichen" (ISIS terrorist fighter)
+- GPT-OSS: Misinterpreted as "Egyptian goddess", marked SAFE ❌
+- Root cause: US First Amendment framework gives "benefit of doubt"
+- German law: Display of ISIS symbols = illegal (up to 3 years prison)
+
+**See:** `docs/safety-architecture-matters.md` for complete failure analysis, legal context, and solution architecture.
 
 ### 📋 TODO: Implement gpt-oss-20b as Unified Stage 1-3 Model
 
