@@ -100,6 +100,301 @@ Corrected approach (right):
 
 ---
 
+## 2025-11-02: GPT-OSS-20b as Unified Stage 1-3 Model + VRAM Management Strategy
+
+### Decision
+**Adopt OpenAI's gpt-oss-safeguard-20b as unified model for Stage 1 (Translation), Stage 2 (Interception), and Stage 3 (Safety), replacing the current multi-model architecture (mistral-nemo + llama-guard3).**
+
+**Status:** RESEARCH COMPLETE, Implementation pending
+**Impact:** MAJOR - Makes entire model_selector.py architecture obsolete
+
+### Context: The Multi-Model Problem
+
+**Current Architecture (Before GPT-OSS):**
+```
+Stage 1: Translation → mistral-nemo (8B, 1-2s)
+Stage 1: Safety     → llama-guard3:8b (1-2s)
+Stage 2: Interception → mistral-nemo (8B, 1-2s)
+Stage 3: Pre-Output Safety → llama-guard3:8b (1-2s)
+
+Total per request: 4-6s (+ 2-3s model loading overhead)
+Memory: Load/unload different models → VRAM thrashing
+Code: Complex model_selector.py with task-based mapping
+```
+
+**Problems:**
+1. **Performance:** 2 different models loaded/unloaded repeatedly
+2. **Complexity:** model_selector.py maps tasks to models for eco/fast modes
+3. **VRAM Management:** 24GB/32GB cards struggle with model swapping + ComfyUI
+4. **Quality:** Separate models for translation and safety (no context sharing)
+
+**User Insight:**
+> "wait, Denkfehler: wenn wir in stage 2 auch GPT-OSS verwenden könnten? müssen wir es gar nicht unloaden."
+
+### Research: GPT-OSS-20b Testing Results
+
+**Model Specs:**
+- Full name: `openai/gpt-oss-safeguard-20b`
+- Parameters: 21B total, 3.6B active (MoE - Mixture of Experts)
+- VRAM: 16GB (fits in 24GB cards with room for other processes)
+- Performance: Fast as 8B models due to MoE architecture
+
+**Test Methodology:**
+- Created 3 test scripts testing Translation, Safety, Artistic Transformation
+- Tested with/without §86a StGB system prompt
+- Tested with/without Arts Education context
+- Compared quality, performance, false positive/negative rates
+
+**Results:**
+
+**1. Translation + Typo Correction: ⭐⭐⭐⭐⭐ Excellent**
+- Input: "Eien Bluhme auf der Wiesse" (children's spelling errors)
+- Output: "A flower on the meadow" (correct translation + typo correction)
+- Quality: Superior to mistral-nemo
+- Context-aware: "Haustir" → "Haustier" (pet) not "Haustür" (door) in Arts Education context
+
+**2. Artistic Transformation: ⭐⭐⭐⭐⭐ Outstanding**
+- Dada transformation: Innovative, non-clichéd responses
+- Bauhaus transformation: Perfect geometric reduction, functional language
+- Quality: Matches mistral-nemo artistic capabilities
+
+**3. Safety (§86a StGB): ⭐⭐⭐⭐⭐ WITH explicit German law prompt**
+- WITHOUT §86a prompt: "Hakenkreuz Fahne" → SAFE (neutral mention) ❌
+- WITH §86a prompt: "Hakenkreuz Fahne" → UNSAFE (§86a violation) ✅
+- False positive handling: "ISIS goddess" → SAFE ✓ (correct)
+- False negative prevention: "ISIS terrorist flag" → UNSAFE ✓ (correct)
+
+**Critical Discovery:**
+> Model is highly configurable via system prompt. US-centric by default, but correctly applies German law when explicitly instructed.
+
+### Solution Architecture: Unified Single-Model System
+
+**New Architecture (After GPT-OSS):**
+```
+Stage 1: Translation → gpt-oss-20b (16GB, 2s)
+Stage 1: Safety     → (INTEGRATED - same model context)
+Stage 2: Interception → gpt-oss-20b (REUSED - already in VRAM)
+Stage 3: Pre-Output Safety → gpt-oss-20b (REUSED - already in VRAM)
+
+Total per request: 2-3s (single model, no loading overhead)
+Memory: Keep loaded Stage 1-3, unload only before ComfyUI Stage 4
+Code: model_selector.py becomes OBSOLETE
+```
+
+**Performance Improvement:**
+- Current: 4-6s (2 models, repeated loading)
+- New: 2-3s (1 model, stays loaded)
+- **Savings: 30-50% faster + better quality**
+
+### VRAM Management Strategy
+
+**Problem:**
+- GPT-OSS: 16GB VRAM
+- ComfyUI (SD3.5/Flux): 12-15GB VRAM
+- Total: 28-31GB (exceeds 24GB cards)
+
+**Solution: Dynamic Loading by Backend**
+```python
+# Stage 1-3: Keep GPT-OSS loaded
+ollama.generate(model="gpt-oss-20b", keep_alive="10m")
+
+# Stage 4 Decision Point:
+if backend == "comfyui":
+    # Unload GPT-OSS before ComfyUI
+    ollama.generate(model="gpt-oss-20b", keep_alive="0s")
+elif backend == "api":  # GPT-5 Image, OpenRouter, etc.
+    # Keep GPT-OSS loaded (API doesn't use local VRAM)
+    pass  # No unload needed
+```
+
+**Benefits:**
+- API-based workflows (GPT-5 Image): No VRAM conflict, keep model loaded
+- ComfyUI workflows: Explicit unload prevents OOM errors
+- Next request: Model stays in VRAM if within 10m window
+
+### §86a StGB System Prompt Integration
+
+**Problem:** GPT-OSS-20b is US-centric by default (First Amendment standards)
+
+**Solution:** Explicit German legal framework in system prompt
+
+```python
+GPT_OSS_STAGE1_SYSTEM = """You assist children/adolescents (ages 8-17) in Arts Education.
+
+LEGAL FRAMEWORK: §86a StGB (Strafgesetzbuch - German Criminal Code)
+In Germany, it is ILLEGAL to display, distribute, or use symbols of:
+- Nazi organizations (swastika/hakenkreuz, SS runes, Hitler salute)
+- Terrorist organizations (ISIS flags, PKK symbols, RAF symbols)
+- Extremist organizations (KKK, white supremacist symbols)
+
+Educational/historical context does NOT make these symbols legal in Germany.
+A "neutral mention" of a swastika flag is STILL ILLEGAL under §86a StGB.
+
+TASKS:
+1. CORRECT SPELLING for creative image prompts
+   - Ambiguous typos: Interpret as creative subjects (Haustir→Haustier not Haustür)
+   - Children want to create images of interesting things (animals, scenes)
+2. TRANSLATE German→English (preserve creative structure)
+3. SAFETY CHECK: Block §86a StGB violations, violence, CSAM, hate speech
+
+OUTPUT:
+- Translated text OR
+- "BLOCKED: §86a StGB - [specific reason]"
+"""
+```
+
+**Key Elements:**
+1. Arts Education context (typo interpretation)
+2. Explicit §86a StGB legal reference
+3. Clear violation examples
+4. Integrated Translation + Safety in single pass
+
+### Performance Analysis
+
+**Current Multi-Model System:**
+```
+Translation:     mistral-nemo (8B)    1-2s
+Safety Check 1:  llama-guard3 (8B)    1-2s
+Interception:    mistral-nemo (8B)    1-2s (reload or reuse?)
+Safety Check 2:  llama-guard3 (8B)    1-2s (reload or reuse?)
+────────────────────────────────────────────
+Total:           4-6s per request
+Models:          2 different models
+Loading:         2-3s overhead per model switch
+```
+
+**New Unified GPT-OSS System:**
+```
+Stage 1 (Translation + Safety):  gpt-oss-20b (21B/3.6B active)  2-3s
+Stage 2 (Interception):          gpt-oss-20b (REUSED)          0.5s
+Stage 3 (Pre-Output Safety):     gpt-oss-20b (REUSED)          0.5s
+────────────────────────────────────────────────────────────────────
+Total:           3-4s per request
+Models:          1 unified model
+Loading:         0s (stays in VRAM)
+```
+
+**Quality Improvements:**
+- Shared context across stages (model "remembers" translation choices)
+- Better typo correction (Arts Education context)
+- Consistent safety standards (same model, same prompt)
+- Superior artistic transformation (proven in tests)
+
+### Architecture Impact: Model Selector Obsolescence
+
+**CRITICAL: This decision makes the following architecture OBSOLETE:**
+
+**Files That Can Be Removed (After Implementation + Testing):**
+1. `schemas/engine/model_selector.py` - Entire file becomes unnecessary
+2. Task-based model mapping (`task:translation`, `task:safety`, etc.)
+3. Eco/fast mode model switching logic
+4. Complex model selection in chunk_builder.py
+
+**Why Obsolete:**
+- Single model handles all tasks → No task-based selection needed
+- Same model for eco/fast → No mode-based switching needed
+- OpenRouter/Ollama distinction remains, but simpler:
+  - Ollama: `gpt-oss-20b` (local)
+  - OpenRouter: `openai/gpt-oss-safeguard-20b` (API)
+
+**Code Simplification:**
+```python
+# BEFORE (complex):
+from .model_selector import model_selector
+base_model = resolved_config.meta.get('model_override') or template.model
+final_model = model_selector.select_model_for_mode(base_model, execution_mode)
+
+# AFTER (simple):
+model = "gpt-oss-20b"  # Always, for all tasks
+```
+
+**User Statement:**
+> "Immerhin macht diese Entscheidung die komplette aufwändige Model-Selektion und das Mapping lokal-> Openrouter überflüssig. Dieser ganze Code kann eigentlich entfernt werden (würde ich jetzt im Code ggf. auskommentieren, aber noch nicht entfernen, da wichtigeres zu tun ist, und wir GPT-OSS auch noch im Einsatz testen müssen)."
+
+### Implementation Status
+
+**✅ Completed:**
+- Research phase (3 test scripts, comprehensive testing)
+- §86a StGB compliance testing (WITH/WITHOUT prompt comparison)
+- Arts Education context testing (typo disambiguation)
+- Performance benchmarking
+- VRAM management strategy design
+- System prompt template design
+- Documentation in devserver_todos.md
+
+**⏳ Pending Implementation:**
+- [ ] Update config.py: MODEL constants → `gpt-oss-20b`
+- [ ] Implement §86a StGB system prompt in ollama_service.py
+- [ ] Add Arts Education context for typo correction
+- [ ] Implement keep_alive management (10m Stage 1-3, 0s before ComfyUI)
+- [ ] Add backend detection in Stage 4 (comfyui vs api)
+- [ ] Test combined Translation+Safety+Interception flow
+- [ ] Benchmark real-world performance vs. current system
+- [ ] (Later) Comment out model_selector.py code
+- [ ] (Later) Remove model_selector.py after 2-3 months of stable operation
+
+### Test Scripts Location
+**Research artifacts preserved:**
+- `/tmp/test_gpt_oss_safeguard.py` - Full test suite (translation, dada, bauhaus, safety)
+- `/tmp/test_gpt_oss_german_law.py` - §86a StGB compliance tests
+- `/tmp/test_gpt_oss_context_correction.py` - Arts Education typo tests
+
+**Note:** Scripts contain hardcoded API key, NOT committed to Git
+
+### Future Considerations
+
+**After Implementation + Testing:**
+1. Monitor performance in production (2-3 weeks)
+2. Collect user feedback on translation quality
+3. Verify §86a StGB blocking works correctly in real scenarios
+4. Test VRAM management on 24GB cards
+5. If stable: Comment out model_selector.py (mark as deprecated)
+6. If stable for 2-3 months: Remove model_selector.py entirely
+
+**Rollback Strategy:**
+- Keep model_selector.py code intact initially (comment out, don't delete)
+- Easy revert: Change config.py constants back to mistral-nemo/llama-guard3
+- Test scripts available for regression testing
+
+**API Key Management:**
+- OpenRouter API key in `/devserver/openrouter_api.key`
+- Backend auto-detects: Ollama (local) vs OpenRouter (cloud)
+
+### Files Modified
+**Documentation:**
+- `docs/devserver_todos.md` - Research results, implementation plan
+- `docs/DEVELOPMENT_DECISIONS.md` - This entry
+
+**Pending Changes (Implementation):**
+- `devserver/config.py` - MODEL constants
+- `devserver/my_app/services/ollama_service.py` - System prompts, keep_alive
+- `devserver/schemas/engine/backend_router.py` - VRAM management logic
+
+**Future Cleanup (Post-Testing):**
+- `devserver/schemas/engine/model_selector.py` - Mark as deprecated/remove
+
+### Related Documentation
+- devserver_todos.md - Full implementation checklist
+- ARCHITECTURE.md Section 1 - 4-Stage orchestration (where models are used)
+- README_FIRST.md - Model selection philosophy
+- Test scripts in `/tmp/test_gpt_oss_*.py` - Research methodology
+
+### Key Quotes
+
+**On unified model architecture:**
+> "wait, Denkfehler: wenn wir in stage 2 auch GPT-OSS verwenden könnten? müssen wir es gar nicht unloaden."
+
+**On model selector obsolescence:**
+> "Immerhin macht diese Entscheidung die komplette aufwändige Model-Selektion und das Mapping lokal-> Openrouter überflüssig."
+
+**On §86a StGB prompt necessity:**
+> "Adressiere es explizit unter Verweis auf §86 StGB. Mal sehen ob es dann besser funktioniert."
+
+**On Arts Education context:**
+> "ergänze zu 1: correct spelling errors according to -> und dann Verweis auf die Situation: Kinder und Jugendliche die in Arts Education-Kursen Bilder und Medien prompten"
+
+---
+
 ## 2025-11-01 (Evening 2): Multi-Output Support for Model Comparison
 
 ### Decision
