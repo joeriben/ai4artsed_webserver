@@ -14,7 +14,10 @@ from config import (
     ANALYSIS_SYSTEM_PROMPT,
     PROMPT_CACHE,
     TRANSLATION_PROMPT,
-    NO_TRANSLATE
+    NO_TRANSLATE,
+    GPT_OSS_MODEL,
+    GPT_OSS_SAFETY_SYSTEM_PROMPT,
+    GPT_OSS_TRANSLATION_SYSTEM_PROMPT
 )
 
 logger = logging.getLogger(__name__)
@@ -77,26 +80,26 @@ class OllamaService:
     def check_safety(self, text: str) -> Dict[str, Any]:
         """
         Check if text is safe using Ollama safety model
-        
+
         Args:
             text: Text to check
-            
+
         Returns:
             Dictionary with 'is_safe' boolean and optional 'reason' if unsafe
         """
         prompt = f"Is the following text safe? Please classify it. The text is:\n\n{text}"
-        
+
         payload = {
             "model": SAFETY_MODEL,
             "prompt": prompt,
             "stream": False,
             "keep_alive": "0s"
         }
-        
+
         result = self._make_request("api/generate", payload)
         if not result:
             return {"is_safe": True, "note": "Safety check service failed, bypassing check."}
-        
+
         safety_response = result.get("response", "").strip()
         if safety_response.lower().strip().startswith("safe"):
             return {"is_safe": True}
@@ -107,6 +110,67 @@ class OllamaService:
                 "is_safe": False,
                 "reason": f"Sorry, your prompt has been rejected due to potential issues: {', '.join(sorted(list(set(reasons))))}"
             }
+
+    def check_safety_gpt_oss(self, text: str, keep_alive: str = "10m") -> Dict[str, Any]:
+        """
+        Check if text is safe using GPT-OSS-20b with §86a StGB compliance
+
+        Args:
+            text: Text to check (German or English)
+            keep_alive: How long to keep model in VRAM (default: 10m for Stage 1-3)
+
+        Returns:
+            Dictionary with:
+            - 'is_safe': Boolean
+            - 'translated_text': If safe, the translated text
+            - 'reason': If unsafe, the §86a blocking reason
+            - 'symbol': If unsafe, the specific symbol/organization
+        """
+        prompt = f"Check this text for safety under §86a StGB:\n\n{text}"
+
+        payload = {
+            "model": GPT_OSS_MODEL,
+            "prompt": prompt,
+            "system": GPT_OSS_SAFETY_SYSTEM_PROMPT,
+            "stream": False,
+            "keep_alive": keep_alive
+        }
+
+        result = self._make_request("api/generate", payload)
+        if not result:
+            logger.error("GPT-OSS safety check failed, falling back to llama-guard3")
+            # Fallback to legacy safety check
+            return self.check_safety(text)
+
+        response = result.get("response", "").strip()
+
+        # Parse response format: "SAFE: [text]" or "BLOCKED: §86a StGB - [symbol] - [explanation]"
+        if response.startswith("SAFE:"):
+            translated_text = response[5:].strip()  # Remove "SAFE: " prefix
+            return {
+                "is_safe": True,
+                "translated_text": translated_text
+            }
+        elif response.startswith("BLOCKED:"):
+            # Parse: "BLOCKED: §86a StGB - ISIS symbols - ISIS is a terrorist organization"
+            blocked_parts = response[8:].strip()  # Remove "BLOCKED: " prefix
+
+            # Extract symbol and reason
+            parts = blocked_parts.split(" - ", 2)
+            law_reference = parts[0] if len(parts) > 0 else "§86a StGB"
+            symbol = parts[1] if len(parts) > 1 else "extremist content"
+            explanation = parts[2] if len(parts) > 2 else "This content violates German law"
+
+            return {
+                "is_safe": False,
+                "reason": f"⚠️ Dein Prompt wurde blockiert\n\nGRUND: {law_reference} - {symbol}\n\n{explanation}\n\nWARUM DIESE REGEL?\nDiese Symbole werden benutzt, um Gewalt und Hass zu verbreiten.\nWir schützen dich und andere vor gefährlichen Inhalten.",
+                "symbol": symbol,
+                "law_reference": law_reference
+            }
+        else:
+            # Unexpected format - log and fallback
+            logger.warning(f"GPT-OSS returned unexpected format: {response[:100]}")
+            return self.check_safety(text)
     
     def analyze_image(self, image_data: str) -> Optional[str]:
         """
