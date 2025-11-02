@@ -8,7 +8,7 @@ from pathlib import Path
 THIS_FILE = Path(__file__).resolve()
 BASE_DIR = THIS_FILE.parent.parent
 LOCAL_WORKFLOWS_DIR = BASE_DIR / "workflows"
-PUBLIC_DIR = Path(__file__).parent / "public_dev"  # Separates Frontend für devserver
+PUBLIC_DIR = Path(__file__).parent.parent / "public_dev"  # Frontend on project root (moved from devserver/)
 EXPORTS_DIR = BASE_DIR / "exports"
 
 # Server Configuration

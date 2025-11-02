@@ -1,10 +1,56 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-02 (Safety Filter + GPT-OSS-20b Research)
+**Last Updated:** 2025-11-02 Session 12 (Structure Cleanup + Export Sync)
 **Context:** Post-analysis TODOs for completing devserver architecture
 
 ---
 
-## 🚨 NEW (2025-11-02): GPT-OSS-20b Model Integration + Safety Enhancement
+## 🎯 PRIORITY 1 (Next Session): GPT-OSS-20b Model Integration
+
+**Status:** RESEARCH COMPLETE → READY FOR IMPLEMENTATION
+**Context Window:** Postponed from Session 12 (80% usage)
+**Prerequisites:** Model must be loaded locally first (`ollama pull openai/gpt-oss-safeguard-20b`)
+
+---
+
+## ✅ COMPLETED (2025-11-02 Session 12): Project Structure Cleanup + Export Sync
+
+### Structure Cleanup
+**Status:** COMMITTED (`fe3b3c4`)
+**What Was Done:**
+- ✅ Archived LoRA experiment (failed): 5 files → `archive/lora_experiment/`
+- ✅ Archived legacy docs: 3 files + workflows_legacy/ → `archive/legacy_docs/`
+- ✅ Moved docs/ to project root (was: devserver/docs/)
+- ✅ Moved public_dev/ to project root (was: devserver/public_dev/)
+- ✅ Robust start_devserver.sh (243 lines, bulletproof)
+- **Result:** Root directory clean, devserver/ contains only server code
+
+### Export Data Sync
+**Status:** COMPLETED ✅
+**What Was Done:**
+- ✅ Synced 109 export files from legacy (73 MB, dated 31. Okt)
+- ✅ Updated sessions.js (271 lines, research data)
+- ✅ Verified export_manager.py + export_routes.py functional
+- ✅ Backend API: `/api/download-session` exists (creates ZIP)
+- ❌ Frontend UI: Not integrated yet (planned for redesign)
+
+**Export Structure:**
+```
+exports/
+├── sessions.js        # 271 sessions (15K, 31. Okt)
+├── docx/             # 236K research exports
+├── html/             # 125K
+├── pdf/              # 234K
+└── xml/              # 234K
+```
+
+**TODO (During UI Redesign):**
+- [ ] Add "Download Session" button to frontend
+- [ ] Wire up to `/api/download-session` API endpoint
+- [ ] Test ZIP creation with all formats
+
+---
+
+## 🚨 NEW (2025-11-02 Session 11): GPT-OSS-20b Model Integration + Safety Enhancement
 
 ### ✅ COMPLETED: Safety Filter Enhancement (§86a StGB Compliance)
 **Status:** COMMITTED (`ede724d`)

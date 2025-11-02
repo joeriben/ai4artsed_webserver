@@ -2268,3 +2268,95 @@ Related docs:
 **Last Updated:** 2025-11-01 (Session 11 - Recursive Pipeline + Multi-Output Complete)
 **Next Session:** Documentation updates + Phase 5 integration testing
 
+
+## Session 12: 2025-11-02 - Project Structure Cleanup + Export Sync
+**Duration (Wall):** ~1h 30m
+**Duration (API):** ~45m
+**Cost:** ~$4.50 (estimated, 80% context usage)
+
+### Model Usage
+- claude-sonnet-4-5: ~90k input, ~15k output, 0 cache read, ~50k cache write (~$4.50)
+
+### Tasks Completed
+1. ✅ **Major Project Structure Cleanup** (348 files changed, +240/-51 lines)
+   - Archived LoRA experiment (convert_lora_images.py, lora_training.log 231KB, loraimg/, lora_training_images/)
+   - Archived legacy docs (RTX5090_CUDA_ANALYSIS.md, TERMINAL_MANAGER_TASK.md, workflows_legacy/ with 67 files)
+   - Moved docs/ from devserver/ to project root (better visibility)
+   - Moved public_dev/ from devserver/ to project root (cleaner structure)
+
+2. ✅ **Robust Start Script** (start_devserver.sh rewrite)
+   - Strict bash error handling (set -euo pipefail)
+   - Colored logging (INFO/SUCCESS/WARNING/ERROR)
+   - Robust path detection (works from any directory)
+   - Multi-method port cleanup (lsof/ss/netstat fallbacks)
+   - Python validation, auto-venv activation
+   - Timestamped logs in /tmp/
+   - Cleanup handlers for graceful shutdown
+
+3. ✅ **Export Sync from Legacy Server**
+   - Synced 109 newer export files from legacy (73 MB)
+   - Updated sessions.js (31. Okt 15:30, 271 lines)
+   - Verified export-manager.py and export_routes.py functional
+   - Documented: Backend download API exists (/api/download-session)
+   - TODO: Frontend UI integration (planned for interface redesign)
+
+### Code Changes
+- **Files changed:** 348
+- **Lines added:** 240
+- **Lines removed:** 51
+- **Net change:** +189 lines
+
+### Files Modified/Moved
+**Archived (to archive/):**
+- LoRA experiment: 5 files (convert_lora_images.py, lora_training.log, LORA_USAGE_GUIDE.md, loraimg/, lora_training_images/)
+- Legacy docs: RTX5090_CUDA_ANALYSIS.md, TERMINAL_MANAGER_TASK.md
+- workflows_legacy/ → archive/legacy_docs/workflows_legacy/ (67 workflow files)
+
+**Moved to Root:**
+- devserver/docs/ → docs/ (31 files)
+- devserver/public_dev/ → public_dev/ (258 files)
+
+**Modified:**
+- start_devserver.sh (complete rewrite, 243 lines → robust version)
+- exports/ (synced 109 files, 73 MB from legacy)
+
+### Documentation Updates
+- ✅ DEVELOPMENT_LOG.md updated (this entry)
+- ✅ devserver_todos.md updated (export status, GPT-OSS postponed)
+- ✅ Git commit: fe3b3c4 "refactor: Major project structure cleanup and improvement"
+
+### Key Decisions
+**Project Structure Philosophy:**
+- Root directory should contain only essential files
+- Legacy experiments → archive/ (not deleted, for reference)
+- docs/ and public_dev/ on root level (not buried in devserver/)
+- devserver/ contains only server code
+
+**Start Script Design:**
+- Must work from any directory (robust path detection)
+- Must handle all edge cases (port conflicts, missing venv, etc.)
+- Must provide clear colored output for debugging
+- Must log to timestamped files for troubleshooting
+
+**Export Sync Strategy:**
+- Research data (exports/) tracked in main repo
+- Legacy server still running → periodic sync needed
+- Backend API ready, Frontend integration postponed to UI redesign
+
+### Next Session Priorities
+1. **GPT-OSS-20b Implementation** (postponed - see devserver_todos.md)
+   - Unified Stage 1-3 model (Translation + Safety + Interception)
+   - 30-50% performance improvement expected
+   - Test scripts ready in /tmp/test_gpt_oss*.py
+
+2. **Frontend Download Integration** (during UI redesign)
+   - Add "Download Session" button
+   - Wire up to /api/download-session endpoint
+   - Creates ZIP with all session files
+
+### Session Notes
+- Context window reached 80% → postponed GPT-OSS implementation
+- Project is now much cleaner and more maintainable
+- Start script is production-ready and bulletproof
+- Export data synced and ready for frontend integration
+
