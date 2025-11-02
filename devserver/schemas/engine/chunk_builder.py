@@ -109,10 +109,19 @@ class ChunkBuilder:
         # Debug: Log the built prompt
         logger.debug(f"[CHUNK-BUILD] Chunk '{chunk_name}' prompt preview: {processed_template[:200]}...")
 
+        # Check if this is a proxy chunk (no template, no model)
+        # Proxy chunks route to specialized output chunks via parameters
+        is_proxy_chunk = (not template.template.strip() and not template.model.strip())
+
         # Model-Override: Check config.meta.model_override first, then template.model
-        from .model_selector import model_selector
-        base_model = resolved_config.meta.get('model_override') or template.model
-        final_model = model_selector.select_model_for_mode(base_model, execution_mode)
+        # Skip model selection for proxy chunks
+        if is_proxy_chunk:
+            final_model = ""  # Proxy chunks don't need a model
+            logger.debug(f"[CHUNK-BUILD] '{chunk_name}' is a proxy chunk - skipping model selection")
+        else:
+            from .model_selector import model_selector
+            base_model = resolved_config.meta.get('model_override') or template.model
+            final_model = model_selector.select_model_for_mode(base_model, execution_mode)
 
         # Merge parameters: template params + config params (config overrides template)
         merged_parameters = {**template.parameters, **resolved_config.parameters}

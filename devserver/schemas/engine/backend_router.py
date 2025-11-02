@@ -473,7 +473,7 @@ class BackendRouter:
                             logger.error("No image found in API response")
                             return BackendResponse(success=False, content="", error="No image found in response", metadata={})
 
-                        logger.info(f"API generation successful: {image_url[:80]}...")
+                        logger.info(f"API generation successful: Generated data URI ({len(image_url)} chars)")
 
                         return BackendResponse(
                             success=True,

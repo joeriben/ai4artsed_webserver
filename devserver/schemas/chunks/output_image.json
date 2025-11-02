@@ -1,8 +1,8 @@
 {
   "name": "output_image",
-  "type": "processing_chunk",
+  "type": "proxy_chunk",
   "backend_type": "comfyui",
-  "description": "Output-Chunk-based image generation - uses embedded ComfyUI workflows",
+  "description": "Proxy chunk that routes to specialized output chunks (ComfyUI or API-based)",
 
   "template": "",
 

@@ -294,6 +294,7 @@ def execute_pipeline():
                             'config': output_config_name,
                             'status': 'blocked',
                             'reason': abort_reason,
+                            'media_type': media_type,  # Add media_type for frontend
                             'safety_level': safety_level
                         })
                         stage_3_blocked = True
@@ -320,6 +321,7 @@ def execute_pipeline():
                                 'config': output_config_name,
                                 'status': 'success',
                                 'output': output_result.final_output,  # ComfyUI prompt_id or image URL
+                                'media_type': media_type,  # Add media_type for frontend
                                 'execution_time': output_result.execution_time,
                                 'metadata': output_result.metadata
                             })
@@ -329,6 +331,7 @@ def execute_pipeline():
                             media_outputs.append({
                                 'config': output_config_name,
                                 'status': 'error',
+                                'media_type': media_type,  # Add media_type for frontend
                                 'error': output_result.error
                             })
                             logger.error(f"[4-STAGE] Stage 4 failed for {output_config_name}: {output_result.error}")
@@ -338,6 +341,7 @@ def execute_pipeline():
                         media_outputs.append({
                             'config': output_config_name,
                             'status': 'error',
+                            'media_type': media_type,  # Add media_type for frontend
                             'error': str(e)
                         })
 

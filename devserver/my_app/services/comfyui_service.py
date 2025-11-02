@@ -213,7 +213,8 @@ class ComfyUIService:
             }
             
         except Exception as e:
-            logger.error(f"Failed to get queue status: {e}")
+            # DEBUG level: ComfyUI not running is expected when using API-only workflows (GPT-5, etc.)
+            logger.debug(f"ComfyUI queue status unavailable (expected if using API-only workflows): {e}")
             return {
                 "queue_running": 0,
                 "queue_pending": 0,

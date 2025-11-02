@@ -110,12 +110,13 @@ def sse_connect():
                             'timestamp': current_time
                         })
                     except Exception as e:
-                        logger.error(f"Error getting queue status update: {e}")
-                        # Send error state but continue
+                        # DEBUG level: ComfyUI unavailable is expected for API-only workflows
+                        logger.debug(f"ComfyUI status update unavailable (expected for API-only workflows): {e}")
+                        # Send silent zero-state (ComfyUI not needed for API workflows)
                         yield generate_sse_event('queue_update', {
                             'queue_status': {"total": 0, "queue_running": 0, "queue_pending": 0},
                             'timestamp': current_time,
-                            'error': True
+                            'error': False  # Not an error - just unavailable
                         })
                     
                     last_update = current_time

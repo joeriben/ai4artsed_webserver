@@ -1,6 +1,80 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-01 Evening (Config Restructuring Complete)
+**Last Updated:** 2025-11-02 (Safety Filter + GPT-OSS-20b Research)
 **Context:** Post-analysis TODOs for completing devserver architecture
+
+---
+
+## 🚨 NEW (2025-11-02): GPT-OSS-20b Model Integration + Safety Enhancement
+
+### ✅ COMPLETED: Safety Filter Enhancement (§86a StGB Compliance)
+**Status:** COMMITTED (`ede724d`)
+**Files:** `stage1_safety_filters.json`, `DEVELOPMENT_DECISIONS.md`
+
+**What Was Done:**
+- ✅ Added ~20 German §86a StGB terms (Nazi symbols, extremist orgs, codes: 88, HH)
+- ✅ Simplified ambiguous terms (removed context qualifiers: "isis" not "isis flag")
+- ✅ Hybrid system understood: String filter triggers LLM review, not immediate block
+- ✅ Updated documentation with hybrid filtering rationale
+
+### 🔬 RESEARCH COMPLETED: openai/gpt-oss-safeguard-20b Testing
+**Status:** READY FOR IMPLEMENTATION
+**Test Results:** `/tmp/test_gpt_oss_*.py` (3 test scripts)
+
+**Key Findings:**
+1. **Translation:** ⭐⭐⭐⭐⭐ Excellent (auto-corrects children's typos)
+2. **Artistic Transformation:** ⭐⭐⭐⭐⭐ Outstanding (Dada, Bauhaus both perfect)
+3. **Safety (§86a StGB):** ⭐⭐⭐⭐⭐ WITH explicit German law prompt (US-centric without)
+4. **Performance:** MoE architecture (21B total, 3.6B active) → fast as 8B models
+5. **VRAM:** 16GB, can stay loaded Stage 1-3 (unload only before ComfyUI Stage 4)
+
+**Critical Discovery:**
+- **WITHOUT §86a prompt:** "Hakenkreuz Fahne" → SAFE (neutral mention) ❌
+- **WITH §86a prompt:** "Hakenkreuz Fahne" → UNSAFE (§86a violation) ✅
+- Model is **highly configurable** via system prompt!
+
+### 📋 TODO: Implement gpt-oss-20b as Unified Stage 1-3 Model
+
+**Architecture Decision:**
+```
+Stage 1-3: gpt-oss-20b (Translation + Safety + Interception)
+  → keep_alive: "10m" (stays in VRAM)
+  → Saves 2-3s load time per request
+
+Stage 4 (ComfyUI only): Unload gpt-oss-20b first
+  → API-based (GPT-5 Image): Keep loaded
+```
+
+**Implementation Tasks:**
+- [ ] Update `config.py`: TRANSLATION_MODEL, SAFETY_MODEL, INTERCEPTION_MODEL → "gpt-oss-20b"
+- [ ] Add §86a StGB system prompt to `ollama_service.py`
+- [ ] Add Arts Education context for typo correction
+- [ ] Implement keep_alive management (10m for Stage 1-3, unload before ComfyUI)
+- [ ] Add backend detection in Stage 4 (comfyui vs api)
+- [ ] Test combined Translation+Safety+Interception flow
+- [ ] Benchmark performance vs. current multi-model approach
+
+**System Prompt Template:**
+```python
+GPT_OSS_STAGE1_SYSTEM = """You assist children/adolescents (ages 8-17) in Arts Education.
+
+TASKS:
+1. CORRECT SPELLING for creative image prompts (Haustir→Haustier not Haustür)
+2. TRANSLATE German→English (preserve structure)
+3. SAFETY CHECK (§86a StGB): Nazi/terrorist/extremist symbols ILLEGAL in Germany
+
+OUTPUT: Translated text OR "BLOCKED: §86a StGB - [reason]"
+"""
+```
+
+**Expected Performance Gains:**
+- Current: 2 models (mistral-nemo 1-2s + llama-guard3 1-2s) = 2-4s Stage 1
+- New: 1 model (gpt-oss-20b 2-3s, reused Stage 2-3) = 2-3s total Stage 1-3
+- **Savings:** 30-50% faster + better quality + §86a compliant
+
+**Test Scripts Available:**
+- `/tmp/test_gpt_oss_safeguard.py` - Full test suite
+- `/tmp/test_gpt_oss_german_law.py` - §86a StGB compliance
+- `/tmp/test_gpt_oss_context_correction.py` - Arts Education typo correction
 
 ---
 

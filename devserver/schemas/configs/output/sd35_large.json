@@ -12,7 +12,6 @@
     "en": "Image Generation",
     "de": "Bildgenerierung"
   },
-  "context": "Transform the input text into an optimized image generation prompt. Focus on visual details, composition, lighting, and artistic style. Be descriptive and specific to help the image model generate high-quality results.",
 
   "parameters": {
     "OUTPUT_CHUNK": "output_image_sd35_large",

@@ -90,16 +90,54 @@ function displayResult(result) {
     // Check if media was generated
     if (result.media_output) {
         // Backend sends prompt_id in media_output.output (not media_output.prompt_id)
-        const promptId = result.media_output.output;
+        const output = result.media_output.output;
         const mediaType = result.media_output.media_type;
 
-        setStatus(`Text-Transformation erfolgreich - ${mediaType} wird generiert...`, 'success');
-
-        // Start polling for media
-        pollForMedia(promptId, mediaType);
+        // Check if output is a data URI (API-based) or prompt_id (ComfyUI-based)
+        if (output.startsWith('data:')) {
+            // Direct data URI from API (e.g., GPT-5 Image)
+            setStatus(`${mediaType} erfolgreich generiert!`, 'success');
+            displayDataUri(output, mediaType);
+        } else {
+            // Prompt ID from ComfyUI - needs polling
+            setStatus(`Text-Transformation erfolgreich - ${mediaType} wird generiert...`, 'success');
+            pollForMedia(output, mediaType);
+        }
     } else {
         // Text-only result
         setStatus('Pipeline erfolgreich abgeschlossen!', 'success');
+    }
+}
+
+/**
+ * Display media from data URI (API-based generation like GPT-5)
+ */
+function displayDataUri(dataUri, mediaType) {
+    if (mediaType === 'image') {
+        const container = ui.imageOutputs;
+        const content = ui.imageOutputsContent;
+
+        content.innerHTML = '';
+
+        // Create image element with data URI
+        const imgElement = document.createElement('img');
+        imgElement.src = dataUri;
+        imgElement.alt = 'Generated Image';
+        imgElement.style.maxWidth = '100%';
+        imgElement.style.borderRadius = '8px';
+
+        content.appendChild(imgElement);
+        container.style.display = 'block';
+
+        console.log('[DISPLAY] Image displayed from data URI');
+    } else if (mediaType === 'audio') {
+        // Future: Handle audio data URIs
+        console.log('[DISPLAY] Audio data URI display not yet implemented');
+    } else if (mediaType === 'video') {
+        // Future: Handle video data URIs
+        console.log('[DISPLAY] Video data URI display not yet implemented');
+    } else {
+        console.error('[DISPLAY] Unknown media type:', mediaType);
     }
 }
 

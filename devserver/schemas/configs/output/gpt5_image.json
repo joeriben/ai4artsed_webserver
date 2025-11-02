@@ -12,7 +12,6 @@
     "en": "Image Generation (Cloud)",
     "de": "Bildgenerierung (Cloud)"
   },
-  "context": "Transform the input text into an optimized image generation prompt. Focus on visual details, composition, lighting, and artistic style. The model will generate an image directly.",
 
   "parameters": {
     "OUTPUT_CHUNK": "output_image_gpt5",
