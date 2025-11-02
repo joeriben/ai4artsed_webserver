@@ -27,7 +27,24 @@
         "rape", "molest", "abuse", "assault", "torture",
         "child porn", "csam", "pedophile", "underage", "minor sex",
         "nazi", "hitler", "genocide", "holocaust", "ethnic cleansing",
+        "völkermord", "shoa",
+        "hakenkreuz", "swastika", "nazi symbol", "nazisymbol",
+        "ss runes", "ss-runen", "ss symbol", "ss-symbol",
+        "sieg heil", "heil hitler", "reichsadler",
+        "totenkopf ss", "totenkopf-ss",
+        "waffen ss", "waffen-ss", "schutzstaffel", "sturmabteilung", "sa uniform",
+        "iron cross nazi", "eisernes kreuz nazi",
+        "wolfsangel", "black sun symbol", "schwarze sonne", "sonnenrad",
+        "reichskriegsflagge", "blut und ehre", "blood and honour",
+        "88", "hh", "14 words", "blood and soil", "blut und boden",
+        "raf", "rote armee fraktion",
+        "pkk", "kurdistan workers party",
+        "isis", "islamic state", "is flag", "daesh",
+        "al qaeda", "al-qaida", "taliban",
+        "kkk", "ku klux klan", "white power", "white supremacy",
+        "88", "14 words", "blood and soil",
         "nigger", "kike", "chink", "faggot", "tranny",
+        "judenstern mockery", "jewish star mockery", "antisemitic symbol",
         "suicide", "kill myself", "end my life", "self-harm", "cutting",
         "how to make bomb", "how to kill", "build weapon",
         "hack", "steal password", "credit card fraud", "identity theft",
@@ -36,5 +53,5 @@
     }
   },
 
-  "note": "This is a STARTER list - should be extended with comprehensive hate speech, CSAM indicators, and violence terms"
+  "note": "Extended list includes §86a StGB (Germany) forbidden symbols/organizations. HYBRID SYSTEM: String match triggers LLM review (not immediate block). False positives (e.g., 'isis' goddess, 'raf' air force) are cleared by LLM context analysis. False negatives are caught by LLM safety net. This allows aggressive filtering without blocking legitimate content. VISUAL SYMBOLS (swastika): Image generation cannot contextualize, requires strict blocking."
 }

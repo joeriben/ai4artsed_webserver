@@ -7,6 +7,99 @@
 
 ---
 
+## 2025-11-02: Safety Filter Enhancement (§86a StGB Compliance + Hybrid System Optimization)
+
+### Decision
+**Extended Stage 1 safety filters with German extremist symbols/terms (§86a StGB) and optimized for hybrid string-filter → llama-guard system**
+
+**Actions Taken:**
+1. ✅ Added German §86a StGB forbidden symbols/organizations to `stage1_safety_filters.json`
+2. ✅ Simplified ambiguous terms (removed context qualifiers like "terrorist", "flag")
+3. ✅ Added German language equivalents (völkermord, schwarze sonne, etc.)
+4. ✅ Added numerical/abbreviated codes (88, HH, 14 words)
+5. ✅ Updated documentation to reflect hybrid filtering strategy
+
+### Reasoning
+
+**Problem: Legal Compliance Gap**
+- Original filter focused on US-based threats (CSAM, violence, hate speech)
+- Missing German legal requirements (§86a StGB - forbidden symbols)
+- Germany requires blocking: Nazi symbols, extremist organizations (RAF, PKK, ISIS flags)
+- School context requires strict compliance for educational use
+
+**User Request:**
+> "ergänze die Safety-Filter-Listen auch um extremistische Symbole. Die sind in den USA erlaubt, in der BRD aber nicht, z.B. Hakenkreuze, antisemitische Symbole etc."
+
+### Solution: Hybrid System Architecture Understanding
+
+**Critical Insight - The Hybrid Flow:**
+```
+User input → Fast string filter → If match: llama-guard3:8b assessment
+                                 → If no match: Pass (fast path)
+```
+
+**Key Realization:**
+- String filter does NOT immediately block - it triggers LLM review
+- False positives (e.g., "isis" goddess) → llama-guard clears them
+- False negatives (missed threats) → llama-guard catches them
+- This allows AGGRESSIVE string filtering without blocking legitimate content
+
+**Design Decision: Simplify Ambiguous Terms**
+
+Initial approach (wrong):
+- "isis flag", "isis terrorist", "raf terrorist" (with context qualifiers)
+- Reasoning: Avoid blocking "ISIS" goddess or "RAF" air force
+
+Corrected approach (right):
+- "isis", "raf", "pkk" (without context qualifiers)
+- Reasoning: String match only triggers review, llama-guard handles context
+
+**User Correction:**
+> "however, ISIS and the likes should be included in the filter list. actually, any terms that are also harmless can be on this list because if there is a hit, it will not just block but try to understand the context."
+
+### Added Terms
+
+**German Nazi Symbols (§86a StGB):**
+- hakenkreuz, nazisymbol, ss-runen, ss-symbol
+- schwarze sonne, sonnenrad, wolfsangel
+- reichskriegsflagge, totenkopf-ss, waffen-ss
+- blut und boden, blut und ehre
+
+**German Language Equivalents:**
+- völkermord (genocide), shoa (Holocaust)
+- eisernes kreuz nazi (iron cross)
+
+**Extremist Organizations:**
+- isis, raf, pkk, taliban, al qaeda
+- rote armee fraktion, kurdistan workers party
+
+**Codes & Abbreviations:**
+- 88, hh (Heil Hitler)
+- 14 words, blood and soil
+
+### Architecture Notes
+
+**Stage 1 vs Stage 3 Separation:**
+- **Stage 1 (universal):** All users, all ages → Blocks extremism, CSAM, violence
+- **Stage 3 (age-specific):** kids/youth only → Blocks age-inappropriate content (scary, horror, dark)
+- NO redundancy: Extremist symbols belong in Stage 1 only
+
+**Visual vs Textual Distinction:**
+- Visual symbols (swastika): Cannot contextualize in image generation → Strict block
+- Textual terms (isis, raf): AI interprets from context → Trigger review only
+
+### Files Modified
+- `schemas/stage1_safety_filters.json`
+  - Added ~20 German terms
+  - Simplified ambiguous terms (removed qualifiers)
+  - Updated note to explain hybrid system
+
+### Related Documentation
+- ARCHITECTURE.md Section 1.3 - Stage 1 rules (translation + safety)
+- README_FIRST.md - Safety as pedagogical requirement
+
+---
+
 ## 2025-11-01 (Evening 2): Multi-Output Support for Model Comparison
 
 ### Decision
