@@ -1,5 +1,6 @@
 {
   "pipeline": "text_transformation_recursive",
+  "instruction_type": "artistic_transformation",
   "name": {
     "en": "StillePost",
     "de": "StillePost"

@@ -1,5 +1,6 @@
 {
   "pipeline": "text_transformation",
+  "instruction_type": "passthrough",
   "name": {
     "en": "Passthrough (No Modification)",
     "de": "Durchreichen (Keine Änderung)"

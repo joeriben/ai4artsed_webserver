@@ -429,14 +429,24 @@ Stage 4: Output (media generation)
 ### 3. Placeholder System
 
 **Available Placeholders:**
-- `{{INSTRUCTION}}` - Complete instruction from config.context
-- `{{INPUT_TEXT}}` - Original user input (first step only)
+
+**3-Part Prompt Interception Structure (NEW):**
+- `{{TASK_INSTRUCTION}}` - From instruction_selector.py (how to transform the prompt)
+- `{{CONTEXT}}` - From config.context (artistic attitude/cultural background)
+- `{{INPUT_TEXT}}` - User's input (the prompt to be transformed)
+
+**Legacy Placeholders (Backward Compatibility):**
+- `{{INSTRUCTION}}` - Alias for CONTEXT (config.context)
+- `{{INSTRUCTIONS}}` - Alias for CONTEXT (config.context)
 - `{{PREVIOUS_OUTPUT}}` - Output from previous chunk (chaining)
 - `{{USER_INPUT}}` - Original user input (available in all steps)
 
-**Removed (Post-Consolidation):**
-- `{{TASK}}` - Was redundant alias for INSTRUCTION
-- `{{CONTEXT}}` - Was redundant alias for INSTRUCTION
+**Prompt Interception Background:**
+The original ComfyUI `ai4artsed_prompt_interception` custom node used a 3-part structure:
+```python
+full_prompt = f"Task:\n{style_prompt}\n\nContext:\n{input_context}\nPrompt:\n{input_prompt}"
+```
+This has been restored in the `manipulate` chunk with the instruction-type system. See ARCHITECTURE.md section 6 for details.
 
 ### 4. Output-Chunk Structure
 
@@ -592,7 +602,8 @@ ai4artsed_webserver/
 │   │       ├── backend_router.py         # Routes to backends
 │   │       ├── chunk_builder.py          # Builds chunks with placeholders
 │   │       ├── config_loader.py          # Loads configs/pipelines
-│   │       └── model_selector.py         # Task-based model selection
+│   │       ├── model_selector.py         # Task-based model selection
+│   │       └── instruction_selector.py   # Instruction-type selection for 3-part prompts
 │   ├── my_app/
 │   │   ├── routes/
 │   │   │   ├── schema_pipeline_routes.py  # Main API endpoint

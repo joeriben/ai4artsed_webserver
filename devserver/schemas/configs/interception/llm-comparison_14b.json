@@ -1,5 +1,6 @@
 {
   "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
   "name": {
     "en": "LLM-Comparison 14b",
     "de": "LLM-Comparison 14b"

@@ -1,7 +1,7 @@
 {
   "name": "manipulate",
-  "description": "Text-Manipulation mit spezifischen Styleguide-Instruktionen",
-  "template": "{{INSTRUCTION}}\n\nText to manipulate:\n\n{{PREVIOUS_OUTPUT}}",
+  "description": "Prompt Interception: Three-part transformation (TASK + CONTEXT + PROMPT)",
+  "template": "Task:\n{{TASK_INSTRUCTION}}\n\nContext:\n{{CONTEXT}}\n\nPrompt:\n{{INPUT_TEXT}}",
   "backend_type": "ollama",
   "model": "mistral-nemo:latest",
   "parameters": {
@@ -12,6 +12,8 @@
   "meta": {
     "chunk_type": "manipulation",
     "output_format": "text",
-    "estimated_duration": "fast"
+    "estimated_duration": "fast",
+    "prompt_interception": true,
+    "required_placeholders": ["TASK_INSTRUCTION", "CONTEXT", "INPUT_TEXT"]
   }
 }

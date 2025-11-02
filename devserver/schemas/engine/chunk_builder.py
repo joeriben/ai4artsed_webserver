@@ -72,7 +72,8 @@ class ChunkBuilder:
                     chunk_name: str,
                     resolved_config: Any,  # ResolvedConfig from config_loader
                     context: Dict[str, Any],
-                    execution_mode: str = 'eco') -> Dict[str, Any]:
+                    execution_mode: str = 'eco',
+                    pipeline: Any = None) -> Dict[str, Any]:
         """
         Chunk mit Template und resolved config erstellen
 
@@ -81,6 +82,7 @@ class ChunkBuilder:
             resolved_config: ResolvedConfig object from config_loader
             context: Execution context (input_text, previous_output, etc.)
             execution_mode: 'eco' (local) or 'fast' (cloud)
+            pipeline: Pipeline object (for accessing instruction_type)
         """
         template = self.templates.get(chunk_name)
         if not template:
@@ -89,13 +91,24 @@ class ChunkBuilder:
         # Get instruction text from config context (former metaprompt)
         instruction_text = resolved_config.context or ''
 
+        # INSTRUCTION-TYPE SYSTEM: Get TASK_INSTRUCTION for prompt interception
+        task_instruction = self._get_task_instruction(resolved_config, pipeline)
+
         # Build context for placeholder replacement
         replacement_context = {
+            # Legacy placeholders (backward compatibility)
             'INSTRUCTION': instruction_text,
-            'INSTRUCTIONS': instruction_text,  # Backward compatibility alias
+            'INSTRUCTIONS': instruction_text,
+
+            # New three-part prompt interception structure
+            'TASK_INSTRUCTION': task_instruction,
+            'CONTEXT': instruction_text,  # Config context = artistic attitude
+
+            # Input placeholders
             'INPUT_TEXT': context.get('input_text', ''),
             'PREVIOUS_OUTPUT': context.get('previous_output', ''),
             'USER_INPUT': context.get('user_input', ''),
+
             **context.get('custom_placeholders', {}),
             **resolved_config.parameters  # Add config parameters for placeholder replacement
         }
@@ -148,6 +161,27 @@ class ChunkBuilder:
 
         logger.debug(f"Chunk erstellt: {chunk_name} mit Config {resolved_config.name} (execution_mode: {execution_mode}, model: {final_model})")
         return chunk_request
+
+    def _get_task_instruction(self, resolved_config: Any, pipeline: Any) -> str:
+        """
+        Get TASK_INSTRUCTION using instruction-type system.
+
+        Mirrors original ComfyUI prompt_interception node: Task + Context + Prompt
+
+        Priority:
+            1. Config's custom task_instruction (if provided)
+            2. Pipeline's instruction_type (default)
+            3. Fallback to "artistic_transformation"
+        """
+        from .instruction_selector import get_instruction
+
+        # Check for custom override in config
+        custom_instruction = getattr(resolved_config, 'task_instruction', None)
+
+        # Get instruction_type from pipeline
+        instruction_type = getattr(pipeline, 'instruction_type', 'artistic_transformation') if pipeline else 'artistic_transformation'
+
+        return get_instruction(instruction_type, custom_instruction)
 
     def _replace_placeholders(self, template: str, replacements: Dict[str, Any]) -> str:
         """Placeholder durch Werte ersetzen"""

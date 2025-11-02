@@ -1365,6 +1365,7 @@ schemas/engine/
 ├── pipeline_executor.py       # Execute complete pipelines
 ├── backend_router.py          # Route to appropriate backend
 ├── model_selector.py          # Task-based model selection
+├── instruction_selector.py    # Instruction-type selection for 3-part prompts
 ├── comfyui_workflow_generator.py  # DEPRECATED - workflows now embedded in chunks
 └── prompt_interception_engine.py  # DEPRECATED - replaced by pipeline system
 ```
@@ -1599,7 +1600,125 @@ def _define_task_categories(self) -> Dict[str, Dict[str, str]]:
 
 ---
 
-### 6. comfyui_workflow_generator.py
+### 6. instruction_selector.py
+
+**Purpose:** Instruction-type selection for Prompt Interception (3-part prompts)
+
+**Location:** `devserver/schemas/engine/instruction_selector.py`
+
+**Pedagogical Background:**
+The original ComfyUI `ai4artsed_prompt_interception` custom node used a 3-part prompt structure:
+```python
+full_prompt = (
+    f"Task:\n{style_prompt.strip()}\n\n"
+    f"Context:\n{input_context.strip()}\nPrompt:\n{input_prompt.strip()}"
+)
+```
+
+This has been restored in DevServer's `manipulate` chunk with proper instruction-type system.
+
+**Instruction Types:**
+```python
+INSTRUCTION_TYPES = {
+    "artistic_transformation": {
+        "description": "Transform prompt through artistic/cultural lens (Prompt Interception)",
+        "default": """Transform the input_prompt into a description according to the instructions
+defined in the input_context. Explicitely communicate the input_context as cultural cf. artistic
+cf. intervening context. Also communicate genres/artistic traditions in a concrete way (i.e. is
+it a dance, a photo, a painting, a song, a movie, a statue/sculpture? how should it be translated
+into media?)
+
+This is not a linguistic translation, but an aesthetic, semantic and structural transformation.
+Be verbose!
+
+Reconstruct all entities and their relations as specified, ensuring that:
+- Each entity is retained – or respectively transformed – as instructed.
+- Each relation is altered in line with the particular aesthetics, genre-typical traits, and logic
+  of the "Context". Be explicit about visual aesthetics in terms of materials, techniques, composition,
+  and overall atmosphere. Mention the input_context als cultural, cf. artistic, c.f intervening context
+  in your OUTPUT explicitely.
+
+Output only the transformed description as plain descriptive text. Be aware if the output is something
+depicted (like a ritual or any situation) OR itself a cultural artefact (such as a specific drawing
+technique). Describe accordingly. In your output, communicate which elements are most important for an
+succeeding media generation.
+
+DO NOT USE ANY META-TERMS, NO HEADERS, STRUCTURAL MARKERS WHATSOEVER. DO NOT EXPLAIN YOUR REASONING.
+JUST PUT OUT THE TRANSFORMED DESCRIPTIVE TEXT."""
+    },
+    "passthrough": {
+        "description": "No transformation - direct pass-through (for testing/debugging)",
+        "default": """Output the input_prompt exactly as provided, with no modification or transformation."""
+    }
+}
+```
+
+**Usage in Pipelines:**
+```json
+{
+  "name": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "chunks": ["manipulate"]
+}
+```
+
+**Usage in Configs (Config-Level Override):**
+```json
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "context": "You are an artist working in the spirit of Dadaism...",
+  "name": {"en": "Dadaism"}
+}
+```
+
+**Priority System (Mirrors model_selector):**
+1. **Config-level override**: `config.task_instruction` (custom instruction text)
+2. **Pipeline-level default**: `pipeline.instruction_type` → looks up instruction in INSTRUCTION_TYPES
+3. **System fallback**: "artistic_transformation"
+
+**3-Part Prompt Structure:**
+The `manipulate` chunk template implements the ComfyUI prompt_interception structure:
+```
+Task:
+{{TASK_INSTRUCTION}}
+
+Context:
+{{CONTEXT}}
+
+Prompt:
+{{INPUT_TEXT}}
+```
+
+Where:
+- `TASK_INSTRUCTION`: From instruction_selector (how to transform)
+- `CONTEXT`: From config.context (artistic attitude/cultural background)
+- `INPUT_TEXT`: User's input (the prompt to be transformed)
+
+**Implementation:**
+```python
+# In chunk_builder.py
+def _get_task_instruction(self, resolved_config, pipeline):
+    from .instruction_selector import get_instruction
+
+    # Check for custom override in config
+    custom_instruction = getattr(resolved_config, 'task_instruction', None)
+
+    # Get instruction_type from pipeline or config
+    instruction_type = getattr(pipeline, 'instruction_type', 'artistic_transformation')
+
+    return get_instruction(instruction_type, custom_instruction)
+```
+
+**Benefits:**
+- **Transparency**: ENDUSER can see instruction in config/pipeline
+- **Editability**: Configs can override instruction type
+- **Consistency**: Mirrors model_selector architecture
+- **Pedagogical**: Maintains original ComfyUI prompt_interception concept
+
+---
+
+### 7. comfyui_workflow_generator.py
 
 **Status:** ⚠️ **DEPRECATED** - Will be removed in future cleanup
 

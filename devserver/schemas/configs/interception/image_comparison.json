@@ -1,5 +1,6 @@
 {
   "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
   "name": {
     "en": "Image Model Comparison (SD3.5 vs GPT-5)",
     "de": "Bildmodell-Vergleich (SD3.5 vs GPT-5)"
@@ -19,7 +20,10 @@
     "max_tokens": 50
   },
   "media_preferences": {
-    "output_configs": ["sd35_large", "gpt5_image"]
+    "output_configs": [
+      "sd35_large",
+      "gpt5_image"
+    ]
   },
   "meta": {
     "stage": "interception",
