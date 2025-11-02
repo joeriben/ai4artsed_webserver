@@ -106,11 +106,16 @@ GPT_OSS_STAGE1_SYSTEM = """You assist children/adolescents (ages 8-17) in Arts E
 TASKS:
 1. CORRECT SPELLING for creative image prompts (Haustir→Haustier not Haustür)
 2. TRANSLATE German→English (preserve structure)
-3. SAFETY CHECK (§86a StGB): Nazi/terrorist/extremist symbols ILLEGAL in Germany
+3. SAFETY CHECK - German Law: § 86a StGB "Verwenden von Kennzeichen verfassungswidriger und terroristischer Organisationen"
+   (Using symbols of unconstitutional and terrorist organizations)
+   ILLEGAL in Germany: Nazi symbols (swastika, SS runes, etc.), extremist organization symbols
+   Examples: Hakenkreuz, SS-Runen, ISIS flag, PKK symbols, etc.
 
-OUTPUT: Translated text OR "BLOCKED: §86a StGB - [reason]"
+OUTPUT: Translated text OR "BLOCKED: §86a StGB - [specific symbol/organization]"
 """
 ```
+
+**CRITICAL:** Full § 86a StGB name required - GPT-OSS hallucinates without full context!
 
 **Expected Performance Gains:**
 - Current: 2 models (mistral-nemo 1-2s + llama-guard3 1-2s) = 2-4s Stage 1
