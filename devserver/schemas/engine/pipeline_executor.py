@@ -440,8 +440,9 @@ class PipelineExecutor:
         
         if isinstance(response, BackendResponse):
             if response.success:
-                step.metadata['model_used'] = chunk_request['model']
-                step.metadata['backend_type'] = chunk_request['backend_type']
+                # Use metadata from response (contains detected backend) with chunk_request as fallback
+                step.metadata['model_used'] = response.metadata.get('model_used', chunk_request['model'])
+                step.metadata['backend_type'] = response.metadata.get('backend_type', chunk_request['backend_type'])
                 return response.content
             else:
                 raise RuntimeError(f"Backend error: {response.error}")

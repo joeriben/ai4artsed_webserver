@@ -63,7 +63,7 @@ class BackendRouter:
             
             # Schema-Pipelines: Ollama/OpenRouter über Prompt Interception Engine
             if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER]:
-                # Create modified request with actual backend
+                # Create modified request with detected backend for proper routing
                 modified_request = BackendRequest(
                     backend_type=actual_backend,
                     model=request.model,
@@ -143,8 +143,10 @@ class BackendRouter:
             
             # Engine-Request ausführen
             pi_response = await pi_engine.process_request(pi_request)
-            
+
             if pi_response.success:
+                # Use backend from modified_request (already set correctly in process_request)
+                # Note: request here is the modified_request which has backend_type=actual_backend
                 return BackendResponse(
                     success=True,
                     content=pi_response.output_str,
