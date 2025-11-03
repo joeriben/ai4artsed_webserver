@@ -439,6 +439,10 @@ class ExecutionTracker:
     ):
         """Log pipeline completion event"""
         try:
+            # Temporarily clear loop_iteration for pipeline_complete (not part of any loop)
+            saved_loop_iteration = self.current_loop_iteration
+            self.current_loop_iteration = None
+
             self._log_item(
                 stage=5,
                 media_type=MediaType.METADATA,
@@ -451,6 +455,9 @@ class ExecutionTracker:
                     'stages_completed': [1, 2, 3, 4]
                 }
             )
+
+            # Restore loop_iteration
+            self.current_loop_iteration = saved_loop_iteration
         except Exception as e:
             logger.warning(f"[TRACKER] Failed to log pipeline complete: {e}")
 

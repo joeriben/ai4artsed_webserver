@@ -285,6 +285,7 @@ def execute_pipeline():
         response_data = {
             'status': 'success',
             'schema': schema_name,
+            'config_name': schema_name,  # Config name (same as schema for simple workflows)
             'input_text': input_text,
             'final_output': result.final_output,
             'steps_completed': len(result.steps),
