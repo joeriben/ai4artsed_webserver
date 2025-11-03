@@ -22,6 +22,9 @@ from schemas.engine.stage_orchestrator import (
     build_safety_message
 )
 
+# Execution History Tracking
+from execution_history import ExecutionTracker
+
 logger = logging.getLogger(__name__)
 
 # Blueprint erstellen
