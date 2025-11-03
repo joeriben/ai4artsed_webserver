@@ -196,34 +196,49 @@ tracker.log_interception_final(
 
 ---
 
-### ⚠️ OBSERVATION #1: Pipeline Complete Has loop_iteration=1
+### ✅ OBSERVATION #1: Pipeline Complete Has loop_iteration=1 - **FIXED (Session 24)**
 
 **Priority:** LOW
 **Severity:** Minor - Data Inconsistency
+**Status:** ✅ **FIXED** - Commit cbf622f (2025-11-03 Session 24)
 
 **Description:**
 The `pipeline_complete` item (stage 5) has `loop_iteration=1`, but it's not part of any loop - it only executes once per pipeline.
 
 **Expected:** `loop_iteration=null`
-**Actual:** `loop_iteration=1`
+**Actual (Before Fix):** `loop_iteration=1`
+**Actual (After Fix):** ✅ `loop_iteration=null`
 
-**Impact:** Minor - doesn't affect functionality, but semantically incorrect
+**Fix Implemented:**
+File: `devserver/execution_history/tracker.py`
+```python
+def log_pipeline_complete(self, total_duration, outputs_generated):
+    # Temporarily clear loop_iteration (not part of any loop)
+    saved_loop_iteration = self.current_loop_iteration
+    self.current_loop_iteration = None
 
-**Fix:** Set `loop_iteration=null` when logging `pipeline_complete` in `schema_pipeline_routes.py`
+    self._log_item(...)  # Now logs loop_iteration=null
 
-**Estimated Fix Time:** 5 minutes
+    # Restore loop_iteration
+    self.current_loop_iteration = saved_loop_iteration
+```
+
+**Verification:** exec_20251103_225522_21cc99aa.json shows `loop_iteration=null` for pipeline_complete ✅
+
+**Time Spent:** ~15 minutes (including verification)
 
 ---
 
-### 📝 OBSERVATION #2: Config Name Missing in Stille Post Record
+### ✅ OBSERVATION #2: Config Name Missing in Stille Post Record - **FIXED (Session 24)**
 
 **Priority:** LOW
 **Severity:** Minor - Incorrect Null Value
+**Status:** ✅ **FIXED** - Commit cbf622f (2025-11-03 Session 24)
 
 **Description:**
 In Stille Post execution record: `"config_name": "stillepost"` is correctly set at top level, but the API response shows `"config_name": null`
 
-**Location:** See test execution:
+**Location (Before Fix):**
 ```json
 {
   "status": "success",
@@ -232,11 +247,31 @@ In Stille Post execution record: `"config_name": "stillepost"` is correctly set 
 }
 ```
 
-**Impact:** Minor - doesn't affect storage, only API response
+**Location (After Fix):**
+```json
+{
+  "status": "success",
+  "schema": "dada",
+  "config_name": "dada"  ← ✅ Now populated correctly
+}
+```
 
-**Fix:** Ensure `config_name` is properly populated in response
+**Fix Implemented:**
+File: `devserver/my_app/routes/schema_pipeline_routes.py`
+```python
+response_data = {
+    'status': 'success',
+    'schema': schema_name,
+    'config_name': schema_name,  # Config name (same as schema for simple workflows)
+    'input_text': input_text,
+    'final_output': result.final_output,
+    ...
+}
+```
 
-**Estimated Fix Time:** 10 minutes
+**Verification:** API response now shows `"config_name": "dada"` ✅
+
+**Time Spent:** ~5 minutes
 
 ---
 
