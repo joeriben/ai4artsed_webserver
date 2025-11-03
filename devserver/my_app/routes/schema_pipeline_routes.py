@@ -156,12 +156,33 @@ def execute_pipeline():
         is_system_pipeline = config.meta.get('system_pipeline', False)
 
         # ====================================================================
+        # EXECUTION HISTORY TRACKER - Create request-scoped tracker
+        # ====================================================================
+        tracker = ExecutionTracker(
+            config_name=schema_name,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
+            user_id='anonymous',  # TODO: Extract from session
+            session_id='default'  # TODO: Extract from session
+        )
+
+        # Log pipeline start
+        tracker.log_pipeline_start(
+            input_text=input_text,
+            metadata={'request_timestamp': data.get('timestamp')}
+        )
+
+        # ====================================================================
         # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
         # ====================================================================
         current_input = input_text
 
         if not is_system_pipeline and not is_output_config:
             logger.info(f"[4-STAGE] Stage 1: Pre-Interception for '{schema_name}'")
+            tracker.set_stage(1)
+
+            # Log user input
+            tracker.log_user_input_text(input_text)
 
             # Stage 1: GPT-OSS Unified (Translation + §86a Safety in ONE call)
             is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
@@ -175,6 +196,14 @@ def execute_pipeline():
             if not is_safe:
                 logger.warning(f"[4-STAGE] Stage 1 BLOCKED by GPT-OSS §86a")
 
+                # Log blocked event
+                tracker.log_stage1_blocked(
+                    blocked_reason='§86a_violation',
+                    blocked_codes=['§86a'],
+                    error_message=error_message
+                )
+                tracker.finalize()  # Persist even though blocked
+
                 return jsonify({
                     'status': 'error',
                     'schema': schema_name,
@@ -185,10 +214,20 @@ def execute_pipeline():
                     }
                 }), 403
 
+            # Log translation result (GPT-OSS includes translation)
+            tracker.log_translation_result(
+                translated_text=translated_text,
+                from_lang='de',
+                to_lang='en',
+                model_used='gpt-oss',
+                execution_time=0.0  # TODO: Track actual execution time
+            )
+
         # ====================================================================
         # STAGE 2: INTERCEPTION (Main Pipeline - DUMB execution)
         # ====================================================================
         logger.info(f"[4-STAGE] Stage 2: Interception (Main Pipeline) for '{schema_name}'")
+        tracker.set_stage(2)
 
         result = asyncio.run(pipeline_executor.execute_pipeline(
             config_name=schema_name,
@@ -200,6 +239,13 @@ def execute_pipeline():
 
         # Check if pipeline succeeded
         if not result.success:
+            tracker.log_pipeline_error(
+                error_type='PipelineExecutionError',
+                error_message=result.error,
+                stage=2
+            )
+            tracker.finalize()
+
             return jsonify({
                 'status': 'error',
                 'schema': schema_name,
@@ -207,6 +253,13 @@ def execute_pipeline():
                 'steps_completed': len([s for s in result.steps if s.status.value == 'completed']),
                 'total_steps': len(result.steps)
             }), 500
+
+        # Log interception final result
+        tracker.log_interception_final(
+            final_text=result.final_output,
+            total_iterations=1,  # TODO: Track actual iterations for Stille Post
+            config_used=schema_name
+        )
 
         # Response für erfolgreiche Pipeline
         response_data = {
@@ -250,11 +303,13 @@ def execute_pipeline():
 
             for i, output_config_name in enumerate(configs_to_execute):
                 logger.info(f"[4-STAGE] Stage 3-4 Loop iteration {i+1}/{len(configs_to_execute)}: {output_config_name}")
+                tracker.set_loop_iteration(i + 1)
 
                 # ====================================================================
                 # STAGE 3: PRE-OUTPUT SAFETY (per output config)
                 # ====================================================================
                 stage_3_blocked = False
+                tracker.set_stage(3)
 
                 if safety_level != 'off':
                     # Determine media type from output config name
@@ -280,10 +335,25 @@ def execute_pipeline():
                         pipeline_executor
                     ))
 
+                    # Log Stage 3 safety check
+                    tracker.log_stage3_safety_check(
+                        loop_iteration=i + 1,
+                        safe=safety_result['safe'],
+                        method=safety_result.get('method', 'hybrid'),
+                        config_used=output_config_name
+                    )
+
                     if not safety_result['safe']:
                         # Stage 3 blocked for this output
                         abort_reason = safety_result.get('abort_reason', 'Content blocked by safety filter')
                         logger.warning(f"[4-STAGE] Stage 3 BLOCKED for {output_config_name}: {abort_reason}")
+
+                        # Log Stage 3 blocked
+                        tracker.log_stage3_blocked(
+                            loop_iteration=i + 1,
+                            config_used=output_config_name,
+                            abort_reason=abort_reason
+                        )
 
                         media_outputs.append({
                             'config': output_config_name,
@@ -300,6 +370,7 @@ def execute_pipeline():
                 # ====================================================================
                 if not stage_3_blocked:
                     logger.info(f"[4-STAGE] Stage 4: Executing output config '{output_config_name}'")
+                    tracker.set_stage(4)
 
                     try:
                         # Execute Output-Pipeline with transformed text
@@ -312,6 +383,16 @@ def execute_pipeline():
 
                         # Add media output to results
                         if output_result.success:
+                            # Log Stage 4 output
+                            tracker.log_output_image(
+                                loop_iteration=i + 1,
+                                config_used=output_config_name,
+                                file_path=output_result.final_output,
+                                model_used=output_result.metadata.get('model_used', 'unknown'),
+                                backend_used=output_result.metadata.get('backend', 'comfyui'),
+                                metadata=output_result.metadata
+                            )
+
                             media_outputs.append({
                                 'config': output_config_name,
                                 'status': 'success',
@@ -357,12 +438,39 @@ def execute_pipeline():
                 'message': f'No Output-Config for {default_output}/{execution_mode}'
             }
 
+        # ====================================================================
+        # FINALIZE EXECUTION HISTORY
+        # ====================================================================
+        # Log pipeline completion
+        outputs_generated = len(media_outputs) if media_outputs else 0
+        tracker.log_pipeline_complete(
+            total_duration=result.execution_time if result else 0.0,
+            outputs_generated=outputs_generated
+        )
+
+        # Persist execution history to storage
+        tracker.finalize()
+        logger.info(f"[TRACKER] Execution history saved: {tracker.execution_id}")
+
         return jsonify(response_data)
 
     except Exception as e:
         logger.error(f"Pipeline-Execution Fehler: {e}")
         import traceback
         traceback.print_exc()
+
+        # Try to finalize tracker even on error (fail-safe)
+        try:
+            if 'tracker' in locals():
+                tracker.log_pipeline_error(
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    stage=0
+                )
+                tracker.finalize()
+        except Exception as tracker_error:
+            logger.warning(f"[TRACKER] Failed to finalize on error: {tracker_error}")
+
         return jsonify({
             'status': 'error',
             'error': str(e)
