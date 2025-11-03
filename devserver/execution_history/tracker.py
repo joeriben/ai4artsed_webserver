@@ -169,7 +169,8 @@ class ExecutionTracker:
         from_lang: str,
         to_lang: str,
         model_used: str,
-        execution_time: float
+        execution_time: float,
+        backend_used: str = None
     ):
         """Log translation result (Stage 1)"""
         try:
@@ -179,6 +180,7 @@ class ExecutionTracker:
                 item_type=ItemType.TRANSLATION_RESULT,
                 content=translated_text,
                 model_used=model_used,
+                backend_used=backend_used,
                 execution_time=execution_time,
                 metadata={
                     'from_lang': from_lang,
@@ -299,7 +301,10 @@ class ExecutionTracker:
         loop_iteration: int,
         safe: bool,
         method: str,
-        config_used: str
+        config_used: str,
+        model_used: str = None,
+        backend_used: str = None,
+        execution_time: float = None
     ):
         """Log Stage 3 pre-output safety check"""
         try:
@@ -310,6 +315,9 @@ class ExecutionTracker:
                 item_type=ItemType.STAGE3_SAFETY_CHECK,
                 content=None,
                 config_used=config_used,
+                model_used=model_used,
+                backend_used=backend_used,
+                execution_time=execution_time,
                 metadata={
                     'safe': safe,
                     'method': method,
@@ -350,7 +358,8 @@ class ExecutionTracker:
         file_path: str,
         model_used: str,
         backend_used: str,
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any],
+        execution_time: float = None
     ):
         """Log Stage 4 image output"""
         try:
@@ -363,6 +372,7 @@ class ExecutionTracker:
                 config_used=config_used,
                 model_used=model_used,
                 backend_used=backend_used,
+                execution_time=execution_time,
                 metadata=metadata  # width, height, seed, cfg_scale, steps, sampler, etc.
             )
         except Exception as e:
@@ -375,7 +385,8 @@ class ExecutionTracker:
         file_path: str,
         model_used: str,
         backend_used: str,
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any],
+        execution_time: float = None
     ):
         """Log Stage 4 audio output"""
         try:
@@ -388,6 +399,7 @@ class ExecutionTracker:
                 config_used=config_used,
                 model_used=model_used,
                 backend_used=backend_used,
+                execution_time=execution_time,
                 metadata=metadata  # duration, sample_rate, channels, format
             )
         except Exception as e:
@@ -400,7 +412,8 @@ class ExecutionTracker:
         file_path: str,
         model_used: str,
         backend_used: str,
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any],
+        execution_time: float = None
     ):
         """Log Stage 4 music output"""
         try:
@@ -413,6 +426,7 @@ class ExecutionTracker:
                 config_used=config_used,
                 model_used=model_used,
                 backend_used=backend_used,
+                execution_time=execution_time,
                 metadata=metadata  # duration, genre, tempo, key, format
             )
         except Exception as e:

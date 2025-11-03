@@ -396,7 +396,10 @@ async def execute_stage3_safety(
             "method": "fast_filter",
             "abort_reason": None,
             "positive_prompt": prompt,
-            "negative_prompt": ""
+            "negative_prompt": "",
+            "model_used": None,
+            "backend_used": None,
+            "execution_time": fast_check_time
         }
 
     # SLOW PATH: Terms found → LLM context verification (prevents false positives)
@@ -413,6 +416,17 @@ async def execute_stage3_safety(
     )
     llm_check_time = time.time() - llm_start_time
 
+    # Extract metadata from pipeline result
+    model_used = None
+    backend_used = None
+    if result.steps and len(result.steps) > 0:
+        for step in reversed(result.steps):
+            if step.metadata:
+                model_used = step.metadata.get('model_used', model_used)
+                backend_used = step.metadata.get('backend_type', backend_used)
+                if model_used and backend_used:
+                    break
+
     if result.success:
         # Parse JSON output
         safety_data = parse_preoutput_json(result.final_output)
@@ -428,7 +442,10 @@ async def execute_stage3_safety(
                 "abort_reason": abort_reason,
                 "positive_prompt": None,
                 "negative_prompt": None,
-                "found_terms": found_terms
+                "found_terms": found_terms,
+                "model_used": model_used,
+                "backend_used": backend_used,
+                "execution_time": llm_check_time
             }
         else:
             # SAFE: False positive (e.g., "CD player", "dark chocolate")
@@ -441,7 +458,10 @@ async def execute_stage3_safety(
                 "positive_prompt": safety_data.get('positive_prompt', prompt),
                 "negative_prompt": safety_data.get('negative_prompt', ''),
                 "found_terms": found_terms,
-                "false_positive": True
+                "false_positive": True,
+                "model_used": model_used,
+                "backend_used": backend_used,
+                "execution_time": llm_check_time
             }
     else:
         logger.warning(f"[STAGE3-SAFETY] LLM check failed: {result.error}, continuing (fail-open)")

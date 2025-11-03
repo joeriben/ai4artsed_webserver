@@ -220,7 +220,8 @@ def execute_pipeline():
                 from_lang='de',
                 to_lang='en',
                 model_used='gpt-oss',
-                execution_time=0.0  # TODO: Track actual execution time
+                backend_used='ollama',
+                execution_time=0.0  # TODO: Track actual execution time from GPT-OSS unified pipeline
             )
 
         # ====================================================================
@@ -355,7 +356,10 @@ def execute_pipeline():
                         loop_iteration=i + 1,
                         safe=safety_result['safe'],
                         method=safety_result.get('method', 'hybrid'),
-                        config_used=output_config_name
+                        config_used=output_config_name,
+                        model_used=safety_result.get('model_used'),
+                        backend_used=safety_result.get('backend_used'),
+                        execution_time=safety_result.get('execution_time')
                     )
 
                     if not safety_result['safe']:
@@ -405,7 +409,8 @@ def execute_pipeline():
                                 file_path=output_result.final_output,
                                 model_used=output_result.metadata.get('model_used', 'unknown'),
                                 backend_used=output_result.metadata.get('backend', 'comfyui'),
-                                metadata=output_result.metadata
+                                metadata=output_result.metadata,
+                                execution_time=output_result.execution_time
                             )
 
                             media_outputs.append({
