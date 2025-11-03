@@ -152,9 +152,9 @@ if result.steps and len(result.steps) > 0:
 
 1. **REST Endpoints** (create in `devserver/my_app/routes/execution_routes.py`):
    ```python
-   GET /api/executions/{execution_id}
-   GET /api/executions
-   GET /api/executions/{execution_id}/export/{format}
+   GET /api/runs/{execution_id}
+   GET /api/runs
+   GET /api/runs/{execution_id}/export/{format}
    ```
 
 2. **Functionality:**
@@ -264,7 +264,7 @@ class ExecutionRecord:
 ### JSON File Naming Convention
 
 ```
-exports/executions/exec_{timestamp}_{unique_id}.json
+exports/pipeline_runs/exec_{timestamp}_{unique_id}.json
 
 Example: exec_20251103_205239_896e054c.json
          └─────┬──────┘ └─────┬──────┘
@@ -275,7 +275,7 @@ Example: exec_20251103_205239_896e054c.json
 
 **Endpoint 1: Get Single Execution**
 ```
-GET /api/executions/{execution_id}
+GET /api/runs/{execution_id}
 
 Response 200:
 {
@@ -294,7 +294,7 @@ Response 404:
 
 **Endpoint 2: List Executions**
 ```
-GET /api/executions?limit=20&offset=0&config=dada&date=2025-11-03
+GET /api/runs?limit=20&offset=0&config=dada&date=2025-11-03
 
 Response 200:
 {
@@ -316,7 +316,7 @@ Response 200:
 
 **Endpoint 3: Export (Future)**
 ```
-GET /api/executions/{execution_id}/export/{format}
+GET /api/runs/{execution_id}/export/{format}
 
 Formats: json, xml, pdf, docx
 
@@ -370,8 +370,8 @@ git log --oneline -4
 git status
 
 # 2. Check existing executions
-ls -lh exports/executions/
-cat exports/executions/exec_*.json | jq '.items[] | {type: .item_type, model_used, backend_used, execution_time}'
+ls -lh exports/pipeline_runs/
+cat exports/pipeline_runs/exec_*.json | jq '.items[] | {type: .item_type, model_used, backend_used, execution_time}'
 
 # 3. Review storage functions
 cat devserver/execution_history/storage.py | grep "^def "

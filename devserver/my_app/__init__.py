@@ -49,7 +49,7 @@ def create_app():
     app.register_blueprint(schema_bp)  # New API: /api/schema/*
     app.register_blueprint(schema_compat_bp)  # Backward compatibility: /list_workflows, /workflow_metadata
     app.register_blueprint(media_bp)
-    app.register_blueprint(execution_bp)  # Execution history API: /api/executions/*
+    app.register_blueprint(execution_bp)  # Pipeline run history API: /api/runs/*
     
     # Configure logging filter for ComfyUI proxy
     class ComfyUIFilter(logging.Filter):

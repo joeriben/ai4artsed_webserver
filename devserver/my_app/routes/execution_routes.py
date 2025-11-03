@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 execution_bp = Blueprint('execution', __name__)
 
 
-@execution_bp.route('/api/executions/<execution_id>', methods=['GET'])
+@execution_bp.route('/api/runs/<execution_id>', methods=['GET'])
 def get_execution(execution_id: str):
     """
     Get single execution record by ID
@@ -36,7 +36,7 @@ def get_execution(execution_id: str):
         500: Server error
 
     Example:
-        GET /api/executions/exec_20251103_205239_896e054c
+        GET /api/runs/exec_20251103_205239_896e054c
     """
     try:
         logger.info(f"[EXECUTION_API] Fetching execution: {execution_id}")
@@ -66,7 +66,7 @@ def get_execution(execution_id: str):
         }), 500
 
 
-@execution_bp.route('/api/executions', methods=['GET'])
+@execution_bp.route('/api/runs', methods=['GET'])
 def list_executions():
     """
     List execution records with optional filtering and pagination
@@ -85,7 +85,7 @@ def list_executions():
         500: Server error
 
     Example:
-        GET /api/executions?limit=20&offset=0&config=dada&date=2025-11-03
+        GET /api/runs?limit=20&offset=0&config=dada&date=2025-11-03
     """
     try:
         # Parse query parameters
@@ -199,13 +199,13 @@ def list_executions():
         }), 500
 
 
-@execution_bp.route('/api/executions/<execution_id>/export/<format_type>', methods=['GET'])
+@execution_bp.route('/api/runs/<execution_id>/export/<format_type>', methods=['GET'])
 def export_execution(execution_id: str, format_type: str):
     """
     Export execution record in specified format
 
     Supported formats:
-        - json: Raw JSON format (same as GET /api/executions/<id>)
+        - json: Raw JSON format (same as GET /api/runs/<id>)
         - xml: Legacy XML format (future)
         - pdf: PDF report (future)
         - docx: DOCX report (future, legacy compatibility)
@@ -218,7 +218,7 @@ def export_execution(execution_id: str, format_type: str):
         500: Server error
 
     Example:
-        GET /api/executions/exec_20251103_205239_896e054c/export/json
+        GET /api/runs/exec_20251103_205239_896e054c/export/json
     """
     try:
         logger.info(f"[EXECUTION_API] Exporting execution {execution_id} as {format_type}")
@@ -297,7 +297,7 @@ def export_execution(execution_id: str, format_type: str):
         }), 500
 
 
-@execution_bp.route('/api/executions/stats', methods=['GET'])
+@execution_bp.route('/api/runs/stats', methods=['GET'])
 def get_execution_stats():
     """
     Get execution history storage statistics
@@ -307,7 +307,7 @@ def get_execution_stats():
         500: Server error
 
     Example:
-        GET /api/executions/stats
+        GET /api/runs/stats
     """
     try:
         logger.info(f"[EXECUTION_API] Fetching storage stats")

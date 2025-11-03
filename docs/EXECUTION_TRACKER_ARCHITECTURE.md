@@ -999,7 +999,7 @@ def save_execution_record(record: ExecutionRecord):
     """
     Save execution record to JSON file
 
-    File location: exports/executions/{execution_id}.json
+    File location: exports/pipeline_runs/{execution_id}.json
     Format: Human-readable JSON (indented, sorted keys)
     """
     try:
@@ -1057,7 +1057,7 @@ def list_execution_records(limit: int = 100, offset: int = 0) -> List[str]:
 
 ### 5.2 Storage Format: JSON
 
-**Example file:** `exports/executions/exec_20251103_143025_abc12345.json`
+**Example file:** `exports/pipeline_runs/exec_20251103_143025_abc12345.json`
 
 ```json
 {
@@ -1814,7 +1814,7 @@ def log_stage_transition(self, from_stage: int, to_stage: int):
 - [ ] Stage/iteration context tracked correctly
 
 ✅ **Storage**
-- [ ] JSON persistence to `exports/executions/`
+- [ ] JSON persistence to `exports/pipeline_runs/`
 - [ ] Load/save ExecutionRecord working
 - [ ] Human-readable format (indented JSON)
 

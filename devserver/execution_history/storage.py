@@ -5,7 +5,7 @@ Handles persistence of execution records to JSON files.
 
 Storage Strategy:
 - Format: JSON (human-readable, indented)
-- Location: exports/executions/
+- Location: exports/pipeline_runs/
 - Naming: exec_{timestamp}_{unique_id}.json
 - Example: exec_20251103_143025_abc12345.json
 
@@ -25,7 +25,7 @@ from .models import ExecutionRecord
 logger = logging.getLogger(__name__)
 
 # Storage directory
-STORAGE_DIR = Path(__file__).parent.parent.parent / "exports" / "executions"
+STORAGE_DIR = Path(__file__).parent.parent.parent / "exports" / "pipeline_runs"
 STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -33,7 +33,7 @@ def save_execution_record(record: ExecutionRecord):
     """
     Save execution record to JSON file
 
-    File location: exports/executions/{execution_id}.json
+    File location: exports/pipeline_runs/{execution_id}.json
     Format: Human-readable JSON (indented, sorted keys)
 
     Args:

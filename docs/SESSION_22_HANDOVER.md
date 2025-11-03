@@ -5,6 +5,12 @@
 **Status:** Phase 3 Complete (Export API), Ready for Future Enhancements
 **Branch:** `feature/schema-architecture-v2`
 
+**⚠️ TERMINOLOGY UPDATE (Session 22 Continued):**
+- Renamed `exports/executions/` → `exports/pipeline_runs/` (to avoid unfortunate connotations)
+- Renamed API endpoints `/api/executions/*` → `/api/runs/*`
+- Updated all documentation and code references
+- All existing data files preserved and functional
+
 ---
 
 ## ⚠️ INSTRUCTIONS FOR NEXT SESSION
@@ -48,7 +54,7 @@
 
 ## API Endpoints Implemented
 
-### 1. GET /api/executions/stats
+### 1. GET /api/runs/stats
 **Purpose:** Get storage statistics
 
 **Response 200:**
@@ -57,11 +63,11 @@
   "total_records": 3,
   "total_size_bytes": 16125,
   "total_size_mb": 0.02,
-  "storage_dir": "/path/to/exports/executions"
+  "storage_dir": "/path/to/exports/pipeline_runs"
 }
 ```
 
-### 2. GET /api/executions
+### 2. GET /api/runs
 **Purpose:** List executions with filtering and pagination
 
 **Query Parameters:**
@@ -102,7 +108,7 @@
 }
 ```
 
-### 3. GET /api/executions/{execution_id}
+### 3. GET /api/runs/{execution_id}
 **Purpose:** Get single execution record by ID
 
 **Response 200:**
@@ -137,7 +143,7 @@
 }
 ```
 
-### 4. GET /api/executions/{execution_id}/export/{format}
+### 4. GET /api/runs/{execution_id}/export/{format}
 **Purpose:** Export execution record in specified format
 
 **Supported Formats:**
@@ -147,7 +153,7 @@
 - `docx` - ⏳ **NOT IMPLEMENTED** (returns 501) - DOCX report (future)
 
 **Response 200 (JSON):**
-- Same structure as GET /api/executions/{id}
+- Same structure as GET /api/runs/{id}
 - Includes `Content-Disposition: attachment` header for download
 
 **Response 501 (XML/PDF/DOCX):**
@@ -175,37 +181,37 @@
 
 ### Test 1: Storage Stats
 ```bash
-curl -s http://localhost:17801/api/executions/stats | jq '.'
+curl -s http://localhost:17801/api/runs/stats | jq '.'
 ```
 **Result:** ✅ 200 OK - Returns 3 records, 16KB total size
 
 ### Test 2: List Executions
 ```bash
-curl -s "http://localhost:17801/api/executions?limit=10" | jq '.'
+curl -s "http://localhost:17801/api/runs?limit=10" | jq '.'
 ```
 **Result:** ✅ 200 OK - Returns 3 executions with summaries
 
 ### Test 3: Get Single Execution
 ```bash
-curl -s "http://localhost:17801/api/executions/exec_20251103_205239_896e054c" | jq '.'
+curl -s "http://localhost:17801/api/runs/exec_20251103_205239_896e054c" | jq '.'
 ```
 **Result:** ✅ 200 OK - Returns full execution record with 7 items
 
 ### Test 4: JSON Export
 ```bash
-curl -s "http://localhost:17801/api/executions/exec_20251103_205239_896e054c/export/json" -o /tmp/test_export.json
+curl -s "http://localhost:17801/api/runs/exec_20251103_205239_896e054c/export/json" -o /tmp/test_export.json
 ```
 **Result:** ✅ 200 OK - File downloaded successfully with correct data
 
 ### Test 5: Config Filter
 ```bash
-curl -s "http://localhost:17801/api/executions?config=dada&limit=5" | jq '.'
+curl -s "http://localhost:17801/api/runs?config=dada&limit=5" | jq '.'
 ```
 **Result:** ✅ 200 OK - Filtering works, returns 3 "dada" executions
 
 ### Test 6: 404 Error Handling
 ```bash
-curl -s "http://localhost:17801/api/executions/exec_invalid_id" | jq '.'
+curl -s "http://localhost:17801/api/runs/exec_invalid_id" | jq '.'
 ```
 **Result:** ✅ 404 Not Found - Proper error message returned
 
@@ -344,16 +350,16 @@ def convert_execution_to_xml(record: ExecutionRecord) -> str:
 2. Finalization (after pipeline completes):
    tracker.finalize()
    └─> execution_history.storage.save_execution_record()
-       └─> exports/executions/exec_{timestamp}_{id}.json
+       └─> exports/pipeline_runs/exec_{timestamp}_{id}.json
 
 3. API Query:
-   GET /api/executions/{id}
+   GET /api/runs/{id}
    └─> execution_history.storage.load_execution_record()
        └─> Read JSON file
            └─> Return ExecutionRecord as dict
 
 4. Export:
-   GET /api/executions/{id}/export/json
+   GET /api/runs/{id}/export/json
    └─> Same as (3) but with download headers
 ```
 
@@ -417,10 +423,10 @@ git status
 git log --oneline -5
 
 # 2. Check API is working
-curl -s http://localhost:17801/api/executions/stats | jq '.'
+curl -s http://localhost:17801/api/runs/stats | jq '.'
 
 # 3. List existing executions
-curl -s http://localhost:17801/api/executions | jq '.executions[] | {id: .execution_id, config: .config_name}'
+curl -s http://localhost:17801/api/runs | jq '.executions[] | {id: .execution_id, config: .config_name}'
 
 # 4. Test comprehensive workflow (Stille Post)
 curl -X POST http://localhost:17801/api/schema/pipeline/execute \
@@ -433,11 +439,11 @@ curl -X POST http://localhost:17801/api/schema/pipeline/execute \
   }'
 
 # 5. Verify execution was tracked
-ls -lh exports/executions/ | tail -1
+ls -lh exports/pipeline_runs/ | tail -1
 
 # 6. Retrieve and examine execution
-EXEC_ID=$(ls exports/executions/ | tail -1 | sed 's/.json//')
-curl -s "http://localhost:17801/api/executions/$EXEC_ID" | jq '{id, config, items_count: .items | length}'
+EXEC_ID=$(ls exports/pipeline_runs/ | tail -1 | sed 's/.json//')
+curl -s "http://localhost:17801/api/runs/$EXEC_ID" | jq '{id, config, items_count: .items | length}'
 ```
 
 ---
