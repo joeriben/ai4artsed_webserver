@@ -1352,3 +1352,63 @@ curl -X POST http://localhost:17801/api/schema/pipeline/execute \
 4. Update testing report to mark observations as fixed
 5. Update devserver_todos.md to mark execution tracker as COMPLETE
 
+
+---
+
+## Session 25: Fast Mode Backend Routing Fix
+
+**Date:** 2025-11-04
+**Duration:** ~45 minutes
+**Cost:** ~$1.50
+**Branch:** `feature/schema-architecture-v2`
+
+### Task
+
+Fix critical bug preventing fast mode from using OpenRouter API. Fast mode was routing to local Ollama and logging wrong backend.
+
+### Analysis
+
+**Root Cause - Two-Part Bug:**
+1. `backend_router.py:155` - Returned template backend instead of detected backend
+2. `pipeline_executor.py:444` - **ACTUAL BUG** - Ignored response.metadata, used chunk_request backend
+
+Backend detection worked, but corrected metadata was discarded by pipeline_executor.
+
+### Implementation
+
+**Modified Files:**
+- `devserver/schemas/engine/backend_router.py` (line 155)
+  - Now returns detected backend in metadata
+- `devserver/schemas/engine/pipeline_executor.py` (lines 444-445)
+  - Changed: `step.metadata['backend_type'] = chunk_request['backend_type']`
+  - To: `step.metadata['backend_type'] = response.metadata.get('backend_type', chunk_request['backend_type'])`
+
+### Testing
+
+**Test Records:**
+- ECO: `exec_20251104_002914_c7f6b9f1.json` - backend_used="ollama" ✅
+- FAST: `exec_20251104_002920_f814eb9d.json` - backend_used="openrouter" ✅
+
+**Server Logs:**
+```
+[BACKEND] ☁️  OpenRouter Request: mistralai/mistral-nemo
+[BACKEND] ✅ OpenRouter Success: mistralai/mistral-nemo
+```
+
+### Git Changes
+
+**Files Modified:**
+- devserver/schemas/engine/backend_router.py (+3 lines, comment clarity)
+- devserver/schemas/engine/pipeline_executor.py (+2 lines, metadata extraction fix)
+- docs/FAST_MODE_BUG_REPORT.md (new, bug documentation)
+- docs/SESSION_25_HANDOVER.md (new, session handover)
+
+**Commits:**
+- d48b80c - fix: Fast mode backend routing and metadata tracking
+
+### Next Session Priorities
+
+1. Backend routing is stable - no follow-up needed
+2. Consider adding automated tests for backend selection
+3. May add debug logging for backend routing decisions
+4. Fast mode performance: ~2-7s (vs 95s before fix)
