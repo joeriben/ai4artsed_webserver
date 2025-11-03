@@ -1,6 +1,83 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-02 Session 14 (GPT-OSS Unified Stage 1 Activation)
+**Last Updated:** 2025-11-03 Session 16 (Pipeline Restoration + Rename Planning)
 **Context:** Current priorities and active TODOs
+
+---
+
+## 🔥 IMMEDIATE PRIORITIES (Session 17+)
+
+### 1. Pipeline Rename to Input-Type Convention
+**Status:** PLANNED (Session 16)
+**Priority:** HIGH (clarity + prevents future confusion)
+**Plan:** `docs/PIPELINE_RENAME_PLAN.md`
+**Estimated Time:** ~55 minutes
+
+**What to rename:**
+- `single_prompt_generation` → `single_text_media_generation`
+- `dual_prompt_generation` → `dual_text_media_generation`
+- `image_plus_text_generation` → `image_text_media_generation`
+
+**Why:** Old names are ambiguous. "single_prompt_generation" sounds like "generate a prompt" but actually means "generate media FROM one prompt". New pattern `[INPUT_TYPE(S)]_media_generation` is unambiguous and scalable.
+
+**Files affected:**
+- Pipeline files (3 renames)
+- Output configs (sd35_large.json, gpt5_image.json, ~2-3 total)
+- Documentation (ARCHITECTURE.md, SESSION_HANDOVER.md, CLAUDE.md)
+
+**Follow:** Complete migration plan in PIPELINE_RENAME_PLAN.md
+
+---
+
+### 2. Fix Non-Functioning Research Data Export
+**Status:** BROKEN (reported Session 16)
+**Priority:** HIGH (user needs this feature)
+**Context:** User reported this is not working
+
+**TODO:**
+- [ ] Identify what "research data export" means (prompt logs? transformation history?)
+- [ ] Locate export functionality code
+- [ ] Test export feature to reproduce the issue
+- [ ] Fix the broken functionality
+- [ ] Test export works correctly
+- [ ] Document what was fixed
+
+**Questions for user:**
+- What specifically should be exported? (Transformation history? Logs? Media outputs?)
+- Where should exports go? (File? Database? API?)
+- What format? (JSON? CSV? Other?)
+
+---
+
+## 📝 Session 16 Completion Notes
+
+**What Was Fixed:**
+- ✅ Restored `single_prompt_generation.json` pipeline (accidentally deprecated in Session 15)
+- ✅ Fixed Stage 4 error: "Config 'sd35_large' not found"
+- ✅ Tested full 4-stage pipeline: Working correctly
+- ✅ Committed fix: commit `6f7d30b`
+- ✅ Updated SESSION_HANDOVER.md with Session 16→17 context
+- ✅ Created PIPELINE_RENAME_PLAN.md for next session
+
+**Key Learnings:**
+- Pipeline naming is confusing: "single_prompt_generation" means "generate media FROM one prompt" not "generate a prompt"
+- The pipeline was critical for Stage 4 because it provides DIRECT media generation (no text transformation step)
+- Output configs (sd35_large, gpt5_image) need `single_prompt_generation` pipeline
+- Never deprecate pipeline files without checking all config references first!
+
+**Current State:**
+- Server tested and working on port 17801
+- All 4 stages executing successfully
+- Ready for pipeline rename and export feature fix
+
+**Important Files Created/Updated:**
+- `docs/PIPELINE_RENAME_PLAN.md` - Complete migration guide
+- `docs/SESSION_HANDOVER.md` - Session 16→17 handover
+- `devserver/schemas/pipelines/single_prompt_generation.json` - Restored
+
+**Git Status:**
+- Branch: `feature/schema-architecture-v2`
+- Latest commit: `6f7d30b` - "fix: Restore single_prompt_generation pipeline"
+- Pushed to remote: ✅
 
 ---
 
