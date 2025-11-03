@@ -1,5 +1,5 @@
 {
-  "pipeline": "single_prompt_generation",
+  "pipeline": "single_text_media_generation",
   "name": {
     "en": "GPT-5 Image",
     "de": "GPT-5 Image"

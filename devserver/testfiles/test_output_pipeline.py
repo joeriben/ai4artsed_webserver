@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test Output-Pipeline direkt: single_prompt_generation mit sd35_large
+Test Output-Pipeline direkt: single_text_media_generation mit sd35_large
 Testet das Proxy-Chunk-System ohne Interception-Pipeline
 """
 import asyncio

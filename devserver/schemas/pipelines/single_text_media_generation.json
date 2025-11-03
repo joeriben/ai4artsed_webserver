@@ -1,7 +1,7 @@
 {
-  "name": "single_prompt_generation",
-  "description": "Single Prompt Generation Pipeline: Direct Media Generation from text prompt (Output-Pipeline is primitive!)",
-  "pipeline_type": "single_prompt_generation",
+  "name": "single_text_media_generation",
+  "description": "Single Text to Media Generation Pipeline: Direct media generation from one text prompt (no text transformation step)",
+  "pipeline_type": "single_text_media_generation",
   "input_requirements": {
     "texts": 1
   },

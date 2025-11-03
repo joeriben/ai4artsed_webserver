@@ -13,11 +13,11 @@
 **Estimated Time:** ~55 minutes
 
 **What to rename:**
-- `single_prompt_generation` → `single_text_media_generation`
-- `dual_prompt_generation` → `dual_text_media_generation`
-- `image_plus_text_generation` → `image_text_media_generation`
+- `single_text_media_generation` → `single_text_media_generation`
+- `dual_text_media_generation` → `dual_text_media_generation`
+- `image_text_media_generation` → `image_text_media_generation`
 
-**Why:** Old names are ambiguous. "single_prompt_generation" sounds like "generate a prompt" but actually means "generate media FROM one prompt". New pattern `[INPUT_TYPE(S)]_media_generation` is unambiguous and scalable.
+**Why:** Old names are ambiguous. "single_text_media_generation" sounds like "generate a prompt" but actually means "generate media FROM one prompt". New pattern `[INPUT_TYPE(S)]_media_generation` is unambiguous and scalable.
 
 **Files affected:**
 - Pipeline files (3 renames)
@@ -51,7 +51,7 @@
 ## 📝 Session 16 Completion Notes
 
 **What Was Fixed:**
-- ✅ Restored `single_prompt_generation.json` pipeline (accidentally deprecated in Session 15)
+- ✅ Restored `single_text_media_generation.json` pipeline (accidentally deprecated in Session 15)
 - ✅ Fixed Stage 4 error: "Config 'sd35_large' not found"
 - ✅ Tested full 4-stage pipeline: Working correctly
 - ✅ Committed fix: commit `6f7d30b`
@@ -59,9 +59,9 @@
 - ✅ Created PIPELINE_RENAME_PLAN.md for next session
 
 **Key Learnings:**
-- Pipeline naming is confusing: "single_prompt_generation" means "generate media FROM one prompt" not "generate a prompt"
+- Pipeline naming is confusing: "single_text_media_generation" means "generate media FROM one prompt" not "generate a prompt"
 - The pipeline was critical for Stage 4 because it provides DIRECT media generation (no text transformation step)
-- Output configs (sd35_large, gpt5_image) need `single_prompt_generation` pipeline
+- Output configs (sd35_large, gpt5_image) need `single_text_media_generation` pipeline
 - Never deprecate pipeline files without checking all config references first!
 
 **Current State:**
@@ -72,11 +72,11 @@
 **Important Files Created/Updated:**
 - `docs/PIPELINE_RENAME_PLAN.md` - Complete migration guide
 - `docs/SESSION_HANDOVER.md` - Session 16→17 handover
-- `devserver/schemas/pipelines/single_prompt_generation.json` - Restored
+- `devserver/schemas/pipelines/single_text_media_generation.json` - Restored
 
 **Git Status:**
 - Branch: `feature/schema-architecture-v2`
-- Latest commit: `6f7d30b` - "fix: Restore single_prompt_generation pipeline"
+- Latest commit: `6f7d30b` - "fix: Restore single_text_media_generation pipeline"
 - Pushed to remote: ✅
 
 ---

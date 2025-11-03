@@ -6,6 +6,10 @@
 > **Version:** 3.0 (4-Stage Flow + Components Reference - Fully Consolidated)
 
 ---
+THIS IS A 2-PART-DOCUMENTATION:
+PART I: ARCHITECTURE PART I.md
+PART II: THIS FILE
+
 
 ## Table of Contents
 
@@ -629,9 +633,9 @@ Output-Chunks contain **complete ComfyUI API workflows** embedded directly in th
 | Pipeline | Input Type | Output Type | Use Cases |
 |----------|------------|-------------|-----------|
 | `text_transformation` | 1 text | Text | Dadaism, Bauhaus, translation, etc. (30 configs) |
-| `single_prompt_generation` | 1 text | Image/Audio/Video | SD3.5, Flux1, Stable Audio (multiple configs) |
-| `dual_prompt_generation` | 2 texts | Music | AceStep (Tags + Lyrics) |
-| `image_plus_text_generation` | Image + Text | Image | Inpainting, img2img, ControlNet (future) |
+| `single_text_media_generation` | 1 text | Image/Audio/Video | SD3.5, Flux1, Stable Audio (multiple configs) |
+| `dual_text_media_generation` | 2 texts | Music | AceStep (Tags + Lyrics) |
+| `image_text_media_generation` | Image + Text | Image | Inpainting, img2img, ControlNet (future) |
 
 **Key Design:** Pipelines categorized by INPUT structure, not output medium!
 
@@ -691,7 +695,7 @@ DevServer reads this field and runs appropriate Stage 1 processing (translation 
 - Purpose: Transform/optimize text according to specific approach
 
 **2. Output Generation Configs (4+ configs, expanding)**
-- Pipeline: `single_prompt_generation` or `dual_prompt_generation`
+- Pipeline: `single_text_media_generation` or `dual_text_media_generation`
 - Examples: sd35_standard.json, flux1_dev.json, acestep_standard.json
 - Purpose: Generate media from text prompt(s)
 
@@ -802,12 +806,12 @@ User Input → Config (e.g., dada.json)
 **Purpose:** Generate media from one text prompt
 **Input:** One text prompt
 **Output:** Image, Audio, Music, or Video
-**Pipeline:** `single_prompt_generation`
+**Pipeline:** `single_text_media_generation`
 
 **Data Flow:**
 ```
 Text Prompt → Config (e.g., sd35_large.json)
-  → single_prompt_generation Pipeline
+  → single_text_media_generation Pipeline
     → Proxy-Chunk (output_image.json)
       → Backend Router (loads OUTPUT_CHUNK from config)
         → Specialized Output-Chunk (output_image_sd35_large.json)
@@ -832,12 +836,12 @@ Text Prompt → Config (e.g., sd35_large.json)
 **Purpose:** Generate media from two text prompts
 **Input:** Two text prompts (e.g., Tags + Lyrics)
 **Output:** Music
-**Pipeline:** `dual_prompt_generation`
+**Pipeline:** `dual_text_media_generation`
 
 **Data Flow:**
 ```
 Prompt 1 (Tags) + Prompt 2 (Lyrics) → Config (acestep_standard.json)
-  → dual_prompt_generation Pipeline
+  → dual_text_media_generation Pipeline
     → Backend Router
       → ComfyUI AceStep Workflow
         → input_mapping: prompt_1 → tags_node, prompt_2 → lyrics_node
@@ -865,12 +869,12 @@ Prompt 1 (Tags) + Prompt 2 (Lyrics) → Config (acestep_standard.json)
 **Purpose:** Generate/modify image using input image + text
 **Input:** Image file + Text prompt
 **Output:** Modified image
-**Pipeline:** `image_plus_text_generation`
+**Pipeline:** `image_text_media_generation`
 
 **Data Flow:**
 ```
 Input Image + Text Prompt → Config (inpainting_sd35.json)
-  → image_plus_text_generation Pipeline
+  → image_text_media_generation Pipeline
     → Backend Router
       → ComfyUI Inpainting Workflow
         → image → image_node, text → prompt_node
@@ -891,7 +895,7 @@ Input Image + Text Prompt → Config (inpainting_sd35.json)
 
 ### How Media Generation Works
 
-**Key Concept:** Output-Pipelines (single_prompt_generation, dual_prompt_generation) are **backend-agnostic** and **media-agnostic**. They determine the right execution path based on:
+**Key Concept:** Output-Pipelines (single_text_media_generation, dual_text_media_generation) are **backend-agnostic** and **media-agnostic**. They determine the right execution path based on:
 
 1. **Config metadata** (`media_preferences.default_output`)
 2. **Execution mode** (eco vs fast)
@@ -923,7 +927,7 @@ result = execute_pipeline(
 ```python
 # User clicks "Generate Image" → Server calls output-pipeline
 config = load_config("sd35_standard.json")  # Or user-selected image config
-# → pipeline: "single_prompt_generation"
+# → pipeline: "single_text_media_generation"
 # → media_preferences.default_output: "image"
 # → meta.model: "sd3.5_large"
 # → parameters: {cfg: 5.5, steps: 20, ...}
@@ -1010,7 +1014,7 @@ Output-Chunks are **highly specialized** for specific backend+model combinations
 **Config: stableaudio.json**
 ```json
 {
-  "pipeline": "single_prompt_generation",
+  "pipeline": "single_text_media_generation",
   "media_preferences": {
     "default_output": "audio",
     "supported_types": ["audio"]
@@ -1026,10 +1030,10 @@ Output-Chunks are **highly specialized** for specific backend+model combinations
 }
 ```
 
-**Pipeline: single_prompt_generation.json**
+**Pipeline: single_text_media_generation.json**
 ```json
 {
-  "name": "single_prompt_generation",
+  "name": "single_text_media_generation",
   "description": "Single text → Media (image/audio/video)",
   "chunks": ["output_image"],
   "meta": {
@@ -1085,7 +1089,7 @@ result = executor.execute_pipeline(
 **Output-Config: sd35_large.json**
 ```json
 {
-  "pipeline": "single_prompt_generation",
+  "pipeline": "single_text_media_generation",
   "parameters": {
     "OUTPUT_CHUNK": "output_image_sd35_large",  // Specialized chunk
     "WIDTH": 1024,
@@ -1118,7 +1122,7 @@ result = executor.execute_pipeline(
 ### Why This Architecture?
 
 **1. Backend Transparency:**
-- Same pipeline `single_prompt_generation` works with any backend
+- Same pipeline `single_text_media_generation` works with any backend
 - ComfyUI can be replaced with SwarmUI, Replicate, etc. without changing pipelines
 
 **2. Media Transparency:**
@@ -1168,7 +1172,7 @@ Step 1 (Text Transformation):
 Step 2 (Media Generation):
   Optimized Text: "Ein roter Apfel in dadaistischer..."
     ↓
-  Config: sd35_standard.json (pipeline: single_prompt_generation)
+  Config: sd35_standard.json (pipeline: single_text_media_generation)
     ↓
   Backend Router: ComfyUI
     ↓
@@ -1201,7 +1205,7 @@ image_prompt_id = result2.media_output.prompt_id
 ```
 User Input: "A red apple on a wooden table"
   ↓
-Config: sd35_standard.json (pipeline: single_prompt_generation)
+Config: sd35_standard.json (pipeline: single_text_media_generation)
   ↓
 Backend Router: ComfyUI
   ↓
@@ -1219,7 +1223,7 @@ User provides:
   - Tags: "upbeat, electronic, 120bpm"
   - Lyrics: "Dancing through the night, feeling so alive..."
     ↓
-Config: acestep_standard.json (pipeline: dual_prompt_generation)
+Config: acestep_standard.json (pipeline: dual_text_media_generation)
   ↓
 Backend Router: ComfyUI
   ↓
@@ -1258,7 +1262,7 @@ DevServer Auto-Media Logic:
   1. Read: config.media_preferences.default_output = "image"
   2. Read: execution_mode = "eco"
   3. Lookup: output_config_defaults["image"]["eco"] → "sd35_large"
-  4. Execute: single_prompt_generation pipeline with sd35_large config
+  4. Execute: single_text_media_generation pipeline with sd35_large config
   ↓
 Output: Image (PNG) generated via SD3.5 Large
 ```
@@ -1901,7 +1905,7 @@ Status: Planned, not yet implemented
 ```python
 if pipeline == "text_transformation":
     task_category = "LLM"
-elif pipeline in ["single_prompt_generation", "dual_prompt_generation"]:
+elif pipeline in ["single_text_media_generation", "dual_text_media_generation"]:
     task_category = "MEDIA_GENERATION"
     media_type = config.media_preferences.default_output  # "image", "audio", "music", "video"
 ```
@@ -2103,9 +2107,9 @@ devserver/
 │   │
 │   ├── pipelines/
 │   │   ├── text_transformation.json           # Text → Text (30 configs)
-│   │   ├── single_prompt_generation.json      # Text → Media (SD3.5, Flux1, etc.)
-│   │   ├── dual_prompt_generation.json        # 2 Texts → Music (AceStep)
-│   │   └── image_plus_text_generation.json    # Image+Text → Image (future)
+│   │   ├── single_text_media_generation.json      # Text → Media (SD3.5, Flux1, etc.)
+│   │   ├── dual_text_media_generation.json        # 2 Texts → Music (AceStep)
+│   │   └── image_text_media_generation.json    # Image+Text → Image (future)
 │   │
 │   ├── configs/
 │   │   ├── dada.json                          # Text transformation configs
@@ -2540,7 +2544,7 @@ python3 test_pipeline_execution.py
 - Scalable (easy to add new media types without new pipelines)
 
 **Example:**
-- `single_prompt_generation` can output Image (SD3.5), Audio (Stable Audio), or Music
+- `single_text_media_generation` can output Image (SD3.5), Audio (Stable Audio), or Music
 - Pipeline doesn't care about output type
 
 ---
@@ -2607,18 +2611,18 @@ python3 test_pipeline_execution.py
 ## Future Enhancements
 
 ### Phase 1: Complete Output-Pipeline System
-- [ ] Implement `single_prompt_generation.json` pipeline
-- [ ] Implement `dual_prompt_generation.json` pipeline
+- [ ] Implement `single_text_media_generation.json` pipeline
+- [ ] Implement `dual_text_media_generation.json` pipeline
 - [ ] Create standard output configs (sd35_standard, flux1_dev, etc.)
 - [ ] Test text→media chains
 
 ### Phase 2: Advanced Features
-- [ ] `image_plus_text_generation` pipeline implementation
+- [ ] `image_text_media_generation` pipeline implementation
   - **Status:** NOT IMPLEMENTED (as of 2025-10-28)
   - **Note:** WorkflowClassifier removed - Config metadata will handle validation
   - **See:** DEVELOPMENT_DECISIONS.md (2025-10-28) for Inpainting implementation plan
 - [ ] Inpainting support
-  - **Note:** Requires image_plus_text_generation pipeline + inpainting config
+  - **Note:** Requires image_text_media_generation pipeline + inpainting config
 - [ ] ControlNet support
 - [ ] Video generation support
 

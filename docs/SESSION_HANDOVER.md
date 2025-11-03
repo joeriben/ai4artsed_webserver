@@ -2,7 +2,7 @@
 
 **Date:** 2025-11-03
 **Branch:** `feature/schema-architecture-v2`
-**Last Commit:** (pending) - "fix: Restore single_prompt_generation pipeline"
+**Last Commit:** (pending) - "refactor: Rename pipelines to input-type convention"
 
 ---
 
@@ -30,8 +30,8 @@
 User reported error: `Config 'sd35_large' not found` during Stage 4 (media generation).
 
 **Root Cause Analysis:**
-1. The `single_prompt_generation.json` pipeline file was mistakenly deprecated in Session 15
-2. File was renamed to `single_prompt_generation.json.deprecated`
+1. The `single_text_media_generation.json` pipeline file was mistakenly deprecated in Session 15
+2. File was renamed to `single_text_media_generation.json.deprecated`
 3. Output configs (`sd35_large.json`, `gpt5_image.json`) require this pipeline
 4. Without the pipeline, ConfigLoader marked these configs as invalid (pipeline not found)
 5. Stage 4 failed because it couldn't load the output config
@@ -39,19 +39,19 @@ User reported error: `Config 'sd35_large' not found` during Stage 4 (media gener
 **Solution Implemented:**
 ```bash
 cd devserver/schemas/pipelines
-mv single_prompt_generation.json.deprecated single_prompt_generation.json
+mv single_text_media_generation.json.deprecated single_text_media_generation.json
 ```
 
 **Verification:**
 - ✅ Config loader now finds 7 pipelines (was 6)
 - ✅ `sd35_large` config loads correctly
 - ✅ `gpt5_image` config loads correctly
-- ✅ Both configs resolve to `single_prompt_generation` pipeline
+- ✅ Both configs resolve to `single_text_media_generation` pipeline
 
 **Why This Pipeline is Critical:**
 According to ARCHITECTURE.md, there are two distinct approaches to media generation:
 
-1. **Direct Generation** (`single_prompt_generation` pipeline):
+1. **Direct Generation** (`single_text_media_generation` pipeline):
    - User input → Direct media generation
    - No text transformation/optimization step
    - Used by output configs like `sd35_large`, `gpt5_image`
@@ -62,7 +62,7 @@ According to ARCHITECTURE.md, there are two distinct approaches to media generat
    - Includes prompt enhancement/refinement
    - Pipeline chunks: `["manipulate", "comfyui_image_generation"]`
 
-The 4-Stage system uses `single_prompt_generation` for Stage 4 because:
+The 4-Stage system uses `single_text_media_generation` for Stage 4 because:
 - Stage 2 already did text transformation (Prompt Interception)
 - Stage 4 should do direct media generation, not transform again
 - Deleting this pipeline broke the entire 4-stage flow
@@ -158,7 +158,7 @@ The original ComfyUI `ai4artsed_prompt_interception` custom node used a 3-part p
 - `docs/ARCHITECTURE.md.backup_20251101`
 - `docs/README_FIRST.md`
 - `devserver/schemas/pipelines/simple_interception.json`
-- `devserver/schemas/pipelines/single_prompt_generation.json` ← **THIS WAS A MISTAKE!**
+- `devserver/schemas/pipelines/single_text_media_generation.json` ← **THIS WAS A MISTAKE!**
 
 ---
 
@@ -282,7 +282,7 @@ Stage 4: Output Generation
 ## Files Modified This Session (Session 16)
 
 **Restored Files:**
-- `devserver/schemas/pipelines/single_prompt_generation.json` - Restored from `.deprecated`
+- `devserver/schemas/pipelines/single_text_media_generation.json` - Restored from `.deprecated`
 
 **To Be Committed:**
 - This handover document

@@ -1,5 +1,5 @@
 {
-  "pipeline": "single_prompt_generation",
+  "pipeline": "single_text_media_generation",
   "name": {
     "en": "Stable Diffusion 3.5 Large",
     "de": "Stable Diffusion 3.5 Large"

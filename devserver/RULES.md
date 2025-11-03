@@ -64,7 +64,7 @@ Interception-Pipeline: "Transform text in Dada style, then generate 3 image vari
 - **NO orchestration**, just: Input(s) → Media
 - Architecturally flexible, but **functionally dumb**
 - Examples: sd35_large.json, flux1_dev.json (4+ configs)
-- Pipeline: `single_prompt_generation` or `dual_prompt_generation`
+- Pipeline: `single_text_media_generation` or `dual_text_media_generation`
 
 **Example Flow:**
 ```
@@ -123,8 +123,8 @@ Selection based on:
 
 ### Pipelines
 - Named by INPUT type, NOT output type
-- ✅ `single_prompt_generation` (input: 1 text)
-- ✅ `dual_prompt_generation` (input: 2 texts)
+- ✅ `single_text_media_generation` (input: 1 text)
+- ✅ `dual_text_media_generation` (input: 2 texts)
 - ❌ `image_generation` (output-focused name)
 
 ### Configs
@@ -204,7 +204,7 @@ Selection based on:
 **Output Config Example:**
 ```json
 {
-  "pipeline": "single_prompt_generation",
+  "pipeline": "single_text_media_generation",
   "parameters": {
     "OUTPUT_CHUNK": "output_image_sd35_large",
     "WIDTH": 1024, "HEIGHT": 1024

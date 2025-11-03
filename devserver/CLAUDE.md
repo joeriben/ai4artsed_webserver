@@ -206,9 +206,9 @@ Layer 1: CHUNKS (Primitive Operations)
 | Pipeline | Input | Output | Count |
 |----------|-------|--------|-------|
 | `text_transformation` | 1 text | Text | 30+ configs |
-| `single_prompt_generation` | 1 text | Image/Audio/Video | Multiple configs |
-| `dual_prompt_generation` | 2 texts | Music | 1 config (AceStep) |
-| `image_plus_text_generation` | Image + Text | Image | Not yet implemented |
+| `single_text_media_generation` | 1 text | Image/Audio/Video | Multiple configs |
+| `dual_text_media_generation` | 2 texts | Music | 1 config (AceStep) |
+| `image_text_media_generation` | Image + Text | Image | Not yet implemented |
 
 ## Common Commands
 
@@ -299,7 +299,7 @@ ollama list
 **Example:**
 ```json
 {
-  "name": "single_prompt_generation",
+  "name": "single_text_media_generation",
   "description": "Single text → Media (image/audio/video)",
   "chunks": ["output_image"],
   "meta": {

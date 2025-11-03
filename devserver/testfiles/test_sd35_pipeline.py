@@ -3,7 +3,7 @@ Test SD3.5 Large Pipeline with Output-Chunk System
 
 This test validates the complete pipeline:
 1. Config loading (sd35_large.json)
-2. Pipeline execution (single_prompt_generation)
+2. Pipeline execution (single_text_media_generation)
 3. Chunk loading (output_image.json)
 4. Output-Chunk loading (output_image_sd35_large.json)
 5. Parameter application
@@ -66,10 +66,10 @@ def test_config_loading():
 
 
 def test_pipeline_definition():
-    """Test 2: Verify single_prompt_generation pipeline uses output_image chunk"""
+    """Test 2: Verify single_text_media_generation pipeline uses output_image chunk"""
     print("\n=== Test 2: Pipeline Definition ===")
 
-    pipeline_path = Path("schemas/pipelines/single_prompt_generation.json")
+    pipeline_path = Path("schemas/pipelines/single_text_media_generation.json")
 
     if not pipeline_path.exists():
         print(f"❌ FAILED: Pipeline file not found")
