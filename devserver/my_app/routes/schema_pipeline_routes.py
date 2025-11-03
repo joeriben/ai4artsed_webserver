@@ -254,11 +254,26 @@ def execute_pipeline():
                 'total_steps': len(result.steps)
             }), 500
 
+        # Extract metadata from pipeline result
+        model_used = None
+        backend_used = None
+        if result.steps and len(result.steps) > 0:
+            # Get metadata from last successful step
+            for step in reversed(result.steps):
+                if step.metadata:
+                    model_used = step.metadata.get('model_used', model_used)
+                    backend_used = step.metadata.get('backend_type', backend_used)
+                    if model_used and backend_used:
+                        break
+
         # Log interception final result
         tracker.log_interception_final(
             final_text=result.final_output,
             total_iterations=1,  # TODO: Track actual iterations for Stille Post
-            config_used=schema_name
+            config_used=schema_name,
+            model_used=model_used,
+            backend_used=backend_used,
+            execution_time=result.execution_time
         )
 
         # Response für erfolgreiche Pipeline

@@ -1,50 +1,72 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-03 Session 16 (Pipeline Restoration + Rename Planning)
+**Last Updated:** 2025-11-03 Session 17 (Pipeline Rename Complete + Research Data Export Understanding Documented)
 **Context:** Current priorities and active TODOs
 
 ---
 
 ## 🔥 IMMEDIATE PRIORITIES (Session 17+)
 
-### 1. Pipeline Rename to Input-Type Convention
-**Status:** PLANNED (Session 16)
-**Priority:** HIGH (clarity + prevents future confusion)
-**Plan:** `docs/PIPELINE_RENAME_PLAN.md`
-**Estimated Time:** ~55 minutes
-
-**What to rename:**
-- `single_text_media_generation` → `single_text_media_generation`
-- `dual_text_media_generation` → `dual_text_media_generation`
-- `image_text_media_generation` → `image_text_media_generation`
-
-**Why:** Old names are ambiguous. "single_text_media_generation" sounds like "generate a prompt" but actually means "generate media FROM one prompt". New pattern `[INPUT_TYPE(S)]_media_generation` is unambiguous and scalable.
-
-**Files affected:**
-- Pipeline files (3 renames)
-- Output configs (sd35_large.json, gpt5_image.json, ~2-3 total)
-- Documentation (ARCHITECTURE.md, SESSION_HANDOVER.md, CLAUDE.md)
-
-**Follow:** Complete migration plan in PIPELINE_RENAME_PLAN.md
-
----
-
-### 2. Fix Non-Functioning Research Data Export
-**Status:** BROKEN (reported Session 16)
+### 1. Fix Non-Functioning Research Data Export
+**Status:** ARCHITECTURE DOCUMENTED (Session 17) - Ready for Implementation
 **Priority:** HIGH (user needs this feature)
 **Context:** User reported this is not working
 
-**TODO:**
-- [ ] Identify what "research data export" means (prompt logs? transformation history?)
-- [ ] Locate export functionality code
-- [ ] Test export feature to reproduce the issue
-- [ ] Fix the broken functionality
-- [ ] Test export works correctly
-- [ ] Document what was fixed
+**Understanding Documented:** ✅ See `docs/EXECUTION_HISTORY_UNDERSTANDING_V3.md`
 
-**Questions for user:**
-- What specifically should be exported? (Transformation history? Logs? Media outputs?)
-- Where should exports go? (File? Database? API?)
-- What format? (JSON? CSV? Other?)
+**What Must Be Tracked:**
+- **Complete pedagogical journey** from input to output across ALL 4 stages
+- **Stage 1**: User input, translation, §86a safety check
+- **Stage 2**: Interception iterations (e.g., Stille Post = 8 translations) ← CRITICAL: Can be recursive!
+- **Stage 3**: Pre-output safety checks (per output config)
+- **Stage 4**: Media generation outputs (per output config)
+- **Chronological order** with sequence numbers, timestamps, stage context
+- **Two iteration types**: `stage_iteration` (Stage 2 recursive) and `loop_iteration` (Stage 3-4 multi-output)
+
+**Export Formats:** XML, PDF, DOCX (legacy compatibility), JSON (research data)
+
+**TODO:**
+- [x] Identify what "research data export" means → **DONE:** V3 understanding document
+- [ ] Implement Phase 1: Core data structures (ExecutionItem, ExecutionRecord)
+- [ ] Implement Phase 2: Stateful tracker (observer pattern, async events)
+- [ ] Implement Phase 3: Integration with pipeline execution
+- [ ] Implement Phase 4: Export API (XML, PDF, DOCX, JSON)
+- [ ] Test export works correctly
+- [ ] Document what was implemented
+
+### 2. Interface Design
+
+**Goal 2: Design Educational Interface**
+
+**Context from User:**
+> "Now that the dev system works basically, our priority should be to develop the interface/frontend according to educational purposes. The schema-pipeline-system has been inspired by the idea that ENDUSER may edit or create new configs."
+
+**Key Principles for UI Design:**
+
+1. **Use Stage 2 pipelines as visual guides**
+   - `text_transformation.json` shows the flow: input → manipulate → output
+   - Pipeline metadata documents what happens at each step
+
+2. **Make the 3-part structure visible and editable**
+   - Show TASK_INSTRUCTION (from instruction_type)
+   - Show CONTEXT (from config.context)
+   - Show PROMPT (user input)
+   - Allow editing of configs
+
+3. **Educational transparency**
+   - Students should see HOW their prompt is transformed
+   - Students should be able to edit configs to create new styles
+   - Students should understand the prompt interception concept
+
+4. **Reference files for UI design**
+   - `devserver/schemas/pipelines/*.json` - Flow structure
+   - `devserver/schemas/configs/interception/*.json` - Config examples
+   - `docs/ARCHITECTURE.md` Section 6 - instruction_selector.py docs
+
+### 3. GPT-OSS Stage 3 Implementation (Deferred)
+
+**From Session 14:** Replace llama-guard3 with GPT-OSS in Stage 3
+**Status:** Deferred - Focus shifted to interface design
+**See:** `docs/devserver_todos.md` for details
 
 ---
 
@@ -56,27 +78,17 @@
 - ✅ Tested full 4-stage pipeline: Working correctly
 - ✅ Committed fix: commit `6f7d30b`
 - ✅ Updated SESSION_HANDOVER.md with Session 16→17 context
-- ✅ Created PIPELINE_RENAME_PLAN.md for next session
+- ✅ Created PIPELINE_RENAME_PLAN.md (completed in Session 17)
 
 **Key Learnings:**
-- Pipeline naming is confusing: "single_text_media_generation" means "generate media FROM one prompt" not "generate a prompt"
+- Pipeline naming is confusing: "single_prompt_generation" sounds like "generate a prompt" not "generate media FROM a prompt"
 - The pipeline was critical for Stage 4 because it provides DIRECT media generation (no text transformation step)
-- Output configs (sd35_large, gpt5_image) need `single_text_media_generation` pipeline
+- Output configs (sd35_large, gpt5_image) need this pipeline
 - Never deprecate pipeline files without checking all config references first!
-
-**Current State:**
-- Server tested and working on port 17801
-- All 4 stages executing successfully
-- Ready for pipeline rename and export feature fix
-
-**Important Files Created/Updated:**
-- `docs/PIPELINE_RENAME_PLAN.md` - Complete migration guide
-- `docs/SESSION_HANDOVER.md` - Session 16→17 handover
-- `devserver/schemas/pipelines/single_text_media_generation.json` - Restored
 
 **Git Status:**
 - Branch: `feature/schema-architecture-v2`
-- Latest commit: `6f7d30b` - "fix: Restore single_text_media_generation pipeline"
+- Commit: `6f7d30b` - "fix: Restore single_prompt_generation pipeline"
 - Pushed to remote: ✅
 
 ---
@@ -223,6 +235,30 @@ devserver/schemas/language_templates/
 ---
 
 ## ✅ RECENTLY COMPLETED
+
+### Session 17 (2025-11-03): Pipeline Rename to Input-Type Convention
+**Status:** ✅ COMPLETE
+**Commit:** `bff5da2` - "refactor: Rename pipelines to input-type naming convention"
+
+**What Was Done:**
+- Renamed `single_prompt_generation` → `single_text_media_generation`
+- Updated 2 output configs: `sd35_large.json`, `gpt5_image.json`
+- Updated 7 documentation files
+- Deleted deprecated file: `single_prompt_generation.json.deprecated`
+- Split ARCHITECTURE.md → ARCHITECTURE PART I.md + PART II.md
+
+**New Pattern:** `[INPUT_TYPE(S)]_media_generation`
+- Clear separation: "text" = input type, "media" = output type
+- Scalable: Easy to add `image_text_media_generation`, `video_text_media_generation`, etc.
+- Self-documenting: Name explicitly describes data flow
+
+**Testing:**
+- ✅ Config loader finds pipeline: single_text_media_generation
+- ✅ sd35_large config references correct pipeline
+- ✅ gpt5_image config references correct pipeline
+- ✅ 7 pipelines loaded, 45 configs loaded
+
+**Files Changed:** 13 files (+429 -90 lines)
 
 ### Session 14 (2025-11-02): GPT-OSS Unified Stage 1 Activation
 **Status:** ✅ COMPLETE & TESTED

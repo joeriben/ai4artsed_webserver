@@ -270,7 +270,10 @@ class ExecutionTracker:
         self,
         final_text: str,
         total_iterations: int,
-        config_used: str = None
+        config_used: str = None,
+        model_used: str = None,
+        backend_used: str = None,
+        execution_time: float = None
     ):
         """Log final interception result (Stage 2)"""
         try:
@@ -280,6 +283,9 @@ class ExecutionTracker:
                 item_type=ItemType.INTERCEPTION_FINAL,
                 content=final_text,
                 config_used=config_used,
+                model_used=model_used,
+                backend_used=backend_used,
+                execution_time=execution_time,
                 metadata={
                     'total_iterations': total_iterations,
                     'transformation_type': config_used or 'generic'

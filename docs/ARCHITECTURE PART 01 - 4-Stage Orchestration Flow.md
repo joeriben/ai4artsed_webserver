@@ -6,29 +6,12 @@
 > **Version:** 3.0 (4-Stage Flow + Components Reference - Fully Consolidated)
 
 ---
-THIS IS A 2-PART-DOCUMENTATION:
-PART I: THIS FILE
-PART II: ARCHITECTURE PART II.md
+THIS IS A MULTI-PART-DOCUMENTATION:
+Pattern: ARCHITECTURE PART XX - SUBJECTMATTER.md
 
+Use it accordingly.
 
-## Table of Contents
-
-### Part I: Orchestration (How It Works) 
-1. [4-Stage Orchestration Flow](#1-4-stage-orchestration-flow) ⭐ **START HERE**
-
-### Part II: Components (What The Parts Are)
-2. [Architecture Overview](#2-architecture-overview)
-3. [Three-Layer System](#3-three-layer-system)
-4. [Pipeline Types](#4-pipeline-types)
-5. [Data Flow Patterns](#5-data-flow-patterns)
-6. [Engine Modules](#6-engine-modules)
-7. [Backend Routing](#7-backend-routing)
-8. [Model Selection](#8-model-selection)
-9. [File Structure](#9-file-structure)
-10. [API Routes](#10-api-routes)
-11. [Frontend Architecture](#11-frontend-architecture)
-12. [Execution Modes](#12-execution-modes)
-13. [Documentation & Logging Workflow](#13-documentation--logging-workflow)
+THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 
 ---
 
