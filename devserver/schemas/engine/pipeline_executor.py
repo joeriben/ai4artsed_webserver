@@ -92,7 +92,7 @@ class PipelineExecutor:
         self._initialized = True
         logger.info("Pipeline-Executor initialized")
     
-    async def execute_pipeline(self, config_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco', safety_level: str = 'kids') -> PipelineResult:
+    async def execute_pipeline(self, config_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco', safety_level: str = 'kids', tracker=None) -> PipelineResult:
         """Execute complete pipeline with 4-Stage Pre-Interception System"""
         # Auto-initialization if needed
         if not self._initialized:
@@ -130,8 +130,8 @@ class PipelineExecutor:
         # Plan pipeline steps
         steps = self._plan_pipeline_steps(resolved_config)
 
-        # Execute pipeline with execution_mode
-        result = await self._execute_pipeline_steps(config_name, steps, context, execution_mode)
+        # Execute pipeline with execution_mode and tracker
+        result = await self._execute_pipeline_steps(config_name, steps, context, execution_mode, tracker)
 
         logger.info(f"Pipeline for config '{config_name}' completed: {result.status}")
         return result
@@ -185,12 +185,12 @@ class PipelineExecutor:
         logger.debug(f"Pipeline planned: {len(steps)} steps for config '{resolved_config.name}' (Pipeline: {resolved_config.pipeline_name})")
         return steps
     
-    async def _execute_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> PipelineResult:
+    async def _execute_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco', tracker=None) -> PipelineResult:
         """Execute pipeline steps sequentially (or recursively if pipeline supports it)"""
 
         # Check if this is a recursive pipeline
         if self._current_config and self._current_config.pipeline_name == 'text_transformation_recursive':
-            return await self._execute_recursive_pipeline_steps(config_name, steps, context, execution_mode)
+            return await self._execute_recursive_pipeline_steps(config_name, steps, context, execution_mode, tracker)
 
         # Normal sequential execution
         start_time = time.time()
@@ -239,7 +239,7 @@ class PipelineExecutor:
             }
         )
 
-    async def _execute_recursive_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco') -> PipelineResult:
+    async def _execute_recursive_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco', tracker=None) -> PipelineResult:
         """Execute recursive pipeline with internal loop (e.g., Stille Post)"""
         from .random_language_selector import get_random_language, get_language_name
 
@@ -252,6 +252,10 @@ class PipelineExecutor:
         use_random = config_params.get('use_random_languages', True)
         final_language = config_params.get('final_language', 'en')
         fixed_languages = config_params.get('languages', [])
+
+        # Set stage 2 context for tracker
+        if tracker:
+            tracker.set_stage(2)
 
         # Generate language sequence
         if use_random:
@@ -295,6 +299,33 @@ class PipelineExecutor:
 
                 completed_steps.append(step)
                 logger.debug(f"[RECURSIVE-LOOP] Iteration {i+1} successful: {len(output)} chars")
+
+                # Log iteration to tracker (if available)
+                if tracker:
+                    # Determine from_lang (previous language or 'en' for first iteration)
+                    from_lang = languages[i-1] if i > 0 else 'en'
+                    to_lang = target_lang
+
+                    # Extract metadata from step
+                    model_used = step.metadata.get('model_used') if step.metadata else None
+                    backend_used = step.metadata.get('backend_type') if step.metadata else None
+
+                    # Calculate iteration execution time (approximate from step timing)
+                    iteration_time = time.time() - start_time - sum(
+                        getattr(s, 'execution_time', 0) or 0 for s in completed_steps[:-1]
+                    )
+
+                    try:
+                        tracker.log_interception_iteration(
+                            iteration_num=i+1,
+                            result_text=output,
+                            from_lang=from_lang,
+                            to_lang=to_lang,
+                            model_used=model_used or 'unknown',
+                            config_used=config_name
+                        )
+                    except Exception as log_error:
+                        logger.warning(f"[TRACKER] Failed to log iteration {i+1}: {log_error}")
 
             except Exception as e:
                 step.status = PipelineStatus.FAILED

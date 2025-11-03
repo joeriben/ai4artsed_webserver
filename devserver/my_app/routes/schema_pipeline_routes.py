@@ -235,7 +235,8 @@ def execute_pipeline():
             input_text=current_input,
             user_input=data.get('user_input', input_text),
             execution_mode=execution_mode,
-            safety_level=safety_level
+            safety_level=safety_level,
+            tracker=tracker
         ))
 
         # Check if pipeline succeeded
@@ -267,10 +268,13 @@ def execute_pipeline():
                     if model_used and backend_used:
                         break
 
+        # Get actual total_iterations from result metadata (for recursive pipelines like Stille Post)
+        total_iterations = result.metadata.get('iterations', 1) if result.metadata else 1
+
         # Log interception final result
         tracker.log_interception_final(
             final_text=result.final_output,
-            total_iterations=1,  # TODO: Track actual iterations for Stille Post
+            total_iterations=total_iterations,
             config_used=schema_name,
             model_used=model_used,
             backend_used=backend_used,
