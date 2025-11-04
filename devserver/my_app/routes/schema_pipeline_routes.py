@@ -7,6 +7,7 @@ from pathlib import Path
 import logging
 import asyncio
 import json
+import uuid
 
 # Schema-Engine importieren
 import sys
@@ -22,8 +23,14 @@ from schemas.engine.stage_orchestrator import (
     build_safety_message
 )
 
-# Execution History Tracking
+# Execution History Tracking (OLD - will be replaced)
 from execution_history import ExecutionTracker
+
+# Media Storage Service (OLD - will be replaced)
+from my_app.services.media_storage import get_media_storage_service
+
+# NEW: Live Pipeline Recorder (Session 29)
+from pipeline_recorder import get_recorder
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +163,14 @@ def execute_pipeline():
         is_system_pipeline = config.meta.get('system_pipeline', False)
 
         # ====================================================================
-        # EXECUTION HISTORY TRACKER - Create request-scoped tracker
+        # SESSION 29: GENERATE UNIFIED RUN ID
+        # ====================================================================
+        # FIX: Generate ONE run_id used by ALL systems (not separate IDs)
+        run_id = str(uuid.uuid4())
+        logger.info(f"[RUN_ID] Generated unified run_id: {run_id} for {schema_name}")
+
+        # ====================================================================
+        # EXECUTION HISTORY TRACKER - Create request-scoped tracker (OLD)
         # ====================================================================
         tracker = ExecutionTracker(
             config_name=schema_name,
@@ -173,6 +187,34 @@ def execute_pipeline():
         )
 
         # ====================================================================
+        # MEDIA STORAGE - Create atomic run folder (OLD)
+        # ====================================================================
+        media_storage = get_media_storage_service()
+        run_metadata = asyncio.run(media_storage.create_run(
+            schema=schema_name,
+            execution_mode=execution_mode,
+            input_text=input_text,
+            transformed_text=None,  # Will be updated after Stage 2
+            user_id='anonymous',
+            run_id=run_id  # NEW: Pass unified run_id
+        ))
+        logger.info(f"[MEDIA_STORAGE] Created run {run_id} for {schema_name}")
+
+        # ====================================================================
+        # SESSION 29: LIVE PIPELINE RECORDER (NEW)
+        # ====================================================================
+        # Parallel implementation: Run alongside old systems for testing
+        recorder = get_recorder(
+            run_id=run_id,  # Use same unified ID
+            config_name=schema_name,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
+            user_id='anonymous'
+        )
+        recorder.set_state(0, "pipeline_starting")
+        logger.info(f"[RECORDER] Initialized LivePipelineRecorder for run {run_id}")
+
+        # ====================================================================
         # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
         # ====================================================================
         current_input = input_text
@@ -180,9 +222,14 @@ def execute_pipeline():
         if not is_system_pipeline and not is_output_config:
             logger.info(f"[4-STAGE] Stage 1: Pre-Interception for '{schema_name}'")
             tracker.set_stage(1)
+            recorder.set_state(1, "translation_and_safety")
 
             # Log user input
             tracker.log_user_input_text(input_text)
+
+            # SESSION 29: Save input entity
+            recorder.save_entity('input', input_text)
+            logger.info(f"[RECORDER] Saved input entity")
 
             # Stage 1: GPT-OSS Unified (Translation + §86a Safety in ONE call)
             is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
@@ -195,6 +242,18 @@ def execute_pipeline():
 
             if not is_safe:
                 logger.warning(f"[4-STAGE] Stage 1 BLOCKED by GPT-OSS §86a")
+
+                # SESSION 29: Save translation (even if blocked)
+                recorder.save_entity('translation', translated_text)
+
+                # SESSION 29: Save safety error
+                recorder.save_error(
+                    stage=1,
+                    error_type='safety_blocked',
+                    message=error_message,
+                    details={'codes': ['§86a']}
+                )
+                logger.info(f"[RECORDER] Saved stage 1 blocked error")
 
                 # Log blocked event
                 tracker.log_stage1_blocked(
@@ -214,6 +273,16 @@ def execute_pipeline():
                     }
                 }), 403
 
+            # SESSION 29: Save translation and safety results
+            recorder.save_entity('translation', translated_text)
+            recorder.save_entity('safety', {
+                'safe': True,
+                'method': 'gpt_oss_unified',
+                'codes_checked': ['§86a'],
+                'safety_level': safety_level
+            })
+            logger.info(f"[RECORDER] Saved translation and safety entities")
+
             # Log translation result (GPT-OSS includes translation)
             tracker.log_translation_result(
                 translated_text=translated_text,
@@ -229,6 +298,7 @@ def execute_pipeline():
         # ====================================================================
         logger.info(f"[4-STAGE] Stage 2: Interception (Main Pipeline) for '{schema_name}'")
         tracker.set_stage(2)
+        recorder.set_state(2, "interception")
 
         result = asyncio.run(pipeline_executor.execute_pipeline(
             config_name=schema_name,
@@ -281,6 +351,15 @@ def execute_pipeline():
             execution_time=result.execution_time
         )
 
+        # SESSION 29: Save interception output
+        recorder.save_entity('interception', result.final_output, metadata={
+            'config': schema_name,
+            'iterations': total_iterations,
+            'model_used': model_used,
+            'backend_used': backend_used
+        })
+        logger.info(f"[RECORDER] Saved interception entity")
+
         # Response für erfolgreiche Pipeline
         response_data = {
             'status': 'success',
@@ -331,6 +410,7 @@ def execute_pipeline():
                 # ====================================================================
                 stage_3_blocked = False
                 tracker.set_stage(3)
+                recorder.set_state(3, "pre_output_safety")
 
                 if safety_level != 'off':
                     # Determine media type from output config name
@@ -372,6 +452,25 @@ def execute_pipeline():
                         abort_reason = safety_result.get('abort_reason', 'Content blocked by safety filter')
                         logger.warning(f"[4-STAGE] Stage 3 BLOCKED for {output_config_name}: {abort_reason}")
 
+                        # SESSION 29: Save safety_pre_output result (blocked)
+                        recorder.save_entity('safety_pre_output', {
+                            'safe': False,
+                            'method': safety_result.get('method', 'hybrid'),
+                            'media_type': media_type,
+                            'safety_level': safety_level,
+                            'blocked': True,
+                            'abort_reason': abort_reason
+                        })
+
+                        # SESSION 29: Save stage 3 blocked error
+                        recorder.save_error(
+                            stage=3,
+                            error_type='safety_blocked',
+                            message=abort_reason,
+                            details={'media_type': media_type, 'config': output_config_name}
+                        )
+                        logger.info(f"[RECORDER] Saved stage 3 blocked error")
+
                         # Log Stage 3 blocked
                         tracker.log_stage3_blocked(
                             loop_iteration=i + 1,
@@ -388,6 +487,15 @@ def execute_pipeline():
                         })
                         stage_3_blocked = True
                         continue  # Skip Stage 4 for this output
+                    else:
+                        # SESSION 29: Save safety_pre_output result (passed)
+                        recorder.save_entity('safety_pre_output', {
+                            'safe': True,
+                            'method': safety_result.get('method', 'hybrid'),
+                            'media_type': media_type,
+                            'safety_level': safety_level
+                        })
+                        logger.info(f"[RECORDER] Saved safety_pre_output entity")
 
                 # ====================================================================
                 # STAGE 4: OUTPUT (Media Generation)
@@ -395,6 +503,7 @@ def execute_pipeline():
                 if not stage_3_blocked:
                     logger.info(f"[4-STAGE] Stage 4: Executing output config '{output_config_name}'")
                     tracker.set_stage(4)
+                    recorder.set_state(4, "media_generation")
 
                     try:
                         # Execute Output-Pipeline with transformed text
@@ -407,11 +516,74 @@ def execute_pipeline():
 
                         # Add media output to results
                         if output_result.success:
-                            # Log Stage 4 output
+                            # ====================================================================
+                            # MEDIA STORAGE - Download and store media locally
+                            # ====================================================================
+                            media_stored = False
+                            media_output_data = None
+
+                            try:
+                                output_value = output_result.final_output
+
+                                # Detect if output is URL or prompt_id
+                                if output_value.startswith('http://') or output_value.startswith('https://'):
+                                    # API-based generation (GPT-5, Replicate, etc.) - URL
+                                    logger.info(f"[MEDIA_STORAGE] Downloading from URL: {output_value}")
+                                    media_output_data = asyncio.run(media_storage.add_media_from_url(
+                                        run_id=run_id,
+                                        url=output_value,
+                                        config=output_config_name,
+                                        media_type=media_type
+                                    ))
+                                else:
+                                    # ComfyUI generation - prompt_id
+                                    logger.info(f"[MEDIA_STORAGE] Downloading from ComfyUI: {output_value}")
+                                    media_output_data = asyncio.run(media_storage.add_media_from_comfyui(
+                                        run_id=run_id,
+                                        prompt_id=output_value,
+                                        config=output_config_name,
+                                        media_type=media_type
+                                    ))
+
+                                if media_output_data:
+                                    media_stored = True
+                                    logger.info(f"[MEDIA_STORAGE] Media stored successfully in run {run_id}: {media_output_data.filename}")
+
+                                    # SESSION 29: Copy media file to recorder folder
+                                    try:
+                                        from pathlib import Path
+                                        media_source = Path(media_output_data.file_path)
+                                        if media_source.exists():
+                                            with open(media_source, 'rb') as f:
+                                                media_bytes = f.read()
+                                            recorder.save_entity(
+                                                f'output_{media_type}',
+                                                media_bytes,
+                                                metadata={
+                                                    'config': output_config_name,
+                                                    'filename': media_output_data.filename,
+                                                    'original_path': str(media_output_data.file_path)
+                                                }
+                                            )
+                                            logger.info(f"[RECORDER] Saved output_{media_type} entity")
+                                        else:
+                                            logger.warning(f"[RECORDER] Media file not found at {media_source}")
+                                    except Exception as copy_error:
+                                        logger.error(f"[RECORDER] Failed to copy media to recorder: {copy_error}")
+
+                                else:
+                                    logger.warning(f"[MEDIA_STORAGE] Failed to store media for run {run_id}")
+
+                            except Exception as e:
+                                logger.error(f"[MEDIA_STORAGE] Error storing media: {e}")
+                                import traceback
+                                traceback.print_exc()
+
+                            # Log Stage 4 output (using run_id as file_path now)
                             tracker.log_output_image(
                                 loop_iteration=i + 1,
                                 config_used=output_config_name,
-                                file_path=output_result.final_output,
+                                file_path=run_id if media_stored else output_result.final_output,
                                 model_used=output_result.metadata.get('model_used', 'unknown'),
                                 backend_used=output_result.metadata.get('backend', 'comfyui'),
                                 metadata=output_result.metadata,
@@ -421,12 +593,14 @@ def execute_pipeline():
                             media_outputs.append({
                                 'config': output_config_name,
                                 'status': 'success',
-                                'output': output_result.final_output,  # ComfyUI prompt_id or image URL
-                                'media_type': media_type,  # Add media_type for frontend
+                                'run_id': run_id,  # NEW: Unified identifier for media
+                                'output': run_id if media_stored else output_result.final_output,  # Use run_id if stored, fallback to raw output
+                                'media_type': media_type,
+                                'media_stored': media_stored,  # Indicates if media was successfully stored
                                 'execution_time': output_result.execution_time,
                                 'metadata': output_result.metadata
                             })
-                            logger.info(f"[4-STAGE] Stage 4 successful for {output_config_name}: {output_result.final_output}")
+                            logger.info(f"[4-STAGE] Stage 4 successful for {output_config_name}: run_id={run_id}, media_stored={media_stored}")
                         else:
                             # Media generation failed
                             media_outputs.append({

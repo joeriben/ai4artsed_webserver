@@ -40,6 +40,7 @@ def create_app():
     from my_app.routes.schema_pipeline_routes import schema_bp, schema_compat_bp
     from my_app.routes.media_routes import media_bp
     from my_app.routes.execution_routes import execution_bp
+    from my_app.routes.pipeline_routes import pipeline_bp  # NEW: LivePipelineRecorder API
 
     app.register_blueprint(static_bp)
     app.register_blueprint(config_bp)
@@ -50,6 +51,7 @@ def create_app():
     app.register_blueprint(schema_compat_bp)  # Backward compatibility: /list_workflows, /workflow_metadata
     app.register_blueprint(media_bp)
     app.register_blueprint(execution_bp)  # Pipeline run history API: /api/runs/*
+    app.register_blueprint(pipeline_bp)  # NEW: LivePipelineRecorder API: /api/pipeline/*
     
     # Configure logging filter for ComfyUI proxy
     class ComfyUIFilter(logging.Filter):

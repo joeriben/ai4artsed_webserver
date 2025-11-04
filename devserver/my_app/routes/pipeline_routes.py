@@ -1,0 +1,200 @@
+"""
+Pipeline Routes - Live Pipeline Recorder API Endpoints
+
+These endpoints provide real-time access to pipeline execution data:
+- Status polling for frontend progress display
+- Entity file serving (text, JSON, images)
+"""
+from flask import Blueprint, send_file, jsonify
+import logging
+from pathlib import Path
+
+from pipeline_recorder import load_recorder
+
+logger = logging.getLogger(__name__)
+
+# Blueprint definition
+pipeline_bp = Blueprint('pipeline', __name__, url_prefix='/api/pipeline')
+
+
+@pipeline_bp.route('/<run_id>/status', methods=['GET'])
+def get_pipeline_status(run_id: str):
+    """
+    Get current pipeline status for frontend polling
+
+    Returns the complete metadata.json including:
+    - current_state: {stage, step, progress}
+    - entities: array of completed entities
+    - expected_outputs: what entities should appear
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        JSON with pipeline status or 404 error
+
+    Example Response:
+        {
+            "run_id": "528e5af9-59b3-4551-b101-27e13dd6e43e",
+            "timestamp": "2025-11-04T20:12:37.568803",
+            "config_name": "stillepost",
+            "execution_mode": "eco",
+            "safety_level": "kids",
+            "user_id": "anonymous",
+            "expected_outputs": ["input", "translation", "safety", "interception", ...],
+            "current_state": {
+                "stage": 2,
+                "step": "interception",
+                "progress": "4/6"
+            },
+            "entities": [
+                {
+                    "sequence": 1,
+                    "type": "input",
+                    "filename": "01_input.txt",
+                    "timestamp": "2025-11-04T20:12:37.569096",
+                    "metadata": {}
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        recorder = load_recorder(run_id)
+        if not recorder:
+            return jsonify({'error': f'Run {run_id} not found'}), 404
+
+        # Get complete status from recorder
+        status = recorder.get_status()
+        return jsonify(status)
+
+    except Exception as e:
+        logger.error(f"Error getting pipeline status for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@pipeline_bp.route('/<run_id>/entity/<entity_type>', methods=['GET'])
+def get_entity(run_id: str, entity_type: str):
+    """
+    Serve entity file to frontend
+
+    Serves the actual file content for a given entity type.
+    Automatically determines content type based on file extension.
+
+    Args:
+        run_id: UUID of the pipeline run
+        entity_type: Type of entity (e.g., 'input', 'translation', 'safety', 'interception',
+                                      'output_image', 'output_audio', 'output_video')
+
+    Returns:
+        File content with appropriate MIME type or 404 error
+
+    Examples:
+        GET /api/pipeline/528e5af9.../entity/input
+            -> Returns text/plain: "Test Session 29 complete entity recording"
+
+        GET /api/pipeline/528e5af9.../entity/safety
+            -> Returns application/json: {"safe": true, ...}
+
+        GET /api/pipeline/528e5af9.../entity/output_image
+            -> Returns image/png: (binary PNG data)
+    """
+    try:
+        recorder = load_recorder(run_id)
+        if not recorder:
+            return jsonify({'error': f'Run {run_id} not found'}), 404
+
+        # Get entity file path
+        entity_path = recorder.get_entity_path(entity_type)
+        if not entity_path or not entity_path.exists():
+            return jsonify({'error': f'Entity {entity_type} not found for run {run_id}'}), 404
+
+        # Determine MIME type from file extension
+        extension = entity_path.suffix.lower()
+        mimetype_map = {
+            '.txt': 'text/plain',
+            '.json': 'application/json',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.webp': 'image/webp',
+            '.mp3': 'audio/mpeg',
+            '.wav': 'audio/wav',
+            '.ogg': 'audio/ogg',
+            '.mp4': 'video/mp4',
+            '.webm': 'video/webm',
+        }
+        mimetype = mimetype_map.get(extension, 'application/octet-stream')
+
+        # Serve file
+        return send_file(
+            entity_path,
+            mimetype=mimetype,
+            as_attachment=False,
+            download_name=entity_path.name
+        )
+
+    except Exception as e:
+        logger.error(f"Error serving entity {entity_type} for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@pipeline_bp.route('/<run_id>/entities', methods=['GET'])
+def list_entities(run_id: str):
+    """
+    List all available entities for a run
+
+    Returns metadata about all entities that have been created so far.
+    Useful for discovering what entities are available without polling status.
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        JSON array of entity metadata or 404 error
+
+    Example Response:
+        {
+            "run_id": "528e5af9-59b3-4551-b101-27e13dd6e43e",
+            "entity_count": 4,
+            "entities": [
+                {
+                    "sequence": 1,
+                    "type": "input",
+                    "filename": "01_input.txt",
+                    "timestamp": "2025-11-04T20:12:37.569096",
+                    "metadata": {},
+                    "url": "/api/pipeline/528e5af9.../entity/input"
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        recorder = load_recorder(run_id)
+        if not recorder:
+            return jsonify({'error': f'Run {run_id} not found'}), 404
+
+        # Get status to access entities
+        status = recorder.get_status()
+        entities = status.get('entities', [])
+
+        # Add URL for each entity
+        for entity in entities:
+            entity['url'] = f'/api/pipeline/{run_id}/entity/{entity["type"]}'
+
+        return jsonify({
+            'run_id': run_id,
+            'entity_count': len(entities),
+            'entities': entities
+        })
+
+    except Exception as e:
+        logger.error(f"Error listing entities for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
