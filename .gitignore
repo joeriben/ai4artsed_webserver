@@ -56,5 +56,10 @@ ehthumbs.db
 *.key
 
 # -------------------------------------
-#exported media/research data
+# Exported media/research data
 exports/
+
+# -------------------------------------
+# Runtime-generated pipeline data (Session 29+)
+devserver/pipeline_runs/  # LivePipelineRecorder output
+media_storage/            # Unified media storage output
