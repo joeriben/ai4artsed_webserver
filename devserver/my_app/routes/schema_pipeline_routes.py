@@ -23,8 +23,23 @@ from schemas.engine.stage_orchestrator import (
     build_safety_message
 )
 
-# Execution History Tracking (OLD - will be replaced)
-from execution_history import ExecutionTracker
+# Execution History Tracking (OLD - DEPRECATED in Session 29)
+# from execution_history import ExecutionTracker
+
+# No-op tracker to gracefully deprecate OLD ExecutionTracker
+class NoOpTracker:
+    """
+    Session 29: No-op tracker that does nothing.
+    Replaces OLD ExecutionTracker during migration to LivePipelineRecorder.
+    """
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __getattr__(self, name):
+        # Return a no-op function for any method call
+        def noop(*args, **kwargs):
+            pass
+        return noop
 
 # Media Storage Service (OLD - will be replaced)
 from my_app.services.media_storage import get_media_storage_service
@@ -170,15 +185,11 @@ def execute_pipeline():
         logger.info(f"[RUN_ID] Generated unified run_id: {run_id} for {schema_name}")
 
         # ====================================================================
-        # EXECUTION HISTORY TRACKER - Create request-scoped tracker (OLD)
+        # EXECUTION HISTORY TRACKER - DEPRECATED (Session 29)
         # ====================================================================
-        tracker = ExecutionTracker(
-            config_name=schema_name,
-            execution_mode=execution_mode,
-            safety_level=safety_level,
-            user_id='anonymous',  # TODO: Extract from session
-            session_id='default'  # TODO: Extract from session
-        )
+        # Session 29: Replaced ExecutionTracker with NoOpTracker
+        # LivePipelineRecorder now handles all tracking responsibilities
+        tracker = NoOpTracker()
 
         # Log pipeline start
         tracker.log_pipeline_start(
