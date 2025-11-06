@@ -79,6 +79,130 @@
 
 ---
 
+### 2. Unified Media Storage - **COMPLETE**
+**Status:** ✅ **COMPLETE** - Full Implementation Done
+**Session:** 27 (2025-11-04)
+**Priority:** HIGH (fixes broken export functionality)
+
+**What Was Implemented:**
+- **Backend-agnostic media storage** for ComfyUI, OpenRouter, Replicate, etc.
+- **Flat run-based structure**: `exports/json/{run_id}/`
+- **Atomic research units**: All files per run in one folder
+- **"Run" terminology** (not "execution" due to German connotations)
+- **Automatic media download** during pipeline execution
+- **UUID-based** for concurrent-safety (workshop scenario)
+
+**Key Features:**
+- Auto-detects URL vs prompt_id for media downloads
+- Stores metadata.json with complete run information
+- Serves media via `/api/media/*` endpoints
+- Works with ANY backend (ComfyUI, OpenRouter, future backends)
+
+**Files Created:**
+- `devserver/my_app/services/media_storage.py` (414 lines)
+- `docs/UNIFIED_MEDIA_STORAGE.md` (documentation)
+
+**Files Modified:**
+- `devserver/my_app/routes/schema_pipeline_routes.py` (integration)
+- `devserver/my_app/routes/media_routes.py` (rewritten for local storage)
+
+**Storage Structure:**
+```
+exports/json/{run_uuid}/
+├── metadata.json           # Complete run metadata
+├── input_text.txt         # Original user input
+├── transformed_text.txt   # After interception
+└── output_<type>.<format> # Generated media
+```
+
+**API Endpoints:**
+- GET /api/media/image/<run_id>
+- GET /api/media/audio/<run_id>
+- GET /api/media/video/<run_id>
+- GET /api/media/info/<run_id>
+- GET /api/media/run/<run_id>
+
+**Problems Fixed:**
+- ✅ ComfyUI images now persisted locally
+- ✅ OpenRouter images stored as actual files
+- ✅ Export function works with persisted media
+- ✅ Research data properly stored
+
+**Documentation:**
+- Session summary: SESSION_27_SUMMARY.md (archived)
+- Technical docs: docs/UNIFIED_MEDIA_STORAGE.md
+
+**Next Steps (Optional):**
+- Update export_manager.py to use run_id
+- Frontend verification of new storage structure
+
+---
+
+### 3. LivePipelineRecorder & Dual-ID Bug Fix - **COMPLETE**
+**Status:** ✅ **COMPLETE** - Critical Bug Fixed & Tested
+**Session:** 29 (2025-11-04)
+**Priority:** CRITICAL (fixes complete desynchronization)
+
+**Critical Bug Fixed:**
+- **Dual-ID Desynchronization**: ExecutionTracker and MediaStorage used different UUIDs
+- OLD ExecutionTracker: `exec_20251104_HHMMSS_XXXXX`
+- OLD MediaStorage: `uuid.uuid4()`
+- Result: Execution history referenced non-existent media files
+
+**The Solution:**
+- Unified `run_id = str(uuid.uuid4())` generated ONCE at pipeline start
+- Passed to ALL systems: ExecutionTracker, MediaStorage, LivePipelineRecorder
+- Single source of truth: `pipeline_runs/{run_id}/metadata.json`
+
+**What Was Implemented:**
+- **LivePipelineRecorder** with unified run_id
+- **Sequential entity tracking** (01_input.txt → 06_output_image.png)
+- **Real-time API endpoints** for frontend polling
+- **Media polling bug fix** (`wait_for_completion()` instead of `get_history()`)
+
+**Key Achievement:**
+> OLD ExecutionTracker found the media polling issue but FAILED to fix it.
+> NEW LivePipelineRecorder SUCCEEDED with `wait_for_completion()` polling!
+
+**Test Results:**
+- Run ID: `812ccc30-5de8-416e-bfe7-10e913916672`
+- Result: `{"status": "success", "media_output": "success"}`
+- All 6 entities created successfully: ✅
+
+**Files Created:**
+- `my_app/services/pipeline_recorder.py` (400+ lines, flattened from package)
+- `my_app/routes/pipeline_routes.py` (237 lines, 3 endpoints)
+- `docs/LIVE_PIPELINE_RECORDER.md` (technical documentation)
+
+**Files Modified:**
+- `my_app/__init__.py` (blueprint registration)
+- `my_app/routes/schema_pipeline_routes.py` (entity saves at all stages)
+- `my_app/services/media_storage.py` (line 214: wait_for_completion fix)
+
+**API Endpoints:**
+- GET /api/pipeline/{run_id}/status - Real-time execution state
+- GET /api/pipeline/{run_id}/entity/{type} - Fetch specific entity
+- GET /api/pipeline/{run_id}/entities - List all entities
+
+**Dual-System Migration:**
+Both systems run in parallel (by design):
+- OLD: `/exports/pipeline_runs/exec_*.json` (ExecutionTracker)
+- NEW: `pipeline_runs/{run_id}/` (LivePipelineRecorder)
+- MediaStorage: `exports/json/{run_id}/` (uses unified run_id)
+
+**Documentation:**
+- Session handover: SESSION_29_HANDOVER.md (archived)
+- Design doc: SESSION_29_LIVE_RECORDER_DESIGN.md (archived)
+- Bug analysis: SESSION_29_ROOT_CAUSE_ANALYSIS.md (archived)
+- Refactoring plan: SESSION_29_REFACTORING_PLAN.md (archived)
+
+**Next Steps (Optional):**
+- Deprecate OLD ExecutionTracker after validation
+- Frontend integration (use new API endpoints)
+- Optional: Refactor to blocking execution (deferred)
+
+---
+
 ## 🔥 IMMEDIATE PRIORITIES (Session 24+)
 
 ### 2. Interface Design

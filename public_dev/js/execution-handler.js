@@ -60,6 +60,11 @@ export async function submitPrompt() {
         const result = await response.json();
         console.log('[EXECUTION] Result:', result);
 
+        // SESSION 30: Start polling for pipeline status if run_id is present
+        if (result.run_id) {
+            pollPipelineStatus(result.run_id);
+        }
+
         // Display result
         displayResult(result);
 
@@ -107,6 +112,251 @@ function displayResult(result) {
         // Text-only result
         setStatus('Pipeline erfolgreich abgeschlossen!', 'success');
     }
+}
+
+/**
+ * SESSION 30: Reset pipeline progress UI for new execution
+ */
+function resetPipelineProgress() {
+    // Clear entity list
+    const entityList = document.getElementById('pipeline-entity-list');
+    if (entityList) {
+        entityList.innerHTML = '';
+    }
+
+    // Reset progress bar
+    const progressBar = document.getElementById('pipeline-progress-bar');
+    if (progressBar) {
+        progressBar.style.width = '0%';
+    }
+
+    // Reset progress text
+    const progressText = document.getElementById('pipeline-progress-text');
+    if (progressText) {
+        progressText.textContent = '0%';
+    }
+
+    // Reset stage indicator
+    const stageIndicator = document.getElementById('pipeline-stage-indicator');
+    if (stageIndicator) {
+        stageIndicator.textContent = 'Stage 0: Wird gestartet...';
+    }
+
+    // Hide error message
+    const errorMsg = document.getElementById('pipeline-error-message');
+    if (errorMsg) {
+        errorMsg.style.display = 'none';
+    }
+
+    // Show progress container
+    const container = document.getElementById('pipeline-progress-container');
+    if (container) {
+        container.style.display = 'block';
+    }
+}
+
+/**
+ * SESSION 30: Poll for pipeline status (LivePipelineRecorder integration)
+ * Polls /api/pipeline/{run_id}/status every second to show real-time progress
+ */
+async function pollPipelineStatus(runId) {
+    console.log(`[PIPELINE-POLLING] Starting poll for run_id: ${runId}`);
+
+    // Reset UI for new pipeline
+    resetPipelineProgress();
+
+    // Error tracking for persistent retry with user feedback
+    let errorCount = 0;
+    let errorStartTime = null;
+    const displayedEntities = new Set();  // Track which entities we've shown
+
+    const pollInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/pipeline/${runId}/status`);
+
+            if (!response.ok) {
+                // Error occurred
+                errorCount++;
+                if (errorCount === 1) {
+                    errorStartTime = Date.now();
+                }
+
+                const duration = Math.floor((Date.now() - errorStartTime) / 1000);
+                console.log(`[PIPELINE-POLLING] Error ${errorCount}: ${response.status}, duration: ${duration}s`);
+
+                // Show persistent "slow connection" message
+                setStatus(`Verbindung langsam, Versuch läuft... (${duration}s)`, 'warning');
+
+                // Show error message in progress container
+                const errorMsg = document.getElementById('pipeline-error-message');
+                if (errorMsg) {
+                    errorMsg.textContent = `Verbindung langsam, Versuch läuft... (${duration}s)`;
+                    errorMsg.style.display = 'flex';
+                }
+
+                return;  // Continue polling, don't give up
+            }
+
+            // Success - clear error state
+            if (errorCount > 0) {
+                console.log(`[PIPELINE-POLLING] Recovered after ${errorCount} errors`);
+                errorCount = 0;
+                errorStartTime = null;
+
+                // Hide error message
+                const errorMsg = document.getElementById('pipeline-error-message');
+                if (errorMsg) {
+                    errorMsg.style.display = 'none';
+                }
+            }
+
+            const statusData = await response.json();
+            console.log('[PIPELINE-POLLING] Status:', statusData);
+
+            // Update UI with current state
+            updatePipelineProgress(statusData);
+
+            // Display new entities
+            if (statusData.entities) {
+                statusData.entities.forEach(entity => {
+                    if (!displayedEntities.has(entity.type)) {
+                        displayEntity(entity, runId);
+                        displayedEntities.add(entity.type);
+                    }
+                });
+            }
+
+            // Check if pipeline is complete (stage 5 = complete)
+            if (statusData.current_state && statusData.current_state.stage === 5) {
+                clearInterval(pollInterval);
+                console.log('[PIPELINE-POLLING] Pipeline completed');
+                setStatus('Pipeline abgeschlossen!', 'success');
+            }
+
+        } catch (error) {
+            // Network error
+            errorCount++;
+            if (errorCount === 1) {
+                errorStartTime = Date.now();
+            }
+
+            const duration = Math.floor((Date.now() - errorStartTime) / 1000);
+            console.error(`[PIPELINE-POLLING] Network error ${errorCount}:`, error, `duration: ${duration}s`);
+            setStatus(`Verbindung langsam, Versuch läuft... (${duration}s)`, 'warning');
+
+            // Show error message in progress container
+            const errorMsg = document.getElementById('pipeline-error-message');
+            if (errorMsg) {
+                errorMsg.textContent = `Verbindung langsam, Versuch läuft... (${duration}s)`;
+                errorMsg.style.display = 'flex';
+            }
+
+            // Continue polling, don't give up
+        }
+    }, 1000);  // Poll every second
+}
+
+/**
+ * SESSION 30: Update UI with pipeline progress
+ */
+function updatePipelineProgress(statusData) {
+    if (!statusData.current_state) return;
+
+    const { stage, step, progress } = statusData.current_state;
+
+    // Parse progress fraction (e.g., "4/6")
+    let percentage = 0;
+    if (progress && progress.includes('/')) {
+        const [completed, total] = progress.split('/').map(Number);
+        percentage = Math.floor((completed / total) * 100);
+    }
+
+    console.log(`[PIPELINE-PROGRESS] Stage ${stage}: ${step} (${percentage}%)`);
+
+    // Show progress container
+    const container = document.getElementById('pipeline-progress-container');
+    if (container) {
+        container.style.display = 'block';
+    }
+
+    // Update progress bar
+    const progressBar = document.getElementById('pipeline-progress-bar');
+    if (progressBar) {
+        progressBar.style.width = `${percentage}%`;
+    }
+
+    // Update progress text
+    const progressText = document.getElementById('pipeline-progress-text');
+    if (progressText) {
+        progressText.textContent = `${percentage}%`;
+    }
+
+    // Update stage indicator
+    // TODO: i18n - These stage names should come from language config (see CLAUDE.md i18n requirements)
+    const stageNames = {
+        0: 'Pipeline-Start',
+        1: 'Übersetzung & Sicherheit',
+        2: 'Interception',
+        3: 'Ausgabe-Sicherheit',
+        4: 'Media-Generierung',
+        5: 'Abgeschlossen'
+    };
+
+    const stageName = stageNames[stage] || `Stage ${stage}`;
+    const stageIndicator = document.getElementById('pipeline-stage-indicator');
+    if (stageIndicator) {
+        stageIndicator.textContent = `${stageName}: ${step}`;
+    }
+
+    // Also update status text
+    setStatus(`${stageName}: ${step} (${percentage}%)`, 'info');
+}
+
+/**
+ * SESSION 30: Display individual entity in the UI
+ */
+function displayEntity(entity, runId) {
+    console.log('[PIPELINE-ENTITY] New entity:', entity.type, entity.filename);
+
+    const entityList = document.getElementById('pipeline-entity-list');
+    if (!entityList) return;
+
+    // Create entity list item
+    const listItem = document.createElement('li');
+    listItem.className = 'entity-item completed';
+    listItem.dataset.entityType = entity.type;
+
+    // Entity type label (translated)
+    // TODO: i18n - Entity type labels should come from language config
+    const entityLabels = {
+        'input': 'Eingabe',
+        'translation': 'Übersetzung',
+        'safety': 'Sicherheitsprüfung',
+        'interception': 'Prompt-Interception',
+        'safety_pre_output': 'Ausgabe-Sicherheit',
+        'output_image': 'Bild generiert',
+        'output_audio': 'Audio generiert',
+        'output_video': 'Video generiert',
+        'error': 'Fehler'
+    };
+
+    const label = entityLabels[entity.type] || entity.type;
+
+    // Format timestamp
+    let timeStr = '';
+    if (entity.timestamp) {
+        const date = new Date(entity.timestamp);
+        timeStr = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // Build HTML
+    listItem.innerHTML = `
+        <span class="entity-label">${label}</span>
+        ${timeStr ? `<span class="entity-timestamp">${timeStr}</span>` : ''}
+    `;
+
+    // Append to list
+    entityList.appendChild(listItem);
 }
 
 /**

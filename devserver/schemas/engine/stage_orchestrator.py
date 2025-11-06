@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Cache for filter terms (loaded once at module level)
 _FILTER_TERMS_CACHE: Optional[Dict[str, List[str]]] = None
+_BILINGUAL_86A_CACHE: Optional[List[str]] = None
 
 def load_filter_terms() -> Dict[str, List[str]]:
     """Load all filter terms from JSON files (cached)"""
@@ -49,6 +50,42 @@ def load_filter_terms() -> Dict[str, List[str]]:
             _FILTER_TERMS_CACHE = {'kids': [], 'youth': [], 'stage1': []}
 
     return _FILTER_TERMS_CACHE
+
+def load_bilingual_86a_terms() -> List[str]:
+    """Load bilingual §86a critical terms for pre/post GPT-OSS filtering (cached)"""
+    global _BILINGUAL_86A_CACHE
+
+    if _BILINGUAL_86A_CACHE is None:
+        try:
+            bilingual_path = Path(__file__).parent.parent / "stage1_86a_critical_bilingual.json"
+            with open(bilingual_path, 'r', encoding='utf-8') as f:
+                bilingual_data = json.load(f)
+
+            _BILINGUAL_86A_CACHE = bilingual_data['filters']['stage1_critical_86a']['terms']
+            logger.info(f"Loaded bilingual §86a critical terms: {len(_BILINGUAL_86A_CACHE)} terms")
+        except Exception as e:
+            logger.error(f"Failed to load bilingual §86a terms: {e}")
+            _BILINGUAL_86A_CACHE = []
+
+    return _BILINGUAL_86A_CACHE
+
+def fast_filter_bilingual_86a(text: str) -> Tuple[bool, List[str]]:
+    """
+    Fast bilingual string-matching for critical §86a terms (~0.001s)
+    Works on both German (pre-translation) and English (post-translation) text
+
+    Returns:
+        (has_terms, found_terms) - True if §86a critical terms found
+    """
+    terms_list = load_bilingual_86a_terms()
+
+    if not terms_list:
+        return (False, [])
+
+    text_lower = text.lower()
+    found_terms = [term for term in terms_list if term.lower() in text_lower]
+
+    return (len(found_terms) > 0, found_terms)
 
 def fast_filter_check(prompt: str, safety_level: str) -> Tuple[bool, List[str]]:
     """
@@ -284,11 +321,16 @@ async def execute_stage1_gpt_oss_unified(
     pipeline_executor
 ) -> Tuple[bool, str, Optional[str]]:
     """
-    Execute Stage 1 with GPT-OSS Unified (Translation + §86a Safety in ONE call)
+    Execute Stage 1 with GPT-OSS Unified (Translation + §86a + Kids/Youth Safety)
+
+    Enhanced Flow:
+    1. Optional pre-translation §86a fast-filter (for context awareness)
+    2. GPT-OSS call with safety_level injection (checks §86a + kids/youth if active)
+    3. POST-GPT-OSS hard filter for §86a (safety net - overrides US-trained model)
 
     Args:
         text: Input text to translate and safety-check
-        safety_level: Not used in Stage 1 (always uses §86a StGB rules)
+        safety_level: 'kids', 'youth', or 'off' - passed to GPT-OSS for age-appropriate checks
         execution_mode: 'eco' or 'fast'
         pipeline_executor: PipelineExecutor instance
 
@@ -297,13 +339,27 @@ async def execute_stage1_gpt_oss_unified(
     """
     import time
 
-    start_time = time.time()
+    # STEP 1: Optional pre-translation §86a fast-filter (bilingual)
+    # Purpose: Give GPT-OSS context about potential §86a violations for careful review
+    pre_filter_start = time.time()
+    has_86a_terms, found_86a_terms = fast_filter_bilingual_86a(text)
+    pre_filter_time = time.time() - pre_filter_start
+
+    if has_86a_terms:
+        logger.info(f"[STAGE1-PRE-FILTER] Found §86a terms {found_86a_terms[:3]}... → GPT-OSS context check (pre-filter: {pre_filter_time*1000:.1f}ms)")
+
+    # STEP 2: Prepend safety_level metadata to input for GPT-OSS
+    # Format: "[SAFETY: kids]\nUser text here"
+    text_with_metadata = f"[SAFETY: {safety_level}]\n{text}"
+
+    # STEP 3: Call GPT-OSS with enhanced safety instructions
+    gpt_oss_start = time.time()
     result = await pipeline_executor.execute_pipeline(
         'pre_interception/gpt_oss_unified',
-        text,
+        text_with_metadata,
         execution_mode=execution_mode
     )
-    check_time = time.time() - start_time
+    gpt_oss_time = time.time() - gpt_oss_start
 
     if not result.success:
         logger.warning(f"[STAGE1-GPT-OSS] GPT-OSS failed: {result.error}, continuing (fail-open)")
@@ -311,33 +367,108 @@ async def execute_stage1_gpt_oss_unified(
 
     response = result.final_output.strip()
 
-    # Parse GPT-OSS response format: "SAFE: [text]" or "BLOCKED: §86a StGB - [symbol] - [reason]"
+    # STEP 4: Parse GPT-OSS response
+    # Formats: "SAFE: [text]" | "BLOCKED: §86a StGB - ..." | "BLOCKED: Kids-Filter - ..." | "BLOCKED: Youth-Filter - ..."
     if response.startswith("SAFE:"):
         translated_text = response[5:].strip()  # Remove "SAFE: " prefix
-        logger.info(f"[STAGE1-GPT-OSS] PASSED ({check_time:.1f}s)")
+
+        # STEP 5: POST-GPT-OSS HARD FILTER for §86a (safety net)
+        # Purpose: Override US-trained model if §86a symbols slip through
+        post_filter_start = time.time()
+        has_86a_post, found_86a_post = fast_filter_bilingual_86a(translated_text)
+        post_filter_time = time.time() - post_filter_start
+
+        if has_86a_post:
+            # OVERRIDE: GPT-OSS said safe, but §86a critical terms detected in translated text
+            logger.warning(f"[STAGE1-POST-FILTER] §86a OVERRIDE: GPT-OSS allowed but hard filter caught {found_86a_post[:3]}... (post-filter: {post_filter_time*1000:.1f}ms)")
+
+            error_message = (
+                f"⚠️ Dein Prompt wurde blockiert\n\n"
+                f"GRUND: §86a StGB - Hard-Filter Override\n\n"
+                f"Dein Prompt enthält Begriffe, die nach deutschem Recht verboten sind: {', '.join(found_86a_post[:3])}\n\n"
+                f"WARUM DIESE REGEL?\n"
+                f"Diese Symbole werden benutzt, um Gewalt und Hass zu verbreiten.\n"
+                f"Wir schützen dich und andere vor gefährlichen Inhalten."
+            )
+
+            return (False, text, error_message)
+
+        # All checks passed
+        logger.info(f"[STAGE1-GPT-OSS] PASSED (gpt-oss: {gpt_oss_time:.1f}s, post-filter: {post_filter_time*1000:.1f}ms)")
         return (True, translated_text, None)
+
     elif response.startswith("BLOCKED:"):
-        # Parse: "BLOCKED: §86a StGB - ISIS symbols - ISIS is a terrorist organization"
+        # Parse blocked response
         blocked_parts = response[8:].strip()  # Remove "BLOCKED: " prefix
 
-        # Extract symbol and reason
-        parts = blocked_parts.split(" - ", 2)
-        law_reference = parts[0] if len(parts) > 0 else "§86a StGB"
-        symbol = parts[1] if len(parts) > 1 else "extremist content"
-        explanation = parts[2] if len(parts) > 2 else "This content violates German law"
+        # Determine block type from response
+        if "§86a StGB" in blocked_parts:
+            # §86a violation
+            parts = blocked_parts.split(" - ", 2)
+            law_reference = parts[0] if len(parts) > 0 else "§86a StGB"
+            symbol = parts[1] if len(parts) > 1 else "extremist content"
+            explanation = parts[2] if len(parts) > 2 else "This content violates German law"
 
-        # Build German educational error message
-        error_message = (
-            f"⚠️ Dein Prompt wurde blockiert\n\n"
-            f"GRUND: {law_reference} - {symbol}\n\n"
-            f"{explanation}\n\n"
-            f"WARUM DIESE REGEL?\n"
-            f"Diese Symbole werden benutzt, um Gewalt und Hass zu verbreiten.\n"
-            f"Wir schützen dich und andere vor gefährlichen Inhalten."
-        )
+            error_message = (
+                f"⚠️ Dein Prompt wurde blockiert\n\n"
+                f"GRUND: {law_reference} - {symbol}\n\n"
+                f"{explanation}\n\n"
+                f"WARUM DIESE REGEL?\n"
+                f"Diese Symbole werden benutzt, um Gewalt und Hass zu verbreiten.\n"
+                f"Wir schützen dich und andere vor gefährlichen Inhalten."
+            )
 
-        logger.warning(f"[STAGE1-GPT-OSS] BLOCKED by §86a: {symbol} ({check_time:.1f}s)")
-        return (False, text, error_message)
+            logger.warning(f"[STAGE1-GPT-OSS] BLOCKED by §86a: {symbol} (gpt-oss: {gpt_oss_time:.1f}s)")
+            return (False, text, error_message)
+
+        elif "Kids-Filter" in blocked_parts:
+            # Kids safety violation
+            parts = blocked_parts.split(" - ", 2)
+            found_terms = parts[1] if len(parts) > 1 else "inappropriate content"
+            explanation = parts[2] if len(parts) > 2 else "Prompt contains terms inappropriate for children"
+
+            error_message = (
+                f"⚠️ Dein Prompt wurde blockiert\n\n"
+                f"GRUND: Kinder-Schutzfilter (6-12 Jahre)\n\n"
+                f"{explanation}\n\n"
+                f"Gefundene Begriffe: {found_terms}\n\n"
+                f"WARUM DIESE REGEL?\n"
+                f"Dein Prompt enthält Begriffe, die für Kinder erschreckend oder verstörend sein können.\n"
+                f"Wir schützen dich vor Inhalten, die Angst machen oder ungeeignet für dein Alter sind."
+            )
+
+            logger.warning(f"[STAGE1-GPT-OSS] BLOCKED by Kids-Filter: {found_terms} (gpt-oss: {gpt_oss_time:.1f}s)")
+            return (False, text, error_message)
+
+        elif "Youth-Filter" in blocked_parts:
+            # Youth safety violation
+            parts = blocked_parts.split(" - ", 2)
+            found_terms = parts[1] if len(parts) > 1 else "inappropriate content"
+            explanation = parts[2] if len(parts) > 2 else "Prompt contains terms inappropriate for youth"
+
+            error_message = (
+                f"⚠️ Dein Prompt wurde blockiert\n\n"
+                f"GRUND: Jugendschutzfilter (13-17 Jahre)\n\n"
+                f"{explanation}\n\n"
+                f"Gefundene Begriffe: {found_terms}\n\n"
+                f"WARUM DIESE REGEL?\n"
+                f"Dein Prompt enthält explizite Begriffe, die für Jugendliche ungeeignet sind."
+            )
+
+            logger.warning(f"[STAGE1-GPT-OSS] BLOCKED by Youth-Filter: {found_terms} (gpt-oss: {gpt_oss_time:.1f}s)")
+            return (False, text, error_message)
+
+        else:
+            # Unknown block type - generic message
+            error_message = (
+                f"⚠️ Dein Prompt wurde blockiert\n\n"
+                f"GRUND: Sicherheitsfilter\n\n"
+                f"{blocked_parts}"
+            )
+
+            logger.warning(f"[STAGE1-GPT-OSS] BLOCKED (unknown type): {blocked_parts[:50]} (gpt-oss: {gpt_oss_time:.1f}s)")
+            return (False, text, error_message)
+
     else:
         # Unexpected format - log and fail-open
         logger.warning(f"[STAGE1-GPT-OSS] Unexpected format: {response[:100]}, continuing (fail-open)")

@@ -1,0 +1,62 @@
+{
+  "description": "Bilingual §86a StGB critical terms for pre-translation and post-GPT-OSS override filtering",
+  "usage": "Used in Stage 1 execute_stage1_gpt_oss_unified() for: (1) Optional pre-translation fast-filter, (2) POST-GPT-OSS hard filter to override US-trained model decisions",
+  "rationale": "US-trained GPT-OSS may be too permissive with historical Nazi/terrorist content. This post-filter acts as a safety net to catch symbols that slip through cultural/historical context reasoning.",
+
+  "filters": {
+    "stage1_critical_86a": {
+      "description": "Critical §86a StGB terms (German Law) that MUST be blocked - bilingual for pre/post translation filtering",
+      "legal_reference": "§86a StGB (Germany) - Use of symbols of unconstitutional and terrorist organizations",
+      "terms": [
+        "hakenkreuz",
+        "swastika",
+        "nazisymbol",
+        "nazi symbol",
+        "ss runes",
+        "ss-runen",
+        "ss symbol",
+        "ss-symbol",
+        "sieg heil",
+        "heil hitler",
+        "reichsadler",
+        "totenkopf ss",
+        "totenkopf-ss",
+        "waffen ss",
+        "waffen-ss",
+        "schutzstaffel",
+        "sturmabteilung",
+        "wolfsangel",
+        "black sun symbol",
+        "schwarze sonne",
+        "sonnenrad",
+        "reichskriegsflagge",
+        "blut und ehre",
+        "blood and honour",
+        "blood and honor",
+        "blut und boden",
+        "blood and soil",
+        "konzentrationslager",
+        "concentration camp",
+        "kz auschwitz",
+        "kz dachau",
+        "kz buchenwald",
+        "88",
+        "hh",
+        "14 words",
+        "14 wörter",
+        "isis flag",
+        "is flag",
+        "islamic state flag",
+        "daesh flag",
+        "al qaeda flag",
+        "al-qaida flag",
+        "taliban flag",
+        "pkk flag",
+        "raf terror",
+        "rote armee fraktion terror"
+      ]
+    }
+  },
+
+  "note": "This is a CRITICAL subset for POST-FILTER OVERRIDE. When GPT-OSS says 'SAFE' but translated text contains these terms, OVERRIDE to BLOCKED. This catches cases where US-trained models might allow historical/educational context that violates German law §86a StGB."
+}

@@ -9,6 +9,7 @@
     "filter_level": "kids",
     "output_format": "json",
     "task_type": "security",
-    "model_override": "llama-guard3:1b"
+    "model_override": "gpt-OSS:20b",
+    "check_type": "text_prompt"
   }
 }

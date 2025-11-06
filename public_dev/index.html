@@ -154,6 +154,32 @@
 
             <div id="status"></div>
 
+            <!-- SESSION 30: Pipeline Progress Display -->
+            <div id="pipeline-progress-container" style="display:none;">
+                <div class="progress-header">
+                    <h4>Pipeline-Ausführung</h4>
+                </div>
+
+                <!-- Progress bar -->
+                <div class="progress-bar-container">
+                    <div id="pipeline-progress-bar" class="progress-bar" style="width:0%"></div>
+                </div>
+                <div id="pipeline-progress-text" class="progress-text">0%</div>
+
+                <!-- Stage indicator -->
+                <div id="pipeline-stage-indicator" class="stage-indicator">
+                    Stage 0: Wird gestartet...
+                </div>
+
+                <!-- Entity list -->
+                <ul id="pipeline-entity-list" class="entity-list"></ul>
+
+                <!-- Error message (shown on timeout) -->
+                <div id="pipeline-error-message" class="error-message" style="display:none;">
+                    Verbindung langsam, Versuch läuft...
+                </div>
+            </div>
+
             <div class="results">
                 <div id="promptDisplay" style="display: none;">
                     <h4>Verwendeter Prompt:</h4>

@@ -3,7 +3,7 @@
   "description": "Prompt Interception: Three-part transformation (TASK + CONTEXT + PROMPT)",
   "template": "Task:\n{{TASK_INSTRUCTION}}\n\nContext:\n{{CONTEXT}}\n\nPrompt:\n{{INPUT_TEXT}}",
   "backend_type": "ollama",
-  "model": "mistral-nemo:latest",
+  "model": "gpt-OSS:20b",
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,

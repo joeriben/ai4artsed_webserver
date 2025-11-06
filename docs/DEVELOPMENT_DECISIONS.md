@@ -248,6 +248,288 @@ All outputs return unified format:
 
 ---
 
+## 🎯 Active Decision 7: Unified Media Storage with "Run" Terminology (2025-11-04, Session 27)
+
+**Status:** ✅ IMPLEMENTED
+**Priority:** HIGH (fixes broken export functionality)
+
+### Context
+
+Media files were not persisted consistently across backends:
+- **ComfyUI**: Images displayed in frontend but NOT stored locally
+- **OpenRouter**: Images stored as data strings in JSON (unusable for research)
+- **Export function**: Failed because media wasn't persisted to disk
+- **Research data**: URLs printed to console instead of actual files
+
+### The Decision: Unified Media Storage Service
+
+**Storage Architecture:**
+- **Flat structure**: `exports/json/{run_id}/` (no hierarchical sessions)
+- **"Run" terminology**: NOT "execution" (German connotations: "Hinrichtungen")
+- **Atomic research units**: One folder contains ALL files for one complete run
+- **Backend-agnostic**: Works with ComfyUI, OpenRouter, Replicate, future backends
+- **UUID-based**: Concurrent-safety for workshop scenario (15 kids)
+
+**Structure:**
+```
+exports/json/{run_uuid}/
+├── metadata.json           # Single source of truth
+├── input_text.txt         # Original user input
+├── transformed_text.txt   # After Stage 2 interception
+└── output_<type>.<format> # Generated media (image, audio, video)
+```
+
+### Rationale
+
+**Why Flat Structure:**
+> User: "I just think we do not have an entity 'session' yet, and I would not know how to discriminate sessions technically."
+
+No session entity exists. Flat UUID-based folders with metadata enable future queries without complex hierarchy.
+
+**Why "Run" Terminology:**
+> User: "stop using 'execution'. this is also the word for killing humans."
+
+German language sensitivity. "Run" is neutral and commonly used in programming contexts.
+
+**Why Atomic Units:**
+> User: "Our data management has to keep 'atomic' research events, such as one pipeline run, together."
+
+One folder = one complete research event. No split data across multiple locations.
+
+### Implementation
+
+**File:** `devserver/my_app/services/media_storage.py` (414 lines)
+
+**Detection Logic:**
+```python
+if output_value.startswith('http'):
+    # API-based (OpenRouter) - Download from URL
+    media_storage.add_media_from_url(run_id, url, media_type)
+else:
+    # ComfyUI - Fetch via prompt_id
+    media_storage.add_media_from_comfyui(run_id, prompt_id, media_type)
+```
+
+**Integration Points:**
+1. Pipeline start: Create run folder + save input text
+2. Stage 4: Auto-detect backend + download media
+3. Response: Return `run_id` to frontend (not raw prompt_id/URL)
+
+### Affected Files
+
+**Created:**
+- `devserver/my_app/services/media_storage.py` (414 lines) - Core service
+- `docs/UNIFIED_MEDIA_STORAGE.md` - Technical documentation
+
+**Modified:**
+- `devserver/my_app/routes/schema_pipeline_routes.py` - Integration
+- `devserver/my_app/routes/media_routes.py` - Rewritten for local serving
+
+### API Endpoints
+
+- `GET /api/media/image/<run_id>` - Serve image
+- `GET /api/media/audio/<run_id>` - Serve audio
+- `GET /api/media/video/<run_id>` - Serve video
+- `GET /api/media/info/<run_id>` - Metadata only
+- `GET /api/media/run/<run_id>` - Complete run info
+
+### Benefits
+
+✅ **All media persisted** - ComfyUI and OpenRouter work identically
+✅ **Export-ready** - Research data complete and accessible
+✅ **Backend-agnostic** - Easy to add new backends (Replicate, etc.)
+✅ **Concurrent-safe** - Workshop scenario supported
+✅ **Simple queries** - Metadata enables filtering without complex joins
+
+### Testing Status
+
+**Required:** ComfyUI eco mode, OpenRouter fast mode, concurrent requests
+
+---
+
+## 🎯 Active Decision 8: Unified run_id to Fix Dual-ID Bug (2025-11-04, Session 29)
+
+**Status:** ✅ IMPLEMENTED & TESTED
+**Priority:** CRITICAL (complete system desynchronization)
+
+### Context: The Dual-ID Bug
+
+**The Problem:**
+OLD system used TWO different UUIDs causing complete desynchronization:
+- **OLD ExecutionTracker**: Generated `exec_20251104_HHMMSS_XXXXX`
+- **OLD MediaStorage**: Generated `uuid.uuid4()`
+- **Result**: Execution history referenced non-existent media files
+
+**User Insight:**
+> "remember, this is what the old executiontracker did not achieve the whole time"
+> "meaning it is not a good reference"
+
+The OLD ExecutionTracker found the media polling issue but FAILED to fix it for months.
+
+### The Decision: Unified run_id Architecture
+
+**Core Principle:**
+Generate `run_id = str(uuid.uuid4())` **ONCE** at pipeline start.
+Pass this SINGLE ID to ALL systems.
+
+**Architecture:**
+```
+Pipeline Start (schema_pipeline_routes.py)
+↓
+run_id = str(uuid.uuid4())  ← Generated ONCE
+↓
+├─→ ExecutionTracker(execution_id=run_id)    ← Uses same ID
+├─→ MediaStorage.create_run(run_id)          ← Uses same ID
+└─→ LivePipelineRecorder(run_id)             ← Uses same ID
+    ↓
+    Single source of truth: pipeline_runs/{run_id}/metadata.json
+```
+
+### Implementation
+
+**File:** `devserver/my_app/services/pipeline_recorder.py` (400+ lines)
+
+**LivePipelineRecorder Features:**
+- Unified `run_id` passed to constructor
+- Sequential entity tracking: 01_input.txt → 06_output_image.png
+- Single source of truth in `metadata.json`
+- Real-time state tracking (stage/step/progress)
+- Metadata enrichment for each entity
+
+**File Structure:**
+```
+pipeline_runs/{run_id}/
+├── metadata.json              # Single source of truth
+├── 01_input.txt              # User input
+├── 02_translation.txt        # Translated text
+├── 03_safety.json            # Safety results
+├── 04_interception.txt       # Transformed prompt
+├── 05_safety_pre_output.json # Pre-output safety
+└── 06_output_image.png       # Generated media
+```
+
+### Critical Bug Fix: Media Polling
+
+**The Issue:**
+ComfyUI generates images asynchronously. Calling `get_history(prompt_id)` immediately after submission returns empty result.
+
+**File Modified:** `devserver/my_app/services/media_storage.py` (line 214)
+
+**The Fix:**
+```python
+# OLD (BROKEN):
+# history = await client.get_history(prompt_id)
+
+# NEW (FIXED):
+history = await client.wait_for_completion(prompt_id)
+```
+
+**Why This Matters:**
+- `wait_for_completion()` polls every 2 seconds until workflow finishes
+- **OLD ExecutionTracker identified this issue but NEVER fixed it**
+- **NEW LivePipelineRecorder SUCCEEDED on first implementation**
+
+### Test Proof
+
+**Test Run:** `812ccc30-5de8-416e-bfe7-10e913916672`
+
+**Result:**
+```json
+{"status": "success", "media_output": "success"}
+```
+
+**All 6 entities created:**
+```bash
+01_input.txt
+02_translation.txt
+03_safety.json
+04_interception.txt
+05_safety_pre_output.json
+06_output_image.png  ← This was MISSING in OLD system
+metadata.json
+```
+
+### Dual-System Migration Strategy
+
+**Both systems run in parallel (by design):**
+
+**OLD System:**
+- ExecutionTracker: `exec_20251104_HHMMSS_XXXXX`
+- Output: `/exports/pipeline_runs/exec_*.json`
+- Status: Maintained for validation
+
+**NEW System:**
+- LivePipelineRecorder: `{unified_run_id}`
+- Output: `pipeline_runs/{run_id}/`
+- Status: Production-ready
+
+**MediaStorage:**
+- Uses unified `run_id` from NEW system
+- Output: `exports/json/{run_id}/`
+- Synchronized with LivePipelineRecorder
+
+**Rationale:**
+- Ensure no data loss during migration
+- Validate NEW system against OLD system
+- Gradual deprecation path for OLD system
+
+### API Endpoints for Frontend
+
+**File Created:** `devserver/my_app/routes/pipeline_routes.py` (237 lines)
+
+**Real-Time Polling:**
+- `GET /api/pipeline/<run_id>/status` - Current execution state
+- `GET /api/pipeline/<run_id>/entity/<type>` - Fetch specific entity
+- `GET /api/pipeline/<run_id>/entities` - List all entities
+
+**Frontend Integration Ready:**
+- Status polling for progress bars
+- Entity fetching for live preview
+- MIME type detection for proper display
+
+### Affected Files
+
+**Created (3 files, ~800 lines):**
+- `devserver/my_app/services/pipeline_recorder.py` (400+ lines, flattened from package)
+- `devserver/my_app/routes/pipeline_routes.py` (237 lines, 3 endpoints)
+- `docs/LIVE_PIPELINE_RECORDER.md` (17KB technical documentation)
+
+**Modified (2 files):**
+- `devserver/my_app/__init__.py` (blueprint registration)
+- `devserver/my_app/routes/schema_pipeline_routes.py` (entity saves at all stages)
+
+**File Structure Migration:**
+- `/devserver/pipeline_recorder/` (package) → `/devserver/my_app/services/pipeline_recorder.py` (single file)
+- Follows existing service pattern (ollama_service.py, comfyui_service.py, media_storage.py)
+
+### Success Metrics
+
+✅ **NEW system succeeded where OLD system failed**
+- OLD: Found media polling issue months ago, never fixed it
+- NEW: Fixed immediately with proper polling mechanism
+
+✅ **Dual-ID Bug Resolved**
+- Single unified `run_id` across all systems
+- No more desynchronization
+- All entities properly tracked and accessible
+
+✅ **Production Ready**
+- Tested successfully end-to-end
+- All 6 entities created correctly
+- Real-time API endpoints functional
+
+### Future Refactoring (Deferred)
+
+**Architectural Discussion:**
+User suggested making ComfyUI execution blocking in `backend_router.py`:
+- Chunk waits for completion internally
+- Returns actual media bytes instead of just `prompt_id`
+- Removes need for polling in media_storage.py
+
+**Status:** Deferred to future session. Current polling solution works correctly.
+
+---
+
 ## 📚 Related Documentation
 
 - **Architecture:** \`docs/ARCHITECTURE PART I.md\`, \`docs/ARCHITECTURE PART II.md\`
@@ -258,6 +540,47 @@ All outputs return unified format:
 
 ---
 
-**Last Updated:** 2025-11-03 (Session 17)
-**Active Decisions:** 5
+## Session 30: Internationalization (i18n) Requirement (2025-11-04)
+
+### Decision: NEVER Hardcode Language-Specific Strings
+
+**Problem Identified:**
+During Session 30 implementation of frontend polling, hardcoded German strings were added to JavaScript:
+- `'Verbindung langsam, Versuch läuft...'`
+- `'Pipeline-Start', 'Übersetzung & Sicherheit'`, etc.
+
+**User Correction (Critical):**
+> "never directly use 'german', but a placeholder for language configuration. this system is at least bilingual and has to be prepared for multilinguality. german maybe now set as active language in config.py, but english will be equally important. every frontend interface part should be a variable that pulls the right terms from a dict."
+
+### Architecture Requirements
+
+**System Design:**
+- **Bilingual:** German + English (equally important)
+- **Multilingual-Ready:** Prepared for additional languages
+- **Decentralized:** Pipelines/configs have their own bilingual translation
+
+**Implementation:**
+1. **Frontend:** All UI strings must come from language configuration dict (i18n system)
+2. **Backend:** Language strings pulled from `config.py` active language setting
+3. **NO Hardcoding:** Never embed German, English, or any language directly in code
+
+**Example (CORRECT):**
+```javascript
+// Frontend i18n system
+setStatus(i18n.status.connectionSlow, 'warning');
+const stageName = i18n.stages[stageId];
+```
+
+**Legacy Frontend Status:**
+- `public_dev/` contains hardcoded German strings (documented violation)
+- **NO FURTHER WORK** will be done on legacy frontend
+- Polling implementation (Session 30) was final backend piece
+- New frontend(s) will be built with i18n from day 1
+
+**Rule Added:** `devserver/CLAUDE.md` Critical Implementation Rules Section 0 - Internationalization is now **mandatory first rule** for all future frontends.
+
+---
+
+**Last Updated:** 2025-11-04 (Session 30)
+**Active Decisions:** 6
 **Status:** Clean, concise, actively maintained

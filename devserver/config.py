@@ -8,8 +8,9 @@ from pathlib import Path
 THIS_FILE = Path(__file__).resolve()
 BASE_DIR = THIS_FILE.parent.parent
 LOCAL_WORKFLOWS_DIR = BASE_DIR / "workflows"
-PUBLIC_DIR = Path(__file__).parent.parent / "public_dev"  # Frontend on project root (moved from devserver/)
+PUBLIC_DIR = Path(__file__).parent.parent / "public_dev"  # TEMP: Legacy frontend for debugging until Vue build ready
 EXPORTS_DIR = BASE_DIR / "exports"
+JSON_STORAGE_DIR = EXPORTS_DIR / "json"  # Pipeline run storage (Session 30)
 
 # Server Configuration
 HOST = "0.0.0.0"
@@ -23,10 +24,10 @@ COMFYUI_PORT = "7821"
 
 # Model Configuration
 ANALYSIS_MODEL = "llava:13b"
-TRANSLATION_MODEL = "mistral-nemo"  # Changed from gemma2:9b for better translation quality
+TRANSLATION_MODEL = "gpt-OSS:20b"  # GPT-OSS replaces mistral-nemo
 SAFETY_MODEL = "llama-guard3:8b"
 
-# GPT-OSS-20b Configuration (Planned replacement for TRANSLATION_MODEL + SAFETY_MODEL)
+# GPT-OSS-20b Configuration (Active - used for all Stage 1-3 processing)
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama
 
 # Feature Flags
