@@ -60,7 +60,7 @@ class LivePipelineRecorder:
         if base_path is None:
             base_path = Path.cwd()
         self.base_path = Path(base_path)
-        self.run_folder = self.base_path / "pipeline_runs" / run_id
+        self.run_folder = self.base_path / run_id
         self.run_folder.mkdir(parents=True, exist_ok=True)
 
         # Initialize state
@@ -222,7 +222,9 @@ class LivePipelineRecorder:
         Returns:
             Status dictionary with current state and completed outputs
         """
-        completed_outputs = [e["type"] for e in self.metadata["entities"]]
+        # Defensive: ensure entities field exists (backward compatibility)
+        entities = self.metadata.get("entities", [])
+        completed_outputs = [e["type"] for e in entities]
 
         # Determine next expected output
         next_expected = None
@@ -231,13 +233,20 @@ class LivePipelineRecorder:
                 next_expected = expected
                 break
 
+        # Defensive: ensure current_state exists
+        current_state = self.metadata.get("current_state", {
+            "stage": 0,
+            "step": "unknown",
+            "progress": "0/0"
+        })
+
         return {
             "run_id": self.run_id,
-            "current_state": self.metadata["current_state"],
+            "current_state": current_state,
             "expected_outputs": self.expected_outputs,
             "completed_outputs": completed_outputs,
             "next_expected": next_expected,
-            "entities": self.metadata["entities"]
+            "entities": entities
         }
 
     def get_entity_path(self, entity_type: str) -> Optional[Path]:
@@ -356,7 +365,7 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
     if base_path is None:
         base_path = Path.cwd()
 
-    metadata_path = Path(base_path) / "pipeline_runs" / run_id / "metadata.json"
+    metadata_path = Path(base_path) / run_id / "metadata.json"
 
     if not metadata_path.exists():
         logger.warning(f"[RECORDER] No metadata found for run {run_id}")
@@ -365,21 +374,48 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
     try:
         metadata = json.loads(metadata_path.read_text())
 
+        # Backward compatibility: handle old metadata format
+        # Old format used "schema" instead of "config_name"
+        config_name = metadata.get("config_name") or metadata.get("schema", "unknown")
+
+        # Old format might not have safety_level
+        safety_level = metadata.get("safety_level", "kids")
+
+        # Old format should have execution_mode, but provide fallback
+        execution_mode = metadata.get("execution_mode", "eco")
+
         # Recreate recorder from metadata
         recorder = LivePipelineRecorder(
             run_id=metadata["run_id"],
-            config_name=metadata["config_name"],
-            execution_mode=metadata["execution_mode"],
-            safety_level=metadata["safety_level"],
+            config_name=config_name,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
             user_id=metadata.get("user_id", "anonymous"),
             base_path=base_path
         )
 
-        # Restore state
+        # Restore state (handle both old and new formats)
+        # Ensure critical fields exist in metadata for backward compatibility
+        if "entities" not in metadata:
+            metadata["entities"] = []
+
+        if "current_state" not in metadata:
+            metadata["current_state"] = {
+                "stage": 0,
+                "step": "completed",
+                "progress": "0/0"
+            }
+
+        if "expected_outputs" not in metadata:
+            metadata["expected_outputs"] = recorder.expected_outputs
+
+        # Now it's safe to restore metadata
         recorder.metadata = metadata
+
+        # Restore internal state
         recorder.sequence_number = len(metadata["entities"])
-        recorder.current_stage = metadata["current_state"]["stage"]
-        recorder.current_step = metadata["current_state"]["step"]
+        recorder.current_stage = metadata["current_state"].get("stage", 0)
+        recorder.current_step = metadata["current_state"].get("step", "initialized")
 
         _active_recorders[run_id] = recorder
         logger.info(f"[RECORDER] Loaded existing run {run_id}")

@@ -298,7 +298,7 @@ def get_image(run_id: str):
 
 2. Create run folder
    └─> media_storage.create_run()
-       └─> Creates: media_storage/runs/run_uuid_001/
+       └─> Creates: exports/json/run_uuid_001/
            ├─> input_text.txt
            └─> metadata.json (initial)
 
@@ -319,7 +319,7 @@ def get_image(run_id: str):
        └─> media_storage.add_media_from_comfyui() OR
            media_storage.add_media_from_url()
        └─> Downloads file
-       └─> Saves: media_storage/runs/run_uuid_001/output_image.png
+       └─> Saves: exports/json/run_uuid_001/output_image.png
        └─> Updates metadata.json with output info
 
 7. Return to frontend

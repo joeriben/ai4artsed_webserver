@@ -15,6 +15,83 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 
 ---
 
+## 🏗️ MANDATORY: File Structure Rules
+
+**⚠️ CRITICAL: NEVER create new directories without consulting these rules.**
+
+### Root Level (`/ai4artsed_webserver/`)
+
+**ONLY these directories are allowed at project root:**
+- `server/` - ⚠️ LEGACY - DO NOT TOUCH
+- `public/` - ✅ Vue-based frontend (new architecture)
+- `docs/` - ✅ Project documentation (authoritative architecture docs)
+- `devserver/` - ✅ NEW ARCHITECTURE (work here)
+- `exports/` - ✅ Pipeline run storage (`/json/`, `/media/`)
+- `workflows/` - ✅ ComfyUI workflows (if applicable)
+
+### DevServer Level (`/devserver/`)
+
+**ONLY these directories are allowed at devserver root:**
+- **Core files:** `server.py`, `config.py`, `CLAUDE.md`
+- `schemas/` - Pipeline system (chunks, pipelines, configs, engine)
+- `my_app/` - Application code (routes, services)
+- `tests/` - Test files
+- `archive/` - Deprecated code (DO NOT EDIT)
+
+**❌ FORBIDDEN at devserver root:**
+- New service modules → Put in `/devserver/my_app/services/`
+- New route modules → Put in `/devserver/my_app/routes/`
+- Documentation → Use `/docs/` (project root)
+- Frontend projects → Use `/public/` (project root)
+
+### Documentation Structure
+
+**ALL documentation MUST go in:** `/docs/` (project root)
+
+**Current structure:**
+- `ARCHITECTURE PART XX - *.md` - Technical reference (AUTHORITATIVE)
+- `DEVELOPMENT_DECISIONS.md` - Decision history
+- `DEVELOPMENT_LOG.md` - Session tracking and costs
+- `README_FIRST.md` - Mandatory reading for new sessions (if exists)
+- `devserver_todos.md` - Task tracking
+
+**❌ FORBIDDEN:**
+- `/devserver/docs/` - Session-specific docs must go in `/docs/`
+- Documentation in random locations
+
+### Service Module Location
+
+**ALL service modules MUST go in:** `/devserver/my_app/services/`
+
+**Examples:**
+- ✅ `/devserver/my_app/services/ollama_service.py`
+- ✅ `/devserver/my_app/services/comfyui_service.py`
+- ✅ `/devserver/my_app/services/media_storage.py`
+- ✅ `/devserver/my_app/services/pipeline_recorder/` (if directory)
+- ❌ `/devserver/pipeline_recorder/` - WRONG LOCATION
+
+### Frontend Location
+
+**Active frontend:** `/public/` (project root)
+
+**Current status:**
+- ✅ `/public/` - Vue-based frontend (new architecture)
+- ❌ `/devserver/public_dev/` - DEPRECATED (do not use)
+
+**Server configuration:** `config.py` → `PUBLIC_DIR = Path(__file__).parent.parent / "public"`
+
+### Why These Rules?
+
+1. **Consistency:** All sessions follow same structure
+2. **Clarity:** No guessing where files belong
+3. **Maintainability:** Easy to find and modify code
+4. **Documentation:** Single source of truth in `/docs/`
+5. **Architecture Transparency:** Structure reflects design decisions
+
+**If you need to create new directories:** Ask the user first.
+
+---
+
 # PART I: ORCHESTRATION
 
 ---

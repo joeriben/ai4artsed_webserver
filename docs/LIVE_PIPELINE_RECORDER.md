@@ -20,7 +20,7 @@ MediaStorage:      run_id = uuid.uuid4()        # Generated different ID
 ```
 
 This caused **complete desynchronization**:
-- Execution history referenced run IDs that didn't exist in `media_storage/runs/`
+- Execution history referenced run IDs that didn't exist in `exports/json/`
 - Media files were stored under one UUID, but execution records pointed to another
 - Frontend couldn't reliably query run status or retrieve media
 
@@ -490,7 +490,7 @@ After thorough testing and frontend integration:
 
 1. **Remove ExecutionTracker** - No longer needed, recorder handles all tracking
 2. **Remove MediaStorage metadata** - Recorder's metadata.json is the source of truth
-3. **Keep MediaStorage file operations** - Still need actual media file storage in `media_storage/runs/`
+3. **Keep MediaStorage file operations** - Still need actual media file storage in `exports/json/`
 4. **Update frontend** - Use new `/api/pipeline/*` endpoints for polling and entity display
 
 ### Benefits of New System

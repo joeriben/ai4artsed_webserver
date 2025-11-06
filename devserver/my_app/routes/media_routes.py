@@ -1,6 +1,6 @@
 """
 Media Routes - Serving images, audio, video from LOCAL STORAGE
-Unified Media Storage: All media served from media_storage/runs/ regardless of backend
+Unified Media Storage: All media served from exports/json/ regardless of backend
 """
 from flask import Blueprint, send_file, jsonify
 import logging

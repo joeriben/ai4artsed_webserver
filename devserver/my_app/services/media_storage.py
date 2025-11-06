@@ -9,9 +9,8 @@ Handles downloading and storing media from:
 All media is stored in atomic run folders with comprehensive metadata.
 
 Structure:
-media_storage/
-├── runs/
-│   ├── run_uuid_001/
+exports/json/
+├── run_uuid_001/
 │   │   ├── metadata.json
 │   │   ├── input_text.txt
 │   │   ├── transformed_text.txt
@@ -80,14 +79,14 @@ class MediaStorageService:
         Initialize media storage service
 
         Args:
-            storage_root: Root directory for media storage (e.g., BASE_DIR / "media_storage")
+            storage_root: Root directory for media storage (e.g., BASE_DIR / "exports" / "json")
         """
         self.storage_root = Path(storage_root)
         self.storage_root.mkdir(exist_ok=True)
 
-        # Flat run-based structure
-        self.runs_dir = self.storage_root / "runs"
-        self.runs_dir.mkdir(exist_ok=True)
+        # Flat run-based structure: runs go directly in storage_root
+        # (no additional "runs" subdirectory - that was the OLD structure)
+        self.runs_dir = self.storage_root
 
         logger.info(f"MediaStorageService initialized at {self.storage_root}")
 
@@ -215,9 +214,9 @@ class MediaStorageService:
 
             # Get generated files
             if media_type == 'image':
-                files = await client.get_generated_images(history[prompt_id])
+                files = await client.get_generated_images(history)
             elif media_type in ['audio', 'music']:
-                files = await client.get_generated_audio(history[prompt_id])
+                files = await client.get_generated_audio(history)
             else:
                 logger.error(f"Unsupported media type for ComfyUI: {media_type}")
                 return None
@@ -451,7 +450,7 @@ def get_media_storage_service() -> MediaStorageService:
     """Get singleton media storage service"""
     global _media_storage_service
     if _media_storage_service is None:
-        from config import BASE_DIR
-        storage_root = BASE_DIR / "media_storage"
+        from config import JSON_STORAGE_DIR
+        storage_root = JSON_STORAGE_DIR.parent / "json"  # exports/json
         _media_storage_service = MediaStorageService(storage_root)
     return _media_storage_service

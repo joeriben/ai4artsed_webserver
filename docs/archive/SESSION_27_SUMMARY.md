@@ -12,7 +12,7 @@
 **File:** `devserver/my_app/services/media_storage.py`
 
 **Created complete run-based storage system:**
-- Flat structure: `media_storage/runs/run_uuid/`
+- Flat structure: `exports/json/run_uuid/`
 - Each run folder contains: metadata.json, input_text.txt, transformed_text.txt, media files
 - Supports all media types: image, audio, video, 3D models
 - Backend-agnostic: Works with ComfyUI, GPT-5, Replicate, etc.
@@ -117,7 +117,7 @@ curl -X POST http://localhost:17801/api/schema/pipeline/execute \
   }'
 
 # Check response includes run_id
-# Check folder created: devserver/media_storage/runs/<run_id>/
+# Check folder created: devserver/exports/json/<run_id>/
 # Check files exist: metadata.json, input_text.txt, output_image.png
 
 # Test serving
@@ -171,8 +171,8 @@ def auto_export_run(self, run_id: str, ...):
 - `devserver/my_app/routes/media_routes.py` - Completely rewritten to serve from local storage
 
 ### Storage Location
-- `devserver/media_storage/` - Created at runtime
-- `devserver/media_storage/runs/` - Individual run folders
+- `exports/json/` - Created at runtime
+- `devserver/exports/json/` - Individual run folders
 
 ---
 

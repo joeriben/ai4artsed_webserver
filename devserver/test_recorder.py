@@ -10,7 +10,7 @@ from pathlib import Path
 # Add devserver to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from pipeline_recorder import LivePipelineRecorder, get_recorder, load_recorder
+from my_app.services.pipeline_recorder import LivePipelineRecorder, get_recorder, load_recorder
 
 
 def test_basic_recording():

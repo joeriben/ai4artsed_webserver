@@ -81,7 +81,7 @@ See [`LIVE_PIPELINE_RECORDER.md`](./LIVE_PIPELINE_RECORDER.md) for complete docu
 
 ### Unified Media Storage (Session 27)
 
-All media files stored in `media_storage/runs/{run_id}/` regardless of backend:
+All media files stored in `exports/json/{run_id}/` regardless of backend:
 - Local ComfyUI generations
 - Cloud OpenRouter generations
 - All accessible via `/api/media/*` endpoints
@@ -192,7 +192,7 @@ curl http://localhost:17801/api/pipeline/{run_id}/entity/translation
 
 ### Data Directories
 - **Pipeline Runs**: `pipeline_runs/{run_id}/` (recorder output)
-- **Media Storage**: `media_storage/runs/{run_id}/` (actual media files)
+- **Media Storage**: `exports/json/{run_id}/` (actual media files)
 - **Execution History**: `exports/pipeline_runs/` (old system, will be removed)
 
 ### Configuration

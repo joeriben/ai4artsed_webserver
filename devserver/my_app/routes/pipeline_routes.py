@@ -9,12 +9,18 @@ from flask import Blueprint, send_file, jsonify
 import logging
 from pathlib import Path
 
-from pipeline_recorder import load_recorder
+from my_app.services.pipeline_recorder import load_recorder
 
 logger = logging.getLogger(__name__)
 
 # Blueprint definition
 pipeline_bp = Blueprint('pipeline', __name__, url_prefix='/api/pipeline')
+
+# Base path for pipeline_runs directory (Session 30: moved to /exports/json/)
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from config import JSON_STORAGE_DIR
+PIPELINE_BASE_PATH = JSON_STORAGE_DIR
 
 
 @pipeline_bp.route('/<run_id>/status', methods=['GET'])
@@ -60,7 +66,7 @@ def get_pipeline_status(run_id: str):
         }
     """
     try:
-        recorder = load_recorder(run_id)
+        recorder = load_recorder(run_id, base_path=PIPELINE_BASE_PATH)
         if not recorder:
             return jsonify({'error': f'Run {run_id} not found'}), 404
 
@@ -102,7 +108,7 @@ def get_entity(run_id: str, entity_type: str):
             -> Returns image/png: (binary PNG data)
     """
     try:
-        recorder = load_recorder(run_id)
+        recorder = load_recorder(run_id, base_path=PIPELINE_BASE_PATH)
         if not recorder:
             return jsonify({'error': f'Run {run_id} not found'}), 404
 
@@ -175,7 +181,7 @@ def list_entities(run_id: str):
         }
     """
     try:
-        recorder = load_recorder(run_id)
+        recorder = load_recorder(run_id, base_path=PIPELINE_BASE_PATH)
         if not recorder:
             return jsonify({'error': f'Run {run_id} not found'}), 404
 

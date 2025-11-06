@@ -45,7 +45,7 @@ class NoOpTracker:
 from my_app.services.media_storage import get_media_storage_service
 
 # NEW: Live Pipeline Recorder (Session 29)
-from pipeline_recorder import get_recorder
+from my_app.services.pipeline_recorder import get_recorder
 
 logger = logging.getLogger(__name__)
 
@@ -215,12 +215,14 @@ def execute_pipeline():
         # SESSION 29: LIVE PIPELINE RECORDER (NEW)
         # ====================================================================
         # Parallel implementation: Run alongside old systems for testing
+        from config import JSON_STORAGE_DIR
         recorder = get_recorder(
             run_id=run_id,  # Use same unified ID
             config_name=schema_name,
             execution_mode=execution_mode,
             safety_level=safety_level,
-            user_id='anonymous'
+            user_id='anonymous',
+            base_path=JSON_STORAGE_DIR
         )
         recorder.set_state(0, "pipeline_starting")
         logger.info(f"[RECORDER] Initialized LivePipelineRecorder for run {run_id}")
@@ -374,6 +376,7 @@ def execute_pipeline():
         # Response für erfolgreiche Pipeline
         response_data = {
             'status': 'success',
+            'run_id': run_id,  # SESSION 30: Frontend needs run_id for status polling
             'schema': schema_name,
             'config_name': schema_name,  # Config name (same as schema for simple workflows)
             'input_text': input_text,
@@ -562,9 +565,9 @@ def execute_pipeline():
 
                                     # SESSION 29: Copy media file to recorder folder
                                     try:
-                                        from pathlib import Path
-                                        media_source = Path(media_output_data.file_path)
-                                        if media_source.exists():
+                                        # Get the media file path from MediaStorageService
+                                        media_source = media_storage.get_media_path(run_id, media_output_data.filename)
+                                        if media_source and media_source.exists():
                                             with open(media_source, 'rb') as f:
                                                 media_bytes = f.read()
                                             recorder.save_entity(
@@ -573,7 +576,7 @@ def execute_pipeline():
                                                 metadata={
                                                     'config': output_config_name,
                                                     'filename': media_output_data.filename,
-                                                    'original_path': str(media_output_data.file_path)
+                                                    'original_path': str(media_source)
                                                 }
                                             )
                                             logger.info(f"[RECORDER] Saved output_{media_type} entity")
@@ -685,6 +688,9 @@ def execute_pipeline():
             'status': 'error',
             'error': str(e)
         }), 500
+
+# NOTE: Status endpoint is in pipeline_routes.py, not here
+# Use /api/pipeline/{run_id}/status (not /api/schema/pipeline/{run_id}/status)
 
 @schema_bp.route('/pipeline/test', methods=['POST'])  
 def test_pipeline():

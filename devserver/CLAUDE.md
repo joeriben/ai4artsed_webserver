@@ -375,6 +375,36 @@ Config → Pipeline → Chunk → backend_router.py → Backend Service
 
 ## Critical Implementation Rules
 
+### 0. Internationalization (i18n) - MANDATORY
+
+**⚠️ CRITICAL: NEVER hardcode language-specific strings in code.**
+
+This system is **bilingual (German/English)** and designed for **multilingualism**.
+
+**❌ FORBIDDEN:**
+```javascript
+// WRONG - hardcoded German
+setStatus('Verbindung langsam, Versuch läuft...', 'warning');
+const stageName = 'Übersetzung & Sicherheit';
+```
+
+**✅ REQUIRED:**
+```javascript
+// CORRECT - language configuration
+setStatus(i18n.status.connectionSlow, 'warning');
+const stageName = i18n.stages[stageId];
+```
+
+**Architecture:**
+- **Frontend**: All UI strings MUST come from language configuration dict
+- **Backend**: Language strings pulled from config
+- **Pipelines/Configs**: Have their own decentralized bilingual translation
+- **Active Language**: Set in `config.py` but NEVER hardcoded in code
+
+**Current Status**: German is active language, but English is equally important. System must support easy language switching.
+
+**Reference**: See `docs/DEVELOPMENT_DECISIONS.md` for i18n implementation plan.
+
 ### 1. Where Logic Belongs
 
 **❌ NEVER implement logic in:**
@@ -590,9 +620,12 @@ If implementing Pre-Interception, read `docs/PRE_INTERCEPTION_DESIGN.md` first -
 ```
 ai4artsed_webserver/
 ├── server/                   # ⚠️ LEGACY - DO NOT TOUCH
+├── public/                   # ✅ Vue-based frontend (new architecture)
+├── docs/                     # ✅ Project documentation (all sessions)
 ├── devserver/                # ✅ NEW ARCHITECTURE (work here)
 │   ├── server.py             # Entry point (runs on port 17801)
 │   ├── config.py             # Server configuration
+│   ├── CLAUDE.md             # Claude Code instructions
 │   ├── schemas/
 │   │   ├── chunks/               # Layer 1: Primitive operations
 │   │   ├── pipelines/            # Layer 2: Input-type orchestration
@@ -610,16 +643,15 @@ ai4artsed_webserver/
 │   │   │   └── media_routes.py            # Media serving
 │   │   └── services/
 │   │       ├── ollama_service.py          # Local LLM integration
-│   │       └── comfyui_service.py         # Local media generation
-│   ├── public_dev/js/
-│   │   ├── config-browser.js              # Card-based config selection
-│   │   └── execution-handler.js           # Backend-abstracted execution
-│   └── docs/
-│       ├── README_FIRST.md                # MANDATORY reading
-│       ├── ARCHITECTURE.md                # Technical reference
-│       ├── DEVELOPMENT_DECISIONS.md       # Decision history
-│       └── devserver_todos.md             # Task tracking
+│   │       ├── comfyui_service.py         # Local media generation
+│   │       └── pipeline_recorder/         # LivePipelineRecorder
+│   └── archive/                           # Deprecated code (DO NOT EDIT)
 ```
+
+**Critical Structure Rules:**
+- **ALL documentation** → `/docs/` (project root), NOT `/devserver/docs/`
+- **ALL service modules** → `/devserver/my_app/services/`, NOT root level
+- **Active frontend** → `/public/` (project root), NOT `/devserver/public_dev/`
 
 ## Troubleshooting
 
