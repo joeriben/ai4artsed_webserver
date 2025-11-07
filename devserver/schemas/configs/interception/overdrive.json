@@ -6,13 +6,19 @@
     "de": "Übertreiben"
   },
   "description": {
-    "en": "Exaggerate and amplify text to extreme levels - make everything bigger, louder, more intense",
-    "de": "Text extrem übertreiben und verstärken - alles größer, lauter, intensiver machen"
+    "en": "Amplifies everything to extreme levels. Makes the subtle into the dramatic, turning ordinary things into maximum intensity and spectacle.",
+    "de": "Verstärkt alles auf extreme Level. Macht das Subtile dramatisch und verwandelt Gewöhnliches in maximale Intensität und Spektakel."
   },
   "category": {
     "en": "Aesthetic Transformations",
     "de": "Ästhetische Transformationen"
   },
+  "properties": [
+    "chaotic",
+    "algorithmic",
+    "explore",
+    "playful"
+  ],
   "context": "Exaggeration and amplification to extreme levels. Take every element and push it beyond reasonable limits. Make the subtle into the extreme. Transform the ordinary into the extraordinary. Amplify emotions, scale, intensity, drama - everything to maximum.",
   "parameters": {
     "temperature": 0.9,

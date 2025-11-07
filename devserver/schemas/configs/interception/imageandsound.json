@@ -6,13 +6,19 @@
     "de": "ImageAndSound"
   },
   "description": {
-    "en": "ImageAndSound transformation (research-based from legacy workflow)",
-    "de": "ImageAndSound-Transformation (forschungsbasiert aus Legacy-Workflow)"
+    "en": "Translates visual elements into musical language. Turns images into song lyrics or sound descriptions.",
+    "de": "Übersetzt visuelle Elemente in musikalische Sprache. Verwandelt Bilder in Liedtexte oder Klangbeschreibungen."
   },
   "category": {
     "en": "Across",
     "de": "Across"
   },
+  "properties": [
+    "algorithmic",
+    "contemporary",
+    "create",
+    "serious"
+  ],
   "context": "Lyricist, Song writer, word smith",
   "parameters": {
     "temperature": 0.7,

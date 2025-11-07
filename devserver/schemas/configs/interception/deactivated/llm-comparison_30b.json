@@ -2,12 +2,12 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "Stable-Diffusion 3.5 TellAStory",
-    "de": "Stable-Diffusion 3.5 TellAStory"
+    "en": "LLM-Comparison 30b",
+    "de": "LLM-Comparison 30b"
   },
   "description": {
-    "en": "Optimizes your prompt specifically for Stable Diffusion 3.5 to tell visual stories. Structures your ideas for narrative image generation.",
-    "de": "Optimiert deinen Prompt speziell für Stable Diffusion 3.5, um visuelle Geschichten zu erzählen. Strukturiert deine Ideen für narrative Bildgenerierung."
+    "en": "Compares different AI language models (30 billion parameters). Tests how larger systems handle your prompt differently.",
+    "de": "Vergleicht verschiedene KI-Sprachmodelle (30 Milliarden Parameter). Testet, wie größere Systeme deinen Prompt anders verarbeiten."
   },
   "category": {
     "en": "Model",
@@ -15,26 +15,28 @@
   },
   "properties": [
     "calm",
-    "narrative",
-    "create"
+    "algorithmic",
+    "contemporary",
+    "explore",
+    "serious"
   ],
-  "context": "Prompting Expert",
+  "context": "conversationalist",
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,
     "max_tokens": 2048
   },
   "media_preferences": {
-    "default_output": "image",
+    "default_output": "text",
     "supported_types": [
-      "image"
+      "text"
     ]
   },
   "meta": {
     "stage": "interception",
-    "legacy_source": "workflows_legacy/model/ai4artsed_Stable-Diffusion_3.5_TellAStory_2507152203.json",
+    "legacy_source": "workflows_legacy/model/ai4artsed_LLM-Comparison_30b_2508010852.json",
     "extracted_date": "2025-10-19",
-    "original_model": "openrouter/mistralai/mistral-medium-3"
+    "original_model": "local/mistral-small:24b [local / $0.00]"
   },
   "display": {
     "icon": "🧪",

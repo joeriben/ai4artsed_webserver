@@ -2,24 +2,22 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "ClichéFilter V2",
-    "de": "ClichéFilter V2"
+    "en": "(((PromptInterception)))",
+    "de": "(((PromptInterception)))"
   },
   "description": {
-    "en": "Removes overused phrases and stereotypical descriptions. Helps you avoid clichés and find more original ways to express your ideas.",
-    "de": "Entfernt abgenutzte Phrasen und stereotype Beschreibungen. Hilft dir, Klischees zu vermeiden und originellere Ausdrucksweisen zu finden."
+    "en": "Experimental meta-interception workflow. Tests the boundaries of prompt transformation itself.",
+    "de": "Experimenteller Meta-Interception-Workflow. Testet die Grenzen der Prompt-Transformation selbst."
   },
   "category": {
-    "en": "Aesthetics",
-    "de": "Aesthetics"
+    "en": "Model",
+    "de": "Model"
   },
   "properties": [
     "calm",
     "narrative",
-    "facts",
     "contemporary",
-    "explore",
-    "serious"
+    "explore"
   ],
   "context": "professional translator",
   "parameters": {
@@ -35,14 +33,14 @@
   },
   "meta": {
     "stage": "interception",
-    "legacy_source": "workflows_legacy/aesthetics/ai4artsed_ClichéFilter_V2_2506211602.json",
+    "legacy_source": "workflows_legacy/model/ai4artsed_(((PromptInterception)))_2507101853.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral:7b"
   },
   "display": {
-    "icon": "✨",
-    "color": "#9C27B0",
-    "category": "aesthetics",
+    "icon": "🧪",
+    "color": "#795548",
+    "category": "experimental",
     "difficulty": 3,
     "order": 100
   },

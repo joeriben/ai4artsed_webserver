@@ -2,12 +2,12 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "ClichéFilter V2",
-    "de": "ClichéFilter V2"
+    "en": "ClichéFilter V1",
+    "de": "ClichéFilter V1"
   },
   "description": {
-    "en": "Removes overused phrases and stereotypical descriptions. Helps you avoid clichés and find more original ways to express your ideas.",
-    "de": "Entfernt abgenutzte Phrasen und stereotype Beschreibungen. Hilft dir, Klischees zu vermeiden und originellere Ausdrucksweisen zu finden."
+    "en": "First version of the cliché filter. Removes overused phrases and stereotypical descriptions from your prompts.",
+    "de": "Erste Version des Klischee-Filters. Entfernt abgenutzte Phrasen und stereotype Beschreibungen aus deinen Prompts."
   },
   "category": {
     "en": "Aesthetics",
@@ -35,7 +35,7 @@
   },
   "meta": {
     "stage": "interception",
-    "legacy_source": "workflows_legacy/aesthetics/ai4artsed_ClichéFilter_V2_2506211602.json",
+    "legacy_source": "workflows_legacy/aesthetics/ai4artsed_ClichéFilter_V1_2506160013.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/mistral:7b"
   },

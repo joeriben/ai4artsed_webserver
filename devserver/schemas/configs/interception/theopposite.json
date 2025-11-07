@@ -6,13 +6,19 @@
     "de": "TheOpposite"
   },
   "description": {
-    "en": "TheOpposite transformation (research-based from legacy workflow)",
-    "de": "TheOpposite-Transformation (forschungsbasiert aus Legacy-Workflow)"
+    "en": "Flips everything to its exact opposite. Bright becomes dark, happy becomes sad, and all relationships reverse completely.",
+    "de": "Kehrt alles ins genaue Gegenteil um. Hell wird dunkel, fröhlich wird traurig, und alle Beziehungen werden komplett umgedreht."
   },
   "category": {
     "en": "Semantics",
     "de": "Semantics"
   },
+  "properties": [
+    "chaotic",
+    "algorithmic",
+    "explore",
+    "playful"
+  ],
   "context": "describe the exact diametral opposite. Entities as well as relations have to be turned into their opposites.",
   "parameters": {
     "temperature": 0.7,

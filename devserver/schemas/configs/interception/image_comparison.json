@@ -6,13 +6,20 @@
     "de": "Bildmodell-Vergleich (SD3.5 vs GPT-5)"
   },
   "description": {
-    "en": "Generate the same prompt with two different image models for comparison: SD3.5 Large (local) and GPT-5 Image (cloud)",
-    "de": "Generiere denselben Prompt mit zwei verschiedenen Bildmodellen zum Vergleich: SD3.5 Large (lokal) und GPT-5 Image (Cloud)"
+    "en": "Creates the same image with two different AI models side-by-side. Helps you compare how different systems interpret your prompt.",
+    "de": "Erstellt dasselbe Bild mit zwei verschiedenen KI-Modellen nebeneinander. Hilft dir zu vergleichen, wie unterschiedliche Systeme deinen Prompt verstehen."
   },
   "category": {
     "en": "Image Generation",
     "de": "Bildgenerierung"
   },
+  "properties": [
+    "algorithmic",
+    "facts",
+    "contemporary",
+    "explore",
+    "serious"
+  ],
   "context": "Pass on the input text unchanged. Do not modify, enhance, or transform the prompt in any way. Return it exactly as provided.",
   "parameters": {
     "temperature": 0.0,

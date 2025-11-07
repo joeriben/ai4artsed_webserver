@@ -2,12 +2,12 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "Surrealization",
-    "de": "Surrealization"
+    "en": "SplitAndCombineLinear",
+    "de": "SplitAndCombineLinear"
   },
   "description": {
-    "en": "Transforms your prompt into dreamlike, surreal imagery. Combines impossible elements and explores the unconscious and unexpected.",
-    "de": "Verwandelt deinen Prompt in traumhafte, surreale Bildwelten. Kombiniert Unmögliches und erkundet das Unbewusste und Unerwartete."
+    "en": "Breaks your prompt into parts, transforms each piece, then recombines them in linear sequence. Earlier version of the spherical variant.",
+    "de": "Zerlegt deinen Prompt in Teile, transformiert jedes Stück, und fügt sie dann in linearer Reihenfolge zusammen. Frühere Version der sphärischen Variante."
   },
   "category": {
     "en": "Vector",
@@ -15,8 +15,9 @@
   },
   "properties": [
     "chaotic",
-    "emotion",
-    "explore"
+    "algorithmic",
+    "explore",
+    "playful"
   ],
   "context": "prompting expert",
   "parameters": {
@@ -32,15 +33,15 @@
   },
   "meta": {
     "stage": "interception",
-    "legacy_source": "workflows_legacy/vector/ai4artsed_Surrealization_2506092253.json",
+    "legacy_source": "workflows_legacy/vector/ai4artsed_SplitAndCombineLinear_2507021805.json",
     "extracted_date": "2025-10-19",
-    "original_model": "local/sailor2:20b"
+    "original_model": "openrouter/mistralai/mistral-medium-3 [rule-oriented / $0.40/$2.00]"
   },
   "display": {
     "icon": "📐",
     "color": "#4CAF50",
     "category": "vector",
-    "difficulty": 5,
+    "difficulty": 4,
     "order": 100
   },
   "tags": {
@@ -50,6 +51,6 @@
   "audience": {
     "workshop_suitable": false,
     "min_age": 12,
-    "complexity": "expert"
+    "complexity": "advanced"
   }
 }

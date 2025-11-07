@@ -52,6 +52,20 @@ const messages = {
       safety_pre_output: 'Ausgabe-Sicherheit',
       media: 'Generiertes Bild'
     },
+    properties: {
+      calm: 'chillig',
+      chaotic: 'chaotisch',
+      narrative: 'erzählen',
+      algorithmic: 'berechnen',
+      facts: 'fakten',
+      emotion: 'gefühl',
+      historical: 'geschichte',
+      contemporary: 'gegenwart',
+      explore: 'erforschen',
+      create: 'erschaffen',
+      playful: 'spiel',
+      serious: 'ernst'
+    },
     language: {
       switch: 'Sprache: Deutsch',
       switchTo: 'Switch to English'
@@ -107,6 +121,20 @@ const messages = {
       interception: 'Transformation',
       safety_pre_output: 'Output Safety',
       media: 'Generated Image'
+    },
+    properties: {
+      calm: 'calm',
+      chaotic: 'chaotic',
+      narrative: 'narrative',
+      algorithmic: 'algorithmic',
+      facts: 'facts',
+      emotion: 'emotion',
+      historical: 'historical',
+      contemporary: 'contemporary',
+      explore: 'explore',
+      create: 'create',
+      playful: 'playful',
+      serious: 'serious'
     },
     language: {
       switch: 'Language: English',

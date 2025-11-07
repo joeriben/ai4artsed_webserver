@@ -6,13 +6,19 @@
     "de": "StillePost"
   },
   "description": {
-    "en": "StillePost transformation - Text passes through 8 random languages (Chinese Whispers effect)",
-    "de": "StillePost-Transformation - Text durchläuft 8 zufällige Sprachen (Stille-Post-Effekt)"
+    "en": "Passes your text through 8 random languages like a game of telephone. Creates surprising changes as meaning shifts through multiple translations.",
+    "de": "Schickt deinen Text durch 8 zufällige Sprachen wie bei Stille Post. Erzeugt überraschende Veränderungen, während die Bedeutung durch mehrere Übersetzungen wandert."
   },
   "category": {
     "en": "Semantics",
     "de": "Semantics"
   },
+  "properties": [
+    "chaotic",
+    "algorithmic",
+    "explore",
+    "playful"
+  ],
   "context": "Translate the following text to {{TARGET_LANGUAGE}}.\n\nImportant rules:\n- Translate naturally and idiomatically\n- Do not add any commentaries, explanations, or error messages\n- Only output the translated text\n- Preserve the general meaning and tone\n\nText to translate:",
   "parameters": {
     "temperature": 0.7,

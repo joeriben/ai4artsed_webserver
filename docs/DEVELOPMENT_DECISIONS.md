@@ -581,6 +581,145 @@ const stageName = i18n.stages[stageId];
 
 ---
 
-**Last Updated:** 2025-11-04 (Session 30)
-**Active Decisions:** 6
+## 🎯 Active Decision 7: Frontend Architecture - Vue.js 3-Phase Model (2025-11-06, Session 33)
+
+**Status:** PLANNED (Documentation complete, implementation pending)
+**Priority:** HIGH (New frontend architecture)
+
+### The Decision: 3-Phase User Journey with Entity-Based Transparency
+
+**Core Principle:**
+- **Phase 1:** Config Selection (Browse, Search, Select)
+- **Phase 2:** Creative Input (Prompt entry)
+- **Phase 3:** AI Process Transparency (Entity-based visualization)
+
+### Phase 2 vs Phase 3 - Pedagogical Distinction
+
+**Phase 2 - Creative Act:**
+- Purpose: Prompt input, creative expression
+- User Action: Write/conceptualize their prompt
+- Interface: Simple textarea, examples, execute button
+
+**Phase 3 - AI Process Transparency:**
+- Purpose: **Make AI decision-making visible** (Against Black-Box Solutionism)
+- Pedagogical Goal: Students understand AI as series of transformations, not magic
+- Interface: **Entity-based visualization** (NOT stage-based)
+
+### Key Architectural Decision: Entity-Based Visualization
+
+**NOT Stage-Based (4 boxes):**
+```
+❌ [Stage 1] → [Stage 2] → [Stage 3] → [Stage 4]
+   (Too abstract, hides process)
+```
+
+**Entity-Based (one box per file in exports/json):**
+```
+✅ [01_input.txt] → [02_translation.txt] → [03_safety.json] →
+   [04_interception_context.txt] → [05_interception_result.txt] →
+   [06_safety_pre_output.json] → [07_output_image.png]
+```
+
+**Rationale:**
+1. **Transparency:** Every intermediate step is visible and inspectable
+2. **Pedagogical:** Students see HOW AI processes information step-by-step
+3. **Meta-Prompt Visibility:** Interception context files show what instructions modify prompts
+4. **Recursive Visibility:** For Stillepost (8 iterations), all 8 steps visible as separate entities
+5. **Against Solutionism:** No black boxes, every transformation documented
+
+### What This Means for Implementation
+
+**Every file in `exports/{run_id}/json/` gets a box:**
+- Input files (01_input.txt)
+- Translation files (02_translation.txt)
+- Safety check results (03_safety_stage1.json)
+- **Meta-prompts** (04_interception_context.txt) ← Pedagogically crucial
+- Interception results (05_interception_result.txt)
+- Pre-output safety (06_safety_pre_output.json)
+- Final outputs (07_output_image.png, etc.)
+- **Recursive iterations** (04_interception_iter1.txt through iter8.txt)
+
+**Real-Time Display:**
+- Poll `/api/pipeline/{run_id}/status` every 1 second
+- Entities appear progressively as they become available
+- Status icons: ✓ Available / ⟳ In Progress / ○ Pending
+- Click any entity to view full content in modal
+
+### Technology Stack
+
+**Framework:** Vue.js 3 (Composition API)
+**State Management:** Pinia
+**Routing:** Vue Router
+**Styling:** Scoped CSS (BEM methodology)
+**i18n:** vue-i18n (DE/EN, extensible)
+**Build:** Vite
+
+### Metadata-Driven Design
+
+**Principle:** Frontend NEVER hardcodes config lists
+- Configs expose metadata via `/pipeline_configs_metadata` API
+- Frontend dynamically renders based on metadata
+- New configs appear automatically
+- User configs integrate seamlessly
+
+**Config Metadata Structure:**
+```json
+{
+  "id": "dada",
+  "name": {"de": "Dada-Transformation", "en": "Dada Transformation"},
+  "description": {"de": "...", "en": "..."},
+  "category": "art-movements",
+  "icon": "🎨",
+  "difficulty": 3,
+  "output_types": ["text"],
+  "pipeline": "text_transformation"
+}
+```
+
+### Internationalization (i18n)
+
+**Mandatory from Day 1:**
+- UI strings in dictionary files (`locales/de.json`, `locales/en.json`)
+- Config content multilingual in config files themselves
+- Automatic translation augmentation via existing translation pipelines
+- Browser language detection with manual override
+- Locale persistence in localStorage
+
+### Documentation
+
+**Complete Planning Documents:**
+- `docs/tmp/FRONTEND_00_README.md` - Overview
+- `docs/tmp/FRONTEND_01_ARCHITECTURE_OVERVIEW.md` - 3-phase architecture
+- `docs/tmp/FRONTEND_02_PHASE_1_SCHEMA_SELECTION.md` - Config browser
+- `docs/tmp/FRONTEND_03_PHASE_2_3_FLOW_EXPERIENCE_V2.md` - **Entity-based visualization (REVISED)**
+- `docs/tmp/FRONTEND_04_VUE_COMPONENT_ARCHITECTURE.md` - Component structure
+- `docs/tmp/FRONTEND_05_METADATA_SCHEMA_SPECIFICATION.md` - Metadata schema
+- `docs/tmp/FRONTEND_06_VISUAL_DESIGN_PATTERNS.md` - Design system
+
+**Total Documentation:** ~51,000 words
+
+### Implementation Timeline
+
+**Status:** Ready for implementation
+**Next Steps:**
+1. Set up Vue.js project structure
+2. Implement Phase 1 MVP (Tile view only)
+3. Implement Phase 2 (Prompt input)
+4. Implement Phase 3 (Entity flow visualization)
+5. Polish & enhance
+
+**Estimated Timeline:**
+- MVP (basic functionality): 2-3 weeks
+- V1.0 (full features): 6-8 weeks
+
+### Affected Files
+
+**New Directory:** `/frontend/` (to be created)
+**Backend API:** Existing endpoints already support entity-based responses
+**Documentation:** All frontend docs in `docs/tmp/FRONTEND_*.md`
+
+---
+
+**Last Updated:** 2025-11-06 (Session 33)
+**Active Decisions:** 7
 **Status:** Clean, concise, actively maintained
