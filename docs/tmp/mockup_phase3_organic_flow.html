@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3 - Organic Entity Flow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* App Container */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: rgba(42, 42, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid #3a3a3a;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .top-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: 1px solid #4a90e2;
+            color: #4a90e2;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .config-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .top-center {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .prompt-display {
+            font-size: 13px;
+            color: #888;
+            max-width: 400px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .prompt-display strong {
+            color: #4a90e2;
+        }
+
+        .top-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+
+        .spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f39c12;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .elapsed {
+            font-family: 'Courier New', monospace;
+            color: #888;
+            font-size: 13px;
+        }
+
+        /* Canvas Container */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .flow-canvas {
+            position: relative;
+            min-width: 100%;
+            height: 100%;
+            padding: 40px;
+        }
+
+        /* SVG Connections */
+        svg.connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .connection-path {
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 8 4;
+            animation: flow 2s linear infinite;
+            transition: all 0.3s;
+        }
+
+        .connection-path.completed {
+            stroke: rgba(39, 174, 96, 0.4);
+        }
+
+        .connection-path.active {
+            stroke: rgba(243, 156, 18, 0.6);
+            stroke-width: 3;
+            filter: drop-shadow(0 0 8px rgba(243, 156, 18, 0.4));
+        }
+
+        .connection-path.pending {
+            stroke: rgba(100, 100, 100, 0.2);
+            stroke-dasharray: 4 4;
+        }
+
+        @keyframes flow {
+            to { stroke-dashoffset: -12; }
+        }
+
+        /* Entity Bubble */
+        .entity-bubble {
+            position: absolute;
+            width: 200px;
+            min-height: 180px;
+            padding: 20px;
+            border-radius: 50% / 40%;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .entity-bubble:hover {
+            transform: scale(1.08) translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+        }
+
+        /* Entity States */
+        .entity-bubble.available {
+            background: radial-gradient(circle at 30% 30%, rgba(39, 174, 96, 0.25), rgba(39, 174, 96, 0.05));
+            border: 2px solid rgba(39, 174, 96, 0.5);
+        }
+
+        .entity-bubble.in-progress {
+            background: radial-gradient(circle at 30% 30%, rgba(243, 156, 18, 0.3), rgba(243, 156, 18, 0.05));
+            border: 2px solid rgba(243, 156, 18, 0.6);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .entity-bubble.pending {
+            background: radial-gradient(circle at 30% 30%, rgba(100, 100, 100, 0.15), rgba(100, 100, 100, 0.02));
+            border: 2px solid rgba(100, 100, 100, 0.3);
+            opacity: 0.5;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 8px 32px rgba(243, 156, 18, 0.3);
+            }
+            50% {
+                box-shadow: 0 12px 48px rgba(243, 156, 18, 0.5);
+            }
+        }
+
+        .entity-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .entity-filename {
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            color: #888;
+            margin-bottom: 6px;
+            word-break: break-all;
+        }
+
+        .entity-type {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .entity-bubble.available .entity-type {
+            color: #27ae60;
+        }
+
+        .entity-bubble.in-progress .entity-type {
+            color: #f39c12;
+        }
+
+        .entity-bubble.pending .entity-type {
+            color: #666;
+        }
+
+        .entity-preview {
+            font-size: 12px;
+            line-height: 1.4;
+            color: #aaa;
+            max-width: 90%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .entity-status {
+            margin-top: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Detail Panel (Floating) */
+        .detail-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: calc(100% - 40px);
+            background: rgba(42, 42, 42, 0.98);
+            backdrop-filter: blur(30px);
+            border: 1px solid #3a3a3a;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+        }
+
+        .detail-panel.active {
+            display: flex;
+        }
+
+        .detail-header {
+            padding: 16px;
+            border-bottom: 1px solid #3a3a3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-title {
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            color: #4a90e2;
+            font-weight: 600;
+        }
+
+        .detail-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+        }
+
+        .detail-close:hover {
+            color: #e74c3c;
+        }
+
+        .detail-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .detail-meta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 11px;
+            color: #888;
+        }
+
+        .detail-content {
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #e0e0e0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .detail-actions {
+            padding: 16px;
+            border-top: 1px solid #3a3a3a;
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            flex: 1;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            color: #e0e0e0;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #3a3a3a;
+        }
+
+        /* Particles */
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-left">
+                <button class="back-btn">← Zurück</button>
+                <div class="config-name">🎨 Dada-Transformation</div>
+            </div>
+            <div class="top-center">
+                <div class="prompt-display">
+                    <strong>Prompt:</strong> "Eine schöne Blume auf einer sonnigen Wiese"
+                </div>
+            </div>
+            <div class="top-right">
+                <div class="status-badge">
+                    <div class="spinner"></div>
+                    <span>In Bearbeitung</span>
+                </div>
+                <div class="elapsed">00:23</div>
+            </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-container">
+            <div class="flow-canvas" id="flowCanvas">
+                <!-- Particles -->
+                <div class="particles" id="particles"></div>
+
+                <!-- SVG Connections -->
+                <svg class="connections" id="connections"></svg>
+
+                <!-- Entity Bubbles (will be positioned by JS) -->
+                <!-- Entity 1: Input -->
+                <div class="entity-bubble available" style="left: 100px; top: 200px;" data-entity="01_input">
+                    <div class="entity-icon">📝</div>
+                    <div class="entity-filename">01_input.txt</div>
+                    <div class="entity-type">✓ Eingabe</div>
+                    <div class="entity-preview">Eine schöne Blume auf...</div>
+                </div>
+
+                <!-- Entity 2: Translation -->
+                <div class="entity-bubble available" style="left: 360px; top: 140px;" data-entity="02_translation">
+                    <div class="entity-icon">🌐</div>
+                    <div class="entity-filename">02_translation.txt</div>
+                    <div class="entity-type">✓ Übersetzung</div>
+                    <div class="entity-preview">A beautiful flower...</div>
+                </div>
+
+                <!-- Entity 3: Safety -->
+                <div class="entity-bubble available" style="left: 620px; top: 260px;" data-entity="03_safety">
+                    <div class="entity-icon">🛡️</div>
+                    <div class="entity-filename">03_safety.json</div>
+                    <div class="entity-type">✓ Sicherheit</div>
+                    <div class="entity-preview">{"status": "SAFE"}</div>
+                </div>
+
+                <!-- Entity 4: Context -->
+                <div class="entity-bubble in-progress" style="left: 880px; top: 160px;" data-entity="04_context">
+                    <div class="entity-icon">🧠</div>
+                    <div class="entity-filename">04_context.txt</div>
+                    <div class="entity-type">
+                        <div class="spinner" style="width: 10px; height: 10px; border-width: 2px;"></div>
+                        Meta-Prompt
+                    </div>
+                    <div class="entity-preview">Transform using Dada...</div>
+                </div>
+
+                <!-- Entity 5: Result (pending) -->
+                <div class="entity-bubble pending" style="left: 1140px; top: 240px;" data-entity="05_result">
+                    <div class="entity-icon">✨</div>
+                    <div class="entity-filename">05_result.txt</div>
+                    <div class="entity-type">○ Ausstehend</div>
+                    <div class="entity-preview">Warten...</div>
+                </div>
+
+                <!-- Entity 6: Final Safety (pending) -->
+                <div class="entity-bubble pending" style="left: 1400px; top: 150px;" data-entity="06_safety_final">
+                    <div class="entity-icon">✅</div>
+                    <div class="entity-filename">06_safety_final.json</div>
+                    <div class="entity-type">○ Ausstehend</div>
+                    <div class="entity-preview">Warten...</div>
+                </div>
+
+                <!-- Entity 7: Output (pending) -->
+                <div class="entity-bubble pending" style="left: 1660px; top: 220px;" data-entity="07_output">
+                    <div class="entity-icon">🎨</div>
+                    <div class="entity-filename">07_output_text.txt</div>
+                    <div class="entity-type">○ Finale Ausgabe</div>
+                    <div class="entity-preview">Warten...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Panel -->
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-header">
+                <div class="detail-title" id="detailTitle">01_input.txt</div>
+                <button class="detail-close" onclick="closeDetail()">✕</button>
+            </div>
+            <div class="detail-body">
+                <div class="detail-meta">
+                    <span id="detailType">text/plain</span>
+                    <span id="detailSize">47 bytes</span>
+                </div>
+                <div class="detail-content" id="detailContent">
+                    Eine schöne Blume auf einer sonnigen Wiese
+                </div>
+            </div>
+            <div class="detail-actions">
+                <button class="action-btn">📋 Kopieren</button>
+                <button class="action-btn">💾 Download</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 40; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Draw connections between entities
+        function drawConnections() {
+            const svg = document.getElementById('connections');
+            const bubbles = Array.from(document.querySelectorAll('.entity-bubble'));
+
+            // Clear existing
+            svg.innerHTML = '';
+
+            // Draw connections between consecutive bubbles
+            for (let i = 0; i < bubbles.length - 1; i++) {
+                const from = bubbles[i];
+                const to = bubbles[i + 1];
+
+                const fromRect = from.getBoundingClientRect();
+                const toRect = to.getBoundingClientRect();
+                const canvasRect = svg.getBoundingClientRect();
+
+                const x1 = fromRect.left + fromRect.width / 2 - canvasRect.left + 40;
+                const y1 = fromRect.top + fromRect.height / 2 - canvasRect.top;
+                const x2 = toRect.left + toRect.width / 2 - canvasRect.left + 40;
+                const y2 = toRect.top + toRect.height / 2 - canvasRect.top;
+
+                const cx = (x1 + x2) / 2;
+                const cy = (y1 + y2) / 2 - 30;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+
+                // Determine connection state
+                const fromState = from.classList.contains('available') ? 'completed' :
+                                 from.classList.contains('in-progress') ? 'active' : 'pending';
+                const toState = to.classList.contains('available') || to.classList.contains('in-progress') ? 'active' : 'pending';
+
+                const state = fromState === 'completed' && toState !== 'pending' ? 'active' :
+                             fromState === 'completed' ? 'completed' : 'pending';
+
+                path.classList.add('connection-path', state);
+                svg.appendChild(path);
+            }
+        }
+
+        // Entity data
+        const entityData = {
+            '01_input': {
+                type: 'text/plain',
+                size: '47 bytes',
+                content: 'Eine schöne Blume auf einer sonnigen Wiese'
+            },
+            '02_translation': {
+                type: 'text/plain',
+                size: '41 bytes',
+                content: 'A beautiful flower in a sunny meadow'
+            },
+            '03_safety': {
+                type: 'application/json',
+                size: '156 bytes',
+                content: `{
+  "status": "SAFE",
+  "flagged": false,
+  "categories_detected": [],
+  "timestamp": "2025-11-06T14:23:18Z"
+}`
+            },
+            '04_context': {
+                type: 'text/plain',
+                size: '324 bytes',
+                content: `Transform the following text using Dada art movement principles:
+create nonsensical and unexpected word combinations that challenge conventional meaning.
+
+Your task is to deconstruct the input and reassemble it in a way that defies logic but retains poetic quality.`
+            }
+        };
+
+        // Show detail panel
+        document.querySelectorAll('.entity-bubble').forEach(bubble => {
+            bubble.addEventListener('click', function() {
+                const entityId = this.dataset.entity;
+                const data = entityData[entityId];
+
+                if (data) {
+                    document.getElementById('detailTitle').textContent = this.querySelector('.entity-filename').textContent;
+                    document.getElementById('detailType').textContent = data.type;
+                    document.getElementById('detailSize').textContent = data.size;
+                    document.getElementById('detailContent').textContent = data.content;
+                    document.getElementById('detailPanel').classList.add('active');
+                }
+            });
+        });
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('active');
+        }
+
+        // Initial draw
+        setTimeout(drawConnections, 100);
+        window.addEventListener('resize', drawConnections);
+    </script>
+</body>
+</html>

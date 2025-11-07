@@ -17,6 +17,12 @@ const router = createRouter({
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
     },
+    {
+      path: '/select',
+      name: 'property-selection',
+      // Phase 1: Property-based config selection interface
+      component: () => import('../views/PropertyQuadrantsView.vue'),
+    },
   ],
 })
 

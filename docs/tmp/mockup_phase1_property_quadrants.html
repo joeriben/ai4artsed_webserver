@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1 - Property-Based Selection (Quadrants)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* App Container */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: rgba(42, 42, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid #3a3a3a;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .top-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .app-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .top-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .help-btn {
+            background: transparent;
+            border: 1px solid #4a90e2;
+            color: #4a90e2;
+            padding: 6px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .selected-count {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .selected-count strong {
+            color: #4a90e2;
+        }
+
+        /* Main Container - Quadrants */
+        .quadrant-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 0;
+            background: #0a0a0a;
+            position: relative;
+        }
+
+        .quadrant {
+            background: #0a0a0a;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Quadrant Labels */
+        .quadrant-label {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #333;
+            z-index: 5;
+        }
+
+        /* Quadrant II - Property Selection Area */
+        .quadrant-ii {
+            background: #0a0a0a;
+        }
+
+        .property-canvas {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: 60px 40px 40px 40px;
+        }
+
+        /* Property Bubbles */
+        .property-bubble {
+            position: absolute;
+            padding: 16px 24px;
+            border-radius: 50px;
+            backdrop-filter: blur(20px);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            font-weight: 600;
+            user-select: none;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .property-bubble:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .property-bubble.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        /* Property Pair Colors */
+        .prop-pair-1 { /* calm ↔ chaotic */
+            background: rgba(155, 89, 182, 0.2);
+            border-color: rgba(155, 89, 182, 0.5);
+            color: #9b59b6;
+        }
+        .prop-pair-1.selected {
+            background: rgba(155, 89, 182, 0.4);
+            border-color: #9b59b6;
+        }
+
+        .prop-pair-2 { /* narrative ↔ algorithmic */
+            background: rgba(52, 152, 219, 0.2);
+            border-color: rgba(52, 152, 219, 0.5);
+            color: #3498db;
+        }
+        .prop-pair-2.selected {
+            background: rgba(52, 152, 219, 0.4);
+            border-color: #3498db;
+        }
+
+        .prop-pair-3 { /* facts ↔ emotion */
+            background: rgba(231, 76, 60, 0.2);
+            border-color: rgba(231, 76, 60, 0.5);
+            color: #e74c3c;
+        }
+        .prop-pair-3.selected {
+            background: rgba(231, 76, 60, 0.4);
+            border-color: #e74c3c;
+        }
+
+        .prop-pair-4 { /* historical ↔ contemporary */
+            background: rgba(243, 156, 18, 0.2);
+            border-color: rgba(243, 156, 18, 0.5);
+            color: #f39c12;
+        }
+        .prop-pair-4.selected {
+            background: rgba(243, 156, 18, 0.4);
+            border-color: #f39c12;
+        }
+
+        .prop-pair-5 { /* explore ↔ create */
+            background: rgba(46, 204, 113, 0.2);
+            border-color: rgba(46, 204, 113, 0.5);
+            color: #2ecc71;
+        }
+        .prop-pair-5.selected {
+            background: rgba(46, 204, 113, 0.4);
+            border-color: #2ecc71;
+        }
+
+        .prop-pair-6 { /* playful ↔ serious */
+            background: rgba(241, 196, 15, 0.2);
+            border-color: rgba(241, 196, 15, 0.5);
+            color: #f1c40f;
+        }
+        .prop-pair-6.selected {
+            background: rgba(241, 196, 15, 0.4);
+            border-color: #f1c40f;
+        }
+
+        /* SVG Rubber Bands */
+        svg.rubber-bands {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .rubber-band {
+            stroke-width: 3;
+            fill: none;
+            stroke-dasharray: 8 4;
+            animation: rubberFlow 3s linear infinite;
+            filter: drop-shadow(0 0 8px currentColor);
+            opacity: 0.6;
+            transition: all 0.3s;
+        }
+
+        .rubber-band.active {
+            stroke-width: 4;
+            opacity: 1;
+            filter: drop-shadow(0 0 12px currentColor);
+        }
+
+        @keyframes rubberFlow {
+            to { stroke-dashoffset: -12; }
+        }
+
+        /* Config Cards (Floating) */
+        .config-canvas {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: 50px 24px 24px 24px;
+            overflow: hidden;
+        }
+
+        .config-card {
+            position: absolute;
+            background: rgba(42, 42, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid #3a3a3a;
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 200px;
+            min-height: 220px;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .config-card.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .config-card:hover {
+            transform: translateY(-4px);
+            border-color: #4a90e2;
+            box-shadow: 0 8px 24px rgba(74, 144, 226, 0.3);
+        }
+
+        .config-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .config-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .config-description {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #aaa;
+            margin-bottom: 12px;
+            flex: 1;
+        }
+
+        .config-properties {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            margin-top: auto;
+        }
+
+        .property-tag {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 10px;
+            border: 1px solid currentColor;
+            opacity: 0.7;
+        }
+
+        .config-difficulty {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #555;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Particles */
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+
+        /* Instructions Overlay */
+        .instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 10;
+            max-width: 80%;
+        }
+
+        .instructions-large {
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+
+        .instructions-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-left">
+                <div class="app-title">⚡ Wähle durch Eigenschaften</div>
+            </div>
+            <div class="top-right">
+                <div class="selected-count">
+                    Eigenschaften: <strong id="propertyCount">0</strong> |
+                    Workflows: <strong id="configCount">0</strong>
+                </div>
+                <button class="help-btn">? Hilfe</button>
+            </div>
+        </div>
+
+        <!-- Quadrant Container -->
+        <div class="quadrant-container">
+            <!-- Quadrant II (Upper-Left) - Property Selection -->
+            <div class="quadrant quadrant-ii">
+                <div class="quadrant-label">Quadrant II: Eigenschaften</div>
+                <div class="particles" id="particles-ii"></div>
+
+                <div class="instructions">
+                    <div class="instructions-large">✨</div>
+                    <div class="instructions-title">Wähle Eigenschaften</div>
+                    <div>Keine Mitte. Keine Defaults.<br>Positioniere dich zur KI.</div>
+                </div>
+
+                <!-- SVG Rubber Bands -->
+                <svg class="rubber-bands" id="rubberBands"></svg>
+
+                <div class="property-canvas" id="propertyCanvas">
+                    <!-- Property Pair 1: calm ↔ chaotic -->
+                    <div class="property-bubble prop-pair-1" data-property="calm" data-pair="1" style="top: 15%; left: 20%;">
+                        🌊 calm
+                    </div>
+                    <div class="property-bubble prop-pair-1" data-property="chaotic" data-pair="1" style="top: 15%; right: 20%;">
+                        ⚡ chaotic
+                    </div>
+
+                    <!-- Property Pair 2: narrative ↔ algorithmic -->
+                    <div class="property-bubble prop-pair-2" data-property="narrative" data-pair="2" style="top: 35%; left: 15%;">
+                        📖 narrative
+                    </div>
+                    <div class="property-bubble prop-pair-2" data-property="algorithmic" data-pair="2" style="top: 35%; right: 15%;">
+                        🔢 algorithmic
+                    </div>
+
+                    <!-- Property Pair 3: facts ↔ emotion -->
+                    <div class="property-bubble prop-pair-3" data-property="facts" data-pair="3" style="top: 55%; left: 25%;">
+                        📊 facts
+                    </div>
+                    <div class="property-bubble prop-pair-3" data-property="emotion" data-pair="3" style="top: 55%; right: 25%;">
+                        ❤️ emotion
+                    </div>
+
+                    <!-- Property Pair 4: historical ↔ contemporary -->
+                    <div class="property-bubble prop-pair-4" data-property="historical" data-pair="4" style="top: 75%; left: 20%;">
+                        🏛️ historical
+                    </div>
+                    <div class="property-bubble prop-pair-4" data-property="contemporary" data-pair="4" style="top: 75%; right: 20%;">
+                        🌐 contemporary
+                    </div>
+
+                    <!-- Property Pair 5: explore ↔ create -->
+                    <div class="property-bubble prop-pair-5" data-property="explore" data-pair="5" style="top: 25%; left: 50%;">
+                        🔍 explore
+                    </div>
+                    <div class="property-bubble prop-pair-5" data-property="create" data-pair="5" style="top: 65%; left: 50%;">
+                        ✨ create
+                    </div>
+
+                    <!-- Property Pair 6: playful ↔ serious -->
+                    <div class="property-bubble prop-pair-6" data-property="playful" data-pair="6" style="top: 45%; left: 45%;">
+                        🎮 playful
+                    </div>
+                    <div class="property-bubble prop-pair-6" data-property="serious" data-pair="6" style="top: 45%; right: 45%;">
+                        🎯 serious
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quadrant I (Upper-Right) - Configs -->
+            <div class="quadrant quadrant-i">
+                <div class="quadrant-label">Quadrant I</div>
+                <div class="config-canvas" id="quadrantI">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">→</div>
+                        <div class="empty-state-text">
+                            Wähle Eigenschaften links,<br>um Workflows zu sehen
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quadrant III (Lower-Left) - Configs -->
+            <div class="quadrant quadrant-iii">
+                <div class="quadrant-label">Quadrant III</div>
+                <div class="config-canvas" id="quadrantIII"></div>
+            </div>
+
+            <!-- Quadrant IV (Lower-Right) - Configs -->
+            <div class="quadrant quadrant-iv">
+                <div class="quadrant-label">Quadrant IV</div>
+                <div class="config-canvas" id="quadrantIV"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Config database with properties (from PROPERTY_TAXONOMY_ITERATION_03)
+        const configs = [
+            {
+                id: 'dada',
+                name: 'Dada',
+                icon: '🎨',
+                description: 'Zerstört Bedeutung. Du verlierst Kontrolle. KI produziert Nonsens.',
+                properties: ['chaotic', 'narrative', 'emotion', 'historical', 'create', 'playful'],
+                difficulty: '⭐⭐⭐'
+            },
+            {
+                id: 'bauhaus',
+                name: 'Bauhaus',
+                icon: '🏛️',
+                description: 'Reduziert auf geometrische Form. Du behältst Kontrolle. KI folgt Prinzipien.',
+                properties: ['calm', 'narrative', 'facts', 'historical', 'create', 'serious'],
+                difficulty: '⭐⭐'
+            },
+            {
+                id: 'yorubaheritage',
+                name: 'Yoruba Heritage',
+                icon: '🌍',
+                description: 'Verlangt nicht-westliches Denken. KI wird scheitern (Klischees, Bias).',
+                properties: ['calm', 'narrative', 'emotion', 'historical', 'explore', 'serious'],
+                difficulty: '⭐⭐⭐⭐'
+            },
+            {
+                id: 'stillepost',
+                name: 'Stille Post',
+                icon: '💬',
+                description: 'Du siehst jeden Schritt. 8 Sprachen. Bedeutung driftet. KI zeigt, wie sie arbeitet.',
+                properties: ['chaotic', 'algorithmic', 'explore', 'playful'],
+                difficulty: '⭐⭐⭐'
+            },
+            {
+                id: 'jugendsprache',
+                name: 'Jugendsprache',
+                icon: '💯',
+                description: 'UK Urban Culture. Zeitgenössisch. Emotional. Chaotisch spielerisch.',
+                properties: ['chaotic', 'narrative', 'emotion', 'contemporary', 'create', 'playful'],
+                difficulty: '⭐⭐'
+            },
+            {
+                id: 'quantumtheory',
+                name: 'Quantum Theory',
+                icon: '🌌',
+                description: 'Ontologie-Mapping. Radikal. Chaotisch aber berechnend. Provozierend.',
+                properties: ['chaotic', 'algorithmic', 'facts', 'create', 'serious'],
+                difficulty: '⭐⭐⭐⭐⭐'
+            },
+            {
+                id: 'piglatin',
+                name: 'Pig Latin',
+                icon: '🐷',
+                description: 'Buchstabentausch. Regelbasiert. Spielerisch. Keine Semantik.',
+                properties: ['calm', 'algorithmic', 'facts', 'playful'],
+                difficulty: '⭐'
+            },
+            {
+                id: 'expressionism',
+                name: 'Expressionism',
+                icon: '🎭',
+                description: 'Emotional intensiv. Chaotisch. Historisch. Ernst.',
+                properties: ['chaotic', 'narrative', 'emotion', 'historical', 'create', 'serious'],
+                difficulty: '⭐⭐⭐'
+            },
+            {
+                id: 'technicaldrawing',
+                name: 'Technical Drawing',
+                icon: '📐',
+                description: 'Systematisch. Präzise. Faktenbasiert. Ruhig und kontrolliert.',
+                properties: ['calm', 'algorithmic', 'facts', 'create', 'serious'],
+                difficulty: '⭐⭐⭐'
+            },
+            {
+                id: 'overdrive',
+                name: 'Overdrive',
+                icon: '🔥',
+                description: 'Übertreibung bis zum Absurden. Chaotisch. Emotional. Zeitgenössisch.',
+                properties: ['chaotic', 'narrative', 'emotion', 'contemporary', 'create', 'playful'],
+                difficulty: '⭐⭐'
+            }
+        ];
+
+        // Selected properties
+        let selectedProperties = new Set();
+
+        // Generate particles for Quadrant II
+        const particlesContainer = document.getElementById('particles-ii');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Draw rubber bands between property pairs
+        function drawRubberBands() {
+            const svg = document.getElementById('rubberBands');
+            svg.innerHTML = '';
+
+            // Get all property pairs
+            const pairs = {};
+            document.querySelectorAll('.property-bubble').forEach(bubble => {
+                const pairId = bubble.dataset.pair;
+                if (!pairs[pairId]) pairs[pairId] = [];
+                pairs[pairId].push(bubble);
+            });
+
+            // Draw lines between each pair
+            Object.entries(pairs).forEach(([pairId, bubbles]) => {
+                if (bubbles.length !== 2) return;
+
+                const [bubble1, bubble2] = bubbles;
+                const rect1 = bubble1.getBoundingClientRect();
+                const rect2 = bubble2.getBoundingClientRect();
+                const svgRect = svg.getBoundingClientRect();
+
+                const x1 = rect1.left + rect1.width / 2 - svgRect.left;
+                const y1 = rect1.top + rect1.height / 2 - svgRect.top;
+                const x2 = rect2.left + rect2.width / 2 - svgRect.left;
+                const y2 = rect2.top + rect2.height / 2 - svgRect.top;
+
+                // Slight curve for organic feel
+                const cx = (x1 + x2) / 2;
+                const cy = (y1 + y2) / 2 + 20;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                path.classList.add('rubber-band', `prop-pair-${pairId}`);
+
+                // Get color from property bubble
+                const color = getPropertyColor(parseInt(pairId));
+                path.style.stroke = color;
+
+                // Check if either property is selected
+                const prop1 = bubble1.dataset.property;
+                const prop2 = bubble2.dataset.property;
+                if (selectedProperties.has(prop1) || selectedProperties.has(prop2)) {
+                    path.classList.add('active');
+                }
+
+                svg.appendChild(path);
+            });
+        }
+
+        // Property pairs (for XOR logic)
+        const propertyPairs = {
+            'calm': 'chaotic',
+            'chaotic': 'calm',
+            'narrative': 'algorithmic',
+            'algorithmic': 'narrative',
+            'facts': 'emotion',
+            'emotion': 'facts',
+            'historical': 'contemporary',
+            'contemporary': 'historical',
+            'explore': 'create',
+            'create': 'explore',
+            'playful': 'serious',
+            'serious': 'playful'
+        };
+
+        // Property bubble click handler
+        document.querySelectorAll('.property-bubble').forEach(bubble => {
+            bubble.addEventListener('click', function() {
+                const property = this.dataset.property;
+                const opposite = propertyPairs[property];
+
+                if (selectedProperties.has(property)) {
+                    // Deselect this property
+                    selectedProperties.delete(property);
+                    this.classList.remove('selected');
+                } else {
+                    // Select this property
+                    selectedProperties.add(property);
+                    this.classList.add('selected');
+
+                    // Deselect opposite if selected (XOR within pair)
+                    if (opposite && selectedProperties.has(opposite)) {
+                        selectedProperties.delete(opposite);
+                        // Find and deselect the opposite bubble
+                        document.querySelectorAll('.property-bubble').forEach(otherBubble => {
+                            if (otherBubble.dataset.property === opposite) {
+                                otherBubble.classList.remove('selected');
+                            }
+                        });
+                    }
+                }
+
+                drawRubberBands();
+                updateConfigDisplay();
+            });
+        });
+
+        // Update config display based on selected properties
+        function updateConfigDisplay() {
+            const quadrantI = document.getElementById('quadrantI');
+            const quadrantIII = document.getElementById('quadrantIII');
+            const quadrantIV = document.getElementById('quadrantIV');
+
+            // Update counters
+            document.getElementById('propertyCount').textContent = selectedProperties.size;
+
+            if (selectedProperties.size === 0) {
+                // Show empty state only in Quadrant I
+                quadrantI.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">→</div>
+                        <div class="empty-state-text">
+                            Wähle Eigenschaften links,<br>um Workflows zu sehen
+                        </div>
+                    </div>
+                `;
+                quadrantIII.innerHTML = '';
+                quadrantIV.innerHTML = '';
+                document.getElementById('configCount').textContent = '0';
+                return;
+            }
+
+            // Calculate match scores
+            const matchedConfigs = configs.map(config => {
+                const matches = config.properties.filter(p => selectedProperties.has(p)).length;
+                const matchScore = matches / selectedProperties.size;
+                return { config, matches, matchScore };
+            }).filter(item => item.matches > 0);
+
+            document.getElementById('configCount').textContent = matchedConfigs.length;
+
+            if (matchedConfigs.length === 0) {
+                quadrantI.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🤔</div>
+                        <div class="empty-state-text">
+                            Keine Workflows mit<br>diesen Eigenschaften
+                        </div>
+                    </div>
+                `;
+                quadrantIII.innerHTML = '';
+                quadrantIV.innerHTML = '';
+                return;
+            }
+
+            // Clear empty states
+            quadrantI.innerHTML = '';
+            quadrantIII.innerHTML = '';
+            quadrantIV.innerHTML = '';
+
+            // Distribute configs with bias toward lower half (III and IV)
+            const quadrants = [
+                { element: quadrantI, weight: 0.2 },    // 20% in upper-right
+                { element: quadrantIII, weight: 0.4 },  // 40% in lower-left
+                { element: quadrantIV, weight: 0.4 }    // 40% in lower-right
+            ];
+
+            matchedConfigs.forEach((item, index) => {
+                // Pick weighted random quadrant (favoring lower half)
+                const rand = Math.random();
+                let quadrant;
+                if (rand < 0.2) {
+                    quadrant = quadrantI;
+                } else if (rand < 0.6) {
+                    quadrant = quadrantIII;
+                } else {
+                    quadrant = quadrantIV;
+                }
+
+                // Create card with random position
+                const card = document.createElement('div');
+                card.className = 'config-card';
+                card.innerHTML = createConfigCardContent(item.config);
+
+                // Random position within quadrant
+                const maxX = quadrant.offsetWidth - 220; // card width
+                const maxY = quadrant.offsetHeight - 240; // card height
+                const x = Math.random() * maxX;
+                const y = Math.random() * maxY;
+
+                card.style.left = x + 'px';
+                card.style.top = y + 'px';
+
+                // Staggered animation
+                setTimeout(() => {
+                    card.classList.add('visible');
+                }, index * 100);
+
+                card.onclick = () => selectConfig(item.config.id);
+                quadrant.appendChild(card);
+            });
+        }
+
+        // Create config card content (without wrapper div)
+        function createConfigCardContent(config) {
+            const propertyTags = config.properties
+                .filter(p => selectedProperties.has(p))
+                .map(p => {
+                    const pairClass = getPairClass(p);
+                    const color = getPropertyColor(pairClass);
+                    return `<span class="property-tag" style="color: ${color}; border-color: ${color};">${p}</span>`;
+                })
+                .join('');
+
+            return `
+                <div class="config-icon">${config.icon}</div>
+                <div class="config-name">${config.name}</div>
+                <div class="config-description">${config.description}</div>
+                <div class="config-properties">
+                    ${propertyTags}
+                </div>
+                <div class="config-difficulty">${config.difficulty}</div>
+            `;
+        }
+
+        // Get pair class for property
+        function getPairClass(property) {
+            const pairs = {
+                'calm': 1, 'chaotic': 1,
+                'narrative': 2, 'algorithmic': 2,
+                'facts': 3, 'emotion': 3,
+                'historical': 4, 'contemporary': 4,
+                'explore': 5, 'create': 5,
+                'playful': 6, 'serious': 6
+            };
+            return pairs[property] || 1;
+        }
+
+        // Get color for property pair
+        function getPropertyColor(pairClass) {
+            const colors = {
+                1: '#9b59b6',
+                2: '#3498db',
+                3: '#e74c3c',
+                4: '#f39c12',
+                5: '#2ecc71',
+                6: '#f1c40f'
+            };
+            return colors[pairClass] || '#888';
+        }
+
+        // Select config and proceed to Phase 2
+        function selectConfig(configId) {
+            alert(`Config "${configId}" ausgewählt!\n→ Weiter zu Phase 2 (Prompt Input)`);
+            // In real app: navigate to Phase 2 with selected config
+        }
+
+        // Initial display
+        drawRubberBands();
+        updateConfigDisplay();
+
+        // Redraw rubber bands on window resize
+        window.addEventListener('resize', drawRubberBands);
+    </script>
+</body>
+</html>

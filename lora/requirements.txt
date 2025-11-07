@@ -1,0 +1,109 @@
+# LoRA Training Requirements for SD 3.5 Large
+# Target: Kohya-SS with RTX 5090 (Blackwell SM_120) support
+# Python: 3.11+ (tested with 3.11.14 in Kohya venv)
+# CUDA: 12.8 (cu128)
+#
+# IMPORTANT: Install these in Kohya's isolated venv ONLY!
+#
+# Installation:
+#   cd /path/to/kohya_ss
+#   source venv/bin/activate
+#   pip install -r /path/to/this/requirements.txt
+#
+# Or use the automated installer:
+#   cd /path/to/ai4artsed_webserver/lora
+#   bash install.sh
+
+# ============================================================================
+# CRITICAL: PyTorch Nightly (Required for RTX 5090 SM_120 Support)
+# ============================================================================
+# RTX 5090 (Blackwell architecture) requires PyTorch 2.9.0+ dev/nightly
+# Standard PyTorch 2.7.0 does NOT support SM_120 compute capability
+#
+# Install with:
+#   pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+
+--extra-index-url https://download.pytorch.org/whl/nightly/cu128
+torch>=2.9.0.dev
+torchvision>=0.22.0.dev
+
+# ============================================================================
+# Core Training Dependencies (SD 3.5 Compatible)
+# ============================================================================
+
+# Hugging Face ecosystem
+transformers>=4.45.0          # Text encoders (CLIP, T5)
+diffusers>=0.31.0             # SD 3.5 diffusion models
+accelerate>=0.34.0            # Multi-GPU, gradient accumulation, mixed precision
+peft>=0.13.0                  # Parameter-Efficient Fine-Tuning (LoRA, LoHa)
+
+# Training optimization
+bitsandbytes>=0.45.0          # 8-bit optimizers (AdamW8bit), quantization
+safetensors>=0.4.5            # Fast, safe model serialization
+huggingface-hub>=0.26.0       # Model hub integration
+
+# ============================================================================
+# Memory-Efficient Attention (Highly Recommended)
+# ============================================================================
+xformers>=0.0.30              # Flash Attention, memory-efficient attention
+# Alternative: torch.nn.functional.scaled_dot_product_attention (built-in PyTorch 2.0+)
+
+# ============================================================================
+# Kohya-SS Specific Dependencies
+# ============================================================================
+
+# Advanced optimizers
+dadaptation>=3.2              # D-Adaptation optimizer (adaptive learning rate)
+prodigyopt>=1.0               # Prodigy optimizer
+lion-pytorch>=0.2.2           # Lion optimizer
+lycoris-lora>=3.0.0           # LyCORIS (LoHa, LoKr, etc.)
+
+# Image processing
+opencv-python>=4.10.0         # Image augmentation, preprocessing
+albumentations>=1.4.0         # Advanced augmentation pipeline
+pillow>=10.4.0                # Image loading/saving
+
+# Training utilities
+tensorboard>=2.18.0           # Training monitoring, loss curves
+wandb>=0.18.0                 # Weights & Biases integration (optional)
+tqdm>=4.66.0                  # Progress bars
+rich>=13.9.0                  # Beautiful terminal output
+
+# ============================================================================
+# Configuration & Data Management
+# ============================================================================
+toml>=0.10.2                  # Kohya dataset config files
+einops>=0.8.0                 # Tensor operations
+omegaconf>=2.3.0              # Configuration management
+
+# ============================================================================
+# SD 3.5 Specific Requirements
+# ============================================================================
+# SD 3.5 uses MMDiT architecture with 3 text encoders:
+# - CLIP-ViT-L (OpenAI CLIP)
+# - OpenCLIP-ViT-G
+# - T5-XXL (Google's T5 encoder)
+#
+# These are loaded via transformers/diffusers automatically
+# Model files required (not pip installable):
+#   - sd3.5_large.safetensors (16GB)
+#   - clip_g.safetensors
+#   - clip_l.safetensors
+#   - t5xxl_fp8_e4m3fn.safetensors (or t5xxl.safetensors)
+#
+# Typical location: ComfyUI/models/checkpoints/ or SwarmUI/Models/Stable-Diffusion/
+
+# ============================================================================
+# Optional: Development Tools
+# ============================================================================
+# ipython>=8.29.0             # Interactive Python shell
+# jupyter>=1.1.0              # Notebook support
+# matplotlib>=3.9.0           # Visualization
+
+# ============================================================================
+# Version Notes
+# ============================================================================
+# Last updated: 2025-11-07
+# Compatible with: Kohya-SS sd3 branch (SD 3.5 support)
+# Tested on: RTX 5090 (22GB VRAM), CUDA 12.8, Python 3.11.14
+# DevServer integration: Trained LoRAs load in sd35_large.json config

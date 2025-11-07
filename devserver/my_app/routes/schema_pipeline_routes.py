@@ -942,3 +942,167 @@ def pipeline_configs_metadata_compat():
     except Exception as e:
         logger.error(f"Error loading pipeline configs metadata: {e}")
         return jsonify({"error": "Failed to load configs metadata"}), 500
+
+
+@schema_compat_bp.route('/pipeline_configs_with_properties', methods=['GET'])
+def pipeline_configs_with_properties():
+    """
+    Get metadata for all pipeline configs WITH properties for Phase 1 property-based selection.
+    Returns configs with properties field + property pairs structure.
+
+    NEW: Phase 1 Property Quadrants implementation (Session 35)
+    """
+    try:
+        init_schema_engine()
+
+        # Property pairs definition
+        property_pairs = [
+            ["calm", "chaotic"],
+            ["narrative", "algorithmic"],
+            ["facts", "emotion"],
+            ["historical", "contemporary"],
+            ["explore", "create"],
+            ["playful", "serious"]
+        ]
+
+        # Read metadata directly from config files
+        configs_metadata = []
+        schemas_path = Path(__file__).parent.parent.parent / "schemas"
+        configs_path = schemas_path / "configs"
+
+        if not configs_path.exists():
+            return jsonify({"error": "Configs directory not found"}), 404
+
+        # Recursive glob to support subdirectories (interception/, output/, user_configs/)
+        for config_file in sorted(configs_path.glob("**/*.json")):
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+
+                # Filter: Skip output configs (system-only, not user-facing)
+                stage = config_data.get("meta", {}).get("stage", "")
+                if stage == "output":
+                    continue  # Don't show output configs in frontend
+
+                # Filter: Only include configs with properties (for Phase 1 property selection)
+                if "properties" not in config_data:
+                    logger.debug(f"Skipping {config_file.name} - no properties field")
+                    continue
+
+                # Calculate config ID (relative path without .json)
+                relative_path = config_file.relative_to(configs_path)
+                parts = relative_path.parts
+
+                # Use same naming logic as config_loader.py
+                if len(parts) >= 2 and parts[0] == "user_configs":
+                    # User config: u_username_filename
+                    username = parts[1]
+                    stem = config_file.stem
+                    config_id = f"u_{username}_{stem}"
+                    owner = username  # User-created
+                elif parts[0] in ["interception", "output"]:
+                    # Main system configs: just the stem
+                    config_id = config_file.stem
+                    owner = "system"  # System config
+                else:
+                    # Other system configs: keep path
+                    config_id = str(relative_path.with_suffix('')).replace('\\', '/')
+                    owner = "system"  # System config
+
+                # Helper function to create short description
+                def make_short_description(long_desc, max_length=120):
+                    """
+                    Create short description from long one.
+                    Extracts first 1-2 sentences or truncates to max_length.
+                    Preserves consistency - doesn't invent new content.
+                    Longer for young audiences to understand context.
+                    """
+                    if not long_desc:
+                        return long_desc
+
+                    if len(long_desc) <= max_length:
+                        return long_desc
+
+                    # Try to extract first sentence
+                    sentences = long_desc.split('. ')
+                    if sentences and len(sentences[0]) <= max_length:
+                        return sentences[0] + '.'
+
+                    # Try first two sentences if they fit
+                    if len(sentences) >= 2:
+                        two_sentences = sentences[0] + '. ' + sentences[1] + '.'
+                        if len(two_sentences) <= max_length:
+                            return two_sentences
+
+                    # Otherwise truncate at word boundary
+                    if len(long_desc) > max_length:
+                        truncated = long_desc[:max_length].rsplit(' ', 1)[0]
+                        return truncated + '...'
+
+                    return long_desc
+
+                # Extract metadata fields with properties
+                metadata = {
+                    "id": config_id,
+                    "name": config_data.get("name", {}),  # Multilingual
+                    "description": config_data.get("description", {}),  # Multilingual (long version)
+                    "category": config_data.get("category", {}),  # Multilingual
+                    "pipeline": config_data.get("pipeline", "unknown"),
+                    "properties": config_data.get("properties", [])  # NEW: Properties for filtering
+                }
+
+                # Add short descriptions for tile display
+                long_desc = config_data.get("description", {})
+                if isinstance(long_desc, dict):
+                    metadata["short_description"] = {
+                        lang: make_short_description(text)
+                        for lang, text in long_desc.items()
+                    }
+                else:
+                    metadata["short_description"] = make_short_description(long_desc)
+
+                # Add display metadata (icon, color, difficulty, etc.)
+                if "display" in config_data:
+                    display = config_data["display"]
+                    metadata["icon"] = display.get("icon", "🎨")
+                    metadata["color"] = display.get("color", "#888888")
+                    metadata["difficulty"] = display.get("difficulty", 3)
+
+                    # Phase 1 description (agency-oriented) - NEW
+                    if "phase1_description" in display:
+                        metadata["phase1_description"] = display["phase1_description"]
+                    else:
+                        # Fallback to regular description
+                        metadata["phase1_description"] = config_data.get("description", {})
+
+                # Add tags
+                if "tags" in config_data:
+                    metadata["tags"] = config_data["tags"]
+
+                # Add audience metadata
+                if "audience" in config_data:
+                    metadata["audience"] = config_data["audience"]
+
+                # Add media preferences
+                if "media_preferences" in config_data:
+                    metadata["media_preferences"] = config_data["media_preferences"]
+
+                # Add owner info
+                metadata["owner"] = owner
+
+                configs_metadata.append(metadata)
+
+            except Exception as e:
+                logger.error(f"Error reading config {config_file}: {e}")
+                continue
+
+        logger.info(f"Loaded {len(configs_metadata)} configs with properties for Phase 1")
+
+        return jsonify({
+            "configs": configs_metadata,
+            "property_pairs": property_pairs
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading configs with properties: {e}")
+        return jsonify({"error": "Failed to load configs with properties"}), 500

@@ -18,6 +18,14 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:17801',
         changeOrigin: true,
+      },
+      '/pipeline_configs_with_properties': {
+        target: 'http://localhost:17801',
+        changeOrigin: true,
+      },
+      '/pipeline_configs_metadata': {
+        target: 'http://localhost:17801',
+        changeOrigin: true,
       }
     }
   }

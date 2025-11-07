@@ -63,3 +63,15 @@ exports/
 # Runtime-generated pipeline data (Session 29+)
 devserver/pipeline_runs/  # LivePipelineRecorder output
 media_storage/            # Unified media storage output
+
+# -------------------------------------
+# LoRA Training (Session 34+)
+# Keep: lora/*.md, lora/*.txt, lora/*.sh (setup files)
+# Ignore: training outputs, backups, temporary files
+lora/venv_backup_*.txt    # Install script backups
+lora/*.safetensors        # Trained LoRA models (should be in Models/Lora/)
+lora/*.ckpt               # Legacy checkpoint format
+lora/training_output/     # Temporary training checkpoints
+lora/logs/                # Training logs
+lora/*.log                # Individual log files
+lora/test_*.py            # Test scripts
