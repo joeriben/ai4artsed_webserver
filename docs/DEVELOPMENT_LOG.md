@@ -25,6 +25,43 @@
 
 ---
 
+## Session 34 (2025-11-07): Property Taxonomy for Phase 1 Config Selection
+
+**Date:** 2025-11-07
+**Duration:** ~3h
+**Branch:** `feature/schema-architecture-v2`
+**Status:** ✅ COMPLETE - Property system implemented
+
+### Work Completed
+
+#### 1. Property Taxonomy Development (6 pairs)
+- calm ↔ chaotic (chillig - chaotisch)
+- narrative ↔ algorithmic (erzählen - berechnen)
+- facts ↔ emotion (fakten - gefühl)
+- historical ↔ contemporary (geschichte - gegenwart)
+- explore ↔ create (erforschen - erschaffen)
+- playful ↔ serious (spiel - ernst)
+
+#### 2. Config Enhancements
+- Added properties arrays to all 32 configs (21 active + 11 deactivated)
+- Rewrote all descriptions: 2-3 sentences, age 10+ appropriate
+- Moved 11 experimental/deprecated configs to deactivated/ folder
+
+#### 3. Frontend i18n Integration
+- Added property labels to `i18n.js` (German + English)
+- Followed existing architecture (no separate metadata files)
+
+### Commits
+- `29f73df`: feat(configs): Add property taxonomy and improve descriptions
+- `1977550`: chore(configs): Clean up moved files
+
+### Files Changed
+- 34 files: +992 insertions, -607 deletions
+- Modified: All 21 active configs, i18n.js, DEVELOPMENT_DECISIONS.md
+- Added: 11 deactivated configs in new folder
+
+---
+
 ## Session 17 (2025-11-03): Pipeline Rename + Documentation Split
 
 **Date:** 2025-11-03

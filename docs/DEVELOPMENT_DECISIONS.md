@@ -21,7 +21,59 @@
 
 ---
 
-## 🎯 Active Decision 1: Execution History Architecture (2025-11-03, Session 17)
+## 🎯 Active Decision 1: Property Taxonomy for Config Selection UI (2025-11-07, Session 34)
+
+**Status:** IMPLEMENTED
+**Context:** Phase 1 UI needs non-consumeristic filtering system for config selection
+
+### The Decision: 6 Property Pairs Based on Grounded Theory Analysis
+
+**Problem:** Tags like [lustig] [schnell] serve consumeristic "user choice" model, contradict pedagogical goals (counter-hegemonic, agency-oriented)
+
+**Solution:** Property pairs as tension fields (Spannungsfelder) that express transformation qualities:
+
+```
+1. calm ↔ chaotic          (chillig - chaotisch)       - Process control
+2. narrative ↔ algorithmic (erzählen - berechnen)      - Transformation mode
+3. facts ↔ emotion         (fakten - gefühl)           - Focus/affect
+4. historical ↔ contemporary (geschichte - gegenwart)  - Temporal orientation
+5. explore ↔ create        (erforschen - erschaffen)   - Purpose
+6. playful ↔ serious       (spiel - ernst)             - Attitude
+```
+
+### Architecture
+
+**Config Level:** Properties stored as arrays in config JSON
+```json
+"properties": ["chaotic", "narrative", "emotion", "historical", "create", "playful"]
+```
+
+**Frontend i18n:** Labels in `i18n.js` following existing pattern
+```javascript
+properties: {
+  calm: 'chillig',
+  chaotic: 'chaotisch',
+  ...
+}
+```
+
+**UI Logic:** Positive logic (nothing shown until properties selected) + AND-logic filtering
+
+### Critical Pedagogical Insight
+
+YorubaHeritage description updated to reflect limits:
+> "Tries to translate... Allows for a critical assessment of the limits of generative AI with regard to cultural knowledge."
+
+**Reason:** LLMs may understand contexts; image generation models are culturally indifferent. This exposes AI bias pedagogically.
+
+### Rejected Approaches
+- Abstract academic categories (Iteration 01: "Reflexionsmodus", "dekonstruktiv")
+- Separate metadata files (violates existing i18n architecture)
+- Neutral tags (would reinforce solutionism)
+
+---
+
+## 🎯 Active Decision 2: Execution History Architecture (2025-11-03, Session 17)
 
 **Status:** DESIGNED (Not yet implemented)
 **Priority:** HIGH (Fixes broken research data export)
