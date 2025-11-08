@@ -165,10 +165,10 @@ function getConfigName(config: ConfigMetadata): string {
 }
 
 // ============================================================================
-// LIFECYCLE
+// METHODS
 // ============================================================================
 
-onMounted(async () => {
+async function initializeView() {
   const configId = route.params.configId as string
 
   if (!configId) {
@@ -202,6 +202,14 @@ onMounted(async () => {
   localSafetyLevel.value = pipelineStore.safetyLevel
 
   isLoading.value = false
+}
+
+// ============================================================================
+// LIFECYCLE
+// ============================================================================
+
+onMounted(() => {
+  initializeView()
 })
 
 // ============================================================================
@@ -285,7 +293,7 @@ function handleBack() {
 function handleRetry() {
   error.value = null
   // Reload the view
-  onMounted()
+  initializeView()
 }
 </script>
 
