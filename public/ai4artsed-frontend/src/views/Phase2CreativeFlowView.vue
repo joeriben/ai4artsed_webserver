@@ -106,8 +106,23 @@
           @blur="handleTransformedPromptBlur"
           ref="transformedTextareaRef"
         ></textarea>
-        <div v-else class="result-empty">
-          {{ $t('phase2.notYetTransformed') || 'Noch nicht transformiert...' }}
+        <div v-else class="result-empty-with-button">
+          <!-- Transform Button (centered in empty result panel) -->
+          <button
+            class="transform-btn-center"
+            :disabled="!canTransform || isTransforming"
+            @click="handleTransform"
+          >
+            <span v-if="!isTransforming">
+              ✨ {{ $t('phase2.startAI') || 'Los, KI, bearbeite meine Eingabe!' }}
+            </span>
+            <span v-else>
+              ⚙️ {{ $t('phase2.aiWorking') || 'KI arbeitet...' }}
+            </span>
+          </button>
+          <div v-if="!isTransforming" class="transform-hint">
+            {{ $t('phase2.stage12Time') || '~5-10 Sekunden' }}
+          </div>
         </div>
       </div>
 
@@ -124,47 +139,96 @@
         </div>
       </div>
 
-      <!-- Execute Panel (Floating Bottom Right) - Two Buttons -->
-      <div class="execute-panel">
-        <!-- Button 1: Transform (Stage 1+2) -->
+      <!-- Re-transform Button (Floating Bottom Right, only after transformation) -->
+      <div class="execute-panel" v-if="transformedPrompt">
         <button
-          v-if="!transformedPrompt"
-          class="execute-btn transform-btn"
-          :disabled="!canTransform || isTransforming"
-          @click="handleTransform"
-        >
-          <span v-if="!isTransforming">
-            ✨ {{ $t('phase2.transform') || 'Transformieren' }}
-          </span>
-          <span v-else>
-            ⚙️ {{ $t('phase2.transforming') || 'Transformiere...' }}
-          </span>
-        </button>
-
-        <!-- Button 2: Continue to Phase 3 (Media Generation) -->
-        <button
-          v-if="transformedPrompt"
-          class="execute-btn continue-btn"
-          :disabled="isTransforming"
-          @click="handleContinueToPhase3"
-        >
-          🎨 {{ $t('phase2.continueToMedia') || 'Weiter zum Bild generieren' }}
-        </button>
-
-        <!-- Re-transform Button (if already transformed) -->
-        <button
-          v-if="transformedPrompt"
-          class="secondary-btn"
+          class="secondary-btn retransform-btn"
           :disabled="isTransforming"
           @click="handleReTransform"
         >
-          🔄 {{ $t('phase2.reTransform') || 'Neu transformieren' }}
+          🔄 {{ $t('phase2.reTransform') || 'Noch mal anders' }}
         </button>
+      </div>
 
-        <div class="execute-info" v-if="!isTransforming">
-          <span v-if="!transformedPrompt">{{ $t('phase2.stage12Time') || '~5-10 Sekunden' }}</span>
-          <span v-else>{{ $t('phase2.readyForMedia') || 'Bereit für Bildgenerierung' }}</span>
+      <!-- Media Selection Panel (shown after transformation) -->
+      <div v-if="transformedPrompt" class="media-selection-panel">
+        <div class="media-section-title">
+          {{ $t('phase2.selectMedia') || 'Wähle dein Medium:' }}
         </div>
+
+        <!-- All Media in One Row -->
+        <div class="media-cards-row">
+          <!-- IMAGE: SD 3.5 -->
+          <div
+            class="media-card"
+            :class="{ active: selectedMediaConfig === 'sd35_large' }"
+            @click="selectMediaConfig('sd35_large')"
+            title="Stable Diffusion 3.5"
+          >
+            <div class="media-icon">🎨</div>
+            <div class="media-name">SD 3.5</div>
+            <div class="media-type">{{ $t('phase2.mediaImage') || 'Bild' }}</div>
+          </div>
+
+          <!-- IMAGE: GPT Image -->
+          <div
+            class="media-card"
+            :class="{ active: selectedMediaConfig === 'gpt_image_1' }"
+            @click="selectMediaConfig('gpt_image_1')"
+            title="GPT Image Generation"
+          >
+            <div class="media-icon">🤖</div>
+            <div class="media-name">GPT Image</div>
+            <div class="media-type">{{ $t('phase2.mediaImage') || 'Bild' }}</div>
+          </div>
+
+          <!-- AUDIO: Stable Audio -->
+          <div
+            class="media-card"
+            :class="{ active: selectedMediaConfig === 'stable_audio_1' }"
+            @click="selectMediaConfig('stable_audio_1')"
+            title="Stable Audio"
+          >
+            <div class="media-icon">🎵</div>
+            <div class="media-name">Stable Audio</div>
+            <div class="media-type">{{ $t('phase2.mediaAudio') || 'Sound' }}</div>
+          </div>
+
+          <!-- AUDIO: Ace Step -->
+          <div
+            class="media-card"
+            :class="{ active: selectedMediaConfig === 'ace_step' }"
+            @click="selectMediaConfig('ace_step')"
+            title="Ace Step Music"
+          >
+            <div class="media-icon">🎶</div>
+            <div class="media-name">Ace Step</div>
+            <div class="media-type">{{ $t('phase2.mediaAudio') || 'Sound' }}</div>
+          </div>
+
+          <!-- VIDEO (Coming Soon) -->
+          <div class="media-card disabled" title="Coming Soon">
+            <div class="media-icon">📹</div>
+            <div class="media-name">Video</div>
+            <div class="media-type">{{ $t('phase2.comingSoon') || 'Bald' }}</div>
+          </div>
+
+          <!-- 3D (Coming Soon) -->
+          <div class="media-card disabled" title="Coming Soon">
+            <div class="media-icon">🧊</div>
+            <div class="media-name">3D</div>
+            <div class="media-type">{{ $t('phase2.comingSoon') || 'Bald' }}</div>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <button
+          class="generate-media-btn"
+          :disabled="!selectedMediaConfig"
+          @click="handleMediaGeneration(selectedMediaConfig)"
+        >
+          ✨ {{ $t('phase2.generateMedia') || 'Medium generieren' }}
+        </button>
       </div>
     </div>
   </div>
@@ -222,6 +286,7 @@ const userInput = ref('')
 const isTransforming = ref(false)
 const transformationStage = ref<number>(0) // 0=idle, 1=stage1, 2=stage2
 const error = ref<string | null>(null)
+const selectedMediaConfig = ref<string>('') // Selected output config (e.g., 'sd35_large')
 
 // Get transformed prompt from store
 const transformedPrompt = computed(() => pipelineStore.transformedPrompt)
@@ -305,6 +370,28 @@ onMounted(async () => {
     userInput.value = pipelineStore.userInput
   }
 
+  // Set default media config from config's media_preferences
+  if (pipelineStore.selectedConfig?.media_preferences?.default_output) {
+    const defaultOutput = pipelineStore.selectedConfig.media_preferences.default_output
+    console.log('[Phase2] Default output from config:', defaultOutput)
+
+    // Map media type to output config
+    // TODO: This should be fetched from output_config_defaults.json or backend
+    const outputConfigMap: Record<string, string> = {
+      image: 'sd35_large',
+      audio: 'stable_audio_1',
+      music: 'ace_step',
+      video: 'video_default', // Coming soon
+      '3d': '3d_default' // Coming soon
+    }
+
+    selectedMediaConfig.value = outputConfigMap[defaultOutput] || 'sd35_large'
+    console.log('[Phase2] Selected media config:', selectedMediaConfig.value)
+  } else {
+    // Fallback: default to SD 3.5
+    selectedMediaConfig.value = 'sd35_large'
+  }
+
   // Initialize particles
   initParticles()
 
@@ -378,22 +465,38 @@ async function handleTransform() {
     pipelineStore.updateUserInput(userInput.value)
 
     console.log('[Phase2] Starting transformation (Stage 1+2)...')
+    console.log('[Phase2] Config:', pipelineStore.selectedConfig.id)
+    console.log('[Phase2] Input:', userInput.value)
 
-    // TODO: Call backend /api/schema/pipeline/transform endpoint
-    // For now, simulate transformation
+    // Import API function
+    const { transformPrompt } = await import('@/services/api')
+
+    // Call backend API - Stage 1
     transformationStage.value = 1
-    await new Promise(resolve => setTimeout(resolve, 2000)) // Stage 1: Translation + Safety
 
+    const response = await transformPrompt({
+      schema: pipelineStore.selectedConfig.id,
+      input_text: userInput.value,
+      user_language: userPreferences.language,
+      execution_mode: pipelineStore.executionMode,
+      safety_level: pipelineStore.safetyLevel
+    })
+
+    // Stage 2 animation (backend already completed both stages)
     transformationStage.value = 2
-    await new Promise(resolve => setTimeout(resolve, 3000)) // Stage 2: Interception
+    await new Promise(resolve => setTimeout(resolve, 500)) // Brief delay for UX
 
-    // Mock transformed result
-    const mockTransformed = `[TRANSFORMED via ${pipelineStore.selectedConfig.id}]\n\n${userInput.value}\n\n→ Petal-chaos contradicting meadow-umbrella existence with surrealist dreamscape qualities and absurdist spatial relationships.`
+    if (!response.success) {
+      throw new Error(response.error || 'Transformation failed')
+    }
+
+    console.log('[Phase2] ✅ Transformation complete!')
+    console.log('[Phase2] Stage 1:', response.stage1_output)
+    console.log('[Phase2] Stage 2:', response.stage2_output)
+    console.log('[Phase2] Total time:', response.execution_time_ms, 'ms')
 
     // Store in Pinia for Phase 3 handoff
-    pipelineStore.updateTransformedPrompt(mockTransformed)
-
-    console.log('[Phase2] Transformation complete:', mockTransformed)
+    pipelineStore.updateTransformedPrompt(response.transformed_prompt)
 
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Transformation failed'
@@ -413,18 +516,34 @@ function handleReTransform() {
 }
 
 /**
- * Continue to Phase 3: Media generation with transformed prompt
+ * Select media output config
  */
-function handleContinueToPhase3() {
-  if (!canContinueToMedia.value) return
+function selectMediaConfig(outputConfig: string) {
+  selectedMediaConfig.value = outputConfig
+  console.log('[Phase2] Selected media config:', outputConfig)
+}
 
-  console.log('[Phase2] Continuing to Phase 3 with transformed prompt:', transformedPrompt.value)
+/**
+ * Start media generation with selected output config
+ * @param outputConfig - Output config name (sd35_large, gpt_image_1, stable_audio_1, ace_step)
+ */
+function handleMediaGeneration(outputConfig: string) {
+  if (!transformedPrompt.value || !outputConfig) return
 
-  // TODO: Store transformed prompt in Pinia
-  // TODO: Navigate to Phase 3 with run context
-  // router.push({ name: 'phase3-entity-flow', params: { ... } })
+  console.log('[Phase2] Starting media generation:', {
+    outputConfig,
+    transformedPrompt: transformedPrompt.value.substring(0, 100) + '...'
+  })
 
-  alert(`Phase 3 not yet implemented.\n\nTransformed prompt:\n${transformedPrompt.value}`)
+  // TODO: Call /api/schema/pipeline/execute with Stage 3+4
+  // TODO: Navigate to Phase 3 with run_id for polling
+  // router.push({ name: 'phase3-entity-flow', params: { runId } })
+
+  alert(
+    `Media Generation: ${outputConfig}\n\n` +
+    `Config: ${pipelineStore.selectedConfig?.id}\n` +
+    `Transformed prompt:\n${transformedPrompt.value.substring(0, 200)}...`
+  )
 }
 
 function handleInputChange() {
@@ -931,6 +1050,49 @@ svg.connections {
   color: #666;
 }
 
+/* Empty result panel with centered button */
+.result-empty-with-button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 60px 40px;
+  min-height: 250px;
+}
+
+/* Transform Button (centered in result panel) */
+.transform-btn-center {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 20px 50px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.5);
+  white-space: nowrap;
+}
+
+.transform-btn-center:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.6);
+}
+
+.transform-btn-center:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transform-hint {
+  font-size: 14px;
+  color: #888;
+  text-align: center;
+}
+
 /* Examples Panel (Floating Left) - Optional Helper */
 .examples-panel {
   position: absolute;
@@ -1048,6 +1210,140 @@ svg.connections {
   font-size: 12px;
   color: #888;
   margin-top: 12px;
+}
+
+/* Media Selection Panel */
+.media-selection-panel {
+  width: 90%;
+  max-width: 1400px;
+  margin: 60px auto;
+  padding: 40px;
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.media-section-title {
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* All media cards in one horizontal row */
+.media-cards-row {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.media-card {
+  background: rgba(42, 42, 42, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  min-width: 140px;
+  max-width: 180px;
+  flex: 0 1 auto;
+}
+
+.media-card:not(.disabled):hover {
+  transform: translateY(-4px);
+  border-color: rgba(102, 126, 234, 0.6);
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+  background: rgba(52, 52, 52, 0.95);
+}
+
+/* Active selected card */
+.media-card.active {
+  border-color: rgba(102, 126, 234, 0.9);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.6);
+  transform: scale(1.05);
+}
+
+.media-card.active .media-icon {
+  transform: scale(1.1);
+}
+
+.media-card.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.media-card.disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.media-icon {
+  font-size: 56px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  transition: transform 0.3s ease;
+}
+
+.media-name {
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+}
+
+.media-type {
+  font-size: 12px;
+  font-weight: 400;
+  text-align: center;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.media-card.disabled .media-name,
+.media-card.disabled .media-type {
+  color: #555;
+}
+
+/* Generate Media Button */
+.generate-media-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 18px 60px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 24px rgba(102, 126, 234, 0.5);
+  display: block;
+  margin: 0 auto;
+}
+
+.generate-media-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(102, 126, 234, 0.6);
+}
+
+.generate-media-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
 }
 
 /* Scrollbar */

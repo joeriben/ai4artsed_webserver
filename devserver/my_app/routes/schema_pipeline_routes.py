@@ -137,6 +137,228 @@ def get_schema_info():
             'error': str(e)
         }), 500
 
+@schema_bp.route('/pipeline/transform', methods=['POST'])
+def transform_prompt():
+    """
+    Execute ONLY Stage 1+2 (Translation + Safety + Interception)
+
+    Phase 2 Frontend: User wants to see transformed prompt before media generation.
+    This endpoint returns transformed text without executing Stage 3-4 (media).
+
+    Request Body:
+    {
+        "schema": "dada",
+        "input_text": "Eine Blume auf der Wiese",
+        "user_language": "de",
+        "execution_mode": "eco",
+        "safety_level": "kids",
+        "context_prompt": "..." (optional: user-edited meta-prompt)
+    }
+
+    Response:
+    {
+        "success": true,
+        "transformed_prompt": "Petal-chaos contradicting...",
+        "stage1_output": {...},
+        "stage2_output": {...},
+        "execution_time_ms": 5234
+    }
+    """
+    import time
+    start_time = time.time()
+
+    try:
+        # Request validation
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'JSON-Request erwartet'
+            }), 400
+
+        schema_name = data.get('schema')
+        input_text = data.get('input_text')
+        execution_mode = data.get('execution_mode', 'eco')
+        safety_level = data.get('safety_level', 'kids')
+        user_language = data.get('user_language', 'en')
+
+        # Phase 2: User-edited context support
+        context_prompt = data.get('context_prompt')
+        context_language = data.get('context_language', user_language)
+
+        if not schema_name or not input_text:
+            return jsonify({
+                'success': False,
+                'error': 'Parameter "schema" und "input_text" erforderlich'
+            }), 400
+
+        # Initialize engine
+        init_schema_engine()
+
+        # Load config
+        config = pipeline_executor.config_loader.get_config(schema_name)
+        if not config:
+            return jsonify({
+                'success': False,
+                'error': f'Config "{schema_name}" nicht gefunden'
+            }), 404
+
+        logger.info(f"[TRANSFORM] Starting Stage 1+2 for schema '{schema_name}'")
+
+        # ====================================================================
+        # PHASE 2: USER-EDITED CONTEXT HANDLING
+        # ====================================================================
+        execution_config = config
+
+        if context_prompt:
+            logger.info(f"[TRANSFORM/PHASE2] User edited context in language: {context_language}")
+
+            # Translate to English if needed
+            context_prompt_en = context_prompt
+            if context_language != 'en':
+                logger.info(f"[TRANSFORM/PHASE2] Translating context from {context_language} to English...")
+
+                from my_app.services.ollama_service import ollama_service
+                translation_prompt = f"Translate this educational text from {context_language} to English. Preserve pedagogical intent:\n\n{context_prompt}"
+
+                try:
+                    context_prompt_en = ollama_service.translate_text(translation_prompt)
+                    if not context_prompt_en:
+                        logger.error("[TRANSFORM/PHASE2] Context translation failed, using original")
+                        context_prompt_en = context_prompt
+                    else:
+                        logger.info(f"[TRANSFORM/PHASE2] Context translated successfully")
+                except Exception as e:
+                    logger.error(f"[TRANSFORM/PHASE2] Context translation error: {e}")
+                    context_prompt_en = context_prompt
+
+            # Create modified config
+            logger.info(f"[TRANSFORM/PHASE2] Creating modified config with user-edited context")
+            config_dict = config.to_dict()
+            config_dict['context'] = context_prompt_en
+            config_dict['meta']['user_edited'] = True
+            config_dict['meta']['original_config'] = schema_name
+            config_dict['meta']['user_language'] = user_language
+
+            from schemas.engine.config import Config
+            execution_config = Config.from_dict(config_dict)
+
+        # ====================================================================
+        # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
+        # ====================================================================
+        logger.info(f"[TRANSFORM] Stage 1: Translation + Safety")
+
+        stage1_start = time.time()
+        is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+            input_text,
+            safety_level,
+            execution_mode,
+            pipeline_executor
+        ))
+        stage1_time = (time.time() - stage1_start) * 1000  # ms
+
+        if not is_safe:
+            logger.warning(f"[TRANSFORM] Stage 1 BLOCKED by safety check")
+            return jsonify({
+                'success': False,
+                'error': error_message,
+                'blocked_at_stage': 1,
+                'stage1_output': {
+                    'translation': translated_text,
+                    'safety_passed': False,
+                    'safety_message': error_message,
+                    'execution_time_ms': stage1_time
+                }
+            }), 403
+
+        logger.info(f"[TRANSFORM] Stage 1 completed: '{input_text}' → '{translated_text}'")
+
+        stage1_output = {
+            'translation': translated_text,
+            'safety_passed': True,
+            'safety_level': safety_level,
+            'execution_time_ms': stage1_time
+        }
+
+        # ====================================================================
+        # STAGE 2: INTERCEPTION (Main Pipeline)
+        # ====================================================================
+        logger.info(f"[TRANSFORM] Stage 2: Interception")
+
+        stage2_start = time.time()
+
+        # Create no-op tracker (tracker is deprecated, using NoOpTracker)
+        tracker = NoOpTracker()
+
+        result = asyncio.run(pipeline_executor.execute_pipeline(
+            config_name=schema_name,
+            input_text=translated_text,
+            user_input=input_text,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
+            tracker=tracker,
+            config_override=execution_config
+        ))
+
+        stage2_time = (time.time() - stage2_start) * 1000  # ms
+
+        if not result.success:
+            logger.error(f"[TRANSFORM] Stage 2 failed: {result.error}")
+            return jsonify({
+                'success': False,
+                'error': result.error,
+                'stage1_output': stage1_output,
+                'stage2_output': {
+                    'status': 'failed',
+                    'error': result.error,
+                    'execution_time_ms': stage2_time
+                }
+            }), 500
+
+        # Extract metadata from pipeline result
+        model_used = None
+        backend_used = None
+        if result.steps and len(result.steps) > 0:
+            for step in reversed(result.steps):
+                if step.metadata:
+                    model_used = step.metadata.get('model_used', model_used)
+                    backend_used = step.metadata.get('backend_type', backend_used)
+                    if model_used and backend_used:
+                        break
+
+        logger.info(f"[TRANSFORM] Stage 2 completed: '{translated_text}' → '{result.final_output}'")
+
+        stage2_output = {
+            'interception_result': result.final_output,
+            'model_used': model_used,
+            'backend_used': backend_used,
+            'execution_time_ms': stage2_time
+        }
+
+        # Total execution time
+        total_time_ms = (time.time() - start_time) * 1000
+
+        logger.info(f"[TRANSFORM] ✅ Success! Total time: {total_time_ms:.0f}ms")
+
+        return jsonify({
+            'success': True,
+            'transformed_prompt': result.final_output,
+            'stage1_output': stage1_output,
+            'stage2_output': stage2_output,
+            'execution_time_ms': total_time_ms
+        })
+
+    except Exception as e:
+        logger.error(f"[TRANSFORM] Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @schema_bp.route('/pipeline/execute', methods=['POST'])
 def execute_pipeline():
     """Schema-Pipeline ausführen mit 4-Stage Orchestration"""
@@ -420,6 +642,25 @@ def execute_pipeline():
             'backend_used': backend_used
         })
         logger.info(f"[RECORDER] Saved interception entity")
+
+        # ====================================================================
+        # CONDITIONAL STAGE 3: Post-Interception Safety Check
+        # ====================================================================
+        # Only run Stage 3 if Stage 2 pipeline requires it (prompt_interception type)
+        # Non-transformation pipelines (text_semantic_split, etc.) skip this
+
+        pipeline_def = pipeline_executor.config_loader.load_pipeline(config.pipeline)
+        requires_stage3 = pipeline_def.get('requires_interception_prompt', True)  # Default True for safety
+
+        if requires_stage3 and safety_level != 'off' and isinstance(result.final_output, str):
+            logger.info(f"[4-STAGE] Stage 3: Post-Interception Safety Check (pipeline requires it)")
+            # TODO: Implement Stage 3 safety check on result.final_output here
+            # For now, this is a placeholder - actual implementation in future session
+        else:
+            if not requires_stage3:
+                logger.info(f"[4-STAGE] Stage 3: SKIPPED (pipeline_type={pipeline_def.get('pipeline_type')}, no transformation)")
+            elif not isinstance(result.final_output, str):
+                logger.info(f"[4-STAGE] Stage 3: SKIPPED (structured output, not text string)")
 
         # Response für erfolgreiche Pipeline
         response_data = {

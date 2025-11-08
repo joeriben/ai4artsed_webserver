@@ -57,6 +57,39 @@ export interface PipelineExecuteResponse {
   run_id?: string
 }
 
+/** Transform request (Phase 2 - Stage 1+2 only) */
+export interface TransformRequest {
+  schema: string
+  input_text: string
+  user_language: 'de' | 'en'
+  execution_mode?: 'eco' | 'fast' | 'best'
+  safety_level?: 'kids' | 'youth' | 'adult'
+  context_prompt?: string // Optional: user-edited meta-prompt
+  context_language?: 'de' | 'en' // Language of context_prompt
+}
+
+/** Transform response (Stage 1+2 output) */
+export interface TransformResponse {
+  success: boolean
+  transformed_prompt: string
+  stage1_output: {
+    translation: string
+    safety_passed: boolean
+    safety_level: string
+    safety_message?: string
+    execution_time_ms: number
+  }
+  stage2_output: {
+    interception_result: string
+    model_used: string | null
+    backend_used: string | null
+    execution_time_ms: number
+  }
+  execution_time_ms: number
+  error?: string
+  blocked_at_stage?: number
+}
+
 /** Media info response (polling) */
 export interface MediaInfoResponse {
   type: 'image' | 'audio' | 'video' | 'music'
@@ -179,6 +212,22 @@ export async function getPipelineMetadata(configId: string): Promise<PipelineMet
 }
 
 /**
+ * Transform prompt (Phase 2 - Stage 1+2 only)
+ *
+ * Executes ONLY translation + safety (Stage 1) and interception (Stage 2).
+ * Returns transformed prompt without media generation.
+ *
+ * User can review/edit transformed prompt before continuing to Phase 3.
+ */
+export async function transformPrompt(request: TransformRequest): Promise<TransformResponse> {
+  const response = await apiClient.post<TransformResponse>(
+    '/api/schema/pipeline/transform',
+    request
+  )
+  return response.data
+}
+
+/**
  * Execute pipeline (Phase 2)
  *
  * Supports multilingual context editing:
@@ -240,6 +289,7 @@ export default {
   getConfig,
   getConfigContext,
   getPipelineMetadata,
+  transformPrompt,
   executePipeline,
   getMediaInfo,
   getMediaUrl,
