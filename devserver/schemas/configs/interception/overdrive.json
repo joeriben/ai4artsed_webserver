@@ -19,7 +19,10 @@
     "explore",
     "playful"
   ],
-  "context": "Exaggeration and amplification to extreme levels. Take every element and push it beyond reasonable limits. Make the subtle into the extreme. Transform the ordinary into the extraordinary. Amplify emotions, scale, intensity, drama - everything to maximum.",
+  "context": {
+    "en": "Exaggeration and amplification to extreme levels. Take every element and push it beyond reasonable limits. Make the subtle into the extreme. Transform the ordinary into the extraordinary. Amplify emotions, scale, intensity, drama - everything to maximum.",
+    "de": "Übertreib und verstärke bis zu extremeren Ebenen. Nimm jedes Element und schiebe es über vernünftige Grenzen hinaus. Mach das Subtile zum Extremen. Verändere das Gewöhnliche zum Außergewöhnlichen. Verstärke Emotionen, Größe, Intensität, Dramatik – alles auf das Maximum."
+  },
   "parameters": {
     "temperature": 0.9,
     "top_p": 0.95,

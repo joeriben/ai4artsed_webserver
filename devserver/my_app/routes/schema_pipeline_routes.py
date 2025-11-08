@@ -156,6 +156,11 @@ def execute_pipeline():
         execution_mode = data.get('execution_mode', 'eco')  # eco (local) or fast (cloud)
         safety_level = data.get('safety_level', 'kids')  # kids (default), youth, or off
 
+        # Phase 2: Multilingual context editing support
+        context_prompt = data.get('context_prompt')  # Optional: user-edited meta-prompt
+        context_language = data.get('context_language', 'en')  # Language of context_prompt
+        user_language = data.get('user_language', 'en')  # User's interface language
+
         if not schema_name or not input_text:
             return jsonify({
                 'status': 'error',
@@ -226,6 +231,65 @@ def execute_pipeline():
         )
         recorder.set_state(0, "pipeline_starting")
         logger.info(f"[RECORDER] Initialized LivePipelineRecorder for run {run_id}")
+
+        # ====================================================================
+        # PHASE 2: USER-EDITED CONTEXT HANDLING
+        # ====================================================================
+        # If user edited the meta-prompt (context) in Phase 2, handle translation
+        # and save both language versions to exports
+        modified_config = None
+
+        if context_prompt:
+            logger.info(f"[PHASE2] User edited context in language: {context_language}")
+
+            # Save original language version
+            recorder.save_entity(f'context_prompt_{context_language}', context_prompt)
+
+            # Translate to English if needed
+            context_prompt_en = context_prompt
+            if context_language != 'en':
+                logger.info(f"[PHASE2] Translating context from {context_language} to English...")
+
+                # Use Ollama service for translation
+                from my_app.services.ollama_service import ollama_service
+
+                translation_prompt = f"Translate this educational text from {context_language} to English. Preserve pedagogical intent and technical terminology:\n\n{context_prompt}"
+
+                try:
+                    context_prompt_en = ollama_service.translate_text(translation_prompt)
+                    if not context_prompt_en:
+                        logger.error("[PHASE2] Context translation failed, using original")
+                        context_prompt_en = context_prompt
+                    else:
+                        logger.info(f"[PHASE2] Context translated successfully")
+                        # Save English version
+                        recorder.save_entity('context_prompt_en', context_prompt_en)
+                except Exception as e:
+                    logger.error(f"[PHASE2] Context translation error: {e}")
+                    context_prompt_en = context_prompt
+
+            # Create modified config with user-edited context
+            logger.info(f"[PHASE2] Creating modified config with user-edited context")
+            config_dict = config.to_dict()
+            config_dict['context'] = context_prompt_en  # Use English version for pipeline
+            config_dict['meta']['user_edited'] = True
+            config_dict['meta']['original_config'] = schema_name
+            config_dict['meta']['user_language'] = user_language
+
+            # Update config object (create new Config instance)
+            from schemas.engine.config import Config
+            modified_config = Config.from_dict(config_dict)
+
+            # Save modified config as first entity
+            recorder.save_entity('config_used', config_dict)
+            logger.info(f"[RECORDER] Saved user-modified config")
+        else:
+            # Save original config (unmodified)
+            recorder.save_entity('config_used', config.to_dict())
+            logger.info(f"[RECORDER] Saved original config")
+
+        # Use modified config for execution if available
+        execution_config = modified_config if modified_config else config
 
         # ====================================================================
         # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
@@ -319,7 +383,8 @@ def execute_pipeline():
             user_input=data.get('user_input', input_text),
             execution_mode=execution_mode,
             safety_level=safety_level,
-            tracker=tracker
+            tracker=tracker,
+            config_override=execution_config  # Phase 2: Pass modified config if user edited
         ))
 
         # Check if pipeline succeeded

@@ -19,7 +19,10 @@
     "explore",
     "playful"
   ],
-  "context": "describe the exact diametral opposite. Entities as well as relations have to be turned into their opposites.",
+  "context": {
+    "en": "describe the exact diametral opposite. Entities as well as relations have to be turned into their opposites.",
+    "de": "Beschreibe das exakt diametral Gegenteil.  \nDu musst Entitäten sowie Relation*en in ihre Gegenteile umwandeln."
+  },
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,

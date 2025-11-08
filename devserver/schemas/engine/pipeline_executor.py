@@ -92,8 +92,22 @@ class PipelineExecutor:
         self._initialized = True
         logger.info("Pipeline-Executor initialized")
     
-    async def execute_pipeline(self, config_name: str, input_text: str, user_input: Optional[str] = None, execution_mode: str = 'eco', safety_level: str = 'kids', tracker=None) -> PipelineResult:
-        """Execute complete pipeline with 4-Stage Pre-Interception System"""
+    async def execute_pipeline(
+        self,
+        config_name: str,
+        input_text: str,
+        user_input: Optional[str] = None,
+        execution_mode: str = 'eco',
+        safety_level: str = 'kids',
+        tracker=None,
+        config_override=None  # Phase 2: Optional pre-modified config
+    ) -> PipelineResult:
+        """Execute complete pipeline with 4-Stage Pre-Interception System
+
+        Args:
+            config_override: Optional pre-modified Config object (Phase 2 user edits)
+                           If provided, uses this instead of loading from config_name
+        """
         # Auto-initialization if needed
         if not self._initialized:
             logger.info("Auto-initialization: Config-Loader and Backend-Router")
@@ -103,8 +117,13 @@ class PipelineExecutor:
 
         logger.info(f"[EXECUTION-MODE] Pipeline for config '{config_name}' with execution_mode='{execution_mode}'")
 
-        # Get config
-        resolved_config = self.config_loader.get_config(config_name)
+        # Get config (use override if provided, otherwise load)
+        if config_override:
+            logger.info(f"[PHASE2] Using user-modified config override")
+            resolved_config = config_override
+        else:
+            resolved_config = self.config_loader.get_config(config_name)
+
         if not resolved_config:
             return PipelineResult(
                 config_name=config_name,

@@ -19,7 +19,10 @@
     "create",
     "serious"
   ],
-  "context": "Write a prompt for a music generating AI. No remarks or comments, just the description for the Audio/Music AI.",
+  "context": {
+    "en": "Write a prompt for a music generating AI. No remarks or comments, just the description for the Audio/Music AI.",
+    "de": "Schreibe einen Prompt für eine musikgenerierende KI. Keine Bemerkungen oder Kommentare, nur die Beschreibung für die Audio-/Musik‑KI."
+  },
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,
