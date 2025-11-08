@@ -26,8 +26,8 @@ const router = createRouter({
     {
       path: '/execute/:configId',
       name: 'pipeline-execution',
-      // Phase 2: Pipeline execution with multilingual context editing
-      component: () => import('../views/PipelineExecutionView.vue'),
+      // Phase 2: Organic force-based creative input interface
+      component: () => import('../views/Phase2CreativeFlowView.vue'),
     },
   ],
 })

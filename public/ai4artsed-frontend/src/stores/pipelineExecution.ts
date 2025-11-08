@@ -74,12 +74,18 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
     isLoading.value = true
     error.value = null
 
+    console.log(`[PipelineExecution] setConfig called with configId: "${configId}"`)
+
     try {
       // Load config metadata
       const config = await getConfig(configId)
       selectedConfig.value = config
 
-      console.log(`[PipelineExecution] Config set: ${configId}`)
+      console.log(`[PipelineExecution] Config loaded successfully:`, {
+        id: config.id,
+        name: config.name,
+        pipeline: config.pipeline
+      })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load config'
       console.error('[PipelineExecution] Error loading config:', err)
@@ -95,26 +101,38 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
    */
   async function loadMetaPromptForLanguage(language: 'de' | 'en') {
     if (!selectedConfig.value) {
-      console.warn('[PipelineExecution] No config selected')
+      console.warn('[PipelineExecution] loadMetaPromptForLanguage: No config selected')
       return
     }
 
     isLoading.value = true
     error.value = null
 
+    console.log(`[PipelineExecution] loadMetaPromptForLanguage: configId="${selectedConfig.value.id}", language="${language}"`)
+
     try {
       // Fetch context from backend
+      console.log(`[PipelineExecution] Fetching: GET /api/config/${selectedConfig.value.id}/context`)
       const contextData = await getConfigContext(selectedConfig.value.id)
+
+      console.log(`[PipelineExecution] Context response:`, {
+        config_id: contextData.config_id,
+        contextType: typeof contextData.context,
+        contextKeys: typeof contextData.context === 'object' ? Object.keys(contextData.context) : 'N/A'
+      })
 
       // Extract context in selected language
       let contextText: string
 
       if (typeof contextData.context === 'string') {
         // Old format (not yet translated)
+        console.log('[PipelineExecution] Context is string (old format)')
         contextText = contextData.context
       } else {
         // New format {en: "...", de: "..."}
+        console.log(`[PipelineExecution] Context is object, extracting language: ${language}`)
         contextText = contextData.context[language] || contextData.context.en || ''
+        console.log(`[PipelineExecution] Extracted ${language} context (${contextText.length} chars): ${contextText.substring(0, 80)}...`)
       }
 
       // Set meta-prompt
@@ -122,11 +140,11 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
       originalMetaPrompt.value = contextText
 
       console.log(
-        `[PipelineExecution] Loaded meta-prompt for ${selectedConfig.value.id} (${language}): ${contextText.substring(0, 50)}...`
+        `[PipelineExecution] ✅ Meta-prompt set for ${selectedConfig.value.id} (${language}): ${contextText.substring(0, 50)}...`
       )
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load meta-prompt'
-      console.error('[PipelineExecution] Error loading meta-prompt:', err)
+      console.error('[PipelineExecution] ❌ Error loading meta-prompt:', err)
     } finally {
       isLoading.value = false
     }
