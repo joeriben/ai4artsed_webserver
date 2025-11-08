@@ -1,5 +1,5 @@
 {
-  "pipeline": "text_transformation",
+  "pipeline": "DUMMY",
   "instruction_type": "artistic_transformation",
   "name": {
     "en": "Surrealization",
@@ -10,13 +10,14 @@
     "de": "Verwandelt deinen Prompt in traumhafte, surreale Bildwelten. Kombiniert Unmögliches und erkundet das Unbewusste und Unerwartete."
   },
   "category": {
-    "en": "Vector",
-    "de": "Vector"
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
   },
   "properties": [
     "chaotic",
     "emotion",
-    "explore"
+    "explore",
+    "contemporary"
   ],
   "context": {
     "en": "prompting expert",

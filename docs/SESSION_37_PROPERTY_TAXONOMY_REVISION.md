@@ -63,7 +63,7 @@ Configs: Bauhaus, ClichéFilter V2, ConfucianLiterati, Dadaism, Expressionism, H
 
 ---
 
-### TERM 1: calm (chillig) - "Kontrollierter Kontext"
+### TERM 1: chill (chillig) - "Kontrollierter Kontext"
 
 **Aktuell (8):** Bauhaus, ClichéFilter V2, ConfucianLiterati, HunkyDoryHarmonizer, PigLatin, Renaissance, SD 3.5 TellAStory, TechnicalDrawing
 
@@ -232,10 +232,10 @@ Configs: Bauhaus, ClichéFilter V2, ConfucianLiterati, Dadaism, Expressionism, H
 #### **Bauhaus**
 - ❌ ENTFERNEN: narrative
 - ✅ HINZUFÜGEN: algorithmic
-- **Neu:** calm, chaotic→, algorithmic✓, facts, historical, create, serious
+- **Neu:** chill, chaotic→, algorithmic✓, facts, historical, create, serious
 
 #### **ClichéFilter V2**
-- ❌ ENTFERNEN: calm
+- ❌ ENTFERNEN: chill
 - ✅ HINZUFÜGEN: chaotic
 - ❌ ENTFERNEN: narrative
 - ✅ HINZUFÜGEN: algorithmic
@@ -243,15 +243,15 @@ Configs: Bauhaus, ClichéFilter V2, ConfucianLiterati, Dadaism, Expressionism, H
 
 #### **ConfucianLiterati**
 - ❌ ENTFERNEN: facts
-- **Neu:** calm, narrative, emotion, historical, explore, serious
+- **Neu:** chill, narrative, emotion, historical, explore, serious
 
 #### **HunkyDoryHarmonizer**
 - ✅ HINZUFÜGEN: narrative
-- **Neu:** calm, narrative✓, emotion, contemporary, create, playful
+- **Neu:** chill, narrative✓, emotion, contemporary, create, playful
 
 #### **PigLatin**
 - ✅ HINZUFÜGEN: contemporary
-- **Neu:** calm, algorithmic, contemporary✓, explore, playful
+- **Neu:** chill, algorithmic, contemporary✓, explore, playful
 
 #### **StillePost**
 - ✅ HINZUFÜGEN: contemporary
@@ -272,11 +272,11 @@ Configs: Bauhaus, ClichéFilter V2, ConfucianLiterati, Dadaism, Expressionism, H
 #### **SD 3.5 TellAStory**
 - ✅ HINZUFÜGEN: contemporary
 - ✅ HINZUFÜGEN: serious
-- **Neu:** calm, narrative, contemporary✓, create, serious✓
+- **Neu:** chill, narrative, contemporary✓, create, serious✓
 
 #### **TechnicalDrawing**
 - ✅ HINZUFÜGEN: algorithmic
-- **Neu:** calm, algorithmic✓, facts, contemporary, create, serious
+- **Neu:** chill, algorithmic✓, facts, contemporary, create, serious
 
 ---
 
@@ -289,7 +289,7 @@ Pfad: `/public/ai4artsed-frontend/src/i18n.ts`
 **Deutsch:**
 ```typescript
 properties: {
-  calm: 'chillig',
+  chill: 'chillig',
   chaotic: 'wild',
   narrative: 'Geschichten erzählen',
   algorithmic: 'nach Regeln gehen',
@@ -307,7 +307,7 @@ properties: {
 **Englisch:**
 ```typescript
 properties: {
-  calm: 'chill',
+  chill: 'chill',
   chaotic: 'wild',
   narrative: 'tell stories',
   algorithmic: 'follow rules',
@@ -326,7 +326,7 @@ properties: {
 
 **11 Configs ändern:**
 1. Bauhaus: `-narrative, +algorithmic`
-2. ClichéFilter V2: `-calm, +chaotic, -narrative, +algorithmic`
+2. ClichéFilter V2: `-chill, +chaotic, -narrative, +algorithmic`
 3. ConfucianLiterati: `-facts`
 4. HunkyDoryHarmonizer: `+narrative`
 5. PigLatin: `+contemporary`
@@ -354,7 +354,7 @@ Dieses Dokument in `/docs/SESSION_37_PROPERTY_TAXONOMY_REVISION.md` sichern.
 - Stille Post = Gegenwart (wird heute noch gespielt)
 
 ### 3. Property-Zuweisungen waren inkonsistent
-- ClichéFilter V2 hatte "calm" (sollte "chaotic" sein)
+- ClichéFilter V2 hatte "chill" (sollte "chaotic" sein)
 - ConfucianLiterati hatte "facts" (ist aber hochgradig emotional)
 - Bauhaus hatte "narrative" (ist aber algorithmisch/funktional)
 - 6 algorithmische Spiele fehlte "contemporary"

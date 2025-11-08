@@ -41,7 +41,7 @@ This analysis reviews **all 32 interception configs** (18 active + 14 deactivate
 | **algorithmic** | 7 | 39% | ImageAndSound, ImageToSound, Overdrive, PigLatin, SplitAndCombineSpherical, StillePost, TheOpposite |
 | **narrative** | 8 | 44% | Bauhaus, ClichéFilter V2, ConfucianLiterati, Dadaism, Expressionism, Jugendsprache, Renaissance, SD 3.5 TellAStory |
 | **chaotic** | 8 | 44% | Dadaism, Expressionism, Jugendsprache, Overdrive, SplitAndCombineSpherical, StillePost, Surrealization, TheOpposite |
-| **chill** | 8 | 44% | Bauhaus, ClichéFilter V2, ConfucianLiterati, HunkyDoryHarmonizer, PigLatin, Renaissance, SD 3.5 TellAStory, TechnicalDrawing |
+| **calm** | 8 | 44% | Bauhaus, ClichéFilter V2, ConfucianLiterati, HunkyDoryHarmonizer, PigLatin, Renaissance, SD 3.5 TellAStory, TechnicalDrawing |
 
 ---
 
@@ -49,23 +49,26 @@ This analysis reviews **all 32 interception configs** (18 active + 14 deactivate
 
 | Property | Before | After | Change | New Configs |
 |----------|--------|-------|--------|-------------|
-| **chill** | 8 | 7 | -1 | Remove: ClichéFilter V2, PigLatin |
+| **calm** | 8 | 7 | -1 | Remove: ClichéFilter V2, PigLatin |
 | **chaotic** | 8 | 10 | +2 | Add: ClichéFilter V2, PigLatin |
 | **narrative** | 8 | 7 | -1 | Remove: Bauhaus, ClichéFilter V2; Add: HunkyDoryHarmonizer |
 | **algorithmic** | 7 | 11 | +4 | Add: Bauhaus, ClichéFilter V2, TechnicalDrawing, Overdrive |
 | **facts** | 5 | 4 | -1 | Remove: ConfucianLiterati |
 | **emotion** | 6 | 6 | 0 | No change |
 | **historical** | 5 | 5 | 0 | No change |
-| **contemporary** | 6 | 13 | +7 | Add: PigLatin, StillePost, TheOpposite, SplitAndCombineSpherical, Overdrive, SD 3.5 TellAStory, Surrealization |
-| **explore** | 8 | 9 | +1 | Add: Surrealization |
-| **create** | 10 | 10 | 0 | No change |
+| **contemporary** | 6 | 13 | +7 | Add: PigLatin, StillePost, TheOpposite, SplitAndCombineSpherical, Overdrive, SD 3.5 TellAStory, Surrealization(?) |
+>>> ja, surrealization unbedingt <<<
+| **explore** | 8 | 8 | 0 | No change |
+| **create** | 10 | 11 | +1 | Add: Surrealization(?) |
+>>> nein, explore. Sind die Metadaten unzureichend von dieser config? -> check den originalen Workflow. Die pipeline für diese config existiert noch nicht. der sinn ist mathematische dekonstruktrion auf Vektorebene direkt vor der Generierung <<<
 | **playful** | 8 | 8 | 0 | No change |
-| **serious** | 8 | 9 | +1 | ~~Add: SD 3.5 TellAStory, Surrealization~~ REMOVED per user feedback |
+| **serious** | 8 | 11 | +3 | Add: SD 3.5 TellAStory, Surrealization(?) |
+>>> Verstehe nicht was am geschichtenerzählen notwendig serious sein müsste -> also nicht. Surrealization ist auch nicht serious <<<
 
 ### Key Observations:
 - **contemporary** has largest increase (+7) - many algorithmic/conceptual configs were missing this
 - **algorithmic** significantly increases (+4) - many rule-based transformations were not marked
-- **chill/chaotic** slight rebalance (8→7 vs 8→10) - better captures unpredictability
+- **calm/chaotic** slight rebalance (8→7 vs 8→10) - better captures unpredictability
 - Property distribution becomes more balanced overall
 
 ---
@@ -92,40 +95,30 @@ This analysis reviews **all 32 interception configs** (18 active + 14 deactivate
 
 ---
 
-### 2.2 GOOD Contexts (4 configs)
+### 2.2 GOOD Contexts (7 configs)
 
 **Minor improvements possible but fundamentally sound:**
 
 1. **Bauhaus** - Rigorous, but could add more negative prompting
-   - **Suggested additions:** Explicitly forbid organic forms, decorative elements, curved lines
-   - Example: "Do NOT use: organic shapes, decorative ornamentation, curved lines, natural textures, Art Nouveau flourishes"
-
 2. **ConfucianLiterati** - Sophisticated BUT needs cultural expert validation
-
-3. **Jugendsprache (UK Youth Slang)** - Detailed vocabulary, but should address appropriation ethics
-   - Consider adding note about cultural context and when/how to use responsibly
-
-4. **image_comparison** (deactivated) - Appropriate for comparison config, needs cost warnings
+3. **Jugendsprache** - Detailed, but should address appropriation ethics
+>>> Very thoughtful remarks until here. Add suggestions for Bauhaus: which neg prompts do you mean? <<<
+4. **Renaissance** - Methodologically strong
+5. **ConfucianLiterati** - Complex BUT culturally sensitive
+6. **UK Youth Slang** - Specific vocabulary, clear target audience
+7. **image_comparison** (deactivated) - Appropriate for comparison config
+>>> 4-7 I do not get, redundant in part, but with different assessment (UK youth/Jugendsprache is the same)
 
 
 ---
 
 ### 2.3 NEEDS IMPROVEMENT (2 configs)
 
-**Legacy contexts found - need restoration:**
+**Thin content but not broken:**
 
-1. **Overdrive** - Has excellent legacy context that should be restored:
-   ```
-   Your gift is to exaggerate the content of the input beyond measure.
-   YOU ARE THE OVERDRIVE who amplifies everything to its grotesque limit
-   and beyond distortion. Exaggerate in every respect, go over the top,
-   show off, make everything big!
-   ```
-   **Action:** Replace current placeholder with this legacy context
-
-2. **TheOpposite** - Has minimal legacy context that needs expansion:
-   - Legacy: "describe the exact diametral opposite"
-   - **Action:** Expand with examples of what "opposite" means (spatial, property, social, emotional inversions)
+1. **Overdrive** - Too generic, needs methodology and examples
+2. **TheOpposite** - Too brief, needs examples and edge case handling
+<<< check with original workflows and change context prompts accordingly >>>
 
 ---
 
@@ -133,19 +126,21 @@ This analysis reviews **all 32 interception configs** (18 active + 14 deactivate
 
 **Critical priority - complete redesign needed:**
 
-| Config | Context | Status | Action |
-|--------|---------|--------|--------|
-| **ClichéFilter V2** | "professional translator" | ACTIVE - BROKEN | Check legacy workflow |
-| **HunkyDoryHarmonizer** | "professional translator" | ACTIVE - BROKEN | Redesign needed |
-| **ImageAndSound** | "Lyricist, Song writer, word smith" | ACTIVE - BROKEN | May be correct for dual-text pipeline - investigate |
-| **ImageToSound** | "Write a prompt for..." (minimal) | ACTIVE - BROKEN | Check for dual-text pipeline |
-| **SplitAndCombineSpherical** | "prompting expert" | ACTIVE - BROKEN | Redesign needed |
-| **SD 3.5 TellAStory** | "Prompting Expert" | ACTIVE - BROKEN | Redesign needed |
-| **Surrealization** | "prompting expert" | ACTIVE - **WRONG ARCHITECTURE** | Needs split_up pipeline + vector chunks - deactivate OR complete redesign |
-| **(((promptinterception)))** | "professional translator" | DEACTIVATED | - |
-| **llm-comparison configs** | "conversationalist" | DEACTIVATED | - |
+| Config | Context | Status |
+|--------|---------|--------|
+| **ClichéFilter V2** | "professional translator" | ACTIVE - BROKEN |
+| **HunkyDoryHarmonizer** | "professional translator" | ACTIVE - BROKEN |
+| **ImageAndSound** | "Lyricist, Song writer, word smith" | ACTIVE - BROKEN |
+| **ImageToSound** | "Write a prompt for..." (minimal) | ACTIVE - BROKEN |
+| **SplitAndCombineSpherical** | "prompting expert" | ACTIVE - BROKEN |
+| **SD 3.5 TellAStory** | "Prompting Expert" | ACTIVE - BROKEN |
+| **Surrealization** | "prompting expert" | ACTIVE - BROKEN |
+| **(((promptinterception)))** | "professional translator" | DEACTIVATED |
+| **llm-comparison configs** | "conversationalist" | DEACTIVATED |
 
-**Key Finding:** Surrealization legacy workflow reveals it's NOT an interception config but a **dual CLIP/T5 optimization pipeline** with vector-level manipulation. Current architecture is fundamentally wrong.
+**These are PLACEHOLDERS that were never properly developed.**
+
+<<< check with original workflows and change context prompts accordingly. As said, surrealization needs a new split_up-pipeline and probably new chunks >>>
 
 ---
 
@@ -174,14 +169,9 @@ This analysis reviews **all 32 interception configs** (18 active + 14 deactivate
 - "Lyricist, Song writer, word smith" (ImageAndSound)
 - "conversationalist" (LLM-comparison configs)
 
-**Why this happened:** These expressions ("professional translator", "prompting expert", "wordsmith") are correct for:
-- **Translation nodes** (Stage 1): "professional translator" ✓
-- **Prompt optimization nodes** (SD3.5 dual-pipeline): "prompting expert" ✓
-- **Lyrics generation in AceStep workflow**: "wordsmith" ✓
+**Why this is AI-slop:** These provide zero transformation guidance. The LLM has no idea what to do.
 
-**BUT:** They were copy-pasted into **Stage 2 interception context fields** where they don't belong.
-
-**Hypothesis:** ImageAndSound/ImageToSound may legitimately need "wordsmith" if they have dual-text pipelines (like Surrealization has dual CLIP/T5). Need to investigate legacy workflows.
+<<< weird indeed. I used the first three expressions for certain API-Workflows (in particular translation nodes and nodes for formal prompt optmization, but they slipped in here somehow. I think the wordsmith thing is particularly for lyrics in AceStep API-Workflow and could be right for the music config with dual text pipeline. --> check all original workflows, identify context prompt, update configs >>>
 
 ---
 
@@ -214,11 +204,11 @@ This analysis reviews **all 32 interception configs** (18 active + 14 deactivate
 
 ### 4.1 Systematic Property Issues Found
 
-**Issue 1: chill/chaotic confusion**
-- **ClichéFilter V2:** Had "chill" but removes predictable patterns → should be "chaotic"
-- **PigLatin:** Had "chill" but creates linguistic chaos for CLIP → should be "chaotic"
+**Issue 1: calm/chaotic confusion**
+- **ClichéFilter V2:** Had "calm" but removes predictable patterns → should be "chaotic"
+- **PigLatin:** Had "calm" but creates linguistic chaos for CLIP → should be "chaotic"
 
-**Root cause:** Confusion between "deterministic process" (algorithmic) and "predictable outcome" (chill). Both PigLatin and ClichéFilter follow rules but produce unexpected results.
+**Root cause:** Confusion between "deterministic process" (algorithmic) and "predictable outcome" (calm). Both PigLatin and ClichéFilter follow rules but produce unexpected results.
 
 ---
 
@@ -255,8 +245,8 @@ This analysis reviews **all 32 interception configs** (18 active + 14 deactivate
 
 **Key clarifications from Session 37 that resolve many issues:**
 
-1. **chill ≠ "ruhig" (emotional state)**
-   - "chill" = controlled context, predictable, steerable
+1. **calm ≠ "ruhig" (emotional state)**
+   - "calm" = controlled context, predictable, steerable
    - NOT: relaxed, peaceful, gentle
    - BUT: under control, expected outcomes
 
@@ -286,17 +276,17 @@ These clarifications resolve most property assignment issues.
 **From Session 37 + Current Analysis:**
 
 1. **Bauhaus:** -narrative, +algorithmic
-2. **ClichéFilter V2:** -chill, +chaotic, -narrative, +algorithmic
+2. **ClichéFilter V2:** -calm, +chaotic, -narrative, +algorithmic
 3. **ConfucianLiterati:** -facts
 4. **HunkyDoryHarmonizer:** +narrative
-5. **PigLatin:** -chill, +chaotic, +contemporary
+5. **PigLatin:** -calm, +chaotic, +contemporary
 6. **StillePost:** +contemporary
 7. **TheOpposite:** +contemporary
 8. **SplitAndCombineSpherical:** +contemporary
-9. **Overdrive:** +contemporary
-10. **SD 3.5 TellAStory:** +contemporary (~~+serious~~ removed per user)
+9. **Overdrive:** +contemporary, +emotion(consider)
+10. **SD 3.5 TellAStory:** +contemporary, +serious
 11. **TechnicalDrawing:** +algorithmic
-12. **Surrealization:** +contemporary, +explore (NOT create, NOT serious, NOT historical per user feedback)
+12. **Surrealization:** +historical, +create(consider), +serious(consider)
 
 ---
 
@@ -444,14 +434,14 @@ For each of 7 broken active configs:
 | chaotic | 10 | 56% |
 | explore | 8 | 44% |
 | playful | 8 | 44% |
-| chill | 7 | 39% |
+| calm | 7 | 39% |
 | narrative | 7 | 39% |
 | emotion | 6 | 33% |
 | historical | 5 | 28% |
 | facts | 4 | 22% |
 
 **Balance assessment:** Good distribution. No property is over-concentrated (max 72%) or nearly absent (min 22%). The 6 dimension pairs are reasonably balanced:
-- chill (39%) vs. chaotic (56%) - slight chaotic preference
+- calm (39%) vs. chaotic (56%) - slight chaotic preference
 - narrative (39%) vs. algorithmic (61%) - algorithmic preference
 - facts (22%) vs. emotion (33%) - slight emotion preference
 - historical (28%) vs. contemporary (72%) - strong contemporary preference

@@ -10,11 +10,11 @@
     "de": "Übersetzt alles in konfuzianische Gelehrtenkultur mit rituellen Rollen, moralischen Werten und harmonischen Beziehungen. Menschen werden zu Lehrenden, Lernenden oder Ältesten in einer strukturierten sozialen Ordnung."
   },
   "category": {
-    "en": "Arts And Heritage",
-    "de": "Arts And Heritage"
+    "de": "Kunst & Kultur",
+    "en": "Art & Culture"
   },
   "properties": [
-    "calm",
+    "chill",
     "narrative",
     "emotion",
     "historical",

@@ -10,8 +10,8 @@
     "de": "Übersetzt visuelle Elemente in musikalische Sprache. Verwandelt Bilder in Liedtexte oder Klangbeschreibungen."
   },
   "category": {
-    "en": "Across",
-    "de": "Across"
+    "de": "Across",
+    "en": "Across"
   },
   "properties": [
     "algorithmic",

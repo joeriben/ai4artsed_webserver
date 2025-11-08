@@ -379,7 +379,7 @@ Bedeutung zählt ←─────────────────→ Regel
 
 **Finales Property-Set (6 Paare):**
 
-1. `calm` ←→ `chaotic` (chillig - chaotisch)
+1. `chill` ←→ `chaotic` (chillig - chaotisch)
 2. `narrative` ←→ `algorithmic` (erzählen - berechnen)
 3. `facts` ←→ `emotion` (fakten - gefühl)
 4. `historical` ←→ `contemporary` (geschichte - gegenwart)
@@ -390,17 +390,17 @@ Bedeutung zählt ←─────────────────→ Regel
 
 ### 1. bauhaus.json
 ```json
-"properties": ["calm", "narrative", "facts", "historical", "create", "serious"]
+"properties": ["chill", "narrative", "facts", "historical", "create", "serious"]
 ```
 
 ### 2. clichéfilter_v2.json
 ```json
-"properties": ["calm", "narrative", "facts", "contemporary", "explore", "serious"]
+"properties": ["chill", "narrative", "facts", "contemporary", "explore", "serious"]
 ```
 
 ### 3. confucianliterati.json
 ```json
-"properties": ["calm", "narrative", "emotion", "historical", "explore", "serious"]
+"properties": ["chill", "narrative", "emotion", "historical", "explore", "serious"]
 ```
 
 ### 4. dada.json
@@ -415,7 +415,7 @@ Bedeutung zählt ←─────────────────→ Regel
 
 ### 6. hunkydoryharmonizer.json
 ```json
-"properties": ["calm", "emotion", "contemporary", "create", "playful"]
+"properties": ["chill", "emotion", "contemporary", "create", "playful"]
 ```
 
 ### 7. imageandsound.json
@@ -445,7 +445,7 @@ Bedeutung zählt ←─────────────────→ Regel
 
 ### 12. piglatin.json
 ```json
-"properties": ["calm", "algorithmic", "facts", "playful"]
+"properties": ["chill", "algorithmic", "facts", "playful"]
 ```
 
 ### 13. quantumtheory.json
@@ -455,7 +455,7 @@ Bedeutung zählt ←─────────────────→ Regel
 
 ### 14. renaissance.json
 ```json
-"properties": ["calm", "narrative", "historical", "create", "serious"]
+"properties": ["chill", "narrative", "historical", "create", "serious"]
 ```
 
 ### 15. splitandcombinespherical.json
@@ -465,7 +465,7 @@ Bedeutung zählt ←─────────────────→ Regel
 
 ### 16. stable-diffusion_3.5_tellastory.json
 ```json
-"properties": ["calm", "narrative", "contemporary", "create"]
+"properties": ["chill", "narrative", "contemporary", "create"]
 ```
 
 ### 17. stillepost.json
@@ -481,7 +481,7 @@ Bedeutung zählt ←─────────────────→ Regel
 
 ### 19. technicaldrawing.json
 ```json
-"properties": ["calm", "algorithmic", "facts", "create", "serious"]
+"properties": ["chill", "algorithmic", "facts", "create", "serious"]
 ```
 
 ### 20. theopposite.json
@@ -491,7 +491,7 @@ Bedeutung zählt ←─────────────────→ Regel
 
 ### 21. yorubaheritage.json
 ```json
-"properties": ["calm", "narrative", "emotion", "historical", "explore", "serious"]
+"properties": ["chill", "narrative", "emotion", "historical", "explore", "serious"]
 ```
 
 ---
@@ -499,7 +499,7 @@ Bedeutung zählt ←─────────────────→ Regel
 ## Statistik: Property-Verteilung
 
 **Paar 1 (chillig - chaotisch):**
-- calm: 10
+- chill: 10
 - chaotic: 11
 
 **Paar 2 (erzählen - berechnen):**

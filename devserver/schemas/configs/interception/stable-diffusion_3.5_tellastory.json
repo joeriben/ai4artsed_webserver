@@ -10,13 +10,14 @@
     "de": "Optimiert deinen Prompt speziell für Stable Diffusion 3.5, um visuelle Geschichten zu erzählen. Strukturiert deine Ideen für narrative Bildgenerierung."
   },
   "category": {
-    "en": "Model",
-    "de": "Model"
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
   },
   "properties": [
-    "calm",
+    "chill",
     "narrative",
-    "create"
+    "create",
+    "contemporary"
   ],
   "context": {
     "en": "Prompting Expert",

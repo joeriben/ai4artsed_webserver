@@ -25,6 +25,211 @@
 
 ---
 
+## Session 36 (2025-11-08): Phase 2 Backend Complete + Property System Fixes
+
+**Date:** 2025-11-08
+**Duration:** ~3h
+**Branch:** `feature/schema-architecture-v2`
+**Status:** ✅ BACKEND COMPLETE - Phase 2 endpoints working, property system cleaned up
+
+### Context
+
+Continued Phase 2 (Multilingual Context Editing) implementation from previous session. Backend had import errors preventing endpoint testing. Additionally, discovered persistent "calm" property issues and frontend showing raw property IDs instead of translated labels.
+
+### Work Completed
+
+#### 1. Phase 2 Backend Fixes (Critical)
+
+**Problem:** New endpoints returned "config_loader not defined" error
+**Root Cause:** Missing import statement + wrong attribute name
+
+**Files Modified:**
+- `devserver/my_app/routes/schema_pipeline_routes.py`
+  - Added missing `from schemas.engine.config_loader import config_loader`
+  - Fixed `config.pipeline` → `config.pipeline_name` attribute error
+  - Both Phase 2 endpoints now functional
+
+**Endpoints Fixed:**
+- `GET /api/config/<id>/context` - Returns multilingual meta-prompt {en, de}
+- `GET /api/config/<id>/pipeline` - Returns pipeline structure metadata
+
+**Testing:**
+```bash
+curl http://localhost:17801/api/config/dada/context
+# Returns: {"config_id": "dada", "context": {"de": "...", "en": "..."}}
+
+curl http://localhost:17801/api/config/dada/pipeline
+# Returns: {
+#   "pipeline_type": "prompt_interception",
+#   "requires_interception_prompt": true,
+#   "input_requirements": {"texts": 1}
+# }
+```
+
+#### 2. Property System Cleanup (Major Fix)
+
+**Problem #1: "calm" Property Still Appearing**
+- User spent hours in Session 37 replacing "calm" → "chill"
+- "calm" kept reappearing due to incomplete cleanup
+
+**Files Fixed:**
+- `devserver/schemas/configs/interception/renaissance.json` - calm → chill
+- 10 deactivated configs - all calm → chill
+- `devserver/my_app/routes/schema_pipeline_routes.py` - property_pairs array
+- `devserver/scripts/validate_property_coverage.py` - property pairs constant
+- Added TODO comment: Move to i18n configuration
+
+**Problem #2: Frontend Showing Raw Property IDs**
+- User saw "chaotic" on screen instead of "wild"
+- Properties weren't using i18n translation
+
+**Files Fixed:**
+- `public/ai4artsed-frontend/src/components/PropertyBubble.vue`
+  - Changed `{{ property }}` to `{{ $t('properties.' + property) }}`
+- `public/ai4artsed-frontend/src/components/NoMatchState.vue`
+  - Changed `{{ prop }}` to `{{ $t('properties.' + prop) }}`
+
+**Problem #3: PigLatin Property Pair Violation**
+- Had BOTH "chill" (controllable) AND "chaotic" (wild)
+- These are opposites and cannot coexist
+
+**Semantic Understanding:**
+- PigLatin is algorithmic (rule-based)
+- BUT results are WILD to readers (unpredictable appearance)
+- Should have "chaotic" (displays as "wild"), NOT "chill"
+
+**Fix:** Removed "chill" from PigLatin properties
+
+#### 3. Comments Updated
+
+**Files Modified:**
+- `public/ai4artsed-frontend/src/stores/configSelection.ts` - Comment calm → chill
+- `public/ai4artsed-frontend/src/components/PropertyCanvas.vue` - Comment calm → chill
+
+### Architecture Decisions
+
+**Property System Design:**
+- **Backend**: Returns property IDs ("chaotic", "chill")
+- **Frontend**: Translates IDs via i18n to display labels
+- **Translations**: `chaotic → "wild"`, `chill → "chillig"/"chill"`
+- **Language**: Global (site-wide), not phase-specific
+
+**Property Pairs (Opposites that CANNOT coexist):**
+1. chill ↔ chaotic (chillig - wild)
+2. narrative ↔ algorithmic
+3. facts ↔ emotion
+4. historical ↔ contemporary
+5. explore ↔ create
+6. playful ↔ serious
+
+### Files Changed
+
+**Backend (5 files):**
+- `devserver/my_app/routes/schema_pipeline_routes.py` - Import fix + property pairs
+- `devserver/schemas/configs/interception/renaissance.json` - Property fix
+- 10 deactivated configs in `interception/deactivated/` - Property cleanup
+- `devserver/scripts/validate_property_coverage.py` - Property pairs constant
+
+**Frontend (4 files):**
+- `public/ai4artsed-frontend/src/components/PropertyBubble.vue` - i18n translation
+- `public/ai4artsed-frontend/src/components/NoMatchState.vue` - i18n translation
+- `public/ai4artsed-frontend/src/stores/configSelection.ts` - Comment update
+- `public/ai4artsed-frontend/src/components/PropertyCanvas.vue` - Comment update
+
+### Git Commits
+
+**5 commits:**
+1. `fix(backend): Add missing config_loader import and fix pipeline_name attribute`
+2. `fix: Remove all 'calm' property IDs, replace with 'chill'` (16 files)
+3. `fix(frontend): Use i18n translations for property display` (2 files)
+4. `fix(piglatin): Remove 'chill' property - cannot coexist with 'chaotic'` (1 file)
+5. Documentation commits (HANDOVER.md)
+
+### Key Learnings
+
+**1. Property Taxonomy is Fragile:**
+- Multiple sessions spent fixing "calm" issues
+- Properties displayed without i18n caused confusion
+- User frustration: "massive amounts of old errors appear again and again"
+
+**2. Blind Find-Replace is Dangerous:**
+- Did mechanical "calm" → "chill" replacement
+- Added "chill" to configs that should have it REMOVED
+- Created property pair violation in PigLatin
+- **Lesson:** NEVER do mechanical replacements without semantic understanding
+
+**3. Backend Import Errors:**
+- New endpoints need proper imports
+- Server restart required after backend changes
+- Test endpoints with curl before moving to frontend
+
+**4. Semantic Property Assignment:**
+- Properties reflect pedagogical meaning, not just tags
+- Example: PigLatin is algorithmic BUT wild-looking
+- Cannot mechanically apply Session 37 recommendations
+- Must understand WHY each property was chosen
+
+### Testing Status
+
+**Backend Endpoints:** ✅ Both working
+- Tested with curl
+- DevServer restarted with fixed code
+- Returns correct JSON structures
+
+**Property Display:** ✅ Fixed in code, needs frontend reload
+- Properties now use i18n translation
+- Should display "wild" instead of "chaotic"
+- Should display "chillig" instead of "calm"
+
+**Phase 2 End-to-End:** ⚠️ NOT YET TESTED
+- Phase 1 → Phase 2 navigation
+- Meta-prompt loading and editing
+- Language switching
+- Pipeline execution with edited context
+
+**Phase 2 Frontend:** 🚨 COMPLETELY WRONG - Needs Redesign
+- User feedback: "you did the stage2 design COMPLETELY wrong"
+- **Problems:**
+  - Ignored organic flow mockup specifications
+  - Added unwanted buttons
+  - Wrong placeholder text ("Could you please provide the English text you'd like translated into German?" instead of context-prompt)
+  - Fundamental UX mismatch
+- **File:** `public/ai4artsed-frontend/src/views/PipelineExecutionView.vue` needs complete redesign
+- **Status:** User will handle the frontend implementation fixes
+
+### Next Session Priorities
+
+**CRITICAL BLOCKER:**
+1. Phase 2 Frontend Implementation needs fixing
+   - User will handle the PipelineExecutionView.vue redesign
+   - Must follow organic flow mockup specifications
+   - DO NOT attempt without explicit user instruction
+
+**AFTER FRONTEND FIX:**
+1. Test Phase 2 complete flow end-to-end
+2. Verify property translations show correctly in browser
+3. Test language toggle reloads meta-prompt
+
+**IF WORKING:**
+- Mark Phase 2 as complete
+- Start Phase 3 (Entity flow and viewport layout)
+
+**IF BROKEN:**
+- Debug before proceeding
+- Phase 2 is foundational for Phase 3
+
+### Session Metrics
+
+**Duration:** ~3 hours
+**Files Modified:** 19 files
+**Lines Changed:** +85 -68
+**Commits:** 5 commits
+**Branch:** feature/schema-architecture-v2
+
+**Cost:** ~$5-7 estimated (114k tokens used)
+
+---
+
 ## Session 35 (2025-11-07): LoRA Training Infrastructure Setup & Testing
 
 **Date:** 2025-11-07
@@ -2124,5 +2329,161 @@ Both systems run in parallel (by design):
 **Long-term:**
 - Event-driven architecture for better scalability
 - WebSocket support for real-time frontend updates
+
+---
+
+## Session 37 (2025-11-08): MediaStorage → LivePipelineRecorder Migration Complete
+
+**Duration:** ~3 hours
+**Focus:** Complete migration from dual MediaStorage/LivePipelineRecorder system to unified LivePipelineRecorder-only architecture
+**Status:** ✅ COMPLETE - Images now displaying in frontend
+
+### Critical Issue Resolved
+
+**Problem:** Images were being generated and saved but not displaying in the frontend despite both backend systems (MediaStorage + LivePipelineRecorder) running in parallel.
+
+**Root Cause #1: Python Bytecode Caching**
+- Server was running old MediaStorage code despite source file updates
+- `.pyc` files cached outdated code
+- Solution: Killed all servers, deleted all `__pycache__` and `*.pyc` files, restarted with `python3 -B`
+
+**Root Cause #2: Frontend API Response Mismatch**
+- Backend returns: `{outputs: [{type: "image"}]}`
+- Frontend expected: `{type: "image"}`
+- Bug location: `/public_dev/js/execution-handler.js:448`
+- Fix: Changed `mediaInfo.type` to `mediaInfo.outputs?.[0]?.type`
+
+### Migration Completed
+
+**Before:** Dual system with desynchronization issues
+```
+schema_pipeline_routes.py:
+- MediaStorage.create_run()           # Creates run folder
+- MediaStorage.add_media_from_comfyui() # Downloads media
+- LivePipelineRecorder.save_entity()    # Copy media from MediaStorage
+```
+
+**After:** Single unified system
+```
+schema_pipeline_routes.py:
+- LivePipelineRecorder only (MediaStorage removed)
+- Recorder.download_and_save_from_comfyui() # Direct download
+- Recorder.download_and_save_from_url()     # Direct download
+```
+
+### Files Changed
+
+**Backend (3 files):**
+1. `devserver/my_app/services/pipeline_recorder.py`
+   - Added `download_and_save_from_comfyui()` (~90 lines)
+   - Added `download_and_save_from_url()` (~60 lines)
+   - Added `_detect_format_from_data()`, `_get_image_dimensions_from_bytes()`
+   - Now has complete media handling capabilities
+
+2. `devserver/my_app/routes/media_routes.py`
+   - Complete rewrite to use LivePipelineRecorder metadata format
+   - Changed from MediaStorage `outputs` array to Recorder `entities` array
+   - Added `_find_entity_by_type()` helper
+   - All endpoints updated: `/api/media/image/<run_id>`, `/api/media/audio/<run_id>`, etc.
+
+3. `devserver/my_app/routes/schema_pipeline_routes.py`
+   - Removed `MediaStorage` import
+   - Removed `MediaStorage.create_run()` call (lines 207-218)
+   - Removed `MediaStorage.add_media_from_comfyui()` call
+   - Removed media copy logic from MediaStorage to Recorder
+   - Updated to use Recorder download methods directly
+
+**Frontend (1 file):**
+4. `public_dev/js/execution-handler.js`
+   - Fixed line 448: `const mediaType = mediaInfo.outputs?.[0]?.type;`
+   - Now correctly accesses media type from backend API response
+
+### Metadata Format Change
+
+**OLD MediaStorage Format:**
+```json
+{
+  "outputs": [
+    {"type": "image", "filename": "output_image.png"}
+  ]
+}
+```
+
+**NEW LivePipelineRecorder Format:**
+```json
+{
+  "entities": [
+    {"sequence": 7, "type": "output_image", "filename": "07_output_image.png"}
+  ]
+}
+```
+
+### Test Results
+
+**Run ID:** `1c173019-9437-43fe-bd57-e2612739a8c5`
+
+✅ All 7 entities created:
+1. `01_config_used.json`
+2. `02_input.txt`
+3. `03_translation.txt`
+4. `04_safety.json`
+5. `05_interception.txt`
+6. `06_safety_pre_output.json`
+7. `07_output_image.png` (2.19 MB, 1024x1024)
+
+✅ Backend API working:
+- `/api/media/info/{run_id}` - Returns correct metadata
+- `/api/media/image/{run_id}` - Serves image (HTTP 200)
+
+✅ Frontend displaying images correctly after fix
+
+### Key Achievements
+
+1. **Eliminated dual-system complexity** - Single source of truth for all pipeline artifacts
+2. **Fixed Python bytecode caching issue** - Learned to use `-B` flag for clean restarts
+3. **Completed media download migration** - Recorder now has full MediaStorage capabilities
+4. **Fixed frontend display bug** - Simple one-line fix, major impact
+5. **Validated end-to-end flow** - Images generating, saving, and displaying correctly
+
+### Architecture Impact
+
+**Simplified System:**
+```
+OLD:
+├─ ExecutionTracker (pipeline_runs/)      # Still exists for compatibility
+├─ MediaStorage (exports/json/)           # REMOVED
+└─ LivePipelineRecorder (exports/json/)   # Primary system
+
+NEW:
+├─ ExecutionTracker (pipeline_runs/)      # Still exists for compatibility
+└─ LivePipelineRecorder (exports/json/)   # SINGLE SOURCE OF TRUTH
+```
+
+**Why This Matters:**
+- No more duplicate file creation (`input_text.txt` + `02_input.txt`)
+- No more desynchronization between systems
+- Simpler codebase, easier to maintain
+- Recorder format ready for frontend real-time updates
+
+### Session Metrics
+
+**Duration:** ~3 hours
+**Files Modified:** 4 files
+**Lines Changed:** ~400 lines
+**Commits:** 1 (this commit)
+**Status:** ✅ Tested successfully, images displaying in browser
+
+### Next Steps
+
+**Completed:**
+- ✅ MediaStorage fully removed from pipeline execution
+- ✅ LivePipelineRecorder handles all media downloads
+- ✅ Frontend displays images correctly
+- ✅ Python bytecode caching understood and resolved
+
+**Optional Future Work:**
+- Consider deprecating old ExecutionTracker once Recorder fully validated
+- Add WebSocket support for real-time frontend updates
+- Extend recorder format for video/audio outputs
 
 ---

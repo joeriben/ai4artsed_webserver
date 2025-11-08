@@ -10,16 +10,16 @@
     "de": "Entfernt abgenutzte Phrasen und stereotype Beschreibungen. Hilft dir, Klischees zu vermeiden und originellere Ausdrucksweisen zu finden."
   },
   "category": {
-    "en": "Aesthetics",
-    "de": "Aesthetics"
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
   },
   "properties": [
-    "calm",
-    "narrative",
     "facts",
     "contemporary",
     "explore",
-    "serious"
+    "serious",
+    "chaotic",
+    "algorithmic"
   ],
   "context": {
     "en": "professional translator",

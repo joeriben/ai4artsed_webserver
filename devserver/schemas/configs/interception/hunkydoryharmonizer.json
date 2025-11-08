@@ -10,15 +10,16 @@
     "de": "Macht alles harmonisch und niedlich. Mildert scharfe Kanten ab und schafft eine ruhige, ausgewogene Atmosphäre."
   },
   "category": {
-    "en": "Aesthetics",
-    "de": "Aesthetics"
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
   },
   "properties": [
-    "calm",
+    "chill",
     "emotion",
     "contemporary",
     "create",
-    "playful"
+    "playful",
+    "narrative"
   ],
   "context": {
     "en": "professional translator",

@@ -10,8 +10,8 @@
     "de": "Wandelt Bildbeschreibungen in Musik-Prompts um. Übersetzt visuelle Qualitäten in Klänge, Rhythmen und Stimmungen."
   },
   "category": {
-    "en": "Across",
-    "de": "Across"
+    "de": "Across",
+    "en": "Across"
   },
   "properties": [
     "algorithmic",

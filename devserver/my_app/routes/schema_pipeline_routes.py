@@ -42,10 +42,7 @@ class NoOpTracker:
             pass
         return noop
 
-# Media Storage Service (OLD - will be replaced)
-from my_app.services.media_storage import get_media_storage_service
-
-# NEW: Live Pipeline Recorder (Session 29)
+# Live Pipeline Recorder - Single source of truth (Session 37 Migration Complete)
 from my_app.services.pipeline_recorder import get_recorder
 
 logger = logging.getLogger(__name__)
@@ -204,26 +201,11 @@ def execute_pipeline():
         )
 
         # ====================================================================
-        # MEDIA STORAGE - Create atomic run folder (OLD)
+        # LIVE PIPELINE RECORDER - Single source of truth (Session 37 Migration)
         # ====================================================================
-        media_storage = get_media_storage_service()
-        run_metadata = asyncio.run(media_storage.create_run(
-            schema=schema_name,
-            execution_mode=execution_mode,
-            input_text=input_text,
-            transformed_text=None,  # Will be updated after Stage 2
-            user_id='anonymous',
-            run_id=run_id  # NEW: Pass unified run_id
-        ))
-        logger.info(f"[MEDIA_STORAGE] Created run {run_id} for {schema_name}")
-
-        # ====================================================================
-        # SESSION 29: LIVE PIPELINE RECORDER (NEW)
-        # ====================================================================
-        # Parallel implementation: Run alongside old systems for testing
         from config import JSON_STORAGE_DIR
         recorder = get_recorder(
-            run_id=run_id,  # Use same unified ID
+            run_id=run_id,
             config_name=schema_name,
             execution_mode=execution_mode,
             safety_level=safety_level,
@@ -604,58 +586,35 @@ def execute_pipeline():
 
                             try:
                                 output_value = output_result.final_output
+                                saved_filename = None
 
                                 # Detect if output is URL or prompt_id
                                 if output_value.startswith('http://') or output_value.startswith('https://'):
                                     # API-based generation (GPT-5, Replicate, etc.) - URL
-                                    logger.info(f"[MEDIA_STORAGE] Downloading from URL: {output_value}")
-                                    media_output_data = asyncio.run(media_storage.add_media_from_url(
-                                        run_id=run_id,
+                                    logger.info(f"[RECORDER] Downloading from URL: {output_value}")
+                                    saved_filename = asyncio.run(recorder.download_and_save_from_url(
                                         url=output_value,
-                                        config=output_config_name,
-                                        media_type=media_type
+                                        media_type=media_type,
+                                        config=output_config_name
                                     ))
                                 else:
                                     # ComfyUI generation - prompt_id
-                                    logger.info(f"[MEDIA_STORAGE] Downloading from ComfyUI: {output_value}")
-                                    media_output_data = asyncio.run(media_storage.add_media_from_comfyui(
-                                        run_id=run_id,
+                                    logger.info(f"[RECORDER] Downloading from ComfyUI: {output_value}")
+                                    saved_filename = asyncio.run(recorder.download_and_save_from_comfyui(
                                         prompt_id=output_value,
-                                        config=output_config_name,
-                                        media_type=media_type
+                                        media_type=media_type,
+                                        config=output_config_name
                                     ))
 
-                                if media_output_data:
+                                if saved_filename:
                                     media_stored = True
-                                    logger.info(f"[MEDIA_STORAGE] Media stored successfully in run {run_id}: {media_output_data.filename}")
-
-                                    # SESSION 29: Copy media file to recorder folder
-                                    try:
-                                        # Get the media file path from MediaStorageService
-                                        media_source = media_storage.get_media_path(run_id, media_output_data.filename)
-                                        if media_source and media_source.exists():
-                                            with open(media_source, 'rb') as f:
-                                                media_bytes = f.read()
-                                            recorder.save_entity(
-                                                f'output_{media_type}',
-                                                media_bytes,
-                                                metadata={
-                                                    'config': output_config_name,
-                                                    'filename': media_output_data.filename,
-                                                    'original_path': str(media_source)
-                                                }
-                                            )
-                                            logger.info(f"[RECORDER] Saved output_{media_type} entity")
-                                        else:
-                                            logger.warning(f"[RECORDER] Media file not found at {media_source}")
-                                    except Exception as copy_error:
-                                        logger.error(f"[RECORDER] Failed to copy media to recorder: {copy_error}")
-
+                                    logger.info(f"[RECORDER] Media stored successfully in run {run_id}: {saved_filename}")
                                 else:
-                                    logger.warning(f"[MEDIA_STORAGE] Failed to store media for run {run_id}")
+                                    media_stored = False
+                                    logger.warning(f"[RECORDER] Failed to store media for run {run_id}")
 
                             except Exception as e:
-                                logger.error(f"[MEDIA_STORAGE] Error storing media: {e}")
+                                logger.error(f"[RECORDER] Error downloading/storing media: {e}")
                                 import traceback
                                 traceback.print_exc()
 

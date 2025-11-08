@@ -10,14 +10,15 @@
     "de": "Zerlegt deinen Prompt in Teile, transformiert jedes Stück, und fügt sie dann in unerwarteten sphärischen Anordnungen zusammen. Erschafft überraschende neue Kombinationen aus vertrauten Elementen."
   },
   "category": {
-    "en": "Vector",
-    "de": "Vector"
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
   },
   "properties": [
     "chaotic",
     "algorithmic",
     "explore",
-    "playful"
+    "playful",
+    "contemporary"
   ],
   "context": {
     "en": "prompting expert",

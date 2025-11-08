@@ -10,14 +10,15 @@
     "de": "Schickt deinen Text durch 8 zufällige Sprachen wie bei Stille Post. Erzeugt überraschende Veränderungen, während die Bedeutung durch mehrere Übersetzungen wandert."
   },
   "category": {
-    "en": "Semantics",
-    "de": "Semantics"
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
   },
   "properties": [
     "chaotic",
     "algorithmic",
     "explore",
-    "playful"
+    "playful",
+    "contemporary"
   ],
   "context": {
     "en": "Translate the following text to {{TARGET_LANGUAGE}}.\n\nImportant rules:\n- Translate naturally and idiomatically\n- Do not add any commentaries, explanations, or error messages\n- Only output the translated text\n- Preserve the general meaning and tone\n\nText to translate:",

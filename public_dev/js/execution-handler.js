@@ -445,7 +445,7 @@ async function pollForMedia(promptId, mediaType) {
  * Display media from Backend API (NEW Architecture)
  */
 function displayMediaFromBackend(promptId, mediaInfo) {
-    const mediaType = mediaInfo.type;
+    const mediaType = mediaInfo.outputs?.[0]?.type;
 
     if (mediaType === 'image') {
         displayImageFromBackend(promptId);

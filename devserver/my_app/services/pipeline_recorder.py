@@ -7,13 +7,21 @@ and self-describes expected outputs.
 Replaces:
 - execution_history/tracker.py (ExecutionTracker)
 - my_app/services/media_storage.py (MediaStorage)
+
+Migration Status (Session 37):
+- Added download capabilities from MediaStorage (add_media_from_comfyui, add_media_from_url)
+- Added utility methods (_detect_format_from_data, _get_image_dimensions)
+- Now has complete media handling - no longer depends on MediaStorage for downloads
 """
 
 import json
 import logging
+import requests
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+from PIL import Image
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
@@ -268,6 +276,197 @@ class LivePipelineRecorder:
         """Mark the pipeline run as complete."""
         self.set_state(5, "complete")
         logger.info(f"[RECORDER] Run {self.run_id} marked complete")
+
+    async def download_and_save_from_comfyui(
+        self,
+        prompt_id: str,
+        media_type: str,
+        config: str
+    ) -> Optional[str]:
+        """
+        Download media from ComfyUI and save as entity.
+
+        Args:
+            prompt_id: ComfyUI prompt ID
+            media_type: Type of media ('image', 'audio', 'video')
+            config: Output config name
+
+        Returns:
+            Filename of saved entity, or None if failed
+        """
+        try:
+            from my_app.services.comfyui_client import get_comfyui_client
+
+            client = get_comfyui_client()
+
+            # Wait for workflow completion (with polling)
+            logger.info(f"[RECORDER] Waiting for ComfyUI workflow completion: {prompt_id}")
+            history = await client.wait_for_completion(prompt_id)
+
+            # Get generated files
+            if media_type == 'image':
+                files = await client.get_generated_images(history)
+            elif media_type in ['audio', 'music']:
+                files = await client.get_generated_audio(history)
+            else:
+                logger.error(f"Unsupported media type for ComfyUI: {media_type}")
+                return None
+
+            if not files:
+                logger.error(f"No {media_type} files found in ComfyUI history for {prompt_id}")
+                return None
+
+            # Download first file
+            first_file = files[0]
+            file_data = await client.get_image(
+                filename=first_file['filename'],
+                subfolder=first_file.get('subfolder', ''),
+                folder_type=first_file.get('type', 'output')
+            )
+
+            if not file_data:
+                logger.error(f"Failed to download {media_type} from ComfyUI: {prompt_id}")
+                return None
+
+            # Detect format
+            file_format = self._detect_format_from_data(file_data, media_type)
+
+            # Get dimensions for images
+            metadata = {
+                'config': config,
+                'format': file_format,
+                'backend': 'comfyui',
+                'prompt_id': prompt_id
+            }
+
+            if media_type == 'image':
+                width, height = self._get_image_dimensions_from_bytes(file_data)
+                if width and height:
+                    metadata['width'] = width
+                    metadata['height'] = height
+
+            # Save as entity
+            filename = self.save_entity(
+                entity_type=f'output_{media_type}',
+                content=file_data,
+                metadata=metadata
+            )
+
+            logger.info(f"[RECORDER] Downloaded and saved {media_type} from ComfyUI ({len(file_data)} bytes)")
+            return filename
+
+        except Exception as e:
+            logger.error(f"[RECORDER] Error downloading from ComfyUI: {e}")
+            return None
+
+    async def download_and_save_from_url(
+        self,
+        url: str,
+        media_type: str,
+        config: str
+    ) -> Optional[str]:
+        """
+        Download media from URL and save as entity.
+
+        Args:
+            url: URL to download from
+            media_type: Type of media ('image', 'audio', 'video')
+            config: Output config name
+
+        Returns:
+            Filename of saved entity, or None if failed
+        """
+        try:
+            # Download from URL
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+
+            file_data = response.content
+
+            # Detect backend from URL
+            backend = 'api'
+            if 'openrouter' in url or 'openai' in url:
+                backend = 'gpt5'
+            elif 'replicate' in url:
+                backend = 'replicate'
+
+            # Detect format
+            file_format = self._detect_format_from_data(file_data, media_type)
+
+            # Get dimensions for images
+            metadata = {
+                'config': config,
+                'format': file_format,
+                'backend': backend,
+                'source_url': url
+            }
+
+            if media_type == 'image':
+                width, height = self._get_image_dimensions_from_bytes(file_data)
+                if width and height:
+                    metadata['width'] = width
+                    metadata['height'] = height
+
+            # Save as entity
+            filename = self.save_entity(
+                entity_type=f'output_{media_type}',
+                content=file_data,
+                metadata=metadata
+            )
+
+            logger.info(f"[RECORDER] Downloaded and saved {media_type} from URL ({len(file_data)} bytes)")
+            return filename
+
+        except Exception as e:
+            logger.error(f"[RECORDER] Error downloading from URL: {e}")
+            return None
+
+    def _detect_format_from_data(self, data: bytes, media_type: str) -> str:
+        """
+        Detect file format from binary data.
+
+        Args:
+            data: Binary file data
+            media_type: Expected media type
+
+        Returns:
+            File format extension (e.g., 'png', 'jpg', 'mp3')
+        """
+        if media_type == 'image':
+            try:
+                img = Image.open(BytesIO(data))
+                return img.format.lower() if img.format else 'png'
+            except:
+                return 'png'  # Default
+        elif media_type in ['audio', 'music']:
+            # Simple heuristic based on headers
+            if data[:4] == b'RIFF':
+                return 'wav'
+            elif data[:3] == b'ID3' or data[:2] == b'\xff\xfb':
+                return 'mp3'
+            return 'wav'  # Default
+        elif media_type == 'video':
+            if data[:4] == b'ftyp':
+                return 'mp4'
+            return 'mp4'  # Default
+        else:
+            return 'bin'  # Unknown
+
+    def _get_image_dimensions_from_bytes(self, data: bytes) -> tuple[Optional[int], Optional[int]]:
+        """
+        Get image dimensions from binary data.
+
+        Args:
+            data: Binary image data
+
+        Returns:
+            (width, height) tuple, or (None, None) if unable to determine
+        """
+        try:
+            img = Image.open(BytesIO(data))
+            return img.width, img.height
+        except:
+            return None, None
 
     def _write_file(self, filepath: Path, content: Union[str, bytes, dict]):
         """

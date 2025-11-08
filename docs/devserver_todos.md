@@ -1,10 +1,10 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-03 Session 24 (Minor Fixes Complete, Documentation Updated)
+**Last Updated:** 2025-11-08 Session 36 (Phase 2 Backend Complete, Property System Fixed)
 **Context:** Current priorities and active TODOs
 
 ---
 
-## ✅ COMPLETED FEATURES (Sessions 19-24)
+## ✅ COMPLETED FEATURES (Sessions 19-36)
 
 ### 1. Execution History Tracker - **COMPLETE**
 **Status:** ✅ **COMPLETE** - Full Implementation & Testing Done
@@ -138,72 +138,160 @@ exports/json/{run_uuid}/
 
 ---
 
-### 3. LivePipelineRecorder & Dual-ID Bug Fix - **COMPLETE**
-**Status:** ✅ **COMPLETE** - Critical Bug Fixed & Tested
-**Session:** 29 (2025-11-04)
+### 3. LivePipelineRecorder Migration - **FULLY COMPLETE**
+**Status:** ✅ **MIGRATION COMPLETE** - MediaStorage Removed, Single System
+**Sessions:** 29 (Initial), 37 (Migration Complete) - (2025-11-04, 2025-11-08)
 **Priority:** CRITICAL (fixes complete desynchronization)
 
-**Critical Bug Fixed:**
-- **Dual-ID Desynchronization**: ExecutionTracker and MediaStorage used different UUIDs
-- OLD ExecutionTracker: `exec_20251104_HHMMSS_XXXXX`
-- OLD MediaStorage: `uuid.uuid4()`
-- Result: Execution history referenced non-existent media files
+**Session 37 Final Migration (2025-11-08):**
+- ✅ **MediaStorage completely removed** from pipeline execution
+- ✅ **LivePipelineRecorder is now single source of truth**
+- ✅ **Frontend displaying images correctly** after bug fix
+- ✅ **No more dual-system complexity or duplicate files**
 
-**The Solution:**
-- Unified `run_id = str(uuid.uuid4())` generated ONCE at pipeline start
-- Passed to ALL systems: ExecutionTracker, MediaStorage, LivePipelineRecorder
-- Single source of truth: `pipeline_runs/{run_id}/metadata.json`
+**What Was Completed:**
+1. **Session 29:** Created LivePipelineRecorder with unified run_id
+   - Sequential entity tracking (01_input.txt → 07_output_image.png)
+   - Real-time API endpoints for frontend polling
+   - Fixed media polling bug with `wait_for_completion()`
 
-**What Was Implemented:**
-- **LivePipelineRecorder** with unified run_id
-- **Sequential entity tracking** (01_input.txt → 06_output_image.png)
-- **Real-time API endpoints** for frontend polling
-- **Media polling bug fix** (`wait_for_completion()` instead of `get_history()`)
+2. **Session 37:** Complete MediaStorage removal
+   - Migrated download capabilities to LivePipelineRecorder
+   - Added `download_and_save_from_comfyui()` method
+   - Added `download_and_save_from_url()` method
+   - Updated media_routes.py to use Recorder metadata format
+   - Fixed frontend bug accessing media type from API response
+   - Resolved Python bytecode caching issues
 
-**Key Achievement:**
-> OLD ExecutionTracker found the media polling issue but FAILED to fix it.
-> NEW LivePipelineRecorder SUCCEEDED with `wait_for_completion()` polling!
+**Architecture Evolution:**
+```
+BEFORE (Session 29):
+├─ ExecutionTracker (exec_*.json)      # OLD system
+├─ MediaStorage (exports/json/)        # Creates runs, downloads media
+└─ LivePipelineRecorder (exports/json/) # Copies from MediaStorage
 
-**Test Results:**
-- Run ID: `812ccc30-5de8-416e-bfe7-10e913916672`
-- Result: `{"status": "success", "media_output": "success"}`
-- All 6 entities created successfully: ✅
+AFTER (Session 37):
+├─ ExecutionTracker (exec_*.json)      # Still exists for compatibility
+└─ LivePipelineRecorder (exports/json/) # SINGLE SOURCE OF TRUTH
+```
 
-**Files Created:**
-- `my_app/services/pipeline_recorder.py` (400+ lines, flattened from package)
-- `my_app/routes/pipeline_routes.py` (237 lines, 3 endpoints)
-- `docs/LIVE_PIPELINE_RECORDER.md` (technical documentation)
-
-**Files Modified:**
-- `my_app/__init__.py` (blueprint registration)
-- `my_app/routes/schema_pipeline_routes.py` (entity saves at all stages)
-- `my_app/services/media_storage.py` (line 214: wait_for_completion fix)
+**Files Modified (Session 37):**
+- `devserver/my_app/services/pipeline_recorder.py` - Added download methods (~200 lines)
+- `devserver/my_app/routes/media_routes.py` - Complete rewrite for Recorder format
+- `devserver/my_app/routes/schema_pipeline_routes.py` - Removed MediaStorage usage
+- `public_dev/js/execution-handler.js` - Fixed media type access bug (line 448)
 
 **API Endpoints:**
 - GET /api/pipeline/{run_id}/status - Real-time execution state
 - GET /api/pipeline/{run_id}/entity/{type} - Fetch specific entity
 - GET /api/pipeline/{run_id}/entities - List all entities
+- GET /api/media/image/{run_id} - Serve images from Recorder
+- GET /api/media/info/{run_id} - Get media metadata from Recorder
 
-**Dual-System Migration:**
-Both systems run in parallel (by design):
-- OLD: `/exports/pipeline_runs/exec_*.json` (ExecutionTracker)
-- NEW: `pipeline_runs/{run_id}/` (LivePipelineRecorder)
-- MediaStorage: `exports/json/{run_id}/` (uses unified run_id)
+**Test Results (Session 37):**
+- Run ID: `1c173019-9437-43fe-bd57-e2612739a8c5`
+- All 7 entities created with correct naming (01-07)
+- Backend API working (HTTP 200 for all endpoints)
+- Frontend displaying images correctly
+- No duplicate files, single source of truth validated
 
 **Documentation:**
-- Session handover: SESSION_29_HANDOVER.md (archived)
-- Design doc: SESSION_29_LIVE_RECORDER_DESIGN.md (archived)
-- Bug analysis: SESSION_29_ROOT_CAUSE_ANALYSIS.md (archived)
-- Refactoring plan: SESSION_29_REFACTORING_PLAN.md (archived)
+- Technical docs: `docs/LIVE_PIPELINE_RECORDER.md`
+- Session 29: `docs/archive/SESSION_29_*` (archived session docs)
+- Session 37: `docs/DEVELOPMENT_LOG.md` (migration completion entry)
 
 **Next Steps (Optional):**
-- Deprecate OLD ExecutionTracker after validation
-- Frontend integration (use new API endpoints)
-- Optional: Refactor to blocking execution (deferred)
+- Consider deprecating old ExecutionTracker after more validation
+- Add WebSocket support for real-time frontend updates
+- Extend recorder format for video/audio outputs
 
 ---
 
-## 🔥 IMMEDIATE PRIORITIES (Session 24+)
+### 4. Phase 2: Multilingual Context Editing - **BACKEND COMPLETE, FRONTEND BROKEN**
+**Status:** 🚨 **BACKEND COMPLETE** - Frontend Implementation Wrong, Needs Redesign
+**Session:** 36 (2025-11-08)
+**Priority:** HIGH (core pedagogical feature) - **BLOCKED by frontend issues**
+
+**What Was Implemented:**
+- **Backend API endpoints** for multilingual meta-prompt access
+- **Pipeline structure metadata** for dynamic UI rendering
+- **Property system fixes** (calm→chill, i18n translation)
+- **Frontend components** created (not yet tested end-to-end)
+
+**Backend Endpoints Working:**
+- `GET /api/config/<id>/context` - Returns multilingual meta-prompt {en, de}
+- `GET /api/config/<id>/pipeline` - Returns pipeline structure metadata
+  - `requires_interception_prompt` - Show/hide context editing bubble
+  - `input_requirements` - How many text/image inputs needed
+
+**Frontend Components Created (Previous Sessions):**
+- `PipelineExecutionView.vue` - Main Phase 2 view with 3 bubbles
+- `EditableBubble.vue` - Inline editing component
+- `pipelineExecution` store - Phase 2 state management
+- `userPreferences` store - Global language management
+
+**🚨 CRITICAL: Phase 2 Frontend Implementation WRONG**
+- **User Feedback:** "you did the stage2 design COMPLETELY wrong, ignoring the organic flow mockup, adding unwanted buttons, also instead of context-prompt there appears: 'Could you please provide the English text you'd like translated into German?'. I will not leave this to you, but add to bugs to be fixed."
+- **Problems Identified:**
+  - ❌ Ignored organic flow mockup specifications
+  - ❌ Added unwanted buttons to the UI
+  - ❌ Wrong placeholder text (translation prompt instead of context-prompt)
+  - ❌ Fundamental UX design mismatch
+- **File Affected:** `public/ai4artsed-frontend/src/views/PipelineExecutionView.vue`
+- **Status:** User will handle the frontend implementation redesign
+- **Impact:** Phase 2 end-to-end testing **BLOCKED** until frontend is fixed
+- **Action Required:** Complete redesign following organic flow mockup
+- **⚠️ DO NOT attempt to fix without explicit user instruction**
+
+**Property System Fixes:**
+- ✅ Removed all "calm" property IDs → "chill"
+- ✅ Frontend now uses i18n translation (PropertyBubble, NoMatchState)
+- ✅ Fixed PigLatin property pair violation (removed "chill", kept "chaotic")
+- ✅ Properties display as translated labels ("wild" not "chaotic")
+
+**Files Modified:**
+- Backend: `schema_pipeline_routes.py`, `config_loader.py`, 1 + 10 configs
+- Frontend: `PropertyBubble.vue`, `NoMatchState.vue`, 2 stores
+
+**Testing Status:**
+- ✅ Backend endpoints tested with curl
+- ✅ Property translations fixed in code
+- 🚨 Phase 2 end-to-end flow **BLOCKED** (frontend implementation wrong)
+- ⚠️ Phase 1 → Phase 2 navigation NOT YET TESTED
+- ⚠️ Language switching NOT YET TESTED
+- ⚠️ Pipeline execution with edited context NOT YET TESTED
+
+**Next Steps:**
+1. **CRITICAL BLOCKER:** Fix Phase 2 Frontend Implementation
+   - User will handle the PipelineExecutionView.vue redesign
+   - Must follow organic flow mockup specifications
+   - Remove unwanted buttons
+   - Fix context-prompt placeholder text
+   - **⚠️ DO NOT attempt without explicit user instruction**
+
+2. **AFTER FRONTEND FIX:** Test Phase 2 end-to-end flow
+   - Open `http://localhost:5173/select`
+   - Select properties, click config tile
+   - Should navigate to `/execute/<configId>`
+   - Test language toggle, editing, execution
+
+3. **IF WORKING:** Mark Phase 2 as complete, start Phase 3
+4. **IF BROKEN:** Debug before proceeding (Phase 2 foundational for Phase 3)
+
+**Git Commits (Session 36):**
+- fix(backend): Add missing config_loader import and fix pipeline_name
+- fix: Remove all 'calm' property IDs, replace with 'chill'
+- fix(frontend): Use i18n translations for property display
+- fix(piglatin): Remove 'chill' property - cannot coexist with 'chaotic'
+
+**Documentation:**
+- `docs/HANDOVER.md` - Complete session handover
+- `docs/DEVELOPMENT_LOG.md` - Session 36 entry added
+- `docs/ARCHITECTURE PART 04 - Pipeline-Types.md` - Pipeline metadata system
+
+---
+
+## 🔥 IMMEDIATE PRIORITIES (Session 36+)
 
 ### 2. Interface Design
 

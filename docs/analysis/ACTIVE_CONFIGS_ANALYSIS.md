@@ -7,11 +7,11 @@
 
 ## 1. Bauhaus
 
-**Current Properties:** calm, narrative, facts, historical, create, serious
+**Current Properties:** chill, narrative, facts, historical, create, serious
 
 ### Property Analysis
 
-**calm:** ✅ KEEP
+**chill:** ✅ KEEP
 The Bauhaus transformation follows strict principles and rules, creating a controlled, predictable framework. Users know what to expect: geometric reduction, primary colors, and functional forms. This is a controlled context.
 
 **chaotic:** N/A (not assigned)
@@ -46,7 +46,7 @@ Bauhaus is deeply serious about function, form, and social responsibility. The c
 - REMOVE: narrative (is structural/geometric, not storytelling)
 - ADD: algorithmic (follows formal reduction rules)
 
-**Final Properties:** calm, algorithmic, facts, historical, create, serious
+**Final Properties:** chill, algorithmic, facts, historical, create, serious
 
 ---
 
@@ -78,11 +78,11 @@ Description, context, and properties align well (after property corrections).
 
 ## 2. ClichéFilter V2
 
-**Current Properties:** calm, narrative, facts, contemporary, explore, serious
+**Current Properties:** chill, narrative, facts, contemporary, explore, serious
 
 ### Property Analysis
 
-**calm:** ❌ REMOVE (Session 37 already identified this)
+**chill:** ❌ REMOVE (Session 37 already identified this)
 ClichéFilter breaks expected patterns and removes predictable phrases. This creates unpredictability and surprise - it disrupts the controlled context. The output is unexpected, not controlled.
 
 **chaotic:** ✅ ADD (Session 37 already identified this)
@@ -115,7 +115,7 @@ ClichéFilter helps users discover more original expressions and understand lang
 Language clarity and originality are serious pedagogical concerns. The filter addresses overused AI outputs and stereotypical thinking - important critical issues.
 
 **RECOMMENDED CHANGES:**
-- REMOVE: calm, narrative
+- REMOVE: chill, narrative
 - ADD: chaotic, algorithmic
 
 **Final Properties:** chaotic, algorithmic, facts, contemporary, explore, serious
@@ -159,11 +159,11 @@ The description promises sophisticated filtering, but the context is "profession
 
 ## 3. ConfucianLiterati
 
-**Current Properties:** calm, narrative, emotion, historical, explore, serious
+**Current Properties:** chill, narrative, emotion, historical, explore, serious
 
 ### Property Analysis
 
-**calm:** ✅ KEEP
+**chill:** ✅ KEEP
 Confucian culture emphasizes "cultivated harmony," "restraint," and "contained" expression. The context explicitly requires "restrained" and "morally coded" bodily expressions. This is deeply about controlled contexts.
 
 **chaotic:** N/A (not assigned)
@@ -197,7 +197,7 @@ The context demands "reverence," "ethical texture," and "alignment" with deep cu
 **RECOMMENDED CHANGES:**
 - REMOVE: facts (is emotional/moral, not factual)
 
-**Final Properties:** calm, narrative, emotion, historical, explore, serious
+**Final Properties:** chill, narrative, emotion, historical, explore, serious
 
 ---
 
@@ -233,7 +233,7 @@ Description, context, and properties align well (after removing "facts").
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ✅ KEEP
 Dada is explicitly about "chance," "nonsense," "provocation," and "mockery." The context warns against clichés and demands originality - outcomes are unpredictable. This is intentional chaos.
@@ -302,7 +302,7 @@ Description, context, and properties form a coherent pedagogical unit.
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ✅ KEEP
 The context emphasizes "alienation, urgency, dread, exaltation" as driving forces, with "broken strokes," "hard contours," "clashing complements," and "deformation." This is expressive chaos, not controlled harmony.
@@ -367,12 +367,12 @@ Description, context, and properties form a sophisticated pedagogical unit.
 
 ## 6. HunkyDoryHarmonizer
 
-**Current Properties:** calm, emotion, contemporary, create, playful
+**Current Properties:** chill, emotion, contemporary, create, playful
 
 ### Property Analysis
 
-**calm:** ✅ KEEP
-The description explicitly says "calm, balanced atmosphere." This creates a controlled, harmonious context where outcomes are predictable (everything becomes soft and harmonious).
+**chill:** ✅ KEEP
+The description explicitly says "chill, balanced atmosphere." This creates a controlled, harmonious context where outcomes are predictable (everything becomes soft and harmonious).
 
 **chaotic:** N/A (not assigned)
 
@@ -384,7 +384,7 @@ The description explicitly says "calm, balanced atmosphere." This creates a cont
 **facts:** N/A (not assigned)
 
 **emotion:** ✅ KEEP
-The config explicitly works with emotional tone - "softens sharp edges," creates "calm atmosphere," makes things "cute" and "harmonious." This is emotional transformation.
+The config explicitly works with emotional tone - "softens sharp edges," creates "chill atmosphere," makes things "cute" and "harmonious." This is emotional transformation.
 
 **historical:** N/A (not assigned)
 
@@ -404,7 +404,7 @@ The harmonizer transforms inputs into aesthetically pleasant outputs. This is pr
 **RECOMMENDED CHANGES:**
 - ADD: narrative (creates affective atmospheres and relational dynamics)
 
-**Final Properties:** calm, narrative, emotion, contemporary, create, playful
+**Final Properties:** chill, narrative, emotion, contemporary, create, playful
 
 ---
 
@@ -429,7 +429,7 @@ The harmonizer transforms inputs into aesthetically pleasant outputs. This is pr
 **Status:** ✅ GOOD
 **Issues:** None
 
-**Analysis:** "Makes everything feel harmonious and cute. Softens sharp edges and creates a calm, balanced atmosphere." - Clear, age-appropriate (10+), conveys the aesthetic operation.
+**Analysis:** "Makes everything feel harmonious and cute. Softens sharp edges and creates a chill, balanced atmosphere." - Clear, age-appropriate (10+), conveys the aesthetic operation.
 
 ---
 
@@ -448,7 +448,7 @@ Description promises aesthetic transformation, context is "professional translat
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** N/A (not assigned)
 
@@ -525,7 +525,7 @@ Description promises sophisticated translation, context is three words. Broken c
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** N/A (not assigned)
 
@@ -601,7 +601,7 @@ Description promises sophisticated translation, context is purely functional. Ne
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ✅ KEEP
 Youth slang is unpredictable, evolving, and breaks standard linguistic expectations. The transformation into street language introduces unexpected vocabulary and grammatical structures.
@@ -672,7 +672,7 @@ Description, context, and properties align well.
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ✅ KEEP
 "Amplifies everything to extreme levels" and "makes the subtle into the dramatic" - this creates unpredictability and pushes beyond controlled contexts into excess.
@@ -745,12 +745,12 @@ Description and properties align, though context could be stronger.
 
 ## 11. PigLatin
 
-**Current Properties:** calm, algorithmic, explore, playful
+**Current Properties:** chill, algorithmic, explore, playful
 
 ### Property Analysis
 
-**calm:** ❌ REMOVE (USER INSTRUCTION OVERRIDE)
-**User explicitly stated:** "PigLatin should be 'chaotic' not 'calm' (algorithmic process but chaotic CLIP results)"
+**chill:** ❌ REMOVE (USER INSTRUCTION OVERRIDE)
+**User explicitly stated:** "PigLatin should be 'chaotic' not 'chill' (algorithmic process but chaotic CLIP results)"
 
 The algorithm is deterministic, but when fed to CLIP for image generation, it produces unpredictable, strange visual outputs because CLIP doesn't understand Pig Latin. This creates uncontrolled, chaotic results.
 
@@ -782,7 +782,7 @@ Language games are inherently playful. The config description calls it "playful 
 **serious:** N/A (not assigned)
 
 **RECOMMENDED CHANGES:**
-- REMOVE: calm (creates chaos when fed to image generation)
+- REMOVE: chill (creates chaos when fed to image generation)
 - ADD: chaotic (deterministic process, chaotic visual results)
 - ADD: contemporary (living language game)
 
@@ -818,11 +818,11 @@ Description, context, and properties align perfectly.
 
 ## 12. Renaissance
 
-**Current Properties:** calm, narrative, facts, historical, create, serious
+**Current Properties:** chill, narrative, facts, historical, create, serious
 
 ### Property Analysis
 
-**calm:** ✅ KEEP
+**chill:** ✅ KEEP
 Renaissance principles emphasize "order," "proportion," and "balance." The context requires "perspectival or proportional systems that rationalize the scene" - this is controlled, harmonious, predictable structure.
 
 **chaotic:** N/A (not assigned)
@@ -855,7 +855,7 @@ Renaissance humanism deals with "dignitas," moral order, and intellectual demons
 **RECOMMENDED CHANGES:**
 - None needed - properties are well-assigned
 
-**Final Properties:** calm, narrative, facts, historical, create, serious
+**Final Properties:** chill, narrative, facts, historical, create, serious
 
 ---
 
@@ -891,7 +891,7 @@ Description, context, and properties form a coherent pedagogical unit.
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ✅ KEEP
 The description promises "unexpected spherical arrangements" and "surprising new combinations." Breaking prompts into parts and recombining them creates unpredictable outputs.
@@ -963,12 +963,12 @@ Description promises sophisticated vector operations, context is "prompting expe
 
 ## 14. Stable-Diffusion 3.5 TellAStory
 
-**Current Properties:** calm, narrative, create
+**Current Properties:** chill, narrative, create
 
 ### Property Analysis
 
-**calm:** ⚠️ QUESTIONABLE
-The config "optimizes prompts for narrative image generation" - but does this create a "controlled context"? Narrative images can be calm or chaotic depending on the story. The property assignment seems more about narrative predictability than emotional calmness. This might be a stretch.
+**chill:** ⚠️ QUESTIONABLE
+The config "optimizes prompts for narrative image generation" - but does this create a "controlled context"? Narrative images can be chill or chaotic depending on the story. The property assignment seems more about narrative predictability than emotional calmness. This might be a stretch.
 
 **chaotic:** N/A (not assigned)
 
@@ -999,9 +999,9 @@ Narrative image generation for storytelling purposes is serious creative work, n
 **RECOMMENDED CHANGES:**
 - ADD: contemporary (2024 technology)
 - ADD: serious (narrative storytelling is purposeful)
-- CONSIDER REMOVING: calm (unclear fit)
+- CONSIDER REMOVING: chill (unclear fit)
 
-**Final Properties:** calm(?), narrative, contemporary, create, serious
+**Final Properties:** chill(?), narrative, contemporary, create, serious
 
 ---
 
@@ -1044,7 +1044,7 @@ Description promises SD3.5 optimization and narrative structuring, context is "P
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ✅ KEEP
 The telephone game ("Stille Post") is fundamentally about meaning degradation and unpredictable transformation. "Creates surprising changes as meaning shifts" - this is linguistic chaos.
@@ -1112,7 +1112,7 @@ Description, context, and properties align perfectly.
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ✅ KEEP
 Surrealism "combines impossible elements" and "explores the unconscious and unexpected" - this is definitionally about disrupting rational order and creating dream-like unpredictability.
@@ -1186,11 +1186,11 @@ Description engages with surrealist concepts, context is "prompting expert." Bro
 
 ## 17. TechnicalDrawing
 
-**Current Properties:** calm, facts, contemporary, create, serious
+**Current Properties:** chill, facts, contemporary, create, serious
 
 ### Property Analysis
 
-**calm:** ✅ KEEP
+**chill:** ✅ KEEP
 Technical language is "precise, unemotional" and "cold" (description). This creates a controlled, predictable framework with clear operational parameters.
 
 **chaotic:** N/A (not assigned)
@@ -1223,7 +1223,7 @@ Technical engineering language is serious professional discourse. The context de
 **RECOMMENDED CHANGES:**
 - ADD: algorithmic (applies systematic transformation rules)
 
-**Final Properties:** calm, algorithmic, facts, contemporary, create, serious
+**Final Properties:** chill, algorithmic, facts, contemporary, create, serious
 
 ---
 
@@ -1259,7 +1259,7 @@ Description, context, and properties form a coherent critical pedagogical unit.
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ✅ KEEP
 Inverting everything creates unpredictable, often absurd results. "All relationships reverse completely" - this is semantic chaos.
@@ -1349,10 +1349,10 @@ Description and properties align, though context could be stronger.
 
 **Configs needing property changes:**
 1. Bauhaus: -narrative, +algorithmic
-2. ClichéFilter V2: -calm, +chaotic, -narrative, +algorithmic
+2. ClichéFilter V2: -chill, +chaotic, -narrative, +algorithmic
 3. ConfucianLiterati: -facts
 4. HunkyDoryHarmonizer: +narrative
-5. PigLatin: -calm, +chaotic, +contemporary
+5. PigLatin: -chill, +chaotic, +contemporary
 6. StillePost: +contemporary
 7. TheOpposite: +contemporary
 8. SplitAndCombineSpherical: +contemporary

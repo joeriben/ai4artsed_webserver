@@ -1,16 +1,49 @@
 """
 Media Routes - Serving images, audio, video from LOCAL STORAGE
 Unified Media Storage: All media served from exports/json/ regardless of backend
+
+Migration Status (Session 37):
+- Updated to use LivePipelineRecorder metadata format (entities array)
+- No longer depends on MediaStorage
+- Supports both numbered filenames (06_output_image.png) and legacy (output_image.png)
 """
 from flask import Blueprint, send_file, jsonify
 import logging
+from pathlib import Path
 
-from my_app.services.media_storage import get_media_storage_service
+from my_app.services.pipeline_recorder import load_recorder
+from config import JSON_STORAGE_DIR
 
 logger = logging.getLogger(__name__)
 
 # Blueprint erstellen
 media_bp = Blueprint('media', __name__, url_prefix='/api/media')
+
+
+def _find_entity_by_type(entities: list, media_type: str) -> dict:
+    """
+    Find entity in entities array by media type.
+
+    Args:
+        entities: List of entity records from metadata
+        media_type: Type to search for ('image', 'audio', 'video')
+
+    Returns:
+        Entity dict or None
+    """
+    # Search for output_TYPE entities (e.g., output_image, output_audio)
+    for entity in entities:
+        entity_type = entity.get('type', '')
+        if entity_type == f'output_{media_type}':
+            return entity
+
+    # Fallback: Search for just the type (legacy compatibility)
+    for entity in entities:
+        if entity.get('type') == media_type:
+            return entity
+
+    return None
+
 
 @media_bp.route('/image/<run_id>', methods=['GET'])
 def get_image(run_id: str):
@@ -24,29 +57,24 @@ def get_image(run_id: str):
         Image file or 404 error
     """
     try:
-        media_storage = get_media_storage_service()
-
-        # Get run metadata
-        metadata = media_storage.get_metadata(run_id)
-        if not metadata:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
             return jsonify({"error": f"Run {run_id} not found"}), 404
 
-        # Find image output
-        image_output = None
-        for output in metadata.outputs:
-            if output.type == 'image':
-                image_output = output
-                break
-
-        if not image_output:
+        # Find image entity
+        image_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'image')
+        if not image_entity:
             return jsonify({"error": f"No image found for run {run_id}"}), 404
 
         # Get file path
-        file_path = media_storage.get_media_path(run_id, image_output.filename)
-        if not file_path or not file_path.exists():
-            return jsonify({"error": f"Image file not found: {image_output.filename}"}), 404
+        filename = image_entity['filename']
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"Image file not found: {filename}"}), 404
 
-        # Determine mimetype from format
+        # Determine mimetype from format (from entity metadata or filename extension)
+        file_format = image_entity.get('metadata', {}).get('format', filename.split('.')[-1])
         mimetype_map = {
             'png': 'image/png',
             'jpg': 'image/jpeg',
@@ -54,14 +82,14 @@ def get_image(run_id: str):
             'webp': 'image/webp',
             'gif': 'image/gif'
         }
-        mimetype = mimetype_map.get(image_output.format, 'image/png')
+        mimetype = mimetype_map.get(file_format.lower(), 'image/png')
 
         # Serve file directly from disk
         return send_file(
             file_path,
             mimetype=mimetype,
             as_attachment=False,
-            download_name=f'{run_id}.{image_output.format}'
+            download_name=f'{run_id}.{file_format}'
         )
 
     except Exception as e:
@@ -83,43 +111,41 @@ def get_audio(run_id: str):
         Audio file or 404 error
     """
     try:
-        media_storage = get_media_storage_service()
-
-        # Get run metadata
-        metadata = media_storage.get_metadata(run_id)
-        if not metadata:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
             return jsonify({"error": f"Run {run_id} not found"}), 404
 
-        # Find audio/music output
-        audio_output = None
-        for output in metadata.outputs:
-            if output.type in ['audio', 'music']:
-                audio_output = output
-                break
+        # Find audio entity (try both 'audio' and 'music' types)
+        audio_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'audio')
+        if not audio_entity:
+            audio_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'music')
 
-        if not audio_output:
+        if not audio_entity:
             return jsonify({"error": f"No audio found for run {run_id}"}), 404
 
         # Get file path
-        file_path = media_storage.get_media_path(run_id, audio_output.filename)
-        if not file_path or not file_path.exists():
-            return jsonify({"error": f"Audio file not found: {audio_output.filename}"}), 404
+        filename = audio_entity['filename']
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"Audio file not found: {filename}"}), 404
 
         # Determine mimetype from format
+        file_format = audio_entity.get('metadata', {}).get('format', filename.split('.')[-1])
         mimetype_map = {
             'mp3': 'audio/mpeg',
             'wav': 'audio/wav',
             'ogg': 'audio/ogg',
             'flac': 'audio/flac'
         }
-        mimetype = mimetype_map.get(audio_output.format, 'audio/mpeg')
+        mimetype = mimetype_map.get(file_format.lower(), 'audio/mpeg')
 
         # Serve file directly from disk
         return send_file(
             file_path,
             mimetype=mimetype,
             as_attachment=False,
-            download_name=f'{run_id}.{audio_output.format}'
+            download_name=f'{run_id}.{file_format}'
         )
 
     except Exception as e:
@@ -141,43 +167,38 @@ def get_video(run_id: str):
         Video file or 404 error
     """
     try:
-        media_storage = get_media_storage_service()
-
-        # Get run metadata
-        metadata = media_storage.get_metadata(run_id)
-        if not metadata:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
             return jsonify({"error": f"Run {run_id} not found"}), 404
 
-        # Find video output
-        video_output = None
-        for output in metadata.outputs:
-            if output.type == 'video':
-                video_output = output
-                break
-
-        if not video_output:
+        # Find video entity
+        video_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'video')
+        if not video_entity:
             return jsonify({"error": f"No video found for run {run_id}"}), 404
 
         # Get file path
-        file_path = media_storage.get_media_path(run_id, video_output.filename)
-        if not file_path or not file_path.exists():
-            return jsonify({"error": f"Video file not found: {video_output.filename}"}), 404
+        filename = video_entity['filename']
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"Video file not found: {filename}"}), 404
 
         # Determine mimetype from format
+        file_format = video_entity.get('metadata', {}).get('format', filename.split('.')[-1])
         mimetype_map = {
             'mp4': 'video/mp4',
             'webm': 'video/webm',
             'avi': 'video/x-msvideo',
             'mov': 'video/quicktime'
         }
-        mimetype = mimetype_map.get(video_output.format, 'video/mp4')
+        mimetype = mimetype_map.get(file_format.lower(), 'video/mp4')
 
         # Serve file directly from disk
         return send_file(
             file_path,
             mimetype=mimetype,
             as_attachment=False,
-            download_name=f'{run_id}.{video_output.format}'
+            download_name=f'{run_id}.{file_format}'
         )
 
     except Exception as e:
@@ -199,35 +220,40 @@ def get_media_info(run_id: str):
         JSON with media metadata
     """
     try:
-        media_storage = get_media_storage_service()
-
-        # Get run metadata
-        metadata = media_storage.get_metadata(run_id)
-        if not metadata:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
             return jsonify({"error": f"Run {run_id} not found"}), 404
 
         # Build response
         media_info = {
             'run_id': run_id,
-            'schema': metadata.schema,
-            'execution_mode': metadata.execution_mode,
-            'timestamp': metadata.timestamp,
+            'schema': recorder.metadata.get('config_name', 'unknown'),
+            'execution_mode': recorder.metadata.get('execution_mode', 'unknown'),
+            'timestamp': recorder.metadata.get('timestamp', ''),
             'outputs': []
         }
 
-        # Add output details
-        for output in metadata.outputs:
-            media_info['outputs'].append({
-                'type': output.type,
-                'filename': output.filename,
-                'backend': output.backend,
-                'config': output.config,
-                'file_size_bytes': output.file_size_bytes,
-                'format': output.format,
-                'width': output.width,
-                'height': output.height,
-                'duration_seconds': output.duration_seconds
-            })
+        # Add output entities (filter for output_* types)
+        for entity in recorder.metadata.get('entities', []):
+            entity_type = entity.get('type', '')
+            if entity_type.startswith('output_'):
+                entity_meta = entity.get('metadata', {})
+                # Get file size from disk
+                file_path = recorder.run_folder / entity['filename']
+                file_size = file_path.stat().st_size if file_path.exists() else 0
+
+                media_info['outputs'].append({
+                    'type': entity_type.replace('output_', ''),  # output_image → image
+                    'filename': entity['filename'],
+                    'backend': entity_meta.get('backend', 'unknown'),
+                    'config': entity_meta.get('config', ''),
+                    'file_size_bytes': file_size,
+                    'format': entity_meta.get('format', ''),
+                    'width': entity_meta.get('width'),
+                    'height': entity_meta.get('height'),
+                    'duration_seconds': entity_meta.get('duration_seconds')
+                })
 
         return jsonify(media_info)
 
@@ -248,37 +274,33 @@ def get_run_metadata(run_id: str):
         JSON with complete run metadata
     """
     try:
-        media_storage = get_media_storage_service()
-
-        # Get run metadata
-        metadata = media_storage.get_metadata(run_id)
-        if not metadata:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
             return jsonify({"error": f"Run {run_id} not found"}), 404
 
-        # Convert to dict (manually to handle dataclass properly)
+        # Build response
         result = {
-            'run_id': metadata.run_id,
-            'user_id': metadata.user_id,
-            'timestamp': metadata.timestamp,
-            'schema': metadata.schema,
-            'execution_mode': metadata.execution_mode,
-            'input_text': metadata.input_text,
-            'transformed_text': metadata.transformed_text,
-            'outputs': [
-                {
-                    'type': output.type,
-                    'filename': output.filename,
-                    'backend': output.backend,
-                    'config': output.config,
-                    'file_size_bytes': output.file_size_bytes,
-                    'format': output.format,
-                    'width': output.width,
-                    'height': output.height,
-                    'duration_seconds': output.duration_seconds
-                }
-                for output in metadata.outputs
-            ]
+            'run_id': recorder.run_id,
+            'user_id': recorder.metadata.get('user_id', 'anonymous'),
+            'timestamp': recorder.metadata.get('timestamp', ''),
+            'schema': recorder.metadata.get('config_name', 'unknown'),
+            'execution_mode': recorder.metadata.get('execution_mode', 'unknown'),
+            'current_state': recorder.metadata.get('current_state', {}),
+            'expected_outputs': recorder.metadata.get('expected_outputs', []),
+            'entities': recorder.metadata.get('entities', [])
         }
+
+        # Add text content from entities if available
+        for entity in result['entities']:
+            if entity['type'] == 'input':
+                input_file = recorder.run_folder / entity['filename']
+                if input_file.exists():
+                    result['input_text'] = input_file.read_text(encoding='utf-8')
+            elif entity['type'] == 'interception':
+                output_file = recorder.run_folder / entity['filename']
+                if output_file.exists():
+                    result['transformed_text'] = output_file.read_text(encoding='utf-8')
 
         return jsonify(result)
 

@@ -13,7 +13,7 @@
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** N/A (not assigned)
 
@@ -88,7 +88,7 @@ Understanding model differences is serious AI literacy work.
 
 ### Property Analysis
 
-**calm:** N/A (not assigned)
+**chill:** N/A (not assigned)
 
 **chaotic:** ⚠️ QUESTIONABLE
 Quantum mechanics is probabilistic and weird, but the *language* of quantum field theory is highly structured and technical. The transformation creates strange descriptions, but follows rigorous scientific terminology. This might be "chaotic" in outcome, but not in process.
@@ -127,7 +127,7 @@ Scientific reconceptualization and quantum thinking are serious pedagogical work
 - ADD: algorithmic (follows transformation rules)
 - ADD: serious (scientific pedagogy)
 
-**Revised Properties:** facts, contemporary, algorithmic, explore, serious (and possibly calm or chaotic depending on interpretation)
+**Revised Properties:** facts, contemporary, algorithmic, explore, serious (and possibly chill or chaotic depending on interpretation)
 
 ---
 
@@ -165,13 +165,13 @@ Scientific reconceptualization and quantum thinking are serious pedagogical work
 
 ## 3. yorubaheritage
 
-**Current Properties:** calm, narrative, emotion, historical, explore, serious
+**Current Properties:** chill, narrative, emotion, historical, explore, serious
 
 **Status:** DEACTIVATED (moved to /deactivated/ folder in this session)
 
 ### Property Analysis
 
-**calm:** ✅ KEEP
+**chill:** ✅ KEEP
 Yorùbá culture as described emphasizes "restraint," "ritual propriety," "reverence," and "cultivated harmony." This is a controlled, structured context.
 
 **chaotic:** N/A (not assigned)
@@ -254,14 +254,14 @@ The config *could* be valuable for teaching about AI's cultural limitations, BUT
 
 ## 4. clichéfilter_v1
 
-**Current Properties:** calm, narrative, facts, contemporary, explore, serious
+**Current Properties:** chill, narrative, facts, contemporary, explore, serious
 
 **Status:** DEACTIVATED (replaced by V2)
 
 ### Property Analysis
 **Same issues as ClichéFilter V2:** Context is "professional translator" - completely broken placeholder.
 
-**Properties:** Same problematic assignments as V2 (calm should be chaotic, narrative should be algorithmic).
+**Properties:** Same problematic assignments as V2 (chill should be chaotic, narrative should be algorithmic).
 
 ---
 
@@ -279,7 +279,7 @@ The config *could* be valuable for teaching about AI's cultural limitations, BUT
 
 ## 5. clichéfilter_v3_250616192
 
-**Current Properties:** calm, narrative, facts, contemporary, explore, serious
+**Current Properties:** chill, narrative, facts, contemporary, explore, serious
 
 **Status:** DEACTIVATED (experimental variant)
 
@@ -302,13 +302,13 @@ The config *could* be valuable for teaching about AI's cultural limitations, BUT
 
 ## 6. ethicaladvisor
 
-**Current Properties:** calm, facts, contemporary, explore, serious
+**Current Properties:** chill, facts, contemporary, explore, serious
 
 **Status:** DEACTIVATED (likely for complexity/scope)
 
 ### Property Analysis
 
-**calm:** ❌ REMOVE
+**chill:** ❌ REMOVE
 Ethical review creates tension and confrontation. It challenges users' choices - this is not a "controlled context" but rather introduces uncertainty and critique.
 
 **chaotic:** N/A (not assigned, but ethical judgment could feel chaotic)
@@ -340,7 +340,7 @@ Ethical review helps users explore moral dimensions of AI use - pedagogically ex
 Ethics is serious moral reasoning.
 
 **RECOMMENDED CHANGES:**
-- REMOVE: calm (creates tension, not comfort)
+- REMOVE: chill (creates tension, not comfort)
 - REMOVE: facts (ethics is normative, not factual)
 - ADD: emotion (moral reasoning is affective)
 - CONSIDER: narrative (ethics uses stories)
@@ -374,7 +374,7 @@ Ethics is serious moral reasoning.
 
 ### Metadata
 **age (min_age):** 12 - ✅ APPROPRIATE
-**Consistency:** ⚠️ INCONSISTENT (calm doesn't fit ethical confrontation)
+**Consistency:** ⚠️ INCONSISTENT (chill doesn't fit ethical confrontation)
 
 ---
 
@@ -383,7 +383,7 @@ Ethics is serious moral reasoning.
 
 **Reasoning:** Ethical AI literacy is *critical* for contemporary education. However, the current implementation risks shame-based pedagogy. Recommend:
 1. Redesign context to focus on structural ethics, not individual morality
-2. Remove "calm" property
+2. Remove "chill" property
 3. Reactivate as part of critical AI literacy curriculum
 4. Consider renaming to "AI Ethics Lens" or "Critical AI Literacy"
 
@@ -395,13 +395,13 @@ Ethics is serious moral reasoning.
 
 ## 7. (((promptinterception)))
 
-**Current Properties:** calm, narrative, contemporary, explore
+**Current Properties:** chill, narrative, contemporary, explore
 
 **Status:** DEACTIVATED (meta-experimental)
 
 ### Property Analysis
 
-**calm:** ⚠️ UNCLEAR
+**chill:** ⚠️ UNCLEAR
 Meta-reflection on prompt interception itself - is this "controlled"? Without seeing the actual context (it's "professional translator" placeholder), hard to judge.
 
 **narrative:** ⚠️ UNCLEAR
@@ -451,13 +451,13 @@ Cannot properly assess without seeing actual implementation beyond placeholder
 
 ## 8-10. LLM-Comparison Configs (14b, 30b, Mistral)
 
-**Current Properties:** calm, algorithmic, contemporary, explore, serious
+**Current Properties:** chill, algorithmic, contemporary, explore, serious
 
 **Status:** DEACTIVATED (likely replaced by image_comparison or cost concerns)
 
 ### Property Analysis (applies to all three)
 
-**calm:** ✅ KEEP
+**chill:** ✅ KEEP
 Model comparison provides structured analysis within controlled parameters.
 
 **chaotic:** N/A (not assigned)
@@ -538,13 +538,13 @@ Understanding model differences is serious AI literacy.
 
 ## 12. traditionalchinese_long_prompts
 
-**Current Properties:** calm, narrative, emotion, historical, explore, serious
+**Current Properties:** chill, narrative, emotion, historical, explore, serious
 
 **Status:** DEACTIVATED (possibly replaced by ConfucianLiterati)
 
 ### Property Analysis
 
-**calm:** ✅ KEEP (if focusing on harmony and balance in Chinese aesthetics)
+**chill:** ✅ KEEP (if focusing on harmony and balance in Chinese aesthetics)
 
 **narrative:** ✅ KEEP (Chinese art often tells stories through scroll painting sequences)
 
@@ -580,13 +580,13 @@ Chinese culture is living heritage, not museum artifact. Depends on how config f
 
 ## 13. translation_en
 
-**Current Properties:** calm, algorithmic, facts, explore
+**Current Properties:** chill, algorithmic, facts, explore
 
 **Status:** DEACTIVATED (system pipeline, not user-facing)
 
 ### Property Analysis
 
-**calm:** ✅ KEEP
+**chill:** ✅ KEEP
 Translation follows controlled, predictable rules.
 
 **algorithmic:** ✅ KEEP

@@ -54,6 +54,25 @@ class ResolvedConfig:
     media_preferences: Optional[Dict[str, Any]]
     meta: Dict[str, Any]
 
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert ResolvedConfig to dict for serialization
+
+        DEPRECATED: Only needed for legacy frontend (port 17801) debug tool.
+        New Vue frontend does not use this method.
+        """
+        return {
+            'name': self.name,
+            'display_name': self.display_name,
+            'description': self.description,
+            'pipeline': self.pipeline_name,
+            'chunks': self.chunks,
+            'context': self.context,
+            'parameters': self.parameters,
+            'media_preferences': self.media_preferences,
+            'meta': self.meta
+        }
+
 class ConfigLoader:
     """
     Config Loader - Central registry for configs and pipelines
