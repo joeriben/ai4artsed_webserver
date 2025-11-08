@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from schemas.engine.pipeline_executor import PipelineExecutor
 from schemas.engine.prompt_interception_engine import PromptInterceptionEngine
+from schemas.engine.config_loader import config_loader
 from schemas.engine.stage_orchestrator import (
     execute_stage1_translation,
     execute_stage1_safety,
@@ -935,10 +936,22 @@ def pipeline_configs_metadata_compat():
                 with open(config_file, 'r', encoding='utf-8') as f:
                     config_data = json.load(f)
 
-                # Filter: Skip output configs (system-only, not user-facing)
+                # Filter: Only show active Stage 2 (interception) configs
+                # Skip: output configs, deactivated configs, user configs, other stages
+                relative_path_str = str(config_file.relative_to(configs_path))
+
+                # Skip deactivated configs (in deactivated/ subdirectory)
+                if "deactivated" in relative_path_str:
+                    continue
+
+                # Skip user configs (in user_configs/ subdirectory)
+                if "user_configs" in relative_path_str:
+                    continue
+
+                # Only show interception configs (Stage 2)
                 stage = config_data.get("meta", {}).get("stage", "")
-                if stage == "output":
-                    continue  # Don't show output configs in frontend
+                if stage != "interception":
+                    continue  # Don't show output configs or other stages in legacy frontend
 
                 # Calculate config ID (relative path without .json)
                 # Example: interception/dada.json → "dada"
@@ -1254,10 +1267,10 @@ def get_config_pipeline(config_id):
             return jsonify({"error": f"Config not found: {config_id}"}), 404
 
         # Get pipeline metadata
-        pipeline = config_loader.pipelines.get(config.pipeline)
+        pipeline = config_loader.pipelines.get(config.pipeline_name)
 
         if not pipeline:
-            return jsonify({"error": f"Pipeline not found: {config.pipeline}"}), 404
+            return jsonify({"error": f"Pipeline not found: {config.pipeline_name}"}), 404
 
         # Return pipeline structure metadata
         return jsonify({
