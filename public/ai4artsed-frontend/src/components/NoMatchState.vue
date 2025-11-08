@@ -49,7 +49,7 @@
                 class="matching-property"
                 :style="{ '--tag-color': getPropertyColor(prop) }"
               >
-                {{ prop }}
+                {{ $t('properties.' + prop) }}
               </span>
             </div>
           </div>

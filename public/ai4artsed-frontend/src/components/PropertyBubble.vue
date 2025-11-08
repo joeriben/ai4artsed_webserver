@@ -5,7 +5,7 @@
     @click="handleClick"
     :data-property="property"
   >
-    {{ property }}
+    {{ $t('properties.' + property) }}
   </div>
 </template>
 
