@@ -775,3 +775,63 @@ const stageName = i18n.stages[stageId];
 **Last Updated:** 2025-11-06 (Session 33)
 **Active Decisions:** 7
 **Status:** Clean, concise, actively maintained
+
+---
+
+## 2025-11-08: Data Flow Architecture - custom_placeholders is THE Mechanism
+
+**Context:** Session 39 discovered that previous session had fundamentally misunderstood the data flow architecture.
+
+**Wrong Understanding (Previous Session):**
+- Thought `input_requirements` controls data flow between pipeline stages
+- Invented complex nested structures for passing data
+- Misunderstood how placeholders work
+
+**Correct Understanding:**
+- **`context.custom_placeholders: Dict[str, Any]` is the ONLY mechanism for passing data between stages**
+- ChunkBuilder automatically merges custom_placeholders into template replacements as `{{PLACEHOLDERS}}`
+- `input_requirements` is **just metadata** for:
+  - Stage 1 pre-processing (knows what inputs to translate/safety-check)
+  - Frontend UI generation (creates input fields)
+- Any data type can pass through - just add it to the dict
+
+**Key Insight:**
+The system is simpler than we thought. No need for complex field names or nested structures. Just:
+1. Put data in `custom_placeholders`
+2. Use `{{KEY}}` in templates
+3. ChunkBuilder handles the rest
+
+**Example - Working Music Generation:**
+```python
+# music_generation config has:
+"input_requirements": {"texts": 2}
+
+# Stage 1 knows: process 2 separate text inputs
+# Frontend UI shows: 2 text input fields
+# Pipeline execution:
+context.custom_placeholders['MELODY'] = user_input_1
+context.custom_placeholders['LYRICS'] = user_input_2
+
+# Template uses: {{MELODY}} and {{LYRICS}}
+```
+
+**Architectural Principle:**
+> **"Input requirements describe WHAT arrives at Stage 1. Custom placeholders describe HOW data flows internally."**
+
+**Impact on Vector Fusion:**
+- Stage 2 outputs JSON: `{"part_a": "...", "part_b": "..."}`
+- JSON auto-parsing adds to custom_placeholders: `PART_A`, `PART_B`
+- Stage 4 uses `{{PART_A}}` and `{{PART_B}}` in template
+- No complex field names needed, no nested structures
+
+**Documentation:**
+- `docs/DATA_FLOW_ARCHITECTURE.md` - Full explanation with examples
+- `docs/SESSION_SUMMARY_2025-11-08.md` - Session details
+- `docs/archive/HANDOVER_WRONG_2025-11-08_vector_workflows.md` - Wrong understanding archived
+
+**Why This Matters:**
+- Prevents future sessions from reinventing complexity
+- Shows that extensibility is built-in (any data type works)
+- Clarifies the separation of concerns (metadata vs data flow)
+- Makes multi-stage workflows simple to implement
+
