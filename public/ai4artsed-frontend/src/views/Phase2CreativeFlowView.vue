@@ -101,7 +101,8 @@
         <textarea
           v-if="transformedPrompt"
           class="result-textarea"
-          v-model="transformedPrompt"
+          :value="transformedPrompt"
+          @input="handleTransformedPromptEdit"
           @blur="handleTransformedPromptBlur"
           ref="transformedTextareaRef"
         ></textarea>
@@ -218,10 +219,12 @@ const transformedTextareaRef = ref<HTMLTextAreaElement | null>(null)
 
 // State
 const userInput = ref('')
-const transformedPrompt = ref('')
 const isTransforming = ref(false)
 const transformationStage = ref<number>(0) // 0=idle, 1=stage1, 2=stage2
 const error = ref<string | null>(null)
+
+// Get transformed prompt from store
+const transformedPrompt = computed(() => pipelineStore.transformedPrompt)
 
 // Example prompts (could be loaded from config)
 const examplePrompts = ref<string[]>([
@@ -386,12 +389,11 @@ async function handleTransform() {
 
     // Mock transformed result
     const mockTransformed = `[TRANSFORMED via ${pipelineStore.selectedConfig.id}]\n\n${userInput.value}\n\n→ Petal-chaos contradicting meadow-umbrella existence with surrealist dreamscape qualities and absurdist spatial relationships.`
-    transformedPrompt.value = mockTransformed
+
+    // Store in Pinia for Phase 3 handoff
+    pipelineStore.updateTransformedPrompt(mockTransformed)
 
     console.log('[Phase2] Transformation complete:', mockTransformed)
-
-    // TODO: Store in Pinia for Phase 3
-    // pipelineStore.updateTransformedPrompt(mockTransformed)
 
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Transformation failed'
@@ -406,7 +408,7 @@ async function handleTransform() {
  * Re-transform: Clear transformed prompt and allow re-execution
  */
 function handleReTransform() {
-  transformedPrompt.value = ''
+  pipelineStore.clearTransformedPrompt()
   console.log('[Phase2] Cleared transformed prompt for re-transformation')
 }
 
@@ -431,14 +433,17 @@ function handleInputChange() {
 
   // Clear transformed prompt when input changes
   if (transformedPrompt.value) {
-    transformedPrompt.value = ''
+    pipelineStore.clearTransformedPrompt()
   }
 }
 
+function handleTransformedPromptEdit(event: Event) {
+  const target = event.target as HTMLTextAreaElement
+  pipelineStore.updateTransformedPrompt(target.value)
+}
+
 function handleTransformedPromptBlur() {
-  // Store updated transformed prompt
-  console.log('[Phase2] Transformed prompt edited:', transformedPrompt.value)
-  // TODO: Store in Pinia
+  console.log('[Phase2] Transformed prompt editing complete')
 }
 
 function setExampleInput(example: string) {
@@ -446,7 +451,7 @@ function setExampleInput(example: string) {
   pipelineStore.updateUserInput(example)
 
   // Clear transformed prompt when changing input
-  transformedPrompt.value = ''
+  pipelineStore.clearTransformedPrompt()
 }
 
 function handleBack() {

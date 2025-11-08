@@ -43,6 +43,9 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
   /** Error state */
   const error = ref<string | null>(null)
 
+  /** Transformed prompt (result of Stage 1+2) */
+  const transformedPrompt = ref('')
+
   // ============================================================================
   // COMPUTED
   // ============================================================================
@@ -191,6 +194,24 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
   }
 
   /**
+   * Update transformed prompt (result of Stage 1+2)
+   *
+   * @param text - Transformed prompt text
+   */
+  function updateTransformedPrompt(text: string) {
+    transformedPrompt.value = text
+    console.log('[PipelineExecution] Transformed prompt updated:', text.substring(0, 100) + '...')
+  }
+
+  /**
+   * Clear transformed prompt
+   */
+  function clearTransformedPrompt() {
+    transformedPrompt.value = ''
+    console.log('[PipelineExecution] Transformed prompt cleared')
+  }
+
+  /**
    * Clear all state (for new session)
    */
   function clearAll() {
@@ -198,6 +219,7 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
     userInput.value = ''
     metaPrompt.value = ''
     originalMetaPrompt.value = ''
+    transformedPrompt.value = ''
     executionMode.value = 'eco'
     safetyLevel.value = 'kids'
     error.value = null
@@ -214,6 +236,7 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
     userInput: computed(() => userInput.value),
     metaPrompt: computed(() => metaPrompt.value),
     originalMetaPrompt: computed(() => originalMetaPrompt.value),
+    transformedPrompt: computed(() => transformedPrompt.value),
     executionMode: computed(() => executionMode.value),
     safetyLevel: computed(() => safetyLevel.value),
     isLoading: computed(() => isLoading.value),
@@ -229,6 +252,8 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
     updateUserInput,
     updateMetaPrompt,
     resetMetaPrompt,
+    updateTransformedPrompt,
+    clearTransformedPrompt,
     setExecutionMode,
     setSafetyLevel,
     clearAll
