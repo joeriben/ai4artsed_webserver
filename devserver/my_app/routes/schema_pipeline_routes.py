@@ -649,8 +649,8 @@ def execute_pipeline():
         # Only run Stage 3 if Stage 2 pipeline requires it (prompt_interception type)
         # Non-transformation pipelines (text_semantic_split, etc.) skip this
 
-        pipeline_def = pipeline_executor.config_loader.load_pipeline(config.pipeline)
-        requires_stage3 = pipeline_def.get('requires_interception_prompt', True)  # Default True for safety
+        pipeline_def = pipeline_executor.config_loader.get_pipeline(config.pipeline_name)
+        requires_stage3 = pipeline_def.requires_interception_prompt if pipeline_def else True  # Default True for safety
 
         if requires_stage3 and safety_level != 'off' and isinstance(result.final_output, str):
             logger.info(f"[4-STAGE] Stage 3: Post-Interception Safety Check (pipeline requires it)")
@@ -658,7 +658,8 @@ def execute_pipeline():
             # For now, this is a placeholder - actual implementation in future session
         else:
             if not requires_stage3:
-                logger.info(f"[4-STAGE] Stage 3: SKIPPED (pipeline_type={pipeline_def.get('pipeline_type')}, no transformation)")
+                pipeline_type = pipeline_def.pipeline_type if pipeline_def else 'unknown'
+                logger.info(f"[4-STAGE] Stage 3: SKIPPED (pipeline_type={pipeline_type}, no transformation)")
             elif not isinstance(result.final_output, str):
                 logger.info(f"[4-STAGE] Stage 3: SKIPPED (structured output, not text string)")
 

@@ -60,7 +60,7 @@ class PipelineResult:
     config_name: str  # Changed from schema_name
     status: PipelineStatus
     steps: List[PipelineStep]
-    final_output: Optional[str] = None
+    final_output: str = ""  # Pipeline output as string (JSON parsing goes to context.custom_placeholders)
     error: Optional[str] = None
     execution_time: Optional[float] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -100,7 +100,8 @@ class PipelineExecutor:
         execution_mode: str = 'eco',
         safety_level: str = 'kids',
         tracker=None,
-        config_override=None  # Phase 2: Optional pre-modified config
+        config_override=None,  # Phase 2: Optional pre-modified config
+        context_override: Optional[PipelineContext] = None  # Multi-stage: Pre-populated context
     ) -> PipelineResult:
         """Execute complete pipeline with 4-Stage Pre-Interception System
 
@@ -140,11 +141,15 @@ class PipelineExecutor:
         # Store config for step execution
         self._current_config = resolved_config
 
-        # Create pipeline context
-        context = PipelineContext(
-            input_text=input_text,
-            user_input=user_input or input_text
-        )
+        # Create pipeline context (or use override for multi-stage workflows)
+        if context_override:
+            context = context_override
+            logger.info(f"[CONTEXT-OVERRIDE] Using pre-populated context with {len(context.custom_placeholders)} custom placeholders")
+        else:
+            context = PipelineContext(
+                input_text=input_text,
+                user_input=user_input or input_text
+            )
 
         # Plan pipeline steps
         steps = self._plan_pipeline_steps(resolved_config)
@@ -223,6 +228,20 @@ class PipelineExecutor:
                 step.status = PipelineStatus.COMPLETED
                 step.output_data = output
                 context.add_output(output)
+
+                # AUTO-PARSE JSON: If output is valid JSON dict, add to custom_placeholders
+                # This enables multi-stage workflows where Stage 2 outputs structured data
+                try:
+                    parsed_output = json.loads(output)
+                    if isinstance(parsed_output, dict):
+                        # Convert keys to uppercase for placeholder consistency
+                        for key, value in parsed_output.items():
+                            placeholder_key = key.upper()
+                            context.custom_placeholders[placeholder_key] = value
+                        logger.info(f"[JSON-AUTO-PARSE] Parsed output and added {len(parsed_output)} placeholders: {list(parsed_output.keys())}")
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    # Not JSON or not a dict - treat as normal string output
+                    pass
 
                 completed_steps.append(step)
                 logger.debug(f"Step {step.step_id} successful: {len(output)} chars output")

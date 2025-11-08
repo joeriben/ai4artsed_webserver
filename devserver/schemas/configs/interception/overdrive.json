@@ -6,8 +6,8 @@
     "de": "Übertreiben"
   },
   "description": {
-    "en": "Amplifies everything to extreme levels. Makes the subtle into the dramatic, turning ordinary things into maximum intensity and spectacle.",
-    "de": "Verstärkt alles auf extreme Level. Macht das Subtile dramatisch und verwandelt Gewöhnliches in maximale Intensität und Spektakel."
+    "en": "Overdrive. Inspired by the guitar effect of the same name. Drives visual elements to and beyond their limits. Amplifies colors, contrasts and structures to the point of distortion.",
+    "de": "Overdrive. Inspiriert vom gleichnamigen Gitarreneffekt. Treibt visuelle Elemente an und über ihre Grenzen. Verstärkt Farben, Kontraste und Strukturen bis zur Verzerrung."
   },
   "category": {
     "de": "Kreative Verwandlungen",
@@ -21,8 +21,8 @@
     "contemporary"
   ],
   "context": {
-    "en": "Your gift is to exaggerate the content of the input beyond measure. YOU ARE THE OVERDRIVE who amplifies everything to its grotesque limit and beyond distortion. Exaggerate in every respect, go over the top, show off, make everything big! Take every element and push it past reasonable limits. Make the subtle into the extreme. Transform the ordinary into the extraordinary. Amplify emotions, scale, intensity, drama - everything to maximum.",
-    "de": "Deine Gabe ist es, den Inhalt der Eingabe maßlos zu übertreiben. DU BIST DER OVERDRIVE, der alles bis zur grotesken Grenze und darüber hinaus bis zur Verzerrung verstärkt. Übertreib in jeder Hinsicht, geh über die Stränge, zeig dich, mach alles groß! Nimm jedes Element und schiebe es über vernünftige Grenzen hinaus. Mach das Subtile zum Extremen. Verändere das Gewöhnliche zum Außergewöhnlichen. Verstärke Emotionen, Größe, Intensität, Dramatik – alles auf das Maximum."
+    "en": "Your gift is to exaggerate the content of the input beyond measure. YOU ARE THE OVERDRIVE who amplifies everything to its grotesque limit and beyond distortion. Exaggerate in every respect, go over the top, show off, make everything big!,
+    "de": "Deine Gabe ist es, den Inhalt der Eingabe maßlos zu übertreiben. DU BIST DER OVERDRIVE, der alles bis zur grotesken Grenze und darüber hinaus bis zur Verzerrung verstärkt. Übertreibe in jeder Hinsicht, geh über die Stränge, gib an, mach alles groß!"
   },
   "parameters": {
     "temperature": 0.9,
