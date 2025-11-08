@@ -75,6 +75,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigSelectionStore } from '@/stores/configSelection'
+import { useUserPreferencesStore } from '@/stores/userPreferences'
 import PropertyCanvas from '@/components/PropertyCanvas.vue'
 import ConfigCanvas from '@/components/ConfigCanvas.vue'
 import NoMatchState from '@/components/NoMatchState.vue'
@@ -87,13 +88,15 @@ import NoMatchState from '@/components/NoMatchState.vue'
  * - Quadrants I, III, IV (others): Config tiles with random distribution
  *
  * Session 35 - Phase 1 Property Quadrants Implementation
+ * Updated Session 36 - Use global userPreferences store for language
  */
 
 const store = useConfigSelectionStore()
+const userPreferences = useUserPreferencesStore()
 const router = useRouter()
 
-// Language (TODO: Get from i18n or user settings)
-const currentLanguage = ref<'en' | 'de'>('de')
+// Language from global store (site-wide preference)
+const currentLanguage = computed(() => userPreferences.language)
 
 // Canvas dimensions (full viewport)
 const canvasWidth = ref(0)

@@ -1194,3 +1194,39 @@ def pipeline_configs_with_properties():
     except Exception as e:
         logger.error(f"Error loading configs with properties: {e}")
         return jsonify({"error": "Failed to load configs with properties"}), 500
+
+
+@schema_compat_bp.route('/api/config/<config_id>/context', methods=['GET'])
+def get_config_context(config_id):
+    """
+    Get the context field for a specific config (Phase 2 - Meta-Prompt Editing)
+
+    Returns the multilingual context field: {en: "...", de: "..."}
+    or string if not yet translated.
+
+    NEW: Phase 2 Multilingual Context Editing (Session 36)
+    """
+    try:
+        init_schema_engine()
+
+        # Load config
+        config = config_loader.get_config(config_id)
+
+        if not config:
+            return jsonify({"error": f"Config not found: {config_id}"}), 404
+
+        # Get context from config
+        context = config.context if hasattr(config, 'context') else None
+
+        if context is None:
+            return jsonify({"error": f"Config {config_id} has no context field"}), 404
+
+        # Return context (can be string or {en: ..., de: ...})
+        return jsonify({
+            "config_id": config_id,
+            "context": context
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading context for config {config_id}: {e}")
+        return jsonify({"error": f"Failed to load context: {str(e)}"}), 500

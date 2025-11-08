@@ -69,6 +69,22 @@ const messages = {
     language: {
       switch: 'Sprache: Deutsch',
       switchTo: 'Switch to English'
+    },
+    phase2: {
+      title: 'Prompt-Eingabe',
+      userInput: 'Dein Input',
+      userInputPlaceholder: 'z.B. Eine Blume auf der Wiese',
+      metaPrompt: 'Künstlerische Anweisung',
+      metaPromptPlaceholder: 'Beschreibe die Transformation...',
+      result: 'Ergebnis',
+      execute: 'Pipeline ausführen',
+      executing: 'Wird ausgeführt...',
+      modified: 'Geändert',
+      reset: 'Zurücksetzen',
+      loadingConfig: 'Lade Konfiguration...',
+      loadingMetaPrompt: 'Lade Meta-Prompt...',
+      errorLoadingConfig: 'Fehler beim Laden der Konfiguration',
+      errorLoadingMetaPrompt: 'Fehler beim Laden des Meta-Prompts'
     }
   },
   en: {
@@ -139,6 +155,22 @@ const messages = {
     language: {
       switch: 'Language: English',
       switchTo: 'Zu Deutsch wechseln'
+    },
+    phase2: {
+      title: 'Prompt Input',
+      userInput: 'Your Input',
+      userInputPlaceholder: 'e.g. A flower in the meadow',
+      metaPrompt: 'Artistic Instruction',
+      metaPromptPlaceholder: 'Describe the transformation...',
+      result: 'Result',
+      execute: 'Execute Pipeline',
+      executing: 'Executing...',
+      modified: 'Modified',
+      reset: 'Reset',
+      loadingConfig: 'Loading configuration...',
+      loadingMetaPrompt: 'Loading meta-prompt...',
+      errorLoadingConfig: 'Error loading configuration',
+      errorLoadingMetaPrompt: 'Error loading meta-prompt'
     }
   }
 }
