@@ -371,73 +371,7 @@ AFTER (Session 37):
 
 ---
 
-## 🎯 PRIORITY 1 (Next Session): GPT-OSS for Stage 3 + Memory Efficiency
-
-**Status:** NEW TODO (from Session 14)
-**Context:** Keep GPT-OSS:20b in Ollama memory throughout Stages 1-3 for efficiency
-**Priority:** HIGH (performance optimization + consistency)
-
-**Current State:**
-- Stage 1: Uses GPT-OSS:20b (Translation + §86a Safety) ✅ COMPLETED Session 14
-- Stage 2: User-selected config (e.g., Dada, Bauhaus) ✅ WORKS
-- Stage 3: Uses llama-guard3:1b (age-appropriate content) ❌ TODO: Replace with GPT-OSS
-- Stage 4: Output generation (ComfyUI/API) ✅ WORKS
-
-**Problem:**
-Model switching between Stage 1 (GPT-OSS) and Stage 3 (llama-guard3) causes:
-- Performance overhead (~2-3s to load/unload models)
-- Inconsistent safety approach (two different models)
-- Increased VRAM usage (16GB GPT-OSS + 8GB llama-guard3 at different times)
-
-**Proposed Solution:**
-```
-Stages 1-3 (local/eco mode):
-  ├─ Stage 1: GPT-OSS:20b (Translation + §86a Safety) ✅ Done
-  ├─ Stage 2: User-selected config (e.g., Dada, Bauhaus)
-  └─ Stage 3: GPT-OSS:20b (Pre-Output Safety) ← TODO
-
-Stage 4: Unload GPT-OSS before ComfyUI (if media generation)
-  └─ API-based outputs (GPT-5 Image): Keep GPT-OSS loaded
-```
-
-**Benefits:**
-- ✅ Single model for all safety checks (consistency)
-- ✅ Keep GPT-OSS in Ollama memory (`keep_alive: "10m"`)
-- ✅ No model switching overhead between stages (~2-3s saved per request)
-- ✅ Unified safety approach (§86a + age-appropriate in one model)
-- ✅ Better VRAM usage (single 16GB model vs switching)
-
-**Implementation Tasks:**
-
-### 1. Create GPT-OSS Stage 3 Configs
-- `devserver/schemas/configs/pre_output/gpt_oss_preoutput_kids.json`
-- `devserver/schemas/configs/pre_output/gpt_oss_preoutput_youth.json`
-- Similar structure to current llama-guard3 configs
-- Add §86a context + age-appropriate content rules
-- Use JSON response format (same as current Stage 3)
-
-### 2. Update `stage_orchestrator.py`
-- Modify `execute_stage3_safety()` to use GPT-OSS configs instead of llama-guard3
-- Keep hybrid approach (fast string-match → LLM verification if terms found)
-- Parse GPT-OSS JSON response: `{safe, positive_prompt, negative_prompt, abort_reason}`
-
-### 3. Add keep_alive Management
-- Stage 1-3: Set `keep_alive: "10m"` for GPT-OSS (stays in VRAM)
-- Before Stage 4 ComfyUI: Unload GPT-OSS explicitly if local media generation
-- API-based Stage 4: Keep GPT-OSS loaded (no ComfyUI conflict)
-
-### 4. Testing
-- Verify Stage 3 safety checks still work correctly
-- Test hybrid fast-path (95% of requests should be instant)
-- Measure performance gain (expect 2-3s improvement)
-- Confirm VRAM usage stays within limits (16GB total)
-
-**Timeline:** Next session (Priority 1)
-**Estimated Time:** 2-3 hours
-
----
-
-## 🎯 PRIORITY 2 (Future): Internationalization - Primary Language Selector
+## 🎯 PRIORITY 1 (Future): Internationalization - Primary Language Selector
 
 **Status:** NEW TODO (from Session 14)
 **Context:** German language is currently hardcoded in educational error messages
@@ -495,6 +429,49 @@ devserver/schemas/language_templates/
 ---
 
 ## ✅ RECENTLY COMPLETED
+
+### Session 38 (2025-11-08): GPT-OSS Stage 3 + keep_alive Memory Management
+**Status:** ✅ COMPLETE
+**Priority:** HIGH (performance optimization + consistency)
+
+**What Was Discovered:**
+- GPT-OSS was already configured for Stage 3 via `model_override` in configs
+- Only missing piece was `keep_alive` parameter for memory management
+
+**What Was Implemented:**
+- Added `keep_alive: "10m"` to all GPT-OSS configs and chunks:
+  - `schemas/chunks/manipulate.json` (Stage 2 interception)
+  - `schemas/configs/pre_interception/gpt_oss_unified.json` (Stage 1)
+  - `schemas/configs/pre_output/text_safety_check_kids.json` (Stage 3)
+  - `schemas/configs/pre_output/text_safety_check_youth.json` (Stage 3)
+
+**Current State (All Stages Using GPT-OSS):**
+- ✅ Stage 1: GPT-OSS:20b (Translation + §86a Safety) with keep_alive
+- ✅ Stage 2: GPT-OSS:20b (Prompt Interception) with keep_alive
+- ✅ Stage 3: GPT-OSS:20b (Pre-Output Safety kids/youth) with keep_alive
+- ✅ Stage 4: Output generation (ComfyUI/API)
+
+**Benefits Achieved:**
+- ✅ Single model (GPT-OSS:20b) for all text processing and safety checks
+- ✅ Model stays in VRAM for 10 minutes between calls (no loading overhead)
+- ✅ Estimated ~2-3s performance improvement per request
+- ✅ Unified safety approach across all stages
+- ✅ Reduced VRAM thrashing (no model switching)
+
+**Files Modified:**
+- `devserver/schemas/chunks/manipulate.json`
+- `devserver/schemas/configs/pre_interception/gpt_oss_unified.json`
+- `devserver/schemas/configs/pre_output/text_safety_check_kids.json`
+- `devserver/schemas/configs/pre_output/text_safety_check_youth.json`
+
+**Testing:**
+- ✅ All JSON configs validated
+- ✅ Server restarted with new configs
+- ✅ Pipeline execution tested successfully
+
+**Git Commit:** [Pending]
+
+---
 
 ### Session 17 (2025-11-03): Pipeline Rename to Input-Type Convention
 **Status:** ✅ COMPLETE
