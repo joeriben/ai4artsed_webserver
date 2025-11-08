@@ -1034,8 +1034,9 @@ def pipeline_configs_with_properties():
         init_schema_engine()
 
         # Property pairs definition
+        # TODO: Move to i18n configuration instead of hardcoding
         property_pairs = [
-            ["calm", "chaotic"],
+            ["chill", "chaotic"],
             ["narrative", "algorithmic"],
             ["facts", "emotion"],
             ["historical", "contemporary"],

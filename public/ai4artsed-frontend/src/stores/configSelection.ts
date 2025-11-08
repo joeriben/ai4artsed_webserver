@@ -57,7 +57,7 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
 
   /**
    * Property pairs as a Map for O(1) opposite lookup
-   * calm -> chaotic, chaotic -> calm, etc.
+   * chill -> chaotic, chaotic -> chill, etc.
    */
   const propertyPairMap = computed(() => {
     const map = new Map<string, string>()

@@ -99,7 +99,7 @@ const emit = defineEmits<{
 
 // Property colors (should match ConfigTile and PropertyCanvas)
 const propertyColors: Record<string, string> = {
-  calm: '#9b87f5',
+  chill: '#9b87f5',
   chaotic: '#9b87f5',
   narrative: '#60a5fa',
   algorithmic: '#60a5fa',

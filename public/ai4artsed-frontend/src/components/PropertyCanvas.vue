@@ -81,7 +81,7 @@ const emit = defineEmits<{
 
 // Property colors (same order as mockup)
 const propertyColors = [
-  '#9b87f5', // purple - calm/chaotic
+  '#9b87f5', // purple - chill/chaotic
   '#60a5fa', // blue - narrative/algorithmic
   '#f87171', // red - facts/emotion
   '#fb923c', // orange - historical/contemporary
