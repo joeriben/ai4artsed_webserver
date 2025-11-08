@@ -57,9 +57,9 @@ const emit = defineEmits<{
 }>()
 
 // Tile dimensions (must match ConfigTile.vue)
-const TILE_WIDTH = 280
-const TILE_HEIGHT = 160
-const TILE_MARGIN = 40 // Minimum spacing between tiles
+const TILE_WIDTH = 260
+const TILE_HEIGHT = 120
+const TILE_MARGIN = 50 // Minimum spacing between tiles (increased for better breathing room)
 
 // Positioned configs
 const positionedConfigs = ref<ConfigWithPosition[]>([])
@@ -90,9 +90,9 @@ function calculatePositions() {
     return
   }
 
-  // Property area bounds (upper-left 40% x 40%)
-  const propertyAreaWidth = props.canvasWidth * 0.4
-  const propertyAreaHeight = props.canvasHeight * 0.4
+  // Property area bounds (upper-left 55% x 60% - must match PropertyCanvas!)
+  const propertyAreaWidth = props.canvasWidth * 0.55
+  const propertyAreaHeight = props.canvasHeight * 0.6
 
   /**
    * Check if a grid cell is in the property area (to avoid)
@@ -129,9 +129,9 @@ function calculatePositions() {
     const cell = shuffledCells[index]
     if (!cell) return // Type guard
 
-    // Add jitter (±20% of tile spacing)
-    const jitterX = (Math.random() - 0.5) * effectiveTileWidth * 0.4
-    const jitterY = (Math.random() - 0.5) * effectiveTileHeight * 0.4
+    // Add jitter (±15% of tile spacing for randomness, reduced to prevent overlaps)
+    const jitterX = (Math.random() - 0.5) * effectiveTileWidth * 0.3
+    const jitterY = (Math.random() - 0.5) * effectiveTileHeight * 0.3
 
     positioned.push({
       ...config,
@@ -190,7 +190,7 @@ onMounted(() => {
 }
 
 /* Re-enable pointer events on actual tiles */
-.config-canvas >>> .config-tile {
+.config-canvas :deep(.config-tile) {
   pointer-events: all;
 }
 

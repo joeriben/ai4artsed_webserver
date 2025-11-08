@@ -973,9 +973,18 @@ def pipeline_configs_with_properties():
         if not configs_path.exists():
             return jsonify({"error": "Configs directory not found"}), 404
 
+        # Excluded directories (deactivated, deprecated, etc.)
+        EXCLUDED_DIRS = {"temporarily_deactivated", "deactivated", "deprecated", "archive", ".obsolete"}
+
         # Recursive glob to support subdirectories (interception/, output/, user_configs/)
         for config_file in sorted(configs_path.glob("**/*.json")):
             try:
+                # Filter: Skip configs in excluded directories
+                relative_path = config_file.relative_to(configs_path)
+                if any(excluded in relative_path.parts for excluded in EXCLUDED_DIRS):
+                    logger.debug(f"Skipping {config_file.name} - in excluded directory")
+                    continue
+
                 with open(config_file, 'r', encoding='utf-8') as f:
                     config_data = json.load(f)
 
@@ -990,7 +999,6 @@ def pipeline_configs_with_properties():
                     continue
 
                 # Calculate config ID (relative path without .json)
-                relative_path = config_file.relative_to(configs_path)
                 parts = relative_path.parts
 
                 # Use same naming logic as config_loader.py
@@ -1010,36 +1018,51 @@ def pipeline_configs_with_properties():
                     owner = "system"  # System config
 
                 # Helper function to create short description
-                def make_short_description(long_desc, max_length=120):
+                def make_short_description(long_desc, max_length=220):
                     """
                     Create short description from long one.
-                    Extracts first 1-2 sentences or truncates to max_length.
+                    Extracts complete sentences that fit within max_length.
                     Preserves consistency - doesn't invent new content.
-                    Longer for young audiences to understand context.
+                    Kid-friendly length that provides enough context to understand.
+
+                    Strategy:
+                    1. Keep full description if it fits (<= max_length)
+                    2. Extract first sentence if it fits
+                    3. Extract first 2 sentences if they fit
+                    4. Never truncate mid-sentence - use first sentence only
                     """
                     if not long_desc:
                         return long_desc
 
+                    # If full description fits, keep it
                     if len(long_desc) <= max_length:
                         return long_desc
 
-                    # Try to extract first sentence
-                    sentences = long_desc.split('. ')
-                    if sentences and len(sentences[0]) <= max_length:
-                        return sentences[0] + '.'
+                    # Split into sentences (handle '. ' and '.\n')
+                    sentences = long_desc.replace('.\n', '. ').split('. ')
 
-                    # Try first two sentences if they fit
-                    if len(sentences) >= 2:
-                        two_sentences = sentences[0] + '. ' + sentences[1] + '.'
-                        if len(two_sentences) <= max_length:
-                            return two_sentences
+                    # Edge case: no proper sentences (no periods)
+                    if len(sentences) == 1:
+                        # Truncate at word boundary
+                        if len(long_desc) > max_length:
+                            truncated = long_desc[:max_length].rsplit(' ', 1)[0]
+                            return truncated.strip() + '...'
+                        return long_desc
 
-                    # Otherwise truncate at word boundary
-                    if len(long_desc) > max_length:
-                        truncated = long_desc[:max_length].rsplit(' ', 1)[0]
-                        return truncated + '...'
+                    # Try first sentence
+                    first_sentence = sentences[0] + '.'
+                    if len(first_sentence) <= max_length:
+                        # Try adding second sentence
+                        if len(sentences) >= 2:
+                            two_sentences = first_sentence + ' ' + sentences[1] + '.'
+                            if len(two_sentences) <= max_length:
+                                return two_sentences
+                        # Return just first sentence
+                        return first_sentence
 
-                    return long_desc
+                    # First sentence too long - truncate at word boundary
+                    truncated = long_desc[:max_length].rsplit(' ', 1)[0]
+                    return truncated.strip() + '...'
 
                 # Extract metadata fields with properties
                 metadata = {

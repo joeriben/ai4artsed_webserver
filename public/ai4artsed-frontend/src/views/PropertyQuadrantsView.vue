@@ -24,11 +24,14 @@
         :selected-properties="store.selectedProperties"
         :canvas-width="canvasWidth"
         :canvas-height="canvasHeight"
+        :current-language="currentLanguage"
         @toggle-property="handlePropertyToggle"
       />
 
       <!-- Configs distributed across entire canvas (avoiding property area) -->
+      <!-- Only show after user selects properties -->
       <ConfigCanvas
+        v-if="store.selectedProperties.length > 0"
         :configs="store.filteredConfigs"
         :selected-properties="store.selectedProperties"
         :match-count="store.matchCount"
@@ -90,7 +93,7 @@ const store = useConfigSelectionStore()
 const router = useRouter()
 
 // Language (TODO: Get from i18n or user settings)
-const currentLanguage = ref<'en' | 'de'>('en')
+const currentLanguage = ref<'en' | 'de'>('de')
 
 // Canvas dimensions (full viewport)
 const canvasWidth = ref(0)
@@ -112,6 +115,9 @@ function handleConfigSelect(configId: string) {
 }
 
 onMounted(() => {
+  // Clear any previous selection (fresh start)
+  store.clearAllProperties()
+
   // Load configs from API
   store.loadConfigs()
 
