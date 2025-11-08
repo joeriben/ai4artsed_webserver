@@ -2,6 +2,8 @@
   "name": "audio_generation",
   "description": "Multi-Media Audio Generation Pipeline",
   "pipeline_type": "audio_generation",
+  "pipeline_stage": "4",
+  "requires_interception_prompt": false,
   "input_requirements": {
     "texts": 1
   },

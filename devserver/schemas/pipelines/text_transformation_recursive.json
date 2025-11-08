@@ -1,6 +1,9 @@
 {
   "name": "text_transformation_recursive",
   "description": "Recursive Text Transformation: Loops through multiple transformations (e.g., Stille Post / Chinese Whispers)",
+  "pipeline_type": "prompt_interception",
+  "pipeline_stage": "2",
+  "requires_interception_prompt": true,
   "input_requirements": {
     "texts": 1
   },

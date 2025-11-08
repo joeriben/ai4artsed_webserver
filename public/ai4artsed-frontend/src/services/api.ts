@@ -151,6 +151,34 @@ export async function getConfigContext(configId: string): Promise<ConfigContextR
 }
 
 /**
+ * Get pipeline structure metadata for a config (Phase 2 - Dynamic UI)
+ *
+ * Returns pipeline metadata to determine:
+ * - How many input bubbles to show (input_requirements)
+ * - Whether to show context editing bubble (requires_interception_prompt)
+ * - Pipeline stage and type for UI adaptation
+ */
+export interface PipelineMetadataResponse {
+  config_id: string
+  pipeline_name: string
+  pipeline_type: string | null
+  pipeline_stage: string | null
+  requires_interception_prompt: boolean
+  input_requirements: {
+    texts?: number
+    images?: number
+  }
+  description: string
+}
+
+export async function getPipelineMetadata(configId: string): Promise<PipelineMetadataResponse> {
+  const response = await apiClient.get<PipelineMetadataResponse>(
+    `/api/config/${configId}/pipeline`
+  )
+  return response.data
+}
+
+/**
  * Execute pipeline (Phase 2)
  *
  * Supports multilingual context editing:
@@ -211,6 +239,7 @@ export default {
   getConfigsWithProperties,
   getConfig,
   getConfigContext,
+  getPipelineMetadata,
   executePipeline,
   getMediaInfo,
   getMediaUrl,

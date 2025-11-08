@@ -1,5 +1,8 @@
 {
   "name": "text_transformation",
+  "pipeline_type": "prompt_interception",
+  "pipeline_stage": "2",
+  "requires_interception_prompt": true,
   "description": "Text Transformation Pipeline: Input Text → Manipulated Text (Prompt Interception)",
   "instruction_type": "artistic_transformation",
   "input_requirements": {

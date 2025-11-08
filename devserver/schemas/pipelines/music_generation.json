@@ -1,6 +1,8 @@
 {
   "name": "music_generation",
   "description": "Multi-Media Music Generation Pipeline",
+  "requires_interception_prompt": false,
+  "pipeline_stage": "2",
   "pipeline_type": "music_generation",
   "input_requirements": {
     "texts": 2

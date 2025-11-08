@@ -1230,3 +1230,46 @@ def get_config_context(config_id):
     except Exception as e:
         logger.error(f"Error loading context for config {config_id}: {e}")
         return jsonify({"error": f"Failed to load context: {str(e)}"}), 500
+
+
+@schema_compat_bp.route('/api/config/<config_id>/pipeline', methods=['GET'])
+def get_config_pipeline(config_id):
+    """
+    Get pipeline structure metadata for a config (Phase 2 - Dynamic UI)
+
+    Returns pipeline metadata to determine:
+    - How many input bubbles to show (input_requirements)
+    - Whether to show context editing bubble (requires_interception_prompt)
+    - Pipeline stage and type for UI adaptation
+
+    NEW: Phase 2 Dynamic Pipeline Structure (Session 36)
+    """
+    try:
+        init_schema_engine()
+
+        # Load config
+        config = config_loader.get_config(config_id)
+
+        if not config:
+            return jsonify({"error": f"Config not found: {config_id}"}), 404
+
+        # Get pipeline metadata
+        pipeline = config_loader.pipelines.get(config.pipeline)
+
+        if not pipeline:
+            return jsonify({"error": f"Pipeline not found: {config.pipeline}"}), 404
+
+        # Return pipeline structure metadata
+        return jsonify({
+            "config_id": config_id,
+            "pipeline_name": pipeline.name,
+            "pipeline_type": pipeline.pipeline_type,
+            "pipeline_stage": pipeline.pipeline_stage,
+            "requires_interception_prompt": pipeline.requires_interception_prompt,
+            "input_requirements": pipeline.input_requirements or {},
+            "description": pipeline.description
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading pipeline metadata for config {config_id}: {e}")
+        return jsonify({"error": f"Failed to load pipeline metadata: {str(e)}"}), 500

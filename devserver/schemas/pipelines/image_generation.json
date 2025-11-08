@@ -1,6 +1,8 @@
 {
   "name": "image_generation",
   "description": "Multi-Media Image Generation Pipeline",
+  "pipeline_stage": "4",
+  "requires_interception_prompt": false,
   "pipeline_type": "image_generation",
   "input_requirements": {
     "texts": 1

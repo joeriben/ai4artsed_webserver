@@ -16,6 +16,14 @@ class Pipeline:
     name: str
     description: str
     chunks: List[str]
+
+    # Phase 2: Pipeline structure metadata for dynamic frontend UI
+    pipeline_type: Optional[str] = None  # "prompt_interception", "media_generation", "multi_prompt", etc.
+    pipeline_stage: Optional[str] = None  # "1", "2", "3", "4" (4-stage pre-interception system)
+    requires_interception_prompt: bool = False  # Show context editing bubble in Phase 2
+    input_requirements: Optional[Dict[str, int]] = None  # {"texts": 1, "images": 0}
+
+    # Legacy fields
     required_fields: List[str] = None
     defaults: Dict[str, Any] = None
     meta: Dict[str, Any] = None
@@ -106,6 +114,12 @@ class ConfigLoader:
                 name=data.get('name', pipeline_file.stem),
                 description=data.get('description', ''),
                 chunks=data.get('chunks', []),
+                # Phase 2: Pipeline structure metadata
+                pipeline_type=data.get('pipeline_type'),
+                pipeline_stage=data.get('pipeline_stage'),
+                requires_interception_prompt=data.get('requires_interception_prompt', False),
+                input_requirements=data.get('input_requirements', {}),
+                # Legacy fields
                 required_fields=data.get('required_fields', []),
                 defaults=data.get('defaults', {}),
                 meta=data.get('meta', {})

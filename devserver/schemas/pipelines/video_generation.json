@@ -2,6 +2,8 @@
   "name": "video_generation",
   "description": "Multi-Media Video Generation Pipeline",
   "pipeline_type": "video_generation",
+  "pipeline_stage": "4",
+  "requires_interception_prompt": false,
   "input_requirements": {
     "texts": 1
   },
