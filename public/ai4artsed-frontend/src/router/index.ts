@@ -23,6 +23,12 @@ const router = createRouter({
       // Phase 1: Property-based config selection interface
       component: () => import('../views/PropertyQuadrantsView.vue'),
     },
+    {
+      path: '/execute/:configId',
+      name: 'pipeline-execution',
+      // Phase 2: Pipeline execution with multilingual context editing
+      component: () => import('../views/PipelineExecutionView.vue'),
+    },
   ],
 })
 

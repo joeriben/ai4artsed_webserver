@@ -112,9 +112,9 @@ function handlePropertyToggle(property: string) {
 }
 
 function handleConfigSelect(configId: string) {
-  // Navigate to config execution view (TODO: implement execution view)
+  // Navigate to Phase 2 execution view
   console.log('[PropertyQuadrants] Config selected:', configId)
-  // router.push({ name: 'execute', params: { configId } })
+  router.push({ name: 'pipeline-execution', params: { configId } })
 }
 
 onMounted(() => {
