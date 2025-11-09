@@ -3,7 +3,7 @@
 **Date Created:** 2025-10-26
 **Purpose:** Prevent costly mistakes from incomplete understanding
 **Applies to:** ALL Claude Code sessions, ALL new LLM tasks
-**Last edit: 2025-11-02**
+**Last edit: 2025-11-09** (Session 39: v2.0.0-alpha.1 Release)
 
 ---
 
@@ -29,12 +29,12 @@ This is NOT a typical CRUD app or API server. It implements **pedagogical concep
 
 **Read these documents IN ORDER before any implementation work:**
 
-### 1. `docs/ARCHITECTURE.md` TABLE OF CONTENTS **⭐ AUTHORITATIVE**
-You must understand the TOC of architecture.md in order to know WHEN to look up information related to your specific task, instead of "inventing things" that already exist. CONSISTENCY IS CRUCIAL!
+### 1. `docs/ARCHITECTURE PART *.md` FILES **⭐ AUTHORITATIVE**
+You must understand the architecture documentation structure (21 PART files) in order to know WHEN to look up information related to your specific task, instead of "inventing things" that already exist. CONSISTENCY IS CRUCIAL!
 
-**What:** Complete 4-stage orchestration flow (Part I of ARCHITECTURE.md)
+**What:** Complete 4-stage orchestration flow (ARCHITECTURE PART 01-19)
 **Why:** Understand the CORRECT architecture for implementing flow logic
-**How:** The Document is quite long, use it for your orientation in the process. Hold the content structure firmly in your memory at all times, so that you will know when to look things up instead of making thing up yourself!
+**How:** The documentation is split into 21 PART files. Use them for orientation. Hold the content structure firmly in your memory at all times, so that you will know when to look things up instead of making things up yourself!
 
 **🚨 CRITICAL for any work involving:**
 - Pipeline execution
@@ -57,24 +57,32 @@ You must understand the TOC of architecture.md in order to know WHEN to look up 
 - **Engine Modules**: PipelineExecutor, BackendRouter, ConfigLoader, etc.
 - **Frontend Architecture**: Backend-abstracted media handling
 
-#### Table of Contents of the ARCHITECTURE.md file:
+#### Architecture Documentation Structure:
 
-Part I: Orchestration (How It Works)
-1. [4-Stage Orchestration Flow](#1-4-stage-orchestration-flow) ⭐ **START HERE**
+**21 PART Files** in `docs/`:
 
-Part II: Components (What The Parts Are)
-2. [Architecture Overview](#2-architecture-overview)
-3. [Three-Layer System](#3-three-layer-system)
-4. [Pipeline Types](#4-pipeline-types)
-5. [Data Flow Patterns](#5-data-flow-patterns)
-6. [Engine Modules](#6-engine-modules)
-7. [Backend Routing](#7-backend-routing)
-8. [Model Selection](#8-model-selection)
-9. [File Structure](#9-file-structure)
-10. [API Routes](#10-api-routes)
-11. [Frontend Architecture](#11-frontend-architecture)
-12. [Execution Modes](#12-execution-modes)
-13. [Documentation & Logging Workflow](#13-documentation--logging-workflow)
+**Part I: Orchestration (How It Works)**
+1. ARCHITECTURE PART 01 - 4-Stage Orchestration Flow ⭐ **START HERE**
+
+**Part II: Components (What The Parts Are)**
+2. ARCHITECTURE PART 02 - Architecture Overview
+3. ARCHITECTURE PART 03 - Three-Layer System
+4. ARCHITECTURE PART 04 - Pipeline Types
+5. ARCHITECTURE PART 05 - Pipeline-Chunk-Backend Routing
+6. ARCHITECTURE PART 06 - Data Flow Patterns
+7. ARCHITECTURE PART 07 - Engine Modules
+8. ARCHITECTURE PART 08 - Backend Routing
+9. ARCHITECTURE PART 09 - Model Selection
+10. **(No PART 10 - archived)**
+11. ARCHITECTURE PART 11 - API Routes
+12. ARCHITECTURE PART 12 - Frontend Architecture
+13. ARCHITECTURE PART 13 - Execution Modes
+14. ARCHITECTURE PART 14 - Testing
+15. ARCHITECTURE PART 15 - Key Design Decisions
+16. ARCHITECTURE PART 16 - Future Enhancements
+17. ARCHITECTURE PART 17 - Documentation-Logging Workflow
+18. ARCHITECTURE PART 18 - Data Storage & Persistence
+19. ARCHITECTURE PART 19 - Related Documentation
 
 ### 2. `docs/devserver_todos.md` (5 min)
 **How:** Descending time order, do not read whole document (too long, probably old content down below)

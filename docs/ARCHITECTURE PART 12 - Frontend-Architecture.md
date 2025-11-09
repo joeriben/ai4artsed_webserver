@@ -7,8 +7,10 @@
 
 ### Overview
 
-**Status:** ✅ Complete migration (2025-10-28)
+**Status:** ✅ Complete migration (2025-10-28), v2.0.0-alpha.1 (2025-11-09)
 **Architecture:** 100% Backend-abstracted - Frontend NEVER accesses ComfyUI directly
+
+**SSE Streaming Status:** ⏸ POSTPONED (Session 39) - SpriteProgressAnimation used instead
 
 The Frontend implements a clean separation between UI and Backend services, using Backend API exclusively for all operations.
 
@@ -91,8 +93,10 @@ initializeApp()
   → loadConfig()
   → initConfigBrowser()  // NEW: Card-based UI
   → setupImageHandlers()
-  → initSSEConnection()
+  → initSSEConnection()  // DEPRECATED: SSE streaming postponed (Session 39)
 ```
+
+**Note:** SSE (Server-Sent Events) streaming was attempted in Session 37 but postponed in Session 39. v2.0.0-alpha.1 uses SpriteProgressAnimation for progress indication instead.
 
 ### API Endpoints Used by Frontend
 
@@ -147,6 +151,11 @@ GET /api/media/video/{prompt_id}
    - No complex polling logic
    - Simple request/response pattern
 
+5. **Progress Indication**
+   - SpriteProgressAnimation provides visual feedback (Session 39)
+   - SSE streaming postponed for future enhancement
+   - Backend handles complexity, frontend stays simple
+
 ### Legacy Components (Obsolete)
 
 These files are marked `.obsolete` and no longer used:
@@ -156,6 +165,7 @@ These files are marked `.obsolete` and no longer used:
 - ❌ `workflow-browser.js.obsolete` - Incomplete migration attempt
 - ❌ `workflow-streaming.js.obsolete` - Legacy API with direct ComfyUI access
 - ❌ `dual-input-handler.js.obsolete` - Replaced by execution-handler
+- ⏸ `sse-connection.js` - SSE streaming infrastructure (postponed Session 39, may be reactivated later)
 
 ### File Structure
 

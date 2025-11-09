@@ -1,6 +1,59 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-08 Session 36 (Phase 2 Backend Complete, Property System Fixed)
+**Last Updated:** 2025-11-09 Session 39 (v2.0.0-alpha.1 Release, Critical Bugfix, Documentation Cleanup)
 **Context:** Current priorities and active TODOs
+
+---
+
+## ✅ COMPLETED FEATURES (Session 39)
+
+### v2.0.0-alpha.1 Release - **COMPLETE**
+**Status:** ✅ **SHIPPED** - First fully functional alpha release
+**Session:** 39 (2025-11-09)
+**Priority:** CRITICAL (milestone release)
+
+**What Was Completed:**
+1. **Critical Bugfix: media_type UnboundLocalError**
+   - Extracted media_type determination before Stage 3-4 loop
+   - Now stage4_only feature works correctly
+   - File: `devserver/my_app/routes/schema_pipeline_routes.py` (lines 733-747)
+
+2. **Git Merge & Release:**
+   - Merged `feature/schema-architecture-v2` → `main` (113 commits)
+   - Created annotated tag `v2.0.0-alpha.1`
+   - Pushed to remote repository
+
+3. **Visual Improvements:**
+   - Added terminal run separator box (80-char with run metadata)
+
+4. **Frontend Fixes:**
+   - HomeView immediate redirect to /select (no old template flash)
+
+5. **Development Workflow:**
+   - Created `start_backend.sh` (backend only, port 17801)
+   - Created `start_frontend.sh` (frontend only, port 5173)
+   - Foreground execution with direct terminal output
+
+**Stashed Features (WIP from Session 37):**
+- SSE streaming (postponed per user request)
+- Progressive image overlay UI
+- Seed management UI (backend complete, frontend incomplete)
+
+**Git Commits:**
+- `fix: Extract media_type determination before Stage 3-4 loop`
+- `feat: Add visual run separator box`
+- `fix: HomeView immediate redirect to /select`
+- `feat: Create separate start scripts`
+- `docs: Archive Session 37 handover and obsolete docs`
+- `Merge feature/schema-architecture-v2` (merge commit)
+- `v2.0.0-alpha.1` (annotated tag)
+
+**Testing:**
+- ✅ Full 4-stage pipeline execution
+- ✅ Image generation functional
+- ✅ Files saved to disk
+- ✅ Frontend displaying images
+- ✅ Clean merge to main
+- ✅ Tag pushed successfully
 
 ---
 

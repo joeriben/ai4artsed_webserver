@@ -2,8 +2,8 @@
 
 **Part 11: API Routes**
 
-> **Last Updated:** 2025-11-06
-> **Status:** Current as of Sessions 27, 29, 31
+> **Last Updated:** 2025-11-09
+> **Status:** Current as of v2.0.0-alpha.1 (Sessions 27, 29, 31, 37, 39)
 
 ---
 
@@ -361,43 +361,42 @@ Content-Disposition: inline; filename="output_audio.mp3"
 
 ### Unified run_id System
 
-**Critical:** All three tracking systems use the SAME `run_id`:
+**Critical:** All tracking systems use the SAME `run_id`:
 ```python
 # Generated ONCE at pipeline start
 run_id = str(uuid.uuid4())
 
 # Passed to ALL systems
-execution_tracker = ExecutionTracker(execution_id=run_id)
-media_storage.create_run(run_id)
-pipeline_recorder = LivePipelineRecorder(run_id)
+execution_tracker = ExecutionTracker(execution_id=run_id)  # Still exists for compatibility
+pipeline_recorder = LivePipelineRecorder(run_id)  # Primary system (Session 37+)
 ```
 
-**Why:** Fixes Dual-ID Bug (Session 29) - prevents desynchronization between ExecutionHistory and MediaStorage
+**Note:** MediaStorage was removed in Session 37 - LivePipelineRecorder is now the single source of truth for real-time tracking and media storage.
+
+**Why Unified ID:** Fixes Dual-ID Bug (Session 29) - prevents desynchronization between systems
 
 ### Storage Locations
 
 ```
 exports/
-├── json/                    # Unified Media Storage (Session 27)
-│   └── {run_id}/
+├── json/                    # LivePipelineRecorder (Session 37+)
+│   └── {run_id}/            # Primary storage location
 │       ├── metadata.json
-│       ├── input_text.txt
-│       ├── transformed_text.txt
-│       └── output_image.png
+│       ├── 01_input.txt
+│       ├── 02_translation.txt
+│       ├── 03_safety.json
+│       ├── 04_interception.txt
+│       ├── 05_safety_pre_output.json
+│       └── 06_output_image.png
 │
 └── pipeline_runs/           # Execution History (Sessions 21-22)
-    └── exec_*.json
+    └── exec_*.json          # Research data export format
 
-pipeline_runs/               # LivePipelineRecorder (Session 29)
-└── {run_id}/
-    ├── metadata.json
-    ├── 01_input.txt
-    ├── 02_translation.txt
-    ├── 03_safety.json
-    ├── 04_interception.txt
-    ├── 05_safety_pre_output.json
-    └── 06_output_image.png
+# DEPRECATED (Session 37): MediaStorage system removed
+# DEPRECATED (Session 37): pipeline_runs/{run_id}/ location
 ```
+
+**Note:** As of Session 37, LivePipelineRecorder handles ALL real-time tracking and media storage. MediaStorage has been completely removed from the pipeline execution flow.
 
 ### API Evolution
 
@@ -471,8 +470,8 @@ GET  /api/runs/{execution_id}
 - **Pipeline Execution:** ARCHITECTURE PART 01 (4-Stage Orchestration)
 - **Data Storage:** ARCHITECTURE PART 18 (Data Storage & Persistence)
 - **Backend Routing:** ARCHITECTURE PART 08 (Backend-Routing)
-- **Execution Tracker:** `docs/EXECUTION_TRACKER_ARCHITECTURE.md`
-- **Media Storage:** `docs/UNIFIED_MEDIA_STORAGE.md`
-- **Pipeline Recorder:** `docs/LIVE_PIPELINE_RECORDER.md`
+- **Execution Tracker:** `docs/EXECUTION_TRACKER_ARCHITECTURE.md` (Sessions 19-24, still active)
+- **Pipeline Recorder:** `docs/LIVE_PIPELINE_RECORDER.md` (Session 37+, primary system)
+- **Media Storage:** `docs/UNIFIED_MEDIA_STORAGE.md` (DEPRECATED Session 37)
 
 ---

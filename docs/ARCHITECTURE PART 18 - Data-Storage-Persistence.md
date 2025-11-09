@@ -2,20 +2,22 @@
 
 **Part 18: Data Storage & Persistence**
 
-> **Last Updated:** 2025-11-06
-> **Status:** Current as of Sessions 21-22, 27, 29
+> **Last Updated:** 2025-11-09
+> **Status:** Current as of v2.0.0-alpha.1 (Sessions 21-22, 27, 29, 37, 39)
 
 ---
 
 ## Overview
 
-DevServer implements **three parallel data persistence systems**, each serving distinct purposes:
+**v2.0.0-alpha.1 Status:** As of Session 37, DevServer uses **two active data persistence systems**:
 
-1. **Execution History** (Sessions 19-24) - Research data tracking
-2. **Unified Media Storage** (Session 27) - Backend-agnostic media files
-3. **LivePipelineRecorder** (Session 29) - Real-time entity tracking
+1. **Execution History** (Sessions 19-24) - Research data tracking [ACTIVE]
+2. **LivePipelineRecorder** (Session 29, enhanced Session 37) - Real-time entity tracking + media storage [PRIMARY]
+3. ~~**Unified Media Storage** (Session 27)~~ - **REMOVED in Session 37**
 
-**Critical Architecture:** All three systems use a **unified `run_id`** (Session 29 fix).
+**Critical Architecture:** Both active systems use a **unified `run_id`** (Session 29 fix).
+
+**Major Change (Session 37):** MediaStorage completely removed from pipeline execution. LivePipelineRecorder now handles ALL real-time tracking and media storage, eliminating redundancy.
 
 ---
 
@@ -164,27 +166,25 @@ See **ARCHITECTURE PART 11 (API-Routes)** for complete API documentation:
 
 ---
 
-## 2. Unified Media Storage (Session 27)
+## 2. ~~Unified Media Storage (Session 27)~~ **DEPRECATED - REMOVED Session 37**
 
-### Purpose
+### Historical Purpose (Session 27-36)
 
 Backend-agnostic media file persistence with complete run metadata.
 
-### Problem Solved
+### Why It Was Removed (Session 37)
 
-**Before Session 27:**
-- ❌ ComfyUI images displayed but NOT stored locally
-- ❌ OpenRouter images stored as data strings (unusable)
-- ❌ Export function failed (media not persisted)
-- ❌ Research data incomplete
+**Problem:** Dual-system redundancy between MediaStorage and LivePipelineRecorder:
+- Both systems downloaded media from ComfyUI
+- Both systems saved metadata
+- LivePipelineRecorder had to copy from MediaStorage
+- Complex coordination, duplicate code paths
 
-**After Session 27:**
-- ✅ All media downloaded during pipeline execution
-- ✅ Backend-agnostic (ComfyUI, OpenRouter, Replicate)
-- ✅ Atomic research units (one folder = complete run)
-- ✅ Export-ready
+**Solution:** Merge functionality into LivePipelineRecorder as single source of truth.
 
-### Architecture
+**Migration:** All MediaStorage functionality moved to LivePipelineRecorder in Session 37.
+
+### Legacy Architecture (Sessions 27-36)
 
 ```
 exports/json/
@@ -195,125 +195,29 @@ exports/json/
     └── output_image.png
 ```
 
-**Storage path:** `exports/json/{run_id}/` (migrated from `media_storage/runs/` in Session 31)
+**Note:** This storage location is now used by LivePipelineRecorder (Session 37+).
 
-### Data Model
+### Migration to LivePipelineRecorder (Session 37)
 
-#### RunMetadata
-```json
-{
-  "run_id": "812ccc30-5de8-416e-bfe7-10e913916672",
-  "user_id": "DOE_J",
-  "timestamp": "2025-11-04T21:15:30",
-  "schema": "dada",
-  "execution_mode": "eco",
-  "safety_level": "kids",
-  "input_text": "A surreal dream",
-  "transformed_text": "Ein surrealistischer Traum in dadaistischer Ästhetik...",
-  "outputs": [
-    {
-      "type": "image",
-      "filename": "output_image.png",
-      "backend": "comfyui",
-      "config": "sd35_large",
-      "file_size_bytes": 1048576,
-      "format": "png",
-      "width": 1024,
-      "height": 1024,
-      "created_at": "2025-11-04T21:15:45"
-    }
-  ]
-}
-```
+All MediaStorage functionality was moved to LivePipelineRecorder:
+- Backend detection logic → LivePipelineRecorder
+- Media download from ComfyUI → LivePipelineRecorder
+- Metadata management → LivePipelineRecorder
+- API endpoints → Now served by LivePipelineRecorder
 
-### Design Decisions
-
-#### Flat Structure (No Sessions)
-> User: "I just think we do not have an entity 'session' yet, and I would not know how to discriminate sessions technically."
-
-No hierarchical structure. UUID-based flat folders enable future queries via metadata.
-
-#### "Run" Terminology (Not "Execution")
-> User: "stop using 'execution'. this is also the word for killing humans."
-
-German language sensitivity. "Run" is neutral, commonly used in programming.
-
-#### Atomic Units
-> User: "Our data management has to keep 'atomic' research events, such as one pipeline run, together."
-
-One folder = one complete research event. No split data across locations.
-
-#### UUID-Based for Concurrency
-Supports workshop scenario: 15 kids executing pipelines simultaneously.
-
-### Backend Detection Logic
-
-**File:** `devserver/my_app/services/media_storage.py`
-
-```python
-# Auto-detect backend type
-if output_value.startswith('http'):
-    # API-based (OpenRouter) - Download from URL
-    await media_storage.add_media_from_url(
-        run_id=run_id,
-        url=output_value,
-        media_type="image"
-    )
-else:
-    # ComfyUI - Fetch via prompt_id
-    await media_storage.add_media_from_comfyui(
-        run_id=run_id,
-        prompt_id=output_value,
-        media_type="image"
-    )
-```
-
-### Integration
-
-**File:** `devserver/my_app/routes/schema_pipeline_routes.py`
-
-```python
-# Create run at pipeline start
-from my_app.services.media_storage import get_media_storage_service
-media_storage = get_media_storage_service()
-
-run_id = str(uuid.uuid4())  # Unified ID
-media_storage.create_run(
-    run_id=run_id,
-    user_id=user_id,
-    schema=schema_name,
-    execution_mode=execution_mode,
-    safety_level=safety_level,
-    input_text=input_text
-)
-
-# After Stage 2: Save transformed text
-media_storage.save_text(run_id, "transformed_text.txt", interception_output)
-
-# After Stage 4: Auto-download media
-if output_value.startswith('http'):
-    await media_storage.add_media_from_url(run_id, output_value, "image")
-else:
-    await media_storage.add_media_from_comfyui(run_id, output_value, "image")
-```
-
-### API Endpoints
-
-See **ARCHITECTURE PART 11 (API-Routes)** for complete API documentation:
-- `GET /api/media/image/<run_id>` - Serve image file
-- `GET /api/media/audio/<run_id>` - Serve audio file
-- `GET /api/media/info/<run_id>` - Get metadata only
-- `GET /api/media/run/<run_id>` - Complete run info
+**See Section 3 (LivePipelineRecorder)** for current implementation details.
 
 ---
 
-## 3. LivePipelineRecorder (Session 29)
+## 3. LivePipelineRecorder (Session 29, Enhanced Session 37)
 
 ### Purpose
 
-Real-time entity tracking with sequential numbering for frontend polling.
+Real-time entity tracking with sequential numbering for frontend polling + media storage (Session 37+).
 
-### Problem Solved: Dual-ID Bug
+**v2.0.0-alpha.1 Status:** PRIMARY system for all real-time data and media storage.
+
+### Problem Solved: Dual-ID Bug (Session 29) + Redundancy (Session 37)
 
 **Before Session 29:**
 ```python
@@ -333,14 +237,26 @@ run_id = str(uuid.uuid4())
 
 # Pass to ALL systems:
 execution_tracker = ExecutionTracker(execution_id=run_id)
-media_storage.create_run(run_id)
+media_storage.create_run(run_id)  # REMOVED Session 37
 pipeline_recorder = LivePipelineRecorder(run_id)
+```
+
+**After Session 37:**
+```python
+# Generate ONCE at pipeline start:
+run_id = str(uuid.uuid4())
+
+# Pass to ACTIVE systems:
+execution_tracker = ExecutionTracker(execution_id=run_id)  # Still exists for research data
+pipeline_recorder = LivePipelineRecorder(run_id)  # PRIMARY - handles media + tracking
+# MediaStorage completely removed
 ```
 
 ### Architecture
 
+**Session 37+ Storage Location:**
 ```
-pipeline_runs/
+exports/json/              # PRIMARY LOCATION (Session 37+)
 └── {run_id}/
     ├── metadata.json
     ├── 01_input.txt
@@ -352,6 +268,8 @@ pipeline_runs/
 ```
 
 **Sequential entity tracking:** 01 → 06 for easy frontend access.
+
+**Note:** Storage path migrated from `pipeline_runs/{run_id}/` to `exports/json/{run_id}/` in Session 37 to unify with legacy MediaStorage location.
 
 ### Data Model
 
@@ -440,7 +358,8 @@ recorder.save_entity('translation', translation_output)
 recorder.save_entity('safety', safety_result)
 recorder.save_entity('interception', interception_output)
 recorder.save_entity('safety_pre_output', safety_result)
-# Media entity saved automatically by MediaStorage
+# Session 37+: Media downloaded and saved by LivePipelineRecorder directly
+await recorder.download_and_save_media(prompt_id, media_type='image')
 ```
 
 ### Media Polling Bug Fix (Critical Achievement)
@@ -448,19 +367,20 @@ recorder.save_entity('safety_pre_output', safety_result)
 **The Problem:**
 ComfyUI generates images asynchronously. Calling `get_history(prompt_id)` immediately returns empty result.
 
-**The Fix (Line 214 in media_storage.py):**
+**The Fix (Session 37 in pipeline_recorder.py):**
 ```python
-# OLD (BROKEN):
+# OLD (BROKEN in MediaStorage):
 # history = await client.get_history(prompt_id)
 
-# NEW (FIXED):
+# NEW (FIXED in LivePipelineRecorder):
 history = await client.wait_for_completion(prompt_id)
 ```
 
 **Why This Matters:**
 - `wait_for_completion()` polls every 2 seconds until workflow finishes
 - **OLD ExecutionTracker identified this issue but FAILED to fix it for months**
-- **NEW LivePipelineRecorder SUCCEEDED on first implementation**
+- **Session 37 LivePipelineRecorder integration finally fixed it properly**
+- **Session 39 media_type bugfix completed the stability**
 
 ### API Endpoints
 
@@ -473,15 +393,16 @@ See **ARCHITECTURE PART 11 (API-Routes)** for complete API documentation:
 
 ## Unified run_id Architecture
 
-### Critical: Single ID Across All Systems
+### Critical: Single ID Across All Systems (Session 29+)
 
+**v2.0.0-alpha.1 Implementation:**
 ```python
-# schema_pipeline_routes.py
+# schema_pipeline_routes.py (Session 37+)
 
 # Generate ONCE at pipeline start
 run_id = str(uuid.uuid4())
 
-# Pass to ALL systems
+# Pass to ACTIVE systems
 execution_tracker = ExecutionTracker(
     execution_id=run_id,  # ← Same ID
     config_name=schema_name,
@@ -491,17 +412,11 @@ execution_tracker = ExecutionTracker(
     session_id=session_id
 )
 
-media_storage.create_run(
-    run_id=run_id,  # ← Same ID
-    user_id=user_id,
-    schema=schema_name,
-    execution_mode=execution_mode,
-    safety_level=safety_level,
-    input_text=input_text
-)
+# MediaStorage REMOVED Session 37 - no longer used
+# media_storage.create_run(...)  # DEPRECATED
 
 recorder = get_recorder(
-    run_id=run_id,  # ← Same ID
+    run_id=run_id,  # ← Same ID (PRIMARY system)
     schema=schema_name,
     execution_mode=execution_mode,
     safety_level=safety_level,
@@ -509,79 +424,76 @@ recorder = get_recorder(
 )
 ```
 
-### Data Flow
+### Data Flow (v2.0.0-alpha.1)
 
 ```
 1. Pipeline Start
    ↓
    run_id = uuid.uuid4()
    ↓
-2. Initialize ALL systems with same run_id
-   ├─→ ExecutionTracker(execution_id=run_id)
-   ├─→ MediaStorage.create_run(run_id)
-   └─→ LivePipelineRecorder(run_id)
+2. Initialize ACTIVE systems with same run_id (Session 37+)
+   ├─→ ExecutionTracker(execution_id=run_id)  # Research data
+   └─→ LivePipelineRecorder(run_id)           # PRIMARY - media + tracking
    ↓
 3. Execute Pipeline (Stages 1-4)
-   ├─→ tracker.log_*()
-   ├─→ media_storage.save_*()
-   └─→ recorder.save_entity()
+   ├─→ tracker.log_*()                        # Research data logging
+   └─→ recorder.save_entity()                 # Real-time entity + media
    ↓
 4. Finalize
    ├─→ tracker.finalize() → exports/pipeline_runs/exec_*.json
-   ├─→ media_storage → exports/json/{run_id}/
-   └─→ recorder → pipeline_runs/{run_id}/
+   └─→ recorder → exports/json/{run_id}/      # PRIMARY storage location
 ```
 
 ---
 
-## Storage Locations Summary
+## Storage Locations Summary (v2.0.0-alpha.1)
 
 ```
 Project Root
 ├── exports/
-│   ├── json/                          # Unified Media Storage (Session 27)
-│   │   └── {run_id}/
+│   ├── json/                          # LivePipelineRecorder (Session 37+)
+│   │   └── {run_id}/                  # PRIMARY STORAGE LOCATION
 │   │       ├── metadata.json
-│   │       ├── input_text.txt
-│   │       ├── transformed_text.txt
-│   │       └── output_image.png
+│   │       ├── 01_input.txt
+│   │       ├── 02_translation.txt
+│   │       ├── 03_safety.json
+│   │       ├── 04_interception.txt
+│   │       ├── 05_safety_pre_output.json
+│   │       └── 06_output_image.png
 │   │
 │   └── pipeline_runs/                 # Execution History (Sessions 21-22)
-│       └── exec_20251104_*.json
+│       └── exec_20251104_*.json      # Research data export format
 │
-└── pipeline_runs/                     # LivePipelineRecorder (Session 29)
-    └── {run_id}/
-        ├── metadata.json
-        ├── 01_input.txt
-        ├── 02_translation.txt
-        ├── 03_safety.json
-        ├── 04_interception.txt
-        ├── 05_safety_pre_output.json
-        └── 06_output_image.png
+└── # DEPRECATED locations (Session 37):
+    # pipeline_runs/{run_id}/ - REMOVED
+    # MediaStorage system - REMOVED
 ```
 
 ---
 
 ## Key Design Decisions
 
-### 1. Three Parallel Systems (By Design)
+### 1. Two Active Systems (v2.0.0-alpha.1)
 
-**Why not merge them?**
-- Each serves distinct purpose
+**Session 37 Simplification:**
+- ~~Three parallel systems~~ → **Two active systems**
+- MediaStorage removed → LivePipelineRecorder handles all real-time data
 - ExecutionHistory: Complete pedagogical journey for research
-- MediaStorage: Backend-agnostic file persistence
-- LivePipelineRecorder: Real-time frontend tracking
+- LivePipelineRecorder: Real-time frontend tracking + media storage (PRIMARY)
 
-**Overlap is intentional:**
-- Redundancy ensures no data loss
-- Different access patterns (research vs real-time)
-- Gradual migration path (OLD → NEW)
+**Why Two Systems Remain:**
+- Different data models (sequential entities vs. research taxonomy)
+- Different access patterns (real-time polling vs. export queries)
+- ExecutionHistory proven valuable for research (Sessions 21-24)
+- LivePipelineRecorder optimized for frontend needs (Session 29+)
 
 ### 2. Unified run_id (Session 29)
 
 **Critical Fix:** Prevents Dual-ID desynchronization bug.
 
 **Single source of truth:** Generated once, used everywhere.
+
+**Session 37 Benefit:** Unified ID made MediaStorage removal clean and safe.
 
 ### 3. Flat Structures
 
@@ -597,6 +509,16 @@ Project Root
 - No split data across multiple directories
 - Export-ready (zip one folder = complete data)
 
+### 5. MediaStorage Removal (Session 37)
+
+**Why removed:**
+- Duplicate functionality with LivePipelineRecorder
+- Complex coordination between systems
+- Redundant media downloads
+- LivePipelineRecorder proved more reliable
+
+**Result:** Cleaner architecture, single source of truth for real-time data
+
 ---
 
 ## Related Documentation
@@ -604,12 +526,17 @@ Project Root
 - **API Endpoints:** ARCHITECTURE PART 11 (API-Routes)
 - **4-Stage Pipeline:** ARCHITECTURE PART 01 (4-Stage Orchestration Flow)
 - **Technical Details:**
-  - `docs/EXECUTION_TRACKER_ARCHITECTURE.md` (1200+ lines)
+  - `docs/EXECUTION_TRACKER_ARCHITECTURE.md` (1200+ lines, Sessions 19-24)
   - `docs/ITEM_TYPE_TAXONOMY.md` (Item type taxonomy)
-  - `docs/UNIFIED_MEDIA_STORAGE.md` (Media storage design)
-  - `docs/LIVE_PIPELINE_RECORDER.md` (Live recorder design)
+  - `docs/LIVE_PIPELINE_RECORDER.md` (Live recorder design, Session 37+ PRIMARY)
+  - ~~`docs/UNIFIED_MEDIA_STORAGE.md`~~ (DEPRECATED Session 37, historical reference only)
 - **Decision History:**
-  - `docs/DEVELOPMENT_DECISIONS.md` (Active Decision 7 & 8)
-  - `docs/DEVELOPMENT_LOG.md` (Sessions 19-24, 27, 29)
+  - `docs/DEVELOPMENT_DECISIONS.md` (Sessions 27, 29, 37, 39)
+  - `docs/DEVELOPMENT_LOG.md` (Sessions 19-24, 27, 29, 37, 39)
+
+**v2.0.0-alpha.1 Migration Notes:**
+- MediaStorage functionality fully migrated to LivePipelineRecorder (Session 37)
+- Unified run_id architecture proven stable (Session 29+)
+- stage4_only feature operational (Session 39)
 
 ---

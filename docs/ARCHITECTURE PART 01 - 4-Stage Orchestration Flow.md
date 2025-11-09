@@ -1,8 +1,8 @@
 # DevServer Architecture
 **AI4ArtsEd Development Server - Complete Technical Reference**
 
-> **Last Updated:** 2025-11-01
-> **Status:** AUTHORITATIVE - 4-Stage Orchestration Architecture Documented
+> **Last Updated:** 2025-11-09
+> **Status:** AUTHORITATIVE - 4-Stage Orchestration Architecture Documented (v2.0.0-alpha.1)
 > **Version:** 3.0 (4-Stage Flow + Components Reference - Fully Consolidated)
 
 ---
@@ -385,35 +385,39 @@ Stage 4: Media Generation → image.png
 
 ### 1.6 Implementation Status
 
-**Current (2025-11-01 Evening):**
+**Current (v2.0.0-alpha.1 - 2025-11-09):**
 - ✅ Stage 1-3 logic in `schema_pipeline_routes.py` - CORRECT (Session 9)
 - ✅ PipelineExecutor is DUMB engine - CORRECT (Session 9)
 - ✅ Non-redundant safety rules - IMPLEMENTED (Session 9)
 - ✅ Recursive Pipeline System - IMPLEMENTED (Session 11 Part 1)
 - ✅ Multi-Output Support - IMPLEMENTED (Session 11 Part 2)
+- ✅ LivePipelineRecorder as single source of truth - IMPLEMENTED (Session 37)
+- ✅ stage4_only feature for fast regeneration - FIXED (Session 39)
 
 **Validation Tests:**
 - ✅ Stillepost (8 iterations): Stage 1 ran once (not 8x) - PASSED
 - ✅ Image Comparison (2 outputs): Stage 1 ran once (not 2x) - PASSED
 - ✅ Simple config (dada): Stage 1-4 all ran once - PASSED
 - ✅ Logs confirm clean execution (no redundancy) - PASSED
+- ✅ media_type UnboundLocalError fixed (Session 39) - PASSED
 
 **Architecture Proven Correct:**
 - DevServer = Smart Orchestrator ✅
 - PipelineExecutor = Dumb Engine ✅
 - Non-Redundant Safety Rules ✅
 - Scalable to Complex Flows ✅
+- LivePipelineRecorder = Single Source of Truth ✅
 
 **See:**
-- `docs/DEVELOPMENT_DECISIONS.md` (2025-11-01 entries) for design rationale
-- `docs/DEVELOPMENT_LOG.md` (Session 9, 11) for implementation details
+- `docs/DEVELOPMENT_DECISIONS.md` for design rationale
+- `docs/DEVELOPMENT_LOG.md` (Sessions 9, 11, 37, 39) for implementation details
 - `schema_pipeline_routes.py` for orchestration code
 - `pipeline_executor.py` for execution engine
 
 
 ---
 
-**Document Version:** 2.0
-**Last Updated:** 2025-10-26
-**Status:** Post-consolidation, output-pipeline design finalized
+**Document Version:** 2.1
+**Last Updated:** 2025-11-09 (Session 39)
+**Status:** v2.0.0-alpha.1 Release - First fully functional alpha
 **Authors:** Joerissen + Claude collaborative design

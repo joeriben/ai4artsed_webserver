@@ -21,7 +21,160 @@
 
 ---
 
-## 🎯 Active Decision 1: Property Taxonomy for Config Selection UI (2025-11-07, Session 34)
+## 🎯 Active Decision 1: SSE Streaming Postponed in Favor of Animation (2025-11-09, Session 39)
+
+**Status:** POSTPONED
+**Context:** Frontend real-time progress updates for pipeline execution
+**Date:** 2025-11-09
+
+### The Decision: Use SpriteProgressAnimation Instead of SSE Streaming
+
+**Problem:**
+- Pipeline execution takes 10-30 seconds
+- Users need visual feedback that system is working
+- Session 37 attempted SSE (Server-Sent Events) streaming implementation
+- SSE implementation incomplete, unstable, blocking v2.0.0-alpha.1 release
+
+**Options Considered:**
+
+1. **SSE Streaming (ATTEMPTED)**
+   - Real-time progress updates from backend
+   - Step-by-step pipeline stage notifications
+   - Complexity: HIGH
+   - Status: Incomplete, buggy after 2+ hours work
+
+2. **WebSockets**
+   - Bidirectional communication
+   - More complex than SSE
+   - Overkill for one-way progress updates
+
+3. **Polling**
+   - Frontend polls /api/pipeline/{run_id}/status every N seconds
+   - Already implemented via LivePipelineRecorder
+   - Works but not real-time
+
+4. **SpriteProgressAnimation (CHOSEN)**
+   - Pure frontend animation
+   - No backend changes required
+   - User already implemented: "Dafür habe ich jetzt eine hübsche Warte-Animation"
+   - Simple, reliable, working
+
+**Decision:**
+Postpone SSE streaming, use SpriteProgressAnimation for v2.0.0-alpha.1
+
+**Rationale:**
+- User explicitly requested: "SSE-Streaming würde ich vorerst lassen"
+- Animation already working and sufficient for current needs
+- SSE can be added later as enhancement without breaking changes
+- Unblocks release: v2.0.0-alpha.1 shipped on time
+- LivePipelineRecorder polling already works for post-execution data
+
+**Implementation:**
+- Stashed Session 37 SSE code: `git stash push -m "WIP: Frontend seed UI and progressive generation (Session 37)"`
+- SpriteProgressAnimation component in Phase 2 view
+- Polling-based updates for completion detection
+
+**Future Consideration:**
+SSE streaming can be reconsidered for:
+- Multi-stage progress bars
+- Real-time Stage 1-4 status updates
+- Workshop scenarios with multiple concurrent users
+- When frontend UX design is finalized and stable
+
+**Affected Files (Session 37 - Stashed):**
+- `devserver/my_app/__init__.py` - SSE blueprint import
+- `devserver/my_app/routes/pipeline_stream_routes.py` - SSE endpoints
+- Frontend components - SSE connection handlers
+
+---
+
+## 🎯 Active Decision 2: Variable Scope Pattern for Conditional Pipeline Stages (2025-11-09, Session 39)
+
+**Status:** IMPLEMENTED
+**Context:** stage4_only feature support for fast regeneration
+**Date:** 2025-11-09
+
+### The Decision: Extract Loop-External Dependencies Before Conditional Blocks
+
+**Problem:**
+Session 37 implemented `stage4_only` flag to skip Stage 1-3 for fast image regeneration. However, `media_type` variable was only defined INSIDE the Stage 3 conditional block. When Stage 3 was skipped, Stage 4 tried to access undefined `media_type` → UnboundLocalError crash.
+
+**Root Cause:**
+```python
+# BEFORE FIX (Session 37):
+if not stage4_only:  # Skip Stage 3 when True
+    # Stage 3 safety check
+    if 'image' in output_config_name.lower():
+        media_type = 'image'  # ← Defined HERE
+    # ...
+
+# Stage 4 needs media_type
+recorder.download_and_save_from_comfyui(media_type=media_type)  # ← CRASH!
+```
+
+**Architecture Pattern Established:**
+
+**Rule:** If a variable is used OUTSIDE a conditional block, it MUST be defined BEFORE the block.
+
+**Implementation:**
+```python
+# AFTER FIX (Session 39 - Lines 733-747):
+
+# DETERMINE MEDIA TYPE (needed for both Stage 3 and Stage 4)
+# Extract media type from output config name BEFORE Stage 3-4 Loop
+# This ensures media_type is ALWAYS defined, even when stage4_only=True
+if 'image' in output_config_name.lower() or 'sd' in output_config_name.lower():
+    media_type = 'image'
+elif 'audio' in output_config_name.lower():
+    media_type = 'audio'
+elif 'music' in output_config_name.lower() or 'ace' in output_config_name.lower():
+    media_type = 'music'
+elif 'video' in output_config_name.lower():
+    media_type = 'video'
+else:
+    media_type = 'image'  # Default fallback
+
+# NOW Stage 3 can be conditional
+if safety_level != 'off' and not stage4_only:
+    # Stage 3 code...
+
+# Stage 4 can safely use media_type regardless of stage4_only
+```
+
+**Benefits:**
+1. **Variable always defined** - No UnboundLocalError possible
+2. **Clean separation** - Dependency extraction vs conditional logic
+3. **Maintainable** - Easy to see what Stage 4 depends on
+4. **Scalable** - Pattern applies to any conditional stage skip
+
+**Generalized Pattern:**
+```python
+# 1. Extract dependencies FIRST
+variable_needed_by_both = determine_variable(...)
+
+# 2. THEN conditional blocks
+if condition:
+    do_stage_3()
+
+# 3. Variable available regardless
+do_stage_4(variable_needed_by_both)
+```
+
+**Affected Files:**
+- `devserver/my_app/routes/schema_pipeline_routes.py` (lines 733-747)
+
+**Testing:**
+- ✅ Normal flow (stage4_only=False): All stages run, media_type defined
+- ✅ Fast regen (stage4_only=True): Stage 3 skipped, media_type still defined
+- ✅ All media types: image, audio, music, video
+- ✅ Fallback: Unknown types default to 'image'
+
+**Key Learning:**
+Python variable scope in conditional blocks is NOT block-scoped. Variable defined in `if` block exists outside, BUT only if `if` branch executes. For variables used outside conditional blocks, define BEFORE the condition.
+
+---
+
+## 🎯 Active Decision 3: Property Taxonomy for Config Selection UI (2025-11-07, Session 34)
 
 **Status:** IMPLEMENTED
 **Context:** Phase 1 UI needs non-consumeristic filtering system for config selection
