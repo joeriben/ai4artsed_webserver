@@ -206,7 +206,7 @@
     "seed": {
       "node_id": "8",
       "field": "inputs.seed",
-      "default": "random",
+      "default": 123456789,
       "description": "Random seed"
     }
   },

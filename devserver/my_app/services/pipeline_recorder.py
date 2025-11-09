@@ -272,6 +272,26 @@ class LivePipelineRecorder:
                 return self.run_folder / entity["filename"]
         return None
 
+    def save_prompt_id(self, prompt_id: str, media_type: str = 'image'):
+        """
+        Save ComfyUI prompt_id to metadata for SSE streaming.
+
+        Args:
+            prompt_id: ComfyUI prompt ID
+            media_type: Type of media being generated
+        """
+        if 'comfyui_prompt_ids' not in self.metadata:
+            self.metadata['comfyui_prompt_ids'] = []
+
+        self.metadata['comfyui_prompt_ids'].append({
+            'prompt_id': prompt_id,
+            'media_type': media_type,
+            'timestamp': datetime.now().isoformat()
+        })
+
+        self._save_metadata()
+        logger.info(f"[RECORDER] Saved prompt_id {prompt_id} for {media_type}")
+
     def mark_complete(self):
         """Mark the pipeline run as complete."""
         self.set_state(5, "complete")
@@ -281,7 +301,8 @@ class LivePipelineRecorder:
         self,
         prompt_id: str,
         media_type: str,
-        config: str
+        config: str,
+        seed: Optional[int] = None
     ) -> Optional[str]:
         """
         Download media from ComfyUI and save as entity.
@@ -290,6 +311,7 @@ class LivePipelineRecorder:
             prompt_id: ComfyUI prompt ID
             media_type: Type of media ('image', 'audio', 'video')
             config: Output config name
+            seed: Optional seed value used for generation
 
         Returns:
             Filename of saved entity, or None if failed
@@ -339,6 +361,10 @@ class LivePipelineRecorder:
                 'prompt_id': prompt_id
             }
 
+            # Add seed if provided
+            if seed is not None:
+                metadata['seed'] = seed
+
             if media_type == 'image':
                 width, height = self._get_image_dimensions_from_bytes(file_data)
                 if width and height:
@@ -363,7 +389,8 @@ class LivePipelineRecorder:
         self,
         url: str,
         media_type: str,
-        config: str
+        config: str,
+        seed: Optional[int] = None
     ) -> Optional[str]:
         """
         Download media from URL and save as entity.
@@ -372,6 +399,7 @@ class LivePipelineRecorder:
             url: URL to download from
             media_type: Type of media ('image', 'audio', 'video')
             config: Output config name
+            seed: Optional seed value used for generation
 
         Returns:
             Filename of saved entity, or None if failed
@@ -400,6 +428,10 @@ class LivePipelineRecorder:
                 'backend': backend,
                 'source_url': url
             }
+
+            # Add seed if provided
+            if seed is not None:
+                metadata['seed'] = seed
 
             if media_type == 'image':
                 width, height = self._get_image_dimensions_from_bytes(file_data)

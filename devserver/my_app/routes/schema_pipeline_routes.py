@@ -381,10 +381,14 @@ def execute_pipeline():
         context_language = data.get('context_language', 'en')  # Language of context_prompt
         user_language = data.get('user_language', 'en')  # User's interface language
 
+        # Fast regeneration support: skip Stage 1-3 with stage4_only flag
+        stage4_only = data.get('stage4_only', False)  # Boolean: skip to Stage 4 (media generation) only
+        seed_override = data.get('seed')  # Optional: specific seed for exact regeneration
+
         if not schema_name or not input_text:
             return jsonify({
                 'status': 'error',
-                'error': 'Parameter "schema" und "input_text" erforderlich'
+                'error': 'Parameter "schema" and "input_text" erforderlich'
             }), 400
 
         # Schema-Engine initialisieren
@@ -497,151 +501,168 @@ def execute_pipeline():
         execution_config = modified_config if modified_config else config
 
         # ====================================================================
-        # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
+        # FAST REGENERATION: Skip Stage 1-3 if stage4_only=True
         # ====================================================================
-        current_input = input_text
+        if stage4_only:
+            logger.info(f"[FAST-REGEN] stage4_only=True: Skipping Stage 1-3, direct to Stage 4")
+            # Create a mock result object for Stage 2 output
+            class MockResult:
+                def __init__(self, output):
+                    self.success = True
+                    self.final_output = output
+                    self.error = None
+                    self.steps = []
+                    self.metadata = {}
+                    self.execution_time = 0
+            result = MockResult(input_text)  # input_text is already transformed text
+            current_input = input_text
+        else:
+            # ====================================================================
+            # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
+            # ====================================================================
+            current_input = input_text
 
-        if not is_system_pipeline and not is_output_config:
-            logger.info(f"[4-STAGE] Stage 1: Pre-Interception for '{schema_name}'")
-            tracker.set_stage(1)
-            recorder.set_state(1, "translation_and_safety")
+            if not is_system_pipeline and not is_output_config:
+                logger.info(f"[4-STAGE] Stage 1: Pre-Interception for '{schema_name}'")
+                tracker.set_stage(1)
+                recorder.set_state(1, "translation_and_safety")
 
-            # Log user input
-            tracker.log_user_input_text(input_text)
+                # Log user input
+                tracker.log_user_input_text(input_text)
 
-            # SESSION 29: Save input entity
-            recorder.save_entity('input', input_text)
-            logger.info(f"[RECORDER] Saved input entity")
+                # SESSION 29: Save input entity
+                recorder.save_entity('input', input_text)
+                logger.info(f"[RECORDER] Saved input entity")
 
-            # Stage 1: GPT-OSS Unified (Translation + §86a Safety in ONE call)
-            is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
-                input_text,
-                safety_level,
-                execution_mode,
-                pipeline_executor
-            ))
-            current_input = translated_text
+                # Stage 1: GPT-OSS Unified (Translation + §86a Safety in ONE call)
+                is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+                    input_text,
+                    safety_level,
+                    execution_mode,
+                    pipeline_executor
+                ))
+                current_input = translated_text
 
-            if not is_safe:
-                logger.warning(f"[4-STAGE] Stage 1 BLOCKED by GPT-OSS §86a")
+                if not is_safe:
+                    logger.warning(f"[4-STAGE] Stage 1 BLOCKED by GPT-OSS §86a")
 
-                # SESSION 29: Save translation (even if blocked)
+                    # SESSION 29: Save translation (even if blocked)
+                    recorder.save_entity('translation', translated_text)
+
+                    # SESSION 29: Save safety error
+                    recorder.save_error(
+                        stage=1,
+                        error_type='safety_blocked',
+                        message=error_message,
+                        details={'codes': ['§86a']}
+                    )
+                    logger.info(f"[RECORDER] Saved stage 1 blocked error")
+
+                    # Log blocked event
+                    tracker.log_stage1_blocked(
+                        blocked_reason='§86a_violation',
+                        blocked_codes=['§86a'],
+                        error_message=error_message
+                    )
+                    tracker.finalize()  # Persist even though blocked
+
+                    return jsonify({
+                        'status': 'error',
+                        'schema': schema_name,
+                        'error': error_message,
+                        'metadata': {
+                            'stage': 'pre_interception',
+                            'safety_codes': ['§86a']  # Blocked by GPT-OSS §86a StGB check
+                        }
+                    }), 403
+
+                # SESSION 29: Save translation and safety results
                 recorder.save_entity('translation', translated_text)
+                recorder.save_entity('safety', {
+                    'safe': True,
+                    'method': 'gpt_oss_unified',
+                    'codes_checked': ['§86a'],
+                    'safety_level': safety_level
+                })
+                logger.info(f"[RECORDER] Saved translation and safety entities")
 
-                # SESSION 29: Save safety error
-                recorder.save_error(
-                    stage=1,
-                    error_type='safety_blocked',
-                    message=error_message,
-                    details={'codes': ['§86a']}
+                # Log translation result (GPT-OSS includes translation)
+                tracker.log_translation_result(
+                    translated_text=translated_text,
+                    from_lang='de',
+                    to_lang='en',
+                    model_used='gpt-oss',
+                    backend_used='ollama',
+                    execution_time=0.0  # TODO: Track actual execution time from GPT-OSS unified pipeline
                 )
-                logger.info(f"[RECORDER] Saved stage 1 blocked error")
 
-                # Log blocked event
-                tracker.log_stage1_blocked(
-                    blocked_reason='§86a_violation',
-                    blocked_codes=['§86a'],
-                    error_message=error_message
+            # ====================================================================
+            # STAGE 2: INTERCEPTION (Main Pipeline - DUMB execution)
+            # ====================================================================
+            logger.info(f"[4-STAGE] Stage 2: Interception (Main Pipeline) for '{schema_name}'")
+            tracker.set_stage(2)
+            recorder.set_state(2, "interception")
+
+            result = asyncio.run(pipeline_executor.execute_pipeline(
+                config_name=schema_name,
+                input_text=current_input,
+                user_input=data.get('user_input', input_text),
+                execution_mode=execution_mode,
+                safety_level=safety_level,
+                tracker=tracker,
+                config_override=execution_config  # Phase 2: Pass modified config if user edited
+            ))
+
+            # Check if pipeline succeeded
+            if not result.success:
+                tracker.log_pipeline_error(
+                    error_type='PipelineExecutionError',
+                    error_message=result.error,
+                    stage=2
                 )
-                tracker.finalize()  # Persist even though blocked
+                tracker.finalize()
 
                 return jsonify({
                     'status': 'error',
                     'schema': schema_name,
-                    'error': error_message,
-                    'metadata': {
-                        'stage': 'pre_interception',
-                        'safety_codes': ['§86a']  # Blocked by GPT-OSS §86a StGB check
-                    }
-                }), 403
+                    'error': result.error,
+                    'steps_completed': len([s for s in result.steps if s.status.value == 'completed']),
+                    'total_steps': len(result.steps)
+                }), 500
 
-            # SESSION 29: Save translation and safety results
-            recorder.save_entity('translation', translated_text)
-            recorder.save_entity('safety', {
-                'safe': True,
-                'method': 'gpt_oss_unified',
-                'codes_checked': ['§86a'],
-                'safety_level': safety_level
+            # Extract metadata from pipeline result
+            model_used = None
+            backend_used = None
+            if result.steps and len(result.steps) > 0:
+                # Get metadata from last successful step
+                for step in reversed(result.steps):
+                    if step.metadata:
+                        model_used = step.metadata.get('model_used', model_used)
+                        backend_used = step.metadata.get('backend_type', backend_used)
+                        if model_used and backend_used:
+                            break
+
+            # Get actual total_iterations from result metadata (for recursive pipelines like Stille Post)
+            total_iterations = result.metadata.get('iterations', 1) if result.metadata else 1
+
+            # Log interception final result
+            tracker.log_interception_final(
+                final_text=result.final_output,
+                total_iterations=total_iterations,
+                config_used=schema_name,
+                model_used=model_used,
+                backend_used=backend_used,
+                execution_time=result.execution_time
+            )
+
+            # SESSION 29: Save interception output
+            recorder.save_entity('interception', result.final_output, metadata={
+                'config': schema_name,
+                'iterations': total_iterations,
+                'model_used': model_used,
+                'backend_used': backend_used
             })
-            logger.info(f"[RECORDER] Saved translation and safety entities")
-
-            # Log translation result (GPT-OSS includes translation)
-            tracker.log_translation_result(
-                translated_text=translated_text,
-                from_lang='de',
-                to_lang='en',
-                model_used='gpt-oss',
-                backend_used='ollama',
-                execution_time=0.0  # TODO: Track actual execution time from GPT-OSS unified pipeline
-            )
-
-        # ====================================================================
-        # STAGE 2: INTERCEPTION (Main Pipeline - DUMB execution)
-        # ====================================================================
-        logger.info(f"[4-STAGE] Stage 2: Interception (Main Pipeline) for '{schema_name}'")
-        tracker.set_stage(2)
-        recorder.set_state(2, "interception")
-
-        result = asyncio.run(pipeline_executor.execute_pipeline(
-            config_name=schema_name,
-            input_text=current_input,
-            user_input=data.get('user_input', input_text),
-            execution_mode=execution_mode,
-            safety_level=safety_level,
-            tracker=tracker,
-            config_override=execution_config  # Phase 2: Pass modified config if user edited
-        ))
-
-        # Check if pipeline succeeded
-        if not result.success:
-            tracker.log_pipeline_error(
-                error_type='PipelineExecutionError',
-                error_message=result.error,
-                stage=2
-            )
-            tracker.finalize()
-
-            return jsonify({
-                'status': 'error',
-                'schema': schema_name,
-                'error': result.error,
-                'steps_completed': len([s for s in result.steps if s.status.value == 'completed']),
-                'total_steps': len(result.steps)
-            }), 500
-
-        # Extract metadata from pipeline result
-        model_used = None
-        backend_used = None
-        if result.steps and len(result.steps) > 0:
-            # Get metadata from last successful step
-            for step in reversed(result.steps):
-                if step.metadata:
-                    model_used = step.metadata.get('model_used', model_used)
-                    backend_used = step.metadata.get('backend_type', backend_used)
-                    if model_used and backend_used:
-                        break
-
-        # Get actual total_iterations from result metadata (for recursive pipelines like Stille Post)
-        total_iterations = result.metadata.get('iterations', 1) if result.metadata else 1
-
-        # Log interception final result
-        tracker.log_interception_final(
-            final_text=result.final_output,
-            total_iterations=total_iterations,
-            config_used=schema_name,
-            model_used=model_used,
-            backend_used=backend_used,
-            execution_time=result.execution_time
-        )
-
-        # SESSION 29: Save interception output
-        recorder.save_entity('interception', result.final_output, metadata={
-            'config': schema_name,
-            'iterations': total_iterations,
-            'model_used': model_used,
-            'backend_used': backend_used
-        })
-        logger.info(f"[RECORDER] Saved interception entity")
+            logger.info(f"[RECORDER] Saved interception entity")
 
         # ====================================================================
         # CONDITIONAL STAGE 3: Post-Interception Safety Check
@@ -710,25 +731,30 @@ def execute_pipeline():
                 tracker.set_loop_iteration(i + 1)
 
                 # ====================================================================
+                # DETERMINE MEDIA TYPE (needed for both Stage 3 and Stage 4)
+                # ====================================================================
+                # Extract media type from output config name BEFORE Stage 3
+                # This ensures media_type is ALWAYS defined, even when stage4_only=True
+                if 'image' in output_config_name.lower() or 'sd' in output_config_name.lower() or 'flux' in output_config_name.lower() or 'gpt' in output_config_name.lower():
+                    media_type = 'image'
+                elif 'audio' in output_config_name.lower():
+                    media_type = 'audio'
+                elif 'music' in output_config_name.lower() or 'ace' in output_config_name.lower():
+                    media_type = 'music'
+                elif 'video' in output_config_name.lower():
+                    media_type = 'video'
+                else:
+                    media_type = 'image'  # Default fallback
+
+                # ====================================================================
                 # STAGE 3: PRE-OUTPUT SAFETY (per output config)
                 # ====================================================================
                 stage_3_blocked = False
-                tracker.set_stage(3)
-                recorder.set_state(3, "pre_output_safety")
 
-                if safety_level != 'off':
-                    # Determine media type from output config name
-                    # Simple heuristic: if name contains 'image', 'audio', 'video', etc.
-                    if 'image' in output_config_name.lower() or 'sd' in output_config_name.lower() or 'flux' in output_config_name.lower() or 'gpt' in output_config_name.lower():
-                        media_type = 'image'
-                    elif 'audio' in output_config_name.lower():
-                        media_type = 'audio'
-                    elif 'music' in output_config_name.lower() or 'ace' in output_config_name.lower():
-                        media_type = 'music'
-                    elif 'video' in output_config_name.lower():
-                        media_type = 'video'
-                    else:
-                        media_type = 'image'  # Default fallback
+                # Skip Stage 3 if stage4_only=True (fast regeneration)
+                if safety_level != 'off' and not stage4_only:
+                    tracker.set_stage(3)
+                    recorder.set_state(3, "pre_output_safety")
 
                     logger.info(f"[4-STAGE] Stage 3: Pre-Output Safety for {output_config_name} (type: {media_type}, level: {safety_level})")
 
@@ -801,9 +827,11 @@ def execute_pipeline():
                         })
                         logger.info(f"[RECORDER] Saved safety_pre_output entity")
 
-                # ====================================================================
-                # STAGE 4: OUTPUT (Media Generation)
-                # ====================================================================
+        # End of skip_preprocessing else block - Stage 1-3 complete
+
+        # ====================================================================
+        # STAGE 4: OUTPUT (Media Generation)
+        # ====================================================================
                 if not stage_3_blocked:
                     logger.info(f"[4-STAGE] Stage 4: Executing output config '{output_config_name}'")
                     tracker.set_stage(4)
@@ -830,6 +858,9 @@ def execute_pipeline():
                                 output_value = output_result.final_output
                                 saved_filename = None
 
+                                # Extract seed from output_result metadata (if available)
+                                seed = output_result.metadata.get('seed')
+
                                 # Detect if output is URL or prompt_id
                                 if output_value.startswith('http://') or output_value.startswith('https://'):
                                     # API-based generation (GPT-5, Replicate, etc.) - URL
@@ -837,15 +868,22 @@ def execute_pipeline():
                                     saved_filename = asyncio.run(recorder.download_and_save_from_url(
                                         url=output_value,
                                         media_type=media_type,
-                                        config=output_config_name
+                                        config=output_config_name,
+                                        seed=seed
                                     ))
                                 else:
                                     # ComfyUI generation - prompt_id
                                     logger.info(f"[RECORDER] Downloading from ComfyUI: {output_value}")
+
+                                    # Save prompt_id for potential SSE streaming
+                                    recorder.save_prompt_id(output_value, media_type)
+
+                                    # Download and save media immediately (blocking, but necessary for media API)
                                     saved_filename = asyncio.run(recorder.download_and_save_from_comfyui(
                                         prompt_id=output_value,
                                         media_type=media_type,
-                                        config=output_config_name
+                                        config=output_config_name,
+                                        seed=seed
                                     ))
 
                                 if saved_filename:

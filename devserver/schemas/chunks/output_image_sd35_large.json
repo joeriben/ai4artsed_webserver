@@ -179,8 +179,8 @@
     "seed": {
       "node_id": "8",
       "field": "inputs.seed",
-      "default": "random",
-      "description": "Random seed for reproducibility"
+      "default": 123456789,
+      "description": "Seed for reproducibility (default: 123456789)"
     },
     "checkpoint": {
       "node_id": "5",

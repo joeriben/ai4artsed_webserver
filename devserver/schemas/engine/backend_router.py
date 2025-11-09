@@ -320,7 +320,7 @@ class BackendRouter:
 
             # 3. Apply input_mappings
             input_data = {'prompt': prompt, **parameters}
-            workflow = self._apply_input_mappings(workflow, chunk['input_mappings'], input_data)
+            workflow, generated_seed = self._apply_input_mappings(workflow, chunk['input_mappings'], input_data)
 
             logger.debug(f"Applied input_mappings to {len(chunk['input_mappings'])} fields")
 
@@ -379,7 +379,8 @@ class BackendRouter:
                             'media': media,
                             'media_type': chunk.get('media_type'),
                             'output_mapping': chunk['output_mapping'],
-                            'comfyui_available': True
+                            'comfyui_available': True,
+                            'seed': generated_seed
                         }
                     )
                 else:
@@ -391,7 +392,8 @@ class BackendRouter:
                             'chunk_name': chunk_name,
                             'prompt_id': prompt_id,
                             'completed': False,
-                            'comfyui_available': True
+                            'comfyui_available': True,
+                            'seed': generated_seed
                         }
                     )
             else:
@@ -406,7 +408,8 @@ class BackendRouter:
                         'output_mapping': chunk['output_mapping'],
                         'media_type': chunk.get('media_type'),
                         'comfyui_available': True,
-                        'message': 'Workflow submitted to ComfyUI queue'
+                        'message': 'Workflow submitted to ComfyUI queue',
+                        'seed': generated_seed
                     }
                 )
 
@@ -605,9 +608,15 @@ class BackendRouter:
             logger.error(f"Error loading Output-Chunk '{chunk_name}': {e}")
             return None
 
-    def _apply_input_mappings(self, workflow: Dict, mappings: Dict[str, Any], input_data: Dict[str, Any]) -> Dict:
-        """Apply input_mappings to workflow - inject prompts and parameters"""
+    def _apply_input_mappings(self, workflow: Dict, mappings: Dict[str, Any], input_data: Dict[str, Any]) -> Tuple[Dict, Optional[int]]:
+        """Apply input_mappings to workflow - inject prompts and parameters
+
+        Returns:
+            Tuple[Dict, Optional[int]]: (modified_workflow, generated_seed)
+        """
         import random
+
+        generated_seed = None
 
         for key, mapping in mappings.items():
             # Get value from input_data, or use default, or use source placeholder
@@ -626,6 +635,8 @@ class BackendRouter:
             # Special handling for "random" seed
             if value == "random" and key == "seed":
                 value = random.randint(0, 2**32 - 1)
+                generated_seed = value
+                logger.info(f"Generated random seed: {generated_seed}")
 
             # Apply value to workflow
             if value is not None:
@@ -642,7 +653,7 @@ class BackendRouter:
 
                 logger.debug(f"Mapped '{key}' = '{str(value)[:50]}...' to node {node_id}.{mapping['field']}")
 
-        return workflow
+        return workflow, generated_seed
 
     async def _extract_output_media(self, client, history: Dict, output_mapping: Dict) -> List[Dict[str, Any]]:
         """Extract generated media based on output_mapping"""
