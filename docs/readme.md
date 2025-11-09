@@ -59,7 +59,7 @@ You must understand the architecture documentation structure (21 PART files) in 
 
 #### Architecture Documentation Structure:
 
-**21 PART Files** in `docs/`:
+**22 PART Files** in `docs/`:
 
 **Part I: Orchestration (How It Works)**
 1. ARCHITECTURE PART 01 - 4-Stage Orchestration Flow ⭐ **START HERE**
@@ -83,6 +83,7 @@ You must understand the architecture documentation structure (21 PART files) in 
 17. ARCHITECTURE PART 17 - Documentation-Logging Workflow
 18. ARCHITECTURE PART 18 - Data Storage & Persistence
 19. ARCHITECTURE PART 19 - Related Documentation
+20. ARCHITECTURE PART 20 - Stage 2 Pipeline Capabilities
 
 ### 2. `docs/devserver_todos.md` (5 min)
 **How:** Descending time order, do not read whole document (too long, probably old content down below)

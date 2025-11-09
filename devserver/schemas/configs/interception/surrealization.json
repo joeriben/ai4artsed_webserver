@@ -1,28 +1,22 @@
 {
-  "pipeline": "DUMMY",
-  "instruction_type": "artistic_transformation",
+  "pipeline": "dual_encoder_fusion",
   "name": {
     "en": "Surrealization",
     "de": "Surrealization"
   },
   "description": {
-    "en": "Transforms your prompt into dreamlike, surreal imagery. Combines impossible elements and explores the unconscious and unexpected.",
-    "de": "Verwandelt deinen Prompt in traumhafte, surreale Bildwelten. Kombiniert Unmögliches und erkundet das Unbewusste und Unerwartete."
+    "en": "Dual-encoder T5+CLIP fusion for semantic depth with literal precision. Adaptive alpha balancing based on input complexity. Requires ai4artsed_t5_clip_fusion custom node.",
+    "de": "Dual-Encoder T5+CLIP-Fusion für semantische Tiefe mit wörtlicher Präzision. Adaptive Alpha-Balance basierend auf Eingabekomplexität. Erfordert ai4artsed_t5_clip_fusion Custom Node."
   },
   "category": {
-    "de": "Kreative Verwandlungen",
-    "en": "Creative Transformations"
+    "de": "Algorithmen",
+    "en": "Algorithms"
   },
   "properties": [
-    "chaotic",
-    "emotion",
+    "algorithmic",
     "explore",
     "contemporary"
   ],
-  "context": {
-    "en": "prompting expert",
-    "de": "Prompting-Expert*in"
-  },
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,
@@ -38,7 +32,13 @@
     "stage": "interception",
     "legacy_source": "workflows_legacy/vector/ai4artsed_Surrealization_2506092253.json",
     "extracted_date": "2025-10-19",
-    "original_model": "local/sailor2:20b"
+    "original_model": "local/sailor2:20b",
+    "requires_custom_nodes": ["ai4artsed_t5_clip_fusion"],
+    "installation_url": "https://github.com/joeriben/ai4artsed_comfyui",
+    "vector_operation": "dual_encoder_fusion",
+    "encoders": ["t5xxl", "clip_l"],
+    "fusion_algorithm": "lerp_first_77_tokens_then_concat_remainder",
+    "alpha_range": [-1.5, 2.0]
   },
   "display": {
     "icon": "📐",
