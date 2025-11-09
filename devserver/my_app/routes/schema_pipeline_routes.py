@@ -970,6 +970,17 @@ def execute_pipeline():
         tracker.finalize()
         logger.info(f"[TRACKER] Execution history saved: {tracker.execution_id}")
 
+        # Visual separator for easier run distinction in terminal
+        total_time = result.execution_time if result else 0.0
+        logger.info("=" * 80)
+        logger.info(f"{'RUN COMPLETED':^80}")
+        logger.info("=" * 80)
+        logger.info(f"  Run ID: {run_id}")
+        logger.info(f"  Config: {schema_name}")
+        logger.info(f"  Total Time: {total_time:.2f}s")
+        logger.info(f"  Outputs: {outputs_generated}")
+        logger.info("=" * 80)
+
         return jsonify(response_data)
 
     except Exception as e:
