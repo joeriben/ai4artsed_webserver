@@ -1,0 +1,59 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "ImageToSound",
+    "de": "ImageToSound"
+  },
+  "description": {
+    "en": "Converts image descriptions into music prompts. Translates visual qualities into sounds, rhythms, and moods.",
+    "de": "Wandelt Bildbeschreibungen in Musik-Prompts um. Übersetzt visuelle Qualitäten in Klänge, Rhythmen und Stimmungen."
+  },
+  "category": {
+    "de": "Across",
+    "en": "Across"
+  },
+  "properties": [
+    "algorithmic",
+    "contemporary",
+    "create",
+    "serious"
+  ],
+  "context": {
+    "en": "Write a prompt for a music generating AI. No remarks or comments, just the description for the Audio/Music AI.",
+    "de": "Schreibe einen Prompt für eine musikgenerierende KI. Keine Bemerkungen oder Kommentare, nur die Beschreibung für die Audio-/Musik‑KI."
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/across/ai4artsed_ImageToSound_2508101139.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest [local / $0.00]"
+  },
+  "display": {
+    "icon": "🔀",
+    "color": "#00BCD4",
+    "category": "cross_modal",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

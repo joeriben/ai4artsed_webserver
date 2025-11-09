@@ -1,0 +1,68 @@
+{
+  "description": "Youth and Kids safety filter term lists (migrated from Legacy Server config.py)",
+  "source": "server/config.py lines 140-164",
+  "usage": "Used in Stage 3A Pre-Output to check prompts before media generation",
+
+  "filters": {
+    "kids": {
+      "description": "Stricter filter for children (50+ terms - extended with gore/horror)",
+      "age_range": "6-12 years",
+      "terms": [
+        "violence", "violent", "execution", "killing", "murder", "death", "corpse",
+        "torture", "pain", "suffering", "injury", "wound", "bleeding",
+        "blood", "bloody", "gore", "gory", "mutilation", "dismemberment",
+        "limbs", "severed", "decapitation", "entrails", "intestines", "organs",
+        "slaughter", "carnage", "flesh", "butcher",
+        "despair", "suicide", "suicidal", "self-harm", "depression",
+        "horror", "scary", "frightening", "terror", "nightmare", "disturbing",
+        "demon", "zombie", "skeleton", "skull", "evil",
+        "vampire", "werewolf", "monster", "creature", "beast",
+        "fangs", "claws", "teeth", "bite",
+        "haunted", "creepy", "eerie", "sinister", "dark", "macabre",
+        "nude", "naked", "nsfw", "sexual", "rape", "pornographic",
+        "genital", "abuse"
+      ]
+    },
+
+    "youth": {
+      "description": "Moderate filter for youth (15 terms)",
+      "age_range": "13-17 years",
+      "terms": [
+        "explicit", "hardcore", "brutal", "savage",
+        "cruelty", "sadistic",
+        "pornographic", "sexual", "nsfw", "rape", "abuse",
+        "genitals", "penis", "vagina",
+        "self-harm", "suicide", "cutting"
+      ]
+    }
+  },
+
+  "categories": {
+    "kids": {
+      "violence": ["violence", "violent", "execution", "killing", "murder", "death", "corpse", "torture", "pain", "suffering", "injury", "wound", "bleeding", "slaughter", "carnage", "butcher"],
+      "gore": ["blood", "bloody", "gore", "gory", "mutilation", "dismemberment", "limbs", "severed", "decapitation", "entrails", "intestines", "organs", "flesh"],
+      "psychological_distress": ["despair", "suicide", "suicidal", "self-harm", "depression"],
+      "horror": ["horror", "scary", "frightening", "terror", "nightmare", "disturbing", "demon", "zombie", "skeleton", "skull", "evil"],
+      "horror_creatures": ["vampire", "werewolf", "monster", "creature", "beast", "fangs", "claws", "teeth", "bite"],
+      "creepy_macabre": ["haunted", "creepy", "eerie", "sinister", "dark", "macabre"],
+      "sexual_content": ["nude", "naked", "nsfw", "sexual", "rape", "pornographic", "genital", "abuse"]
+    },
+    "youth": {
+      "explicit_content": ["explicit", "hardcore", "brutal", "savage"],
+      "cruelty": ["cruelty", "sadistic"],
+      "sexual_content": ["pornographic", "sexual", "nsfw", "rape", "abuse", "genitals", "penis", "vagina"],
+      "self_harm": ["self-harm", "suicide", "cutting"]
+    }
+  },
+
+  "error_messages": {
+    "kids": {
+      "de": "Dein Prompt enthält Begriffe, die für Kinder nicht geeignet sind. Wir haben das Bild aus Sicherheitsgründen blockiert.",
+      "en": "Your prompt contains terms that are not suitable for children. We blocked the image for safety reasons."
+    },
+    "youth": {
+      "de": "Dein Prompt enthält explizite Begriffe, die blockiert wurden.",
+      "en": "Your prompt contains explicit terms that were blocked."
+    }
+  }
+}

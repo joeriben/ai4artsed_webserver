@@ -1,0 +1,61 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "ClichéFilter V2",
+    "de": "ClichéFilter V2"
+  },
+  "description": {
+    "en": "Removes overused phrases and stereotypical descriptions. Helps you avoid clichés and find more original ways to express your ideas.",
+    "de": "Entfernt abgenutzte Phrasen und stereotype Beschreibungen. Hilft dir, Klischees zu vermeiden und originellere Ausdrucksweisen zu finden."
+  },
+  "category": {
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
+  },
+  "properties": [
+    "facts",
+    "contemporary",
+    "explore",
+    "serious",
+    "chaotic",
+    "algorithmic"
+  ],
+  "context": {
+    "en": "professional translator",
+    "de": "professionelle*r Übersetzer*in"
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/aesthetics/ai4artsed_ClichéFilter_V2_2506211602.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral:7b"
+  },
+  "display": {
+    "icon": "✨",
+    "color": "#9C27B0",
+    "category": "aesthetics",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

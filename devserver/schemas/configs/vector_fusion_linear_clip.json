@@ -1,0 +1,65 @@
+{
+  "pipeline": "vector_fusion_generation",
+
+  "name": {
+    "en": "Vector Fusion (Linear CLIP)",
+    "de": "Vektorfusion (Linear CLIP)"
+  },
+
+  "description": {
+    "en": "Fuses two semantic parts with linear interpolation in CLIP vector space (SD 3.5 Large)",
+    "de": "Fusioniert zwei semantische Teile mit linearer Interpolation im CLIP-Vektorraum (SD 3.5 Large)"
+  },
+
+  "category": {
+    "en": "Vector Manipulation",
+    "de": "Vektormanipulation"
+  },
+
+  "parameters": {
+    "alpha": 0.5,
+    "interpolation_method": "linear",
+    "width": 1024,
+    "height": 1024,
+    "steps": 25,
+    "cfg": 5.5,
+    "seed": "random"
+  },
+
+  "media_preferences": {
+    "default_output": "image"
+  },
+
+  "meta": {
+    "stage": "output",
+    "task_type": "standard",
+    "requires_split_input": true,
+    "backend": "comfyui",
+    "model": "sd3.5_large",
+    "custom_nodes_required": ["ai4artsed_conditioning_fusion"]
+  },
+
+  "display": {
+    "icon": "🔀",
+    "color": "#9b59b6",
+    "category": "vector",
+    "difficulty": 4,
+    "order": 101
+  },
+
+  "tags": {
+    "en": ["vector", "fusion", "interpolation", "experimental", "advanced"],
+    "de": ["vektor", "fusion", "interpolation", "experimentell", "fortgeschritten"]
+  },
+
+  "audience": {
+    "workshop_suitable": false,
+    "min_age": 16,
+    "complexity": "advanced"
+  },
+
+  "pedagogical_notes": {
+    "en": "Demonstrates how CLIP embeddings can be mathematically interpolated. Linear interpolation creates a smooth blend between two semantic concepts, revealing how AI represents meaning in vector space.",
+    "de": "Demonstriert, wie CLIP-Einbettungen mathematisch interpoliert werden können. Lineare Interpolation erzeugt eine sanfte Verschmelzung zwischen zwei semantischen Konzepten und zeigt, wie KI Bedeutung im Vektorraum darstellt."
+  }
+}

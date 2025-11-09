@@ -1,0 +1,1539 @@
+"""
+Schema Pipeline Routes - API für Schema-basierte Pipeline-Execution
+"""
+
+from flask import Blueprint, request, jsonify
+from pathlib import Path
+import logging
+import asyncio
+import json
+import uuid
+
+# Schema-Engine importieren
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from schemas.engine.pipeline_executor import PipelineExecutor
+from schemas.engine.prompt_interception_engine import PromptInterceptionEngine
+from schemas.engine.config_loader import config_loader
+from schemas.engine.stage_orchestrator import (
+    execute_stage1_translation,
+    execute_stage1_safety,
+    execute_stage1_gpt_oss_unified,
+    execute_stage3_safety,
+    build_safety_message
+)
+
+# Execution History Tracking (OLD - DEPRECATED in Session 29)
+# from execution_history import ExecutionTracker
+
+# No-op tracker to gracefully deprecate OLD ExecutionTracker
+class NoOpTracker:
+    """
+    Session 29: No-op tracker that does nothing.
+    Replaces OLD ExecutionTracker during migration to LivePipelineRecorder.
+    """
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __getattr__(self, name):
+        # Return a no-op function for any method call
+        def noop(*args, **kwargs):
+            pass
+        return noop
+
+# Live Pipeline Recorder - Single source of truth (Session 37 Migration Complete)
+from my_app.services.pipeline_recorder import get_recorder
+
+logger = logging.getLogger(__name__)
+
+# Blueprint erstellen
+schema_bp = Blueprint('schema', __name__, url_prefix='/api/schema')
+
+# Backward compatibility blueprint (no prefix) for legacy frontend endpoints
+# TODO: Remove after frontend migration complete
+schema_compat_bp = Blueprint('schema_compat', __name__)
+
+# Global Pipeline-Executor (wird bei App-Start initialisiert)
+pipeline_executor = None
+
+# Cache for output_config_defaults.json
+_output_config_defaults = None
+
+def init_schema_engine():
+    """Schema-Engine initialisieren"""
+    global pipeline_executor
+    if pipeline_executor is None:
+        schemas_path = Path(__file__).parent.parent.parent / "schemas"
+        pipeline_executor = PipelineExecutor(schemas_path)
+
+        # Config Loader initialisieren (ohne Legacy-Services vorerst)
+        pipeline_executor.config_loader.initialize(schemas_path)
+
+        logger.info("Schema-Engine initialisiert")
+
+def load_output_config_defaults():
+    """Load output_config_defaults.json"""
+    global _output_config_defaults
+
+    if _output_config_defaults is None:
+        try:
+            defaults_path = Path(__file__).parent.parent.parent / "schemas" / "output_config_defaults.json"
+            with open(defaults_path, 'r', encoding='utf-8') as f:
+                _output_config_defaults = json.load(f)
+            logger.info("output_config_defaults.json loaded")
+        except Exception as e:
+            logger.error(f"Failed to load output_config_defaults.json: {e}")
+            _output_config_defaults = {}
+
+    return _output_config_defaults
+
+def lookup_output_config(media_type: str, execution_mode: str = 'eco') -> str:
+    """
+    Lookup Output-Config name from output_config_defaults.json
+
+    Args:
+        media_type: image, audio, video, music, text
+        execution_mode: eco (local) or fast (cloud)
+
+    Returns:
+        Config name (e.g., "sd35_large") or None if not found
+    """
+    defaults = load_output_config_defaults()
+
+    if media_type not in defaults:
+        logger.warning(f"Unknown media type: {media_type}")
+        return None
+
+    config_name = defaults[media_type].get(execution_mode)
+
+    # Filter out metadata keys that start with underscore
+    if config_name and not config_name.startswith('_'):
+        logger.info(f"Output-Config lookup: {media_type}/{execution_mode} → {config_name}")
+        return config_name
+    else:
+        logger.info(f"No Output-Config for {media_type}/{execution_mode} (config_name={config_name})")
+        return None
+
+@schema_bp.route('/info', methods=['GET'])
+def get_schema_info():
+    """Schema-System Informationen"""
+    try:
+        init_schema_engine()
+        
+        available_schemas = pipeline_executor.get_available_schemas()
+        
+        return jsonify({
+            'status': 'success',
+            'schemas_available': len(available_schemas),
+            'schemas': available_schemas,
+            'engine_status': 'initialized'
+        })
+        
+    except Exception as e:
+        logger.error(f"Schema-Info Fehler: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+@schema_bp.route('/pipeline/transform', methods=['POST'])
+def transform_prompt():
+    """
+    Execute ONLY Stage 1+2 (Translation + Safety + Interception)
+
+    Phase 2 Frontend: User wants to see transformed prompt before media generation.
+    This endpoint returns transformed text without executing Stage 3-4 (media).
+
+    Request Body:
+    {
+        "schema": "dada",
+        "input_text": "Eine Blume auf der Wiese",
+        "user_language": "de",
+        "execution_mode": "eco",
+        "safety_level": "kids",
+        "context_prompt": "..." (optional: user-edited meta-prompt)
+    }
+
+    Response:
+    {
+        "success": true,
+        "transformed_prompt": "Petal-chaos contradicting...",
+        "stage1_output": {...},
+        "stage2_output": {...},
+        "execution_time_ms": 5234
+    }
+    """
+    import time
+    start_time = time.time()
+
+    try:
+        # Request validation
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'JSON-Request erwartet'
+            }), 400
+
+        schema_name = data.get('schema')
+        input_text = data.get('input_text')
+        execution_mode = data.get('execution_mode', 'eco')
+        safety_level = data.get('safety_level', 'kids')
+        user_language = data.get('user_language', 'en')
+
+        # Phase 2: User-edited context support
+        context_prompt = data.get('context_prompt')
+        context_language = data.get('context_language', user_language)
+
+        if not schema_name or not input_text:
+            return jsonify({
+                'success': False,
+                'error': 'Parameter "schema" und "input_text" erforderlich'
+            }), 400
+
+        # Initialize engine
+        init_schema_engine()
+
+        # Load config
+        config = pipeline_executor.config_loader.get_config(schema_name)
+        if not config:
+            return jsonify({
+                'success': False,
+                'error': f'Config "{schema_name}" nicht gefunden'
+            }), 404
+
+        logger.info(f"[TRANSFORM] Starting Stage 1+2 for schema '{schema_name}'")
+
+        # ====================================================================
+        # PHASE 2: USER-EDITED CONTEXT HANDLING
+        # ====================================================================
+        execution_config = config
+
+        if context_prompt:
+            logger.info(f"[TRANSFORM/PHASE2] User edited context in language: {context_language}")
+
+            # Translate to English if needed
+            context_prompt_en = context_prompt
+            if context_language != 'en':
+                logger.info(f"[TRANSFORM/PHASE2] Translating context from {context_language} to English...")
+
+                from my_app.services.ollama_service import ollama_service
+                translation_prompt = f"Translate this educational text from {context_language} to English. Preserve pedagogical intent:\n\n{context_prompt}"
+
+                try:
+                    context_prompt_en = ollama_service.translate_text(translation_prompt)
+                    if not context_prompt_en:
+                        logger.error("[TRANSFORM/PHASE2] Context translation failed, using original")
+                        context_prompt_en = context_prompt
+                    else:
+                        logger.info(f"[TRANSFORM/PHASE2] Context translated successfully")
+                except Exception as e:
+                    logger.error(f"[TRANSFORM/PHASE2] Context translation error: {e}")
+                    context_prompt_en = context_prompt
+
+            # Create modified config
+            logger.info(f"[TRANSFORM/PHASE2] Creating modified config with user-edited context")
+            config_dict = config.to_dict()
+            config_dict['context'] = context_prompt_en
+            config_dict['meta']['user_edited'] = True
+            config_dict['meta']['original_config'] = schema_name
+            config_dict['meta']['user_language'] = user_language
+
+            from schemas.engine.config import Config
+            execution_config = Config.from_dict(config_dict)
+
+        # ====================================================================
+        # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
+        # ====================================================================
+        logger.info(f"[TRANSFORM] Stage 1: Translation + Safety")
+
+        stage1_start = time.time()
+        is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+            input_text,
+            safety_level,
+            execution_mode,
+            pipeline_executor
+        ))
+        stage1_time = (time.time() - stage1_start) * 1000  # ms
+
+        if not is_safe:
+            logger.warning(f"[TRANSFORM] Stage 1 BLOCKED by safety check")
+            return jsonify({
+                'success': False,
+                'error': error_message,
+                'blocked_at_stage': 1,
+                'stage1_output': {
+                    'translation': translated_text,
+                    'safety_passed': False,
+                    'safety_message': error_message,
+                    'execution_time_ms': stage1_time
+                }
+            }), 403
+
+        logger.info(f"[TRANSFORM] Stage 1 completed: '{input_text}' → '{translated_text}'")
+
+        stage1_output = {
+            'translation': translated_text,
+            'safety_passed': True,
+            'safety_level': safety_level,
+            'execution_time_ms': stage1_time
+        }
+
+        # ====================================================================
+        # STAGE 2: INTERCEPTION (Main Pipeline)
+        # ====================================================================
+        logger.info(f"[TRANSFORM] Stage 2: Interception")
+
+        stage2_start = time.time()
+
+        # Create no-op tracker (tracker is deprecated, using NoOpTracker)
+        tracker = NoOpTracker()
+
+        result = asyncio.run(pipeline_executor.execute_pipeline(
+            config_name=schema_name,
+            input_text=translated_text,
+            user_input=input_text,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
+            tracker=tracker,
+            config_override=execution_config
+        ))
+
+        stage2_time = (time.time() - stage2_start) * 1000  # ms
+
+        if not result.success:
+            logger.error(f"[TRANSFORM] Stage 2 failed: {result.error}")
+            return jsonify({
+                'success': False,
+                'error': result.error,
+                'stage1_output': stage1_output,
+                'stage2_output': {
+                    'status': 'failed',
+                    'error': result.error,
+                    'execution_time_ms': stage2_time
+                }
+            }), 500
+
+        # Extract metadata from pipeline result
+        model_used = None
+        backend_used = None
+        if result.steps and len(result.steps) > 0:
+            for step in reversed(result.steps):
+                if step.metadata:
+                    model_used = step.metadata.get('model_used', model_used)
+                    backend_used = step.metadata.get('backend_type', backend_used)
+                    if model_used and backend_used:
+                        break
+
+        logger.info(f"[TRANSFORM] Stage 2 completed: '{translated_text}' → '{result.final_output}'")
+
+        stage2_output = {
+            'interception_result': result.final_output,
+            'model_used': model_used,
+            'backend_used': backend_used,
+            'execution_time_ms': stage2_time
+        }
+
+        # Total execution time
+        total_time_ms = (time.time() - start_time) * 1000
+
+        logger.info(f"[TRANSFORM] ✅ Success! Total time: {total_time_ms:.0f}ms")
+
+        return jsonify({
+            'success': True,
+            'transformed_prompt': result.final_output,
+            'stage1_output': stage1_output,
+            'stage2_output': stage2_output,
+            'execution_time_ms': total_time_ms
+        })
+
+    except Exception as e:
+        logger.error(f"[TRANSFORM] Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@schema_bp.route('/pipeline/execute', methods=['POST'])
+def execute_pipeline():
+    """Schema-Pipeline ausführen mit 4-Stage Orchestration"""
+    try:
+        # Request-Validation
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'error': 'JSON-Request erwartet'
+            }), 400
+
+        schema_name = data.get('schema')
+        input_text = data.get('input_text')
+        execution_mode = data.get('execution_mode', 'eco')  # eco (local) or fast (cloud)
+        safety_level = data.get('safety_level', 'kids')  # kids (default), youth, or off
+
+        # Phase 2: Multilingual context editing support
+        context_prompt = data.get('context_prompt')  # Optional: user-edited meta-prompt
+        context_language = data.get('context_language', 'en')  # Language of context_prompt
+        user_language = data.get('user_language', 'en')  # User's interface language
+
+        # Fast regeneration support: skip Stage 1-3 with stage4_only flag
+        stage4_only = data.get('stage4_only', False)  # Boolean: skip to Stage 4 (media generation) only
+        seed_override = data.get('seed')  # Optional: specific seed for exact regeneration
+
+        if not schema_name or not input_text:
+            return jsonify({
+                'status': 'error',
+                'error': 'Parameter "schema" and "input_text" erforderlich'
+            }), 400
+
+        # Schema-Engine initialisieren
+        init_schema_engine()
+
+        # Get config
+        config = pipeline_executor.config_loader.get_config(schema_name)
+        if not config:
+            return jsonify({
+                'status': 'error',
+                'error': f'Config "{schema_name}" nicht gefunden'
+            }), 404
+
+        # Check if this is an output config (skip Stage 1-3 for output configs)
+        is_output_config = config.meta.get('stage') == 'output'
+        is_system_pipeline = config.meta.get('system_pipeline', False)
+
+        # ====================================================================
+        # SESSION 29: GENERATE UNIFIED RUN ID
+        # ====================================================================
+        # FIX: Generate ONE run_id used by ALL systems (not separate IDs)
+        run_id = str(uuid.uuid4())
+        logger.info(f"[RUN_ID] Generated unified run_id: {run_id} for {schema_name}")
+
+        # ====================================================================
+        # EXECUTION HISTORY TRACKER - DEPRECATED (Session 29)
+        # ====================================================================
+        # Session 29: Replaced ExecutionTracker with NoOpTracker
+        # LivePipelineRecorder now handles all tracking responsibilities
+        tracker = NoOpTracker()
+
+        # Log pipeline start
+        tracker.log_pipeline_start(
+            input_text=input_text,
+            metadata={'request_timestamp': data.get('timestamp')}
+        )
+
+        # ====================================================================
+        # LIVE PIPELINE RECORDER - Single source of truth (Session 37 Migration)
+        # ====================================================================
+        from config import JSON_STORAGE_DIR
+        recorder = get_recorder(
+            run_id=run_id,
+            config_name=schema_name,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
+            user_id='anonymous',
+            base_path=JSON_STORAGE_DIR
+        )
+        recorder.set_state(0, "pipeline_starting")
+        logger.info(f"[RECORDER] Initialized LivePipelineRecorder for run {run_id}")
+
+        # ====================================================================
+        # PHASE 2: USER-EDITED CONTEXT HANDLING
+        # ====================================================================
+        # If user edited the meta-prompt (context) in Phase 2, handle translation
+        # and save both language versions to exports
+        modified_config = None
+
+        if context_prompt:
+            logger.info(f"[PHASE2] User edited context in language: {context_language}")
+
+            # Save original language version
+            recorder.save_entity(f'context_prompt_{context_language}', context_prompt)
+
+            # Translate to English if needed
+            context_prompt_en = context_prompt
+            if context_language != 'en':
+                logger.info(f"[PHASE2] Translating context from {context_language} to English...")
+
+                # Use Ollama service for translation
+                from my_app.services.ollama_service import ollama_service
+
+                translation_prompt = f"Translate this educational text from {context_language} to English. Preserve pedagogical intent and technical terminology:\n\n{context_prompt}"
+
+                try:
+                    context_prompt_en = ollama_service.translate_text(translation_prompt)
+                    if not context_prompt_en:
+                        logger.error("[PHASE2] Context translation failed, using original")
+                        context_prompt_en = context_prompt
+                    else:
+                        logger.info(f"[PHASE2] Context translated successfully")
+                        # Save English version
+                        recorder.save_entity('context_prompt_en', context_prompt_en)
+                except Exception as e:
+                    logger.error(f"[PHASE2] Context translation error: {e}")
+                    context_prompt_en = context_prompt
+
+            # Create modified config with user-edited context
+            logger.info(f"[PHASE2] Creating modified config with user-edited context")
+            config_dict = config.to_dict()
+            config_dict['context'] = context_prompt_en  # Use English version for pipeline
+            config_dict['meta']['user_edited'] = True
+            config_dict['meta']['original_config'] = schema_name
+            config_dict['meta']['user_language'] = user_language
+
+            # Update config object (create new Config instance)
+            from schemas.engine.config import Config
+            modified_config = Config.from_dict(config_dict)
+
+            # Save modified config as first entity
+            recorder.save_entity('config_used', config_dict)
+            logger.info(f"[RECORDER] Saved user-modified config")
+        else:
+            # Save original config (unmodified)
+            recorder.save_entity('config_used', config.to_dict())
+            logger.info(f"[RECORDER] Saved original config")
+
+        # Use modified config for execution if available
+        execution_config = modified_config if modified_config else config
+
+        # ====================================================================
+        # FAST REGENERATION: Skip Stage 1-3 if stage4_only=True
+        # ====================================================================
+        if stage4_only:
+            logger.info(f"[FAST-REGEN] stage4_only=True: Skipping Stage 1-3, direct to Stage 4")
+            # Create a mock result object for Stage 2 output
+            class MockResult:
+                def __init__(self, output):
+                    self.success = True
+                    self.final_output = output
+                    self.error = None
+                    self.steps = []
+                    self.metadata = {}
+                    self.execution_time = 0
+            result = MockResult(input_text)  # input_text is already transformed text
+            current_input = input_text
+        else:
+            # ====================================================================
+            # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
+            # ====================================================================
+            current_input = input_text
+
+            if not is_system_pipeline and not is_output_config:
+                logger.info(f"[4-STAGE] Stage 1: Pre-Interception for '{schema_name}'")
+                tracker.set_stage(1)
+                recorder.set_state(1, "translation_and_safety")
+
+                # Log user input
+                tracker.log_user_input_text(input_text)
+
+                # SESSION 29: Save input entity
+                recorder.save_entity('input', input_text)
+                logger.info(f"[RECORDER] Saved input entity")
+
+                # Stage 1: GPT-OSS Unified (Translation + §86a Safety in ONE call)
+                is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+                    input_text,
+                    safety_level,
+                    execution_mode,
+                    pipeline_executor
+                ))
+                current_input = translated_text
+
+                if not is_safe:
+                    logger.warning(f"[4-STAGE] Stage 1 BLOCKED by GPT-OSS §86a")
+
+                    # SESSION 29: Save translation (even if blocked)
+                    recorder.save_entity('translation', translated_text)
+
+                    # SESSION 29: Save safety error
+                    recorder.save_error(
+                        stage=1,
+                        error_type='safety_blocked',
+                        message=error_message,
+                        details={'codes': ['§86a']}
+                    )
+                    logger.info(f"[RECORDER] Saved stage 1 blocked error")
+
+                    # Log blocked event
+                    tracker.log_stage1_blocked(
+                        blocked_reason='§86a_violation',
+                        blocked_codes=['§86a'],
+                        error_message=error_message
+                    )
+                    tracker.finalize()  # Persist even though blocked
+
+                    return jsonify({
+                        'status': 'error',
+                        'schema': schema_name,
+                        'error': error_message,
+                        'metadata': {
+                            'stage': 'pre_interception',
+                            'safety_codes': ['§86a']  # Blocked by GPT-OSS §86a StGB check
+                        }
+                    }), 403
+
+                # SESSION 29: Save translation and safety results
+                recorder.save_entity('translation', translated_text)
+                recorder.save_entity('safety', {
+                    'safe': True,
+                    'method': 'gpt_oss_unified',
+                    'codes_checked': ['§86a'],
+                    'safety_level': safety_level
+                })
+                logger.info(f"[RECORDER] Saved translation and safety entities")
+
+                # Log translation result (GPT-OSS includes translation)
+                tracker.log_translation_result(
+                    translated_text=translated_text,
+                    from_lang='de',
+                    to_lang='en',
+                    model_used='gpt-oss',
+                    backend_used='ollama',
+                    execution_time=0.0  # TODO: Track actual execution time from GPT-OSS unified pipeline
+                )
+
+            # ====================================================================
+            # STAGE 2: INTERCEPTION (Main Pipeline - DUMB execution)
+            # ====================================================================
+            logger.info(f"[4-STAGE] Stage 2: Interception (Main Pipeline) for '{schema_name}'")
+            tracker.set_stage(2)
+            recorder.set_state(2, "interception")
+
+            result = asyncio.run(pipeline_executor.execute_pipeline(
+                config_name=schema_name,
+                input_text=current_input,
+                user_input=data.get('user_input', input_text),
+                execution_mode=execution_mode,
+                safety_level=safety_level,
+                tracker=tracker,
+                config_override=execution_config  # Phase 2: Pass modified config if user edited
+            ))
+
+            # Check if pipeline succeeded
+            if not result.success:
+                tracker.log_pipeline_error(
+                    error_type='PipelineExecutionError',
+                    error_message=result.error,
+                    stage=2
+                )
+                tracker.finalize()
+
+                return jsonify({
+                    'status': 'error',
+                    'schema': schema_name,
+                    'error': result.error,
+                    'steps_completed': len([s for s in result.steps if s.status.value == 'completed']),
+                    'total_steps': len(result.steps)
+                }), 500
+
+            # Extract metadata from pipeline result
+            model_used = None
+            backend_used = None
+            if result.steps and len(result.steps) > 0:
+                # Get metadata from last successful step
+                for step in reversed(result.steps):
+                    if step.metadata:
+                        model_used = step.metadata.get('model_used', model_used)
+                        backend_used = step.metadata.get('backend_type', backend_used)
+                        if model_used and backend_used:
+                            break
+
+            # Get actual total_iterations from result metadata (for recursive pipelines like Stille Post)
+            total_iterations = result.metadata.get('iterations', 1) if result.metadata else 1
+
+            # Log interception final result
+            tracker.log_interception_final(
+                final_text=result.final_output,
+                total_iterations=total_iterations,
+                config_used=schema_name,
+                model_used=model_used,
+                backend_used=backend_used,
+                execution_time=result.execution_time
+            )
+
+            # SESSION 29: Save interception output
+            recorder.save_entity('interception', result.final_output, metadata={
+                'config': schema_name,
+                'iterations': total_iterations,
+                'model_used': model_used,
+                'backend_used': backend_used
+            })
+            logger.info(f"[RECORDER] Saved interception entity")
+
+        # ====================================================================
+        # CONDITIONAL STAGE 3: Post-Interception Safety Check
+        # ====================================================================
+        # Only run Stage 3 if Stage 2 pipeline requires it (prompt_interception type)
+        # Non-transformation pipelines (text_semantic_split, etc.) skip this
+
+        pipeline_def = pipeline_executor.config_loader.get_pipeline(config.pipeline_name)
+        requires_stage3 = pipeline_def.requires_interception_prompt if pipeline_def else True  # Default True for safety
+
+        if requires_stage3 and safety_level != 'off' and isinstance(result.final_output, str):
+            logger.info(f"[4-STAGE] Stage 3: Post-Interception Safety Check (pipeline requires it)")
+            # TODO: Implement Stage 3 safety check on result.final_output here
+            # For now, this is a placeholder - actual implementation in future session
+        else:
+            if not requires_stage3:
+                pipeline_type = pipeline_def.pipeline_type if pipeline_def else 'unknown'
+                logger.info(f"[4-STAGE] Stage 3: SKIPPED (pipeline_type={pipeline_type}, no transformation)")
+            elif not isinstance(result.final_output, str):
+                logger.info(f"[4-STAGE] Stage 3: SKIPPED (structured output, not text string)")
+
+        # Response für erfolgreiche Pipeline
+        response_data = {
+            'status': 'success',
+            'run_id': run_id,  # SESSION 30: Frontend needs run_id for status polling
+            'schema': schema_name,
+            'config_name': schema_name,  # Config name (same as schema for simple workflows)
+            'input_text': input_text,
+            'final_output': result.final_output,
+            'steps_completed': len(result.steps),
+            'execution_time': result.execution_time,
+            'metadata': result.metadata
+        }
+
+        # ====================================================================
+        # STAGE 3-4 LOOP: Multi-Output Support
+        # ====================================================================
+        media_preferences = config.media_preferences or {}
+        default_output = media_preferences.get('default_output') if media_preferences else None
+        output_configs = media_preferences.get('output_configs', [])
+
+        # Determine which output configs to use
+        if output_configs:
+            # Multi-Output: Use explicit output_configs array
+            logger.info(f"[MULTI-OUTPUT] Config requests {len(output_configs)} outputs: {output_configs}")
+            configs_to_execute = output_configs
+        elif default_output and default_output != 'text':
+            # Single-Output: Use lookup from default_output
+            output_config_name = lookup_output_config(default_output, execution_mode)
+            if output_config_name:
+                configs_to_execute = [output_config_name]
+            else:
+                configs_to_execute = []
+        else:
+            # Text-only output
+            configs_to_execute = []
+
+        # Execute Stage 3-4 for each output config
+        media_outputs = []
+
+        if configs_to_execute and not is_system_pipeline and not is_output_config:
+            logger.info(f"[4-STAGE] Stage 3-4 Loop: Processing {len(configs_to_execute)} output configs")
+
+            for i, output_config_name in enumerate(configs_to_execute):
+                logger.info(f"[4-STAGE] Stage 3-4 Loop iteration {i+1}/{len(configs_to_execute)}: {output_config_name}")
+                tracker.set_loop_iteration(i + 1)
+
+                # ====================================================================
+                # DETERMINE MEDIA TYPE (needed for both Stage 3 and Stage 4)
+                # ====================================================================
+                # Extract media type from output config name BEFORE Stage 3
+                # This ensures media_type is ALWAYS defined, even when stage4_only=True
+                if 'image' in output_config_name.lower() or 'sd' in output_config_name.lower() or 'flux' in output_config_name.lower() or 'gpt' in output_config_name.lower():
+                    media_type = 'image'
+                elif 'audio' in output_config_name.lower():
+                    media_type = 'audio'
+                elif 'music' in output_config_name.lower() or 'ace' in output_config_name.lower():
+                    media_type = 'music'
+                elif 'video' in output_config_name.lower():
+                    media_type = 'video'
+                else:
+                    media_type = 'image'  # Default fallback
+
+                # ====================================================================
+                # STAGE 3: PRE-OUTPUT SAFETY (per output config)
+                # ====================================================================
+                stage_3_blocked = False
+
+                # Skip Stage 3 if stage4_only=True (fast regeneration)
+                if safety_level != 'off' and not stage4_only:
+                    tracker.set_stage(3)
+                    recorder.set_state(3, "pre_output_safety")
+
+                    logger.info(f"[4-STAGE] Stage 3: Pre-Output Safety for {output_config_name} (type: {media_type}, level: {safety_level})")
+
+                    safety_result = asyncio.run(execute_stage3_safety(
+                        result.final_output,
+                        safety_level,
+                        media_type,
+                        execution_mode,
+                        pipeline_executor
+                    ))
+
+                    # Log Stage 3 safety check
+                    tracker.log_stage3_safety_check(
+                        loop_iteration=i + 1,
+                        safe=safety_result['safe'],
+                        method=safety_result.get('method', 'hybrid'),
+                        config_used=output_config_name,
+                        model_used=safety_result.get('model_used'),
+                        backend_used=safety_result.get('backend_used'),
+                        execution_time=safety_result.get('execution_time')
+                    )
+
+                    if not safety_result['safe']:
+                        # Stage 3 blocked for this output
+                        abort_reason = safety_result.get('abort_reason', 'Content blocked by safety filter')
+                        logger.warning(f"[4-STAGE] Stage 3 BLOCKED for {output_config_name}: {abort_reason}")
+
+                        # SESSION 29: Save safety_pre_output result (blocked)
+                        recorder.save_entity('safety_pre_output', {
+                            'safe': False,
+                            'method': safety_result.get('method', 'hybrid'),
+                            'media_type': media_type,
+                            'safety_level': safety_level,
+                            'blocked': True,
+                            'abort_reason': abort_reason
+                        })
+
+                        # SESSION 29: Save stage 3 blocked error
+                        recorder.save_error(
+                            stage=3,
+                            error_type='safety_blocked',
+                            message=abort_reason,
+                            details={'media_type': media_type, 'config': output_config_name}
+                        )
+                        logger.info(f"[RECORDER] Saved stage 3 blocked error")
+
+                        # Log Stage 3 blocked
+                        tracker.log_stage3_blocked(
+                            loop_iteration=i + 1,
+                            config_used=output_config_name,
+                            abort_reason=abort_reason
+                        )
+
+                        media_outputs.append({
+                            'config': output_config_name,
+                            'status': 'blocked',
+                            'reason': abort_reason,
+                            'media_type': media_type,  # Add media_type for frontend
+                            'safety_level': safety_level
+                        })
+                        stage_3_blocked = True
+                        continue  # Skip Stage 4 for this output
+                    else:
+                        # SESSION 29: Save safety_pre_output result (passed)
+                        recorder.save_entity('safety_pre_output', {
+                            'safe': True,
+                            'method': safety_result.get('method', 'hybrid'),
+                            'media_type': media_type,
+                            'safety_level': safety_level
+                        })
+                        logger.info(f"[RECORDER] Saved safety_pre_output entity")
+
+        # End of skip_preprocessing else block - Stage 1-3 complete
+
+        # ====================================================================
+        # STAGE 4: OUTPUT (Media Generation)
+        # ====================================================================
+                if not stage_3_blocked:
+                    logger.info(f"[4-STAGE] Stage 4: Executing output config '{output_config_name}'")
+                    tracker.set_stage(4)
+                    recorder.set_state(4, "media_generation")
+
+                    try:
+                        # Execute Output-Pipeline with transformed text
+                        output_result = asyncio.run(pipeline_executor.execute_pipeline(
+                            config_name=output_config_name,
+                            input_text=result.final_output,  # Use transformed text as input!
+                            user_input=result.final_output,
+                            execution_mode=execution_mode
+                        ))
+
+                        # Add media output to results
+                        if output_result.success:
+                            # ====================================================================
+                            # MEDIA STORAGE - Download and store media locally
+                            # ====================================================================
+                            media_stored = False
+                            media_output_data = None
+
+                            try:
+                                output_value = output_result.final_output
+                                saved_filename = None
+
+                                # Extract seed from output_result metadata (if available)
+                                seed = output_result.metadata.get('seed')
+
+                                # Detect if output is URL or prompt_id
+                                if output_value.startswith('http://') or output_value.startswith('https://'):
+                                    # API-based generation (GPT-5, Replicate, etc.) - URL
+                                    logger.info(f"[RECORDER] Downloading from URL: {output_value}")
+                                    saved_filename = asyncio.run(recorder.download_and_save_from_url(
+                                        url=output_value,
+                                        media_type=media_type,
+                                        config=output_config_name,
+                                        seed=seed
+                                    ))
+                                else:
+                                    # ComfyUI generation - prompt_id
+                                    logger.info(f"[RECORDER] Downloading from ComfyUI: {output_value}")
+
+                                    # Save prompt_id for potential SSE streaming
+                                    recorder.save_prompt_id(output_value, media_type)
+
+                                    # Download and save media immediately (blocking, but necessary for media API)
+                                    saved_filename = asyncio.run(recorder.download_and_save_from_comfyui(
+                                        prompt_id=output_value,
+                                        media_type=media_type,
+                                        config=output_config_name,
+                                        seed=seed
+                                    ))
+
+                                if saved_filename:
+                                    media_stored = True
+                                    logger.info(f"[RECORDER] Media stored successfully in run {run_id}: {saved_filename}")
+                                else:
+                                    media_stored = False
+                                    logger.warning(f"[RECORDER] Failed to store media for run {run_id}")
+
+                            except Exception as e:
+                                logger.error(f"[RECORDER] Error downloading/storing media: {e}")
+                                import traceback
+                                traceback.print_exc()
+
+                            # Log Stage 4 output (using run_id as file_path now)
+                            tracker.log_output_image(
+                                loop_iteration=i + 1,
+                                config_used=output_config_name,
+                                file_path=run_id if media_stored else output_result.final_output,
+                                model_used=output_result.metadata.get('model_used', 'unknown'),
+                                backend_used=output_result.metadata.get('backend', 'comfyui'),
+                                metadata=output_result.metadata,
+                                execution_time=output_result.execution_time
+                            )
+
+                            media_outputs.append({
+                                'config': output_config_name,
+                                'status': 'success',
+                                'run_id': run_id,  # NEW: Unified identifier for media
+                                'output': run_id if media_stored else output_result.final_output,  # Use run_id if stored, fallback to raw output
+                                'media_type': media_type,
+                                'media_stored': media_stored,  # Indicates if media was successfully stored
+                                'execution_time': output_result.execution_time,
+                                'metadata': output_result.metadata
+                            })
+                            logger.info(f"[4-STAGE] Stage 4 successful for {output_config_name}: run_id={run_id}, media_stored={media_stored}")
+                        else:
+                            # Media generation failed
+                            media_outputs.append({
+                                'config': output_config_name,
+                                'status': 'error',
+                                'media_type': media_type,  # Add media_type for frontend
+                                'error': output_result.error
+                            })
+                            logger.error(f"[4-STAGE] Stage 4 failed for {output_config_name}: {output_result.error}")
+
+                    except Exception as e:
+                        logger.error(f"[4-STAGE] Exception during Stage 4 for {output_config_name}: {e}")
+                        media_outputs.append({
+                            'config': output_config_name,
+                            'status': 'error',
+                            'media_type': media_type,  # Add media_type for frontend
+                            'error': str(e)
+                        })
+
+            # Add media outputs to response
+            if len(media_outputs) == 1:
+                # Single output: Use old format for backward compatibility
+                response_data['media_output'] = media_outputs[0]
+            else:
+                # Multiple outputs: Use array format
+                response_data['media_outputs'] = media_outputs
+                response_data['media_output_count'] = len(media_outputs)
+
+        elif not configs_to_execute and default_output and default_output != 'text':
+            # No output config found for default_output
+            logger.info(f"[AUTO-MEDIA] No Output-Config available for {default_output}/{execution_mode}")
+            response_data['media_output'] = {
+                'status': 'not_available',
+                'message': f'No Output-Config for {default_output}/{execution_mode}'
+            }
+
+        # ====================================================================
+        # FINALIZE EXECUTION HISTORY
+        # ====================================================================
+        # Log pipeline completion
+        outputs_generated = len(media_outputs) if media_outputs else 0
+        tracker.log_pipeline_complete(
+            total_duration=result.execution_time if result else 0.0,
+            outputs_generated=outputs_generated
+        )
+
+        # Persist execution history to storage
+        tracker.finalize()
+        logger.info(f"[TRACKER] Execution history saved: {tracker.execution_id}")
+
+        # Visual separator for easier run distinction in terminal
+        total_time = result.execution_time if result else 0.0
+        logger.info("=" * 80)
+        logger.info(f"{'RUN COMPLETED':^80}")
+        logger.info("=" * 80)
+        logger.info(f"  Run ID: {run_id}")
+        logger.info(f"  Config: {schema_name}")
+        logger.info(f"  Total Time: {total_time:.2f}s")
+        logger.info(f"  Outputs: {outputs_generated}")
+        logger.info("=" * 80)
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        logger.error(f"Pipeline-Execution Fehler: {e}")
+        import traceback
+        traceback.print_exc()
+
+        # Try to finalize tracker even on error (fail-safe)
+        try:
+            if 'tracker' in locals():
+                tracker.log_pipeline_error(
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    stage=0
+                )
+                tracker.finalize()
+        except Exception as tracker_error:
+            logger.warning(f"[TRACKER] Failed to finalize on error: {tracker_error}")
+
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+# NOTE: Status endpoint is in pipeline_routes.py, not here
+# Use /api/pipeline/{run_id}/status (not /api/schema/pipeline/{run_id}/status)
+
+@schema_bp.route('/pipeline/test', methods=['POST'])  
+def test_pipeline():
+    """Test-Endpoint für direkte Prompt-Interception"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
+        
+        input_prompt = data.get('input_prompt')
+        style_prompt = data.get('style_prompt', '')
+        input_context = data.get('input_context', '')
+        model = data.get('model', 'local/gemma2:9b')
+        
+        if not input_prompt:
+            return jsonify({'status': 'error', 'error': 'Parameter "input_prompt" erforderlich'}), 400
+        
+        # Direkte Prompt-Interception (für Tests)
+        from schemas.engine.prompt_interception_engine import PromptInterceptionRequest
+        engine = PromptInterceptionEngine()
+        
+        request_obj = PromptInterceptionRequest(
+            input_prompt=input_prompt,
+            input_context=input_context,
+            style_prompt=style_prompt,
+            model=model,
+            debug=data.get('debug', False)
+        )
+        
+        response = asyncio.run(engine.process_request(request_obj))
+        
+        if response.success:
+            return jsonify({
+                'status': 'success',
+                'input_prompt': input_prompt,
+                'output_str': response.output_str,
+                'model_used': response.model_used,
+                'metadata': {
+                    'output_float': response.output_float,
+                    'output_int': response.output_int,
+                    'output_binary': response.output_binary
+                }
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'error': response.error
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Test-Pipeline Fehler: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+@schema_bp.route('/schemas', methods=['GET'])
+def list_schemas():
+    """Verfügbare Schemas auflisten"""
+    try:
+        init_schema_engine()
+
+        schemas = []
+        for schema_name in pipeline_executor.get_available_schemas():
+            schema_info = pipeline_executor.get_schema_info(schema_name)
+            if schema_info:
+                schemas.append(schema_info)
+
+        return jsonify({
+            'status': 'success',
+            'schemas': schemas
+        })
+
+    except Exception as e:
+        logger.error(f"Schema-List Fehler: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+
+# ============================================================================
+# BACKWARD COMPATIBILITY ENDPOINTS (Legacy Frontend Support)
+# These endpoints have NO URL prefix and match the old workflow_routes.py API
+# ============================================================================
+# STATUS: DEPRECATED as of 2025-10-28
+# REASON: workflow.js (dropdown system) replaced by workflow-browser.js (cards)
+# KEEP: /pipeline_configs_metadata (used by workflow-browser.js)
+# REMOVE: /list_workflows, /workflow_metadata (only used by deprecated workflow.js)
+# ============================================================================
+
+# DEPRECATED: /list_workflows - Only used by old dropdown system (workflow.js.obsolete)
+# @schema_compat_bp.route('/list_workflows', methods=['GET'])
+# def list_workflows_compat():
+#     """List available Schema-Pipeline configs (replaces workflow_routes.py)"""
+#     try:
+#         init_schema_engine()
+#
+#         # Return Schema-Pipelines as dev/config_name format (matches old API)
+#         schema_workflows = []
+#         for schema_name in pipeline_executor.get_available_schemas():
+#             schema_workflows.append(f"dev/{schema_name}")
+#
+#         logger.info(f"Schema-Pipelines returned: {len(schema_workflows)}")
+#
+#         return jsonify({"workflows": schema_workflows})
+#     except Exception as e:
+#         logger.error(f"Error listing workflows: {e}")
+#         return jsonify({"error": "Failed to list workflows"}), 500
+
+
+# DEPRECATED: /workflow_metadata - Only used by old dropdown system (workflow.js.obsolete)
+# @schema_compat_bp.route('/workflow_metadata', methods=['GET'])
+# def workflow_metadata_compat():
+#     """Get Schema-Pipeline metadata (replaces workflow_routes.py)"""
+#     try:
+#         init_schema_engine()
+#
+#         metadata = {
+#             "categories": {
+#                 "dev": {
+#                     "de": "Schema-Pipelines (Interception Configs)",
+#                     "en": "Schema Pipelines (Interception Configs)"
+#                 }
+#             },
+#             "workflows": {}
+#         }
+#
+#         # Add Schema-Pipeline metadata
+#         for schema_name in pipeline_executor.get_available_schemas():
+#             schema_info = pipeline_executor.get_schema_info(schema_name)
+#             if schema_info:
+#                 # Format: dev_config_name (workflow.js expects this format)
+#                 workflow_id = f"dev_{schema_name}"
+#
+#                 config = schema_info.get('config', {})
+#                 meta = config.get('meta', {})
+#
+#                 metadata["workflows"][workflow_id] = {
+#                     "category": "dev",
+#                     "name": config.get('name', {'de': schema_name, 'en': schema_name}),
+#                     "description": config.get('description', {
+#                         'de': schema_info.get('description', ''),
+#                         'en': schema_info.get('description', '')
+#                     }),
+#                     "file": f"dev/{schema_name}"
+#                 }
+#
+#         logger.info(f"Schema-Pipeline metadata returned: {len(metadata['workflows'])} configs")
+#
+#         return jsonify(metadata)
+#     except Exception as e:
+#         logger.error(f"Error getting workflow metadata: {e}")
+#         return jsonify({"error": "Failed to get workflow metadata"}), 500
+
+
+@schema_compat_bp.route('/pipeline_configs_metadata', methods=['GET'])
+def pipeline_configs_metadata_compat():
+    """
+    Get metadata for all pipeline configs (Expert Mode Karten-Browser)
+    Reads directly from config files
+    """
+    try:
+        init_schema_engine()
+
+        # Read metadata directly from config files
+        configs_metadata = []
+        schemas_path = Path(__file__).parent.parent.parent / "schemas"
+        configs_path = schemas_path / "configs"
+
+        if not configs_path.exists():
+            return jsonify({"error": "Configs directory not found"}), 404
+
+        # Recursive glob to support subdirectories (interception/, output/, user_configs/)
+        for config_file in sorted(configs_path.glob("**/*.json")):
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+
+                # Filter: Only show active Stage 2 (interception) configs
+                # Skip: output configs, deactivated configs, user configs, other stages
+                relative_path_str = str(config_file.relative_to(configs_path))
+
+                # Skip deactivated configs (in deactivated/ subdirectory)
+                if "deactivated" in relative_path_str:
+                    continue
+
+                # Skip user configs (in user_configs/ subdirectory)
+                if "user_configs" in relative_path_str:
+                    continue
+
+                # Only show interception configs (Stage 2)
+                stage = config_data.get("meta", {}).get("stage", "")
+                if stage != "interception":
+                    continue  # Don't show output configs or other stages in legacy frontend
+
+                # Calculate config ID (relative path without .json)
+                # Example: interception/dada.json → "dada"
+                #          user_configs/doej/test.json → "u_doej_test" (handled by config_loader)
+                relative_path = config_file.relative_to(configs_path)
+                parts = relative_path.parts
+
+                # Use same naming logic as config_loader.py
+                if len(parts) >= 2 and parts[0] == "user_configs":
+                    # User config: u_username_filename
+                    username = parts[1]
+                    stem = config_file.stem
+                    config_id = f"u_{username}_{stem}"
+                    owner = username  # User-created
+                elif parts[0] in ["interception", "output"]:
+                    # Main system configs: just the stem
+                    config_id = config_file.stem
+                    owner = "system"  # System config
+                else:
+                    # Other system configs: keep path
+                    config_id = str(relative_path.with_suffix('')).replace('\\', '/')
+                    owner = "system"  # System config
+
+                # Extract metadata fields directly from config
+                metadata = {
+                    "id": config_id,
+                    "name": config_data.get("name", {}),  # Multilingual
+                    "description": config_data.get("description", {}),  # Multilingual
+                    "category": config_data.get("category", {}),  # Multilingual
+                    "pipeline": config_data.get("pipeline", "unknown")
+                }
+
+                # Add optional metadata fields if present
+                if "display" in config_data:
+                    metadata["display"] = config_data["display"]
+
+                if "tags" in config_data:
+                    metadata["tags"] = config_data["tags"]
+
+                if "audience" in config_data:
+                    metadata["audience"] = config_data["audience"]
+
+                if "media_preferences" in config_data:
+                    metadata["media_preferences"] = config_data["media_preferences"]
+
+                # Add meta fields (includes stage, owner, etc.)
+                if "meta" in config_data:
+                    metadata["meta"] = config_data["meta"]
+                else:
+                    metadata["meta"] = {}
+
+                # Inject owner if not present
+                if "owner" not in metadata["meta"]:
+                    metadata["meta"]["owner"] = owner
+
+                configs_metadata.append(metadata)
+
+            except Exception as e:
+                logger.error(f"Error reading config {config_file}: {e}")
+                continue
+
+        logger.info(f"Loaded metadata for {len(configs_metadata)} pipeline configs")
+
+        return jsonify({"configs": configs_metadata})
+
+    except Exception as e:
+        logger.error(f"Error loading pipeline configs metadata: {e}")
+        return jsonify({"error": "Failed to load configs metadata"}), 500
+
+
+@schema_compat_bp.route('/pipeline_configs_with_properties', methods=['GET'])
+def pipeline_configs_with_properties():
+    """
+    Get metadata for all pipeline configs WITH properties for Phase 1 property-based selection.
+    Returns configs with properties field + property pairs structure.
+
+    NEW: Phase 1 Property Quadrants implementation (Session 35)
+    """
+    try:
+        init_schema_engine()
+
+        # Property pairs definition
+        # TODO: Move to i18n configuration instead of hardcoding
+        property_pairs = [
+            ["chill", "chaotic"],
+            ["narrative", "algorithmic"],
+            ["facts", "emotion"],
+            ["historical", "contemporary"],
+            ["explore", "create"],
+            ["playful", "serious"]
+        ]
+
+        # Read metadata directly from config files
+        configs_metadata = []
+        schemas_path = Path(__file__).parent.parent.parent / "schemas"
+        configs_path = schemas_path / "configs"
+
+        if not configs_path.exists():
+            return jsonify({"error": "Configs directory not found"}), 404
+
+        # Excluded directories (deactivated, deprecated, etc.)
+        EXCLUDED_DIRS = {"temporarily_deactivated", "deactivated", "deprecated", "archive", ".obsolete"}
+
+        # Recursive glob to support subdirectories (interception/, output/, user_configs/)
+        for config_file in sorted(configs_path.glob("**/*.json")):
+            try:
+                # Filter: Skip configs in excluded directories
+                relative_path = config_file.relative_to(configs_path)
+                if any(excluded in relative_path.parts for excluded in EXCLUDED_DIRS):
+                    logger.debug(f"Skipping {config_file.name} - in excluded directory")
+                    continue
+
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+
+                # Filter: Skip output configs (system-only, not user-facing)
+                stage = config_data.get("meta", {}).get("stage", "")
+                if stage == "output":
+                    continue  # Don't show output configs in frontend
+
+                # Filter: Only include configs with properties (for Phase 1 property selection)
+                if "properties" not in config_data:
+                    logger.debug(f"Skipping {config_file.name} - no properties field")
+                    continue
+
+                # Calculate config ID (relative path without .json)
+                parts = relative_path.parts
+
+                # Use same naming logic as config_loader.py
+                if len(parts) >= 2 and parts[0] == "user_configs":
+                    # User config: u_username_filename
+                    username = parts[1]
+                    stem = config_file.stem
+                    config_id = f"u_{username}_{stem}"
+                    owner = username  # User-created
+                elif parts[0] in ["interception", "output"]:
+                    # Main system configs: just the stem
+                    config_id = config_file.stem
+                    owner = "system"  # System config
+                else:
+                    # Other system configs: keep path
+                    config_id = str(relative_path.with_suffix('')).replace('\\', '/')
+                    owner = "system"  # System config
+
+                # Helper function to create short description
+                def make_short_description(long_desc, max_length=220):
+                    """
+                    Create short description from long one.
+                    Extracts complete sentences that fit within max_length.
+                    Preserves consistency - doesn't invent new content.
+                    Kid-friendly length that provides enough context to understand.
+
+                    Strategy:
+                    1. Keep full description if it fits (<= max_length)
+                    2. Extract first sentence if it fits
+                    3. Extract first 2 sentences if they fit
+                    4. Never truncate mid-sentence - use first sentence only
+                    """
+                    if not long_desc:
+                        return long_desc
+
+                    # If full description fits, keep it
+                    if len(long_desc) <= max_length:
+                        return long_desc
+
+                    # Split into sentences (handle '. ' and '.\n')
+                    sentences = long_desc.replace('.\n', '. ').split('. ')
+
+                    # Edge case: no proper sentences (no periods)
+                    if len(sentences) == 1:
+                        # Truncate at word boundary
+                        if len(long_desc) > max_length:
+                            truncated = long_desc[:max_length].rsplit(' ', 1)[0]
+                            return truncated.strip() + '...'
+                        return long_desc
+
+                    # Try first sentence
+                    first_sentence = sentences[0] + '.'
+                    if len(first_sentence) <= max_length:
+                        # Try adding second sentence
+                        if len(sentences) >= 2:
+                            two_sentences = first_sentence + ' ' + sentences[1] + '.'
+                            if len(two_sentences) <= max_length:
+                                return two_sentences
+                        # Return just first sentence
+                        return first_sentence
+
+                    # First sentence too long - truncate at word boundary
+                    truncated = long_desc[:max_length].rsplit(' ', 1)[0]
+                    return truncated.strip() + '...'
+
+                # Extract metadata fields with properties
+                metadata = {
+                    "id": config_id,
+                    "name": config_data.get("name", {}),  # Multilingual
+                    "description": config_data.get("description", {}),  # Multilingual (long version)
+                    "category": config_data.get("category", {}),  # Multilingual
+                    "pipeline": config_data.get("pipeline", "unknown"),
+                    "properties": config_data.get("properties", [])  # NEW: Properties for filtering
+                }
+
+                # Add short descriptions for tile display
+                long_desc = config_data.get("description", {})
+                if isinstance(long_desc, dict):
+                    metadata["short_description"] = {
+                        lang: make_short_description(text)
+                        for lang, text in long_desc.items()
+                    }
+                else:
+                    metadata["short_description"] = make_short_description(long_desc)
+
+                # Add display metadata (icon, color, difficulty, etc.)
+                if "display" in config_data:
+                    display = config_data["display"]
+                    metadata["icon"] = display.get("icon", "🎨")
+                    metadata["color"] = display.get("color", "#888888")
+                    metadata["difficulty"] = display.get("difficulty", 3)
+
+                    # Phase 1 description (agency-oriented) - NEW
+                    if "phase1_description" in display:
+                        metadata["phase1_description"] = display["phase1_description"]
+                    else:
+                        # Fallback to regular description
+                        metadata["phase1_description"] = config_data.get("description", {})
+
+                # Add tags
+                if "tags" in config_data:
+                    metadata["tags"] = config_data["tags"]
+
+                # Add audience metadata
+                if "audience" in config_data:
+                    metadata["audience"] = config_data["audience"]
+
+                # Add media preferences
+                if "media_preferences" in config_data:
+                    metadata["media_preferences"] = config_data["media_preferences"]
+
+                # Add owner info
+                metadata["owner"] = owner
+
+                configs_metadata.append(metadata)
+
+            except Exception as e:
+                logger.error(f"Error reading config {config_file}: {e}")
+                continue
+
+        logger.info(f"Loaded {len(configs_metadata)} configs with properties for Phase 1")
+
+        return jsonify({
+            "configs": configs_metadata,
+            "property_pairs": property_pairs
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading configs with properties: {e}")
+        return jsonify({"error": "Failed to load configs with properties"}), 500
+
+
+@schema_compat_bp.route('/api/config/<config_id>/context', methods=['GET'])
+def get_config_context(config_id):
+    """
+    Get the context field for a specific config (Phase 2 - Meta-Prompt Editing)
+
+    Returns the multilingual context field: {en: "...", de: "..."}
+    or string if not yet translated.
+
+    NEW: Phase 2 Multilingual Context Editing (Session 36)
+    """
+    try:
+        init_schema_engine()
+
+        # Load config
+        config = config_loader.get_config(config_id)
+
+        if not config:
+            return jsonify({"error": f"Config not found: {config_id}"}), 404
+
+        # Get context from config
+        context = config.context if hasattr(config, 'context') else None
+
+        if context is None:
+            return jsonify({"error": f"Config {config_id} has no context field"}), 404
+
+        # Return context (can be string or {en: ..., de: ...})
+        return jsonify({
+            "config_id": config_id,
+            "context": context
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading context for config {config_id}: {e}")
+        return jsonify({"error": f"Failed to load context: {str(e)}"}), 500
+
+
+@schema_compat_bp.route('/api/config/<config_id>/pipeline', methods=['GET'])
+def get_config_pipeline(config_id):
+    """
+    Get pipeline structure metadata for a config (Phase 2 - Dynamic UI)
+
+    Returns pipeline metadata to determine:
+    - How many input bubbles to show (input_requirements)
+    - Whether to show context editing bubble (requires_interception_prompt)
+    - Pipeline stage and type for UI adaptation
+
+    NEW: Phase 2 Dynamic Pipeline Structure (Session 36)
+    """
+    try:
+        init_schema_engine()
+
+        # Load config
+        config = config_loader.get_config(config_id)
+
+        if not config:
+            return jsonify({"error": f"Config not found: {config_id}"}), 404
+
+        # Get pipeline metadata
+        pipeline = config_loader.pipelines.get(config.pipeline_name)
+
+        if not pipeline:
+            return jsonify({"error": f"Pipeline not found: {config.pipeline_name}"}), 404
+
+        # Return pipeline structure metadata
+        return jsonify({
+            "config_id": config_id,
+            "pipeline_name": pipeline.name,
+            "pipeline_type": pipeline.pipeline_type,
+            "pipeline_stage": pipeline.pipeline_stage,
+            "requires_interception_prompt": pipeline.requires_interception_prompt,
+            "input_requirements": pipeline.input_requirements or {},
+            "description": pipeline.description
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading pipeline metadata for config {config_id}: {e}")
+        return jsonify({"error": f"Failed to load pipeline metadata: {str(e)}"}), 500

@@ -1,0 +1,78 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Dadaism",
+    "de": "Dadaismus"
+  },
+  "description": {
+    "en": "Transforms your ideas with playful chaos and surprising nonsense, inspired by Dada artists like Hannah Höch and Marcel Duchamp. Creates unexpected combinations that challenge what art can be.",
+    "de": "Verwandelt deine Ideen mit spielerischem Chaos und überraschendem Unsinn, inspiriert von Dada-Künstler*innen wie Hannah Höch und Marcel Duchamp. Schafft unerwartete Kombinationen, die hinterfragen, was Kunst sein kann."
+  },
+  "category": {
+    "de": "Kunst & Kultur",
+    "en": "Art & Culture"
+  },
+  "properties": [
+    "chaotic",
+    "narrative",
+    "emotion",
+    "historical",
+    "create",
+    "playful"
+  ],
+  "context": {
+    "en": "You are an artist working in the spirit of Dadaism. Your task is to transform the input into a concept for a Dadaist artwork. Dadaism is characterized by mockery, irony, nonsense, chance, and provocation - but also with deep playfulness and sometimes surprising poetry.\n\nYou are inspired by artists such as: Hugo Ball, Emmy Hennings, Tristan Tzara, Hans Arp, Sophie Taeuber-Arp, Richard Huelsenbeck, Raoul Hausmann, Hannah Höch, Francis Picabia, Marcel Duchamp, Man Ray, Kurt Schwitters, Max Ernst, Georges Ribemont-Dessaignes, Christian Schad, Marcel Janco, Beatrice Wood, Elsa von Freytag-Loringhoven.\n\nThink about their approaches to art! Avoid clichés (including Dada clichés). Do not automatically use skulls or newspaper collages just because they are 'Dada-esque'. Be original in your response to the specific input.",
+    "de": "Du bist ein Künstler*in, der*die im Geist des Dadaismus arbeitet. Deine Aufgabe ist es, den Input in ein Konzept für ein dadaistisches Kunstwerk zu verwandeln. Dadaismus zeichnet sich durch Spott, Ironie, Unsinn, Zufall und Provokation aus – aber auch durch tiefgehende Spiellichkeit und manchmal überraschende Poesie.\n\nDu bist inspiriert von Künstler*innen wie Hugo Ball, Emmy Hennings, Tristan Tzara, Hans Arp, Sophie Taeuber‑Arp, Richard Huelsenbeck, Raoul Hausmann, Hannah Höch, Francis Picabia, Marcel Duchamp, Man Ray, Kurt Schwitters, Max Ernst, Georges Ribemont‑Dessaignes, Christian Schad, Marcel Janco, Beatrice Wood, Elsa von Freytag‑Loringhoven.\n\nDenke über ihre Herangehensweisen an die Kunst nach! Vermeide Klischees (einschließlich dadaistischer Klischees). Verwende nicht automatisch Schädel oder Zeitungskollagen nur, weil sie „dadaistisch“ wirken. Sei originell in deiner Antwort auf den konkreten Input."
+  },
+  "parameters": {
+    "temperature": 0.8,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image",
+      "audio",
+      "video"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "art_movement": "dadaism",
+    "time_period": "1916-1924",
+    "artists": [
+      "Hugo Ball",
+      "Marcel Duchamp",
+      "Hannah Höch",
+      "Tristan Tzara",
+      "Emmy Hennings",
+      "Hans Arp"
+    ],
+    "approaches": [
+      "mockery",
+      "irony",
+      "nonsense",
+      "chance",
+      "provocation"
+    ],
+    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Dada_2506220140.json"
+  },
+  "display": {
+    "icon": "🖼️",
+    "color": "#E91E63",
+    "category": "arts_and_heritage",
+    "difficulty": 4,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": false,
+    "min_age": 12,
+    "complexity": "advanced"
+  }
+}

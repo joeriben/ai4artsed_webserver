@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3 Mockup - Entity Flow (Dada Transformation)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-button {
+            background: transparent;
+            border: 2px solid #4a90e2;
+            color: #4a90e2;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .config-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status-running {
+            background: rgba(243, 156, 18, 0.1);
+            color: #f39c12;
+        }
+
+        .status-completed {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f39c12;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .elapsed-time {
+            font-size: 16px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Prompt Display */
+        .prompt-display {
+            background: #e3f2fd;
+            border-left: 4px solid #4a90e2;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .prompt-display strong {
+            color: #1976d2;
+        }
+
+        /* Phase 3 Container */
+        .phase3-container {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+
+        .phase3-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .phase3-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 32px;
+        }
+
+        /* Entity Flow */
+        .entity-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        /* Entity Box */
+        .entity-box {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            width: 220px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .entity-box.available {
+            border-color: #27ae60;
+            background: rgba(39, 174, 96, 0.02);
+        }
+
+        .entity-box.in-progress {
+            border-color: #f39c12;
+            background: rgba(243, 156, 18, 0.02);
+            box-shadow: 0 4px 16px rgba(243, 156, 18, 0.2);
+        }
+
+        .entity-box.pending {
+            border-color: #ccc;
+            background: #fafafa;
+            opacity: 0.6;
+        }
+
+        .entity-filename {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .entity-type {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .entity-content {
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            min-height: 80px;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .entity-content.json {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+
+        .entity-content.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+        }
+
+        .entity-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .entity-status.available {
+            color: #27ae60;
+        }
+
+        .entity-status.in-progress {
+            color: #f39c12;
+        }
+
+        .entity-status.pending {
+            color: #999;
+        }
+
+        .entity-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .entity-button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .entity-button.view {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .entity-button.view:hover {
+            background: #357abd;
+        }
+
+        .entity-button:disabled {
+            background: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        /* Connection Arrow */
+        .arrow {
+            font-size: 24px;
+            color: #999;
+            margin: 0 -8px;
+            align-self: center;
+        }
+
+        .arrow.active {
+            color: #f39c12;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .arrow.completed {
+            color: #27ae60;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Iteration Group (for recursive) */
+        .iteration-group {
+            border: 2px dashed #e0e0e0;
+            border-radius: 12px;
+            padding: 16px;
+            background: #fafafa;
+            width: 100%;
+            margin: 16px 0;
+        }
+
+        .iteration-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .iteration-flow {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-meta {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .modal-content-box {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .entity-flow {
+                flex-direction: column;
+            }
+
+            .arrow {
+                transform: rotate(90deg);
+            }
+
+            .entity-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <div class="header-left">
+                    <button class="back-button">← Zurück</button>
+                    <div class="config-title">🎨 Dada-Transformation</div>
+                </div>
+                <div class="header-right">
+                    <div class="status-badge status-running" id="statusBadge">
+                        <div class="spinner"></div>
+                        <span>In Bearbeitung</span>
+                    </div>
+                    <div class="elapsed-time" id="elapsedTime">00:23</div>
+                </div>
+            </div>
+            <div class="prompt-display">
+                <strong>Dein Prompt:</strong> "Eine schöne Blume auf einer sonnigen Wiese"
+            </div>
+        </div>
+
+        <!-- Phase 3 Container -->
+        <div class="phase3-container">
+            <h1 class="phase3-title">AI-Prozess Transparenz</h1>
+            <p class="phase3-subtitle">
+                Sieh jeden Schritt, wie das AI-System deinen Prompt verarbeitet
+            </p>
+
+            <!-- Entity Flow -->
+            <div class="entity-flow" id="entityFlow">
+                <!-- Entity 1: Input (Available) -->
+                <div class="entity-box available">
+                    <div class="entity-filename">01_input.txt</div>
+                    <div class="entity-type">Eingabe</div>
+                    <div class="entity-content">
+                        Eine schöne Blume auf einer sonnigen Wiese
+                    </div>
+                    <div class="entity-status available">
+                        ✓ Verfügbar
+                    </div>
+                    <div class="entity-actions">
+                        <button class="entity-button view" onclick="viewEntity('01_input.txt')">Ansehen</button>
+                    </div>
+                </div>
+
+                <div class="arrow completed">→</div>
+
+                <!-- Entity 2: Translation (Available) -->
+                <div class="entity-box available">
+                    <div class="entity-filename">02_translation.txt</div>
+                    <div class="entity-type">Übersetzung</div>
+                    <div class="entity-content">
+                        A beautiful flower in a sunny meadow
+                    </div>
+                    <div class="entity-status available">
+                        ✓ Verfügbar
+                    </div>
+                    <div class="entity-actions">
+                        <button class="entity-button view" onclick="viewEntity('02_translation.txt')">Ansehen</button>
+                    </div>
+                </div>
+
+                <div class="arrow completed">→</div>
+
+                <!-- Entity 3: Safety (Available) -->
+                <div class="entity-box available">
+                    <div class="entity-filename">03_safety_stage1.json</div>
+                    <div class="entity-type">Sicherheitsprüfung</div>
+                    <div class="entity-content json">
+                        {<br>
+                        &nbsp;&nbsp;"status": "SAFE",<br>
+                        &nbsp;&nbsp;"flagged": false<br>
+                        }
+                    </div>
+                    <div class="entity-status available">
+                        ✓ Verfügbar
+                    </div>
+                    <div class="entity-actions">
+                        <button class="entity-button view" onclick="viewEntity('03_safety_stage1.json')">Ansehen</button>
+                    </div>
+                </div>
+
+                <div class="arrow active">→</div>
+
+                <!-- Entity 4: Interception Context (In Progress) -->
+                <div class="entity-box in-progress">
+                    <div class="entity-filename">04_interception_context.txt</div>
+                    <div class="entity-type">Meta-Prompt</div>
+                    <div class="entity-content">
+                        Transform the following text using Dada art movement principles...
+                    </div>
+                    <div class="entity-status in-progress">
+                        <div class="spinner" style="width: 12px; height: 12px; border-width: 2px;"></div>
+                        Wird verarbeitet
+                    </div>
+                    <div class="entity-actions">
+                        <button class="entity-button view" onclick="viewEntity('04_interception_context.txt')">Ansehen</button>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Entity 5: Interception Result (Pending) -->
+                <div class="entity-box pending">
+                    <div class="entity-filename">05_interception_result.txt</div>
+                    <div class="entity-type">Interception Ergebnis</div>
+                    <div class="entity-content empty">
+                        Warten...
+                    </div>
+                    <div class="entity-status pending">
+                        ○ Ausstehend
+                    </div>
+                    <div class="entity-actions">
+                        <button class="entity-button view" disabled>Ansehen</button>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Entity 6: Pre-Output Safety (Pending) -->
+                <div class="entity-box pending">
+                    <div class="entity-filename">06_safety_pre_output.json</div>
+                    <div class="entity-type">Finale Sicherheit</div>
+                    <div class="entity-content empty">
+                        Warten...
+                    </div>
+                    <div class="entity-status pending">
+                        ○ Ausstehend
+                    </div>
+                    <div class="entity-actions">
+                        <button class="entity-button view" disabled>Ansehen</button>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Entity 7: Output (Pending) -->
+                <div class="entity-box pending">
+                    <div class="entity-filename">07_output_text.txt</div>
+                    <div class="entity-type">Finale Ausgabe</div>
+                    <div class="entity-content empty">
+                        Warten...
+                    </div>
+                    <div class="entity-status pending">
+                        ○ Ausstehend
+                    </div>
+                    <div class="entity-actions">
+                        <button class="entity-button view" disabled>Ansehen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="phase3-container" style="background: #fff3cd; border-left: 4px solid #f39c12;">
+            <h3 style="margin-bottom: 8px; color: #856404;">💡 Was siehst du hier?</h3>
+            <p style="font-size: 14px; color: #856404;">
+                Jede Box zeigt einen Schritt der AI-Verarbeitung. Du kannst alle Zwischenschritte ansehen und verstehen,
+                wie dein Prompt transformiert wird. Das ist <strong>Transparenz statt Black-Box</strong>!
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">01_input.txt</div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-meta">
+                    <div><strong>Typ:</strong> <span id="modalType">text/plain</span></div>
+                    <div><strong>Größe:</strong> <span id="modalSize">47 bytes</span></div>
+                </div>
+                <div class="modal-content-box" id="modalContent">
+                    Eine schöne Blume auf einer sonnigen Wiese
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data for entities
+        const entities = {
+            '01_input.txt': {
+                type: 'text/plain',
+                size: '47 bytes',
+                content: 'Eine schöne Blume auf einer sonnigen Wiese'
+            },
+            '02_translation.txt': {
+                type: 'text/plain',
+                size: '41 bytes',
+                content: 'A beautiful flower in a sunny meadow'
+            },
+            '03_safety_stage1.json': {
+                type: 'application/json',
+                size: '156 bytes',
+                content: `{
+  "status": "SAFE",
+  "flagged": false,
+  "categories_detected": [],
+  "timestamp": "2025-11-06T14:23:18Z",
+  "safety_level": "kids"
+}`
+            },
+            '04_interception_context.txt': {
+                type: 'text/plain',
+                size: '324 bytes',
+                content: `Transform the following text using Dada art movement principles: create nonsensical and unexpected word combinations that challenge conventional meaning.
+
+Your task is to deconstruct the input and reassemble it in a way that defies logic but retains poetic quality.
+
+Input text: "A beautiful flower in a sunny meadow"`
+            }
+        };
+
+        function viewEntity(filename) {
+            const entity = entities[filename];
+            if (!entity) return;
+
+            document.getElementById('modalTitle').textContent = filename;
+            document.getElementById('modalType').textContent = entity.type;
+            document.getElementById('modalSize').textContent = entity.size;
+            document.getElementById('modalContent').textContent = entity.content;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // Close modal on overlay click
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Simulate elapsed time
+        let seconds = 23;
+        setInterval(() => {
+            seconds++;
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            document.getElementById('elapsedTime').textContent =
+                `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }, 1000);
+
+        // Simulate progression (for demo)
+        setTimeout(() => {
+            // Complete interception after 5 seconds
+            const interceptionBox = document.querySelectorAll('.entity-box')[4];
+            interceptionBox.classList.remove('in-progress');
+            interceptionBox.classList.add('available');
+            interceptionBox.querySelector('.entity-content').textContent = 'Meadow-flower-chaos umbrella contradiction spiral!';
+            interceptionBox.querySelector('.entity-status').innerHTML = '✓ Verfügbar';
+            interceptionBox.querySelector('.entity-status').className = 'entity-status available';
+            interceptionBox.querySelector('.entity-button').disabled = false;
+
+            // Start next entity
+            const resultBox = document.querySelectorAll('.entity-box')[5];
+            resultBox.classList.remove('pending');
+            resultBox.classList.add('in-progress');
+        }, 5000);
+    </script>
+</body>
+</html>

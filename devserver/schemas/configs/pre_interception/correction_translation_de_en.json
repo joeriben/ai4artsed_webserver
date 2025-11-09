@@ -1,0 +1,23 @@
+{
+  "pipeline": "text_transformation",
+  "name": {
+    "en": "Pre-Interception: Correction + Translation (DE → EN)",
+    "de": "Vor-Interception: Korrektur + Übersetzung (DE → EN)"
+  },
+  "description": {
+    "en": "Corrects spelling/grammar errors and translates German text to English for children/youth (ages 6-17) in arts education",
+    "de": "Korrigiert Rechtschreib-/Grammatikfehler und übersetzt deutschen Text ins Englische für Kinder/Jugendliche (6-17 Jahre) in Kunstpädagogik"
+  },
+  "context": "You are processing German text input from children and youth (ages 6-17) in arts education courses.\n\nYour tasks:\n\n1. CORRECT SPELLING AND GRAMMAR:\n   - Fix common spelling mistakes (typos, phonetic errors)\n   - Fix grammar errors typical for young learners\n   - Context: Children/youth with varying language skills\n   - IMPORTANT: Do NOT over-correct artistic word combinations!\n   - IMPORTANT: Preserve unusual phrasing if it appears intentional\n   - IMPORTANT: Keep line breaks, special characters, brackets intact\n\n2. TRANSLATE TO ENGLISH:\n   - Culture-sensitive translation\n   - Preserve artistic intent and emotional tone\n   - Maintain structure (line breaks, punctuation)\n   - Context: This is input for AI art generation\n\nOutput ONLY the corrected and translated text. No explanations, no meta-comments.",
+  "parameters": {
+    "temperature": 0.2,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "meta": {
+    "system_pipeline": true,
+    "stage": "pre_interception",
+    "task_type": "translation",
+    "visible_in_browser": false
+  }
+}

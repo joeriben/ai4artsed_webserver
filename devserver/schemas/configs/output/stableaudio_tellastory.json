@@ -1,0 +1,49 @@
+{
+  "pipeline": "audio_generation",
+  "name": {
+    "en": "StableAudio TellAStory",
+    "de": "StableAudio TellAStory"
+  },
+  "description": {
+    "en": "StableAudio TellAStory transformation (research-based from legacy workflow)",
+    "de": "StableAudio TellAStory-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Sound",
+    "de": "Sound"
+  },
+  "context": "synaesthetic sonicity expert",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "audio",
+    "supported_types": [
+      "audio"
+    ]
+  },
+  "meta": {
+    "stage": "output",
+    "legacy_source": "workflows_legacy/sound/ai4artsed_StableAudio_TellAStory_2506291505.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/google/gemma-3-27b-it [translator / $0.10/$0.18]"
+  },
+  "display": {
+    "icon": "🎵",
+    "color": "#FF9800",
+    "category": "sound",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

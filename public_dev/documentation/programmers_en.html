@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Documentation: AI4ArtsEd Webserver</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 1000px; margin: auto; }
+        h1, h2, h3 { color: #333; }
+        code { background-color: #f4f4f4; padding: 2px 6px; border-radius: 4px; }
+        pre { background-color: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .toc { border: 1px solid #ccc; padding: 10px 20px; border-radius: 5px; background-color: #f9f9f9; }
+        .toc ul { list-style-type: none; padding-left: 0; }
+        .toc > ul > li > a { font-weight: bold; }
+        .toc ul ul { padding-left: 20px; }
+        .warn { border-left: 5px solid #f0ad4e; padding: 10px; background-color: #fcf8e3; }
+        .info { border-left: 5px solid #5bc0de; padding: 10px; background-color: #eef7f9; }
+        .lang-switch { text-align: right; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="lang-switch">
+        <a href="programmers.html">Deutsche Version</a>
+    </div>
+
+    <h1>Developer Documentation: AI4ArtsEd Webserver</h1>
+
+    <div class="toc">
+        <h2>Table of Contents</h2>
+        <ul>
+            <li><a href="#introduction">1. Introduction and System Architecture</a>
+                <ul>
+                    <li><a href="#system-overview">1.1. System Overview</a></li>
+                    <li><a href="#technology-stack">1.2. Technology Stack</a></li>
+                    <li><a href="#directory-structure">1.3. Directory Structure</a></li>
+                </ul>
+            </li>
+            <li><a href="#server-backend">2. Server Backend (Flask/Waitress)</a>
+                <ul>
+                    <li><a href="#entry-point">2.1. Entry Point (server.py)</a></li>
+                    <li><a href="#application-factory">2.2. Application Factory (__init__.py)</a></li>
+                    <li><a href="#routing">2.3. Routing (routes)</a></li>
+                    <li><a href="#services">2.4. Services</a></li>
+                </ul>
+            </li>
+            <li><a href="#workflow-logic">3. Core Logic: Workflows</a>
+                <ul>
+                    <li><a href="#workflow-management">3.1. Workflow Management (workflow_logic_service.py)</a></li>
+                    <li><a href="#eco-vs-fast">3.2. Eco vs. Fast Mode</a></li>
+                    <li><a href="#hidden-commands">3.3. "Hidden Commands" in the Prompt</a></li>
+                </ul>
+            </li>
+            <li><a href="#interaction-swarmui">4. Interaction with SwarmUI/ComfyUI</a>
+                <ul>
+                    <li><a href="#comfyui-service">4.1. ComfyUI Service (comfyui_service.py)</a></li>
+                    <li><a href="#custom-nodes">4.2. Custom Nodes</a></li>
+                </ul>
+            </li>
+            <li><a href="#security-features">5. Security Features</a>
+                <ul>
+                    <li><a href="#prompt-validation">5.1. Prompt Validation and Translation</a></li>
+                    <li><a href="#safety-node">5.2. Safety Node (ai4artsed_switch_promptsafety.py)</a></li>
+                    <li><a href="#dynamic-negative-prompts">5.3. Dynamic Negative Prompts</a></li>
+                </ul>
+            </li>
+            <li><a href="#other-features">6. Other Important Features</a>
+                <ul>
+                    <li><a href="#image-upload">6.1. Image Upload and Analysis</a></li>
+                    <li><a href="#export-function">6.2. Export Function</a></li>
+                    <li><a href="#internationalization">6.3. Internationalization (i18n)</a></li>
+                </ul>
+            </li>
+             <li><a href="#dev-log">7. Development Log (Summary)</a></li>
+        </ul>
+    </div>
+
+    <h2 id="introduction">1. Introduction and System Architecture</h2>
+
+    <h3 id="system-overview">1.1. System Overview</h3>
+    <p>
+        The AI4ArtsEd web server is a Python-based web application that serves as a user-friendly interface for the generative AI platform SwarmUI/ComfyUI. It abstracts the complexity of ComfyUI workflows and provides a simplified interface tailored to the project's goals.
+    </p>
+    <p>
+        The core idea is to build a bridge between end-users (artists, educators, students) and the powerful but technical ComfyUI engine. The server achieves this through:
+    </p>
+    <ul>
+        <li>A web-based, intuitive user interface.</li>
+        <li>Dynamic manipulation of ComfyUI JSON workflows based on user input.</li>
+        <li>Integration of security and moderation layers.</li>
+        <li>Abstraction of technical details like model selection and seed control.</li>
+        <li>Provision of additional features like image analysis, export, and multilingual support.</li>
+    </ul>
+    <p class="info">
+        <strong>The Central Relationship:</strong> The web server is not an independent generator of AI content. It is an <strong>intelligent orchestrator and manipulator</strong>. It accepts user input, selects a suitable ComfyUI workflow, modifies it at runtime, and submits it to the ComfyUI backend service for execution. The results (images, texts) are then retrieved from the ComfyUI service and displayed to the user.
+    </p>
+
+    <h3 id="technology-stack">1.2. Technology Stack</h3>
+    <ul>
+        <li><strong>Backend Framework:</strong> Flask</li>
+        <li><strong>WSGI Server:</strong> Waitress (for production use)</li>
+        <li><strong>AI Backend:</strong> SwarmUI / ComfyUI</li>
+        <li><strong>LLM Interaction:</strong> Ollama (for local models), OpenRouter (for cloud models)</li>
+        <li><strong>Frontend:</strong> HTML, CSS, JavaScript (server-side rendered and statically served)</li>
+    </ul>
+
+    <h3 id="directory-structure">1.3. Directory Structure</h3>
+    <pre>
+/
+├── server/                  # Main backend code
+│   ├── my_app/              # Modular application structure
+│   │   ├── routes/          # Flask Blueprints for different endpoints
+│   │   ├── services/        # Business logic (ComfyUI, Ollama, Workflows)
+│   │   └── utils/           # Helper functions
+│   ├── config.py            # Configuration variables
+│   └── server.py            # Main entry point, starts the Waitress server
+├── scripts/                 # Helper scripts for maintenance and metadata generation
+├── public/                  # Static files (HTML, CSS, JS, images)
+│   └── documentation/       # Location for this documentation
+├── workflows_legacy/               # Collection of ComfyUI JSON workflows
+│   └── metadata.json        # Metadata for workflows (names, descriptions)
+└── requirements.txt         # Python dependencies
+    </pre>
+    <p>
+        Additionally, the system interacts with the Custom Nodes in <code>/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/custom_nodes/ai4artsed_comfyui/</code>.
+    </p>
+
+    <h2 id="server-backend">2. Server Backend (Flask/Waitress)</h2>
+
+    <h3 id="entry-point">2.1. Entry Point (server.py)</h3>
+    <p>
+        The file <code>server/server.py</code> is the entry point. It imports the application factory <code>create_app</code> from <code>my_app</code> and starts the <strong>Waitress production server</strong>. The switch from Flask's built-in development server to Waitress (see dev log from June 29) was an important step in stabilizing the system for multi-user operation.
+    </p>
+
+    <h3 id="application-factory">2.2. Application Factory (__init__.py)</h3>
+    <p>
+        In <code>server/my_app/__init__.py</code>, the Flask application is created using the factory pattern. This promotes modularity and testability. Here:
+    </p>
+    <ul>
+        <li>The Flask app is instantiated.</li>
+        <li>CORS (Cross-Origin Resource Sharing) is configured to allow requests from the frontend.</li>
+        <li>All Blueprints (route modules) are registered.</li>
+        <li>Logging is configured.</li>
+    </ul>
+
+    <h3 id="routing">2.3. Routing (routes)</h3>
+    <p>
+        The API endpoints are organized into Blueprints in the <code>server/my_app/routes/</code> directory. The most important Blueprint is <code>workflow_routes.py</code>:
+    </p>
+    <ul>
+        <li><code>/list_workflows</code>: Lists all available JSON workflows.</li>
+        <li><code>/workflow_metadata</code>: Returns the metadata (names, categories, etc.) from <code>workflows_legacy/metadata.json</code>.</li>
+        <li><code>/run_workflow</code>: The central endpoint. It takes the prompt, the selected workflow, and other parameters, orchestrates the entire logic, and submits the job to ComfyUI.</li>
+        <li><code>/workflow-status/<prompt_id></code>: Polls the status of a running job from ComfyUI.</li>
+        <li><code>/analyze_image</code>: Accepts an image and sends it to the Ollama service for analysis.</li>
+        <li><code>/comfyui/<path:path></code>: A proxy that forwards requests directly to the ComfyUI backend. This is crucial for the frontend to load generated images directly from ComfyUI without the Flask server acting as an intermediary downloader.</li>
+    </ul>
+
+    <h3 id="services">2.4. Services</h3>
+    <p>
+        The business logic is encapsulated in service classes in <code>server/my_app/services/</code>. This separates the route handlers from the actual work.
+    </p>
+    <ul>
+        <li><strong>workflow_logic_service.py:</strong> The heart of the application. Loads and manipulates workflow JSONs.</li>
+        <li><strong>comfyui_service.py:</strong> Handles all HTTP communication with the ComfyUI API.</li>
+        <li><strong>ollama_service.py:</strong> Interface to local and OpenRouter-connected LLMs for tasks like translation, security, and image analysis.</li>
+        <li><strong>export_manager.py:</strong> Manages the export of results.</li>
+        <li><strong>inpainting_service.py:</strong> Special logic for inpainting workflows.</li>
+        <li><strong>model_path_resolver.py:</strong> Intelligent search routine to find models even if they are not in the expected location.</li>
+    </ul>
+
+    <h2 id="workflow-logic">3. Core Logic: Workflows</h2>
+
+    <h3 id="workflow-management">3.1. Workflow Management (workflow_logic_service.py)</h3>
+    <p>
+        This service is responsible for the dynamic adaptation of workflows. The process for a request to <code>/run_workflow</code> is roughly as follows:
+    </p>
+    <ol>
+        <li>Load the base JSON file of the selected workflow.</li>
+        <li>Apply <strong>Eco or Fast mode</strong> by swapping model names in the workflow.</li>
+        <li>Inject the user prompt into the designated node.</li>
+        <li>Adjust image dimensions based on the chosen aspect ratio.</li>
+        <li>Set the <strong>seed</strong> based on user selection (random, standard, fixed).</li>
+        <li>Activate the <strong>safety level</strong> in the Custom Safety Node.</li>
+        <li>Enrich the <strong>negative prompts</strong> with standard and security-relevant terms.</li>
+        <li>Resolve model paths to increase resilience.</li>
+        <li>Apply <strong>"Hidden Commands"</strong> from the prompt.</li>
+        <li>Pass the finally modified workflow JSON to the <code>comfyui_service</code>.</li>
+    </ol>
+
+    <h3 id="eco-vs-fast">3.2. Eco vs. Fast Mode</h3>
+    <p>
+        This feature (see dev log July 2) allows for a dynamic switch between local (Eco) and cloud-based (Fast) LLMs.
+    </p>
+    <ul>
+        <li><strong>Eco Mode:</strong> Uses local models via Ollama. The <code>workflow_logic_service</code> searches the workflow for nodes using cloud models and replaces them with their local equivalents defined in <code>config.py</code> (<code>OPENROUTER_TO_OLLAMA_MAP</code>).</li>
+        <li><strong>Fast Mode:</strong> Uses more powerful cloud models via OpenRouter. The opposite happens here: local model names are replaced by their cloud counterparts (<code>OLLAMA_TO_OPENROUTER_MAP</code>). There is an intelligent fallback logic to find a suitable model if no direct equivalent exists.</li>
+    </ul>
+
+    <h3 id="hidden-commands">3.3. "Hidden Commands" in the Prompt</h3>
+    <p>
+        To keep the user interface lean while giving power users more control, "Hidden Commands" were introduced (dev log July 19 & 21). These are written directly into the prompt field and parsed by the server (<code>helpers.py:parse_hidden_commands</code>) before the prompt is processed further.
+    </p>
+    <ul>
+        <li><code>#notranslate#</code>: Skips automatic translation.</li>
+        <li><code>#cfg:x#</code>, <code>#steps:x#</code>, <code>#seed:x#</code>: Override the UI settings for the KSampler throughout the workflow.</li>
+        <li><code>#negative:terms#</code>: Appends additional terms to all negative prompts in the workflow.</li>
+        <li><code>#loop:x#</code>: (Planned) Should execute the workflow x times.</li>
+    </ul>
+    <p class="warn">
+        <strong>Important:</strong> These commands are processed server-side and override settings from the frontend. This is a powerful tool for debugging and advanced use.
+    </p>
+
+    <h2 id="interaction-swarmui">4. Interaction with SwarmUI/ComfyUI</h2>
+
+    <h3 id="comfyui-service">4.1. ComfyUI Service (comfyui_service.py)</h3>
+    <p>
+        This service is a pure API wrapper class for the ComfyUI HTTP API. It provides methods for:
+    </p>
+    <ul>
+        <li><code>submit_workflow</code>: Sends a workflow JSON to the <code>/prompt</code> endpoint of ComfyUI.</li>
+        <li><code>get_history</code>: Polls the <code>/history/<prompt_id></code> endpoint to get the status and results of a job.</li>
+        <li><code>download_media</code>: Downloads generated media (images, etc.) from ComfyUI.</li>
+        <li><code>proxy_request</code>: Forwards requests directly to ComfyUI.</li>
+    </ul>
+
+    <h3 id="custom-nodes">4.2. Custom Nodes</h3>
+    <p>
+        A significant part of the project's logic is outsourced to specialized, reusable Custom Nodes for ComfyUI. These are located in the <code>/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/custom_nodes/ai4artsed_comfyui/</code> directory. They allow complex logic to be integrated directly into the workflows and controlled from the web server.
+    </p>
+    <p>Important Custom Nodes include:</p>
+    <ul>
+        <li><code>ai4artsed_switch_promptsafety.py</code>: The centerpiece of the security features. This node receives the safety level ('off', 'youth', 'kids') from the web server and manipulates the passing prompt accordingly.</li>
+        <li><code>ai4artsed_prompt_interception.py</code>: Enables dynamic selection of LLM models (local vs. cloud) directly in the workflow.</li>
+        <li><code>ai4artsed_image_analysis.py</code>: Analyzes an image and returns a textual description.</li>
+        <li>Other nodes for specific tasks like text remixing, conditioning fusion, etc.</li>
+    </ul>
+    <p class="info">
+        The use of Custom Nodes is a clever architectural decision. Instead of implementing all logic in the web server, it is moved into modular, reusable components that are visible in the ComfyUI graph. The web server then acts as a "remote control" for these nodes.
+    </p>
+
+    <h2 id="security-features">5. Security Features: A Multi-Layered Defense</h2>
+    <p>
+        Security is a central concern of the project. Instead of a single filter, a deep, multi-layered security pipeline has been implemented, operating both on the server-side and within the ComfyUI workflow. This addresses the problem that simple filters can be bypassed.
+    </p>
+    <p class="info">
+        <strong>The Security Pipeline in Detail:</strong> Every user input goes through the following steps in exact order before an image is generated.
+    </p>
+    
+    <ol>
+        <li><strong>Layer 1: Server-Side Pre-processing (in <code>ollama_service.py</code>)</strong>
+            <ul>
+                <li><strong>Step 1.1: Translation to English:</strong> The original prompt is first translated into English using the <code>TRANSLATION_MODEL</code> (<code>gemma2:9b</code>). This is crucial because the subsequent security models are primarily trained in English. The translation instruction in <code>config.py</code> is highly specific to preserve the semantic structure and special syntax.</li>
+                <li><strong>Step 1.2: Guard Model Check:</strong> The <strong>translated</strong> English prompt is sent to a dedicated guard model, <code>SAFETY_MODEL</code> (<code>llama-guard-3:8b</code>). This model is specifically trained to detect unsafe content. If this model flags the prompt as problematic, the entire process is <strong>immediately aborted</strong>, and an error message is returned to the user. Only prompts classified as safe proceed to the next layer.</li>
+            </ul>
+        </li>
+        <br>
+        <li><strong>Layer 2: Server-Side Workflow Manipulation (in <code>workflow_logic_service.py</code>)</strong>
+            <ul>
+                <li><strong>Step 2.1: Safety Node Configuration:</strong> The server finds the Custom Node <code>ai4artsed_switch_promptsafety</code> in the workflow and sets its <code>filter_level</code> parameter to the user's chosen level ('off', 'youth', 'kids'). This prepares the next security layer, which only becomes active within ComfyUI.</li>
+                <li><strong>Step 2.2: Negative Prompt Induction:</strong> This is a crucial, proactive safety net. The <code>enhance_negative_prompts</code> function enriches the negative prompts of all sampler nodes in the workflow:
+                    <ul>
+                        <li><strong>Always:</strong> The <code>DEFAULT_NEGATIVE_TERMS</code> from <code>config.py</code> (e.g., "blurry, bad quality") are added to improve general image quality.</li>
+                        <li><strong>Conditional:</strong> If the safety level is 'youth' or 'kids', the extensive, specific word lists from <code>SAFETY_NEGATIVE_TERMS</code> in <code>config.py</code> are also added. For 'kids', this list is particularly comprehensive and includes terms from the areas of violence, horror, psychological distress, etc. This prevents the AI from generating problematic elements even if the positive prompt seems harmless.</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <br>
+        <li><strong>Layer 3: In-Workflow Prompt Manipulation (in <code>ai4artsed_switch_promptsafety.py</code>)</strong>
+            <ul>
+                <li><strong>Step 3.1: Execution in ComfyUI:</strong> After the manipulated workflow is submitted to ComfyUI, the Custom Node <code>ai4artsed_switch_promptsafety</code> becomes active. It receives the prompt that has already been translated and deemed safe by Layer 1.</li>
+                <li><strong>Step 3.2: Final Transformation:</strong> Based on the set <code>filter_level</code>, the node performs a final LLM operation:
+                    <ul>
+                        <li><strong>'youth':</strong> The prompt is reformulated according to the detailed instructions in <code>MANIPULATION_INSTRUCTIONS["youth"]</code>. The goal is to defuse and abstract problematic depictions without completely losing the creative essence.</li>
+                        <li><strong>'kids':</strong> Even stricter rules from <code>MANIPULATION_INSTRUCTIONS["kids"]</code> apply here. If the prompt is deemed potentially fear-inducing for children, it is <strong>completely discarded</strong> and replaced with a hard-coded, safe fallback prompt ("A small, frightened kitten..."). This is the last and toughest line of defense to prevent the generation of harmful content.</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+    </ol>
+    <p class="warn">
+        <strong>In summary:</strong> The system does not rely on a single filter. It is a cascade of preventive checking (guard model), proactive safeguarding (negative prompts), and reactive manipulation (Safety Node) that ensures only carefully vetted and adapted prompts reach the final image generation stage.
+    </p>
+
+    <h2 id="other-features">6. Other Important Features</h2>
+
+    <h3 id="image-upload">6.1. Image Upload and Analysis</h3>
+    <p>
+        (Dev log June 29, June 17) Users can upload images. Processing depends on the selected workflow:
+    </p>
+    <ul>
+        <li><strong>Standard Workflow:</strong> The image is sent to the <code>ollama_service</code>, which generates a text description of the image using a vision model (<code>ANALYSIS_MODEL</code>). This description is then appended to the user's text prompt. The image itself is not used.</li>
+        <li><strong>Inpaint Workflow:</strong> The system detects inpaint workflows (based on the model name and the presence of a "LoadImage" node). In this case, the image is not analyzed but injected directly into the "LoadImage" node of the workflow to serve as the basis for the inpainting process.</li>
+    </ul>
+
+    <h3 id="export-function">6.2. Export Function</h3>
+    <p>
+        (Dev log July 5, July 14) Results are automatically saved on the server in the <code>exports/</code> directory. The <code>export_manager.py</code> handles collecting the generated images and metadata (prompt, seed, etc.) and saving them in various formats (HTML, PDF, DOCX, XML). This serves traceability and research data collection.
+    </p>
+
+    <h3 id="internationalization">6.3. Internationalization (i18n)</h3>
+    <p>
+        (Dev log July 5, July 19, July 21) The system is designed to be bilingual (German/English). The challenge of combining this with the dynamic nature of workflows was solved with a manual approach:
+    </p>
+    <ul>
+        <li>Workflow names, categories, and descriptions are maintained in both languages in the central file <code>workflows_legacy/metadata.json</code>.</li>
+        <li>A script (presumably <code>scripts/generate_metadata.py</code>) helps manage this file.</li>
+        <li>The frontend loads this metadata and displays the appropriate language. If no entry exists for a workflow, the filename is used as a fallback.</li>
+    </ul>
+    <p class="warn">
+        Attempts to fully automate this failed due to complexity and cost, leading to the current, more stable manual solution.
+    </p>
+
+    <h2 id="dev-log">7. Development Log (Summary)</h2>
+    <p>
+        The provided development log is a valuable resource for understanding the project's evolution. Key insights include:
+    </p>
+    <ul>
+        <li><strong>Iterative Development:</strong> Features were added and refined step-by-step.</li>
+        <li><strong>Pragmatic Decisions:</strong> Failed attempts (e.g., stateful server, automatic i18n) led to simpler but more robust solutions. The developers were willing to discard complex approaches if they proved impractical or too expensive.</li>
+        <li><strong>Focus on Security:</strong> A significant part of the development was dedicated to implementing multi-layered security mechanisms.</li>
+        <li><strong>Usability vs. Functionality:</strong> A conscious effort was made to keep the interface simple (e.g., no direct seed input, hidden commands for power users) to avoid overwhelming the target audience.</li>
+        <li><strong>Refactoring:</strong> The need to refactor code (e.g., <code>server.py</code>, <code>index.html</code>) was recognized and acted upon to ensure maintainability.</li>
+    </ul>
+
+</body>
+</html>

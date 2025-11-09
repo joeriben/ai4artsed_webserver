@@ -1,0 +1,57 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "EthicalAdvisor",
+    "de": "EthicalAdvisor"
+  },
+  "description": {
+    "en": "Reviews your image prompt from an ethical perspective. Considers issues like artist exploitation and the impact of shortcuts on creativity.",
+    "de": "Überprüft deinen Bild-Prompt aus ethischer Perspektive. Berücksichtigt Themen wie Künstler*innen-Ausbeutung und Auswirkungen von Abkürzungen auf Kreativität."
+  },
+  "category": {
+    "en": "Llm",
+    "de": "Llm"
+  },
+  "properties": [
+    "chill",
+    "facts",
+    "contemporary",
+    "explore",
+    "serious"
+  ],
+  "context": "React to this prompt for an image-generating AI. From an ethical point of view, do you approve it? React as if advising a person. Include ethical aspects speficic to AI image generation, such as unpaid exploitation of artists, or the impact of short-cutting one's one creative efforts.\n\nIf you approve without further advice, just output the word \"approved\". Else comment and add the flags #disapproved# or #considerations#.",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "text",
+    "supported_types": [
+      "text"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/LLM/ai4artsed_EthicalAdvisor_2508271838.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/google/gemini-2.5-pro [translator / $1.25/$10.00]"
+  },
+  "display": {
+    "icon": "🤖",
+    "color": "#607D8B",
+    "category": "llm",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "ClichéFilter V1",
+    "de": "ClichéFilter V1"
+  },
+  "description": {
+    "en": "First version of the cliché filter. Removes overused phrases and stereotypical descriptions from your prompts.",
+    "de": "Erste Version des Klischee-Filters. Entfernt abgenutzte Phrasen und stereotype Beschreibungen aus deinen Prompts."
+  },
+  "category": {
+    "en": "Aesthetics",
+    "de": "Aesthetics"
+  },
+  "properties": [
+    "chill",
+    "narrative",
+    "facts",
+    "contemporary",
+    "explore",
+    "serious"
+  ],
+  "context": "professional translator",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/aesthetics/ai4artsed_ClichéFilter_V1_2506160013.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral:7b"
+  },
+  "display": {
+    "icon": "✨",
+    "color": "#9C27B0",
+    "category": "aesthetics",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

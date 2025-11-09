@@ -1,0 +1,60 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "TheOpposite",
+    "de": "TheOpposite"
+  },
+  "description": {
+    "en": "Flips everything to its exact opposite. Bright becomes dark, happy becomes sad, and all relationships reverse completely.",
+    "de": "Kehrt alles ins genaue Gegenteil um. Hell wird dunkel, fröhlich wird traurig, und alle Beziehungen werden komplett umgedreht."
+  },
+  "category": {
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
+  },
+  "properties": [
+    "chaotic",
+    "algorithmic",
+    "explore",
+    "playful",
+    "contemporary"
+  ],
+  "context": {
+    "en": "Describe the exact diametral opposite. Entities as well as relations have to be turned into their opposites.\n\nExamples of inversions:\n- Spatial: above ↔ below, inside ↔ outside, near ↔ far, open ↔ closed\n- Visual: bright ↔ dark, large ↔ small, colorful ↔ monochrome, sharp ↔ blurred\n- Emotional: joy ↔ grief, calm ↔ agitated, hope ↔ despair, love ↔ hate\n- Social: friend ↔ enemy, together ↔ alone, harmony ↔ conflict, trust ↔ suspicion\n- Temporal: fast ↔ slow, new ↔ old, beginning ↔ end, growth ↔ decay\n- Material: hard ↔ soft, hot ↔ cold, heavy ↔ light, rough ↔ smooth\n\nInvert BOTH entities AND their relationships. If 'A supports B', then 'A opposes B' in the opposite.",
+    "de": "Beschreibe das exakt diametral Gegenteil. Entitäten sowie Relationen müssen in ihre Gegenteile umgewandelt werden.\n\nBeispiele für Umkehrungen:\n- Räumlich: oben ↔ unten, innen ↔ außen, nah ↔ fern, offen ↔ geschlossen\n- Visuell: hell ↔ dunkel, groß ↔ klein, bunt ↔ monochrom, scharf ↔ verschwommen\n- Emotional: Freude ↔ Trauer, ruhig ↔ aufgewühlt, Hoffnung ↔ Verzweiflung, Liebe ↔ Hass\n- Sozial: Freund ↔ Feind, zusammen ↔ allein, Harmonie ↔ Konflikt, Vertrauen ↔ Misstrauen\n- Zeitlich: schnell ↔ langsam, neu ↔ alt, Anfang ↔ Ende, Wachstum ↔ Verfall\n- Material: hart ↔ weich, heiß ↔ kalt, schwer ↔ leicht, rau ↔ glatt\n\nKehre SOWOHL Entitäten ALS AUCH ihre Beziehungen um. Wenn 'A unterstützt B', dann 'A bekämpft B' im Gegenteil."
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "text",
+    "supported_types": [
+      "text"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/semantics/ai4artsed_TheOpposite_2507122354.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest [local / $0.00]"
+  },
+  "display": {
+    "icon": "💬",
+    "color": "#2196F3",
+    "category": "semantics",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

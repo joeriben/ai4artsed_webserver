@@ -1,0 +1,61 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Bauhaus",
+    "de": "Bauhaus"
+  },
+  "description": {
+    "en": "Reduces everything to basic geometric shapes and primary colors. Focuses on function and clear structure, stripping away decoration.",
+    "de": "Reduziert alles auf geometrische Grundformen und Primärfarben. Konzentriert sich auf Funktion und klare Struktur, ohne Dekoration."
+  },
+  "category": {
+    "de": "Kunst & Kultur",
+    "en": "Art & Culture"
+  },
+  "properties": [
+    "chill",
+    "facts",
+    "historical",
+    "create",
+    "serious",
+    "algorithmic"
+  ],
+  "context": {
+    "en": "You will receive a descriptive prompt as input, and your task is to re-conceptualize this input by applying the core principles of Bauhaus functionalism and design theory. The goal is to deconstruct any input into its elemental components of form, function, and color, and then reconstruct it within the Bauhaus framework - FORM FOLLOWS FUNCTION - ensuring that the original entities and their structural relationships are preserved in this new, abstracted form. Check this before outputting. Transform as follows: 1. Analysis and Deconstruction: identify all primary entities, relationships, and the overall atmosphere of the input prompt; 2. Application of Functionalism: Redefine the purpose of each entity - if the purpose is representational, ornamental, or status-based (e.g., 'decorative vase', 'majestic mountain'), translate it into a functional, production, or analytical approach (vase -> functional prototype for a cylindrical container; mountain: tectonic forces, triangular forms); 3. Geometric Reduction: remove all naturalistic or ornamental appearance; reduce each entity to its fundamental geometric forms (circles, squares, triangles) and their structural lines - a flower becomes an analytical composition of concentric circles and radial lines, a face becomes a diagram of intersecting planes and spheres; 4. Apply Material and Color Theory: translate all materials into industrial materials (steel, glass, concrete, wood) and reduce the color palette of the entire scene to Bauhaus color palettes. Forbidden are any romantic, naturalistic, or ornamental language, any metaphorical expressions such as 'represents', 'symbolizes', 'stands for', 'resembles', or 'is like', so that the description remains direct and within the Bauhaus project framework, as if describing a real Bauhaus project, and does not explain the translation process - the result is a single descriptive paragraph. YOU ARE FORBIDDEN TO STEAL THEIR STYLE USING EXPRESSIONS SUCH AS 'IN THE STYLE OF'. YOUR DUTY IS PERSPECTIVE_TAKING, NOT MIMICKING SURFACES.",
+    "de": "Du erhältst einen beschreibenden Prompt als Input, und deine Aufgabe ist es, diesen Prompt neu zu konzeptualisieren, indem du die Kernprinzipien des Bauhaus‑Funktionalismus und der Designtheorie anwendest. Das Ziel besteht darin, jeden Prompt in seine elementaren Komponenten Form, Funktion und Farbe zu zerlegen und anschließend innerhalb des Bauhaus‑Frameworks - FORM FOLLOWS FUNCTION - neu zu rekonstruieren, wobei du  sicherstellen musst, dass die ursprünglichen Entitäten und ihre strukturellen Beziehungen in dieser neuen, abstrahierten Form erhalten bleiben und dies vor dem Ausgeben überprüfst; zur Transformation gehst du wie folgt vor: 1. Analyse und Zerlegung: identifiziere zunächst alle Primärentitäten, Beziehungen und die generelle Atmosphäre des Prompt‑Inputs; 2. Anwendung des Funktionalismus: Definiere den Zweck jeder Entität neu – wenn der Zweck repräsentativ, ornamentisch oder statusbasiert ist (z. B. 'dekorative Vase', 'ein majestätischer Berg'), wandle ihn in einen Funktion-, Produktions- oder analytischen Ansatz um (Vase -> funktionaler Prototyp für einen zylindrischen Behälter, Berg: tektonische Kräfte, dreieckigen Formen; 3. Geometrische Reduktion: entferne jegliche naturalistische oder ornamentale Erscheinung; reduziere jede Entität auf ihre grundlegenden geometrischen Formen (Kreise, Quadrate, Dreiecke) und deren strukturelle Linien – eine Blume wird zu einer analytischen Komposition aus konzentrischen Kreisen und radialen Linien, ein Gesicht zu einem Diagramm aus sich schneidenden Ebenen und Kugeln; 4. Material‑ und Farbtheorie anwenden: übersetze alle Materialien in Industrie­materialien (Stahl, Glas, Beton, Holz) und reduziere die Farbpalette der gesamten Szene auf Baushaus-Farbpaletten. Verboten sind jegliche romantische, naturalistische oder ornamentale Sprache, jegliche metaphorische Ausdrücke wie 'repräsentiert', 'symbolisiert', 'steht für', 'ähnelt' oder 'ist wie', damit die Beschreibung direkt und im Rahmen des Bauhaus‑Projekts bleibt, als würde ein realer Bauhaus‑Projekt beschrieben, und erklärt den Übersetzungsprozess nicht – das Ergebnis ist ein einzelner beschreibender Absatz. ES IST DIR VERBOTEN DEN STIL DIESER KÜNSTlER_INNEN ZU STEHLEN DURCH FORMULIERUNGEN WIE 'Im Stil von'. ES IST DEINE PFLICHT, IHRE PERSPEKTIVE EINZUNEHMEN, NICHT OBERFLÄCHEN NACHZUÄFFEN."
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Bauhaus_2509071932.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
+  },
+  "display": {
+    "icon": "🎨",
+    "color": "#E91E63",
+    "category": "arts_and_heritage",
+    "difficulty": 4,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": false,
+    "min_age": 12,
+    "complexity": "advanced"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "pipeline": "audio_generation",
+  "name": {
+    "en": "StableAudio",
+    "de": "StableAudio"
+  },
+  "description": {
+    "en": "StableAudio transformation (research-based from legacy workflow)",
+    "de": "StableAudio-Transformation (forschungsbasiert aus Legacy-Workflow)"
+  },
+  "category": {
+    "en": "Sound",
+    "de": "Sound"
+  },
+  "context": "musical expert, number extraction",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "audio",
+    "supported_types": [
+      "audio"
+    ]
+  },
+  "meta": {
+    "stage": "output",
+    "legacy_source": "workflows_legacy/sound/ai4artsed_StableAudio_2506291524.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/gemma3:4b [local / $0.00]"
+  },
+  "display": {
+    "icon": "🎵",
+    "color": "#FF9800",
+    "category": "sound",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

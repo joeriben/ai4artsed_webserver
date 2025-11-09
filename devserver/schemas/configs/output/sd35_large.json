@@ -1,0 +1,80 @@
+{
+  "pipeline": "single_text_media_generation",
+  "name": {
+    "en": "Stable Diffusion 3.5 Large",
+    "de": "Stable Diffusion 3.5 Large"
+  },
+  "description": {
+    "en": "High-quality image generation using Stable Diffusion 3.5 Large with Dual CLIP text encoding",
+    "de": "Hochwertige Bildgenerierung mit Stable Diffusion 3.5 Large und Dual CLIP Text-Encoding"
+  },
+  "category": {
+    "en": "Image Generation",
+    "de": "Bildgenerierung"
+  },
+
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_sd35_large",
+    "NEGATIVE_PROMPT": "blurry, bad quality, watermark, text, distorted, malformed, disfigured, low resolution",
+    "WIDTH": 1024,
+    "HEIGHT": 1024,
+    "STEPS": 25,
+    "CFG": 5.5,
+    "SAMPLER": "euler",
+    "SCHEDULER": "normal",
+    "SEED": "random",
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 512
+  },
+
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+
+  "meta": {
+    "stage": "output",
+    "model": "sd3.5_large",
+    "model_file": "OfficialStableDiffusion/sd3.5_large.safetensors",
+    "backend": "comfyui",
+    "backend_type": "comfyui",
+    "clip_models": [
+      "clip_g.safetensors",
+      "t5xxl_enconly.safetensors"
+    ],
+    "requires_gpu": true,
+    "gpu_vram_mb": 8000,
+    "estimated_duration_seconds": "20-60",
+    "recommended_resolution": "1024x1024",
+    "supported_resolutions": [
+      "512x512",
+      "768x768",
+      "1024x1024",
+      "1280x1280",
+      "1024x768",
+      "768x1024"
+    ],
+    "notes": "SD3.5 Large uses Dual CLIP (clip_g + t5xxl) for superior text understanding. Best quality at 1024x1024 resolution.",
+    "version": "1.0"
+  },
+
+  "display": {
+    "icon": "🎨",
+    "color": "#FF6B6B",
+    "category": "image_generation",
+    "difficulty": 2,
+    "order": 10
+  },
+
+  "tags": {
+    "en": ["image", "stable-diffusion", "high-quality", "sd3.5", "comfyui"],
+    "de": ["bild", "stable-diffusion", "hohe-qualität", "sd3.5", "comfyui"]
+  },
+
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 10,
+    "complexity": "beginner"
+  }
+}

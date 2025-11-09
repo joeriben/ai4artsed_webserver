@@ -1,0 +1,56 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "(((PromptInterception)))",
+    "de": "(((PromptInterception)))"
+  },
+  "description": {
+    "en": "Experimental meta-interception workflow. Tests the boundaries of prompt transformation itself.",
+    "de": "Experimenteller Meta-Interception-Workflow. Testet die Grenzen der Prompt-Transformation selbst."
+  },
+  "category": {
+    "en": "Model",
+    "de": "Model"
+  },
+  "properties": [
+    "chill",
+    "narrative",
+    "contemporary",
+    "explore"
+  ],
+  "context": "professional translator",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/model/ai4artsed_(((PromptInterception)))_2507101853.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral:7b"
+  },
+  "display": {
+    "icon": "🧪",
+    "color": "#795548",
+    "category": "experimental",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

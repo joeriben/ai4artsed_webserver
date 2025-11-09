@@ -1,0 +1,25 @@
+{
+  "name": "audio_generation",
+  "description": "Multi-Media Audio Generation Pipeline",
+  "pipeline_type": "audio_generation",
+  "pipeline_stage": "4",
+  "requires_interception_prompt": false,
+  "input_requirements": {
+    "texts": 1
+  },
+  "chunks": [
+    "manipulate",
+    "comfyui_audio_generation"
+  ],
+  "config_mappings": {
+    "manipulate": "media_prompt_optimization.audio_stable_audio",
+    "comfyui_audio_generation": "audio_generation.stable_audio_standard"
+  },
+  "meta": {
+    "version": "1.0",
+    "description_de": "Audiogenerierung mit Stable Audio",
+    "description_en": "Audio Generation with Stable Audio",
+    "output_type": "audio",
+    "model": "stableaudio_model.safetensors"
+  }
+}

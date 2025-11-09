@@ -1,0 +1,63 @@
+{
+  "pipeline": "text_transformation_recursive",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "StillePost",
+    "de": "StillePost"
+  },
+  "description": {
+    "en": "Passes your text through 8 random languages like a game of telephone. Creates surprising changes as meaning shifts through multiple translations.",
+    "de": "Schickt deinen Text durch 8 zufällige Sprachen wie bei Stille Post. Erzeugt überraschende Veränderungen, während die Bedeutung durch mehrere Übersetzungen wandert."
+  },
+  "category": {
+    "de": "Kreative Verwandlungen",
+    "en": "Creative Transformations"
+  },
+  "properties": [
+    "chaotic",
+    "algorithmic",
+    "explore",
+    "playful",
+    "contemporary"
+  ],
+  "context": {
+    "en": "Translate the following text to {{TARGET_LANGUAGE}}.\n\nImportant rules:\n- Translate naturally and idiomatically\n- Do not add any commentaries, explanations, or error messages\n- Only output the translated text\n- Preserve the general meaning and tone\n\nText to translate:",
+    "de": "I’m ready to help! Could you please provide the text you’d like translated?"
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048,
+    "iterations": 8,
+    "use_random_languages": true,
+    "final_language": "en"
+  },
+  "media_preferences": {
+    "default_output": "text",
+    "supported_types": [
+      "text"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/semantics/ai4artsed_StillePost_2506232347.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "local/mistral-nemo:latest"
+  },
+  "display": {
+    "icon": "💬",
+    "color": "#2196F3",
+    "category": "semantics",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

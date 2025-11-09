@@ -1,0 +1,26 @@
+{
+  "pipeline": "text_transformation",
+  "name": {
+    "en": "Pre-Output: Image Safety & Refinement",
+    "de": "Vor-Output: Bild-Sicherheit & Verfeinerung"
+  },
+  "description": {
+    "en": "Final safety check and prompt refinement before image generation, with age-appropriate negative prompts for children/youth",
+    "de": "Finale Sicherheitsprüfung und Prompt-Verfeinerung vor Bildgenerierung, mit altersgerechten Negativ-Prompts für Kinder/Jugendliche"
+  },
+  "context": "You are preparing a text prompt for AI image generation. This prompt has already been artistically transformed.\n\nYour tasks:\n\n1. SAFETY CHECK:\nDoes this prompt contain ANY unsafe elements?\n- Violence, weapons, blood, death, injury\n- Sexual content, nudity, innuendo\n- Frightening, horror, disturbing imagery\n- Hate symbols, discrimination\n- Drug/alcohol references\n\nIf UNSAFE: Output JSON with \"safe\": false and \"abort_reason\": \"[specific reason]\"\nIf SAFE: Continue to step 2.\n\n2. NEGATIVE PROMPT GENERATION:\nGenerate appropriate negative prompts to exclude:\n- Quality issues: blurry, low quality, bad anatomy, distorted, deformed, ugly\n- Technical issues: text, watermark, signature, artist name, copyright\n- Safety exclusions based on context:\n  * For kids (6-12): scary, dark, violent, disturbing, frightening, horror, sexual, nude\n  * For youth (13-17): sexual, nude, extreme violence, disturbing\n\n3. PROMPT REFINEMENT:\nSlightly refine the prompt for better image quality (add detail descriptors if appropriate)\n\n4. OUTPUT FORMAT (MANDATORY JSON):\n{\n  \"safe\": true,\n  \"positive_prompt\": \"[refined prompt]\",\n  \"negative_prompt\": \"[comma-separated negative tags]\",\n  \"abort_reason\": null\n}\n\nOr if unsafe:\n{\n  \"safe\": false,\n  \"positive_prompt\": null,\n  \"negative_prompt\": null,\n  \"abort_reason\": \"[specific reason]\"\n}\n\nIMPORTANT: Output ONLY valid JSON, nothing else. No markdown, no explanations, just pure JSON.",
+  "parameters": {
+    "temperature": 0.3,
+    "top_p": 0.9,
+    "max_tokens": 1024
+  },
+  "meta": {
+    "system_pipeline": true,
+    "stage": "pre_output",
+    "media_type": "image",
+    "output_format": "json",
+    "safety_level": "youth",
+    "task_type": "advanced",
+    "visible_in_browser": false
+  }
+}

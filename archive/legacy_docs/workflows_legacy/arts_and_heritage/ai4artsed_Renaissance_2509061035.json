@@ -1,0 +1,234 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 610576053352533,
+      "steps": 25,
+      "cfg": 5.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Choose your checkpoint ( = image generation model)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "41",
+        0
+      ],
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "watermark",
+      "clip": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {},
+    "class_type": "ai4artsed_openrouter_key",
+    "_meta": {
+      "title": "Secure Access to OpenRouter API Key"
+    }
+  },
+  "20": {
+    "inputs": {
+      "clip_name": "clip_g.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "26": {
+    "inputs": {
+      "value": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_text_prompt"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "a sheperd's scene"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Just a more convenient input for your prompt"
+    }
+  },
+  "41": {
+    "inputs": {
+      "input_prompt": [
+        "26",
+        0
+      ],
+      "input_context": [
+        "44",
+        0
+      ],
+      "style_prompt": "You received two inputs: 1) the input_prompt and 2) the input_context. \n\nTransform the input_prompt into an image description according to the instructions defined in the input_context. Explicitely transform the input_context as cultural cf. artistic. cf intervening context. Also transform genres/artistic traditions in a concrete way (i.e. is it a dance, a photo, a painting, a song, a movie, a statue/sculpture? how should it be translated into an image?)\n\nThis is not a linguistic translation, but a aesthetic, semantic and structural transformation. Be verbose! Provide the visual translation yourself. Never leave it to someone else, i.e. never say something \"represents\" or \"demonstrates\" something: always think and make clear what this should visually mean. Describe then what you mean. Also, describe visual traits of things, animals, and persons according to the structure of the context. Do not leave this openl\n\nReconstruct all entities and their relations as specified, ensuring that:\n- Each entity is retained – or respectively transformed – as instructed.\n- Each relation is altered in line with the particular aesthetics, genre-typical traits, and logic of the “Context”. Be explicit about visual aesthetics in terms of materials, techniques, composition, and overall atmosphere. Mention the input_context als cultural, cf. artistic, c.f intervening context in your OUTPUT explicitely.\n\nOutput only the transformed description as plain descriptive text. You are not talking to a person. you are not telling anyone what to do. YOu purely and simply describe an image/scene. Be aware if the output is something depicted (like a ritual or any situation) OR itself a cultural artefact (such as a specific drawing technique). Describe accordingly. In your output, communicate which elements are most important for an succeeding image generation.\n\nNever output or allude to any artist, movement, museum, date, or ‘in the style of’. Use only procedural, material, and compositional language. If a proper name is generated, replace it with a neutral procedural term.\n\nCreate an output prompt tailored for Stable Diffusion 3.5 with combined clip_g and t5xxlenc. Regard the Token Limit: max. 55 Words for the core of the prompt. Always may use up to 300 words to be more verbose, but everything important must fit into the 55 words limit. Begin with the 55 words prompt. Append the rest.\n\nDO NOT make ANY META-REMARKS, JUST THE INSTRUCTIONS FOR IMAGE GENERATION! Do not explain your reasoning.\n\nNEVER tell \"what the image should show\" or what someone \"should do\". Just describe an image as pure description.",
+      "api_key": [
+        "11",
+        0
+      ],
+      "model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Prompt Interception"
+    }
+  },
+  "42": {
+    "inputs": {
+      "value": "You are an artist working in the spirit of the Renaissance. Treat the 'input_prompt' as a subject to solve the problem: how to bring order, proportion, and human dignity into visible form. Do not imitate a style. Work through procedure, not through labels. Decide which Renaissance artform should serve as the basis of your description: painting, sculpture, or architecture. Always begin your answer accordingly: \"A renaissance painting ...\", \"a renaissance sculpture ...\" etc.\n\nWork from reasons:\nHumanist attitude. Decide the dominant orientation (harmonia, dignitas, scientia, religio). Every formal choice must reflect a balance between earthly reality and higher order.\nSpace as order. Construct perspectival or proportional systems that rationalize the scene. Spatial harmony is the solution to disorder.\nLight as modeling. Use chiaroscuro or graded light to reveal plastic volume; light is reason shaping matter.\nProportion as measure. Figures and entities are set in mathematical relation (symmetria, canon). Proportion is a moral and intellectual principle.\nComposition as demonstration. Orchestrate geometry, architecture, and figure placement so that meaning arises from balance, not ornament.\nSurface as invention. Drawing, layering, glazing, fresco technique are visible as acts of invenzione: intellectual ordering inscribed into matter.\nHard constraint:\nNever output or allude to artist names, movements, museums, dates, or ‘in the style of’. Never narrate what something ‘represents’; translate only into proportion, perspective, light, and order. Avoid all clichés of Renaissance iconography."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Interceptive context - REPLACE THIS AS YOU SEE FIT (default is meant for the AI4ArtsEd web-interface)"
+    }
+  },
+  "43": {
+    "inputs": {
+      "clip_name1": "clip_g.safetensors",
+      "clip_name2": "t5xxl_enconly.safetensors",
+      "type": "sd3",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "44": {
+    "inputs": {
+      "value": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ai4artsed_context_prompt"
+    }
+  },
+  "46": {
+    "inputs": {
+      "preview": "",
+      "source": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "final prompt"
+    }
+  },
+  "47": {
+    "inputs": {
+      "input_prompt": "",
+      "input_context": "professional translator",
+      "style_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
+      "api_key": "",
+      "model": "local/mistral:7b",
+      "debug": "disable",
+      "unload_model": "yes"
+    },
+    "class_type": "ai4artsed_prompt_interception",
+    "_meta": {
+      "title": "AI4ArtsEd Translation_english"
+    }
+  }
+}

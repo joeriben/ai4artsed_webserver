@@ -1,0 +1,59 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "English Translation",
+    "de": "Englisch-Übersetzung"
+  },
+  "description": {
+    "en": "Simple translation to English while preserving structure and formatting. System pipeline for pre-processing non-English inputs.",
+    "de": "Einfache Übersetzung ins Englische unter Beibehaltung von Struktur und Formatierung. System-Pipeline zur Vorverarbeitung nicht-englischer Eingaben."
+  },
+  "category": {
+    "en": "System Pipelines",
+    "de": "System-Pipelines"
+  },
+  "properties": [
+    "chill",
+    "algorithmic",
+    "facts",
+    "explore"
+  ],
+  "context": "Target language: English. Preserve structure and formatting.",
+  "parameters": {
+    "temperature": 0.1,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "text",
+    "supported_types": [
+      "text"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "target_language": "english",
+    "preserve_structure": true,
+    "system_pipeline": true,
+    "purpose": "translation",
+    "skip_pre_translation": true,
+    "legacy_source": "config.py.TRANSLATION_PROMPT"
+  },
+  "display": {
+    "icon": "🔬",
+    "color": "#9E9E9E",
+    "category": "experimental",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

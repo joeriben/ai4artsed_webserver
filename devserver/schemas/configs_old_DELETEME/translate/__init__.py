@@ -1,0 +1,3 @@
+"""
+Translation Configs - Übersetzungs-Konfigurationen
+"""

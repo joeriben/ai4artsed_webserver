@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1 - Config Selection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* App Container */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: rgba(42, 42, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid #3a3a3a;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 32px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: #1a1a1a;
+            border: 2px solid #3a3a3a;
+            border-radius: 24px;
+            padding: 10px 20px;
+            font-size: 14px;
+            color: #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #4a90e2;
+            background: #1e1e1e;
+        }
+
+        .search-input::placeholder {
+            color: #666;
+        }
+
+        .view-modes {
+            display: flex;
+            gap: 8px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px 48px;
+        }
+
+        /* Category Section */
+        .category-section {
+            margin-bottom: 48px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .category-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .category-count {
+            background: #2a2a2a;
+            color: #888;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Config Grid */
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        /* Config Card */
+        .config-card {
+            background: radial-gradient(circle at top left, rgba(42, 42, 42, 0.8), rgba(26, 26, 26, 0.8));
+            backdrop-filter: blur(20px);
+            border: 1px solid #3a3a3a;
+            border-radius: 20px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .config-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, currentColor, transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .config-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            border-color: #4a90e2;
+        }
+
+        .config-card:hover::before {
+            opacity: 1;
+        }
+
+        .config-card.art-movements { color: #9b59b6; }
+        .config-card.media-generation { color: #e74c3c; }
+        .config-card.text-transformation { color: #3498db; }
+        .config-card.experimental { color: #f39c12; }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .card-icon {
+            font-size: 48px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .card-badges {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .badge-category {
+            background: rgba(155, 89, 182, 0.2);
+            color: #9b59b6;
+        }
+
+        .badge-user {
+            background: rgba(26, 188, 156, 0.2);
+            color: #1abc9c;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .card-description {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #aaa;
+            margin-bottom: 16px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid #3a3a3a;
+        }
+
+        .difficulty {
+            display: flex;
+            gap: 4px;
+        }
+
+        .star {
+            font-size: 14px;
+            filter: grayscale(1);
+            opacity: 0.3;
+        }
+
+        .star.filled {
+            filter: grayscale(0);
+            opacity: 1;
+        }
+
+        .output-types {
+            display: flex;
+            gap: 6px;
+        }
+
+        .output-badge {
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #888;
+        }
+
+        /* Particles */
+        .particles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            animation: float 25s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% { opacity: 0.2; }
+            90% { opacity: 0.2; }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+    </style>
+</head>
+<body>
+    <!-- Particles -->
+    <div class="particles" id="particles"></div>
+
+    <div class="app-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="app-title">✨ AI4ArtsEd Pipeline Configurator</div>
+
+            <div class="search-bar">
+                <input
+                    type="text"
+                    class="search-input"
+                    placeholder="🔍 Suche Konfigurationen..."
+                    id="searchInput"
+                />
+            </div>
+
+            <div class="view-modes">
+                <button class="mode-btn active">🎨 Kacheln</button>
+                <button class="mode-btn">📋 Liste</button>
+                <button class="mode-btn">🤖 KI-Hilfe</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Art Movements Category -->
+            <div class="category-section">
+                <div class="category-header">
+                    <div class="category-title">🎨 Kunstbewegungen</div>
+                    <div class="category-count">8 Configs</div>
+                </div>
+
+                <div class="config-grid">
+                    <!-- Dada Card -->
+                    <div class="config-card art-movements" onclick="selectConfig('dada')">
+                        <div class="card-header">
+                            <div class="card-icon">🎨</div>
+                            <div class="card-badges">
+                                <div class="badge badge-category">Kunstbewegung</div>
+                            </div>
+                        </div>
+                        <div class="card-title">Dada-Transformation</div>
+                        <div class="card-description">
+                            Transformiert Text nach Dada-Kunstbewegungsprinzipien, erzeugt unsinnige und unerwartete Wortkombinationen.
+                        </div>
+                        <div class="card-meta">
+                            <div class="difficulty">
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star">⭐</span>
+                                <span class="star">⭐</span>
+                            </div>
+                            <div class="output-types">
+                                <div class="output-badge">Text</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bauhaus Card -->
+                    <div class="config-card art-movements" onclick="selectConfig('bauhaus')">
+                        <div class="card-header">
+                            <div class="card-icon">🏛️</div>
+                            <div class="card-badges">
+                                <div class="badge badge-category">Kunstbewegung</div>
+                            </div>
+                        </div>
+                        <div class="card-title">Bauhaus-Struktur</div>
+                        <div class="card-description">
+                            Reduziert Text auf geometrische Grundformen und funktionale Klarheit nach Bauhaus-Prinzipien.
+                        </div>
+                        <div class="card-meta">
+                            <div class="difficulty">
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star">⭐</span>
+                                <span class="star">⭐</span>
+                                <span class="star">⭐</span>
+                            </div>
+                            <div class="output-types">
+                                <div class="output-badge">Text</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expressionism Card -->
+                    <div class="config-card art-movements" onclick="selectConfig('expressionism')">
+                        <div class="card-header">
+                            <div class="card-icon">🎭</div>
+                            <div class="card-badges">
+                                <div class="badge badge-category">Kunstbewegung</div>
+                            </div>
+                        </div>
+                        <div class="card-title">Expressionismus-Filter</div>
+                        <div class="card-description">
+                            Intensiviert emotionale Ausdrücke und dramatisiert Stimmungen nach expressionistischen Prinzipien.
+                        </div>
+                        <div class="card-meta">
+                            <div class="difficulty">
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star">⭐</span>
+                                <span class="star">⭐</span>
+                            </div>
+                            <div class="output-types">
+                                <div class="output-badge">Text</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Generation Category -->
+            <div class="category-section">
+                <div class="category-header">
+                    <div class="category-title">🖼️ Medien-Generierung</div>
+                    <div class="category-count">6 Configs</div>
+                </div>
+
+                <div class="config-grid">
+                    <!-- SD3.5 Card -->
+                    <div class="config-card media-generation" onclick="selectConfig('sd35')">
+                        <div class="card-header">
+                            <div class="card-icon">📷</div>
+                            <div class="card-badges">
+                                <div class="badge badge-category">Bild</div>
+                            </div>
+                        </div>
+                        <div class="card-title">Stable Diffusion 3.5 Large</div>
+                        <div class="card-description">
+                            Generiert hochqualitative Bilder mit ausgezeichneter Prompt-Treue und detaillierten Ausgaben.
+                        </div>
+                        <div class="card-meta">
+                            <div class="difficulty">
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star">⭐</span>
+                            </div>
+                            <div class="output-types">
+                                <div class="output-badge">Bild</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Card -->
+                    <div class="config-card media-generation" onclick="selectConfig('audio')">
+                        <div class="card-header">
+                            <div class="card-icon">🔊</div>
+                            <div class="card-badges">
+                                <div class="badge badge-category">Audio</div>
+                            </div>
+                        </div>
+                        <div class="card-title">Stable Audio Open</div>
+                        <div class="card-description">
+                            Erzeugt Soundeffekte und Atmosphären aus Textbeschreibungen mit variablen Längen.
+                        </div>
+                        <div class="card-meta">
+                            <div class="difficulty">
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star">⭐</span>
+                            </div>
+                            <div class="output-types">
+                                <div class="output-badge">Audio</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Configs Category -->
+            <div class="category-section">
+                <div class="category-header">
+                    <div class="category-title">👤 Meine Konfigurationen</div>
+                    <div class="category-count">2 Configs</div>
+                </div>
+
+                <div class="config-grid">
+                    <!-- User Config -->
+                    <div class="config-card experimental" onclick="selectConfig('my_config')">
+                        <div class="card-header">
+                            <div class="card-icon">🌀</div>
+                            <div class="card-badges">
+                                <div class="badge badge-user">Benutzer</div>
+                            </div>
+                        </div>
+                        <div class="card-title">Meine Surreal-Mischung</div>
+                        <div class="card-description">
+                            Kombiniert Surrealismus mit wissenschaftlicher Terminologie für einzigartig seltsame Beschreibungen.
+                        </div>
+                        <div class="card-meta">
+                            <div class="difficulty">
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star filled">⭐</span>
+                                <span class="star">⭐</span>
+                                <span class="star">⭐</span>
+                            </div>
+                            <div class="output-types">
+                                <div class="output-badge">Text</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 25 + 's';
+            particle.style.animationDuration = (20 + Math.random() * 15) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.config-card').forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const description = card.querySelector('.card-description').textContent.toLowerCase();
+                const matches = title.includes(query) || description.includes(query);
+                card.style.display = matches ? 'block' : 'none';
+            });
+        });
+
+        // Select config
+        function selectConfig(configId) {
+            alert(`Config "${configId}" ausgewählt!\n\n→ Wechsel zu Phase 2 (Pipeline Preview)`);
+            // In real app: load config details and navigate to Phase 2
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "passthrough",
+  "name": {
+    "en": "Passthrough (No Modification)",
+    "de": "Durchreichen (Keine Änderung)"
+  },
+  "description": {
+    "en": "Passes your prompt through unchanged. No transformation, no interception - direct route to image generation.",
+    "de": "Gibt deinen Prompt unverändert weiter. Keine Transformation, keine Interception - direkter Weg zur Bildgenerierung."
+  },
+  "category": {
+    "en": "Text Transformation",
+    "de": "Textmanipulation"
+  },
+  "properties": [
+    "NULL"
+  ],
+  "context": "Pass on the input text unchanged. Do not modify, enhance, or transform the prompt in any way. Return it exactly as provided.",
+  "parameters": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_tokens": 50
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "task_type": "standard",
+    "purpose": "passthrough",
+    "notes": "NULL-Manipulation config for direct image generation without prompt modification.",
+    "version": "1.0"
+  },
+  "display": {
+    "icon": "🎯",
+    "color": "#00BCD4",
+    "category": "text_transformation",
+    "difficulty": 1,
+    "order": 1
+  },
+  "tags": {
+    "en": [
+      "passthrough",
+      "direct",
+      "no-modification"
+    ],
+    "de": [
+      "durchreichen",
+      "direkt",
+      "keine-änderung"
+    ]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 8,
+    "complexity": "beginner"
+  }
+}
