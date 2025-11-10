@@ -47,7 +47,9 @@
       :is-selected="isPropertySelected(property)"
       :x="propertyPositions[property]?.x || 0"
       :y="propertyPositions[property]?.y || 0"
+      :symbol-data="getSymbolDataForProperty(property)"
       @toggle="handlePropertyToggle"
+      @update-position="handleUpdatePosition"
     />
   </div>
 </template>
@@ -55,7 +57,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import PropertyBubble from './PropertyBubble.vue'
-import type { PropertyPair } from '@/stores/configSelection'
+import type { PropertyPair, SymbolData } from '@/stores/configSelection'
+import { useConfigSelectionStore } from '@/stores/configSelection'
 
 /**
  * PropertyCanvas - Quadrant II (upper-left)
@@ -64,6 +67,7 @@ import type { PropertyPair } from '@/stores/configSelection'
  * Handles property selection with XOR logic.
  *
  * Session 35 - Phase 1 Property Quadrants Implementation
+ * Session 40 - Added symbols, draggable bubbles
  */
 
 interface Props {
@@ -78,6 +82,9 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   toggleProperty: [property: string]
 }>()
+
+// Access store for symbol data
+const store = useConfigSelectionStore()
 
 // Property colors (same order as mockup)
 const propertyColors = [
@@ -196,6 +203,20 @@ function handlePropertyToggle(property: string) {
   emit('toggleProperty', property)
 }
 
+/**
+ * Get symbol data for a property (Session 40)
+ */
+function getSymbolDataForProperty(property: string): SymbolData | undefined {
+  return store.getSymbolData(property)
+}
+
+/**
+ * Handle position update from draggable bubble (Session 40)
+ */
+function handleUpdatePosition(property: string, x: number, y: number) {
+  propertyPositions.value[property] = { x, y }
+}
+
 // Recalculate positions when canvas size changes (for responsive design)
 watch([() => props.canvasWidth, () => props.canvasHeight], () => {
   calculatePropertyPositions()
@@ -219,7 +240,7 @@ onMounted(() => {
 }
 
 /* Re-enable pointer events on property bubbles */
-.property-canvas >>> .property-bubble {
+.property-canvas :deep(.property-bubble) {
   pointer-events: all;
 }
 
