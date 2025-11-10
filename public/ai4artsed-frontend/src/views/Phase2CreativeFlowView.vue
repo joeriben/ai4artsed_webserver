@@ -14,8 +14,23 @@
       </div>
     </div>
 
-    <!-- Canvas Container -->
-    <div class="canvas-container">
+    <!-- Loading State -->
+    <div v-if="isLoadingPipeline" class="loading-container">
+      <div class="loading-spinner">⚙️</div>
+      <div class="loading-text">{{ $t('common.loading') || 'Lädt...' }}</div>
+    </div>
+
+    <!-- Vector Fusion Interface (for text_semantic_split pipelines) -->
+    <Phase2VectorFusionInterface
+      v-else-if="pipelineType === 'text_semantic_split'"
+      :config-id="route.params.configId as string"
+      :execution-mode="pipelineStore.executionMode"
+      :safety-level="pipelineStore.safetyLevel"
+      @generated="handleVectorFusionGenerated"
+    />
+
+    <!-- Standard Canvas Interface (for all other pipelines) -->
+    <div v-else class="canvas-container">
       <!-- Particle Background -->
       <div class="particles" ref="particlesRef"></div>
 
@@ -64,9 +79,16 @@
             </div>
           </div>
           <div class="card-content scrollable">
-            <div v-if="metaPromptPreview" class="rules-text">
-              {{ metaPromptPreview }}
-            </div>
+            <!-- Editable context for ALL configs -->
+            <textarea
+              v-if="pipelineStore.metaPrompt !== null"
+              class="rules-textarea"
+              v-model="editableMetaPrompt"
+              @input="handleMetaPromptEdit"
+              :placeholder="currentLanguage === 'en'
+                ? 'Edit the transformation rules here. You can modify how the AI transforms your input.\n\nExample:\n- Use the style of...\n- Transform it by...\n- Add elements of...'
+                : 'Bearbeite hier die Transformationsregeln. Du kannst ändern, wie die KI deine Eingabe umwandelt.\n\nBeispiel:\n- Nutze den Stil von...\n- Verwandle es durch...\n- Füge Elemente von... hinzu'"
+            ></textarea>
             <div v-else class="loading-text">
               {{ $t('common.loading') || 'Lädt...' }}
             </div>
@@ -232,6 +254,31 @@
       </div>
     </div>
   </div>
+
+  <!-- Progressive Image Generation Overlay -->
+  <div v-if="isGenerating" class="generation-overlay" @click.self="closeOverlay">
+    <div class="overlay-content">
+      <!-- Close Button -->
+      <button v-if="previewImage" class="close-btn" @click="closeOverlay">✕</button>
+
+      <!-- Preview Image (with progressive opacity) -->
+      <div v-if="previewImage" class="preview-container">
+        <img
+          :src="previewImage"
+          class="preview-image"
+          :style="{ opacity: Math.max(0.2, generationProgress / 100) }"
+          alt="Generated image"
+        />
+      </div>
+
+      <!-- Loading Indicator -->
+      <div v-else class="loading-indicator">
+        <SpriteProgressAnimation :progress="generationProgress" />
+        <p class="generating-text">{{ $t('phase2.generating') || 'Bild wird generiert...' }}</p>
+        <p class="loading-hint">{{ $t('phase2.generatingHint') || '~30 Sekunden' }}</p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -240,7 +287,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
-import { executePipeline, type PipelineExecuteRequest } from '@/services/api'
+import { executePipeline, getPipelineMetadata, type PipelineExecuteRequest } from '@/services/api'
+import Phase2VectorFusionInterface from '@/components/Phase2VectorFusionInterface.vue'
+import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 
 /**
  * Phase2CreativeFlowView - Organic Force-Based Creative Input Interface
@@ -282,14 +331,32 @@ const inputTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const transformedTextareaRef = ref<HTMLTextAreaElement | null>(null)
 
 // State
+const pipelineType = ref<string | null>(null)
+const isLoadingPipeline = ref(true)
 const userInput = ref('')
 const isTransforming = ref(false)
 const transformationStage = ref<number>(0) // 0=idle, 1=stage1, 2=stage2
 const error = ref<string | null>(null)
 const selectedMediaConfig = ref<string>('') // Selected output config (e.g., 'sd35_large')
+const editableMetaPrompt = ref('') // Editable meta-prompt for user_defined config
+
+// Media generation overlay state
+const isGenerating = ref(false)
+const generationProgress = ref(0)
+const previewImage = ref<string | null>(null)
+const generationRunId = ref<string | null>(null)
+let pollInterval: number | null = null
+
+// Seed management for smart regeneration
+const lastGenerationState = ref<{ text: string; configId: string } | null>(null)
+const lastUsedSeed = ref<number>(123456789) // Start seed
+const currentSeed = ref<number | null>(null) // Seed displayed in overlay
 
 // Get transformed prompt from store
 const transformedPrompt = computed(() => pipelineStore.transformedPrompt)
+
+// Current language for placeholder text
+const currentLanguage = computed(() => userPreferences.language)
 
 // Example prompts (could be loaded from config)
 const examplePrompts = ref<string[]>([
@@ -308,18 +375,6 @@ const configName = computed(() => {
   return pipelineStore.selectedConfig.name[lang] ||
          pipelineStore.selectedConfig.name.en ||
          pipelineStore.selectedConfig.id
-})
-
-const metaPromptPreview = computed(() => {
-  if (!pipelineStore.metaPrompt) {
-    console.log('[Phase2] No meta-prompt in store')
-    return ''
-  }
-  // Show first 200 chars for preview
-  const text = pipelineStore.metaPrompt
-  const preview = text.length > 200 ? text.substring(0, 200) + '...' : text
-  console.log('[Phase2] Meta-prompt preview:', preview.substring(0, 50) + '...')
-  return preview
 })
 
 const canTransform = computed(() => {
@@ -341,7 +396,17 @@ onMounted(async () => {
 
   if (!configId) {
     error.value = 'No config ID provided'
+    isLoadingPipeline.value = false
     return
+  }
+
+  // Load pipeline metadata to determine UI type
+  try {
+    const metadata = await getPipelineMetadata(configId)
+    pipelineType.value = metadata.pipeline_type
+    console.log('[Phase2] Pipeline type:', pipelineType.value)
+  } catch (err) {
+    console.error('[Phase2] Failed to load pipeline metadata:', err)
   }
 
   // Load config and meta-prompt
@@ -364,6 +429,9 @@ onMounted(async () => {
   }
 
   console.log('[Phase2] Meta-prompt loaded:', pipelineStore.metaPrompt?.substring(0, 50))
+
+  // Initialize editable meta-prompt for ALL configs
+  editableMetaPrompt.value = pipelineStore.metaPrompt || ''
 
   // Initialize user input from store if exists
   if (pipelineStore.userInput) {
@@ -392,15 +460,19 @@ onMounted(async () => {
     selectedMediaConfig.value = 'sd35_large'
   }
 
-  // Initialize particles
-  initParticles()
+  // Initialize particles (only for standard UI)
+  if (pipelineType.value !== 'text_semantic_split') {
+    initParticles()
 
-  // Update connections after DOM is ready
-  await nextTick()
-  updateConnections()
+    // Update connections after DOM is ready
+    await nextTick()
+    updateConnections()
 
-  // Update connections on window resize
-  window.addEventListener('resize', updateConnections)
+    // Update connections on window resize
+    window.addEventListener('resize', updateConnections)
+  }
+
+  isLoadingPipeline.value = false
 })
 
 // ============================================================================
@@ -474,13 +546,23 @@ async function handleTransform() {
     // Call backend API - Stage 1
     transformationStage.value = 1
 
-    const response = await transformPrompt({
+    // Build request
+    const transformRequest: any = {
       schema: pipelineStore.selectedConfig.id,
       input_text: userInput.value,
       user_language: userPreferences.language,
       execution_mode: pipelineStore.executionMode,
       safety_level: pipelineStore.safetyLevel
-    })
+    }
+
+    // Pass edited context if user modified it (RAM-Proxy system)
+    if (pipelineStore.metaPromptModified) {
+      transformRequest.context_prompt = pipelineStore.metaPrompt
+      transformRequest.context_language = userPreferences.language
+      console.log('[Phase2] Passing edited context to backend (RAM-Proxy)')
+    }
+
+    const response = await transformPrompt(transformRequest)
 
     // Stage 2 animation (backend already completed both stages)
     transformationStage.value = 2
@@ -527,23 +609,118 @@ function selectMediaConfig(outputConfig: string) {
  * Start media generation with selected output config
  * @param outputConfig - Output config name (sd35_large, gpt_image_1, stable_audio_1, ace_step)
  */
-function handleMediaGeneration(outputConfig: string) {
-  if (!transformedPrompt.value || !outputConfig) return
+async function handleMediaGeneration(outputConfig: string) {
+  if (!transformedPrompt.value || !outputConfig || !pipelineStore.selectedConfig) return
 
   console.log('[Phase2] Starting media generation:', {
     outputConfig,
     transformedPrompt: transformedPrompt.value.substring(0, 100) + '...'
   })
 
-  // TODO: Call /api/schema/pipeline/execute with Stage 3+4
-  // TODO: Navigate to Phase 3 with run_id for polling
-  // router.push({ name: 'phase3-entity-flow', params: { runId } })
+  // Reset state
+  isGenerating.value = true
+  generationProgress.value = 0
+  previewImage.value = null
+  error.value = null
 
-  alert(
-    `Media Generation: ${outputConfig}\n\n` +
-    `Config: ${pipelineStore.selectedConfig?.id}\n` +
-    `Transformed prompt:\n${transformedPrompt.value.substring(0, 200)}...`
-  )
+  // Smart seed management: auto-detect if user wants variation or comparison
+  const currentState = {
+    text: transformedPrompt.value,
+    configId: pipelineStore.selectedConfig.id
+  }
+
+  let seedToUse: number
+  let stage4Only = false
+
+  if (lastGenerationState.value &&
+      lastGenerationState.value.text === currentState.text &&
+      lastGenerationState.value.configId === currentState.configId) {
+    // State identical → generate new seed (new variation) + SKIP Stage 1-3
+    seedToUse = Math.floor(Math.random() * (2**31 - 1))
+    stage4Only = true
+    console.log('[Phase2] Same state → new seed for variation + stage4_only:', seedToUse)
+  } else {
+    // State changed → use last seed (for comparison) + RUN Stage 1-3
+    seedToUse = lastUsedSeed.value
+    stage4Only = false
+    console.log('[Phase2] State changed → reusing seed for comparison + run full pipeline:', seedToUse)
+  }
+
+  currentSeed.value = seedToUse
+
+  // Start progress estimation during API wait (0-90% over ~30 seconds)
+  const estimatedDuration = 30000 // 30 seconds typical generation time
+  const progressUpdateInterval = 300 // Update every 300ms
+  const progressPerUpdate = (90 / estimatedDuration) * progressUpdateInterval // Reach 90% in estimated time
+
+  const progressInterval = setInterval(() => {
+    if (generationProgress.value < 90) {
+      generationProgress.value = Math.min(90, generationProgress.value + progressPerUpdate)
+    }
+  }, progressUpdateInterval)
+
+  try {
+    // Call pipeline execution API (this will block until generation is complete)
+    const response = await executePipeline({
+      schema: pipelineStore.selectedConfig.id,
+      input_text: transformedPrompt.value,  // Always the transformed text
+      user_input: userInput.value,
+      user_language: userPreferences.language,
+      execution_mode: pipelineStore.executionMode,
+      safety_level: pipelineStore.safetyLevel,
+      output_config: outputConfig,
+      stage4_only: stage4Only,  // Simple flag: skip Stage 1-3 or not
+      seed: seedToUse  // Smart seed: new for variations, same for comparisons
+    })
+
+    // Stop estimation progress
+    clearInterval(progressInterval)
+
+    // Backend returns status: 'success' (string), not success: true (boolean)
+    if (response.status !== 'success') {
+      throw new Error(response.error || 'Pipeline execution failed')
+    }
+
+    // Get run_id
+    const runId = response.media_output?.run_id
+    if (!runId) {
+      throw new Error('No run_id returned from API')
+    }
+
+    generationRunId.value = runId
+    console.log('[Phase2] Generation complete, run_id:', runId)
+
+    // Complete progress to 100%
+    generationProgress.value = 100
+
+    // Display image using Backend API with progressive opacity
+    previewImage.value = `http://localhost:17801/api/media/image/${runId}`
+
+    // Keep progress at 100% (opacity will use this value)
+
+    // Update state tracking for next generation
+    lastGenerationState.value = currentState
+    const returnedSeed = response.media_output?.metadata?.seed
+    if (returnedSeed) {
+      lastUsedSeed.value = returnedSeed
+      console.log('[Phase2] Seed from response:', returnedSeed)
+    } else {
+      lastUsedSeed.value = seedToUse
+      console.log('[Phase2] Using local seed:', seedToUse)
+    }
+
+  } catch (err) {
+    clearInterval(progressInterval)
+    console.error('[Phase2] Media generation error:', err)
+    error.value = err instanceof Error ? err.message : 'Media generation failed'
+    isGenerating.value = false
+  }
+}
+
+function closeOverlay() {
+  isGenerating.value = false
+  previewImage.value = null
+  generationProgress.value = 0
 }
 
 function handleInputChange() {
@@ -554,6 +731,12 @@ function handleInputChange() {
   if (transformedPrompt.value) {
     pipelineStore.clearTransformedPrompt()
   }
+}
+
+function handleMetaPromptEdit() {
+  // Update meta-prompt in store for user_defined config
+  pipelineStore.updateMetaPrompt(editableMetaPrompt.value)
+  console.log('[Phase2] Meta-prompt edited:', editableMetaPrompt.value.substring(0, 50) + '...')
 }
 
 function handleTransformedPromptEdit(event: Event) {
@@ -577,6 +760,12 @@ function handleBack() {
   router.push({ name: 'property-selection' })
 }
 
+function handleVectorFusionGenerated(runId: string) {
+  console.log('[Phase2] Vector Fusion generated:', runId)
+  // TODO: Navigate to Phase 3 with run_id
+  // router.push({ name: 'phase3-entity-flow', params: { runId } })
+}
+
 // ============================================================================
 // WATCHERS
 // ============================================================================
@@ -586,6 +775,18 @@ watch(
   () => userPreferences.language,
   async (newLang) => {
     await pipelineStore.loadMetaPromptForLanguage(newLang)
+    // Update editable meta-prompt for ALL configs
+    editableMetaPrompt.value = pipelineStore.metaPrompt || ''
+  }
+)
+
+// Watch metaPrompt changes and sync to editableMetaPrompt for ALL configs
+watch(
+  () => pipelineStore.metaPrompt,
+  (newMetaPrompt) => {
+    if (editableMetaPrompt.value !== newMetaPrompt) {
+      editableMetaPrompt.value = newMetaPrompt
+    }
   }
 )
 </script>
@@ -889,6 +1090,34 @@ svg.connections {
   border: 1px solid rgba(243, 156, 18, 0.2);
   border-radius: 8px;
   white-space: pre-wrap;
+}
+
+.rules-textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 300px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  color: #e0e0e0;
+  font-size: 13px;
+  line-height: 1.7;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.rules-textarea:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.6);
+  border-color: rgba(243, 156, 18, 0.7);
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
+}
+
+.rules-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
 }
 
 .loading-text {
@@ -1346,6 +1575,26 @@ svg.connections {
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
 }
 
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 80px);
+  gap: 20px;
+}
+
+.loading-spinner {
+  font-size: 64px;
+  animation: rotate 2s linear infinite;
+}
+
+.loading-text {
+  font-size: 18px;
+  color: #888;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -1436,5 +1685,107 @@ svg.connections {
   .particles {
     display: none;
   }
+}
+
+/* ============================================================================
+   PROGRESSIVE IMAGE GENERATION OVERLAY
+   ============================================================================ */
+
+.generation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.overlay-content {
+  width: 90%;
+  max-width: 1200px;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+/* Preview Container */
+.preview-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.5s ease;
+}
+
+/* Loading Indicator */
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  color: white;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.generating-text {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  margin: 0;
+}
+
+.loading-hint {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
 }
 </style>
