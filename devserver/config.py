@@ -8,7 +8,7 @@ from pathlib import Path
 THIS_FILE = Path(__file__).resolve()
 BASE_DIR = THIS_FILE.parent.parent
 LOCAL_WORKFLOWS_DIR = BASE_DIR / "workflows"
-PUBLIC_DIR = Path(__file__).parent.parent / "public_dev"  # TEMP: Legacy frontend for debugging until Vue build ready
+PUBLIC_DIR = Path(__file__).parent.parent / "public" / "ai4artsed-frontend" / "dist"  # Production Vue.js build
 EXPORTS_DIR = BASE_DIR / "exports"
 JSON_STORAGE_DIR = EXPORTS_DIR / "json"  # Pipeline run storage (Session 30)
 

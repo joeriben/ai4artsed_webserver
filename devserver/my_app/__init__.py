@@ -20,7 +20,9 @@ def create_app():
     logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
     
     # Create Flask app
-    app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path="")
+    # static_url_path=None disables Flask's automatic static file serving
+    # We handle static files manually in static_routes.py for SPA support
+    app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path=None)
     
     # Configure session
     app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -42,7 +44,7 @@ def create_app():
     from my_app.routes.execution_routes import execution_bp
     from my_app.routes.pipeline_routes import pipeline_bp  # NEW: LivePipelineRecorder API
 
-    app.register_blueprint(static_bp)
+    # Register API blueprints FIRST (before static catch-all)
     app.register_blueprint(config_bp)
     app.register_blueprint(workflow_streaming_bp)
     app.register_blueprint(export_bp)
@@ -52,6 +54,9 @@ def create_app():
     app.register_blueprint(media_bp)
     app.register_blueprint(execution_bp)  # Pipeline run history API: /api/runs/*
     app.register_blueprint(pipeline_bp)  # NEW: LivePipelineRecorder API: /api/pipeline/*
+
+    # Register static blueprint LAST (catch-all for SPA routing)
+    app.register_blueprint(static_bp)
     
     # Configure logging filter for ComfyUI proxy
     class ComfyUIFilter(logging.Filter):
