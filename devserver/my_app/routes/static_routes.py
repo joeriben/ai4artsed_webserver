@@ -71,11 +71,25 @@ def serve_spa(path):
                 elif path.endswith('.ico'):
                     mime_type = 'image/x-icon'
 
-            return send_from_directory(
+            # Serve the file with explicit MIME type and cache headers
+            # Assets have content hashes in filename (e.g., index-Bprq4S1F.js)
+            # so they can be cached aggressively - new builds get new filenames
+            response = send_from_directory(
                 current_app.static_folder,
                 path,
                 mimetype=mime_type
             )
+
+            # Set aggressive caching for hashed assets (overwrite Flask's default)
+            if path.startswith('assets/'):
+                # Cache for 1 year (immutable assets with content hash)
+                # New builds generate new filenames, so old cached files become unused automatically
+                response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+            else:
+                # Shorter cache for other static files (favicon, robots.txt)
+                response.headers['Cache-Control'] = 'public, max-age=3600'
+
+            return response
 
         # Asset file not found - return 404
         return "File not found", 404
@@ -87,4 +101,9 @@ def serve_spa(path):
     # - /execute/:configId (pipeline execution view)
     # - /about (about view)
     # Vue Router handles client-side routing after index.html loads
-    return current_app.send_static_file('index.html')
+
+    # Important: index.html should NOT be cached aggressively
+    # because it contains references to hashed assets that change with each build
+    response = current_app.send_static_file('index.html')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
