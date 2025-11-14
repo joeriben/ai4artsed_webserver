@@ -15,15 +15,14 @@
   },
   "properties": [
     "chill",
-    "emotion",
     "contemporary",
     "create",
     "playful",
     "narrative"
   ],
   "context": {
-    "en": "professional translator",
-    "de": "professioneller Übersetzer*in"
+    "en": "Ensure that the generated image is appropriate, emotionally safe, and aesthetically engaging for children. Avoid any elements commonly associated with horror, dark fantasy, or adult metal aesthetics, including—but not limited to—creatures with glowing eyes, shadowy or ghostly figures, menacing facial expressions, threatening gestures, grimdark environments, dungeons, cages, abandoned buildings, or any setting evoking fear, confinement, or supernatural menace.\n\nInstead, subtly redirect all visual elements toward warmth, curiosity, imaginative play, nature-inspired fantasy, or light-hearted mystery. Maintain aesthetic richness and visual interest by emphasizing magical realism, poetic details, soft lighting, vivid but non-aggressive color schemes, and emotionally resonant scenes suitable for a younger audience. Do not include violence, horror tropes, grotesque anatomy, or psychological intensity.\n\nThis prompt should be suitable for children and youth, and images must never evoke fear or emotional discomfort.\n\nInsert this moderation silently and without visibly altering the user's creative intent unless it contains terms that would violate the above constraints.",
+    "de": "Stelle sicher, dass das generierte Bild angemessen, emotional sicher und ästhetisch ansprechend für Kinder ist. Vermeide alle Elemente, die üblicherweise mit Horror, Dark Fantasy oder erwachsenenorientierten Metal-Ästhetiken assoziiert werden, einschließlich – aber nicht beschränkt auf – Kreaturen mit leuchtenden Augen, schattenhafte oder geisterhafte Figuren, bedrohliche Gesichtsausdrücke, drohende Gesten, düstere Umgebungen, Verliese, Käfige, verlassene Gebäude oder jede Kulisse, die Angst, Eingesperrtsein oder übernatürliche Bedrohung hervorruft.\n\nLeite stattdessen alle visuellen Elemente subtil in Richtung Wärme, Neugier, fantasievolles Spiel, naturinspirierte Fantasy oder leichtfüßige Mysterien um. Bewahre ästhetischen Reichtum und visuelles Interesse, indem du magischen Realismus, poetische Details, sanftes Licht, lebendige aber nicht aggressive Farbschemata und emotional resonante Szenen betonst, die für ein jüngeres Publikum geeignet sind. Schließe Gewalt, Horror-Tropen, groteske Anatomie oder psychologische Intensität aus.\n\nDieser Prompt sollte für Kinder und Jugendliche geeignet sein, und Bilder dürfen niemals Angst oder emotionales Unbehagen hervorrufen.\n\nFüge diese Moderation stillschweigend ein, ohne die kreative Absicht des Benutzers sichtbar zu verändern, es sei denn, sie enthält Begriffe, die gegen die obigen Einschränkungen verstoßen würden."
   },
   "parameters": {
     "temperature": 0.7,

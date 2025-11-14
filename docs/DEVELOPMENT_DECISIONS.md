@@ -21,7 +21,93 @@
 
 ---
 
-## 🎯 Active Decision 1: SSE Streaming Postponed in Favor of Animation (2025-11-09, Session 39)
+## 🎯 Active Decision 1: Token Processing Animation for Progress Visualization (2025-11-09, Session 40)
+
+**Status:** ✅ IMPLEMENTED
+**Context:** Progress visualization for GenAI pipeline execution (target: children/youth)
+**Date:** 2025-11-09
+
+### The Decision: Token Processing Metaphor with Neural Network Visualization
+
+**Problem:**
+- Pipeline execution takes 10-30 seconds
+- Boring spinner + progress bar insufficient for educational/youth context
+- Need engaging, educational animation that runs smoothly on iPad Pro 10"
+
+**Options Considered:**
+
+1. **Complex Pixel-Art Sprites (REJECTED)**
+   - Animated characters (hare and hedgehog story)
+   - User feedback: "sieht wirklich schlimm aus" (looks terrible)
+   - Reason rejected: Too "gewollt" (forced), complex to animate smoothly
+
+2. **Simple Cumulative Animations (REJECTED)**
+   - Stars collecting, glass filling, dots grid
+   - User feedback: Not thematically relevant
+   - Reason rejected: Doesn't connect to GenAI/AI processing concept
+
+3. **Token Processing with Neural Network (CHOSEN)**
+   - INPUT grid → PROCESSOR box → OUTPUT grid
+   - Tokens fly through neural network layers
+   - Color transformation visible during processing
+   - Forms recognizable pixel art images (26 different images)
+
+**Decision:**
+Token processing metaphor with visible neural network layer processing and gradual color transformation.
+
+**Rationale:**
+- **Educational:** Visualizes how AI processes and transforms data
+- **Conceptually Aligned:** Matches GenAI token processing model
+- **Simple to Animate:** Geometric shapes (colored squares) for smooth performance
+- **Engaging:** 26 different images (animals, space, food) keep it fresh
+- **iPad-Optimized:** Pure CSS animations, no heavy libraries
+- **User Validated:** Multiple iterations with positive feedback
+
+**Key Technical Decisions:**
+
+1. **Progress Scaling to 90%**
+   - User requirement: Animation complete at 90% progress
+   - Implementation: `const scaledProgress = Math.min(props.progress / 90, 1)`
+   - Rationale: INPUT queue empty by 90%, remaining 10% for final processing
+
+2. **Visible Color Transformation (40% of Animation Time)**
+   - 20-68% of animation spent inside processor box
+   - Gradual color mixing: 100% original → 50/50 mix → 100% target
+   - Uses CSS `color-mix(in srgb, ...)` for smooth gradients
+   - Rationale: User explicitly requested visible transformation
+
+3. **0.6s Per-Token Animation Duration**
+   - Fast enough to complete before next token starts
+   - Slow enough to see flying motion through all rows
+   - Balance between visibility and smoothness
+   - Rationale: Testing showed 3s too slow (animations cut off), 0.6s optimal
+
+4. **Neural Network Visualization in Processor**
+   - 5 pulsating nodes + 4 connection lines
+   - Flicker effect with brightness variations (0.8x to 1.7x)
+   - Lightning icon (⚡) with rotation and scaling
+   - Rationale: More engaging than simple box, shows "AI thinking"
+
+**Implementation:**
+- Component: `SpriteProgressAnimation.vue` (648 lines)
+- 26 pixel art images (14x14 grid, 7-color palette)
+- Real-time timer: "generating X sec._" with blinking cursor
+- Pure CSS animations (no JavaScript canvas)
+- TypeScript strict mode compliance
+
+**Affected Files:**
+- `public/ai4artsed-frontend/src/components/SpriteProgressAnimation.vue` (new)
+- `public/ai4artsed-frontend/src/views/Phase2CreativeFlowView.vue` (integrated)
+- `public/ai4artsed-frontend/src/views/PipelineExecutionView.vue` (integrated)
+
+**Future Considerations:**
+- Could add more image templates based on workshop themes
+- Could make animation speed configurable (age group settings)
+- Could sync animation with actual pipeline stages (requires SSE)
+
+---
+
+## 🎯 Active Decision 2: SSE Streaming Postponed in Favor of Animation (2025-11-09, Session 39)
 
 **Status:** POSTPONED
 **Context:** Frontend real-time progress updates for pipeline execution

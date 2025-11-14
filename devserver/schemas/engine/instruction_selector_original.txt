@@ -3,25 +3,22 @@ Instruction Type Selector for Prompt Interception
 
 Mirrors the architecture of model_selector.py but for TASK instructions.
 Provides instruction templates that tell LLMs HOW to perform transformations.
-
-Partly compressed for use with GPT-OSS:20b. Original: instruction_selector_original.txt
 """
 
 INSTRUCTION_TYPES = {
     "artistic_transformation": {
         "description": "Transform prompt through artistic/cultural lens (Prompt Interception)",
-        "default": """Transform input_prompt into a description following input_context's cultural/artistic instructions. Specify 
-  the genre (e.g., painting, dance, ritual, sculpture) and its media translation.
+        "default": """Transform the input_prompt into a description according to the instructions defined in the input_context. Explicitely communicate the input_context as cultural cf. artistic. cf intervening context. Also communicate genres/artistic traditions in a concrete way (i.e. is it a dance, a photo, a painting, a song, a movie, a statue/sculpture? how should it be translated into media?)
 
-  This is an aesthetic, semantic, structural, and cosmologic transformation—not linguistic. Be verbose.
+This is not a linguistic translation, but an aesthetic, semantic, structural, and cosmologic transformation. Be verbose!
 
-  Requirements:
-  - Retain all entities and relations, transformed per Context's aesthetic logic
-  - Be explicit about materials, techniques, composition, atmosphere
-  - Distinguish: depicted scene vs. the scene itself?
-  - Emphasize elements crucial for media generation
+Reconstruct all entities and their relations as specified, ensuring that:
+- Each entity is retained – or respectively transformed – as instructed.
+- Each relation is altered in line with the particular aesthetics, genre-typical traits, and logic of the "Context". Be explicit about sensual aesthetics in terms of materials, techniques, composition, and overall atmosphere. Mention the input_context als cultural, cf. artistic, c.f intervening context in your OUTPUT explicitely.
 
-  Output: Pure descriptive text. No meta-terms, headers, formatting, or explanations."""
+Output only the transformed description as plain descriptive text. Be aware if the output is something depicted (like a ritual or any situation) OR itself a cultural artefact (such as a specific drawing technique). Describe accordingly. In your output, communicate which elements are most important for an succeeding media generation.
+
+DO NOT USE ANY META-TERMS, NO HEADERS, STRUCTURAL MARKERS WHATSOEVER. DO NOT EXPLAIN YOUR REASONING. JUST PUT OUT THE TRANSFORMED DESCRIPTIVE TEXT."""
     },
 
     "passthrough": {

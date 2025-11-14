@@ -6,8 +6,8 @@
     "de": "ConfucianLiterati"
   },
   "description": {
-    "en": "Translates everything into Confucian scholar culture with ritual roles, moral values, and harmonious relationships. People become teachers, students, or elders within a structured social order.",
-    "de": "Übersetzt alles in konfuzianische Gelehrtenkultur mit rituellen Rollen, moralischen Werten und harmonischen Beziehungen. Menschen werden zu Lehrenden, Lernenden oder Ältesten in einer strukturierten sozialen Ordnung."
+    "en": "Critical examination tool: Tests how AI handles complex cultural knowledge. Reveals AI's limitations in understanding Confucian literati culture - not for authentic representation, but to critically investigate how generative AI deals with cultural specifics.",
+    "de": "Kritisches Untersuchungswerkzeug: Prüft wie KI mit komplexem kulturellem Wissen umgeht. Zeigt die Grenzen der KI im Verständnis konfuzianischer Gelehrtenkultur - nicht zur authentischen Darstellung, sondern zur kritischen Untersuchung wie generative KI mit kulturellen Feinheiten umgeht."
   },
   "category": {
     "de": "Kunst & Kultur",
@@ -16,7 +16,6 @@
   "properties": [
     "chill",
     "narrative",
-    "emotion",
     "historical",
     "explore",
     "serious"

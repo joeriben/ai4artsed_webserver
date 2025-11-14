@@ -98,6 +98,56 @@ initializeApp()
 
 **Note:** SSE (Server-Sent Events) streaming was attempted in Session 37 but postponed in Session 39. v2.0.0-alpha.1 uses SpriteProgressAnimation for progress indication instead.
 
+#### 4. SpriteProgressAnimation Component (`SpriteProgressAnimation.vue`)
+
+**Purpose:** Visual progress feedback for pipeline execution (educational + entertaining)
+**Target Audience:** Children and youth (iPad-optimized, lightweight)
+**Status:** ✅ Implemented Session 40 (2025-11-09)
+
+**Architecture:**
+- Token processing metaphor: INPUT grid → PROCESSOR → OUTPUT grid
+- 14x14 pixel grids (196 tokens)
+- Pure CSS animations (no heavy libraries)
+- 26 randomized pixel art images (robot, animals, food, space, etc.)
+
+**Key Features:**
+- **Neural Network Visualization:** 5 pulsating nodes + connection lines in processor box
+- **Color Transformation:** Gradual color change visible during processing (40% of animation time)
+- **Flight Animation:** Tokens fly from left edge to right edge through processor (0.6s per token)
+- **Real-time Timer:** "generating X sec._" with blinking cursor
+- **Progress Scaling:** Animation completes at 90% progress
+
+**Technical Implementation:**
+```typescript
+// Progress calculation scaled to complete at 90%
+const processedCount = computed(() => {
+  const scaledProgress = Math.min(props.progress / 90, 1)
+  return Math.floor(scaledProgress * totalTokens)
+})
+
+// Color transformation using CSS color-mix
+@keyframes pixel-fly-from-left {
+  42% { background-color: color-mix(in srgb, var(--from-color) 70%, var(--to-color) 30%); }
+  50% { background-color: color-mix(in srgb, var(--from-color) 50%, var(--to-color) 50%); }
+  58% { background-color: color-mix(in srgb, var(--from-color) 30%, var(--to-color) 70%); }
+  68% { background-color: var(--to-color); }
+}
+```
+
+**Performance:**
+- CPU/GPU: Minimal (pure CSS transforms)
+- Animation duration: 0.6s per pixel (balances visibility vs. smoothness)
+- Memory: Timer cleanup in onUnmounted
+- Responsive: Mobile @media queries for smaller screens
+
+**Design Decision:**
+User rejected complex pixel-art sprites as "schlimm" (terrible). Token processing metaphor chosen for:
+- Educational value (visualizes AI transformation)
+- Simplicity (geometric shapes easier to animate)
+- Conceptual alignment (matches GenAI token processing model)
+
+See: `DEVELOPMENT_LOG.md` Session 40 for detailed iteration history.
+
 ### API Endpoints Used by Frontend
 
 **Config Selection:**

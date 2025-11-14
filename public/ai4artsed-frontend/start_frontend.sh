@@ -10,15 +10,23 @@ echo "================================================"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-# Kill any existing Vite processes
-echo "🧹 Checking for running Vite servers..."
-if pgrep -f 'vite' > /dev/null 2>&1; then
-    echo "   Found existing Vite processes, stopping them..."
-    pkill -f 'vite'
+# Kill any process using port 5173
+echo "🧹 Checking for processes using port 5173..."
+PORT_PID=$(lsof -ti :5173)
+if [ ! -z "$PORT_PID" ]; then
+    echo "   Found process on port 5173 (PID: $PORT_PID), killing it..."
+    kill -9 $PORT_PID
     sleep 2
-    echo "   ✓ Stopped"
+    echo "   ✓ Port 5173 freed"
 else
-    echo "   No existing Vite processes found"
+    echo "   Port 5173 is free"
+fi
+
+# Double-check: Kill any remaining Vite processes
+if pgrep -f 'vite' > /dev/null 2>&1; then
+    echo "   Cleaning up remaining Vite processes..."
+    pkill -9 -f 'vite'
+    sleep 1
 fi
 
 # Start Frontend Server

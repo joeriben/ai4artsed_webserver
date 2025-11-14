@@ -16,9 +16,31 @@ export interface ConfigMetadata {
 
 export type PropertyPair = [string, string]
 
+// Session 40: Property symbols support
+export interface PropertyPairV2 {
+  id: number
+  pair: [string, string]
+  symbols: { [key: string]: string }
+  labels: {
+    de: { [key: string]: string }
+    en: { [key: string]: string }
+  }
+  tooltips: {
+    de: { [key: string]: string }
+    en: { [key: string]: string }
+  }
+}
+
+export interface SymbolData {
+  symbol: string
+  label: string
+  tooltip: string
+}
+
 export interface ConfigsResponse {
   configs: ConfigMetadata[]
-  property_pairs: PropertyPair[]
+  property_pairs: PropertyPair[] | PropertyPairV2[]
+  symbols_enabled?: boolean
 }
 
 /**
@@ -44,6 +66,15 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
 
   /** Property pairs for XOR logic */
   const propertyPairs = ref<PropertyPair[]>([])
+
+  /** Session 40: Symbols enabled flag */
+  const symbolsEnabled = ref(false)
+
+  /** Session 40: Symbol data map (property name -> SymbolData) */
+  const symbolDataMap = ref<Map<string, SymbolData>>(new Map())
+
+  /** Current language for labels/tooltips */
+  const currentLanguage = ref<'de' | 'en'>('de')
 
   /** Loading state */
   const isLoading = ref(false)
@@ -127,6 +158,7 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
 
   /**
    * Load configs from API
+   * Session 40: Now handles property_pairs_v2 with symbols
    */
   async function loadConfigs() {
     isLoading.value = true
@@ -142,9 +174,47 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
       const data: ConfigsResponse = await response.json()
 
       availableConfigs.value = data.configs
-      propertyPairs.value = data.property_pairs
 
-      console.log(`[ConfigSelection] Loaded ${data.configs.length} configs, ${data.property_pairs.length} property pairs`)
+      // Check if we have symbols enabled (property_pairs_v2)
+      symbolsEnabled.value = data.symbols_enabled || false
+
+      if (symbolsEnabled.value && data.property_pairs.length > 0) {
+        // Process property_pairs_v2 with symbols
+        const pairsV2 = data.property_pairs as PropertyPairV2[]
+
+        // Extract simple pairs for XOR logic
+        propertyPairs.value = pairsV2.map(p => p.pair)
+
+        // Build symbol data map
+        const newSymbolMap = new Map<string, SymbolData>()
+        pairsV2.forEach(pairData => {
+          const [prop1, prop2] = pairData.pair
+          const lang = currentLanguage.value
+
+          // Symbol data for first property
+          newSymbolMap.set(prop1, {
+            symbol: pairData.symbols[prop1] || '',
+            label: pairData.labels[lang]?.[prop1] || prop1,
+            tooltip: pairData.tooltips[lang]?.[prop1] || ''
+          })
+
+          // Symbol data for second property
+          newSymbolMap.set(prop2, {
+            symbol: pairData.symbols[prop2] || '',
+            label: pairData.labels[lang]?.[prop2] || prop2,
+            tooltip: pairData.tooltips[lang]?.[prop2] || ''
+          })
+        })
+        symbolDataMap.value = newSymbolMap
+
+        console.log(`[ConfigSelection] Loaded ${data.configs.length} configs, ${pairsV2.length} property pairs (with symbols)`)
+      } else {
+        // Legacy format: simple pairs
+        propertyPairs.value = data.property_pairs as PropertyPair[]
+        symbolDataMap.value.clear()
+
+        console.log(`[ConfigSelection] Loaded ${data.configs.length} configs, ${data.property_pairs.length} property pairs`)
+      }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error loading configs'
       console.error('[ConfigSelection] Error loading configs:', err)
@@ -208,6 +278,24 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
     selectedProperties.value = new Set(properties)
   }
 
+  /**
+   * Get symbol data for a property (Session 40)
+   */
+  function getSymbolData(property: string): SymbolData | undefined {
+    return symbolDataMap.value.get(property)
+  }
+
+  /**
+   * Set current language for labels/tooltips (Session 40)
+   */
+  function setLanguage(lang: 'de' | 'en') {
+    currentLanguage.value = lang
+    // Reload configs to rebuild symbol data with new language
+    if (symbolsEnabled.value) {
+      loadConfigs()
+    }
+  }
+
   // ============================================================================
   // RETURN PUBLIC API
   // ============================================================================
@@ -219,6 +307,8 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
     propertyPairs: computed(() => propertyPairs.value),
     isLoading: computed(() => isLoading.value),
     error: computed(() => error.value),
+    symbolsEnabled: computed(() => symbolsEnabled.value),
+    currentLanguage: computed(() => currentLanguage.value),
 
     // Computed
     filteredConfigs,
@@ -232,6 +322,8 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
     isPropertySelected,
     getOppositeProperty,
     clearAllProperties,
-    setProperties
+    setProperties,
+    getSymbolData,
+    setLanguage
   }
 })

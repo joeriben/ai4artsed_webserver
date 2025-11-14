@@ -1,6 +1,86 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-09 Session 39 (v2.0.0-alpha.1 Release, Critical Bugfix, Documentation Cleanup)
+**Last Updated:** 2025-11-09 Session 40 (Vector Fusion UI Implementation + Deactivation)
 **Context:** Current priorities and active TODOs
+
+---
+
+## ⚠️ DEACTIVATED FEATURES (Session 40)
+
+### Vector Fusion UI - **INCOMPLETE / DEACTIVATED**
+**Status:** 🔴 **DEACTIVATED** - Multiple unresolved bugs, low priority
+**Session:** 40 (2025-11-09)
+**Priority:** LOW (relatively unimportant feature per user)
+
+**What Was Implemented:**
+- ✅ **Complete UI**: Bubble-based flow visualization with 3 stages
+  - Centered input bubble
+  - Split flow visualization (Part A + Part B branches)
+  - 4-image generation grid (Original, Part A, Part B, Fusion)
+  - Vertical scrolling support
+- ✅ **Frontend Components**: Phase2VectorFusionInterface.vue (~400 lines)
+- ✅ **Pipeline Type Detection**: Frontend correctly detects `text_semantic_split` pipelines
+- ✅ **API Integration**: executePipeline() calls working
+
+**What Works:**
+- UI renders correctly with bubble flow
+- Split operation executes (LLM semantic splitting)
+- Frontend receives split results (part_a, part_b)
+
+**What's Broken:**
+1. **🔴 Wrong Language Split**: German text is being split instead of English (translated text)
+   - Split should operate on English text (after Stage 1 translation)
+   - Currently operates on German original input
+   - Root Cause: Stage 1→2 data flow passes wrong text field
+
+2. **🔴 Image Generation Fails**: Backend uses deprecated workflow generator
+   - Backend logs show: "Using deprecated comfyui_workflow_generator"
+   - Ignores `output_vector_fusion_clip_sd35` chunk defined in pipeline
+   - Workflow submitted to ComfyUI but backend doesn't wait for completion
+   - Result: Frontend shows 4 image frames with question marks (no images)
+   - Root Cause: Migration from deprecated generator to Output-Chunks incomplete
+
+3. **🔴 Image Retrieval Missing**: No polling or download of generated images
+   - Backend submits workflow successfully
+   - ComfyUI generates images (visible in ComfyUI interface)
+   - Backend never retrieves the results
+   - Frontend never receives image URLs
+
+**Technical Details:**
+- Pipeline: `text_semantic_split` (Stage 2 semantic splitting)
+- Configs Deactivated:
+  - `splitandcombinelinear.json` (LERP interpolation)
+  - `splitandcombinespherical.json` (SLERP interpolation)
+- UI Component: `public/ai4artsed-frontend/src/components/Phase2VectorFusionInterface.vue`
+- Output Chunk: `devserver/schemas/chunks/output_vector_fusion_clip_sd35.json` (not being used)
+
+**Why Vector Fusion Requires English:**
+- Vector Fusion works in CLIP embedding space
+- CLIP embeddings are most precise with English text
+- German prompts would produce incorrect semantic vectors
+- Stage 1 translation is essential (skip_stage1: false is correct)
+
+**Files Modified:**
+- `text_semantic_split.json` - Changed pipeline_type to enable detection
+- `Phase2VectorFusionInterface.vue` - Complete UI redesign
+- `api.ts` - Fixed status vs success API type mismatch
+- `Phase2CreativeFlowView.vue` - Added routing for Vector Fusion UI
+- `PipelineExecutionView.vue` - Updated API response handling
+
+**User Decision (Direct Quote):**
+> "Wir machen das jetzt so: 1) vermekrke den Arbeitsstand auf einer Problemlist im ToDo. 2) Verschiebe diese workflows nach \"deactivated\". Ich habe keien Lust mit diesem relatriv unwichtigen Teil Stundenlang zu debuggen."
+
+**Deactivated Files:**
+- `devserver/schemas/configs/interception/deactivated/splitandcombinelinear.json`
+- `devserver/schemas/configs/interception/deactivated/splitandcombinespherical.json`
+
+**Next Steps (If Reactivated):**
+1. Fix Stage 1→2 data flow to pass English translated text (not German original)
+2. Complete migration from deprecated comfyui_workflow_generator to Output-Chunks system
+3. Implement image retrieval polling in backend after ComfyUI workflow submission
+4. Test full flow: Input → Translation → Split (EN) → Vector Fusion → Display images
+
+**Estimated Fix Time:** 4-6 hours
+**Complexity:** High (requires deep backend refactoring)
 
 ---
 

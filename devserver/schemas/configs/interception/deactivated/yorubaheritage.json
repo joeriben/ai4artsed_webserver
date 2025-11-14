@@ -6,8 +6,8 @@
     "de": "YorubaHeritage"
   },
   "description": {
-    "en": "Tries to translate everything into Yorùbá cultural framework with ancestral roles, ritual contexts, and spiritual relationships. Allows for a critical assessment of the limits of generative AI with regard to cultural knowledge.",
-    "de": "Versucht, alles in Yorùbá-Kulturrahmen mit ancestralen Rollen, rituellen Kontexten und spirituellen Beziehungen zu übersetzen. Ermöglicht kritische Einblicke in die Grenzen generativer KI in Bezug auf kulturelles Wissen."
+    "en": "Critical examination tool: Tests AI's severe limitations in handling Yorùbá cultural knowledge. Not for authentic cultural representation - AI cannot adequately represent complex cultural frameworks. This tool demonstrates how generative AI struggles with cultural specifics and reveals its fundamental indifference to cultural nuances.",
+    "de": "Kritisches Untersuchungswerkzeug: Prüft die erheblichen Grenzen der KI im Umgang mit Yorùbá-Kulturwissen. Nicht zur authentischen kulturellen Darstellung - KI kann komplexe kulturelle Rahmen nicht angemessen darstellen. Dieses Werkzeug demonstriert wie generative KI mit kulturellen Feinheiten kämpft und ihre grundlegende Indifferenz gegenüber kulturellen Nuancen offenbart."
   },
   "category": {
     "en": "Arts And Heritage",
@@ -16,7 +16,6 @@
   "properties": [
     "chill",
     "narrative",
-    "emotion",
     "historical",
     "explore",
     "serious"

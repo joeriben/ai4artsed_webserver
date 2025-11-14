@@ -30,31 +30,64 @@ export interface ConfigMetadata {
 
 export type PropertyPair = [string, string]
 
+// Session 40: Property symbols support
+export interface PropertyPairV2 {
+  id: number
+  pair: [string, string]
+  symbols: { [key: string]: string }
+  labels: {
+    de: { [key: string]: string }
+    en: { [key: string]: string }
+  }
+  tooltips: {
+    de: { [key: string]: string }
+    en: { [key: string]: string }
+  }
+}
+
 export interface ConfigsWithPropertiesResponse {
   configs: ConfigMetadata[]
-  property_pairs: PropertyPair[]
+  property_pairs: PropertyPair[] | PropertyPairV2[]
+  symbols_enabled?: boolean
 }
 
 /** Pipeline execution request (Phase 2) */
 export interface PipelineExecuteRequest {
   schema: string
   input_text: string
-  user_language: 'de' | 'en'
+  user_input?: string // Original user input (for Phase 2 media generation)
+  user_language?: 'de' | 'en'
   execution_mode?: 'eco' | 'fast' | 'best'
   safety_level?: 'kids' | 'youth' | 'adult'
   context_prompt?: string // Optional: user-edited meta-prompt
   context_language?: 'de' | 'en' // Language of context_prompt
+  custom_placeholders?: Record<string, string> // Optional: custom placeholder values for multi-stage workflows
+  output_config?: string // Output config for Stage 4 media generation
+  stage4_only?: boolean // Skip Stage 1-3, only execute Stage 4
+  seed?: number // Random seed for reproducible media generation
 }
 
 /** Pipeline execution response */
 export interface PipelineExecuteResponse {
-  success: boolean
+  status: 'success' | 'error'
   final_output?: string
   media_output?: {
     output?: string // prompt_id for media polling
+    run_id?: string
+    media_type?: string
+    media_stored?: boolean
+    status?: string
+    config?: string
+    metadata?: Record<string, any> // Media generation metadata (e.g., seed)
   }
   error?: string
   run_id?: string
+  schema?: string
+  config_name?: string
+  input_text?: string
+  steps_completed?: number
+  execution_time?: number
+  metadata?: Record<string, any>
 }
 
 /** Transform request (Phase 2 - Stage 1+2 only) */

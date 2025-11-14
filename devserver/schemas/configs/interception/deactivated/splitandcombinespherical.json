@@ -2,18 +2,18 @@
   "pipeline": "text_semantic_split",
 
   "name": {
-    "en": "Split & Combine (Linear)",
-    "de": "Teilen & Kombinieren (Linear)"
+    "en": "Split & Combine (Spherical)",
+    "de": "Teilen & Kombinieren (Sphärisch)"
   },
 
   "description": {
-    "en": "Splits your prompt into two semantic parts, then recombines them using linear interpolation in CLIP vector space. Creates smooth blends between semantic concepts.",
-    "de": "Teilt deinen Prompt in zwei semantische Teile und kombiniert sie mittels linearer Interpolation im CLIP-Vektorraum. Erzeugt sanfte Verschmelzungen zwischen semantischen Konzepten."
+    "en": "Splits your prompt into two semantic parts, then recombines them using spherical interpolation in CLIP vector space. Shows how breaking semantic relationships affects AI image generation.",
+    "de": "Teilt deinen Prompt in zwei semantische Teile und kombiniert sie mittels sphärischer Interpolation im CLIP-Vektorraum. Zeigt, wie das Aufbrechen semantischer Beziehungen die KI-Bildgenerierung beeinflusst."
   },
 
   "category": {
-    "en": "Vector Manipulation",
-    "de": "Vektormanipulation"
+    "de": "Vektormanipulation",
+    "en": "Vector Manipulation"
   },
 
   "properties": [
@@ -25,7 +25,6 @@
   ],
 
   "context": "Extract the most foremost thing or aspect of the input.\n\nOf course, adjectives, adverbs and phrases that describe the main thing BELONG TO THE MAIN ASPECT AND WILL BE EXTRACTED AS A SEMANTIC GROUP. Pass on only this part of the description.\n\nIf the input contains [expressions in brackets], treat those as one unit (and select the main unit).\n\nYour output MUST be in JSON format with exactly two fields:\n{\n  \"part_a\": \"the most significant aspect with all its descriptors\",\n  \"part_b\": \"everything else from the original input\"\n}\n\nIMPORTANT:\n- Do NOT add any explanations or meta-remarks\n- Output ONLY valid JSON\n- Preserve all original words exactly\n- part_a contains the main aspect\n- part_b contains the rest\n\nExample input: \"[a huge meteoroid in vast space] [a silver spoon in the cutlery drawer]\"\nExample output:\n{\n  \"part_a\": \"a huge meteoroid in vast space\",\n  \"part_b\": \"a silver spoon in the cutlery drawer\"\n}",
-
   "parameters": {
     "temperature": 0.3,
     "top_p": 0.9,
@@ -34,7 +33,7 @@
 
   "media_preferences": {
     "default_output": "image",
-    "output_configs": ["vector_fusion_linear_clip"]
+    "output_configs": ["vector_fusion_spherical_clip"]
   },
 
   "meta": {
@@ -43,7 +42,7 @@
     "output_format": "json_split",
     "task_type": "standard",
     "requires_creativity": false,
-    "legacy_source": "workflows_legacy/vector/ai4artsed_SplitAndCombineLinear_2507021805.json",
+    "legacy_source": "workflows_legacy/vector/ai4artsed_SplitAndCombineSpherical_2507021805.json",
     "extracted_date": "2025-10-19",
     "original_model": "openrouter/mistralai/mistral-medium-3 [rule-oriented / $0.40/$2.00]"
   },

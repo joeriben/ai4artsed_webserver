@@ -381,6 +381,9 @@ def execute_pipeline():
         context_language = data.get('context_language', 'en')  # Language of context_prompt
         user_language = data.get('user_language', 'en')  # User's interface language
 
+        # Media generation support
+        output_config = data.get('output_config')  # Optional: specific output config for Stage 4 (e.g., 'sd35_large')
+
         # Fast regeneration support: skip Stage 1-3 with stage4_only flag
         stage4_only = data.get('stage4_only', False)  # Boolean: skip to Stage 4 (media generation) only
         seed_override = data.get('seed')  # Optional: specific seed for exact regeneration
@@ -704,21 +707,38 @@ def execute_pipeline():
         default_output = media_preferences.get('default_output') if media_preferences else None
         output_configs = media_preferences.get('output_configs', [])
 
+        # DEBUG: Log what we found
+        logger.info(f"[DEBUG] media_preferences type: {type(media_preferences)}, value: {media_preferences}")
+        logger.info(f"[DEBUG] default_output: {default_output}")
+        logger.info(f"[DEBUG] output_configs: {output_configs}")
+        logger.info(f"[DEBUG] output_config (from request): {output_config}")
+        logger.info(f"[DEBUG] execution_mode: {execution_mode}")
+
         # Determine which output configs to use
-        if output_configs:
-            # Multi-Output: Use explicit output_configs array
+        # Priority: 1) Request parameter, 2) Config output_configs array, 3) Config default_output
+        if output_config:
+            # HIGHEST PRIORITY: User directly selected output config from frontend
+            logger.info(f"[USER-SELECTED] Using output_config from request: {output_config}")
+            configs_to_execute = [output_config]
+        elif output_configs:
+            # Multi-Output: Use explicit output_configs array from config
             logger.info(f"[MULTI-OUTPUT] Config requests {len(output_configs)} outputs: {output_configs}")
             configs_to_execute = output_configs
         elif default_output and default_output != 'text':
             # Single-Output: Use lookup from default_output
+            logger.info(f"[DEBUG] Calling lookup_output_config({default_output}, {execution_mode})")
             output_config_name = lookup_output_config(default_output, execution_mode)
+            logger.info(f"[DEBUG] lookup returned: {output_config_name}")
             if output_config_name:
                 configs_to_execute = [output_config_name]
             else:
                 configs_to_execute = []
         else:
             # Text-only output
+            logger.info(f"[DEBUG] No media output (default_output={default_output})")
             configs_to_execute = []
+
+        logger.info(f"[DEBUG] configs_to_execute: {configs_to_execute}")
 
         # Execute Stage 3-4 for each output config
         media_outputs = []
@@ -1283,12 +1303,112 @@ def pipeline_configs_with_properties():
     try:
         init_schema_engine()
 
-        # Property pairs definition
-        # TODO: Move to i18n configuration instead of hardcoding
+        # Feature flag for property symbols (Session 40)
+        ENABLE_PROPERTY_SYMBOLS = True  # Set to False to disable symbols
+
+        # Property pairs v2 with symbols and tooltips (Session 40)
+        property_pairs_v2 = [
+            {
+                "id": 1,
+                "pair": ["chill", "chaotic"],  # TODO: Change to predictable/surprising
+                "symbols": {"chill": "🎯", "chaotic": "🎲"},
+                "labels": {
+                    "de": {"chill": "vorhersagbar", "chaotic": "überraschend"},
+                    "en": {"chill": "predictable", "chaotic": "surprising"}
+                },
+                "tooltips": {
+                    "de": {
+                        "chill": "Output ist erwartbar und steuerbar",
+                        "chaotic": "Output ist unvorhersehbar, überraschende Wendungen"
+                    },
+                    "en": {
+                        "chill": "Output is expected and controllable",
+                        "chaotic": "Output is unpredictable with surprising turns"
+                    }
+                }
+            },
+            {
+                "id": 2,
+                "pair": ["narrative", "algorithmic"],
+                "symbols": {"narrative": "✍️", "algorithmic": "🔢"},
+                "labels": {
+                    "de": {"narrative": "semantisch", "algorithmic": "syntaktisch"},
+                    "en": {"narrative": "semantic", "algorithmic": "syntactic"}
+                },
+                "tooltips": {
+                    "de": {
+                        "narrative": "Schreiben: Bedeutung und Kontext",
+                        "algorithmic": "Rechnen: Regeln und Schritte"
+                    },
+                    "en": {
+                        "narrative": "Writing: meaning and context",
+                        "algorithmic": "Calculating: rules and steps"
+                    }
+                }
+            },
+            {
+                "id": 3,
+                "pair": ["historical", "contemporary"],
+                "symbols": {"historical": "🏛️", "contemporary": "🏙️"},
+                "labels": {
+                    "de": {"historical": "museal", "contemporary": "lebendig"},
+                    "en": {"historical": "museum", "contemporary": "contemporary"}
+                },
+                "tooltips": {
+                    "de": {
+                        "historical": "Museumsgebäude (historisch, eingefroren)",
+                        "contemporary": "Wolkenkratzer (gegenwärtig, lebendig)"
+                    },
+                    "en": {
+                        "historical": "Museum building (historical, frozen)",
+                        "contemporary": "Skyscraper (contemporary, alive)"
+                    }
+                }
+            },
+            {
+                "id": 4,
+                "pair": ["explore", "create"],
+                "symbols": {"explore": "🔍", "create": "🎨"},
+                "labels": {
+                    "de": {"explore": "austesten", "create": "artikulieren"},
+                    "en": {"explore": "test AI", "create": "articulate"}
+                },
+                "tooltips": {
+                    "de": {
+                        "explore": "KI challengen, kritisch hinterfragen (Detektiv)",
+                        "create": "Künstlerisch ausdrücken, gestalten (Künstler)"
+                    },
+                    "en": {
+                        "explore": "Challenge AI, critically question (detective)",
+                        "create": "Artistically express, create (artist)"
+                    }
+                }
+            },
+            {
+                "id": 5,
+                "pair": ["playful", "serious"],
+                "symbols": {"playful": "🪁", "serious": "🔧"},
+                "labels": {
+                    "de": {"playful": "verspielt", "serious": "ernst"},
+                    "en": {"playful": "playful", "serious": "serious"}
+                },
+                "tooltips": {
+                    "de": {
+                        "playful": "Spielerisch, viele Freiheitsgrade (Drachen)",
+                        "serious": "Ernst, strukturiert, Genrekonventionen (Werkzeug)"
+                    },
+                    "en": {
+                        "playful": "Playful, many degrees of freedom (kite)",
+                        "serious": "Serious, structured, genre conventions (tool)"
+                    }
+                }
+            }
+        ]
+
+        # Legacy property pairs (for backward compatibility)
         property_pairs = [
             ["chill", "chaotic"],
             ["narrative", "algorithmic"],
-            ["facts", "emotion"],
             ["historical", "contemporary"],
             ["explore", "create"],
             ["playful", "serious"]
@@ -1450,10 +1570,19 @@ def pipeline_configs_with_properties():
 
         logger.info(f"Loaded {len(configs_metadata)} configs with properties for Phase 1")
 
-        return jsonify({
-            "configs": configs_metadata,
-            "property_pairs": property_pairs
-        })
+        # Return with or without symbols based on feature flag (Session 40)
+        if ENABLE_PROPERTY_SYMBOLS:
+            return jsonify({
+                "configs": configs_metadata,
+                "property_pairs": property_pairs_v2,
+                "symbols_enabled": True
+            })
+        else:
+            return jsonify({
+                "configs": configs_metadata,
+                "property_pairs": property_pairs,
+                "symbols_enabled": False
+            })
 
     except Exception as e:
         logger.error(f"Error loading configs with properties: {e}")

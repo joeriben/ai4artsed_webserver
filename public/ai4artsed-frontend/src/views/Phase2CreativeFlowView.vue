@@ -693,8 +693,8 @@ async function handleMediaGeneration(outputConfig: string) {
     // Complete progress to 100%
     generationProgress.value = 100
 
-    // Display image using Backend API with progressive opacity
-    previewImage.value = `http://localhost:17801/api/media/image/${runId}`
+    // Display image using Backend API with progressive opacity (via Vite proxy)
+    previewImage.value = `/api/media/image/${runId}`
 
     // Keep progress at 100% (opacity will use this value)
 

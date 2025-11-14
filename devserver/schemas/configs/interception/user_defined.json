@@ -1,0 +1,67 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Your Call!",
+    "de": "Du bestimmst!"
+  },
+  "description": {
+    "en": "TWhen you make art, you decide what you want to use and how you want to do it. Here, you can tell the AI what to use and what rules to follow.",
+    "de": "Wenn Du Kunst machst, entscheidest Du, was Du benutzen willst und wie Du es machen möchtest. Hier kannst Du der KI sagen, was sie benutzen und nach welchen Regeln sie arbeiten soll."
+  },
+  "category": {
+    "de": "Kunst & Kultur",
+    "en": "Art & Culture"
+  },
+  "properties": [
+    "chaotic",
+    "narrative",
+    "create",
+    "playful"
+  ],
+  "context": {
+    "en": "",
+    "de": ""
+  },
+  "parameters": {
+    "temperature": 0.8,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image",
+      "audio",
+      "video",
+      "music",
+      "3D"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "approaches": [
+      "empowerment",
+      "creativity",
+      "aesthetic judgement",
+      "artistic exploration",
+      "AI literacy"
+    ]
+  },
+  "display": {
+    "icon": "🖼️",
+    "color": "#E91E63",
+    "category": "arts_and_heritage",
+    "difficulty": 4,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "advanced"
+  }
+}

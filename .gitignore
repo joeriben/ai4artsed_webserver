@@ -75,3 +75,6 @@ lora/training_output/     # Temporary training checkpoints
 lora/logs/                # Training logs
 lora/*.log                # Individual log files
 lora/test_*.py            # Test scripts
+
+# Temporary config backups
+devserver/schemas/configs/tmp/

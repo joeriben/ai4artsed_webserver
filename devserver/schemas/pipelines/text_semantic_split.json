@@ -1,6 +1,6 @@
 {
   "name": "text_semantic_split",
-  "pipeline_type": "text_operation",
+  "pipeline_type": "text_semantic_split",
   "pipeline_stage": "2",
   "requires_interception_prompt": false,
   "description": "Semantic text splitting without transformation - splits prompt into two semantic parts",

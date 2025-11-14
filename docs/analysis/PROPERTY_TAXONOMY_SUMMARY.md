@@ -1,11 +1,33 @@
 # PROPERTY TAXONOMY SUMMARY
 **Date:** 2025-11-08
+**Last Updated:** 2025-11-13 (facts/emotion pair removal)
 **Analyst:** Claude Sonnet 4.5
-**Branch:** feature/schema-architecture-v2
+**Branch:** legacy-migration
 
 ---
 
-## Executive Summary
+## UPDATE 2025-11-13: facts/emotion Pair Removed
+
+**IMPORTANT:** The `facts/emotion` property pair has been completely removed from the taxonomy. This pair had lost its pedagogical clarity over time and was causing confusion.
+
+**Changes made:**
+- Removed `facts` from: Bauhaus, ClichéFilter V2, Renaissance, TechnicalDrawing, + 6 deactivated
+- Removed `emotion` from: ConfucianLiterati, Dadaism, Expressionism, HunkyDoryHarmonizer, UK Youth Slang, Your Call!, + 3 deactivated
+- Updated i18n translations (German & English)
+- Updated frontend PropertyCanvas color array
+- Updated backend API property_pairs and property_pairs_v2
+- Updated validation scripts
+
+**New property system: 5 pairs instead of 6:**
+1. chill ↔ chaotic
+2. narrative ↔ algorithmic
+3. historical ↔ contemporary
+4. explore ↔ create
+5. playful ↔ serious
+
+---
+
+## Executive Summary (Historical - Nov 2025)
 
 This analysis reviews **all 32 interception configs** (18 active + 14 deactivated) for property taxonomy consistency, context prompt quality, and pedagogical accuracy. The analysis builds on Session 37's property taxonomy revision and applies systematic quality control with comparison to legacy sources where available.
 

@@ -17,7 +17,6 @@ from collections import defaultdict
 PROPERTY_PAIRS = [
     ('chill', 'chaotic'),
     ('narrative', 'algorithmic'),
-    ('facts', 'emotion'),
     ('historical', 'contemporary'),
     ('explore', 'create'),
     ('playful', 'serious')

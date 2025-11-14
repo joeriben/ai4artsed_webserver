@@ -40,7 +40,7 @@
               "node_id": "47",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
               "selected_llm": "local/mistral:7b"
             }
@@ -98,7 +98,7 @@
               "node_id": "47",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
               "selected_llm": "local/mistral:7b"
             }
@@ -196,7 +196,7 @@
               "node_id": "47",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
               "selected_llm": "local/mistral:7b"
             }
@@ -245,7 +245,7 @@
               "node_id": "47",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
               "selected_llm": "local/mistral:7b"
             }
@@ -294,7 +294,7 @@
               "node_id": "47",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
               "selected_llm": "local/mistral:7b"
             }
@@ -357,7 +357,7 @@
               "node_id": "34",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
               "selected_llm": "local/mistral:7b"
             }
@@ -414,7 +414,7 @@
               "node_id": "34",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
               "selected_llm": "local/mistral:7b"
             }
@@ -463,7 +463,7 @@
               "node_id": "34",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
               "selected_llm": "local/mistral:7b"
             }
@@ -512,7 +512,7 @@
               "node_id": "34",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
               "selected_llm": "local/mistral:7b"
             }
@@ -561,7 +561,7 @@
               "node_id": "34",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "Eine bescheidene Anzahl von Blumen steht in einer einfachen Vase in deinem einigermaßen ansehnlichen Wohnzimmer.",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
               "selected_llm": "local/lauchacarro/qwen2.5-translator:latest"
             }
@@ -610,7 +610,7 @@
               "node_id": "47",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
               "selected_llm": "local/mistral:7b"
             }
@@ -673,7 +673,7 @@
               "node_id": "34",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
               "selected_llm": "local/mistral:7b"
             }
@@ -722,7 +722,7 @@
               "node_id": "34",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
               "selected_llm": "local/mistral:7b"
             }
@@ -1385,7 +1385,7 @@
               "node_id": "47",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
               "selected_llm": "local/mistral:7b"
             }
@@ -1443,7 +1443,7 @@
               "node_id": "76",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "Ein grüner Elefant schläft auf einer rosafarbenen Blumenwiese. Die Wiese schwebt in der Luft; sie schwebt über einer Sonne, die lächelt. Die Sonne hat einen Hut auf!",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. \nMaintain the original structure, and preserve all culturally specific terms or non-translatable phrases in their original form. \nDo not translate proper names, ritual terms, or material names unless they have a common English usage. \nMark such terms with double brackets, e.g. [[egungun]], and preserve their position. \nDo not paraphrase, interpret, or summarize. Do not add any comments or explanations.\nReturn only the translated prompt as plain text.",
               "selected_llm": "local/mistral-nemo:latest"
             }
@@ -1558,7 +1558,7 @@
               "node_id": "34",
               "node_title": "AI4ArtsEd Translation_english",
               "input_prompt": "[user_input]",
-              "input_context": "professional translator",
+              "input_context": "",
               "instruction_prompt": "Translate the prompt into English with maximal semantic preservation. If it is already in English, do not change the input.\n\nException: The following keywords must remain exactly as they appear and must not be translated or altered:\n- context:\n- Kontext:\n- Kunstform\n- art form:\n- Style:\n- Stil:\n- Prompt Interception:\n- Promptinterception\n- Prompt-Interception\n- PromptInterception\n\nPreserve the original structure and formatting. Maintain the exact order and punctuation of the input wherever possible.\n\nDo not translate or modify:\n- Proper names\n- Ritual terms\n- Material names\nunless there is a widely used English equivalent.\n\nMark such culturally specific or untranslated terms using double square brackets (e.g. [[egungun]]) and leave them in their original position.\n\nDo not paraphrase, interpret, summarize, or rephrase. Do not add any comments, notes, or explanations.\n\nReturn only the translated prompt as plain text output, with no extra text.\n",
               "selected_llm": "local/mistral:7b"
             }

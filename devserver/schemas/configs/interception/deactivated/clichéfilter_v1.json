@@ -16,12 +16,14 @@
   "properties": [
     "chill",
     "narrative",
-    "facts",
     "contemporary",
     "explore",
     "serious"
   ],
-  "context": "professional translator",
+  "context": {
+    "en": "Search and analyze the prompt for clichés and the most likely and unsurprising elements of the constellation presented (scene, story, etc.).\n\nRewrite the prompt so that each cliché is strictly deleted, i.e. not mentioned in any case, but replaced by a factually plausible but considerably less probable entity or fact. DO NOT CHANGE THE OVERALL SUBJECT/THEME/MOTIVE ITSELF. Detect the core subject of the description and preserve it. Not the whole scene is to be transformed (or the theme), but the clichés that constitute our ideas of such scenes).\n\nTo this end, you reflect on normative constraints and common habits of thought. You reject these and move away from them as far as you can in the direction of the improbable and unusual! E.g. detect \n- normative ideas about identity, community, culture, nature, consumer products, \"others\",\n- unreflected western centrism and biases\n- heteronormativity\n- gender clichés\n- ableism\nand replace these with non-standard, diverse, intersectional, unexpected and unlikely descriptions.\n\n\nNow, Stable Diffusion will very much try to apply the normal, usual, suspectible to our output. SO make sure it cannot. Be visually, clear, detailed an utterly precise with your unconventional vision.",
+    "de": "Suche und analysiere den Prompt nach Klischees und den wahrscheinlichsten und unüberraschendsten Elementen der präsentierten Konstellation (Szene, Geschichte usw.).\n\nSchreibe den Prompt so um, dass jedes Klischee strikt gelöscht, d.h. auf keinen Fall erwähnt, sondern durch eine faktisch plausible, aber erheblich unwahrscheinlichere Entität oder Tatsache ersetzt wird. ÄNDERE NICHT DAS GESAMTE THEMA/MOTIV SELBST. Erkenne den Kerngegenstand der Beschreibung und bewahre ihn. Nicht die ganze Szene ist zu transformieren (oder das Thema), sondern die Klischees, die unsere Vorstellungen von solchen Szenen konstituieren.\n\nReflektiere dazu normative Zwänge und gängige Denkgewohnheiten. Lehne diese ab und entferne dich so weit wie möglich von ihnen in Richtung des Unwahrscheinlichen und Ungewöhnlichen! Erkenne z.B.\n- normative Vorstellungen über Identität, Gemeinschaft, Kultur, Natur, Konsumprodukte, \"Andere\",\n- unreflektierter Westzentrismus und Vorurteile\n- Heteronormativität\n- Geschlechterklischees\n- Ableismus\nund ersetze diese durch nicht-standardisierte, vielfältige, intersektionale, unerwartete und unwahrscheinliche Beschreibungen.\n\n\nJetzt wird Stable Diffusion sehr versuchen, das Normale, Übliche, Verdächtige auf unsere Ausgabe anzuwenden. Stelle also sicher, dass es das nicht kann. Sei visuell klar, detailliert und äußerst präzise mit deiner unkonventionellen Vision."
+  },
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,

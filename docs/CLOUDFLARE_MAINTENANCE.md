@@ -232,15 +232,55 @@ ingress:
 
 ---
 
-## Backend Operations
+## Running Services
 
-### Start/Stop/Restart Backend
+### Production Mode (for lab.ai4artsed.org)
 
-**Start backend:**
+Run these scripts in **separate terminal windows** for full visibility:
+
+**Terminal 1 - Backend:**
 ```bash
-cd /home/joerissen/ai/ai4artsed_webserver/devserver
-python3 server.py > /tmp/backend_production.log 2>&1 &
+~/start_backend_fg.sh
 ```
+
+**Terminal 2 - Cloudflared Tunnel:**
+```bash
+~/start_cloudflared_fg.sh
+```
+
+**To stop everything:**
+```bash
+~/stop_all.sh
+```
+
+**Advantages:**
+- All requests visible in real-time
+- Ctrl+C stops services cleanly
+- No hidden background processes
+- Full control and debugging visibility
+
+### Development Mode (for frontend development)
+
+Run these scripts in **separate terminal windows**:
+
+**Terminal 1 - Backend (API):**
+```bash
+~/start_backend_fg.sh
+```
+
+**Terminal 2 - Vite Dev Server:**
+```bash
+~/start_frontend_dev.sh
+```
+
+Then open http://localhost:5173 in browser. Hot-reload enabled.
+
+**After making frontend changes, rebuild for production:**
+```bash
+~/rebuild_frontend.sh
+```
+
+### Manual Backend Operations (Advanced)
 
 **Check if running:**
 ```bash
@@ -248,9 +288,9 @@ lsof -ti:17801
 # Returns PID if running
 ```
 
-**Stop backend:**
+**Kill backend manually:**
 ```bash
-pkill -f "python3.*server.py"
+lsof -ti:17801 | xargs -r kill -9
 ```
 
 **View logs:**
@@ -486,29 +526,29 @@ Use this checklist for major deployments:
 ### Most Common Operations
 
 ```bash
-# Deploy new frontend build
-cd /home/joerissen/ai/ai4artsed_webserver/public/ai4artsed-frontend
-./deploy_production.sh
+# Stop all services
+~/stop_all.sh
+
+# Start production mode (Terminal 1)
+~/start_backend_fg.sh
+
+# Start production mode (Terminal 2)
+~/start_cloudflared_fg.sh
+
+# Start development mode (Terminal 1)
+~/start_backend_fg.sh
+
+# Start development mode (Terminal 2)
+~/start_frontend_dev.sh
+
+# Rebuild frontend for production
+~/rebuild_frontend.sh
 
 # Check if backend is running
 lsof -i:17801
 
-# Restart backend manually
-pkill -f "python3.*server.py"
-cd /home/joerissen/ai/ai4artsed_webserver/devserver
-python3 server.py > /tmp/backend_production.log 2>&1 &
-
-# Check backend logs
-tail -f /tmp/backend_production.log
-
 # Check tunnel status
 systemctl status cloudflared
-
-# Restart tunnel
-sudo systemctl restart cloudflared
-
-# View tunnel logs
-journalctl -u cloudflared -f
 ```
 
 ### Testing Commands

@@ -27,7 +27,7 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: #0a0a0a;
 }
@@ -38,6 +38,6 @@ html, body {
   left: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
 }
 </style>

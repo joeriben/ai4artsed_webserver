@@ -264,7 +264,7 @@ async function handleExecute() {
     // Execute pipeline
     const response = await executePipeline(request)
 
-    if (!response.success) {
+    if (response.status !== 'success') {
       throw new Error(response.error || 'Execution failed')
     }
 
