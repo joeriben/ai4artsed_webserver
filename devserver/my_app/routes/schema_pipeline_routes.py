@@ -1422,8 +1422,8 @@ def pipeline_configs_with_properties():
         if not configs_path.exists():
             return jsonify({"error": "Configs directory not found"}), 404
 
-        # Excluded directories (deactivated, deprecated, etc.)
-        EXCLUDED_DIRS = {"temporarily_deactivated", "deactivated", "deprecated", "archive", ".obsolete"}
+        # Excluded directories (deactivated, deprecated, backups, tmp, etc.)
+        EXCLUDED_DIRS = {"temporarily_deactivated", "deactivated", "deprecated", "archive", ".obsolete", "tmp", "backup", "backups", "backup_20251114"}
 
         # Recursive glob to support subdirectories (interception/, output/, user_configs/)
         for config_file in sorted(configs_path.glob("**/*.json")):

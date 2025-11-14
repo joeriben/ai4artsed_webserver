@@ -76,6 +76,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigSelectionStore } from '@/stores/configSelection'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
+import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import PropertyCanvas from '@/components/PropertyCanvas.vue'
 import ConfigCanvas from '@/components/ConfigCanvas.vue'
 import NoMatchState from '@/components/NoMatchState.vue'
@@ -93,6 +94,7 @@ import NoMatchState from '@/components/NoMatchState.vue'
 
 const store = useConfigSelectionStore()
 const userPreferences = useUserPreferencesStore()
+const pipelineStore = usePipelineExecutionStore()
 const router = useRouter()
 
 // Language from global store (site-wide preference)
@@ -112,8 +114,14 @@ function handlePropertyToggle(property: string) {
 }
 
 function handleConfigSelect(configId: string) {
-  // Navigate to Phase 2 execution view
   console.log('[PropertyQuadrants] Config selected:', configId)
+
+  // CRITICAL: Clear pipeline store for fresh start
+  // This ensures no sticky context or transformed prompt from previous config
+  console.log('[PropertyQuadrants] Clearing pipeline store for fresh start...')
+  pipelineStore.clearAll()
+
+  // Navigate to Phase 2 execution view
   router.push({ name: 'pipeline-execution', params: { configId } })
 }
 

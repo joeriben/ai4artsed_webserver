@@ -392,6 +392,11 @@ const canContinueToMedia = computed(() => {
 onMounted(async () => {
   const configId = route.params.configId as string
 
+  console.log('========================================')
+  console.log('[Phase2 LIFECYCLE] onMounted() called')
+  console.log('[Phase2 LIFECYCLE] configId:', configId)
+  console.log('[Phase2 LIFECYCLE] Current store.metaPrompt:', pipelineStore.metaPrompt?.substring(0, 50))
+  console.log('========================================')
   console.log('[Phase2] Mounting with configId:', configId)
 
   if (!configId) {
@@ -610,9 +615,23 @@ function selectMediaConfig(outputConfig: string) {
  * @param outputConfig - Output config name (sd35_large, gpt_image_1, stable_audio_1, ace_step)
  */
 async function handleMediaGeneration(outputConfig: string) {
-  if (!transformedPrompt.value || !outputConfig || !pipelineStore.selectedConfig) return
+  console.log('[Phase2] handleMediaGeneration called:', {
+    outputConfig,
+    hasTransformedPrompt: !!transformedPrompt.value,
+    hasSelectedConfig: !!pipelineStore.selectedConfig,
+    transformedPromptLength: transformedPrompt.value?.length
+  })
 
-  console.log('[Phase2] Starting media generation:', {
+  if (!transformedPrompt.value || !outputConfig || !pipelineStore.selectedConfig) {
+    console.warn('[Phase2] ❌ Generation blocked - missing requirements:', {
+      transformedPrompt: !!transformedPrompt.value,
+      outputConfig: !!outputConfig,
+      selectedConfig: !!pipelineStore.selectedConfig
+    })
+    return
+  }
+
+  console.log('[Phase2] ✅ Starting media generation:', {
     outputConfig,
     transformedPrompt: transformedPrompt.value.substring(0, 100) + '...'
   })
@@ -770,10 +789,25 @@ function handleVectorFusionGenerated(runId: string) {
 // WATCHERS
 // ============================================================================
 
+// DEBUG: Watch route.params.configId changes
+watch(
+  () => route.params.configId,
+  (newId, oldId) => {
+    console.log('========================================')
+    console.log('[Phase2 WATCH] route.params.configId changed!')
+    console.log('[Phase2 WATCH] Old configId:', oldId)
+    console.log('[Phase2 WATCH] New configId:', newId)
+    console.log('[Phase2 WATCH] Current editableMetaPrompt:', editableMetaPrompt.value?.substring(0, 50))
+    console.log('[Phase2 WATCH] Current store.metaPrompt:', pipelineStore.metaPrompt?.substring(0, 50))
+    console.log('========================================')
+  }
+)
+
 // Watch language changes and reload meta-prompt
 watch(
   () => userPreferences.language,
   async (newLang) => {
+    console.log('[Phase2 WATCH] Language changed to:', newLang)
     await pipelineStore.loadMetaPromptForLanguage(newLang)
     // Update editable meta-prompt for ALL configs
     editableMetaPrompt.value = pipelineStore.metaPrompt || ''
@@ -783,9 +817,17 @@ watch(
 // Watch metaPrompt changes and sync to editableMetaPrompt for ALL configs
 watch(
   () => pipelineStore.metaPrompt,
-  (newMetaPrompt) => {
+  (newMetaPrompt, oldMetaPrompt) => {
+    console.log('[Phase2 WATCH] pipelineStore.metaPrompt changed!')
+    console.log('[Phase2 WATCH] Old:', oldMetaPrompt?.substring(0, 50))
+    console.log('[Phase2 WATCH] New:', newMetaPrompt?.substring(0, 50))
+    console.log('[Phase2 WATCH] editableMetaPrompt before sync:', editableMetaPrompt.value?.substring(0, 50))
+
     if (editableMetaPrompt.value !== newMetaPrompt) {
       editableMetaPrompt.value = newMetaPrompt
+      console.log('[Phase2 WATCH] → editableMetaPrompt updated')
+    } else {
+      console.log('[Phase2 WATCH] → editableMetaPrompt NOT updated (values equal)')
     }
   }
 )
