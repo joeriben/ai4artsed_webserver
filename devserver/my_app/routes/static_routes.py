@@ -47,7 +47,12 @@ def serve_spa(path):
 
     # Case 2: Static assets - serve with explicit MIME type
     # Critical for ES modules (.js files) which must have correct Content-Type
-    if path.startswith('assets/') or path in ['favicon.ico', 'robots.txt']:
+    # PWA files: registerSW.js, sw.js, workbox-*.js, manifest.webmanifest, icons
+    if (path.startswith('assets/') or
+        path.startswith('workbox-') or
+        path in ['favicon.ico', 'robots.txt', 'registerSW.js', 'sw.js',
+                 'manifest.webmanifest', 'icon-192x192.png', 'icon-512x512.png',
+                 'apple-touch-icon.png']):
         file_path = os.path.join(current_app.static_folder, path)
         if os.path.isfile(file_path):
             # Explicit MIME type setting (critical for ES modules)
@@ -62,6 +67,8 @@ def serve_spa(path):
                     mime_type = 'text/css'
                 elif path.endswith('.json'):
                     mime_type = 'application/json'
+                elif path.endswith('.webmanifest'):
+                    mime_type = 'application/manifest+json'
                 elif path.endswith('.png'):
                     mime_type = 'image/png'
                 elif path.endswith('.jpg') or path.endswith('.jpeg'):
@@ -81,12 +88,15 @@ def serve_spa(path):
             )
 
             # Set aggressive caching for hashed assets (overwrite Flask's default)
-            if path.startswith('assets/'):
+            if path.startswith('assets/') or path.startswith('workbox-'):
                 # Cache for 1 year (immutable assets with content hash)
                 # New builds generate new filenames, so old cached files become unused automatically
                 response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+            elif path in ['sw.js', 'registerSW.js']:
+                # Service Worker files must NOT be cached (critical for updates)
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
             else:
-                # Shorter cache for other static files (favicon, robots.txt)
+                # Shorter cache for other static files (favicon, icons, manifest)
                 response.headers['Cache-Control'] = 'public, max-age=3600'
 
             return response
