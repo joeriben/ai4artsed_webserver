@@ -6,6 +6,7 @@
     :title="tooltip"
     @click="handleClick"
     @mousedown="startDrag"
+    @touchstart="startDragTouch"
     :data-property="property"
   >
     <span v-if="symbol" class="property-symbol">{{ symbol }}</span>
@@ -99,6 +100,45 @@ function stopDrag() {
   document.removeEventListener('mousemove', onDrag)
   document.removeEventListener('mouseup', stopDrag)
 }
+
+// Touch event handlers for iPad/mobile support
+function startDragTouch(event: TouchEvent) {
+  event.preventDefault()
+  isDragging.value = true
+
+  const touch = event.touches[0]
+  if (!touch) return
+
+  const rect = bubbleEl.value?.getBoundingClientRect()
+  if (rect) {
+    dragOffset.value = {
+      x: touch.clientX - rect.left - rect.width / 2,
+      y: touch.clientY - rect.top - rect.height / 2
+    }
+  }
+
+  document.addEventListener('touchmove', onDragTouch, { passive: false })
+  document.addEventListener('touchend', stopDragTouch)
+}
+
+function onDragTouch(event: TouchEvent) {
+  if (!isDragging.value) return
+  event.preventDefault() // Prevent scrolling while dragging
+
+  const touch = event.touches[0]
+  if (!touch) return
+
+  const newX = touch.clientX - dragOffset.value.x
+  const newY = touch.clientY - dragOffset.value.y
+
+  emit('updatePosition', props.property, newX, newY)
+}
+
+function stopDragTouch() {
+  isDragging.value = false
+  document.removeEventListener('touchmove', onDragTouch)
+  document.removeEventListener('touchend', stopDragTouch)
+}
 </script>
 
 <style scoped>
@@ -162,19 +202,20 @@ function stopDrag() {
   font-weight: 700;
 }
 
-/* Mobile: Hide label, only show larger symbol */
-@media (max-width: 768px) {
+/* Mobile/Tablet: Hide label, only show larger symbol */
+/* Breakpoint set to 1400px to catch iPad Pro (1366px landscape) */
+@media (max-width: 1400px) {
   .property-label {
     display: none;
   }
 
   .property-bubble {
-    padding: 20px;
+    padding: 24px;  /* Larger touch target */
     min-width: auto;
   }
 
   .property-symbol {
-    font-size: 40px;  /* Even larger on mobile */
+    font-size: 44px;  /* Even larger on tablet for better visibility */
   }
 }
 </style>
