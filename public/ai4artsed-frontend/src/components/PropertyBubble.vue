@@ -50,6 +50,7 @@ const bubbleEl = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const hasDragged = ref(false)  // Track if actual dragging occurred
 const dragOffset = ref({ x: 0, y: 0 })
+const touchStartPos = ref({ x: 0, y: 0 })  // Track initial touch position for tap detection
 
 // Symbol and label from symbolData or fallback to i18n
 const symbol = computed(() => props.symbolData?.symbol || '')
@@ -120,6 +121,12 @@ function startDragTouch(event: TouchEvent) {
   const touch = event.touches[0]
   if (!touch) return
 
+  // Store initial touch position for tap detection
+  touchStartPos.value = {
+    x: touch.clientX,
+    y: touch.clientY
+  }
+
   const rect = bubbleEl.value?.getBoundingClientRect()
   if (rect) {
     dragOffset.value = {
@@ -147,12 +154,27 @@ function onDragTouch(event: TouchEvent) {
   emit('updatePosition', props.property, newX, newY)
 }
 
-function stopDragTouch() {
+function stopDragTouch(event: TouchEvent) {
   isDragging.value = false
   document.removeEventListener('touchmove', onDragTouch)
   document.removeEventListener('touchend', stopDragTouch)
 
-  // Reset drag flag after short delay to prevent click event
+  // Tap detection: if minimal movement, treat as tap/click
+  if (!hasDragged.value) {
+    const touch = event.changedTouches[0]
+    if (touch) {
+      const dx = Math.abs(touch.clientX - touchStartPos.value.x)
+      const dy = Math.abs(touch.clientY - touchStartPos.value.y)
+      const tapThreshold = 10 // pixels
+
+      // If movement is less than threshold, treat as tap
+      if (dx < tapThreshold && dy < tapThreshold) {
+        emit('toggle', props.property)
+      }
+    }
+  }
+
+  // Reset drag flag after short delay
   setTimeout(() => {
     hasDragged.value = false
   }, 100)

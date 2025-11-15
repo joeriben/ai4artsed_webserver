@@ -65,9 +65,15 @@ class ComfyUIClient:
             except:
                 pass
         
-        # Default fallback
-        logger.warning("⚠️ No ComfyUI instance found, using default port 8188")
-        return "http://127.0.0.1:8188"
+        # Default fallback - use port from config.py
+        try:
+            from config import COMFYUI_PORT
+            fallback_port = COMFYUI_PORT
+            logger.warning(f"⚠️ No ComfyUI instance found via discovery, using configured port {fallback_port}")
+            return f"http://127.0.0.1:{fallback_port}"
+        except ImportError:
+            logger.warning("⚠️ No ComfyUI instance found, using default port 8188")
+            return "http://127.0.0.1:8188"
         
     async def submit_workflow(self, workflow: Dict[str, Any]) -> Optional[str]:
         """

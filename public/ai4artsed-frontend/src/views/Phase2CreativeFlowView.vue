@@ -256,7 +256,7 @@
   </div>
 
   <!-- Progressive Image Generation Overlay -->
-  <div v-if="isGenerating" class="generation-overlay" @click.self="closeOverlay">
+  <div v-if="isGenerating || previewImage" class="generation-overlay" @click.self="closeOverlay">
     <div class="overlay-content">
       <!-- Close Button -->
       <button v-if="previewImage" class="close-btn" @click="closeOverlay">✕</button>
@@ -274,10 +274,20 @@
       <!-- Loading Indicator -->
       <div v-else class="loading-indicator">
         <SpriteProgressAnimation :progress="generationProgress" />
-        <p class="generating-text">{{ $t('phase2.generating') || 'Bild wird generiert...' }}</p>
-        <p class="loading-hint">{{ $t('phase2.generatingHint') || '~30 Sekunden' }}</p>
+        <p class="generating-text">{{ $t('phase3.generating') || 'Bild wird generiert...' }}</p>
+        <p class="loading-hint">{{ $t('phase3.generatingHint') || '~30 Sekunden' }}</p>
       </div>
     </div>
+  </div>
+
+  <!-- Error Toast Notification -->
+  <div v-if="error" class="error-toast" @click="error = null">
+    <div class="error-icon">⚠️</div>
+    <div class="error-content">
+      <div class="error-title">{{ $t('common.error') || 'Fehler' }}</div>
+      <div class="error-message">{{ error }}</div>
+    </div>
+    <button class="error-close" @click="error = null">✕</button>
   </div>
 </template>
 
@@ -727,6 +737,10 @@ async function handleMediaGeneration(outputConfig: string) {
       lastUsedSeed.value = seedToUse
       console.log('[Phase2] Using local seed:', seedToUse)
     }
+
+    // Reset generating state after successful generation
+    // (overlay stays visible via previewImage presence)
+    isGenerating.value = false
 
   } catch (err) {
     clearInterval(progressInterval)
@@ -1829,5 +1843,96 @@ svg.connections {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.5);
   margin: 0;
+}
+
+/* ============================================================================
+   ERROR TOAST NOTIFICATION
+   ============================================================================ */
+
+.error-toast {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  max-width: 500px;
+  background: rgba(220, 38, 38, 0.95);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 100, 100, 0.5);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  z-index: 10000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: slideInUp 0.3s ease;
+  cursor: pointer;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.error-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.error-message {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+
+.error-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .error-toast {
+    bottom: 20px;
+    right: 20px;
+    left: 20px;
+    max-width: none;
+  }
 }
 </style>

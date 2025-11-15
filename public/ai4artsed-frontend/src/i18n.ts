@@ -124,6 +124,10 @@ const messages = {
       comingSoon: 'Bald verfügbar',
       generateMedia: 'Start!'
     },
+    phase3: {
+      generating: 'Bild wird generiert...',
+      generatingHint: '~30 Sekunden'
+    },
     common: {
       back: 'Zurück',
       loading: 'Lädt...',
@@ -253,6 +257,10 @@ const messages = {
       media3D: '3D',
       comingSoon: 'Coming soon',
       generateMedia: 'Start!'
+    },
+    phase3: {
+      generating: 'Image is being generated...',
+      generatingHint: '~30 seconds'
     },
     common: {
       back: 'Back',

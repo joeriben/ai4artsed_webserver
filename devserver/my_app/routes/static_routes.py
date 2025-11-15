@@ -26,8 +26,8 @@ def serve_spa(path):
     Serve Vue.js SPA with proper routing and MIME types
 
     Handles three cases:
-    1. Static assets (assets/*.js, assets/*.css, favicon.ico) → serve with explicit MIME type
-    2. API routes (start with 'api/' or specific endpoints) → pass through to other blueprints
+    1. API routes (start with 'api/' or specific endpoints) → return 404 to let Flask try other blueprints
+    2. Static assets (assets/*.js, assets/*.css, favicon.ico) → serve with explicit MIME type
     3. All other paths (Vue routes like /select, /execute/:id) → serve index.html
 
     Args:
@@ -40,10 +40,19 @@ def serve_spa(path):
     if '..' in path or path.startswith('/'):
         return "Invalid path", 403
 
-    # Case 1: API routes - these are handled by other blueprints
-    # This route is evaluated AFTER all specific blueprints, so API routes
-    # will never reach here. This comment documents the expected behavior.
-    # API patterns: /api/*, /pipeline_configs_*, /comfyui/*, etc.
+    # Case 1: API routes - explicitly skip these so other blueprints can handle them
+    # Flask catch-all routes match by specificity, not registration order,
+    # so we must explicitly exclude API patterns here
+    if (path.startswith('api/') or
+        path.startswith('pipeline_configs_') or
+        path.startswith('list_workflows') or
+        path.startswith('workflow_metadata') or
+        path.startswith('comfyui/') or
+        path.startswith('sse/')):
+        # Return 404 to let Flask continue to other blueprints
+        # Don't use abort(404) as that would stop routing entirely
+        from flask import abort
+        abort(404)
 
     # Case 2: Static assets - serve with explicit MIME type
     # Critical for ES modules (.js files) which must have correct Content-Type
