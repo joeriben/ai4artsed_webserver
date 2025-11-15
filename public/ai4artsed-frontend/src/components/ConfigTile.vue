@@ -3,6 +3,7 @@
     :class="['config-tile', { dimmed: isDimmed, dragging: isDragging }]"
     :style="tileStyle"
     @mousedown="handleMouseDown"
+    @touchstart="handleTouchStart"
     :data-config-id="config.id"
   >
     <div class="tile-header">
@@ -97,10 +98,58 @@ function handleMouseUp(event: MouseEvent) {
   }
 }
 
+// Touch event handlers for iPad/mobile support
+function handleTouchStart(event: TouchEvent) {
+  // Prevent default to avoid text selection and scrolling
+  event.preventDefault()
+
+  const touch = event.touches[0]
+  if (!touch) return
+
+  isDragging.value = true
+  hasMoved.value = false
+  dragStartX.value = touch.clientX - currentX.value
+  dragStartY.value = touch.clientY - currentY.value
+
+  // Add global listeners
+  document.addEventListener('touchmove', handleTouchMove, { passive: false })
+  document.addEventListener('touchend', handleTouchEnd)
+}
+
+function handleTouchMove(event: TouchEvent) {
+  if (!isDragging.value) return
+
+  event.preventDefault() // Prevent scrolling while dragging
+
+  const touch = event.touches[0]
+  if (!touch) return
+
+  hasMoved.value = true
+  currentX.value = touch.clientX - dragStartX.value
+  currentY.value = touch.clientY - dragStartY.value
+}
+
+function handleTouchEnd(event: TouchEvent) {
+  if (!isDragging.value) return
+
+  isDragging.value = false
+
+  // Remove global listeners
+  document.removeEventListener('touchmove', handleTouchMove)
+  document.removeEventListener('touchend', handleTouchEnd)
+
+  // If tile wasn't moved, treat it as a tap
+  if (!hasMoved.value) {
+    emit('select', props.config.id)
+  }
+}
+
 // Cleanup on unmount
 onUnmounted(() => {
   document.removeEventListener('mousemove', handleMouseMove)
   document.removeEventListener('mouseup', handleMouseUp)
+  document.removeEventListener('touchmove', handleTouchMove)
+  document.removeEventListener('touchend', handleTouchEnd)
 })
 
 // Reset position when props change

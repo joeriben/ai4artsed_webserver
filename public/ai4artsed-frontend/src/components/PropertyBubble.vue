@@ -6,6 +6,7 @@
     :title="tooltip"
     @click="handleClick"
     @mousedown="startDrag"
+    @touchstart="startDragTouch"
     :data-property="property"
   >
     <span v-if="symbol" class="property-symbol">{{ symbol }}</span>
@@ -47,6 +48,7 @@ const emit = defineEmits<{
 
 const bubbleEl = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
+const hasDragged = ref(false)  // Track if actual dragging occurred
 const dragOffset = ref({ x: 0, y: 0 })
 
 // Symbol and label from symbolData or fallback to i18n
@@ -63,7 +65,8 @@ const bubbleStyle = computed(() => ({
 }))
 
 function handleClick(event: MouseEvent) {
-  if (!isDragging.value) {
+  // Prevent toggle if currently dragging or just finished dragging
+  if (!isDragging.value && !hasDragged.value) {
     emit('toggle', props.property)
   }
 }
@@ -72,6 +75,7 @@ function handleClick(event: MouseEvent) {
 function startDrag(event: MouseEvent) {
   event.preventDefault()
   isDragging.value = true
+  hasDragged.value = false  // Reset drag flag
 
   const rect = bubbleEl.value?.getBoundingClientRect()
   if (rect) {
@@ -88,6 +92,8 @@ function startDrag(event: MouseEvent) {
 function onDrag(event: MouseEvent) {
   if (!isDragging.value) return
 
+  hasDragged.value = true  // Mark that dragging occurred
+
   const newX = event.clientX - dragOffset.value.x
   const newY = event.clientY - dragOffset.value.y
 
@@ -98,16 +104,68 @@ function stopDrag() {
   isDragging.value = false
   document.removeEventListener('mousemove', onDrag)
   document.removeEventListener('mouseup', stopDrag)
+
+  // Reset drag flag after short delay to prevent click event
+  setTimeout(() => {
+    hasDragged.value = false
+  }, 100)
+}
+
+// Touch event handlers for iPad/mobile support
+function startDragTouch(event: TouchEvent) {
+  event.preventDefault()
+  isDragging.value = true
+  hasDragged.value = false  // Reset drag flag
+
+  const touch = event.touches[0]
+  if (!touch) return
+
+  const rect = bubbleEl.value?.getBoundingClientRect()
+  if (rect) {
+    dragOffset.value = {
+      x: touch.clientX - rect.left - rect.width / 2,
+      y: touch.clientY - rect.top - rect.height / 2
+    }
+  }
+
+  document.addEventListener('touchmove', onDragTouch, { passive: false })
+  document.addEventListener('touchend', stopDragTouch)
+}
+
+function onDragTouch(event: TouchEvent) {
+  if (!isDragging.value) return
+  event.preventDefault() // Prevent scrolling while dragging
+
+  hasDragged.value = true  // Mark that dragging occurred
+
+  const touch = event.touches[0]
+  if (!touch) return
+
+  const newX = touch.clientX - dragOffset.value.x
+  const newY = touch.clientY - dragOffset.value.y
+
+  emit('updatePosition', props.property, newX, newY)
+}
+
+function stopDragTouch() {
+  isDragging.value = false
+  document.removeEventListener('touchmove', onDragTouch)
+  document.removeEventListener('touchend', stopDragTouch)
+
+  // Reset drag flag after short delay to prevent click event
+  setTimeout(() => {
+    hasDragged.value = false
+  }, 100)
 }
 </script>
 
 <style scoped>
 .property-bubble {
   position: absolute;
-  padding: 16px 28px;  /* Increased padding for larger bubbles */
+  padding: 16px;  /* Equal padding for circular shape */
   background: rgba(20, 20, 20, 0.9);
   border: 2px solid var(--bubble-color);
-  border-radius: 30px;
+  border-radius: 50%;  /* Circular frames */
   color: var(--bubble-color);
   font-size: 16px;
   font-weight: 500;
@@ -119,7 +177,8 @@ function stopDrag() {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 120px;
+  width: 80px;  /* Fixed size for perfect circles */
+  height: 80px;
   justify-content: center;
 }
 
@@ -132,6 +191,7 @@ function stopDrag() {
 .property-label {
   font-size: 15px;
   white-space: nowrap;
+  display: none;  /* Hide labels - icon-only view */
 }
 
 .property-bubble:hover:not(.dragging) {
@@ -160,21 +220,5 @@ function stopDrag() {
 
 .property-bubble.selected .property-label {
   font-weight: 700;
-}
-
-/* Mobile: Hide label, only show larger symbol */
-@media (max-width: 768px) {
-  .property-label {
-    display: none;
-  }
-
-  .property-bubble {
-    padding: 20px;
-    min-width: auto;
-  }
-
-  .property-symbol {
-    font-size: 40px;  /* Even larger on mobile */
-  }
 }
 </style>
