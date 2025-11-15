@@ -963,7 +963,7 @@ svg.connections {
 .connection-line {
   stroke-width: 3;
   fill: none;
-  stroke-dasharray: 10 5;
+  stroke-dasharray: 2 6;  /* Dotted pattern */
   animation: flow 3s linear infinite;
   filter: drop-shadow(0 0 8px currentColor);
 }

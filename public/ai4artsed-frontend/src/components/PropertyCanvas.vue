@@ -116,30 +116,36 @@ const propertyPositions = ref<Record<string, { x: number; y: number }>>({})
 
 /**
  * Calculate property positions
- * Properties are randomly spread in UPPER-LEFT area only (not whole canvas)
+ * Properties are randomly spread in a CIRCLE at screen center
  * Ensures no overlap between bubbles
  */
 function calculatePropertyPositions() {
   const positions: Record<string, { x: number; y: number }> = {}
   const placedPositions: Array<{ x: number; y: number }> = []
 
-  // Properties only in upper-left area (40% width, 40% height)
-  const propertyAreaWidth = props.canvasWidth * 0.4
-  const propertyAreaHeight = props.canvasHeight * 0.4
+  // Center of canvas
+  const centerX = props.canvasWidth / 2
+  const centerY = props.canvasHeight / 2
 
-  // Margins to keep bubbles away from edges
-  const marginX = 80
-  const marginY = 60
-  const effectiveWidth = propertyAreaWidth - marginX * 2
-  const effectiveHeight = propertyAreaHeight - marginY * 2
+  // Circle radius for property placement area (30% of smaller dimension)
+  const radius = Math.min(props.canvasWidth, props.canvasHeight) * 0.3
 
   // Minimum distance between bubble centers (to prevent overlap)
   const minDistance = 120
 
   /**
-   * Check if position is valid (no overlap with existing bubbles)
+   * Check if position is valid (within circle and no overlap)
    */
   function isValidPosition(x: number, y: number): boolean {
+    // Check if within circle boundary
+    const distFromCenter = Math.sqrt(
+      Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+    )
+    if (distFromCenter > radius) {
+      return false
+    }
+
+    // Check distance from other bubbles
     for (const placed of placedPositions) {
       const distance = Math.sqrt(
         Math.pow(x - placed.x, 2) + Math.pow(y - placed.y, 2)
@@ -152,21 +158,26 @@ function calculatePropertyPositions() {
   }
 
   /**
-   * Find a valid random position (with max attempts to avoid infinite loop)
+   * Find a valid random position within circle
    */
   function findValidPosition(maxAttempts = 100): { x: number; y: number } {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const x = marginX + Math.random() * effectiveWidth
-      const y = marginY + Math.random() * effectiveHeight
+      // Random angle and distance from center
+      const angle = Math.random() * Math.PI * 2
+      const dist = Math.random() * radius
+      const x = centerX + Math.cos(angle) * dist
+      const y = centerY + Math.sin(angle) * dist
 
       if (isValidPosition(x, y)) {
         return { x, y }
       }
     }
-    // Fallback: return position anyway (rare case when canvas is too small)
+    // Fallback: return position within circle anyway
+    const angle = Math.random() * Math.PI * 2
+    const dist = Math.random() * radius
     return {
-      x: marginX + Math.random() * effectiveWidth,
-      y: marginY + Math.random() * effectiveHeight
+      x: centerX + Math.cos(angle) * dist,
+      y: centerY + Math.sin(angle) * dist
     }
   }
 
@@ -211,8 +222,26 @@ function getSymbolDataForProperty(property: string): SymbolData | undefined {
 
 /**
  * Handle position update from draggable bubble (Session 40)
+ * Constrains movement to circular boundary
  */
 function handleUpdatePosition(property: string, x: number, y: number) {
+  // Circular boundary constraint
+  const centerX = props.canvasWidth / 2
+  const centerY = props.canvasHeight / 2
+  const radius = Math.min(props.canvasWidth, props.canvasHeight) * 0.3
+
+  // Check distance from center
+  const distFromCenter = Math.sqrt(
+    Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+  )
+
+  // If outside circle, clamp to boundary
+  if (distFromCenter > radius) {
+    const angle = Math.atan2(y - centerY, x - centerX)
+    x = centerX + Math.cos(angle) * radius
+    y = centerY + Math.sin(angle) * radius
+  }
+
   propertyPositions.value[property] = { x, y }
 }
 
