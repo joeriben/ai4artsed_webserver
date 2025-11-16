@@ -387,3 +387,206 @@ def _get_task_instruction(self, resolved_config, pipeline):
 
 ---
 
+
+### 8. prompt_interception_engine.py
+
+**Status:** ✅ **ACTIVE** - Backend proxy layer
+
+**Purpose:** Routes Ollama/OpenRouter API calls with fallback handling
+
+**Role:** Backend proxy (NOT a chunk or pipeline)
+- Routes all Ollama/OpenRouter requests from BackendRouter
+- Handles model fallbacks and error recovery
+- Provides unified API interface for both backends
+
+**Architecture Position:**
+```
+Chunk (manipulate.json)
+  → ChunkBuilder
+    → BackendRouter.route()
+      → PromptInterceptionEngine (backend proxy)
+        → Ollama/OpenRouter API
+```
+
+**Key Methods:**
+- `process_request()` - Main processing with fallback logic
+- `_call_ollama()` - Direct Ollama API calls
+- `_call_openrouter()` - Direct OpenRouter API calls
+- `_find_ollama_fallback()` / `_find_openrouter_fallback()` - Model fallback logic
+
+**Usage:**
+1. `backend_router.py:74` - Routes all Ollama/OpenRouter chunks through this
+2. `schema_pipeline_routes.py:1049` - Direct test endpoint
+
+**Note:** Previously marked as DEPRECATED in docs - this was incorrect. Module is actively used.
+
+---
+
+### 9. output_config_selector.py
+
+**Purpose:** Select default output config based on media type and execution mode
+
+**Architecture Principle:** Separation of concerns
+- Pre-pipeline configs (dada.json) suggest media type via `media_preferences.default_output`
+- Pre-pipeline configs DO NOT choose specific models
+- This module provides centralized mapping: `media_type + execution_mode → output_config`
+
+**Key Classes:**
+```python
+@dataclass
+class MediaOutput:
+    """Track generated media throughout pipeline"""
+    media_type: str  # "image", "audio", "music", "video"
+    prompt_id: str   # ComfyUI queue ID
+    output_mapping: Dict[str, Any]
+    config_name: str
+    status: str  # "queued", "generating", "completed", "failed"
+    metadata: Optional[Dict[str, Any]]
+
+@dataclass
+class ExecutionContext:
+    """Track expected and actual media throughout execution"""
+    config_name: str
+    execution_mode: str  # "eco" or "fast"
+    expected_media_type: str
+    generated_media: List[MediaOutput]
+    text_outputs: List[str]
+```
+
+**Selection Logic:**
+```python
+# Example: Image generation in eco mode
+media_type = "image"
+execution_mode = "eco"
+→ Returns "sd35_large" (Stable Diffusion 3.5 Large, local)
+
+# Example: Image generation in fast mode
+media_type = "image"
+execution_mode = "fast"
+→ Returns "dalle3" (DALL-E 3 via OpenRouter)
+```
+
+**Benefits:**
+- Centralized default logic
+- Clean separation: pre-pipeline configs focus on pedagogy, not technical model selection
+- Easy to update default models without touching config files
+
+---
+
+### 10. stage_orchestrator.py
+
+**Purpose:** Helper functions for 4-stage pipeline architecture
+
+**Context:** Extracted from `pipeline_executor.py` for Phase 2 refactoring
+- DevServer (schema_pipeline_routes.py) orchestrates Stage 1-3
+- PipelineExecutor becomes a "dumb" executor (just runs chunks)
+- These helper functions support the smart orchestrator
+
+**Key Functions:**
+
+#### Safety Filtering (Hybrid Approach)
+```python
+def load_filter_terms() -> Dict[str, List[str]]:
+    """Load safety filter terms (cached)"""
+    # Loads from:
+    # - youth_kids_safety_filters.json (Stage 3: Kids/Youth)
+    # - stage1_safety_filters.json (Stage 1: CSAM/Violence/Hate)
+
+def check_stage1_safety(text: str) -> Tuple[bool, Optional[str]]:
+    """Fast string-matching for critical terms"""
+    # Blocks: CSAM, extreme violence, hate speech
+    # Returns: (is_safe, blocked_reason)
+
+def check_stage3_safety(text: str, safety_level: str) -> Tuple[bool, Optional[str]]:
+    """Age-appropriate content filtering"""
+    # safety_level: "kids" (8-12) or "youth" (13-17)
+    # Checks for age-inappropriate content
+```
+
+#### Bilingual §86a Compliance (Germany)
+```python
+def check_86a_violation(text: str) -> Tuple[bool, Optional[str]]:
+    """Check for prohibited symbols under German law"""
+    # Detects: Nazi symbols, terrorist symbols, extremist codes
+    # Bilingual: German and English terms
+    # Returns: (is_violation, explanation)
+```
+
+**Workflow Integration:**
+1. Stage 1: User input → `check_stage1_safety()` + `check_86a_violation()`
+2. Stage 3: Pre-output → `check_stage3_safety(safety_level)`
+3. If blocked → Return error to user with explanation
+
+**Files:**
+- `schemas/engine/stage_orchestrator.py` - Main helpers
+- `schemas/youth_kids_safety_filters.json` - Stage 3 filters
+- `schemas/stage1_safety_filters.json` - Stage 1 filters
+
+---
+
+### 11. random_language_selector.py
+
+**Purpose:** Random language selection for translation pipelines
+
+**Use Case:** Pedagogical feature for multilingual exploration
+- Students can request "random language" translation
+- System selects from 15 supported languages
+- Supports exclusion list (e.g., exclude source language)
+
+**Supported Languages:**
+- European: English, German, French, Spanish, Italian, Portuguese, Dutch, Polish, Russian, Turkish
+- Asian: Chinese, Japanese, Korean, Hindi
+- Middle Eastern: Arabic
+
+**Key Function:**
+```python
+def get_random_language(exclude: Optional[List[str]] = None) -> str:
+    """
+    Get random language code, optionally excluding certain languages
+    
+    Args:
+        exclude: List of language codes to exclude (e.g., ['de', 'en'])
+    
+    Returns:
+        Language code (e.g., 'fr', 'es', 'ja')
+    """
+```
+
+**Example Usage:**
+```python
+# Student requests random translation from German
+source_lang = 'de'
+target_lang = get_random_language(exclude=['de'])
+# → Might return 'ja' (Japanese), 'ar' (Arabic), etc.
+```
+
+**Pedagogical Value:**
+- Encourages exploration of non-English languages
+- Discovers linguistic patterns across cultures
+- Breaks English-centric assumptions
+
+---
+
+## Summary: Complete Engine Module List
+
+### Core Execution
+1. ✅ **config_loader.py** - Load configs and pipelines
+2. ✅ **chunk_builder.py** - Build chunks with placeholder replacement
+3. ✅ **pipeline_executor.py** - Execute complete pipelines
+4. ✅ **backend_router.py** - Route to appropriate backends
+
+### Intelligence & Selection
+5. ✅ **model_selector.py** - Task-based model selection (eco vs fast)
+6. ✅ **instruction_selector.py** - Instruction-type selection for prompts
+7. ✅ **output_config_selector.py** - Select output config by media type
+8. ✅ **random_language_selector.py** - Random language for translations
+
+### Backend & Routing
+9. ✅ **prompt_interception_engine.py** - Backend proxy for Ollama/OpenRouter
+10. ⚠️ **comfyui_workflow_generator.py** - DEPRECATED (use Output-Chunks)
+
+### Orchestration & Safety
+11. ✅ **stage_orchestrator.py** - 4-stage helpers & safety filtering
+
+**Total: 11 modules** (10 active, 1 deprecated)
+

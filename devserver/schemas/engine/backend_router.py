@@ -324,7 +324,7 @@ class BackendRouter:
             input_mappings = chunk['input_mappings']
             input_data = {'prompt': prompt, **parameters}
 
-            # Build SwarmUI API parameters
+            # Build SwarmUI API parameters (IMAGE-ONLY)
             import random
 
             # Get model from checkpoint mapping
@@ -339,9 +339,15 @@ class BackendRouter:
             # Get negative prompt
             negative_prompt = input_data.get('negative_prompt') or input_mappings.get('negative_prompt', {}).get('default', '')
 
-            # Get dimensions
-            width = int(input_data.get('width') or input_mappings.get('width', {}).get('default', 1024))
-            height = int(input_data.get('height') or input_mappings.get('height', {}).get('default', 1024))
+            # Get dimensions (only for image chunks - audio/video don't need dimensions)
+            media_type = chunk.get('media_type', 'image')
+            if media_type == 'image':
+                width = int(input_data.get('width') or input_mappings.get('width', {}).get('default', 1024))
+                height = int(input_data.get('height') or input_mappings.get('height', {}).get('default', 1024))
+            else:
+                # Audio/video chunks don't need dimensions - skip parsing
+                width = None
+                height = None
 
             # Get generation parameters
             steps = int(input_data.get('steps') or input_mappings.get('steps', {}).get('default', 25))

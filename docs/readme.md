@@ -1,17 +1,45 @@
+# ⛔ MANDATORY SESSION START PROTOCOL ⛔
+
+**EVERY NEW SESSION MUST START WITH THIS CONFIRMATION:**
+
+```
+✅ SESSION START CONFIRMED: [current date/time]
+✅ REQUIRED READING: ARCHITECTURE PART 01-20, devserver_todos.md, DEVELOPMENT_DECISIONS.md
+✅ DOCUMENTATION COMMITMENT: I will update DEVELOPMENT_LOG.md at end of this session
+✅ FILE CREATION POLICY: I will NOT create new .md files without explicit user permission
+```
+
+**IF YOU DID NOT OUTPUT THE ABOVE, YOU HAVE NOT READ THIS FILE.**
+
+---
+
 # ⚠️ READ THIS FIRST - Mandatory for All New Tasks/Sessions
 
 **Date Created:** 2025-10-26
 **Purpose:** Prevent costly mistakes from incomplete understanding
 **Applies to:** ALL Claude Code sessions, ALL new LLM tasks
-**Last edit: 2025-11-09** (Session 39: v2.0.0-alpha.1 Release)
+**Last edit: 2025-11-15** (Session 44: Enforcement mechanisms added)
 
 ---
 
-## 🚨 STOP - Before You Do Anything
+## 🚨 CRITICAL RULES - ZERO TOLERANCE
 
-YOU MUST NOT EDIT ANY CODE BEFORE CONSULTING USER. ESPECIALLY WHEN FRESHLY STARTEd, DO NOT DEVELOP SUPPOSEDLY "GOOD IDEAS" YOURSELF: YOU WILL MOST LIKELY BE WRONG AND MESS UP THE SYSTEM.
+### Rule 1: Documentation Requirements (MANDATORY)
 
-AFTER READING THIS FIRST MESSAGE, CONFIRM YOU UNDERSTOOD IT.
+**✅ REQUIRED EVERY SESSION:**
+- Update `DEVELOPMENT_LOG.md` with: date, tasks, files changed, duration, cost
+- This is NOT optional. Every session MUST be logged.
+
+**❌ FORBIDDEN WITHOUT USER PERMISSION:**
+- Creating new .md documentation files (SESSION_XX_HANDOVER.md, ANALYSIS_*.md, etc.)
+- Creating specialized analysis documents
+- Creating per-feature documentation files
+
+**WHY:** 30-40% of sessions ignored documentation requirements, creating chaos. ALL findings go in DEVELOPMENT_LOG.md unless user explicitly requests otherwise.
+
+### Rule 2: No Code Changes Before Consultation
+
+YOU MUST NOT EDIT ANY CODE BEFORE CONSULTING USER. ESPECIALLY WHEN FRESHLY STARTED, DO NOT DEVELOP SUPPOSEDLY "GOOD IDEAS" YOURSELF: YOU WILL MOST LIKELY BE WRONG AND MESS UP THE SYSTEM.
 
 **You are about to work on the AI4ArtsEd DevServer.**
 
@@ -127,31 +155,23 @@ You must understand the architecture documentation structure (21 PART files) in 
 
 ### During Implementation
 
-**⚠️ MANDATORY DOCUMENTATION - MUST BE DONE:**
+**Documentation details** (see Rule 1 at top for mandatory requirements):
 
-1. **Update `DEVELOPMENT_LOG.md`** - REQUIRED for EVERY session
-   - Document session start time
-   - Track all tasks completed
-   - Record code changes (files modified, lines added/removed)
-   - Log session duration and costs
-   - **WHY:** Lückenlose Dokumentation ist kritisch für Projektverfolgung
+1. **`DEVELOPMENT_LOG.md`** must include:
+   - Session start time
+   - All tasks completed
+   - Files modified (with line counts)
+   - Session duration and costs
 
-2. **Update `DEVELOPMENT_DECISIONS.md`** - When making architectural decisions
-   - Any change to system architecture
-   - Any new technology/library choices
-   - Any refactoring decisions
+2. **`DEVELOPMENT_DECISIONS.md`** - Only when making architectural decisions:
+   - System architecture changes
+   - New technology/library choices
+   - Refactoring decisions with rationale
 
-3. **Update `ARCHITECTURE.md`** - When changing system architecture
-   - New components added
-   - Component interactions changed
-   - API endpoints modified
-
-4. **Update `devserver_todos.md`** - Mark tasks as completed
+3. **`devserver_todos.md`** - Mark tasks as completed:
    - Move completed tasks from "CURRENT WORK" to previous sections
    - Update task statuses (✅/⏳/❌)
    - Add new tasks discovered during implementation
-
-**⚠️ REMEMBER:** Documentation is not optional. Every session MUST be logged in DEVELOPMENT_LOG.md.
 
 ### Before Context Window Fills
 

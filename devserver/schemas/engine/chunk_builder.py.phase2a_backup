@@ -183,50 +183,24 @@ class ChunkBuilder:
         # Apply placeholder replacement to parameter values
         processed_parameters = self._replace_placeholders_in_dict(merged_parameters, replacement_context)
 
-        # PHASE 2B: Detect output chunks (have workflow field)
-        is_output_chunk = bool(template.workflow)
-
         # Chunk-Request zusammenstellen
-        if is_output_chunk:
-            # Output chunk: workflow dict with replaced placeholders
-            logger.debug(f"[CHUNK-BUILD] '{chunk_name}' is output chunk - processing workflow")
-            processed_workflow = self._process_workflow_placeholders(template.workflow, replacement_context)
-
-            chunk_request = {
-                'backend_type': template.backend_type,
-                'model': final_model,
-                'prompt': processed_workflow,  # Dict, not string
-                'parameters': processed_parameters,
-                'metadata': {
-                    'chunk_name': chunk_name,
-                    'config_name': resolved_config.name,
-                    'chunk_type': 'output_chunk',
-                    'has_workflow': True,
-                    'workflow_nodes': len(processed_workflow),
-                    'execution_mode': execution_mode,
-                    **resolved_config.meta
-                }
+        chunk_request = {
+            'backend_type': template.backend_type,
+            'model': final_model,
+            'prompt': processed_template,
+            'parameters': processed_parameters,
+            'metadata': {
+                'chunk_name': chunk_name,
+                'config_name': resolved_config.name,
+                'template_placeholders': template.placeholders,
+                'execution_mode': execution_mode,
+                'template_model': template.model,
+                'final_model': final_model,
+                **resolved_config.meta
             }
-            logger.debug(f"[CHUNK-BUILD] Output chunk '{chunk_name}' built with {len(processed_workflow)} workflow nodes")
-        else:
-            # Processing chunk: string prompt (existing behavior)
-            chunk_request = {
-                'backend_type': template.backend_type,
-                'model': final_model,
-                'prompt': processed_template,
-                'parameters': processed_parameters,
-                'metadata': {
-                    'chunk_name': chunk_name,
-                    'config_name': resolved_config.name,
-                    'template_placeholders': template.placeholders,
-                    'execution_mode': execution_mode,
-                    'template_model': template.model,
-                    'final_model': final_model,
-                    **resolved_config.meta
-                }
-            }
-            logger.debug(f"[CHUNK-BUILD] Processing chunk '{chunk_name}' built with Config {resolved_config.name}")
+        }
 
+        logger.debug(f"Chunk erstellt: {chunk_name} mit Config {resolved_config.name} (execution_mode: {execution_mode}, model: {final_model})")
         return chunk_request
 
     def _get_task_instruction(self, resolved_config: Any, pipeline: Any) -> str:
@@ -361,25 +335,3 @@ class ChunkBuilder:
 
         # Build three-part structure compatible with prompt_interception_engine
         return f"Task:\n{system}\n\nContext:\n\nPrompt:\n{prompt}"
-
-    def _process_workflow_placeholders(self, workflow: Dict[str, Any], replacements: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Process ComfyUI workflow and replace placeholders in all string values.
-
-        Recursively walks workflow structure and replaces {{PLACEHOLDER}} patterns.
-        Used for output_chunks in pipelines (Phase 2B).
-
-        Args:
-            workflow: ComfyUI workflow dict from chunk template
-            replacements: Dict of placeholder values (from context.custom_placeholders)
-
-        Returns:
-            Workflow dict with all placeholders replaced
-        """
-        import copy
-
-        # Deep copy to avoid mutating template
-        processed_workflow = copy.deepcopy(workflow)
-
-        # Reuse existing recursive replacement logic
-        return self._replace_placeholders_in_dict(processed_workflow, replacements)

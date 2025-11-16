@@ -11,13 +11,118 @@
 
 ## 📋 Quick Reference - Current Architecture
 
-**Current System Status (as of 2025-11-03):**
+**Current System Status (as of 2025-11-16):**
 - ✅ 4-Stage Pipeline Architecture (DevServer orchestrates Stages 1-4)
 - ✅ GPT-OSS:20b for Stage 1 (Translation + §86a Safety unified)
 - ✅ Config-based system (Interception configs, Output configs, Pre-output safety)
-- ✅ Backend abstraction (Ollama, ComfyUI, OpenRouter APIs)
+- ✅ Backend abstraction (Ollama, ComfyUI, SwarmUI APIs)
 - ✅ Multi-output support (model comparison, batch generation)
 - ✅ Recursive pipelines ("Stille Post" iterative transformation)
+- ✅ Unified storage (symlink: prod → dev for shared research data)
+
+**Deployment (Research Phase - 2025-11-16):**
+- 🌐 Internet-facing via Cloudflare tunnel (multiple courses)
+- 📱 Primary device: iPad Pro 10"
+- 🔄 Legacy backend (port TBD) - Active for students
+- 🔧 Dev backend (port 17801) - Development only
+- 📊 Shared storage: `/home/joerissen/ai/ai4artsed_webserver/exports/`
+
+---
+
+## 🎯 Active Decision 0: Deployment Architecture - Dev/Prod Separation for Research Phase (2025-11-16, Session 46)
+
+**Status:** ✅ IMPLEMENTED (storage unified, port separation pending)
+**Context:** Multi-user research environment with active student courses
+**Date:** 2025-11-16
+
+### The Decision: Dual Backend with Unified Storage
+
+**Problem:**
+- Multiple students in courses accessing via internet (iPad Pro 10")
+- Need stable production environment for students
+- Need development environment for ongoing research/fixes
+- Previous setup caused 404 errors (dual storage locations)
+
+**Solution Chosen: Symlinked Storage + Port Separation**
+
+**Architecture:**
+```
+┌─────────────────────────────────────────────────────┐
+│  Students (Internet, iPad Pro 10")                 │
+│  ↓                                                  │
+│  Cloudflare Tunnel (lab.ai4artsed.org)             │
+└─────────────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────────────┐
+│  LEGACY Backend (Production - Active)              │
+│  - Students use this (stable, tested)              │
+│  - Port: TBD (separate from new system)            │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│  NEW DevServer System (Development Phase)          │
+│  ├─ Dev Backend: port 17801 (development)          │
+│  ├─ Prod Backend: port 17801 (CONFLICT!)           │
+│  │  └─ TODO: Change to 17802 for separation        │
+│  └─ Frontend: port 5173 (Vite proxy)               │
+└─────────────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────────────┐
+│  UNIFIED STORAGE (Research Data)                   │
+│  Canonical: /home/joerissen/.../exports/           │
+│  Symlink: /opt/ai4artsed-production/exports → dev  │
+│  - 300+ runs (7.5GB)                               │
+│  - Accessible to researcher (not hidden in /opt/)  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Port Configuration (Planned):**
+- **Legacy Backend:** Separate port (students access this)
+- **17801:** Production backend (when ready for migration)
+- **17802:** Dev backend (development/testing)
+- **5173:** Vite frontend (proxies to backend)
+
+**Storage Decision:**
+- **Canonical location:** `/home/joerissen/ai/ai4artsed_webserver/exports/`
+- **Rationale:** Research data must be accessible to researcher
+- **Symlink direction:** prod → dev (not dev → prod as in Session 44)
+- **Why reversed:** Data belongs in visible location, not hidden in /opt/
+
+**Deployment Context:**
+- **Current (Research Phase):** Internet via Cloudflare, multiple courses
+- **Future (Post-Research):** WiFi-only deployment after project ends
+- **Primary Users:** Students on iPad Pro 10" (NOT solo researcher)
+
+**What Changed from Session 44:**
+1. ❌ Session 44 created symlink: dev → prod (wrong direction)
+2. ✅ Session 46 reversed: prod → dev (correct - data accessible)
+3. ❌ Session 44 documented "WiFi-only, temporary internet" (wrong context)
+4. ✅ Session 46 corrected: "Internet-facing research, WiFi-only later"
+
+**Technical Implementation:**
+- Storage: 300 runs merged from both locations
+- Symlink: `/opt/ai4artsed-production/exports` → `/home/joerissen/ai/ai4artsed_webserver/exports`
+- Backend: Relative paths (`BASE_DIR / "exports"`) work automatically
+- No code changes needed (paths resolve via symlink)
+
+**Files Modified:**
+- `/opt/ai4artsed-production/exports` (now symlink)
+- `docs/STORAGE_SYMLINK_STRATEGY.md` (corrected deployment context)
+- `docs/SESSION_44_SUMMARY.md` (corrected deployment context)
+
+**Port Separation - COMPLETED (2025-11-16):**
+- [x] Prod backend config: `PORT = 17801` (for students/Cloudflare)
+- [x] Dev backend config: `PORT = 17802` (for development)
+- [x] Vite proxy updated to 17802 (dev backend)
+- [x] Start scripts updated (`3 start_backend_fg.sh`)
+- **Students use:** Port 17801 (production backend via Cloudflare)
+- **Development uses:** Port 17802 (dev backend, Vite proxy)
+
+**Rationale:**
+- Students need stable environment (can't have dev interruptions)
+- Research data must be accessible (not buried in /opt/)
+- Unified storage prevents 404 errors
+- Port separation allows simultaneous dev + prod
 
 ---
 

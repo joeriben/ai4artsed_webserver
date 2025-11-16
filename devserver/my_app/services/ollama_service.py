@@ -6,7 +6,9 @@ import requests
 from typing import Dict, Optional, Any
 
 from config import (
+    LLM_PROVIDER,
     OLLAMA_API_BASE_URL,
+    LMSTUDIO_API_BASE_URL,
     OLLAMA_TIMEOUT,
     TRANSLATION_MODEL,
     SAFETY_MODEL,
@@ -24,34 +26,133 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaService:
-    """Service class for Ollama API interactions"""
-    
+    """Service class for LLM API interactions (Ollama or LM Studio)"""
+
     def __init__(self):
-        self.base_url = OLLAMA_API_BASE_URL
+        self.provider = LLM_PROVIDER
+        self.base_url = LMSTUDIO_API_BASE_URL if self.provider == "lmstudio" else OLLAMA_API_BASE_URL
         self.timeout = OLLAMA_TIMEOUT
+        logger.info(f"Initialized LLM service with provider: {self.provider} at {self.base_url}")
         
     def _make_request(self, endpoint: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
-        Make a request to Ollama API
-        
+        Make a request to LLM API (Ollama or LM Studio format)
+
         Args:
-            endpoint: API endpoint path
-            payload: Request payload
-            
+            endpoint: API endpoint path (Ollama format)
+            payload: Request payload (Ollama format)
+
         Returns:
-            Response data or None if request fails
+            Response data in Ollama format or None if request fails
         """
         try:
-            response = requests.post(
-                f"{self.base_url}/{endpoint}",
-                json=payload,
-                timeout=self.timeout
-            )
-            response.raise_for_status()
-            return response.json()
+            # Convert to LM Studio format if needed
+            if self.provider == "lmstudio":
+                keep_alive = payload.get("keep_alive", "5m")
+                model = payload.get("model", "")
+
+                lmstudio_payload, lmstudio_endpoint = self._convert_to_lmstudio_format(payload, endpoint)
+                response = requests.post(
+                    f"{self.base_url}/{lmstudio_endpoint}",
+                    json=lmstudio_payload,
+                    timeout=self.timeout
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                # Unload model from VRAM if keep_alive is "0s"
+                if keep_alive == "0s":
+                    self._unload_lmstudio_model(model)
+
+                # Convert back to Ollama format
+                return self._convert_from_lmstudio_format(result)
+            else:
+                # Standard Ollama request
+                response = requests.post(
+                    f"{self.base_url}/{endpoint}",
+                    json=payload,
+                    timeout=self.timeout
+                )
+                response.raise_for_status()
+                return response.json()
         except requests.exceptions.RequestException as e:
-            logger.error(f"Ollama API request failed: {e}")
+            logger.error(f"{self.provider.upper()} API request failed: {e}")
             return None
+
+    def _unload_lmstudio_model(self, model: str) -> None:
+        """
+        Unload a model from LM Studio VRAM
+
+        Args:
+            model: Model identifier to unload
+        """
+        try:
+            # LM Studio API endpoint for model unloading
+            response = requests.post(
+                f"{self.base_url}/v1/models/unload",
+                json={"model": model},
+                timeout=5
+            )
+            if response.status_code == 200:
+                logger.info(f"Unloaded {model} from VRAM (LM Studio)")
+            else:
+                logger.warning(f"Failed to unload {model} from LM Studio (status {response.status_code})")
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Could not unload model from LM Studio: {e}")
+
+    def _convert_to_lmstudio_format(self, ollama_payload: Dict[str, Any], endpoint: str) -> tuple[Dict[str, Any], str]:
+        """
+        Convert Ollama API format to LM Studio (OpenAI-compatible) format
+
+        Args:
+            ollama_payload: Ollama format payload
+            endpoint: Ollama endpoint
+
+        Returns:
+            Tuple of (LM Studio payload, LM Studio endpoint)
+        """
+        model = ollama_payload.get("model", "openai/gpt-oss-20b")
+        prompt = ollama_payload.get("prompt", "")
+        system = ollama_payload.get("system", "")
+
+        # Build messages array
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        lmstudio_payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": ollama_payload.get("temperature", 0.7),
+            "max_tokens": ollama_payload.get("max_tokens", 512),
+            "stream": False
+        }
+
+        return lmstudio_payload, "v1/chat/completions"
+
+    def _convert_from_lmstudio_format(self, lmstudio_response: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert LM Studio (OpenAI-compatible) response to Ollama format
+
+        Args:
+            lmstudio_response: LM Studio API response
+
+        Returns:
+            Ollama format response
+        """
+        # Extract the assistant's message content
+        content = ""
+        if "choices" in lmstudio_response and len(lmstudio_response["choices"]) > 0:
+            choice = lmstudio_response["choices"][0]
+            if "message" in choice and "content" in choice["message"]:
+                content = choice["message"]["content"]
+
+        return {
+            "response": content,
+            "model": lmstudio_response.get("model", ""),
+            "done": True
+        }
     
     def translate_text(self, text: str) -> Optional[str]:
         """

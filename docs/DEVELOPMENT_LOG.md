@@ -21,7 +21,179 @@
   - Session 10: Config Folder Restructuring
   - Session 11: Recursive Pipeline + Multi-Output Support
 
-**Next Archive Point:** Session 22 (keep last 10 sessions active)
+**Active Sessions:** 40, 41, 43, 46 (Sessions 44-45 documented separately)
+
+**Next Archive Point:** Session 56 (keep last 10 sessions active)
+
+---
+
+## Session 43 (2025-11-15): Image 404 Root Cause Investigation + System Audit Directive
+
+**Date:** 2025-11-15
+**Duration:** ~2h
+**Status:** ✅ ROOT CAUSE FOUND + SYSTEMIC ISSUES IDENTIFIED
+**Branch:** `main`
+
+### Problem
+
+User reported intermittent 404 errors when viewing generated images. Investigation revealed multiple systemic failures.
+
+### Findings
+
+**1. Image 404 Root Cause (SOLVED)**
+- **Cause:** Multiple backend instances with different storage paths
+- Production: `/opt/ai4artsed-production/exports/json/`
+- Dev: `/home/joerissen/ai/ai4artsed_webserver/exports/json/`
+- Request routing → Backend A saves, Backend B serves → 404
+
+**2. Documentation Failure (SYSTEMIC)**
+- 30-40% of sessions skipped DEVELOPMENT_LOG.md updates
+- Missing sessions: 4, 6, 7, 9, 10, 11, 15, 28, 30-33, 38, 42
+- Cause: Requirements buried in 708-line unauthorized file
+
+**3. Unauthorized Instruction File**
+- `/devserver/CLAUDE.md` (708 lines) created 2025-10-29 without permission
+- Wrong location (should be root or /docs)
+- Bloated instructions → requirements ignored
+
+### Actions Taken
+
+1. ✅ Created `docs/IMAGE_404_ROOT_CAUSE_ANALYSIS.md` - Complete diagnosis with evidence
+2. ✅ Fixed `stop_all.sh` - Now kills production backend
+3. ✅ Archived unauthorized file → `devserver/archive/CLAUDE.md.UNAUTHORIZED_ARCHIVED`
+4. ✅ Created `docs/SESSION_43_HANDOVER_SYSTEM_AUDIT.md` - Instructions for complete system audit
+
+### Solution Recommended
+
+**Immediate:** Use single backend OR create shared storage symlink:
+```bash
+rm -rf /opt/ai4artsed-production/exports
+ln -s /home/joerissen/ai/ai4artsed_webserver/exports /opt/ai4artsed-production/exports
+```
+
+**Long-term:** Complete system audit per handover document
+
+### Files Modified
+
+- `docs/IMAGE_404_ROOT_CAUSE_ANALYSIS.md` (new, 230 lines)
+- `docs/SESSION_43_HANDOVER_SYSTEM_AUDIT.md` (new, handover for audit)
+- `stop_all.sh` (fixed: line 13 - added production backend kill)
+- `devserver/CLAUDE.md` (archived with warnings)
+
+### Cost
+
+- Estimated: ~$2-3 (continuation session)
+
+---
+
+## Session 46 (2025-11-16): Storage Symlink Reversal + Port Separation (Dev/Prod)
+
+**Date:** 2025-11-16
+**Duration:** ~2h
+**Status:** ✅ COMPLETED - Storage unified, ports separated
+**Branch:** `develop`
+
+### Problem
+
+1. **Storage location incorrect:** Session 44 created symlink dev → prod, putting research data in `/opt/` (not accessible)
+2. **Port confusion:** Both dev and prod backends configured for same port (17801)
+3. **Deployment context wrong:** Documentation incorrectly stated "WiFi-only" instead of "Internet-facing via Cloudflare"
+
+### Solution Implemented
+
+**1. Symlink Reversed (prod → dev)**
+```bash
+# Canonical storage now in home directory (accessible)
+/home/joerissen/ai/ai4artsed_webserver/exports/  # Real directory (300 runs, 7.5GB)
+/opt/ai4artsed-production/exports → dev          # Symlink
+```
+
+**Rationale:** Research data must be in visible location, not hidden in `/opt/`
+
+**2. Port Separation Implemented**
+- **Dev backend:** Port 17802 (`/home/joerissen/.../devserver/config.py`)
+- **Prod backend:** Port 17801 (`/opt/ai4artsed-production/devserver/config.py`)
+- **Vite frontend:** Port 5173, proxies to 17802 (dev)
+
+**3. Deployment Context Corrected**
+- **CURRENT:** Internet-facing via Cloudflare tunnel (multiple courses)
+- **Users:** Students on iPad Pro 10" (NOT solo researcher)
+- **FUTURE:** WiFi-only after research project ends
+
+### Actions Taken
+
+1. ✅ Stopped dev backend
+2. ✅ Restored dev exports from backup (256 runs)
+3. ✅ Merged production data → dev (rsync --ignore-existing) → 300 total runs
+4. ✅ Backed up production exports
+5. ✅ Removed prod exports, created symlink prod → dev
+6. ✅ Verified symlink works (both paths resolve to dev location)
+7. ✅ Updated port configs:
+   - Dev: `PORT = 17802`
+   - Prod: `PORT = 17801`
+8. ✅ Updated Vite proxy → 17802
+9. ✅ Updated start scripts:
+   - `3 start_backend_fg.sh` → PORT=17802
+   - `4 start_frontend for development.sh` → Updated comments
+10. ✅ Restarted dev backend on 17802 (verified working)
+
+### Files Modified
+
+**Configs:**
+- `/home/joerissen/ai/ai4artsed_webserver/devserver/config.py` (PORT = 17802)
+- `/opt/ai4artsed-production/devserver/config.py` (PORT = 17801)
+- `public/ai4artsed-frontend/vite.config.ts` (proxy to 17802)
+
+**Start Scripts:**
+- `/home/joerissen/3 start_backend_fg.sh` (BACKEND_PORT=17802)
+- `/home/joerissen/4 start_frontend for development.sh` (updated comments)
+
+**Documentation:**
+- `docs/DEVELOPMENT_DECISIONS.md` (added Active Decision 0: Deployment Architecture)
+- `docs/STORAGE_SYMLINK_STRATEGY.md` (corrected deployment context)
+- `docs/SESSION_44_SUMMARY.md` (corrected deployment context)
+
+**Storage:**
+- `/opt/ai4artsed-production/exports` (now symlink → dev)
+- `/opt/ai4artsed-production/exports.backup_TIMESTAMP` (safety backup)
+
+### Verification
+
+```bash
+# Dev backend responding on 17802
+$ curl http://localhost:17802/api/schema/info
+{"engine_status":"initialized","schemas_available":83,"status":"success"}
+
+# Storage unified
+$ readlink /opt/ai4artsed-production/exports
+/home/joerissen/ai/ai4artsed_webserver/exports
+
+# Python Path resolution works
+$ python3 -c "from config import JSON_STORAGE_DIR; print(JSON_STORAGE_DIR.resolve())"
+# Both dev and prod resolve to: /home/joerissen/ai/ai4artsed_webserver/exports/json
+```
+
+### What Changed from Session 44
+
+| Aspect | Session 44 (Wrong) | Session 46 (Correct) |
+|--------|-------------------|---------------------|
+| **Symlink direction** | dev → prod | prod → dev |
+| **Storage location** | `/opt/...` (hidden) | `/home/...` (accessible) |
+| **Deployment context** | WiFi-only, temp internet | Internet-facing for research |
+| **User context** | Solo researcher | Multiple courses, iPad Pro 10" |
+| **Port separation** | Not implemented | Dev=17802, Prod=17801 |
+
+### Benefits
+
+1. ✅ **Research data accessible** - In home directory, not hidden in `/opt/`
+2. ✅ **No port confusion** - Dev and prod clearly separated
+3. ✅ **No 404 errors** - Unified storage via symlink
+4. ✅ **Documentation accurate** - Deployment context corrected
+5. ✅ **Students protected** - Prod backend (17801) separate from dev work
+
+### Cost
+
+- Estimated: ~$2.50 (token count: ~121k/200k)
 
 ---
 

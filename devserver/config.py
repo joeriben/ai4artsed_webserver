@@ -14,11 +14,16 @@ JSON_STORAGE_DIR = EXPORTS_DIR / "json"  # Pipeline run storage (Session 30)
 
 # Server Configuration
 HOST = "0.0.0.0"
-PORT = 17801
+PORT = 17802  # Development port (separated from production 17801)
 THREADS = 8
 
 # API Configuration
+# LLM Provider: "ollama" or "lmstudio"
+# TODO 2026: Refactor to Option C (Adapter Pattern with LLMProvider base class)
+# NOTE: LM Studio does NOT support model unloading via API - use Ollama for proper VRAM management
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "ollama")  # Ollama supports keep_alive for VRAM management
 OLLAMA_API_BASE_URL = os.environ.get("OLLAMA_API_BASE_URL", "http://localhost:11434")
+LMSTUDIO_API_BASE_URL = os.environ.get("LMSTUDIO_API_BASE_URL", "http://localhost:1234")
 COMFYUI_PREFIX = "comfyui"
 COMFYUI_PORT = "7821"  # SwarmUI integrated ComfyUI (RTX 5090 compatible)
 SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)

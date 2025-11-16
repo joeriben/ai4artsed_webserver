@@ -16,9 +16,9 @@
   },
 
   "music": {
-    "eco": null,
+    "eco": "acestep_instrumental",
     "fast": null,
-    "_note": "Future: acestep for eco (requires tags+lyrics dual-prompt)"
+    "_note": "AceStep instrumental generation (simplified single-prompt workflow)"
   },
 
   "video": {

@@ -219,8 +219,8 @@
           <!-- AUDIO: Ace Step -->
           <div
             class="media-card"
-            :class="{ active: selectedMediaConfig === 'ace_step' }"
-            @click="selectMediaConfig('ace_step')"
+            :class="{ active: selectedMediaConfig === 'acestep_instrumental' }"
+            @click="selectMediaConfig('acestep_instrumental')"
             title="Ace Step Music"
           >
             <div class="media-icon">🎶</div>
@@ -463,7 +463,7 @@ onMounted(async () => {
     const outputConfigMap: Record<string, string> = {
       image: 'sd35_large',
       audio: 'stable_audio_1',
-      music: 'ace_step',
+      music: 'acestep_instrumental', // Fixed: matches backend config name
       video: 'video_default', // Coming soon
       '3d': '3d_default' // Coming soon
     }
@@ -622,7 +622,7 @@ function selectMediaConfig(outputConfig: string) {
 
 /**
  * Start media generation with selected output config
- * @param outputConfig - Output config name (sd35_large, gpt_image_1, stable_audio_1, ace_step)
+ * @param outputConfig - Output config name (sd35_large, gpt_image_1, stable_audio_1, acestep_instrumental)
  */
 async function handleMediaGeneration(outputConfig: string) {
   console.log('[Phase2] handleMediaGeneration called:', {

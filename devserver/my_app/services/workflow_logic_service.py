@@ -713,12 +713,8 @@ class WorkflowLogicService:
                     original_name = node_data.get("inputs", {}).get("ckpt_name", "")
                     
                     if original_name:
-                        # Skip if it already looks like a path
-                        if "/" in original_name or "\\" in original_name:
-                            logger.debug(f"Node {node_id}: '{original_name}' already appears to be a path, skipping")
-                            continue
-                        
-                        # Try to resolve the model path
+                        # Always try to resolve the model path
+                        # ModelPathResolver will handle paths correctly
                         resolved_path = self.model_resolver.find_model(original_name)
                         
                         if resolved_path and resolved_path != original_name:

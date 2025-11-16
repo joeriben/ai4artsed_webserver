@@ -28,16 +28,18 @@ export default defineConfig({
     ],
     hmr: false,  // Disable HMR for Cloudflare deployment
     proxy: {
+      // Dev frontend proxies to dev backend (17802)
+      // Production uses 17801
       '/api': {
-        target: 'http://localhost:17801',
+        target: 'http://localhost:17802',
         changeOrigin: true,
       },
       '/pipeline_configs_with_properties': {
-        target: 'http://localhost:17801',
+        target: 'http://localhost:17802',
         changeOrigin: true,
       },
       '/pipeline_configs_metadata': {
-        target: 'http://localhost:17801',
+        target: 'http://localhost:17802',
         changeOrigin: true,
       }
     }
