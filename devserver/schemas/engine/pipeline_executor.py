@@ -263,18 +263,29 @@ class PipelineExecutor:
 
         final_output = context.get_previous_output()
 
+        # Merge backend metadata from last step (contains image_paths, seed, etc.)
+        result_metadata = {
+            "total_steps": len(steps),
+            "input_length": len(context.input_text),
+            "output_length": len(final_output),
+            "pipeline_name": self._current_config.pipeline_name if self._current_config else None
+        }
+
+        # Add backend metadata from last completed step (e.g., image_paths from SwarmUI)
+        if completed_steps:
+            last_step_metadata = completed_steps[-1].metadata
+            # Merge backend-specific keys into result metadata
+            for key in ['image_paths', 'seed', 'model', 'media_type', 'swarmui_available', 'parameters']:
+                if key in last_step_metadata:
+                    result_metadata[key] = last_step_metadata[key]
+
         return PipelineResult(
             config_name=config_name,
             status=PipelineStatus.COMPLETED,
             steps=completed_steps,
             final_output=final_output,
             execution_time=time.time() - start_time,
-            metadata={
-                "total_steps": len(steps),
-                "input_length": len(context.input_text),
-                "output_length": len(final_output),
-                "pipeline_name": self._current_config.pipeline_name if self._current_config else None
-            }
+            metadata=result_metadata
         )
 
     async def _execute_recursive_pipeline_steps(self, config_name: str, steps: List[PipelineStep], context: PipelineContext, execution_mode: str = 'eco', tracker=None) -> PipelineResult:
@@ -475,10 +486,12 @@ class PipelineExecutor:
         )
         
         response = await self.backend_router.process_request(backend_request)
-        
+
         if isinstance(response, BackendResponse):
             if response.success:
-                # Use metadata from response (contains detected backend) with chunk_request as fallback
+                # Merge ALL backend metadata into step.metadata (preserves image_paths, seed, etc.)
+                step.metadata.update(response.metadata)
+                # Ensure fallbacks for critical fields
                 step.metadata['model_used'] = response.metadata.get('model_used', chunk_request['model'])
                 step.metadata['backend_type'] = response.metadata.get('backend_type', chunk_request['backend_type'])
                 return response.content

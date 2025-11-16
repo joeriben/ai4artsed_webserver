@@ -301,7 +301,7 @@ class BackendRouter:
             )
 
     async def _process_output_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any]) -> BackendResponse:
-        """Process Output-Chunk: Load workflow, apply mappings, submit to ComfyUI"""
+        """Process Output-Chunk: Use SwarmUI API for direct image generation"""
         try:
             # 1. Load Output-Chunk from JSON
             chunk = self._load_output_chunk(chunk_name)
@@ -314,104 +314,103 @@ class BackendRouter:
 
             logger.info(f"Loaded Output-Chunk: {chunk_name} ({chunk.get('media_type', 'unknown')} media)")
 
-            # 2. Clone workflow (don't modify original)
-            import copy
-            workflow = copy.deepcopy(chunk['workflow'])
-
-            # 3. Apply input_mappings
-            input_data = {'prompt': prompt, **parameters}
-            workflow, generated_seed = self._apply_input_mappings(workflow, chunk['input_mappings'], input_data)
-
-            logger.debug(f"Applied input_mappings to {len(chunk['input_mappings'])} fields")
-
-            # 4. Get ComfyUI client
+            # 2. Extract parameters from input_mappings
             import sys
             from pathlib import Path
             devserver_path = Path(__file__).parent.parent.parent
             if str(devserver_path) not in sys.path:
                 sys.path.insert(0, str(devserver_path))
-            from my_app.services.comfyui_client import get_comfyui_client
 
-            client = get_comfyui_client()
+            input_mappings = chunk['input_mappings']
+            input_data = {'prompt': prompt, **parameters}
+
+            # Build SwarmUI API parameters
+            import random
+
+            # Get model from checkpoint mapping
+            model = parameters.get('checkpoint') or input_mappings.get('checkpoint', {}).get('default', 'sd3.5_large')
+            # If model has .safetensors extension, keep the full path, otherwise use as-is
+            if not model.endswith('.safetensors'):
+                model = f"{model}.safetensors"
+
+            # Get prompt (positive)
+            positive_prompt = input_data.get('prompt', prompt)
+
+            # Get negative prompt
+            negative_prompt = input_data.get('negative_prompt') or input_mappings.get('negative_prompt', {}).get('default', '')
+
+            # Get dimensions
+            width = int(input_data.get('width') or input_mappings.get('width', {}).get('default', 1024))
+            height = int(input_data.get('height') or input_mappings.get('height', {}).get('default', 1024))
+
+            # Get generation parameters
+            steps = int(input_data.get('steps') or input_mappings.get('steps', {}).get('default', 25))
+            cfg_scale = float(input_data.get('cfg') or input_mappings.get('cfg', {}).get('default', 7.0))
+
+            # Get seed (generate random if needed)
+            seed = input_data.get('seed') or input_mappings.get('seed', {}).get('default', 'random')
+            if seed == 'random' or seed == -1:
+                seed = random.randint(0, 2**32 - 1)
+                logger.info(f"Generated random seed: {seed}")
+            else:
+                seed = int(seed)
+
+            # 3. Get SwarmUI client
+            from my_app.services.swarmui_client import get_swarmui_client
+
+            client = get_swarmui_client()
             is_healthy = await client.health_check()
 
             if not is_healthy:
-                logger.warning("ComfyUI server not reachable")
-                return BackendResponse(
-                    success=True,
-                    content="workflow_prepared",
-                    metadata={
-                        'chunk_name': chunk_name,
-                        'workflow': workflow,
-                        'output_mapping': chunk['output_mapping'],
-                        'comfyui_available': False,
-                        'message': 'Workflow prepared but ComfyUI server not available'
-                    }
-                )
-
-            # 5. Submit workflow to ComfyUI
-            prompt_id = await client.submit_workflow(workflow)
-
-            if not prompt_id:
+                logger.warning("SwarmUI server not reachable")
                 return BackendResponse(
                     success=False,
                     content="",
-                    error="Failed to submit workflow to ComfyUI"
+                    error="SwarmUI server not available"
                 )
 
-            logger.info(f"Workflow submitted to ComfyUI: {prompt_id} (chunk: {chunk_name})")
+            # 4. Generate image using SwarmUI API
+            logger.info(f"[SWARMUI] Generating image with model={model}, steps={steps}, size={width}x{height}")
+            image_paths = await client.generate_image(
+                prompt=positive_prompt,
+                model=model,
+                negative_prompt=negative_prompt,
+                width=width,
+                height=height,
+                steps=steps,
+                cfg_scale=cfg_scale,
+                seed=seed
+            )
 
-            # 6. Optional: Wait for completion
-            if parameters.get('wait_for_completion', False):
-                timeout = parameters.get('timeout', 300)
-                history = await client.wait_for_completion(prompt_id, timeout=timeout)
-
-                if history:
-                    # Extract generated media based on output_mapping
-                    media = await self._extract_output_media(client, history, chunk['output_mapping'])
-                    return BackendResponse(
-                        success=True,
-                        content=prompt_id,
-                        metadata={
-                            'chunk_name': chunk_name,
-                            'prompt_id': prompt_id,
-                            'completed': True,
-                            'media': media,
-                            'media_type': chunk.get('media_type'),
-                            'output_mapping': chunk['output_mapping'],
-                            'comfyui_available': True,
-                            'seed': generated_seed
-                        }
-                    )
-                else:
-                    return BackendResponse(
-                        success=False,
-                        content=prompt_id,
-                        error="Timeout or error waiting for completion",
-                        metadata={
-                            'chunk_name': chunk_name,
-                            'prompt_id': prompt_id,
-                            'completed': False,
-                            'comfyui_available': True,
-                            'seed': generated_seed
-                        }
-                    )
-            else:
-                # Return immediately with prompt_id
+            if not image_paths:
                 return BackendResponse(
-                    success=True,
-                    content=prompt_id,
-                    metadata={
-                        'chunk_name': chunk_name,
-                        'prompt_id': prompt_id,
-                        'submitted': True,
-                        'output_mapping': chunk['output_mapping'],
-                        'media_type': chunk.get('media_type'),
-                        'comfyui_available': True,
-                        'message': 'Workflow submitted to ComfyUI queue',
-                        'seed': generated_seed
-                    }
+                    success=False,
+                    content="",
+                    error="SwarmUI failed to generate image"
                 )
+
+            # 5. Return image paths directly (no polling needed!)
+            logger.info(f"[SWARMUI] ✓ Generated {len(image_paths)} image(s)")
+            logger.info(f"[SWARMUI-DEBUG] image_paths value: {image_paths}")
+
+            return BackendResponse(
+                success=True,
+                content="swarmui_generated",
+                metadata={
+                    'chunk_name': chunk_name,
+                    'media_type': chunk.get('media_type'),
+                    'image_paths': image_paths,
+                    'swarmui_available': True,
+                    'seed': seed,
+                    'model': model,
+                    'parameters': {
+                        'width': width,
+                        'height': height,
+                        'steps': steps,
+                        'cfg_scale': cfg_scale
+                    }
+                }
+            )
 
         except Exception as e:
             logger.error(f"Error processing Output-Chunk '{chunk_name}': {e}")

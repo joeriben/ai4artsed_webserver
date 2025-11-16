@@ -20,7 +20,8 @@ THREADS = 8
 # API Configuration
 OLLAMA_API_BASE_URL = os.environ.get("OLLAMA_API_BASE_URL", "http://localhost:11434")
 COMFYUI_PREFIX = "comfyui"
-COMFYUI_PORT = "7821"
+COMFYUI_PORT = "7821"  # SwarmUI integrated ComfyUI (RTX 5090 compatible)
+SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)
 
 # Model Configuration
 ANALYSIS_MODEL = "llava:13b"
@@ -185,12 +186,12 @@ POLLING_TIMEOUT = 15
 MEDIA_DOWNLOAD_TIMEOUT = 30
 
 # Model Path Resolution Configuration
-ENABLE_MODEL_PATH_RESOLUTION = True  # Enable automatic model path resolution
-MODEL_RESOLUTION_FALLBACK = True     # Fallback to original names if resolution fails
+ENABLE_MODEL_PATH_RESOLUTION = True  # ENABLED: SwarmUI uses OfficialStableDiffusion/ prefix format
+MODEL_RESOLUTION_FALLBACK = True      # Fallback to original names if resolution fails
 
 # Base paths for model resolution (configure these to your actual paths)
-SWARMUI_BASE_PATH = os.environ.get("SWARMUI_PATH", None)  # e.g., "/path/to/SwarmUI"
-COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", None)  # e.g., "/path/to/ComfyUI"
+SWARMUI_BASE_PATH = os.environ.get("SWARMUI_PATH", "/home/joerissen/ai/SwarmUI")
+COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", "/home/joerissen/ai/ComfyUI")
 
 # Default Negative Terms Configuration
 DEFAULT_NEGATIVE_TERMS = "blurry, bad quality, worst quality, low quality, low resolution, extra limbs, extra fingers, distorted, deformed, jpeg artifacts, watermark"
