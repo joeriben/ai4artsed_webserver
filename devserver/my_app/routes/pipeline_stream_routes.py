@@ -57,7 +57,7 @@ def stream_pipeline_progress(run_id: str):
             )
 
             # Check if run exists
-            if not recorder.run_dir.exists():
+            if not recorder.run_folder.exists():
                 yield generate_sse_event('error', {
                     'message': f'Run {run_id} not found'
                 })
@@ -72,7 +72,7 @@ def stream_pipeline_progress(run_id: str):
             # Get prompt_id from recorder metadata
             try:
                 # Read from metadata.json
-                metadata_path = recorder.run_dir / 'metadata.json'
+                metadata_path = recorder.run_folder / 'metadata.json'
                 if metadata_path.exists():
                     with open(metadata_path, 'r') as f:
                         metadata = json.load(f)
