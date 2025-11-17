@@ -8,6 +8,7 @@ __pycache__/
 # Editor/IDE-specific files
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 
