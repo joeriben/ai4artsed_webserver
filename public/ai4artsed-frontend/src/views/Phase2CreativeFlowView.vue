@@ -265,10 +265,17 @@
       <div v-if="previewImage" class="preview-container">
         <img
           :src="previewImage"
+          :key="imageRetryKey"
           class="preview-image"
           :style="{ opacity: Math.max(0.2, generationProgress / 100) }"
           alt="Generated image"
+          @error="handleImageLoadError"
+          @load="handleImageLoadSuccess"
         />
+        <!-- Retry indicator -->
+        <div v-if="imageRetryCount > 0" class="image-retry-indicator">
+          🔄 Retry {{ imageRetryCount }}/{{ MAX_IMAGE_RETRIES }}
+        </div>
       </div>
 
       <!-- Loading Indicator -->
@@ -277,6 +284,17 @@
         <p class="generating-text">{{ $t('phase3.generating') || 'Bild wird generiert...' }}</p>
         <p class="loading-hint">{{ $t('phase3.generatingHint') || '~30 Sekunden' }}</p>
       </div>
+
+      <!-- Session 49: Pipeline Flow Visualization (shown during and after generation) -->
+      <PipelineFlowVisualization
+        v-if="pipelineVisualization"
+        :input-text="userInput"
+        :pipeline-visualization="pipelineVisualization"
+        :execution-steps="executionSteps"
+        :final-output="mediaOutput"
+        :is-executing="isGenerating"
+        :show-pipeline-type="false"
+      />
     </div>
   </div>
 
@@ -300,6 +318,7 @@ import { useUserPreferencesStore } from '@/stores/userPreferences'
 import { executePipeline, getPipelineMetadata, type PipelineExecuteRequest } from '@/services/api'
 import Phase2VectorFusionInterface from '@/components/Phase2VectorFusionInterface.vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import PipelineFlowVisualization from '@/components/PipelineFlowVisualization.vue'
 
 /**
  * Phase2CreativeFlowView - Organic Force-Based Creative Input Interface
@@ -356,6 +375,16 @@ const generationProgress = ref(0)
 const previewImage = ref<string | null>(null)
 const generationRunId = ref<string | null>(null)
 let pollInterval: number | null = null
+
+// Image retry state
+const imageRetryKey = ref(0) // Force img re-render on retry
+const imageRetryCount = ref(0)
+const MAX_IMAGE_RETRIES = 5
+
+// Session 49: Pipeline visualization data
+const pipelineVisualization = ref<any>(null)
+const executionSteps = ref<any[]>([])
+const mediaOutput = ref<any>(null)
 
 // Seed management for smart regeneration
 const lastGenerationState = ref<{ text: string; configId: string } | null>(null)
@@ -651,6 +680,8 @@ async function handleMediaGeneration(outputConfig: string) {
   generationProgress.value = 0
   previewImage.value = null
   error.value = null
+  imageRetryCount.value = 0
+  imageRetryKey.value = 0
 
   // Smart seed management: auto-detect if user wants variation or comparison
   const currentState = {
@@ -710,6 +741,17 @@ async function handleMediaGeneration(outputConfig: string) {
       throw new Error(response.error || 'Pipeline execution failed')
     }
 
+    // Session 49: Capture pipeline visualization data
+    if (response.pipeline_visualization) {
+      pipelineVisualization.value = response.pipeline_visualization
+    }
+    if (response.execution_steps) {
+      executionSteps.value = response.execution_steps
+    }
+    if (response.media_output) {
+      mediaOutput.value = response.media_output
+    }
+
     // Get run_id
     const runId = response.media_output?.run_id
     if (!runId) {
@@ -754,6 +796,51 @@ function closeOverlay() {
   isGenerating.value = false
   previewImage.value = null
   generationProgress.value = 0
+  imageRetryCount.value = 0
+  imageRetryKey.value = 0
+}
+
+/**
+ * Handle image load error with exponential backoff retry
+ */
+async function handleImageLoadError(event: Event) {
+  console.warn(`[Phase2] Image load failed, attempt ${imageRetryCount.value + 1}/${MAX_IMAGE_RETRIES}`)
+
+  if (imageRetryCount.value >= MAX_IMAGE_RETRIES) {
+    console.error('[Phase2] Image load failed after max retries')
+    error.value = 'Failed to load generated image. Please try again.'
+    isGenerating.value = false
+    previewImage.value = null
+    return
+  }
+
+  imageRetryCount.value++
+
+  // Exponential backoff: 500ms, 1s, 2s, 4s, 8s
+  const delay = Math.min(500 * Math.pow(2, imageRetryCount.value - 1), 8000)
+
+  console.log(`[Phase2] Retrying image load in ${delay}ms...`)
+  await new Promise(resolve => setTimeout(resolve, delay))
+
+  // Cache-bust URL to force reload
+  const timestamp = Date.now()
+  const runId = generationRunId.value
+  if (runId) {
+    previewImage.value = `/api/media/image/${runId}?t=${timestamp}`
+
+    // Force Vue to re-render img element
+    imageRetryKey.value++
+  }
+}
+
+/**
+ * Handle successful image load
+ */
+function handleImageLoadSuccess() {
+  console.log('[Phase2] ✅ Image loaded successfully')
+  if (imageRetryCount.value > 0) {
+    console.log(`[Phase2] Image loaded after ${imageRetryCount.value} retries`)
+  }
 }
 
 function handleInputChange() {
@@ -1809,6 +1896,7 @@ svg.connections {
   align-items: center;
   justify-content: center;
   width: 100%;
+  position: relative;
 }
 
 .preview-image {
@@ -1818,6 +1906,32 @@ svg.connections {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   transition: opacity 0.5s ease;
+}
+
+/* Image Retry Indicator */
+.image-retry-indicator {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 193, 7, 0.95);
+  color: #000;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Loading Indicator */

@@ -69,6 +69,29 @@ class ConfigLoader:
 
 **Purpose:** Build chunks with placeholder replacement
 
+**Chunk Types (Session 48):**
+- **Processing Chunks:** LLM-based text processing (Ollama, OpenRouter)
+  - Template: String or Dict `{"system": "...", "prompt": "..."}`
+  - Output: String prompt for backend execution
+- **Output Chunks:** Media generation with ComfyUI workflows
+  - Template: Can be empty (proxy chunk) or string
+  - Workflow: Dict with ComfyUI API workflow JSON
+  - Output: Dict with placeholders replaced in workflow
+
+**Key Data Structures:**
+```python
+@dataclass
+class ChunkTemplate:
+    name: str
+    template: Any  # str or Dict[str, str] for {"system": "...", "prompt": "..."}
+    backend_type: str
+    model: str
+    parameters: Dict[str, Any]
+    placeholders: List[str]
+    workflow: Optional[Dict[str, Any]] = None  # For output_chunks with ComfyUI workflows
+    chunk_type: Optional[str] = None  # 'processing_chunk', 'output_chunk', etc.
+```
+
 **Key Functionality:**
 ```python
 class ChunkBuilder:
@@ -76,30 +99,126 @@ class ChunkBuilder:
         self,
         chunk_name: str,
         resolved_config: ResolvedConfig,
-        context: dict
-    ) -> ProcessedChunk:
+        context: dict,
+        execution_mode: str = 'eco',
+        pipeline: Any = None
+    ) -> Dict[str, Any]:
         # 1. Get chunk template
         template = self.templates.get(chunk_name)
 
         # 2. Build replacement context
         instruction_text = resolved_config.context or ''
+        task_instruction = self._get_task_instruction(resolved_config, pipeline)
+
         replacement_context = {
+            # Legacy placeholders (backward compatibility)
             'INSTRUCTION': instruction_text,
-            'INSTRUCTIONS': instruction_text,  # Backward compat
+            'INSTRUCTIONS': instruction_text,
+
+            # New three-part prompt interception structure
+            'TASK_INSTRUCTION': task_instruction,
+            'CONTEXT': instruction_text,
+
+            # Input placeholders
             'INPUT_TEXT': context.get('input_text', ''),
             'PREVIOUS_OUTPUT': context.get('previous_output', ''),
             'USER_INPUT': context.get('user_input', ''),
-            **context.get('custom_placeholders', {})
+
+            **context.get('custom_placeholders', {}),
+            **resolved_config.parameters
         }
 
-        # 3. Replace placeholders
-        processed_template = self._replace_placeholders(
-            template.template,
-            replacement_context
-        )
+        # 3. Type-safe template processing (Session 48)
+        if isinstance(template.template, dict):
+            # Dict template: {"system": "...", "prompt": "..."}
+            processed_dict = self._process_dict_template(template.template, replacement_context)
+            processed_template = self._serialize_dict_to_string(processed_dict)
+        elif isinstance(template.template, str):
+            # String template
+            processed_template = self._replace_placeholders(template.template, replacement_context)
 
-        # 4. Return processed chunk
-        return ProcessedChunk(...)
+        # 4. Detect output chunks (Session 48)
+        is_output_chunk = bool(template.workflow)
+
+        if is_output_chunk:
+            # Output chunk: workflow dict with replaced placeholders
+            processed_workflow = self._process_workflow_placeholders(
+                template.workflow,
+                replacement_context
+            )
+
+            return {
+                'backend_type': template.backend_type,
+                'model': final_model,
+                'prompt': processed_workflow,  # Dict, not string
+                'parameters': processed_parameters,
+                'metadata': {
+                    'chunk_type': 'output_chunk',
+                    'has_workflow': True,
+                    'workflow_nodes': len(processed_workflow)
+                }
+            }
+        else:
+            # Processing chunk: string prompt (existing behavior)
+            return {
+                'backend_type': template.backend_type,
+                'model': final_model,
+                'prompt': processed_template,  # String
+                'parameters': processed_parameters,
+                'metadata': {'chunk_type': 'processing_chunk'}
+            }
+```
+
+**Output Chunk Workflow Placeholder Replacement (Session 48):**
+```python
+def _process_workflow_placeholders(self, workflow: Dict[str, Any], replacements: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Process ComfyUI workflow and replace placeholders in all string values.
+
+    Recursively walks workflow structure and replaces {{PLACEHOLDER}} patterns.
+    Used for output_chunks in pipelines.
+
+    Example:
+        workflow = {"5": {"inputs": {"text": "{{CLIP_PROMPT}}"}}}
+        replacements = {"CLIP_PROMPT": "mountains, clouds"}
+        → {"5": {"inputs": {"text": "mountains, clouds"}}}
+
+    Args:
+        workflow: ComfyUI workflow dict from chunk template
+        replacements: Dict of placeholder values (from context.custom_placeholders)
+
+    Returns:
+        Workflow dict with all placeholders replaced
+    """
+    import copy
+
+    # Deep copy to avoid mutating template
+    processed_workflow = copy.deepcopy(workflow)
+
+    # Reuse existing recursive replacement logic
+    return self._replace_placeholders_in_dict(processed_workflow, replacements)
+```
+
+**Dict Template Support (Session 48):**
+Dict templates enable separate system/user prompts for LLM API compatibility:
+```json
+{
+  "template": {
+    "system": "You are a CLIP prompt optimization expert.",
+    "prompt": "Optimize this prompt: {{INPUT_TEXT}}"
+  }
+}
+```
+
+This gets serialized to Task/Context/Prompt format for backend compatibility:
+```
+Task:
+You are a CLIP prompt optimization expert.
+
+Context:
+
+Prompt:
+Optimize this prompt: <user input>
 ```
 
 **Note:** After consolidation, we removed `TASK` and `CONTEXT` placeholder aliases - they were redundant and caused duplication.
@@ -589,4 +708,24 @@ target_lang = get_random_language(exclude=['de'])
 11. ✅ **stage_orchestrator.py** - 4-stage helpers & safety filtering
 
 **Total: 11 modules** (10 active, 1 deprecated)
+
+---
+
+## 11. Dependencies & Requirements
+
+### Required Python Packages
+
+**Critical:** The following packages are required for backend routing functionality:
+
+#### aiohttp
+- **Version:** 3.13.2 (or compatible)
+- **Required by:** ComfyUI/SwarmUI client modules
+- **Import locations:**
+  - `devserver/my_app/services/comfyui_client.py:5`
+  - `devserver/my_app/services/swarmui_client.py:5`
+- **Failure mode:** If missing, Stage 4 media generation fails with "No run_id returned from API"
+- **Why not obvious:** Import occurs at function call time (line 333 in `backend_router.py`), not at module load time
+- **Fix:** `pip install aiohttp` in production virtualenv
+
+**Production Deployment Note:** Always verify `requirements.txt` installation in production environment before starting backend service. Missing dependencies will cause silent failures during media generation stages.
 

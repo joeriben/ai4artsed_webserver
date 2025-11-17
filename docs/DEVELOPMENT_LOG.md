@@ -21,9 +21,77 @@
   - Session 10: Config Folder Restructuring
   - Session 11: Recursive Pipeline + Multi-Output Support
 
-**Active Sessions:** 40, 41, 43, 46 (Sessions 44-45 documented separately)
+**Active Sessions:** 40, 41, 43, 46, 49 (Sessions 44-45 documented separately)
 
 **Next Archive Point:** Session 56 (keep last 10 sessions active)
+
+---
+
+## Session 49 (2025-11-17): Production Dependency Fix - Missing aiohttp Package
+
+**Date:** 2025-11-17
+**Duration:** ~15min
+**Status:** ✅ RESOLVED
+**Branch:** develop
+
+### Problem
+
+Production deployment failing for ALL media generation (SD35, GPT-Image, Stable Audio, AceStep):
+- Error: "No run_id returned from API"
+- User attempted SD35 image generation → loading animation completed → error displayed
+- Root cause: Missing `aiohttp` Python dependency in production environment
+
+### Root Cause Analysis
+
+**Import Chain:**
+1. Frontend requests media generation → `/api/pipeline/run`
+2. Backend completes Stages 1-3 successfully (text processing, safety checks)
+3. Stage 4 calls `backend_router.py:333` → imports `comfyui_client.py`
+4. `comfyui_client.py:5` → `import aiohttp` (FAILS with `ModuleNotFoundError`)
+5. Pipeline crashes before creating `run_id` → frontend receives generic error
+
+**Why not caught in dev:**
+- Dev environment had `aiohttp` installed from manual testing
+- `requirements.txt` was missing the dependency
+- Production used clean virtualenv from `requirements.txt` → missing package
+- Error only occurs at Stage 4 runtime, not module load time
+
+### Solution Applied
+
+1. ✅ Installed missing package in production:
+   ```bash
+   /opt/ai4artsed-production/venv/bin/pip install aiohttp
+   ```
+
+2. ✅ Updated `requirements.txt`:
+   ```python
+   aiohttp==3.13.2  # Required by comfyui_client.py and swarmui_client.py
+   ```
+
+3. ✅ Documented in ARCHITECTURE PART 07 under "Dependencies & Requirements" section
+
+4. ✅ Added image loading retry logic (bonus fix from earlier in session):
+   - Implemented exponential backoff retry for image 404 errors
+   - Max 5 retries with delays: 500ms → 1s → 2s → 4s → 8s
+   - Visual retry indicator with pulse animation
+   - Files modified: `Phase2CreativeFlowView.vue`
+
+### Files Modified
+
+- `/home/joerissen/ai/ai4artsed_webserver/requirements.txt` (+1 line)
+- `/home/joerissen/ai/ai4artsed_webserver/docs/ARCHITECTURE PART 07 - Engine-Modules.md` (+17 lines - Dependencies section)
+- `/home/joerissen/ai/ai4artsed_webserver/docs/DEVELOPMENT_LOG.md` (this entry)
+- `/home/joerissen/ai/ai4artsed_webserver/public/ai4artsed-frontend/src/views/Phase2CreativeFlowView.vue` (image retry logic)
+
+### Prevention
+
+**Deployment Checklist Item Added:** Verify all `requirements.txt` packages installed in production virtualenv before starting backend service.
+
+**Architecture Documentation:** Added "Dependencies & Requirements" section to ARCHITECTURE PART 07 to document critical external dependencies and their failure modes.
+
+### Cost
+
+- ~$0.60 (incident investigation + fix + documentation + bonus image retry feature)
 
 ---
 
@@ -194,6 +262,207 @@ $ python3 -c "from config import JSON_STORAGE_DIR; print(JSON_STORAGE_DIR.resolv
 ### Cost
 
 - Estimated: ~$2.50 (token count: ~121k/200k)
+
+---
+
+## Session 48 (2025-11-16): Surrealization Pipeline - Dual-Encoder T5+CLIP Fusion Implementation
+
+**Date:** 2025-11-16
+**Duration:** ~3h (across 2 context windows)
+**Status:** ✅ COMPLETED - Full output chunk support with workflow placeholder replacement
+**Branch:** `develop`
+**Commit:** cb54af9
+
+### Problem
+
+Complete the Surrealization pipeline (Dual-Encoder T5+CLIP Fusion for Stable Diffusion 3.5 Large) requiring:
+1. Two prompt optimization steps (T5 semantic encoder + CLIP token-weighted encoder)
+2. Alpha blending value extraction (10-35 range) from T5 step
+3. ComfyUI workflow execution with three dynamic placeholders: {{T5_PROMPT}}, {{CLIP_PROMPT}}, {{ALPHA}}
+
+**Challenge:** Output chunks need dict workflows, not string prompts. Existing infrastructure only supported processing chunks.
+
+### Solution: 4-Phase Implementation
+
+#### Phase 2A: Output Chunk Foundation (Risk: 0/10)
+**Files Modified:**
+- `devserver/schemas/engine/chunk_builder.py` (+60 lines)
+
+**Changes:**
+- Added optional fields to ChunkTemplate: `workflow: Optional[Dict]`, `chunk_type: Optional[str]`
+- Load workflow data from chunk JSON files (`workflow` or `workflow_api` field)
+- Dict template placeholder extraction for {"system": "...", "prompt": "..."} format
+
+**Why First:** Foundation for Phase 2B, zero breaking changes (optional fields only)
+
+#### Phase 1: JSON Output Format for Alpha Extraction (Risk: 0/10)
+**Files Modified:**
+- `devserver/schemas/chunks/optimize_t5_prompt.json` (output format: text → json)
+
+**Changes:**
+- Changed template to output JSON: `{"t5_prompt": "...", "alpha": 25}`
+- Updated meta: `output_format: "json"`, added `json_schema` and `extracts` fields
+- Leverages existing JSON auto-parse in pipeline_executor.py (lines 234-244)
+
+**Key Insight:** Zero code changes needed - existing infrastructure handles JSON parsing automatically
+
+#### Phase 3: Multi-Step Output Routing Alignment (Risk: 0/10)
+**Files Modified:**
+- `devserver/schemas/chunks/optimize_clip_prompt.json` (output format: text → json)
+
+**Changes:**
+- Changed template to output JSON: `{"clip_prompt": "..."}`
+- Renamed JSON keys to match workflow placeholders:
+  - `optimized_prompt` → `t5_prompt` (matches `{{T5_PROMPT}}`)
+  - Added `clip_prompt` output (matches `{{CLIP_PROMPT}}`)
+  - Alpha already matches `{{ALPHA}}`
+
+**Key Insight:** Strategic naming = zero code changes. JSON auto-parse puts keys in custom_placeholders as uppercase.
+
+#### Phase 2B: Full Workflow Placeholder Replacement (Risk: 1/10)
+**Files Modified:**
+- `devserver/schemas/engine/chunk_builder.py` (+126 lines)
+- `devserver/test_surrealization.py` (new comprehensive test)
+
+**Changes:**
+1. **Output chunk detection:** `is_output_chunk = bool(template.workflow)`
+2. **Type-safe branching:** Separate code paths for output vs processing chunks
+3. **New method:** `_process_workflow_placeholders()` with deep copy pattern
+4. **Chunk request format:**
+   - Output chunks: `prompt` = dict (workflow with replaced placeholders)
+   - Processing chunks: `prompt` = string (existing behavior unchanged)
+
+**Safety Measures:**
+- Created backup: `chunk_builder.py.phase2a_backup`
+- Deep copy prevents template mutation
+- Isolated code path (if/else branching)
+- Comprehensive unit tests before deployment
+
+### Technical Implementation Details
+
+**Dict Template Handling:**
+```python
+# Templates can now be dict or string
+template: Any  # {"system": "...", "prompt": "..."} or "string"
+
+# Process dict templates
+if isinstance(template.template, dict):
+    processed_dict = self._process_dict_template(template.template, replacement_context)
+    processed_template = self._serialize_dict_to_string(processed_dict)
+```
+
+**Workflow Placeholder Replacement:**
+```python
+def _process_workflow_placeholders(self, workflow: Dict, replacements: Dict) -> Dict:
+    import copy
+    processed_workflow = copy.deepcopy(workflow)  # Prevent mutation
+    return self._replace_placeholders_in_dict(processed_workflow, replacements)
+```
+
+**Output Chunk Detection:**
+```python
+is_output_chunk = bool(template.workflow)
+
+if is_output_chunk:
+    processed_workflow = self._process_workflow_placeholders(template.workflow, replacement_context)
+    chunk_request = {
+        'prompt': processed_workflow,  # Dict, not string
+        'metadata': {'chunk_type': 'output_chunk', 'has_workflow': True}
+    }
+else:
+    # Processing chunk: string prompt (existing behavior)
+    chunk_request = {'prompt': processed_template}
+```
+
+### Pipeline Flow
+
+```
+User Input: "A surreal landscape where mountains float upside down"
+    ↓
+Step 1 (optimize_t5_prompt):
+    Output: {"t5_prompt": "surreal landscape...", "alpha": 25}
+    → custom_placeholders: {T5_PROMPT: "...", ALPHA: "25"}
+    ↓
+Step 2 (optimize_clip_prompt):
+    Output: {"clip_prompt": "mountains, clouds, surreal"}
+    → custom_placeholders: {CLIP_PROMPT: "mountains, clouds, surreal"}
+    ↓
+Step 3 (dual_encoder_fusion_image):
+    Workflow node 5: text = "mountains, clouds, surreal"  # {{CLIP_PROMPT}}
+    Workflow node 6: text = "surreal landscape..."         # {{T5_PROMPT}}
+    Workflow node 9: alpha = "0.25"                        # {{ALPHA}}
+    → ComfyUI execution → PNG image
+```
+
+### Testing Results
+
+**All Phases Validated:**
+```python
+✅ Phase 2A: Template loading with workflow field
+✅ Phase 1: JSON output with alpha extraction
+✅ Phase 3: Multi-step placeholder routing
+✅ Phase 2B: Workflow placeholder replacement
+   - Unit tests for _process_workflow_placeholders()
+   - Output chunk detection
+   - Full chunk build with placeholders
+   - Processing chunks unchanged
+```
+
+**Backend Validation:**
+```bash
+✅ Backend running on port 17802 without errors
+✅ All 13 chunks loaded successfully
+✅ Output chunks: 4 detected correctly
+✅ Processing chunks: 9 unchanged
+✅ Dict template parsing working
+```
+
+### Files Modified Summary
+
+**Code Changes (+186 lines):**
+- `devserver/schemas/engine/chunk_builder.py` (Phase 2A + 2B)
+  - ChunkTemplate: +2 optional fields
+  - _load_template_file: Dict placeholder extraction
+  - build_chunk: Output chunk branching logic
+  - _process_workflow_placeholders: New method (+21 lines)
+  - _serialize_dict_to_string: Dict → string conversion
+
+**Config Changes:**
+- `devserver/schemas/chunks/optimize_t5_prompt.json` (JSON output format)
+- `devserver/schemas/chunks/optimize_clip_prompt.json` (JSON output format)
+
+**Test Files:**
+- `devserver/test_surrealization.py` (new, comprehensive pipeline test)
+- `devserver/schemas/engine/chunk_builder.py.phase2a_backup` (safety backup)
+
+### Risk Assessment
+
+| Phase | Risk | Rationale |
+|-------|------|-----------|
+| 2A | 0/10 | Optional fields only, zero breaking changes |
+| 1 | 0/10 | Config changes only, leverages existing JSON auto-parse |
+| 3 | 0/10 | Config changes only, zero code modifications |
+| 2B | 1/10 | Isolated code path, comprehensive tests, backup created |
+
+**Overall System Risk:** 0.25/10 (minimal, well-tested, backward compatible)
+
+### Why This Matters
+
+**Before Session 48:**
+- Output chunks could only use hardcoded workflows
+- No dynamic placeholder replacement in ComfyUI workflows
+- Surrealization pipeline impossible (needs 3 dynamic values)
+
+**After Session 48:**
+- Full output chunk support with workflow placeholder replacement
+- Multi-step pipelines can route values → workflow parameters
+- Surrealization pipeline 100% functional
+- Dict template support for LLM API compatibility
+- Zero breaking changes to existing configs
+
+### Cost
+
+- Estimated: ~$3-4 (high context usage, 2 windows with summary)
 
 ---
 
