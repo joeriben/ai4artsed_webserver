@@ -21,9 +21,55 @@
   - Session 10: Config Folder Restructuring
   - Session 11: Recursive Pipeline + Multi-Output Support
 
-**Active Sessions:** 40, 41, 43, 46, 49 (Sessions 44-45 documented separately)
+**Active Sessions:** 40, 41, 43, 46, 49, 54 (Sessions 44-45 documented separately)
 
 **Next Archive Point:** Session 56 (keep last 10 sessions active)
+
+---
+
+## Session 54 (2025-11-17): Production Port Configuration + Git Sync Fix
+
+**Date:** 2025-11-17
+**Duration:** ~90min
+**Status:** ✅ RESOLVED
+**Branch:** develop → main
+
+### Problem
+
+Image generation timeouts (120s) when accessing via https://lab.ai4artsed.org from iOS/internet. Frontend showed red error boxes. Investigation revealed multiple configuration issues.
+
+### Root Cause
+
+1. **Production out of sync**: `/opt/ai4artsed-production/` on empty `master` branch, not tracking `main`
+2. **Missing SwarmUI client**: Main branch outdated, missing SwarmUI API client from recent develop commits
+3. **Wrong Cloudflare config**: `~/.cloudflared/config.yml` had port 80 instead of 17801 (minor issue)
+4. **Confusing port discovery**: `comfyui_client.py` tried multiple hardcoded ports, hiding real config errors
+
+### Solution Applied
+
+1. ✅ Fixed Cloudflare config: Updated `~/.cloudflared/config.yml` port 80 → 17801
+2. ✅ Merged develop → main: Brought SwarmUI client and latest fixes to main branch
+3. ✅ Synced production: Reset `/opt/ai4artsed-production/` to track `main` branch properly
+4. ✅ Fixed production config: Changed `PORT` from 17802 (dev) → 17801 (production)
+5. ✅ Simplified comfyui_client: Removed confusing port discovery, use configured port only
+
+### Files Modified
+
+- `~/.cloudflared/config.yml` (line 17: port 80 → 17801)
+- `/opt/ai4artsed-production/devserver/config.py` (PORT: 17802 → 17801)
+- `/opt/ai4artsed-production/` git sync (master → main branch)
+- Merged develop to main (commit 837b6a2)
+- Fast-forwarded develop to main (re-aligned branches)
+
+### Lessons Learned
+
+**Git Workflow Issue**: Production was on wrong branch (master vs main) and completely out of sync. Need deployment documentation.
+
+**Configuration Fragility**: Hardcoded ports in multiple places caused silent failures. System should validate backend connectivity on startup.
+
+### Cost
+
+- ~$1.50 (extended troubleshooting session + multiple wrong attempts + correct fix + git sync)
 
 ---
 
