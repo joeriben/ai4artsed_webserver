@@ -894,6 +894,17 @@ def execute_pipeline():
                                         config=output_config_name,
                                         seed=seed
                                     ))
+                                elif output_value == 'workflow_generated':
+                                    # Workflow-based generation (audio, video, etc.) - media_paths in metadata
+                                    logger.info(f"[RECORDER-DEBUG] Workflow generated - metadata keys: {list(output_result.metadata.keys())}")
+                                    media_paths = output_result.metadata.get('media_paths', [])
+                                    logger.info(f"[RECORDER] Downloading from workflow: {len(media_paths)} {media_type} file(s)")
+                                    saved_filename = asyncio.run(recorder.download_and_save_from_swarmui(
+                                        image_paths=media_paths,
+                                        media_type=media_type,
+                                        config=output_config_name,
+                                        seed=seed
+                                    ))
                                 elif output_value.startswith('http://') or output_value.startswith('https://'):
                                     # API-based generation (GPT-5, Replicate, etc.) - URL
                                     logger.info(f"[RECORDER] Downloading from URL: {output_value}")
