@@ -1,6 +1,19 @@
 """
-ComfyUI API Client
-Sendet generierte Workflows an ComfyUI und überwacht die Bildgenerierung
+ComfyUI API Client - DEPRECATED
+
+⚠️ DEPRECATION NOTICE ⚠️
+This client is DEPRECATED and should not be used for new code.
+
+USE INSTEAD: swarmui_client.py
+
+REASON: This client uses direct port 7821 access which has poor feedback.
+SwarmUI's /ComfyBackendDirect passthrough (port 7801) provides the same functionality
+with better error handling and JSON formatting.
+
+MIGRATION: backend_router.py now uses swarmui_client exclusively.
+This file is kept temporarily for reference but will be removed in future cleanup.
+
+Date deprecated: 2025-11-16 (Session 47)
 """
 import aiohttp
 import asyncio

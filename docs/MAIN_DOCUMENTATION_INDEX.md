@@ -8,7 +8,6 @@
 
 ### Getting Started
 - **readme.md** - Project introduction and setup guide
-- **README.md** - This index file
 
 ### Architecture
 - **ARCHITECTURE PART 01** - 4-Stage Orchestration Flow (AUTHORITATIVE)
@@ -23,18 +22,6 @@
 - **DEVELOPMENT_LOG.md** - Chronological session log with costs (WHEN & HOW MUCH)
 - **DEVELOPMENT_DECISIONS.md** - Architectural decisions (WHAT & WHY)
 - **devserver_todos.md** - Current priorities and task tracking
-
----
-
-## 🎨 Feature Design Documents
-
-### Completed Features
-- **FRONTEND_POLLING_INTEGRATION.md** - Media polling implementation
-- **LIVE_PIPELINE_RECORDER.md** - Pipeline execution recording system
-- **UNIFIED_MEDIA_STORAGE.md** - Media storage architecture
-- **PHASE2_3BUBBLE_DESIGN.md** - Phase 2 multilingual context editing
-- **VUE_LAYOUT_POSITIONING_BEST_PRACTICES.md** - Frontend layout guidelines
-
 ---
 
 ## 📦 Archive

@@ -895,16 +895,35 @@ def execute_pipeline():
                                         seed=seed
                                     ))
                                 elif output_value == 'workflow_generated':
-                                    # Workflow-based generation (audio, video, etc.) - media_paths in metadata
+                                    # Workflow-based generation (audio, video, etc.) - filesystem copy
                                     logger.info(f"[RECORDER-DEBUG] Workflow generated - metadata keys: {list(output_result.metadata.keys())}")
-                                    media_paths = output_result.metadata.get('media_paths', [])
-                                    logger.info(f"[RECORDER] Downloading from workflow: {len(media_paths)} {media_type} file(s)")
-                                    saved_filename = asyncio.run(recorder.download_and_save_from_swarmui(
-                                        image_paths=media_paths,
-                                        media_type=media_type,
-                                        config=output_config_name,
-                                        seed=seed
-                                    ))
+                                    filesystem_path = output_result.metadata.get('filesystem_path')
+                                    if filesystem_path:
+                                        # Direct filesystem copy (for audio/video from ComfyUI)
+                                        import shutil
+                                        import os
+
+                                        # Determine output filename based on media type
+                                        if media_type == 'audio':
+                                            ext = 'mp3'
+                                        elif media_type == 'video':
+                                            ext = 'mp4'
+                                        else:
+                                            ext = 'bin'
+
+                                        output_filename = f"07_output_{media_type}.{ext}"
+                                        dest_path = os.path.join(recorder.run_dir, output_filename)
+
+                                        try:
+                                            shutil.copy2(filesystem_path, dest_path)
+                                            saved_filename = output_filename
+                                            logger.info(f"[RECORDER] ✓ Copied {media_type} from filesystem: {output_filename}")
+                                        except Exception as e:
+                                            logger.error(f"[RECORDER] Failed to copy {media_type} file: {e}")
+                                            saved_filename = None
+                                    else:
+                                        logger.warning(f"[RECORDER] No filesystem_path in metadata for workflow_generated")
+                                        saved_filename = None
                                 elif output_value.startswith('http://') or output_value.startswith('https://'):
                                     # API-based generation (GPT-5, Replicate, etc.) - URL
                                     logger.info(f"[RECORDER] Downloading from URL: {output_value}")

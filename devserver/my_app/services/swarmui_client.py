@@ -220,6 +220,168 @@ class SwarmUIClient:
             logger.debug(f"[SWARMUI] Health check failed: {e}")
             return False
 
+    async def submit_workflow(self, workflow: Dict[str, Any]) -> Optional[str]:
+        """
+        Submit ComfyUI workflow via SwarmUI's proxy endpoint
+
+        Args:
+            workflow: ComfyUI workflow JSON
+
+        Returns:
+            prompt_id if successful, None otherwise
+        """
+        try:
+            import uuid
+
+            # SwarmUI proxies to ComfyUI's /prompt endpoint
+            payload = {
+                "prompt": workflow,
+                "client_id": str(uuid.uuid4())
+            }
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/ComfyBackendDirect/prompt",
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        prompt_id = result.get("prompt_id")
+                        logger.info(f"[SWARMUI-WORKFLOW] Submitted workflow: {prompt_id}")
+                        return prompt_id
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"[SWARMUI-WORKFLOW] Failed to submit: {response.status} - {error_text}")
+                        return None
+
+        except aiohttp.ClientError as e:
+            logger.error(f"[SWARMUI-WORKFLOW] Connection error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"[SWARMUI-WORKFLOW] Error submitting workflow: {e}")
+            return None
+
+    async def wait_for_completion(
+        self,
+        prompt_id: str,
+        timeout: int = 300,
+        poll_interval: float = 2.0
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Wait for workflow completion
+
+        Args:
+            prompt_id: The prompt ID to monitor
+            timeout: Maximum wait time in seconds
+            poll_interval: How often to check status
+
+        Returns:
+            Final history dict or None if timeout/error
+        """
+        import asyncio
+
+        start_time = asyncio.get_event_loop().time()
+
+        while True:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if elapsed > timeout:
+                logger.error(f"[SWARMUI-WORKFLOW] Timeout ({timeout}s) waiting for {prompt_id}")
+                return None
+
+            # Check history via SwarmUI proxy
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{self.base_url}/ComfyBackendDirect/history/{prompt_id}",
+                        timeout=aiohttp.ClientTimeout(total=10)
+                    ) as response:
+                        if response.status == 200:
+                            history = await response.json()
+                            if history and prompt_id in history:
+                                logger.info(f"[SWARMUI-WORKFLOW] ✓ Workflow {prompt_id} completed")
+                                return history[prompt_id]
+            except Exception as e:
+                logger.debug(f"[SWARMUI-WORKFLOW] Error checking history: {e}")
+
+            await asyncio.sleep(poll_interval)
+
+    async def get_generated_audio(self, history_entry: Dict[str, Any]) -> List[str]:
+        """
+        Extract generated audio files from history entry
+
+        Args:
+            history_entry: History dict for a completed prompt
+
+        Returns:
+            List of audio file paths
+        """
+        audio_files = []
+
+        try:
+            outputs = history_entry.get("outputs", {})
+            for node_id, node_output in outputs.items():
+                if "audio" in node_output:
+                    for audio in node_output["audio"]:
+                        filename = audio.get("filename")
+                        if filename:
+                            subfolder = audio.get("subfolder", "")
+                            if subfolder:
+                                audio_files.append(f"{subfolder}/{filename}")
+                            else:
+                                audio_files.append(filename)
+                elif "genaudio" in node_output:
+                    for audio in node_output["genaudio"]:
+                        filename = audio.get("filename")
+                        if filename:
+                            subfolder = audio.get("subfolder", "")
+                            if subfolder:
+                                audio_files.append(f"{subfolder}/{filename}")
+                            else:
+                                audio_files.append(filename)
+        except Exception as e:
+            logger.error(f"[SWARMUI-WORKFLOW] Error extracting audio: {e}")
+
+        return audio_files
+
+    async def get_generated_video(self, history_entry: Dict[str, Any]) -> List[str]:
+        """
+        Extract generated video files from history entry
+
+        Args:
+            history_entry: History dict for a completed prompt
+
+        Returns:
+            List of video file paths
+        """
+        video_files = []
+
+        try:
+            outputs = history_entry.get("outputs", {})
+            for node_id, node_output in outputs.items():
+                if "video" in node_output:
+                    for video in node_output["video"]:
+                        filename = video.get("filename")
+                        if filename:
+                            subfolder = video.get("subfolder", "")
+                            if subfolder:
+                                video_files.append(f"{subfolder}/{filename}")
+                            else:
+                                video_files.append(filename)
+                elif "genvideo" in node_output:
+                    for video in node_output["genvideo"]:
+                        filename = video.get("filename")
+                        if filename:
+                            subfolder = video.get("subfolder", "")
+                            if subfolder:
+                                video_files.append(f"{subfolder}/{filename}")
+                            else:
+                                video_files.append(filename)
+        except Exception as e:
+            logger.error(f"[SWARMUI-WORKFLOW] Error extracting video: {e}")
+
+        return video_files
+
 
 # Singleton instance
 _client = None

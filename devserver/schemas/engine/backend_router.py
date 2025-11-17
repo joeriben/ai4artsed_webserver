@@ -301,7 +301,11 @@ class BackendRouter:
             )
 
     async def _process_output_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any]) -> BackendResponse:
-        """Process Output-Chunk: Use SwarmUI API for direct image generation"""
+        """Process Output-Chunk: Route based on media type
+
+        - Images: Use SwarmUI /API/GenerateText2Image (simple, fast)
+        - Audio/Video: Use custom workflow submission via /ComfyBackendDirect
+        """
         try:
             # 1. Load Output-Chunk from JSON
             chunk = self._load_output_chunk(chunk_name)
@@ -312,9 +316,31 @@ class BackendRouter:
                     error=f"Output-Chunk '{chunk_name}' not found"
                 )
 
-            logger.info(f"Loaded Output-Chunk: {chunk_name} ({chunk.get('media_type', 'unknown')} media)")
+            media_type = chunk.get('media_type', 'image')
+            logger.info(f"Loaded Output-Chunk: {chunk_name} ({media_type} media)")
 
-            # 2. Extract parameters from input_mappings
+            # 2. Route based on media type
+            if media_type == 'image':
+                # Use SwarmUI's simple Text2Image API
+                return await self._process_image_chunk_simple(chunk_name, prompt, parameters, chunk)
+            else:
+                # For audio/video: use custom workflow submission
+                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+        except Exception as e:
+            logger.error(f"Error processing Output-Chunk '{chunk_name}': {e}")
+            import traceback
+            traceback.print_exc()
+            return BackendResponse(
+                success=False,
+                content="",
+                error=f"Output-Chunk processing error: {str(e)}"
+            )
+
+    async def _process_image_chunk_simple(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
+        """Process image chunks using SwarmUI's /API/GenerateText2Image endpoint"""
+        try:
+            # Extract parameters from input_mappings
             import sys
             from pathlib import Path
             devserver_path = Path(__file__).parent.parent.parent
@@ -426,6 +452,159 @@ class BackendRouter:
                 success=False,
                 content="",
                 error=f"Output-Chunk processing error: {str(e)}"
+            )
+
+    async def _process_workflow_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
+        """Process audio/video chunks using custom ComfyUI workflows via SwarmUI"""
+        try:
+            # 1. Load workflow from chunk
+            workflow = chunk.get('workflow')
+            if not workflow:
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error=f"No workflow found in chunk '{chunk_name}'"
+                )
+
+            media_type = chunk.get('media_type', 'unknown')
+            logger.info(f"[WORKFLOW-CHUNK] Processing {media_type} chunk: {chunk_name}")
+
+            # 2. Detect mapping format and apply input mappings
+            input_mappings = chunk.get('input_mappings', {})
+            input_data = {'prompt': prompt, **parameters}
+
+            # Check if first mapping has 'node_id' to determine format
+            first_mapping = next(iter(input_mappings.values()), {})
+            if 'node_id' in first_mapping:
+                # Node-based format: use existing _apply_input_mappings()
+                logger.info(f"[WORKFLOW-CHUNK] Using node-based mappings")
+                workflow, generated_seed = self._apply_input_mappings(workflow, input_mappings, input_data)
+            else:
+                # Template-based format: do JSON string replacement
+                logger.info(f"[WORKFLOW-CHUNK] Using template-based mappings")
+                workflow_str = json.dumps(workflow)
+                generated_seed = None
+
+                for key, mapping in input_mappings.items():
+                    value = input_data.get(key)
+                    if value is None:
+                        value = mapping.get('default', '')
+
+                    # Special handling for "random" seed
+                    if value == "random" and key == "seed":
+                        import random
+                        value = random.randint(0, 2**32 - 1)
+                        generated_seed = value
+                        logger.info(f"Generated random seed: {generated_seed}")
+
+                    # Replace template placeholders like {{PROMPT}}
+                    placeholder = mapping.get('template', f'{{{{{key.upper()}}}}}')
+                    workflow_str = workflow_str.replace(placeholder, str(value))
+                    logger.debug(f"Replaced '{placeholder}' with '{str(value)[:50]}...'")
+
+                workflow = json.loads(workflow_str)
+
+            # 3. Get SwarmUI client
+            import sys
+            from pathlib import Path
+            devserver_path = Path(__file__).parent.parent.parent
+            if str(devserver_path) not in sys.path:
+                sys.path.insert(0, str(devserver_path))
+
+            from my_app.services.swarmui_client import get_swarmui_client
+
+            client = get_swarmui_client()
+            is_healthy = await client.health_check()
+
+            if not is_healthy:
+                logger.warning("SwarmUI server not reachable")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="SwarmUI server not available"
+                )
+
+            # 4. Submit workflow via unified swarmui_client
+            logger.info(f"[WORKFLOW-CHUNK] Submitting {media_type} workflow to SwarmUI")
+            prompt_id = await client.submit_workflow(workflow)
+
+            if not prompt_id:
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="Failed to submit workflow to SwarmUI"
+                )
+
+            logger.info(f"[WORKFLOW-CHUNK] Workflow submitted: {prompt_id}")
+
+            # 5. Wait for completion
+            timeout = parameters.get('timeout', 300)
+            history = await client.wait_for_completion(prompt_id, timeout=timeout)
+
+            if not history:
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="Timeout or error waiting for workflow completion"
+                )
+
+            logger.info(f"[WORKFLOW-CHUNK] Workflow completed: {prompt_id}")
+
+            # 6. Extract media files from known ComfyUI output directory
+            # NOTE: ComfyUI history parsing is unreliable for non-image media
+            # Use direct filesystem listing instead
+            import os
+            import glob
+
+            if media_type == 'audio':
+                output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/audio'
+            elif media_type == 'video':
+                output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/video'
+            else:
+                logger.warning(f"Unknown media type '{media_type}', using audio directory")
+                output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/audio'
+
+            # Get most recent file from output directory
+            filesystem_path = None
+            if os.path.exists(output_dir):
+                files = glob.glob(f"{output_dir}/*.{'mp3' if media_type == 'audio' else 'mp4'}")
+                if files:
+                    most_recent = max(files, key=os.path.getmtime)
+                    filesystem_path = most_recent
+                    logger.info(f"[WORKFLOW-CHUNK] Found {media_type} file: {filesystem_path}")
+
+            if not filesystem_path:
+                logger.error(f"[WORKFLOW-CHUNK] No {media_type} files found in {output_dir}")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error=f"No {media_type} files found in workflow output"
+                )
+
+            # 7. Return filesystem path for direct copy (no downloading needed)
+            # The endpoint handler will copy this file directly to exports/json/{run_id}/
+            return BackendResponse(
+                success=True,
+                content="workflow_generated",
+                metadata={
+                    'chunk_name': chunk_name,
+                    'media_type': media_type,
+                    'prompt_id': prompt_id,
+                    'filesystem_path': filesystem_path,
+                    'swarmui_available': True,
+                    'seed': generated_seed,
+                    'workflow_completed': True
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Error processing workflow chunk '{chunk_name}': {e}")
+            import traceback
+            traceback.print_exc()
+            return BackendResponse(
+                success=False,
+                content="",
+                error=f"Workflow chunk processing error: {str(e)}"
             )
 
     async def _process_api_output_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
@@ -682,7 +861,10 @@ class BackendRouter:
             return []
 
     async def _process_comfyui_legacy(self, schema_output: str, parameters: Dict[str, Any]) -> BackendResponse:
-        """LEGACY: ComfyUI-Request mit deprecated comfyui_workflow_generator"""
+        """LEGACY: ComfyUI-Request mit deprecated comfyui_workflow_generator
+
+        NOW USES: SwarmUI client's /ComfyBackendDirect passthrough instead of direct port 7821
+        """
         try:
             # Workflow-Template aus Parameters extrahieren
             workflow_template = parameters.get('workflow_template', 'sd35_standard')
@@ -696,7 +878,7 @@ class BackendRouter:
                 devserver_path = Path(__file__).parent.parent.parent
                 if str(devserver_path) not in sys.path:
                     sys.path.insert(0, str(devserver_path))
-                from my_app.services.comfyui_client import get_comfyui_client
+                from my_app.services.swarmui_client import get_swarmui_client
 
                 # 1. Workflow generieren
                 generator = get_workflow_generator(Path(__file__).parent.parent)
@@ -715,12 +897,12 @@ class BackendRouter:
 
                 logger.info(f"ComfyUI-Workflow generiert: {len(workflow)} Nodes für Template '{workflow_template}' (DEPRECATED)")
 
-                # 2. ComfyUI Client holen und Health Check
-                client = get_comfyui_client()
+                # 2. SwarmUI Client holen (now handles ComfyUI via /ComfyBackendDirect)
+                client = get_swarmui_client()
                 is_healthy = await client.health_check()
 
                 if not is_healthy:
-                    logger.warning("ComfyUI server not reachable, returning workflow only")
+                    logger.warning("SwarmUI/ComfyUI server not reachable, returning workflow only")
                     return BackendResponse(
                         success=True,
                         content="workflow_generated_only",

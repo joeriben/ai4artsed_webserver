@@ -133,6 +133,11 @@ const messages = {
       loading: 'Lädt...',
       error: 'Fehler',
       retry: 'Erneut versuchen'
+    },
+    pipeline: {
+      yourInput: 'Dein Input',
+      result: 'Ergebnis',
+      generatedMedia: 'Erzeugtes Bild'
     }
   },
   en: {
@@ -267,6 +272,11 @@ const messages = {
       loading: 'Loading...',
       error: 'Error',
       retry: 'Retry'
+    },
+    pipeline: {
+      yourInput: 'Your input',
+      result: 'Result',
+      generatedMedia: 'Generated image'
     }
   }
 }

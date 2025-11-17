@@ -31,7 +31,7 @@ SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)
 # Model Configuration
 ANALYSIS_MODEL = "llava:13b"
 TRANSLATION_MODEL = "gpt-OSS:20b"  # GPT-OSS replaces mistral-nemo
-SAFETY_MODEL = "llama-guard3:8b"
+SAFETY_MODEL = "gpt-OSS:20b"
 
 # GPT-OSS-20b Configuration (Active - used for all Stage 1-3 processing)
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama

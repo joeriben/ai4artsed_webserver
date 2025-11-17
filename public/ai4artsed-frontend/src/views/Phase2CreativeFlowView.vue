@@ -133,7 +133,8 @@
           <button
             class="transform-btn-center"
             :disabled="!canTransform || isTransforming"
-            @click="handleTransform"
+            @mousedown="handleTransformClick"
+            @touchstart="handleTransformTouch"
           >
             <span v-if="!isTransforming">
               ✨ {{ $t('phase2.startAI') || 'Los, KI, bearbeite meine Eingabe!' }}
@@ -184,7 +185,8 @@
           <div
             class="media-card"
             :class="{ active: selectedMediaConfig === 'sd35_large' }"
-            @click="selectMediaConfig('sd35_large')"
+            @mousedown.prevent="selectMediaConfig('sd35_large')"
+            @touchstart.prevent="selectMediaConfig('sd35_large')"
             title="Stable Diffusion 3.5"
           >
             <div class="media-icon">🎨</div>
@@ -196,7 +198,8 @@
           <div
             class="media-card"
             :class="{ active: selectedMediaConfig === 'gpt_image_1' }"
-            @click="selectMediaConfig('gpt_image_1')"
+            @mousedown.prevent="selectMediaConfig('gpt_image_1')"
+            @touchstart.prevent="selectMediaConfig('gpt_image_1')"
             title="GPT Image Generation"
           >
             <div class="media-icon">🤖</div>
@@ -208,7 +211,8 @@
           <div
             class="media-card"
             :class="{ active: selectedMediaConfig === 'stable_audio_1' }"
-            @click="selectMediaConfig('stable_audio_1')"
+            @mousedown.prevent="selectMediaConfig('stable_audio_1')"
+            @touchstart.prevent="selectMediaConfig('stable_audio_1')"
             title="Stable Audio"
           >
             <div class="media-icon">🎵</div>
@@ -220,7 +224,8 @@
           <div
             class="media-card"
             :class="{ active: selectedMediaConfig === 'acestep_instrumental' }"
-            @click="selectMediaConfig('acestep_instrumental')"
+            @mousedown.prevent="selectMediaConfig('acestep_instrumental')"
+            @touchstart.prevent="selectMediaConfig('acestep_instrumental')"
             title="Ace Step Music"
           >
             <div class="media-icon">🎶</div>
@@ -247,7 +252,8 @@
         <button
           class="generate-media-btn"
           :disabled="!selectedMediaConfig"
-          @click="handleMediaGeneration(selectedMediaConfig)"
+          @mousedown="handleGenerateClick"
+          @touchstart="handleGenerateTouch"
         >
           ✨ {{ $t('phase2.generateMedia') || 'Medium generieren' }}
         </button>
@@ -565,6 +571,22 @@ function updateConnections() {
 }
 
 /**
+ * Handle transform button click (mouse) - Phase 1 pattern
+ */
+function handleTransformClick(event: MouseEvent) {
+  event.preventDefault()
+  handleTransform()
+}
+
+/**
+ * Handle transform button tap (touch) - Phase 1 pattern
+ */
+function handleTransformTouch(event: TouchEvent) {
+  event.preventDefault()  // Cancel ghost click
+  handleTransform()
+}
+
+/**
  * Stage 1+2: Transform user input via backend
  * - Stage 1: Translation + Safety check
  * - Stage 2: Prompt interception transformation
@@ -639,6 +661,26 @@ async function handleTransform() {
 function handleReTransform() {
   pipelineStore.clearTransformedPrompt()
   console.log('[Phase2] Cleared transformed prompt for re-transformation')
+}
+
+/**
+ * Handle generate button click (mouse) - Phase 1 pattern
+ */
+function handleGenerateClick(event: MouseEvent) {
+  event.preventDefault()
+  if (selectedMediaConfig.value) {
+    handleMediaGeneration(selectedMediaConfig.value)
+  }
+}
+
+/**
+ * Handle generate button tap (touch) - Phase 1 pattern
+ */
+function handleGenerateTouch(event: TouchEvent) {
+  event.preventDefault()  // Cancel ghost click
+  if (selectedMediaConfig.value) {
+    handleMediaGeneration(selectedMediaConfig.value)
+  }
 }
 
 /**
