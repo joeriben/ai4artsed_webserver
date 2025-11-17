@@ -67,6 +67,34 @@ export interface PipelineExecuteRequest {
   seed?: number // Random seed for reproducible media generation
 }
 
+/** Pipeline step execution result */
+export interface ExecutionStep {
+  step_number: number
+  chunk_name: string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  output?: any
+  duration_ms?: number
+}
+
+/** Pipeline step definition */
+export interface PipelineStepDefinition {
+  step_number: number
+  chunk_name: string
+  label: string
+  description: string
+  icon: string
+  output_type: string
+  inputs?: Record<string, string>
+}
+
+/** Pipeline visualization metadata */
+export interface PipelineVisualization {
+  pipeline_name: string
+  pipeline_type: string
+  visualization_type: string
+  steps: PipelineStepDefinition[]
+}
+
 /** Pipeline execution response */
 export interface PipelineExecuteResponse {
   status: 'success' | 'error'
@@ -88,6 +116,9 @@ export interface PipelineExecuteResponse {
   steps_completed?: number
   execution_time?: number
   metadata?: Record<string, any>
+  // Session 49: Pipeline visualization data
+  pipeline_visualization?: PipelineVisualization
+  execution_steps?: ExecutionStep[]
 }
 
 /** Transform request (Phase 2 - Stage 1+2 only) */

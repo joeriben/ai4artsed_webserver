@@ -14,18 +14,24 @@ JSON_STORAGE_DIR = EXPORTS_DIR / "json"  # Pipeline run storage (Session 30)
 
 # Server Configuration
 HOST = "0.0.0.0"
-PORT = 17801
+PORT = 17802  # Development port (separated from production 17801)
 THREADS = 8
 
 # API Configuration
+# LLM Provider: "ollama" or "lmstudio"
+# TODO 2026: Refactor to Option C (Adapter Pattern with LLMProvider base class)
+# NOTE: LM Studio does NOT support model unloading via API - use Ollama for proper VRAM management
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "ollama")  # Ollama supports keep_alive for VRAM management
 OLLAMA_API_BASE_URL = os.environ.get("OLLAMA_API_BASE_URL", "http://localhost:11434")
+LMSTUDIO_API_BASE_URL = os.environ.get("LMSTUDIO_API_BASE_URL", "http://localhost:1234")
 COMFYUI_PREFIX = "comfyui"
-COMFYUI_PORT = "7821"
+COMFYUI_PORT = "7821"  # SwarmUI integrated ComfyUI (RTX 5090 compatible)
+SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)
 
 # Model Configuration
 ANALYSIS_MODEL = "llava:13b"
 TRANSLATION_MODEL = "gpt-OSS:20b"  # GPT-OSS replaces mistral-nemo
-SAFETY_MODEL = "llama-guard3:8b"
+SAFETY_MODEL = "gpt-OSS:20b"
 
 # GPT-OSS-20b Configuration (Active - used for all Stage 1-3 processing)
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama
@@ -185,12 +191,12 @@ POLLING_TIMEOUT = 15
 MEDIA_DOWNLOAD_TIMEOUT = 30
 
 # Model Path Resolution Configuration
-ENABLE_MODEL_PATH_RESOLUTION = True  # Enable automatic model path resolution
-MODEL_RESOLUTION_FALLBACK = True     # Fallback to original names if resolution fails
+ENABLE_MODEL_PATH_RESOLUTION = True  # ENABLED: SwarmUI uses OfficialStableDiffusion/ prefix format
+MODEL_RESOLUTION_FALLBACK = True      # Fallback to original names if resolution fails
 
 # Base paths for model resolution (configure these to your actual paths)
-SWARMUI_BASE_PATH = os.environ.get("SWARMUI_PATH", None)  # e.g., "/path/to/SwarmUI"
-COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", None)  # e.g., "/path/to/ComfyUI"
+SWARMUI_BASE_PATH = os.environ.get("SWARMUI_PATH", "/home/joerissen/ai/SwarmUI")
+COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", "/home/joerissen/ai/ComfyUI")
 
 # Default Negative Terms Configuration
 DEFAULT_NEGATIVE_TERMS = "blurry, bad quality, worst quality, low quality, low resolution, extra limbs, extra fingers, distorted, deformed, jpeg artifacts, watermark"

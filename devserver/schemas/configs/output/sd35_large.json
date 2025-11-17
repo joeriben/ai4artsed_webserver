@@ -36,7 +36,7 @@
   "meta": {
     "stage": "output",
     "model": "sd3.5_large",
-    "model_file": "OfficialStableDiffusion/sd3.5_large.safetensors",
+    "model_file": "sd3.5_large.safetensors",
     "backend": "comfyui",
     "backend_type": "comfyui",
     "clip_models": [

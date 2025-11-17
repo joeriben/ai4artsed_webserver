@@ -133,7 +133,8 @@
           <button
             class="transform-btn-center"
             :disabled="!canTransform || isTransforming"
-            @click="handleTransform"
+            @mousedown="handleTransformClick"
+            @touchstart="handleTransformTouch"
           >
             <span v-if="!isTransforming">
               ✨ {{ $t('phase2.startAI') || 'Los, KI, bearbeite meine Eingabe!' }}
@@ -184,7 +185,8 @@
           <div
             class="media-card"
             :class="{ active: selectedMediaConfig === 'sd35_large' }"
-            @click="selectMediaConfig('sd35_large')"
+            @mousedown.prevent="selectMediaConfig('sd35_large')"
+            @touchstart.prevent="selectMediaConfig('sd35_large')"
             title="Stable Diffusion 3.5"
           >
             <div class="media-icon">🎨</div>
@@ -196,7 +198,8 @@
           <div
             class="media-card"
             :class="{ active: selectedMediaConfig === 'gpt_image_1' }"
-            @click="selectMediaConfig('gpt_image_1')"
+            @mousedown.prevent="selectMediaConfig('gpt_image_1')"
+            @touchstart.prevent="selectMediaConfig('gpt_image_1')"
             title="GPT Image Generation"
           >
             <div class="media-icon">🤖</div>
@@ -208,7 +211,8 @@
           <div
             class="media-card"
             :class="{ active: selectedMediaConfig === 'stable_audio_1' }"
-            @click="selectMediaConfig('stable_audio_1')"
+            @mousedown.prevent="selectMediaConfig('stable_audio_1')"
+            @touchstart.prevent="selectMediaConfig('stable_audio_1')"
             title="Stable Audio"
           >
             <div class="media-icon">🎵</div>
@@ -219,8 +223,9 @@
           <!-- AUDIO: Ace Step -->
           <div
             class="media-card"
-            :class="{ active: selectedMediaConfig === 'ace_step' }"
-            @click="selectMediaConfig('ace_step')"
+            :class="{ active: selectedMediaConfig === 'acestep_instrumental' }"
+            @mousedown.prevent="selectMediaConfig('acestep_instrumental')"
+            @touchstart.prevent="selectMediaConfig('acestep_instrumental')"
             title="Ace Step Music"
           >
             <div class="media-icon">🎶</div>
@@ -247,7 +252,8 @@
         <button
           class="generate-media-btn"
           :disabled="!selectedMediaConfig"
-          @click="handleMediaGeneration(selectedMediaConfig)"
+          @mousedown="handleGenerateClick"
+          @touchstart="handleGenerateTouch"
         >
           ✨ {{ $t('phase2.generateMedia') || 'Medium generieren' }}
         </button>
@@ -265,10 +271,17 @@
       <div v-if="previewImage" class="preview-container">
         <img
           :src="previewImage"
+          :key="imageRetryKey"
           class="preview-image"
           :style="{ opacity: Math.max(0.2, generationProgress / 100) }"
           alt="Generated image"
+          @error="handleImageLoadError"
+          @load="handleImageLoadSuccess"
         />
+        <!-- Retry indicator -->
+        <div v-if="imageRetryCount > 0" class="image-retry-indicator">
+          🔄 Retry {{ imageRetryCount }}/{{ MAX_IMAGE_RETRIES }}
+        </div>
       </div>
 
       <!-- Loading Indicator -->
@@ -277,6 +290,17 @@
         <p class="generating-text">{{ $t('phase3.generating') || 'Bild wird generiert...' }}</p>
         <p class="loading-hint">{{ $t('phase3.generatingHint') || '~30 Sekunden' }}</p>
       </div>
+
+      <!-- Session 49: Pipeline Flow Visualization (shown during and after generation) -->
+      <PipelineFlowVisualization
+        v-if="pipelineVisualization"
+        :input-text="userInput"
+        :pipeline-visualization="pipelineVisualization"
+        :execution-steps="executionSteps"
+        :final-output="mediaOutput"
+        :is-executing="isGenerating"
+        :show-pipeline-type="false"
+      />
     </div>
   </div>
 
@@ -300,6 +324,7 @@ import { useUserPreferencesStore } from '@/stores/userPreferences'
 import { executePipeline, getPipelineMetadata, type PipelineExecuteRequest } from '@/services/api'
 import Phase2VectorFusionInterface from '@/components/Phase2VectorFusionInterface.vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import PipelineFlowVisualization from '@/components/PipelineFlowVisualization.vue'
 
 /**
  * Phase2CreativeFlowView - Organic Force-Based Creative Input Interface
@@ -356,6 +381,16 @@ const generationProgress = ref(0)
 const previewImage = ref<string | null>(null)
 const generationRunId = ref<string | null>(null)
 let pollInterval: number | null = null
+
+// Image retry state
+const imageRetryKey = ref(0) // Force img re-render on retry
+const imageRetryCount = ref(0)
+const MAX_IMAGE_RETRIES = 5
+
+// Session 49: Pipeline visualization data
+const pipelineVisualization = ref<any>(null)
+const executionSteps = ref<any[]>([])
+const mediaOutput = ref<any>(null)
 
 // Seed management for smart regeneration
 const lastGenerationState = ref<{ text: string; configId: string } | null>(null)
@@ -463,7 +498,7 @@ onMounted(async () => {
     const outputConfigMap: Record<string, string> = {
       image: 'sd35_large',
       audio: 'stable_audio_1',
-      music: 'ace_step',
+      music: 'acestep_instrumental', // Fixed: matches backend config name
       video: 'video_default', // Coming soon
       '3d': '3d_default' // Coming soon
     }
@@ -533,6 +568,22 @@ function updateConnections() {
   const cx2 = (x2 + xRCenter) / 2
   const cy2 = (y2 + yRTop) / 2
   line2Ref.value.setAttribute('d', `M ${x2} ${y2} Q ${cx2} ${cy2} ${xRCenter} ${yRTop}`)
+}
+
+/**
+ * Handle transform button click (mouse) - Phase 1 pattern
+ */
+function handleTransformClick(event: MouseEvent) {
+  event.preventDefault()
+  handleTransform()
+}
+
+/**
+ * Handle transform button tap (touch) - Phase 1 pattern
+ */
+function handleTransformTouch(event: TouchEvent) {
+  event.preventDefault()  // Cancel ghost click
+  handleTransform()
 }
 
 /**
@@ -613,6 +664,26 @@ function handleReTransform() {
 }
 
 /**
+ * Handle generate button click (mouse) - Phase 1 pattern
+ */
+function handleGenerateClick(event: MouseEvent) {
+  event.preventDefault()
+  if (selectedMediaConfig.value) {
+    handleMediaGeneration(selectedMediaConfig.value)
+  }
+}
+
+/**
+ * Handle generate button tap (touch) - Phase 1 pattern
+ */
+function handleGenerateTouch(event: TouchEvent) {
+  event.preventDefault()  // Cancel ghost click
+  if (selectedMediaConfig.value) {
+    handleMediaGeneration(selectedMediaConfig.value)
+  }
+}
+
+/**
  * Select media output config
  */
 function selectMediaConfig(outputConfig: string) {
@@ -622,7 +693,7 @@ function selectMediaConfig(outputConfig: string) {
 
 /**
  * Start media generation with selected output config
- * @param outputConfig - Output config name (sd35_large, gpt_image_1, stable_audio_1, ace_step)
+ * @param outputConfig - Output config name (sd35_large, gpt_image_1, stable_audio_1, acestep_instrumental)
  */
 async function handleMediaGeneration(outputConfig: string) {
   console.log('[Phase2] handleMediaGeneration called:', {
@@ -651,6 +722,8 @@ async function handleMediaGeneration(outputConfig: string) {
   generationProgress.value = 0
   previewImage.value = null
   error.value = null
+  imageRetryCount.value = 0
+  imageRetryKey.value = 0
 
   // Smart seed management: auto-detect if user wants variation or comparison
   const currentState = {
@@ -710,6 +783,17 @@ async function handleMediaGeneration(outputConfig: string) {
       throw new Error(response.error || 'Pipeline execution failed')
     }
 
+    // Session 49: Capture pipeline visualization data
+    if (response.pipeline_visualization) {
+      pipelineVisualization.value = response.pipeline_visualization
+    }
+    if (response.execution_steps) {
+      executionSteps.value = response.execution_steps
+    }
+    if (response.media_output) {
+      mediaOutput.value = response.media_output
+    }
+
     // Get run_id
     const runId = response.media_output?.run_id
     if (!runId) {
@@ -754,6 +838,51 @@ function closeOverlay() {
   isGenerating.value = false
   previewImage.value = null
   generationProgress.value = 0
+  imageRetryCount.value = 0
+  imageRetryKey.value = 0
+}
+
+/**
+ * Handle image load error with exponential backoff retry
+ */
+async function handleImageLoadError(event: Event) {
+  console.warn(`[Phase2] Image load failed, attempt ${imageRetryCount.value + 1}/${MAX_IMAGE_RETRIES}`)
+
+  if (imageRetryCount.value >= MAX_IMAGE_RETRIES) {
+    console.error('[Phase2] Image load failed after max retries')
+    error.value = 'Failed to load generated image. Please try again.'
+    isGenerating.value = false
+    previewImage.value = null
+    return
+  }
+
+  imageRetryCount.value++
+
+  // Exponential backoff: 500ms, 1s, 2s, 4s, 8s
+  const delay = Math.min(500 * Math.pow(2, imageRetryCount.value - 1), 8000)
+
+  console.log(`[Phase2] Retrying image load in ${delay}ms...`)
+  await new Promise(resolve => setTimeout(resolve, delay))
+
+  // Cache-bust URL to force reload
+  const timestamp = Date.now()
+  const runId = generationRunId.value
+  if (runId) {
+    previewImage.value = `/api/media/image/${runId}?t=${timestamp}`
+
+    // Force Vue to re-render img element
+    imageRetryKey.value++
+  }
+}
+
+/**
+ * Handle successful image load
+ */
+function handleImageLoadSuccess() {
+  console.log('[Phase2] ✅ Image loaded successfully')
+  if (imageRetryCount.value > 0) {
+    console.log(`[Phase2] Image loaded after ${imageRetryCount.value} retries`)
+  }
 }
 
 function handleInputChange() {
@@ -1809,6 +1938,7 @@ svg.connections {
   align-items: center;
   justify-content: center;
   width: 100%;
+  position: relative;
 }
 
 .preview-image {
@@ -1818,6 +1948,32 @@ svg.connections {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   transition: opacity 0.5s ease;
+}
+
+/* Image Retry Indicator */
+.image-retry-indicator {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 193, 7, 0.95);
+  color: #000;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Loading Indicator */

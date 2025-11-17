@@ -70,7 +70,7 @@ def init_schema_engine():
         # Config Loader initialisieren (ohne Legacy-Services vorerst)
         pipeline_executor.config_loader.initialize(schemas_path)
 
-        logger.info("Schema-Engine initialisiert")
+        logger.info("Schema engine initialized")
 
 def load_output_config_defaults():
     """Load output_config_defaults.json"""
@@ -881,8 +881,45 @@ def execute_pipeline():
                                 # Extract seed from output_result metadata (if available)
                                 seed = output_result.metadata.get('seed')
 
-                                # Detect if output is URL or prompt_id
-                                if output_value.startswith('http://') or output_value.startswith('https://'):
+                                # Detect generation backend and download appropriately
+                                if output_value == 'swarmui_generated':
+                                    # SwarmUI generation - image paths returned directly
+                                    logger.info(f"[RECORDER-DEBUG] output_result.metadata keys: {list(output_result.metadata.keys())}")
+                                    logger.info(f"[RECORDER-DEBUG] full metadata: {output_result.metadata}")
+                                    image_paths = output_result.metadata.get('image_paths', [])
+                                    logger.info(f"[RECORDER] Downloading from SwarmUI: {len(image_paths)} image(s)")
+                                    saved_filename = asyncio.run(recorder.download_and_save_from_swarmui(
+                                        image_paths=image_paths,
+                                        media_type=media_type,
+                                        config=output_config_name,
+                                        seed=seed
+                                    ))
+                                elif output_value == 'workflow_generated':
+                                    # Use recorder.save_entity for consistency
+                                    filesystem_path = output_result.metadata.get('filesystem_path')
+                                    if filesystem_path:
+                                        try:
+                                            with open(filesystem_path, 'rb') as f:
+                                                file_data = f.read()
+
+                                            saved_filename = recorder.save_entity(
+                                                entity_type=f'output_{media_type}',
+                                                content=file_data,
+                                                metadata={
+                                                    'config': output_config_name,
+                                                    'backend': 'comfyui',
+                                                    'seed': seed,
+                                                    'filesystem_path': filesystem_path
+                                                }
+                                            )
+                                            logger.info(f"[RECORDER] Saved {media_type} from filesystem: {saved_filename}")
+                                        except Exception as e:
+                                            logger.error(f"[RECORDER] Failed to save {media_type} from filesystem: {e}")
+                                            saved_filename = None
+                                    else:
+                                        logger.warning(f"[RECORDER] No filesystem_path in metadata for workflow_generated")
+                                        saved_filename = None
+                                elif output_value.startswith('http://') or output_value.startswith('https://'):
                                     # API-based generation (GPT-5, Replicate, etc.) - URL
                                     logger.info(f"[RECORDER] Downloading from URL: {output_value}")
                                     saved_filename = asyncio.run(recorder.download_and_save_from_url(
@@ -1310,20 +1347,20 @@ def pipeline_configs_with_properties():
         property_pairs_v2 = [
             {
                 "id": 1,
-                "pair": ["chill", "chaotic"],  # TODO: Change to predictable/surprising
+                "pair": ["chill", "chaotic"],  # NOTE: Labels use predictable/unpredictable. IDs kept for backward compat (24+ configs)
                 "symbols": {"chill": "🎯", "chaotic": "🎲"},
                 "labels": {
-                    "de": {"chill": "vorhersagbar", "chaotic": "überraschend"},
-                    "en": {"chill": "predictable", "chaotic": "surprising"}
+                    "de": {"chill": "vorhersagbar", "chaotic": "unvorhersagbar"},
+                    "en": {"chill": "predictable", "chaotic": "unpredictable"}
                 },
                 "tooltips": {
                     "de": {
                         "chill": "Output ist erwartbar und steuerbar",
-                        "chaotic": "Output ist unvorhersehbar, überraschende Wendungen"
+                        "chaotic": "Output ist unvorhersehbar und unberechenbar"
                     },
                     "en": {
                         "chill": "Output is expected and controllable",
-                        "chaotic": "Output is unpredictable with surprising turns"
+                        "chaotic": "Output is unpredictable and unforeseeable"
                     }
                 }
             },

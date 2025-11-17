@@ -7,7 +7,7 @@ from pathlib import Path
 
 schemas_path = Path("schemas")
 configs_path = schemas_path / "configs"
-workflows_path = Path("/home/joerissen/ai/ai4artsed_webserver/workflows")
+workflows_path = Path(__file__).resolve().parent.parent / "workflows"
 
 # Map of config names to their expected legacy workflow paths (from meta.legacy_source)
 configs_to_check = []

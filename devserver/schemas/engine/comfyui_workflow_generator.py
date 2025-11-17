@@ -257,7 +257,7 @@ class ComfyUIWorkflowGenerator:
                 "SAMPLER": "euler",
                 "SCHEDULER": "normal",
                 "SEED": self._generate_seed(),  # Integer
-                "CHECKPOINT": "OfficialStableDiffusion/sd3.5_large.safetensors"
+                "CHECKPOINT": "sd3.5_large.safetensors"
             }
         
         # Parameter mit übergebenen Werten überschreiben (Typ-Konvertierung)

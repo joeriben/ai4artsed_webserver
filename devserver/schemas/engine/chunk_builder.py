@@ -15,11 +15,13 @@ logger = logging.getLogger(__name__)
 class ChunkTemplate:
     """Template für einen Verarbeitungs-Chunk"""
     name: str
-    template: str
+    template: Any  # Can be str or Dict[str, str] for {"system": "...", "prompt": "..."}
     backend_type: str
     model: str
     parameters: Dict[str, Any]
     placeholders: List[str]
+    workflow: Optional[Dict[str, Any]] = None  # For output_chunks with ComfyUI workflows
+    chunk_type: Optional[str] = None  # 'processing_chunk', 'output_chunk', etc.
 
 class ChunkBuilder:
     """Builder für Template-basierte Chunks mit Placeholder-Replacement"""
@@ -51,17 +53,40 @@ class ChunkBuilder:
             with open(template_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
-            # Placeholders extrahieren
-            template_str = data.get('template', '')
-            placeholders = re.findall(r'\{\{([^}]+)\}\}', template_str)
+            # Template kann string oder dict sein
+            template_data = data.get('template', '')
+
+            # Load workflow field for output_chunks (Phase 2A)
+            workflow_data = data.get('workflow') or data.get('workflow_api')
+            chunk_type = data.get('type', 'processing_chunk')
+
+            # Placeholders extrahieren basierend auf Template-Typ
+            if isinstance(template_data, dict):
+                # Dict template: Placeholders aus allen Werten extrahieren
+                placeholders = []
+                for value in template_data.values():
+                    if isinstance(value, str):
+                        placeholders.extend(re.findall(r'\{\{([^}]+)\}\}', value))
+                placeholders = list(set(placeholders))  # Duplikate entfernen
+                logger.debug(f"Dict template in {template_file.name}: {list(template_data.keys())}")
+            elif isinstance(template_data, str):
+                # String template: Direkt extrahieren
+                placeholders = re.findall(r'\{\{([^}]+)\}\}', template_data)
+            else:
+                # Ungültiger Typ: Als leer behandeln
+                logger.warning(f"Ungültiger Template-Typ in {template_file.name}: {type(template_data)}")
+                template_data = ''
+                placeholders = []
 
             return ChunkTemplate(
                 name=data.get('name', template_file.stem),
-                template=template_str,
+                template=template_data,
                 backend_type=data.get('backend_type', 'ollama'),
                 model=data.get('model', ''),
                 parameters=data.get('parameters', {}),
-                placeholders=placeholders
+                placeholders=placeholders,
+                workflow=workflow_data,  # Phase 2A
+                chunk_type=chunk_type  # Phase 2A
             )
 
         except Exception as e:
@@ -113,18 +138,34 @@ class ChunkBuilder:
             **resolved_config.parameters  # Add config parameters for placeholder replacement
         }
 
-        # Placeholder-Replacement in template
-        processed_template = self._replace_placeholders(
-            template.template,
-            replacement_context
-        )
+        # Placeholder-Replacement in template (type-safe)
+        if isinstance(template.template, dict):
+            # Dict template: Process dict and serialize to string
+            processed_dict = self._process_dict_template(template.template, replacement_context)
+            processed_template = self._serialize_dict_to_string(processed_dict)
+            logger.debug(f"[CHUNK-BUILD] Processed dict template for '{chunk_name}'")
+        elif isinstance(template.template, str):
+            # String template: Use existing replacement logic
+            processed_template = self._replace_placeholders(template.template, replacement_context)
+        else:
+            # Fallback for unexpected types
+            logger.error(f"Unexpected template type for '{chunk_name}': {type(template.template)}")
+            processed_template = str(template.template)
 
         # Debug: Log the built prompt
         logger.debug(f"[CHUNK-BUILD] Chunk '{chunk_name}' prompt preview: {processed_template[:200]}...")
 
         # Check if this is a proxy chunk (no template, no model)
         # Proxy chunks route to specialized output chunks via parameters
-        is_proxy_chunk = (not template.template.strip() and not template.model.strip())
+        if isinstance(template.template, str):
+            template_is_empty = not template.template.strip()
+        elif isinstance(template.template, dict):
+            # Dict template is empty if all values are empty
+            template_is_empty = all(not str(v).strip() for v in template.template.values())
+        else:
+            template_is_empty = True
+
+        is_proxy_chunk = template_is_empty and not template.model.strip()
 
         # Model-Override: Check config.meta.model_override first, then template.model
         # Skip model selection for proxy chunks
@@ -142,24 +183,50 @@ class ChunkBuilder:
         # Apply placeholder replacement to parameter values
         processed_parameters = self._replace_placeholders_in_dict(merged_parameters, replacement_context)
 
-        # Chunk-Request zusammenstellen
-        chunk_request = {
-            'backend_type': template.backend_type,
-            'model': final_model,
-            'prompt': processed_template,
-            'parameters': processed_parameters,
-            'metadata': {
-                'chunk_name': chunk_name,
-                'config_name': resolved_config.name,
-                'template_placeholders': template.placeholders,
-                'execution_mode': execution_mode,
-                'template_model': template.model,
-                'final_model': final_model,
-                **resolved_config.meta
-            }
-        }
+        # PHASE 2B: Detect output chunks (have workflow field)
+        is_output_chunk = bool(template.workflow)
 
-        logger.debug(f"Chunk erstellt: {chunk_name} mit Config {resolved_config.name} (execution_mode: {execution_mode}, model: {final_model})")
+        # Chunk-Request zusammenstellen
+        if is_output_chunk:
+            # Output chunk: workflow dict with replaced placeholders
+            logger.debug(f"[CHUNK-BUILD] '{chunk_name}' is output chunk - processing workflow")
+            processed_workflow = self._process_workflow_placeholders(template.workflow, replacement_context)
+
+            chunk_request = {
+                'backend_type': template.backend_type,
+                'model': final_model,
+                'prompt': processed_workflow,  # Dict, not string
+                'parameters': processed_parameters,
+                'metadata': {
+                    'chunk_name': chunk_name,
+                    'config_name': resolved_config.name,
+                    'chunk_type': 'output_chunk',
+                    'has_workflow': True,
+                    'workflow_nodes': len(processed_workflow),
+                    'execution_mode': execution_mode,
+                    **resolved_config.meta
+                }
+            }
+            logger.debug(f"[CHUNK-BUILD] Output chunk '{chunk_name}' built with {len(processed_workflow)} workflow nodes")
+        else:
+            # Processing chunk: string prompt (existing behavior)
+            chunk_request = {
+                'backend_type': template.backend_type,
+                'model': final_model,
+                'prompt': processed_template,
+                'parameters': processed_parameters,
+                'metadata': {
+                    'chunk_name': chunk_name,
+                    'config_name': resolved_config.name,
+                    'template_placeholders': template.placeholders,
+                    'execution_mode': execution_mode,
+                    'template_model': template.model,
+                    'final_model': final_model,
+                    **resolved_config.meta
+                }
+            }
+            logger.debug(f"[CHUNK-BUILD] Processing chunk '{chunk_name}' built with Config {resolved_config.name}")
+
         return chunk_request
 
     def _get_task_instruction(self, resolved_config: Any, pipeline: Any) -> str:
@@ -251,3 +318,68 @@ class ChunkBuilder:
                 errors.append(f"Erforderlicher Context '{required}' fehlt")
 
         return errors
+
+    def _process_dict_template(self, template_dict: Dict[str, Any], replacements: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Process dict template with placeholder replacement
+
+        Supported formats:
+        1. {"system": "...", "prompt": "..."}  - Separate system and user prompt
+        2. {"user": "..."}                      - Single user prompt
+        3. {"prompt": "..."}                    - Single prompt (legacy)
+
+        Returns dict with processed string values
+        """
+        result = {}
+
+        for key, value in template_dict.items():
+            if isinstance(value, str):
+                # Apply placeholder replacement to each string value
+                processed_value = self._replace_placeholders(value, replacements)
+                result[key] = processed_value
+            else:
+                # Keep non-string values as-is (shouldn't happen in practice)
+                result[key] = value
+
+        return result
+
+    def _serialize_dict_to_string(self, template_dict: Dict[str, str]) -> str:
+        """
+        Serialize dict template to Task/Context/Prompt string format
+        for backward compatibility with backend_router
+
+        Formats:
+        - {"system": X, "prompt": Y} → "Task:\nX\n\nContext:\n\nPrompt:\nY"
+        - {"user": X} → "Task:\n\n\nContext:\n\nPrompt:\nX"
+        - {"prompt": X} → "Task:\n\n\nContext:\n\nPrompt:\nX"
+
+        This ensures dict templates work with the existing backend routing
+        that expects Task/Context/Prompt format.
+        """
+        system = template_dict.get('system', '')
+        prompt = template_dict.get('prompt', template_dict.get('user', ''))
+
+        # Build three-part structure compatible with prompt_interception_engine
+        return f"Task:\n{system}\n\nContext:\n\nPrompt:\n{prompt}"
+
+    def _process_workflow_placeholders(self, workflow: Dict[str, Any], replacements: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process ComfyUI workflow and replace placeholders in all string values.
+
+        Recursively walks workflow structure and replaces {{PLACEHOLDER}} patterns.
+        Used for output_chunks in pipelines (Phase 2B).
+
+        Args:
+            workflow: ComfyUI workflow dict from chunk template
+            replacements: Dict of placeholder values (from context.custom_placeholders)
+
+        Returns:
+            Workflow dict with all placeholders replaced
+        """
+        import copy
+
+        # Deep copy to avoid mutating template
+        processed_workflow = copy.deepcopy(workflow)
+
+        # Reuse existing recursive replacement logic
+        return self._replace_placeholders_in_dict(processed_workflow, replacements)

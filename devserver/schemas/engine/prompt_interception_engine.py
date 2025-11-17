@@ -1,6 +1,21 @@
 """
-Prompt Interception Engine - Migration der AI4ArtsEd Custom Node
-Zentrale KI-Request-Funktionalität mit Multi-Backend und Fallback-System
+Prompt Interception Engine - Backend Proxy for Ollama/OpenRouter
+
+ROLE: Backend proxy layer (NOT a chunk or pipeline)
+- Routes requests to Ollama/OpenRouter APIs
+- Handles model fallbacks and error recovery
+- Called by BackendRouter for all Ollama/OpenRouter chunks
+
+ARCHITECTURE:
+  Chunk (manipulate.json)
+    → ChunkBuilder → BackendRouter.route()
+      → PromptInterceptionEngine (THIS) → Ollama/OpenRouter API
+
+USAGE:
+  1. backend_router.py:74 - Main routing (Ollama/OpenRouter backends)
+  2. schema_pipeline_routes.py:1049 - Direct test endpoint
+
+Migration der AI4ArtsEd Custom Node
 Uses centralized ModelSelector for all model operations
 """
 
@@ -172,13 +187,15 @@ class PromptInterceptionEngine:
             
             # WICHTIG: Kein System-Prompt für Ollama
             # Der Prompt enthält bereits alle Instructions (Task/Context/Input)
+            from config import OLLAMA_API_BASE_URL
+
             payload = {
                 "model": model,
                 "prompt": prompt,
                 "stream": False
             }
 
-            response = requests.post("http://localhost:11434/api/generate", json=payload)
+            response = requests.post(f"{OLLAMA_API_BASE_URL}/api/generate", json=payload)
             
             if response.status_code == 200:
                 output = response.json().get("response", "")
@@ -187,7 +204,7 @@ class PromptInterceptionEngine:
                     if unload_model:
                         try:
                             unload_payload = {"model": model, "prompt": "", "keep_alive": 0, "stream": False}
-                            requests.post("http://localhost:11434/api/generate", json=unload_payload, timeout=30)
+                            requests.post(f"{OLLAMA_API_BASE_URL}/api/generate", json=unload_payload, timeout=30)
                         except:
                             pass
 

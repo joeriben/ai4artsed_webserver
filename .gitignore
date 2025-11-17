@@ -8,6 +8,7 @@ __pycache__/
 # Editor/IDE-specific files
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 
@@ -54,6 +55,8 @@ ehthumbs.db
 # -------------------------------------
 # API keys / sensitive configuration
 *.key
+api_keys.json
+devserver/api_keys.json
 
 # -------------------------------------
 # Exported media/research data
@@ -78,3 +81,7 @@ lora/test_*.py            # Test scripts
 
 # Temporary config backups
 devserver/schemas/configs/tmp/
+
+# Archived/obsolete files
+**/archive/
+**/*.OBSOLETE

@@ -69,6 +69,29 @@ class ConfigLoader:
 
 **Purpose:** Build chunks with placeholder replacement
 
+**Chunk Types (Session 48):**
+- **Processing Chunks:** LLM-based text processing (Ollama, OpenRouter)
+  - Template: String or Dict `{"system": "...", "prompt": "..."}`
+  - Output: String prompt for backend execution
+- **Output Chunks:** Media generation with ComfyUI workflows
+  - Template: Can be empty (proxy chunk) or string
+  - Workflow: Dict with ComfyUI API workflow JSON
+  - Output: Dict with placeholders replaced in workflow
+
+**Key Data Structures:**
+```python
+@dataclass
+class ChunkTemplate:
+    name: str
+    template: Any  # str or Dict[str, str] for {"system": "...", "prompt": "..."}
+    backend_type: str
+    model: str
+    parameters: Dict[str, Any]
+    placeholders: List[str]
+    workflow: Optional[Dict[str, Any]] = None  # For output_chunks with ComfyUI workflows
+    chunk_type: Optional[str] = None  # 'processing_chunk', 'output_chunk', etc.
+```
+
 **Key Functionality:**
 ```python
 class ChunkBuilder:
@@ -76,30 +99,126 @@ class ChunkBuilder:
         self,
         chunk_name: str,
         resolved_config: ResolvedConfig,
-        context: dict
-    ) -> ProcessedChunk:
+        context: dict,
+        execution_mode: str = 'eco',
+        pipeline: Any = None
+    ) -> Dict[str, Any]:
         # 1. Get chunk template
         template = self.templates.get(chunk_name)
 
         # 2. Build replacement context
         instruction_text = resolved_config.context or ''
+        task_instruction = self._get_task_instruction(resolved_config, pipeline)
+
         replacement_context = {
+            # Legacy placeholders (backward compatibility)
             'INSTRUCTION': instruction_text,
-            'INSTRUCTIONS': instruction_text,  # Backward compat
+            'INSTRUCTIONS': instruction_text,
+
+            # New three-part prompt interception structure
+            'TASK_INSTRUCTION': task_instruction,
+            'CONTEXT': instruction_text,
+
+            # Input placeholders
             'INPUT_TEXT': context.get('input_text', ''),
             'PREVIOUS_OUTPUT': context.get('previous_output', ''),
             'USER_INPUT': context.get('user_input', ''),
-            **context.get('custom_placeholders', {})
+
+            **context.get('custom_placeholders', {}),
+            **resolved_config.parameters
         }
 
-        # 3. Replace placeholders
-        processed_template = self._replace_placeholders(
-            template.template,
-            replacement_context
-        )
+        # 3. Type-safe template processing (Session 48)
+        if isinstance(template.template, dict):
+            # Dict template: {"system": "...", "prompt": "..."}
+            processed_dict = self._process_dict_template(template.template, replacement_context)
+            processed_template = self._serialize_dict_to_string(processed_dict)
+        elif isinstance(template.template, str):
+            # String template
+            processed_template = self._replace_placeholders(template.template, replacement_context)
 
-        # 4. Return processed chunk
-        return ProcessedChunk(...)
+        # 4. Detect output chunks (Session 48)
+        is_output_chunk = bool(template.workflow)
+
+        if is_output_chunk:
+            # Output chunk: workflow dict with replaced placeholders
+            processed_workflow = self._process_workflow_placeholders(
+                template.workflow,
+                replacement_context
+            )
+
+            return {
+                'backend_type': template.backend_type,
+                'model': final_model,
+                'prompt': processed_workflow,  # Dict, not string
+                'parameters': processed_parameters,
+                'metadata': {
+                    'chunk_type': 'output_chunk',
+                    'has_workflow': True,
+                    'workflow_nodes': len(processed_workflow)
+                }
+            }
+        else:
+            # Processing chunk: string prompt (existing behavior)
+            return {
+                'backend_type': template.backend_type,
+                'model': final_model,
+                'prompt': processed_template,  # String
+                'parameters': processed_parameters,
+                'metadata': {'chunk_type': 'processing_chunk'}
+            }
+```
+
+**Output Chunk Workflow Placeholder Replacement (Session 48):**
+```python
+def _process_workflow_placeholders(self, workflow: Dict[str, Any], replacements: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Process ComfyUI workflow and replace placeholders in all string values.
+
+    Recursively walks workflow structure and replaces {{PLACEHOLDER}} patterns.
+    Used for output_chunks in pipelines.
+
+    Example:
+        workflow = {"5": {"inputs": {"text": "{{CLIP_PROMPT}}"}}}
+        replacements = {"CLIP_PROMPT": "mountains, clouds"}
+        → {"5": {"inputs": {"text": "mountains, clouds"}}}
+
+    Args:
+        workflow: ComfyUI workflow dict from chunk template
+        replacements: Dict of placeholder values (from context.custom_placeholders)
+
+    Returns:
+        Workflow dict with all placeholders replaced
+    """
+    import copy
+
+    # Deep copy to avoid mutating template
+    processed_workflow = copy.deepcopy(workflow)
+
+    # Reuse existing recursive replacement logic
+    return self._replace_placeholders_in_dict(processed_workflow, replacements)
+```
+
+**Dict Template Support (Session 48):**
+Dict templates enable separate system/user prompts for LLM API compatibility:
+```json
+{
+  "template": {
+    "system": "You are a CLIP prompt optimization expert.",
+    "prompt": "Optimize this prompt: {{INPUT_TEXT}}"
+  }
+}
+```
+
+This gets serialized to Task/Context/Prompt format for backend compatibility:
+```
+Task:
+You are a CLIP prompt optimization expert.
+
+Context:
+
+Prompt:
+Optimize this prompt: <user input>
 ```
 
 **Note:** After consolidation, we removed `TASK` and `CONTEXT` placeholder aliases - they were redundant and caused duplication.
@@ -386,4 +505,227 @@ def _get_task_instruction(self, resolved_config, pipeline):
 - Update backend_router to process Output-Chunks instead of calling generator
 
 ---
+
+
+### 8. prompt_interception_engine.py
+
+**Status:** ✅ **ACTIVE** - Backend proxy layer
+
+**Purpose:** Routes Ollama/OpenRouter API calls with fallback handling
+
+**Role:** Backend proxy (NOT a chunk or pipeline)
+- Routes all Ollama/OpenRouter requests from BackendRouter
+- Handles model fallbacks and error recovery
+- Provides unified API interface for both backends
+
+**Architecture Position:**
+```
+Chunk (manipulate.json)
+  → ChunkBuilder
+    → BackendRouter.route()
+      → PromptInterceptionEngine (backend proxy)
+        → Ollama/OpenRouter API
+```
+
+**Key Methods:**
+- `process_request()` - Main processing with fallback logic
+- `_call_ollama()` - Direct Ollama API calls
+- `_call_openrouter()` - Direct OpenRouter API calls
+- `_find_ollama_fallback()` / `_find_openrouter_fallback()` - Model fallback logic
+
+**Usage:**
+1. `backend_router.py:74` - Routes all Ollama/OpenRouter chunks through this
+2. `schema_pipeline_routes.py:1049` - Direct test endpoint
+
+**Note:** Previously marked as DEPRECATED in docs - this was incorrect. Module is actively used.
+
+---
+
+### 9. output_config_selector.py
+
+**Purpose:** Select default output config based on media type and execution mode
+
+**Architecture Principle:** Separation of concerns
+- Pre-pipeline configs (dada.json) suggest media type via `media_preferences.default_output`
+- Pre-pipeline configs DO NOT choose specific models
+- This module provides centralized mapping: `media_type + execution_mode → output_config`
+
+**Key Classes:**
+```python
+@dataclass
+class MediaOutput:
+    """Track generated media throughout pipeline"""
+    media_type: str  # "image", "audio", "music", "video"
+    prompt_id: str   # ComfyUI queue ID
+    output_mapping: Dict[str, Any]
+    config_name: str
+    status: str  # "queued", "generating", "completed", "failed"
+    metadata: Optional[Dict[str, Any]]
+
+@dataclass
+class ExecutionContext:
+    """Track expected and actual media throughout execution"""
+    config_name: str
+    execution_mode: str  # "eco" or "fast"
+    expected_media_type: str
+    generated_media: List[MediaOutput]
+    text_outputs: List[str]
+```
+
+**Selection Logic:**
+```python
+# Example: Image generation in eco mode
+media_type = "image"
+execution_mode = "eco"
+→ Returns "sd35_large" (Stable Diffusion 3.5 Large, local)
+
+# Example: Image generation in fast mode
+media_type = "image"
+execution_mode = "fast"
+→ Returns "dalle3" (DALL-E 3 via OpenRouter)
+```
+
+**Benefits:**
+- Centralized default logic
+- Clean separation: pre-pipeline configs focus on pedagogy, not technical model selection
+- Easy to update default models without touching config files
+
+---
+
+### 10. stage_orchestrator.py
+
+**Purpose:** Helper functions for 4-stage pipeline architecture
+
+**Context:** Extracted from `pipeline_executor.py` for Phase 2 refactoring
+- DevServer (schema_pipeline_routes.py) orchestrates Stage 1-3
+- PipelineExecutor becomes a "dumb" executor (just runs chunks)
+- These helper functions support the smart orchestrator
+
+**Key Functions:**
+
+#### Safety Filtering (Hybrid Approach)
+```python
+def load_filter_terms() -> Dict[str, List[str]]:
+    """Load safety filter terms (cached)"""
+    # Loads from:
+    # - youth_kids_safety_filters.json (Stage 3: Kids/Youth)
+    # - stage1_safety_filters.json (Stage 1: CSAM/Violence/Hate)
+
+def check_stage1_safety(text: str) -> Tuple[bool, Optional[str]]:
+    """Fast string-matching for critical terms"""
+    # Blocks: CSAM, extreme violence, hate speech
+    # Returns: (is_safe, blocked_reason)
+
+def check_stage3_safety(text: str, safety_level: str) -> Tuple[bool, Optional[str]]:
+    """Age-appropriate content filtering"""
+    # safety_level: "kids" (8-12) or "youth" (13-17)
+    # Checks for age-inappropriate content
+```
+
+#### Bilingual §86a Compliance (Germany)
+```python
+def check_86a_violation(text: str) -> Tuple[bool, Optional[str]]:
+    """Check for prohibited symbols under German law"""
+    # Detects: Nazi symbols, terrorist symbols, extremist codes
+    # Bilingual: German and English terms
+    # Returns: (is_violation, explanation)
+```
+
+**Workflow Integration:**
+1. Stage 1: User input → `check_stage1_safety()` + `check_86a_violation()`
+2. Stage 3: Pre-output → `check_stage3_safety(safety_level)`
+3. If blocked → Return error to user with explanation
+
+**Files:**
+- `schemas/engine/stage_orchestrator.py` - Main helpers
+- `schemas/youth_kids_safety_filters.json` - Stage 3 filters
+- `schemas/stage1_safety_filters.json` - Stage 1 filters
+
+---
+
+### 11. random_language_selector.py
+
+**Purpose:** Random language selection for translation pipelines
+
+**Use Case:** Pedagogical feature for multilingual exploration
+- Students can request "random language" translation
+- System selects from 15 supported languages
+- Supports exclusion list (e.g., exclude source language)
+
+**Supported Languages:**
+- European: English, German, French, Spanish, Italian, Portuguese, Dutch, Polish, Russian, Turkish
+- Asian: Chinese, Japanese, Korean, Hindi
+- Middle Eastern: Arabic
+
+**Key Function:**
+```python
+def get_random_language(exclude: Optional[List[str]] = None) -> str:
+    """
+    Get random language code, optionally excluding certain languages
+    
+    Args:
+        exclude: List of language codes to exclude (e.g., ['de', 'en'])
+    
+    Returns:
+        Language code (e.g., 'fr', 'es', 'ja')
+    """
+```
+
+**Example Usage:**
+```python
+# Student requests random translation from German
+source_lang = 'de'
+target_lang = get_random_language(exclude=['de'])
+# → Might return 'ja' (Japanese), 'ar' (Arabic), etc.
+```
+
+**Pedagogical Value:**
+- Encourages exploration of non-English languages
+- Discovers linguistic patterns across cultures
+- Breaks English-centric assumptions
+
+---
+
+## Summary: Complete Engine Module List
+
+### Core Execution
+1. ✅ **config_loader.py** - Load configs and pipelines
+2. ✅ **chunk_builder.py** - Build chunks with placeholder replacement
+3. ✅ **pipeline_executor.py** - Execute complete pipelines
+4. ✅ **backend_router.py** - Route to appropriate backends
+
+### Intelligence & Selection
+5. ✅ **model_selector.py** - Task-based model selection (eco vs fast)
+6. ✅ **instruction_selector.py** - Instruction-type selection for prompts
+7. ✅ **output_config_selector.py** - Select output config by media type
+8. ✅ **random_language_selector.py** - Random language for translations
+
+### Backend & Routing
+9. ✅ **prompt_interception_engine.py** - Backend proxy for Ollama/OpenRouter
+10. ⚠️ **comfyui_workflow_generator.py** - DEPRECATED (use Output-Chunks)
+
+### Orchestration & Safety
+11. ✅ **stage_orchestrator.py** - 4-stage helpers & safety filtering
+
+**Total: 11 modules** (10 active, 1 deprecated)
+
+---
+
+## 11. Dependencies & Requirements
+
+### Required Python Packages
+
+**Critical:** The following packages are required for backend routing functionality:
+
+#### aiohttp
+- **Version:** 3.13.2 (or compatible)
+- **Required by:** ComfyUI/SwarmUI client modules
+- **Import locations:**
+  - `devserver/my_app/services/comfyui_client.py:5`
+  - `devserver/my_app/services/swarmui_client.py:5`
+- **Failure mode:** If missing, Stage 4 media generation fails with "No run_id returned from API"
+- **Why not obvious:** Import occurs at function call time (line 333 in `backend_router.py`), not at module load time
+- **Fix:** `pip install aiohttp` in production virtualenv
+
+**Production Deployment Note:** Always verify `requirements.txt` installation in production environment before starting backend service. Missing dependencies will cause silent failures during media generation stages.
 

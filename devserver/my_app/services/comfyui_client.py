@@ -1,6 +1,19 @@
 """
-ComfyUI API Client
-Sendet generierte Workflows an ComfyUI und überwacht die Bildgenerierung
+ComfyUI API Client - DEPRECATED
+
+⚠️ DEPRECATION NOTICE ⚠️
+This client is DEPRECATED and should not be used for new code.
+
+USE INSTEAD: swarmui_client.py
+
+REASON: This client uses direct port 7821 access which has poor feedback.
+SwarmUI's /ComfyBackendDirect passthrough (port 7801) provides the same functionality
+with better error handling and JSON formatting.
+
+MIGRATION: backend_router.py now uses swarmui_client exclusively.
+This file is kept temporarily for reference but will be removed in future cleanup.
+
+Date deprecated: 2025-11-16 (Session 47)
 """
 import aiohttp
 import asyncio
@@ -30,18 +43,19 @@ class ComfyUIClient:
     def _discover_comfyui_port() -> str:
         """
         Auto-discover ComfyUI port by checking common ports
-        
+        Prioritizes port from config.py if set
+
         Returns:
             Base URL of discovered ComfyUI instance or default
         """
         import socket
-        
-        # Common ComfyUI ports to check
+
+        # Priority: SwarmUI (7821) first - RTX 5090 compatible
         ports_to_check = [
-            (8188, "ComfyUI standalone"),
             (7821, "SwarmUI integrated ComfyUI"),
-            (8189, "ComfyUI alternative"),
             (7860, "SwarmUI main"),
+            (8188, "ComfyUI standalone"),
+            (8189, "ComfyUI alternative"),
         ]
         
         for port, description in ports_to_check:
@@ -64,32 +78,27 @@ class ComfyUIClient:
                         pass
             except:
                 pass
-        
-        # Default fallback - use port from config.py
-        try:
-            from config import COMFYUI_PORT
-            fallback_port = COMFYUI_PORT
-            logger.warning(f"⚠️ No ComfyUI instance found via discovery, using configured port {fallback_port}")
-            return f"http://127.0.0.1:{fallback_port}"
-        except ImportError:
-            logger.warning("⚠️ No ComfyUI instance found, using default port 8188")
-            return "http://127.0.0.1:8188"
+
+        # Default fallback - hardcode to 7821 (SwarmUI - RTX 5090 compatible)
+        logger.warning("⚠️ No ComfyUI instance found via discovery, falling back to SwarmUI port 7821")
+        return "http://127.0.0.1:7821"
         
     async def submit_workflow(self, workflow: Dict[str, Any]) -> Optional[str]:
         """
         Submit workflow to ComfyUI
-        
+
         Args:
             workflow: ComfyUI workflow JSON
-            
+
         Returns:
             prompt_id if successful, None otherwise
         """
         try:
             # ComfyUI /prompt endpoint erwartet {"prompt": workflow, "client_id": ...}
+            # Generate NEW client_id for each request (like Legacy server)
             payload = {
                 "prompt": workflow,
-                "client_id": self.client_id
+                "client_id": str(uuid.uuid4())
             }
             
             async with aiohttp.ClientSession() as session:
@@ -156,59 +165,55 @@ class ComfyUIClient:
             return None
     
     async def wait_for_completion(
-        self, 
-        prompt_id: str, 
+        self,
+        prompt_id: str,
         timeout: int = 300,
         poll_interval: float = 2.0
     ) -> Optional[Dict[str, Any]]:
         """
         Wait for workflow completion
-        
+
         Args:
             prompt_id: The prompt ID to monitor
             timeout: Maximum wait time in seconds
             poll_interval: How often to check status
-            
+
         Returns:
             Final history dict or None if timeout/error
         """
         start_time = asyncio.get_event_loop().time()
-        
+
         while True:
             elapsed = asyncio.get_event_loop().time() - start_time
             if elapsed > timeout:
-                logger.error(f"Timeout waiting for prompt {prompt_id}")
+                logger.error(f"[COMFYUI] Timeout ({timeout}s) waiting for prompt {prompt_id}")
                 return None
-            
-            # Check history
+
+            # Check history first
             history = await self.get_history(prompt_id)
             if history and prompt_id in history:
                 # Prompt completed
-                logger.info(f"Prompt {prompt_id} completed")
+                logger.info(f"[COMFYUI] ✓ Prompt {prompt_id} completed successfully")
                 return history[prompt_id]
-            
+
             # Check if still in queue
             queue = await self.get_queue_status()
             if queue:
                 # Check if prompt_id is in running or pending
                 queue_running = queue.get("queue_running", [])
                 queue_pending = queue.get("queue_pending", [])
-                
+
                 # Flatten and check
                 all_ids = []
                 for item in queue_running + queue_pending:
                     if isinstance(item, list) and len(item) >= 2:
                         all_ids.append(item[1])  # prompt_id is at index 1
-                
+
                 if prompt_id not in all_ids:
-                    # Not in queue anymore, check history one more time
-                    history = await self.get_history(prompt_id)
-                    if history and prompt_id in history:
-                        return history[prompt_id]
-                    else:
-                        logger.error(f"Prompt {prompt_id} disappeared from queue without completion")
-                        return None
-            
+                    # Not in queue and not in history = workflow failed or rejected
+                    logger.error(f"[COMFYUI] Prompt {prompt_id} not found in queue or history")
+                    return None
+
             await asyncio.sleep(poll_interval)
     
     async def get_image(self, filename: str, subfolder: str = "", folder_type: str = "output") -> Optional[bytes]:
@@ -247,15 +252,15 @@ class ComfyUIClient:
     async def get_generated_images(self, history_entry: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Extract generated images from history entry
-        
+
         Args:
             history_entry: History dict for a completed prompt
-            
+
         Returns:
             List of dicts with image info
         """
         images = []
-        
+
         try:
             outputs = history_entry.get("outputs", {})
             for node_id, node_output in outputs.items():
@@ -269,8 +274,87 @@ class ComfyUIClient:
                         })
         except Exception as e:
             logger.error(f"Error extracting images from history: {e}")
-        
+
         return images
+
+    async def get_generated_audio(self, history_entry: Dict[str, Any]) -> List[str]:
+        """
+        Extract generated audio files from history entry
+
+        Args:
+            history_entry: History dict for a completed prompt
+
+        Returns:
+            List of audio file paths
+        """
+        audio_files = []
+
+        try:
+            outputs = history_entry.get("outputs", {})
+            for node_id, node_output in outputs.items():
+                # Audio nodes typically use "audio" or "genaudio" keys
+                if "audio" in node_output:
+                    for audio in node_output["audio"]:
+                        filename = audio.get("filename")
+                        if filename:
+                            # Build full path to audio file
+                            subfolder = audio.get("subfolder", "")
+                            if subfolder:
+                                audio_files.append(f"{subfolder}/{filename}")
+                            else:
+                                audio_files.append(filename)
+                elif "genaudio" in node_output:
+                    for audio in node_output["genaudio"]:
+                        filename = audio.get("filename")
+                        if filename:
+                            subfolder = audio.get("subfolder", "")
+                            if subfolder:
+                                audio_files.append(f"{subfolder}/{filename}")
+                            else:
+                                audio_files.append(filename)
+        except Exception as e:
+            logger.error(f"Error extracting audio from history: {e}")
+
+        return audio_files
+
+    async def get_generated_video(self, history_entry: Dict[str, Any]) -> List[str]:
+        """
+        Extract generated video files from history entry
+
+        Args:
+            history_entry: History dict for a completed prompt
+
+        Returns:
+            List of video file paths
+        """
+        video_files = []
+
+        try:
+            outputs = history_entry.get("outputs", {})
+            for node_id, node_output in outputs.items():
+                # Video nodes typically use "video" or "genvideo" keys
+                if "video" in node_output:
+                    for video in node_output["video"]:
+                        filename = video.get("filename")
+                        if filename:
+                            subfolder = video.get("subfolder", "")
+                            if subfolder:
+                                video_files.append(f"{subfolder}/{filename}")
+                            else:
+                                video_files.append(filename)
+                elif "genvideo" in node_output:
+                    for video in node_output["genvideo"]:
+                        filename = video.get("filename")
+                        if filename:
+                            subfolder = video.get("subfolder", "")
+                            if subfolder:
+                                video_files.append(f"{subfolder}/{filename}")
+                            else:
+                                video_files.append(filename)
+        except Exception as e:
+            logger.error(f"Error extracting video from history: {e}")
+
+        return video_files
     
     async def health_check(self) -> bool:
         """

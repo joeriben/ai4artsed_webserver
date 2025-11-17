@@ -1,36 +1,68 @@
-# ⚠️ READ THIS FIRST - Mandatory for All New Tasks/Sessions
+# ⛔ MANDATORY SESSION START PROTOCOL ⛔
 
-**Date Created:** 2025-10-26
-**Purpose:** Prevent costly mistakes from incomplete understanding
-**Applies to:** ALL Claude Code sessions, ALL new LLM tasks
-**Last edit: 2025-11-09** (Session 39: v2.0.0-alpha.1 Release)
+**EVERY NEW SESSION MUST START WITH THIS CONFIRMATION:**
+
+```
+✅ SESSION START CONFIRMED: [current date/time]
+✅ REQUIRED READING: ARCHITECTURE PART 01-03, devserver_todos.md, DEVELOPMENT_DECISIONS.md
+✅ DOCUMENTATION COMMITMENT: I will update DEVELOPMENT_LOG.md at end of this session
+✅ CODE CONSISTENCY IS CRUCIAL!
+✅ AGAIN, CODE CONSISTENCY IS CRUCIAL!
+```
+
+**IF YOU DID NOT OUTPUT THE ABOVE, YOU HAVE NOT READ THIS FILE.**
+
+### Starting as a New Session
+
+1. ✅ Read this file (README_FIRST.md)
+2. ✅ Check `docs/devserver_todos.md` for current priorities
+3. ✅ If you have a continuation prompt (CONTINUE_SESSION_PROMPT.md), read it
+4. ✅ NOW you can start implementation
+5. Consult README_EXTENDED.md for any further questions! It will be helpful!
 
 ---
 
-## 🚨 STOP - Before You Do Anything
+# ⚠️ READ THIS FIRST - Mandatory for All New Tasks/Sessions
 
-YOU MUST NOT EDIT ANY CODE BEFORE CONSULTING USER. ESPECIALLY WHEN FRESHLY STARTEd, DO NOT DEVELOP SUPPOSEDLY "GOOD IDEAS" YOURSELF: YOU WILL MOST LIKELY BE WRONG AND MESS UP THE SYSTEM.
+## 🚨 CRITICAL RULES - ZERO TOLERANCE
 
-AFTER READING THIS FIRST MESSAGE, CONFIRM YOU UNDERSTOOD IT.
+### Rule 1: Documentation Requirements (MANDATORY)
+
+**✅ REQUIRED EVERY SESSION:**
+- Update `DEVELOPMENT_LOG.md` with: date, tasks, files changed, duration, cost
+- This is NOT optional. Every session MUST be logged.
+
+**❌ FORBIDDEN WITHOUT USER PERMISSION:**
+- Creating new .md documentation files (SESSION_XX_HANDOVER.md, ANALYSIS_*.md, etc.)
+- Creating per-feature documentation files -> consult MAIN_DOCUMENTATION_INDEX.md where to put information properly
+
+### Rule 2: No Code Changes Before Consultation
+
+YOU MUST NOT EDIT ANY CODE BEFORE CONSULTING USER. ESPECIALLY WHEN FRESHLY STARTED, DO NOT DEVELOP SUPPOSEDLY "GOOD IDEAS" YOURSELF: YOU WILL MOST LIKELY BE WRONG AND MESS UP THE SYSTEM.
+
+# CONSULT THE AGENTS IN CASE YOU NEED HELP. Consulting Agents helps you save context, too. Project agents at your service: 
+ devserver-architecture-expert    **ALWAYS CONSULT BEFORE WRITING CODE**
+ vue-education-designer ** ALWAYS CONSULT FOR ANY FRONTEND ISSUE **
+ documentation-curator ** ALWAYS CONSULT BEFORE DOCUMENTING**
+ cloudflare-tunnel-expert  ** ALWAYS CONSULT IN ORDER TO FIX 404, PORT ISSUES ETC. **
+ 
+## WHAT THIS IS 
 
 **You are about to work on the AI4ArtsEd DevServer.**
 
 This is NOT a typical CRUD app or API server. It implements **pedagogical concepts** about AI art education that are critical to preserve.
 
-**If you start coding without reading the documentation below, you WILL:**
-- ❌ Break pedagogical concepts (e.g., Prompt Interception)
-- ❌ Propose solutions that already exist
-- ❌ Misunderstand fundamental architecture differences (Legacy vs DevServer)
-- ❌ Waste time and money (this session cost example: asking questions already documented)
+**If you start coding with prior reading the documentation below, you WILL:**
+- ✅ Respect pedagogical concepts (e.g., Prompt Interception)
+- ✅ Avoid to propose solutions that already exist
+- ✅ Understand fundamental architecture differences (Legacy vs DevServer)
+- ✅ Save time and money 
 
 ---
 
-## 📚 Required Reading
+## 📚 Required Knowledge
 
-**Read these documents IN ORDER before any implementation work:**
-
-### 1. `docs/ARCHITECTURE PART *.md` FILES **⭐ AUTHORITATIVE**
-You must understand the architecture documentation structure (21 PART files) in order to know WHEN to look up information related to your specific task, instead of "inventing things" that already exist. CONSISTENCY IS CRUCIAL!
+### 1. `docs/ARCHITECTURE PART *.md` FILES -> or ask agent
 
 **What:** Complete 4-stage orchestration flow (ARCHITECTURE PART 01-19)
 **Why:** Understand the CORRECT architecture for implementing flow logic
@@ -57,7 +89,7 @@ You must understand the architecture documentation structure (21 PART files) in 
 - **Engine Modules**: PipelineExecutor, BackendRouter, ConfigLoader, etc.
 - **Frontend Architecture**: Backend-abstracted media handling
 
-#### Architecture Documentation Structure:
+#### Architecture Documentation Structure -> USE THIS TO KNOW HOW TO CONSULT AGENT AND ASK BETTER QUESTIONS
 
 **22 PART Files** in `docs/`:
 
@@ -127,31 +159,23 @@ You must understand the architecture documentation structure (21 PART files) in 
 
 ### During Implementation
 
-**⚠️ MANDATORY DOCUMENTATION - MUST BE DONE:**
+**Documentation details** (see Rule 1 at top for mandatory requirements):
 
-1. **Update `DEVELOPMENT_LOG.md`** - REQUIRED for EVERY session
-   - Document session start time
-   - Track all tasks completed
-   - Record code changes (files modified, lines added/removed)
-   - Log session duration and costs
-   - **WHY:** Lückenlose Dokumentation ist kritisch für Projektverfolgung
+1. **`DEVELOPMENT_LOG.md`** must include:
+   - Session start time
+   - All tasks completed
+   - Files modified (with line counts)
+   - Session duration and costs
 
-2. **Update `DEVELOPMENT_DECISIONS.md`** - When making architectural decisions
-   - Any change to system architecture
-   - Any new technology/library choices
-   - Any refactoring decisions
+2. **`DEVELOPMENT_DECISIONS.md`** - Only when making architectural decisions:
+   - System architecture changes
+   - New technology/library choices
+   - Refactoring decisions with rationale
 
-3. **Update `ARCHITECTURE.md`** - When changing system architecture
-   - New components added
-   - Component interactions changed
-   - API endpoints modified
-
-4. **Update `devserver_todos.md`** - Mark tasks as completed
+3. **`devserver_todos.md`** - Mark tasks as completed:
    - Move completed tasks from "CURRENT WORK" to previous sections
    - Update task statuses (✅/⏳/❌)
    - Add new tasks discovered during implementation
-
-**⚠️ REMEMBER:** Documentation is not optional. Every session MUST be logged in DEVELOPMENT_LOG.md.
 
 ### Before Context Window Fills
 
