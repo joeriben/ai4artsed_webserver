@@ -175,7 +175,8 @@ class ChunkBuilder:
 
             # Check if base_model is a config variable name (e.g., "STAGE2_MODEL")
             # If yes, look it up from config.py; if no, use as-is (backward compatibility)
-            import devserver.config as config
+            import config
+
             if hasattr(config, base_model):
                 final_model = getattr(config, base_model)
                 logger.debug(f"[CHUNK-BUILD] '{chunk_name}' model from config.{base_model} → {final_model}")
