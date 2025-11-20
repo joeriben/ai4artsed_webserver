@@ -1,6 +1,104 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-09 Session 40 (Vector Fusion UI Implementation + Deactivation)
+**Last Updated:** 2025-11-20 Session 52 (Pipeline Visualization System - Partial Implementation)
 **Context:** Current priorities and active TODOs
+
+---
+
+## 🔄 CURRENT WORK (Session 52)
+
+### Youth Mode & Pipeline Visualization - **IN PROGRESS**
+**Status:** 🟡 **PARTIAL IMPLEMENTATION** - Core components ready, integration needed
+**Session:** 52 (2025-11-20)
+**Priority:** MEDIUM (pedagogical feature for ages 13-17)
+
+**What Was Successfully Completed:**
+1. ✅ **Admin Configuration System** (`devserver/config.py`)
+   - `UI_MODE` setting: "kids" (8-12), "youth" (13-17), "expert" (teachers/devs)
+   - `DEFAULT_SAFETY_LEVEL` setting: "kids", "youth", "adult", "off"
+   - Expanded SAFETY_NEGATIVE_TERMS with detailed categorization
+   - Clear documentation for admins
+
+2. ✅ **Backend Pipeline Visualization Metadata** (`schema_pipeline_routes.py:823-905`)
+   - `_get_step_icon()`: Returns emoji for chunk types (📝, 🎨, 🖼️)
+   - `_get_child_friendly_label()`: Returns 2-3 word labels in DE/EN
+   - `_get_pipeline_visualization_metadata()`: Reads pipeline structure from schemas
+   - Enhanced `/api/schema/pipeline/execute` response with visualization data
+
+3. ✅ **Frontend PipelineFlowVisualization Component**
+   - File: `public/ai4artsed-frontend/src/components/PipelineFlowVisualization.vue` (~550 lines)
+   - Horizontal flow: 💡 Input → 📝 Understanding → 🎨 Visuals → 🖼️ Image → [Result]
+   - Status indicators: ⚙️ (running), ✓ (complete), ✗ (failed)
+   - Responsive: horizontal (desktop), vertical (mobile)
+   - Accessibility: high contrast, reduced motion support
+
+4. ✅ **Frontend TypeScript Types** (`api.ts:70-122`)
+   - `ExecutionStep`, `PipelineStepDefinition`, `PipelineVisualization` interfaces
+   - Extended `PipelineExecuteResponse` with visualization metadata
+
+5. ✅ **i18n Translations** (`i18n.ts:137-141, 276-280`)
+   - Pipeline labels in German and English
+
+**What's Broken/Missing:**
+1. **🟡 Transform API Visualization** - **ROLLED BACK** due to 500 errors
+   - Attempted to extend `/api/schema/transform` with pipeline_visualization
+   - Caused AttributeError (needs careful testing)
+   - Transform-only configs (dada, bauhaus) never show visualization currently
+
+2. **🟡 UI Mode System Not Wired Up**
+   - `UI_MODE` in config.py but not consumed anywhere
+   - Need to add uiMode to userPreferences store
+   - Need to add UI Mode toggle button in Phase2CreativeFlowView
+   - Need conditional rendering: `v-if="uiMode !== 'kids'"`
+
+3. **🟡 Safety Level Not Used**
+   - `DEFAULT_SAFETY_LEVEL` defined but system still uses request-level safety_level
+   - Need to wire up config value to Stage 3 safety checks
+
+4. **🟡 Visualization Placement Limited**
+   - Currently only works in media generation overlay (Phase 3/4)
+   - Transform-only workflows never trigger `isGenerating`
+   - Need visualization during Transform (Phase 2a) as well
+
+**Architecture Understanding (Critical):**
+- **Frontend Phases**: Property Selection → Creative Flow → Transform (2a) → Media Selection (2b) → Generation (3/4)
+- **Backend Stages**: All pipelines go through 4 stages (some skip Stage 4 if no output_config)
+- **Kids Mode (8-12)**: Simple, separated phases - NO pipeline visualization
+- **Youth Mode (13-17)**: Educational flow WITH pipeline visualization - show HOW AI works
+- **Expert Mode**: Full debug mode with all metadata
+
+**Next Steps for Implementation:**
+1. **Add uiMode to userPreferences store**
+   - State: `uiMode` ("kids"/"youth"/"expert")
+   - Functions: `setUiMode()`, `cycleUiMode()`
+   - Persisted in localStorage
+
+2. **Add UI Mode toggle** (Youth Mode implementation)
+   - Button in top bar of Phase2CreativeFlowView
+   - Cycles through modes: kids → youth → expert
+
+3. **Extend Transform API** (CAREFULLY! Test incrementally!)
+   - Add pipeline_visualization to `/api/schema/transform` response
+   - Test thoroughly before deploying
+   - Check for attribute errors on `config.pipeline_name`
+
+4. **Show visualization in main layout**
+   - After result panel, conditional: `v-if="pipelineVisualization && uiMode !== 'kids'"`
+   - During transform AND after completion
+   - Separate from media generation overlay
+
+5. **Wire up DEFAULT_SAFETY_LEVEL**
+   - Use config.DEFAULT_SAFETY_LEVEL in Stage 3 if no request-level override
+   - Ensure backwards compatibility
+
+**Files Modified (Session 52):**
+- ✅ `devserver/config.py`: ADMIN section (KEPT after rollback)
+- ⏸️ `devserver/my_app/routes/schema_pipeline_routes.py`: Transform changes (ROLLED BACK)
+- ⏸️ `public/ai4artsed-frontend/src/services/api.ts`: TransformResponse (ROLLED BACK)
+- ⏸️ `public/ai4artsed-frontend/src/stores/userPreferences.ts`: uiMode system (ROLLED BACK)
+- ⏸️ `public/ai4artsed-frontend/src/views/Phase2CreativeFlowView.vue`: UI toggle (ROLLED BACK)
+
+**Estimated Completion Time:** 4-6 hours
+**Complexity:** Medium-High (requires careful Transform API work)
 
 ---
 
