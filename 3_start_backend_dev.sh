@@ -1,0 +1,36 @@
+#!/bin/bash
+# Start Flask backend in foreground (visible terminal output)
+# DEV backend on port 17802 (production uses 17801)
+
+BACKEND_PORT=17802
+
+# Get directory where this script lives
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "=== AI4ArtsEd Backend (Development) ==="
+echo ""
+
+# Check if port is in use and terminate any process using it
+echo "Checking port ${BACKEND_PORT}..."
+if lsof -ti:${BACKEND_PORT} > /dev/null 2>&1; then
+    echo "Port ${BACKEND_PORT} is in use. Terminating existing process..."
+    lsof -ti:${BACKEND_PORT} | xargs -r kill -9
+    sleep 2
+    echo "✅ Process terminated."
+fi
+
+# Move to devserver directory
+cd "$SCRIPT_DIR/devserver"
+
+# Clean Python cache
+echo "Cleaning Python cache..."
+rm -rf my_app/__pycache__ my_app/*/__pycache__ schemas/__pycache__ schemas/*/__pycache__
+
+echo ""
+echo "Starting Flask backend (DEVELOPMENT) on http://0.0.0.0:${BACKEND_PORT}"
+echo "Working directory: $SCRIPT_DIR/devserver"
+echo "Press Ctrl+C to stop"
+echo ""
+
+# PORT is set in config.py (17802), no override needed
+python3 server.py
