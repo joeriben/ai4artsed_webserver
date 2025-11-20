@@ -211,7 +211,6 @@ class ChunkBuilder:
                     'chunk_type': 'output_chunk',
                     'has_workflow': True,
                     'workflow_nodes': len(processed_workflow),
-                    'execution_mode': execution_mode,
                     **resolved_config.meta
                 }
             }
@@ -227,7 +226,6 @@ class ChunkBuilder:
                     'chunk_name': chunk_name,
                     'config_name': resolved_config.name,
                     'template_placeholders': template.placeholders,
-                    'execution_mode': execution_mode,
                     'template_model': template.model,
                     'final_model': final_model,
                     **resolved_config.meta
