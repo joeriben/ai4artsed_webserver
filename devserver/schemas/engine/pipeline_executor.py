@@ -97,13 +97,17 @@ class PipelineExecutor:
         config_name: str,
         input_text: str,
         user_input: Optional[str] = None,
-        execution_mode: str = 'eco',
+        execution_mode: str = 'eco',  # DEPRECATED (Session 55): Ignored. Model selection via config.py
         safety_level: str = 'kids',
         tracker=None,
         config_override=None,  # Phase 2: Optional pre-modified config
         context_override: Optional[PipelineContext] = None  # Multi-stage: Pre-populated context
     ) -> PipelineResult:
         """Execute complete pipeline with 4-Stage Pre-Interception System
+
+        DEPRECATED: execution_mode parameter is no longer used.
+        Model selection now configured per-stage in config.py (STAGE1_MODEL, STAGE2_MODEL, etc.)
+        Parameter kept for backward compatibility only.
 
         Args:
             config_override: Optional pre-modified Config object (Phase 2 user edits)
@@ -116,7 +120,7 @@ class PipelineExecutor:
             self.backend_router.initialize()
             self._initialized = True
 
-        logger.info(f"[EXECUTION-MODE] Pipeline for config '{config_name}' with execution_mode='{execution_mode}'")
+        logger.info(f"[PIPELINE] Executing config '{config_name}' (execution_mode={execution_mode} - DEPRECATED)")
 
         # Get config (use override if provided, otherwise load)
         if config_override:

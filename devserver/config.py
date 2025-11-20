@@ -76,6 +76,9 @@ DEFAULT_LANGUAGE = "de"  # "de" or "en"
 # ----------------------------------------------------------------------------
 # 5. MODEL CONFIGURATION (Per-Stage LLM Selection)
 # ----------------------------------------------------------------------------
+# REPLACES: Old execution_mode="eco"/"fast" system (deprecated in Session 55)
+# NEW: Direct per-stage model configuration - admin controls exactly which model each stage uses
+#
 # Configure which models are used in each pipeline stage.
 # Chunks reference these variables by name (e.g., "model": "STAGE2_MODEL")
 # Format: "local/model-name" for Ollama, "openrouter/provider/model-name" for cloud
