@@ -1,5 +1,6 @@
 {
   "pipeline": "text_transformation",
+  "chunks": ["translate_safety"],
   "name": {
     "en": "Pre-Interception: GPT-OSS Unified (Translation + §86a Safety)",
     "de": "Vor-Interception: GPT-OSS Vereinigt (Übersetzung + §86a Sicherheit)"
@@ -19,7 +20,6 @@
     "system_pipeline": true,
     "stage": "pre_interception",
     "task_type": "security_translation",
-    "model_override": "gpt-OSS:20b",
     "gpt_oss_unified": true,
     "visible_in_browser": false
   }
