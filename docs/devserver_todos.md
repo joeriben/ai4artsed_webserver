@@ -1,5 +1,5 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-20 Session 52 (Pipeline Visualization System - Partial Implementation)
+**Last Updated:** 2025-11-20 Session 53 (Safety System Bug Discovery - Stage 3→4 Negative Prompts)
 **Context:** Current priorities and active TODOs
 
 ---
@@ -99,6 +99,81 @@
 
 **Estimated Completion Time:** 4-6 hours
 **Complexity:** Medium-High (requires careful Transform API work)
+
+---
+
+## 🚨 CRITICAL BUGS - HIGH PRIORITY
+
+### Stage 3 Negative Prompts Not Passed to Stage 4 - **BUG**
+**Status:** 🔴 **CRITICAL BUG** - Stage 3 safety negative prompts are ignored
+**Discovered:** 2025-11-20 (Session 53)
+**Priority:** HIGH (affects all image generation quality and safety)
+
+**Problem:**
+Stage 3 generates appropriate negative prompts based on safety level (kids/youth/off), but these are **never passed to Stage 4** (image generation). This means:
+- Safety-appropriate negative prompts are ignored
+- All SD3.5 images use only the hardcoded default: `"blurry, bad quality, watermark, text, distorted"`
+- Kids/youth safety filters generate comprehensive negative prompts but they're discarded
+
+**Current Behavior:**
+1. **safety_level='off'**: Only basic quality negatives applied
+2. **safety_level='kids'**: Stage 3 generates `"violence, violent, killing, murder, death, blood, gore, horror, scary, demon, evil, nude, naked, nsfw, sexual, abuse"` → **IGNORED**
+3. **safety_level='youth'**: Stage 3 generates `"explicit, hardcore, brutal, pornographic, sexual, nsfw, rape, abuse, self-harm, suicide"` → **IGNORED**
+
+**Root Cause:**
+- `schema_pipeline_routes.py:862-867`: Stage 4 execution does not pass `negative_prompt` parameter
+- `safety_result['negative_prompt']` from Stage 3 is stored but never used
+- `backend_router.py:366` falls back to chunk default when no negative_prompt provided
+
+**Files Involved:**
+- `devserver/my_app/routes/schema_pipeline_routes.py:770-867` (Stage 3-4 integration)
+- `devserver/schemas/engine/stage_orchestrator.py:477-605` (Stage 3 execution)
+- `devserver/schemas/engine/backend_router.py:366` (negative_prompt fallback)
+- `devserver/schemas/chunks/output_image_sd35_large.json:140` (hardcoded default)
+
+**Required Fix:**
+1. Pass `safety_result['negative_prompt']` to `pipeline_executor.execute_pipeline()` in Stage 4
+2. Add `negative_prompt` parameter to Stage 4 execution call
+3. Ensure backward compatibility (default to chunk default if Stage 3 skipped)
+4. Test with all safety levels (off, kids, youth)
+
+**Impact:**
+- Image quality may be affected (missing quality-related negatives when safety=off)
+- Safety filters not fully effective (unwanted content may appear despite Stage 3 checks)
+- Kids/youth modes not properly protected
+
+**Estimated Fix Time:** 1-2 hours
+**Testing Required:** All safety levels + all output configs (SD3.5, FLUX, GPT-5)
+
+---
+
+## 🔧 CONFIGURATION & REFACTORING
+
+### Stage 2 Model Selection in config.py - **COMPLETED** ✅
+**Status:** ✅ **IMPLEMENTED** - STAGE2_MODE switch added to config.py
+**Session:** 53 (2025-11-20)
+**Priority:** MEDIUM (enables testing Claude Sonnet vs GPT-OSS 20b)
+
+**What Was Implemented:**
+1. ✅ Added `STAGE2_MODE` to `config.py` ("local" | "remote")
+   - `local`: GPT-OSS 20b (Ollama, DSGVO-compliant, free)
+   - `remote`: Claude Sonnet (OpenRouter, high quality, ~$3/M tokens)
+2. ✅ Modified `chunk_builder.py` to read `STAGE2_MODE` for manipulate chunk
+   - Overrides model and backend_type based on config
+   - Logs which mode is active
+3. ✅ Added comment to `manipulate.json` documenting override behavior
+
+**Future Enhancement:**
+- **TODO:** Make ALL model selections configurable in `config.py`
+  - Currently: Only Stage 2 (manipulate chunk) is configurable
+  - Goal: Allow admin to configure models for all stages/chunks in config.py
+  - Example: `STAGE1_TRANSLATION_MODEL`, `STAGE1_SAFETY_MODEL`, `STAGE3_SAFETY_MODEL`, etc.
+  - Benefit: Easy A/B testing, no code changes needed for model experiments
+
+**Files Modified:**
+- `devserver/config.py`: Added STAGE2_MODE (line 76)
+- `devserver/schemas/engine/chunk_builder.py`: Added STAGE2_MODE logic (lines 179-200, 235-236)
+- `devserver/schemas/chunks/manipulate.json`: Added documentation comment (line 5)
 
 ---
 
