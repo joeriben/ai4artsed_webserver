@@ -97,7 +97,6 @@ class ChunkBuilder:
                     chunk_name: str,
                     resolved_config: Any,  # ResolvedConfig from config_loader
                     context: Dict[str, Any],
-                    execution_mode: str = 'eco',
                     pipeline: Any = None) -> Dict[str, Any]:
         """
         Chunk mit Template und resolved config erstellen
@@ -106,7 +105,6 @@ class ChunkBuilder:
             chunk_name: Name of chunk template
             resolved_config: ResolvedConfig object from config_loader
             context: Execution context (input_text, previous_output, etc.)
-            execution_mode: 'eco' (local) or 'fast' (cloud)
             pipeline: Pipeline object (for accessing instruction_type)
         """
         template = self.templates.get(chunk_name)

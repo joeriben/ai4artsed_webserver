@@ -471,8 +471,7 @@ class PipelineExecutor:
         chunk_request = self.chunk_builder.build_chunk(
             chunk_name=step.chunk_name,
             resolved_config=self._current_config,
-            context=chunk_context,
-            execution_mode=execution_mode
+            context=chunk_context
         )
         
         step.input_data = chunk_request['prompt']
