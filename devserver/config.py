@@ -73,6 +73,26 @@ THREADS = 8
 # Default language for interface (users can change this)
 DEFAULT_LANGUAGE = "de"  # "de" or "en"
 
+# ----------------------------------------------------------------------------
+# 5. MODEL CONFIGURATION (Per-Stage LLM Selection)
+# ----------------------------------------------------------------------------
+# Configure which models are used in each pipeline stage.
+# Chunks reference these variables by name (e.g., "model": "STAGE2_MODEL")
+# Format: "local/model-name" for Ollama, "openrouter/provider/model-name" for cloud
+#
+# Base Models:
+LOCAL_DEFAULT_MODEL = "local/gpt-OSS:20b"                          # Default local text model
+LOCAL_VISION_MODEL = "local/llama3.2-vision:latest"                # Local vision model
+REMOTE_ADVANCED_MODEL = "openrouter/anthropic/claude-sonnet-4.5"  # High-quality cloud model
+
+# Stage-Specific Models:
+STAGE1_TEXT_MODEL = LOCAL_DEFAULT_MODEL      # Stage 1: Translation, safety checks
+STAGE1_VISION_MODEL = LOCAL_VISION_MODEL     # Stage 1: Image analysis
+STAGE2_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt interception (needs quality)
+STAGE3_MODEL = LOCAL_DEFAULT_MODEL           # Stage 3: Final safety check
+
+# Note: Stage 4 (output generation) models are defined in output configs (SD3.5, FLUX, etc.)
+
 # ============================================================================
 # END OF MAIN CONFIGURATION
 # ============================================================================

@@ -173,9 +173,18 @@ class ChunkBuilder:
             final_model = ""  # Proxy chunks don't need a model
             logger.debug(f"[CHUNK-BUILD] '{chunk_name}' is a proxy chunk - skipping model selection")
         else:
-            from .model_selector import model_selector
             base_model = resolved_config.meta.get('model_override') or template.model
-            final_model = model_selector.select_model_for_mode(base_model, execution_mode)
+
+            # Check if base_model is a config variable name (e.g., "STAGE2_MODEL")
+            # If yes, look it up from config.py; if no, use as-is (backward compatibility)
+            import devserver.config as config
+            if hasattr(config, base_model):
+                final_model = getattr(config, base_model)
+                logger.debug(f"[CHUNK-BUILD] '{chunk_name}' model from config.{base_model} → {final_model}")
+            else:
+                # Not a config variable - use directly (backward compatibility with hardcoded models)
+                final_model = base_model
+                logger.debug(f"[CHUNK-BUILD] '{chunk_name}' using direct model: {final_model}")
 
         # Merge parameters: template params + config params (config overrides template)
         merged_parameters = {**template.parameters, **resolved_config.parameters}
