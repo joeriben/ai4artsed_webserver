@@ -1,21 +1,91 @@
 """
 Central configuration file for the AI4ArtsEd Web Server
+
+ADMIN: Adjust settings in the "MAIN CONFIGURATION" section below!
 """
 import os
 from pathlib import Path
+
+# ============================================================================
+# ============================================================================
+# MAIN CONFIGURATION - ADMIN: CHANGE THESE SETTINGS
+# ============================================================================
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 1. USER INTERFACE MODE
+# ----------------------------------------------------------------------------
+# Controls interface complexity based on target age group:
+#
+# "kids" (ages 8-12):
+#   - Simple, separated phases: Transform → See result → Choose medium → Generate
+#   - Minimal technical details, focus on creative output
+#   - Clear visual feedback: "⚙️ KI arbeitet..."
+#
+# "youth" (ages 13-17):
+#   - Educational flow with pipeline visualization: 💡→📝→🎨→🖼️→✅
+#   - Shows HOW AI processes work (transparency)
+#   - Promotes technical understanding
+#
+# "expert" (teachers/developers):
+#   - Full debug mode with all metadata
+#   - JSON outputs, timing data, error details
+#   - Complete transparency for analysis
+#
+UI_MODE = "kids"  # ADMIN: Change to "kids", "youth", or "expert"
+
+# ----------------------------------------------------------------------------
+# 2. SAFETY LEVEL (Content Filtering)
+# ----------------------------------------------------------------------------
+# Controls what content is blocked in generated images/media
+# This is SEPARATE from UI_MODE (interface complexity)
+#
+# "kids": Maximum filtering (ages 8-12)
+#   - Blocks: violence, horror, scary, sexual, explicit content
+#   - Use for: Elementary school, young children
+#
+# "youth": Moderate filtering (ages 13-17)
+#   - Blocks: explicit sexual, extreme violence, self-harm
+#   - Allows: Mild scary themes, educational anatomy
+#   - Use for: Secondary school, teenagers
+#
+# "adult": Minimal filtering (18+)
+#   - Blocks: Only illegal content (§86a StGB - Nazi symbols, etc.)
+#   - Allows: Artistic nudity, mature themes
+#   - Use for: Art education, professional contexts
+#
+# "off": No content filtering (DEVELOPMENT ONLY)
+#   - No automatic blocking
+#   - Only use for testing/debugging!
+#
+DEFAULT_SAFETY_LEVEL = "kids"  # ADMIN: Change to "kids", "youth", "adult", or "off"
+
+# ----------------------------------------------------------------------------
+# 3. SERVER SETTINGS
+# ----------------------------------------------------------------------------
+HOST = "0.0.0.0"
+PORT = 17802  # Development: 17802, Production: 17801
+THREADS = 8
+
+# ----------------------------------------------------------------------------
+# 4. LANGUAGE
+# ----------------------------------------------------------------------------
+# Default language for interface (users can change this)
+DEFAULT_LANGUAGE = "de"  # "de" or "en"
+
+# ============================================================================
+# END OF MAIN CONFIGURATION
+# ============================================================================
+# Technical settings below - only change if you know what you're doing!
+# ============================================================================
 
 # Base paths
 THIS_FILE = Path(__file__).resolve()
 BASE_DIR = THIS_FILE.parent.parent
 LOCAL_WORKFLOWS_DIR = BASE_DIR / "workflows"
-PUBLIC_DIR = Path(__file__).parent.parent / "public" / "ai4artsed-frontend" / "dist"  # Production Vue.js build
+PUBLIC_DIR = Path(__file__).parent.parent / "public" / "ai4artsed-frontend" / "dist"
 EXPORTS_DIR = BASE_DIR / "exports"
-JSON_STORAGE_DIR = EXPORTS_DIR / "json"  # Pipeline run storage (Session 30)
-
-# Server Configuration
-HOST = "0.0.0.0"
-PORT = 17802  # Development port (separated from production 17801)
-THREADS = 8
+JSON_STORAGE_DIR = EXPORTS_DIR / "json"
 
 # API Configuration
 # LLM Provider: "ollama" or "lmstudio"
@@ -201,27 +271,40 @@ COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", "/home/joerissen/ai/ComfyUI")
 # Default Negative Terms Configuration
 DEFAULT_NEGATIVE_TERMS = "blurry, bad quality, worst quality, low quality, low resolution, extra limbs, extra fingers, distorted, deformed, jpeg artifacts, watermark"
 
-# Safety Filter Configuration
+# Safety Filter Configuration (Used by Stage 3 safety check)
 SAFETY_NEGATIVE_TERMS = {
     "kids": [
-        "violence", "violent", "execution", "killing", "murder", "death", "corpse", 
+        # Violence & Death
+        "violence", "violent", "execution", "killing", "murder", "death", "corpse",
         "torture", "pain", "suffering", "injury", "wound", "bleeding",
         "blood", "bloody", "gore", "gory", "mutilation", "dismemberment",
+        # Mental Health
         "despair", "suicide", "suicidal", "self-harm", "depression",
+        # Horror & Scary
         "horror", "scary", "frightening", "terror", "nightmare", "disturbing",
         "demon", "zombie", "skeleton", "skull", "evil",
         "haunted", "creepy", "eerie", "sinister", "dark", "macabre",
+        # Sexual Content
         "nude", "naked", "nsfw", "sexual", "rape", "pornographic",
         "genital", "abuse",
     ],
     "youth": [
-     "explicit", "hardcore", "brutal", "savage",
-        "cruelty", "sadistic", 
+        # Extreme Violence
+        "explicit", "hardcore", "brutal", "savage", "cruelty", "sadistic",
+        # Explicit Sexual
         "pornographic", "sexual", "nsfw", "rape", "abuse",
         "genitals", "penis", "vagina",
-        "self-harm", "suicide",
-        "cutting", 
-    ]
+        # Self-Harm
+        "self-harm", "suicide", "cutting",
+    ],
+    "adult": [
+        # Only illegal content under German law (§86a StGB)
+        "nazi", "swastika", "hakenkreuz", "ss-runen", "hitler",
+        "isis", "al-qaeda", "terrorist symbols",
+        # Explicit illegal content
+        "child", "minor", "underage",
+    ],
+    "off": []  # Development/testing only - NO filtering
 }
 
 # Backwards compatibility

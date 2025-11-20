@@ -21,9 +21,104 @@
   - Session 10: Config Folder Restructuring
   - Session 11: Recursive Pipeline + Multi-Output Support
 
-**Active Sessions:** 40, 41, 43, 46, 49, 54 (Sessions 44-45 documented separately)
+**Active Sessions:** 40, 41, 43, 46, 49, 50, 54 (Sessions 44-45 documented separately)
 
 **Next Archive Point:** Session 56 (keep last 10 sessions active)
+
+---
+
+## Session 50 (2025-11-17): Phase 2 Mobile Race Condition Investigation + Vue.js Migration Decision
+
+**Date:** 2025-11-17
+**Duration:** ~3 hours
+**Status:** ⚠️ PARTIALLY RESOLVED - Strategic Decision Made
+**Branch:** develop
+
+### Problem
+
+Two issues reported in Phase 2:
+1. **iOS/Mobile via Cloudflare**: Frontend error alert when tapping "Start" button (appeared as "404" but was frontend error toast)
+2. **Local via port 17801**: Phase 3 animation shows but no image generated (separate session addressing swarmui_client issue)
+3. **Persistent mobile race condition**: Buttons require 5-6 taps to work on mobile, even after applying fixes
+
+### Investigation Summary
+
+**Initial misdiagnosis**: Thought issue was Cloudflare routing or backend 404s
+**Reality**:
+- Backend works perfectly (verified via curl)
+- Cloudflare tunnel configured correctly (port 17801)
+- Issue is frontend Vue.js handling of mobile touch events
+
+**Multiple failed fix attempts**:
+1. ❌ Thought Cloudflare pointed to wrong port (5173 vs 17801) - was actually correct
+2. ❌ Rebuilt frontend multiple times thinking build was outdated
+3. ❌ Added `await nextTick()` before setting button state - didn't work
+4. ❌ Tried removing `httpHostHeader` from Cloudflare config - caused blank screens
+5. ⚠️ Added Phase 1 touch handler pattern (@touchstart/@mousedown) - implemented but NOT verified due to continued issues
+
+### Root Cause Analysis
+
+**Production deployment architecture confusion**:
+- Development: Vite dev server (5173) proxies to Flask dev (17802)
+- Production: Flask production (17801) serves built Vue.js SPA
+- Cloudflare: Points to port 17801 ✓ Correct
+- Issue: Production frontend build kept getting outdated after changes
+
+**Cloudflared instance management chaos**:
+- Multiple cloudflared instances started during session
+- Instances conflicted, causing intermittent 404s and blank screens
+- Asset requests (JS/CSS files) failed with "stream canceled by remote" errors
+- Had to pkill all instances and restart cleanly
+
+**Mobile race condition**:
+- Vue's @click handlers have 300ms delay on mobile (ghost click prevention)
+- Button state changes during this delay cause click events to be lost
+- Applied Phase 1 fix pattern (@touchstart/@mousedown with preventDefault)
+- **NOT verified to work** - continued issues led to strategic decision
+
+### Strategic Decision: Abandon Vue.js
+
+After hours of fighting deployment issues, caching problems, mobile race conditions, and Cloudflare integration failures, **decision made to abandon Vue.js/Vite entirely**.
+
+**Reasons**:
+- Too fragile for production deployment
+- Constant caching issues (despite aggressive no-cache headers)
+- Mobile race conditions difficult to fix reliably
+- Build system adds complexity without benefit for this use case
+- Cloudflare integration consistently problematic
+- 233MB node_modules for a simple pedagogical UI is absurd
+
+**Plan created**: `docs/VUE_TO_VANILLA_JS_MIGRATION_PLAN.md`
+- Archive Vue.js installation
+- Replace with vanilla HTML/CSS/JS (no frameworks, no build system)
+- Estimated effort: 1 week (42.5 hours)
+- Deployment: Copy files → restart Flask (done!)
+
+### Files Modified
+
+- `public/ai4artsed-frontend/src/views/Phase2CreativeFlowView.vue` (touch handler additions - uncommitted)
+- `docs/VUE_TO_VANILLA_JS_MIGRATION_PLAN.md` (created - FUTURE plan)
+- `docs/DEVELOPMENT_LOG.md` (this entry)
+
+### Impact
+
+⚠️ **Phase 2 mobile race condition**: UNRESOLVED (fix implemented but not verified)
+✅ **Strategic plan created**: Clear path forward to replace Vue.js with reliable vanilla JS
+⚠️ **Current status**: Vue.js installation still active but flagged for replacement
+
+### Lessons Learned
+
+**Framework overhead not worth it**: For a pedagogical application with simple UI requirements, Vue.js/Vite adds massive complexity without commensurate benefits.
+
+**Mobile touch events are hard**: Framework abstractions (@click) hide platform differences that cause race conditions. Direct touch event handling required.
+
+**Build systems are fragile**: Every deployment requires build → copy → restart → cache clear → pray. Vanilla JS eliminates this entirely.
+
+**Keep it simple**: Educational software should be simple, reliable, and understandable. Bleeding-edge web frameworks are antithetical to these goals.
+
+### Cost
+
+- ~$3.00 (extended troubleshooting + multiple failed attempts + architecture research + strategic planning + documentation)
 
 ---
 
