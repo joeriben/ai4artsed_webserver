@@ -191,7 +191,7 @@ Stage 4: Media Generation (English) ⚠️ NOT IMPLEMENTED
 
 **Manual Test Command:**
 ```bash
-curl -s -X POST "http://localhost:17802/api/schema/pipeline/transform" \
+curl -s -X POST "http://localhost:17802/api/schema/pipeline/execute" \
   -H "Content-Type: application/json" \
   -d '{
   "schema": "overdrive",
