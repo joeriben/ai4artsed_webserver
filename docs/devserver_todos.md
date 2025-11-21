@@ -1,10 +1,81 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-20 Session 53 (Safety System Bug Discovery - Stage 3→4 Negative Prompts)
+**Last Updated:** 2025-11-21 Session 59 (Stage 3 Architecture Correction - Translation Moved)
 **Context:** Current priorities and active TODOs
 
 ---
 
-## 🔄 CURRENT WORK (Session 52)
+## 🔄 CURRENT WORK (Session 59)
+
+### Stage 1-3 Translation Refactoring - **PLANNED**
+**Status:** 📋 **READY TO IMPLEMENT** - Architecture corrected, clean develop branch
+**Session:** 59 (2025-11-21)
+**Priority:** HIGH (corrects flawed Session 56-58 mega-prompt architecture)
+
+**The Problem:**
+Session 56-58 planned to "eliminate Stage 3" by merging it into Stage 2 as a "mega-prompt" with built-in safety. This was a **pedagogical error** - users need to edit AFTER optimization but BEFORE final safety check. The architecture needs correction.
+
+**The Correction:**
+```
+Stage 1: Safety ONLY (NO translation, bilingual DE/EN)
+Stage 2: Interception + Optimization (in original language)
+  → USER CAN EDIT HERE!
+Stage 3: Translation (DE→EN) + Safety
+Stage 4: Media Generation
+```
+
+**Implementation Tasks:**
+
+1. **Stage 1: Remove Translation** (HIGH priority)
+   - Create `/devserver/schemas/configs/pre_interception/gpt_oss_safety_only_bilingual.json`
+   - Add `execute_stage1_safety_only_bilingual()` to `stage_orchestrator.py`
+   - Update `/transform` endpoint (line 252) to use safety-only function
+   - Update `/execute` endpoint (line 541) to use safety-only function
+   - Test: German input should NOT be translated in Stage 1
+
+2. **Stage 2: Add Media Optimization** (MEDIUM priority)
+   - Option A: Create optimization chunks (`optimize_image.json`, `optimize_audio.json`)
+   - Option B: Add optimization to `manipulate.json` template
+   - Update pipeline configs to include optimization step
+   - Test: Output should be optimized for target media type
+
+3. **Stage 3: Add Translation** (HIGH priority)
+   - Create `/devserver/schemas/configs/pre_output/translation_de_en_stage3.json`
+   - Add `execute_stage3_translation()` to `stage_orchestrator.py`
+   - Update Stage 3-4 loop in `schema_pipeline_routes.py` (around line 700-800)
+   - Add translation BEFORE safety check
+   - Test: German text should be translated before media generation
+
+4. **Frontend: Remove Context Translation** (LOW priority)
+   - Check if `Phase2CreativeFlowView.vue` translates context before sending
+   - Remove translation if present
+   - Test: Frontend sends context in original language
+
+5. **Testing & Validation** (HIGH priority)
+   - Test complete flow: DE input → Safety → Interception → Edit → Translation → Safety → Media
+   - Test user context rules: "alle mäuse haben ROTEN HUT" should be preserved
+   - Test bilingual: Both DE and EN inputs should work
+   - Test all safety levels: kids, youth, off
+
+**Files to Create:**
+- `devserver/schemas/configs/pre_interception/gpt_oss_safety_only_bilingual.json`
+- `devserver/schemas/configs/pre_output/translation_de_en_stage3.json`
+- (Optional) `devserver/schemas/chunks/optimize_image.json`
+
+**Files to Modify:**
+- `devserver/schemas/engine/stage_orchestrator.py` (add 2 functions)
+- `devserver/my_app/routes/schema_pipeline_routes.py` (Stage 1 and Stage 3 calls)
+- (Check) `public/ai4artsed-frontend/src/views/Phase2CreativeFlowView.vue`
+
+**Documentation Updated:**
+- ✅ ARCHITECTURE PART 01 (Version 2.1) - Reflects correct Stage 1-3 flow
+- ✅ DEVELOPMENT_DECISIONS.md (Active Decision 1) - Explains why Session 56-58 was wrong
+
+**Estimated Time:** 3-4 hours
+**Complexity:** Medium (clear plan, well-understood changes)
+
+---
+
+## 🔄 PREVIOUS WORK (Session 52)
 
 ### Youth Mode & Pipeline Visualization - **IN PROGRESS**
 **Status:** 🟡 **PARTIAL IMPLEMENTATION** - Core components ready, integration needed

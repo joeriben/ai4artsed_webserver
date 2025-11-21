@@ -41,9 +41,9 @@
     "original_model": "openrouter/mistralai/mistral-medium-3"
   },
   "display": {
-    "icon": "🧪",
-    "color": "#795548",
-    "category": "experimental",
+    "icon": "💬",
+    "color": "#2196F3",
+    "category": "semantics",
     "difficulty": 3,
     "order": 100
   },

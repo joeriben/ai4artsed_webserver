@@ -100,7 +100,7 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 
 **⭐ AUTHORITATIVE SECTION - Read this first before implementing any flow logic**
 
-**Version:** 2.0 (2025-11-01)
+**Version:** 2.1 (2025-11-21 - Session 59: Translation moved to Stage 3)
 **Source:** Consolidated from 4_STAGE_ARCHITECTURE.md
 
 ### 1.1 Executive Summary
@@ -120,28 +120,32 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 │ ROLE: Smart Orchestrator - Knows 4-Stage Flow & Safety Rules   │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ STAGE 1: Pre-Interception (Input Preparation)                  │
+│ STAGE 1: Pre-Interception (Safety Only - Original Language)    │
 │ ════════════════════════════════════════════════════════════   │
 │   DevServer reads: pipeline.input_requirements                 │
-│   - texts: N  → Run translation + text_safety for each         │
+│   - texts: N  → Run text_safety for each (NO translation!)    │
 │   - images: M → Run image_safety for each                      │
+│   - Bilingual: Works in DE or EN (§86a filters both)          │
 │                                                                 │
 │   Example: {"texts": 2, "images": 1}                           │
-│   → translation(text1), text_safety(text1)                     │
-│   → translation(text2), text_safety(text2)                     │
+│   → text_safety(text1_in_original_language)                   │
+│   → text_safety(text2_in_original_language)                   │
 │   → image_safety(image1)                                       │
+│   Text stays in original language (DE/EN) for Stage 2!        │
 │                                                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ STAGE 2: Interception (Main Pipeline - Can Be Complex)         │
+│ STAGE 2: Interception + Optimization (Main Pipeline)           │
 │ ════════════════════════════════════════════════════════════   │
 │   PipelineExecutor.execute_pipeline(config, inputs)            │
 │   - DUMB: Just executes chunks                                 │
-│   - NO pre-processing, NO safety checks                        │
+│   - NO pre-processing, NO safety checks, NO translation       │
 │   - CAN: loop, branch, request multiple outputs               │
+│   - NEW: Media-specific optimization (optional chunk)         │
+│     → Optimize for SD3.5, Audio, Music generation             │
 │                                                                 │
 │   Pipeline returns: PipelineResult {                           │
-│     final_output: "transformed text",                          │
+│     final_output: "transformed + optimized text (orig lang)",  │
 │     output_requests: [                                         │
 │       {type: "image", prompt: "...", params: {...}},          │
 │       {type: "audio", prompt: "...", params: {...}}           │
@@ -154,14 +158,19 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 │ ════════════════════════════════════════════════════════════   │
 │   FOR EACH request in pipeline_result.output_requests:         │
 │                                                                 │
-│     STAGE 3: Pre-Output Safety                                 │
+│     STAGE 3a: Translation (if needed)                          │
+│       - IF source_language != 'en': Translate DE → EN         │
+│       - Media generation requires English prompts             │
+│       - User can edit BEFORE this stage (in original lang)    │
+│                                                                 │
+│     STAGE 3b: Pre-Output Safety                                │
 │       - Hybrid: Fast string-match → LLM if needed             │
-│       - Check: request.prompt against safety_level            │
+│       - Check: translated_prompt against safety_level         │
 │       - If blocked: Skip Stage 4, return text alternative     │
 │                                                                 │
 │     STAGE 4: Media Generation                                  │
 │       - Execute output config (e.g., gpt5_image)              │
-│       - Generate media                                         │
+│       - Generate media with English prompt                     │
 │       - Return media reference (prompt_id, URL, etc.)         │
 │                                                                 │
 │   Collect all generated media + metadata                       │

@@ -29,6 +29,108 @@
 
 ---
 
+## 🎯 Active Decision 1: Stage 3 Architecture Correction - Translation Placement (2025-11-21, Session 59)
+
+**Status:** 📋 PLANNED (Session 56-58 plan was flawed, corrected in Session 59)
+**Context:** Translation placement in 4-stage flow + preserving user edit opportunity
+**Date:** 2025-11-21
+
+### The Thinking Error: Session 56-58 "Mega-Prompt" Plan
+
+**Flawed Plan (Session 56-58):**
+```
+Stage 1: Translation + Safety
+Stage 2: Interception + Optimization + Safety (all in ONE "mega-prompt")
+Stage 3: ELIMINATED ← "33% faster!"
+Stage 4: Media Generation
+```
+
+**Why This Was Wrong:**
+1. **Pedagogical Error:** Users need to EDIT after optimization, BEFORE final safety
+2. **No Edit Opportunity:** Merging Stage 2+3 prevents user from seeing/editing optimized prompt
+3. **Lost Transparency:** Prompt interception is for REFLECTION - users must see intermediate results
+4. **Misunderstood Goal:** Speed optimization sacrificed pedagogical core principle
+
+### The Correct Architecture (Session 59)
+
+**Revised Plan:**
+```
+Stage 1: Safety ONLY (NO translation, work in original language DE/EN)
+  ↓ Text in German/English (bilingual §86a filters work on both)
+
+Stage 2: Interception + Optimization (in original language, ONE LLM call)
+  ↓ Transformed + optimized text (still in German/English)
+
+→ USER CAN EDIT HERE! ← This is the key pedagogical moment!
+
+Stage 3: Translation (DE→EN) + Safety Check
+  ↓ English text, safety-approved
+
+Stage 4: Media Generation
+```
+
+**Key Changes:**
+1. **Translation moved:** Stage 1 → Stage 3
+2. **Stage 2 extended:** Add media-specific optimization (SD3.5, Audio, Music)
+3. **Edit opportunity preserved:** User edits in native language BEFORE final safety
+4. **Stage 3 kept separate:** Not merged into Stage 2
+
+### Why This Is Correct
+
+**Pedagogical:**
+- Users work in native language (German) for better reflection
+- Users can edit optimized prompt before media generation
+- Prompt interception remains transparent (see intermediate steps)
+- Aligns with "Gegenhegemoniale Pädagogik" - empowerment through understanding
+
+**Technical:**
+- Bilingual §86a filters work on both DE and EN
+- Same total execution time (translation still happens once)
+- Simpler architecture (no complex "mega-prompt" JSON parsing)
+- Clean separation of concerns
+
+### Implementation Plan
+
+**Files to Modify:**
+1. `/devserver/schemas/configs/pre_interception/gpt_oss_safety_only_bilingual.json` (NEW)
+   - Stage 1: Safety without translation
+
+2. `/devserver/schemas/engine/stage_orchestrator.py`
+   - Add `execute_stage1_safety_only_bilingual()`
+   - Add `execute_stage3_translation()`
+
+3. `/devserver/my_app/routes/schema_pipeline_routes.py`
+   - Update Stage 1 call (use safety-only function)
+   - Update Stage 3-4 loop (add translation before safety)
+
+4. `/devserver/schemas/configs/pre_output/translation_de_en_stage3.json` (NEW)
+   - Stage 3: Translation DE→EN
+
+**Optional Enhancements:**
+5. `/devserver/schemas/chunks/optimize_*.json` (NEW)
+   - Media-specific optimization chunks (image, audio, music)
+
+### Related Documentation
+
+- **ARCHITECTURE PART 01** - Updated to reflect correct Stage 1-3 flow (Version 2.1)
+- **Session 57-58 Branch:** `feature/stage2-mega-prompt` - DO NOT MERGE (flawed architecture)
+- **Develop Branch:** Clean state, start implementation from here
+
+### Lessons Learned
+
+**What Went Wrong:**
+- Prioritized speed optimization over pedagogical goals
+- Didn't question "why does user need to edit after optimization?"
+- Session 56 handover documented flawed plan as if it were fact
+
+**How to Avoid This:**
+- Always ask: "What is the pedagogical purpose of each stage?"
+- User edit opportunities are CRITICAL in this system
+- Document assumptions so they can be challenged
+- Consult architecture agent before major changes
+
+---
+
 ## 🎯 Active Decision 0: Deployment Architecture - Dev/Prod Separation for Research Phase (2025-11-16, Session 46)
 
 **Status:** ✅ IMPLEMENTED (storage unified, port separation pending)
