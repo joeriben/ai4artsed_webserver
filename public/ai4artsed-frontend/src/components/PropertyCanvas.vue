@@ -52,6 +52,9 @@ const store = useConfigSelectionStore()
 // Get categories from store
 const categories = computed(() => store.categories)
 
+// Category bubble size (base unit)
+const CATEGORY_BUBBLE_DIAMETER = 100
+
 // Category colors
 const categoryColorMap: Record<string, string> = {
   'semantics': '#2196F3',    // blue 💬
@@ -75,15 +78,16 @@ function calculateCategoryPositions() {
   const centerX = props.canvasWidth / 2
   const centerY = props.canvasHeight / 2
 
+  // Circle radius: from center to center of category bubbles (fixed value that worked)
+  const radius = 125
+
   console.log('[PropertyCanvas] Calculating category positions:', {
     canvasWidth: props.canvasWidth,
     canvasHeight: props.canvasHeight,
     centerX,
-    centerY
+    centerY,
+    radius
   })
-
-  // Circle radius (proportional zur Bubble-Größe)
-  const radius = 125
 
   // Freestyle in center
   if (categories.value.includes('freestyle')) {

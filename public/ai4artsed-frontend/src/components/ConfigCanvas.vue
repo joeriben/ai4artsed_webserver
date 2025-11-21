@@ -56,16 +56,13 @@ const emit = defineEmits<{
   selectConfig: [configId: string]
 }>()
 
-// Bubble dimensions (must match ConfigTile.vue - round bubbles now!)
-const BUBBLE_DIAMETER = 240
-const BUBBLE_SPACING = 80 // Minimum spacing between bubbles
+// Geometric constants
+const CATEGORY_BUBBLE_DIAMETER = 100
+const CONFIG_BUBBLE_DIAMETER = 240
+const CATEGORY_CIRCLE_RADIUS = 125  // Distance from canvas center to category bubble centers
 
 // Positioned configs
 const positionedConfigs = ref<ConfigWithPosition[]>([])
-
-// Category positions (must match PropertyCanvas.vue)
-const CATEGORY_RADIUS = 125 // Distance from canvas center to category bubbles
-const CATEGORY_BUBBLE_SIZE = 100 // Category bubble diameter
 
 /**
  * Get category bubble position (matches PropertyCanvas.vue logic)
@@ -101,8 +98,8 @@ function getCategoryPosition(category: string): { x: number; y: number } {
   const angleStep = (2 * Math.PI) / otherCategories.length
   const angle = index * angleStep - Math.PI / 4 // -45° start (X-formation)
 
-  const x = centerX + Math.cos(angle) * CATEGORY_RADIUS
-  const y = centerY + Math.sin(angle) * CATEGORY_RADIUS
+  const x = centerX + Math.cos(angle) * CATEGORY_CIRCLE_RADIUS
+  const y = centerY + Math.sin(angle) * CATEGORY_CIRCLE_RADIUS
 
   return { x, y }
 }
@@ -135,11 +132,13 @@ function calculatePositions() {
   configsByCategory.forEach((categoryConfigs, category) => {
     const categoryPos = getCategoryPosition(category)
 
-    // Calculate radius for this cluster based on number of configs
-    const numConfigs = categoryConfigs.length
-    const clusterRadius = CATEGORY_BUBBLE_SIZE / 2 + BUBBLE_DIAMETER / 2 + BUBBLE_SPACING
+    // Calculate radius for config cluster around this category
+    // Distance from category center to config center
+    // Need space between category and configs
+    const clusterRadius = (CATEGORY_BUBBLE_DIAMETER / 2) + (CONFIG_BUBBLE_DIAMETER / 2) + 80
 
     // Arrange configs in circle around category bubble
+    const numConfigs = categoryConfigs.length
     const angleStep = (2 * Math.PI) / numConfigs
 
     categoryConfigs.forEach((config, index) => {
@@ -148,8 +147,8 @@ function calculatePositions() {
       const y = categoryPos.y + Math.sin(angle) * clusterRadius
 
       // Clamp to canvas bounds
-      const clampedX = Math.max(BUBBLE_DIAMETER / 2, Math.min(props.canvasWidth - BUBBLE_DIAMETER / 2, x))
-      const clampedY = Math.max(BUBBLE_DIAMETER / 2, Math.min(props.canvasHeight - BUBBLE_DIAMETER / 2, y))
+      const clampedX = Math.max(CONFIG_BUBBLE_DIAMETER / 2, Math.min(props.canvasWidth - CONFIG_BUBBLE_DIAMETER / 2, x))
+      const clampedY = Math.max(CONFIG_BUBBLE_DIAMETER / 2, Math.min(props.canvasHeight - CONFIG_BUBBLE_DIAMETER / 2, y))
 
       positioned.push({
         ...config,

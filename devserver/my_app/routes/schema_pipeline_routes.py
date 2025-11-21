@@ -843,6 +843,20 @@ def execute_pipeline():
         # End of skip_preprocessing else block - Stage 1-3 complete
 
         # ====================================================================
+        # Determine prompt for Stage 4 (use translated text if Stage 3 ran)
+        # ====================================================================
+                # If Stage 3 ran and translated the text, use the English positive_prompt
+                # Otherwise, fallback to Stage 2 output (for safety_level='off' cases)
+                if not stage_3_blocked and safety_level != 'off' and not stage4_only:
+                    # Stage 3 ran - use translated English text from positive_prompt
+                    prompt_for_media = safety_result.get('positive_prompt', result.final_output)
+                    logger.info(f"[4-STAGE] Using translated prompt from Stage 3 for media generation")
+                else:
+                    # Stage 3 skipped - use Stage 2 output directly
+                    prompt_for_media = result.final_output
+                    logger.info(f"[4-STAGE] Using Stage 2 output directly (Stage 3 skipped)")
+
+        # ====================================================================
         # STAGE 4: OUTPUT (Media Generation)
         # ====================================================================
                 if not stage_3_blocked:
@@ -851,11 +865,11 @@ def execute_pipeline():
                     recorder.set_state(4, "media_generation")
 
                     try:
-                        # Execute Output-Pipeline with transformed text
+                        # Execute Output-Pipeline with translated/transformed text
                         output_result = asyncio.run(pipeline_executor.execute_pipeline(
                             config_name=output_config_name,
-                            input_text=result.final_output,  # Use transformed text as input!
-                            user_input=result.final_output,
+                            input_text=prompt_for_media,  # Use translated English text from Stage 3!
+                            user_input=prompt_for_media,
                             execution_mode=execution_mode
                         ))
 

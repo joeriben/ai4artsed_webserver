@@ -105,6 +105,7 @@ const currentLanguage = computed(() => userPreferences.language)
 const canvasWidth = ref(0)
 const canvasHeight = ref(0)
 const canvasAreaRef = ref<HTMLElement | null>(null)
+let resizeObserver: ResizeObserver | null = null
 
 function updateCanvasDimensions() {
   if (canvasAreaRef.value) {
@@ -148,17 +149,40 @@ onMounted(async () => {
   // Load configs from API
   store.loadConfigs()
 
-  // Wait for DOM to be ready, then measure canvas dimensions
+  // Wait for DOM to be ready
   await nextTick()
+
+  // Set up ResizeObserver for canvas area (proper reactive measurement)
+  if (canvasAreaRef.value) {
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        canvasWidth.value = entry.contentRect.width
+        canvasHeight.value = entry.contentRect.height
+        console.log('[PropertyQuadrants] ResizeObserver update:', {
+          width: canvasWidth.value,
+          height: canvasHeight.value,
+          centerX: canvasWidth.value / 2,
+          centerY: canvasHeight.value / 2
+        })
+      }
+    })
+    resizeObserver.observe(canvasAreaRef.value)
+  }
+
+  // Initial measurement
   updateCanvasDimensions()
 
-  // Update on window resize
+  // Fallback: Update on window resize
   window.addEventListener('resize', updateCanvasDimensions)
 })
 
 // Cleanup on unmount
 onUnmounted(() => {
   window.removeEventListener('resize', updateCanvasDimensions)
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
 })
 </script>
 
