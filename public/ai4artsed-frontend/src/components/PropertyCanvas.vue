@@ -1,53 +1,17 @@
 <template>
   <div class="property-canvas">
-    <!-- SVG layer for rubber bands (background) -->
-    <svg class="rubber-bands-layer" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`">
-      <defs>
-        <!-- Animated gradient for flow effect -->
-        <linearGradient id="flow-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" :stop-color="'transparent'" />
-          <stop offset="50%" :stop-color="'currentColor'" stop-opacity="0.3" />
-          <stop offset="100%" :stop-color="'transparent'" />
-          <animate
-            attributeName="x1"
-            values="0%;100%;0%"
-            dur="3s"
-            repeatCount="indefinite"
-          />
-          <animate
-            attributeName="x2"
-            values="100%;200%;100%"
-            dur="3s"
-            repeatCount="indefinite"
-          />
-        </linearGradient>
-      </defs>
+    <!-- REMOVED: Rubber bands (no pairs anymore) -->
 
-      <!-- Rubber bands connecting property pairs -->
-      <g v-for="(pair, index) in propertyPairs" :key="`pair-${index}`">
-        <line
-          :x1="getPropertyPosition(pair[0]).x"
-          :y1="getPropertyPosition(pair[0]).y"
-          :x2="getPropertyPosition(pair[1]).x"
-          :y2="getPropertyPosition(pair[1]).y"
-          :stroke="propertyColors[index]"
-          stroke-width="2"
-          stroke-opacity="0.4"
-          class="rubber-band"
-        />
-      </g>
-    </svg>
-
-    <!-- Property bubbles (foreground) -->
+    <!-- Category bubbles (foreground) -->
     <PropertyBubble
-      v-for="(property, index) in allProperties"
-      :key="property"
-      :property="property"
-      :color="getPropertyColorByName(property)"
-      :is-selected="isPropertySelected(property)"
-      :x="propertyPositions[property]?.x || 0"
-      :y="propertyPositions[property]?.y || 0"
-      :symbol-data="getSymbolDataForProperty(property)"
+      v-for="category in categories"
+      :key="category"
+      :property="category"
+      :color="getCategoryColor(category)"
+      :is-selected="isPropertySelected(category)"
+      :x="categoryPositions[category]?.x || 0"
+      :y="categoryPositions[category]?.y || 0"
+      :symbol-data="getSymbolDataForProperty(category)"
       @toggle="handlePropertyToggle"
       @update-position="handleUpdatePosition"
     />
@@ -71,7 +35,6 @@ import { useConfigSelectionStore } from '@/stores/configSelection'
  */
 
 interface Props {
-  propertyPairs: PropertyPair[]
   selectedProperties: string[]
   canvasWidth: number
   canvasHeight: number
@@ -83,126 +46,62 @@ const emit = defineEmits<{
   toggleProperty: [property: string]
 }>()
 
-// Access store for symbol data
+// Access store for categories and symbol data
 const store = useConfigSelectionStore()
 
-// Property colors (same order as mockup)
-const propertyColors = [
-  '#9b87f5', // purple - chill/chaotic
-  '#60a5fa', // blue - narrative/algorithmic
-  '#fb923c', // orange - historical/contemporary
-  '#4ade80', // green - explore/create
-  '#fbbf24'  // yellow - playful/serious
-]
+// Get categories from store
+const categories = computed(() => store.categories)
 
-// Map property names to colors
-const propertyColorMap = computed(() => {
-  const map: Record<string, string> = {}
-  props.propertyPairs.forEach((pair, index) => {
-    const color = propertyColors[index] || '#888'
-    map[pair[0]] = color
-    map[pair[1]] = color
-  })
-  return map
-})
+// Category colors
+const categoryColorMap: Record<string, string> = {
+  'semantics': '#2196F3',    // blue 💬
+  'aesthetics': '#9C27B0',   // purple 🪄
+  'arts': '#E91E63',          // pink 🖌️
+  'heritage': '#4CAF50',      // green 🌍
+  'freestyle': '#FFC107'      // amber 🫵
+}
 
-// All properties flattened
-const allProperties = computed(() => {
-  return props.propertyPairs.flat()
-})
-
-// Property positions (calculated on mount)
-const propertyPositions = ref<Record<string, { x: number; y: number }>>({})
+// Category positions (calculated on mount)
+const categoryPositions = ref<Record<string, { x: number; y: number }>>({})
 
 /**
- * Calculate property positions
- * Properties are randomly spread in a CIRCLE at screen center
- * Ensures no overlap between bubbles
+ * Calculate category positions
+ * Freestyle in center, others in circle around it (loosely positioned)
  */
-function calculatePropertyPositions() {
+function calculateCategoryPositions() {
   const positions: Record<string, { x: number; y: number }> = {}
-  const placedPositions: Array<{ x: number; y: number }> = []
 
   // Center of canvas
   const centerX = props.canvasWidth / 2
   const centerY = props.canvasHeight / 2
 
-  // Circle radius for property placement area (30% of smaller dimension)
-  const radius = Math.min(props.canvasWidth, props.canvasHeight) * 0.3
+  // Circle radius
+  const radius = 100
 
-  // Minimum distance between bubble centers (to prevent overlap)
-  const minDistance = 120
-
-  /**
-   * Check if position is valid (within circle and no overlap)
-   */
-  function isValidPosition(x: number, y: number): boolean {
-    // Check if within circle boundary
-    const distFromCenter = Math.sqrt(
-      Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
-    )
-    if (distFromCenter > radius) {
-      return false
-    }
-
-    // Check distance from other bubbles
-    for (const placed of placedPositions) {
-      const distance = Math.sqrt(
-        Math.pow(x - placed.x, 2) + Math.pow(y - placed.y, 2)
-      )
-      if (distance < minDistance) {
-        return false
-      }
-    }
-    return true
+  // Freestyle in center
+  if (categories.value.includes('freestyle')) {
+    positions['freestyle'] = { x: centerX, y: centerY }
   }
 
-  /**
-   * Find a valid random position within circle
-   */
-  function findValidPosition(maxAttempts = 100): { x: number; y: number } {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      // Random angle and distance from center
-      const angle = Math.random() * Math.PI * 2
-      const dist = Math.random() * radius
-      const x = centerX + Math.cos(angle) * dist
-      const y = centerY + Math.sin(angle) * dist
+  // Other categories in circle around center (symmetrisch, X-Form statt Kreuz)
+  const otherCategories = categories.value.filter(c => c !== 'freestyle')
+  const angleStep = (2 * Math.PI) / otherCategories.length
 
-      if (isValidPosition(x, y)) {
-        return { x, y }
-      }
-    }
-    // Fallback: return position within circle anyway
-    const angle = Math.random() * Math.PI * 2
-    const dist = Math.random() * radius
-    return {
-      x: centerX + Math.cos(angle) * dist,
-      y: centerY + Math.sin(angle) * dist
-    }
-  }
+  otherCategories.forEach((category, index) => {
+    // Gleichmäßige Winkel, Start oben-rechts (45° / -45°)
+    const angle = index * angleStep - Math.PI / 4  // -45° statt -90°
 
-  // Place each property with collision detection
-  props.propertyPairs.forEach((pair) => {
-    // First property in pair
-    const pos1 = findValidPosition()
-    positions[pair[0]] = pos1
-    placedPositions.push(pos1)
+    const x = centerX + Math.cos(angle) * radius
+    const y = centerY + Math.sin(angle) * radius
 
-    // Second property in pair
-    const pos2 = findValidPosition()
-    positions[pair[1]] = pos2
-    placedPositions.push(pos2)
+    positions[category] = { x, y }
   })
 
-  propertyPositions.value = positions
+  categoryPositions.value = positions
 }
 
-function getPropertyPosition(property: string) {
-  return propertyPositions.value[property] || { x: 0, y: 0 }
-}
-
-function getPropertyColorByName(property: string): string {
-  return propertyColorMap.value[property] || '#888'
+function getCategoryColor(category: string): string {
+  return categoryColorMap[category] || '#888'
 }
 
 function isPropertySelected(property: string): boolean {
@@ -221,14 +120,14 @@ function getSymbolDataForProperty(property: string): SymbolData | undefined {
 }
 
 /**
- * Handle position update from draggable bubble (Session 40)
+ * Handle position update from draggable bubble
  * Constrains movement to circular boundary
  */
-function handleUpdatePosition(property: string, x: number, y: number) {
-  // Circular boundary constraint
+function handleUpdatePosition(category: string, x: number, y: number) {
+  // Circular boundary constraint (same radius as calculateCategoryPositions)
   const centerX = props.canvasWidth / 2
   const centerY = props.canvasHeight / 2
-  const radius = Math.min(props.canvasWidth, props.canvasHeight) * 0.3
+  const radius = 100  // Match radius from calculateCategoryPositions
 
   // Check distance from center
   const distFromCenter = Math.sqrt(
@@ -242,16 +141,16 @@ function handleUpdatePosition(property: string, x: number, y: number) {
     y = centerY + Math.sin(angle) * radius
   }
 
-  propertyPositions.value[property] = { x, y }
+  categoryPositions.value[category] = { x, y }
 }
 
-// Recalculate positions when canvas size changes (for responsive design)
-watch([() => props.canvasWidth, () => props.canvasHeight], () => {
-  calculatePropertyPositions()
+// Recalculate positions when canvas size changes or categories change
+watch([() => props.canvasWidth, () => props.canvasHeight, categories], () => {
+  calculateCategoryPositions()
 })
 
 onMounted(() => {
-  calculatePropertyPositions()
+  calculateCategoryPositions()
 })
 </script>
 

@@ -1,0 +1,21 @@
+{
+  "name": "safety_check_youth",
+  "description": "Safety Check for Youth (moderate filter for ages 13+)",
+  "template": "You are a safety filter checking prompts before media generation.\n\nYour task:\n1. Check if the prompt contains ANY of the following problematic terms:\n   - Explicit Content: explicit, hardcore, brutal, savage\n   - Cruelty: cruelty, sadistic\n   - Sexual Content: pornographic, sexual, nsfw, rape, abuse, genitals, penis, vagina\n   - Self-Harm: self-harm, suicide, cutting\n\n2. Return ONLY a valid JSON object with this EXACT structure:\n\nIf the prompt is SAFE:\n{\n  \"safe\": true,\n  \"positive_prompt\": \"<original prompt>\",\n  \"negative_prompt\": \"explicit, hardcore, brutal, pornographic, sexual, nsfw, rape, abuse, self-harm, suicide\",\n  \"abort_reason\": \"\"\n}\n\nIf the prompt is UNSAFE:\n{\n  \"safe\": false,\n  \"positive_prompt\": \"\",\n  \"negative_prompt\": \"\",\n  \"abort_reason\": \"Youth-Filter: Prompt contains explicit terms: [list detected terms]\"\n}\n\nIMPORTANT:\n- Return ONLY the JSON object, no other text\n- Do NOT add markdown code blocks\n- Do NOT explain your reasoning\n- Be strict: If ANY problematic term is found, mark as unsafe\n- For safe prompts: Include ALL negative terms in negative_prompt field to prevent unwanted content\n\nPrompt to check:\n\n{{INPUT_TEXT}}",
+  "backend_type": "ollama",
+  "model": "gpt-OSS:20b",
+  "parameters": {
+    "temperature": 0.1,
+    "top_p": 0.9,
+    "stream": false,
+    "keep_alive": "10m"
+  },
+  "meta": {
+    "chunk_type": "safety",
+    "output_format": "json",
+    "estimated_duration": "fast",
+    "stage": 3,
+    "filter_level": "youth",
+    "required_placeholders": ["INPUT_TEXT"]
+  }
+}

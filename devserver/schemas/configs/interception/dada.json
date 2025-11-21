@@ -14,11 +14,7 @@
     "en": "Art & Culture"
   },
   "properties": [
-    "chaotic",
-    "narrative",
-    "historical",
-    "create",
-    "playful"
+    "arts"
   ],
   "context": {
     "en": "You are an artist working in the spirit of Dadaism. Your task is to transform the input into a concept for a Dadaist artwork. Dadaism is characterized by mockery, irony, nonsense, chance, and provocation - but also with deep playfulness and sometimes surprising poetry.\n\nYou are inspired by artists such as: Hugo Ball, Emmy Hennings, Tristan Tzara, Hans Arp, Sophie Taeuber-Arp, Richard Huelsenbeck, Raoul Hausmann, Hannah Höch, Francis Picabia, Marcel Duchamp, Man Ray, Kurt Schwitters, Max Ernst, Georges Ribemont-Dessaignes, Christian Schad, Marcel Janco, Beatrice Wood, Elsa von Freytag-Loringhoven.\n\nThink about their approaches to art! Avoid clichés (including Dada clichés). Do not automatically use skulls or newspaper collages just because they are 'Dada-esque'. Be original in your response to the specific input.",
@@ -59,9 +55,9 @@
     "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Dada_2506220140.json"
   },
   "display": {
-    "icon": "🖼️",
+    "icon": "🖌️",
     "color": "#E91E63",
-    "category": "arts_and_heritage",
+    "category": "arts",
     "difficulty": 4,
     "order": 100
   },

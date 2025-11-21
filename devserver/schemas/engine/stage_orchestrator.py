@@ -321,25 +321,25 @@ async def execute_stage1_gpt_oss_unified(
     pipeline_executor
 ) -> Tuple[bool, str, Optional[str]]:
     """
-    Execute Stage 1 with GPT-OSS Unified (Translation + §86a + Kids/Youth Safety)
+    Execute Stage 1 with GPT-OSS Safety Check (§86a + Kids/Youth Safety, NO Translation)
 
     Enhanced Flow:
-    1. Optional pre-translation §86a fast-filter (for context awareness)
+    1. Pre-check §86a fast-filter (bilingual, for context awareness)
     2. GPT-OSS call with safety_level injection (checks §86a + kids/youth if active)
     3. POST-GPT-OSS hard filter for §86a (safety net - overrides US-trained model)
 
     Args:
-        text: Input text to translate and safety-check
+        text: Input text to safety-check (in original language)
         safety_level: 'kids', 'youth', or 'off' - passed to GPT-OSS for age-appropriate checks
         execution_mode: 'eco' or 'fast'
         pipeline_executor: PipelineExecutor instance
 
     Returns:
-        (is_safe, translated_text, error_message)
+        (is_safe, original_text, error_message)
     """
     import time
 
-    # STEP 1: Optional pre-translation §86a fast-filter (bilingual)
+    # STEP 1: Pre-check §86a fast-filter (bilingual)
     # Purpose: Give GPT-OSS context about potential §86a violations for careful review
     pre_filter_start = time.time()
     has_86a_terms, found_86a_terms = fast_filter_bilingual_86a(text)
@@ -352,10 +352,10 @@ async def execute_stage1_gpt_oss_unified(
     # Format: "[SAFETY: kids]\nUser text here"
     text_with_metadata = f"[SAFETY: {safety_level}]\n{text}"
 
-    # STEP 3: Call GPT-OSS with enhanced safety instructions
+    # STEP 3: Call GPT-OSS for safety check (no translation)
     gpt_oss_start = time.time()
     result = await pipeline_executor.execute_pipeline(
-        'pre_interception/gpt_oss_unified',
+        'pre_interception/gpt_oss_safety',
         text_with_metadata,
         execution_mode=execution_mode
     )
@@ -370,16 +370,16 @@ async def execute_stage1_gpt_oss_unified(
     # STEP 4: Parse GPT-OSS response
     # Formats: "SAFE: [text]" | "BLOCKED: §86a StGB - ..." | "BLOCKED: Kids-Filter - ..." | "BLOCKED: Youth-Filter - ..."
     if response.startswith("SAFE:"):
-        translated_text = response[5:].strip()  # Remove "SAFE: " prefix
+        checked_text = response[5:].strip()  # Remove "SAFE: " prefix (should be original text)
 
         # STEP 5: POST-GPT-OSS HARD FILTER for §86a (safety net)
         # Purpose: Override US-trained model if §86a symbols slip through
         post_filter_start = time.time()
-        has_86a_post, found_86a_post = fast_filter_bilingual_86a(translated_text)
+        has_86a_post, found_86a_post = fast_filter_bilingual_86a(checked_text)
         post_filter_time = time.time() - post_filter_start
 
         if has_86a_post:
-            # OVERRIDE: GPT-OSS said safe, but §86a critical terms detected in translated text
+            # OVERRIDE: GPT-OSS said safe, but §86a critical terms detected in output text
             logger.warning(f"[STAGE1-POST-FILTER] §86a OVERRIDE: GPT-OSS allowed but hard filter caught {found_86a_post[:3]}... (post-filter: {post_filter_time*1000:.1f}ms)")
 
             error_message = (
@@ -395,7 +395,7 @@ async def execute_stage1_gpt_oss_unified(
 
         # All checks passed
         logger.info(f"[STAGE1-GPT-OSS] PASSED (gpt-oss: {gpt_oss_time:.1f}s, post-filter: {post_filter_time*1000:.1f}ms)")
-        return (True, translated_text, None)
+        return (True, checked_text, None)
 
     elif response.startswith("BLOCKED:"):
         # Parse blocked response

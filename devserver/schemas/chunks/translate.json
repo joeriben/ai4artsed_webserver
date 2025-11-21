@@ -1,0 +1,20 @@
+{
+  "name": "translate",
+  "description": "Translation to English for Stage 3 (uses DEFAULT_LANGUAGE from config.py as source)",
+  "template": "You are translating text for AI art/media generation.\n\nYour task:\n\nTRANSLATE TO ENGLISH:\n- Translate the text to English\n- Preserve artistic intent and emotional tone\n- Maintain structure (line breaks, punctuation, formatting)\n- Keep artistic word combinations and unusual phrasing intact\n- Context: This text has already been processed through interception/optimization\n- The translation should be natural and suitable for media generation prompts\n\nIMPORTANT:\n- If the input is ALREADY in English, return it UNCHANGED\n- Do NOT add explanations or meta-comments\n- Do NOT modify English text\n- Output ONLY the translated (or unchanged) text\n\nText to translate:\n\n{{INPUT_TEXT}}",
+  "backend_type": "ollama",
+  "model": "STAGE3_MODEL",
+  "parameters": {
+    "temperature": 0.2,
+    "top_p": 0.9,
+    "stream": false,
+    "keep_alive": "10m"
+  },
+  "meta": {
+    "chunk_type": "translation",
+    "output_format": "text",
+    "estimated_duration": "fast",
+    "stage": 3,
+    "required_placeholders": ["INPUT_TEXT"]
+  }
+}

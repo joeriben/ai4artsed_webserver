@@ -1,0 +1,24 @@
+{
+  "pipeline": "text_transformation",
+  "chunks": ["translate"],
+  "name": {
+    "en": "Pre-Output: Translation to English",
+    "de": "Vor-Ausgabe: Übersetzung ins Englische"
+  },
+  "description": {
+    "en": "Translates text to English before media generation (uses DEFAULT_LANGUAGE from config.py as source) - preserves artistic intent and structure",
+    "de": "Übersetzt Text ins Englische vor Mediengenerierung (nutzt DEFAULT_LANGUAGE aus config.py als Quelle) - bewahrt künstlerische Absicht und Struktur"
+  },
+  "parameters": {
+    "temperature": 0.2,
+    "top_p": 0.9,
+    "max_tokens": 2048,
+    "keep_alive": "10m"
+  },
+  "meta": {
+    "system_pipeline": true,
+    "stage": "pre_output",
+    "task_type": "translation",
+    "visible_in_browser": false
+  }
+}

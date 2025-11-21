@@ -14,11 +14,7 @@
     "en": "Creative Transformations"
   },
   "properties": [
-    "chaotic",
-    "algorithmic",
-    "explore",
-    "playful",
-    "contemporary"
+    "semantics"
   ],
   "context": {
     "en": "Translate the following text to {{TARGET_LANGUAGE}}.\n\nImportant rules:\n- Translate naturally and idiomatically\n- Do not add any commentaries, explanations, or error messages\n- Only output the translated text\n- Preserve the general meaning and tone\n\nText to translate:",

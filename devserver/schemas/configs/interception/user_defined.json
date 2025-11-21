@@ -14,10 +14,7 @@
     "en": "Art & Culture"
   },
   "properties": [
-    "chaotic",
-    "narrative",
-    "create",
-    "playful"
+    "freestyle"
   ],
   "context": {
     "en": "",
@@ -49,9 +46,9 @@
     ]
   },
   "display": {
-    "icon": "🖼️",
-    "color": "#E91E63",
-    "category": "arts_and_heritage",
+    "icon": "🫵",
+    "color": "#FFC107",
+    "category": "freestyle",
     "difficulty": 4,
     "order": 100
   },

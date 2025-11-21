@@ -14,11 +14,7 @@
     "en": "Creative Transformations"
   },
   "properties": [
-    "chaotic",
-    "narrative",
-    "contemporary",
-    "create",
-    "playful"
+    "semantics"
   ],
   "context": {
     "en": "Your sole and absolute task is to fully rewrite the following text into modern, authentic UK youth slang and informal language, leaving no trace of formality. The entire linguistic transformation into this specific sociolect is your primary focus.\n\n**Instructions:**\n1. Total Transformation: Every phrase must be converted into youth slang equivalent. No remnants of formal tone.\n2. Target Audience: 13-18 year olds in urban UK areas, familiar with street culture and music (UK Drill, Grime, Trap).\n3. Vocabulary: Use prevalent British street slang: 'fam', 'mandem', 'yute', 'peng', 'sick', 'bare', 'safe', 'proper', 'whip', 'crib', 'drip', 'no cap', 'innit', 'allow it', 'jheeze', 'grinding', 'balling', 'skrr', 'init', 'wagwan', 'ends', and similar terms.\n4. Tone & Style: Casual, direct, confident, genuinely authentic. Embody the 'vibe' and 'attitude' of contemporary UK youth culture.\n5. Core Meaning: Preserve the original meaning and visual elements, but express entirely through this new linguistic form.\n6. Output Format: Output ONLY the rephrased text in youth slang. No explanations or additional text.",
@@ -48,8 +44,8 @@
     "legacy_source": "workflows_legacy/semantics/ai4artsed_Jugendsprache_2506122317.json"
   },
   "display": {
-    "icon": "🗣️",
-    "color": "#03A9F4",
+    "icon": "💬",
+    "color": "#2196F3",
     "category": "semantics",
     "difficulty": 2,
     "order": 100

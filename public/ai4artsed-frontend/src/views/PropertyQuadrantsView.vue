@@ -18,13 +18,11 @@
 
     <!-- Main canvas (single canvas, no grid!) -->
     <div v-else class="main-canvas">
-      <!-- Properties in upper-left area -->
+      <!-- Categories in center -->
       <PropertyCanvas
-        :property-pairs="store.propertyPairs"
         :selected-properties="store.selectedProperties"
         :canvas-width="canvasWidth"
         :canvas-height="canvasHeight"
-        :current-language="currentLanguage"
         @toggle-property="handlePropertyToggle"
       />
 

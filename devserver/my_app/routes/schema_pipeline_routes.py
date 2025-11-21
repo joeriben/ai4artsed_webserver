@@ -244,12 +244,12 @@ def transform_prompt():
             execution_config = Config.from_dict(config_dict)
 
         # ====================================================================
-        # STAGE 1: PRE-INTERCEPTION (Translation + Safety)
+        # STAGE 1: PRE-INTERCEPTION (Safety Check - No Translation)
         # ====================================================================
-        logger.info(f"[TRANSFORM] Stage 1: Translation + Safety")
+        logger.info(f"[TRANSFORM] Stage 1: Safety Check")
 
         stage1_start = time.time()
-        is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+        is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
             input_text,
             safety_level,
             execution_mode,
@@ -264,17 +264,17 @@ def transform_prompt():
                 'error': error_message,
                 'blocked_at_stage': 1,
                 'stage1_output': {
-                    'translation': translated_text,
+                    'original_text': checked_text,
                     'safety_passed': False,
                     'safety_message': error_message,
                     'execution_time_ms': stage1_time
                 }
             }), 403
 
-        logger.info(f"[TRANSFORM] Stage 1 completed: '{input_text}' → '{translated_text}'")
+        logger.info(f"[TRANSFORM] Stage 1 completed: Safety check passed for '{input_text}'")
 
         stage1_output = {
-            'translation': translated_text,
+            'original_text': checked_text,
             'safety_passed': True,
             'safety_level': safety_level,
             'execution_time_ms': stage1_time
@@ -292,7 +292,7 @@ def transform_prompt():
 
         result = asyncio.run(pipeline_executor.execute_pipeline(
             config_name=schema_name,
-            input_text=translated_text,
+            input_text=checked_text,
             user_input=input_text,
             execution_mode=execution_mode,
             safety_level=safety_level,
@@ -537,20 +537,20 @@ def execute_pipeline():
                 recorder.save_entity('input', input_text)
                 logger.info(f"[RECORDER] Saved input entity")
 
-                # Stage 1: GPT-OSS Unified (Translation + §86a Safety in ONE call)
-                is_safe, translated_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+                # Stage 1: GPT-OSS Safety Check (No Translation)
+                is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
                     input_text,
                     safety_level,
                     execution_mode,
                     pipeline_executor
                 ))
-                current_input = translated_text
+                current_input = checked_text
 
                 if not is_safe:
                     logger.warning(f"[4-STAGE] Stage 1 BLOCKED by GPT-OSS §86a")
 
-                    # SESSION 29: Save translation (even if blocked)
-                    recorder.save_entity('translation', translated_text)
+                    # SESSION 29: Save checked text (even if blocked)
+                    recorder.save_entity('stage1_output', checked_text)
 
                     # SESSION 29: Save safety error
                     recorder.save_error(
@@ -579,25 +579,18 @@ def execute_pipeline():
                         }
                     }), 403
 
-                # SESSION 29: Save translation and safety results
-                recorder.save_entity('translation', translated_text)
+                # SESSION 29: Save stage1 output and safety results
+                recorder.save_entity('stage1_output', checked_text)
                 recorder.save_entity('safety', {
                     'safe': True,
-                    'method': 'gpt_oss_unified',
+                    'method': 'gpt_oss_safety',
                     'codes_checked': ['§86a'],
                     'safety_level': safety_level
                 })
-                logger.info(f"[RECORDER] Saved translation and safety entities")
+                logger.info(f"[RECORDER] Saved stage1 output and safety entities")
 
-                # Log translation result (GPT-OSS includes translation)
-                tracker.log_translation_result(
-                    translated_text=translated_text,
-                    from_lang='de',
-                    to_lang='en',
-                    model_used='gpt-oss',
-                    backend_used='ollama',
-                    execution_time=0.0  # TODO: Track actual execution time from GPT-OSS unified pipeline
-                )
+                # Note: Stage 1 now only does safety check, no translation
+                # Translation will be moved to Stage 3 (before media generation)
 
             # ====================================================================
             # STAGE 2: INTERCEPTION (Main Pipeline - DUMB execution)

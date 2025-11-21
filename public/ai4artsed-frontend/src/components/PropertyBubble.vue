@@ -9,8 +9,8 @@
     @touchstart="startDragTouch"
     :data-property="property"
   >
-    <span v-if="symbol" class="property-symbol">{{ symbol }}</span>
-    <span class="property-label">{{ label }}</span>
+    <!-- Only symbol, no label -->
+    <span class="property-symbol">{{ symbol }}</span>
   </div>
 </template>
 

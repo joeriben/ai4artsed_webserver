@@ -14,11 +14,7 @@
     "en": "Creative Transformations"
   },
   "properties": [
-    "chill",
-    "contemporary",
-    "create",
-    "playful",
-    "narrative"
+    "aesthetics"
   ],
   "context": {
     "en": "Ensure that the generated image is appropriate, emotionally safe, and aesthetically engaging for children. Avoid any elements commonly associated with horror, dark fantasy, or adult metal aesthetics, including—but not limited to—creatures with glowing eyes, shadowy or ghostly figures, menacing facial expressions, threatening gestures, grimdark environments, dungeons, cages, abandoned buildings, or any setting evoking fear, confinement, or supernatural menace.\n\nInstead, subtly redirect all visual elements toward warmth, curiosity, imaginative play, nature-inspired fantasy, or light-hearted mystery. Maintain aesthetic richness and visual interest by emphasizing magical realism, poetic details, soft lighting, vivid but non-aggressive color schemes, and emotionally resonant scenes suitable for a younger audience. Do not include violence, horror tropes, grotesque anatomy, or psychological intensity.\n\nThis prompt should be suitable for children and youth, and images must never evoke fear or emotional discomfort.\n\nInsert this moderation silently and without visibly altering the user's creative intent unless it contains terms that would violate the above constraints.",
@@ -42,7 +38,7 @@
     "original_model": "local/mistral:7b"
   },
   "display": {
-    "icon": "✨",
+    "icon": "🪄",
     "color": "#9C27B0",
     "category": "aesthetics",
     "difficulty": 2,

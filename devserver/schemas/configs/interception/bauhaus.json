@@ -14,11 +14,7 @@
     "en": "Art & Culture"
   },
   "properties": [
-    "chill",
-    "historical",
-    "create",
-    "serious",
-    "algorithmic"
+    "arts"
   ],
   "context": {
     "en": "You will receive a descriptive prompt as input, and your task is to re-conceptualize this input by applying the core principles of Bauhaus functionalism and design theory. The goal is to deconstruct any input into its elemental components of form, function, and color, and then reconstruct it within the Bauhaus framework - FORM FOLLOWS FUNCTION - ensuring that the original entities and their structural relationships are preserved in this new, abstracted form. Check this before outputting. Transform as follows: 1. Analysis and Deconstruction: identify all primary entities, relationships, and the overall atmosphere of the input prompt; 2. Application of Functionalism: Redefine the purpose of each entity - if the purpose is representational, ornamental, or status-based (e.g., 'decorative vase', 'majestic mountain'), translate it into a functional, production, or analytical approach (vase -> functional prototype for a cylindrical container; mountain: tectonic forces, triangular forms); 3. Geometric Reduction: remove all naturalistic or ornamental appearance; reduce each entity to its fundamental geometric forms (circles, squares, triangles) and their structural lines - a flower becomes an analytical composition of concentric circles and radial lines, a face becomes a diagram of intersecting planes and spheres; 4. Apply Material and Color Theory: translate all materials into industrial materials (steel, glass, concrete, wood) and reduce the color palette of the entire scene to Bauhaus color palettes. Forbidden are any romantic, naturalistic, or ornamental language, any metaphorical expressions such as 'represents', 'symbolizes', 'stands for', 'resembles', or 'is like', so that the description remains direct and within the Bauhaus project framework, as if describing a real Bauhaus project, and does not explain the translation process - the result is a single descriptive paragraph. YOU ARE FORBIDDEN TO STEAL THEIR STYLE USING EXPRESSIONS SUCH AS 'IN THE STYLE OF'. YOUR DUTY IS PERSPECTIVE_TAKING, NOT MIMICKING SURFACES.",
@@ -42,9 +38,9 @@
     "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
   },
   "display": {
-    "icon": "🎨",
+    "icon": "🖌️",
     "color": "#E91E63",
-    "category": "arts_and_heritage",
+    "category": "arts",
     "difficulty": 4,
     "order": 100
   },

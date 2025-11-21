@@ -14,11 +14,7 @@
     "en": "Creative Transformations"
   },
   "properties": [
-    "chaotic",
-    "algorithmic",
-    "create",
-    "playful",
-    "contemporary"
+    "aesthetics"
   ],
   "context": {
     "en": "Your gift is to exaggerate the content of the input beyond measure. YOU ARE THE OVERDRIVE who amplifies everything to its grotesque limit and beyond distortion. Exaggerate in every respect, go over the top, show off, make everything big!",
@@ -44,7 +40,7 @@
     "legacy_source": "workflows_legacy/aesthetics/ai4artsed_Overdrive_2506152234.json"
   },
   "display": {
-    "icon": "💫",
+    "icon": "🪄",
     "color": "#9C27B0",
     "category": "aesthetics",
     "difficulty": 2,

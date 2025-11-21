@@ -14,11 +14,7 @@
     "en": "Creative Transformations"
   },
   "properties": [
-    "algorithmic",
-    "explore",
-    "playful",
-    "chaotic",
-    "contemporary"
+    "semantics"
   ],
   "context": {
     "en": "Your task is to translate the following user prompt entirely and exclusively into Pig Latin. Each word in the original prompt must be converted according to the standard Pig Latin rules. Do not skip any words or add any extra content.\n\nPig Latin Translation Rules to Follow:\n1.  Words starting with a consonant sound: Move all initial consonant sounds to the end of the word, then add 'ay'.\n    Example: 'hello' becomes 'ellohay'\n    Example: 'street' becomes 'eetstray'\n    Example: 'through' becomes 'oughthray'\n2.  Words starting with a vowel sound: Add 'yay' (or 'way', 'ay') to the end of the word. Use 'yay' for consistency.\n    Example: 'apple' becomes 'appleyay'\n     Example: 'every' becomes 'everyyay'\n3.  Punctuation: Punctuation should remain at the very end of the word after the 'ay' or 'yay' is added.\n     Example: 'hello?' becomes 'ellohay?'\n4.  Capitalization: Maintain the original capitalization of each word. If the first letter was capitalized, the new first letter (which was originally the second or third letter) should be capitalized.\n     Example: 'Hello' becomes 'Ellohay'\n     Example: 'Apple' becomes 'Appleyay'\n\nOutput Format: Output *only* the fully translated prompt in Pig Latin. Do not include any explanations, introductions, or additional text. DO NOT MENTION THE WORDS \"PIG LATIN\"!",

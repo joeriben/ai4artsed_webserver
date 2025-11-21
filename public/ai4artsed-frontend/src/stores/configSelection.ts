@@ -12,6 +12,10 @@ export interface ConfigMetadata {
   media_preferences?: {
     default_output?: string
   }
+  // Backend sends icon/color as top-level fields
+  icon?: string
+  color?: string
+  difficulty?: number
 }
 
 export type PropertyPair = [string, string]
@@ -64,7 +68,10 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
   /** All available configs from API */
   const availableConfigs = ref<ConfigMetadata[]>([])
 
-  /** Property pairs for XOR logic */
+  /** Categories (extracted from config properties) */
+  const categories = ref<string[]>([])
+
+  /** Property pairs for XOR logic (DEPRECATED - keeping for compatibility) */
   const propertyPairs = ref<PropertyPair[]>([])
 
   /** Session 40: Symbols enabled flag */
@@ -175,46 +182,34 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
 
       availableConfigs.value = data.configs
 
-      // Check if we have symbols enabled (property_pairs_v2)
-      symbolsEnabled.value = data.symbols_enabled || false
+      // NEW: Extract unique categories from config properties
+      // Each config now has properties: ["semantics"] or ["arts"], etc.
+      const uniqueCategories = [...new Set(
+        data.configs.flatMap(c => c.properties)
+      )]
+      categories.value = uniqueCategories
 
-      if (symbolsEnabled.value && data.property_pairs.length > 0) {
-        // Process property_pairs_v2 with symbols
-        const pairsV2 = data.property_pairs as PropertyPairV2[]
+      // Build symbol data map from config.icon (top-level field from backend)
+      const newSymbolMap = new Map<string, SymbolData>()
+      data.configs.forEach(config => {
+        const category = config.properties[0] // Single category value
 
-        // Extract simple pairs for XOR logic
-        propertyPairs.value = pairsV2.map(p => p.pair)
-
-        // Build symbol data map
-        const newSymbolMap = new Map<string, SymbolData>()
-        pairsV2.forEach(pairData => {
-          const [prop1, prop2] = pairData.pair
-          const lang = currentLanguage.value
-
-          // Symbol data for first property
-          newSymbolMap.set(prop1, {
-            symbol: pairData.symbols[prop1] || '',
-            label: pairData.labels[lang]?.[prop1] || prop1,
-            tooltip: pairData.tooltips[lang]?.[prop1] || ''
+        if (category && config.icon && !newSymbolMap.has(category)) {
+          newSymbolMap.set(category, {
+            symbol: config.icon,
+            label: '', // No labels - symbol only
+            tooltip: ''
           })
+        }
+      })
+      symbolDataMap.value = newSymbolMap
 
-          // Symbol data for second property
-          newSymbolMap.set(prop2, {
-            symbol: pairData.symbols[prop2] || '',
-            label: pairData.labels[lang]?.[prop2] || prop2,
-            tooltip: pairData.tooltips[lang]?.[prop2] || ''
-          })
-        })
-        symbolDataMap.value = newSymbolMap
+      console.log('[ConfigSelection] Symbol map:', Array.from(newSymbolMap.entries()))
 
-        console.log(`[ConfigSelection] Loaded ${data.configs.length} configs, ${pairsV2.length} property pairs (with symbols)`)
-      } else {
-        // Legacy format: simple pairs
-        propertyPairs.value = data.property_pairs as PropertyPair[]
-        symbolDataMap.value.clear()
+      console.log(`[ConfigSelection] Loaded ${data.configs.length} configs, ${uniqueCategories.length} categories`)
 
-        console.log(`[ConfigSelection] Loaded ${data.configs.length} configs, ${data.property_pairs.length} property pairs`)
-      }
+      // Keep property_pairs for backward compatibility (but unused)
+      propertyPairs.value = data.property_pairs as PropertyPair[]
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error loading configs'
       console.error('[ConfigSelection] Error loading configs:', err)
@@ -224,25 +219,19 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
   }
 
   /**
-   * Toggle property selection
-   * Implements XOR logic: selecting a property deselects its opposite
+   * Toggle category selection
+   * Implements XOR logic: Only ONE category active at a time
    *
-   * @param property - Property to toggle
+   * @param category - Category to toggle
    */
-  function toggleProperty(property: string) {
-    const opposite = propertyPairMap.value.get(property)
-
-    if (selectedProperties.value.has(property)) {
-      // Deselect property
-      selectedProperties.value.delete(property)
+  function toggleProperty(category: string) {
+    if (selectedProperties.value.has(category)) {
+      // Deselect category
+      selectedProperties.value.delete(category)
     } else {
-      // Select property
-      selectedProperties.value.add(property)
-
-      // Deselect opposite if it exists and is selected (XOR within pair)
-      if (opposite && selectedProperties.value.has(opposite)) {
-        selectedProperties.value.delete(opposite)
-      }
+      // Select category and deselect ALL others (XOR across all categories)
+      selectedProperties.value.clear()
+      selectedProperties.value.add(category)
     }
 
     // Trigger reactivity
@@ -304,7 +293,8 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
     // State
     selectedProperties: computed(() => Array.from(selectedProperties.value)),
     availableConfigs: computed(() => availableConfigs.value),
-    propertyPairs: computed(() => propertyPairs.value),
+    categories: computed(() => categories.value), // NEW: Categories list
+    propertyPairs: computed(() => propertyPairs.value), // DEPRECATED
     isLoading: computed(() => isLoading.value),
     error: computed(() => error.value),
     symbolsEnabled: computed(() => symbolsEnabled.value),

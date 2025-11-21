@@ -14,11 +14,7 @@
     "en": "Creative Transformations"
   },
   "properties": [
-    "chaotic",
-    "algorithmic",
-    "explore",
-    "playful",
-    "contemporary"
+    "semantics"
   ],
   "context": {
     "en": "Describe the exact diametral opposite. Entities as well as relations have to be turned into their opposites.\n\nExamples of inversions:\n- Spatial: above ↔ below, inside ↔ outside, near ↔ far, open ↔ closed\n- Visual: bright ↔ dark, large ↔ small, colorful ↔ monochrome, sharp ↔ blurred\n- Emotional: joy ↔ grief, calm ↔ agitated, hope ↔ despair, love ↔ hate\n- Social: friend ↔ enemy, together ↔ alone, harmony ↔ conflict, trust ↔ suspicion\n- Temporal: fast ↔ slow, new ↔ old, beginning ↔ end, growth ↔ decay\n- Material: hard ↔ soft, hot ↔ cold, heavy ↔ light, rough ↔ smooth\n\nInvert BOTH entities AND their relationships. If 'A supports B', then 'A opposes B' in the opposite.",
