@@ -27,6 +27,167 @@
 
 ---
 
+## Session 62 (2025-11-21): Stage 3 Integration Complete - Full 4-Stage Pipeline Working
+
+**Date:** 2025-11-21
+**Duration:** ~1.5 hours
+**Status:** ✅ COMPLETE - Full 4-stage orchestration now working
+**Branch:** develop
+
+### Task
+
+Complete Stage 3 integration into orchestrator (continuation of Session 61).
+
+**Goal:** Ensure translated English text from Stage 3 (`positive_prompt`) is used for Stage 4 media generation, NOT the German text from Stage 2.
+
+### Work Completed
+
+#### 1. Committed Session 61 Changes
+
+**Commit:** `6568cf9 - fix: Session 61 - Stage 2 multilingual output + critical bugfixes`
+
+**Files Committed (21 files):**
+- Critical bugfix: `translated_text` NameError → `checked_text`
+- Multilingual context selection in config_loader.py
+- Language instruction added to manipulate.json template
+- Stage 3 translation infrastructure (chunks + configs)
+- Frontend refactoring (property-based selection)
+
+#### 2. Architecture Consultation
+
+**Agent Used:** `devserver-architecture-expert`
+
+**Key Findings:**
+- Stage 3 function `execute_stage3_safety()` already exists and works correctly
+- Stage 3 properly returns `safety_result['positive_prompt']` with translated English text
+- **Problem identified:** Stage 4 was using `result.final_output` (German from Stage 2) instead of `safety_result['positive_prompt']` (English from Stage 3)
+
+#### 3. Fixed Stage 4 Prompt Usage
+
+**Location:** `devserver/my_app/routes/schema_pipeline_routes.py:845-874`
+
+**Problem:** Stage 4 media generation was using German text from Stage 2, not translated English text from Stage 3.
+
+**Solution:** Added conditional logic to determine correct prompt for Stage 4:
+
+```python
+# Determine prompt for Stage 4 (use translated text if Stage 3 ran)
+if not stage_3_blocked and safety_level != 'off' and not stage4_only:
+    # Stage 3 ran - use translated English text from positive_prompt
+    prompt_for_media = safety_result.get('positive_prompt', result.final_output)
+    logger.info(f"[4-STAGE] Using translated prompt from Stage 3 for media generation")
+else:
+    # Stage 3 skipped - use Stage 2 output directly
+    prompt_for_media = result.final_output
+    logger.info(f"[4-STAGE] Using Stage 2 output directly (Stage 3 skipped)")
+
+# Execute Output-Pipeline with translated/transformed text
+output_result = asyncio.run(pipeline_executor.execute_pipeline(
+    config_name=output_config_name,
+    input_text=prompt_for_media,  # CORRECT: Use translated English text!
+    user_input=prompt_for_media,
+    execution_mode=execution_mode
+))
+```
+
+**Changes:**
+- **Line 845-859:** Added `prompt_for_media` determination logic
+- **Line 871:** Changed `input_text=result.final_output` → `input_text=prompt_for_media`
+
+#### 4. Documentation Discovery: Correct API Endpoint
+
+**Issue:** SESSION_61_HANDOVER.md test scripts were calling wrong endpoint (`/transform` instead of `/execute`)
+
+**Consultation:** Read `ARCHITECTURE PART 11 - API-Routes.md`
+
+**Findings:**
+- `/api/schema/pipeline/transform` - Runs ONLY Stage 1+2 (no Stage 3+4)
+- `/api/schema/pipeline/execute` - Full 4-stage orchestration ✅ CORRECT
+
+**Lesson Learned:** Session 61's incorrect test endpoint led to false conclusions about Stage 3 integration status.
+
+#### 5. Testing & Verification
+
+**Test Command:**
+```bash
+curl -X POST "http://localhost:17802/api/schema/pipeline/execute" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "schema": "overdrive",
+  "input_text": "Ein Bild mit Bergen",
+  "user_language": "de",
+  "execution_mode": "eco",
+  "safety_level": "kids"
+}'
+```
+
+**Backend Logs:**
+```
+[4-STAGE] Using translated prompt from Stage 3 for media generation
+[4-STAGE] Stage 4: Executing output config 'sd35_large'
+[4-STAGE] Stage 4 successful for sd35_large: run_id=893465ac-8918-47e2-b1ae-31aeefe3fba5
+```
+
+**Result:** ✅ **SUCCESS!** - Full 4-stage pipeline working correctly:
+```
+German input "Ein Bild mit Bergen"
+  ↓
+Stage 1: Safety check ✅
+  ↓
+Stage 2: Interception (German output) ✅
+  ↓
+Stage 3: Translation (DE→EN) + Safety ✅ "positive_prompt" in English
+  ↓
+Stage 4: Media generation with English prompt ✅ run_id: 893465ac-8918-47e2-b1ae-31aeefe3fba5
+```
+
+### Current Architecture State
+
+**All 4 Stages Working:**
+```
+Stage 1: Safety Check (no translation, bilingual DE/EN)
+  ↓
+Stage 2: Interception + Optimization (in DEFAULT_LANGUAGE = German)
+  ↓
+Stage 3: Translation (German→English) + Safety Check
+  ↓
+Stage 4: Media Generation (with translated English prompt)
+```
+
+**API Endpoints:**
+- `/api/schema/pipeline/transform` - Stage 1+2 only (for testing/development)
+- `/api/schema/pipeline/execute` - Full 4-stage orchestration (production)
+
+### Files Modified
+
+**Backend (1 file):**
+- `devserver/my_app/routes/schema_pipeline_routes.py:845-874` - Fixed Stage 4 prompt usage
+
+### Key Learnings
+
+1. **Always verify endpoint names against actual code** - Don't trust handover docs without verification
+2. **Stage 3 was already working** - The problem was in Stage 4 using the wrong input
+3. **Conditional logic matters** - Different execution paths (stage4_only, safety_level='off') need different prompt sources
+4. **Backend logs are essential** - Log messages confirmed the fix: "Using translated prompt from Stage 3"
+
+### Cost Estimate
+
+**Model:** Claude Sonnet 4.5
+**Input Tokens:** ~40k
+**Output Tokens:** ~5k
+**Estimated Cost:** ~$0.25
+
+### Next Session Priorities
+
+1. **Commit this fix** - schema_pipeline_routes.py changes for Stage 4 prompt usage
+2. **Update SESSION_61_HANDOVER.md** - Correct test endpoint from `/transform` to `/execute`
+3. **Test edge cases:**
+   - `safety_level='off'` (Stage 3 skipped, should use Stage 2 output)
+   - `stage4_only=true` (direct to media generation)
+4. **Frontend integration** - Ensure UI handles full 4-stage response
+
+---
+
 ## Session 61 (2025-11-21): Stage 3 Translation Infrastructure + Critical Bugfixes
 
 **Date:** 2025-11-21
