@@ -245,6 +245,16 @@ class ConfigLoader:
 
             logger.debug(f"Creating Config object for {config_name}")
 
+            # Handle multilingual context (same as description)
+            json_context = data.get('context')
+            if isinstance(json_context, dict):
+                # Multilingual context - select based on DEFAULT_LANGUAGE
+                from config import DEFAULT_LANGUAGE
+                context = json_context.get(DEFAULT_LANGUAGE, json_context.get('en', ''))
+            else:
+                # Plain string context (backwards compatible)
+                context = json_context
+
             # Auto-inject meta.owner field
             meta = data.get('meta', {})
             if 'owner' not in meta:
@@ -257,7 +267,7 @@ class ConfigLoader:
                 display_name=display_name,
                 description=description,
                 category=data.get('category'),
-                context=data.get('context'),
+                context=context,
                 parameters=data.get('parameters'),
                 media_preferences=data.get('media_preferences'),
                 meta=meta

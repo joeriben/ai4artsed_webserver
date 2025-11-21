@@ -1,20 +1,31 @@
 <template>
   <div
-    :class="['config-tile', { dimmed: isDimmed, dragging: isDragging }]"
-    :style="tileStyle"
+    :class="['config-bubble', { dimmed: isDimmed, dragging: isDragging, 'long-pressing': isLongPressing }]"
+    :style="bubbleStyle"
     @mousedown="handleMouseDown"
     @touchstart="handleTouchStart"
     :data-config-id="config.id"
   >
-    <div class="tile-header">
-      <h3 class="tile-name">{{ config.name[currentLanguage] }}</h3>
-    </div>
-    <div class="tile-body">
-      <p class="tile-description">
-        {{ config.short_description[currentLanguage] }}
-      </p>
+    <!-- Preview image as background -->
+    <div class="preview-image" :style="previewImageStyle"></div>
+
+    <!-- Text badge overlay -->
+    <div class="text-badge">
+      {{ config.name[currentLanguage] }}
     </div>
   </div>
+
+  <!-- Long-press modal -->
+  <Teleport to="body">
+    <div v-if="showModal" class="config-modal-overlay" @click="closeModal">
+      <div class="config-modal" @click.stop>
+        <img v-if="previewImageUrl" :src="previewImageUrl" class="modal-preview" />
+        <h2>{{ config.name[currentLanguage] }}</h2>
+        <p class="modal-description">{{ config.description[currentLanguage] }}</p>
+        <button class="modal-close" @click="closeModal">{{ currentLanguage === 'de' ? 'Schließen' : 'Close' }}</button>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -56,13 +67,49 @@ const currentX = ref(props.x)
 const currentY = ref(props.y)
 const hasMoved = ref(false)
 
-const tileStyle = computed(() => ({
+// Long-press state
+const isLongPressing = ref(false)
+const showModal = ref(false)
+let longPressTimer: number | null = null
+const LONG_PRESS_DURATION = 500 // ms
+
+// Preview image URL
+const previewImageUrl = computed(() => {
+  // Map config.id to preview image
+  // e.g., "dada" -> "/config-previews/dada.png"
+  return `/config-previews/${props.config.id}.png`
+})
+
+const bubbleStyle = computed(() => ({
   left: `${currentX.value}px`,
   top: `${currentY.value}px`
 }))
 
+const previewImageStyle = computed(() => ({
+  backgroundImage: `url(${previewImageUrl.value})`
+}))
+
+function startLongPressTimer() {
+  longPressTimer = window.setTimeout(() => {
+    isLongPressing.value = true
+    showModal.value = true
+    isDragging.value = false // Cancel drag if long-press triggered
+  }, LONG_PRESS_DURATION)
+}
+
+function cancelLongPressTimer() {
+  if (longPressTimer !== null) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
+  isLongPressing.value = false
+}
+
+function closeModal() {
+  showModal.value = false
+}
+
 function handleMouseDown(event: MouseEvent) {
-  // Prevent default to avoid text selection
   event.preventDefault()
 
   isDragging.value = true
@@ -70,7 +117,9 @@ function handleMouseDown(event: MouseEvent) {
   dragStartX.value = event.clientX - currentX.value
   dragStartY.value = event.clientY - currentY.value
 
-  // Add global listeners
+  // Start long-press timer
+  startLongPressTimer()
+
   document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
 }
@@ -81,26 +130,30 @@ function handleMouseMove(event: MouseEvent) {
   hasMoved.value = true
   currentX.value = event.clientX - dragStartX.value
   currentY.value = event.clientY - dragStartY.value
+
+  // Cancel long-press if moved
+  if (hasMoved.value) {
+    cancelLongPressTimer()
+  }
 }
 
 function handleMouseUp(event: MouseEvent) {
-  if (!isDragging.value) return
+  if (!isDragging.value && !isLongPressing.value) return
 
   isDragging.value = false
+  cancelLongPressTimer()
 
-  // Remove global listeners
   document.removeEventListener('mousemove', handleMouseMove)
   document.removeEventListener('mouseup', handleMouseUp)
 
-  // If tile wasn't moved, treat it as a click
-  if (!hasMoved.value) {
+  // Tap (no move, no long-press) = select
+  if (!hasMoved.value && !isLongPressing.value) {
     emit('select', props.config.id)
   }
 }
 
 // Touch event handlers for iPad/mobile support
 function handleTouchStart(event: TouchEvent) {
-  // Prevent default to avoid text selection and scrolling
   event.preventDefault()
 
   const touch = event.touches[0]
@@ -111,7 +164,9 @@ function handleTouchStart(event: TouchEvent) {
   dragStartX.value = touch.clientX - currentX.value
   dragStartY.value = touch.clientY - currentY.value
 
-  // Add global listeners
+  // Start long-press timer
+  startLongPressTimer()
+
   document.addEventListener('touchmove', handleTouchMove, { passive: false })
   document.addEventListener('touchend', handleTouchEnd)
 }
@@ -119,7 +174,7 @@ function handleTouchStart(event: TouchEvent) {
 function handleTouchMove(event: TouchEvent) {
   if (!isDragging.value) return
 
-  event.preventDefault() // Prevent scrolling while dragging
+  event.preventDefault()
 
   const touch = event.touches[0]
   if (!touch) return
@@ -127,25 +182,31 @@ function handleTouchMove(event: TouchEvent) {
   hasMoved.value = true
   currentX.value = touch.clientX - dragStartX.value
   currentY.value = touch.clientY - dragStartY.value
+
+  // Cancel long-press if moved
+  if (hasMoved.value) {
+    cancelLongPressTimer()
+  }
 }
 
 function handleTouchEnd(event: TouchEvent) {
-  if (!isDragging.value) return
+  if (!isDragging.value && !isLongPressing.value) return
 
   isDragging.value = false
+  cancelLongPressTimer()
 
-  // Remove global listeners
   document.removeEventListener('touchmove', handleTouchMove)
   document.removeEventListener('touchend', handleTouchEnd)
 
-  // If tile wasn't moved, treat it as a tap
-  if (!hasMoved.value) {
+  // Tap (no move, no long-press) = select
+  if (!hasMoved.value && !isLongPressing.value) {
     emit('select', props.config.id)
   }
 }
 
 // Cleanup on unmount
 onUnmounted(() => {
+  cancelLongPressTimer()
   document.removeEventListener('mousemove', handleMouseMove)
   document.removeEventListener('mouseup', handleMouseUp)
   document.removeEventListener('touchmove', handleTouchMove)
@@ -160,63 +221,136 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.config-tile {
+/* Round config bubble with preview image */
+.config-bubble {
   position: absolute;
-  width: 260px;
-  min-height: 120px;
-  background: rgba(20, 20, 20, 0.95);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 24px; /* More playful, rounder */
-  padding: 18px;
-  cursor: grab;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transform: translate(-50%, -50%); /* Center on position */
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.config-tile:hover {
-  background: rgba(30, 30, 30, 0.98);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%) scale(1.02);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+.config-bubble:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
-.config-tile.dimmed {
+.config-bubble.dimmed {
   opacity: 0.3;
   pointer-events: none;
 }
 
-.tile-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 8px;
-}
-
-.tile-name {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.tile-body {
-  flex: 1;
-}
-
-.tile-description {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* Dragging state */
-.config-tile.dragging {
+.config-bubble.dragging {
   cursor: grabbing;
-  transform: translate(-50%, -50%) scale(1.05);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   z-index: 1000;
-  user-select: none;
+}
+
+.config-bubble.long-pressing {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* Preview image background */
+.preview-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Text badge overlay (bottom) */
+.text-badge {
+  position: absolute;
+  bottom: 8%;
+  left: 5%;
+  right: 5%;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  padding: 10px 6px;
+  border-radius: 10px;
+  line-height: 1.3;
+  max-height: 45px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Long-press modal */
+.config-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(8px);
+}
+
+.config-modal {
+  background: rgba(20, 20, 20, 0.98);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 32px;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8);
+}
+
+.modal-preview {
+  width: 100%;
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.config-modal h2 {
+  margin: 0 0 16px 0;
+  color: white;
+  font-size: 24px;
+}
+
+.modal-description {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.modal-close {
+  width: 100%;
+  padding: 12px;
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  border: 2px solid #60a5fa;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #60a5fa;
+  color: black;
 }
 </style>

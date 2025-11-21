@@ -326,7 +326,7 @@ def transform_prompt():
                     if model_used and backend_used:
                         break
 
-        logger.info(f"[TRANSFORM] Stage 2 completed: '{translated_text}' → '{result.final_output}'")
+        logger.info(f"[TRANSFORM] Stage 2 completed: '{checked_text}' → '{result.final_output}'")
 
         stage2_output = {
             'interception_result': result.final_output,

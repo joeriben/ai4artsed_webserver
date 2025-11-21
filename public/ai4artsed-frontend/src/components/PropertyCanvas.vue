@@ -75,8 +75,15 @@ function calculateCategoryPositions() {
   const centerX = props.canvasWidth / 2
   const centerY = props.canvasHeight / 2
 
-  // Circle radius
-  const radius = 100
+  console.log('[PropertyCanvas] Calculating category positions:', {
+    canvasWidth: props.canvasWidth,
+    canvasHeight: props.canvasHeight,
+    centerX,
+    centerY
+  })
+
+  // Circle radius (proportional zur Bubble-Größe)
+  const radius = 125
 
   // Freestyle in center
   if (categories.value.includes('freestyle')) {
@@ -127,7 +134,7 @@ function handleUpdatePosition(category: string, x: number, y: number) {
   // Circular boundary constraint (same radius as calculateCategoryPositions)
   const centerX = props.canvasWidth / 2
   const centerY = props.canvasHeight / 2
-  const radius = 100  // Match radius from calculateCategoryPositions
+  const radius = 125  // Match radius from calculateCategoryPositions
 
   // Check distance from center
   const distFromCenter = Math.sqrt(

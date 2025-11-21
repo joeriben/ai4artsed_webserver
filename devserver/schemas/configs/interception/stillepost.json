@@ -2,8 +2,8 @@
   "pipeline": "text_transformation_recursive",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "StillePost",
-    "de": "StillePost"
+    "en": "Telephone",
+    "de": "Stille Post"
   },
   "description": {
     "en": "Passes your text through 8 random languages like a game of telephone. Creates surprising changes as meaning shifts through multiple translations.",

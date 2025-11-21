@@ -16,42 +16,10 @@
       </button>
     </div>
 
-    <!-- Main canvas (single canvas, no grid!) -->
-    <div v-else class="main-canvas">
-      <!-- Categories in center -->
-      <PropertyCanvas
-        :selected-properties="store.selectedProperties"
-        :canvas-width="canvasWidth"
-        :canvas-height="canvasHeight"
-        @toggle-property="handlePropertyToggle"
-      />
-
-      <!-- Configs distributed across entire canvas (avoiding property area) -->
-      <!-- Only show after user selects properties -->
-      <ConfigCanvas
-        v-if="store.selectedProperties.length > 0"
-        :configs="store.filteredConfigs"
-        :selected-properties="store.selectedProperties"
-        :match-count="store.matchCount"
-        :canvas-width="canvasWidth"
-        :canvas-height="canvasHeight"
-        :is-dimmed="store.hasNoMatch"
-        :current-language="currentLanguage"
-        @select-config="handleConfigSelect"
-      />
-
-      <!-- No-match overlay -->
-      <NoMatchState
-        v-if="store.hasNoMatch"
-        :partial-matches="store.partialMatches"
-        :selected-properties-count="store.selectedProperties.length"
-        :current-language="currentLanguage"
-        @clear-selection="store.clearAllProperties()"
-        @select-config="handleConfigSelect"
-      />
-
+    <!-- Main layout with header -->
+    <div v-else class="main-layout">
       <!-- Header controls -->
-      <div class="header-controls">
+      <header class="header-controls">
         <h1 class="page-title">
           {{ currentLanguage === 'en' ? 'Select Configuration' : 'Konfiguration auswählen' }}
         </h1>
@@ -64,13 +32,48 @@
             {{ currentLanguage === 'en' ? 'Clear selection' : 'Auswahl löschen' }}
           </button>
         </div>
+      </header>
+
+      <!-- Canvas area (takes remaining space) -->
+      <div class="canvas-area" ref="canvasAreaRef">
+        <!-- Categories in center -->
+        <PropertyCanvas
+          :selected-properties="store.selectedProperties"
+          :canvas-width="canvasWidth"
+          :canvas-height="canvasHeight"
+          @toggle-property="handlePropertyToggle"
+        />
+
+        <!-- Configs distributed across entire canvas (avoiding property area) -->
+        <!-- Only show after user selects properties -->
+        <ConfigCanvas
+          v-if="store.selectedProperties.length > 0"
+          :configs="store.filteredConfigs"
+          :selected-properties="store.selectedProperties"
+          :match-count="store.matchCount"
+          :canvas-width="canvasWidth"
+          :canvas-height="canvasHeight"
+          :is-dimmed="store.hasNoMatch"
+          :current-language="currentLanguage"
+          @select-config="handleConfigSelect"
+        />
+
+        <!-- No-match overlay -->
+        <NoMatchState
+          v-if="store.hasNoMatch"
+          :partial-matches="store.partialMatches"
+          :selected-properties-count="store.selectedProperties.length"
+          :current-language="currentLanguage"
+          @clear-selection="store.clearAllProperties()"
+          @select-config="handleConfigSelect"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigSelectionStore } from '@/stores/configSelection'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
@@ -98,13 +101,28 @@ const router = useRouter()
 // Language from global store (site-wide preference)
 const currentLanguage = computed(() => userPreferences.language)
 
-// Canvas dimensions (full viewport)
+// Canvas dimensions (measured from actual canvas area)
 const canvasWidth = ref(0)
 const canvasHeight = ref(0)
+const canvasAreaRef = ref<HTMLElement | null>(null)
 
 function updateCanvasDimensions() {
-  canvasWidth.value = window.innerWidth
-  canvasHeight.value = window.innerHeight
+  if (canvasAreaRef.value) {
+    const rect = canvasAreaRef.value.getBoundingClientRect()
+    canvasWidth.value = rect.width
+    canvasHeight.value = rect.height
+    console.log('[PropertyQuadrants] Canvas dimensions measured:', {
+      width: canvasWidth.value,
+      height: canvasHeight.value,
+      centerX: canvasWidth.value / 2,
+      centerY: canvasHeight.value / 2
+    })
+  } else {
+    // Fallback during initial mount
+    canvasWidth.value = window.innerWidth
+    canvasHeight.value = window.innerHeight
+    console.warn('[PropertyQuadrants] canvasAreaRef not ready, using window dimensions')
+  }
 }
 
 function handlePropertyToggle(property: string) {
@@ -123,14 +141,15 @@ function handleConfigSelect(configId: string) {
   router.push({ name: 'pipeline-execution', params: { configId } })
 }
 
-onMounted(() => {
+onMounted(async () => {
   // Clear any previous selection (fresh start)
   store.clearAllProperties()
 
   // Load configs from API
   store.loadConfigs()
 
-  // Set initial dimensions
+  // Wait for DOM to be ready, then measure canvas dimensions
+  await nextTick()
   updateCanvasDimensions()
 
   // Update on window resize
@@ -213,9 +232,10 @@ onUnmounted(() => {
   transform: scale(1.05);
 }
 
-/* Main canvas layout */
-.main-canvas {
-  position: relative;
+/* Main layout with flexbox */
+.main-layout {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -224,17 +244,22 @@ onUnmounted(() => {
 
 /* Header controls */
 .header-controls {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 20px 40px;
+  flex-shrink: 0;
+  padding: 1.25rem 2.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(to bottom, rgba(10, 10, 10, 0.95), transparent);
-  pointer-events: none;
+  background: rgba(10, 10, 10, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 150;
+}
+
+/* Canvas area (fills remaining space) */
+.canvas-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0a;
 }
 
 .page-title {

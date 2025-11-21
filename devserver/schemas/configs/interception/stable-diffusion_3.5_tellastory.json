@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "Stable-Diffusion 3.5 TellAStory",
-    "de": "Stable-Diffusion 3.5 TellAStory"
+    "en": "Storyteller",
+    "de": "Geschichtenerzähler"
   },
   "description": {
     "en": "Optimizes your prompt specifically for Stable Diffusion 3.5 to tell visual stories. Structures your ideas for narrative image generation.",

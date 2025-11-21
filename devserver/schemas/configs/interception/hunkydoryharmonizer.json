@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "HunkyDoryHarmonizer",
-    "de": "HunkyDoryHarmonizer"
+    "en": "Sweetener",
+    "de": "Verniedlicher"
   },
   "description": {
     "en": "Makes everything feel harmonious and cute. Softens sharp edges and creates a calm, balanced atmosphere.",

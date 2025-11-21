@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "YorubaHeritage",
-    "de": "YorubaHeritage"
+    "en": "Yoruba",
+    "de": "Yoruba"
   },
   "description": {
     "en": "Critical examination tool: Tests AI's severe limitations in handling Yorùbá cultural knowledge. Not for authentic cultural representation - AI cannot adequately represent complex cultural frameworks. This tool demonstrates how generative AI struggles with cultural specifics and reveals its fundamental indifference to cultural nuances.",

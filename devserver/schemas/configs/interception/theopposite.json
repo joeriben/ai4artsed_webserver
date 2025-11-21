@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "TheOpposite",
-    "de": "TheOpposite"
+    "en": "On the Contrary!",
+    "de": "Im Gegenteil!"
   },
   "description": {
     "en": "Flips everything to its exact opposite. Bright becomes dark, happy becomes sad, and all relationships reverse completely.",

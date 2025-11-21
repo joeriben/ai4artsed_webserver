@@ -199,13 +199,13 @@ function stopDragTouch(event: TouchEvent) {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 80px;  /* Fixed size for perfect circles */
-  height: 80px;
+  width: 100px;  /* 25% larger: 80px × 1.25 */
+  height: 100px;
   justify-content: center;
 }
 
 .property-symbol {
-  font-size: 32px;  /* MUCH larger icons */
+  font-size: 40px;  /* 25% larger: 32px × 1.25 */
   line-height: 1;
   flex-shrink: 0;
 }

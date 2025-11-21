@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "UK Youth Slang",
-    "de": "Britische Jugendsprache"
+    "en": "Slang",
+    "de": "Jugendslang"
   },
   "description": {
     "en": "Rewrites everything in UK street slang used by teens in urban areas. Uses words from Drill, Grime, and Trap culture.",

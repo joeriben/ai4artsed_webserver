@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "Overdrive",
-    "de": "Übertreiben"
+    "en": "Amplifier",
+    "de": "Übertreiber!"
   },
   "description": {
     "en": "Overdrive. Inspired by the guitar effect of the same name. Drives visual elements to and beyond their limits. Amplifies colors, contrasts and structures to the point of distortion.",

@@ -1,7 +1,7 @@
 {
   "name": "manipulate",
   "description": "Prompt Interception: Three-part transformation (TASK + USER_RULES + PROMPT)",
-  "template": "Task:\n{{TASK_INSTRUCTION}}\n\nContext:\n{{USER_INPUT}}\n\nPrompt:\n{{INPUT_TEXT}}",
+  "template": "Task:\n{{TASK_INSTRUCTION}}\n\nContext:\n{{USER_INPUT}}\n\nImportant: Respond in the same language as the input prompt below.\n\nPrompt:\n{{INPUT_TEXT}}",
   "backend_type": "ollama",
   "model": "STAGE2_MODEL",
   "parameters": {

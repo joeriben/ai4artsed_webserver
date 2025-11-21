@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "PigLatin",
-    "de": "PigLatin"
+    "en": "Word Game",
+    "de": "Sprachspiel"
   },
   "description": {
     "en": "Transforms text into Pig Latin by moving consonants to the end and adding 'ay'. A playful language game that makes familiar words sound strange.",

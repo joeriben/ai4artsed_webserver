@@ -56,18 +56,60 @@ const emit = defineEmits<{
   selectConfig: [configId: string]
 }>()
 
-// Tile dimensions (must match ConfigTile.vue)
-const TILE_WIDTH = 260
-const TILE_HEIGHT = 120
-const TILE_MARGIN = 50 // Minimum spacing between tiles (increased for better breathing room)
+// Bubble dimensions (must match ConfigTile.vue - round bubbles now!)
+const BUBBLE_DIAMETER = 240
+const BUBBLE_SPACING = 80 // Minimum spacing between bubbles
 
 // Positioned configs
 const positionedConfigs = ref<ConfigWithPosition[]>([])
 
+// Category positions (must match PropertyCanvas.vue)
+const CATEGORY_RADIUS = 125 // Distance from canvas center to category bubbles
+const CATEGORY_BUBBLE_SIZE = 100 // Category bubble diameter
+
 /**
- * Calculate tile positions using grid+jitter algorithm
- * Prevents overlaps while maintaining random appearance
- * Avoids upper-left property area (40% width, 40% height)
+ * Get category bubble position (matches PropertyCanvas.vue logic)
+ */
+function getCategoryPosition(category: string): { x: number; y: number } {
+  const centerX = props.canvasWidth / 2
+  const centerY = props.canvasHeight / 2
+
+  console.log('[ConfigCanvas] Getting category position for', category, {
+    canvasWidth: props.canvasWidth,
+    canvasHeight: props.canvasHeight,
+    centerX,
+    centerY
+  })
+
+  // Freestyle in center
+  if (category === 'freestyle') {
+    return { x: centerX, y: centerY }
+  }
+
+  // Other categories in X-formation around center
+  const otherCategories = ['semantics', 'aesthetics', 'arts', 'heritage'].filter(c => {
+    // Only include categories that exist in configs
+    return props.configs.some(cfg => cfg.properties.includes(c))
+  })
+
+  const index = otherCategories.indexOf(category)
+  if (index === -1) {
+    // Fallback for unknown category
+    return { x: centerX, y: centerY }
+  }
+
+  const angleStep = (2 * Math.PI) / otherCategories.length
+  const angle = index * angleStep - Math.PI / 4 // -45° start (X-formation)
+
+  const x = centerX + Math.cos(angle) * CATEGORY_RADIUS
+  const y = centerY + Math.sin(angle) * CATEGORY_RADIUS
+
+  return { x, y }
+}
+
+/**
+ * Calculate config bubble positions clustered around their category bubbles
+ * Uses circular arrangement around each category
  */
 function calculatePositions() {
   const configs = [...props.configs]
@@ -77,86 +119,46 @@ function calculatePositions() {
     return
   }
 
-  // Calculate grid dimensions
-  const effectiveTileWidth = TILE_WIDTH + TILE_MARGIN
-  const effectiveTileHeight = TILE_HEIGHT + TILE_MARGIN
-
-  const cols = Math.floor(props.canvasWidth / effectiveTileWidth)
-  const rows = Math.floor(props.canvasHeight / effectiveTileHeight)
-
-  if (cols === 0 || rows === 0) {
-    console.warn('[ConfigCanvas] Canvas too small for tiles')
-    positionedConfigs.value = []
-    return
-  }
-
-  // Property area bounds (upper-left 55% x 60% - must match PropertyCanvas!)
-  const propertyAreaWidth = props.canvasWidth * 0.55
-  const propertyAreaHeight = props.canvasHeight * 0.6
-
-  /**
-   * Check if a grid cell is in the property area (to avoid)
-   */
-  function isInPropertyArea(x: number, y: number): boolean {
-    return x < propertyAreaWidth && y < propertyAreaHeight
-  }
-
-  // Create grid cells (excluding property area)
-  const gridCells: Array<{ x: number; y: number }> = []
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const x = col * effectiveTileWidth + effectiveTileWidth / 2
-      const y = row * effectiveTileHeight + effectiveTileHeight / 2
-
-      // Skip cells in property area
-      if (!isInPropertyArea(x, y)) {
-        gridCells.push({ x, y })
-      }
+  // Group configs by category
+  const configsByCategory = new Map<string, ConfigMetadata[]>()
+  configs.forEach(config => {
+    const category = config.properties[0] || 'freestyle' // First property is category
+    if (!configsByCategory.has(category)) {
+      configsByCategory.set(category, [])
     }
-  }
+    configsByCategory.get(category)!.push(config)
+  })
 
-  // Shuffle grid cells for random distribution
-  const shuffledCells = shuffleArray(gridCells)
-
-  // Assign positions
+  // Position configs around their category bubbles
   const positioned: ConfigWithPosition[] = []
-  configs.forEach((config, index) => {
-    if (index >= shuffledCells.length) {
-      console.warn(`[ConfigCanvas] Not enough grid cells for ${configs.length} configs`)
-      return
-    }
 
-    const cell = shuffledCells[index]
-    if (!cell) return // Type guard
+  configsByCategory.forEach((categoryConfigs, category) => {
+    const categoryPos = getCategoryPosition(category)
 
-    // Add jitter (±15% of tile spacing for randomness, reduced to prevent overlaps)
-    const jitterX = (Math.random() - 0.5) * effectiveTileWidth * 0.3
-    const jitterY = (Math.random() - 0.5) * effectiveTileHeight * 0.3
+    // Calculate radius for this cluster based on number of configs
+    const numConfigs = categoryConfigs.length
+    const clusterRadius = CATEGORY_BUBBLE_SIZE / 2 + BUBBLE_DIAMETER / 2 + BUBBLE_SPACING
 
-    positioned.push({
-      ...config,
-      position: {
-        x: Math.max(TILE_WIDTH / 2, Math.min(props.canvasWidth - TILE_WIDTH / 2, cell.x + jitterX)),
-        y: Math.max(TILE_HEIGHT / 2, Math.min(props.canvasHeight - TILE_HEIGHT / 2, cell.y + jitterY))
-      }
+    // Arrange configs in circle around category bubble
+    const angleStep = (2 * Math.PI) / numConfigs
+
+    categoryConfigs.forEach((config, index) => {
+      const angle = index * angleStep
+      const x = categoryPos.x + Math.cos(angle) * clusterRadius
+      const y = categoryPos.y + Math.sin(angle) * clusterRadius
+
+      // Clamp to canvas bounds
+      const clampedX = Math.max(BUBBLE_DIAMETER / 2, Math.min(props.canvasWidth - BUBBLE_DIAMETER / 2, x))
+      const clampedY = Math.max(BUBBLE_DIAMETER / 2, Math.min(props.canvasHeight - BUBBLE_DIAMETER / 2, y))
+
+      positioned.push({
+        ...config,
+        position: { x: clampedX, y: clampedY }
+      })
     })
   })
 
   positionedConfigs.value = positioned
-}
-
-/**
- * Fisher-Yates shuffle algorithm
- */
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array]
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    const temp = shuffled[i]
-    shuffled[i] = shuffled[j]!
-    shuffled[j] = temp!
-  }
-  return shuffled
 }
 
 function handleConfigSelect(configId: string) {

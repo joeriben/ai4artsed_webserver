@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "TechnicalDrawing",
-    "de": "TechnicalDrawing"
+    "en": "Technical",
+    "de": "Technisch"
   },
   "description": {
     "en": "Translates everything into cold engineering language. Living beings become mechanical assemblies, emotions become operational states, and poetry becomes technical specifications.",
