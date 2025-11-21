@@ -27,6 +27,152 @@
 
 ---
 
+## Session 62 Part 2 (2025-11-21): Context Placeholder Bug + Media Selection Regression Fix
+
+**Date:** 2025-11-21 (Evening)
+**Duration:** ~1 hour
+**Status:** ✅ COMPLETE - Both critical bugs fixed
+**Branch:** develop
+
+### User-Reported Issues
+
+After frontend refactoring completion, user tested and discovered:
+
+1. **Context not being followed accurately** - Renaissance config → "Landschaftsmalerei des 17. Jh" (too generic, not following detailed Renaissance instructions)
+2. **No media-specific optimization** - Phase 2 interface missing media selection that was implemented in Session 58
+
+### Root Cause Analysis
+
+#### Issue 1: Wrong Placeholder in manipulate.json
+
+**Location:** `devserver/schemas/chunks/manipulate.json:4`
+
+**Problem:** Template was using `{{USER_INPUT}}` instead of `{{CONTEXT}}` in the Context section
+
+**Discovery Process:**
+1. Read Renaissance config → Found detailed context with specific Renaissance principles
+2. Read instruction_selector.py → Found generic artistic_transformation instruction used as TASK_INSTRUCTION
+3. Read chunk_builder.py:115-133 → Discovered placeholder mapping:
+   - `TASK_INSTRUCTION` = Generic instruction from instruction_selector
+   - `CONTEXT` = Config's detailed context field (Renaissance-specific!)
+   - `USER_INPUT` = Original user input (e.g., "Ein Bild mit Bergen")
+   - `INPUT_TEXT` = Processed input text
+
+**What was sent to LLM:**
+```
+Task: [Generic artistic_transformation instructions]
+Context: Ein Bild mit Bergen  ← WRONG! Just repeats input!
+Prompt: Ein Bild mit Bergen
+```
+
+**What should be sent:**
+```
+Task: [Generic artistic_transformation instructions]
+Context: [Renaissance-specific instructions about proportion, perspective, light...]  ← CORRECT!
+Prompt: Ein Bild mit Bergen
+```
+
+#### Issue 2: Media Selection Regression
+
+**Location:** `public/ai4artsed-frontend/src/views/Phase2CreativeFlowView.vue:177`
+
+**Problem:** Session 61 property refactoring accidentally removed Session 58's media selection visibility
+
+**Session 58 (CORRECT):**
+```vue
+<div class="media-selection-panel media-selection-persistent">
+  <span v-if="!transformedPrompt">Wähle zuerst dein Medium:</span>
+```
+→ Panel always visible, title changes based on state
+
+**Current Code (WRONG):**
+```vue
+<div v-if="transformedPrompt" class="media-selection-panel">
+```
+→ Panel only visible AFTER transformation
+
+**Impact:** Users couldn't select media before transformation, so Stage 2 couldn't optimize for specific media type
+
+### Fixes Applied
+
+#### Fix 1: Context Placeholder (Backend)
+
+**File:** `devserver/schemas/chunks/manipulate.json`
+```diff
+- "Context:\n{{USER_INPUT}}\n\n"
++ "Context:\n{{CONTEXT}}\n\n"
+```
+
+**Result:** Config-specific contexts now properly passed to Stage 2
+
+#### Fix 2: Media Selection Restoration (Frontend)
+
+**Files Modified:**
+1. `Phase2CreativeFlowView.vue`:
+   - Removed `v-if="transformedPrompt"` from media panel
+   - Added conditional title text (before/after transformation)
+   - Transform button disabled without media selection
+   - Added warning hint "⬆️ Zuerst Medium wählen!"
+   - Added `output_config: selectedMediaConfig.value` to API call (line 630)
+
+2. `api.ts`:
+   - Added `output_config?: string` field to TransformRequest interface
+
+**Result:** Media choice moved back to BEFORE transformation (Session 58 architecture restored)
+
+### Testing
+
+**Test Command:**
+```bash
+curl -X POST "http://localhost:17802/api/schema/pipeline/execute" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema": "renaissance",
+    "input_text": "Ein Junge flüstert einem Mädchen etwas ins Ohr",
+    "user_language": "de",
+    "execution_mode": "eco",
+    "safety_level": "kids"
+  }'
+```
+
+**Result:** ✅ SUCCESS
+- Renaissance context properly followed
+- Detailed output: "Ein Gemälde auf grundierter Holztafel, ausgeführt in Tempera mit abschließenden Ölglasuren. Zwei jugendliche Figuren füllen den Bildraum..."
+- SD3.5 image generation successful (run_id: f6f40d19-cb46-4f0e-8c22-f4015b5356fb)
+- Full 4-stage pipeline working
+
+### Files Modified
+
+**Backend (1 file):**
+- `devserver/schemas/chunks/manipulate.json` - Context placeholder fix
+
+**Frontend (2 files):**
+- `public/ai4artsed-frontend/src/views/Phase2CreativeFlowView.vue` - Media panel visibility + API parameter
+- `public/ai4artsed-frontend/src/services/api.ts` - TransformRequest interface
+
+**Documentation (3 files):**
+- Updated automatically during commit
+
+### Key Learnings
+
+1. **Placeholder Naming Matters:** `USER_INPUT` vs `CONTEXT` - similar names but completely different data sources
+2. **Refactoring Can Break Features:** Session 61's property refactoring accidentally removed Session 58's media selection
+3. **Test After Frontend Changes:** User testing caught both issues immediately
+4. **Architecture Knowledge:** Consulting instruction_selector.py + chunk_builder.py was crucial to understanding the placeholder system
+
+### Related Sessions
+
+- **Session 58:** Original media selection implementation (ea2f978)
+- **Session 61:** Property refactoring that caused regression
+- **Session 62 Part 1:** Stage 3 integration (same day, earlier)
+
+### Cost Estimate
+
+**Model:** Claude Sonnet 4.5
+**Estimated Cost:** ~$0.80 (investigation + fixes + testing)
+
+---
+
 ## Session 63 (2025-11-21): PropertyCanvas Refactoring Documentation
 
 **Date:** 2025-11-21
