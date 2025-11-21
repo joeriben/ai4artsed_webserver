@@ -253,3 +253,292 @@ When testing Frontend changes:
 
 ---
 
+## Vue Frontend v2.0.0 (Property Selection Interface)
+
+**Status:** ✅ Active (2025-11-21)
+**Location:** `/public/ai4artsed-frontend/`
+**Technology:** Vue 3 + TypeScript + Vite
+
+### Architecture Overview
+
+The Vue frontend implements a visual property-based configuration selection system, allowing users to explore AI art generation configs through an interactive bubble interface.
+
+**Core Flow:**
+```
+PropertyQuadrantsView (Parent)
+    ↓
+PropertyCanvas (Unified Component)
+    ↓
+PropertyBubble (Category bubbles) + Config Bubbles (Configuration selection)
+```
+
+### Key Components
+
+#### 1. PropertyCanvas.vue (Unified Component)
+
+**Purpose:** Displays category bubbles and configuration bubbles in a single coordinate system
+
+**Location:** `/public/ai4artsed-frontend/src/components/PropertyCanvas.vue`
+
+**Architecture Decision (2025-11-21, Commits e266628 + be3f247):**
+
+Previously split into two separate components (PropertyCanvas + ConfigCanvas), which caused coordinate system mismatches. The two components used different positioning logic, resulting in config bubbles appearing in incorrect locations.
+
+**Solution:** Merged ConfigCanvas functionality into PropertyCanvas, creating a single unified component with one coordinate system.
+
+**Key Features:**
+- **Unified Coordinate System:** All bubbles (category + config) use percentage-based positioning within the same container
+- **Responsive Sizing:** Container dimensions calculated as `min(70vw, 70vh)` for consistent scaling
+- **X-Formation Layout:** 5 category bubbles arranged in X-pattern with Freestyle in center
+- **Dynamic Config Display:** Config bubbles appear in circular arrangement around selected category
+- **Touch Support:** iPad/mobile-friendly touch events
+- **Config Preview Images:** Displays preview images from `/config-previews/{config-id}.png`
+- **Text Badge Overlay:** Black semi-transparent badge at 8% from bottom (matching ConfigTile design)
+
+**Coordinate System:**
+```typescript
+// All positions in percentage (0-100) relative to cluster-wrapper
+const categoryPositions: Record<string, CategoryPosition> = {
+  freestyle: { x: 50, y: 50 },      // Center
+  semantics: { x: 72, y: 28 },       // Top-right (45°)
+  aesthetics: { x: 72, y: 72 },      // Bottom-right (135°)
+  arts: { x: 28, y: 72 },            // Bottom-left (225°)
+  heritage: { x: 28, y: 28 },        // Top-left (315°)
+}
+```
+
+**Config Bubble Positioning:**
+```typescript
+// Configs arranged in circle around their parent category
+const angle = (index / visibleConfigs.length) * 2 * Math.PI
+const configX = categoryX + Math.cos(angle) * OFFSET_DISTANCE
+const configY = categoryY + Math.sin(angle) * OFFSET_DISTANCE
+```
+
+**Styling:**
+- **Category Bubbles:** 100px diameter, glassmorphic effect, category-specific colors
+- **Config Bubbles:** 240px diameter, preview image background, text badge overlay
+- **Transitions:** Smooth fade-in/out for config bubbles (config-fade transition)
+- **Hover Effects:** Scale transforms on hover (category: 1.05, config: 1.08)
+
+**Bug Fixed (Commit e266628):**
+```
+BEFORE (Two Components):
+PropertyCanvas → percentage positioning
+ConfigCanvas → pixel positioning + different center calculation
+Result: Configs appeared top-right, not around categories
+
+AFTER (Unified):
+PropertyCanvas → single percentage-based coordinate system
+Result: Configs correctly positioned around categories
+```
+
+#### 2. PropertyBubble.vue (Category Bubble Component)
+
+**Purpose:** Individual category bubble with emoji symbol and color
+
+**Location:** `/public/ai4artsed-frontend/src/components/PropertyBubble.vue`
+
+**Features:**
+- Percentage-based absolute positioning
+- Draggable within container bounds
+- Selection state management
+- Emoji symbols with category colors
+- Glassmorphic styling
+
+**Props:**
+- `property: string` - Category identifier (e.g., "semantics")
+- `color: string` - Hex color for category
+- `is-selected: boolean` - Selection state
+- `x: number` - X position in percentage (0-100)
+- `y: number` - Y position in percentage (0-100)
+- `symbol-data: SymbolData` - Emoji and metadata
+
+#### 3. PropertyQuadrantsView.vue (Parent View)
+
+**Purpose:** Container view managing layout and responsive sizing
+
+**Location:** `/public/ai4artsed-frontend/src/views/PropertyQuadrantsView.vue`
+
+**Responsibilities:**
+- Header with title and "Clear Selection" button
+- ResizeObserver for responsive canvas dimensions
+- Props passing to PropertyCanvas
+- Navigation to pipeline execution
+
+**Layout:**
+```vue
+<div class="property-view">
+  <header>
+    <h1>Konfiguration auswählen</h1>
+    <button v-if="hasSelection">Auswahl löschen</button>
+  </header>
+  <div class="canvas-area">
+    <PropertyCanvas :selected-properties="selectedProperties" />
+  </div>
+</div>
+```
+
+#### 4. ConfigTile.vue (Grid View Component)
+
+**Purpose:** Alternative grid-based config selection (not used in PropertyCanvas)
+
+**Location:** `/public/ai4artsed-frontend/src/components/ConfigTile.vue`
+
+**Note:** ConfigTile is used in list/grid views, while PropertyCanvas uses inline config bubbles. Both share the same preview image + text badge design pattern.
+
+### Design Patterns
+
+#### Config Preview Images (Commit be3f247)
+
+All config bubbles display preview images with consistent styling:
+
+```vue
+<div class="config-bubble">
+  <div class="config-content">
+    <!-- Background image -->
+    <div class="preview-image"
+         :style="{ backgroundImage: `url(/config-previews/${config.id}.png)` }">
+    </div>
+
+    <!-- Text badge overlay -->
+    <div class="text-badge">
+      {{ config.name[currentLanguage] }}
+    </div>
+  </div>
+</div>
+```
+
+**Styling:**
+```css
+.preview-image {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
+}
+
+.text-badge {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+```
+
+**Removed:** Fallback letter placeholder system (previously used when images were unavailable)
+
+#### XOR Selection Logic
+
+Only ONE category can be selected at a time:
+
+```typescript
+const handlePropertyToggle = (property: string) => {
+  if (selectedCategory.value === property) {
+    // Deselect if clicking same category
+    selectedCategory.value = null
+  } else {
+    // Select new category (auto-deselects previous)
+    selectedCategory.value = property
+  }
+}
+```
+
+### State Management
+
+**Store:** `/public/ai4artsed-frontend/src/stores/configSelection.ts`
+
+**Managed State:**
+- `categories: string[]` - Available property categories
+- `availableConfigs: ConfigMetadata[]` - All configurations
+- `selectedProperties: string[]` - Currently selected categories (XOR: max 1)
+- `selectedConfigId: string | null` - Currently selected configuration
+
+### Removed Components
+
+**ConfigCanvas.vue** (Removed - commit e266628)
+- **Reason:** Coordinate system mismatch with PropertyCanvas
+- **Functionality:** Merged into PropertyCanvas
+- **Files Affected:**
+  - Deleted: `src/components/ConfigCanvas.vue`
+  - Modified: `src/components/PropertyCanvas.vue` (integrated ConfigCanvas logic)
+  - Modified: `src/views/PropertyQuadrantsView.vue` (removed ConfigCanvas reference)
+
+### Navigation Flow
+
+```
+PropertyQuadrantsView
+  ↓ User clicks category bubble
+PropertyCanvas updates → configs appear
+  ↓ User clicks config bubble
+selectConfiguration(config)
+  ↓
+router.push(`/pipeline-execution/${config.id}`)
+  ↓
+PipelineExecutionView (config loaded, ready for prompt input)
+```
+
+### Known Issues & Solutions
+
+**Issue 1: Config Bubbles Appearing Top-Right (RESOLVED)**
+- **Cause:** Separate PropertyCanvas + ConfigCanvas components with different coordinate systems
+- **Solution:** Merged into unified PropertyCanvas with single coordinate system (commit e266628)
+
+**Issue 2: Centering Problems (ACTIVE - See `docs/PropertyCanvas_Problem.md`)**
+- **Status:** Under investigation
+- **Problem:** Category bubbles not perfectly centered in viewport
+- **Affected File:** `PropertyCanvas.vue` positioning logic
+
+### File Structure
+
+```
+public/ai4artsed-frontend/
+├── src/
+│   ├── components/
+│   │   ├── PropertyCanvas.vue        # Unified canvas (categories + configs)
+│   │   ├── PropertyBubble.vue        # Individual category bubble
+│   │   ├── ConfigTile.vue            # Grid view config tile (alternative UI)
+│   │   └── PropertyBubble.vue.archive # Backup of previous version
+│   ├── views/
+│   │   ├── PropertyQuadrantsView.vue # Main selection view
+│   │   └── PropertyQuadrantsView.vue.archive # Backup of previous version
+│   ├── stores/
+│   │   ├── configSelection.ts        # Config selection state
+│   │   └── userPreferences.ts        # Language & preferences
+│   ├── assets/
+│   │   └── main.css                  # Global styles
+│   └── router/
+│       └── index.ts                  # Vue Router config
+└── public/
+    └── config-previews/              # Config preview images
+        ├── bauhaus.png
+        ├── dada.png
+        └── ...
+```
+
+### Testing Checklist (Vue Frontend)
+
+When testing PropertyCanvas changes:
+
+- [ ] All 5 category bubbles display correctly in X-formation
+- [ ] Freestyle bubble centered in viewport
+- [ ] Category selection works (XOR: only one selected)
+- [ ] Config bubbles appear only when category selected
+- [ ] Config bubbles positioned correctly around selected category
+- [ ] Config preview images load correctly
+- [ ] Text badges display config names
+- [ ] Config selection navigates to pipeline execution
+- [ ] Touch events work on iPad
+- [ ] Responsive sizing works across viewport sizes
+- [ ] "Clear Selection" button appears/disappears correctly
+
+---
+

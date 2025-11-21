@@ -132,7 +132,7 @@
           <!-- Transform Button (centered in empty result panel) -->
           <button
             class="transform-btn-center"
-            :disabled="!canTransform || isTransforming"
+            :disabled="!canTransform || isTransforming || !selectedMediaConfig"
             @mousedown="handleTransformClick"
             @touchstart="handleTransformTouch"
           >
@@ -143,6 +143,9 @@
               ⚙️ {{ $t('phase2.aiWorking') || 'KI arbeitet...' }}
             </span>
           </button>
+          <div v-if="!selectedMediaConfig && !isTransforming" class="transform-hint warning">
+            {{ $t('phase2.selectMediaBeforeTransform') || '⬆️ Zuerst Medium wählen!' }}
+          </div>
           <div v-if="!isTransforming" class="transform-hint">
             {{ $t('phase2.stage12Time') || '~5-10 Sekunden' }}
           </div>
@@ -173,10 +176,15 @@
         </button>
       </div>
 
-      <!-- Media Selection Panel (shown after transformation) -->
-      <div v-if="transformedPrompt" class="media-selection-panel">
+      <!-- Media Selection Panel (always visible) -->
+      <div class="media-selection-panel media-selection-persistent">
         <div class="media-section-title">
-          {{ $t('phase2.selectMedia') || 'Wähle dein Medium:' }}
+          <span v-if="!transformedPrompt">
+            {{ $t('phase2.selectMediaFirst') || 'Wähle zuerst dein Medium, dann Transformation starten:' }}
+          </span>
+          <span v-else>
+            {{ $t('phase2.selectMedia') || 'Wähle dein Medium:' }}
+          </span>
         </div>
 
         <!-- All Media in One Row -->
@@ -618,7 +626,8 @@ async function handleTransform() {
       input_text: userInput.value,
       user_language: userPreferences.language,
       execution_mode: pipelineStore.executionMode,
-      safety_level: pipelineStore.safetyLevel
+      safety_level: pipelineStore.safetyLevel,
+      output_config: selectedMediaConfig.value // Session 58: Media choice for Stage 2 optimization
     }
 
     // Pass edited context if user modified it (RAM-Proxy system)

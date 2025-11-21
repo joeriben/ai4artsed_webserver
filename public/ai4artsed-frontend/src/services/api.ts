@@ -130,6 +130,7 @@ export interface TransformRequest {
   safety_level?: 'kids' | 'youth' | 'adult'
   context_prompt?: string // Optional: user-edited meta-prompt
   context_language?: 'de' | 'en' // Language of context_prompt
+  output_config?: string // Optional: Media type selection for Stage 2 optimization (Session 58)
 }
 
 /** Transform response (Stage 1+2 output) */

@@ -131,6 +131,127 @@ Stage 4: Media Generation
 
 ---
 
+## 🎯 Active Decision 2: PropertyCanvas Unification - Single Coordinate System (2025-11-21, Session 63)
+
+**Status:** ✅ IMPLEMENTED (Commits e266628 + be3f247)
+**Context:** Vue frontend component architecture for property-based config selection
+**Date:** 2025-11-21
+
+### The Problem: Coordinate System Mismatch
+
+**Original Architecture (FLAWED):**
+```
+PropertyQuadrantsView
+  ├── PropertyCanvas (category bubbles) → percentage-based positioning
+  └── ConfigCanvas (config bubbles)     → pixel-based positioning + different center
+```
+
+**Result:**
+- Config bubbles appeared in wrong positions (top-right corner)
+- Two components calculated center differently
+- Mixing percentage and pixel units caused misalignment
+- Z-index conflicts between layers
+
+### The Decision: Merge into Single Unified Component
+
+**New Architecture:**
+```
+PropertyQuadrantsView
+  └── PropertyCanvas (unified)
+      ├── Category bubbles (percentage positioning)
+      └── Config bubbles (percentage positioning, same coordinate system)
+```
+
+**Key Changes:**
+1. **Merged ConfigCanvas → PropertyCanvas** (commit e266628)
+   - Single component manages both category and config bubbles
+   - Unified coordinate system (percentage-based)
+   - Same center calculation for all bubbles
+
+2. **Added Config Preview Images** (commit be3f247)
+   - Preview images from `/config-previews/{config-id}.png`
+   - Text badge overlay at 8% from bottom (matches ConfigTile design)
+   - Removed fallback letter placeholder system
+
+### Technical Implementation
+
+**Coordinate System:**
+```typescript
+// All positions in percentage (0-100) relative to cluster-wrapper
+const categoryPositions: Record<string, CategoryPosition> = {
+  freestyle: { x: 50, y: 50 },      // Center
+  semantics: { x: 72, y: 28 },       // Top-right (45°)
+  aesthetics: { x: 72, y: 72 },      // Bottom-right (135°)
+  arts: { x: 28, y: 72 },            // Bottom-left (225°)
+  heritage: { x: 28, y: 28 },        // Top-left (315°)
+}
+
+// Configs positioned around parent category
+const angle = (index / visibleConfigs.length) * 2 * Math.PI
+const configX = categoryX + Math.cos(angle) * OFFSET_DISTANCE
+const configY = categoryY + Math.sin(angle) * OFFSET_DISTANCE
+```
+
+**Container Sizing:**
+```css
+.cluster-wrapper {
+  width: min(70vw, 70vh);
+  height: min(70vw, 70vh);
+  position: relative;
+}
+```
+
+### Benefits
+
+**Technical:**
+- Single source of truth for positioning
+- Consistent coordinate system (no unit mixing)
+- Simpler component hierarchy (one less component)
+- Easier to maintain and debug
+
+**Visual:**
+- Config bubbles correctly positioned around categories
+- Smooth transitions and animations
+- Consistent styling across all bubbles
+- Preview images provide immediate visual recognition
+
+### Files Modified
+
+**Deleted:**
+- `public/ai4artsed-frontend/src/components/ConfigCanvas.vue` (merged into PropertyCanvas)
+
+**Modified:**
+- `public/ai4artsed-frontend/src/components/PropertyCanvas.vue` (integrated ConfigCanvas logic)
+- `public/ai4artsed-frontend/src/views/PropertyQuadrantsView.vue` (removed ConfigCanvas reference)
+- `public/ai4artsed-frontend/src/assets/main.css` (updated styles)
+
+**Archived (Backup):**
+- `public/ai4artsed-frontend/src/components/PropertyBubble.vue.archive`
+- `public/ai4artsed-frontend/src/views/PropertyQuadrantsView.vue.archive`
+
+### Lessons Learned
+
+**What Went Wrong:**
+- Splitting category and config bubbles into separate components seemed logical initially
+- Each component developed its own positioning logic independently
+- Coordinate system mismatch wasn't obvious until visual testing
+
+**Why This Solution Works:**
+- Single component = single coordinate system
+- Percentage-based positioning scales consistently
+- Relative positioning within same container eliminates offset bugs
+
+**General Principle:**
+When components share the same visual space and coordinate system, they should be part of the same component to avoid positioning mismatches.
+
+### Related Documentation
+
+- **ARCHITECTURE PART 12 - Frontend-Architecture.md** - Full component documentation
+- **docs/PropertyCanvas_Problem.md** - Centering issue (still under investigation)
+- **docs/SESSION_62_CENTERING_PROBLEM.md** - Historical debugging notes
+
+---
+
 ## 🎯 Active Decision 0: Deployment Architecture - Dev/Prod Separation for Research Phase (2025-11-16, Session 46)
 
 **Status:** ✅ IMPLEMENTED (storage unified, port separation pending)
