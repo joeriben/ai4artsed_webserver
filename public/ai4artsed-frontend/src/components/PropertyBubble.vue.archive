@@ -67,7 +67,6 @@ const bubbleStyle = computed(() => ({
 function handleClick(event: MouseEvent) {
   // Prevent toggle if currently dragging or just finished dragging
   if (!isDragging.value && !hasDragged.value) {
-    console.log('[PropertyBubble] Click:', props.property)
     emit('toggle', props.property)
   }
 }

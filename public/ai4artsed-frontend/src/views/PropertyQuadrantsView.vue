@@ -16,9 +16,9 @@
       </button>
     </div>
 
-    <!-- Main layout with header -->
+    <!-- Main layout -->
     <div v-else class="main-layout">
-      <!-- Header controls -->
+      <!-- Header -->
       <header class="header-controls">
         <h1 class="page-title">
           {{ currentLanguage === 'en' ? 'Select Configuration' : 'Konfiguration auswählen' }}
@@ -34,159 +34,66 @@
         </div>
       </header>
 
-      <!-- Canvas area (takes remaining space) -->
-      <div class="canvas-area" ref="canvasAreaRef">
-        <!-- Categories in center -->
-        <PropertyCanvas
-          :selected-properties="store.selectedProperties"
-          :canvas-width="canvasWidth"
-          :canvas-height="canvasHeight"
-          @toggle-property="handlePropertyToggle"
-        />
+      <!-- Debug: Show selected properties -->
+      <!-- PropertyCanvas now handles both categories and configs -->
+      <PropertyCanvas
+        :selected-properties="store.selectedProperties"
+        @toggle-property="handlePropertyToggle"
+        @select-config="handleConfigSelect"
+      />
 
-        <!-- Configs distributed across entire canvas (avoiding property area) -->
-        <!-- Only show after user selects properties -->
-        <ConfigCanvas
-          v-if="store.selectedProperties.length > 0"
-          :configs="store.filteredConfigs"
-          :selected-properties="store.selectedProperties"
-          :match-count="store.matchCount"
-          :canvas-width="canvasWidth"
-          :canvas-height="canvasHeight"
-          :is-dimmed="store.hasNoMatch"
-          :current-language="currentLanguage"
-          @select-config="handleConfigSelect"
-        />
-
-        <!-- No-match overlay -->
-        <NoMatchState
-          v-if="store.hasNoMatch"
-          :partial-matches="store.partialMatches"
-          :selected-properties-count="store.selectedProperties.length"
-          :current-language="currentLanguage"
-          @clear-selection="store.clearAllProperties()"
-          @select-config="handleConfigSelect"
-        />
-      </div>
+      <!-- No-match overlay -->
+      <NoMatchState
+        v-if="store.hasNoMatch"
+        :partial-matches="store.partialMatches"
+        :selected-properties-count="store.selectedProperties.length"
+        :current-language="currentLanguage"
+        @clear-selection="store.clearAllProperties()"
+        @select-config="handleConfigSelect"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigSelectionStore } from '@/stores/configSelection'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import PropertyCanvas from '@/components/PropertyCanvas.vue'
-import ConfigCanvas from '@/components/ConfigCanvas.vue'
 import NoMatchState from '@/components/NoMatchState.vue'
-
-/**
- * PropertyQuadrantsView - Phase 1 Property-Based Selection Interface
- *
- * Main view component that implements the 4-quadrant layout:
- * - Quadrant II (upper-left): Property bubbles with rubber bands
- * - Quadrants I, III, IV (others): Config tiles with random distribution
- *
- * Session 35 - Phase 1 Property Quadrants Implementation
- * Updated Session 36 - Use global userPreferences store for language
- */
 
 const store = useConfigSelectionStore()
 const userPreferences = useUserPreferencesStore()
 const pipelineStore = usePipelineExecutionStore()
 const router = useRouter()
 
-// Language from global store (site-wide preference)
 const currentLanguage = computed(() => userPreferences.language)
 
-// Canvas dimensions (measured from actual canvas area)
-const canvasWidth = ref(0)
-const canvasHeight = ref(0)
-const canvasAreaRef = ref<HTMLElement | null>(null)
-let resizeObserver: ResizeObserver | null = null
-
-function updateCanvasDimensions() {
-  if (canvasAreaRef.value) {
-    const rect = canvasAreaRef.value.getBoundingClientRect()
-    canvasWidth.value = rect.width
-    canvasHeight.value = rect.height
-    console.log('[PropertyQuadrants] Canvas dimensions measured:', {
-      width: canvasWidth.value,
-      height: canvasHeight.value,
-      centerX: canvasWidth.value / 2,
-      centerY: canvasHeight.value / 2
-    })
-  } else {
-    // Fallback during initial mount
-    canvasWidth.value = window.innerWidth
-    canvasHeight.value = window.innerHeight
-    console.warn('[PropertyQuadrants] canvasAreaRef not ready, using window dimensions')
-  }
-}
-
 function handlePropertyToggle(property: string) {
+  console.log('[PropertyQuadrantsView] Toggle:', property)
   store.toggleProperty(property)
 }
 
 function handleConfigSelect(configId: string) {
   console.log('[PropertyQuadrants] Config selected:', configId)
 
-  // CRITICAL: Clear pipeline store for fresh start
-  // This ensures no sticky context or transformed prompt from previous config
-  console.log('[PropertyQuadrants] Clearing pipeline store for fresh start...')
+  // Clear pipeline store for fresh start
   pipelineStore.clearAll()
 
   // Navigate to Phase 2 execution view
   router.push({ name: 'pipeline-execution', params: { configId } })
 }
 
-onMounted(async () => {
-  // Clear any previous selection (fresh start)
+onMounted(() => {
   store.clearAllProperties()
-
-  // Load configs from API
   store.loadConfigs()
-
-  // Wait for DOM to be ready
-  await nextTick()
-
-  // Set up ResizeObserver for canvas area (proper reactive measurement)
-  if (canvasAreaRef.value) {
-    resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        canvasWidth.value = entry.contentRect.width
-        canvasHeight.value = entry.contentRect.height
-        console.log('[PropertyQuadrants] ResizeObserver update:', {
-          width: canvasWidth.value,
-          height: canvasHeight.value,
-          centerX: canvasWidth.value / 2,
-          centerY: canvasHeight.value / 2
-        })
-      }
-    })
-    resizeObserver.observe(canvasAreaRef.value)
-  }
-
-  // Initial measurement
-  updateCanvasDimensions()
-
-  // Fallback: Update on window resize
-  window.addEventListener('resize', updateCanvasDimensions)
-})
-
-// Cleanup on unmount
-onUnmounted(() => {
-  window.removeEventListener('resize', updateCanvasDimensions)
-  if (resizeObserver) {
-    resizeObserver.disconnect()
-    resizeObserver = null
-  }
 })
 </script>
 
 <style scoped>
+/* Root: Fullscreen container */
 .property-quadrants-view {
   position: fixed;
   top: 0;
@@ -219,9 +126,7 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .error-icon {
@@ -256,17 +161,15 @@ onUnmounted(() => {
   transform: scale(1.05);
 }
 
-/* Main layout with flexbox */
+/* Main layout: Flexbox column */
 .main-layout {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  background: #0a0a0a;
 }
 
-/* Header controls */
+/* Header */
 .header-controls {
   flex-shrink: 0;
   padding: 1.25rem 2.5rem;
@@ -276,14 +179,6 @@ onUnmounted(() => {
   background: rgba(10, 10, 10, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 150;
-}
-
-/* Canvas area (fills remaining space) */
-.canvas-area {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background: #0a0a0a;
 }
 
 .page-title {
@@ -308,7 +203,6 @@ onUnmounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  pointer-events: all;
 }
 
 .clear-button:hover {
@@ -316,4 +210,6 @@ onUnmounted(() => {
   color: #0a0a0a;
   transform: scale(1.05);
 }
+
+/* Canvas-area removed - PropertyCanvas handles its own centering */
 </style>
