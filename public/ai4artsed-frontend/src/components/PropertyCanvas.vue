@@ -52,8 +52,18 @@ const store = useConfigSelectionStore()
 // Get categories from store
 const categories = computed(() => store.categories)
 
-// Category bubble size (base unit)
+// Category bubble size (base unit - fixed for visual consistency)
 const CATEGORY_BUBBLE_DIAMETER = 100
+
+/**
+ * Calculate responsive radius for category circle
+ * Uses 25% of the smaller canvas dimension to ensure circles stay circular
+ * and centered regardless of canvas size or aspect ratio
+ */
+function getResponsiveRadius(): number {
+  const smallerDimension = Math.min(props.canvasWidth, props.canvasHeight)
+  return smallerDimension * 0.25  // 25% of smaller dimension
+}
 
 // Category colors
 const categoryColorMap: Record<string, string> = {
@@ -69,24 +79,26 @@ const categoryPositions = ref<Record<string, { x: number; y: number }>>({})
 
 /**
  * Calculate category positions
- * Freestyle in center, others in circle around it (loosely positioned)
+ * Freestyle in center, others in circle around it (X-formation)
+ * Uses responsive radius based on canvas size
  */
 function calculateCategoryPositions() {
   const positions: Record<string, { x: number; y: number }> = {}
 
-  // Center of canvas
+  // Center of canvas (true geometric center)
   const centerX = props.canvasWidth / 2
   const centerY = props.canvasHeight / 2
 
-  // Circle radius: from center to center of category bubbles (fixed value that worked)
-  const radius = 125
+  // Responsive circle radius: proportional to canvas size
+  const radius = getResponsiveRadius()
 
   console.log('[PropertyCanvas] Calculating category positions:', {
     canvasWidth: props.canvasWidth,
     canvasHeight: props.canvasHeight,
     centerX,
     centerY,
-    radius
+    radius,
+    smallerDimension: Math.min(props.canvasWidth, props.canvasHeight)
   })
 
   // Freestyle in center
@@ -100,7 +112,7 @@ function calculateCategoryPositions() {
 
   otherCategories.forEach((category, index) => {
     // Gleichmäßige Winkel, Start oben-rechts (45° / -45°)
-    const angle = index * angleStep - Math.PI / 4  // -45° statt -90°
+    const angle = index * angleStep - Math.PI / 4  // -45° start (X-formation)
 
     const x = centerX + Math.cos(angle) * radius
     const y = centerY + Math.sin(angle) * radius
@@ -132,13 +144,13 @@ function getSymbolDataForProperty(property: string): SymbolData | undefined {
 
 /**
  * Handle position update from draggable bubble
- * Constrains movement to circular boundary
+ * Constrains movement to circular boundary using responsive radius
  */
 function handleUpdatePosition(category: string, x: number, y: number) {
-  // Circular boundary constraint (same radius as calculateCategoryPositions)
+  // Circular boundary constraint (same responsive radius as calculateCategoryPositions)
   const centerX = props.canvasWidth / 2
   const centerY = props.canvasHeight / 2
-  const radius = 125  // Match radius from calculateCategoryPositions
+  const radius = getResponsiveRadius()  // Match radius from calculateCategoryPositions
 
   // Check distance from center
   const distFromCenter = Math.sqrt(

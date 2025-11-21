@@ -56,26 +56,43 @@ const emit = defineEmits<{
   selectConfig: [configId: string]
 }>()
 
-// Geometric constants
+// Geometric constants (fixed for visual consistency)
 const CATEGORY_BUBBLE_DIAMETER = 100
 const CONFIG_BUBBLE_DIAMETER = 240
-const CATEGORY_CIRCLE_RADIUS = 125  // Distance from canvas center to category bubble centers
+
+/**
+ * Calculate responsive radius for category circle
+ * Uses 25% of the smaller canvas dimension to ensure circles stay circular
+ * and centered regardless of canvas size or aspect ratio
+ * MUST match PropertyCanvas.vue calculation
+ */
+function getResponsiveRadius(): number {
+  const smallerDimension = Math.min(props.canvasWidth, props.canvasHeight)
+  return smallerDimension * 0.25  // 25% of smaller dimension
+}
 
 // Positioned configs
 const positionedConfigs = ref<ConfigWithPosition[]>([])
 
 /**
  * Get category bubble position (matches PropertyCanvas.vue logic)
+ * Uses responsive radius calculation
  */
 function getCategoryPosition(category: string): { x: number; y: number } {
+  // Center of canvas (true geometric center)
   const centerX = props.canvasWidth / 2
   const centerY = props.canvasHeight / 2
+
+  // Responsive circle radius: proportional to canvas size
+  const radius = getResponsiveRadius()
 
   console.log('[ConfigCanvas] Getting category position for', category, {
     canvasWidth: props.canvasWidth,
     canvasHeight: props.canvasHeight,
     centerX,
-    centerY
+    centerY,
+    radius,
+    smallerDimension: Math.min(props.canvasWidth, props.canvasHeight)
   })
 
   // Freestyle in center
@@ -98,8 +115,8 @@ function getCategoryPosition(category: string): { x: number; y: number } {
   const angleStep = (2 * Math.PI) / otherCategories.length
   const angle = index * angleStep - Math.PI / 4 // -45° start (X-formation)
 
-  const x = centerX + Math.cos(angle) * CATEGORY_CIRCLE_RADIUS
-  const y = centerY + Math.sin(angle) * CATEGORY_CIRCLE_RADIUS
+  const x = centerX + Math.cos(angle) * radius
+  const y = centerY + Math.sin(angle) * radius
 
   return { x, y }
 }
@@ -134,8 +151,10 @@ function calculatePositions() {
 
     // Calculate radius for config cluster around this category
     // Distance from category center to config center
-    // Need space between category and configs
-    const clusterRadius = (CATEGORY_BUBBLE_DIAMETER / 2) + (CONFIG_BUBBLE_DIAMETER / 2) + 80
+    // Use proportional spacing based on canvas size (15% of smaller dimension)
+    const smallerDimension = Math.min(props.canvasWidth, props.canvasHeight)
+    const proportionalSpacing = smallerDimension * 0.15
+    const clusterRadius = (CATEGORY_BUBBLE_DIAMETER / 2) + (CONFIG_BUBBLE_DIAMETER / 2) + proportionalSpacing
 
     // Arrange configs in circle around category bubble
     const numConfigs = categoryConfigs.length
