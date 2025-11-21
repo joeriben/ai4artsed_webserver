@@ -28,17 +28,14 @@
           @touchstart.prevent="selectConfiguration(config)"
         >
           <div class="config-content">
-            <img
-              v-if="config.imageUrl"
-              :src="config.imageUrl"
-              :alt="getConfigName(config)"
-              loading="lazy"
-            >
-            <div v-else class="config-placeholder">
-              {{ getConfigName(config).charAt(0) }}
+            <!-- Preview image background -->
+            <div class="preview-image" :style="{ backgroundImage: `url(${getConfigImageUrl(config)})` }"></div>
+
+            <!-- Text badge overlay -->
+            <div class="text-badge">
+              {{ getConfigName(config) }}
             </div>
           </div>
-          <span class="config-label">{{ getConfigName(config) }}</span>
         </div>
       </transition-group>
     </div>
@@ -178,6 +175,13 @@ function getConfigName(config: any): string {
   return config.name[currentLanguage.value] || config.name.en || ''
 }
 
+// Get config image URL based on config id
+function getConfigImageUrl(config: any): string | null {
+  // Try to use config-preview images from public folder
+  // Images are named after config id (e.g., bauhaus.png, renaissance.png)
+  return `/config-previews/${config.id}.png`
+}
+
 // Calculate config bubble position around its parent category
 function getConfigStyle(config: any, index: number) {
   const categoryPos = categoryPositions.value[selectedCategory.value!]
@@ -213,6 +217,7 @@ function selectConfiguration(config: any) {
     params: { configId: config.id }
   })
 }
+
 
 /**
  * Drag-Update: x,y sind Prozentkoordinaten (0–100)
@@ -294,10 +299,6 @@ onMounted(() => {
   width: 18%;
   aspect-ratio: 1 / 1;
   transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
   pointer-events: all;
   transition: all 0.3s ease;
@@ -309,40 +310,49 @@ onMounted(() => {
 }
 
 .config-content {
-  width: 80%;
-  aspect-ratio: 1 / 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   overflow: hidden;
   background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  margin-bottom: 0.5rem;
 }
 
-.config-content img {
+/* Preview image background */
+.preview-image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #f0f0f0; /* Fallback color if image fails */
 }
 
-.config-placeholder {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #666;
-}
-
-.config-label {
-  font-size: 0.9rem;
+/* Text badge overlay (like in ConfigTile) */
+.text-badge {
+  position: absolute;
+  bottom: 8%;
+  left: 5%;
+  right: 5%;
+  background: rgba(0, 0, 0, 0.85);
   color: white;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  max-width: 90%;
+  padding: 8px 6px;
+  border-radius: 10px;
+  line-height: 1.3;
+  max-height: 45px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Transitions for config bubbles */
