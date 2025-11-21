@@ -94,6 +94,7 @@ const categoryColorMap: Record<string, string> = {
   arts: '#E91E63',        // 🖌️
   heritage: '#4CAF50',    // 🌍
   freestyle: '#FFC107',   // 🫵
+  technical_imaging: '#607D8B',  // 📸
 }
 
 // Positionen in Prozent relativ zur cluster-wrapper
@@ -344,7 +345,7 @@ onMounted(() => {
   font-weight: 600;
   text-align: center;
   padding: 8px 6px;
-  border-radius: 10px;
+  border-radius: 0;
   line-height: 1.3;
   max-height: 45px;
   overflow: hidden;

@@ -415,7 +415,7 @@ const currentLanguage = computed(() => userPreferences.language)
 const examplePrompts = ref<string[]>([
   'Eine kleine Maus auf einem Fahrrad',
   'Der alte Mann und das Meer',
-  'Elektrische Schafe',
+  'Ein Haus steht in einer Landschaft, umgeben von Landwirtschaftlichen Flächen, Natur und Tieren. Es sind einige Menschen zu sehen.',
 ])
 
 // ============================================================================

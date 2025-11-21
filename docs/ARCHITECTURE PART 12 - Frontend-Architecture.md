@@ -272,6 +272,400 @@ PropertyCanvas (Unified Component)
 PropertyBubble (Category bubbles) + Config Bubbles (Configuration selection)
 ```
 
+---
+
+## Bubble Design System
+
+**Status:** ✅ Project-wide design pattern (2025-11-21)
+**Canonical Implementation:** `PropertyCanvas.vue` + `PropertyBubble.vue`
+**Scope:** All phases of the application (current + future)
+
+### Overview
+
+The Bubble Design System is the foundational UI pattern for the AI4ArtsEd frontend. It uses circular "bubbles" as the primary interaction metaphor for both category selection (Phase 1) and configuration selection across all phases.
+
+**Design Principles:**
+1. **Consistency** - Same bubble metaphor across all phases
+2. **Visual Hierarchy** - Size difference indicates importance (configs > categories)
+3. **Accessibility** - High contrast, clear labels, touch-friendly sizes
+4. **Responsiveness** - Percentage-based sizing scales with viewport
+5. **Visual Polish** - Shadows, backdrop filters, smooth animations
+
+---
+
+### Visual Design Elements
+
+#### 1. Category Bubbles (PropertyBubble component)
+
+**Purpose:** Top-level property categories (semantics, aesthetics, arts, heritage, freestyle)
+
+**Visual Specifications:**
+- **Shape:** Circular (`border-radius: 50%`)
+- **Size:** 12% of container width with `aspect-ratio: 1:1`
+- **Background:** `rgba(20, 20, 20, 0.9)` (dark, semi-transparent)
+- **Border:** `3px solid` with category-specific color
+- **Content:** Emoji symbol + text label (centered)
+- **Typography:**
+  - Symbol: Large emoji (48px default)
+  - Label: 14px, semi-bold, white
+
+**States:**
+- **Default:** Dark background, colored border, no glow
+- **Hover:** `transform: scale(1.1)` with colored glow shadow
+- **Selected:** Background filled with category color, elevated shadow
+
+**Implementation Example:**
+```vue
+<div class="property-bubble selected"
+     :style="{
+       left: '50%',
+       top: '50%',
+       '--bubble-color': '#2196F3',
+       '--bubble-shadow': '0 0 20px #2196F3'
+     }">
+  <span class="property-symbol">💬</span>
+</div>
+```
+
+```css
+.property-bubble {
+  width: 12%;  /* Percentage of container */
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.9);
+  border: 3px solid var(--bubble-color);
+  box-shadow: var(--bubble-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.property-bubble:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 25px var(--bubble-color);
+}
+
+.property-bubble.selected {
+  background: var(--bubble-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+```
+
+---
+
+#### 2. Config Bubbles
+
+**Purpose:** Individual configuration selection (dada, bauhaus, abstract-photo, etc.)
+
+**Visual Specifications:**
+- **Shape:** Circular (`border-radius: 50%`)
+- **Size:** 18% of container width (larger than categories to show hierarchy)
+- **Background:** White with config preview image
+- **Image:** `background-size: cover`, `background-position: center`
+- **Text Badge Overlay:**
+  - Position: `bottom: 8%` of bubble
+  - Background: `rgba(0, 0, 0, 0.85)`
+  - Border-radius: `10px`
+  - Backdrop-filter: `blur(8px)`
+  - Max 2 lines with ellipsis overflow
+  - Typography: 14px, font-weight 600, white color
+
+**States:**
+- **Default:** Preview image + text badge
+- **Hover:** `transform: scale(1.1)` with elevated shadow
+- **Selected:** (Navigation trigger - no persistent state)
+
+**Implementation Example:**
+```vue
+<div class="config-bubble"
+     :style="{
+       left: '72%',
+       top: '28%',
+       backgroundImage: 'url(/config-previews/dada.png)'
+     }"
+     @click="selectConfiguration(config)">
+  <div class="config-content">
+    <div class="preview-image" />
+    <div class="text-badge">Dada</div>
+  </div>
+</div>
+```
+
+```css
+.config-bubble {
+  width: 18%;  /* Larger than category bubbles */
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: absolute;
+  overflow: hidden;
+}
+
+.config-bubble:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
+}
+
+.text-badge {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 80%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+```
+
+---
+
+### Color System
+
+**Category Colors:**
+```javascript
+const categoryColorMap: Record<string, string> = {
+  semantics: '#2196F3',   // Blue 💬
+  aesthetics: '#9C27B0',  // Purple 🪄
+  arts: '#E91E63',        // Pink 🖌️
+  heritage: '#4CAF50',    // Green 🌍
+  freestyle: '#FFC107',   // Gold 🫵
+}
+```
+
+**Usage:**
+- Category bubble borders
+- Selected state backgrounds
+- Hover glow effects
+- Color consistency across all UI elements
+
+---
+
+### Layout Pattern
+
+#### X-Formation (Category Bubbles)
+
+Categories are arranged in an X-pattern with Freestyle at the center:
+
+```typescript
+// Positions in percentage (0-100) relative to container
+const categoryPositions: Record<string, CategoryPosition> = {
+  freestyle: { x: 50, y: 50 },      // Center
+  semantics: { x: 72, y: 28 },      // Top-right (45°)
+  aesthetics: { x: 72, y: 72 },     // Bottom-right (135°)
+  arts: { x: 28, y: 72 },           // Bottom-left (225°)
+  heritage: { x: 28, y: 28 },       // Top-left (315°)
+}
+```
+
+**Rationale:**
+- Central Freestyle allows quick access to unrestricted configs
+- Symmetric layout provides visual balance
+- 45° angles maximize space utilization
+- Percentage positioning ensures responsiveness
+
+#### Circular Arrangement (Config Bubbles)
+
+Configs appear in a circle around their selected category:
+
+```typescript
+const OFFSET_DISTANCE = 25  // Percentage units
+
+const getConfigStyle = (config: ConfigMetadata, index: number) => {
+  const categoryX = categoryPositions[selectedCategory.value].x
+  const categoryY = categoryPositions[selectedCategory.value].y
+
+  // Calculate angle based on config count
+  const angle = (index / visibleConfigs.length) * 2 * Math.PI
+
+  // Calculate position on circle
+  const configX = categoryX + Math.cos(angle) * OFFSET_DISTANCE
+  const configY = categoryY + Math.sin(angle) * OFFSET_DISTANCE
+
+  return {
+    left: `${configX}%`,
+    top: `${configY}%`,
+  }
+}
+```
+
+**Rationale:**
+- Configs visually connected to their parent category
+- Equal spacing prevents overlap
+- Dynamic calculation supports any number of configs
+- Maintains spatial relationship across viewport sizes
+
+---
+
+### Responsive Container
+
+**Container Sizing:**
+```css
+.cluster-wrapper {
+  width: min(70vw, 70vh);
+  height: min(70vw, 70vh);
+  position: relative;
+  margin: 0 auto;
+}
+```
+
+**Rationale:**
+- Square aspect ratio simplifies percentage calculations
+- `min()` ensures container fits both portrait and landscape
+- 70% viewport leaves room for header and margins
+- All child bubbles use percentage positioning relative to this container
+
+---
+
+### Interaction Design
+
+#### Touch Support
+
+All bubbles support both mouse and touch events:
+
+```typescript
+<div
+  @click="handleClick"
+  @touchstart.prevent="selectConfiguration(config)"
+>
+```
+
+**Considerations:**
+- Touch targets minimum 44x44px (iOS/Android guidelines)
+- Prevents default touch behavior to avoid scrolling
+- Distinguishes tap from drag events
+
+#### Smooth Transitions
+
+All state changes use consistent timing:
+
+```css
+transition: transform 0.3s ease, box-shadow 0.3s ease;
+```
+
+**Transition Types:**
+- **Transform:** Scale effects on hover/select
+- **Box-shadow:** Glow effects for visual feedback
+- **Opacity:** Fade-in/out for config bubbles
+
+**Config Bubble Transitions:**
+```vue
+<transition-group name="config-fade">
+  <!-- Config bubbles -->
+</transition-group>
+```
+
+```css
+.config-fade-enter-active,
+.config-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.config-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.config-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+```
+
+#### XOR Selection Logic
+
+Only ONE category can be selected at a time:
+
+```typescript
+const handlePropertyToggle = (property: string) => {
+  if (selectedCategory.value === property) {
+    // Deselect if clicking same category
+    selectedCategory.value = null
+  } else {
+    // Select new category (auto-deselects previous)
+    selectedCategory.value = property
+  }
+}
+```
+
+**Rationale:**
+- Simplifies user mental model (one choice at a time)
+- Reduces UI complexity (no multi-select state management)
+- Matches pedagogical flow (progressive refinement)
+
+---
+
+### Implementation Reference
+
+**Canonical Files:**
+- `/public/ai4artsed-frontend/src/components/PropertyCanvas.vue` - Complete implementation
+- `/public/ai4artsed-frontend/src/components/PropertyBubble.vue` - Category bubble component
+- `/public/ai4artsed-frontend/src/assets/main.css` - Global bubble styles
+
+**Key Code Sections:**
+
+1. **Category Bubble Component** (`PropertyBubble.vue`)
+   - Lines 59-65: Style computation with CSS variables
+   - Lines 2-14: Template structure with percentage positioning
+
+2. **Config Bubble Layout** (`PropertyCanvas.vue`)
+   - Lines 22-40: Config bubble rendering with preview images
+   - Lines 145-165: Circular positioning calculation
+   - Lines 92-97: Category color mapping
+
+3. **Container Setup** (`PropertyCanvas.vue`)
+   - Lines 2-42: Template with cluster-wrapper container
+   - CSS: `.cluster-wrapper` responsive sizing
+
+---
+
+### Future Application
+
+This design system should be applied to:
+
+**Phase 2: Creative Flow**
+- Bubble-based workflow step selection
+- Same size hierarchy (categories > steps)
+- Maintain color consistency
+
+**Phase 3: Pipeline Execution**
+- Progress visualization using bubble metaphor
+- Stage completion indicators (filled bubbles)
+- Error states (red border/glow)
+
+**Phase 4: Output Gallery**
+- Generated media as bubbles (circular thumbnails)
+- Hover for preview, click for full view
+- Maintain text badge overlay pattern
+
+**General Guidelines:**
+- Always use circular (`border-radius: 50%`) for bubbles
+- Maintain size hierarchy (larger = more important)
+- Use percentage positioning for responsiveness
+- Apply consistent transition timings (0.3s ease)
+- Follow category color system
+- Text badges always at 8% from bottom with backdrop-filter
+
+---
+
 ### Key Components
 
 #### 1. PropertyCanvas.vue (Unified Component)

@@ -32,7 +32,7 @@ from pathlib import Path
 #   - JSON outputs, timing data, error details
 #   - Complete transparency for analysis
 #
-UI_MODE = "kids"  # ADMIN: Change to "kids", "youth", or "expert"
+UI_MODE = "youth"  # ADMIN: Change to "kids", "youth", or "expert"
 
 # ----------------------------------------------------------------------------
 # 2. SAFETY LEVEL (Content Filtering)

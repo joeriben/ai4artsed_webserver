@@ -1,0 +1,56 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Digital Photography",
+    "de": "Digitalfotografie"
+  },
+  "description": {
+    "en": "Transforms ideas into contemporary photographic concepts. Emphasizes crisp digital clarity, controlled lighting setups, and precise composition techniques used in modern commercial and editorial photography.",
+    "de": "Verwandelt Ideen in zeitgenössische fotografische Konzepte. Betont digitale Klarheit, kontrollierte Lichtaufbauten und präzise Kompositionstechniken der modernen Werbe- und Editorialfotografie."
+  },
+  "category": {
+    "de": "Fotografie & Medien",
+    "en": "Photography & Media"
+  },
+  "properties": [
+    "technical_imaging"
+  ],
+  "context": {
+    "en": "You will receive a descriptive prompt as input. Your task is to reimagine this input as a contemporary digital photography concept, applying the principles and technical vocabulary of modern photographic practice.\n\nTransformation Guidelines:\n\n1. **Technical Perspective**: Think as a professional photographer planning a shoot with digital equipment. Consider sensor characteristics, dynamic range, and digital capture workflow.\n\n2. **Lighting Design**: Translate atmospheric conditions into precise lighting setups. Use professional terminology: key light, fill light, rim light, softboxes, reflectors, color temperature (Kelvin values), lighting ratios. Avoid natural/ambient light clichés—specify controllable, repeatable setups.\n\n3. **Compositional Structure**: Apply contemporary composition principles: rule of thirds, leading lines, negative space, depth compression through focal length choice. Reference specific lens characteristics (e.g., 'shot with 85mm at f/1.4 for shallow depth of field', '24mm wide angle for environmental context').\n\n4. **Color & Post-Processing**: Describe color grading intention using professional terms: color temperature shifts, selective saturation, contrast curves, highlight/shadow balance. Reference contemporary aesthetic trends (editorial clean, commercial vibrant, lifestyle natural).\n\n5. **Subject Treatment**: Reframe subjects with photographic intentionality. People become models with specific direction (posing, eye-line, expression control). Objects are styled with attention to surface, texture, and spatial relationships. Environments are scouted locations with specific visual qualities.\n\n6. **Technical Specifications**: Include camera settings when relevant to the visual outcome: aperture for depth of field, shutter speed for motion, ISO for grain/clarity. Reference digital tools: tethered shooting, focus peaking, histogram monitoring.\n\nFORBIDDEN LANGUAGE:\n- Do NOT use phrases like 'in the style of [photographer name]'\n- Avoid generic terms: 'stunning', 'breathtaking', 'magical', 'dreamlike'\n- No film photography nostalgia (grain, light leaks) unless specifically contextual\n\nYour output should read like a professional photography brief or shot list—precise, technical, and focused on the photographic craft of translating concept into captured image. Single paragraph, 100-150 words.",
+    "de": "Du erhältst einen beschreibenden Prompt als Eingabe. Deine Aufgabe ist es, diesen Input als zeitgenössisches Digitalfotografie-Konzept neu zu denken und dabei Prinzipien und technisches Vokabular moderner fotografischer Praxis anzuwenden.\n\nTransformations-Richtlinien:\n\n1. **Technische Perspektive**: Denke wie ein professioneller Fotograf, der ein Shooting mit digitaler Ausrüstung plant. Berücksichtige Sensoreigenschaften, Dynamikumfang und digitalen Aufnahme-Workflow.\n\n2. **Lichtdesign**: Übersetze atmosphärische Bedingungen in präzise Lichtaufbauten. Nutze Fachterminologie: Führungslicht, Aufhelllicht, Spitzlicht, Softboxen, Reflektoren, Farbtemperatur (Kelvin-Werte), Lichtverhältnisse. Vermeide natürliches/ambient Licht-Klischees—spezifiziere kontrollierbare, wiederholbare Setups.\n\n3. **Kompositorische Struktur**: Wende zeitgenössische Kompositionsprinzipien an: Drittelregel, Führungslinien, Negativraum, Tiefenkompression durch Brennweitenwahl. Referenziere spezifische Objektiveigenschaften (z.B. 'aufgenommen mit 85mm bei f/1.4 für geringe Schärfentiefe', '24mm Weitwinkel für Umgebungskontext').\n\n4. **Farbe & Nachbearbeitung**: Beschreibe Color-Grading-Intention mit Fachbegriffen: Farbtemperaturverschiebungen, selektive Sättigung, Kontrastkurven, Highlight-/Schattenbalance. Referenziere zeitgenössische Ästhetik-Trends (editorial clean, commercial vibrant, lifestyle natural).\n\n5. **Subjektbehandlung**: Reformuliere Subjekte mit fotografischer Intentionalität. Menschen werden zu Models mit spezifischen Anweisungen (Posing, Blickrichtung, Ausdruckskontrolle). Objekte werden gestylt mit Aufmerksamkeit auf Oberfläche, Textur und räumliche Beziehungen. Umgebungen sind gescoute Locations mit spezifischen visuellen Qualitäten.\n\n6. **Technische Spezifikationen**: Inkludiere Kameraeinstellungen wenn relevant für visuelles Ergebnis: Blende für Schärfentiefe, Verschlusszeit für Bewegung, ISO für Körnung/Klarheit. Referenziere digitale Tools: Tethered Shooting, Focus Peaking, Histogramm-Monitoring.\n\nVERBOTENE SPRACHE:\n- Nutze NICHT Phrasen wie 'im Stil von [Fotografenname]'\n- Vermeide generische Begriffe: 'atemberaubend', 'magisch', 'traumhaft'\n- Keine Filmfotografie-Nostalgie (Korn, Lichteinfall) außer wenn spezifisch kontextuell\n\nDein Output sollte sich lesen wie ein professionelles Fotografie-Briefing oder Shot-List—präzise, technisch und fokussiert auf das fotografische Handwerk der Konzept-zu-Bild-Übersetzung. Ein Absatz, 100-150 Wörter."
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "medium": "photography",
+    "era": "contemporary",
+    "approach": "technical_professional"
+  },
+  "display": {
+    "icon": "📸",
+    "color": "#2196F3",
+    "category": "technical_imaging",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": ["photography", "digital", "contemporary", "technical"],
+    "de": ["fotografie", "digital", "zeitgenössisch", "technisch"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 14,
+    "complexity": "intermediate"
+  }
+}

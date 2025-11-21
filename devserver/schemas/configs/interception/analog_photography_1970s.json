@@ -1,0 +1,68 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Analog Photography",
+    "de": "Analogfotografie"
+  },
+  "description": {
+    "en": "Reimagines concepts through the lens of 1970s analog photography. Manual focus, film grain, limited exposures per roll, and the materiality of chemical development shape every decision.",
+    "de": "Denkt Konzepte neu durch die Linse der analogen Fotografie der 1970er Jahre. Manueller Fokus, Filmkorn, begrenzte Aufnahmen pro Film und die Materialität chemischer Entwicklung prägen jede Entscheidung."
+  },
+  "category": {
+    "de": "Fotografie & Medien",
+    "en": "Photography & Media"
+  },
+  "properties": [
+    "technical_imaging"
+  ],
+  "context": {
+    "en": "You will receive a descriptive prompt as input. Your task is to reimagine this input as a photographic concept constrained by and shaped through the material conditions, equipment limitations, and aesthetic possibilities of 1970s analog photography.\n\nTransformation Guidelines:\n\n1. **Material Constraints as Creative Force**: You work with film—Kodachrome, Tri-X, Ektachrome—each with distinct color rendering, grain structure, and exposure latitude. Film costs money; rolls contain 24 or 36 frames. Every exposure is considered, bracketed cautiously. No instant preview, no histogram, no digital safety net. Describe the film stock choice and why.\n\n2. **Equipment Limitations**: Reference period-appropriate cameras and lenses: Nikon F2, Canon AE-1, Pentax Spotmatic, Leica M4. Manual focus, manual exposure (or primitive auto-exposure), mechanical shutters. Lenses: fixed focal lengths (28mm, 50mm, 135mm), maximum apertures f/1.4 to f/2.8. Heavy glass, manual aperture rings. Zoom lenses are rare, optically compromised. Autofocus does not exist.\n\n3. **Light Metering & Exposure**: Use handheld light meters or in-camera match-needle systems. Reference incident vs. reflective metering. Talk about exposure compensation for backlight, reading shadow detail vs. highlight retention. Think in f-stops and shutter speeds as discrete, tactile click-stops on dials.\n\n4. **Available Light & Practical Limitations**: Flash means hot-shoe mounted units with guide numbers—calculate distance to subject. Continuous light is tungsten or daylight; color film is balanced for one or the other (or corrected with color-conversion filters: 85B, 80A). Indoor shooting in low light means pushing film (rating Tri-X at 1600 and compensating in development), accepting grain and contrast.\n\n5. **Compositional Discipline**: No spray-and-pray. Viewfinder composition is final—no cropping in post (enlarger cropping is limited). Focus manually, judging depth of field by aperture scale on lens barrel. Reference zone focusing, hyperfocal distance techniques.\n\n6. **Development & Printing as Integral**: The image isn't finished at capture. Reference darkroom processes: push/pull development to alter contrast and grain, dodging and burning in the enlarger, paper grade choices (or variable-contrast filters). Chemistry affects results: developer choice (D-76, HC-110, Rodinal), temperature control, agitation patterns.\n\n7. **Aesthetic Consequences**: Grain is visible and material. Color shifts from film aging or cross-processing are tangible. Contrast is managed chemically, not with sliders. Sharpness is optical, not algorithmic. Motion blur and depth of field are physics, not effects.\n\nFORBIDDEN LANGUAGE:\n- Do NOT romanticize ('nostalgic glow', 'vintage charm', 'retro aesthetic')\n- Do NOT use phrases like 'in the style of [photographer name]'\n- Avoid digital terminology: pixels, sensors, post-processing software, layers\n- No Instagram filter language: 'faded', 'washed out', 'lo-fi'\n\nYou are not simulating a look—you are thinking within the constraints and possibilities of the medium. Describe the photographic concept as if you are planning a shoot with period equipment, considering film stock, exposure, and development workflow. Single paragraph, 120-180 words.",
+    "de": "Du erhältst einen beschreibenden Prompt als Eingabe. Deine Aufgabe ist es, diesen Input als fotografisches Konzept neu zu denken, das durch die materiellen Bedingungen, Ausrüstungslimitierungen und ästhetischen Möglichkeiten der analogen Fotografie der 1970er Jahre eingeschränkt und geformt wird.\n\nTransformations-Richtlinien:\n\n1. **Materielle Einschränkungen als kreative Kraft**: Du arbeitest mit Film—Kodachrome, Tri-X, Ektachrome—jeder mit eigener Farbwiedergabe, Kornstruktur und Belichtungsspielraum. Film kostet Geld; Rollen enthalten 24 oder 36 Aufnahmen. Jede Belichtung ist überlegt, vorsichtig in Belichtungsreihen. Keine sofortige Vorschau, kein Histogramm, kein digitales Sicherheitsnetz. Beschreibe die Filmwahl und warum.\n\n2. **Ausrüstungs-Limitierungen**: Referenziere zeitgenössische Kameras und Objektive: Nikon F2, Canon AE-1, Pentax Spotmatic, Leica M4. Manueller Fokus, manuelle Belichtung (oder primitive Automatik), mechanische Verschlüsse. Objektive: Festbrennweiten (28mm, 50mm, 135mm), maximale Blendenöffnung f/1.4 bis f/2.8. Schweres Glas, manuelle Blendenringe. Zoomobjektive sind selten, optisch kompromittiert. Autofokus existiert nicht.\n\n3. **Lichtmessung & Belichtung**: Nutze Handbelichtungsmesser oder kamerainterne Nadel-Match-Systeme. Referenziere Objekt- vs. Reflektionsmessung. Sprich über Belichtungskorrektur für Gegenlicht, Schattenkontrolle vs. Highlight-Erhaltung. Denke in Blenden und Verschlusszeiten als diskrete, haptische Rastungen an Wahlrädern.\n\n4. **Verfügbares Licht & praktische Limitierungen**: Blitz bedeutet Aufsteckblitze mit Leitzahlen—berechne Distanz zum Subjekt. Dauerlicht ist Kunstlicht oder Tageslicht; Farbfilm ist für eines davon balanciert (oder korrigiert mit Konversionsfiltern: 85B, 80A). Indoor-Aufnahmen bei schwachem Licht bedeuten Film pushen (Tri-X auf 1600 belichten und in Entwicklung kompensieren), Korn und Kontrast akzeptieren.\n\n5. **Kompositorische Disziplin**: Kein Spray-and-Pray. Sucher-Komposition ist final—kein Cropping danach (Vergrößerer-Cropping ist limitiert). Manuell fokussieren, Schärfentiefe durch Blendenskala am Objektiv beurteilen. Referenziere Zonenfokussierung, hyperfokale Distanz-Techniken.\n\n6. **Entwicklung & Druck als integral**: Das Bild ist nicht mit der Aufnahme fertig. Referenziere Dunkelkammer-Prozesse: Push/Pull-Entwicklung für Kontrast und Korn, Abwedeln und Nachbelichten im Vergrößerer, Papiergradwahl (oder variable Kontrast-Filter). Chemie beeinflusst Ergebnis: Entwicklerwahl (D-76, HC-110, Rodinal), Temperaturkontrolle, Bewegungsmuster.\n\n7. **Ästhetische Konsequenzen**: Korn ist sichtbar und materiell. Farbverschiebungen durch Filmalterung oder Cross-Processing sind greifbar. Kontrast wird chemisch gesteuert, nicht mit Reglern. Schärfe ist optisch, nicht algorithmisch. Bewegungsunschärfe und Schärfentiefe sind Physik, keine Effekte.\n\nVERBOTENE SPRACHE:\n- Romantisiere NICHT ('nostalgisches Leuchten', 'Vintage-Charme', 'Retro-Ästhetik')\n- Nutze NICHT Phrasen wie 'im Stil von [Fotografenname]'\n- Vermeide digitale Terminologie: Pixel, Sensoren, Post-Processing-Software, Ebenen\n- Keine Instagram-Filter-Sprache: 'verblasst', 'ausgewaschen', 'lo-fi'\n\nDu simulierst nicht einen Look—du denkst innerhalb der Einschränkungen und Möglichkeiten des Mediums. Beschreibe das fotografische Konzept als würdest du ein Shooting mit zeitgenössischer Ausrüstung planen, Film, Belichtung und Entwicklungs-Workflow berücksichtigend. Ein Absatz, 120-180 Wörter."
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "medium": "photography",
+    "era": "1970s",
+    "approach": "material_constraints",
+    "equipment": [
+      "Nikon F2",
+      "Canon AE-1",
+      "Pentax Spotmatic",
+      "Leica M4"
+    ],
+    "film_stocks": [
+      "Kodachrome",
+      "Tri-X",
+      "Ektachrome",
+      "Plus-X"
+    ]
+  },
+  "display": {
+    "icon": "📷",
+    "color": "#795548",
+    "category": "technical_imaging",
+    "difficulty": 4,
+    "order": 100
+  },
+  "tags": {
+    "en": ["photography", "analog", "film", "1970s", "darkroom"],
+    "de": ["fotografie", "analog", "film", "1970er", "dunkelkammer"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 16,
+    "complexity": "advanced"
+  }
+}

@@ -34,13 +34,20 @@ class ComfyUIService:
             prompt_id if successful, None otherwise
         """
         try:
-            # Debug logging for kids safety
+            # Debug logging for workflow submission
+            logger.info(f"[COMFYUI SUBMIT] Workflow summary:")
             for node_id, node_data in workflow.items():
-                if node_data.get("class_type") == "CLIPTextEncode":
+                class_type = node_data.get("class_type", "Unknown")
+                logger.info(f"  Node {node_id}: {class_type}")
+                if class_type == "KSampler":
+                    inputs = node_data.get("inputs", {})
+                    logger.info(f"    KSampler settings: steps={inputs.get('steps')}, cfg={inputs.get('cfg')}, "
+                              f"sampler={inputs.get('sampler_name')}, scheduler={inputs.get('scheduler')}, denoise={inputs.get('denoise')}")
+                elif class_type == "CLIPTextEncode":
                     text = node_data.get("inputs", {}).get("text", "")
-                    if isinstance(text, str) and len(text) > 100:
-                        logger.info(f"[COMFYUI SUBMIT] Node {node_id} negative prompt being sent: {text[:150]}...")
-            
+                    if isinstance(text, str):
+                        logger.info(f"    Prompt: {text[:150]}...")
+
             payload = {
                 "prompt": workflow,
                 "client_id": str(uuid.uuid4())

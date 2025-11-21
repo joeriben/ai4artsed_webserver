@@ -82,8 +82,8 @@
         "seed": 123456789,
         "steps": 25,
         "cfg": 5.5,
-        "sampler_name": "euler",
-        "scheduler": "normal",
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
         "denoise": 1,
         "model": ["5", 0],
         "positive": ["1", 0],
@@ -167,14 +167,20 @@
     "sampler_name": {
       "node_id": "8",
       "field": "inputs.sampler_name",
-      "default": "euler",
+      "default": "dpmpp_2m",
       "description": "Sampling algorithm"
     },
     "scheduler": {
       "node_id": "8",
       "field": "inputs.scheduler",
-      "default": "normal",
+      "default": "sgm_uniform",
       "description": "Noise scheduling algorithm"
+    },
+    "denoise": {
+      "node_id": "8",
+      "field": "inputs.denoise",
+      "default": 1.0,
+      "description": "Denoise strength (1.0 = full denoise from noise, 0.7-0.8 for img2img)"
     },
     "seed": {
       "node_id": "8",
