@@ -23,7 +23,102 @@
 
 **Active Sessions:** 40, 41, 43, 46, 49, 50, 54 (Sessions 44-45 documented separately)
 
-**Next Archive Point:** Session 56 (keep last 10 sessions active)
+**Next Archive Point:** Session 60 (keep last 10 sessions active)
+
+---
+
+## Session 59 (2025-11-21): Stage 3 Architecture Correction - Documentation Phase
+
+**Date:** 2025-11-21
+**Duration:** ~1 hour
+**Status:** ✅ DOCUMENTATION COMPLETE - Implementation planned for next session
+**Branch:** develop
+
+### Task
+
+Correct flawed Session 56-58 "mega-prompt" architecture that eliminated Stage 3, preventing user edit opportunity after optimization.
+
+### Problem Discovered
+
+**Session 56-58 Plan (WRONG):**
+- Merged Stage 2 (Interception) + Stage 3 (Safety) into ONE "mega-prompt"
+- Eliminated user edit opportunity
+- Sacrificed pedagogical goal (transparency/reflection) for speed
+
+**Pedagogical Error:**
+Users need to EDIT after prompt optimization but BEFORE final safety check. Merging stages prevents this critical reflection moment.
+
+### Solution
+
+**Corrected Architecture:**
+```
+Stage 1: Safety ONLY (no translation, bilingual DE/EN)
+Stage 2: Interception + Optimization (in original language)
+  → USER CAN EDIT HERE!
+Stage 3: Translation (DE→EN) + Safety
+Stage 4: Media Generation
+```
+
+**Key Change:** Translation moved from Stage 1 → Stage 3
+
+### Work Completed
+
+**Documentation Updates:**
+1. ✅ ARCHITECTURE PART 01 (v2.0 → v2.1)
+   - Updated Stage 1 description (safety only, no translation)
+   - Updated Stage 2 description (added optimization)
+   - Updated Stage 3 description (translation + safety)
+
+2. ✅ DEVELOPMENT_DECISIONS.md (Active Decision 1)
+   - Documented why Session 56-58 plan was wrong
+   - Explained correct architecture with pedagogical rationale
+   - Provided implementation plan for next session
+
+3. ✅ devserver_todos.md (Session 59 Tasks)
+   - Added detailed implementation tasks
+   - Specified file locations and line numbers
+   - Estimated 3-4 hours for implementation
+
+**Branch Cleanup:**
+- Removed incorrect SESSION_56_HANDOVER.md (documented flawed mega-prompt plan)
+- Reset to clean develop branch (no smart_transform.json)
+- Feature branch `feature/stage2-mega-prompt` marked DO NOT MERGE
+
+### Files Modified
+
+**Documentation:**
+- `docs/ARCHITECTURE PART 01 - 4-Stage Orchestration Flow.md` (+30 lines, edits)
+- `docs/DEVELOPMENT_DECISIONS.md` (+105 lines, new decision)
+- `docs/devserver_todos.md` (+74 lines, Session 59 tasks)
+- `docs/SESSION_56_HANDOVER.md` (deleted - 413 lines)
+- `docs/DEVELOPMENT_LOG.md` (this entry)
+
+**Commits:**
+```
+2cbd9ad docs: Session 59 - Correct Stage 3 architecture (translation placement)
+a754b77 docs: Remove wrong Session 56 handover (mega-prompt planning was incorrect)
+```
+
+### Cost Estimate
+
+**Model:** Claude Sonnet 4.5
+**Input Tokens:** ~150k
+**Output Tokens:** ~10k
+**Estimated Cost:** ~$0.80
+
+### Next Session
+
+**Branch:** develop
+**Status:** Ready to implement
+**Tasks:** See devserver_todos.md Session 59 section
+**Estimated Time:** 3-4 hours
+
+**Implementation Order:**
+1. Stage 1: Create safety-only config + function
+2. Stage 3: Create translation config + function
+3. Update schema_pipeline_routes.py (Stage 1 and Stage 3 calls)
+4. Test complete flow
+5. (Optional) Add media-specific optimization chunks
 
 ---
 
