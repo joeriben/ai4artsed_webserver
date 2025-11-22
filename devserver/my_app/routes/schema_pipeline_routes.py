@@ -128,7 +128,8 @@ async def execute_stage2_with_optimization(
     safety_level: str,
     output_config: str = None,
     media_preferences = None,
-    tracker = None
+    tracker = None,
+    user_input: str = None
 ):
     """
     Execute Stage 2: Interception + Media-Specific Optimization
@@ -144,6 +145,7 @@ async def execute_stage2_with_optimization(
         output_config: Optional output config name for optimization (e.g., "sd35_large")
         media_preferences: Optional media preferences from config
         tracker: Optional execution tracker
+        user_input: Optional original user input text (before safety check)
 
     Returns:
         PipelineResult object with Stage 2 output
@@ -224,7 +226,7 @@ async def execute_stage2_with_optimization(
     result = asyncio.run(pipeline_executor.execute_pipeline(
         config_name=schema_name,
         input_text=input_text,
-        user_input=input_text,
+        user_input=user_input if user_input is not None else input_text,
         execution_mode=execution_mode,
         safety_level=safety_level,
         tracker=tracker,
@@ -425,9 +427,249 @@ def execute_stage2():
         }), 500
 
 
+@schema_bp.route('/pipeline/stage3-4', methods=['POST'])
+def execute_stage3_4():
+    """
+    Execute Stage 3-4: Translation + Safety + Media Generation
+
+    Takes the Stage 2 result (possibly edited by user) and continues with
+    translation, safety check, and media generation.
+
+    Request Body:
+    {
+        "stage2_result": "Ein roter Apfel in dadaistischer...",  # From /stage2 (can be edited)
+        "output_config": "sd35_large",                           # Output config for media generation
+        "execution_mode": "eco",                                 # eco or fast
+        "safety_level": "kids",                                  # kids, youth, or off
+        "run_id": "uuid",                                        # Optional: Session ID from /stage2
+        "seed": 123456                                           # Optional: Seed for reproducible generation
+    }
+
+    Response:
+    {
+        "success": true,
+        "media_output": {
+            "url": "/media/run_xyz/image.png",
+            "media_type": "image",
+            "seed": 123456,
+            ...
+        },
+        "stage3_result": "A red apple in fragmented dadaist form...",  # Translated text
+        "execution_time_ms": 5678
+    }
+    """
+    import time
+    import uuid
+
+    start_time = time.time()
+
+    try:
+        # Request validation
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'JSON-Request erwartet'
+            }), 400
+
+        stage2_result = data.get('stage2_result')
+        output_config = data.get('output_config')
+        execution_mode = data.get('execution_mode', 'eco')
+        safety_level = data.get('safety_level', 'kids')
+        run_id = data.get('run_id', str(uuid.uuid4()))
+        seed_override = data.get('seed')
+
+        if not stage2_result or not output_config:
+            return jsonify({
+                'success': False,
+                'error': 'stage2_result und output_config sind erforderlich'
+            }), 400
+
+        # Initialize engine
+        init_schema_engine()
+
+        logger.info(f"[STAGE3-4-ENDPOINT] Starting Stage 3-4 for output config '{output_config}'")
+        logger.info(f"[STAGE3-4-ENDPOINT] Stage 2 result (first 100 chars): {stage2_result[:100]}...")
+
+        # ====================================================================
+        # STAGE 3: TRANSLATION + PRE-OUTPUT SAFETY
+        # ====================================================================
+        logger.info(f"[STAGE3-4-ENDPOINT] Stage 3: Translation + Pre-Output Safety")
+
+        stage3_start = time.time()
+
+        # Determine media type from output config
+        if 'image' in output_config.lower() or 'sd' in output_config.lower() or 'flux' in output_config.lower() or 'gpt' in output_config.lower():
+            media_type = 'image'
+        elif 'audio' in output_config.lower():
+            media_type = 'audio'
+        elif 'music' in output_config.lower() or 'ace' in output_config.lower():
+            media_type = 'music'
+        elif 'video' in output_config.lower():
+            media_type = 'video'
+        else:
+            media_type = 'image'  # Default fallback
+
+        # Execute Stage 3 safety check
+        safety_result = asyncio.run(execute_stage3_safety(
+            stage2_result,
+            safety_level,
+            execution_mode,
+            pipeline_executor,
+            media_type=media_type
+        ))
+
+        stage3_time = (time.time() - stage3_start) * 1000  # ms
+
+        if not safety_result['safe']:
+            logger.warning(f"[STAGE3-4-ENDPOINT] Stage 3 BLOCKED by safety check")
+            return jsonify({
+                'success': False,
+                'error': safety_result.get('reason', 'Content blocked by safety check'),
+                'blocked_at_stage': 3,
+                'safety_level': safety_level,
+                'stage3_time_ms': stage3_time
+            }), 403
+
+        translated_prompt = safety_result.get('positive_prompt', stage2_result)
+        logger.info(f"[STAGE3-4-ENDPOINT] Stage 3 completed: Translated to '{translated_prompt[:100]}...'")
+
+        # ====================================================================
+        # STAGE 4: MEDIA GENERATION
+        # ====================================================================
+        logger.info(f"[STAGE3-4-ENDPOINT] Stage 4: Executing output config '{output_config}'")
+
+        stage4_start = time.time()
+
+        try:
+            # Execute Output Pipeline with translated text
+            from execution_history.tracker import NoOpTracker
+            tracker = NoOpTracker()
+
+            output_result = asyncio.run(pipeline_executor.execute_pipeline(
+                config_name=output_config,
+                input_text=translated_prompt,
+                user_input=translated_prompt,
+                execution_mode=execution_mode,
+                tracker=tracker
+            ))
+
+            stage4_time = (time.time() - stage4_start) * 1000  # ms
+
+            if not output_result.success:
+                logger.error(f"[STAGE3-4-ENDPOINT] Stage 4 failed: {output_result.error}")
+                return jsonify({
+                    'success': False,
+                    'error': output_result.error,
+                    'stage': 'stage4',
+                    'stage3_time_ms': stage3_time,
+                    'stage4_time_ms': stage4_time
+                }), 500
+
+            # ====================================================================
+            # MEDIA STORAGE - Download and store media locally
+            # ====================================================================
+            media_stored = False
+            media_output_data = None
+
+            try:
+                output_value = output_result.final_output
+                saved_filename = None
+
+                # Extract seed from output_result metadata (if available)
+                seed = output_result.metadata.get('seed') if output_result.metadata else None
+                if seed_override:
+                    seed = seed_override
+
+                # Import media manager
+                from my_app.services.media_manager import media_manager
+
+                # Detect generation backend and download appropriately
+                if output_value == 'swarmui_generated':
+                    # SwarmUI generation - image paths returned directly
+                    image_paths = output_result.metadata.get('image_paths', [])
+                    logger.info(f"[STAGE3-4-ENDPOINT] Downloading from SwarmUI: {len(image_paths)} image(s)")
+
+                    if image_paths:
+                        saved_filename = media_manager.save_swarmui_media(
+                            image_paths=image_paths,
+                            run_id=run_id,
+                            media_type=media_type
+                        )
+                        media_stored = True
+
+                elif output_value and output_value.startswith('http'):
+                    # URL-based media (ComfyUI, OpenRouter, etc.)
+                    logger.info(f"[STAGE3-4-ENDPOINT] Downloading from URL: {output_value[:100]}...")
+
+                    saved_filename = media_manager.save_media_from_url(
+                        url=output_value,
+                        run_id=run_id,
+                        media_type=media_type
+                    )
+                    media_stored = True
+
+                if media_stored and saved_filename:
+                    media_output_data = {
+                        'url': f'/api/media/{run_id}/{saved_filename}',
+                        'filename': saved_filename,
+                        'run_id': run_id,
+                        'media_type': media_type,
+                        'config': output_config,
+                        'seed': seed,
+                        'media_stored': True
+                    }
+                    logger.info(f"[STAGE3-4-ENDPOINT] ✅ Media stored: {saved_filename}")
+
+            except Exception as e:
+                logger.error(f"[STAGE3-4-ENDPOINT] Media storage failed: {e}")
+                import traceback
+                traceback.print_exc()
+
+            total_time = (time.time() - start_time) * 1000
+
+            logger.info(f"[STAGE3-4-ENDPOINT] ✅ Success! Total time: {total_time:.0f}ms")
+
+            return jsonify({
+                'success': True,
+                'media_output': media_output_data,
+                'stage3_result': translated_prompt,
+                'run_id': run_id,
+                'execution_time_ms': total_time,
+                'stage3_time_ms': stage3_time,
+                'stage4_time_ms': stage4_time
+            })
+
+        except Exception as e:
+            logger.error(f"[STAGE3-4-ENDPOINT] Stage 4 error: {e}")
+            import traceback
+            traceback.print_exc()
+
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'stage': 'stage4'
+            }), 500
+
+    except Exception as e:
+        logger.error(f"[STAGE3-4-ENDPOINT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @schema_bp.route('/pipeline/transform', methods=['POST'])
 def transform_prompt():
     """
+    DEPRECATED: Use /pipeline/stage2 instead!
+
+    This endpoint is kept for backwards compatibility but should not be used.
+    It has been replaced by /pipeline/stage2 which has cleaner separation of concerns.
+
     Execute ONLY Stage 1+2 (Translation + Safety + Interception)
 
     Phase 2 Frontend: User wants to see transformed prompt before media generation.
@@ -454,6 +696,9 @@ def transform_prompt():
     """
     import time
     start_time = time.time()
+
+    # Log deprecation warning
+    logger.warning("[DEPRECATED] /pipeline/transform endpoint called - use /pipeline/stage2 instead!")
 
     try:
         # Request validation
@@ -937,76 +1182,24 @@ def execute_pipeline():
                 # Translation will be moved to Stage 3 (before media generation)
 
             # ====================================================================
-            # STAGE 2: INTERCEPTION (Main Pipeline - DUMB execution)
+            # STAGE 2: INTERCEPTION (Main Pipeline + Optimization)
             # ====================================================================
             logger.info(f"[4-STAGE] Stage 2: Interception (Main Pipeline) for '{schema_name}'")
             tracker.set_stage(2)
             recorder.set_state(2, "interception")
 
-            # ====================================================================
-            # STAGE 2 OPTIMIZATION: Fetch media-specific optimization instruction
-            # ====================================================================
-            # Determine which output config will be used (same logic as Stage 3-4 loop)
-            optimization_instruction = None
-
-            if output_config:
-                # User-selected output config
-                target_output_config = output_config
-            elif media_preferences and media_preferences.get('output_configs'):
-                # Use first output config from array
-                target_output_config = media_preferences['output_configs'][0]
-            elif media_preferences and media_preferences.get('default_output') and media_preferences.get('default_output') != 'text':
-                # Lookup output config from default_output
-                target_output_config = lookup_output_config(media_preferences['default_output'], execution_mode)
-            else:
-                target_output_config = None
-
-            if target_output_config:
-                logger.info(f"[STAGE2-OPT] Target output config: {target_output_config}")
-                try:
-                    # Load output config to get OUTPUT_CHUNK name
-                    output_config_obj = pipeline_executor.config_loader.get_config(target_output_config)
-                    if output_config_obj and hasattr(output_config_obj, 'parameters'):
-                        output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
-                        if output_chunk_name:
-                            logger.info(f"[STAGE2-OPT] Output chunk: {output_chunk_name}")
-                            # Load output chunk to get optimization_instruction
-                            output_chunk = pipeline_executor.config_loader.get_chunk(output_chunk_name)
-                            if output_chunk and hasattr(output_chunk, 'meta') and output_chunk.meta:
-                                optimization_instruction = output_chunk.meta.get('optimization_instruction')
-                                if optimization_instruction:
-                                    logger.info(f"[STAGE2-OPT] Found optimization instruction (length: {len(optimization_instruction)})")
-                                else:
-                                    logger.info(f"[STAGE2-OPT] No optimization instruction in chunk {output_chunk_name}")
-                except Exception as e:
-                    logger.warning(f"[STAGE2-OPT] Failed to load optimization instruction: {e}")
-
-            # Append optimization instruction to context if found
-            stage2_config_override = execution_config
-            if optimization_instruction:
-                logger.info(f"[STAGE2-OPT] Appending optimization instruction to pipeline context")
-                # Create deep copy of execution_config to avoid mutating original
-                import copy
-                stage2_config_override = copy.deepcopy(execution_config) if execution_config else {}
-
-                # Append optimization instruction to context
-                if 'context' in stage2_config_override:
-                    stage2_config_override['context'] += "\n\n" + optimization_instruction
-                else:
-                    # If no context override yet, load from original config and append
-                    original_context = config.context if hasattr(config, 'context') else ""
-                    stage2_config_override['context'] = original_context + "\n\n" + optimization_instruction
-
-                logger.info(f"[STAGE2-OPT] Context extended with optimization instruction")
-
-            result = asyncio.run(pipeline_executor.execute_pipeline(
-                config_name=schema_name,
+            # Use shared Stage 2 function (eliminates code duplication)
+            media_preferences = config.media_preferences if hasattr(config, 'media_preferences') else None
+            result = asyncio.run(execute_stage2_with_optimization(
+                schema_name=schema_name,
                 input_text=current_input,
-                user_input=data.get('user_input', input_text),
+                config=execution_config,
                 execution_mode=execution_mode,
                 safety_level=safety_level,
+                output_config=output_config,
+                media_preferences=media_preferences,
                 tracker=tracker,
-                config_override=stage2_config_override  # Use extended config with optimization
+                user_input=data.get('user_input', input_text)
             ))
 
             # Check if pipeline succeeded
