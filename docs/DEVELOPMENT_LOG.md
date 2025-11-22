@@ -27,6 +27,35 @@
 
 ---
 
+## 🔴 FEHLDIAGNOSE: Import-Fehler Stage 1 (2025-11-22)
+
+**Date:** 2025-11-22 14:20-14:30
+**Status:** ✅ RESOLVED - **Original-Code war korrekt**
+**Branch:** develop
+
+### Was passiert ist
+
+1. **Status 500 in Stage 1** nach Safety-Config-Umbenennung gemeldet
+2. **Fehldiagnose:** Vermutete falschen Import (`schemas.engine.config`)
+3. **Versuchter Fix:** Import geändert zu `schemas.engine.config_loader` (14:20)
+4. **Fehler blieb:** Fix war falsch
+5. **Revert:** Zurück zum Original-Import (14:25)
+6. **Ergebnis:** Stage 1 funktioniert wieder ✅
+
+### Erkenntnisse
+
+- **Original-Import war korrekt:** `from schemas.engine.config import Config`
+- Der Status 500 hatte **andere Ursache** (nicht dokumentiert)
+- Problem wurde durch Revert oder Backend-Neustart behoben
+
+### Lessons Learned
+
+- ⚠️ Nicht auf Import-Fehler schließen ohne vollständigen Traceback
+- ⚠️ Backend-Neustart kann notwendig sein nach Config-Änderungen
+- ✅ Revert-Policy hat funktioniert: Schnelle Rücknahme möglich
+
+---
+
 ## Session 62 Part 2 (2025-11-21): Context Placeholder Bug + Media Selection Regression Fix
 
 **Date:** 2025-11-21 (Evening)

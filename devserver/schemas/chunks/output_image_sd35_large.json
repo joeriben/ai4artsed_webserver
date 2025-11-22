@@ -220,6 +220,7 @@
       "1024x1024",
       "1280x1280"
     ],
-    "notes": "SD3.5 Large requires Dual CLIP (clip_g + t5xxl). Works best at 1024x1024 resolution."
+    "notes": "SD3.5 Large requires Dual CLIP (clip_g + t5xxl). Works best at 1024x1024 resolution.",
+    "optimization_instruction": "After completing the transformation above, optimize the result for Stable Diffusion 3.5's dual text encoder architecture:\n\nSD3.5 uses TWO encoders simultaneously:\n1. CLIP-G (token-weight based, 75 token limit): Prioritizes concrete visual elements. Put the most important subjects and objects FIRST. Use clear, concrete nouns and simple adjectives.\n2. T5-XXL (semantic understanding, 250 word limit): Processes semantic relationships, spatial arrangements, atmospheric qualities, and cultural/historical context.\n\nYour optimized output must work well for BOTH encoders:\n- Keep core visual elements clear and prominent (for CLIP-G)\n- Expand with spatial relationships, materials, lighting, and atmospheric details (for T5-XXL)\n- Avoid generic descriptors like 'beautiful', 'epic', 'highly detailed'\n- Use specific, culturally grounded references when applicable\n- Maximum 200 words\n- Single paragraph, no bullet points or structural markers\n\nOutput only the final optimized prompt."
   }
 }

@@ -287,6 +287,62 @@ def transform_prompt():
 
         stage2_start = time.time()
 
+        # ====================================================================
+        # STAGE 2 OPTIMIZATION: Fetch media-specific optimization instruction
+        # ====================================================================
+        # Determine which output config will be used
+        optimization_instruction = None
+        media_preferences = config.media_preferences if hasattr(config, 'media_preferences') else None
+
+        # Try to get output config from request (not available in /transform) or config defaults
+        if media_preferences and media_preferences.get('default_output') and media_preferences.get('default_output') != 'text':
+            # Lookup output config from default_output
+            target_output_config = lookup_output_config(media_preferences['default_output'], execution_mode)
+        else:
+            target_output_config = None
+
+        if target_output_config:
+            logger.info(f"[TRANSFORM/STAGE2-OPT] Target output config: {target_output_config}")
+            try:
+                # Load output config to get OUTPUT_CHUNK name
+                output_config_obj = pipeline_executor.config_loader.get_config(target_output_config)
+                if output_config_obj and hasattr(output_config_obj, 'parameters'):
+                    output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
+                    if output_chunk_name:
+                        logger.info(f"[TRANSFORM/STAGE2-OPT] Output chunk: {output_chunk_name}")
+                        # Load output chunk to get optimization_instruction
+                        output_chunk = pipeline_executor.config_loader.get_chunk(output_chunk_name)
+                        if output_chunk and hasattr(output_chunk, 'meta') and output_chunk.meta:
+                            optimization_instruction = output_chunk.meta.get('optimization_instruction')
+                            if optimization_instruction:
+                                logger.info(f"[TRANSFORM/STAGE2-OPT] Found optimization instruction (length: {len(optimization_instruction)})")
+                            else:
+                                logger.info(f"[TRANSFORM/STAGE2-OPT] No optimization instruction in chunk {output_chunk_name}")
+            except Exception as e:
+                logger.warning(f"[TRANSFORM/STAGE2-OPT] Failed to load optimization instruction: {e}")
+
+        # Append optimization instruction to context if found
+        stage2_config_override = execution_config
+        if optimization_instruction:
+            logger.info(f"[TRANSFORM/STAGE2-OPT] Appending optimization instruction to pipeline context")
+            # Create deep copy of execution_config to avoid mutating original
+            import copy
+            stage2_config_override = copy.deepcopy(execution_config)
+
+            # Get original context and append optimization
+            if hasattr(stage2_config_override, 'context'):
+                original_context = stage2_config_override.context
+            else:
+                original_context = config.context if hasattr(config, 'context') else ""
+
+            # Convert to dict and modify
+            config_dict = stage2_config_override.to_dict() if hasattr(stage2_config_override, 'to_dict') else {}
+            config_dict['context'] = original_context + "\n\n" + optimization_instruction
+
+            from schemas.engine.config import Config
+            stage2_config_override = Config.from_dict(config_dict)
+            logger.info(f"[TRANSFORM/STAGE2-OPT] Context extended with optimization instruction")
+
         # Create no-op tracker (tracker is deprecated, using NoOpTracker)
         tracker = NoOpTracker()
 
@@ -297,7 +353,7 @@ def transform_prompt():
             execution_mode=execution_mode,
             safety_level=safety_level,
             tracker=tracker,
-            config_override=execution_config
+            config_override=stage2_config_override  # Use extended config with optimization
         ))
 
         stage2_time = (time.time() - stage2_start) * 1000  # ms
@@ -599,6 +655,62 @@ def execute_pipeline():
             tracker.set_stage(2)
             recorder.set_state(2, "interception")
 
+            # ====================================================================
+            # STAGE 2 OPTIMIZATION: Fetch media-specific optimization instruction
+            # ====================================================================
+            # Determine which output config will be used (same logic as Stage 3-4 loop)
+            optimization_instruction = None
+
+            if output_config:
+                # User-selected output config
+                target_output_config = output_config
+            elif media_preferences and media_preferences.get('output_configs'):
+                # Use first output config from array
+                target_output_config = media_preferences['output_configs'][0]
+            elif media_preferences and media_preferences.get('default_output') and media_preferences.get('default_output') != 'text':
+                # Lookup output config from default_output
+                target_output_config = lookup_output_config(media_preferences['default_output'], execution_mode)
+            else:
+                target_output_config = None
+
+            if target_output_config:
+                logger.info(f"[STAGE2-OPT] Target output config: {target_output_config}")
+                try:
+                    # Load output config to get OUTPUT_CHUNK name
+                    output_config_obj = pipeline_executor.config_loader.get_config(target_output_config)
+                    if output_config_obj and hasattr(output_config_obj, 'parameters'):
+                        output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
+                        if output_chunk_name:
+                            logger.info(f"[STAGE2-OPT] Output chunk: {output_chunk_name}")
+                            # Load output chunk to get optimization_instruction
+                            output_chunk = pipeline_executor.config_loader.get_chunk(output_chunk_name)
+                            if output_chunk and hasattr(output_chunk, 'meta') and output_chunk.meta:
+                                optimization_instruction = output_chunk.meta.get('optimization_instruction')
+                                if optimization_instruction:
+                                    logger.info(f"[STAGE2-OPT] Found optimization instruction (length: {len(optimization_instruction)})")
+                                else:
+                                    logger.info(f"[STAGE2-OPT] No optimization instruction in chunk {output_chunk_name}")
+                except Exception as e:
+                    logger.warning(f"[STAGE2-OPT] Failed to load optimization instruction: {e}")
+
+            # Append optimization instruction to context if found
+            stage2_config_override = execution_config
+            if optimization_instruction:
+                logger.info(f"[STAGE2-OPT] Appending optimization instruction to pipeline context")
+                # Create deep copy of execution_config to avoid mutating original
+                import copy
+                stage2_config_override = copy.deepcopy(execution_config) if execution_config else {}
+
+                # Append optimization instruction to context
+                if 'context' in stage2_config_override:
+                    stage2_config_override['context'] += "\n\n" + optimization_instruction
+                else:
+                    # If no context override yet, load from original config and append
+                    original_context = config.context if hasattr(config, 'context') else ""
+                    stage2_config_override['context'] = original_context + "\n\n" + optimization_instruction
+
+                logger.info(f"[STAGE2-OPT] Context extended with optimization instruction")
+
             result = asyncio.run(pipeline_executor.execute_pipeline(
                 config_name=schema_name,
                 input_text=current_input,
@@ -606,7 +718,7 @@ def execute_pipeline():
                 execution_mode=execution_mode,
                 safety_level=safety_level,
                 tracker=tracker,
-                config_override=execution_config  # Phase 2: Pass modified config if user edited
+                config_override=stage2_config_override  # Use extended config with optimization
             ))
 
             # Check if pipeline succeeded
