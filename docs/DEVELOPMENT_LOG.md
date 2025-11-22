@@ -27,6 +27,137 @@
 
 ---
 
+## Session 64 (2025-11-22): Stage 2 Endpoint Architecture Refactoring + Media-Specific Optimization
+
+**Date:** 2025-11-22
+**Duration:** ~2 hours
+**Status:** ✅ COMPLETE - Backend refactoring finished, frontend migration pending
+**Branch:** develop
+**Commits:** `160aada`, `0a26511`, `599e300`
+
+### User Request
+
+**Initial Problem:** SD3.5 media-specific optimization prompts should be concatenated in Stage 2, but weren't being applied.
+
+**Root Cause Discovery:** User identified architectural flaw - `/pipeline/transform` endpoint causes **duplicate Stage 2 execution**:
+- Frontend calls `/transform` (Stage 1+2)
+- Frontend then calls `/pipeline/execute` (Stage 1+2+3+4)
+- Result: Stage 2 (interception) runs **twice** unnecessarily! ❌
+
+### Implementation
+
+#### Part 1: Media-Specific Optimization (160aada)
+
+**Problem:** SD3.5 Large uses **Dual CLIP architecture** (clip_g + t5xxl) that requires specific prompt optimization, but optimization wasn't happening.
+
+**Solution:**
+1. Added `optimization_instruction` field to output chunk metadata (`output_image_sd35_large.json`)
+2. Orchestrator fetches optimization instruction based on target output config
+3. Concatenates instruction to Stage 2 context for single LLM call
+
+**Optimization Instruction Content:**
+- CLIP-G guidance: Token-weight based, 75 token limit, concrete visual elements first
+- T5-XXL guidance: Semantic understanding, 250 word limit, spatial relationships & atmosphere
+- Maximum 200 words total, single paragraph
+- No generic descriptors like "beautiful", "epic", "highly detailed"
+
+**Design Rationale:**
+- Pedagogical constraint: Max 2 LLM calls per workflow (workshop wait times)
+- Instruction stored in output chunk where model configuration lives
+- Fetched at runtime based on selected output config
+- Single LLM execution handles both interception + optimization
+
+#### Part 2: Endpoint Architecture Refactoring (0a26511, 599e300)
+
+**Problem:** Code duplication + duplicate Stage 2 execution waste
+
+**Solution - New Architecture:**
+
+1. **Shared Function:** `execute_stage2_with_optimization()`
+   - Single source of truth for Stage 2 logic
+   - Eliminates 150+ lines of duplicated code
+   - Used by `/pipeline/stage2`, `/pipeline/execute`, `/pipeline/transform`
+
+2. **New Endpoint:** `/pipeline/stage2`
+   - Executes ONLY Stage 1 + Stage 2 (Safety + Interception + Optimization)
+   - Returns stage2_result for frontend preview/editing
+   - Clean separation of concerns
+
+3. **New Endpoint:** `/pipeline/stage3-4`
+   - Takes stage2_result (possibly user-edited)
+   - Executes ONLY Stage 3 (Translation + Safety) + Stage 4 (Media Generation)
+   - Prevents duplicate Stage 2 execution
+
+4. **Updated:** `/pipeline/execute`
+   - Now uses shared `execute_stage2_with_optimization()` function
+   - Removed ~70 lines of duplicated Stage 2 logic
+   - Still supports full Stage 1-4 execution for compatibility
+
+5. **Deprecated:** `/pipeline/transform`
+   - Marked as DEPRECATED in docstring
+   - Logs warning when called: "use /pipeline/stage2 instead!"
+   - Kept for backwards compatibility
+
+**Architecture Comparison:**
+
+**Before:**
+```
+Frontend → /transform (Stage 1+2) → Frontend → /execute (Stage 1+2+3+4)
+           ^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^
+           Runs Stage 2                         Runs Stage 2 AGAIN! ❌
+```
+
+**After:**
+```
+Frontend → /stage2 (Stage 1+2) → Frontend → /stage3-4 (Stage 3+4)
+           ^^^^^^^^^^^^^^^^^^                ^^^^^^^^^^^^^^^^^^^^
+           Runs Stage 2 once                 Skips Stage 2 ✅
+```
+
+### Technical Details
+
+**File:** `devserver/my_app/routes/schema_pipeline_routes.py`
+
+**Changes:**
+- Lines 123-237: Shared `execute_stage2_with_optimization()` function
+- Lines 265-425: New `/pipeline/stage2` endpoint
+- Lines 428-660: New `/pipeline/stage3-4` endpoint
+- Lines 1174-1193: Updated `/pipeline/execute` to use shared function
+- Lines 665-701: Deprecated `/pipeline/transform` endpoint
+
+**DRY Principle Applied:**
+- Before: Stage 2 logic copied in 3 places
+- After: Single shared function with proper parameter passing
+
+### Pending Work
+
+**Frontend Migration Required:**
+- Update `api.ts` with new functions: `executeStage2()`, `executeStage34()`
+- Update `Phase2YouthFlowView.vue` to use new endpoints
+- Update `Phase2CreativeFlowView.vue` to use new endpoints
+- Update `PipelineExecutionView.vue` to use new endpoints
+- Remove deprecated `/transform` calls after migration complete
+
+**Testing:**
+- Test `/pipeline/stage2` endpoint
+- Test `/pipeline/stage3-4` endpoint
+- Verify Stage 2 optimization instruction concatenation
+- Verify no duplicate Stage 2 execution
+
+### Lessons Learned
+
+1. **Code Duplication is Technical Debt:** 3 copies of Stage 2 logic made bug fixes and features difficult
+2. **Endpoint Design Matters:** Poor endpoint separation led to invisible performance waste (duplicate execution)
+3. **Optimization Placement:** Model-specific optimizations belong in output chunk metadata, not separate chunks
+4. **Pedagogical Requirements Drive Architecture:** Max 2 LLM calls constraint forced single-pass interception+optimization
+
+### Architecture Decisions Referenced
+
+- **DEVELOPMENT_DECISIONS.md § 4-Stage Orchestration:** Stage separation rationale
+- **DEVELOPMENT_DECISIONS.md § Optimization Instruction Placement:** Why output chunk metadata
+
+---
+
 ## 🔴 FEHLDIAGNOSE: Import-Fehler Stage 1 (2025-11-22)
 
 **Date:** 2025-11-22 14:20-14:30
