@@ -82,8 +82,8 @@
         "seed": 123456789,
         "steps": 25,
         "cfg": 5.5,
-        "sampler_name": "dpmpp_2m",
-        "scheduler": "sgm_uniform",
+        "sampler_name": "euler",
+        "scheduler": "normal",
         "denoise": 1,
         "model": ["5", 0],
         "positive": ["1", 0],
@@ -167,13 +167,13 @@
     "sampler_name": {
       "node_id": "8",
       "field": "inputs.sampler_name",
-      "default": "dpmpp_2m",
+      "default": "euler",
       "description": "Sampling algorithm"
     },
     "scheduler": {
       "node_id": "8",
       "field": "inputs.scheduler",
-      "default": "sgm_uniform",
+      "default": "normal",
       "description": "Noise scheduling algorithm"
     },
     "denoise": {

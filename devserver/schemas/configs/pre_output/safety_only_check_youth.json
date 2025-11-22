@@ -1,0 +1,20 @@
+{
+  "name": "safety_only_check_youth",
+  "description": "Pre-Output: Safety Check für Jugendliche (Youth Filter - moderat) - ohne Translation",
+  "pipeline": "text_transformation",
+  "chunks": ["safety_check_youth"],
+  "parameters": {
+    "temperature": 0.1,
+    "top_p": 0.9,
+    "keep_alive": "10m"
+  },
+  "meta": {
+    "system_pipeline": true,
+    "stage": "pre_output",
+    "filter_level": "youth",
+    "output_format": "json",
+    "task_type": "security",
+    "model_override": "gpt-OSS:20b",
+    "check_type": "text_prompt"
+  }
+}

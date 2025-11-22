@@ -851,6 +851,7 @@ def execute_pipeline():
                     # Stage 3 ran - use translated English text from positive_prompt
                     prompt_for_media = safety_result.get('positive_prompt', result.final_output)
                     logger.info(f"[4-STAGE] Using translated prompt from Stage 3 for media generation")
+                    logger.info(f"[STAGE3-TRANSLATED] Prompt (first 200 chars): {prompt_for_media[:200]}...")
                 else:
                     # Stage 3 skipped - use Stage 2 output directly
                     prompt_for_media = result.final_output

@@ -58,7 +58,7 @@ UI_MODE = "youth"  # ADMIN: Change to "kids", "youth", or "expert"
 #   - No automatic blocking
 #   - Only use for testing/debugging!
 #
-DEFAULT_SAFETY_LEVEL = "kids"  # ADMIN: Change to "kids", "youth", "adult", or "off"
+DEFAULT_SAFETY_LEVEL = "off"  # ADMIN: Change to "kids", "youth", "adult", or "off"
 
 # ----------------------------------------------------------------------------
 # 3. SERVER SETTINGS

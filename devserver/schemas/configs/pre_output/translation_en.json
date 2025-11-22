@@ -1,5 +1,5 @@
 {
-  "pipeline": "text_transformation",
+  "pipeline": "translation",
   "chunks": ["translate"],
   "name": {
     "en": "Pre-Output: Translation to English",

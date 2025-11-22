@@ -505,18 +505,37 @@ async def execute_stage3_safety(
     """
     import time
 
+    # STEP 1: ALWAYS translate first (regardless of safety path or level)
+    # Translation happens even if safety is 'off'
+    translate_start = time.time()
+    translate_result = await pipeline_executor.execute_pipeline(
+        'pre_output/translation_en',  # Translation config (just translate chunk)
+        prompt,
+        execution_mode=execution_mode
+    )
+    translate_time = time.time() - translate_start
+
+    if translate_result.success:
+        translated_prompt = translate_result.final_output
+        logger.info(f"[STAGE3-TRANSLATION] Translated in {translate_time:.2f}s: {translated_prompt[:150]}...")
+    else:
+        # Translation failed - use original prompt
+        translated_prompt = prompt
+        logger.warning(f"[STAGE3-TRANSLATION] Translation failed, using original prompt")
+
+    # If safety is disabled, return translated prompt without safety check
     if safety_level == 'off':
         return {
             "safe": True,
             "method": "disabled",
             "abort_reason": None,
-            "positive_prompt": prompt,
+            "positive_prompt": translated_prompt,
             "negative_prompt": ""
         }
 
-    # HYBRID APPROACH: Fast string-match first
+    # STEP 2: HYBRID APPROACH: Fast string-match first
     start_time = time.time()
-    has_terms, found_terms = fast_filter_check(prompt, safety_level)
+    has_terms, found_terms = fast_filter_check(translated_prompt, safety_level)
     fast_check_time = time.time() - start_time
 
     if not has_terms:
@@ -526,23 +545,23 @@ async def execute_stage3_safety(
             "safe": True,
             "method": "fast_filter",
             "abort_reason": None,
-            "positive_prompt": prompt,
+            "positive_prompt": translated_prompt,
             "negative_prompt": "",
             "model_used": None,
             "backend_used": None,
-            "execution_time": fast_check_time
+            "execution_time": translate_time + fast_check_time
         }
 
     # SLOW PATH: Terms found → LLM context verification (prevents false positives)
     logger.info(f"[STAGE3-SAFETY] found terms {found_terms[:3]}... → LLM context check (fast: {fast_check_time*1000:.1f}ms)")
 
-    # Determine which pre-output config to use
-    pre_output_config = f'text_safety_check_{safety_level}'
+    # Determine which safety check config to use (just safety_check, not translate)
+    safety_check_config = f'pre_output/safety_only_check_{safety_level}'
 
     llm_start_time = time.time()
     result = await pipeline_executor.execute_pipeline(
-        pre_output_config,
-        prompt,
+        safety_check_config,
+        translated_prompt,  # Use already-translated prompt
         execution_mode=execution_mode
     )
     llm_check_time = time.time() - llm_start_time
@@ -586,13 +605,13 @@ async def execute_stage3_safety(
                 "safe": True,
                 "method": "llm_context_check",
                 "abort_reason": None,
-                "positive_prompt": safety_data.get('positive_prompt', prompt),
+                "positive_prompt": translated_prompt,
                 "negative_prompt": safety_data.get('negative_prompt', ''),
                 "found_terms": found_terms,
                 "false_positive": True,
                 "model_used": model_used,
                 "backend_used": backend_used,
-                "execution_time": llm_check_time
+                "execution_time": translate_time + llm_check_time
             }
     else:
         logger.warning(f"[STAGE3-SAFETY] LLM check failed: {result.error}, continuing (fail-open)")
@@ -600,6 +619,6 @@ async def execute_stage3_safety(
             "safe": True,
             "method": "llm_check_failed",
             "abort_reason": None,
-            "positive_prompt": prompt,
+            "positive_prompt": translated_prompt,
             "negative_prompt": ""
         }

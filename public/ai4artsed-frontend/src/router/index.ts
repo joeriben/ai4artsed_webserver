@@ -30,10 +30,18 @@ const router = createRouter({
     {
       path: '/execute/:configId',
       name: 'pipeline-execution',
-      // Phase 2: Organic force-based creative input interface
+      // Phase 2: Organic force-based creative input interface (Kids Mode)
       component: () => import('../views/Phase2CreativeFlowView.vue'),
+    },
+    {
+      path: '/youth-flow',
+      name: 'youth-flow',
+      // Phase 2: Bubble-based pipeline visualization (Youth Mode)
+      component: () => import('../views/Phase2YouthFlowView.vue'),
     },
   ],
 })
+
+
 
 export default router

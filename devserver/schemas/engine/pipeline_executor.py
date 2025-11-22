@@ -233,6 +233,9 @@ class PipelineExecutor:
                 step.output_data = output
                 context.add_output(output)
 
+                # Log chunk output for debugging (especially useful for translate chunk)
+                logger.info(f"[CHUNK-OUTPUT] {step.chunk_name}: {output[:200]}...")
+
                 # AUTO-PARSE JSON: If output is valid JSON dict, add to custom_placeholders
                 # This enables multi-stage workflows where Stage 2 outputs structured data
                 try:
