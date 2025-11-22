@@ -144,6 +144,60 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 │   - NEW: Media-specific optimization (optional chunk)         │
 │     → Optimize for SD3.5, Audio, Music generation             │
 │                                                                 │
+
+#### Media-Specific Optimization (Config Override Pattern)
+
+**Feature:** Extend Stage 2 context with output-specific optimization instructions
+
+**Use Case:** SD3.5 Large uses Dual CLIP architecture (clip_g + t5xxl) requiring specialized prompt optimization
+
+**Implementation Pattern:**
+1. Output config declares `OUTPUT_CHUNK` parameter pointing to chunk name
+2. DevServer loads chunk JSON directly from filesystem
+3. Extract `meta.optimization_instruction` from output chunk
+4. Use `dataclasses.replace()` to create modified config with extended context
+5. Pass `config_override` to pipeline executor
+
+**Code Example:**
+```python
+from dataclasses import replace
+
+# Load optimization instruction from output chunk metadata
+optimization_instruction = output_chunk['meta'].get('optimization_instruction')
+
+if optimization_instruction:
+    # Get original context
+    original_context = config.context if hasattr(config, 'context') else ""
+    new_context = original_context + "\n\n" + optimization_instruction
+
+    # Create modified config using dataclasses.replace()
+    stage2_config = replace(
+        config,
+        context=new_context,
+        meta={**config.meta, 'optimization_added': True}
+    )
+
+    # Execute pipeline with overridden config
+    result = await pipeline_executor.execute_pipeline(
+        config_name=schema_name,
+        input_text=input_text,
+        config_override=stage2_config
+    )
+```
+
+**Why This Pattern:**
+- ✅ Single LLM call combines interception + optimization (pedagogical constraint)
+- ✅ Optimization instruction stored in output chunk where model config lives
+- ✅ Fetched at runtime based on selected output config
+- ✅ Non-invasive: Original config unchanged, override applied dynamically
+
+**Critical Implementation Notes:**
+- ⚠️ MUST use `dataclasses.replace()`, NOT `Config.from_dict()` (doesn't exist)
+- ⚠️ MUST load chunks directly from filesystem, NOT via `ConfigLoader.get_chunk()` (doesn't exist)
+- ⚠️ MUST use `await` for pipeline execution, NOT `asyncio.run()` (can't nest event loops)
+
+**Bug History:** Session 64 Part 3 (2025-11-22) - Fixed 3 critical implementation bugs that prevented this feature from working
+
 │   Pipeline returns: PipelineResult {                           │
 │     final_output: "transformed + optimized text (orig lang)",  │
 │     output_requests: [                                         │

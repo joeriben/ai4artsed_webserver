@@ -80,3 +80,44 @@
 
 ---
 
+### 6. Config Override Pattern for Runtime Optimization ✅
+
+**Decision:** Use `dataclasses.replace()` for dynamic config modification, store optimization instructions in output chunk metadata
+
+**Implementation:**
+```python
+from dataclasses import replace
+
+# Load optimization instruction from output chunk
+optimization_instruction = output_chunk['meta'].get('optimization_instruction')
+
+# Create modified config with extended context
+stage2_config = replace(
+    config,
+    context=config.context + "\n\n" + optimization_instruction,
+    meta={**config.meta, 'optimization_added': True}
+)
+
+# Pass override to pipeline executor
+result = await pipeline_executor.execute_pipeline(
+    config_override=stage2_config
+)
+```
+
+**Rationale:**
+- **Pedagogical Constraint:** Max 2 LLM calls per workflow (single call for interception + optimization)
+- **Storage Location:** Optimization instructions belong with model config (output chunk metadata)
+- **Runtime Flexibility:** Same interception config works with different output configs
+- **Dataclass Pattern:** Config is a dataclass, not Pydantic - use `dataclasses.replace()`, NOT `Config.from_dict()`
+
+**Critical Implementation Rules:**
+- ⚠️ MUST use `dataclasses.replace()` for config modification
+- ⚠️ MUST load chunks directly from filesystem (ConfigLoader doesn't have `get_chunk()`)
+- ⚠️ MUST use `await` for async pipeline execution (can't nest `asyncio.run()`)
+
+**Bug History:** Session 64 Part 3 (2025-11-22) - Fixed 3 critical bugs violating these patterns
+
+**Example Use Case:** SD3.5 Large Dual CLIP optimization (980 char instruction for clip_g + t5xxl architecture)
+
+---
+

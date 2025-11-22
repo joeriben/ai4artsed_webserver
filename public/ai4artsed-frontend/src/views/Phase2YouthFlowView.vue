@@ -178,7 +178,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 
@@ -321,6 +323,52 @@ const canStartPipeline = computed(() => {
          selectedConfig.value &&
          interceptionResult.value &&
          !isInterceptionLoading.value
+})
+
+// ============================================================================
+// Route handling & Store
+// ============================================================================
+
+const route = useRoute()
+const pipelineStore = usePipelineExecutionStore()
+
+// ============================================================================
+// Lifecycle
+// ============================================================================
+
+onMounted(async () => {
+  // Check if we're coming from Phase1 with a configId
+  const configId = route.params.configId as string
+
+  if (configId) {
+    console.log('[Youth Flow] Received configId from Phase1:', configId)
+
+    // Load config and meta-prompt from store
+    await pipelineStore.setConfig(configId)
+
+    // Set context prompt from meta-prompt
+    if (pipelineStore.metaPrompt) {
+      contextPrompt.value = pipelineStore.metaPrompt
+      console.log('[Youth Flow] Loaded meta-prompt:', pipelineStore.metaPrompt.substring(0, 50))
+    }
+
+    // Find which category this config belongs to
+    let foundCategory: string | null = null
+    for (const [categoryId, configs] of Object.entries(configsByCategory)) {
+      if (configs.some(config => config.id === configId)) {
+        foundCategory = categoryId
+        break
+      }
+    }
+
+    if (foundCategory) {
+      console.log('[Youth Flow] Auto-selecting category:', foundCategory, 'and config:', configId)
+      selectedCategory.value = foundCategory
+      selectedConfig.value = configId
+    } else {
+      console.warn('[Youth Flow] ConfigId not found in any category:', configId)
+    }
+  }
 })
 
 // ============================================================================

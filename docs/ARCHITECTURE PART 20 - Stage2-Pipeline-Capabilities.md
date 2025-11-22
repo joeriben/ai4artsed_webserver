@@ -160,6 +160,110 @@ This config:
 
 ---
 
+### 5. Media-Specific Optimization via Config Override
+
+Stage 2 supports runtime context extension for output-specific optimizations.
+
+**Mechanism: Config Override Pattern**
+
+DevServer can dynamically extend Stage 2 context with optimization instructions specific to the target output configuration:
+
+```python
+# Original config context
+config.context = "Transform into surrealist aesthetic..."
+
+# Runtime extension with SD3.5 optimization
+optimization_instruction = """
+OPTIMIZATION FOR SD3.5 LARGE (DUAL CLIP ARCHITECTURE):
+- CLIP-G: Token-weight based, 75 token limit, concrete visual elements first
+- T5-XXL: Semantic understanding, 250 word limit, spatial relationships
+Maximum 200 words total, single paragraph format.
+"""
+
+# Create modified config
+from dataclasses import replace
+stage2_config = replace(config, context=config.context + "\n\n" + optimization_instruction)
+
+# Execute with override
+result = await pipeline_executor.execute_pipeline(
+    config_name="surrealization",
+    input_text=user_input,
+    config_override=stage2_config  # ← Uses modified config
+)
+```
+
+**How It Works:**
+
+1. **Output Config Detection:** DevServer identifies target output config (e.g., `sd35_large`)
+2. **Chunk Metadata Lookup:** Reads `parameters.OUTPUT_CHUNK` from output config
+3. **Optimization Instruction Extraction:** Loads chunk JSON, extracts `meta.optimization_instruction`
+4. **Context Extension:** Appends optimization instruction to original config context
+5. **Config Override:** Uses `dataclasses.replace()` to create modified config
+6. **Single Execution:** LLM processes combined interception + optimization in one call
+
+**Why This Design:**
+
+- **Pedagogical Constraint:** Max 2 LLM calls per workflow (to minimize workshop wait times)
+- **Storage Location:** Optimization instructions belong in output chunk metadata (where model config lives)
+- **Runtime Flexibility:** Same interception config works with different output configs
+- **Non-Invasive:** Original config file unchanged, override applied dynamically
+
+**Real-World Example: SD3.5 Large**
+
+Output chunk: `output_image_sd35_large.json`
+```json
+{
+  "model": "comfyui:sd35_large",
+  "meta": {
+    "optimization_instruction": "OPTIMIZATION FOR SD3.5 LARGE (DUAL CLIP ARCHITECTURE):\n\nYou are optimizing a prompt for Stable Diffusion 3.5 Large, which uses a dual-encoder CLIP architecture:\n\n1. CLIP-G Encoder (clip_g):\n   - Token-weight attention mechanism\n   - 75 token limit\n   - Prioritizes concrete visual elements\n   - List most important visual details first\n\n2. T5-XXL Encoder (t5xxl):\n   - Semantic understanding and context\n   - 250 word limit\n   - Handles spatial relationships, atmosphere, mood\n   - Can parse complex sentence structure\n\nOUTPUT REQUIREMENTS:\n- Maximum 200 words total\n- Single cohesive paragraph\n- Start with key visual elements (for CLIP-G)\n- Include spatial/atmospheric details (for T5-XXL)\n- NO generic terms: 'beautiful', 'epic', 'highly detailed'\n- Focus on specific, concrete visual information"
+  }
+}
+```
+
+Interception config: `surrealization.json`
+```json
+{
+  "pipeline": "text_transformation",
+  "context": {
+    "en": "Transform into surrealist aesthetic with dream logic..."
+  }
+}
+```
+
+**Execution Flow:**
+1. User selects "surrealization" + SD3.5 output
+2. DevServer loads optimization instruction (980 chars)
+3. Combined context sent to LLM:
+   ```
+   Transform into surrealist aesthetic with dream logic...
+
+   OPTIMIZATION FOR SD3.5 LARGE (DUAL CLIP ARCHITECTURE):
+   [... 980 char optimization instruction ...]
+   ```
+4. Single LLM call produces optimized surrealist prompt
+5. Prompt used directly for SD3.5 image generation
+
+**Implementation Notes:**
+
+See `/home/joerissen/ai/ai4artsed_webserver/devserver/my_app/routes/schema_pipeline_routes.py`
+- Function: `execute_stage2_with_optimization()` (Lines 123-237)
+- Endpoints using this: `/pipeline/stage2`, `/pipeline/execute`, `/pipeline/stage3-4`
+
+**Critical Bug Fix History:**
+
+Session 64 Part 3 (2025-11-22) - Three implementation bugs prevented this feature from working:
+1. ❌ Used non-existent `ConfigLoader.get_chunk()` → ✅ Load chunk JSON directly
+2. ❌ Used non-existent `Config.from_dict()` → ✅ Use `dataclasses.replace()`
+3. ❌ Nested `asyncio.run()` in async function → ✅ Use `await` directly
+
+**Limitations:**
+
+- Only one optimization instruction per execution
+- Optimization instruction cannot be edited by user (applied at runtime)
+- Must be stored in output chunk metadata (not in interception config)
+
+---
+
 ## What Stage 2 Pipelines CANNOT Do
 
 Understanding limitations is as important as understanding capabilities. These limitations are **BY DESIGN** and reflect the separation of concerns.

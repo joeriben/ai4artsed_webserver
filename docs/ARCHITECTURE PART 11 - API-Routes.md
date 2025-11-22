@@ -67,6 +67,35 @@ DevServer provides REST API endpoints across four main areas:
 - Automatic media download and storage
 - Backend-agnostic execution
 
+**Media-Specific Optimization (Session 64):**
+
+Stage 2 execution can dynamically extend pipeline context with output-specific optimization instructions:
+
+```python
+# If output config declares OUTPUT_CHUNK parameter
+# DevServer loads chunk metadata and extracts optimization_instruction
+# Example: SD3.5 Large Dual CLIP optimization (980 chars)
+
+optimization_instruction = output_chunk['meta'].get('optimization_instruction')
+if optimization_instruction:
+    # Extend context using dataclasses.replace()
+    from dataclasses import replace
+    stage2_config = replace(
+        config,
+        context=config.context + "\n\n" + optimization_instruction,
+        meta={**config.meta, 'optimization_added': True}
+    )
+    # Execute with overridden config
+    result = await pipeline_executor.execute_pipeline(
+        config_override=stage2_config
+    )
+```
+
+**Use Case:** SD3.5 requires Dual CLIP prompt optimization (clip_g + t5xxl architecture)
+**Design:** Single LLM call combines interception + optimization (pedagogical constraint: max 2 LLM calls)
+
+See ARCHITECTURE PART 01 (4-Stage Orchestration) for detailed implementation pattern.
+
 **Pre-Translation Logic:**
 ```python
 # Check for #notranslate# marker
