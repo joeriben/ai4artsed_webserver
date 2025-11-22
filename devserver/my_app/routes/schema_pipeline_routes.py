@@ -115,27 +115,315 @@ def lookup_output_config(media_type: str, execution_mode: str = 'eco') -> str:
         logger.info(f"No Output-Config for {media_type}/{execution_mode} (config_name={config_name})")
         return None
 
+
+# ============================================================================
+# SHARED STAGE 2 EXECUTION FUNCTION
+# ============================================================================
+
+async def execute_stage2_with_optimization(
+    schema_name: str,
+    input_text: str,
+    config,
+    execution_mode: str,
+    safety_level: str,
+    output_config: str = None,
+    media_preferences = None,
+    tracker = None
+):
+    """
+    Execute Stage 2: Interception + Media-Specific Optimization
+
+    This is the shared implementation used by all endpoints to avoid code duplication.
+
+    Args:
+        schema_name: Name of the interception config (e.g., "dada", "bauhaus")
+        input_text: User input text (already safety-checked in Stage 1)
+        config: Loaded interception config object
+        execution_mode: "eco" or "fast"
+        safety_level: "kids", "youth", or "off"
+        output_config: Optional output config name for optimization (e.g., "sd35_large")
+        media_preferences: Optional media preferences from config
+        tracker: Optional execution tracker
+
+    Returns:
+        PipelineResult object with Stage 2 output
+    """
+    import asyncio
+    import copy
+    from schemas.engine.config import Config
+
+    logger.info(f"[STAGE2] Starting interception for '{schema_name}'")
+
+    # ====================================================================
+    # STAGE 2 OPTIMIZATION: Fetch media-specific optimization instruction
+    # ====================================================================
+    optimization_instruction = None
+
+    # Determine which output config will be used
+    if output_config:
+        # User-selected or explicitly provided
+        target_output_config = output_config
+    elif media_preferences and media_preferences.get('output_configs'):
+        # Use first output config from array
+        target_output_config = media_preferences['output_configs'][0]
+    elif media_preferences and media_preferences.get('default_output') and media_preferences.get('default_output') != 'text':
+        # Lookup output config from default_output
+        target_output_config = lookup_output_config(media_preferences['default_output'], execution_mode)
+    else:
+        target_output_config = None
+
+    if target_output_config:
+        logger.info(f"[STAGE2-OPT] Target output config: {target_output_config}")
+        try:
+            # Load output config to get OUTPUT_CHUNK name
+            output_config_obj = pipeline_executor.config_loader.get_config(target_output_config)
+            if output_config_obj and hasattr(output_config_obj, 'parameters'):
+                output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
+                if output_chunk_name:
+                    logger.info(f"[STAGE2-OPT] Output chunk: {output_chunk_name}")
+                    # Load output chunk to get optimization_instruction
+                    output_chunk = pipeline_executor.config_loader.get_chunk(output_chunk_name)
+                    if output_chunk and hasattr(output_chunk, 'meta') and output_chunk.meta:
+                        optimization_instruction = output_chunk.meta.get('optimization_instruction')
+                        if optimization_instruction:
+                            logger.info(f"[STAGE2-OPT] Found optimization instruction (length: {len(optimization_instruction)})")
+                        else:
+                            logger.info(f"[STAGE2-OPT] No optimization instruction in chunk {output_chunk_name}")
+        except Exception as e:
+            logger.warning(f"[STAGE2-OPT] Failed to load optimization instruction: {e}")
+
+    # ====================================================================
+    # Append optimization instruction to context if found
+    # ====================================================================
+    stage2_config = config
+    if optimization_instruction:
+        logger.info(f"[STAGE2-OPT] Appending optimization instruction to pipeline context")
+        # Create deep copy to avoid mutating original
+        stage2_config = copy.deepcopy(config)
+
+        # Get original context and append optimization
+        if hasattr(stage2_config, 'context'):
+            original_context = stage2_config.context
+        else:
+            original_context = ""
+
+        # Convert to dict and modify
+        config_dict = stage2_config.to_dict() if hasattr(stage2_config, 'to_dict') else {'context': original_context}
+        config_dict['context'] = original_context + "\n\n" + optimization_instruction
+
+        stage2_config = Config.from_dict(config_dict)
+        logger.info(f"[STAGE2-OPT] Context extended with optimization instruction")
+
+    # ====================================================================
+    # Execute Stage 2 Pipeline
+    # ====================================================================
+    if tracker is None:
+        from execution_history.tracker import NoOpTracker
+        tracker = NoOpTracker()
+
+    result = asyncio.run(pipeline_executor.execute_pipeline(
+        config_name=schema_name,
+        input_text=input_text,
+        user_input=input_text,
+        execution_mode=execution_mode,
+        safety_level=safety_level,
+        tracker=tracker,
+        config_override=stage2_config
+    ))
+
+    logger.info(f"[STAGE2] Interception completed: {result.success}")
+    return result
+
+
 @schema_bp.route('/info', methods=['GET'])
 def get_schema_info():
     """Schema-System Informationen"""
     try:
         init_schema_engine()
-        
+
         available_schemas = pipeline_executor.get_available_schemas()
-        
+
         return jsonify({
             'status': 'success',
             'schemas_available': len(available_schemas),
             'schemas': available_schemas,
             'engine_status': 'initialized'
         })
-        
+
     except Exception as e:
         logger.error(f"Schema-Info Fehler: {e}")
         return jsonify({
             'status': 'error',
             'error': str(e)
         }), 500
+
+
+# ============================================================================
+# NEW REFACTORED ENDPOINTS - CLEAN STAGE SEPARATION
+# ============================================================================
+
+@schema_bp.route('/pipeline/stage2', methods=['POST'])
+def execute_stage2():
+    """
+    Execute ONLY Stage 2: Interception + Optimization
+
+    This endpoint executes Stage 2 (prompt interception with media-specific optimization)
+    and returns the result for frontend preview/editing.
+
+    Frontend can then call /pipeline/stage3-4 with the (possibly edited) Stage 2 result.
+
+    Request Body:
+    {
+        "schema": "dada",                      # Interception config
+        "input_text": "Ein roter Apfel",       # User input
+        "output_config": "sd35_large",         # Output config for optimization
+        "execution_mode": "eco",               # eco or fast
+        "safety_level": "kids",                # kids, youth, or off
+        "user_language": "de"                  # User's interface language
+    }
+
+    Response:
+    {
+        "success": true,
+        "stage2_result": "Ein roter Apfel in fragmentierter dadaistischer Form...",
+        "run_id": "uuid",                      # Session ID for Stage 3-4
+        "model_used": "llama3:8b",
+        "backend_used": "ollama",
+        "execution_time_ms": 1234
+    }
+    """
+    import time
+    import uuid
+
+    start_time = time.time()
+
+    try:
+        # Request validation
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'JSON-Request erwartet'
+            }), 400
+
+        schema_name = data.get('schema')
+        input_text = data.get('input_text')
+        execution_mode = data.get('execution_mode', 'eco')
+        safety_level = data.get('safety_level', 'kids')
+        output_config = data.get('output_config')  # Optional
+        user_language = data.get('user_language', 'en')
+
+        if not schema_name or not input_text:
+            return jsonify({
+                'success': False,
+                'error': 'schema und input_text sind erforderlich'
+            }), 400
+
+        # Initialize engine
+        init_schema_engine()
+
+        # Load config
+        config = pipeline_executor.config_loader.get_config(schema_name)
+        if not config:
+            return jsonify({
+                'success': False,
+                'error': f'Config "{schema_name}" nicht gefunden'
+            }), 404
+
+        logger.info(f"[STAGE2-ENDPOINT] Starting Stage 2 for schema '{schema_name}'")
+
+        # ====================================================================
+        # STAGE 1: PRE-INTERCEPTION (Safety Check)
+        # ====================================================================
+        logger.info(f"[STAGE2-ENDPOINT] Stage 1: Safety Check")
+
+        stage1_start = time.time()
+        is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+            input_text,
+            safety_level,
+            execution_mode,
+            pipeline_executor
+        ))
+        stage1_time = (time.time() - stage1_start) * 1000  # ms
+
+        if not is_safe:
+            logger.warning(f"[STAGE2-ENDPOINT] Stage 1 BLOCKED by safety check")
+            return jsonify({
+                'success': False,
+                'error': error_message,
+                'blocked_at_stage': 1,
+                'safety_level': safety_level
+            }), 403
+
+        logger.info(f"[STAGE2-ENDPOINT] Stage 1 completed: Safety passed")
+
+        # ====================================================================
+        # STAGE 2: INTERCEPTION + OPTIMIZATION (Shared Function)
+        # ====================================================================
+        stage2_start = time.time()
+
+        media_preferences = config.media_preferences if hasattr(config, 'media_preferences') else None
+
+        result = asyncio.run(execute_stage2_with_optimization(
+            schema_name=schema_name,
+            input_text=checked_text,
+            config=config,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
+            output_config=output_config,
+            media_preferences=media_preferences,
+            tracker=None
+        ))
+
+        stage2_time = (time.time() - stage2_start) * 1000  # ms
+
+        if not result.success:
+            logger.error(f"[STAGE2-ENDPOINT] Stage 2 failed: {result.error}")
+            return jsonify({
+                'success': False,
+                'error': result.error,
+                'execution_time_ms': stage2_time
+            }), 500
+
+        # Extract metadata
+        model_used = None
+        backend_used = None
+        if result.steps and len(result.steps) > 0:
+            for step in reversed(result.steps):
+                if step.metadata:
+                    model_used = step.metadata.get('model_used', model_used)
+                    backend_used = step.metadata.get('backend_type', backend_used)
+                    if model_used and backend_used:
+                        break
+
+        # Generate session ID for Stage 3-4 continuation
+        run_id = str(uuid.uuid4())
+
+        total_time = (time.time() - start_time) * 1000
+
+        logger.info(f"[STAGE2-ENDPOINT] ✅ Success! Stage 2 result: '{result.final_output[:100]}...'")
+
+        return jsonify({
+            'success': True,
+            'stage2_result': result.final_output,
+            'run_id': run_id,
+            'model_used': model_used,
+            'backend_used': backend_used,
+            'execution_time_ms': total_time,
+            'stage1_time_ms': stage1_time,
+            'stage2_time_ms': stage2_time
+        })
+
+    except Exception as e:
+        logger.error(f"[STAGE2-ENDPOINT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @schema_bp.route('/pipeline/transform', methods=['POST'])
 def transform_prompt():
