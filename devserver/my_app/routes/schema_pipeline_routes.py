@@ -764,8 +764,9 @@ def execute_pipeline():
                 # ====================================================================
                 stage_3_blocked = False
 
-                # Skip Stage 3 if stage4_only=True (fast regeneration)
-                if safety_level != 'off' and not stage4_only:
+                # Skip Stage 3 ONLY if stage4_only=True (fast regeneration)
+                # Note: Stage 3 now includes translation, so it runs even if safety_level='off'
+                if not stage4_only:
                     tracker.set_stage(3)
                     recorder.set_state(3, "pre_output_safety")
 
@@ -846,8 +847,8 @@ def execute_pipeline():
         # Determine prompt for Stage 4 (use translated text if Stage 3 ran)
         # ====================================================================
                 # If Stage 3 ran and translated the text, use the English positive_prompt
-                # Otherwise, fallback to Stage 2 output (for safety_level='off' cases)
-                if not stage_3_blocked and safety_level != 'off' and not stage4_only:
+                # Otherwise, fallback to Stage 2 output (only if stage4_only=True)
+                if not stage_3_blocked and not stage4_only:
                     # Stage 3 ran - use translated English text from positive_prompt
                     prompt_for_media = safety_result.get('positive_prompt', result.final_output)
                     logger.info(f"[4-STAGE] Using translated prompt from Stage 3 for media generation")

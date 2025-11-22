@@ -1,6 +1,6 @@
 {
-  "name": "safety_only_check_youth",
-  "description": "Pre-Output: Safety Check für Jugendliche (Youth Filter - moderat) - ohne Translation",
+  "name": "safety_check_youth",
+  "description": "Pre-Output: Safety Check für Jugendliche (Youth Filter - moderat)",
   "pipeline": "text_transformation",
   "chunks": ["safety_check_youth"],
   "parameters": {

@@ -556,7 +556,7 @@ async def execute_stage3_safety(
     logger.info(f"[STAGE3-SAFETY] found terms {found_terms[:3]}... → LLM context check (fast: {fast_check_time*1000:.1f}ms)")
 
     # Determine which safety check config to use (just safety_check, not translate)
-    safety_check_config = f'pre_output/safety_only_check_{safety_level}'
+    safety_check_config = f'pre_output/safety_check_{safety_level}'
 
     llm_start_time = time.time()
     result = await pipeline_executor.execute_pipeline(

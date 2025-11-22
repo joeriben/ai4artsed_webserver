@@ -1,6 +1,6 @@
 {
-  "name": "safety_only_check_kids",
-  "description": "Pre-Output: Safety Check für Kinder (Kids Filter - streng) - ohne Translation",
+  "name": "safety_check_kids",
+  "description": "Pre-Output: Safety Check für Kinder (Kids Filter - streng)",
   "pipeline": "text_transformation",
   "chunks": ["safety_check_kids"],
   "parameters": {

@@ -5,6 +5,7 @@
   "requires_interception_prompt": false,
   "description": "Translation Pipeline: Translate text to English (Stage 3 Pre-Output)",
   "instruction_type": "translation",
+  "chunks": ["translate"],
   "input_requirements": {
     "texts": 1
   },
