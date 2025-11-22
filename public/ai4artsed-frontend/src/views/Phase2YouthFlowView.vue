@@ -440,7 +440,7 @@ function showImageFullscreen(imageUrl: string) {
    ============================================================================ */
 
 .phase-2a {
-  max-width: clamp(320px, 90vw, 900px);
+  max-width: clamp(320px, 90vw, 1100px);
   max-height: 90vh;
   width: 100%;
   padding: clamp(1rem, 3vw, 2rem);
@@ -514,9 +514,8 @@ function showImageFullscreen(imageUrl: string) {
 
 .input-bubble,
 .context-bubble {
-  flex: 1;
-  min-width: clamp(280px, 35vw, 350px);
-  max-width: 400px;
+  flex: 0 1 480px;
+  width: 480px;
 }
 
 .bubble-header {
