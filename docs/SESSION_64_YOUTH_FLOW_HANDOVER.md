@@ -160,7 +160,7 @@ const configsByCategory = {
 
 **Verhalten**:
 1. Erscheint **nach** Config-Auswahl
-2. Backend-Call: `/api/schema/pipeline/transform` mit `schema: 'overdrive'`
+2. Backend-Call: `/api/schema/pipeline/stage2` mit `schema: 'overdrive'`
 3. Zeigt **Preview** des Interception-Results
 4. **[Edit] Button** öffnet Modal zur Bearbeitung
 
@@ -363,8 +363,8 @@ async function selectConfig(configId: string) {
 }
 
 async function runInterception() {
-  // Call /api/schema/pipeline/transform
-  const response = await axios.post('/api/schema/pipeline/transform', {
+  // Call /api/schema/pipeline/stage2
+  const response = await axios.post('/api/schema/pipeline/stage2', {
     schema: 'overdrive',
     input_text: inputText.value,
     context_prompt: contextPrompt.value,
@@ -474,7 +474,7 @@ async function startPipeline() {
 
 ### Interception Endpoint
 ```typescript
-POST /api/schema/pipeline/transform
+POST /api/schema/pipeline/stage2
 {
   "schema": "overdrive",
   "input_text": "Ein Haus in der Landschaft",

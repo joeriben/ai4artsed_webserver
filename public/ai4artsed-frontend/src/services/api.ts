@@ -277,22 +277,6 @@ export async function getPipelineMetadata(configId: string): Promise<PipelineMet
 }
 
 /**
- * Transform prompt (Phase 2 - Stage 1+2 only)
- *
- * Executes ONLY translation + safety (Stage 1) and interception (Stage 2).
- * Returns transformed prompt without media generation.
- *
- * User can review/edit transformed prompt before continuing to Phase 3.
- */
-export async function transformPrompt(request: TransformRequest): Promise<TransformResponse> {
-  const response = await apiClient.post<TransformResponse>(
-    '/api/schema/pipeline/transform',
-    request
-  )
-  return response.data
-}
-
-/**
  * Execute pipeline (Phase 2)
  *
  * Supports multilingual context editing:
@@ -354,7 +338,6 @@ export default {
   getConfig,
   getConfigContext,
   getPipelineMetadata,
-  transformPrompt,
   executePipeline,
   getMediaInfo,
   getMediaUrl,

@@ -245,7 +245,7 @@ export const API = {
   },
 
   async transformPrompt(request) {
-    const response = await fetch('/api/schema/pipeline/transform', {
+    const response = await fetch('/api/schema/pipeline/stage2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request)

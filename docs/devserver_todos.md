@@ -28,7 +28,7 @@ Stage 4: Media Generation
 1. **Stage 1: Remove Translation** (HIGH priority)
    - Create `/devserver/schemas/configs/pre_interception/gpt_oss_safety_only_bilingual.json`
    - Add `execute_stage1_safety_only_bilingual()` to `stage_orchestrator.py`
-   - Update `/transform` endpoint (line 252) to use safety-only function
+   - Update `/stage2` endpoint (line 252) to use safety-only function
    - Update `/execute` endpoint (line 541) to use safety-only function
    - Test: German input should NOT be translated in Stage 1
 
@@ -111,7 +111,7 @@ Stage 4: Media Generation
 
 **What's Broken/Missing:**
 1. **🟡 Transform API Visualization** - **ROLLED BACK** due to 500 errors
-   - Attempted to extend `/api/schema/transform` with pipeline_visualization
+   - Attempted to extend `/api/schema/pipeline/stage2` with pipeline_visualization
    - Caused AttributeError (needs careful testing)
    - Transform-only configs (dada, bauhaus) never show visualization currently
 
@@ -148,7 +148,7 @@ Stage 4: Media Generation
    - Cycles through modes: kids → youth → expert
 
 3. **Extend Transform API** (CAREFULLY! Test incrementally!)
-   - Add pipeline_visualization to `/api/schema/transform` response
+   - Add pipeline_visualization to `/api/schema/pipeline/stage2` response
    - Test thoroughly before deploying
    - Check for attribute errors on `config.pipeline_name`
 

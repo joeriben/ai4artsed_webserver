@@ -330,6 +330,7 @@ import { useI18n } from 'vue-i18n'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
 import { executePipeline, getPipelineMetadata, type PipelineExecuteRequest } from '@/services/api'
+import axios from 'axios'
 import Phase2VectorFusionInterface from '@/components/Phase2VectorFusionInterface.vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import PipelineFlowVisualization from '@/components/PipelineFlowVisualization.vue'
@@ -614,13 +615,10 @@ async function handleTransform() {
     console.log('[Phase2] Config:', pipelineStore.selectedConfig.id)
     console.log('[Phase2] Input:', userInput.value)
 
-    // Import API function
-    const { transformPrompt } = await import('@/services/api')
-
     // Call backend API - Stage 1
     transformationStage.value = 1
 
-    // Build request
+    // Build request for new /stage2 endpoint
     const transformRequest: any = {
       schema: pipelineStore.selectedConfig.id,
       input_text: userInput.value,
@@ -637,23 +635,25 @@ async function handleTransform() {
       console.log('[Phase2] Passing edited context to backend (RAM-Proxy)')
     }
 
-    const response = await transformPrompt(transformRequest)
+    // Use NEW /stage2 endpoint (replaces deprecated /transform)
+    const response = await axios.post('http://localhost:17802/api/schema/pipeline/stage2', transformRequest)
+    const data = response.data
 
     // Stage 2 animation (backend already completed both stages)
     transformationStage.value = 2
     await new Promise(resolve => setTimeout(resolve, 500)) // Brief delay for UX
 
-    if (!response.success) {
-      throw new Error(response.error || 'Transformation failed')
+    if (!data.success) {
+      throw new Error(data.error || 'Transformation failed')
     }
 
     console.log('[Phase2] ✅ Transformation complete!')
-    console.log('[Phase2] Stage 1:', response.stage1_output)
-    console.log('[Phase2] Stage 2:', response.stage2_output)
-    console.log('[Phase2] Total time:', response.execution_time_ms, 'ms')
+    console.log('[Phase2] Stage 2 result:', data.stage2_result)
+    console.log('[Phase2] Model used:', data.model_used, '|', data.backend_used)
+    console.log('[Phase2] Total time:', data.execution_time_ms, 'ms')
 
     // Store in Pinia for Phase 3 handoff
-    pipelineStore.updateTransformedPrompt(response.transformed_prompt)
+    pipelineStore.updateTransformedPrompt(data.stage2_result)
 
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Transformation failed'
