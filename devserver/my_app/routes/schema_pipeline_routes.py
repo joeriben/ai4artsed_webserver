@@ -150,9 +150,7 @@ async def execute_stage2_with_optimization(
     Returns:
         PipelineResult object with Stage 2 output
     """
-    import asyncio
-    import copy
-    from schemas.engine.config import Config
+    from dataclasses import replace
 
     logger.info(f"[STAGE2] Starting interception for '{schema_name}'")
 
@@ -183,14 +181,21 @@ async def execute_stage2_with_optimization(
                 output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
                 if output_chunk_name:
                     logger.info(f"[STAGE2-OPT] Output chunk: {output_chunk_name}")
-                    # Load output chunk to get optimization_instruction
-                    output_chunk = pipeline_executor.config_loader.get_chunk(output_chunk_name)
-                    if output_chunk and hasattr(output_chunk, 'meta') and output_chunk.meta:
-                        optimization_instruction = output_chunk.meta.get('optimization_instruction')
-                        if optimization_instruction:
-                            logger.info(f"[STAGE2-OPT] Found optimization instruction (length: {len(optimization_instruction)})")
-                        else:
-                            logger.info(f"[STAGE2-OPT] No optimization instruction in chunk {output_chunk_name}")
+                    # Load output chunk JSON directly to get optimization_instruction
+                    import json
+                    from pathlib import Path
+                    chunk_file = Path(__file__).parent.parent.parent / "schemas" / "chunks" / f"{output_chunk_name}.json"
+                    if chunk_file.exists():
+                        with open(chunk_file, 'r', encoding='utf-8') as f:
+                            output_chunk = json.load(f)
+                        if output_chunk and 'meta' in output_chunk:
+                            optimization_instruction = output_chunk['meta'].get('optimization_instruction')
+                            if optimization_instruction:
+                                logger.info(f"[STAGE2-OPT] Found optimization instruction (length: {len(optimization_instruction)})")
+                            else:
+                                logger.info(f"[STAGE2-OPT] No optimization instruction in chunk {output_chunk_name}")
+                    else:
+                        logger.warning(f"[STAGE2-OPT] Chunk file not found: {chunk_file}")
         except Exception as e:
             logger.warning(f"[STAGE2-OPT] Failed to load optimization instruction: {e}")
 
@@ -200,20 +205,17 @@ async def execute_stage2_with_optimization(
     stage2_config = config
     if optimization_instruction:
         logger.info(f"[STAGE2-OPT] Appending optimization instruction to pipeline context")
-        # Create deep copy to avoid mutating original
-        stage2_config = copy.deepcopy(config)
 
-        # Get original context and append optimization
-        if hasattr(stage2_config, 'context'):
-            original_context = stage2_config.context
-        else:
-            original_context = ""
+        # Get original context
+        original_context = config.context if hasattr(config, 'context') and config.context else ""
+        new_context = original_context + "\n\n" + optimization_instruction
 
-        # Convert to dict and modify
-        config_dict = stage2_config.to_dict() if hasattr(stage2_config, 'to_dict') else {'context': original_context}
-        config_dict['context'] = original_context + "\n\n" + optimization_instruction
-
-        stage2_config = Config.from_dict(config_dict)
+        # Create modified config using dataclasses.replace()
+        stage2_config = replace(
+            config,
+            context=new_context,
+            meta={**config.meta, 'optimization_added': True}
+        )
         logger.info(f"[STAGE2-OPT] Context extended with optimization instruction")
 
     # ====================================================================
@@ -223,7 +225,7 @@ async def execute_stage2_with_optimization(
         from execution_history.tracker import NoOpTracker
         tracker = NoOpTracker()
 
-    result = asyncio.run(pipeline_executor.execute_pipeline(
+    result = await pipeline_executor.execute_pipeline(
         config_name=schema_name,
         input_text=input_text,
         user_input=user_input if user_input is not None else input_text,
@@ -231,7 +233,7 @@ async def execute_stage2_with_optimization(
         safety_level=safety_level,
         tracker=tracker,
         config_override=stage2_config
-    ))
+    )
 
     logger.info(f"[STAGE2] Interception completed: {result.success}")
     return result
@@ -767,14 +769,18 @@ def transform_prompt():
 
             # Create modified config
             logger.info(f"[TRANSFORM/PHASE2] Creating modified config with user-edited context")
-            config_dict = config.to_dict()
-            config_dict['context'] = context_prompt_en
-            config_dict['meta']['user_edited'] = True
-            config_dict['meta']['original_config'] = schema_name
-            config_dict['meta']['user_language'] = user_language
 
-            from schemas.engine.config import Config
-            execution_config = Config.from_dict(config_dict)
+            from dataclasses import replace
+            execution_config = replace(
+                config,
+                context=context_prompt_en,
+                meta={
+                    **config.meta,
+                    'user_edited': True,
+                    'original_config': schema_name,
+                    'user_language': user_language
+                }
+            )
 
         # ====================================================================
         # STAGE 1: PRE-INTERCEPTION (Safety Check - No Translation)
@@ -858,22 +864,18 @@ def transform_prompt():
         stage2_config_override = execution_config
         if optimization_instruction:
             logger.info(f"[TRANSFORM/STAGE2-OPT] Appending optimization instruction to pipeline context")
-            # Create deep copy of execution_config to avoid mutating original
-            import copy
-            stage2_config_override = copy.deepcopy(execution_config)
 
-            # Get original context and append optimization
-            if hasattr(stage2_config_override, 'context'):
-                original_context = stage2_config_override.context
-            else:
-                original_context = config.context if hasattr(config, 'context') else ""
+            # Get original context
+            original_context = execution_config.context if hasattr(execution_config, 'context') and execution_config.context else ""
+            new_context = original_context + "\n\n" + optimization_instruction
 
-            # Convert to dict and modify
-            config_dict = stage2_config_override.to_dict() if hasattr(stage2_config_override, 'to_dict') else {}
-            config_dict['context'] = original_context + "\n\n" + optimization_instruction
-
-            from schemas.engine.config import Config
-            stage2_config_override = Config.from_dict(config_dict)
+            # Create modified config using dataclasses.replace()
+            from dataclasses import replace
+            stage2_config_override = replace(
+                execution_config,
+                context=new_context,
+                meta={**execution_config.meta, 'optimization_added': True}
+            )
             logger.info(f"[TRANSFORM/STAGE2-OPT] Context extended with optimization instruction")
 
         # Create no-op tracker (tracker is deprecated, using NoOpTracker)
@@ -1071,18 +1073,21 @@ def execute_pipeline():
 
             # Create modified config with user-edited context
             logger.info(f"[PHASE2] Creating modified config with user-edited context")
-            config_dict = config.to_dict()
-            config_dict['context'] = context_prompt_en  # Use English version for pipeline
-            config_dict['meta']['user_edited'] = True
-            config_dict['meta']['original_config'] = schema_name
-            config_dict['meta']['user_language'] = user_language
 
-            # Update config object (create new Config instance)
-            from schemas.engine.config import Config
-            modified_config = Config.from_dict(config_dict)
+            from dataclasses import replace
+            modified_config = replace(
+                config,
+                context=context_prompt_en,  # Use English version for pipeline
+                meta={
+                    **config.meta,
+                    'user_edited': True,
+                    'original_config': schema_name,
+                    'user_language': user_language
+                }
+            )
 
             # Save modified config as first entity
-            recorder.save_entity('config_used', config_dict)
+            recorder.save_entity('config_used', modified_config.to_dict())
             logger.info(f"[RECORDER] Saved user-modified config")
         else:
             # Save original config (unmodified)
