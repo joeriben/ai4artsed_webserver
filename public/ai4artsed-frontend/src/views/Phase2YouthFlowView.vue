@@ -28,6 +28,7 @@
             </div>
             <textarea
               v-model="contextPrompt"
+              @input="handleContextPromptEdit"
               placeholder="Beschreibe alles so, wie es die Vögel auf den Bäumen wahrnehmen!"
               class="bubble-textarea"
               rows="3"
@@ -178,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import axios from 'axios'
@@ -343,30 +344,36 @@ onMounted(async () => {
   if (configId) {
     console.log('[Youth Flow] Received configId from Phase1:', configId)
 
-    // Load config and meta-prompt from store
-    await pipelineStore.setConfig(configId)
+    try {
+      // STEP 1: Load config from backend
+      await pipelineStore.setConfig(configId)
+      console.log('[Youth Flow] Config loaded:', pipelineStore.selectedConfig?.id)
 
-    // Set context prompt from meta-prompt
-    if (pipelineStore.metaPrompt) {
-      contextPrompt.value = pipelineStore.metaPrompt
-      console.log('[Youth Flow] Loaded meta-prompt:', pipelineStore.metaPrompt.substring(0, 50))
-    }
+      // STEP 2: Load meta-prompt for German (Youth Flow is German-only)
+      await pipelineStore.loadMetaPromptForLanguage('de')
+      console.log('[Youth Flow] Meta-prompt loaded:', pipelineStore.metaPrompt?.substring(0, 50))
 
-    // Find which category this config belongs to
-    let foundCategory: string | null = null
-    for (const [categoryId, configs] of Object.entries(configsByCategory)) {
-      if (configs.some(config => config.id === configId)) {
-        foundCategory = categoryId
-        break
+      // STEP 3: Initialize context prompt
+      contextPrompt.value = pipelineStore.metaPrompt || ''
+
+      // STEP 4: Find which category this config belongs to
+      let foundCategory: string | null = null
+      for (const [categoryId, configs] of Object.entries(configsByCategory)) {
+        if (configs.some(config => config.id === configId)) {
+          foundCategory = categoryId
+          break
+        }
       }
-    }
 
-    if (foundCategory) {
-      console.log('[Youth Flow] Auto-selecting category:', foundCategory, 'and config:', configId)
-      selectedCategory.value = foundCategory
-      selectedConfig.value = configId
-    } else {
-      console.warn('[Youth Flow] ConfigId not found in any category:', configId)
+      if (foundCategory) {
+        console.log('[Youth Flow] Auto-selecting category:', foundCategory, 'and config:', configId)
+        selectedCategory.value = foundCategory
+        selectedConfig.value = configId
+      } else {
+        console.warn('[Youth Flow] ConfigId not found in any category:', configId)
+      }
+    } catch (error) {
+      console.error('[Youth Flow] Initialization error:', error)
     }
   }
 })
@@ -392,8 +399,8 @@ async function runInterception() {
   isInterceptionLoading.value = true
 
   try {
-    const response = await axios.post('http://localhost:17802/api/schema/pipeline/transform', {
-      schema: 'overdrive',
+    const response = await axios.post('/api/schema/pipeline/stage2', {
+      schema: pipelineStore.selectedConfig?.pipeline || 'overdrive',
       input_text: inputText.value,
       context_prompt: contextPrompt.value || undefined,
       user_language: 'de',
@@ -403,12 +410,13 @@ async function runInterception() {
     })
 
     if (response.data.success) {
-      interceptionResult.value = response.data.transformed_prompt || ''
+      interceptionResult.value = response.data.stage2_result || ''
+      console.log('[Youth Flow] Interception complete (DE):', interceptionResult.value.substring(0, 60))
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
   } catch (error: any) {
-    console.error('Interception error:', error)
+    console.error('[Youth Flow] Interception error:', error)
     alert(`Fehler: ${error.message}`)
   } finally {
     isInterceptionLoading.value = false
@@ -448,8 +456,8 @@ async function executePipeline() {
   }, 500)
 
   try {
-    const response = await axios.post('http://localhost:17802/api/schema/pipeline/execute', {
-      schema: 'overdrive',
+    const response = await axios.post('/api/schema/pipeline/execute', {
+      schema: pipelineStore.selectedConfig?.pipeline || 'overdrive',
       input_text: inputText.value,
       interception_result: interceptionResult.value,
       context_prompt: contextPrompt.value || undefined,
@@ -491,6 +499,19 @@ async function executePipeline() {
 function showImageFullscreen(imageUrl: string) {
   fullscreenImage.value = imageUrl
 }
+
+function handleContextPromptEdit() {
+  pipelineStore.updateMetaPrompt(contextPrompt.value)
+  console.log('[Youth Flow] Context prompt edited:', contextPrompt.value.substring(0, 50) + '...')
+}
+
+// Watch metaPrompt changes and sync to local state
+watch(() => pipelineStore.metaPrompt, (newMetaPrompt) => {
+  if (newMetaPrompt !== contextPrompt.value) {
+    contextPrompt.value = newMetaPrompt || ''
+    console.log('[Youth Flow] Meta-prompt synced from store')
+  }
+})
 </script>
 
 <style scoped>

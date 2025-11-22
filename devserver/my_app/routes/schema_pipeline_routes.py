@@ -222,7 +222,7 @@ async def execute_stage2_with_optimization(
     # Execute Stage 2 Pipeline
     # ====================================================================
     if tracker is None:
-        from execution_history.tracker import NoOpTracker
+        # Use locally-defined NoOpTracker class (defined at top of file)
         tracker = NoOpTracker()
 
     result = await pipeline_executor.execute_pipeline(
@@ -545,7 +545,7 @@ def execute_stage3_4():
 
         try:
             # Execute Output Pipeline with translated text
-            from execution_history.tracker import NoOpTracker
+            # Use locally-defined NoOpTracker class (defined at top of file)
             tracker = NoOpTracker()
 
             output_result = asyncio.run(pipeline_executor.execute_pipeline(
@@ -727,6 +727,7 @@ def execute_pipeline():
         # ====================================================================
         # Session 29: Replaced ExecutionTracker with NoOpTracker
         # LivePipelineRecorder now handles all tracking responsibilities
+        # Use locally-defined NoOpTracker class (defined at top of file)
         tracker = NoOpTracker()
 
         # Log pipeline start
