@@ -37,7 +37,7 @@
 
         <!-- Section 2: Category Selection (Horizontal Row) - Always visible -->
         <section class="category-section">
-          <h2 class="section-title">Wähle ein KI-Modell aus</h2>
+          <h2 class="section-title">Wähle ein Medium aus</h2>
           <div class="category-bubbles-row">
             <div
               v-for="category in availableCategories"
@@ -58,36 +58,34 @@
           </div>
         </section>
 
-        <!-- Section 3: Config Selection (Appears Below Selected Category) -->
-        <transition name="slide-down">
-          <section v-if="selectedCategory" class="config-section">
-            <h2 class="section-title">Wähle ein Modell</h2>
-            <div class="config-bubbles-container">
-              <div class="config-bubbles-row">
-                <div
-                  v-for="config in configsForCategory"
-                  :key="config.id"
-                  class="config-bubble"
-                  :class="{ selected: selectedConfig === config.id, loading: config.id === selectedConfig && isInterceptionLoading, 'light-bg': config.lightBg }"
-                  :style="{ '--bubble-color': config.color }"
-                  @click="selectConfig(config.id)"
-                  role="button"
-                  :aria-pressed="selectedConfig === config.id"
-                  tabindex="0"
-                  @keydown.enter="selectConfig(config.id)"
-                  @keydown.space.prevent="selectConfig(config.id)"
-                >
-                  <img v-if="config.logo" :src="config.logo" :alt="config.label" class="bubble-logo" />
-                  <div v-else class="bubble-emoji-medium">{{ config.emoji }}</div>
-                  <div class="bubble-label-medium">{{ config.label }}</div>
-                  <div v-if="config.id === selectedConfig && isInterceptionLoading" class="loading-indicator">
-                    <div class="spinner"></div>
-                  </div>
+        <!-- Section 3: Config Selection (Shows when category selected) -->
+        <section v-if="selectedCategory" class="config-section">
+          <h2 class="section-title">Wähle ein KI-Modell aus!</h2>
+          <div class="config-bubbles-container">
+            <div class="config-bubbles-row">
+              <div
+                v-for="config in configsForCategory"
+                :key="config.id"
+                class="config-bubble"
+                :class="{ selected: selectedConfig === config.id, loading: config.id === selectedConfig && isInterceptionLoading, 'light-bg': config.lightBg }"
+                :style="{ '--bubble-color': config.color }"
+                @click="selectConfig(config.id)"
+                role="button"
+                :aria-pressed="selectedConfig === config.id"
+                tabindex="0"
+                @keydown.enter="selectConfig(config.id)"
+                @keydown.space.prevent="selectConfig(config.id)"
+              >
+                <img v-if="config.logo" :src="config.logo" :alt="config.label" class="bubble-logo" />
+                <div v-else class="bubble-emoji-medium">{{ config.emoji }}</div>
+                <div class="bubble-label-medium">{{ config.label }}</div>
+                <div v-if="config.id === selectedConfig && isInterceptionLoading" class="loading-indicator">
+                  <div class="spinner"></div>
                 </div>
               </div>
             </div>
-          </section>
-        </transition>
+          </div>
+        </section>
 
         <!-- Section 4: Interception Preview (Always visible, shows placeholder when empty) -->
         <section class="interception-section">
@@ -111,57 +109,43 @@
           </div>
         </section>
 
-        <!-- Start Button -->
-        <transition name="fade">
+        <!-- Start Button Container with Safety Stamp -->
+        <div class="start-button-container">
+          <!-- Start Button with Pulsing Animation (Always visible) -->
           <button
-            v-if="canStartPipeline"
             class="start-button"
-            @click="startPipelineExecution"
+            :class="{ disabled: !canStartPipeline }"
+            :disabled="!canStartPipeline"
+            @click="canStartPipeline && startPipelineExecution()"
             ref="startButtonRef"
           >
-            🚀 Bild erstellen!
+            <span class="button-arrows button-arrows-left">>>></span>
+            <span class="button-text">Start</span>
+            <span class="button-arrows button-arrows-right">>>></span>
           </button>
-        </transition>
+
+          <!-- Safety Approved Stamp (shows after safety check, right of button) -->
+          <transition name="fade">
+            <div v-if="showSafetyApprovedStamp" class="safety-stamp">
+              <div class="stamp-inner">
+                <div class="stamp-icon">✓</div>
+                <div class="stamp-text">Safety<br/>Approved</div>
+              </div>
+            </div>
+          </transition>
+        </div>
 
         <!-- Section 5: Pipeline Path (always visible, inactive until generation starts) -->
         <section class="pipeline-section" ref="pipelineSectionRef">
-          <transition name="fade" mode="out-in">
-            <h2 v-if="outputImage" key="done" class="section-title">Fertig!</h2>
-            <h2 v-else-if="isPipelineExecuting" key="executing" class="section-title">Dein Bild wird erstellt...</h2>
-            <h2 v-else key="ready" class="section-title">Wenn du bereit bist:</h2>
-          </transition>
-
-          <div class="pipeline-stages">
-            <div
-              v-for="(stage, index) in displayPipelineStages"
-              :key="stage.id"
-              class="stage-container"
-            >
-              <!-- Stage Bubble -->
-              <div
-                class="stage-bubble"
-                :class="stage.status"
-                :style="{ '--stage-color': stage.color }"
-              >
-                <div class="stage-emoji">{{ stage.emoji }}</div>
-                <div class="stage-label">{{ stage.label }}</div>
-
-                <!-- Status Indicator -->
-                <div class="status-indicator">
-                  <span v-if="stage.status === 'waiting'" class="status-dot"></span>
-                  <span v-if="stage.status === 'processing'" class="status-spinner"></span>
-                  <span v-if="stage.status === 'completed'" class="status-check">✓</span>
-                </div>
-              </div>
-
-              <!-- Arrow (except after last stage) -->
-              <div v-if="index < displayPipelineStages.length - 1" class="stage-arrow">→</div>
+          <!-- Output Frame (Always visible) -->
+          <div class="output-frame" :class="{ empty: !isPipelineExecuting && !outputImage, generating: isPipelineExecuting && !outputImage }">
+            <!-- Generation Progress Animation -->
+            <div v-if="isPipelineExecuting && !outputImage" class="generation-animation-container">
+              <SpriteProgressAnimation :progress="generationProgress" />
             </div>
-          </div>
 
-          <!-- Final Output -->
-          <transition name="slide-up">
-            <div v-if="outputImage" class="final-output">
+            <!-- Final Output -->
+            <div v-else-if="outputImage" class="final-output">
               <img
                 :src="outputImage"
                 alt="Generiertes Bild"
@@ -169,7 +153,13 @@
                 @click="showImageFullscreen(outputImage)"
               />
             </div>
-          </transition>
+
+            <!-- Placeholder -->
+            <div v-else class="output-placeholder">
+              <div class="placeholder-icon">🖼️</div>
+              <p class="placeholder-text">Dein Bild erscheint hier</p>
+            </div>
+          </div>
         </section>
 
       </div>
@@ -190,6 +180,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import axios from 'axios'
+import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 
 // ============================================================================
 // Types
@@ -239,6 +230,8 @@ const isInterceptionLoading = ref(false)
 const isPipelineExecuting = ref(false)
 const outputImage = ref<string | null>(null)
 const fullscreenImage = ref<string | null>(null)
+const showSafetyApprovedStamp = ref(false)
+const generationProgress = ref(0)
 
 // Refs for DOM elements and scrolling
 const mainContainerRef = ref<HTMLElement | null>(null)
@@ -258,7 +251,7 @@ const availableCategories: Category[] = [
 
 const configsByCategory: Record<string, Config[]> = {
   image: [
-    { id: 'sd35_large', label: 'Stable Diffusion', emoji: '🎨', color: '#2196F3', description: 'Klassische Bildgenerierung', logo: '/logos/logo_stable_diffusion.png', lightBg: false },
+    { id: 'sd35_large', label: 'Stable\nDiffusion', emoji: '🎨', color: '#2196F3', description: 'Klassische Bildgenerierung', logo: '/logos/logo_stable_diffusion.png', lightBg: false },
     { id: 'gpt_image_1', label: 'GPT Image', emoji: '🌟', color: '#FFC107', description: 'Moderne KI-Bilder', logo: '/logos/ChatGPT-Logo.png', lightBg: true },
     { id: 'qwen', label: 'Qwen', emoji: '🌸', color: '#9C27B0', description: 'Qwen Vision Model', logo: '/logos/Qwen_logo.png', lightBg: false }
   ],
@@ -268,7 +261,6 @@ const configsByCategory: Record<string, Config[]> = {
 }
 
 const pipelineStages = ref<PipelineStage[]>([
-  { id: 'safety', label: 'Sicherheit', emoji: '🛡️', color: '#4CAF50', status: 'waiting' },
   { id: 'generation', label: 'Bild', emoji: '🎨', color: '#2196F3', status: 'waiting' }
 ])
 
@@ -391,17 +383,21 @@ async function startPipelineExecution() {
 }
 
 async function executePipeline() {
-  // Stage 1: Safety
-  if (pipelineStages.value[0]) {
-    pipelineStages.value[0].status = 'processing'
-    await new Promise(resolve => setTimeout(resolve, 500))
-    pipelineStages.value[0].status = 'completed'
-  }
+  // Stage 1: Safety check (silent, shows stamp when complete)
+  await new Promise(resolve => setTimeout(resolve, 300))
+  showSafetyApprovedStamp.value = true
 
-  // Stage 2: Generation
-  if (pipelineStages.value[1]) {
-    pipelineStages.value[1].status = 'processing'
-  }
+  // Stage 2: Generation with progress simulation
+  generationProgress.value = 0
+
+  const progressInterval = setInterval(() => {
+    if (generationProgress.value < 85) {
+      generationProgress.value += Math.random() * 15
+      if (generationProgress.value > 85) {
+        generationProgress.value = 85
+      }
+    }
+  }, 500)
 
   try {
     const response = await axios.post('http://localhost:17802/api/schema/pipeline/execute', {
@@ -415,10 +411,11 @@ async function executePipeline() {
       output_config: selectedConfig.value
     })
 
+    clearInterval(progressInterval)
+
     if (response.data.status === 'success') {
-      if (pipelineStages.value[1]) {
-        pipelineStages.value[1].status = 'completed'
-      }
+      // Complete progress
+      generationProgress.value = 100
 
       // Get run_id from response to construct image URL
       const runId = response.data.media_output?.run_id || response.data.run_id
@@ -431,16 +428,13 @@ async function executePipeline() {
       }
     } else {
       alert(`Generation fehlgeschlagen: ${response.data.error}`)
-      if (pipelineStages.value[1]) {
-        pipelineStages.value[1].status = 'waiting'
-      }
+      generationProgress.value = 0
     }
   } catch (error: any) {
+    clearInterval(progressInterval)
     console.error('Pipeline error:', error)
     alert(`Fehler: ${error.message}`)
-    if (pipelineStages.value[1]) {
-      pipelineStages.value[1].status = 'waiting'
-    }
+    generationProgress.value = 0
   } finally {
     isPipelineExecuting.value = false
   }
@@ -489,10 +483,33 @@ function showImageFullscreen(imageUrl: string) {
 /* Section Titles */
 .section-title {
   font-size: clamp(1rem, 2.5vw, 1.2rem);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
   text-align: center;
   margin: 0 0 1rem 0;
+  color: transparent;
+  -webkit-text-stroke: 2px #FFB300;
+  text-stroke: 2px #FFB300;
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6),
+               0 0 20px rgba(255, 179, 0, 0.4),
+               0 0 30px rgba(255, 179, 0, 0.2);
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes neon-pulse {
+  0%, 100% {
+    -webkit-text-stroke: 2px #FFB300;
+    text-stroke: 2px #FFB300;
+    text-shadow: 0 0 10px rgba(255, 179, 0, 0.6),
+                 0 0 20px rgba(255, 179, 0, 0.4),
+                 0 0 30px rgba(255, 179, 0, 0.2);
+  }
+  50% {
+    -webkit-text-stroke: 2px #FF8F00;
+    text-stroke: 2px #FF8F00;
+    text-shadow: 0 0 15px rgba(255, 143, 0, 0.8),
+                 0 0 30px rgba(255, 143, 0, 0.5),
+                 0 0 45px rgba(255, 143, 0, 0.3);
+  }
 }
 
 /* ============================================================================
@@ -757,8 +774,8 @@ function showImageFullscreen(imageUrl: string) {
 
 .config-bubble {
   position: relative;
-  width: clamp(100px, 15vw, 130px);
-  height: clamp(100px, 15vw, 130px);
+  width: clamp(80px, 12vw, 100px);
+  height: clamp(80px, 12vw, 100px);
 
   display: flex;
   align-items: center;
@@ -790,14 +807,21 @@ function showImageFullscreen(imageUrl: string) {
   opacity: 0.7;
 }
 
+.config-bubble.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.8);
+}
+
 .bubble-emoji-medium {
   font-size: clamp(2.5rem, 5vw, 3.5rem);
   line-height: 1;
 }
 
 .bubble-logo {
-  width: clamp(92px, 14.5vw, 122px);
-  height: clamp(92px, 14.5vw, 122px);
+  width: clamp(72px, 11vw, 92px);
+  height: clamp(72px, 11vw, 92px);
   object-fit: contain;
 }
 
@@ -819,14 +843,16 @@ function showImageFullscreen(imageUrl: string) {
 
 .bubble-label-medium {
   position: absolute;
-  bottom: clamp(8px, 1.5vw, 12px);
+  bottom: clamp(6px, 1.2vw, 10px);
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
-  font-size: clamp(0.75rem, 1.8vw, 0.9rem);
+  width: 95%;
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
   text-align: center;
+  line-height: 1.1;
+  white-space: pre-line;
 }
 
 .config-bubble.selected .bubble-label-medium {
@@ -869,9 +895,9 @@ function showImageFullscreen(imageUrl: string) {
 .interception-preview {
   width: 100%;
   max-width: 600px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border: none;
-  box-shadow: 0 0 40px rgba(79, 172, 254, 0.6);
+  background: rgba(76, 175, 80, 0.15);
+  border: 3px solid #4a8f4d;
+  box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
   transition: all 0.3s ease;
 }
 
@@ -888,7 +914,7 @@ function showImageFullscreen(imageUrl: string) {
 }
 
 .interception-preview .bubble-label {
-  color: #0a0a0a;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .interception-preview.empty .bubble-label,
@@ -897,7 +923,8 @@ function showImageFullscreen(imageUrl: string) {
 }
 
 .interception-preview .bubble-textarea {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
 }
 
 .interception-preview.empty .bubble-textarea {
@@ -932,29 +959,150 @@ function showImageFullscreen(imageUrl: string) {
 }
 
 /* ============================================================================
+   Start Button Container
+   ============================================================================ */
+
+.start-button-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 3vw, 2rem);
+  flex-wrap: wrap;
+}
+
+/* ============================================================================
    Start Button
    ============================================================================ */
 
 .start-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
   padding: clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.5rem);
   font-size: clamp(1rem, 2.5vw, 1.2rem);
   font-weight: 700;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: #ffffff;
-  border: none;
+  background: #000000;
+  color: #FFB300;
+  border: 3px solid #FFB300;
   border-radius: 16px;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(240, 147, 251, 0.4);
+  box-shadow: 0 0 20px rgba(255, 179, 0, 0.4),
+              0 4px 15px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6);
   transition: all 0.3s ease;
+}
+
+.button-arrows {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+}
+
+.button-arrows-left {
+  animation: arrow-pulse-left 1.5s ease-in-out infinite;
+}
+
+.button-arrows-right {
+  animation: arrow-pulse-right 1.5s ease-in-out infinite;
+}
+
+.button-text {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+}
+
+@keyframes arrow-pulse-left {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes arrow-pulse-right {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
 }
 
 .start-button:hover {
   transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 6px 30px rgba(240, 147, 251, 0.6);
+  box-shadow: 0 0 30px rgba(255, 179, 0, 0.6),
+              0 6px 25px rgba(0, 0, 0, 0.6);
+  border-color: #FF8F00;
 }
 
 .start-button:active {
   transform: scale(0.98);
+}
+
+.start-button.disabled,
+.start-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.8);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.start-button.disabled .button-arrows,
+.start-button:disabled .button-arrows {
+  animation: none;
+  opacity: 0.3;
+}
+
+/* Safety Approved Stamp */
+.safety-stamp {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stamp-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
+  background: rgba(76, 175, 80, 0.15);
+  border: 2px solid #4CAF50;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes stamp-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.stamp-icon {
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  color: #4CAF50;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.stamp-text {
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+  font-weight: 700;
+  color: #4CAF50;
+  text-align: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* ============================================================================
@@ -1085,15 +1233,66 @@ function showImageFullscreen(imageUrl: string) {
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Final Output */
-.final-output {
-  text-align: center;
+/* Output Frame (Always visible) */
+.output-frame {
+  width: 100%;
+  max-width: 1000px;
+  min-height: clamp(250px, 35vh, 400px);
+  margin: clamp(1rem, 3vh, 2rem) auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: clamp(1.5rem, 3vh, 2rem);
   background: rgba(30, 30, 30, 0.9);
-  border: 2px solid rgba(76, 175, 80, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: clamp(12px, 2vw, 20px);
+  transition: all 0.3s ease;
+}
+
+.output-frame.empty {
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(20, 20, 20, 0.5);
+}
+
+.output-frame.generating {
+  border: 2px solid rgba(76, 175, 80, 0.6);
+  background: rgba(30, 30, 30, 0.9);
+  box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
+}
+
+/* Output Placeholder */
+.output-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  opacity: 0.4;
+}
+
+.placeholder-icon {
+  font-size: clamp(3rem, 8vw, 5rem);
+  opacity: 0.5;
+}
+
+.placeholder-text {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  margin: 0;
+}
+
+/* Generation Animation Container */
+.generation-animation-container {
   width: 100%;
-  margin-top: clamp(1rem, 3vh, 2rem);
+  display: flex;
+  justify-content: center;
+}
+
+/* Final Output */
+.final-output {
+  width: 100%;
+  text-align: center;
 }
 
 .final-output h3 {
