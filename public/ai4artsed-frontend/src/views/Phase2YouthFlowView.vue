@@ -1,9 +1,8 @@
 <template>
   <div class="youth-flow-view">
 
-    <!-- Phase 2a: Vertical Progressive Flow -->
-    <transition name="phase-transition" mode="out-in">
-      <div v-if="currentPhase === 'phase-2a'" key="phase-2a" class="phase-2a">
+    <!-- Single Continuous Flow (no phase transitions) -->
+    <div class="phase-2a" ref="mainContainerRef">
 
         <!-- Section 1: Input + Context (Side by Side) -->
         <section class="input-context-section">
@@ -117,60 +116,63 @@
           <button
             v-if="canStartPipeline"
             class="start-button"
-            @click="transitionToPhase2b"
+            @click="startPipelineExecution"
+            ref="startButtonRef"
           >
             🚀 Bild erstellen!
           </button>
         </transition>
 
-      </div>
+        <!-- Section 5: Pipeline Path (always visible, inactive until generation starts) -->
+        <section class="pipeline-section" ref="pipelineSectionRef">
+          <transition name="fade" mode="out-in">
+            <h2 v-if="outputImage" key="done" class="section-title">Fertig!</h2>
+            <h2 v-else-if="isPipelineExecuting" key="executing" class="section-title">Dein Bild wird erstellt...</h2>
+            <h2 v-else key="ready" class="section-title">Wenn du bereit bist:</h2>
+          </transition>
 
-      <!-- Phase 2b: Horizontal Pipeline -->
-      <div v-else-if="currentPhase === 'phase-2b'" key="phase-2b" class="phase-2b">
-        <h2 class="pipeline-title">Dein Bild wird erstellt...</h2>
-
-        <div class="pipeline-stages">
-          <div
-            v-for="(stage, index) in pipelineStages"
-            :key="stage.id"
-            class="stage-container"
-          >
-            <!-- Stage Bubble -->
+          <div class="pipeline-stages">
             <div
-              class="stage-bubble"
-              :class="stage.status"
-              :style="{ '--stage-color': stage.color }"
+              v-for="(stage, index) in displayPipelineStages"
+              :key="stage.id"
+              class="stage-container"
             >
-              <div class="stage-emoji">{{ stage.emoji }}</div>
-              <div class="stage-label">{{ stage.label }}</div>
+              <!-- Stage Bubble -->
+              <div
+                class="stage-bubble"
+                :class="stage.status"
+                :style="{ '--stage-color': stage.color }"
+              >
+                <div class="stage-emoji">{{ stage.emoji }}</div>
+                <div class="stage-label">{{ stage.label }}</div>
 
-              <!-- Status Indicator -->
-              <div class="status-indicator">
-                <span v-if="stage.status === 'waiting'" class="status-dot"></span>
-                <span v-if="stage.status === 'processing'" class="status-spinner"></span>
-                <span v-if="stage.status === 'completed'" class="status-check">✓</span>
+                <!-- Status Indicator -->
+                <div class="status-indicator">
+                  <span v-if="stage.status === 'waiting'" class="status-dot"></span>
+                  <span v-if="stage.status === 'processing'" class="status-spinner"></span>
+                  <span v-if="stage.status === 'completed'" class="status-check">✓</span>
+                </div>
               </div>
+
+              <!-- Arrow (except after last stage) -->
+              <div v-if="index < displayPipelineStages.length - 1" class="stage-arrow">→</div>
             </div>
-
-            <!-- Arrow (except after last stage) -->
-            <div v-if="index < pipelineStages.length - 1" class="stage-arrow">→</div>
           </div>
-        </div>
 
-        <!-- Final Output -->
-        <transition name="slide-up">
-          <div v-if="outputImage" class="final-output">
-            <h3>Fertig! Dein Bild:</h3>
-            <img
-              :src="outputImage"
-              alt="Generiertes Bild"
-              class="output-image"
-              @click="showImageFullscreen(outputImage)"
-            />
-          </div>
-        </transition>
+          <!-- Final Output -->
+          <transition name="slide-up">
+            <div v-if="outputImage" class="final-output">
+              <img
+                :src="outputImage"
+                alt="Generiertes Bild"
+                class="output-image"
+                @click="showImageFullscreen(outputImage)"
+              />
+            </div>
+          </transition>
+        </section>
+
       </div>
-    </transition>
 
     <!-- Fullscreen Image Modal -->
     <Teleport to="body">
@@ -186,14 +188,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import axios from 'axios'
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type Phase = 'phase-2a' | 'phase-2b'
 type StageStatus = 'waiting' | 'processing' | 'completed'
 
 interface Category {
@@ -226,8 +227,6 @@ interface PipelineStage {
 // State
 // ============================================================================
 
-const currentPhase = ref<Phase>('phase-2a')
-
 // Form state
 const inputText = ref('')
 const contextPrompt = ref('')
@@ -236,17 +235,15 @@ const selectedConfig = ref<string | null>(null)
 const interceptionResult = ref('')
 const isInterceptionLoading = ref(false)
 
-// Expansion state (inline editing)
-const isInputExpanded = ref(false)
-const isContextExpanded = ref(false)
-const isInterceptionExpanded = ref(false)
-const inputTextarea = ref<HTMLTextAreaElement | null>(null)
-const contextTextarea = ref<HTMLTextAreaElement | null>(null)
-const interceptionTextarea = ref<HTMLTextAreaElement | null>(null)
-
-// Output state
+// Pipeline execution state
+const isPipelineExecuting = ref(false)
 const outputImage = ref<string | null>(null)
 const fullscreenImage = ref<string | null>(null)
+
+// Refs for DOM elements and scrolling
+const mainContainerRef = ref<HTMLElement | null>(null)
+const startButtonRef = ref<HTMLElement | null>(null)
+const pipelineSectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // Data
@@ -272,8 +269,27 @@ const configsByCategory: Record<string, Config[]> = {
 
 const pipelineStages = ref<PipelineStage[]>([
   { id: 'safety', label: 'Sicherheit', emoji: '🛡️', color: '#4CAF50', status: 'waiting' },
-  { id: 'generation', label: 'Generierung', emoji: '🎨', color: '#2196F3', status: 'waiting' }
+  { id: 'generation', label: 'Bild', emoji: '🎨', color: '#2196F3', status: 'waiting' }
 ])
+
+// Computed: Pipeline stages with dynamic medium label
+const displayPipelineStages = computed(() => {
+  const stages = [...pipelineStages.value]
+
+  // Update generation stage label based on selected category
+  if (selectedCategory.value && stages[1]) {
+    const category = availableCategories.find(c => c.id === selectedCategory.value)
+    if (category) {
+      stages[1] = {
+        ...stages[1],
+        label: category.label,
+        emoji: category.emoji
+      }
+    }
+  }
+
+  return stages
+})
 
 // ============================================================================
 // Computed
@@ -347,7 +363,7 @@ async function runInterception() {
     })
 
     if (response.data.success) {
-      interceptionResult.value = response.data.interception_result?.result || ''
+      interceptionResult.value = response.data.transformed_prompt || ''
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
@@ -359,8 +375,16 @@ async function runInterception() {
   }
 }
 
-async function transitionToPhase2b() {
-  currentPhase.value = 'phase-2b'
+async function startPipelineExecution() {
+  isPipelineExecuting.value = true
+
+  // Wait for DOM update to render pipeline section
+  await nextTick()
+
+  // Auto-scroll to pipeline section
+  if (pipelineSectionRef.value) {
+    pipelineSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   // Start pipeline execution
   await executePipeline()
@@ -396,7 +420,13 @@ async function executePipeline() {
         pipelineStages.value[1].status = 'completed'
       }
 
-      if (response.data.outputs && response.data.outputs.length > 0) {
+      // Get run_id from response to construct image URL
+      const runId = response.data.media_output?.run_id || response.data.run_id
+      if (runId) {
+        // Use Vite proxy path: /api/media/image/{run_id}
+        outputImage.value = `/api/media/image/${runId}`
+      } else if (response.data.outputs && response.data.outputs.length > 0) {
+        // Fallback: use outputs array
         outputImage.value = `http://localhost:17802${response.data.outputs[0]}`
       }
     } else {
@@ -411,6 +441,8 @@ async function executePipeline() {
     if (pipelineStages.value[1]) {
       pipelineStages.value[1].status = 'waiting'
     }
+  } finally {
+    isPipelineExecuting.value = false
   }
 }
 
@@ -962,8 +994,8 @@ function showImageFullscreen(imageUrl: string) {
 
 .stage-bubble {
   position: relative;
-  width: clamp(120px, 18vw, 160px);
-  height: clamp(120px, 18vw, 160px);
+  width: clamp(70px, 12vw, 90px);
+  height: clamp(70px, 12vw, 90px);
 
   display: flex;
   flex-direction: column;
@@ -1004,12 +1036,12 @@ function showImageFullscreen(imageUrl: string) {
 }
 
 .stage-emoji {
-  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
   line-height: 1;
 }
 
 .stage-label {
-  font-size: clamp(0.75rem, 1.8vw, 0.9rem);
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
   text-align: center;
@@ -1061,6 +1093,7 @@ function showImageFullscreen(imageUrl: string) {
   border: 2px solid rgba(76, 175, 80, 0.6);
   border-radius: clamp(12px, 2vw, 20px);
   width: 100%;
+  margin-top: clamp(1rem, 3vh, 2rem);
 }
 
 .final-output h3 {
