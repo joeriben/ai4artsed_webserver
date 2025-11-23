@@ -51,7 +51,7 @@
         </div>
 
         <!-- Section 3: Interception Preview (filled after Start #1) -->
-        <section class="interception-section" ref="interceptionSectionRef">
+        <section class="interception-section">
           <div class="interception-preview bubble-card" :class="{ empty: !interceptionResult, loading: isInterceptionLoading }">
             <div class="bubble-header">
               <span class="bubble-icon">→</span>
@@ -74,7 +74,7 @@
         </section>
 
         <!-- Section 2: Category Selection (Horizontal Row) - Always visible -->
-        <section class="category-section" ref="categorySectionRef">
+        <section class="category-section">
           <h2 v-if="executionPhase !== 'initial'" class="section-title">Wähle ein Medium aus</h2>
           <div class="category-bubbles-row">
             <div
@@ -97,7 +97,7 @@
         </section>
 
         <!-- Section 2.5: Model Selection (Shows DIRECTLY under category, disabled until after interception) -->
-        <section class="config-section" ref="configSectionRef">
+        <section class="config-section">
           <h2 v-if="selectedCategory" class="section-title">wähle ein KI-Modell aus</h2>
           <div class="config-bubbles-container">
             <div class="config-bubbles-row">
@@ -132,7 +132,7 @@
         </section>
 
         <!-- Section 4: Optimized Prompt Preview (Always visible, initially empty) -->
-        <section class="optimization-section" ref="optimizationSectionRef">
+        <section class="optimization-section">
           <div class="optimization-preview bubble-card" :class="{ empty: !optimizedPrompt, loading: isOptimizationLoading }">
             <div class="bubble-header">
               <span class="bubble-icon">✨</span>
@@ -290,10 +290,6 @@ const startButtonRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<HTMLElement | null>(null)
 const interceptionTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
-const interceptionSectionRef = ref<HTMLElement | null>(null)
-const categorySectionRef = ref<HTMLElement | null>(null)
-const configSectionRef = ref<HTMLElement | null>(null)
-const optimizationSectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // Data
@@ -446,16 +442,10 @@ onMounted(async () => {
 // Methods
 // ============================================================================
 
-async function selectCategory(categoryId: string) {
+function selectCategory(categoryId: string) {
   selectedCategory.value = categoryId
   selectedConfig.value = null
   // Don't clear interception or optimization results when changing category
-
-  // Auto-scroll to config section
-  await nextTick()
-  if (configSectionRef.value) {
-    configSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
 }
 
 async function selectConfig(configId: string) {
@@ -488,12 +478,6 @@ async function runInterception() {
       interceptionResult.value = response.data.interception_result || response.data.stage2_result || ''
       executionPhase.value = 'interception_done'
       console.log('[2-Phase] Interception complete:', interceptionResult.value.substring(0, 60))
-
-      // Auto-scroll to interception result
-      await nextTick()
-      if (interceptionSectionRef.value) {
-        interceptionSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
@@ -525,12 +509,6 @@ async function runOptimization() {
       optimizedPrompt.value = response.data.optimized_prompt || response.data.stage2_result || ''
       executionPhase.value = 'optimization_done'
       console.log('[2-Phase] Optimization complete:', optimizedPrompt.value.substring(0, 60))
-
-      // Auto-scroll to optimization result
-      await nextTick()
-      if (optimizationSectionRef.value) {
-        optimizationSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
@@ -544,14 +522,6 @@ async function runOptimization() {
 
 async function startGeneration() {
   isPipelineExecuting.value = true
-
-  // Wait for DOM update to render pipeline section
-  await nextTick()
-
-  // Auto-scroll to pipeline section
-  if (pipelineSectionRef.value) {
-    pipelineSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
 
   // Start pipeline execution (Stage 3-4)
   await executePipeline()
@@ -820,10 +790,10 @@ watch(optimizedPrompt, async () => {
 }
 
 .auto-resize-textarea {
-  overflow-y: auto;
+  overflow-y: hidden;
   min-height: clamp(120px, 15vh, 150px);
   max-height: clamp(300px, 40vh, 500px);
-  resize: vertical;
+  resize: none;
 }
 
 /* Expanded textarea (inline editing) - unused, kept for potential future use */
