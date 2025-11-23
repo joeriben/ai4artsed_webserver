@@ -59,6 +59,8 @@ def serve_spa(path):
     # PWA files: registerSW.js, sw.js, workbox-*.js, manifest.webmanifest, icons
     if (path.startswith('assets/') or
         path.startswith('workbox-') or
+        path.startswith('logos/') or
+        path.startswith('config-previews/') or
         path in ['favicon.ico', 'robots.txt', 'registerSW.js', 'sw.js',
                  'manifest.webmanifest', 'icon-192x192.png', 'icon-512x512.png',
                  'apple-touch-icon.png']):
