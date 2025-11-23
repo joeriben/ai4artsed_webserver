@@ -120,7 +120,7 @@ def lookup_output_config(media_type: str, execution_mode: str = 'eco') -> str:
 # SHARED STAGE 2 EXECUTION FUNCTION
 # ============================================================================
 
-async def execute_stage2_with_optimization(
+async def execute_stage2_with_optimization_SINGLE_RUN_VERSION(
     schema_name: str,
     input_text: str,
     config,
@@ -132,9 +132,12 @@ async def execute_stage2_with_optimization(
     user_input: str = None
 ):
     """
-    Execute Stage 2: Interception + Media-Specific Optimization
+    BACKUP VERSION: Execute Stage 2 with SINGLE LLM call (interception + optimization combined)
 
-    This is the shared implementation used by all endpoints to avoid code duplication.
+    This is the OLD implementation that combines pedagogical interception and model-specific
+    optimization in ONE LLM call. Kept as backup for potential future use.
+
+    REPLACED BY: execute_stage2_with_optimization() which does 2 separate LLM calls.
 
     Args:
         schema_name: Name of the interception config (e.g., "dada", "bauhaus")
@@ -237,6 +240,189 @@ async def execute_stage2_with_optimization(
 
     logger.info(f"[STAGE2] Interception completed: {result.success}")
     return result
+
+
+async def execute_stage2_with_optimization(
+    schema_name: str,
+    input_text: str,
+    config,
+    execution_mode: str,
+    safety_level: str,
+    output_config: str = None,
+    media_preferences = None,
+    tracker = None,
+    user_input: str = None
+):
+    """
+    Execute Stage 2: Interception + Media-Specific Optimization (2 LLM Calls)
+
+    NEW IMPLEMENTATION: Splits Stage 2 into TWO sequential LLM calls:
+    1. INTERCEPTION: Pedagogical transformation (using config.context only)
+    2. OPTIMIZATION: Model-specific optimization (using optimization_instruction only)
+
+    This separation improves quality by giving each task focused attention.
+
+    Args:
+        schema_name: Name of the interception config (e.g., "dada", "bauhaus")
+        input_text: User input text (already safety-checked in Stage 1)
+        config: Loaded interception config object
+        execution_mode: "eco" or "fast"
+        safety_level: "kids", "youth", or "off"
+        output_config: Optional output config name for optimization (e.g., "sd35_large")
+        media_preferences: Optional media preferences from config
+        tracker: Optional execution tracker
+        user_input: Optional original user input text (before safety check)
+
+    Returns:
+        Dict with both interception_result and optimized_prompt (if optimization was run)
+    """
+    from dataclasses import replace
+
+    logger.info(f"[STAGE2] Starting 2-phase interception for '{schema_name}'")
+
+    # ====================================================================
+    # LLM CALL 1: PEDAGOGICAL INTERCEPTION
+    # ====================================================================
+    logger.info(f"[STAGE2-CALL1] Executing pedagogical interception")
+
+    if tracker is None:
+        tracker = NoOpTracker()
+
+    # Execute pipeline with ONLY pedagogical context (NO optimization instruction)
+    result1 = await pipeline_executor.execute_pipeline(
+        config_name=schema_name,
+        input_text=input_text,
+        user_input=user_input if user_input is not None else input_text,
+        execution_mode=execution_mode,
+        safety_level=safety_level,
+        tracker=tracker,
+        config_override=config  # Use original config (no modification)
+    )
+
+    if not result1.success:
+        logger.error(f"[STAGE2-CALL1] Interception failed: {result1.error}")
+        return result1  # Return error from Call 1
+
+    interception_result = result1.final_output
+    logger.info(f"[STAGE2-CALL1] Interception completed: '{interception_result[:100]}...'")
+
+    # ====================================================================
+    # LLM CALL 2: MODEL-SPECIFIC OPTIMIZATION (optional)
+    # ====================================================================
+    optimization_instruction = None
+    optimized_prompt = None
+
+    # Determine which output config will be used
+    if output_config:
+        target_output_config = output_config
+    elif media_preferences and media_preferences.get('output_configs'):
+        target_output_config = media_preferences['output_configs'][0]
+    elif media_preferences and media_preferences.get('default_output') and media_preferences.get('default_output') != 'text':
+        target_output_config = lookup_output_config(media_preferences['default_output'], execution_mode)
+    else:
+        target_output_config = None
+
+    if target_output_config:
+        logger.info(f"[STAGE2-CALL2] Target output config: {target_output_config}")
+        try:
+            # Load output config to get OUTPUT_CHUNK name
+            output_config_obj = pipeline_executor.config_loader.get_config(target_output_config)
+            if output_config_obj and hasattr(output_config_obj, 'parameters'):
+                output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
+                if output_chunk_name:
+                    logger.info(f"[STAGE2-CALL2] Output chunk: {output_chunk_name}")
+                    # Load output chunk JSON to get optimization_instruction
+                    import json
+                    from pathlib import Path
+                    chunk_file = Path(__file__).parent.parent.parent / "schemas" / "chunks" / f"{output_chunk_name}.json"
+                    if chunk_file.exists():
+                        with open(chunk_file, 'r', encoding='utf-8') as f:
+                            output_chunk = json.load(f)
+                        if output_chunk and 'meta' in output_chunk:
+                            optimization_instruction = output_chunk['meta'].get('optimization_instruction')
+                            if optimization_instruction:
+                                logger.info(f"[STAGE2-CALL2] Found optimization instruction (length: {len(optimization_instruction)})")
+                            else:
+                                logger.info(f"[STAGE2-CALL2] No optimization instruction in chunk {output_chunk_name}")
+                    else:
+                        logger.warning(f"[STAGE2-CALL2] Chunk file not found: {chunk_file}")
+        except Exception as e:
+            logger.warning(f"[STAGE2-CALL2] Failed to load optimization instruction: {e}")
+
+    # Execute optimization call if we found an optimization_instruction
+    result2 = None  # Initialize result2 to avoid NameError
+    if optimization_instruction:
+        logger.info(f"[STAGE2-CALL2] Executing model-specific optimization")
+
+        # Create modified config with ONLY optimization_instruction as context
+        optimization_config = replace(
+            config,
+            context=optimization_instruction,
+            meta={**config.meta, 'optimization_only': True}
+        )
+
+        # Execute pipeline with interception_result as INPUT and optimization_instruction as CONTEXT
+        result2 = await pipeline_executor.execute_pipeline(
+            config_name=schema_name,
+            input_text=interception_result,  # Use Call 1 output as input
+            user_input=interception_result,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
+            tracker=tracker,
+            config_override=optimization_config
+        )
+
+        if result2.success:
+            optimized_prompt = result2.final_output
+            logger.info(f"[STAGE2-CALL2] Optimization completed: '{optimized_prompt[:100]}...'")
+        else:
+            logger.warning(f"[STAGE2-CALL2] Optimization failed: {result2.error}, using interception result")
+            optimized_prompt = interception_result  # Fallback to Call 1 output
+    else:
+        logger.info(f"[STAGE2-CALL2] SKIPPED (no optimization instruction found)")
+        optimized_prompt = interception_result  # Use Call 1 output directly
+
+    # ====================================================================
+    # Return combined result
+    # ====================================================================
+    # Create a combined result object with both outputs
+    from dataclasses import dataclass
+    from typing import Optional
+
+    @dataclass
+    class Stage2Result:
+        success: bool
+        interception_result: str
+        optimized_prompt: str
+        final_output: str  # For backward compatibility, use optimized_prompt
+        error: Optional[str] = None
+        steps: list = None
+        metadata: dict = None
+        execution_time: float = 0.0
+
+        def __post_init__(self):
+            if self.steps is None:
+                self.steps = []
+            if self.metadata is None:
+                self.metadata = {}
+
+    combined_result = Stage2Result(
+        success=True,
+        interception_result=interception_result,
+        optimized_prompt=optimized_prompt,
+        final_output=optimized_prompt,  # Use optimized_prompt for backward compatibility
+        steps=result1.steps + (result2.steps if result2 and result2.success else []),
+        metadata={
+            'interception_model': result1.metadata.get('model_used') if result1.metadata else None,
+            'optimization_model': result2.metadata.get('model_used') if result2 and result2.success and result2.metadata else None,
+            'two_phase_execution': True,
+            'optimization_applied': optimization_instruction is not None
+        },
+        execution_time=result1.execution_time + (result2.execution_time if result2 and result2.success else 0)
+    )
+
+    logger.info(f"[STAGE2] 2-phase execution completed successfully")
+    return combined_result
 
 
 @schema_bp.route('/info', methods=['GET'])
@@ -452,7 +638,8 @@ def execute_stage2():
 
         logger.info(f"[STAGE2-ENDPOINT] ✅ Success! Stage 2 result: '{result.final_output[:100]}...'")
 
-        return jsonify({
+        # Build response - include both prompts if 2-phase execution
+        response_data = {
             'success': True,
             'stage2_result': result.final_output,
             'run_id': run_id,
@@ -461,7 +648,16 @@ def execute_stage2():
             'execution_time_ms': total_time,
             'stage1_time_ms': stage1_time,
             'stage2_time_ms': stage2_time
-        })
+        }
+
+        # Add both prompts if using new 2-phase implementation
+        if hasattr(result, 'interception_result') and hasattr(result, 'optimized_prompt'):
+            response_data['interception_result'] = result.interception_result
+            response_data['optimized_prompt'] = result.optimized_prompt
+            response_data['two_phase_execution'] = True
+            logger.info(f"[STAGE2-ENDPOINT] 2-phase execution: interception + optimization")
+
+        return jsonify(response_data)
 
     except Exception as e:
         logger.error(f"[STAGE2-ENDPOINT] Error: {e}")

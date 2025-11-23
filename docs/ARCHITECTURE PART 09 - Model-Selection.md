@@ -4,6 +4,23 @@
 
 ---
 
+## ⚠️ DEPRECATED (Session 65 - 2025-11-23)
+
+**This document describes an OBSOLETE task-based model selection system.**
+
+**What changed:** The execution_mode parameter and task-based selection have been REPLACED with centralized configuration in `devserver/config.py`.
+
+**Migration:** See `ARCHITECTURE PART 01 - Section 2: Model Selection Architecture` for current implementation.
+
+**Current system:**
+- Models defined as constants in `config.py` (e.g., `STAGE2_INTERCEPTION_MODEL`)
+- Chunks reference config constants instead of hardcoded model names
+- NO execution_mode parameter in API calls
+
+**Retained for historical reference only.**
+
+---
+
 
 ### Task-Based Selection System
 

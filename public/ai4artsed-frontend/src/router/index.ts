@@ -29,8 +29,8 @@ const router = createRouter({
     },
     {
       path: '/execute/:configId',
-      name: 'text-transformation-execution',
-      // Phase 2: text_transformation pipeline visualization
+      name: 'pipeline-execution',
+      // Phase 2: Routes to pipeline-specific view (e.g., text_transformation.vue)
       component: () => import('../views/text_transformation.vue'),
     },
     {

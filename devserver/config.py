@@ -89,10 +89,11 @@ LOCAL_VISION_MODEL = "local/llama3.2-vision:latest"                # Local visio
 REMOTE_ADVANCED_MODEL = "openrouter/anthropic/claude-sonnet-4.5"  # High-quality cloud model
 
 # Stage-Specific Models:
-STAGE1_TEXT_MODEL = LOCAL_DEFAULT_MODEL      # Stage 1: Translation, safety checks
-STAGE1_VISION_MODEL = LOCAL_VISION_MODEL     # Stage 1: Image analysis
-STAGE2_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt interception (needs quality)
-STAGE3_MODEL = LOCAL_DEFAULT_MODEL           # Stage 3: Final safety check
+STAGE1_TEXT_MODEL = LOCAL_DEFAULT_MODEL                   # Stage 1: conditional safety checks
+STAGE1_VISION_MODEL = LOCAL_VISION_MODEL                  # Stage 1: Image analysis
+STAGE2_INTERCEPTION_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt interception (needs quality)
+STAGE2_OPTIMIZATION_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt optimization (needs quality)
+STAGE3_MODEL = REMOTE_ADVANCED_MODEL                      # Stage 3: Translation and final safety check (needs quality)
 
 # Note: Stage 4 (output generation) models are defined in output configs (SD3.5, FLUX, etc.)
 

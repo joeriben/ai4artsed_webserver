@@ -4,6 +4,18 @@
 
 ---
 
+## ⚠️ PARTIALLY DEPRECATED (Session 65 - 2025-11-23)
+
+**The execution_mode system described in this document is OBSOLETE.**
+
+**What changed:** The execution_mode parameter ('eco', 'fast', 'local', 'remote') has been REMOVED. Model selection is now centralized in `devserver/config.py`.
+
+**Migration:** See `ARCHITECTURE PART 01 - Section 2: Model Selection Architecture` for current implementation.
+
+**Backend routing patterns (Ollama, ComfyUI, OpenRouter) remain valid.**
+
+---
+
 
 ### Backend Types
 

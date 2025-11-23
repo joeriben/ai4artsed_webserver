@@ -4,6 +4,18 @@
 
 ---
 
+## ⚠️ DEPRECATED (Session 65 - 2025-11-23)
+
+**This document is OBSOLETE as of Session 65.**
+
+**Reason:** The execution_mode parameter system ('eco', 'fast', 'local', 'remote') has been COMPLETELY REMOVED from the codebase. Model selection is now handled CENTRALLY via `devserver/config.py` constants.
+
+**Migration:** See `ARCHITECTURE PART 01 - Section 2: Model Selection Architecture` for the new centralized system.
+
+**Retained for historical reference only.**
+
+---
+
 
 ### Eco Mode (Default)
 

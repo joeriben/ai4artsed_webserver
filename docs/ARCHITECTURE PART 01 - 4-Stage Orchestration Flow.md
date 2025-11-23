@@ -100,7 +100,7 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 
 **⭐ AUTHORITATIVE SECTION - Read this first before implementing any flow logic**
 
-**Version:** 2.1 (2025-11-21 - Session 59: Translation moved to Stage 3)
+**Version:** 2.2 (2025-11-23 - Session 65: Stage 2 Split into 2-Phase Execution)
 **Source:** Consolidated from 4_STAGE_ARCHITECTURE.md
 
 ### 1.1 Executive Summary
@@ -137,12 +137,30 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 │                                                                 │
 │ STAGE 2: Interception + Optimization (Main Pipeline)           │
 │ ════════════════════════════════════════════════════════════   │
+│   **2-PHASE EXECUTION** (Session 65, 2025-11-23):             │
+│                                                                 │
+│   Phase 1: INTERCEPTION (Pedagogical Transformation)          │
+│     execute_stage2_with_optimization() → Call 1               │
+│     - Uses: config.context (pädagogischer Context)            │
+│     - Model: STAGE2_INTERCEPTION_MODEL (from config.py)       │
+│     - Output: interception_result (editierbar)                │
+│                                                                 │
+│   Phase 2: OPTIMIZATION (Model-specific Refinement)           │
+│     execute_stage2_with_optimization() → Call 2               │
+│     - Uses: output_config.optimization_instruction            │
+│     - Model: STAGE2_INTERCEPTION_MODEL (from config.py)       │
+│     - Input: interception_result (from Phase 1)               │
+│     - Output: optimized_prompt (editierbar)                   │
+│                                                                 │
+│   Why Split?                                                   │
+│   - LLM was overwhelmed by dual task (pedagogy + optimization)│
+│   - User needs editability BETWEEN phases                     │
+│   - Model selection happens BEFORE optimization               │
+│                                                                 │
 │   PipelineExecutor.execute_pipeline(config, inputs)            │
 │   - DUMB: Just executes chunks                                 │
 │   - NO pre-processing, NO safety checks, NO translation       │
 │   - CAN: loop, branch, request multiple outputs               │
-│   - NEW: Media-specific optimization (optional chunk)         │
-│     → Optimize for SD3.5, Audio, Music generation             │
 │                                                                 │
 
 #### Media-Specific Optimization (Config Override Pattern)
@@ -456,6 +474,9 @@ Stage 4: Media Generation → image.png
 - ✅ Multi-Output Support - IMPLEMENTED (Session 11 Part 2)
 - ✅ LivePipelineRecorder as single source of truth - IMPLEMENTED (Session 37)
 - ✅ stage4_only feature for fast regeneration - FIXED (Session 39)
+- ✅ Stage 2 split into 2-phase execution - IMPLEMENTED (Session 65)
+- ✅ execution_mode parameter REMOVED - REFACTORED (Session 65)
+- ✅ Centralized model selection via config.py - IMPLEMENTED (Session 65)
 
 **Validation Tests:**
 - ✅ Stillepost (8 iterations): Stage 1 ran once (not 8x) - PASSED
@@ -473,14 +494,100 @@ Stage 4: Media Generation → image.png
 
 **See:**
 - `docs/DEVELOPMENT_DECISIONS.md` for design rationale
-- `docs/DEVELOPMENT_LOG.md` (Sessions 9, 11, 37, 39) for implementation details
+- `docs/DEVELOPMENT_LOG.md` (Sessions 9, 11, 37, 39, 65) for implementation details
 - `schema_pipeline_routes.py` for orchestration code
 - `pipeline_executor.py` for execution engine
 
+---
+
+## 2. Model Selection Architecture (Session 65 Refactoring)
+
+**⭐ AUTHORITATIVE SECTION - Centralized model configuration**
+
+**Version:** 1.0 (2025-11-23 - Session 65: execution_mode removal)
+
+### 2.1 Executive Summary
+
+**DEPRECATED Architecture (Pre-Session 65):**
+- execution_mode parameter ('eco', 'fast', 'local', 'remote') passed in API calls
+- Model selection logic scattered across backend/frontend
+- Hardcoded values in multiple locations
+- Code duplication and inconsistency
+
+**NEW Architecture (Session 65+):**
+- **execution_mode parameter COMPLETELY REMOVED**
+- All models configured CENTRALLY in `devserver/config.py`
+- NO hardcoded model names in Vue components or API routes
+- Single source of truth for model selection
+
+### 2.2 Centralized Model Configuration
+
+**Location:** `/home/joerissen/ai/ai4artsed_webserver/devserver/config.py`
+
+**Model Constants:**
+```python
+# Stage-specific model assignments
+STAGE1_TEXT_MODEL = "llama-guard-3-8b"           # Safety check (local only)
+STAGE2_INTERCEPTION_MODEL = "mistral-nemo"       # Pedagogical transformation
+STAGE3_MODEL = "llama-guard-3-8b"                # Pre-output safety
+# ... etc
+```
+
+**Why This Pattern:**
+- ✅ Change models in ONE location (config.py)
+- ✅ NO hardcoded values in application code
+- ✅ Consistent model usage across all flows
+- ✅ Easy to switch between local/cloud models
+- ✅ Follows "NO WORKAROUNDS" principle
+
+### 2.3 Migration Summary
+
+**Removed from API Calls:**
+- `/pipeline/stage2` endpoint: No longer accepts execution_mode
+- Frontend (text_transformation.vue): Removed execution_mode from 3 API calls
+- Backend routes: Model selection via config.py constants ONLY
+
+**Chunk Configuration:**
+- OLD: `"model": "mistral-nemo"` (hardcoded)
+- NEW: `"model": "STAGE2_INTERCEPTION_MODEL"` (references config.py)
+
+**Example: manipulate.json**
+```json
+{
+  "chunk_name": "manipulate",
+  "model": "STAGE2_INTERCEPTION_MODEL",
+  "meta": {
+    "task_type": "standard"
+  }
+}
+```
+
+### 2.4 Future Model Switching
+
+**To change models system-wide:**
+1. Edit `devserver/config.py`
+2. Change constant value (e.g., `STAGE2_INTERCEPTION_MODEL = "claude-3.5-haiku"`)
+3. NO code changes required in routes, Vue components, or chunks
+4. Restart devserver
+
+**To switch between local/cloud:**
+- Update config.py constants to point to cloud models
+- Ensure API keys configured in environment
+- NO architectural changes required
+
+### 2.5 Architectural Principles
+
+This refactoring follows the project's core principles:
+- ❌ **NO prefix hacks** - Model names not prefixed with "00-" for load order
+- ❌ **NO temporary fixes** - execution_mode removed, not "improved"
+- ✅ **Fix root problems** - Centralized configuration eliminates duplication
+- ✅ **Clean, maintainable code** - Single source of truth in config.py
+
+**See:** `/home/joerissen/.claude/CLAUDE.md` - Project instructions enforcing this pattern
 
 ---
 
-**Document Version:** 2.1
-**Last Updated:** 2025-11-09 (Session 39)
-**Status:** v2.0.0-alpha.1 Release - First fully functional alpha
+**Document Version:** 2.2
+**Last Updated:** 2025-11-23 (Session 65)
+**Status:** v2.1.0-alpha - 2-Phase Stage 2 Execution + Centralized Model Selection
 **Authors:** Joerissen + Claude collaborative design

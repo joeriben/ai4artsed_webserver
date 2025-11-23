@@ -3,7 +3,7 @@
   "description": "Prompt Interception: Three-part transformation (TASK + USER_RULES + PROMPT)",
   "template": "Task:\n{{TASK_INSTRUCTION}}\n\nContext:\n{{CONTEXT}}\n\nImportant: Respond in the same language as the input prompt below.\n\nPrompt:\n{{INPUT_TEXT}}",
   "backend_type": "ollama",
-  "model": "STAGE2_MODEL",
+  "model": "STAGE2_INTERCEPTION_MODEL",
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,

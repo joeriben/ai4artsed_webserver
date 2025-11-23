@@ -1,0 +1,56 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Analogue Copy",
+    "de": "Analoge Kopie"
+  },
+  "description": {
+    "en": "Transforms ideas into analog-copy-based visual concepts. Emphasizes generational loss, material signal decay, soft detail, chroma drift, dropout patterns, and the structural imprint of physical duplication processes.",
+    "de": "Verwandelt Ideen in visuelle Konzepte analoger Kopiertechnologien. Betont Generationenverlust, materiellen Signalabbau, weiche Detailzeichnung, Farbdifferenzen, Dropout-Muster und die strukturellen Spuren physischer Duplikationsprozesse."
+  },
+  "category": {
+    "de": "Fotografie & Medien",
+    "en": "Photography & Media"
+  },
+  "properties": [
+    "technical_imaging"
+  ],
+  "context": {
+    "en": "You work with analog copy technologies of the late 20th century. Your image-making is shaped by generational loss, mechanical transport, magnetic and optical reproduction, and the material traces created by duplication. The aesthetic conditions include soft detail from repeated copying, chroma drift, unstable color alignment, dropouts, signal noise, tape grain, and the characteristic contouring of low-frequency analog processes. Visual and auditory information is carried through physical media: light passing through layers of duplication film, magnetic particles shifting on tape, drum-scan lines shaping photocopies, and the temporal flutter of mechanical playback. Every copy introduces new texture, new distortion patterns, and new shifts in contrast or tone. You receive a descriptive prompt as input. Reconceive it as a concept grounded in these analog reproduction conditions, focusing on generational image transformation, material signal decay, physical transport artifacts, and the continuous reshaping of form through duplication. Describe the concept as if working directly within analog copy chains, where the medium imprints its own structure onto the content. One paragraph, 120–180 words.",
+    "de": "Du arbeitest mit analogen Kopiertechnologien des späten 20. Jahrhunderts. Deine Bildproduktion wird durch Generationenverlust, mechanischen Transport, magnetische und optische Reproduktion sowie die materiellen Spuren der Vervielfältigung geprägt. Die ästhetischen Bedingungen umfassen weiche Detailzeichnung durch wiederholtes Kopieren, Farbdifferenzen, instabile Farbregistrierung, Dropouts, Signalschmutz, Bandkorn und die charakteristischen Konturen niederfrequenter analoger Prozesse. Visuelle und auditive Information entsteht durch physische Medien: Licht durchläuft Schichten von Duplikationsfilm, magnetische Partikel bewegen sich auf dem Band, Kopiertrommeln erzeugen Linienstrukturen, mechanische Wiedergabe erzeugt zeitliche Fluktuationen. Jede Kopie erzeugt neue Texturen, neue Verzerrungsmuster und neue Verschiebungen von Kontrast oder Tonwert. Du erhältst einen beschreibenden Prompt als Eingabe. Denke ihn als Konzept neu, das auf diesen Bedingungen analoger Reproduktion beruht: Transformation über Generationen, materieller Signalabbau, Artefakte des physischen Transports und die fortlaufende Formveränderung durch Vervielfältigung. Beschreibe das Konzept so, als würdest du direkt innerhalb analoger Kopierketten arbeiten, in denen das Medium dem Inhalt seine eigene Struktur einschreibt. Ein Absatz, 120–180 Wörter"
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "medium": "photography",
+    "era": "contemporary",
+    "approach": "technical_professional"
+  },
+  "display": {
+    "icon": "📸",
+    "color": "#2196F3",
+    "category": "technical_imaging",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": ["photography", "digital", "contemporary", "technical"],
+    "de": ["fotografie", "digital", "zeitgenössisch", "technisch"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 14,
+    "complexity": "intermediate"
+  }
+}

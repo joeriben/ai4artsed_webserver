@@ -16,7 +16,7 @@
               v-model="inputText"
               placeholder="Ein Fest in meiner Straße: ..."
               class="bubble-textarea"
-              rows="6"
+              rows="3"
             ></textarea>
           </div>
 
@@ -31,51 +31,14 @@
               @input="handleContextPromptEdit"
               placeholder="Beschreibe alles so, wie es die Vögel auf den Bäumen wahrnehmen!"
               class="bubble-textarea"
-              rows="6"
-            ></textarea>
-          </div>
-        </section>
-
-        <!-- START BUTTON #1: Trigger Interception (Between Context and Interception) -->
-        <div class="start-button-container">
-          <button
-            class="start-button"
-            :class="{ disabled: executionPhase !== 'initial' || !inputText }"
-            :disabled="executionPhase !== 'initial' || !inputText"
-            @click="runInterception()"
-          >
-            <span class="button-arrows button-arrows-left">>>></span>
-            <span class="button-text">Start</span>
-            <span class="button-arrows button-arrows-right">>>></span>
-          </button>
-        </div>
-
-        <!-- Section 3: Interception Preview (filled after Start #1) -->
-        <section class="interception-section" ref="interceptionSectionRef">
-          <div class="interception-preview bubble-card" :class="{ empty: !interceptionResult, loading: isInterceptionLoading }">
-            <div class="bubble-header">
-              <span class="bubble-icon">→</span>
-              <span class="bubble-label">Idee + Regeln = Prompt</span>
-            </div>
-            <div v-if="isInterceptionLoading" class="preview-loading">
-              <div class="spinner-large"></div>
-              <p class="loading-text">Die KI kombiniert jetzt deine Idee mit den Regeln und erstellt einen kreativen Prompt, der zu deinem gewählten Kunststil passt.</p>
-            </div>
-            <textarea
-              v-else
-              ref="interceptionTextareaRef"
-              v-model="interceptionResult"
-              :placeholder="interceptionResult ? '' : 'Prompt erscheint nach Start-Klick'"
-              class="bubble-textarea auto-resize-textarea"
-              rows="5"
-              :readonly="!interceptionResult"
+              rows="3"
             ></textarea>
           </div>
         </section>
 
         <!-- Section 2: Category Selection (Horizontal Row) - Always visible -->
-        <section class="category-section" ref="categorySectionRef">
-          <h2 v-if="executionPhase !== 'initial'" class="section-title">Wähle ein Medium aus</h2>
+        <section class="category-section">
+          <h2 class="section-title">Wähle ein Medium aus</h2>
           <div class="category-bubbles-row">
             <div
               v-for="category in availableCategories"
@@ -96,34 +59,28 @@
           </div>
         </section>
 
-        <!-- Section 2.5: Model Selection (Shows DIRECTLY under category, disabled until after interception) -->
-        <section class="config-section" ref="configSectionRef">
-          <h2 v-if="selectedCategory" class="section-title">wähle ein KI-Modell aus</h2>
+        <!-- Section 3: Config Selection (Shows when category selected) -->
+        <section v-if="selectedCategory" class="config-section">
+          <h2 class="section-title">Wähle ein KI-Modell aus!</h2>
           <div class="config-bubbles-container">
             <div class="config-bubbles-row">
               <div
                 v-for="config in configsForCategory"
                 :key="config.id"
                 class="config-bubble"
-                :class="{
-                  selected: selectedConfig === config.id,
-                  loading: config.id === selectedConfig && isOptimizationLoading,
-                  'light-bg': config.lightBg,
-                  disabled: !areModelBubblesEnabled
-                }"
+                :class="{ selected: selectedConfig === config.id, loading: config.id === selectedConfig && isInterceptionLoading, 'light-bg': config.lightBg }"
                 :style="{ '--bubble-color': config.color }"
-                @click="areModelBubblesEnabled && selectConfig(config.id)"
+                @click="selectConfig(config.id)"
                 role="button"
                 :aria-pressed="selectedConfig === config.id"
-                :aria-disabled="!areModelBubblesEnabled"
-                :tabindex="areModelBubblesEnabled ? 0 : -1"
-                @keydown.enter="areModelBubblesEnabled && selectConfig(config.id)"
-                @keydown.space.prevent="areModelBubblesEnabled && selectConfig(config.id)"
+                tabindex="0"
+                @keydown.enter="selectConfig(config.id)"
+                @keydown.space.prevent="selectConfig(config.id)"
               >
                 <img v-if="config.logo" :src="config.logo" :alt="config.label" class="bubble-logo" />
                 <div v-else class="bubble-emoji-medium">{{ config.emoji }}</div>
                 <div class="bubble-label-medium">{{ config.label }}</div>
-                <div v-if="config.id === selectedConfig && isOptimizationLoading" class="loading-indicator">
+                <div v-if="config.id === selectedConfig && isInterceptionLoading" class="loading-indicator">
                   <div class="spinner"></div>
                 </div>
               </div>
@@ -131,36 +88,36 @@
           </div>
         </section>
 
-        <!-- Section 4: Optimized Prompt Preview (Always visible, initially empty) -->
-        <section class="optimization-section" ref="optimizationSectionRef">
-          <div class="optimization-preview bubble-card" :class="{ empty: !optimizedPrompt, loading: isOptimizationLoading }">
+        <!-- Section 4: Interception Preview (Always visible, shows placeholder when empty) -->
+        <section class="interception-section">
+          <div class="interception-preview bubble-card" :class="{ empty: !interceptionResult, loading: isInterceptionLoading }">
             <div class="bubble-header">
-              <span class="bubble-icon">✨</span>
-              <span class="bubble-label">Modell-Optimierter Prompt</span>
+              <span class="bubble-icon">→</span>
+              <span class="bubble-label">Idee + Regeln = Prompt</span>
             </div>
-            <div v-if="isOptimizationLoading" class="preview-loading">
+            <div v-if="isInterceptionLoading" class="preview-loading">
               <div class="spinner-large"></div>
-              <p class="loading-text">Der Prompt wird jetzt für das gewählte KI-Modell angepasst. Jedes Modell versteht Beschreibungen etwas anders – die KI optimiert den Text für die beste Ausgabe.</p>
+              <p class="loading-text">Erstelle Prompt...</p>
             </div>
             <textarea
               v-else
-              ref="optimizationTextareaRef"
-              v-model="optimizedPrompt"
-              :placeholder="optimizedPrompt ? '' : 'Der optimierte Prompt erscheint nach Modellauswahl.'"
-              class="bubble-textarea auto-resize-textarea"
+              v-model="interceptionResult"
+              :placeholder="interceptionResult ? '' : 'Du kannst den Prompt hinterher noch verändern.'"
+              class="bubble-textarea"
               rows="5"
-              :readonly="!optimizedPrompt"
+              :readonly="!interceptionResult"
             ></textarea>
           </div>
         </section>
 
-        <!-- START BUTTON #2: Trigger Generation (Between Optimized Prompt and Output) -->
+        <!-- Start Button Container with Safety Stamp -->
         <div class="start-button-container">
+          <!-- Start Button with Pulsing Animation (Always visible) -->
           <button
             class="start-button"
-            :class="{ disabled: (executionPhase !== 'optimization_done' && executionPhase !== 'generation_done') || !optimizedPrompt }"
-            :disabled="(executionPhase !== 'optimization_done' && executionPhase !== 'generation_done') || !optimizedPrompt"
-            @click="startGeneration()"
+            :class="{ disabled: !canStartPipeline }"
+            :disabled="!canStartPipeline"
+            @click="canStartPipeline && startPipelineExecution()"
             ref="startButtonRef"
           >
             <span class="button-arrows button-arrows-left">>>></span>
@@ -168,6 +125,7 @@
             <span class="button-arrows button-arrows-right">>>></span>
           </button>
 
+          <!-- Safety Approved Stamp (shows after safety check, right of button) -->
           <transition name="fade">
             <div v-if="showSafetyApprovedStamp" class="safety-stamp">
               <div class="stamp-inner">
@@ -270,12 +228,6 @@ const selectedCategory = ref<string | null>(null)
 const selectedConfig = ref<string | null>(null)
 const interceptionResult = ref('')
 const isInterceptionLoading = ref(false)
-const optimizedPrompt = ref('')
-const isOptimizationLoading = ref(false)
-
-// Execution phase tracking
-// 'initial' -> 'interception_done' -> 'optimization_done' -> 'generation_done'
-const executionPhase = ref<'initial' | 'interception_done' | 'optimization_done' | 'generation_done'>('initial')
 
 // Pipeline execution state
 const isPipelineExecuting = ref(false)
@@ -288,12 +240,6 @@ const generationProgress = ref(0)
 const mainContainerRef = ref<HTMLElement | null>(null)
 const startButtonRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<HTMLElement | null>(null)
-const interceptionTextareaRef = ref<HTMLTextAreaElement | null>(null)
-const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
-const interceptionSectionRef = ref<HTMLElement | null>(null)
-const categorySectionRef = ref<HTMLElement | null>(null)
-const configSectionRef = ref<HTMLElement | null>(null)
-const optimizationSectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // Data
@@ -374,20 +320,10 @@ const truncatedInterception = computed(() => {
 })
 
 const canStartPipeline = computed(() => {
-  // Phase 1: Before interception - need input and category
-  if (executionPhase.value === 'initial') {
-    return inputText.value && selectedCategory.value && !isInterceptionLoading.value
-  }
-  // Phase 2: After optimization - need both prompts and config
-  else if (executionPhase.value === 'optimization_done') {
-    return interceptionResult.value && optimizedPrompt.value && selectedConfig.value && !isPipelineExecuting.value
-  }
-  // Otherwise disabled
-  return false
-})
-
-const areModelBubblesEnabled = computed(() => {
-  return executionPhase.value === 'interception_done' || executionPhase.value === 'optimization_done' || executionPhase.value === 'generation_done'
+  return inputText.value &&
+         selectedConfig.value &&
+         interceptionResult.value &&
+         !isInterceptionLoading.value
 })
 
 // ============================================================================
@@ -446,103 +382,48 @@ onMounted(async () => {
 // Methods
 // ============================================================================
 
-async function selectCategory(categoryId: string) {
+function selectCategory(categoryId: string) {
   selectedCategory.value = categoryId
   selectedConfig.value = null
-  // Don't clear interception or optimization results when changing category
-
-  // Auto-scroll to config section
-  await nextTick()
-  if (configSectionRef.value) {
-    configSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
+  interceptionResult.value = ''
 }
 
 async function selectConfig(configId: string) {
-  // Only allow selection after interception is done
-  if (!areModelBubblesEnabled.value || isOptimizationLoading.value) return
+  if (isInterceptionLoading.value) return
 
   selectedConfig.value = configId
-
-  // Automatically trigger optimization
-  await runOptimization()
+  await runInterception()
 }
 
 async function runInterception() {
   isInterceptionLoading.value = true
 
   try {
-    // Call 1: Interception WITHOUT output_config
     const response = await axios.post('/api/schema/pipeline/stage2', {
       schema: pipelineStore.selectedConfig?.id || 'overdrive',
       input_text: inputText.value,
       context_prompt: contextPrompt.value || undefined,
       user_language: 'de',
-      safety_level: 'youth'
-      // NO output_config - this is pure interception
-      // NO execution_mode - models come from config.py
+      execution_mode: 'eco',
+      safety_level: 'youth',
+      output_config: selectedConfig.value
     })
 
     if (response.data.success) {
-      // Use interception_result if available (2-phase), otherwise stage2_result (backward compat)
-      interceptionResult.value = response.data.interception_result || response.data.stage2_result || ''
-      executionPhase.value = 'interception_done'
-      console.log('[2-Phase] Interception complete:', interceptionResult.value.substring(0, 60))
-
-      // Auto-scroll to interception result
-      await nextTick()
-      if (interceptionSectionRef.value) {
-        interceptionSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
+      interceptionResult.value = response.data.stage2_result || ''
+      console.log('[Youth Flow] Interception complete (DE):', interceptionResult.value.substring(0, 60))
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
   } catch (error: any) {
-    console.error('[2-Phase] Interception error:', error)
+    console.error('[Youth Flow] Interception error:', error)
     alert(`Fehler: ${error.message}`)
   } finally {
     isInterceptionLoading.value = false
   }
 }
 
-async function runOptimization() {
-  isOptimizationLoading.value = true
-
-  try {
-    // Call 2: Optimization WITH output_config and interception_result
-    const response = await axios.post('/api/schema/pipeline/stage2', {
-      schema: pipelineStore.selectedConfig?.id || 'overdrive',
-      input_text: interceptionResult.value,  // Use interception result as input
-      context_prompt: contextPrompt.value || undefined,
-      user_language: 'de',
-      safety_level: 'youth',
-      output_config: selectedConfig.value  // NOW include output_config for optimization
-      // NO execution_mode - models come from config.py
-    })
-
-    if (response.data.success) {
-      // Use optimized_prompt if available (2-phase), otherwise stage2_result (backward compat)
-      optimizedPrompt.value = response.data.optimized_prompt || response.data.stage2_result || ''
-      executionPhase.value = 'optimization_done'
-      console.log('[2-Phase] Optimization complete:', optimizedPrompt.value.substring(0, 60))
-
-      // Auto-scroll to optimization result
-      await nextTick()
-      if (optimizationSectionRef.value) {
-        optimizationSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-    } else {
-      alert(`Fehler: ${response.data.error}`)
-    }
-  } catch (error: any) {
-    console.error('[2-Phase] Optimization error:', error)
-    alert(`Fehler: ${error.message}`)
-  } finally {
-    isOptimizationLoading.value = false
-  }
-}
-
-async function startGeneration() {
+async function startPipelineExecution() {
   isPipelineExecuting.value = true
 
   // Wait for DOM update to render pipeline section
@@ -550,10 +431,10 @@ async function startGeneration() {
 
   // Auto-scroll to pipeline section
   if (pipelineSectionRef.value) {
-    pipelineSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    pipelineSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  // Start pipeline execution (Stage 3-4)
+  // Start pipeline execution
   await executePipeline()
 }
 
@@ -582,12 +463,12 @@ async function executePipeline() {
     const response = await axios.post('/api/schema/pipeline/execute', {
       schema: pipelineStore.selectedConfig?.id || 'overdrive',
       input_text: inputText.value,
-      interception_result: optimizedPrompt.value,  // Use optimized prompt (not raw interception)
+      interception_result: interceptionResult.value,
       context_prompt: contextPrompt.value || undefined,
       user_language: 'de',
+      execution_mode: 'eco',
       safety_level: 'youth',
       output_config: selectedConfig.value
-      // NO execution_mode - models come from config.py
     })
 
     clearInterval(progressInterval)
@@ -601,11 +482,9 @@ async function executePipeline() {
       if (runId) {
         // Use Vite proxy path: /api/media/image/{run_id}
         outputImage.value = `/api/media/image/${runId}`
-        executionPhase.value = 'generation_done'
       } else if (response.data.outputs && response.data.outputs.length > 0) {
         // Fallback: use outputs array
         outputImage.value = `http://localhost:17802${response.data.outputs[0]}`
-        executionPhase.value = 'generation_done'
       }
     } else {
       alert(`Generation fehlgeschlagen: ${response.data.error}`)
@@ -630,29 +509,12 @@ function handleContextPromptEdit() {
   console.log('[Youth Flow] Context prompt edited:', contextPrompt.value.substring(0, 50) + '...')
 }
 
-function autoResizeTextarea(textarea: HTMLTextAreaElement | null) {
-  if (!textarea) return
-  textarea.style.height = 'auto'
-  textarea.style.height = textarea.scrollHeight + 'px'
-}
-
 // Watch metaPrompt changes and sync to local state
 watch(() => pipelineStore.metaPrompt, (newMetaPrompt) => {
   if (newMetaPrompt !== contextPrompt.value) {
     contextPrompt.value = newMetaPrompt || ''
     console.log('[Youth Flow] Meta-prompt synced from store')
   }
-})
-
-// Auto-resize textareas when content changes
-watch(interceptionResult, async () => {
-  await nextTick()
-  autoResizeTextarea(interceptionTextareaRef.value)
-})
-
-watch(optimizedPrompt, async () => {
-  await nextTick()
-  autoResizeTextarea(optimizationTextareaRef.value)
 })
 </script>
 
@@ -817,13 +679,6 @@ watch(optimizedPrompt, async () => {
 
 .bubble-textarea::placeholder {
   color: rgba(255, 255, 255, 0.4);
-}
-
-.auto-resize-textarea {
-  overflow-y: auto;
-  min-height: clamp(120px, 15vh, 150px);
-  max-height: clamp(300px, 40vh, 500px);
-  resize: vertical;
 }
 
 /* Expanded textarea (inline editing) - unused, kept for potential future use */
@@ -1101,11 +956,10 @@ watch(optimizedPrompt, async () => {
 }
 
 /* ============================================================================
-   Section 3 & 3.5: Interception + Optimization Preview
+   Section 4: Interception Preview
    ============================================================================ */
 
-.interception-section,
-.optimization-section {
+.interception-section {
   width: 100%;
   display: flex;
   justify-content: center;
@@ -1113,56 +967,40 @@ watch(optimizedPrompt, async () => {
 
 .interception-preview {
   width: 100%;
-  max-width: 1000px;
+  max-width: 600px;
   background: rgba(76, 175, 80, 0.15);
   border: 3px solid #4a8f4d;
   box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
   transition: all 0.3s ease;
 }
 
-.optimization-preview {
-  width: 100%;
-  max-width: 1000px;
-  background: rgba(255, 152, 0, 0.15);
-  border: 3px solid #FF9800;
-  box-shadow: 0 0 30px rgba(255, 152, 0, 0.4);
-  transition: all 0.3s ease;
-}
-
-.interception-preview.empty,
-.optimization-preview.empty {
+.interception-preview.empty {
   background: rgba(20, 20, 20, 0.5);
   border: 2px dashed rgba(255, 255, 255, 0.3);
   box-shadow: none;
 }
 
-.interception-preview.loading,
-.optimization-preview.loading {
+.interception-preview.loading {
   background: rgba(20, 20, 20, 0.7);
   border: 2px solid rgba(79, 172, 254, 0.4);
   box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
 }
 
-.interception-preview .bubble-label,
-.optimization-preview .bubble-label {
+.interception-preview .bubble-label {
   color: rgba(255, 255, 255, 0.9);
 }
 
 .interception-preview.empty .bubble-label,
-.interception-preview.loading .bubble-label,
-.optimization-preview.empty .bubble-label,
-.optimization-preview.loading .bubble-label {
+.interception-preview.loading .bubble-label {
   color: rgba(255, 255, 255, 0.7);
 }
 
-.interception-preview .bubble-textarea,
-.optimization-preview .bubble-textarea {
+.interception-preview .bubble-textarea {
   background: rgba(0, 0, 0, 0.3);
   color: white;
 }
 
-.interception-preview.empty .bubble-textarea,
-.optimization-preview.empty .bubble-textarea {
+.interception-preview.empty .bubble-textarea {
   background: rgba(0, 0, 0, 0.3);
   color: rgba(255, 255, 255, 0.5);
   cursor: not-allowed;
