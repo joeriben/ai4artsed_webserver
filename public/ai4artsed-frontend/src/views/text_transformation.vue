@@ -1,5 +1,5 @@
 <template>
-  <div class="youth-flow-view">
+  <div class="text-transformation-view">
 
     <!-- Single Continuous Flow (no phase transitions) -->
     <div class="phase-2a" ref="mainContainerRef">
@@ -439,12 +439,16 @@ async function startPipelineExecution() {
 }
 
 async function executePipeline() {
+  // Reset UI state for fresh generation
+  outputImage.value = ''  // Clear previous image
+  showSafetyApprovedStamp.value = false  // Reset safety stamp
+  generationProgress.value = 0  // Reset progress
+
   // Stage 1: Safety check (silent, shows stamp when complete)
   await new Promise(resolve => setTimeout(resolve, 300))
   showSafetyApprovedStamp.value = true
 
   // Stage 2: Generation with progress simulation
-  generationProgress.value = 0
 
   const progressInterval = setInterval(() => {
     if (generationProgress.value < 85) {
@@ -519,7 +523,7 @@ watch(() => pipelineStore.metaPrompt, (newMetaPrompt) => {
    Root Container
    ============================================================================ */
 
-.youth-flow-view {
+.text-transformation-view {
   position: fixed;
   inset: 0;
   background: #0a0a0a;

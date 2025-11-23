@@ -1,0 +1,65 @@
+# AI4ArtsEd DevServer - Claude Instructions
+
+## Core Architecture (Quick Reference)
+
+### 4-Stage Orchestration (Overdrive Pipeline)
+1. **Stage 1**: Translation + initial safety check
+2. **Stage 2**: Prompt Interception (pedagogical transformation)
+3. **Stage 3**: Safety validation + translation to English
+4. **Stage 4**: Media generation (runs once per output_config)
+
+**Key Pattern**: DevServer = Smart Orchestrator | PipelineExecutor = Dumb Engine
+
+### Critical Concepts
+- **Three-Layer System**: Chunks → Pipelines → Configs
+- **Media-specific configs**: Use config ID (e.g., `sd35_large`), NOT pipeline name
+- **Safety levels**: kids, youth, open (hardcoded in DevServer, not pipelines)
+- **Execution modes**: eco (local/cheap), fast (remote/expensive)
+- **Prompt Interception**: Pedagogical transformation, not optimization - DO NOT BREAK THIS
+
+### File Locations
+- **Schemas**: `my_app/config/*.json` (overdrive.json, kids.json, youth.json, open.json)
+- **Routes**: `my_app/routes/schema_pipeline_routes.py` (orchestrator logic)
+- **Pipelines**: `my_app/engine/pipeline_executor.py` (execution engine)
+- **Configs**: `my_app/config/output_configs/*.json` (sd35_large.json, gpt5_image.json)
+
+### Common Pitfalls
+- ❌ Using pipeline name instead of config ID for Stage 4
+- ❌ "Optimizing" Prompt Interception (breaks pedagogy)
+- ❌ Adding redundant safety checks (already in DevServer)
+- ❌ Treating DevServer as a CRUD app (it's a pedagogical tool)
+
+### Vue Naming Convention for Stage2 Pipelines (CRITICAL)
+
+**Principle**: Jede Vue-Komponente für Stage2-Pipelines wird EXAKT nach der Pipeline benannt.
+
+**Beispiele**:
+- Pipeline: `text_transformation` → Vue: `text_transformation.vue`
+- Pipeline: `text_transformation_recursive` → Vue: `text_transformation_recursive.vue`
+- Pipeline: `vector_fusion_generation` → Vue: `vector_fusion_generation.vue`
+
+**Architekturprinzip**: Stage2-Pipelines bestimmen den kompletten Flow, den DevServer orchestriert - nicht DevServer, nicht Frontend. Die Pipeline ist die Single Source of Truth für:
+- Welche Chunks ausgeführt werden
+- In welcher Reihenfolge
+- Mit welcher Struktur (sequential, recursive, etc.)
+
+DevServer orchestriert, was die Pipeline definiert.
+Frontend visualisiert, was die Pipeline strukturiert.
+
+## Documentation
+- **For architecture details**: See `docs/ARCHITECTURE PART 01-20.md`
+- **For current tasks**: See `docs/devserver_todos.md`
+- **For decisions**: See `docs/DEVELOPMENT_DECISIONS.md`
+- **For history**: See `DEVELOPMENT_LOG.md`
+
+## Available Agents (Always consult before coding!)
+- `devserver-architecture-expert` - Architecture questions
+- `vue-education-designer` - Frontend/UI issues
+- `documentation-curator` - Documentation organization
+- `cloudflare-tunnel-expert` - Port/routing/404 issues
+
+## Rules
+1. **NO CODE CHANGES WITHOUT USER CONSULTATION** (especially when starting fresh)
+2. **ALWAYS UPDATE** `DEVELOPMENT_LOG.md` at end of session
+3. **NO WORKAROUNDS**: Fix root problems, not symptoms
+4. **CONSISTENCY IS CRUCIAL**: Follow existing patterns

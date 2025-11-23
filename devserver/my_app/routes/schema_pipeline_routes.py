@@ -317,6 +317,10 @@ def execute_stage2():
         output_config = data.get('output_config')  # Optional
         user_language = data.get('user_language', 'en')
 
+        # Context editing support (same as /execute)
+        context_prompt = data.get('context_prompt')  # Optional: user-edited meta-prompt
+        context_language = data.get('context_language', 'en')  # Language of context_prompt
+
         if not schema_name or not input_text:
             return jsonify({
                 'success': False,
@@ -335,6 +339,47 @@ def execute_stage2():
             }), 404
 
         logger.info(f"[STAGE2-ENDPOINT] Starting Stage 2 for schema '{schema_name}'")
+
+        # ====================================================================
+        # CONTEXT EDITING SUPPORT (same pattern as /execute)
+        # ====================================================================
+        execution_config = config
+        if context_prompt:
+            logger.info(f"[STAGE2-ENDPOINT] User edited context in language: {context_language}")
+
+            # Translate to English if needed
+            context_prompt_en = context_prompt
+            if context_language != 'en':
+                logger.info(f"[STAGE2-ENDPOINT] Translating context from {context_language} to English")
+
+                from my_app.services.ollama_service import ollama_service
+                translation_prompt = f"Translate this educational text from {context_language} to English. Preserve pedagogical intent and technical terminology:\n\n{context_prompt}"
+
+                try:
+                    context_prompt_en = ollama_service.translate_text(translation_prompt)
+                    if not context_prompt_en:
+                        logger.error("[STAGE2-ENDPOINT] Context translation failed, using original")
+                        context_prompt_en = context_prompt
+                    else:
+                        logger.info(f"[STAGE2-ENDPOINT] Context translated successfully")
+                except Exception as e:
+                    logger.error(f"[STAGE2-ENDPOINT] Context translation error: {e}")
+                    context_prompt_en = context_prompt
+
+            # Create modified config with user-edited context
+            logger.info(f"[STAGE2-ENDPOINT] Creating modified config with user-edited context")
+
+            from dataclasses import replace
+            execution_config = replace(
+                config,
+                context=context_prompt_en,  # Use English version for pipeline
+                meta={
+                    **config.meta,
+                    'user_edited': True,
+                    'original_config': schema_name,
+                    'user_language': user_language
+                }
+            )
 
         # ====================================================================
         # STAGE 1: PRE-INTERCEPTION (Safety Check)
@@ -366,12 +411,12 @@ def execute_stage2():
         # ====================================================================
         stage2_start = time.time()
 
-        media_preferences = config.media_preferences if hasattr(config, 'media_preferences') else None
+        media_preferences = execution_config.media_preferences if hasattr(execution_config, 'media_preferences') else None
 
         result = asyncio.run(execute_stage2_with_optimization(
             schema_name=schema_name,
             input_text=checked_text,
-            config=config,
+            config=execution_config,  # Use execution_config (may be modified with user context)
             execution_mode=execution_mode,
             safety_level=safety_level,
             output_config=output_config,
@@ -690,6 +735,9 @@ def execute_pipeline():
         # Media generation support
         output_config = data.get('output_config')  # Optional: specific output config for Stage 4 (e.g., 'sd35_large')
 
+        # Stage 2 result support: use frontend-provided interception result
+        interception_result = data.get('interception_result')  # Optional: frontend-provided Stage 2 output (if already executed)
+
         # Fast regeneration support: skip Stage 1-3 with stage4_only flag
         stage4_only = data.get('stage4_only', False)  # Boolean: skip to Stage 4 (media generation) only
         seed_override = data.get('seed')  # Optional: specific seed for exact regeneration
@@ -905,23 +953,40 @@ def execute_pipeline():
             # ====================================================================
             # STAGE 2: INTERCEPTION (Main Pipeline + Optimization)
             # ====================================================================
-            logger.info(f"[4-STAGE] Stage 2: Interception (Main Pipeline) for '{schema_name}'")
             tracker.set_stage(2)
             recorder.set_state(2, "interception")
 
-            # Use shared Stage 2 function (eliminates code duplication)
-            media_preferences = config.media_preferences if hasattr(config, 'media_preferences') else None
-            result = asyncio.run(execute_stage2_with_optimization(
-                schema_name=schema_name,
-                input_text=current_input,
-                config=execution_config,
-                execution_mode=execution_mode,
-                safety_level=safety_level,
-                output_config=output_config,
-                media_preferences=media_preferences,
-                tracker=tracker,
-                user_input=data.get('user_input', input_text)
-            ))
+            # Check if frontend already executed Stage 2 and provides result
+            if interception_result:
+                logger.info(f"[4-STAGE] Stage 2: Using frontend-provided interception_result (already executed)")
+
+                # Create mock result object to maintain interface compatibility
+                class MockResult:
+                    def __init__(self, output):
+                        self.success = True
+                        self.final_output = output
+                        self.error = None
+                        self.steps = []
+                        self.metadata = {'frontend_provided': True}
+                        self.execution_time = 0
+
+                result = MockResult(interception_result)
+            else:
+                logger.info(f"[4-STAGE] Stage 2: Executing interception pipeline for '{schema_name}'")
+
+                # Use shared Stage 2 function (eliminates code duplication)
+                media_preferences = config.media_preferences if hasattr(config, 'media_preferences') else None
+                result = asyncio.run(execute_stage2_with_optimization(
+                    schema_name=schema_name,
+                    input_text=current_input,
+                    config=execution_config,
+                    execution_mode=execution_mode,
+                    safety_level=safety_level,
+                    output_config=output_config,
+                    media_preferences=media_preferences,
+                    tracker=tracker,
+                    user_input=data.get('user_input', input_text)
+                ))
 
             # Check if pipeline succeeded
             if not result.success:

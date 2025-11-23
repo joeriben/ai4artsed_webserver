@@ -29,15 +29,15 @@ const router = createRouter({
     },
     {
       path: '/execute/:configId',
-      name: 'pipeline-execution',
-      // Phase 2: Bubble-based pipeline visualization (Youth Mode - Default)
-      component: () => import('../views/Phase2YouthFlowView.vue'),
+      name: 'text-transformation-execution',
+      // Phase 2: text_transformation pipeline visualization
+      component: () => import('../views/text_transformation.vue'),
     },
     {
-      path: '/youth-flow',
-      name: 'youth-flow',
-      // Phase 2: Bubble-based pipeline visualization (Youth Mode)
-      component: () => import('../views/Phase2YouthFlowView.vue'),
+      path: '/text-transformation',
+      name: 'text-transformation',
+      // Phase 2: text_transformation pipeline visualization
+      component: () => import('../views/text_transformation.vue'),
     },
   ],
 })
