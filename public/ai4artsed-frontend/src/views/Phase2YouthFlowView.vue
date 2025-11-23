@@ -400,7 +400,7 @@ async function runInterception() {
 
   try {
     const response = await axios.post('/api/schema/pipeline/stage2', {
-      schema: pipelineStore.selectedConfig?.pipeline || 'overdrive',
+      schema: pipelineStore.selectedConfig?.id || 'overdrive',
       input_text: inputText.value,
       context_prompt: contextPrompt.value || undefined,
       user_language: 'de',
@@ -457,7 +457,7 @@ async function executePipeline() {
 
   try {
     const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: pipelineStore.selectedConfig?.pipeline || 'overdrive',
+      schema: pipelineStore.selectedConfig?.id || 'overdrive',
       input_text: inputText.value,
       interception_result: interceptionResult.value,
       context_prompt: contextPrompt.value || undefined,
