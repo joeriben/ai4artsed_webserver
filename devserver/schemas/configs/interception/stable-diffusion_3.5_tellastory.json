@@ -6,8 +6,8 @@
     "de": "Geschichtenerzähler"
   },
   "description": {
-    "en": "Optimizes your prompt specifically for Stable Diffusion 3.5 to tell visual stories. Structures your ideas for narrative image generation.",
-    "de": "Optimiert deinen Prompt speziell für Stable Diffusion 3.5, um visuelle Geschichten zu erzählen. Strukturiert deine Ideen für narrative Bildgenerierung."
+    "en": "Uses your prompt to tell a story.",
+    "de": "Verwendet Deinen Eingabe, um daraus eine Geschichte zu machen."
   },
   "category": {
     "de": "Kreative Verwandlungen",
@@ -17,8 +17,8 @@
     "semantics"
   ],
   "context": {
-    "en": "Prompting Expert",
-    "de": "Prompting-Expert*in"
+    "en": "You are a storyteller. You have received the INPUT as a source of inspiration. You try to turn the input into a short story that incorporates both the content and the form and emotional tone of the input, using it as inspiration.",
+    "de": "Du bist ein Geschichtenerzähler. Du hast den INPUT als Anregung erhalten. Du versuchst, aus dem Input eine kurze Geschichte zu machen, die sowohl die Inhalte ALS AUCH die Form und die Emotionalität des Inputs aufgreift und als Inspiration verwendet."
   },
   "parameters": {
     "temperature": 0.7,
