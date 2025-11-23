@@ -337,6 +337,187 @@ async def execute_stage2():
 
 ---
 
+## Session 64 Part 4 (2025-11-23): Youth Flow 404 Bug - Config ID vs Pipeline Name [CRITICAL]
+
+**Date:** 2025-11-23 (Early Morning, Overnight Debugging)
+**Duration:** ~3-4 hours
+**Status:** ✅ COMPLETE - Critical frontend bug fixed, production deployed
+**Branch:** develop → main
+**Commit:** 45606ee
+**Severity:** 🔴 PRODUCTION-BREAKING - Nearly caused complete revert of Session 64 `/transform` refactoring
+
+### Crisis Context
+
+**User Threat:** "I WILL have to pull back to the old version if this ridiculous 404 problem maintains"
+
+**Situation:** After Session 64's `/transform` → `/stage2` endpoint refactoring, Youth Flow returned HTTP 404 errors when calling `/api/schema/pipeline/stage2`. System appeared completely broken, threatening rollback of entire refactoring effort.
+
+### Root Cause: Frontend Parameter Bug
+
+**File:** `public/ai4artsed-frontend/src/views/Phase2YouthFlowView.vue`
+**Lines:** 403, 460
+
+**The Bug:**
+Frontend sent **pipeline name** instead of **config ID** to backend:
+
+```typescript
+// ❌ WRONG CODE (Lines 403, 460):
+schema: pipelineStore.selectedConfig?.pipeline || 'overdrive'
+
+// Example scenario:
+// User selects "bauhaus" config
+// Config structure: { id: "bauhaus", pipeline: "text_transformation" }
+//
+// Request sent: { schema: "text_transformation" }  ← pipeline name
+// Backend looks for: schemas/configs/text_transformation.json
+// Result: File not found → 404 ERROR
+```
+
+**The Fix:**
+```typescript
+// ✅ CORRECT CODE:
+schema: pipelineStore.selectedConfig?.id || 'overdrive'
+
+// Same scenario:
+// Request sent: { schema: "bauhaus" }  ← config ID
+// Backend looks for: schemas/configs/bauhaus.json
+// Result: File found → 200 SUCCESS
+```
+
+### Why This Was Extremely Hard to Find
+
+1. **Backend endpoint was correct** - `/pipeline/stage2` existed and functioned perfectly
+2. **Curl tests all passed** - Testing with valid config IDs ("bauhaus", "renaissance") returned 200 OK
+3. **Vite proxy was correct** - Port forwarding worked flawlessly
+4. **Backend logs showed nothing** - No 404 errors in backend logs because request never reached the route handler
+5. **The bug was in request body data** - Wrong parameter value sent by frontend, invisible to backend
+
+**Investigation Timeline:**
+- User reported 404 in browser console
+- Verified backend `/stage2` endpoint works (curl tests: 200 OK)
+- Verified Vite proxy configuration (forwarding correct)
+- Checked backend logs (no 404 errors - **critical clue!**)
+- Realized browser sent different data than curl tests
+- Traced Youth Flow code execution path
+- Found `pipelineStore.selectedConfig?.pipeline` instead of `.id`
+- Fixed both `runInterception()` (line 403) and `executePipeline()` (line 460)
+- User tested: "works again!" ✅
+- Emergency deploy to production
+
+### Technical Details
+
+**File Modified:** `public/ai4artsed-frontend/src/views/Phase2YouthFlowView.vue`
+
+**Function 1: `runInterception()` (Line 403)**
+```typescript
+// Before:
+const response = await axios.post('/api/schema/pipeline/stage2', {
+  schema: pipelineStore.selectedConfig?.pipeline || 'overdrive',  // ❌
+  // ... other params
+})
+
+// After:
+const response = await axios.post('/api/schema/pipeline/stage2', {
+  schema: pipelineStore.selectedConfig?.id || 'overdrive',  // ✅
+  // ... other params
+})
+```
+
+**Function 2: `executePipeline()` (Line 460)**
+```typescript
+// Before:
+const response = await axios.post('/api/schema/pipeline/execute', {
+  schema: pipelineStore.selectedConfig?.pipeline || 'overdrive',  // ❌
+  // ... other params
+})
+
+// After:
+const response = await axios.post('/api/schema/pipeline/execute', {
+  schema: pipelineStore.selectedConfig?.id || 'overdrive',  // ✅
+  // ... other params
+})
+```
+
+### Why Backend Returned 404 (Not 500)
+
+**Backend Behavior:**
+1. FastAPI receives request with `schema: "text_transformation"`
+2. Attempts to load file: `schemas/configs/text_transformation.json`
+3. File doesn't exist (pipeline names don't have config files)
+4. FastAPI returns 404 "Not Found" **before** route handler executes
+5. Backend logs show nothing (request never reached logging code)
+
+**Correct Behavior:**
+1. FastAPI receives request with `schema: "bauhaus"`
+2. Loads file: `schemas/configs/bauhaus.json` (exists!)
+3. Route handler executes successfully
+4. Returns 200 OK with stage2_result
+
+### Architecture Context
+
+**Config Structure:**
+```json
+{
+  "id": "bauhaus",              ← Use this for 'schema' parameter
+  "pipeline": "text_transformation",  ← NEVER use this for 'schema'
+  "version": "1.0",
+  "category": "artistic"
+}
+```
+
+**Pipeline vs Config Distinction:**
+- **Pipeline**: Execution logic (e.g., `text_transformation`, `text_transformation_with_context`)
+- **Config**: Complete configuration (e.g., `bauhaus`, `renaissance`, `overdrive`)
+- **Backend expects**: Config ID to load full configuration
+- **Frontend must send**: `config.id`, not `config.pipeline`
+
+### Deployment
+
+**Status:** Emergency production deployment (develop → main)
+**Verification:** User confirmed Youth Flow working in production
+**Risk:** HIGH - Production was broken, immediate fix required
+**Rollback Plan:** Ready to revert if issues found (none found)
+
+### Lessons Learned
+
+1. **Request body bugs are invisible** - Backend logs don't show malformed request data
+2. **curl tests don't catch frontend bugs** - We test with correct data, frontend sends wrong data
+3. **404 vs 500 distinction matters** - 404 = routing/file issue, 500 = code execution issue
+4. **Config structure ambiguity** - `id` vs `pipeline` fields look similar, easy to confuse
+5. **Emergency debugging methodology:**
+   - Backend works? ✅
+   - Proxy works? ✅
+   - Backend logs show error? ❌ **← Critical clue!**
+   - → Bug must be in request data sent by frontend
+
+### Related Work
+
+**Session 64 Part 1-3:** `/transform` endpoint refactoring that introduced new `/stage2` endpoint
+**Session 62:** Youth Flow implementation
+**Session 65-66:** Youth Flow context loading fixes (separate work)
+
+### Prevention Measures Needed
+
+1. **Frontend Pattern Documentation:** Document `pipelineStore.selectedConfig?.id` pattern
+2. **Architecture Docs Warning:** Add "Schema Parameter Pitfall" section to API Routes docs
+3. **Type Safety:** Consider TypeScript interface requiring `schema: ConfigId` not `schema: string`
+4. **Code Review Checklist:** Verify all `schema:` parameters use `.id` not `.pipeline`
+
+### Testing
+
+**Manual Testing:**
+- ✅ Youth Flow Stage 2 (Interception) with bauhaus config
+- ✅ Youth Flow Full Pipeline (Execute) with renaissance config
+- ✅ Production deployment verification
+- ✅ User acceptance: "works again!"
+
+**Regression Testing:**
+- ✅ Other flows (Creative Flow, Standard Pipeline) unaffected
+- ✅ Backend endpoint functionality preserved
+- ✅ Vite proxy configuration unchanged
+
+---
+
 ## Session 62 Part 2 (2025-11-21): Context Placeholder Bug + Media Selection Regression Fix
 
 **Date:** 2025-11-21 (Evening)

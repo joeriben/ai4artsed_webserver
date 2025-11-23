@@ -96,6 +96,53 @@ if optimization_instruction:
 
 See ARCHITECTURE PART 01 (4-Stage Orchestration) for detailed implementation pattern.
 
+---
+
+### ⚠️ CRITICAL: Schema Parameter Must Be Config ID, Not Pipeline Name
+
+**Common Pitfall:** The `schema` parameter in ALL pipeline endpoints expects the **config ID**, not the pipeline name.
+
+**Config Structure:**
+```json
+{
+  "id": "bauhaus",                      // ← Use this for 'schema' parameter
+  "pipeline": "text_transformation",    // ← NEVER use this for 'schema'
+  "version": "1.0",
+  "category": "artistic"
+}
+```
+
+**Example - Frontend API Call:**
+```typescript
+// User selects "bauhaus" config
+// Config: { id: "bauhaus", pipeline: "text_transformation" }
+
+// ✅ CORRECT:
+schema: pipelineStore.selectedConfig?.id  // Sends "bauhaus"
+
+// ❌ WRONG:
+schema: pipelineStore.selectedConfig?.pipeline  // Sends "text_transformation" → 404 ERROR
+```
+
+**Why This Matters:**
+
+1. **Backend file loading:** Backend uses `schema` parameter to load config file from `schemas/configs/{schema}.json`
+2. **Pipeline names have no config files:** Sending "text_transformation" looks for `text_transformation.json` which doesn't exist
+3. **Result:** HTTP 404 "Not Found" error
+4. **Silent failure:** Backend logs show nothing because request never reaches route handler (FastAPI returns 404 before route execution)
+
+**Debugging Clue:** If you see 404 errors in browser console but backend logs show no errors, suspect wrong `schema` parameter value.
+
+**Bug History:** Session 64 Part 4 (2025-11-23) - Youth Flow sent `config.pipeline` instead of `config.id`, causing production-breaking 404 errors. Nearly forced complete revert of Session 64 refactoring work.
+
+**Affected Endpoints:**
+- `/pipeline/stage2` (Stage 1+2 execution)
+- `/pipeline/execute` (Stage 1-4 execution)
+- `/pipeline/stage3-4` (Stage 3+4 execution)
+- `/pipeline/transform` (deprecated)
+
+---
+
 **Pre-Translation Logic:**
 ```python
 # Check for #notranslate# marker

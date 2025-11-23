@@ -936,3 +936,81 @@ When testing PropertyCanvas changes:
 
 ---
 
+## Frontend API Patterns
+
+### ⚠️ CRITICAL: Pipeline API Usage
+
+#### Rule 1: Always Use Config ID for Schema Parameter
+
+When calling pipeline endpoints (`/pipeline/stage2`, `/pipeline/execute`, `/pipeline/stage3-4`), the `schema` parameter must be the **config ID**, never the pipeline name.
+
+**Correct Pattern:**
+```typescript
+// Phase 2 Youth Flow - runInterception()
+const response = await axios.post('/api/schema/pipeline/stage2', {
+  schema: pipelineStore.selectedConfig?.id || 'overdrive',  // ✅ Config ID
+  input_text: inputText.value,
+  context_prompt: contextPrompt.value || undefined,
+  user_language: 'de',
+  execution_mode: 'eco',
+  safety_level: 'youth',
+  output_config: selectedConfig.value
+})
+
+// Phase 2 Youth Flow - executePipeline()
+const response = await axios.post('/api/schema/pipeline/execute', {
+  schema: pipelineStore.selectedConfig?.id || 'overdrive',  // ✅ Config ID
+  input_text: inputText.value,
+  interception_result: interceptionResult.value,
+  context_prompt: contextPrompt.value || undefined,
+  user_language: 'de',
+  execution_mode: 'eco',
+  safety_level: 'youth',
+  output_config: selectedConfig.value
+})
+```
+
+**Wrong Pattern (NEVER DO THIS):**
+```typescript
+// ❌ WRONG - Using pipeline name instead of config ID
+schema: pipelineStore.selectedConfig?.pipeline  // Causes 404 error!
+```
+
+**Why This Matters:**
+
+1. **Config Structure:**
+   ```json
+   {
+     "id": "bauhaus",                     // ← Use for 'schema' parameter
+     "pipeline": "text_transformation",   // ← NEVER use for 'schema'
+     "version": "1.0",
+     "category": "artistic"
+   }
+   ```
+
+2. **Backend File Loading:**
+   - Backend uses `schema` to load: `schemas/configs/{schema}.json`
+   - Example: `schema: "bauhaus"` → Loads `bauhaus.json` ✅
+   - Example: `schema: "text_transformation"` → Looks for `text_transformation.json` (doesn't exist) → 404 ❌
+
+3. **Silent Failure:**
+   - Error appears in browser console
+   - Backend logs show nothing (request never reaches route handler)
+   - FastAPI returns 404 before route execution
+
+**Debugging Clue:** If you see 404 errors in browser console but backend logs are silent, suspect wrong `schema` parameter value.
+
+**Bug History:** Session 64 Part 4 (2025-11-23) - Youth Flow sent `config.pipeline` instead of `config.id`, causing production-breaking 404 errors. Nearly forced complete revert of Session 64 refactoring.
+
+**Affected Files:**
+- `/public/ai4artsed-frontend/src/views/Phase2YouthFlowView.vue` (lines 403, 460) - FIXED ✅
+- `/public/ai4artsed-frontend/src/views/PipelineExecutionView.vue` (line 250) - Already correct ✅
+- All future views making pipeline API calls
+
+**Code Review Checklist:**
+- [ ] All `schema:` parameters use `pipelineStore.selectedConfig?.id`
+- [ ] No `schema:` parameters use `pipelineStore.selectedConfig?.pipeline`
+- [ ] Fallback values use valid config IDs (e.g., `'overdrive'`)
+
+---
+
