@@ -1456,6 +1456,12 @@ def execute_pipeline():
                             # ====================================================================
                             # MEDIA STORAGE - Download and store media locally
                             # ====================================================================
+                            logger.info(f"[MEDIA-STORAGE-DEBUG] Starting media storage for config: {output_config_name}")
+                            logger.info(f"[MEDIA-STORAGE-DEBUG] output_result.success: {output_result.success}")
+                            logger.info(f"[MEDIA-STORAGE-DEBUG] output_result.final_output length: {len(output_result.final_output) if output_result.final_output else 0}")
+                            logger.info(f"[MEDIA-STORAGE-DEBUG] output_result.final_output starts with: {output_result.final_output[:100] if output_result.final_output else 'EMPTY'}")
+                            logger.info(f"[MEDIA-STORAGE-DEBUG] output_result.metadata keys: {list(output_result.metadata.keys())}")
+
                             media_stored = False
                             media_output_data = None
 
@@ -1466,8 +1472,13 @@ def execute_pipeline():
                                 # Extract seed from output_result metadata (if available)
                                 seed = output_result.metadata.get('seed')
 
+                                logger.info(f"[MEDIA-STORAGE-DEBUG] output_value type: {type(output_value)}, length: {len(output_value) if output_value else 0}")
+                                logger.info(f"[MEDIA-STORAGE-DEBUG] Checking routing conditions...")
+
                                 # Detect generation backend and download appropriately
+                                logger.info(f"[MEDIA-STORAGE-DEBUG] Checking if output_value == 'swarmui_generated': {output_value == 'swarmui_generated'}")
                                 if output_value == 'swarmui_generated':
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: swarmui_generated")
                                     # SwarmUI generation - image paths returned directly
                                     logger.info(f"[RECORDER-DEBUG] output_result.metadata keys: {list(output_result.metadata.keys())}")
                                     logger.info(f"[RECORDER-DEBUG] full metadata: {output_result.metadata}")
@@ -1480,6 +1491,7 @@ def execute_pipeline():
                                         seed=seed
                                     ))
                                 elif output_value == 'workflow_generated':
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: workflow_generated")
                                     # Use recorder.save_entity for consistency
                                     filesystem_path = output_result.metadata.get('filesystem_path')
                                     if filesystem_path:
@@ -1505,6 +1517,7 @@ def execute_pipeline():
                                         logger.warning(f"[RECORDER] No filesystem_path in metadata for workflow_generated")
                                         saved_filename = None
                                 elif output_value.startswith('http://') or output_value.startswith('https://'):
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: http/https URL")
                                     # API-based generation (GPT-5, Replicate, etc.) - URL
                                     logger.info(f"[RECORDER] Downloading from URL: {output_value}")
                                     saved_filename = asyncio.run(recorder.download_and_save_from_url(
@@ -1513,8 +1526,41 @@ def execute_pipeline():
                                         config=output_config_name,
                                         seed=seed
                                     ))
+                                elif not output_value.startswith(('http://', 'https://', 'data:')) and len(output_value) > 1000 and output_value[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/':
+                                    # Pure base64 string (OpenAI Images API format)
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: Pure base64 (OpenAI Images API)")
+                                    logger.info(f"[RECORDER] Decoding pure base64 string ({len(output_value)} chars)")
+                                    try:
+                                        import base64
+
+                                        # Decode base64 directly (no data URI parsing needed)
+                                        image_bytes = base64.b64decode(output_value)
+
+                                        # Default to PNG format for Images API
+                                        image_format = 'png'
+
+                                        # Save using recorder.save_entity
+                                        saved_filename = recorder.save_entity(
+                                            entity_type=f'output_{media_type}',
+                                            content=image_bytes,
+                                            metadata={
+                                                'config': output_config_name,
+                                                'backend': 'api',
+                                                'provider': 'openai',
+                                                'seed': seed,
+                                                'format': image_format,
+                                                'source': 'images_api_base64'
+                                            }
+                                        )
+                                        logger.info(f"[RECORDER] Saved {media_type} from pure base64: {saved_filename}")
+                                    except Exception as e:
+                                        logger.error(f"[RECORDER] Failed to decode pure base64: {e}")
+                                        import traceback
+                                        traceback.print_exc()
+                                        saved_filename = None
                                 elif output_value.startswith('data:'):
-                                    # API-based generation with base64 data URI (e.g., GPT-5 Image)
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: data: URI (base64 with mime type)")
+                                    # API-based generation with base64 data URI (e.g., some API providers)
                                     logger.info(f"[RECORDER] Decoding base64 data URI ({len(output_value)} chars)")
                                     try:
                                         import base64
@@ -1562,6 +1608,7 @@ def execute_pipeline():
                                         traceback.print_exc()
                                         saved_filename = None
                                 else:
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: ComfyUI prompt_id (fallback)")
                                     # ComfyUI generation - prompt_id
                                     logger.info(f"[RECORDER] Downloading from ComfyUI: {output_value}")
 

@@ -625,11 +625,20 @@ class BackendRouter:
                 # Set nested value (e.g., "request_body.messages[1].content")
                 self._set_nested_value(request_body, field_path.replace('request_body.', ''), value)
 
-            # Get API key from .key file
-            api_key = self._load_api_key('openrouter_api.key')
+            # Get API key from .key file based on provider
+            provider = api_config.get('provider', 'openrouter')
+            if provider == 'openai':
+                key_file = 'openai_api.key'
+                key_name = 'OpenAI'
+            else:
+                key_file = 'openrouter_api.key'
+                key_name = 'OpenRouter'
+
+            api_key = self._load_api_key(key_file)
             if not api_key:
-                logger.error("OpenRouter API key not found. Create 'openrouter_api.key' file in devserver root.")
-                return BackendResponse(success=False, error="OpenRouter API key not found. Create 'openrouter_api.key' file in devserver root.")
+                error_msg = f"{key_name} API key not found. Create '{key_file}' file in devserver root."
+                logger.error(error_msg)
+                return BackendResponse(success=False, error=error_msg)
 
             # Build headers
             headers = {
@@ -654,25 +663,34 @@ class BackendRouter:
                         # Debug: Log the response structure
                         logger.debug(f"API Response: {json.dumps(data, indent=2)[:500]}...")
 
-                        # Extract image URL from multimodal chat completion response
-                        # For GPT-5 Image: choices[0].message.content is a list with type="image_url"
-                        image_url = self._extract_image_from_chat_completion(data, chunk['output_mapping'])
+                        # Extract image based on output_mapping type
+                        output_mapping = chunk.get('output_mapping', {})
+                        mapping_type = output_mapping.get('type', 'chat_completion_with_image')
 
-                        if not image_url:
+                        if mapping_type == 'images_api_base64':
+                            # OpenAI Images API: extract from data[0].b64_json
+                            logger.info(f"[API-OUTPUT] Using Images API extraction")
+                            image_data = self._extract_image_from_images_api(data, output_mapping)
+                        else:
+                            # Chat Completions API: extract from choices[0].message
+                            logger.info(f"[API-OUTPUT] Using Chat Completions extraction")
+                            image_data = self._extract_image_from_chat_completion(data, output_mapping)
+
+                        if not image_data:
                             logger.error("No image found in API response")
                             return BackendResponse(success=False, content="", error="No image found in response", metadata={})
 
-                        logger.info(f"API generation successful: Generated data URI ({len(image_url)} chars)")
+                        logger.info(f"API generation successful: Generated image data ({len(image_data)} chars)")
 
                         return BackendResponse(
                             success=True,
-                            content=image_url,
+                            content=image_data,
                             metadata={
                                 'chunk_name': chunk_name,
                                 'media_type': chunk['media_type'],
                                 'provider': api_config['provider'],
                                 'model': api_config['model'],
-                                'image_url': image_url
+                                'image_data': image_data
                             }
                         )
                     else:
@@ -711,6 +729,35 @@ class BackendRouter:
             return None
         except (KeyError, IndexError, TypeError) as e:
             logger.error(f"Failed to extract image from response: {e}")
+            return None
+
+    def _extract_image_from_images_api(self, data: Dict, output_mapping: Dict) -> Optional[str]:
+        """Extract base64 image data from OpenAI Images API response
+
+        Expected format:
+        {
+            "created": 1234567890,
+            "data": [
+                {"b64_json": "base64_image_data"}
+            ]
+        }
+        """
+        try:
+            extract_path = output_mapping.get('extract_path', 'data[0].b64_json')
+            logger.info(f"[IMAGES-API] Extracting from path: {extract_path}")
+
+            # Images API standard response
+            if 'data' in data and isinstance(data['data'], list) and len(data['data']) > 0:
+                first_image = data['data'][0]
+                if 'b64_json' in first_image:
+                    b64_data = first_image['b64_json']
+                    logger.info(f"[IMAGES-API] Successfully extracted base64 data ({len(b64_data)} chars)")
+                    return b64_data
+
+            logger.error(f"[IMAGES-API] No base64 data found in response. Keys: {list(data.keys())}")
+            return None
+        except (KeyError, IndexError, TypeError) as e:
+            logger.error(f"[IMAGES-API] Failed to extract image from Images API response: {e}")
             return None
 
     def _set_nested_value(self, obj: Any, path: str, value: Any):
