@@ -58,7 +58,7 @@ UI_MODE = "youth"  # ADMIN: Change to "kids", "youth", or "expert"
 #   - No automatic blocking
 #   - Only use for testing/debugging!
 #
-DEFAULT_SAFETY_LEVEL = "off"  # ADMIN: Change to "kids", "youth", "adult", or "off"
+DEFAULT_SAFETY_LEVEL = "youth"  # ADMIN: Change to "kids", "youth", "adult", or "off"
 
 # ----------------------------------------------------------------------------
 # 3. SERVER SETTINGS
@@ -84,7 +84,7 @@ DEFAULT_LANGUAGE = "de"  # "de" or "en"
 # Format: "local/model-name" for Ollama, "openrouter/provider/model-name" for cloud
 #
 # Base Models:
-LOCAL_DEFAULT_MODEL = "local/gpt-OSS:20b"                          # Default local text model
+LOCAL_DEFAULT_MODEL = "gpt-OSS:20b"                          # Default local text model
 LOCAL_VISION_MODEL = "local/llama3.2-vision:latest"                # Local vision model
 REMOTE_ADVANCED_MODEL = "openrouter/anthropic/claude-sonnet-4.5"  # High-quality cloud model
 
@@ -94,6 +94,12 @@ STAGE1_VISION_MODEL = LOCAL_VISION_MODEL                  # Stage 1: Image analy
 STAGE2_INTERCEPTION_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt interception (needs quality)
 STAGE2_OPTIMIZATION_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt optimization (needs quality)
 STAGE3_MODEL = REMOTE_ADVANCED_MODEL                      # Stage 3: Translation and final safety check (needs quality)
+
+# Legacy Model Configuration
+GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama
+ANALYSIS_MODEL = "local/llama3.2-vision:latest"
+TRANSLATION_MODEL = GPT_OSS_MODEL  # GPT-OSS replaces mistral-nemo
+SAFETY_MODEL = GPT_OSS_MODEL
 
 # Note: Stage 4 (output generation) models are defined in output configs (SD3.5, FLUX, etc.)
 
@@ -122,13 +128,7 @@ COMFYUI_PREFIX = "comfyui"
 COMFYUI_PORT = "7821"  # SwarmUI integrated ComfyUI (RTX 5090 compatible)
 SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)
 
-# Model Configuration
-ANALYSIS_MODEL = "llava:13b"
-TRANSLATION_MODEL = "gpt-OSS:20b"  # GPT-OSS replaces mistral-nemo
-SAFETY_MODEL = "gpt-OSS:20b"
 
-# GPT-OSS-20b Configuration (Active - used for all Stage 1-3 processing)
-GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama
 
 # Feature Flags
 ENABLE_VALIDATION_PIPELINE = True
