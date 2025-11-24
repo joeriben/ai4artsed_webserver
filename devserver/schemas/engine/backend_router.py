@@ -556,18 +556,24 @@ class BackendRouter:
             import os
             import glob
 
-            if media_type == 'audio':
+            if media_type in ['image', 'image_workflow']:
+                output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output'
+                file_extension = 'png'
+            elif media_type == 'audio':
                 output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/audio'
+                file_extension = 'mp3'
             elif media_type == 'video':
                 output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/video'
+                file_extension = 'mp4'
             else:
                 logger.warning(f"Unknown media type '{media_type}', using audio directory")
                 output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/audio'
+                file_extension = 'mp3'
 
             # Get most recent file from output directory
             filesystem_path = None
             if os.path.exists(output_dir):
-                files = glob.glob(f"{output_dir}/*.{'mp3' if media_type == 'audio' else 'mp4'}")
+                files = glob.glob(f"{output_dir}/*.{file_extension}")
                 if files:
                     most_recent = max(files, key=os.path.getmtime)
                     filesystem_path = most_recent
