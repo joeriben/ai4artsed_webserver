@@ -1,5 +1,57 @@
 # Development Log
 
+## Session 70 - Gemini 3 Pro Image Integration
+**Date:** 2025-11-24
+**Duration:** ~2 hours (across context boundaries)
+**Model:** Claude Sonnet 4.5
+**Focus:** Replace GPT-5 placeholder with working Gemini 3 Pro image generation via OpenRouter
+
+### Summary
+Completed full integration of Google Gemini 3 Pro Image generation as the third cloud-based image provider (alongside ComfyUI local and OpenAI Direct).
+
+### Key Changes
+**Backend:**
+- Added `devserver/schemas/chunks/output_image_gemini_3_pro.json` - OpenRouter Chat Completions chunk
+- Added `devserver/schemas/configs/output/gemini_3_pro_image.json` - Config file
+- Deleted old GPT-5 placeholder configs (Option B approach)
+
+**Frontend:**
+- Modified `public/ai4artsed-frontend/src/views/text_transformation.vue`
+- Added Gemini 3 Pro to Phase 2 model selection (🔷 icon, Google blue color)
+
+### Architecture Decisions
+1. **Provider:** OpenRouter (not Direct Google API)
+2. **API Type:** Chat Completions (not Images API like GPT-Image-1)
+3. **Authentication:** File-based via `devserver/openrouter.key` (backend injects Authorization header automatically)
+4. **Output Type:** `chat_completion_with_image` extraction from multimodal response
+
+### Critical Learning
+**Authorization Header Pattern:**
+- ❌ DON'T include `Authorization: Bearer {{API_KEY}}` in chunk JSON
+- ✅ Backend router automatically loads key from `openrouter.key` and injects header
+- Chunks only need: `Content-Type`, `HTTP-Referer`, `X-Title`
+
+### Documentation
+- Created `docs/SESSION_GEMINI_3_PRO_INTEGRATION.md` (full handover doc)
+
+### Commits
+- `3eb1b7d` - Backend: Add Gemini 3 Pro chunk + config, delete GPT-5 configs
+- `0287b46` - Frontend: Add Gemini 3 Pro to Phase 2 model selection
+
+### Multi-Provider Pattern Established
+| Provider | Model | API Type | Auth | Example Chunk |
+|----------|-------|----------|------|---------------|
+| ComfyUI | SD 3.5 Large | WebSocket | None | `output_image_sd35_large` |
+| OpenAI | gpt-image-1 | Images API | Env var | `output_image_gpt_image_1` |
+| OpenRouter | Gemini 3 Pro | Chat Completions | File | `output_image_gemini_3_pro` |
+
+### Next Steps
+- End-to-end testing with real OpenRouter API key
+- Update ARCHITECTURE PART 05 (output chunks list)
+- Update ARCHITECTURE PART 08 (provider table)
+
+---
+
 ## Session 65 - Stage 2 Split + execution_mode Removal
 **Date:** 2025-11-23
 **Duration:** TBD
