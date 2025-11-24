@@ -22,6 +22,7 @@ class Pipeline:
     pipeline_stage: Optional[str] = None  # "1", "2", "3", "4" (4-stage pre-interception system)
     requires_interception_prompt: bool = False  # Show context editing bubble in Phase 2
     input_requirements: Optional[Dict[str, int]] = None  # {"texts": 1, "images": 0}
+    skip_stage2: bool = False  # If True, Stage 2 execution is skipped (passthrough)
 
     # Legacy fields
     required_fields: List[str] = None

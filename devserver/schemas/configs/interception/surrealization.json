@@ -19,7 +19,7 @@
   ],
   "parameters": {},
   "media_preferences": {
-    "default_output": "surrealization",
+    "output_configs": ["surrealization_output"],
     "supported_types": ["image"]
   },
   "meta": {

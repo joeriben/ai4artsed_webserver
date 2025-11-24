@@ -1,8 +1,8 @@
 {
   "pipeline": "dual_encoder_fusion",
   "name": {
-    "en": "Surrealization (Dual-Encoder Fusion)",
-    "de": "Surrealization (Dual-Encoder Fusion)"
+    "en": "Surrealization Output",
+    "de": "Surrealization Output"
   },
   "description": {
     "en": "Advanced image generation using separate T5 semantic and CLIP visual prompt optimization with adaptive alpha blending. Combines semantic depth with literal precision for superior image quality.",

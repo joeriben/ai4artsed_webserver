@@ -498,7 +498,9 @@ async function runInterception() {
     }
   } catch (error: any) {
     console.error('[2-Phase] Interception error:', error)
-    alert(`Fehler: ${error.message}`)
+    // Show backend's detailed error message if available, otherwise generic Axios error
+    const errorMessage = error.response?.data?.error || error.message
+    alert(`Fehler: ${errorMessage}`)
   } finally {
     isInterceptionLoading.value = false
   }
@@ -530,7 +532,8 @@ async function runOptimization() {
     }
   } catch (error: any) {
     console.error('[2-Phase] Optimization error:', error)
-    alert(`Fehler: ${error.message}`)
+    const errorMessage = error.response?.data?.error || error.message
+    alert(`Fehler: ${errorMessage}`)
   } finally {
     isOptimizationLoading.value = false
   }
@@ -606,7 +609,8 @@ async function executePipeline() {
   } catch (error: any) {
     clearInterval(progressInterval)
     console.error('Pipeline error:', error)
-    alert(`Fehler: ${error.message}`)
+    const errorMessage = error.response?.data?.error || error.message
+    alert(`Fehler: ${errorMessage}`)
     generationProgress.value = 0
   } finally {
     isPipelineExecuting.value = false

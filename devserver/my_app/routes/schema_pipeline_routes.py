@@ -597,18 +597,38 @@ def execute_stage2():
         # ====================================================================
         stage2_start = time.time()
 
-        media_preferences = execution_config.media_preferences if hasattr(execution_config, 'media_preferences') else None
+        # Check if pipeline has skip_stage2 flag (graceful check)
+        pipeline_def = pipeline_executor.config_loader.get_pipeline(execution_config.pipeline_name)
+        skip_stage2 = pipeline_def.skip_stage2 if pipeline_def and hasattr(pipeline_def, 'skip_stage2') else False
 
-        result = asyncio.run(execute_stage2_with_optimization(
-            schema_name=schema_name,
-            input_text=checked_text,
-            config=execution_config,  # Use execution_config (may be modified with user context)
-            execution_mode=execution_mode,
-            safety_level=safety_level,
-            output_config=output_config,
-            media_preferences=media_preferences,
-            tracker=None
-        ))
+        if skip_stage2:
+            logger.info(f"[STAGE2-ENDPOINT] Stage 2: SKIPPED (pipeline '{execution_config.pipeline_name}' has skip_stage2=true)")
+            logger.info(f"[STAGE2-ENDPOINT] Stage 2: Passing Stage 1 output directly")
+
+            # Create mock result - Stage 1 output passed through unchanged
+            class MockResult:
+                def __init__(self, output):
+                    self.success = True
+                    self.final_output = output
+                    self.error = None
+                    self.steps = []
+                    self.metadata = {'stage2_skipped': True, 'pipeline': execution_config.pipeline_name}
+                    self.execution_time = 0
+
+            result = MockResult(checked_text)
+        else:
+            media_preferences = execution_config.media_preferences if hasattr(execution_config, 'media_preferences') else None
+
+            result = asyncio.run(execute_stage2_with_optimization(
+                schema_name=schema_name,
+                input_text=checked_text,
+                config=execution_config,  # Use execution_config (may be modified with user context)
+                execution_mode=execution_mode,
+                safety_level=safety_level,
+                output_config=output_config,
+                media_preferences=media_preferences,
+                tracker=None
+            ))
 
         stage2_time = (time.time() - stage2_start) * 1000  # ms
 
