@@ -101,7 +101,7 @@
     },
     "9": {
       "inputs": {
-        "alpha": "{{ALPHA}}",
+        "alpha": 0.5,
         "clip_conditioning": [
           "5",
           0
@@ -118,7 +118,7 @@
     },
     "10": {
       "inputs": {
-        "alpha": "{{ALPHA}}",
+        "alpha": 0.5,
         "clip_conditioning": [
           "7",
           0
