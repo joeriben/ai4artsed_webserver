@@ -1,5 +1,6 @@
 {
   "pipeline": "dual_encoder_fusion",
+  "output_chunk": "dual_encoder_fusion_image",
   "name": {
     "en": "Surrealization Output",
     "de": "Surrealization Output"
