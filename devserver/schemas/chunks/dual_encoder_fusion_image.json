@@ -2,7 +2,7 @@
   "name": "dual_encoder_fusion_image",
   "type": "output_chunk",
   "backend_type": "comfyui",
-  "media_type": "image",
+  "media_type": "image_workflow",
   "description": "Dual-encoder T5+CLIP fusion image generation (requires ai4artsed_t5_clip_fusion custom node)",
   "workflow": {
     "1": {
