@@ -16,6 +16,9 @@ export interface ConfigMetadata {
   icon?: string
   color?: string
   difficulty?: number
+  meta?: {
+    stage?: string
+  }
 }
 
 export type PropertyPair = [string, string]

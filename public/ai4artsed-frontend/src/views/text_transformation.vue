@@ -1,10 +1,13 @@
 <template>
   <div class="text-transformation-view">
 
-    <!-- Return Button to Phase 1 -->
-    <button class="return-button" @click="$router.push('/')" title="Zurück zu Phase 1">
-      ← Phase 1
-    </button>
+    <!-- Header with Return Button -->
+    <header class="page-header">
+      <button class="return-button" @click="$router.push('/')" title="Zurück zu Phase 1">
+        ← Phase 1
+      </button>
+      <h1 class="page-title">AI4ArtsEd - AI-Lab</h1>
+    </header>
 
     <!-- Single Continuous Flow (no phase transitions) -->
     <div class="phase-2a" ref="mainContainerRef">
@@ -45,8 +48,8 @@
         <div class="start-button-container">
           <button
             class="start-button"
-            :class="{ disabled: executionPhase !== 'initial' || !inputText }"
-            :disabled="executionPhase !== 'initial' || !inputText"
+            :class="{ disabled: !inputText }"
+            :disabled="!inputText"
             @click="runInterception()"
           >
             <span class="button-arrows button-arrows-left">>>></span>
@@ -70,10 +73,9 @@
               v-else
               ref="interceptionTextareaRef"
               v-model="interceptionResult"
-              :placeholder="interceptionResult ? '' : 'Prompt erscheint nach Start-Klick'"
+              placeholder="Prompt erscheint nach Start-Klick (oder eigenen Text eingeben)"
               class="bubble-textarea auto-resize-textarea"
               rows="5"
-              :readonly="!interceptionResult"
             ></textarea>
           </div>
         </section>
@@ -388,7 +390,8 @@ const canStartPipeline = computed(() => {
 })
 
 const areModelBubblesEnabled = computed(() => {
-  return executionPhase.value === 'interception_done' || executionPhase.value === 'optimization_done' || executionPhase.value === 'generation_done'
+  // Enable when interception result has content (from API or manual entry)
+  return interceptionResult.value.trim().length > 0
 })
 
 // ============================================================================
@@ -526,6 +529,12 @@ async function runOptimization() {
 }
 
 async function startGeneration() {
+  // Check if model is selected
+  if (!selectedConfig.value) {
+    alert('Bitte wähle ein KI-Modell aus')
+    return
+  }
+
   isPipelineExecuting.value = true
 
   // Start pipeline execution (Stage 3-4)
@@ -621,9 +630,14 @@ watch(() => pipelineStore.metaPrompt, (newMetaPrompt) => {
 })
 
 // Auto-resize textareas when content changes
-watch(interceptionResult, async () => {
+watch(interceptionResult, async (newValue) => {
   await nextTick()
   autoResizeTextarea(interceptionTextareaRef.value)
+
+  // Auto-advance phase when manual text is entered
+  if (newValue.trim().length > 0 && executionPhase.value === 'initial') {
+    executionPhase.value = 'interception_done'
+  }
 })
 
 watch(optimizedPrompt, async () => {
@@ -649,25 +663,48 @@ watch(optimizedPrompt, async () => {
 }
 
 /* ============================================================================
-   Return Button
+   Page Header
    ============================================================================ */
 
-.return-button {
+.page-header {
   position: fixed;
-  top: clamp(1rem, 2vh, 1.5rem);
-  left: clamp(1rem, 2vw, 1.5rem);
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 1000;
 
-  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2.5vw, 1.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: clamp(1rem, 2vh, 1.5rem) clamp(1rem, 3vw, 2rem);
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.page-title {
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.return-button {
+  position: absolute;
+  left: clamp(1rem, 3vw, 2rem);
+
+  padding: clamp(0.4rem, 1vw, 0.6rem) clamp(0.8rem, 2vw, 1.2rem);
   background: rgba(30, 30, 30, 0.9);
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
+  border-radius: 8px;
   color: #ffffff;
-  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(8px);
 }
 
 .return-button:hover {
@@ -690,6 +727,7 @@ watch(optimizedPrompt, async () => {
   max-height: 90vh;
   width: 100%;
   padding: clamp(1rem, 3vw, 2rem);
+  padding-top: clamp(5rem, 10vh, 7rem); /* Space for fixed header */
 
   display: flex;
   flex-direction: column;

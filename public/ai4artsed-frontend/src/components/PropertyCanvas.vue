@@ -83,7 +83,7 @@ const visibleConfigs = computed(() => {
   if (!selectedCategory.value) return []
 
   return allConfigurations.value.filter(config => {
-    return config.properties && config.properties.includes(selectedCategory.value)
+    return config.properties && config.properties.includes(selectedCategory.value!)
   })
 })
 

@@ -21,7 +21,7 @@
       <!-- Header -->
       <header class="header-controls">
         <h1 class="page-title">
-          {{ currentLanguage === 'en' ? 'Select Configuration' : 'Konfiguration auswählen' }}
+          AI4ArtsEd - AI-Lab
         </h1>
       </header>
 
