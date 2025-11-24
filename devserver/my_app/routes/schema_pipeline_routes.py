@@ -732,6 +732,16 @@ def execute_stage3_4():
         # Initialize engine
         init_schema_engine()
 
+        # Get recorder for media storage
+        from config import JSON_STORAGE_DIR
+        recorder = get_recorder(
+            run_id=run_id,
+            config_name=output_config,
+            execution_mode=execution_mode,
+            safety_level=safety_level,
+            base_path=JSON_STORAGE_DIR
+        )
+
         logger.info(f"[STAGE3-4-ENDPOINT] Starting Stage 3-4 for output config '{output_config}'")
         logger.info(f"[STAGE3-4-ENDPOINT] Stage 2 result (first 100 chars): {stage2_result[:100]}...")
 
@@ -758,9 +768,9 @@ def execute_stage3_4():
         safety_result = asyncio.run(execute_stage3_safety(
             stage2_result,
             safety_level,
+            media_type,
             execution_mode,
-            pipeline_executor,
-            media_type=media_type
+            pipeline_executor
         ))
 
         stage3_time = (time.time() - stage3_start) * 1000  # ms
@@ -825,33 +835,40 @@ def execute_stage3_4():
                 if seed_override:
                     seed = seed_override
 
-                # Import media manager
-                from my_app.services.media_manager import media_manager
+                # Detect generation backend and save media appropriately
+                if not output_value.startswith(('http://', 'https://', 'data:')) and len(output_value) > 1000 and output_value[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/':
+                    # Pure base64 string (OpenAI Images API format)
+                    logger.info(f"[STAGE3-4-ENDPOINT] Decoding pure base64 string ({len(output_value)} chars)")
+                    try:
+                        import base64
 
-                # Detect generation backend and download appropriately
-                if output_value == 'swarmui_generated':
-                    # SwarmUI generation - image paths returned directly
-                    image_paths = output_result.metadata.get('image_paths', [])
-                    logger.info(f"[STAGE3-4-ENDPOINT] Downloading from SwarmUI: {len(image_paths)} image(s)")
+                        # Decode base64 directly
+                        image_bytes = base64.b64decode(output_value)
 
-                    if image_paths:
-                        saved_filename = media_manager.save_swarmui_media(
-                            image_paths=image_paths,
-                            run_id=run_id,
-                            media_type=media_type
+                        # Default to PNG format for Images API
+                        image_format = 'png'
+
+                        # Save using recorder
+                        saved_filename = recorder.save_entity(
+                            entity_type=f'output_{media_type}',
+                            content=image_bytes,
+                            metadata={
+                                'config': output_config,
+                                'backend': 'api',
+                                'provider': 'openai',
+                                'seed': seed,
+                                'format': image_format,
+                                'source': 'images_api_base64'
+                            }
                         )
                         media_stored = True
-
-                elif output_value and output_value.startswith('http'):
-                    # URL-based media (ComfyUI, OpenRouter, etc.)
-                    logger.info(f"[STAGE3-4-ENDPOINT] Downloading from URL: {output_value[:100]}...")
-
-                    saved_filename = media_manager.save_media_from_url(
-                        url=output_value,
-                        run_id=run_id,
-                        media_type=media_type
-                    )
-                    media_stored = True
+                        logger.info(f"[STAGE3-4-ENDPOINT] Saved {media_type} from pure base64: {saved_filename}")
+                    except Exception as e:
+                        logger.error(f"[STAGE3-4-ENDPOINT] Failed to decode pure base64: {e}")
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    logger.warning(f"[STAGE3-4-ENDPOINT] Unsupported output format for media storage (not pure base64, not HTTP URL)")
 
                 if media_stored and saved_filename:
                     media_output_data = {
