@@ -9,8 +9,8 @@
     "de": "Direkter Prompt-Zugriff für Surrealization-Output-Methode. Überspringt Stage-2-Transformation, sodass die Dual-Encoder-Optimierung in Stage 4 erfolgt."
   },
   "category": {
-    "de": "Algorithmen",
-    "en": "Algorithms"
+    "de": "Kreative Transformationen",
+    "en": "Creative Transformations"
   },
   "properties": [
     "algorithmic",

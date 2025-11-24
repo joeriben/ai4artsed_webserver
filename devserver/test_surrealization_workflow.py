@@ -183,11 +183,12 @@ def test_stage4_chunks():
     # Create a mock config object
     class MockConfig:
         def __init__(self, data):
-            self.name = "surrealization"
+            self.name = "surrealization_output"
             self.pipeline_name = data['pipeline']
             self.chunks = chunks
             self.parameters = data.get('parameters', {})
             self.meta = data.get('meta', {})
+            self.context = None  # Not used for output configs
 
     config = MockConfig(output_config_data)
 

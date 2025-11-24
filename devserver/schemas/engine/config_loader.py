@@ -139,6 +139,7 @@ class ConfigLoader:
                 pipeline_stage=data.get('pipeline_stage'),
                 requires_interception_prompt=data.get('requires_interception_prompt', False),
                 input_requirements=data.get('input_requirements', {}),
+                skip_stage2=data.get('skip_stage2', False),
                 # Legacy fields
                 required_fields=data.get('required_fields', []),
                 defaults=data.get('defaults', {}),

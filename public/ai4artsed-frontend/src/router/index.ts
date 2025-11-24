@@ -30,14 +30,20 @@ const router = createRouter({
     {
       path: '/execute/:configId',
       name: 'pipeline-execution',
-      // Phase 2: Routes to pipeline-specific view (e.g., text_transformation.vue)
-      component: () => import('../views/text_transformation.vue'),
+      // Phase 2: Dynamically loads pipeline-specific Vue (e.g., direct.vue, text_transformation.vue)
+      component: () => import('../views/PipelineRouter.vue'),
     },
     {
       path: '/text-transformation',
       name: 'text-transformation',
       // Phase 2: text_transformation pipeline visualization
       component: () => import('../views/text_transformation.vue'),
+    },
+    {
+      path: '/direct',
+      name: 'direct',
+      // Phase 2: direct pipeline (surrealization) visualization
+      component: () => import('../views/direct.vue'),
     },
   ],
 })
