@@ -1513,6 +1513,54 @@ def execute_pipeline():
                                         config=output_config_name,
                                         seed=seed
                                     ))
+                                elif output_value.startswith('data:'):
+                                    # API-based generation with base64 data URI (e.g., GPT-5 Image)
+                                    logger.info(f"[RECORDER] Decoding base64 data URI ({len(output_value)} chars)")
+                                    try:
+                                        import base64
+                                        import re
+
+                                        # Extract mime type and base64 data from data URI
+                                        # Format: data:image/png;base64,iVBORw0KGgo...
+                                        match = re.match(r'data:([^;]+);base64,(.+)', output_value)
+                                        if match:
+                                            mime_type = match.group(1)
+                                            base64_data = match.group(2)
+
+                                            # Decode base64
+                                            image_bytes = base64.b64decode(base64_data)
+
+                                            # Detect format from mime type
+                                            format_map = {
+                                                'image/png': 'png',
+                                                'image/jpeg': 'jpg',
+                                                'image/webp': 'webp',
+                                                'image/gif': 'gif'
+                                            }
+                                            image_format = format_map.get(mime_type, 'png')
+
+                                            # Save using recorder.save_entity
+                                            saved_filename = recorder.save_entity(
+                                                entity_type=f'output_{media_type}',
+                                                content=image_bytes,
+                                                metadata={
+                                                    'config': output_config_name,
+                                                    'backend': 'api',
+                                                    'provider': 'openrouter',
+                                                    'seed': seed,
+                                                    'format': image_format,
+                                                    'source': 'data_uri'
+                                                }
+                                            )
+                                            logger.info(f"[RECORDER] Saved {media_type} from data URI: {saved_filename}")
+                                        else:
+                                            logger.error(f"[RECORDER] Invalid data URI format")
+                                            saved_filename = None
+                                    except Exception as e:
+                                        logger.error(f"[RECORDER] Failed to decode data URI: {e}")
+                                        import traceback
+                                        traceback.print_exc()
+                                        saved_filename = None
                                 else:
                                     # ComfyUI generation - prompt_id
                                     logger.info(f"[RECORDER] Downloading from ComfyUI: {output_value}")
