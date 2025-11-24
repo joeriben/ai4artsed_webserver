@@ -655,6 +655,7 @@ def execute_stage2():
             response_data['interception_result'] = result.interception_result
             response_data['optimized_prompt'] = result.optimized_prompt
             response_data['two_phase_execution'] = True
+            response_data['optimization_applied'] = result.metadata.get('optimization_applied', False) if result.metadata else False
             logger.info(f"[STAGE2-ENDPOINT] 2-phase execution: interception + optimization")
 
         return jsonify(response_data)

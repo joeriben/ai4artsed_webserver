@@ -73,6 +73,6 @@
       "Detailed image editing",
       "Improved instruction following"
     ],
-    "notes": "GPT-5 Image via OpenRouter. Chat completion model with image generation. Requires OPENROUTER_API_KEY environment variable."
+    "notes": "GPT-5 Image via OpenRouter. Chat completion model with image generation. Requires OPENROUTER_API_KEY environment variable. GPT-5's reasoning mode interprets conceptual/abstract prompts directly without needing optimization."
   }
 }

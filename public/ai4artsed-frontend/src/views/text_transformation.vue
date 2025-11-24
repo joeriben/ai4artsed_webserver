@@ -138,8 +138,8 @@
           </div>
         </section>
 
-        <!-- Section 4: Optimized Prompt Preview (Always visible, initially empty) -->
-        <section class="optimization-section">
+        <!-- Section 4: Optimized Prompt Preview (Only shown if optimization was applied) -->
+        <section v-if="hasOptimization" class="optimization-section">
           <div class="optimization-preview bubble-card" :class="{ empty: !optimizedPrompt, loading: isOptimizationLoading }">
             <div class="bubble-header">
               <span class="bubble-icon">✨</span>
@@ -160,6 +160,12 @@
             ></textarea>
           </div>
         </section>
+
+        <!-- Info: No optimization needed for this model -->
+        <div v-if="executionPhase === 'optimization_done' && !hasOptimization && selectedConfig" class="info-bubble">
+          <span class="bubble-icon">ℹ️</span>
+          <p><strong>{{ selectedConfig }}</strong> benötigt keine Prompt-Optimierung und interpretiert den kreativen Prompt direkt.</p>
+        </div>
 
         <!-- START BUTTON #2: Trigger Generation (Between Optimized Prompt and Output) -->
         <div class="start-button-container">
@@ -279,6 +285,7 @@ const interceptionResult = ref('')
 const isInterceptionLoading = ref(false)
 const optimizedPrompt = ref('')
 const isOptimizationLoading = ref(false)
+const hasOptimization = ref(false)  // Track if optimization was applied
 
 // Execution phase tracking
 // 'initial' -> 'interception_done' -> 'optimization_done' -> 'generation_done'
@@ -515,8 +522,9 @@ async function runOptimization() {
     if (response.data.success) {
       // Use optimized_prompt if available (2-phase), otherwise stage2_result (backward compat)
       optimizedPrompt.value = response.data.optimized_prompt || response.data.stage2_result || ''
+      hasOptimization.value = response.data.optimization_applied || false  // Track if optimization was applied
       executionPhase.value = 'optimization_done'
-      console.log('[2-Phase] Optimization complete:', optimizedPrompt.value.substring(0, 60))
+      console.log('[2-Phase] Optimization complete:', optimizedPrompt.value.substring(0, 60), '| Optimization applied:', hasOptimization.value)
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
@@ -817,6 +825,30 @@ watch(optimizedPrompt, async () => {
   border-color: rgba(102, 126, 234, 0.8);
   background: rgba(102, 126, 234, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Info bubble for no-optimization message */
+.info-bubble {
+  padding: 1rem 1.5rem;
+  margin: 1rem 0;
+  background: rgba(102, 126, 234, 0.1);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.info-bubble .bubble-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.info-bubble p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .input-bubble,
