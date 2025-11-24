@@ -669,36 +669,82 @@ class BackendRouter:
                         # Debug: Log the response structure
                         logger.debug(f"API Response: {json.dumps(data, indent=2)[:500]}...")
 
-                        # Extract image based on output_mapping type
-                        output_mapping = chunk.get('output_mapping', {})
-                        mapping_type = output_mapping.get('type', 'chat_completion_with_image')
+                        # Check if this is an async API (job-based)
+                        async_polling_config = api_config.get('async_polling', {})
+                        if async_polling_config.get('enabled', False):
+                            # Async API: Poll for completion
+                            logger.info(f"[ASYNC-API] Job created, starting polling...")
+                            output_mapping = chunk.get('output_mapping', {})
 
-                        if mapping_type == 'images_api_base64':
-                            # OpenAI Images API: extract from data[0].b64_json
-                            logger.info(f"[API-OUTPUT] Using Images API extraction")
-                            image_data = self._extract_image_from_images_api(data, output_mapping)
+                            # Poll until completed
+                            final_data = await self._poll_async_job(
+                                session=session,
+                                initial_response=data,
+                                async_config=async_polling_config,
+                                headers=headers,
+                                api_key=api_key
+                            )
+
+                            if not final_data:
+                                return BackendResponse(success=False, content="", error="Async job polling failed")
+
+                            # Extract media URL from completed job
+                            media_url = await self._extract_media_from_async_response(final_data, output_mapping, chunk['media_type'])
+                            if not media_url:
+                                return BackendResponse(success=False, content="", error="No media URL in completed job")
+
+                            # Download media from URL
+                            logger.info(f"[ASYNC-API] Downloading {chunk['media_type']} from URL...")
+                            media_data = await self._download_media_from_url(session, media_url, chunk['media_type'])
+
+                            if not media_data:
+                                return BackendResponse(success=False, content="", error="Failed to download media")
+
+                            logger.info(f"[ASYNC-API] Successfully downloaded {chunk['media_type']} ({len(media_data)} bytes)")
+
+                            return BackendResponse(
+                                success=True,
+                                content=media_data,
+                                metadata={
+                                    'chunk_name': chunk_name,
+                                    'media_type': chunk['media_type'],
+                                    'provider': api_config['provider'],
+                                    'model': api_config['model'],
+                                    'media_url': media_url,
+                                    'async_job': True
+                                }
+                            )
                         else:
-                            # Chat Completions API: extract from choices[0].message
-                            logger.info(f"[API-OUTPUT] Using Chat Completions extraction")
-                            image_data = self._extract_image_from_chat_completion(data, output_mapping)
+                            # Synchronous API: Extract immediately
+                            output_mapping = chunk.get('output_mapping', {})
+                            mapping_type = output_mapping.get('type', 'chat_completion_with_image')
 
-                        if not image_data:
-                            logger.error("No image found in API response")
-                            return BackendResponse(success=False, content="", error="No image found in response", metadata={})
+                            if mapping_type == 'images_api_base64':
+                                # OpenAI Images API: extract from data[0].b64_json
+                                logger.info(f"[API-OUTPUT] Using Images API extraction")
+                                image_data = self._extract_image_from_images_api(data, output_mapping)
+                            else:
+                                # Chat Completions API: extract from choices[0].message
+                                logger.info(f"[API-OUTPUT] Using Chat Completions extraction")
+                                image_data = self._extract_image_from_chat_completion(data, output_mapping)
 
-                        logger.info(f"API generation successful: Generated image data ({len(image_data)} chars)")
+                            if not image_data:
+                                logger.error("No image found in API response")
+                                return BackendResponse(success=False, content="", error="No image found in response", metadata={})
 
-                        return BackendResponse(
-                            success=True,
-                            content=image_data,
-                            metadata={
-                                'chunk_name': chunk_name,
-                                'media_type': chunk['media_type'],
-                                'provider': api_config['provider'],
-                                'model': api_config['model'],
-                                'image_data': image_data
-                            }
-                        )
+                            logger.info(f"API generation successful: Generated image data ({len(image_data)} chars)")
+
+                            return BackendResponse(
+                                success=True,
+                                content=image_data,
+                                metadata={
+                                    'chunk_name': chunk_name,
+                                    'media_type': chunk['media_type'],
+                                    'provider': api_config['provider'],
+                                    'model': api_config['model'],
+                                    'image_data': image_data
+                                }
+                            )
                     else:
                         error_text = await response.text()
                         logger.error(f"API error {response.status}: {error_text}")
@@ -764,6 +810,152 @@ class BackendRouter:
             return None
         except (KeyError, IndexError, TypeError) as e:
             logger.error(f"[IMAGES-API] Failed to extract image from Images API response: {e}")
+            return None
+
+    async def _poll_async_job(self, session, initial_response: Dict, async_config: Dict, headers: Dict, api_key: str) -> Optional[Dict]:
+        """Poll async job until completed
+
+        Args:
+            session: aiohttp ClientSession
+            initial_response: Initial API response containing job_id
+            async_config: async_polling configuration from chunk
+            headers: HTTP headers for polling requests
+            api_key: API key for authentication
+
+        Returns:
+            Final completed job response or None if failed/timeout
+        """
+        import asyncio
+
+        # Extract job_id from initial response
+        job_id_path = async_config.get('job_id_path', 'id')
+        job_id = initial_response.get(job_id_path)
+        if not job_id:
+            logger.error(f"[ASYNC-POLL] No job_id found at path '{job_id_path}' in response")
+            return None
+
+        logger.info(f"[ASYNC-POLL] Job ID: {job_id}")
+
+        # Get polling configuration
+        status_endpoint_template = async_config.get('status_endpoint')
+        poll_interval = async_config.get('poll_interval_seconds', 5)
+        max_duration = async_config.get('max_poll_duration_seconds', 300)
+        status_field = async_config.get('status_field', 'status')
+        completed_status = async_config.get('completed_status', 'completed')
+        failed_status = async_config.get('failed_status', 'failed')
+        in_progress_statuses = async_config.get('in_progress_statuses', ['queued', 'in_progress', 'generating'])
+
+        # Build status endpoint URL
+        status_endpoint = status_endpoint_template.replace('{job_id}', job_id)
+
+        start_time = asyncio.get_event_loop().time()
+        poll_count = 0
+
+        while True:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if elapsed > max_duration:
+                logger.error(f"[ASYNC-POLL] Timeout after {elapsed:.1f}s (max: {max_duration}s)")
+                return None
+
+            poll_count += 1
+            logger.info(f"[ASYNC-POLL] Poll #{poll_count} - Checking job status...")
+
+            try:
+                async with session.get(status_endpoint, headers=headers) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        logger.error(f"[ASYNC-POLL] Status check failed: {response.status} - {error_text}")
+                        await asyncio.sleep(poll_interval)
+                        continue
+
+                    job_data = await response.json()
+                    current_status = job_data.get(status_field, 'unknown')
+                    logger.info(f"[ASYNC-POLL] Job status: {current_status}")
+
+                    if current_status == completed_status:
+                        logger.info(f"[ASYNC-POLL] Job completed after {poll_count} polls ({elapsed:.1f}s)")
+                        return job_data
+                    elif current_status == failed_status:
+                        error = job_data.get('error', 'Unknown error')
+                        logger.error(f"[ASYNC-POLL] Job failed: {error}")
+                        return None
+                    elif current_status in in_progress_statuses:
+                        logger.debug(f"[ASYNC-POLL] Job still {current_status}, waiting {poll_interval}s...")
+                        await asyncio.sleep(poll_interval)
+                    else:
+                        logger.warning(f"[ASYNC-POLL] Unknown status '{current_status}', continuing to poll...")
+                        await asyncio.sleep(poll_interval)
+
+            except Exception as e:
+                logger.error(f"[ASYNC-POLL] Polling error: {e}")
+                await asyncio.sleep(poll_interval)
+
+    async def _extract_media_from_async_response(self, data: Dict, output_mapping: Dict, media_type: str) -> Optional[str]:
+        """Extract media URL from completed async job response
+
+        Args:
+            data: Completed job response
+            output_mapping: output_mapping configuration from chunk
+            media_type: Type of media (video, audio, etc.)
+
+        Returns:
+            Media URL or None if not found
+        """
+        try:
+            extract_path = output_mapping.get('extract_path', 'video.url')
+            logger.info(f"[ASYNC-EXTRACT] Extracting {media_type} URL from path: {extract_path}")
+
+            # Navigate the path (e.g., "video.url" -> data['video']['url'])
+            parts = extract_path.split('.')
+            current = data
+            for part in parts:
+                if part in current:
+                    current = current[part]
+                else:
+                    logger.error(f"[ASYNC-EXTRACT] Path '{extract_path}' not found in response. Available keys: {list(data.keys())}")
+                    return None
+
+            if isinstance(current, str):
+                logger.info(f"[ASYNC-EXTRACT] Found {media_type} URL: {current[:100]}...")
+                return current
+            else:
+                logger.error(f"[ASYNC-EXTRACT] Expected string URL, got {type(current)}")
+                return None
+
+        except Exception as e:
+            logger.error(f"[ASYNC-EXTRACT] Failed to extract media URL: {e}")
+            return None
+
+    async def _download_media_from_url(self, session, url: str, media_type: str) -> Optional[str]:
+        """Download media file from URL and return as base64
+
+        Args:
+            session: aiohttp ClientSession
+            url: Media file URL
+            media_type: Type of media (video, audio, image)
+
+        Returns:
+            Base64-encoded media data or None if download failed
+        """
+        import base64
+
+        try:
+            logger.info(f"[MEDIA-DOWNLOAD] Downloading {media_type} from URL...")
+            async with session.get(url) as response:
+                if response.status != 200:
+                    logger.error(f"[MEDIA-DOWNLOAD] Download failed: HTTP {response.status}")
+                    return None
+
+                media_bytes = await response.read()
+                logger.info(f"[MEDIA-DOWNLOAD] Downloaded {len(media_bytes)} bytes")
+
+                # Encode to base64
+                base64_data = base64.b64encode(media_bytes).decode('utf-8')
+                logger.info(f"[MEDIA-DOWNLOAD] Encoded to base64 ({len(base64_data)} chars)")
+                return base64_data
+
+        except Exception as e:
+            logger.error(f"[MEDIA-DOWNLOAD] Download error: {e}")
             return None
 
     def _set_nested_value(self, obj: Any, path: str, value: Any):
