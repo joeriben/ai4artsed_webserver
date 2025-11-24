@@ -469,7 +469,16 @@ async function selectConfig(configId: string) {
 
   selectedConfig.value = configId
 
-  // Automatically trigger optimization
+  // Skip optimization if no interception result (direct execution mode)
+  if (!interceptionResult.value || interceptionResult.value.trim() === '') {
+    optimizedPrompt.value = inputText.value  // Use original input directly
+    hasOptimization.value = false
+    executionPhase.value = 'optimization_done'
+    console.log('[Direct Mode] Skipping optimization, using input text directly')
+    return
+  }
+
+  // Automatically trigger optimization for intercepted prompts
   await runOptimization()
 }
 
