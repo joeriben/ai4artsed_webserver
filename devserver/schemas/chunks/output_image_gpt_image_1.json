@@ -58,11 +58,10 @@
   },
 
   "output_mapping": {
-    "type": "direct_api_image",
-    "format": "png",
-    "extract_path": "data[0].url",
-    "extract_logic": "Extract image URL from OpenAI API response, download to local storage",
-    "description": "OpenAI returns image URLs that are downloaded to local storage"
+    "type": "images_api_base64",
+    "format": "base64",
+    "extract_path": "data[0].b64_json",
+    "description": "Extract base64 image data from OpenAI Images API response"
   },
 
   "meta": {

@@ -1186,21 +1186,41 @@ def execute_pipeline():
 
                 result = MockResult(interception_result)
             else:
-                logger.info(f"[4-STAGE] Stage 2: Executing interception pipeline for '{schema_name}'")
+                # Check if pipeline has skip_stage2 flag (graceful check)
+                pipeline_def = pipeline_executor.config_loader.get_pipeline(config.pipeline_name)
+                skip_stage2 = pipeline_def.skip_stage2 if pipeline_def and hasattr(pipeline_def, 'skip_stage2') else False
 
-                # Use shared Stage 2 function (eliminates code duplication)
-                media_preferences = config.media_preferences if hasattr(config, 'media_preferences') else None
-                result = asyncio.run(execute_stage2_with_optimization(
-                    schema_name=schema_name,
-                    input_text=current_input,
-                    config=execution_config,
-                    execution_mode=execution_mode,
-                    safety_level=safety_level,
-                    output_config=output_config,
-                    media_preferences=media_preferences,
-                    tracker=tracker,
-                    user_input=data.get('user_input', input_text)
-                ))
+                if skip_stage2:
+                    logger.info(f"[4-STAGE] Stage 2: SKIPPED (pipeline '{config.pipeline_name}' has skip_stage2=true)")
+                    logger.info(f"[4-STAGE] Stage 2: Passing Stage 1 output directly to Stage 3")
+
+                    # Create mock result - Stage 1 output passed through unchanged
+                    class MockResult:
+                        def __init__(self, output):
+                            self.success = True
+                            self.final_output = output
+                            self.error = None
+                            self.steps = []
+                            self.metadata = {'stage2_skipped': True, 'pipeline': config.pipeline_name}
+                            self.execution_time = 0
+
+                    result = MockResult(current_input)
+                else:
+                    logger.info(f"[4-STAGE] Stage 2: Executing interception pipeline for '{schema_name}'")
+
+                    # Use shared Stage 2 function (eliminates code duplication)
+                    media_preferences = config.media_preferences if hasattr(config, 'media_preferences') else None
+                    result = asyncio.run(execute_stage2_with_optimization(
+                        schema_name=schema_name,
+                        input_text=current_input,
+                        config=execution_config,
+                        execution_mode=execution_mode,
+                        safety_level=safety_level,
+                        output_config=output_config,
+                        media_preferences=media_preferences,
+                        tracker=tracker,
+                        user_input=data.get('user_input', input_text)
+                    ))
 
             # Check if pipeline succeeded
             if not result.success:
