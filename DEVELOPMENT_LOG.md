@@ -1,5 +1,49 @@
 # Development Log
 
+## Session 71 - Qwen Image Integration
+**Date:** 2025-11-25
+**Duration:** ~3 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Add Qwen Image as Stage 4 output config with workflow submission routing
+
+### Summary
+Integrated Qwen Image as new output config. Critical discovery: Qwen requires `media_type: "image_workflow"` (not `"image"`) for ComfyUI workflow submission due to separate UNET/CLIP/VAE loaders.
+
+### Key Changes
+**Backend:**
+- Created `devserver/schemas/chunks/output_image_qwen.json` (252 lines, full ComfyUI workflow)
+- Created `devserver/schemas/configs/output/qwen.json` (resolution: 1328x1328)
+- Renamed config file to match Vue ID: `qwen_image.json` → `qwen.json`
+- Fixed `dual_encoder_fusion_image.json` alpha parameter (hardcoded to 0.5)
+
+### Architecture Decision: `image_workflow` Routing
+**Problem:** `media_type: "image"` routes to Simple Text2Image API (port 7801), expects unified checkpoint.
+**Solution:** `media_type: "image_workflow"` routes to ComfyUI Direct (port 7821), supports separate loaders.
+
+**Qwen Model Stack:**
+- UNET: `qwen_image_fp8_e4m3fn.safetensors`
+- CLIP: `qwen_2.5_vl_7b_fp8_scaled.safetensors` (type="qwen_image")
+- VAE: `qwen_image_vae.safetensors`
+- Sampler: ModelSamplingAuraFlow (shift=3.1)
+
+### Pattern Established
+| Media Type | Port | Use Case |
+|------------|------|----------|
+| `"image"` | 7801 | Unified checkpoint models (SD3.5, Flux1) |
+| `"image_workflow"` | 7821 | Separate loaders (Qwen, surrealization, audio) |
+
+### Documentation
+- Created `docs/SESSION_71_QWEN_IMAGE_INTEGRATION.md` (full handover doc with debugging journey)
+
+### Commits
+- `65ebe44` - feat: Add Qwen Image output config with workflow submission
+
+### Next Steps
+- End-to-end image generation testing
+- Update ARCHITECTURE PART 05 with routing pattern documentation
+
+---
+
 ## Session 70 - Gemini 3 Pro Image Integration
 **Date:** 2025-11-24
 **Duration:** ~2 hours (across context boundaries)
