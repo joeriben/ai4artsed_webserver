@@ -26,7 +26,7 @@ export default defineConfig({
       'lab.ai4artsed.org',  // Allow Cloudflare tunnel subdomain
       '.ai4artsed.org',     // Allow all subdomains
     ],
-    hmr: false,  // Disable HMR for Cloudflare deployment
+    hmr: true,  // Enable HMR for instant browser updates
     proxy: {
       // Dev frontend proxies to dev backend (17802)
       // Production uses 17801

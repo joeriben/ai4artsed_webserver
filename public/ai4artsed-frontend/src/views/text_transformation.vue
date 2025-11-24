@@ -1,6 +1,11 @@
 <template>
   <div class="text-transformation-view">
 
+    <!-- Return Button to Phase 1 -->
+    <button class="return-button" @click="$router.push('/')" title="Zurück zu Phase 1">
+      ← Phase 1
+    </button>
+
     <!-- Single Continuous Flow (no phase transitions) -->
     <div class="phase-2a" ref="mainContainerRef">
 
@@ -603,7 +608,8 @@ function handleContextPromptEdit() {
 function autoResizeTextarea(textarea: HTMLTextAreaElement | null) {
   if (!textarea) return
   textarea.style.height = 'auto'
-  textarea.style.height = textarea.scrollHeight + 'px'
+  // Add 4px buffer to prevent text cutoff
+  textarea.style.height = (textarea.scrollHeight + 4) + 'px'
 }
 
 // Watch metaPrompt changes and sync to local state
@@ -640,6 +646,39 @@ watch(optimizedPrompt, async () => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+/* ============================================================================
+   Return Button
+   ============================================================================ */
+
+.return-button {
+  position: fixed;
+  top: clamp(1rem, 2vh, 1.5rem);
+  left: clamp(1rem, 2vw, 1.5rem);
+  z-index: 1000;
+
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2.5vw, 1.5rem);
+  background: rgba(30, 30, 30, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.return-button:hover {
+  border-color: rgba(102, 126, 234, 0.8);
+  background: rgba(102, 126, 234, 0.2);
+  transform: translateX(-4px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.return-button:active {
+  transform: translateX(-2px) scale(0.98);
 }
 
 /* ============================================================================
@@ -794,6 +833,7 @@ watch(optimizedPrompt, async () => {
   min-height: clamp(120px, 15vh, 150px);
   max-height: clamp(300px, 40vh, 500px);
   resize: none;
+  padding: clamp(0.75rem, 2vw, 1rem) clamp(0.75rem, 2vw, 1rem);
 }
 
 /* Expanded textarea (inline editing) - unused, kept for potential future use */

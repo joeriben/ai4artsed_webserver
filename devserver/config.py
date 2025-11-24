@@ -86,14 +86,19 @@ DEFAULT_LANGUAGE = "de"  # "de" or "en"
 # Base Models:
 LOCAL_DEFAULT_MODEL = "gpt-OSS:20b"                          # Default local text model
 LOCAL_VISION_MODEL = "local/llama3.2-vision:latest"                # Local vision model
+REMOTE_MULTIMODAL_MODEL = "openrouter/google/gemini-2.5-flash-lite"     # Input Modalitiestext, image, file, audio, video
+REMOTE_SMALL_MODEL = "openrouter/mistralai/mistral-nemo"       # Fast, cheap cloud model
+REMOTE_LIGHT_MODEL = "openrouter/mistralai/mistral-medium-3.1"       # Fast, cheap cloud model
+REMOTE_FAST_MODEL = "openrouter/anthropic/claude-haiku-4.5"       # Fast, cheap cloud model
 REMOTE_ADVANCED_MODEL = "openrouter/anthropic/claude-sonnet-4.5"  # High-quality cloud model
+REMOTE_EXTREME_MODEL = "openrouter/anthropic/claude-opus-4.1"  # Highest-quality cloud model, VERY EXPENSIVE!
 
 # Stage-Specific Models:
-STAGE1_TEXT_MODEL = LOCAL_DEFAULT_MODEL                   # Stage 1: conditional safety checks
+STAGE1_TEXT_MODEL = REMOTE_FAST_MODEL                     # Stage 1: conditional safety checks (simple task)
 STAGE1_VISION_MODEL = LOCAL_VISION_MODEL                  # Stage 1: Image analysis
-STAGE2_INTERCEPTION_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt interception (needs quality)
-STAGE2_OPTIMIZATION_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt optimization (needs quality)
-STAGE3_MODEL = REMOTE_ADVANCED_MODEL                      # Stage 3: Translation and final safety check (needs quality)
+STAGE2_INTERCEPTION_MODEL = REMOTE_FAST_MODEL         # Stage 2: Prompt interception (complex task)
+STAGE2_OPTIMIZATION_MODEL = REMOTE_FAST_MODEL         # Stage 2: Prompt optimization (complex task)
+STAGE3_MODEL = REMOTE_FAST_MODEL                          # Stage 3: Translation and final safety check (simple task)
 
 # Legacy Model Configuration
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama

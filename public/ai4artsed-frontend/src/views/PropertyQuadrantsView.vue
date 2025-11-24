@@ -23,15 +23,6 @@
         <h1 class="page-title">
           {{ currentLanguage === 'en' ? 'Select Configuration' : 'Konfiguration auswählen' }}
         </h1>
-        <div class="controls">
-          <button
-            v-if="store.selectedProperties.length > 0"
-            class="clear-button"
-            @click="store.clearAllProperties()"
-          >
-            {{ currentLanguage === 'en' ? 'Clear selection' : 'Auswahl löschen' }}
-          </button>
-        </div>
       </header>
 
       <!-- Debug: Show selected properties -->

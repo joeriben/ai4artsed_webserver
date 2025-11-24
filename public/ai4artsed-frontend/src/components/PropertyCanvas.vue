@@ -195,8 +195,8 @@ function getConfigStyle(config: any, index: number) {
   const angleStep = (2 * Math.PI) / numConfigs
   const angle = index * angleStep - Math.PI / 2 // Start at top (-90°)
 
-  // Calculate distance from category center (20% of container)
-  const distance = 20
+  // Calculate distance from category center (17% of container)
+  const distance = 17
 
   // Calculate position using trigonometry
   const x = categoryPos.x + Math.cos(angle) * distance

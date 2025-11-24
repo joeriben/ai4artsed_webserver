@@ -254,6 +254,7 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
 
   /**
    * Clear all selected properties
+   * @deprecated TODO: Prüfen, evtl. nicht mehr verwendet (UI-Button entfernt)
    */
   function clearAllProperties() {
     selectedProperties.value.clear()
