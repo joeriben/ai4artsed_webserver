@@ -214,10 +214,19 @@ interface PipelineStage {
 
 // Form state
 const inputText = ref('')
+const contextPrompt = ref('')
+const selectedCategory = ref<string | null>(null)
+const selectedConfig = ref<string | null>(null)
+const interceptionResult = ref('')
+const isInterceptionLoading = ref(false)
+const optimizedPrompt = ref('')
+const isOptimizationLoading = ref(false)
+const hasOptimization = ref(false)  // Track if optimization was applied
+
+// Surrealization-specific state
 const t5Prompt = ref('')  // T5 semantic prompt (250 words)
 const clipPrompt = ref('')  // CLIP visual prompt (75 tokens)
 const alphaValue = ref(0.25)  // Fusion alpha value
-const isInterceptionLoading = ref(false)
 const isGenerating = ref(false)
 
 // Execution phase tracking
@@ -237,6 +246,10 @@ const startButtonRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<HTMLElement | null>(null)
 const interceptionTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
+
+// Stores
+const pipelineStore = usePipelineExecutionStore()
+const route = useRoute()
 
 // ============================================================================
 // Data
