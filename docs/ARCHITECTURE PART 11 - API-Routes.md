@@ -28,10 +28,12 @@ DevServer provides REST API endpoints across four main areas:
 {
   "schema": "dada",
   "input_text": "A surreal dream",
-  "execution_mode": "eco",  // or "fast"
+  "execution_mode": "eco",  // [DEPRECATED - Session 65] Ignored by backend
   "safety_level": "kids"     // or "youth"
 }
 ```
+
+**⚠️ DEPRECATION NOTICE:** The `execution_mode` parameter was removed in Session 65 (2025-11-23). Model selection is now centralized in `devserver/config.py`. This parameter is still accepted for backward compatibility but has no effect.
 
 **Response:**
 ```json
@@ -42,7 +44,7 @@ DevServer provides REST API endpoints across four main areas:
   "config_name": "dada",
   "input_text": "A surreal dream",
   "final_output": "Ein surrealistischer Traum in dadaistischer Ästhetik...",
-  "execution_mode": "eco",
+  "execution_mode": "eco",  // [DEPRECATED - Session 65] Echo of input, no longer affects execution
   "safety_level": "kids",
   "execution_time": 12.5,
   "outputs_generated": 1,
@@ -301,7 +303,7 @@ Content-Disposition: inline; filename="output_audio.mp3"
   "user_id": "DOE_J",
   "timestamp": "2025-11-04T21:15:30",
   "schema": "dada",
-  "execution_mode": "eco",
+  "execution_mode": "eco",  // [DEPRECATED - Session 65] Historical data only
   "safety_level": "kids",
   "input_text": "A surreal dream",
   "transformed_text": "Ein surrealistischer Traum...",
@@ -351,7 +353,7 @@ Content-Disposition: inline; filename="output_audio.mp3"
       "execution_id": "exec_20251104_212530_896e054c",
       "config_name": "dada",
       "timestamp": "2025-11-04T21:25:30",
-      "execution_mode": "eco",
+      "execution_mode": "eco",  // [DEPRECATED - Session 65] Historical data only
       "safety_level": "kids",
       "total_execution_time": 12.5,
       "items_count": 7,
@@ -382,7 +384,7 @@ Content-Disposition: inline; filename="output_audio.mp3"
   "execution_id": "exec_20251104_212530_896e054c",
   "config_name": "dada",
   "timestamp": "2025-11-04T21:25:30",
-  "execution_mode": "eco",
+  "execution_mode": "eco",  // [DEPRECATED - Session 65] Historical data only
   "safety_level": "kids",
   "user_id": "DOE_J",
   "session_id": "workshop_2025",

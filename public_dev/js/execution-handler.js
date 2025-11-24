@@ -28,13 +28,14 @@ export async function submitPrompt() {
     const aspectRatio = document.querySelector('input[name="aspectRatio"]:checked')?.value || '1:1';
 
     // Get execution mode
+    // DEPRECATED (Session 65): execution_mode no longer affects backend. Model selection via config.py. TODO: Remove.
     const executionMode = document.querySelector('input[name="execution-mode"]:checked')?.value || 'eco';
 
     // Build payload (NEW API format)
     const payload = {
         schema: configId,           // Config ID (e.g., "dada")
         input_text: promptText,     // User prompt
-        execution_mode: executionMode,  // "eco" or "fast"
+        execution_mode: executionMode,  // DEPRECATED (Session 65): Ignored by backend. TODO: Remove.
         aspect_ratio: aspectRatio    // For image generation
     };
 

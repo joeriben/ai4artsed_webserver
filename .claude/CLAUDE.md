@@ -14,7 +14,7 @@
 - **Three-Layer System**: Chunks → Pipelines → Configs
 - **Media-specific configs**: Use config ID (e.g., `sd35_large`), NOT pipeline name
 - **Safety levels**: kids, youth, open (hardcoded in DevServer, not pipelines)
-- **Execution modes**: eco (local/cheap), fast (remote/expensive)
+- **Model selection**: ~~Execution modes (eco/fast) REMOVED in Session 65~~ → Now centralized in `devserver/config.py` (STAGE1_MODEL, STAGE2_INTERCEPTION_MODEL, etc.)
 - **Prompt Interception**: Pedagogical transformation, not optimization - DO NOT BREAK THIS
 
 ### File Locations

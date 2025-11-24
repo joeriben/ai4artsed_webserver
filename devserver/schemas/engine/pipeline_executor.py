@@ -97,7 +97,7 @@ class PipelineExecutor:
         config_name: str,
         input_text: str,
         user_input: Optional[str] = None,
-        execution_mode: str = 'eco',  # DEPRECATED (Session 55): Ignored. Model selection via config.py
+        execution_mode: str = 'eco',  # DEPRECATED (Session 65): Ignored. Model selection via config.py. TODO: Remove parameter.
         safety_level: str = 'kids',
         tracker=None,
         config_override=None,  # Phase 2: Optional pre-modified config

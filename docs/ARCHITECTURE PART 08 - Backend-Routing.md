@@ -28,9 +28,13 @@
 
 ---
 
-### Execution Mode System: eco vs fast
+### ~~Execution Mode System: eco vs fast~~ [DEPRECATED - Session 65]
 
-The DevServer implements a simple **two-mode execution system** that determines whether tasks run locally or remotely:
+**⚠️ THIS SECTION IS OBSOLETE:** The execution_mode parameter system was completely removed in Session 65 (2025-11-23). Model selection is now handled centrally via constants in `devserver/config.py` (STAGE1_MODEL, STAGE2_INTERCEPTION_MODEL, etc.). See ARCHITECTURE PART 01 - Section 2 for current implementation.
+
+**Historical documentation (for reference only):**
+
+The DevServer ~~implements~~ **implemented** a simple **two-mode execution system** that ~~determines~~ **determined** whether tasks run locally or remotely:
 
 | Mode | Priority | Backends | Cost | Speed | DSGVO |
 |------|----------|----------|------|-------|-------|
@@ -172,7 +176,11 @@ Status: Planned, not yet implemented
 
 ---
 
-### Backend Selection Algorithm
+### ~~Backend Selection Algorithm~~ [DEPRECATED - Session 65]
+
+**⚠️ THIS ALGORITHM IS OBSOLETE:** The execution_mode-based routing described below was removed in Session 65. Model selection is now centralized in `devserver/config.py`. Backend routing still exists but is determined by model constants, not execution_mode parameter.
+
+**Historical documentation (for reference only):**
 
 **Step 1: Determine Task Type**
 ```python
@@ -234,17 +242,21 @@ result = backend_router.execute(
 
 ---
 
-### Remote Service Configuration (server.config.py)
+### ~~Remote Service Configuration (server.config.py)~~ [DEPRECATED - Session 65]
 
-The server maintains centralized configuration for remote services:
+**⚠️ THIS CONFIGURATION PATTERN IS OBSOLETE:** The execution_mode-based service selection was removed in Session 65. Model/service selection is now handled via constants in `devserver/config.py`, not via execution_mode switching.
+
+**Historical documentation (for reference only):**
+
+The server ~~maintains~~ **maintained** centralized configuration for remote services:
 
 ```python
 # server.config.py
 
-# Default execution mode (eco = local, fast = cloud)
+# Default execution mode (eco = local, fast = cloud) [DEPRECATED]
 DEFAULT_EXECUTION_MODE = "eco"
 
-# Remote service endpoints (used when execution_mode == "fast")
+# Remote service endpoints (used when execution_mode == "fast") [DEPRECATED]
 REMOTE_SERVICES = {
     "image": {
         "provider": "openrouter",  # or "openai" for direct GPT-5 access

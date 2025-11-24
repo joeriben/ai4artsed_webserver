@@ -91,6 +91,9 @@
         </button>
 
         <!-- Settings (execution mode, safety level) -->
+        <!-- DEPRECATED (Session 65): execution_mode selector - parameter no longer affects backend.
+             Model selection is now centralized in devserver/config.py.
+             TODO: Remove this UI element in future cleanup. -->
         <div class="execution-settings">
           <select v-model="localExecutionMode" class="setting-select">
             <option value="eco">{{ $t('executionModes.eco') }}</option>
@@ -145,6 +148,7 @@ const userPreferences = useUserPreferencesStore()
 // Local state
 const localUserInput = ref('')
 const localMetaPrompt = ref('')
+// DEPRECATED (Session 65): execution_mode no longer affects backend. TODO: Remove in cleanup.
 const localExecutionMode = ref<'eco' | 'fast' | 'best'>('eco')
 const localSafetyLevel = ref<'kids' | 'youth' | 'adult'>('kids')
 
@@ -228,6 +232,7 @@ watch(
 // Sync local state to store
 watch(localUserInput, (newValue) => pipelineStore.updateUserInput(newValue))
 watch(localMetaPrompt, (newValue) => pipelineStore.updateMetaPrompt(newValue))
+// DEPRECATED (Session 65): execution_mode no longer affects backend. TODO: Remove in cleanup.
 watch(localExecutionMode, (newValue) => pipelineStore.setExecutionMode(newValue))
 watch(localSafetyLevel, (newValue) => pipelineStore.setSafetyLevel(newValue))
 

@@ -31,7 +31,12 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
   /** Original meta-prompt for comparison (detect modifications) */
   const originalMetaPrompt = ref('')
 
-  /** Execution mode */
+  /**
+   * Execution mode
+   * DEPRECATED (Session 65): This parameter no longer affects backend behavior.
+   * Model selection is now centralized in devserver/config.py.
+   * TODO: Remove in future cleanup.
+   */
   const executionMode = ref<'eco' | 'fast' | 'best'>('eco')
 
   /** Safety level */
@@ -181,6 +186,8 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
 
   /**
    * Set execution mode
+   * DEPRECATED (Session 65): This parameter no longer affects backend.
+   * TODO: Remove in future cleanup.
    */
   function setExecutionMode(mode: 'eco' | 'fast' | 'best') {
     executionMode.value = mode

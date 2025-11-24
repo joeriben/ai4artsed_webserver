@@ -97,19 +97,26 @@ Output-Pipeline: Takes 1 text prompt → Returns 1 image
 
 **Server selects chunk, NOT config!**
 
+**⚠️ UPDATED (Session 65):** The execution_mode parameter system was removed. Model selection is now centralized in `devserver/config.py`.
+
 Selection based on:
 1. `media_type` (from config.media_preferences.default_output)
-2. `execution_mode` (eco/fast - from frontend or server default)
+2. ~~`execution_mode` (eco/fast)~~ **[DEPRECATED]** → Model/backend now determined by constants in config.py
 
-**Matrix:**
-| media_type | eco mode | fast mode |
+**~~Matrix:~~ [DEPRECATED - Historical Reference Only]**
+| media_type | ~~eco mode~~ | ~~fast mode~~ |
 |------------|----------|-----------|
 | image | comfyui_image_generation | openrouter_image_generation |
 | audio | comfyui_audio_generation | (fallback to eco) |
 | music | comfyui_music_generation | (fallback to eco) |
 
+**Current Reality:**
+- Models are selected via constants: STAGE1_MODEL, STAGE2_INTERCEPTION_MODEL, STAGE3_MODEL, etc.
+- Backend routing determined by which model constant is configured
+- No dynamic eco/fast switching - change constants in config.py and restart server
+
 **Config's job:** Specify media_type and parameters
-**Server's job:** Select appropriate chunk
+**Server's job:** Select appropriate chunk based on config.py model constants
 
 ---
 

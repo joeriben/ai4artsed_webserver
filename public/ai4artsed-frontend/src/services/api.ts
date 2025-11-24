@@ -57,7 +57,7 @@ export interface PipelineExecuteRequest {
   input_text: string
   user_input?: string // Original user input (for Phase 2 media generation)
   user_language?: 'de' | 'en'
-  execution_mode?: 'eco' | 'fast' | 'best'
+  execution_mode?: 'eco' | 'fast' | 'best' // DEPRECATED (Session 65): Ignored by backend. TODO: Remove.
   safety_level?: 'kids' | 'youth' | 'adult'
   context_prompt?: string // Optional: user-edited meta-prompt
   context_language?: 'de' | 'en' // Language of context_prompt
@@ -126,7 +126,7 @@ export interface TransformRequest {
   schema: string
   input_text: string
   user_language: 'de' | 'en'
-  execution_mode?: 'eco' | 'fast' | 'best'
+  execution_mode?: 'eco' | 'fast' | 'best' // DEPRECATED (Session 65): Ignored by backend. TODO: Remove.
   safety_level?: 'kids' | 'youth' | 'adult'
   context_prompt?: string // Optional: user-edited meta-prompt
   context_language?: 'de' | 'en' // Language of context_prompt

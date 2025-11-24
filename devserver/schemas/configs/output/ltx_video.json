@@ -1,0 +1,72 @@
+{
+  "pipeline": "single_text_media_generation",
+  "name": {
+    "en": "LTX Video",
+    "de": "LTX Video"
+  },
+  "description": {
+    "en": "Fast video generation using Lightricks LTX-Video model via ComfyUI",
+    "de": "Schnelle Videogenerierung mit Lightricks LTX-Video Modell via ComfyUI"
+  },
+  "category": {
+    "en": "Video Generation",
+    "de": "Videogenerierung"
+  },
+
+  "parameters": {
+    "OUTPUT_CHUNK": "output_video_ltx",
+    "NEGATIVE_PROMPT": "blurry, distorted, bad quality, watermark, low resolution, flickering",
+    "WIDTH": 1216,
+    "HEIGHT": 704,
+    "FRAMES": 121,
+    "STEPS": 25,
+    "CFG": 3.0,
+    "FPS": 30,
+    "SEED": "random"
+  },
+
+  "media_preferences": {
+    "default_output": "video",
+    "supported_types": ["video"]
+  },
+
+  "meta": {
+    "stage": "output",
+    "model": "ltx-video-2b-v0.9",
+    "model_file": "ltx-video-2b-v0.9.safetensors",
+    "backend": "comfyui",
+    "backend_type": "comfyui",
+    "requires_gpu": true,
+    "gpu_vram_mb": 16000,
+    "estimated_duration_seconds": "5-15",
+    "recommended_resolution": "1216x704",
+    "supported_resolutions": [
+      "768x512",
+      "1216x704",
+      "1024x576"
+    ],
+    "recommended_frames": 121,
+    "supported_fps": [24, 30],
+    "notes": "LTX-Video via ComfyUI. Fast video generation optimized for speed. Generates 4-second 30fps videos in ~5-10 seconds on RTX 4090. Best quality at 1216x704 resolution.",
+    "version": "1.0"
+  },
+
+  "display": {
+    "icon": "⚡",
+    "color": "#9C27B0",
+    "category": "video_generation",
+    "difficulty": 1,
+    "order": 20
+  },
+
+  "tags": {
+    "en": ["video", "ltx", "fast", "comfyui", "local"],
+    "de": ["video", "ltx", "schnell", "comfyui", "lokal"]
+  },
+
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 10,
+    "complexity": "beginner"
+  }
+}

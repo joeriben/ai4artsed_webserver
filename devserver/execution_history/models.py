@@ -161,7 +161,7 @@ class ExecutionRecord:
     session_id: str = "default"            # Session identifier
 
     # Execution parameters
-    execution_mode: str = "eco"            # eco | fast
+    execution_mode: str = "eco"            # DEPRECATED (Session 65): Ignored. Model selection via config.py. TODO: Remove.
     safety_level: str = "kids"             # kids | teens | adults
     used_seed: Optional[int] = None        # Random seed (if applicable)
 

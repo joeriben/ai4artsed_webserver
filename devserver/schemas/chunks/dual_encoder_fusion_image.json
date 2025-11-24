@@ -101,7 +101,7 @@
     },
     "9": {
       "inputs": {
-        "alpha": 0.5,
+        "alpha": 20,
         "clip_conditioning": [
           "5",
           0
@@ -118,7 +118,7 @@
     },
     "10": {
       "inputs": {
-        "alpha": 0.5,
+        "alpha": 20,
         "clip_conditioning": [
           "7",
           0

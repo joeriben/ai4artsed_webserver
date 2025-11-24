@@ -14,7 +14,7 @@
   },
 
   "parameters": {
-    "OUTPUT_CHUNK": "dual_encoder_fusion_image",
+    "output_chunk": "dual_encoder_fusion_image",
     "temperature": 0.7,
     "top_p": 0.9,
     "max_tokens": 2048

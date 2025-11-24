@@ -311,7 +311,7 @@ const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
 
 const availableCategories: Category[] = [
   { id: 'image', label: 'Bild', emoji: '🖼️', color: '#4CAF50' },
-  { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0', disabled: true },
+  { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0' },
   { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800', disabled: true },
   { id: '3d', label: '3D', emoji: '🧊', color: '#00BCD4', disabled: true }
 ]
@@ -323,7 +323,9 @@ const configsByCategory: Record<string, Config[]> = {
     { id: 'gemini_3_pro_image', label: 'Gemini 3\nPro', emoji: '🔷', color: '#4285F4', description: 'Google Gemini Bildgenerierung', logo: null, lightBg: false },
     { id: 'qwen', label: 'Qwen', emoji: '🌸', color: '#9C27B0', description: 'Qwen Vision Model', logo: '/logos/Qwen_logo.png', lightBg: false }
   ],
-  video: [],
+  video: [
+    { id: 'ltx_video', label: 'LTX\nVideo', emoji: '⚡', color: '#9C27B0', description: 'Schnelle lokale Videogenerierung', logo: null, lightBg: false }
+  ],
   sound: [],
   '3d': []
 }
