@@ -1,613 +1,314 @@
 <template>
   <div class="direct-view">
-
-    <!-- Header with Return Button -->
+    <!-- Header -->
     <header class="page-header">
-      <button class="return-button" @click="$router.push('/')" title="Zurück zu Phase 1">
-        ← Phase 1
+      <button class="return-button" @click="$router.push('/')" title="Zurück zur Startseite">
+        ← Zurück
       </button>
-      <h1 class="page-title">AI4ArtsEd - AI-Lab</h1>
+      <h1 class="page-title">Direct Workflow Execution</h1>
     </header>
 
-    <!-- Single Continuous Flow (no phase transitions) -->
-    <div class="phase-2a" ref="mainContainerRef">
-
-        <!-- Section 1: Input + Context (Side by Side) -->
-        <section class="input-context-section">
-          <!-- Input Bubble -->
-          <div class="input-bubble bubble-card" :class="{ filled: inputText }">
-            <div class="bubble-header">
-              <span class="bubble-icon">💡</span>
-              <span class="bubble-label">Deine Idee: Worum soll es gehen?</span>
-            </div>
-            <textarea
-              v-model="inputText"
-              placeholder="Ein Fest in meiner Straße: ..."
-              class="bubble-textarea"
-              rows="6"
-            ></textarea>
+    <!-- Main Content -->
+    <div class="main-container">
+      <!-- Input Section -->
+      <section class="input-section">
+        <div class="section-card">
+          <div class="card-header">
+            <span class="card-icon">💡</span>
+            <span class="card-label">Dein Input</span>
           </div>
-
-          <!-- Explanation Box -->
-          <div class="explanation-bubble bubble-card">
-            <div class="bubble-header">
-              <span class="bubble-icon">🔬</span>
-              <span class="bubble-label">Surrealization: Dual-Encoder Fusion</span>
-            </div>
-            <div class="explanation-text">
-              <p><strong>Wie funktioniert Surrealization?</strong></p>
-              <p>Diese Methode nutzt zwei verschiedene KI-Encoder für optimale Bildqualität:</p>
-              <ul>
-                <li><strong>T5-Encoder:</strong> Versteht semantische Bedeutung und Zusammenhänge (max. 250 Wörter)</li>
-                <li><strong>CLIP-Encoder:</strong> Fokussiert auf visuelle Konzepte und Details (max. 75 Tokens)</li>
-              </ul>
-              <p>Dein Prompt wird automatisch für beide Encoder optimiert und dann verschmolzen (Fusion).</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- START BUTTON #1: Trigger Interception (Between Context and Interception) -->
-        <div class="start-button-container">
-          <button
-            class="start-button"
-            :class="{ disabled: !inputText }"
-            :disabled="!inputText"
-            @click="runInterception()"
-          >
-            <span class="button-arrows button-arrows-left">>>></span>
-            <span class="button-text">Start</span>
-            <span class="button-arrows button-arrows-right">>>></span>
-          </button>
+          <textarea
+            v-model="inputText"
+            placeholder="Beschreibe deine Idee..."
+            class="input-textarea"
+            rows="6"
+          ></textarea>
         </div>
 
-        <!-- Section 3: Split Prompts (T5 + CLIP) - filled after Start #1 -->
-        <section class="split-prompts-section">
-          <!-- T5 Prompt (Semantic) -->
-          <div class="t5-prompt bubble-card" :class="{ empty: !t5Prompt, loading: isInterceptionLoading }">
-            <div class="bubble-header">
-              <span class="bubble-icon">📝</span>
-              <span class="bubble-label">T5-Prompt (Semantisch, max. 250 Wörter)</span>
-            </div>
-            <div v-if="isInterceptionLoading" class="preview-loading">
-              <div class="spinner-large"></div>
-              <p class="loading-text">T5-Encoder optimiert für semantische Tiefe...</p>
-            </div>
-            <textarea
-              v-else
-              v-model="t5Prompt"
-              placeholder="T5-optimierter Prompt erscheint nach Start"
-              class="bubble-textarea auto-resize-textarea"
-              rows="6"
-            ></textarea>
+        <!-- Output Config Selection -->
+        <div class="section-card">
+          <div class="card-header">
+            <span class="card-icon">⚙️</span>
+            <span class="card-label">Workflow auswählen</span>
+          </div>
+          <select v-model="selectedOutputConfig" class="config-select">
+            <option value="" disabled>Workflow auswählen...</option>
+            <option
+              v-for="config in availableConfigs"
+              :key="config.id"
+              :value="config.id"
+            >
+              {{ config.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Execute Button -->
+        <button
+          class="execute-button"
+          :class="{ disabled: !canExecute }"
+          :disabled="!canExecute"
+          @click="executeWorkflow"
+        >
+          <span class="button-text">{{ isExecuting ? 'Läuft...' : 'Workflow starten' }}</span>
+        </button>
+      </section>
+
+      <!-- Output Section -->
+      <section class="output-section" v-if="hasOutputs || isExecuting">
+        <div class="section-card">
+          <div class="card-header">
+            <span class="card-icon">📦</span>
+            <span class="card-label">Workflow Outputs</span>
           </div>
 
-          <!-- CLIP Prompt (Visual) -->
-          <div class="clip-prompt bubble-card" :class="{ empty: !clipPrompt, loading: isInterceptionLoading }">
-            <div class="bubble-header">
-              <span class="bubble-icon">🎨</span>
-              <span class="bubble-label">CLIP-Prompt (Visuell, max. 75 Tokens)</span>
-            </div>
-            <div v-if="isInterceptionLoading" class="preview-loading">
-              <div class="spinner-large"></div>
-              <p class="loading-text">CLIP-Encoder optimiert für visuelle Präzision...</p>
-            </div>
-            <textarea
-              v-else
-              v-model="clipPrompt"
-              placeholder="CLIP-optimierter Prompt erscheint nach Start"
-              class="bubble-textarea auto-resize-textarea"
-              rows="4"
-            ></textarea>
+          <!-- Loading State -->
+          <div v-if="isExecuting && !hasOutputs" class="loading-container">
+            <div class="spinner"></div>
+            <p class="loading-text">Workflow wird ausgeführt...</p>
           </div>
-        </section>
 
-        <!-- Category/Media selection and optimization removed for direct pipeline -->
+          <!-- Outputs Display (naiv, alle Outputs in Reihenfolge) -->
+          <div v-else class="outputs-container">
+            <div
+              v-for="(output, index) in outputs"
+              :key="index"
+              class="output-item"
+            >
+              <!-- Image Output -->
+              <div v-if="output.type === 'image'" class="output-image-wrapper">
+                <img
+                  :src="output.url"
+                  :alt="`Output ${index + 1}`"
+                  class="output-image"
+                  @click="showFullscreen(output.url)"
+                />
+                <p class="output-caption">{{ output.filename }}</p>
+              </div>
 
-        <!-- START BUTTON #2: Trigger Surrealization Generation -->
-        <div class="start-button-container">
-          <button
-            class="start-button"
-            :class="{ disabled: !t5Prompt || !clipPrompt || isGenerating }"
-            :disabled="!t5Prompt || !clipPrompt || isGenerating"
-            @click="startSurrealizationGeneration()"
-            ref="startButtonRef"
-          >
-            <span class="button-arrows button-arrows-left">>>></span>
-            <span class="button-text">Bild mit Dual-Encoder erstellen</span>
-            <span class="button-arrows button-arrows-right">>>></span>
-          </button>
+              <!-- Text Output -->
+              <div v-else-if="output.type === 'text'" class="output-text-wrapper">
+                <div class="text-header">
+                  <span class="text-icon">📄</span>
+                  <span class="text-filename">{{ output.filename }}</span>
+                </div>
+                <pre class="output-text">{{ output.content }}</pre>
+              </div>
 
-          <transition name="fade">
-            <div v-if="showSafetyApprovedStamp" class="safety-stamp">
-              <div class="stamp-inner">
-                <div class="stamp-icon">✓</div>
-                <div class="stamp-text">Safety<br/>Approved</div>
+              <!-- JSON Output -->
+              <div v-else-if="output.type === 'json'" class="output-json-wrapper">
+                <div class="json-header">
+                  <span class="json-icon">📋</span>
+                  <span class="json-filename">{{ output.filename }}</span>
+                </div>
+                <pre class="output-json">{{ formatJSON(output.content) }}</pre>
+              </div>
+
+              <!-- Unknown Output Type -->
+              <div v-else class="output-unknown-wrapper">
+                <p class="unknown-type">Unbekannter Output-Typ: {{ output.type }}</p>
+                <p class="unknown-filename">{{ output.filename }}</p>
               </div>
             </div>
-          </transition>
-        </div>
-
-        <!-- Section 5: Pipeline Path (always visible, inactive until generation starts) -->
-        <section class="pipeline-section" ref="pipelineSectionRef">
-          <!-- Output Frame (Always visible) -->
-          <div class="output-frame" :class="{ empty: !isPipelineExecuting && !outputImage, generating: isPipelineExecuting && !outputImage }">
-            <!-- Generation Progress Animation -->
-            <div v-if="isPipelineExecuting && !outputImage" class="generation-animation-container">
-              <SpriteProgressAnimation :progress="generationProgress" />
-            </div>
-
-            <!-- Final Output -->
-            <div v-else-if="outputImage" class="final-output">
-              <img
-                :src="outputImage"
-                alt="Generiertes Bild"
-                class="output-image"
-                @click="showImageFullscreen(outputImage)"
-              />
-            </div>
-
-            <!-- Placeholder -->
-            <div v-else class="output-placeholder">
-              <div class="placeholder-icon">🖼️</div>
-              <p class="placeholder-text">Dein Bild erscheint hier</p>
-            </div>
           </div>
-        </section>
-
-      </div>
+        </div>
+      </section>
+    </div>
 
     <!-- Fullscreen Image Modal -->
     <Teleport to="body">
       <Transition name="modal-fade">
         <div v-if="fullscreenImage" class="fullscreen-modal" @click="fullscreenImage = null">
-          <img :src="fullscreenImage" alt="Dein Bild" class="fullscreen-image" />
+          <img :src="fullscreenImage" alt="Fullscreen" class="fullscreen-image" />
           <button class="close-fullscreen" @click="fullscreenImage = null">×</button>
         </div>
       </Transition>
     </Teleport>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
+import { ref, computed } from 'vue'
 import axios from 'axios'
-import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type StageStatus = 'waiting' | 'processing' | 'completed'
-
-interface Category {
+interface OutputConfig {
   id: string
   label: string
-  emoji: string
-  color: string
-  disabled?: boolean
 }
 
-interface Config {
-  id: string
-  label: string
-  emoji: string
-  color: string
-  description: string
-  logo?: string
-  lightBg?: boolean
-}
-
-interface PipelineStage {
-  id: string
-  label: string
-  emoji: string
-  color: string
-  status: StageStatus
+interface WorkflowOutput {
+  type: 'image' | 'text' | 'json' | 'unknown'
+  filename: string
+  url?: string
+  content?: string
 }
 
 // ============================================================================
 // State
 // ============================================================================
 
-// Form state
 const inputText = ref('')
-const contextPrompt = ref('')
-const selectedCategory = ref<string | null>(null)
-const selectedConfig = ref<string | null>(null)
-const interceptionResult = ref('')
-const isInterceptionLoading = ref(false)
-const optimizedPrompt = ref('')
-const isOptimizationLoading = ref(false)
-const hasOptimization = ref(false)  // Track if optimization was applied
-
-// Surrealization-specific state
-const t5Prompt = ref('')  // T5 semantic prompt (250 words)
-const clipPrompt = ref('')  // CLIP visual prompt (75 tokens)
-const alphaValue = ref(0.25)  // Fusion alpha value
-const isGenerating = ref(false)
-
-// Execution phase tracking
-// 'initial' -> 'interception_done' -> 'optimization_done' -> 'generation_done'
-const executionPhase = ref<'initial' | 'interception_done' | 'optimization_done' | 'generation_done'>('initial')
-
-// Pipeline execution state
-const isPipelineExecuting = ref(false)
-const outputImage = ref<string | null>(null)
+const selectedOutputConfig = ref('')
+const isExecuting = ref(false)
+const outputs = ref<WorkflowOutput[]>([])
 const fullscreenImage = ref<string | null>(null)
-const showSafetyApprovedStamp = ref(false)
-const generationProgress = ref(0)
 
-// Refs for DOM elements and scrolling
-const mainContainerRef = ref<HTMLElement | null>(null)
-const startButtonRef = ref<HTMLElement | null>(null)
-const pipelineSectionRef = ref<HTMLElement | null>(null)
-const interceptionTextareaRef = ref<HTMLTextAreaElement | null>(null)
-const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
-
-// Stores
-const pipelineStore = usePipelineExecutionStore()
-const route = useRoute()
-
-// ============================================================================
-// Data
-// ============================================================================
-
-const availableCategories: Category[] = [
-  { id: 'image', label: 'Bild', emoji: '🖼️', color: '#4CAF50' },
-  { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0', disabled: true },
-  { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800', disabled: true },
-  { id: '3d', label: '3D', emoji: '🧊', color: '#00BCD4', disabled: true }
+// Available output configs (legacy workflows)
+const availableConfigs: OutputConfig[] = [
+  { id: 'surrealization_legacy', label: 'Surrealization (Legacy)' },
+  // Add more legacy workflows here as needed
 ]
-
-const configsByCategory: Record<string, Config[]> = {
-  image: [
-    { id: 'sd35_large', label: 'Stable\nDiffusion', emoji: '🎨', color: '#2196F3', description: 'Klassische Bildgenerierung', logo: '/logos/logo_stable_diffusion.png', lightBg: false },
-    { id: 'gpt_image_1', label: 'GPT Image', emoji: '🌟', color: '#FFC107', description: 'Moderne KI-Bilder', logo: '/logos/ChatGPT-Logo.png', lightBg: true },
-    { id: 'qwen', label: 'Qwen', emoji: '🌸', color: '#9C27B0', description: 'Qwen Vision Model', logo: '/logos/Qwen_logo.png', lightBg: false }
-  ],
-  video: [],
-  sound: [],
-  '3d': []
-}
-
-const pipelineStages = ref<PipelineStage[]>([
-  { id: 'generation', label: 'Bild', emoji: '🎨', color: '#2196F3', status: 'waiting' }
-])
-
-// Computed: Pipeline stages with dynamic medium label
-const displayPipelineStages = computed(() => {
-  const stages = [...pipelineStages.value]
-
-  // Update generation stage label based on selected category
-  if (selectedCategory.value && stages[1]) {
-    const category = availableCategories.find(c => c.id === selectedCategory.value)
-    if (category) {
-      stages[1] = {
-        ...stages[1],
-        label: category.label,
-        emoji: category.emoji
-      }
-    }
-  }
-
-  return stages
-})
 
 // ============================================================================
 // Computed
 // ============================================================================
 
-const configsForCategory = computed(() => {
-  if (!selectedCategory.value) return []
-  return configsByCategory[selectedCategory.value] || []
+const canExecute = computed(() => {
+  return inputText.value.trim().length > 0 && selectedOutputConfig.value && !isExecuting.value
 })
 
-const truncatedInput = computed(() => {
-  if (!inputText.value) return ''
-  const maxLength = 100
-  return inputText.value.length > maxLength
-    ? inputText.value.substring(0, maxLength) + '...'
-    : inputText.value
-})
-
-const truncatedContext = computed(() => {
-  if (!contextPrompt.value) return ''
-  const maxLength = 100
-  return contextPrompt.value.length > maxLength
-    ? contextPrompt.value.substring(0, maxLength) + '...'
-    : contextPrompt.value
-})
-
-const truncatedInterception = computed(() => {
-  if (!interceptionResult.value) return ''
-  const maxLength = 150
-  return interceptionResult.value.length > maxLength
-    ? interceptionResult.value.substring(0, maxLength) + '...'
-    : interceptionResult.value
-})
-
-const canStartPipeline = computed(() => {
-  // Phase 1: Before interception - need input and category
-  if (executionPhase.value === 'initial') {
-    return inputText.value && selectedCategory.value && !isInterceptionLoading.value
-  }
-  // Phase 2: After optimization - need both prompts and config
-  else if (executionPhase.value === 'optimization_done') {
-    return interceptionResult.value && optimizedPrompt.value && selectedConfig.value && !isPipelineExecuting.value
-  }
-  // Otherwise disabled
-  return false
-})
-
-const areModelBubblesEnabled = computed(() => {
-  // Enable when interception result has content (from API or manual entry)
-  return interceptionResult.value.trim().length > 0
-})
-
-// ============================================================================
-// Lifecycle
-// ============================================================================
-
-onMounted(async () => {
-  // Check if we're coming from Phase1 with a configId
-  const configId = route.params.configId as string
-
-  if (configId) {
-    console.log('[Youth Flow] Received configId from Phase1:', configId)
-
-    try {
-      // STEP 1: Load config from backend
-      await pipelineStore.setConfig(configId)
-      console.log('[Youth Flow] Config loaded:', pipelineStore.selectedConfig?.id)
-
-      // STEP 2: Load meta-prompt for German (Youth Flow is German-only)
-      await pipelineStore.loadMetaPromptForLanguage('de')
-      console.log('[Youth Flow] Meta-prompt loaded:', pipelineStore.metaPrompt?.substring(0, 50))
-
-      // STEP 3: Initialize context prompt
-      contextPrompt.value = pipelineStore.metaPrompt || ''
-
-      // STEP 4: Find which category this config belongs to
-      let foundCategory: string | null = null
-      for (const [categoryId, configs] of Object.entries(configsByCategory)) {
-        if (configs.some(config => config.id === configId)) {
-          foundCategory = categoryId
-          break
-        }
-      }
-
-      if (foundCategory) {
-        console.log('[Youth Flow] Auto-selecting category:', foundCategory, 'and config:', configId)
-        selectedCategory.value = foundCategory
-        selectedConfig.value = configId
-      } else {
-        console.warn('[Youth Flow] ConfigId not found in any category:', configId)
-      }
-    } catch (error) {
-      console.error('[Youth Flow] Initialization error:', error)
-    }
-  }
+const hasOutputs = computed(() => {
+  return outputs.value.length > 0
 })
 
 // ============================================================================
 // Methods
 // ============================================================================
 
-function selectCategory(categoryId: string) {
-  selectedCategory.value = categoryId
-  selectedConfig.value = null
-  // Don't clear interception or optimization results when changing category
-}
+async function executeWorkflow() {
+  if (!canExecute.value) return
 
-async function selectConfig(configId: string) {
-  // Only allow selection after interception is done
-  if (!areModelBubblesEnabled.value || isOptimizationLoading.value) return
-
-  selectedConfig.value = configId
-
-  // Automatically trigger optimization
-  await runOptimization()
-}
-
-async function runInterception() {
-  isInterceptionLoading.value = true
+  isExecuting.value = true
+  outputs.value = [] // Clear previous outputs
 
   try {
-    // TODO: Call optimize_t5_prompt and optimize_clip_prompt chunks
-    // For now, simulate the split prompts
-    // In production, this should call /api/chunk/execute or similar for chunks 1 & 2
-
-    // Placeholder: Parse input and create T5/CLIP versions
-    setTimeout(() => {
-      // T5: Semantic expansion (simulated)
-      t5Prompt.value = `${inputText.value} - expanded with semantic context, atmospheric details, and spatial relationships for T5 encoder understanding (max 250 words)`
-
-      // CLIP: Visual optimization (simulated)
-      clipPrompt.value = `${inputText.value.split(' ').slice(0, 10).join(', ')} - visual tokens optimized for CLIP (max 75 tokens)`
-
-      // Alpha: Calculated based on complexity (simulated)
-      alphaValue.value = 0.25
-
-      executionPhase.value = 'interception_done'
-      isInterceptionLoading.value = false
-
-      console.log('[Surrealization] T5 and CLIP prompts generated')
-    }, 1500)
-
-  } catch (error: any) {
-    console.error('[Surrealization] Prompt generation error:', error)
-    alert(`Fehler: ${error.message}`)
-    isInterceptionLoading.value = false
-  }
-}
-
-async function runOptimization() {
-  isOptimizationLoading.value = true
-
-  try {
-    // Call 2: Optimization WITH output_config and interception_result
-    const response = await axios.post('/api/schema/pipeline/stage2', {
-      schema: pipelineStore.selectedConfig?.id || 'overdrive',
-      input_text: interceptionResult.value,  // Use interception result as input
-      context_prompt: contextPrompt.value || undefined,
-      user_language: 'de',
-      safety_level: 'youth',
-      output_config: selectedConfig.value  // NOW include output_config for optimization
-      // NO execution_mode - models come from config.py
+    // Call 4-stage pipeline with direct workflow execution
+    // Stage 1: Translation
+    // Skip Stage 2 (no interception for direct workflows)
+    // Stage 3: Safety check
+    // Stage 4: Legacy workflow execution
+    const response = await axios.post('/api/schema/pipeline/execute', {
+      schema: 'direct_workflow', // Special config for direct execution
+      input_text: inputText.value,
+      safety_level: 'open', // Direct workflows use open safety level
+      output_config: selectedOutputConfig.value,
+      user_language: 'de'
     })
 
-    if (response.data.success) {
-      // Use optimized_prompt if available (2-phase), otherwise stage2_result (backward compat)
-      optimizedPrompt.value = response.data.optimized_prompt || response.data.stage2_result || ''
-      hasOptimization.value = response.data.optimization_applied || false  // Track if optimization was applied
-      executionPhase.value = 'optimization_done'
-      console.log('[2-Phase] Optimization complete:', optimizedPrompt.value.substring(0, 60), '| Optimization applied:', hasOptimization.value)
+    if (response.data.status === 'success') {
+      // Get run_id to fetch all entities
+      const runId = response.data.run_id
+
+      if (runId) {
+        // Fetch all entities from pipeline recorder
+        await fetchAllOutputs(runId)
+      } else {
+        console.error('[Direct] No run_id in response')
+        alert('Fehler: Keine run_id erhalten')
+      }
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
   } catch (error: any) {
-    console.error('[2-Phase] Optimization error:', error)
+    console.error('[Direct] Execution error:', error)
     const errorMessage = error.response?.data?.error || error.message
     alert(`Fehler: ${errorMessage}`)
   } finally {
-    isOptimizationLoading.value = false
+    isExecuting.value = false
   }
 }
 
-async function startSurrealizationGeneration() {
-  if (!t5Prompt.value || !clipPrompt.value) {
-    alert('Bitte warte bis die Prompts generiert wurden')
-    return
-  }
-
-  isGenerating.value = true
-  isPipelineExecuting.value = true
-
+async function fetchAllOutputs(runId: string) {
   try {
-    // Call surrealization_output pipeline with T5 and CLIP prompts
-    // TODO: Implement API call to execute Stage 4 with custom placeholders
-    console.log('[Surrealization] Starting dual-encoder fusion with:')
-    console.log('  T5 Prompt:', t5Prompt.value)
-    console.log('  CLIP Prompt:', clipPrompt.value)
-    console.log('  Alpha:', alphaValue.value)
+    // Fetch entities metadata
+    const entitiesResponse = await axios.get(`/api/pipeline/${runId}/entities`)
+    const entities = entitiesResponse.data.entities || []
 
-    // Simulate image generation
-    await executePipeline()
-  } catch (error: any) {
-    console.error('[Surrealization] Generation error:', error)
-    alert(`Fehler: ${error.message}`)
-  } finally {
-    isGenerating.value = false
-  }
-}
+    console.log('[Direct] Entities:', entities)
 
-async function executePipeline() {
-  // Reset UI state for fresh generation
-  outputImage.value = ''  // Clear previous image
-  showSafetyApprovedStamp.value = false  // Reset safety stamp
-  generationProgress.value = 0  // Reset progress
-
-  // Stage 1: Safety check (silent, shows stamp when complete)
-  await new Promise(resolve => setTimeout(resolve, 300))
-  showSafetyApprovedStamp.value = true
-
-  // Stage 2: Generation with progress simulation
-
-  const progressInterval = setInterval(() => {
-    if (generationProgress.value < 85) {
-      generationProgress.value += Math.random() * 15
-      if (generationProgress.value > 85) {
-        generationProgress.value = 85
+    // Process each entity and add to outputs
+    for (const entity of entities) {
+      const output = await processEntity(runId, entity)
+      if (output) {
+        outputs.value.push(output)
       }
     }
-  }, 500)
+  } catch (error: any) {
+    console.error('[Direct] Error fetching outputs:', error)
+  }
+}
 
+async function processEntity(runId: string, entity: any): Promise<WorkflowOutput | null> {
   try {
-    const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: pipelineStore.selectedConfig?.id || 'overdrive',
-      input_text: inputText.value,
-      interception_result: optimizedPrompt.value,  // Use optimized prompt (not raw interception)
-      context_prompt: contextPrompt.value || undefined,
-      user_language: 'de',
-      safety_level: 'youth',
-      output_config: selectedConfig.value
-      // NO execution_mode - models come from config.py
+    const entityType = entity.type
+    const filename = entity.filename
+
+    // Skip input/translation/safety entities (only show workflow outputs)
+    if (['input', 'translation', 'safety', 'safety_pre_output'].includes(entityType)) {
+      return null
+    }
+
+    // Fetch entity content
+    const response = await axios.get(`/api/pipeline/${runId}/entity/${entityType}`, {
+      responseType: 'blob' // Get as blob to handle binary data
     })
 
-    clearInterval(progressInterval)
+    const contentType = response.headers['content-type']
 
-    if (response.data.status === 'success') {
-      // Complete progress
-      generationProgress.value = 100
-
-      // Get run_id from response to construct image URL
-      const runId = response.data.media_output?.run_id || response.data.run_id
-      if (runId) {
-        // Use Vite proxy path: /api/media/image/{run_id}
-        outputImage.value = `/api/media/image/${runId}`
-        executionPhase.value = 'generation_done'
-      } else if (response.data.outputs && response.data.outputs.length > 0) {
-        // Fallback: use outputs array
-        outputImage.value = `http://localhost:17802${response.data.outputs[0]}`
-        executionPhase.value = 'generation_done'
+    // Determine output type from content-type
+    if (contentType.startsWith('image/')) {
+      // Image output
+      const url = URL.createObjectURL(response.data)
+      return {
+        type: 'image',
+        filename,
+        url
+      }
+    } else if (contentType.includes('application/json')) {
+      // JSON output
+      const text = await response.data.text()
+      return {
+        type: 'json',
+        filename,
+        content: text
+      }
+    } else if (contentType.includes('text/')) {
+      // Text output
+      const text = await response.data.text()
+      return {
+        type: 'text',
+        filename,
+        content: text
       }
     } else {
-      alert(`Generation fehlgeschlagen: ${response.data.error}`)
-      generationProgress.value = 0
+      // Unknown type
+      return {
+        type: 'unknown',
+        filename
+      }
     }
   } catch (error: any) {
-    clearInterval(progressInterval)
-    console.error('Pipeline error:', error)
-    const errorMessage = error.response?.data?.error || error.message
-    alert(`Fehler: ${errorMessage}`)
-    generationProgress.value = 0
-  } finally {
-    isPipelineExecuting.value = false
+    console.error(`[Direct] Error processing entity:`, error)
+    return null
   }
 }
 
-function showImageFullscreen(imageUrl: string) {
-  fullscreenImage.value = imageUrl
-}
-
-function handleContextPromptEdit() {
-  pipelineStore.updateMetaPrompt(contextPrompt.value)
-  console.log('[Youth Flow] Context prompt edited:', contextPrompt.value.substring(0, 50) + '...')
-}
-
-function autoResizeTextarea(textarea: HTMLTextAreaElement | null) {
-  if (!textarea) return
-  textarea.style.height = 'auto'
-  // Add 4px buffer to prevent text cutoff
-  textarea.style.height = (textarea.scrollHeight + 4) + 'px'
-}
-
-// Watch metaPrompt changes and sync to local state
-watch(() => pipelineStore.metaPrompt, (newMetaPrompt) => {
-  if (newMetaPrompt !== contextPrompt.value) {
-    contextPrompt.value = newMetaPrompt || ''
-    console.log('[Youth Flow] Meta-prompt synced from store')
+function formatJSON(jsonString: string): string {
+  try {
+    const obj = JSON.parse(jsonString)
+    return JSON.stringify(obj, null, 2)
+  } catch {
+    return jsonString
   }
-})
+}
 
-// Auto-resize textareas when content changes
-watch(interceptionResult, async (newValue) => {
-  await nextTick()
-  autoResizeTextarea(interceptionTextareaRef.value)
-
-  // Auto-advance phase when manual text is entered
-  if (newValue.trim().length > 0 && executionPhase.value === 'initial') {
-    executionPhase.value = 'interception_done'
-  }
-})
-
-watch(optimizedPrompt, async () => {
-  await nextTick()
-  autoResizeTextarea(optimizationTextareaRef.value)
-})
+function showFullscreen(url: string) {
+  fullscreenImage.value = url
+}
 </script>
 
 <style scoped>
@@ -616,56 +317,47 @@ watch(optimizedPrompt, async () => {
    ============================================================================ */
 
 .direct-view {
-  position: fixed;
-  inset: 0;
+  min-height: 100vh;
   background: #0a0a0a;
   color: #ffffff;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  flex-direction: column;
 }
 
 /* ============================================================================
-   Page Header
+   Header
    ============================================================================ */
 
 .page-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 2rem;
-  padding: clamp(1rem, 2vh, 1.5rem) clamp(1rem, 3vw, 2rem);
+  padding: 1.5rem 2rem;
   background: rgba(10, 10, 10, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .page-title {
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
   margin: 0;
-  text-align: center;
   letter-spacing: 0.5px;
 }
 
 .return-button {
   position: absolute;
-  left: clamp(1rem, 3vw, 2rem);
-
-  padding: clamp(0.4rem, 1vw, 0.6rem) clamp(0.8rem, 2vw, 1.2rem);
+  left: 2rem;
+  padding: 0.6rem 1.2rem;
   background: rgba(30, 30, 30, 0.9);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   color: #ffffff;
-  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -675,459 +367,146 @@ watch(optimizedPrompt, async () => {
   border-color: rgba(102, 126, 234, 0.8);
   background: rgba(102, 126, 234, 0.2);
   transform: translateX(-4px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.return-button:active {
-  transform: translateX(-2px) scale(0.98);
 }
 
 /* ============================================================================
-   Phase 2a: Vertical Flow
+   Main Container
    ============================================================================ */
 
-.phase-2a {
-  max-width: clamp(320px, 90vw, 1100px);
-  max-height: 90vh;
+.main-container {
+  max-width: 1200px;
   width: 100%;
-  padding: clamp(1rem, 3vw, 2rem);
-  padding-top: clamp(5rem, 10vh, 7rem); /* Space for fixed header */
-
+  margin: 0 auto;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: clamp(1rem, 3vh, 2rem);
-
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* Section Titles */
-.section-title {
-  font-size: clamp(1rem, 2.5vw, 1.2rem);
-  font-weight: 700;
-  text-align: center;
-  margin: 0 0 1rem 0;
-  color: transparent;
-  -webkit-text-stroke: 2px #FFB300;
-  text-stroke: 2px #FFB300;
-  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6),
-               0 0 20px rgba(255, 179, 0, 0.4),
-               0 0 30px rgba(255, 179, 0, 0.2);
-  animation: neon-pulse 2s ease-in-out infinite;
-}
-
-@keyframes neon-pulse {
-  0%, 100% {
-    -webkit-text-stroke: 2px #FFB300;
-    text-stroke: 2px #FFB300;
-    text-shadow: 0 0 10px rgba(255, 179, 0, 0.6),
-                 0 0 20px rgba(255, 179, 0, 0.4),
-                 0 0 30px rgba(255, 179, 0, 0.2);
-  }
-  50% {
-    -webkit-text-stroke: 2px #FF8F00;
-    text-stroke: 2px #FF8F00;
-    text-shadow: 0 0 15px rgba(255, 143, 0, 0.8),
-                 0 0 30px rgba(255, 143, 0, 0.5),
-                 0 0 45px rgba(255, 143, 0, 0.3);
-  }
+  gap: 2rem;
 }
 
 /* ============================================================================
-   Section 1: Input + Context (Side by Side)
+   Sections
    ============================================================================ */
 
-.input-context-section {
+.input-section,
+.output-section {
   display: flex;
-  gap: clamp(1rem, 3vw, 2rem);
-  width: 100%;
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.bubble-card {
+.section-card {
   background: rgba(20, 20, 20, 0.9);
   border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: clamp(12px, 2vw, 20px);
-  padding: clamp(1rem, 2.5vw, 1.5rem);
+  border-radius: 16px;
+  padding: 1.5rem;
   transition: all 0.3s ease;
 }
 
-.bubble-card.filled {
-  border-color: rgba(102, 126, 234, 0.6);
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.bubble-card.required {
-  border-color: rgba(255, 193, 7, 0.6);
-  background: rgba(255, 193, 7, 0.05);
-  animation: pulse-required 2s ease-in-out infinite;
-}
-
-@keyframes pulse-required {
-  0%, 100% {
-    border-color: rgba(255, 193, 7, 0.6);
-  }
-  50% {
-    border-color: rgba(255, 193, 7, 0.9);
-  }
-}
-
-/* Expanded state for inline editing */
-.bubble-card.expanded {
-  min-height: clamp(200px, 30vh, 300px);
-  z-index: 100;
-  border-color: rgba(102, 126, 234, 0.8);
-  background: rgba(102, 126, 234, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Info bubble for no-optimization message */
-.info-bubble {
-  padding: 1rem 1.5rem;
-  margin: 1rem 0;
-  background: rgba(102, 126, 234, 0.1);
-  border: 2px solid rgba(102, 126, 234, 0.3);
-  border-radius: 12px;
+.card-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-.info-bubble .bubble-icon {
+.card-icon {
   font-size: 1.5rem;
-  flex-shrink: 0;
 }
 
-.info-bubble p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.input-bubble,
-.context-bubble {
-  flex: 0 1 480px;
-  width: 480px;
-}
-
-.bubble-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.bubble-icon {
-  font-size: clamp(1.25rem, 3vw, 1.5rem);
-  flex-shrink: 0;
-}
-
-.bubble-label {
-  font-size: clamp(0.9rem, 2vw, 1rem);
+.card-label {
+  font-size: 1.1rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
 }
 
-.bubble-textarea {
+/* ============================================================================
+   Input Elements
+   ============================================================================ */
+
+.input-textarea {
   width: 100%;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: white;
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  padding: clamp(0.5rem, 1.5vw, 0.75rem);
+  font-size: 1rem;
+  padding: 0.75rem;
   resize: vertical;
   font-family: inherit;
-  line-height: 1.4;
+  line-height: 1.5;
+  min-height: 150px;
 }
 
-.bubble-textarea:focus {
+.input-textarea:focus {
   outline: none;
   border-color: rgba(102, 126, 234, 0.8);
   background: rgba(0, 0, 0, 0.4);
 }
 
-.bubble-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.auto-resize-textarea {
-  overflow-y: hidden;
-  min-height: clamp(120px, 15vh, 150px);
-  max-height: clamp(300px, 40vh, 500px);
-  resize: none;
-  padding: clamp(0.75rem, 2vw, 1rem) clamp(0.75rem, 2vw, 1rem);
-}
-
-/* Expanded textarea (inline editing) - unused, kept for potential future use */
-.expanded-textarea {
+.config-select {
   width: 100%;
-  min-height: clamp(120px, 20vh, 180px);
-  background: rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(102, 126, 234, 0.6);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: white;
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  padding: clamp(0.75rem, 2vw, 1rem);
-  resize: vertical;
+  font-size: 1rem;
+  padding: 0.75rem;
+  cursor: pointer;
   font-family: inherit;
-  line-height: 1.5;
-  transition: all 0.2s ease;
 }
 
-.expanded-textarea:focus {
+.config-select:focus {
   outline: none;
-  border-color: rgba(102, 126, 234, 0.9);
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.expanded-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-/* Context Preview Area */
-.preview-area {
-  min-height: clamp(60px, 10vh, 80px);
-  cursor: pointer;
-  padding: clamp(0.5rem, 1.5vw, 0.75rem);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.2);
-  transition: background 0.2s ease;
-  margin-bottom: 0.75rem;
-}
-
-.preview-area:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.preview-area.large {
-  min-height: clamp(80px, 12vh, 100px);
-}
-
-.preview-text {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
-  line-height: 1.5;
-  margin: 0;
-}
-
-.placeholder-text {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
-  font-style: italic;
-  margin: 0;
+  border-color: rgba(102, 126, 234, 0.8);
 }
 
 /* ============================================================================
-   Section 2: Category Bubbles (Horizontal Row)
+   Execute Button
    ============================================================================ */
 
-.category-section {
+.execute-button {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.category-bubbles-row {
-  display: flex;
-  flex-direction: row;
-  gap: clamp(1rem, 2.5vw, 1.5rem);
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.category-bubble {
-  width: clamp(70px, 12vw, 90px);
-  height: clamp(70px, 12vw, 90px);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: rgba(30, 30, 30, 0.9);
-  border: 3px solid var(--bubble-color, rgba(255, 255, 255, 0.3));
-  border-radius: 50%;
-
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.category-bubble:hover {
-  transform: scale(1.08);
-  box-shadow: 0 0 20px var(--bubble-color);
-  border-width: 4px;
+.execute-button:hover:not(.disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
-.category-bubble.selected {
-  transform: scale(1.15);
-  background: var(--bubble-color);
-  box-shadow: 0 0 30px var(--bubble-color),
-              0 0 60px var(--bubble-color);
-  border-color: #ffffff;
-}
-
-.category-bubble:focus-visible {
-  outline: 3px solid rgba(102, 126, 234, 0.8);
-  outline-offset: 4px;
-}
-
-.category-bubble:active {
-  transform: scale(0.95);
-}
-
-.category-bubble.disabled {
-  opacity: 0.3;
+.execute-button.disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-  pointer-events: none;
-  filter: grayscale(1);
-}
-
-.bubble-emoji-small {
-  font-size: clamp(2rem, 4.5vw, 2.5rem);
-  line-height: 1;
-  transition: filter 0.3s ease;
-}
-
-.category-bubble.selected .bubble-emoji-small {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  box-shadow: none;
 }
 
 /* ============================================================================
-   Section 3: Config Bubbles (Horizontal Row Below Categories)
+   Loading State
    ============================================================================ */
 
-.config-section {
-  width: 100%;
+.loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
-}
-
-.config-bubbles-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.config-bubbles-row {
-  display: inline-flex;
-  flex-direction: row;
-  gap: clamp(0.75rem, 2vw, 1rem);
-  justify-content: center;
-  flex-wrap: wrap;
-  /* Configs centered below selected category */
-  max-width: fit-content;
-}
-
-.config-bubble {
-  position: relative;
-  width: clamp(80px, 12vw, 100px);
-  height: clamp(80px, 12vw, 100px);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: rgba(30, 30, 30, 0.9);
-  border: 3px solid var(--bubble-color, rgba(255, 255, 255, 0.3));
-  border-radius: 50%;
-
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  outline: none;
-}
-
-.config-bubble:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px var(--bubble-color);
-}
-
-.config-bubble.selected {
-  transform: scale(1.1);
-  background: var(--bubble-color);
-  box-shadow: 0 0 30px var(--bubble-color);
-  border-color: #ffffff;
-}
-
-.config-bubble.loading {
-  pointer-events: none;
-  opacity: 0.7;
-}
-
-.config-bubble.disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  pointer-events: none;
-  filter: grayscale(0.8);
-}
-
-.bubble-emoji-medium {
-  font-size: clamp(2.5rem, 5vw, 3.5rem);
-  line-height: 1;
-}
-
-.bubble-logo {
-  width: clamp(72px, 11vw, 92px);
-  height: clamp(72px, 11vw, 92px);
-  object-fit: contain;
-}
-
-.config-bubble.light-bg {
-  background: rgba(255, 255, 255, 0.95);
-}
-
-.config-bubble.light-bg .bubble-label-medium {
-  color: #0a0a0a;
-}
-
-.config-bubble.light-bg.selected {
-  background: var(--bubble-color);
-}
-
-.config-bubble.light-bg.selected .bubble-label-medium {
-  color: #0a0a0a;
-}
-
-.bubble-label-medium {
-  position: absolute;
-  bottom: clamp(6px, 1.2vw, 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 95%;
-  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  text-align: center;
-  line-height: 1.1;
-  white-space: pre-line;
-}
-
-.config-bubble.selected .bubble-label-medium {
-  color: #0a0a0a;
-}
-
-.loading-indicator {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 50%;
+  padding: 3rem;
 }
 
 .spinner {
-  width: clamp(20px, 3vw, 28px);
-  height: clamp(20px, 3vw, 28px);
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #ffffff;
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #667eea;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1136,490 +515,37 @@ watch(optimizedPrompt, async () => {
   to { transform: rotate(360deg); }
 }
 
-/* ============================================================================
-   Section 3 & 3.5: Interception + Optimization Preview
-   ============================================================================ */
-
-/* Split Prompts Section (T5 + CLIP) */
-.split-prompts-section {
-  width: 100%;
-  display: flex;
-  gap: 2rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.t5-prompt,
-.clip-prompt {
-  flex: 1;
-  min-width: 300px;
-  max-width: 500px;
-  background: rgba(76, 175, 80, 0.15);
-  border: 3px solid #4a8f4d;
-  box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
-  transition: all 0.3s ease;
-}
-
-.t5-prompt.empty,
-.clip-prompt.empty {
-  background: rgba(20, 20, 20, 0.5);
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-  box-shadow: none;
-}
-
-.explanation-bubble {
-  width: 100%;
-  max-width: 1000px;
-  background: rgba(33, 150, 243, 0.1);
-  border: 2px solid rgba(33, 150, 243, 0.3);
-}
-
-.explanation-text {
-  padding: 1rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.explanation-text ul {
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-}
-
-.explanation-text li {
-  margin: 0.5rem 0;
-}
-
-.interception-preview {
-  width: 100%;
-  max-width: 1000px;
-  background: rgba(76, 175, 80, 0.15);
-  border: 3px solid #4a8f4d;
-  box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
-  transition: all 0.3s ease;
-}
-
-.optimization-preview {
-  width: 100%;
-  max-width: 1000px;
-  background: rgba(255, 152, 0, 0.15);
-  border: 3px solid #FF9800;
-  box-shadow: 0 0 30px rgba(255, 152, 0, 0.4);
-  transition: all 0.3s ease;
-}
-
-.interception-preview.empty,
-.optimization-preview.empty {
-  background: rgba(20, 20, 20, 0.5);
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-  box-shadow: none;
-}
-
-.interception-preview.loading,
-.optimization-preview.loading {
-  background: rgba(20, 20, 20, 0.7);
-  border: 2px solid rgba(79, 172, 254, 0.4);
-  box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
-}
-
-.interception-preview .bubble-label,
-.optimization-preview .bubble-label {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.interception-preview.empty .bubble-label,
-.interception-preview.loading .bubble-label,
-.optimization-preview.empty .bubble-label,
-.optimization-preview.loading .bubble-label {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.interception-preview .bubble-textarea,
-.optimization-preview .bubble-textarea {
-  background: rgba(0, 0, 0, 0.3);
-  color: white;
-}
-
-.interception-preview.empty .bubble-textarea,
-.optimization-preview.empty .bubble-textarea {
-  background: rgba(0, 0, 0, 0.3);
-  color: rgba(255, 255, 255, 0.5);
-  cursor: not-allowed;
-}
-
-.preview-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 2rem;
-  min-height: 120px;
-}
-
-.spinner-large {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #4facfe;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
 .loading-text {
   color: rgba(255, 255, 255, 0.8);
-  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-size: 1rem;
   margin: 0;
 }
 
 /* ============================================================================
-   Start Button Container
+   Outputs Container
    ============================================================================ */
 
-.start-button-container {
+.outputs-container {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(1rem, 3vw, 2rem);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-/* ============================================================================
-   Start Button
-   ============================================================================ */
-
-.start-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(0.5rem, 1.5vw, 0.75rem);
-  padding: clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.5rem);
-  font-size: clamp(1rem, 2.5vw, 1.2rem);
-  font-weight: 700;
-  background: #000000;
-  color: #FFB300;
-  border: 3px solid #FFB300;
-  border-radius: 16px;
-  cursor: pointer;
-  box-shadow: 0 0 20px rgba(255, 179, 0, 0.4),
-              0 4px 15px rgba(0, 0, 0, 0.5);
-  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6);
-  transition: all 0.3s ease;
-}
-
-.button-arrows {
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
-}
-
-.button-arrows-left {
-  animation: arrow-pulse-left 1.5s ease-in-out infinite;
-}
-
-.button-arrows-right {
-  animation: arrow-pulse-right 1.5s ease-in-out infinite;
-}
-
-.button-text {
-  font-size: clamp(1rem, 2.5vw, 1.2rem);
-}
-
-@keyframes arrow-pulse-left {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-}
-
-@keyframes arrow-pulse-right {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-  50% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-}
-
-.start-button:hover {
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 0 30px rgba(255, 179, 0, 0.6),
-              0 6px 25px rgba(0, 0, 0, 0.6);
-  border-color: #FF8F00;
-}
-
-.start-button:active {
-  transform: scale(0.98);
-}
-
-.start-button.disabled,
-.start-button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  pointer-events: none;
-  filter: grayscale(0.8);
-  box-shadow: none;
-  text-shadow: none;
-}
-
-.start-button.disabled .button-arrows,
-.start-button:disabled .button-arrows {
-  animation: none;
-  opacity: 0.3;
-}
-
-/* Safety Approved Stamp */
-.safety-stamp {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.stamp-inner {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
-  background: rgba(76, 175, 80, 0.15);
-  border: 2px solid #4CAF50;
+.output-item {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
-  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 1rem;
 }
 
-@keyframes stamp-appear {
-  0% {
-    opacity: 0;
-    transform: scale(0.5) rotate(-10deg);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-.stamp-icon {
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
-  color: #4CAF50;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.stamp-text {
-  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
-  font-weight: 700;
-  color: #4CAF50;
+/* Image Output */
+.output-image-wrapper {
   text-align: center;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* ============================================================================
-   Phase 2b: Horizontal Pipeline
-   ============================================================================ */
-
-.phase-2b {
-  width: 100%;
-  max-width: clamp(800px, 90vw, 1200px);
-  padding: clamp(2rem, 5vh, 3rem);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(2rem, 4vh, 3rem);
-}
-
-.pipeline-title {
-  text-align: center;
-  font-size: clamp(1.3rem, 3vw, 1.8rem);
-  color: #ffffff;
-  margin: 0;
-}
-
-.pipeline-stages {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(1rem, 2vw, 2rem);
-  flex-wrap: wrap;
-}
-
-.stage-container {
-  display: flex;
-  align-items: center;
-  gap: clamp(0.5rem, 1vw, 1rem);
-}
-
-.stage-bubble {
-  position: relative;
-  width: clamp(70px, 12vw, 90px);
-  height: clamp(70px, 12vw, 90px);
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  background: rgba(30, 30, 30, 0.9);
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-
-  transition: all 0.4s ease;
-}
-
-.stage-bubble.waiting {
-  opacity: 0.5;
-}
-
-.stage-bubble.processing {
-  border-color: var(--stage-color);
-  box-shadow: 0 0 20px var(--stage-color);
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.stage-bubble.completed {
-  border-color: #4CAF50;
-  background: rgba(76, 175, 80, 0.1);
-  box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px var(--stage-color);
-  }
-  50% {
-    box-shadow: 0 0 40px var(--stage-color);
-  }
-}
-
-.stage-emoji {
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
-  line-height: 1;
-}
-
-.stage-label {
-  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  text-align: center;
-}
-
-.status-indicator {
-  position: absolute;
-  bottom: clamp(8px, 1.5vw, 12px);
-  right: clamp(8px, 1.5vw, 12px);
-  width: clamp(20px, 3vw, 28px);
-  height: clamp(20px, 3vw, 28px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-}
-
-.status-spinner {
-  width: clamp(16px, 2.5vw, 20px);
-  height: clamp(16px, 2.5vw, 20px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top-color: var(--stage-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.status-check {
-  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
-  color: #4CAF50;
-  font-weight: bold;
-}
-
-.stage-arrow {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  color: rgba(255, 255, 255, 0.4);
-}
-
-/* Output Frame (Always visible) */
-.output-frame {
-  width: 100%;
-  max-width: 1000px;
-  min-height: clamp(250px, 35vh, 400px);
-  margin: clamp(1rem, 3vh, 2rem) auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(1.5rem, 3vh, 2rem);
-  background: rgba(30, 30, 30, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: clamp(12px, 2vw, 20px);
-  transition: all 0.3s ease;
-}
-
-.output-frame.empty {
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  background: rgba(20, 20, 20, 0.5);
-}
-
-.output-frame.generating {
-  border: 2px solid rgba(76, 175, 80, 0.6);
-  background: rgba(30, 30, 30, 0.9);
-  box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
-}
-
-/* Output Placeholder */
-.output-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  opacity: 0.4;
-}
-
-.placeholder-icon {
-  font-size: clamp(3rem, 8vw, 5rem);
-  opacity: 0.5;
-}
-
-.placeholder-text {
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-  margin: 0;
-}
-
-/* Generation Animation Container */
-.generation-animation-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-/* Final Output */
-.final-output {
-  width: 100%;
-  text-align: center;
-}
-
-.final-output h3 {
-  margin: 0 0 1.5rem 0;
-  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
-  color: #4CAF50;
 }
 
 .output-image {
   max-width: 100%;
-  max-height: clamp(300px, 40vh, 500px);
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
   cursor: pointer;
   transition: transform 0.3s ease;
 }
@@ -1628,7 +554,73 @@ watch(optimizedPrompt, async () => {
   transform: scale(1.02);
 }
 
-/* Fullscreen Modal */
+.output-caption {
+  margin-top: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+/* Text Output */
+.output-text-wrapper,
+.output-json-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.text-header,
+.json-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.text-icon,
+.json-icon {
+  font-size: 1.2rem;
+}
+
+.text-filename,
+.json-filename {
+  font-weight: 600;
+}
+
+.output-text,
+.output-json {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Unknown Output */
+.output-unknown-wrapper {
+  text-align: center;
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.unknown-type {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.unknown-filename {
+  font-size: 0.9rem;
+}
+
+/* ============================================================================
+   Fullscreen Modal
+   ============================================================================ */
+
 .fullscreen-modal {
   position: fixed;
   inset: 0;
@@ -1646,7 +638,6 @@ watch(optimizedPrompt, async () => {
   max-height: 90vh;
   object-fit: contain;
   border-radius: 8px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .close-fullscreen {
@@ -1676,69 +667,6 @@ watch(optimizedPrompt, async () => {
    Transitions
    ============================================================================ */
 
-/* Slide Down */
-.slide-down-enter-active {
-  animation: slideDown 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Slide Up */
-.slide-up-enter-active {
-  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Fade */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-/* Phase Transition */
-.phase-transition-leave-active {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.phase-transition-enter-active {
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
-}
-
-.phase-transition-leave-to {
-  opacity: 0;
-  transform: scale(0.95) translateY(-20px);
-}
-
-.phase-transition-enter-from {
-  opacity: 0;
-  transform: scale(0.95) translateY(20px);
-}
-
-/* Modal Fade */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
   transition: opacity 0.3s ease;
@@ -1750,50 +678,20 @@ watch(optimizedPrompt, async () => {
 }
 
 /* ============================================================================
-   Scrollbar Styling
-   ============================================================================ */
-
-.phase-2a::-webkit-scrollbar {
-  width: 8px;
-}
-
-.phase-2a::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-}
-
-.phase-2a::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-
-.phase-2a::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* ============================================================================
-   Responsive: Mobile Adjustments
+   Responsive
    ============================================================================ */
 
 @media (max-width: 768px) {
-  .input-context-section {
-    flex-direction: column;
+  .main-container {
+    padding: 1rem;
   }
 
-  .pipeline-stages {
-    flex-direction: column;
+  .return-button {
+    left: 1rem;
   }
 
-  .stage-arrow {
-    transform: rotate(90deg);
-  }
-}
-
-/* iPad 1024×768 Optimization */
-@media (min-width: 1024px) and (max-height: 768px) {
-  .phase-2a {
-    padding: 1.5rem;
-    gap: 1.25rem;
+  .page-title {
+    font-size: 1.2rem;
   }
 }
 </style>

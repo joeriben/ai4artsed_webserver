@@ -99,6 +99,7 @@ STAGE1_VISION_MODEL = LOCAL_VISION_MODEL                  # Stage 1: Image analy
 STAGE2_INTERCEPTION_MODEL = REMOTE_FAST_MODEL         # Stage 2: Prompt interception (complex task)
 STAGE2_OPTIMIZATION_MODEL = REMOTE_FAST_MODEL         # Stage 2: Prompt optimization (complex task)
 STAGE3_MODEL = REMOTE_FAST_MODEL                          # Stage 3: Translation and final safety check (simple task)
+STAGE4_LEGACY_MODEL = REMOTE_FAST_MODEL               #for legacy workflow execution
 
 # Legacy Model Configuration
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama

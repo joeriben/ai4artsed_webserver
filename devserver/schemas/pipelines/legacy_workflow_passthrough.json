@@ -8,11 +8,9 @@
     "texts": 1
   },
   "chunks": [
-    "output_legacy_workflow"
+    "output_legacy"
   ],
-  "config_mappings": {
-    "output_legacy_workflow": "{{OUTPUT_CHUNK}}"
-  },
+  "config_mappings": {},
   "meta": {
     "version": "1.0",
     "description_de": "Legacy-Workflow-Passthrough: Direkte Ausführung kompletter ComfyUI-Workflows",

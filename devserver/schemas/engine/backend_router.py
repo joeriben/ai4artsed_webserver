@@ -637,107 +637,55 @@ class BackendRouter:
             BackendResponse with workflow_generated marker and filesystem paths
         """
         try:
+            from my_app.services.legacy_workflow_service import get_legacy_workflow_service
+
             chunk_name = chunk.get('name', 'unknown')
+            media_type = chunk.get('media_type', 'image')
+
             logger.info(f"[LEGACY-WORKFLOW] Processing legacy workflow: {chunk_name}")
 
-            # 1. Load complete workflow from chunk
+            # Get workflow from chunk
             workflow = chunk.get('workflow')
             if not workflow:
                 return BackendResponse(
                     success=False,
                     content="",
-                    error=f"No workflow found in legacy chunk '{chunk_name}'"
+                    error="No workflow definition in legacy chunk"
                 )
 
-            # 2. Get legacy_config for prompt injection settings
-            legacy_config = chunk.get('legacy_config', {})
-            prompt_injection_config = legacy_config.get('prompt_injection', {})
-            output_config = legacy_config.get('output_handling', {})
-
-            # 3. Inject prompt using legacy title-based search
-            workflow, injection_success = self._inject_legacy_prompt(
-                workflow,
-                prompt,
-                prompt_injection_config
+            # Execute via service (submit → poll → download)
+            service = get_legacy_workflow_service()
+            result = await service.execute_workflow(
+                workflow=workflow,
+                prompt=prompt,
+                chunk_config=chunk
             )
 
-            if not injection_success:
-                logger.warning(f"[LEGACY-WORKFLOW] Prompt injection failed for '{chunk_name}' - continuing anyway")
+            logger.info(f"[LEGACY-WORKFLOW] ✓ Completed: {len(result['media_files'])} file(s) downloaded")
 
-            # 4. Get SwarmUI client
-            import sys
-            from pathlib import Path
-            devserver_path = Path(__file__).parent.parent.parent
-            if str(devserver_path) not in sys.path:
-                sys.path.insert(0, str(devserver_path))
-
-            from my_app.services.swarmui_client import get_swarmui_client
-
-            client = get_swarmui_client()
-            is_healthy = await client.health_check()
-
-            if not is_healthy:
-                logger.error("[LEGACY-WORKFLOW] SwarmUI server not reachable")
-                return BackendResponse(
-                    success=False,
-                    content="",
-                    error="SwarmUI server not available"
-                )
-
-            # 5. Submit workflow via SwarmUI client (uses /ComfyBackendDirect/prompt)
-            logger.info(f"[LEGACY-WORKFLOW] Submitting workflow to SwarmUI")
-            prompt_id = await client.submit_workflow(workflow)
-
-            if not prompt_id:
-                return BackendResponse(
-                    success=False,
-                    content="",
-                    error="Failed to submit legacy workflow to SwarmUI"
-                )
-
-            logger.info(f"[LEGACY-WORKFLOW] Workflow submitted: {prompt_id}")
-
-            # 6. Wait for completion
-            timeout = parameters.get('timeout', 300)
-            history = await client.wait_for_completion(prompt_id, timeout=timeout)
-
-            if not history:
-                return BackendResponse(
-                    success=False,
-                    content="",
-                    error="Timeout or error waiting for legacy workflow completion"
-                )
-
-            logger.info(f"[LEGACY-WORKFLOW] Workflow completed: {prompt_id}")
-
-            # 7. Determine media type and output directory
-            media_type = chunk.get('media_type', 'image')
-            download_all = output_config.get('download_all', True)
-
-            # For now, return workflow_generated marker
-            # The pipeline_recorder will handle downloading ALL outputs
+            # Return with media files as binary data
             return BackendResponse(
                 success=True,
                 content="workflow_generated",
                 metadata={
                     'chunk_name': chunk_name,
                     'media_type': media_type,
-                    'prompt_id': prompt_id,
-                    'workflow_completed': True,
+                    'prompt_id': result['prompt_id'],
                     'legacy_workflow': True,
-                    'download_all': download_all,
-                    'workflow_json': workflow  # Store for archival
+                    'media_files': result['media_files'],  # Binary data!
+                    'outputs_metadata': result['outputs_metadata'],
+                    'workflow_json': result['workflow_json']
                 }
             )
 
         except Exception as e:
-            logger.error(f"Error processing legacy workflow: {e}")
+            logger.error(f"[LEGACY-WORKFLOW] Error: {e}")
             import traceback
             traceback.print_exc()
             return BackendResponse(
                 success=False,
                 content="",
-                error=f"Legacy workflow processing error: {str(e)}"
+                error=f"Legacy workflow error: {str(e)}"
             )
 
     def _inject_legacy_prompt(self, workflow: Dict[str, Any], prompt: str, config: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:

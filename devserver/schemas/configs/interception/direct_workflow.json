@@ -1,0 +1,73 @@
+{
+  "pipeline": "direct",
+  "instruction_type": "direct_workflow",
+  "name": {
+    "en": "Direct Workflow",
+    "de": "Direkter Workflow"
+  },
+  "description": {
+    "en": "Direct execution of legacy ComfyUI workflows without Stage 2 interception. Input is passed directly to Stage 3 (safety) and Stage 4 (workflow execution).",
+    "de": "Direkte Ausführung von Legacy-ComfyUI-Workflows ohne Stage-2-Interception. Input wird direkt an Stage 3 (Safety) und Stage 4 (Workflow-Ausführung) weitergegeben."
+  },
+  "category": {
+    "de": "System",
+    "en": "System"
+  },
+  "properties": [
+    "system"
+  ],
+  "context": {
+    "en": "This is a system config for direct workflow execution. No prompt transformation is performed.",
+    "de": "Dies ist eine System-Config für direkte Workflow-Ausführung. Keine Prompt-Transformation wird durchgeführt."
+  },
+  "parameters": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_tokens": 1
+  },
+  "media_preferences": {
+    "supported_types": [
+      "image",
+      "audio",
+      "video"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "skip_stage2": true,
+    "backend": "none",
+    "workflow_type": "passthrough",
+    "note": "Used by direct.vue for legacy workflow execution. Stage 2 is skipped completely.",
+    "system_config": true
+  },
+  "display": {
+    "icon": "⚡",
+    "color": "#607D8B",
+    "category": "system",
+    "difficulty": 5,
+    "order": 999,
+    "hidden": true
+  },
+  "tags": {
+    "en": [
+      "direct",
+      "legacy",
+      "passthrough",
+      "system"
+    ],
+    "de": [
+      "direkt",
+      "legacy",
+      "passthrough",
+      "system"
+    ]
+  },
+  "audience": {
+    "workshop_suitable": false,
+    "min_age": 18,
+    "complexity": "system",
+    "requires": [
+      "ComfyUI backend"
+    ]
+  }
+}

@@ -1549,14 +1549,16 @@ def execute_pipeline():
                                     ))
                                 elif output_value == 'workflow_generated':
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: workflow_generated")
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] Metadata keys: {list(output_result.metadata.keys())}")
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] legacy_workflow: {output_result.metadata.get('legacy_workflow', 'NOT_FOUND')}")
 
                                     # Check if this is a legacy workflow
                                     is_legacy_workflow = output_result.metadata.get('legacy_workflow', False)
                                     download_all = output_result.metadata.get('download_all', False)
 
                                     if is_legacy_workflow:
-                                        # Legacy workflow: download ALL outputs + save workflow JSON
-                                        logger.info(f"[4-STAGE] Legacy workflow detected - downloading ALL outputs")
+                                        # Legacy workflow: media files already downloaded by service
+                                        logger.info(f"[4-STAGE] Legacy workflow detected - saving media files")
 
                                         # 1. Save workflow JSON for reproducibility
                                         workflow_json = output_result.metadata.get('workflow_json')
@@ -1566,27 +1568,52 @@ def execute_pipeline():
                                                     workflow=workflow_json,
                                                     entity_type='workflow_archive'
                                                 )
-                                                logger.info(f"[RECORDER] ✓ Saved workflow JSON for legacy workflow")
+                                                logger.info(f"[RECORDER] ✓ Saved workflow JSON")
                                             except Exception as e:
                                                 logger.error(f"[RECORDER] Failed to save workflow JSON: {e}")
 
-                                        # 2. Download ALL outputs (not just first)
+                                        # 2. Save ALL media files (binary data from metadata)
+                                        media_files = output_result.metadata.get('media_files', [])
+                                        outputs_metadata = output_result.metadata.get('outputs_metadata', [])
                                         prompt_id = output_result.metadata.get('prompt_id')
-                                        if prompt_id:
-                                            try:
-                                                saved_filenames = asyncio.run(recorder.download_and_save_all_from_comfyui(
-                                                    prompt_id=prompt_id,
-                                                    media_type=media_type,
-                                                    config=output_config_name,
-                                                    seed=seed
-                                                ))
-                                                logger.info(f"[RECORDER] ✓ Downloaded {len(saved_filenames)} file(s) from legacy workflow")
-                                                saved_filename = saved_filenames[0] if saved_filenames else None
-                                            except Exception as e:
-                                                logger.error(f"[RECORDER] Failed to download legacy workflow outputs: {e}")
-                                                saved_filename = None
+
+                                        if media_files:
+                                            saved_filenames = []
+                                            for idx, file_data in enumerate(media_files):
+                                                try:
+                                                    # Get metadata for this file
+                                                    file_metadata = outputs_metadata[idx] if idx < len(outputs_metadata) else {}
+
+                                                    # Build metadata for recorder
+                                                    entity_metadata = {
+                                                        'config': output_config_name,
+                                                        'backend': 'comfyui_legacy',
+                                                        'prompt_id': prompt_id,
+                                                        'file_index': idx,
+                                                        'total_files': len(media_files),
+                                                        'node_id': file_metadata.get('node_id', 'unknown'),
+                                                        'original_filename': file_metadata.get('filename', 'unknown')
+                                                    }
+
+                                                    if seed is not None:
+                                                        entity_metadata['seed'] = seed
+
+                                                    # Save as entity
+                                                    filename = recorder.save_entity(
+                                                        entity_type=f'output_{media_type}',
+                                                        content=file_data,
+                                                        metadata=entity_metadata
+                                                    )
+                                                    saved_filenames.append(filename)
+                                                    logger.info(f"[RECORDER] ✓ Saved {media_type} {idx+1}/{len(media_files)}: {filename}")
+
+                                                except Exception as e:
+                                                    logger.error(f"[RECORDER] Failed to save file {idx+1}: {e}")
+
+                                            logger.info(f"[RECORDER] ✓ Saved {len(saved_filenames)}/{len(media_files)} file(s)")
+                                            saved_filename = saved_filenames[0] if saved_filenames else None
                                         else:
-                                            logger.error(f"[RECORDER] No prompt_id in metadata for legacy workflow")
+                                            logger.warning(f"[RECORDER] No media_files in metadata for legacy workflow")
                                             saved_filename = None
                                     else:
                                         # Standard workflow: single file from filesystem
