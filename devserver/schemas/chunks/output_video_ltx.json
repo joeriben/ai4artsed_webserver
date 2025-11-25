@@ -2,8 +2,17 @@
   "name": "output_video_ltx",
   "type": "output_chunk",
   "backend_type": "comfyui",
+  "execution_mode": "legacy_workflow",
   "media_type": "video",
   "description": "LTX-Video - Fast text-to-video generation with Lightricks LTX model",
+
+  "legacy_config": {
+    "prompt_injection": {
+      "target_title": "CLIP Text Encode (Positive Prompt)",
+      "fallback_node_id": "6",
+      "fallback_field": "text"
+    }
+  },
 
   "workflow": {
     "6": {
