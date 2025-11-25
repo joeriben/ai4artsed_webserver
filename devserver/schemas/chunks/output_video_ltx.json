@@ -6,100 +6,137 @@
   "description": "LTX-Video - Fast text-to-video generation with Lightricks LTX model",
 
   "workflow": {
-    "1": {
-      "inputs": {
-        "value": ""
-      },
-      "class_type": "PrimitiveString",
-      "_meta": {
-        "title": "positive_prompt"
-      }
-    },
-    "2": {
-      "inputs": {
-        "value": "blurry, distorted, bad quality, watermark, low resolution, flickering"
-      },
-      "class_type": "PrimitiveString",
-      "_meta": {
-        "title": "negative_prompt"
-      }
-    },
-    "3": {
-      "inputs": {
-        "ckpt_name": "ltx-video-2b-v0.9.safetensors"
-      },
-      "class_type": "LTXVCheckpointLoader",
-      "_meta": {
-        "title": "Load LTX-Video Model"
-      }
-    },
-    "4": {
-      "inputs": {
-        "width": 1216,
-        "height": 704,
-        "length": 121,
-        "batch_size": 1
-      },
-      "class_type": "LTXVImgToVideo",
-      "_meta": {
-        "title": "LTX Video Settings"
-      }
-    },
-    "5": {
-      "inputs": {
-        "seed": 123456789,
-        "steps": 25,
-        "cfg": 3.0,
-        "sampler_name": "euler",
-        "scheduler": "simple",
-        "denoise": 1.0,
-        "model": ["3", 0],
-        "positive": ["6", 0],
-        "negative": ["7", 0],
-        "latent_image": ["4", 0]
-      },
-      "class_type": "KSampler",
-      "_meta": {
-        "title": "Video Sampler"
-      }
-    },
     "6": {
       "inputs": {
-        "text": ["1", 0],
-        "clip": ["3", 1]
+        "text": "",
+        "clip": ["38", 0]
       },
       "class_type": "CLIPTextEncode",
       "_meta": {
-        "title": "Encode Positive Prompt"
+        "title": "CLIP Text Encode (Positive Prompt)"
       }
     },
     "7": {
       "inputs": {
-        "text": ["2", 0],
-        "clip": ["3", 1]
+        "text": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly",
+        "clip": ["38", 0]
       },
       "class_type": "CLIPTextEncode",
       "_meta": {
-        "title": "Encode Negative Prompt"
+        "title": "CLIP Text Encode (Negative Prompt)"
       }
     },
     "8": {
       "inputs": {
-        "samples": ["5", 0],
-        "vae": ["3", 2]
+        "samples": ["72", 0],
+        "vae": ["44", 2]
       },
       "class_type": "VAEDecode",
       "_meta": {
-        "title": "Decode Video Latents"
+        "title": "VAE Decode"
       }
     },
-    "9": {
+    "38": {
       "inputs": {
-        "filename_prefix": "LTXVideo",
-        "fps": 30,
+        "clip_name": "t5xxl_fp16.safetensors",
+        "type": "ltxv",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {
+        "title": "Load CLIP"
+      }
+    },
+    "44": {
+      "inputs": {
+        "ckpt_name": "ltxv-13b-0.9.7-distilled-fp8.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Load Checkpoint"
+      }
+    },
+    "69": {
+      "inputs": {
+        "frame_rate": 25,
+        "positive": ["6", 0],
+        "negative": ["7", 0]
+      },
+      "class_type": "LTXVConditioning",
+      "_meta": {
+        "title": "LTXVConditioning"
+      }
+    },
+    "70": {
+      "inputs": {
+        "width": 768,
+        "height": 512,
+        "length": 97,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLTXVLatentVideo",
+      "_meta": {
+        "title": "EmptyLTXVLatentVideo"
+      }
+    },
+    "71": {
+      "inputs": {
+        "steps": 6,
+        "max_shift": 2.05,
+        "base_shift": 0.95,
+        "stretch": true,
+        "terminal": 0.1,
+        "latent": ["70", 0]
+      },
+      "class_type": "LTXVScheduler",
+      "_meta": {
+        "title": "LTXVScheduler"
+      }
+    },
+    "72": {
+      "inputs": {
+        "add_noise": true,
+        "noise_seed": 123456789,
+        "cfg": 3,
+        "model": ["44", 0],
+        "positive": ["69", 0],
+        "negative": ["69", 1],
+        "sampler": ["73", 0],
+        "sigmas": ["71", 0],
+        "latent_image": ["70", 0]
+      },
+      "class_type": "SamplerCustom",
+      "_meta": {
+        "title": "SamplerCustom"
+      }
+    },
+    "73": {
+      "inputs": {
+        "sampler_name": "euler"
+      },
+      "class_type": "KSamplerSelect",
+      "_meta": {
+        "title": "KSamplerSelect"
+      }
+    },
+    "78": {
+      "inputs": {
+        "fps": 24,
         "images": ["8", 0]
       },
-      "class_type": "VHS_VideoCombine",
+      "class_type": "CreateVideo",
+      "_meta": {
+        "title": "Create Video"
+      }
+    },
+    "79": {
+      "inputs": {
+        "filename_prefix": "LTXVideo",
+        "format": "auto",
+        "codec": "auto",
+        "video": ["78", 0]
+      },
+      "class_type": "SaveVideo",
       "_meta": {
         "title": "Save Video"
       }
@@ -108,63 +145,63 @@
 
   "input_mappings": {
     "prompt": {
-      "node_id": "1",
-      "field": "inputs.value",
+      "node_id": "6",
+      "field": "inputs.text",
       "source": "{{PREVIOUS_OUTPUT}}",
       "description": "Video generation prompt"
     },
     "negative_prompt": {
-      "node_id": "2",
-      "field": "inputs.value",
-      "default": "blurry, distorted, bad quality, watermark, low resolution, flickering",
+      "node_id": "7",
+      "field": "inputs.text",
+      "default": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly",
       "description": "Negative prompt - what to avoid"
     },
     "width": {
-      "node_id": "4",
+      "node_id": "70",
       "field": "inputs.width",
-      "default": 1216,
-      "description": "Video width (recommended: 1216)"
+      "default": 768,
+      "description": "Video width (recommended: 768)"
     },
     "height": {
-      "node_id": "4",
+      "node_id": "70",
       "field": "inputs.height",
-      "default": 704,
-      "description": "Video height (recommended: 704)"
+      "default": 512,
+      "description": "Video height (recommended: 512)"
     },
     "frames": {
-      "node_id": "4",
+      "node_id": "70",
       "field": "inputs.length",
-      "default": 121,
-      "description": "Number of frames (121 frames = ~4 seconds at 30fps)"
+      "default": 97,
+      "description": "Number of frames (97 frames = ~4 seconds at 25fps)"
     },
     "steps": {
-      "node_id": "5",
+      "node_id": "71",
       "field": "inputs.steps",
-      "default": 25,
-      "description": "Sampling steps (higher = better quality, slower)"
+      "default": 6,
+      "description": "Sampling steps (distilled model uses 6)"
     },
     "cfg": {
-      "node_id": "5",
+      "node_id": "72",
       "field": "inputs.cfg",
       "default": 3.0,
       "description": "Classifier Free Guidance (how closely to follow prompt)"
     },
     "fps": {
-      "node_id": "9",
+      "node_id": "78",
       "field": "inputs.fps",
-      "default": 30,
+      "default": 24,
       "description": "Frames per second"
     },
     "seed": {
-      "node_id": "5",
-      "field": "inputs.seed",
+      "node_id": "72",
+      "field": "inputs.noise_seed",
       "default": 123456789,
       "description": "Seed for reproducibility"
     }
   },
 
   "output_mapping": {
-    "node_id": "9",
+    "node_id": "79",
     "output_type": "video",
     "format": "mp4",
     "field": "filename_prefix",
@@ -175,16 +212,16 @@
     "estimated_duration_seconds": "5-15",
     "requires_gpu": true,
     "gpu_vram_mb": 16000,
-    "model_file": "ltx-video-2b-v0.9.safetensors",
-    "recommended_resolution": "1216x704",
+    "model_file": "ltxv-13b-0.9.7-distilled-fp8.safetensors",
+    "recommended_resolution": "768x512",
     "supported_resolutions": [
       "768x512",
       "1216x704",
       "1024x576"
     ],
-    "recommended_frames": 121,
-    "supported_fps": [24, 30],
-    "notes": "LTX-Video is optimized for speed. Generates 4-second 30fps videos in ~5-10 seconds on RTX 4090. Resolution 1216x704 recommended.",
+    "recommended_frames": 97,
+    "supported_fps": [24, 25, 30],
+    "notes": "LTX-Video distilled FP8 model is optimized for speed. Generates 4-second videos in ~5-10 seconds on RTX 4090/5090. Uses 6 steps only.",
     "optimization_instruction": "Transform the INPUT TEXT into a clear, concise video generation prompt. Focus on: 1) Main subject and action, 2) Camera movement (if any), 3) Scene setting and environment, 4) Lighting and atmosphere, 5) Motion and dynamics. Keep it under 100 words. Be specific about movements and camera angles. Example: 'A red car driving down a winding mountain road at sunset, camera following from behind, warm golden light, smooth tracking shot, trees passing by on both sides.'"
   }
 }
