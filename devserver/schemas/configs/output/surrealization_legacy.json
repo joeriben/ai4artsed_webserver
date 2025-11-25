@@ -1,0 +1,35 @@
+{
+  "pipeline": "legacy_workflow_passthrough",
+  "name": {
+    "en": "Surrealization (Legacy)",
+    "de": "Surrealisierung (Legacy)"
+  },
+  "description": {
+    "en": "Complex surrealist image generation using legacy ComfyUI workflow. This workflow cannot be decomposed into DevServer's chunk system due to its intricate node connections and custom processing logic.",
+    "de": "Komplexe surrealistische Bildgenerierung mit Legacy-ComfyUI-Workflow. Dieser Workflow kann nicht in DevServers Chunk-System zerlegt werden aufgrund seiner komplexen Node-Verbindungen und benutzerdefinierten Verarbeitungslogik."
+  },
+  "parameters": {
+    "OUTPUT_CHUNK": "legacy_surrealization"
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+  "meta": {
+    "stage": "output",
+    "backend": "comfyui",
+    "backend_type": "comfyui",
+    "execution_mode": "legacy_workflow",
+    "workflow_type": "complex_multinode",
+    "requires_gpu": true,
+    "estimated_duration_seconds": "30-90",
+    "version": "1.0",
+    "migration_status": "legacy_passthrough",
+    "notes": [
+      "Legacy workflow - uses complete ComfyUI API workflow JSON",
+      "Prompt injection via title-based node search (ai4artsed_text_prompt)",
+      "Downloads ALL workflow outputs (not just first)",
+      "Complete workflow JSON archived for reproducibility"
+    ]
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "name": "legacy_surrealization",
+  "type": "output_chunk",
+  "backend_type": "comfyui",
+  "execution_mode": "legacy_workflow",
+  "media_type": "image",
+  "description": "Legacy Surrealization workflow - complete ComfyUI workflow passthrough",
+  "workflow": {
+    "_comment": "PLACEHOLDER: Replace this with the complete Surrealization workflow from legacy server",
+    "_source": "/home/joerissen/ai/ai4artsed_webserver_legacy/workflows/vector/ai4artsed_Surrealization_2506092253.json",
+    "3": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": 805046654403287,
+        "steps": 25,
+        "cfg": 7.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1.0,
+        "model": ["4", 0],
+        "positive": ["6", 0],
+        "negative": ["52", 0],
+        "latent_image": ["5", 0]
+      }
+    },
+    "4": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "sd3.5_large.safetensors"
+      }
+    },
+    "5": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      }
+    },
+    "6": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "DEFAULT_POSITIVE_PROMPT",
+        "clip": ["54", 0]
+      }
+    },
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": ["3", 0],
+        "vae": ["4", 2]
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "ComfyUI",
+        "images": ["8", 0]
+      }
+    },
+    "52": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "nsfw, nude, explicit",
+        "clip": ["54", 0]
+      }
+    },
+    "54": {
+      "class_type": "DualCLIPLoader",
+      "inputs": {
+        "clip_name1": "clip_l.safetensors",
+        "clip_name2": "clip_g.safetensors"
+      }
+    },
+    "69": {
+      "class_type": "PrimitiveString",
+      "inputs": {
+        "value": "a surreal dreamlike landscape"
+      },
+      "_meta": {
+        "title": "ai4artsed_text_prompt"
+      }
+    }
+  },
+  "legacy_config": {
+    "source": "legacy_server_v1",
+    "original_file": "/home/joerissen/ai/ai4artsed_webserver_legacy/workflows/vector/ai4artsed_Surrealization_2506092253.json",
+    "migration_date": "2025-11-25",
+    "migration_note": "PLACEHOLDER workflow - replace with complete Surrealization workflow",
+    "prompt_injection": {
+      "method": "node_title_search",
+      "target_title": "ai4artsed_text_prompt",
+      "fallback_node_id": "6",
+      "fallback_field": "text"
+    },
+    "output_handling": {
+      "download_all": true,
+      "expected_outputs": 1,
+      "output_types": ["final_image"]
+    }
+  },
+  "meta": {
+    "version": "1.0",
+    "reason": "Complex surrealization workflow that cannot be cleanly chunked",
+    "complexity": "advanced",
+    "tested_with_swarmui": false,
+    "note": "This is a PLACEHOLDER. Replace 'workflow' field with complete Surrealization workflow JSON before production use."
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "legacy_workflow_passthrough",
+  "pipeline_stage": "4",
+  "requires_interception_prompt": false,
+  "description": "Legacy Workflow Passthrough Pipeline: Direct execution of complete ComfyUI workflows from legacy server",
+  "pipeline_type": "legacy_workflow_passthrough",
+  "input_requirements": {
+    "texts": 1
+  },
+  "chunks": [
+    "output_legacy_workflow"
+  ],
+  "config_mappings": {
+    "output_legacy_workflow": "{{OUTPUT_CHUNK}}"
+  },
+  "meta": {
+    "version": "1.0",
+    "description_de": "Legacy-Workflow-Passthrough: Direkte Ausführung kompletter ComfyUI-Workflows",
+    "description_en": "Legacy Workflow Passthrough: Direct execution of complete ComfyUI workflows",
+    "input_type": "single_text",
+    "output_types": ["image", "audio", "video"],
+    "backend_agnostic": false,
+    "backend_type": "comfyui_legacy_workflow",
+    "note": "For complex legacy workflows that cannot be decomposed into DevServer chunks. Uses complete workflow JSON with title-based prompt injection.",
+    "todo_2026": "Refactoring planned for Spring 2026: Move execution logic from backend_router into pipeline itself"
+  }
+}

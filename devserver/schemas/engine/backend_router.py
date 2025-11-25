@@ -301,8 +301,9 @@ class BackendRouter:
             )
 
     async def _process_output_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any]) -> BackendResponse:
-        """Process Output-Chunk: Route based on media type
+        """Process Output-Chunk: Route based on execution mode and media type
 
+        - Legacy Workflows: Use complete workflow passthrough with title-based prompt injection
         - Images: Use SwarmUI /API/GenerateText2Image (simple, fast)
         - Audio/Video: Use custom workflow submission via /ComfyBackendDirect
         """
@@ -317,9 +318,16 @@ class BackendRouter:
                 )
 
             media_type = chunk.get('media_type', 'image')
-            logger.info(f"Loaded Output-Chunk: {chunk_name} ({media_type} media)")
+            execution_mode = chunk.get('execution_mode', 'standard')
+            logger.info(f"Loaded Output-Chunk: {chunk_name} ({media_type} media, {execution_mode} mode)")
 
-            # 2. Route based on media type
+            # 2. Route based on execution mode first
+            if execution_mode == 'legacy_workflow':
+                # TODO (2026 Refactoring): Move this logic into pipeline itself
+                # Legacy workflow: complete workflow passthrough
+                return await self._process_legacy_workflow(chunk, prompt, parameters)
+
+            # 3. Then route based on media type (standard mode)
             if media_type == 'image':
                 # Use SwarmUI's simple Text2Image API
                 return await self._process_image_chunk_simple(chunk_name, prompt, parameters, chunk)
@@ -612,6 +620,187 @@ class BackendRouter:
                 content="",
                 error=f"Workflow chunk processing error: {str(e)}"
             )
+
+    async def _process_legacy_workflow(self, chunk: Dict[str, Any], prompt: str, parameters: Dict[str, Any]) -> BackendResponse:
+        """Process legacy workflow: Complete workflow passthrough with title-based prompt injection
+
+        TODO (2026 Refactoring): This logic should move into the pipeline itself.
+        Currently in backend_router due to historical architecture where execute-route
+        handles all special functions. Future: pipelines own their logic.
+
+        Args:
+            chunk: Legacy workflow chunk with complete ComfyUI workflow
+            prompt: User prompt (translated and safe from Stage 3)
+            parameters: Additional parameters
+
+        Returns:
+            BackendResponse with workflow_generated marker and filesystem paths
+        """
+        try:
+            chunk_name = chunk.get('name', 'unknown')
+            logger.info(f"[LEGACY-WORKFLOW] Processing legacy workflow: {chunk_name}")
+
+            # 1. Load complete workflow from chunk
+            workflow = chunk.get('workflow')
+            if not workflow:
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error=f"No workflow found in legacy chunk '{chunk_name}'"
+                )
+
+            # 2. Get legacy_config for prompt injection settings
+            legacy_config = chunk.get('legacy_config', {})
+            prompt_injection_config = legacy_config.get('prompt_injection', {})
+            output_config = legacy_config.get('output_handling', {})
+
+            # 3. Inject prompt using legacy title-based search
+            workflow, injection_success = self._inject_legacy_prompt(
+                workflow,
+                prompt,
+                prompt_injection_config
+            )
+
+            if not injection_success:
+                logger.warning(f"[LEGACY-WORKFLOW] Prompt injection failed for '{chunk_name}' - continuing anyway")
+
+            # 4. Get SwarmUI client
+            import sys
+            from pathlib import Path
+            devserver_path = Path(__file__).parent.parent.parent
+            if str(devserver_path) not in sys.path:
+                sys.path.insert(0, str(devserver_path))
+
+            from my_app.services.swarmui_client import get_swarmui_client
+
+            client = get_swarmui_client()
+            is_healthy = await client.health_check()
+
+            if not is_healthy:
+                logger.error("[LEGACY-WORKFLOW] SwarmUI server not reachable")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="SwarmUI server not available"
+                )
+
+            # 5. Submit workflow via SwarmUI client (uses /ComfyBackendDirect/prompt)
+            logger.info(f"[LEGACY-WORKFLOW] Submitting workflow to SwarmUI")
+            prompt_id = await client.submit_workflow(workflow)
+
+            if not prompt_id:
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="Failed to submit legacy workflow to SwarmUI"
+                )
+
+            logger.info(f"[LEGACY-WORKFLOW] Workflow submitted: {prompt_id}")
+
+            # 6. Wait for completion
+            timeout = parameters.get('timeout', 300)
+            history = await client.wait_for_completion(prompt_id, timeout=timeout)
+
+            if not history:
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="Timeout or error waiting for legacy workflow completion"
+                )
+
+            logger.info(f"[LEGACY-WORKFLOW] Workflow completed: {prompt_id}")
+
+            # 7. Determine media type and output directory
+            media_type = chunk.get('media_type', 'image')
+            download_all = output_config.get('download_all', True)
+
+            # For now, return workflow_generated marker
+            # The pipeline_recorder will handle downloading ALL outputs
+            return BackendResponse(
+                success=True,
+                content="workflow_generated",
+                metadata={
+                    'chunk_name': chunk_name,
+                    'media_type': media_type,
+                    'prompt_id': prompt_id,
+                    'workflow_completed': True,
+                    'legacy_workflow': True,
+                    'download_all': download_all,
+                    'workflow_json': workflow  # Store for archival
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Error processing legacy workflow: {e}")
+            import traceback
+            traceback.print_exc()
+            return BackendResponse(
+                success=False,
+                content="",
+                error=f"Legacy workflow processing error: {str(e)}"
+            )
+
+    def _inject_legacy_prompt(self, workflow: Dict[str, Any], prompt: str, config: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
+        """Inject prompt into legacy workflow using title-based node search
+
+        This is a direct port of the legacy server's prompt injection logic:
+        - Search for node with _meta.title matching target_title
+        - Inject into inputs.value or inputs.text field
+        - Fallback to node_id if title search fails
+
+        Args:
+            workflow: Complete ComfyUI workflow
+            prompt: User prompt to inject
+            config: Prompt injection configuration from legacy_config
+
+        Returns:
+            Tuple[Dict, bool]: (modified_workflow, injection_success)
+        """
+        target_title = config.get('target_title', 'ai4artsed_text_prompt')
+        fallback_node_id = config.get('fallback_node_id')
+
+        logger.info(f"[LEGACY-INJECT] Searching for node with title '{target_title}'")
+
+        # Method 1: Search by _meta.title (preferred)
+        for node_id, node_data in workflow.items():
+            if isinstance(node_data, dict):
+                meta_title = node_data.get('_meta', {}).get('title')
+                if meta_title == target_title:
+                    # Found target node - inject into inputs
+                    inputs = node_data.get('inputs', {})
+
+                    # Try 'value' field first, then 'text' field
+                    if 'value' in inputs:
+                        node_data['inputs']['value'] = prompt
+                        logger.info(f"[LEGACY-INJECT] ✓ Injected prompt into node {node_id}.inputs.value (title match)")
+                        return workflow, True
+                    elif 'text' in inputs:
+                        node_data['inputs']['text'] = prompt
+                        logger.info(f"[LEGACY-INJECT] ✓ Injected prompt into node {node_id}.inputs.text (title match)")
+                        return workflow, True
+                    else:
+                        logger.warning(f"[LEGACY-INJECT] Found node {node_id} with title '{target_title}' but no 'value' or 'text' field")
+
+        # Method 2: Fallback to node_id (if configured)
+        if fallback_node_id and fallback_node_id in workflow:
+            node_data = workflow[fallback_node_id]
+            inputs = node_data.get('inputs', {})
+
+            if 'value' in inputs:
+                node_data['inputs']['value'] = prompt
+                logger.warning(f"[LEGACY-INJECT] ⚠ Injected prompt into fallback node {fallback_node_id}.inputs.value")
+                return workflow, True
+            elif 'text' in inputs:
+                node_data['inputs']['text'] = prompt
+                logger.warning(f"[LEGACY-INJECT] ⚠ Injected prompt into fallback node {fallback_node_id}.inputs.text")
+                return workflow, True
+
+        # Injection failed
+        logger.error(f"[LEGACY-INJECT] ✗ Failed to inject prompt - no node with title '{target_title}' found")
+        if fallback_node_id:
+            logger.error(f"[LEGACY-INJECT] Fallback node_id '{fallback_node_id}' also not found or has no suitable input field")
+
+        return workflow, False
 
     async def _process_api_output_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
         """Process API-based Output-Chunk (OpenRouter, Replicate, etc.)"""
@@ -1020,9 +1209,17 @@ class BackendRouter:
                 logger.error(f"Chunk '{chunk_name}' is not an Output-Chunk (type: {chunk_type})")
                 return None
 
-            # Validate required fields based on type
+            # Validate required fields based on type and execution_mode
+            execution_mode = chunk.get('execution_mode', 'standard')
+
             if chunk_type == 'output_chunk':
-                required_fields = ['workflow', 'input_mappings', 'output_mapping', 'backend_type']
+                if execution_mode == 'legacy_workflow':
+                    # Legacy workflows have different requirements
+                    required_fields = ['workflow', 'backend_type']
+                    # Optional but recommended: legacy_config
+                else:
+                    # Standard output chunks
+                    required_fields = ['workflow', 'input_mappings', 'output_mapping', 'backend_type']
             elif chunk_type == 'api_output_chunk':
                 required_fields = ['api_config', 'input_mappings', 'output_mapping', 'backend_type']
 

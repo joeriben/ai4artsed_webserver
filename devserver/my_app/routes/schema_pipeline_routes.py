@@ -1549,30 +1549,70 @@ def execute_pipeline():
                                     ))
                                 elif output_value == 'workflow_generated':
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: workflow_generated")
-                                    # Use recorder.save_entity for consistency
-                                    filesystem_path = output_result.metadata.get('filesystem_path')
-                                    if filesystem_path:
-                                        try:
-                                            with open(filesystem_path, 'rb') as f:
-                                                file_data = f.read()
 
-                                            saved_filename = recorder.save_entity(
-                                                entity_type=f'output_{media_type}',
-                                                content=file_data,
-                                                metadata={
-                                                    'config': output_config_name,
-                                                    'backend': 'comfyui',
-                                                    'seed': seed,
-                                                    'filesystem_path': filesystem_path
-                                                }
-                                            )
-                                            logger.info(f"[RECORDER] Saved {media_type} from filesystem: {saved_filename}")
-                                        except Exception as e:
-                                            logger.error(f"[RECORDER] Failed to save {media_type} from filesystem: {e}")
+                                    # Check if this is a legacy workflow
+                                    is_legacy_workflow = output_result.metadata.get('legacy_workflow', False)
+                                    download_all = output_result.metadata.get('download_all', False)
+
+                                    if is_legacy_workflow:
+                                        # Legacy workflow: download ALL outputs + save workflow JSON
+                                        logger.info(f"[4-STAGE] Legacy workflow detected - downloading ALL outputs")
+
+                                        # 1. Save workflow JSON for reproducibility
+                                        workflow_json = output_result.metadata.get('workflow_json')
+                                        if workflow_json:
+                                            try:
+                                                recorder.save_workflow_json(
+                                                    workflow=workflow_json,
+                                                    entity_type='workflow_archive'
+                                                )
+                                                logger.info(f"[RECORDER] ✓ Saved workflow JSON for legacy workflow")
+                                            except Exception as e:
+                                                logger.error(f"[RECORDER] Failed to save workflow JSON: {e}")
+
+                                        # 2. Download ALL outputs (not just first)
+                                        prompt_id = output_result.metadata.get('prompt_id')
+                                        if prompt_id:
+                                            try:
+                                                saved_filenames = asyncio.run(recorder.download_and_save_all_from_comfyui(
+                                                    prompt_id=prompt_id,
+                                                    media_type=media_type,
+                                                    config=output_config_name,
+                                                    seed=seed
+                                                ))
+                                                logger.info(f"[RECORDER] ✓ Downloaded {len(saved_filenames)} file(s) from legacy workflow")
+                                                saved_filename = saved_filenames[0] if saved_filenames else None
+                                            except Exception as e:
+                                                logger.error(f"[RECORDER] Failed to download legacy workflow outputs: {e}")
+                                                saved_filename = None
+                                        else:
+                                            logger.error(f"[RECORDER] No prompt_id in metadata for legacy workflow")
                                             saved_filename = None
                                     else:
-                                        logger.warning(f"[RECORDER] No filesystem_path in metadata for workflow_generated")
-                                        saved_filename = None
+                                        # Standard workflow: single file from filesystem
+                                        filesystem_path = output_result.metadata.get('filesystem_path')
+                                        if filesystem_path:
+                                            try:
+                                                with open(filesystem_path, 'rb') as f:
+                                                    file_data = f.read()
+
+                                                saved_filename = recorder.save_entity(
+                                                    entity_type=f'output_{media_type}',
+                                                    content=file_data,
+                                                    metadata={
+                                                        'config': output_config_name,
+                                                        'backend': 'comfyui',
+                                                        'seed': seed,
+                                                        'filesystem_path': filesystem_path
+                                                    }
+                                                )
+                                                logger.info(f"[RECORDER] Saved {media_type} from filesystem: {saved_filename}")
+                                            except Exception as e:
+                                                logger.error(f"[RECORDER] Failed to save {media_type} from filesystem: {e}")
+                                                saved_filename = None
+                                        else:
+                                            logger.warning(f"[RECORDER] No filesystem_path in metadata for workflow_generated")
+                                            saved_filename = None
                                 elif output_value.startswith('http://') or output_value.startswith('https://'):
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: http/https URL")
                                     # API-based generation (GPT-5, Replicate, etc.) - URL
