@@ -68,6 +68,7 @@ def main():
         ("jugendsprache_new.jpg", "jugendsprache.png", "Jugendsprache"),
         ("yorubaheritage_new.jpg", "yorubaheritage.png", "Yoruba Heritage"),
         ("renaissance_new.png", "renaissance.png", "Renaissance"),
+        ("piglatin_new.jpg", "piglatin.png", "Pig Latin"),
     ]
 
     processed_count = 0

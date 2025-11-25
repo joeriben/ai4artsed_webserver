@@ -81,7 +81,7 @@
                   :src="output.url"
                   :alt="`Output ${index + 1}`"
                   class="output-image"
-                  @click="showFullscreen(output.url)"
+                  @click="output.url && showFullscreen(output.url)"
                 />
                 <p class="output-caption">{{ output.filename }}</p>
               </div>
@@ -101,7 +101,7 @@
                   <span class="json-icon">📋</span>
                   <span class="json-filename">{{ output.filename }}</span>
                 </div>
-                <pre class="output-json">{{ formatJSON(output.content) }}</pre>
+                <pre class="output-json">{{ output.content ? formatJSON(output.content) : '' }}</pre>
               </div>
 
               <!-- Unknown Output Type -->
