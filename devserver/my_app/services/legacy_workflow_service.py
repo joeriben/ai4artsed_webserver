@@ -138,7 +138,9 @@ class LegacyWorkflowService:
             (modified_workflow, success_bool)
         """
         try:
-            prompt_injection = chunk_config.get('legacy_config', {}).get('prompt_injection', {})
+            # Get prompt_injection config from legacy_config at top level
+            legacy_config = chunk_config.get('legacy_config', {})
+            prompt_injection = legacy_config.get('prompt_injection', {})
             target_title = prompt_injection.get('target_title', 'ai4artsed_text_prompt')
             fallback_node_id = prompt_injection.get('fallback_node_id')
             fallback_field = prompt_injection.get('fallback_field', 'value')
@@ -155,12 +157,14 @@ class LegacyWorkflowService:
                     if 'value' in inputs:
                         node_data['inputs']['value'] = prompt
                         logger.info(f"[LEGACY-INJECT] ✓ Injected prompt into node {node_id}.inputs.value (title match)")
+                        logger.info(f"[LEGACY-INJECT] ✓ Prompt preview: '{prompt[:100]}...'")
                         return workflow, True
 
                     # Try 'text' field
                     elif 'text' in inputs:
                         node_data['inputs']['text'] = prompt
                         logger.info(f"[LEGACY-INJECT] ✓ Injected prompt into node {node_id}.inputs.text (title match)")
+                        logger.info(f"[LEGACY-INJECT] ✓ Prompt preview: '{prompt[:100]}...'")
                         return workflow, True
 
             # Method 2: Fallback to node_id if configured
@@ -171,6 +175,7 @@ class LegacyWorkflowService:
                 if fallback_field in inputs:
                     node_data['inputs'][fallback_field] = prompt
                     logger.info(f"[LEGACY-INJECT] ✓ Injected prompt into fallback node {fallback_node_id}.inputs.{fallback_field}")
+                    logger.info(f"[LEGACY-INJECT] ✓ Prompt preview: '{prompt[:100]}...'")
                     return workflow, True
 
             logger.error(f"[LEGACY-INJECT] ✗ Could not find injection target")

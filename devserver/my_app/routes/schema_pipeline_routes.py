@@ -1615,6 +1615,15 @@ def execute_pipeline():
                                         else:
                                             logger.warning(f"[RECORDER] No media_files in metadata for legacy workflow")
                                             saved_filename = None
+
+                                        # Clean up binary data from metadata before JSON response
+                                        if 'media_files' in output_result.metadata:
+                                            logger.info(f"[RECORDER] Removing binary media_files from metadata ({len(output_result.metadata['media_files'])} files)")
+                                            del output_result.metadata['media_files']
+                                        if 'outputs_metadata' in output_result.metadata:
+                                            del output_result.metadata['outputs_metadata']
+                                        if 'workflow_json' in output_result.metadata:
+                                            del output_result.metadata['workflow_json']
                                     else:
                                         # Standard workflow: single file from filesystem
                                         filesystem_path = output_result.metadata.get('filesystem_path')
