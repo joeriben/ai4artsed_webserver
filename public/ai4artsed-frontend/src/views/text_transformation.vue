@@ -161,12 +161,6 @@
           </div>
         </section>
 
-        <!-- Info: No optimization needed for this model -->
-        <div v-if="executionPhase === 'optimization_done' && !hasOptimization && selectedConfig" class="info-bubble">
-          <span class="bubble-icon">ℹ️</span>
-          <p><strong>{{ selectedConfig }}</strong> benötigt keine Prompt-Optimierung und interpretiert den kreativen Prompt direkt.</p>
-        </div>
-
         <!-- START BUTTON #2: Trigger Generation (Between Optimized Prompt and Output) -->
         <div class="start-button-container">
           <button
@@ -316,6 +310,10 @@ const isInterceptionLoading = ref(false)
 const optimizedPrompt = ref('')
 const isOptimizationLoading = ref(false)
 const hasOptimization = ref(false)  // Track if optimization was applied
+
+// Phase 4: Seed management for iterative correction
+const previousOptimizedPrompt = ref('')  // Track previous prompt for comparison
+const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
 
 // Execution phase tracking
 // 'initial' -> 'interception_done' -> 'optimization_done' -> 'generation_done'
@@ -504,6 +502,7 @@ async function selectConfig(configId: string) {
   // Only allow selection after interception is done
   if (!areModelBubblesEnabled.value || isOptimizationLoading.value) return
 
+  // ALWAYS set selectedConfig (even if same) to trigger optimization
   selectedConfig.value = configId
 
   // Skip optimization if no interception result (direct execution mode)
@@ -515,7 +514,8 @@ async function selectConfig(configId: string) {
     return
   }
 
-  // Automatically trigger optimization for intercepted prompts
+  // ALWAYS trigger optimization when model is clicked (even if already selected)
+  console.log('[SelectConfig] Triggering optimization for:', configId)
   await runOptimization()
 }
 
@@ -600,6 +600,26 @@ async function executePipeline() {
   showSafetyApprovedStamp.value = false  // Reset safety stamp
   generationProgress.value = 0  // Reset progress
 
+  // Phase 4: Intelligent seed logic
+  const currentPromptToUse = optimizedPrompt.value || interceptionResult.value || inputText.value
+
+  if (currentPromptToUse === previousOptimizedPrompt.value) {
+    // Prompt UNCHANGED → Generate new random seed (user wants different image with same prompt)
+    currentSeed.value = Math.floor(Math.random() * 2147483647)
+    console.log('[Phase 4] Prompt unchanged → New random seed:', currentSeed.value)
+  } else {
+    // Prompt CHANGED → Keep same seed (user wants to iterate on same image)
+    if (currentSeed.value === null) {
+      // First run → Use default seed
+      currentSeed.value = 123456789
+      console.log('[Phase 4] First run → Default seed:', currentSeed.value)
+    } else {
+      console.log('[Phase 4] Prompt changed → Keeping seed:', currentSeed.value)
+    }
+    // Update previous prompt for next comparison
+    previousOptimizedPrompt.value = currentPromptToUse
+  }
+
   // Stage 1: Safety check (silent, shows stamp when complete)
   await new Promise(resolve => setTimeout(resolve, 300))
   showSafetyApprovedStamp.value = true
@@ -618,12 +638,13 @@ async function executePipeline() {
   try {
     const response = await axios.post('/api/schema/pipeline/execute', {
       schema: pipelineStore.selectedConfig?.id || 'overdrive',
-      input_text: optimizedPrompt.value || interceptionResult.value || inputText.value,
+      input_text: currentPromptToUse,
       interception_result: optimizedPrompt.value,  // Use optimized prompt (not raw interception)
       context_prompt: contextPrompt.value || undefined,
       user_language: 'de',
       safety_level: 'youth',
-      output_config: selectedConfig.value
+      output_config: selectedConfig.value,
+      seed: currentSeed.value  // Phase 4: Send seed to backend
       // NO execution_mode - models come from config.py
     })
 
