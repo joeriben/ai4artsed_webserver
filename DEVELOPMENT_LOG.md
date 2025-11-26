@@ -1,5 +1,344 @@
 # Development Log
 
+## Session 76 - Audio Playback Fix & Stable Audio Open Integration
+**Date:** 2025-11-26
+**Duration:** ~3 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Fix ACEnet MP3 playback (404 error) + Add Stable Audio Open support
+
+### Summary
+
+**BUG FIX**: ACEnet MP3s were not playing in browser due to missing `/api/media/music/<run_id>` route. Backend set `media_type = 'music'` for ACEnet (because it supports lyrics), but no corresponding route existed → 404 error.
+
+**FEATURE**: Added Stable Audio Open 1.0 integration with complete ComfyUI workflow setup and model file management.
+
+### The Problem: Audio Playback 404
+
+**Symptoms:**
+- ACEnet generated MP3 file successfully
+- File existed on disk in exports folder
+- Browser showed audio player UI
+- BUT: Audio wouldn't play, 404 error in Network Tab
+
+**Root Cause Analysis:**
+```javascript
+// Frontend (text_transformation.vue):
+const mediaType = response.data.media_output?.media_type || 'image'
+outputImage.value = `/api/media/${mediaType}/${runId}`
+// Built URL: /api/media/music/{run_id}
+
+// Backend (schema_pipeline_routes.py:794):
+elif 'ace' in output_config.lower():
+    media_type = 'music'  # ACEnet gets 'music' type
+
+// Backend Routes (media_routes.py):
+✓ /api/media/image/<run_id>
+✓ /api/media/audio/<run_id>
+✓ /api/media/video/<run_id>
+✗ /api/media/music/<run_id>  # MISSING!
+```
+
+**Why ACEnet uses 'music' not 'audio':**
+- ACEnet is designed for music generation with lyrics support
+- Can accept both prompt AND lyrics text
+- Future-proof for vocal/lyrical music generation
+
+### The Fix: Add Missing Media Routes
+
+**Added 4 new media routes in `media_routes.py`:**
+
+1. **`/api/media/music/<run_id>`** (CRITICAL FIX)
+   - Serves music files (MP3/WAV/OGG/FLAC)
+   - Searches for 'music' entity, fallback to 'audio'
+   - Fixed ACEnet playback immediately
+
+2. **`/api/media/midi/<run_id>`**
+   - For future MIDI generation models
+   - Mimetype: `audio/midi`
+
+3. **`/api/media/sonicpi/<run_id>`**
+   - For Sonic Pi code generation
+   - Mimetype: `text/x-ruby` (.rb files)
+
+4. **`/api/media/p5/<run_id>`**
+   - For p5.js code generation
+   - Mimetype: `text/javascript` (.js files)
+
+**All routes follow same pattern as existing routes:**
+- Load recorder from disk
+- Find entity by type
+- Serve file with correct mimetype
+- Return 404 if not found
+
+### Frontend: Audio Player Simplification
+
+**Changed:** Simplified audio player to match video player structure
+
+```vue
+<!-- BEFORE (complex): -->
+<div class="audio-container">
+  <div class="audio-icon">🎵</div>
+  <audio :src="outputImage" controls class="output-audio" />
+</div>
+
+<!-- AFTER (simple, like video): -->
+<audio
+  v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'"
+  :src="outputImage"
+  controls
+  class="output-audio"
+/>
+```
+
+**CSS:** Updated to match video player styling (width: 100%, max-height: 500px, border-radius, box-shadow)
+
+### Stable Audio Open Integration
+
+**Goal:** Add Stable Audio Open 1.0 as alternative audio generation model
+
+**Research Findings:**
+- Stable Audio 2.0/2.5: NOT open source, API-only
+- Stable Audio Open 1.0: Open source, downloadable
+- VRAM: 14.5 GB peak (fits RTX 4090 24GB)
+- Quality: Lower than ACEnet, but good for experimentation
+- Max duration: 47.6 seconds
+
+**Implementation Steps:**
+
+1. **Model File Management:**
+   ```bash
+   # Files were in wrong location:
+   /SwarmUI/Models/.../stableaudio/stable-audio-open-1.0/
+
+   # Copied to ComfyUI standard locations:
+   model.safetensors (4.6 GB)
+     → models/checkpoints/stable-audio-open-1.0.safetensors
+   text_encoder/model.safetensors (419 MB)
+     → models/clip/t5-base.safetensors
+   ```
+
+2. **Created Output Chunk:** `output_audio_stableaudio.json`
+   - Based on user's ComfyUI workflow template
+   - Nodes: CheckpointLoaderSimple, CLIPLoader, CLIPTextEncode, KSampler, VAEDecodeAudio, SaveAudioMP3
+   - Parameters: 50 steps, CFG 4.98, exponential scheduler
+   - Text encoder: T5-base for prompt conditioning
+
+3. **Created Output Config:** `stableaudio_open.json`
+   - Category: Audio Generation
+   - Max duration: 47.6 seconds
+   - Default steps: 50 (vs 100 for ACEnet)
+   - Icon: 🔊, Color: #00BCD4 (cyan)
+
+4. **Frontend Integration:**
+   - Added `stableaudio_open` to hardcoded sound configs
+   - **NOTED:** This is not elegant (see TODO below)
+
+### Technical Debt & TODO
+
+**Problem:** Frontend configs are hardcoded in `text_transformation.vue`
+
+```typescript
+const configsByCategory: Record<string, Config[]> = {
+  sound: [
+    { id: 'acenet_t2instrumental', ... },
+    { id: 'stableaudio_open', ... }  // Had to manually add
+  ],
+  // ...
+}
+```
+
+**TODO:** Implement dynamic config loading
+- Backend: `GET /api/configs/outputs` endpoint
+- Returns all available output configs with metadata
+- Frontend: Load configs dynamically on mount
+- **Benefit:** New models appear automatically without frontend changes
+
+### Files Changed
+
+**Backend:**
+- `devserver/my_app/routes/media_routes.py` - Added 4 new routes
+- `devserver/schemas/chunks/output_audio_stableaudio.json` - New chunk
+- `devserver/schemas/configs/output/stableaudio_open.json` - New config
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - Simplified audio player HTML/CSS
+  - Added stableaudio_open to hardcoded configs
+
+### Testing & Verification
+
+**ACEnet (after fix):**
+- ✓ Generates MP3 successfully
+- ✓ Browser loads `/api/media/music/{run_id}` → 200 OK
+- ✓ Audio plays in browser
+
+**Stable Audio Open:**
+- ✓ Model files in correct locations
+- ✓ ComfyUI workflow properly configured
+- ✓ Appears in frontend UI as option
+- ⏳ Pending: Actual generation test
+
+### Lessons Learned
+
+1. **URL Pattern Consistency:** When backend determines `media_type`, must ensure corresponding `/api/media/{type}/` route exists
+2. **Media Type Semantics:** 'audio' vs 'music' distinction is meaningful (generic audio vs music with lyrics)
+3. **Frontend-Backend Coupling:** Hardcoded frontend configs create deployment friction
+4. **File Organization:** Model files should be in standard ComfyUI locations for proper node loading
+
+### Next Steps
+
+1. Test Stable Audio Open generation end-to-end
+2. Consider implementing dynamic config loading (high priority for maintainability)
+3. Document media_type naming conventions for future models
+4. Add validation: if backend sets media_type, verify route exists
+
+---
+
+## Session 75+ - Stage 2 Refactoring: Separate Interception & Optimization (CRITICAL BUG FIX)
+**Date:** 2025-11-26
+**Duration:** ~2 hours
+**Model:** Claude Haiku 4.5
+**Focus:** Critical refactoring to fix config.context contamination in optimization
+
+### Summary
+
+**CRITICAL BUG FIX**: Refactored Stage 2 to separate two completely independent operations that were incorrectly mixed in a single function. Root cause: `config.context` (artistic attitude) was contaminating `optimization_instruction` (model-specific rules).
+
+### The Problem
+
+**Mixing Unrelated Operations:**
+The function `execute_stage2_with_optimization()` was trying to do two COMPLETELY different things in one LLM call:
+
+1. **Interception** - Pedagogical transformation using artistic context ("dada", "bauhaus", "analog photography")
+2. **Optimization** - Model-specific prompt refinement (e.g., "describe as cinematic scene for SD3.5")
+
+**The Bug:**
+```python
+# OLD (BROKEN):
+original_context = config.context  # "dada attitude"
+new_context = original_context + "\n\n" + optimization_instruction  # CONTAMINATED!
+```
+
+**Result:**
+- Optimization received BOTH artistic attitude AND model rules (conflicting)
+- User-reported bug: "Prompt optimization seems to use config.context instead of optimization instruction"
+- Inefficient prompts, confusion about responsibilities
+- Violated single responsibility principle
+
+### The Fix: Clean Separation
+
+**Three Independent Functions Created:**
+
+1. **`execute_stage2_interception()`** - Pure Interception
+   - Uses: `config.context` only (artistic attitude)
+   - Input: User's original text
+   - Output: Artistically transformed text
+   - **Zero access to optimization_instruction**
+
+2. **`execute_optimization()`** - Pure Optimization (CRITICAL)
+   - Uses: `optimization_instruction` from output chunk ONLY
+   - Input: Interception result
+   - Output: Model-optimized prompt
+   - **Zero access to config.context** - Complete isolation
+   - **CRITICAL DISCOVERY:** optimization_instruction goes in CONTEXT field (USER_RULES), NOT appended to existing context:
+     ```python
+     full_prompt = f"""Task:
+Transform the INPUT according to the rules provided by the CONTEXT.
+
+Context:
+{optimization_instruction}
+
+Prompt:
+{input_text}"""
+     ```
+
+3. **`execute_stage2_with_optimization()`** - Deprecated Proxy (Failsafe)
+   - Calls the two new functions internally
+   - Emits `DeprecationWarning` to guide future development
+   - Returns `Stage2Result` with both interception_result and optimized_prompt
+   - Maintains backward compatibility
+
+### Key Insight: Prompt Interception Pattern
+
+**Root Cause of Misunderstanding:**
+The old code treated `optimization_instruction` as an *additional rule* to append to context. This is WRONG.
+
+In Prompt Interception structure, `optimization_instruction` IS the CONTEXT (USER_RULES):
+
+```python
+# WRONG:
+context = config.context + optimization_instruction  # Blends two contexts
+
+# CORRECT:
+# optimization_instruction IS the context for this transformation
+Task: Transform the INPUT according to rules in CONTEXT.
+Context: {optimization_instruction}
+Prompt: {input_text}
+```
+
+**Why This Matters:**
+- `config.context` = WHO the LLM thinks it is (artistic persona)
+- `optimization_instruction` = WHAT the LLM optimizes for (model constraints)
+- These are DIFFERENT concerns and must NEVER mix
+- The isolated `execute_optimization()` function makes this permanent
+
+### Helper Functions Added
+
+1. **`_load_optimization_instruction(output_config_name)`**
+   - Loads optimization_instruction from output chunk metadata
+   - Handles file I/O gracefully
+   - Returns None if not found (optimization is optional)
+
+2. **`_build_stage2_result(interception_result, optimized_prompt, ...)`**
+   - Builds Stage2Result dataclass for backward compatibility
+   - Includes metadata about execution (two_phase_execution: true)
+
+### Files Modified
+
+- `/devserver/my_app/routes/schema_pipeline_routes.py`
+  - Lines 123-140: `_load_optimization_instruction()` helper
+  - Lines 143-181: `_build_stage2_result()` helper
+  - Lines 188-246: New `execute_optimization()` function
+  - Lines 248-296: New `execute_stage2_interception()` function
+  - Lines 302-421: Backup `execute_stage2_with_optimization_SINGLE_RUN_VERSION()`
+  - Lines 424-505: Deprecated proxy `execute_stage2_with_optimization()`
+
+### Architecture Improvements
+
+✅ **Single Responsibility Principle** - Each function has one clear purpose
+✅ **Isolation** - Optimization has ZERO access to config.context
+✅ **Backward Compatible** - Deprecated proxy prevents breaking changes
+✅ **Self-Documenting** - Function names express intent
+✅ **Clean Code** - Follows "NO WORKAROUNDS" principle from CLAUDE.md
+✅ **Failsafe** - DeprecationWarning guides future refactoring
+
+### Testing & Validation
+
+- ✅ Isolation verified: execute_optimization() cannot access config.context
+- ✅ Prompt Interception pattern correctly implemented
+- ✅ optimization_instruction in CONTEXT field (not TASK field)
+- ✅ Backward compatible: deprecated proxy works with existing code
+- ✅ No breaking changes for existing configs or pipelines
+
+### Documentation Updated
+
+- **DEVELOPMENT_DECISIONS.md** - New decision entry with complete rationale
+- **ARCHITECTURE PART 01** - Section 1.2 updated with new function calls
+- **This session log** - Complete technical documentation
+
+### Next Steps
+
+- Monitor usage of deprecated proxy through warnings
+- Update frontend Vue code to call new functions directly (Session 76+)
+- Consider making optimization_instruction mandatory in output chunks (Session 80+)
+- Potential future: Separate "Phase 2b" UI state for optimization
+
+### Commits
+
+- (User will commit after session review)
+
+---
+
 ## Session 72 - Video Prompt Injection Fix (CRITICAL)
 **Date:** 2025-11-26
 **Duration:** ~3 hours
