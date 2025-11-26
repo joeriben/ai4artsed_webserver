@@ -588,7 +588,7 @@ async function executePipeline() {
   try {
     const response = await axios.post('/api/schema/pipeline/execute', {
       schema: pipelineStore.selectedConfig?.id || 'overdrive',
-      input_text: inputText.value,
+      input_text: optimizedPrompt.value || interceptionResult.value || inputText.value,
       interception_result: optimizedPrompt.value,  // Use optimized prompt (not raw interception)
       context_prompt: contextPrompt.value || undefined,
       user_language: 'de',
