@@ -155,6 +155,62 @@ def get_audio(run_id: str):
         return jsonify({"error": str(e)}), 500
 
 
+@media_bp.route('/music/<run_id>', methods=['GET'])
+def get_music(run_id: str):
+    """
+    Serve music from local storage by run_id
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        Music file or 404 error
+    """
+    try:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return jsonify({"error": f"Run {run_id} not found"}), 404
+
+        # Find music entity (try 'music' first, then 'audio' as fallback)
+        music_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'music')
+        if not music_entity:
+            music_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'audio')
+
+        if not music_entity:
+            return jsonify({"error": f"No music found for run {run_id}"}), 404
+
+        # Get file path
+        filename = music_entity['filename']
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"Music file not found: {filename}"}), 404
+
+        # Determine mimetype from format
+        file_format = music_entity.get('metadata', {}).get('format', filename.split('.')[-1])
+        mimetype_map = {
+            'mp3': 'audio/mpeg',
+            'wav': 'audio/wav',
+            'ogg': 'audio/ogg',
+            'flac': 'audio/flac'
+        }
+        mimetype = mimetype_map.get(file_format.lower(), 'audio/mpeg')
+
+        # Serve file directly from disk
+        return send_file(
+            file_path,
+            mimetype=mimetype,
+            as_attachment=False,
+            download_name=f'{run_id}.{file_format}'
+        )
+
+    except Exception as e:
+        logger.error(f"Error serving music for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @media_bp.route('/video/<run_id>', methods=['GET'])
 def get_video(run_id: str):
     """
@@ -259,6 +315,160 @@ def get_3d(run_id: str):
 
     except Exception as e:
         logger.error(f"Error serving 3D model for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@media_bp.route('/midi/<run_id>', methods=['GET'])
+def get_midi(run_id: str):
+    """
+    Serve MIDI file from local storage by run_id
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        MIDI file or 404 error
+    """
+    try:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return jsonify({"error": f"Run {run_id} not found"}), 404
+
+        # Find MIDI entity
+        midi_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'midi')
+        if not midi_entity:
+            return jsonify({"error": f"No MIDI file found for run {run_id}"}), 404
+
+        # Get file path
+        filename = midi_entity['filename']
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"MIDI file not found: {filename}"}), 404
+
+        # Determine mimetype from format
+        file_format = midi_entity.get('metadata', {}).get('format', filename.split('.')[-1])
+        mimetype_map = {
+            'mid': 'audio/midi',
+            'midi': 'audio/midi'
+        }
+        mimetype = mimetype_map.get(file_format.lower(), 'audio/midi')
+
+        # Serve file directly from disk
+        return send_file(
+            file_path,
+            mimetype=mimetype,
+            as_attachment=False,
+            download_name=f'{run_id}.{file_format}'
+        )
+
+    except Exception as e:
+        logger.error(f"Error serving MIDI for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@media_bp.route('/sonicpi/<run_id>', methods=['GET'])
+def get_sonicpi(run_id: str):
+    """
+    Serve Sonic Pi code from local storage by run_id
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        Sonic Pi file or 404 error
+    """
+    try:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return jsonify({"error": f"Run {run_id} not found"}), 404
+
+        # Find Sonic Pi entity
+        sonicpi_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'sonicpi')
+        if not sonicpi_entity:
+            return jsonify({"error": f"No Sonic Pi code found for run {run_id}"}), 404
+
+        # Get file path
+        filename = sonicpi_entity['filename']
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"Sonic Pi file not found: {filename}"}), 404
+
+        # Determine mimetype from format
+        file_format = sonicpi_entity.get('metadata', {}).get('format', filename.split('.')[-1])
+        mimetype_map = {
+            'rb': 'text/x-ruby',
+            'txt': 'text/plain'
+        }
+        mimetype = mimetype_map.get(file_format.lower(), 'text/x-ruby')
+
+        # Serve file directly from disk
+        return send_file(
+            file_path,
+            mimetype=mimetype,
+            as_attachment=False,
+            download_name=f'{run_id}.{file_format}'
+        )
+
+    except Exception as e:
+        logger.error(f"Error serving Sonic Pi code for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@media_bp.route('/p5/<run_id>', methods=['GET'])
+def get_p5(run_id: str):
+    """
+    Serve p5.js code from local storage by run_id
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        p5.js file or 404 error
+    """
+    try:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return jsonify({"error": f"Run {run_id} not found"}), 404
+
+        # Find p5 entity
+        p5_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'p5')
+        if not p5_entity:
+            return jsonify({"error": f"No p5.js code found for run {run_id}"}), 404
+
+        # Get file path
+        filename = p5_entity['filename']
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"p5.js file not found: {filename}"}), 404
+
+        # Determine mimetype from format
+        file_format = p5_entity.get('metadata', {}).get('format', filename.split('.')[-1])
+        mimetype_map = {
+            'js': 'text/javascript',
+            'html': 'text/html',
+            'txt': 'text/plain'
+        }
+        mimetype = mimetype_map.get(file_format.lower(), 'text/javascript')
+
+        # Serve file directly from disk
+        return send_file(
+            file_path,
+            mimetype=mimetype,
+            as_attachment=False,
+            download_name=f'{run_id}.{file_format}'
+        )
+
+    except Exception as e:
+        logger.error(f"Error serving p5.js code for run {run_id}: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500

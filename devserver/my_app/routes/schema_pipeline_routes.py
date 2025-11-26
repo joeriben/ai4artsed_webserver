@@ -350,34 +350,44 @@ async def execute_stage2_with_optimization(
             logger.warning(f"[STAGE2-CALL2] Failed to load optimization instruction: {e}")
 
     # Execute optimization call if we found an optimization_instruction
-    result2 = None  # Initialize result2 to avoid NameError
     if optimization_instruction:
         logger.info(f"[STAGE2-CALL2] Executing model-specific optimization")
 
-        # Create modified config with ONLY optimization_instruction as context
-        optimization_config = replace(
-            config,
-            context=optimization_instruction,
-            meta={**config.meta, 'optimization_only': True}
-        )
+        # Build optimization prompt with instruction + input
+        full_optimization_prompt = f"{optimization_instruction}\n\nINPUT TEXT:\n{interception_result}"
 
-        # Execute pipeline with interception_result as INPUT and optimization_instruction as CONTEXT
-        result2 = await pipeline_executor.execute_pipeline(
-            config_name=schema_name,
-            input_text=interception_result,  # Use Call 1 output as input
-            user_input=interception_result,
-            execution_mode=execution_mode,
-            safety_level=safety_level,
-            tracker=tracker,
-            config_override=optimization_config
-        )
+        # Determine model and backend for optimization
+        # Use Stage 2 model settings from config.py
+        from config import STAGE2_INTERCEPTION_MODEL
+        optimization_model = STAGE2_INTERCEPTION_MODEL
 
-        if result2.success:
-            optimized_prompt = result2.final_output
-            logger.info(f"[STAGE2-CALL2] Optimization completed: '{optimized_prompt[:100]}...'")
-        else:
-            logger.warning(f"[STAGE2-CALL2] Optimization failed: {result2.error}, using interception result")
-            optimized_prompt = interception_result  # Fallback to Call 1 output
+        # Make direct LLM call via backend_router
+        from schemas.engine.backend_router import BackendRequest, BackendResponse, BackendType
+
+        try:
+            backend_request = BackendRequest(
+                backend_type=BackendType.OLLAMA,  # Use same backend as Stage 2
+                model=optimization_model,
+                prompt=full_optimization_prompt,
+                parameters={
+                    'system': "You are a prompt optimization expert for image generation models.",
+                    'temperature': 0.7,
+                    'max_tokens': 512
+                }
+            )
+
+            response = await pipeline_executor.backend_router.process_request(backend_request)
+
+            if isinstance(response, BackendResponse) and response.success:
+                optimized_prompt = response.content
+                logger.info(f"[STAGE2-CALL2] Optimization completed: '{optimized_prompt[:100]}...'")
+            else:
+                logger.warning(f"[STAGE2-CALL2] Optimization failed: {response.error if hasattr(response, 'error') else 'Unknown error'}, using interception result")
+                optimized_prompt = interception_result
+
+        except Exception as e:
+            logger.error(f"[STAGE2-CALL2] Optimization failed: {e}, using interception result")
+            optimized_prompt = interception_result
     else:
         logger.info(f"[STAGE2-CALL2] SKIPPED (no optimization instruction found)")
         optimized_prompt = interception_result  # Use Call 1 output directly
@@ -406,19 +416,23 @@ async def execute_stage2_with_optimization(
             if self.metadata is None:
                 self.metadata = {}
 
+    # Build metadata for optimization (since we no longer use pipeline execution)
+    from config import STAGE2_INTERCEPTION_MODEL
+    optimization_model_name = STAGE2_INTERCEPTION_MODEL if optimization_instruction else None
+
     combined_result = Stage2Result(
         success=True,
         interception_result=interception_result,
         optimized_prompt=optimized_prompt,
         final_output=optimized_prompt,  # Use optimized_prompt for backward compatibility
-        steps=result1.steps + (result2.steps if result2 and result2.success else []),
+        steps=result1.steps,  # Only interception steps (optimization is direct backend call, no steps)
         metadata={
             'interception_model': result1.metadata.get('model_used') if result1.metadata else None,
-            'optimization_model': result2.metadata.get('model_used') if result2 and result2.success and result2.metadata else None,
+            'optimization_model': optimization_model_name,  # Track optimization model directly
             'two_phase_execution': True,
             'optimization_applied': optimization_instruction is not None
         },
-        execution_time=result1.execution_time + (result2.execution_time if result2 and result2.success else 0)
+        execution_time=result1.execution_time  # Optimization time tracked separately in logs
     )
 
     logger.info(f"[STAGE2] 2-phase execution completed successfully")

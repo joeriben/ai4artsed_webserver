@@ -220,14 +220,12 @@
               />
 
               <!-- Audio / Music -->
-              <div v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'" class="audio-container">
-                <div class="audio-icon">🎵</div>
-                <audio
-                  :src="outputImage"
-                  controls
-                  class="output-audio"
-                />
-              </div>
+              <audio
+                v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'"
+                :src="outputImage"
+                controls
+                class="output-audio"
+              />
 
               <!-- 3D Model -->
               <div v-else-if="outputMediaType === '3d'" class="model-container">
@@ -345,7 +343,7 @@ const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const availableCategories: Category[] = [
   { id: 'image', label: 'Bild', emoji: '🖼️', color: '#4CAF50' },
   { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0' },
-  { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800', disabled: true },
+  { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800' },
   { id: '3d', label: '3D', emoji: '🧊', color: '#00BCD4', disabled: true }
 ]
 
@@ -359,7 +357,9 @@ const configsByCategory: Record<string, Config[]> = {
   video: [
     { id: 'ltx_video', label: 'LTX\nVideo', emoji: '⚡', color: '#9C27B0', description: 'Schnelle lokale Videogenerierung', lightBg: false }
   ],
-  sound: [],
+  sound: [
+    { id: 'acenet_t2instrumental', label: 'ACE\nInstrumental', emoji: '🎵', color: '#FF5722', description: 'KI-Musikgenerierung für Instrumentalstücke', lightBg: false }
+  ],
   '3d': []
 }
 
@@ -1691,22 +1691,11 @@ watch(optimizedPrompt, async () => {
 }
 
 /* Audio Output */
-.audio-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 3rem;
-}
-
-.audio-icon {
-  font-size: 5rem;
-  opacity: 0.8;
-}
-
 .output-audio {
   width: 100%;
-  max-width: 450px;
+  max-height: 500px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* 3D Model Output */
