@@ -208,6 +208,62 @@ def get_video(run_id: str):
         return jsonify({"error": str(e)}), 500
 
 
+@media_bp.route('/3d/<run_id>', methods=['GET'])
+def get_3d(run_id: str):
+    """
+    Serve 3D model from local storage by run_id
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        3D model file or 404 error
+    """
+    try:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return jsonify({"error": f"Run {run_id} not found"}), 404
+
+        # Find 3D entity
+        model_entity = _find_entity_by_type(recorder.metadata.get('entities', []), '3d')
+        if not model_entity:
+            return jsonify({"error": f"No 3D model found for run {run_id}"}), 404
+
+        # Get file path
+        filename = model_entity['filename']
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"3D model file not found: {filename}"}), 404
+
+        # Determine mimetype from format
+        file_format = model_entity.get('metadata', {}).get('format', filename.split('.')[-1])
+        mimetype_map = {
+            'gltf': 'model/gltf+json',
+            'glb': 'model/gltf-binary',
+            'obj': 'model/obj',
+            'stl': 'model/stl',
+            'fbx': 'application/octet-stream',
+            'usd': 'model/vnd.usd+zip',
+            'usdz': 'model/vnd.usdz+zip'
+        }
+        mimetype = mimetype_map.get(file_format.lower(), 'application/octet-stream')
+
+        # Serve file directly from disk
+        return send_file(
+            file_path,
+            mimetype=mimetype,
+            as_attachment=True,  # 3D models should download
+            download_name=f'{run_id}.{file_format}'
+        )
+
+    except Exception as e:
+        logger.error(f"Error serving 3D model for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @media_bp.route('/info/<run_id>', methods=['GET'])
 def get_media_info(run_id: str):
     """

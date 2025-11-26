@@ -202,12 +202,44 @@
 
             <!-- Final Output -->
             <div v-else-if="outputImage" class="final-output">
+              <!-- Image -->
               <img
+                v-if="outputMediaType === 'image'"
                 :src="outputImage"
                 alt="Generiertes Bild"
                 class="output-image"
                 @click="showImageFullscreen(outputImage)"
               />
+
+              <!-- Video -->
+              <video
+                v-else-if="outputMediaType === 'video'"
+                :src="outputImage"
+                controls
+                class="output-video"
+              />
+
+              <!-- Audio / Music -->
+              <div v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'" class="audio-container">
+                <div class="audio-icon">🎵</div>
+                <audio
+                  :src="outputImage"
+                  controls
+                  class="output-audio"
+                />
+              </div>
+
+              <!-- 3D Model -->
+              <div v-else-if="outputMediaType === '3d'" class="model-container">
+                <div class="model-icon">🎨</div>
+                <a :href="outputImage" download class="download-button">3D-Modell herunterladen</a>
+                <p class="model-hint">Öffne mit Blender oder anderer 3D-Software</p>
+              </div>
+
+              <!-- Fallback for unknown types -->
+              <div v-else class="unknown-media">
+                <a :href="outputImage" download class="download-button">Datei herunterladen</a>
+              </div>
             </div>
 
             <!-- Placeholder -->
@@ -294,6 +326,7 @@ const executionPhase = ref<'initial' | 'interception_done' | 'optimization_done'
 // Pipeline execution state
 const isPipelineExecuting = ref(false)
 const outputImage = ref<string | null>(null)
+const outputMediaType = ref<string>('image') // Media type: image, video, audio, music, 3d
 const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
@@ -603,14 +636,18 @@ async function executePipeline() {
       // Complete progress
       generationProgress.value = 100
 
-      // Get run_id from response to construct image URL
+      // Get run_id and media_type from response
       const runId = response.data.media_output?.run_id || response.data.run_id
+      const mediaType = response.data.media_output?.media_type || 'image'
+
       if (runId) {
-        // Use Vite proxy path: /api/media/image/{run_id}
-        outputImage.value = `/api/media/image/${runId}`
+        // Dynamic URL based on media type: /api/media/{type}/{run_id}
+        outputMediaType.value = mediaType
+        outputImage.value = `/api/media/${mediaType}/${runId}`
         executionPhase.value = 'generation_done'
       } else if (response.data.outputs && response.data.outputs.length > 0) {
-        // Fallback: use outputs array
+        // Fallback: use outputs array (assume image)
+        outputMediaType.value = 'image'
         outputImage.value = `http://localhost:17802${response.data.outputs[0]}`
         executionPhase.value = 'generation_done'
       }
@@ -1643,6 +1680,78 @@ watch(optimizedPrompt, async () => {
 
 .output-image:hover {
   transform: scale(1.02);
+}
+
+/* Video Output */
+.output-video {
+  width: 100%;
+  max-height: 500px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Audio Output */
+.audio-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 3rem;
+}
+
+.audio-icon {
+  font-size: 5rem;
+  opacity: 0.8;
+}
+
+.output-audio {
+  width: 100%;
+  max-width: 450px;
+}
+
+/* 3D Model Output */
+.model-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 3rem;
+}
+
+.model-icon {
+  font-size: 5rem;
+  opacity: 0.8;
+}
+
+.download-button {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.download-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.model-hint {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Unknown Media Fallback */
+.unknown-media {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem;
 }
 
 /* Fullscreen Modal */
