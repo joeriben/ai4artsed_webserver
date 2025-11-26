@@ -154,10 +154,19 @@ class LivePipelineRecorder:
 
         # Determine file extension based on content type
         if isinstance(content, bytes):
-            # Binary content (image)
-            ext = "png"  # Default to PNG for images
+            # Binary content - detect format
             if metadata and "format" in metadata:
                 ext = metadata["format"]
+            else:
+                # Auto-detect format from binary data
+                # Extract media_type from entity_type ('output_video' → 'video')
+                if entity_type.startswith('output_'):
+                    media_type = entity_type.replace('output_', '')
+                else:
+                    media_type = 'image'  # Default for non-output entities
+
+                ext = self._detect_format_from_data(content, media_type)
+                logger.debug(f"[RECORDER] Auto-detected format '{ext}' for {entity_type} (media_type={media_type})")
         elif isinstance(content, dict):
             ext = "json"
         else:
@@ -342,6 +351,10 @@ class LivePipelineRecorder:
                 files = await client.get_generated_images(history)
             elif media_type in ['audio', 'music']:
                 files = await client.get_generated_audio(history)
+            elif media_type == 'video':
+                files = await client.get_generated_video(history)
+            elif media_type == '3d':
+                files = await client.get_generated_3d(history)    
             else:
                 logger.error(f"[RECORDER] ✗ Unsupported media type for ComfyUI: {media_type}")
                 return None
@@ -564,7 +577,9 @@ class LivePipelineRecorder:
                 return 'mp3'
             return 'wav'  # Default
         elif media_type == 'video':
-            if data[:4] == b'ftyp':
+            if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+                return 'webp'
+            elif len(data) >= 8 and data[4:8] == b'ftyp':
                 return 'mp4'
             return 'mp4'  # Default
         else:
