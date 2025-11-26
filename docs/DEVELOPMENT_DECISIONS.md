@@ -29,6 +29,174 @@
 
 ---
 
+## 🎯 Active Decision NEW: Stage 2 Refactoring - Separate Interception & Optimization Functions (2025-11-26, Session 75+)
+
+**Status:** ✅ IMPLEMENTED
+**Context:** Critical bug fix - config.context contaminating optimization calls
+**Date:** 2025-11-26
+
+### The Problem: Mixing Unrelated Operations
+
+**Root Cause Bug:**
+The function `execute_stage2_with_optimization()` was combining two COMPLETELY independent operations in a single LLM call:
+
+1. **Interception** (Pedagogical Transformation)
+   - Input: User's original text
+   - Context: `config.context` (artistic attitude like "analog photography", "dada", "bauhaus")
+   - Output: Transformed text with artistic perspective
+
+2. **Optimization** (Model-Specific Refinement)
+   - Input: Interception result
+   - Context: `optimization_instruction` from output chunk (e.g., "describe as cinematic scene")
+   - Output: Text optimized for specific image generation model
+
+**The Bug:**
+```python
+# OLD (BROKEN):
+# config.context ("dada attitude") was leaking into optimization
+# optimization_instruction should replace context, not blend with it
+
+original_context = config.context  # "dada attitude"
+new_context = original_context + "\n\n" + optimization_instruction  # CONTAMINATED!
+```
+
+**Result:** Optimization was using BOTH artistic attitude AND model-specific rules, causing:
+- Inefficient prompts (conflicting instructions)
+- Confusion about responsibilities
+- User-reported bug: "Prompt optimization seems to use config.context instead of optimization instruction"
+
+### The Solution: Complete Separation
+
+**Three Independent Functions:**
+
+1. **`execute_stage2_interception()`** - Pure Interception
+   - Purpose: Pedagogical transformation ONLY
+   - Uses: `config.context` (artistic attitude)
+   - Input: User's text
+   - Output: Transformed text
+   - **No access to optimization_instruction**
+
+2. **`execute_optimization()`** - Pure Optimization (CRITICAL FIX)
+   - Purpose: Model-specific refinement ONLY
+   - Uses: `optimization_instruction` from output chunk
+   - Input: Interception result (or any text)
+   - Output: Optimized prompt
+   - **Critical:** Uses Prompt Interception structure CORRECTLY:
+     ```python
+     full_prompt = (
+         f"Task:\nTransform the INPUT according to the rules provided by the CONTEXT.\n\n"
+         f"Context:\n{optimization_instruction}\n\n"  # ← optimization_instruction goes HERE
+         f"Prompt:\n{input_text}"
+     )
+     ```
+   - **NO access to config.context** - Complete isolation guaranteed
+   - **This was the root cause:** optimization_instruction must go in CONTEXT field, not be appended to existing context
+
+3. **`execute_stage2_with_optimization()`** - Deprecated Proxy (Backward Compatibility)
+   - Purpose: FAILSAFE - calls the two new functions internally
+   - Emits: `DeprecationWarning` to guide future development
+   - Result: Returns `Stage2Result` with both:
+     - `interception_result` (after Call 1)
+     - `optimized_prompt` (after Call 2)
+     - `two_phase_execution: true` metadata flag
+
+### Critical Understanding: Prompt Interception Structure
+
+**This refactoring revealed a fundamental misunderstanding:**
+
+In Prompt Interception, the `optimization_instruction` is NOT an additional rule to append to existing context. It IS the context for the transformation:
+
+```python
+# WRONG (Old approach):
+context = config.context + optimization_instruction  # Blends two contexts
+
+# CORRECT (New approach):
+# optimization_instruction IS the CONTEXT (USER_RULES)
+full_prompt = f"""Task:
+Transform the INPUT according to the rules provided by the CONTEXT.
+
+Context:
+{optimization_instruction}
+
+Prompt:
+{input_text}"""
+```
+
+**Why This Matters:**
+- Config.context defines WHO the LLM thinks it is (artistic persona)
+- Optimization_instruction defines WHAT the LLM should optimize for (model constraints)
+- These are DIFFERENT concerns and must never mix
+- The isolated `execute_optimization()` function makes this separation permanent
+
+### Helper Functions Added
+
+1. **`_load_optimization_instruction(output_config_name)`**
+   - Loads optimization instruction from output chunk metadata
+   - Handles file I/O and error recovery gracefully
+   - Returns None if not found (optimization is optional)
+
+2. **`_build_stage2_result(interception_result, optimized_prompt, ...)`**
+   - Builds Stage2Result dataclass for backward compatibility
+   - Ensures deprecated proxy returns expected structure
+   - Includes metadata about which functions ran
+
+### Implementation Details
+
+**Files Modified:**
+- `/devserver/my_app/routes/schema_pipeline_routes.py`
+  - Lines 123-140: `_load_optimization_instruction()` helper
+  - Lines 143-181: `_build_stage2_result()` helper
+  - Lines 188-246: New `execute_optimization()` function
+  - Lines 248-296: New `execute_stage2_interception()` function
+  - Lines 302-421: Backup `execute_stage2_with_optimization_SINGLE_RUN_VERSION()`
+  - Lines 424-505: Deprecated proxy `execute_stage2_with_optimization()`
+
+**No Breaking Changes:**
+- Deprecated proxy maintains backward compatibility
+- Old code calling `execute_stage2_with_optimization()` still works
+- DeprecationWarning guides developers to new functions
+- All existing configs and pipelines work unchanged
+
+### Testing & Validation
+
+✅ **Isolation Verified:**
+- `execute_optimization()` has zero access to config.context
+- File scope prevents any config contamination
+- Optimization uses ONLY optimization_instruction
+
+✅ **Structure Correct:**
+- Prompt Interception pattern correctly implemented
+- optimization_instruction in CONTEXT field (not TASK field)
+- Task field is generic ("Transform the INPUT...")
+
+✅ **Backward Compatible:**
+- Deprecated proxy calls new functions internally
+- No API changes for existing callers
+- DeprecationWarning guides future refactoring
+
+### Design Principles Applied
+
+1. **NO WORKAROUNDS** - Fixed root problem (context leakage), not symptoms
+2. **CLEAN SEPARATION** - Each function has single responsibility
+3. **BACKWARD COMPATIBLE** - Deprecated proxy prevents breaking changes
+4. **SELF-DOCUMENTING** - Function names express purpose (Interception vs Optimization)
+5. **FAILSAFE ARCHITECTURE** - Proxy emits deprecation warnings to guide future work
+
+### Related Documentation
+
+- **ARCHITECTURE PART 01** - Updated Section 1.2 with new function calls
+- **Session 75+ Handover** - Complete technical documentation
+- **DEVELOPMENT_LOG.md** - Session entry with detailed change log
+
+### Future Work
+
+- Remove deprecated proxy in Session 80+ (after safe period)
+- Update Frontend Vue to call new functions directly
+- Consider making optimization_instruction mandatory in output chunks
+- Potential: Move optimization to separate "Phase 2b" UI state
+
+---
+
 ## 🎯 Active Decision 1: Stage 3 Architecture Correction - Translation Placement (2025-11-21, Session 59)
 
 **Status:** 📋 PLANNED (Session 56-58 plan was flawed, corrected in Session 59)

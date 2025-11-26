@@ -1,9 +1,9 @@
 # DevServer Architecture
 **AI4ArtsEd Development Server - Complete Technical Reference**
 
-> **Last Updated:** 2025-11-09
-> **Status:** AUTHORITATIVE - 4-Stage Orchestration Architecture Documented (v2.0.0-alpha.1)
-> **Version:** 3.0 (4-Stage Flow + Components Reference - Fully Consolidated)
+> **Last Updated:** 2025-11-26
+> **Status:** AUTHORITATIVE - 4-Stage Orchestration Architecture Documented (v2.0.0-alpha.1) + Stage 2 Refactoring (Session 75+)
+> **Version:** 3.1 (4-Stage Flow + Stage 2 Separation: Interception & Optimization isolated)
 
 ---
 THIS IS A MULTI-PART-DOCUMENTATION:
@@ -100,7 +100,8 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 
 **⭐ AUTHORITATIVE SECTION - Read this first before implementing any flow logic**
 
-**Version:** 2.2 (2025-11-23 - Session 65: Stage 2 Split into 2-Phase Execution)
+**Version:** 2.3 (2025-11-26 - Session 75+: Stage 2 Functions Separated - Interception & Optimization isolated)
+**Previous Version:** 2.2 (2025-11-23 - Session 65: Stage 2 Split into 2-Phase Execution)
 **Source:** Consolidated from 4_STAGE_ARCHITECTURE.md
 
 ### 1.1 Executive Summary
@@ -138,24 +139,37 @@ THIS FILE IS ABOUT THE 4-STAGE-ORCHESTRATION.
 │ STAGE 2: Interception + Optimization (Main Pipeline)           │
 │ ════════════════════════════════════════════════════════════   │
 │   **2-PHASE EXECUTION** (Session 65, 2025-11-23):             │
+│   **REFACTORED** (Session 75+, 2025-11-26):                   │
 │                                                                 │
 │   Phase 1: INTERCEPTION (Pedagogical Transformation)          │
-│     execute_stage2_with_optimization() → Call 1               │
+│     execute_stage2_interception() [NEW - Session 75+]         │
 │     - Uses: config.context (pädagogischer Context)            │
 │     - Model: STAGE2_INTERCEPTION_MODEL (from config.py)       │
 │     - Output: interception_result (editierbar)                │
+│     - CRITICAL: Zero access to optimization_instruction       │
 │                                                                 │
 │   Phase 2: OPTIMIZATION (Model-specific Refinement)           │
-│     execute_stage2_with_optimization() → Call 2               │
-│     - Uses: output_config.optimization_instruction            │
+│     execute_optimization() [NEW - Session 75+]                │
+│     - Uses: output_config.optimization_instruction ONLY       │
 │     - Model: STAGE2_INTERCEPTION_MODEL (from config.py)       │
 │     - Input: interception_result (from Phase 1)               │
 │     - Output: optimized_prompt (editierbar)                   │
+│     - CRITICAL: Zero access to config.context                 │
+│     - NOTE: optimization_instruction goes in CONTEXT field    │
+│            (USER_RULES), NOT appended to existing context     │
 │                                                                 │
-│   Why Split?                                                   │
-│   - LLM was overwhelmed by dual task (pedagogy + optimization)│
-│   - User needs editability BETWEEN phases                     │
-│   - Model selection happens BEFORE optimization               │
+│   Why Split? (Session 75+ Refactoring)                        │
+│   - CRITICAL BUG FIX: config.context was contaminating opt.   │
+│   - Old code: context = config.context + opt_instruction ❌   │
+│   - New code: opt_instruction IS the context, separate call ✅ │
+│   - Each function has single responsibility                   │
+│   - Isolation prevents future context leakage                 │
+│   - See DEVELOPMENT_DECISIONS.md "Active Decision NEW" section│
+│                                                                 │
+│   DEPRECATED: execute_stage2_with_optimization()              │
+│   - Kept for backward compatibility (calls both funcs)        │
+│   - Emits DeprecationWarning - guides future refactoring      │
+│   - To be removed Session 80+ (after safe period)             │
 │                                                                 │
 │   PipelineExecutor.execute_pipeline(config, inputs)            │
 │   - DUMB: Just executes chunks                                 │
@@ -466,7 +480,7 @@ Stage 4: Media Generation → image.png
 
 ### 1.6 Implementation Status
 
-**Current (v2.0.0-alpha.1 - 2025-11-09):**
+**Current (v2.3 - 2025-11-26 with Session 75+ Refactoring):**
 - ✅ Stage 1-3 logic in `schema_pipeline_routes.py` - CORRECT (Session 9)
 - ✅ PipelineExecutor is DUMB engine - CORRECT (Session 9)
 - ✅ Non-redundant safety rules - IMPLEMENTED (Session 9)
@@ -477,6 +491,10 @@ Stage 4: Media Generation → image.png
 - ✅ Stage 2 split into 2-phase execution - IMPLEMENTED (Session 65)
 - ✅ execution_mode parameter REMOVED - REFACTORED (Session 65)
 - ✅ Centralized model selection via config.py - IMPLEMENTED (Session 65)
+- ✅ Stage 2 functions SEPARATED (Interception & Optimization isolated) - CRITICAL FIX (Session 75+)
+  - ✅ `execute_stage2_interception()` - Pure pedagogical transformation
+  - ✅ `execute_optimization()` - Pure model-specific refinement (isolation prevents context leakage)
+  - ✅ `execute_stage2_with_optimization()` - Deprecated proxy (backward compatible)
 
 **Validation Tests:**
 - ✅ Stillepost (8 iterations): Stage 1 ran once (not 8x) - PASSED
