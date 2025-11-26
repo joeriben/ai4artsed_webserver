@@ -1,6 +1,34 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-21 Session 59 (Stage 3 Architecture Correction - Translation Moved)
+**Last Updated:** 2025-11-26 (Bug Report: Prompt Optimization Context Issue)
 **Context:** Current priorities and active TODOs
+
+---
+
+## 🐛 URGENT BUG (2025-11-26)
+
+### Prompt Optimization Uses Wrong Input
+**Status:** 🔴 **BUG REPORTED** - Needs investigation
+**Priority:** HIGH
+**Reported:** 2025-11-26
+
+**Problem:**
+"Prompt optimierung" scheint den "Context" zu verwenden, statt den Optimierungsprompt aus den Chunks.
+
+**Expected Behavior:**
+- Optimization should use the optimization prompt from chunks (e.g., `optimize_t5_prompt.json`, `optimize_clip_prompt.json`)
+
+**Actual Behavior:**
+- Optimization appears to use the user's context prompt instead
+
+**Investigation Needed:**
+- Check Stage 2 optimization flow in `schema_pipeline_routes.py`
+- Verify which prompt is passed to optimization chunks
+- Check if context is being incorrectly substituted
+
+**Files to Check:**
+- `devserver/my_app/routes/schema_pipeline_routes.py` (Stage 2 optimization logic)
+- `devserver/schemas/chunks/optimize_*.json` (optimization chunks)
+- Frontend: `text_transformation.vue` (how context is sent)
 
 ---
 
