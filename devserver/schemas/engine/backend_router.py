@@ -653,7 +653,30 @@ class BackendRouter:
                     error="No workflow definition in legacy chunk"
                 )
 
+            # Apply seed randomization from input_mappings (but not prompt - see HANDOVER doc)
+            input_mappings = chunk.get('input_mappings', {})
+            if input_mappings and 'seed' in input_mappings:
+                import random
+                # Only process seed parameter to enable video variation
+                seed_mapping = input_mappings['seed']
+                seed_value = parameters.get('seed', seed_mapping.get('default', 'random'))
+
+                if seed_value == 'random' or seed_value == -1:
+                    seed_value = random.randint(0, 2**32 - 1)
+                    logger.info(f"[LEGACY-WORKFLOW] Generated random seed: {seed_value}")
+
+                # Inject seed into workflow
+                seed_node_id = seed_mapping.get('node_id')
+                seed_field = seed_mapping.get('field', 'inputs.noise_seed')
+                if seed_node_id and seed_node_id in workflow:
+                    field_parts = seed_field.split('.')
+                    target = workflow[seed_node_id]
+                    for part in field_parts[:-1]:
+                        target = target.setdefault(part, {})
+                    target[field_parts[-1]] = seed_value
+
             # Execute via service (submit → poll → download)
+            # Legacy service handles prompt injection via title-based search
             service = get_legacy_workflow_service()
             result = await service.execute_workflow(
                 workflow=workflow,
