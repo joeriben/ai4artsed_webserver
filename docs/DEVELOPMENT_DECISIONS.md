@@ -29,7 +29,43 @@
 
 ---
 
-## 🎯 Active Decision NEW: Stage 2 Refactoring - Separate Interception & Optimization Functions (2025-11-26, Session 75+)
+## 🎯 Active Decision: Stage 2 Optimization - Two Separate Endpoints (2025-11-26, Session 76)
+
+**Status:** ✅ IMPLEMENTED
+**Decision:** Create `/pipeline/optimize` endpoint separate from `/pipeline/stage2`
+**Principle:** Two user actions → Two endpoints (not one endpoint with flags)
+
+### Quick Summary
+
+| User Action | Endpoint | Purpose |
+|-------------|----------|---------|
+| Clicks "Start" Button | `/pipeline/stage2` | Interception with config.context |
+| Selects Model | `/pipeline/optimize` | Optimization with optimization_instruction |
+
+### Why This Matters
+
+**From user feedback:**
+> "Ich kann - als Mensch - wirklich nicht verstehen wieso Start1 nicht einfach eine Aktion auslösen kann die sich auf die zwei Boxen VOR/OBERHALB von Start 1 beziehen, und der Klick auf das Modell eine Aktion auslösen kann, die sich auf die Box DIREKT DARÜBER bezieht."
+
+**The EINFACHE solution:** Two clear endpoints for two clear operations. No flags, no complex logic.
+
+### Key Architectural Insights
+
+1. **Use PromptInterceptionEngine** - Don't build prompts manually
+2. **optimization_instruction goes in CONTEXT** - Not in TASK_INSTRUCTION
+3. **Frontend states intent explicitly** - Each click maps to ONE endpoint
+4. **No workarounds** - Use the system's modularity
+5. **Don't warn about normal behavior** - Only notify for actual errors
+
+**Full details:** See [ARCHITECTURE_STAGE2_SEPARATION.md](./ARCHITECTURE_STAGE2_SEPARATION.md)
+
+### Files Changed
+- `devserver/my_app/routes/schema_pipeline_routes.py` - Added `/pipeline/optimize` endpoint
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - runOptimization() calls `/optimize`
+
+---
+
+## 🎯 Active Decision: Stage 2 Refactoring - Separate Interception & Optimization Functions (2025-11-26, Session 75+)
 
 **Status:** ✅ IMPLEMENTED
 **Context:** Critical bug fix - config.context contaminating optimization calls

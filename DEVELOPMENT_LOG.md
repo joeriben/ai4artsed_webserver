@@ -194,6 +194,150 @@ const configsByCategory: Record<string, Config[]> = {
 
 ---
 
+## Session 76b - Stage 2 Optimization: Two Separate Endpoints (ARCHITECTURE FIX)
+**Date:** 2025-11-26
+**Duration:** ~4 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Replace complex flag-based logic with two clear endpoints for interception and optimization
+
+### The Core Insight: Two User Actions → Two Endpoints
+
+**User frustration that revealed the architectural problem:**
+> "Ich kann - als Mensch - wirklich nicht verstehen wieso Start1 nicht einfach eine Aktion auslösen kann die sich auf die zwei Boxen VOR/OBERHALB von Start 1 beziehen, und der Klick auf das Modell eine Aktion auslösen kann, die sich auf die Box DIREKT DARÜBER bezieht."
+
+**Translation:** Why can't "Start" just trigger an action that uses the boxes ABOVE it, and model selection trigger an action that uses the box DIRECTLY above it?
+
+### The Problem: Overcomplicated Single Endpoint
+
+**Initial (wrong) approach:** Use `/execute_stage2` with a `skip_execution` flag to handle both:
+- Interception (when "Start" clicked)
+- Optimization (when model selected)
+
+**Why this was wrong:**
+- Backend must "guess" user intent from flags
+- Violates the modularity principle of the system
+- Creates fragile, hard-to-understand code
+
+### The EINFACHE Solution
+
+**Two endpoints for two operations:**
+
+| User Action | Endpoint | Purpose | Input |
+|-------------|----------|---------|-------|
+| Clicks "Start" Button | `/pipeline/stage2` | Interception with config.context | input_text + context_prompt |
+| Selects Model | `/pipeline/optimize` | Optimization with optimization_instruction | interception_result + output_config |
+
+**No flags. No complex logic. URL communicates intent.**
+
+### Critical Technical Discoveries
+
+#### 1. Must Use PromptInterceptionEngine, Not Direct LLM Calls
+
+**Wrong:**
+```python
+full_prompt = f"Task:\n...\nContext:\n...\nPrompt:\n..."
+response = backend_router.process_request(...)
+```
+
+**Right:**
+```python
+from schemas.engine.prompt_interception_engine import PromptInterceptionEngine, PromptInterceptionRequest
+
+interception_engine = PromptInterceptionEngine()
+request = PromptInterceptionRequest(
+    input_prompt=input_text,
+    input_context=optimization_instruction,  # Goes in CONTEXT, not TASK!
+    style_prompt="Transform the INPUT...",
+    model=STAGE2_INTERCEPTION_MODEL
+)
+response = await interception_engine.process_request(request)
+```
+
+**Why:** The manipulate chunk provides the proven 3-part Prompt Interception structure. Direct LLM calls produce poor results.
+
+#### 2. optimization_instruction Goes in CONTEXT (USER_RULES)
+
+**User feedback when we got this wrong:**
+> "NEINNEINNEINNEIN der INPUT Prompt wird vom CONTEXT bearbeitet. Das nennt sich INTERCEPTION... CONTEXT verändert... IST DAS SO SCHWER ZU VERSTEHEN?"
+
+**The 3-part structure:**
+- TASK_INSTRUCTION: Generic "Transform the INPUT according to CONTEXT"
+- CONTEXT (USER_RULES): The optimization_instruction from output chunk
+- INPUT_TEXT: The text to transform
+
+#### 3. No Useless Info Bubbles
+
+**Removed:** Info bubble saying "This model doesn't need optimization"
+
+**User feedback:**
+> "Es gibt KEIN Szenario in dem die von Dir eingefügte Warnbox Sinn ergibt."
+
+**Principle:** If optimization_instruction is missing, just pass through the input. This is normal behavior, not an error.
+
+#### 4. Always Re-run Optimization on Model Click
+
+**User expectation:** Clicking same model again should re-run optimization
+
+**Fix:** Removed check that prevented re-running. Added logging:
+```javascript
+console.log('[SelectConfig] Triggering optimization for:', configId)
+await runOptimization()
+```
+
+### Files Changed
+
+**Backend:**
+- `devserver/my_app/routes/schema_pipeline_routes.py`
+  - Added `/pipeline/optimize` endpoint (lines 784-870)
+  - Fixed `execute_optimization()` to use PromptInterceptionEngine (lines 207-266)
+  - Added detailed debug logging in `_load_optimization_instruction()`
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - Changed `runOptimization()` to call `/pipeline/optimize` (line 561)
+  - Removed useless info bubble
+  - Added logging for debugging
+
+### Documentation Created
+
+**New file:** `docs/ARCHITECTURE_STAGE2_SEPARATION.md`
+
+Comprehensive documentation of 6 key architectural insights:
+1. Two separate endpoints for two separate operations
+2. Prompt Interception MUST use manipulate chunk
+3. optimization_instruction placement in CONTEXT
+4. Frontend should make clear, direct API calls
+5. No workarounds - use the modularity
+6. Info bubbles only for actual errors
+
+**Updated:** `docs/DEVELOPMENT_DECISIONS.md` - Added Session 76 decision entry
+
+### Commits
+
+1. `feat: Separate /optimize endpoint for media-specific optimization`
+   - New /optimize endpoint
+   - PromptInterceptionEngine integration
+   - Frontend runOptimization() changes
+
+2. `fix: Remove useless info bubble and ensure optimization always runs on model click`
+   - Removed "no optimization needed" bubble
+   - Ensure repeated clicks work
+
+### Key Principles Learned
+
+**From user:**
+> "WOZU habe ich das ganze Schemadevserver-System denn so modular ausgelegt? Für Flexibilität"
+
+**Applied:**
+- Use separate endpoints for separate operations
+- Leverage PromptInterceptionEngine instead of manual prompt building
+- Let URLs communicate intent (no flags)
+- Trust the system's modular design
+
+**Result:** Clean, understandable code that matches user expectations and system architecture.
+
+---
+
 ## Session 75+ - Stage 2 Refactoring: Separate Interception & Optimization (CRITICAL BUG FIX)
 **Date:** 2025-11-26
 **Duration:** ~2 hours
