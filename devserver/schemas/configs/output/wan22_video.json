@@ -1,0 +1,74 @@
+{
+  "pipeline": "single_text_media_generation",
+  "name": {
+    "en": "Wan 2.2 Video (5B)",
+    "de": "Wan 2.2 Video (5B)"
+  },
+  "description": {
+    "en": "High-quality video generation using Wan 2.2 TI2V 5B model via ComfyUI",
+    "de": "Hochwertige Videogenerierung mit Wan 2.2 TI2V 5B Modell via ComfyUI"
+  },
+  "category": {
+    "en": "Video Generation",
+    "de": "Videogenerierung"
+  },
+
+  "parameters": {
+    "OUTPUT_CHUNK": "output_video_wan22",
+    "NEGATIVE_PROMPT": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+    "WIDTH": 1280,
+    "HEIGHT": 704,
+    "FRAMES": 121,
+    "STEPS": 20,
+    "CFG": 5.0,
+    "FPS": 24,
+    "SEED": "random"
+  },
+
+  "media_preferences": {
+    "default_output": "video",
+    "supported_types": ["video"]
+  },
+
+  "meta": {
+    "stage": "output",
+    "model": "wan2.2-ti2v-5b",
+    "model_file": "wan2.2_ti2v_5B_fp16.safetensors",
+    "vae_file": "wan2.2_vae.safetensors",
+    "clip_file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "backend": "comfyui",
+    "backend_type": "comfyui",
+    "requires_gpu": true,
+    "gpu_vram_mb": 20000,
+    "estimated_duration_seconds": "30-60",
+    "recommended_resolution": "1280x704",
+    "supported_resolutions": [
+      "1280x704",
+      "1024x576",
+      "768x512"
+    ],
+    "recommended_frames": 121,
+    "supported_fps": [24, 25, 30],
+    "notes": "Wan 2.2 TI2V 5B model via ComfyUI. High-quality text-to-video generation at 720P. Uses uni_pc sampler with 20 steps. Generates ~5 second videos. Chinese negative prompt optimized for better quality. Requires ~20GB VRAM.",
+    "version": "1.0"
+  },
+
+  "display": {
+    "icon": "🎬",
+    "color": "#E91E63",
+    "category": "video_generation",
+    "difficulty": 2,
+    "order": 21
+  },
+
+  "tags": {
+    "en": ["video", "wan", "high-quality", "comfyui", "local", "720p"],
+    "de": ["video", "wan", "hochwertig", "comfyui", "lokal", "720p"]
+  },
+
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}
