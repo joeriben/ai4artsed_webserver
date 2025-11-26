@@ -556,28 +556,24 @@ async function runOptimization() {
   isOptimizationLoading.value = true
 
   try {
-    // Call 2: Optimization WITH output_config and interception_result
-    const response = await axios.post('/api/schema/pipeline/stage2', {
-      schema: pipelineStore.selectedConfig?.id || 'overdrive',
-      input_text: interceptionResult.value,  // Use interception result as input
-      context_prompt: contextPrompt.value || undefined,
-      user_language: 'de',
-      safety_level: 'youth',
-      output_config: selectedConfig.value  // NOW include output_config for optimization
-      // NO execution_mode - models come from config.py
+    // Call 2 ONLY: Optimization with optimization_instruction from output chunk
+    // Uses NEW /optimize endpoint - NO Call 1, NO config.context
+    const response = await axios.post('/api/schema/pipeline/optimize', {
+      input_text: interceptionResult.value,  // Text from interception_result box
+      output_config: selectedConfig.value    // Selected model
+      // NO schema, NO context_prompt - only optimization!
     })
 
     if (response.data.success) {
-      // Use optimized_prompt if available (2-phase), otherwise stage2_result (backward compat)
-      optimizedPrompt.value = response.data.optimized_prompt || response.data.stage2_result || ''
-      hasOptimization.value = response.data.optimization_applied || false  // Track if optimization was applied
+      optimizedPrompt.value = response.data.optimized_prompt || ''
+      hasOptimization.value = response.data.optimization_applied || false
       executionPhase.value = 'optimization_done'
-      console.log('[2-Phase] Optimization complete:', optimizedPrompt.value.substring(0, 60), '| Optimization applied:', hasOptimization.value)
+      console.log('[Optimize] Complete:', optimizedPrompt.value.substring(0, 60), '| Applied:', hasOptimization.value)
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
   } catch (error: any) {
-    console.error('[2-Phase] Optimization error:', error)
+    console.error('[Optimize] Error:', error)
     const errorMessage = error.response?.data?.error || error.message
     alert(`Fehler: ${errorMessage}`)
   } finally {

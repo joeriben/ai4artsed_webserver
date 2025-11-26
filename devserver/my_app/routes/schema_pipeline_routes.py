@@ -123,20 +123,39 @@ def lookup_output_config(media_type: str, execution_mode: str = 'eco') -> str:
 def _load_optimization_instruction(output_config_name: str):
     """Load optimization_instruction from output chunk meta."""
     try:
+        logger.info(f"[LOAD-OPT] Loading optimization_instruction for config '{output_config_name}'")
+
         output_config_obj = pipeline_executor.config_loader.get_config(output_config_name)
+        logger.info(f"[LOAD-OPT] Config loaded: {output_config_obj is not None}")
+
         if output_config_obj and hasattr(output_config_obj, 'parameters'):
             output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
+            logger.info(f"[LOAD-OPT] OUTPUT_CHUNK name: '{output_chunk_name}'")
+
             if output_chunk_name:
                 import json
                 from pathlib import Path
                 chunk_file = Path(__file__).parent.parent.parent / "schemas" / "chunks" / f"{output_chunk_name}.json"
+                logger.info(f"[LOAD-OPT] Chunk file path: {chunk_file}")
+                logger.info(f"[LOAD-OPT] Chunk file exists: {chunk_file.exists()}")
+
                 if chunk_file.exists():
                     with open(chunk_file, 'r', encoding='utf-8') as f:
                         output_chunk = json.load(f)
+                    logger.info(f"[LOAD-OPT] Chunk loaded, has 'meta': {'meta' in output_chunk}")
+
                     if output_chunk and 'meta' in output_chunk:
-                        return output_chunk['meta'].get('optimization_instruction')
+                        opt_inst = output_chunk['meta'].get('optimization_instruction')
+                        logger.info(f"[LOAD-OPT] optimization_instruction found: {opt_inst is not None}")
+                        if opt_inst:
+                            logger.info(f"[LOAD-OPT] optimization_instruction length: {len(opt_inst)}")
+                        return opt_inst
     except Exception as e:
-        logger.warning(f"Failed to load optimization_instruction: {e}")
+        logger.warning(f"[LOAD-OPT] Failed to load optimization_instruction: {e}")
+        import traceback
+        traceback.print_exc()
+
+    logger.warning(f"[LOAD-OPT] No optimization_instruction found for '{output_config_name}'")
     return None
 
 
@@ -191,13 +210,12 @@ async def execute_optimization(
     execution_mode: str = "eco"
 ):
     """
-    Optimization: Transform text according to optimization_instruction
+    Optimization: Transform text using manipulate chunk + optimization_instruction
 
-    Completely independent from interception. No config.context access.
-    Uses standard Prompt Interception structure:
-    - TASK = generic instruction
-    - CONTEXT = optimization_instruction (USER_RULES)
-    - PROMPT = input_text
+    Uses Prompt Interception through manipulate chunk:
+    - TASK_INSTRUCTION = Generic transformation instruction
+    - CONTEXT = optimization_instruction from output chunk (USER_RULES)
+    - INPUT_TEXT = text to optimize
 
     Args:
         input_text: Text to optimize (typically interception_result)
@@ -209,43 +227,42 @@ async def execute_optimization(
     """
     logger.info(f"[OPTIMIZATION] Starting with instruction length: {len(optimization_instruction)}")
     logger.info(f"[OPTIMIZATION] Input text: '{input_text[:200]}...'")
-    logger.info(f"[OPTIMIZATION] Optimization instruction: '{optimization_instruction[:200]}...'")
+    logger.info(f"[OPTIMIZATION] Using manipulate chunk with optimization_instruction as CONTEXT")
 
-    # Build prompt using manipulate chunk template structure
-    full_prompt = (
-        f"Task:\nTransform the INPUT according to the rules provided by the CONTEXT.\n\n"
-        f"Context:\n{optimization_instruction}\n\n"
-        f"Important: Respond in the same language as the input prompt below.\n\n"
-        f"Prompt:\n{input_text}"
+    # Use the manipulate chunk through prompt_interception_engine
+    from schemas.engine.prompt_interception_engine import (
+        PromptInterceptionEngine,
+        PromptInterceptionRequest
     )
-
-    logger.info(f"[OPTIMIZATION] Full prompt being sent to LLM:\n{full_prompt}\n{'='*80}")
-
     from config import STAGE2_INTERCEPTION_MODEL
-    from schemas.engine.backend_router import BackendRequest, BackendResponse, BackendType
 
-    backend_request = BackendRequest(
-        backend_type=BackendType.OLLAMA,
+    # Initialize PromptInterceptionEngine
+    interception_engine = PromptInterceptionEngine()
+
+    # Create request with 3-part Prompt Interception structure
+    request = PromptInterceptionRequest(
+        input_prompt=input_text,                      # INPUT_TEXT (Prompt)
+        input_context=optimization_instruction,       # CONTEXT (USER_RULES)
+        style_prompt="Transform the INPUT according to the rules provided by the CONTEXT. Preserve structural aspects of the INPUT and follow all instructions in the CONTEXT precisely.",  # TASK_INSTRUCTION
         model=STAGE2_INTERCEPTION_MODEL,
-        prompt=full_prompt,
-        parameters={
-            'temperature': 0.7,
-            'top_p': 0.9,
-            'stream': False
-        }
+        debug=False
     )
 
     try:
-        response = await pipeline_executor.backend_router.process_request(backend_request)
+        # Execute Prompt Interception with the manipulate chunk
+        response = await interception_engine.process_request(request)
 
-        if isinstance(response, BackendResponse) and response.success:
-            logger.info(f"[OPTIMIZATION] Completed: '{response.content[:100]}...'")
-            return response.content
+        if response.success and response.output_str and response.output_str.strip():
+            logger.info(f"[OPTIMIZATION] Completed via manipulate chunk: '{response.output_str[:100]}...'")
+            return response.output_str
         else:
-            logger.warning(f"[OPTIMIZATION] Failed: {response.error if hasattr(response, 'error') else 'Unknown'}")
+            logger.warning(f"[OPTIMIZATION] Failed or empty result: {response.error if hasattr(response, 'error') else 'Unknown'}")
             return input_text  # Fallback to input
+
     except Exception as e:
-        logger.error(f"[OPTIMIZATION] Error: {e}")
+        logger.error(f"[OPTIMIZATION] Error in manipulate chunk execution: {e}")
+        import traceback
+        traceback.print_exc()
         return input_text  # Fallback to input
 
 
@@ -772,6 +789,97 @@ def execute_stage2():
 
     except Exception as e:
         logger.error(f"[STAGE2-ENDPOINT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@schema_bp.route('/pipeline/optimize', methods=['POST'])
+def optimize_prompt():
+    """
+    ONLY Call 2: Optimization with optimization_instruction from output chunk
+
+    This endpoint applies media-specific optimization to already-intercepted prompts.
+    Used when user selects a model AFTER interception.
+
+    Request Body:
+    {
+        "input_text": "...",           # Text from interception_result box
+        "output_config": "sd35_large"  # Selected model/output config
+    }
+
+    Response:
+    {
+        "success": true,
+        "optimized_prompt": "...",
+        "optimization_applied": true/false
+    }
+    """
+    import time
+
+    start_time = time.time()
+
+    try:
+        # Request validation
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'JSON-Request erwartet'
+            }), 400
+
+        input_text = data.get('input_text')
+        output_config = data.get('output_config')
+
+        if not input_text or not output_config:
+            return jsonify({
+                'success': False,
+                'error': 'input_text und output_config sind erforderlich'
+            }), 400
+
+        logger.info(f"[OPTIMIZE-ENDPOINT] Starting optimization for output_config '{output_config}'")
+
+        # Load optimization_instruction from output chunk
+        optimization_instruction = _load_optimization_instruction(output_config)
+
+        logger.info(f"[OPTIMIZE-ENDPOINT] Loaded optimization_instruction: {optimization_instruction[:200] if optimization_instruction else 'NONE'}...")
+
+        if not optimization_instruction:
+            # No optimization available - return input unchanged
+            logger.info(f"[OPTIMIZE-ENDPOINT] No optimization_instruction found for '{output_config}' - returning input unchanged")
+            return jsonify({
+                'success': True,
+                'optimized_prompt': input_text,
+                'optimization_applied': False,
+                'execution_time_ms': int((time.time() - start_time) * 1000)
+            })
+
+        # Call execute_optimization() - only Call 2, NO Call 1
+        logger.info(f"[OPTIMIZE-ENDPOINT] Applying optimization (instruction length: {len(optimization_instruction)})")
+
+        optimized = asyncio.run(execute_optimization(
+            input_text=input_text,
+            optimization_instruction=optimization_instruction,
+            execution_mode='eco'
+        ))
+
+        execution_time = int((time.time() - start_time) * 1000)
+
+        logger.info(f"[OPTIMIZE-ENDPOINT] Optimization complete ({execution_time}ms)")
+
+        return jsonify({
+            'success': True,
+            'optimized_prompt': optimized,
+            'optimization_applied': True,
+            'execution_time_ms': execution_time
+        })
+
+    except Exception as e:
+        logger.error(f"[OPTIMIZE-ENDPOINT] Error: {e}")
         import traceback
         traceback.print_exc()
 
