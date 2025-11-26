@@ -8,6 +8,7 @@
 
 ### Getting Started
 - **readme.md** - Project introduction and setup guide
+- **DEPLOYMENT.md** - Complete deployment workflow (dev → production)
 
 ### Architecture
 - **ARCHITECTURE PART 01** - 4-Stage Orchestration Flow (AUTHORITATIVE)
@@ -36,6 +37,7 @@ Completed session summaries and obsolete documentation are in `archive/`:
 ## 🔍 Quick Reference
 
 **Need to understand:**
+- **How to deploy?** → Read `DEPLOYMENT.md`
 - **Data flow?** → Read `DATA_FLOW_ARCHITECTURE.md`
 - **4-Stage system?** → Read `ARCHITECTURE PART 01`
 - **What changed recently?** → Read `DEVELOPMENT_LOG.md` (latest sessions)
@@ -44,5 +46,5 @@ Completed session summaries and obsolete documentation are in `archive/`:
 
 ---
 
-**Last Updated:** 2025-11-08
-**Status:** Documentation cleaned up, session summaries archived
+**Last Updated:** 2025-11-26
+**Status:** Added deployment documentation (DEPLOYMENT.md)
