@@ -23,6 +23,12 @@
 - **DEVELOPMENT_LOG.md** - Chronological session log with costs (WHEN & HOW MUCH)
 - **DEVELOPMENT_DECISIONS.md** - Architectural decisions (WHAT & WHY)
 - **devserver_todos.md** - Current priorities and task tracking
+
+### Recent Session Handovers
+- **SESSION_74_GIT_RECOVERY_AND_DEPLOYMENT.md** - Git recovery, production deployment (2025-11-26)
+- **SESSION_71_QWEN_IMAGE_INTEGRATION.md** - Qwen Image integration (2025-11-25)
+- **SESSION_GEMINI_3_PRO_INTEGRATION.md** - Gemini 3 Pro image generation (2025-11-24)
+
 ---
 
 ## 📦 Archive
@@ -47,4 +53,4 @@ Completed session summaries and obsolete documentation are in `archive/`:
 ---
 
 **Last Updated:** 2025-11-26
-**Status:** Added deployment documentation (DEPLOYMENT.md)
+**Status:** Session 74 documented - Git recovery, production deployment, and deployment guide

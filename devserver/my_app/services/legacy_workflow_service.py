@@ -55,10 +55,13 @@ class LegacyWorkflowService:
             }
         """
         try:
+            logger.info(f"[DEBUG-PROMPT] Legacy service received prompt: '{prompt[:200]}...'" if prompt else f"[DEBUG-PROMPT] ⚠️ Legacy service received EMPTY prompt: {repr(prompt)}")
+
             # Step 1: Replace LLM model names
             workflow = self._replace_llm_models(workflow)
 
             # Step 2: Inject prompt
+            logger.info(f"[DEBUG-PROMPT] Starting prompt injection...")
             workflow, injection_success = self._inject_prompt(workflow, prompt, chunk_config)
             if not injection_success:
                 logger.warning("[LEGACY-SERVICE] Prompt injection failed, continuing anyway")
@@ -146,10 +149,14 @@ class LegacyWorkflowService:
             fallback_field = prompt_injection.get('fallback_field', 'value')
 
             logger.info(f"[LEGACY-INJECT] Searching for node with title '{target_title}'")
+            logger.info(f"[DEBUG-PROMPT] Prompt to inject: '{prompt[:200]}...'" if prompt else f"[DEBUG-PROMPT] ⚠️ Prompt is EMPTY: {repr(prompt)}")
 
             # Method 1: Search by _meta.title (preferred)
+            node_titles_found = []
             for node_id, node_data in workflow.items():
                 meta_title = node_data.get('_meta', {}).get('title')
+                if meta_title:
+                    node_titles_found.append(f"{node_id}:'{meta_title}'")
                 if meta_title == target_title:
                     inputs = node_data.get('inputs', {})
 
@@ -168,12 +175,18 @@ class LegacyWorkflowService:
                         return workflow, True
 
             # Method 2: Fallback to node_id if configured
+            logger.info(f"[DEBUG-PROMPT] Title match failed. Available node titles: {', '.join(node_titles_found[:10])}")
+            logger.info(f"[DEBUG-PROMPT] Trying fallback: node_id={fallback_node_id}, field={fallback_field}")
+
             if fallback_node_id and fallback_node_id in workflow:
                 node_data = workflow[fallback_node_id]
                 inputs = node_data.get('inputs', {})
+                logger.info(f"[DEBUG-PROMPT] Fallback node {fallback_node_id} has fields: {list(inputs.keys())}")
 
                 if fallback_field in inputs:
+                    logger.info(f"[DEBUG-PROMPT] Before injection: node {fallback_node_id}.inputs.{fallback_field} = '{inputs.get(fallback_field)}'")
                     node_data['inputs'][fallback_field] = prompt
+                    logger.info(f"[DEBUG-PROMPT] After injection: node {fallback_node_id}.inputs.{fallback_field} = '{node_data['inputs'][fallback_field][:100]}...'")
                     logger.info(f"[LEGACY-INJECT] ✓ Injected prompt into fallback node {fallback_node_id}.inputs.{fallback_field}")
                     logger.info(f"[LEGACY-INJECT] ✓ Prompt preview: '{prompt[:100]}...'")
                     return workflow, True

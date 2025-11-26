@@ -1,8 +1,23 @@
 # Video Prompt Injection Issue - Session Handover
 
 **Date**: 2025-11-26
-**Status**: PARTIALLY FIXED (Seed randomization working, prompt injection still broken)
+**Status**: ✅ FIXED in Session 72
 **Branch**: `develop`
+**Resolution**: See `SESSION_72_VIDEO_PROMPT_FIX.md`
+
+---
+
+## ✅ SOLUTION (Session 72)
+
+**Root Cause**: Legacy workflows bypassed `_apply_input_mappings()`, leaving prompts empty.
+
+**Fix**: Modified `backend_router.py:656-669` to call `_apply_input_mappings()` before service execution - same as standard workflows.
+
+**Details**: See `SESSION_72_VIDEO_PROMPT_FIX.md` for complete technical explanation and architecture update.
+
+---
+
+## ORIGINAL BUG REPORT (Historical Reference)
 
 ---
 

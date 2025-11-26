@@ -1,5 +1,158 @@
 # Development Log
 
+## Session 72 - Video Prompt Injection Fix (CRITICAL)
+**Date:** 2025-11-26
+**Duration:** ~3 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Fixed critical bug preventing ALL output chunks (video, audio, etc.) from receiving prompts
+
+### Summary
+**BREAKTHROUGH FIX**: Discovered and fixed root cause of video prompt injection failure. The bug affected ALL output chunks, not just legacy workflows. Videos, audio, and workflow-based generations now work correctly.
+
+### The Problem
+- Videos (LTX-Video) ignored user prompts completely
+- Stage 3 translated prompts correctly, but they never reached ComfyUI
+- Workflow archives showed `Node 6.inputs.text = ""` (empty)
+
+### Root Cause Discovery
+**ChunkBuilder Architecture Issue** (`chunk_builder.py:206`):
+```python
+# For output chunks, 'prompt' field contains workflow dict, NOT text!
+'prompt': processed_workflow,  # Dict, not string
+```
+
+**The Flow**:
+1. ChunkBuilder puts workflow dict in `chunk_request['prompt']`
+2. Pipeline Executor passes it as `BackendRequest.prompt`
+3. Backend Router receives **dict** instead of **text string**
+4. Converts to empty string → prompts lost
+
+**Text prompt was actually in** `parameters['prompt']` the whole time!
+
+### The Fix
+**File**: `/devserver/schemas/engine/backend_router.py:327-343`
+
+```python
+# Extract text prompt from parameters (not from prompt param which is workflow dict)
+text_prompt = parameters.get('prompt', '') or parameters.get('PREVIOUS_OUTPUT', '')
+
+# Pass correct text prompt to all handlers
+if execution_mode == 'legacy_workflow':
+    return await self._process_legacy_workflow(chunk, text_prompt, parameters)
+elif media_type == 'image':
+    return await self._process_image_chunk_simple(chunk_name, text_prompt, parameters, chunk)
+else:
+    return await self._process_workflow_chunk(chunk_name, text_prompt, parameters, chunk)
+```
+
+### Impact
+**✅ FIXES ALL OUTPUT CHUNKS**:
+- LTX-Video (legacy workflow via Port 7821)
+- Audio generation (Stable Audio)
+- Music generation (AceStep)
+- Image workflows (Qwen, etc.)
+- Any future workflow-based output
+
+**This is now the standard way** to run all legacy workflows and output chunks!
+
+### Debug Process
+1. Added comprehensive logging to trace prompt flow
+2. Discovered prompt parameter empty but present in `parameters`
+3. Traced through `pipeline_executor` → `chunk_builder` → `backend_router`
+4. Found ChunkBuilder uses `prompt` field for workflow dict
+5. Implemented Backend Router adaptation (not ChunkBuilder change)
+
+### Key Insight
+ChunkBuilder's architecture is intentional - it needs to pass both workflow dict AND text prompt. The Backend Router needed to adapt by extracting text prompt from `parameters`.
+
+### Files Modified
+- `/devserver/schemas/engine/backend_router.py:303-343` (prompt extraction fix)
+- `/devserver/my_app/services/legacy_workflow_service.py:58-194` (debug logging)
+
+### Files Created
+- `/docs/SESSION_72_VIDEO_PROMPT_FIX.md` (complete technical documentation)
+- Updated `/docs/SESSION_VIDEO_PROMPT_ISSUE_HANDOVER.md` (marked as fixed)
+
+### Testing
+✅ Video generation with custom prompts works
+✅ Workflow archive shows filled prompt: `"text": "A knife cuts..."`
+✅ Legacy service receives non-empty prompt
+✅ All debug logs show correct prompt flow
+
+### Architecture Impact
+**Before**: Different handling for processing chunks vs output chunks
+**After**: Unified prompt extraction from `parameters` for all output chunks
+
+**This fix enables**:
+- All current workflow-based media generation
+- All future custom ComfyUI workflows
+- Consistent behavior across output types
+
+### Next Steps
+- Consider removing redundant debug logging after validation period
+- Potential future refactoring: Separate workflow dict and text prompt in ChunkBuilder (2026+)
+
+---
+
+## Session 74 - Git Recovery & Production Deployment
+**Date:** 2025-11-26
+**Duration:** ~2 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Git recovery from failed implementation, full production deployment, deployment documentation
+
+### Summary
+Recovered from broken system state (failed LTX-Video + Surrealizer implementations), executed complete production deployment, and created comprehensive deployment documentation.
+
+### Key Activities
+
+**1. Git Recovery:**
+- Created backup branch: `backup/failed-ltx-surrealizer`
+- Hard reset develop to origin/develop (051a587)
+- Restored clean working state
+
+**2. TypeScript Fixes:**
+- Fixed `direct.vue`: Changed `logo: null` → `logo: undefined`
+- Fixed `text_transformation.vue`: Added null checks (`output?.url`, `output?.content`)
+- Build passed successfully
+
+**3. Production Deployment:**
+- Full workflow: Build → Commit → Push develop → Push main → Production pull
+- Resolved PORT config merge conflict (kept 17801 for production)
+- Production now running latest code
+
+**4. Vue Improvement:**
+- Restored smart input_text fallback: `optimizedPrompt || interceptionResult || inputText`
+- Uses most processed prompt version available
+
+**5. Documentation:**
+- Created `DEPLOYMENT.md` - Complete deployment guide with troubleshooting
+- Added to `MAIN_DOCUMENTATION_INDEX.md`
+
+**6. Bug Report:**
+- User reported: "Prompt optimierung scheint Context zu verwenden statt Optimierungsprompt aus Chunks"
+- Added to `devserver_todos.md` as HIGH priority
+
+### Architecture Learning: Production Git Setup
+- Production remote points to dev's local repo (not GitHub directly)
+- Production maintains local PORT config (17801) via rebase
+- "Branch ahead of origin/main by 1 commit" is normal in production
+
+### Files Created
+- `docs/SESSION_74_GIT_RECOVERY_AND_DEPLOYMENT.md` (full session handover)
+- `docs/DEPLOYMENT.md` (deployment guide)
+
+### Commits (Local - Not Pushed)
+- `280a121` - feat: Restore smart input_text fallback
+- `d4b0f37` - docs: Add DEPLOYMENT.md
+- `25ba755` - docs: Add bug report to todos
+
+### Next Steps
+- Push local commits to GitHub origin
+- Investigate Stage 2 optimization bug (HIGH priority)
+- Test production after bug fix
+
+---
+
 ## Session 71 - Qwen Image Integration
 **Date:** 2025-11-25
 **Duration:** ~3 hours

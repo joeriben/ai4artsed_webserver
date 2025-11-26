@@ -303,6 +303,9 @@ class BackendRouter:
     async def _process_output_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any]) -> BackendResponse:
         """Process Output-Chunk: Route based on execution mode and media type
 
+        NOTE: For output chunks, the 'prompt' parameter contains the workflow dict,
+        and the actual text prompt is in parameters['prompt'] or parameters.get('previous_output').
+
         - Legacy Workflows: Use complete workflow passthrough with title-based prompt injection
         - Images: Use SwarmUI /API/GenerateText2Image (simple, fast)
         - Audio/Video: Use custom workflow submission via /ComfyBackendDirect
@@ -321,19 +324,23 @@ class BackendRouter:
             execution_mode = chunk.get('execution_mode', 'standard')
             logger.info(f"Loaded Output-Chunk: {chunk_name} ({media_type} media, {execution_mode} mode)")
 
+            # FIX: Extract text prompt from parameters (not from 'prompt' param which is workflow dict)
+            text_prompt = parameters.get('prompt', '') or parameters.get('PREVIOUS_OUTPUT', '')
+            logger.info(f"[DEBUG-FIX] Extracted text_prompt from parameters: '{text_prompt[:200]}...'" if text_prompt else f"[DEBUG-FIX] ⚠️ No text prompt in parameters!")
+
             # 2. Route based on execution mode first
             if execution_mode == 'legacy_workflow':
                 # TODO (2026 Refactoring): Move this logic into pipeline itself
                 # Legacy workflow: complete workflow passthrough
-                return await self._process_legacy_workflow(chunk, prompt, parameters)
+                return await self._process_legacy_workflow(chunk, text_prompt, parameters)
 
             # 3. Then route based on media type (standard mode)
             if media_type == 'image':
                 # Use SwarmUI's simple Text2Image API
-                return await self._process_image_chunk_simple(chunk_name, prompt, parameters, chunk)
+                return await self._process_image_chunk_simple(chunk_name, text_prompt, parameters, chunk)
             else:
                 # For audio/video: use custom workflow submission
-                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+                return await self._process_workflow_chunk(chunk_name, text_prompt, parameters, chunk)
 
         except Exception as e:
             logger.error(f"Error processing Output-Chunk '{chunk_name}': {e}")
@@ -643,6 +650,8 @@ class BackendRouter:
             media_type = chunk.get('media_type', 'image')
 
             logger.info(f"[LEGACY-WORKFLOW] Processing legacy workflow: {chunk_name}")
+            logger.info(f"[DEBUG-PROMPT] Received prompt parameter: '{prompt[:200]}...'" if prompt else f"[DEBUG-PROMPT] ⚠️ Prompt parameter is EMPTY or None: {repr(prompt)}")
+            logger.info(f"[DEBUG-PROMPT] Received parameters: {list(parameters.keys())}")
 
             # Get workflow from chunk
             workflow = chunk.get('workflow')
@@ -653,11 +662,10 @@ class BackendRouter:
                     error="No workflow definition in legacy chunk"
                 )
 
-            # Apply seed randomization from input_mappings (but not prompt - see HANDOVER doc)
+            # Apply seed randomization from input_mappings (but not prompt)
             input_mappings = chunk.get('input_mappings', {})
             if input_mappings and 'seed' in input_mappings:
                 import random
-                # Only process seed parameter to enable video variation
                 seed_mapping = input_mappings['seed']
                 seed_value = parameters.get('seed', seed_mapping.get('default', 'random'))
 
