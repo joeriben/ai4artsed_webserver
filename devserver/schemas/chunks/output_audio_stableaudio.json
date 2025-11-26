@@ -1,0 +1,179 @@
+{
+  "name": "output_audio_stableaudio",
+  "type": "output_chunk",
+  "backend_type": "comfyui",
+  "execution_mode": "legacy_workflow",
+  "media_type": "audio",
+  "description": "Stable Audio Open - Text-to-audio generation using Stability AI's open-source model",
+
+  "legacy_config": {
+    "prompt_injection": {
+      "target_title": "CLIP Text Encode (Prompt)",
+      "fallback_node_id": "6",
+      "fallback_field": "text"
+    }
+  },
+
+  "workflow": {
+    "3": {
+      "inputs": {
+        "seed": 123456789,
+        "steps": 50,
+        "cfg": 4.98,
+        "sampler_name": "dpmpp_3m_sde_gpu",
+        "scheduler": "exponential",
+        "denoise": 1,
+        "model": ["4", 0],
+        "positive": ["6", 0],
+        "negative": ["7", 0],
+        "latent_image": ["11", 0]
+      },
+      "class_type": "KSampler",
+      "_meta": {
+        "title": "KSampler"
+      }
+    },
+    "4": {
+      "inputs": {
+        "ckpt_name": "stable-audio-open-1.0.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Load Checkpoint"
+      }
+    },
+    "6": {
+      "inputs": {
+        "text": "",
+        "clip": ["10", 0]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "7": {
+      "inputs": {
+        "text": "",
+        "clip": ["10", 0]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "10": {
+      "inputs": {
+        "clip_name": "t5-base.safetensors",
+        "type": "stable_audio",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {
+        "title": "Load CLIP"
+      }
+    },
+    "11": {
+      "inputs": {
+        "seconds": 47.6,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentAudio",
+      "_meta": {
+        "title": "EmptyLatentAudio"
+      }
+    },
+    "12": {
+      "inputs": {
+        "samples": ["3", 0],
+        "vae": ["4", 2]
+      },
+      "class_type": "VAEDecodeAudio",
+      "_meta": {
+        "title": "VAEDecodeAudio"
+      }
+    },
+    "19": {
+      "inputs": {
+        "filename_prefix": "audio/StableAudio",
+        "quality": "V0",
+        "audioUI": "",
+        "audio": ["12", 0]
+      },
+      "class_type": "SaveAudioMP3",
+      "_meta": {
+        "title": "Save Audio (MP3)"
+      }
+    }
+  },
+
+  "input_mappings": {
+    "prompt": {
+      "node_id": "6",
+      "field": "inputs.text",
+      "source": "{{PREVIOUS_OUTPUT}}",
+      "description": "Text description of audio/music to generate"
+    },
+    "negative_prompt": {
+      "node_id": "7",
+      "field": "inputs.text",
+      "default": "",
+      "description": "What to avoid in the generation"
+    },
+    "seconds": {
+      "node_id": "11",
+      "field": "inputs.seconds",
+      "default": 47.6,
+      "description": "Duration of audio in seconds (max 47.6s for Stable Audio Open)"
+    },
+    "steps": {
+      "node_id": "3",
+      "field": "inputs.steps",
+      "default": 50,
+      "description": "Number of sampling steps"
+    },
+    "cfg": {
+      "node_id": "3",
+      "field": "inputs.cfg",
+      "default": 4.98,
+      "description": "Classifier Free Guidance scale"
+    },
+    "sampler_name": {
+      "node_id": "3",
+      "field": "inputs.sampler_name",
+      "default": "dpmpp_3m_sde_gpu",
+      "description": "Sampling algorithm"
+    },
+    "scheduler": {
+      "node_id": "3",
+      "field": "inputs.scheduler",
+      "default": "exponential",
+      "description": "Noise scheduler"
+    },
+    "seed": {
+      "node_id": "3",
+      "field": "inputs.seed",
+      "default": 123456789,
+      "description": "Seed for reproducibility"
+    }
+  },
+
+  "output_mapping": {
+    "node_id": "19",
+    "output_type": "audio",
+    "format": "mp3",
+    "field": "filename_prefix",
+    "description": "Audio output from Stable Audio Open"
+  },
+
+  "meta": {
+    "estimated_duration_seconds": "20-60",
+    "requires_gpu": true,
+    "gpu_vram_mb": 15000,
+    "model_file": "stable_audio_open_1.0.safetensors",
+    "recommended_duration": 30,
+    "max_duration": 47,
+    "notes": "Stable Audio Open 1.0 - Open-source text-to-audio model. Max 47 seconds output. Quality: experimental (lower than ACE Step). Good for short sound effects and ambient audio. Uses ~15GB VRAM. Download from https://huggingface.co/stabilityai/stable-audio-open-1.0",
+    "optimization_instruction": "Transform the input into a clear audio generation prompt; describe the sonic content (instruments, sounds, textures), the acoustic environment (reverb, space, atmosphere), the rhythm and tempo (if applicable), the mood and energy level, and any specific sonic characteristics (pitch, timbre, dynamics); keep it concise and focused on auditory elements; example: 'Gentle piano melody with soft reverb, slow tempo, melancholic mood, warm analog sound, minimal background ambience.'"
+  }
+}

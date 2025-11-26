@@ -1,0 +1,66 @@
+{
+  "pipeline": "single_text_media_generation",
+  "name": {
+    "en": "Stable Audio Open",
+    "de": "Stable Audio Open"
+  },
+  "description": {
+    "en": "Open-source text-to-audio generation using Stability AI's Stable Audio Open model via ComfyUI",
+    "de": "Open-Source Text-zu-Audio-Generierung mit Stability AI's Stable Audio Open Modell via ComfyUI"
+  },
+  "category": {
+    "en": "Audio Generation",
+    "de": "Audiogenerierung"
+  },
+
+  "parameters": {
+    "OUTPUT_CHUNK": "output_audio_stableaudio",
+    "NEGATIVE_PROMPT": "",
+    "SECONDS": 47.6,
+    "STEPS": 50,
+    "CFG": 4.98,
+    "SAMPLER": "dpmpp_3m_sde_gpu",
+    "SCHEDULER": "exponential",
+    "SEED": "random"
+  },
+
+  "media_preferences": {
+    "default_output": "audio",
+    "supported_types": ["audio"]
+  },
+
+  "meta": {
+    "stage": "output",
+    "model": "stable-audio-open-1.0",
+    "model_file": "stable_audio_open_1.0.safetensors",
+    "backend": "comfyui",
+    "backend_type": "comfyui",
+    "requires_gpu": true,
+    "gpu_vram_mb": 15000,
+    "estimated_duration_seconds": "20-60",
+    "recommended_duration": 30,
+    "max_duration": 47,
+    "quality_note": "Experimental quality - lower than ACE Step. Good for short sound effects and ambient audio.",
+    "notes": "Stable Audio Open 1.0 via ComfyUI. Text-to-audio generation for sound effects and ambient audio. Max 47 seconds output. Download model from Hugging Face: https://huggingface.co/stabilityai/stable-audio-open-1.0",
+    "version": "1.0"
+  },
+
+  "display": {
+    "icon": "🔊",
+    "color": "#00BCD4",
+    "category": "audio_generation",
+    "difficulty": 2,
+    "order": 31
+  },
+
+  "tags": {
+    "en": ["audio", "sound", "ambient", "stable-audio", "comfyui", "local", "open-source"],
+    "de": ["audio", "sound", "ambient", "stable-audio", "comfyui", "lokal", "open-source"]
+  },
+
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 10,
+    "complexity": "intermediate"
+  }
+}
