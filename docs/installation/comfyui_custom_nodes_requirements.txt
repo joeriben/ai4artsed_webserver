@@ -1,0 +1,18 @@
+# ComfyUI Custom Nodes for AI4ArtsEd
+# Install these in SwarmUI's ComfyUI custom_nodes directory
+#
+# Installation:
+#   cd /opt/ai4artsed/SwarmUI/dlbackend/ComfyUI/custom_nodes
+#   source ../../venv/bin/activate
+#   pip install -r /path/to/this/file.txt
+#
+# Or use the automated script: install_custom_nodes.sh
+
+# LTX-Video (Video Generation)
+git+https://github.com/Lightricks/ComfyUI-LTXVideo.git
+
+# AI4ArtsEd Custom Pedagogical Nodes
+git+https://github.com/joeriben/ai4artsed_comfyui_nodes.git
+
+# Sound Lab (Audio Generation)
+git+https://github.com/MixLabPro/comfyui-sound-lab.git

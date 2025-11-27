@@ -1,0 +1,34 @@
+{
+  "sd35_large": {
+    "execution_time_firstrun": 9.68,
+    "execution_time_average": 10.44
+  },
+  "gpt_image_1": {
+    "execution_time_firstrun": 52.06,
+    "execution_time_average": 58.40
+  },
+  "gemini_3_pro_image": {
+    "execution_time_firstrun": 17.74,
+    "execution_time_average": 16.95
+  },
+  "qwen": {
+    "execution_time_firstrun": 66.34,
+    "execution_time_average": 42.15
+  },
+  "ltx_video": {
+    "execution_time_firstrun": 34.24,
+    "execution_time_average": 13.04
+  },
+  "wan22_video": {
+    "execution_time_firstrun": 130.47,
+    "execution_time_average": 140.69
+  },
+  "acenet_t2instrumental": {
+    "execution_time_firstrun": 66.57,
+    "execution_time_average": 7.04
+  },
+  "stableaudio_open": {
+    "execution_time_firstrun": 10.05,
+    "execution_time_average": 7.06
+  }
+}
