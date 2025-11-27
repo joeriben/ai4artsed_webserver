@@ -8,18 +8,26 @@
 
 <script setup lang="ts">
 import { ref, onMounted, defineAsyncComponent } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
 const route = useRoute()
+const router = useRouter()
 const pipelineComponent = ref<any>(null)
 
 onMounted(async () => {
+  // CRITICAL: Wait for router to be ready before making API calls
+  // This prevents race conditions with navigation from PropertyCanvas
+  await router.isReady()
+
   const configId = route.params.configId as string
+  console.log('[PipelineRouter] Router ready, loading pipeline for config:', configId)
 
   try {
-    // Fetch config pipeline metadata to determine which Vue to load
-    const response = await axios.get(`/api/config/${configId}/pipeline`)
+    // Cache-busting: Add timestamp to prevent Cloudflare/Safari from serving cached responses
+    // This ensures fresh data even if browser/edge cached previous 404
+    const cacheBuster = Date.now()
+    const response = await axios.get(`/api/config/${configId}/pipeline?_t=${cacheBuster}`)
     const pipelineName = response.data.pipeline_name
 
     console.log(`[PipelineRouter] Config '${configId}' uses pipeline '${pipelineName}'`)

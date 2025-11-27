@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import PropertyBubble from './PropertyBubble.vue'
 import type { SymbolData } from '@/stores/configSelection'
@@ -68,6 +68,9 @@ const router = useRouter()
 
 // Selected category state
 const selectedCategory = ref<string | null>(null)
+
+// Navigation state to prevent duplicate clicks during navigation
+const isNavigating = ref(false)
 
 // Kategorien aus dem Store
 const categories = computed(() => store.categories)
@@ -209,14 +212,37 @@ function getConfigStyle(config: any, index: number) {
 }
 
 // Handle config selection
-function selectConfiguration(config: any) {
-  emit('selectConfig', config.id)
+async function selectConfiguration(config: any) {
+  // Prevent duplicate clicks during navigation
+  if (isNavigating.value) {
+    console.log('[PropertyCanvas] Navigation already in progress, ignoring click')
+    return
+  }
 
-  // Navigate to pipeline execution
-  router.push({
-    name: 'pipeline-execution',
-    params: { configId: config.id }
-  })
+  isNavigating.value = true
+  console.log('[PropertyCanvas] Config selected:', config.id)
+
+  try {
+    emit('selectConfig', config.id)
+
+    // Wait for Vue to process reactive updates
+    await nextTick()
+
+    // Navigate to pipeline execution
+    await router.push({
+      name: 'pipeline-execution',
+      params: { configId: config.id }
+    })
+
+    console.log('[PropertyCanvas] Navigation completed successfully')
+  } catch (error) {
+    console.error('[PropertyCanvas] Navigation failed:', error)
+  } finally {
+    // Reset navigation state after a delay
+    setTimeout(() => {
+      isNavigating.value = false
+    }, 500)
+  }
 }
 
 

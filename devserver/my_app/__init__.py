@@ -3,7 +3,7 @@ Flask application factory and initialization
 """
 import logging
 import os
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 
 from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR
@@ -32,7 +32,31 @@ def create_app():
     
     # Enable CORS with session support
     CORS(app, supports_credentials=True)
-    
+
+    # CRITICAL: Prevent API response caching (Cloudflare + Browser)
+    # Without this, Cloudflare Edge and Safari cache API responses permanently
+    @app.after_request
+    def add_no_cache_headers(response):
+        """
+        Add no-cache headers to all API responses to prevent caching issues
+
+        Problem: Cloudflare Tunnel + Safari cache API responses despite "Development Mode"
+        Solution: Explicit Cache-Control headers on all /api/* routes
+
+        Why this is needed:
+        - Cloudflare Edge caches responses even in dev mode
+        - Safari aggressively caches GET requests
+        - Hard reload only clears HTML/CSS/JS cache, not API cache
+        - Cached 404 responses persist across reloads
+        """
+        # Only add headers to API routes (not static assets)
+        if request.path.startswith('/api/') or request.path.startswith('/pipeline_configs_'):
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+
+        return response
+
     # Register blueprints
     from my_app.routes.workflow_streaming_routes import workflow_streaming_bp
     from my_app.routes.export_routes import export_bp

@@ -182,10 +182,19 @@ const apiClient: AxiosInstance = axios.create({
   }
 })
 
-// Request interceptor (for logging)
+// Request interceptor (cache-busting + logging)
 apiClient.interceptors.request.use(
   (config) => {
-    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
+    // Add cache-busting timestamp to all GET requests
+    // This prevents Cloudflare Edge + Safari from serving cached responses
+    if (config.method?.toLowerCase() === 'get') {
+      config.params = {
+        ...config.params,
+        _t: Date.now()
+      }
+    }
+
+    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.params || '')
     return config
   },
   (error) => {
@@ -194,10 +203,17 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Response interceptor (for error handling)
+// Response interceptor (cache header verification + error handling)
 apiClient.interceptors.response.use(
   (response) => {
     console.log(`[API] Response ${response.status} ${response.config.url}`)
+
+    // Debug: Log cache headers to verify no-cache is working
+    if (response.config.url?.includes('/api/')) {
+      const cacheControl = response.headers['cache-control']
+      console.log(`[API] Cache-Control header:`, cacheControl || 'MISSING ⚠️')
+    }
+
     return response
   },
   (error) => {
