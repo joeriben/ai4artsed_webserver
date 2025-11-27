@@ -2,20 +2,71 @@
 
 Quick installation guide for deploying AI4ArtsEd DevServer on production Linux servers.
 
+---
+
+## 🚀 Quick Start for Impatient Users
+
+**Want the fastest installation?** → [docs/installation/QUICKSTART.md](docs/installation/QUICKSTART.md)
+
+**55-65 minutes** with model transfer or **80-100 minutes** fresh download.
+
+---
+
+## Prerequisites (Do This First!)
+
+### 1. Get API Keys ⚡
+
+**Required:**
+- **OpenRouter API Key:** https://openrouter.ai/keys
+
+**Optional:**
+- **OpenAI API Key:** https://platform.openai.com/api-keys (only for GPT-Image-1)
+
+### 2. Check System Requirements
+
+```bash
+# Run prerequisites checker
+cd /opt/ai4artsed/ai4artsed_webserver
+./check_prerequisites.sh
+```
+
+This checks: GPU, CUDA, disk space, RAM, Python, Node.js, ports, and internet.
+
+---
+
+## Installation Options
+
+### Option A: With Model Transfer (Fastest 🚀)
+If you have another machine with AI4ArtsEd already installed:
+```bash
+./transfer_models.sh --source ai4artsed@SOURCE_SERVER
+```
+**Time:** 10-15 minutes (LAN transfer) instead of 45-60 minutes (download)
+
+### Option B: Fresh Download
+For first-time installations:
+```bash
+./download_models.sh
+```
+**Time:** 45-60 minutes (downloads from HuggingFace)
+
+---
+
 ## Quick Start
 
 ```bash
 # 1. Check system requirements
-nvidia-smi  # NVIDIA GPU with 16GB+ VRAM required
-df -h       # 350GB+ free disk space required
+./check_prerequisites.sh
 
 # 2. Install system dependencies (Ubuntu/Debian)
 sudo apt update && sudo apt install -y \
-  git curl wget \
-  python3.13 python3-pip python3-venv \
+  git curl wget rsync \
+  python3 python3-pip python3-venv \
   build-essential \
   libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev libgirepository1.0-dev \
   nodejs npm
+
+# Note: python3 installs Python 3.11+ (sufficient, 3.13 not required)
 
 # 3. Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
@@ -40,11 +91,16 @@ cd ai4artsed_webserver
 ./install_comfyui_nodes.sh
 # Or with custom path: SWARMUI_PATH=/path/to/SwarmUI ./install_comfyui_nodes.sh
 
-# 8. Configure
-nano devserver/config.py         # Update paths
-nano devserver/api_keys.json     # Add API keys
+# 8. Download or Transfer Models (~48GB)
+# Option A: Transfer from existing installation (FAST!)
+./transfer_models.sh --source ai4artsed@SOURCE_SERVER
 
-# 9. Download models (~48GB) - see docs/installation/MODELS_REQUIRED.md
+# Option B: Download from HuggingFace
+./download_models.sh
+
+# 9. Configure
+nano devserver/config.py         # Update paths
+nano devserver/api_keys.json     # Add API keys (from prerequisites!)
 
 # 10. Start services
 cd devserver
@@ -56,7 +112,9 @@ python3 server.py
 
 ## 📚 Complete Documentation
 
-**Full installation guide:** [docs/installation/INSTALLATION.md](docs/installation/INSTALLATION.md)
+**⚡ Quick Start (55-100 min):** [docs/installation/QUICKSTART.md](docs/installation/QUICKSTART.md)
+**📖 Full Installation Guide:** [docs/installation/INSTALLATION.md](docs/installation/INSTALLATION.md)
+**🔄 Model Transfer Guide:** [docs/installation/MODEL_TRANSFER.md](docs/installation/MODEL_TRANSFER.md)
 
 ### Installation Documentation
 
@@ -100,7 +158,54 @@ All installation documentation is located in [`docs/installation/`](docs/install
 
 ## Helper Scripts
 
-Two scripts are provided to simplify installation and updates:
+Five scripts are provided to simplify installation and updates:
+
+### check_prerequisites.sh - System Requirements Checker
+**Run before installation:**
+```bash
+./check_prerequisites.sh
+```
+
+**What it checks:**
+- Disk space (350GB+ required)
+- RAM (16GB+ required)
+- GPU and VRAM
+- CUDA version
+- Python and Node.js versions
+- Required ports availability
+- Internet connectivity
+
+---
+
+### transfer_models.sh - Fast Model Transfer
+**Transfer models from existing installation:**
+```bash
+./transfer_models.sh --source ai4artsed@SOURCE_SERVER
+```
+
+**What it does:**
+- Transfers AI models over LAN (much faster than download!)
+- Verifies checksums after transfer
+- Creates required symlinks
+- **Time:** 10-15 minutes (LAN) vs 45-60 minutes (download)
+
+**See:** [docs/installation/MODEL_TRANSFER.md](docs/installation/MODEL_TRANSFER.md)
+
+---
+
+### download_models.sh - Model Downloader
+**Download models from HuggingFace:**
+```bash
+./download_models.sh
+```
+
+**What it does:**
+- Downloads all required AI models (~48GB)
+- Idempotent (skip existing files, safe to re-run)
+- Creates required symlinks
+- **Time:** 45-60 minutes on 100Mbps
+
+---
 
 ### setup.sh - Initial Setup
 **Run once after cloning repository:**

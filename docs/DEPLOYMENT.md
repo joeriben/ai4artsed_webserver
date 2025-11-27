@@ -20,34 +20,62 @@ This guide covers the complete deployment workflow from development to productio
 
 ## System Architecture Overview
 
-### Two Parallel Environments
+### Single Directory, Dual Runtime Approach
+
+As of November 2025, the deployment architecture has been simplified to use a **single directory** with different runtime configurations:
 
 ```
-Development Environment                Production Environment
-┌─────────────────────────┐          ┌─────────────────────────┐
-│ ~/ai/ai4artsed_webserver│          │ /opt/ai4artsed-production│
-│                         │          │                         │
-│ - PORT: 17802          │          │ - PORT: 17801          │
-│ - Git: develop branch  │          │ - Git: main branch     │
-│ - Frontend: dev + dist │          │ - Frontend: dist only  │
-│ - For testing          │          │ - Public-facing        │
-└─────────────────────────┘          └─────────────────────────┘
-         │                                      │
-         └──────── Both use same ───────────────┘
-                  exports/ storage
-                  (via symlink)
+Single Directory: ~/ai/ai4artsed_webserver/
+├── devserver/              # Flask backend
+├── public/ai4artsed-frontend/
+│   ├── src/               # Vue source code
+│   ├── dist/              # Built production files (gitignored)
+│   └── node_modules/      # npm dependencies (gitignored)
+├── venv/                  # Python virtual environment
+└── [workflows, exports, etc.]
+
+Runtime Modes:
+┌─────────────────────────┐    ┌─────────────────────────┐
+│  Development Mode       │    │  Production Mode        │
+│  ./3_start_backend_dev.sh│    │  ./5_start_backend_prod.sh│
+│  PORT: 17802           │    │  PORT: 17801 (override) │
+│  Branch: develop       │    │  Branch: main           │
+│  Local testing         │    │  Internet via Cloudflare│
+└─────────────────────────┘    └─────────────────────────┘
 ```
 
-### Key Differences
+### Key Architecture Principles
 
-| Aspect | Development | Production |
-|--------|-------------|------------|
-| **Location** | `~/ai/ai4artsed_webserver/` | `/opt/ai4artsed-production/` |
-| **Port** | 17802 | 17801 |
-| **Branch** | `develop` | `main` |
-| **Git Remote** | GitHub | Local dev repo |
-| **Frontend** | Source + build | Build only |
-| **Purpose** | Testing, development | Public access |
+1. **One Codebase**: Single git repository at `~/ai/ai4artsed_webserver/`
+2. **PORT Override**: `config.py` has default PORT=17802, production startup script exports PORT=17801
+3. **Branch Separation**: Work on `develop`, deploy from `main`
+4. **Build Artifacts Gitignored**: `/dist` folder must be built locally, not pulled from git
+5. **Runtime Mode Selection**: Startup script determines dev vs prod behavior
+
+### How PORT Override Works
+
+**config.py (constant across all branches):**
+```python
+PORT = 17802  # Default port for development
+```
+
+**server.py (reads environment first):**
+```python
+port = int(os.environ.get("PORT", config.PORT))
+# Result: ENV var overrides config.py if set
+```
+
+**Startup scripts:**
+```bash
+# Development: ./3_start_backend_dev.sh
+python3 server.py  # Uses PORT from config.py → 17802
+
+# Production: ./5_start_backend_prod.sh
+export PORT=17801  # Override the default
+python3 server.py  # Uses PORT from environment → 17801
+```
+
+**Benefit**: No PORT merge conflicts when merging develop → main!
 
 ---
 
@@ -110,74 +138,34 @@ cd public/ai4artsed-frontend
 npm run build
 ```
 
-### 6. Set Up Production Environment
+### 6. Why /dist is Gitignored
+
+The `/dist` folder contains **built artifacts** (compiled JavaScript, CSS, etc.) that are generated from source code. These files:
+
+1. **Change on every build** (hashed filenames like `index-B9ygI19o.js`)
+2. **Are derived from source** (not source themselves)
+3. **Would bloat git history** if committed (binary files, frequent changes)
+
+**Best Practice**: Build locally when deploying, don't commit build artifacts.
 
 ```bash
-# Create production directory
-sudo mkdir -p /opt/ai4artsed-production
-sudo chown -R $USER:$USER /opt/ai4artsed-production
-
-# Clone from local development repo
-cd /opt/
-git clone ~/ai/ai4artsed_webserver/.git ai4artsed-production
-cd ai4artsed-production
-
-# Switch to main branch
-git checkout main
-
-# Configure remote to point to local dev
-git remote set-url origin ~/ai/ai4artsed_webserver/.git
-```
-
-### 7. Set Up Production Python Environment
-
-```bash
-cd /opt/ai4artsed-production
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 8. Configure Production Environment
-
-Edit `/opt/ai4artsed-production/devserver/config.py`:
-
-```python
-# Production settings
-PORT = 17801  # Production port (different from dev!)
-UI_MODE = "youth"
-DEFAULT_SAFETY_LEVEL = "youth"
-DEFAULT_LANGUAGE = "de"
-```
-
-**CRITICAL:** Production must use `PORT = 17801` to avoid conflicts with development (17802).
-
-### 9. Set Up Shared Storage
-
-```bash
-# Production uses dev's exports folder via symlink
-cd /opt/ai4artsed-production
-
-# Backup existing exports if any
-if [ -d "exports" ]; then
-    mv exports exports.backup_$(date +%Y%m%d_%H%M%S)
-fi
-
-# Create symlink to dev exports
-ln -s ~/ai/ai4artsed_webserver/exports exports
-
-# Verify symlink
-ls -la exports
-# Should show: exports -> /home/user/ai/ai4artsed_webserver/exports
-```
-
-### 10. Install Frontend in Production
-
-```bash
-cd /opt/ai4artsed-production/public/ai4artsed-frontend
-npm install
+# Before deploying to production, always rebuild:
+cd ~/ai/ai4artsed_webserver/public/ai4artsed-frontend
 npm run build
 ```
+
+### 7. No Separate Production Directory
+
+**Important**: As of November 2025, there is **no separate `/opt/ai4artsed-production/` directory**.
+
+The previous dual-directory setup was simplified to a single-directory approach:
+- ✅ Single codebase at `~/ai/ai4artsed_webserver/`
+- ✅ PORT determined by startup script (dev: 17802, prod: 17801)
+- ✅ Branch selection determines features (develop vs main)
+- ✅ No PORT merge conflicts
+- ✅ Simpler deployment workflow
+
+If you're migrating from the old dual-directory setup, see the migration notes at the end of this document.
 
 ---
 
@@ -218,11 +206,11 @@ git push origin develop
 
 ## Production Deployment Workflow
 
-### Standard Deployment (Current Session Process)
+### Simplified 7-Step Process (November 2025)
 
-This is the workflow we just performed - use this as the standard procedure.
+This is the new streamlined workflow using the single-directory approach:
 
-#### Step 1: Prepare Development
+#### Step 1: Commit Changes to Develop
 
 ```bash
 cd ~/ai/ai4artsed_webserver
@@ -230,113 +218,104 @@ cd ~/ai/ai4artsed_webserver
 # Ensure on develop branch
 git checkout develop
 
-# Verify clean state
-git status
-
 # Commit any outstanding changes
 git add -A
-git commit -m "Your commit message"
+git commit -m "feat: Your feature description"
 ```
 
-#### Step 2: Build Frontend
+#### Step 2: Test Locally with Dev Backend
 
 ```bash
-cd public/ai4artsed-frontend
+# Start development backend
+./3_start_backend_dev.sh
 
-# Build and verify TypeScript passes
+# Test on http://localhost:17802/
+# Verify functionality works as expected
+```
+
+#### Step 3: Push to GitHub
+
+```bash
+# Push develop branch
+git push origin develop
+```
+
+#### Step 4: Merge Develop → Main on GitHub
+
+```bash
+# Option A: Push directly (if you have permissions)
+git push origin develop:main
+
+# Option B: Create pull request on GitHub (recommended)
+# - Go to https://github.com/joeriben/ai4artsed_webserver
+# - Create PR from develop to main
+# - Review and merge
+```
+
+#### Step 5: Pull Main Locally
+
+```bash
+cd ~/ai/ai4artsed_webserver
+
+# Update local main branch
+git checkout main
+git pull origin main
+
+# Switch back to develop for continued work
+git checkout develop
+```
+
+#### Step 6: Rebuild Frontend
+
+```bash
+cd ~/ai/ai4artsed_webserver/public/ai4artsed-frontend
+
+# Rebuild production assets
 npm run build
 
 # Fix any TypeScript errors before proceeding!
 ```
 
-#### Step 3: Push to Develop
+#### Step 7: Restart Production Backend
 
 ```bash
 cd ~/ai/ai4artsed_webserver
-git push origin develop
-```
 
-#### Step 4: Merge to Main
+# Stop old backend (if running)
+lsof -ti:17801 | xargs -r kill -9
 
-```bash
-# Push develop to main (without switching branches)
-git push origin develop:main
-```
-
-#### Step 5: Update Dev's Local Main Branch
-
-```bash
-# Update dev's local main to match remote
-git checkout main
-git pull origin main
-git checkout develop
-```
-
-#### Step 6: Deploy to Production
-
-```bash
-# Navigate to production
-cd /opt/ai4artsed-production
-
-# Pull latest from dev's main (production fetches from local dev repo)
-git pull --rebase origin main
-
-# The rebase preserves the local PORT=17801 config
-```
-
-#### Step 7: Verify Production Config
-
-```bash
-# Check that production still uses correct port
-cd /opt/ai4artsed-production
-grep "^PORT" devserver/config.py
-
-# Expected output:
-# PORT = 17801  # Production port
-```
-
-#### Step 8: Verify Deployment
-
-```bash
-cd /opt/ai4artsed-production
-
-# Check git status
-git status
-# Expected: "Your branch is ahead of 'origin/main' by 1 commit"
-# (This is the PORT config merge commit - this is normal)
-
-# Check latest commits
-git log --oneline -3
-
-# Verify frontend dist exists
-ls -la public/ai4artsed-frontend/dist/
-```
-
-#### Step 9: Restart Production Services
-
-```bash
-# Stop existing production backend
-pkill -f "python.*devserver.*17801"
-
-# Start production backend
-cd /opt/ai4artsed-production
+# Start production backend (uses PORT=17801 override)
 ./5_start_backend_prod.sh
 
-# Production frontend is served by backend from dist/
-# No separate frontend process needed
+# Verify: https://lab.ai4artsed.org/
 ```
 
 ### Quick Deployment Checklist
 
-- [ ] Code changes committed in dev
-- [ ] Frontend builds successfully (`npm run build`)
-- [ ] No TypeScript errors
-- [ ] Pushed to develop
-- [ ] Merged develop to main (`git push origin develop:main`)
-- [ ] Updated dev's local main branch
-- [ ] Pulled in production (`git pull --rebase origin main`)
-- [ ] Verified PORT = 17801 in production config
-- [ ] Restarted production backend
+- [ ] Code committed to develop branch
+- [ ] Tested locally on dev backend (17802)
+- [ ] Pushed to GitHub
+- [ ] Merged develop → main
+- [ ] Pulled main locally
+- [ ] Frontend rebuilt (`npm run build` - no errors)
+- [ ] Production backend restarted (17801)
+- [ ] Verified at https://lab.ai4artsed.org/
+
+### Key Benefits Over Old Workflow
+
+**Before (10 steps with /opt/):**
+- Two separate git clones to manage
+- PORT merge conflicts every deployment
+- Confusing local git origins
+- "Branch ahead" confusion
+- Risk of config.py conflicts
+
+**After (7 steps, single directory):**
+- ✅ One git repository
+- ✅ No PORT merge conflicts
+- ✅ Standard GitHub workflow
+- ✅ Simpler to understand
+- ✅ Faster deployment
 
 ---
 

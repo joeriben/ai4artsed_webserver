@@ -4,7 +4,18 @@ Complete installation and configuration documentation for deploying AI4ArtsEd De
 
 ## Quick Start
 
-**For first-time installation, follow these documents in order:**
+### ⚡ Fastest Path: QUICKSTART.md
+**Want to install as fast as possible?**
+
+**→ [QUICKSTART.md](QUICKSTART.md) ← Start here!**
+
+**Time:** 55-65 minutes (with model transfer) or 80-100 minutes (fresh download)
+
+---
+
+### 📖 Comprehensive Installation
+
+**For detailed understanding, follow these documents in order:**
 
 1. **[SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)** - Check your system meets all requirements
 2. **[MODELS_REQUIRED.md](MODELS_REQUIRED.md)** - Understand what models will be downloaded (~77GB)
@@ -33,7 +44,85 @@ Most time spent downloading models.
 
 ## Helper Scripts
 
-Three helper scripts are provided in the repository root to simplify common tasks:
+Five helper scripts are provided in the repository root to simplify common tasks:
+
+### check_prerequisites.sh - System Requirements Check
+**Run this FIRST before installation!**
+
+**Purpose:** Verifies all system requirements
+
+**What it checks:**
+- Disk space (350GB+ required)
+- RAM (16GB+ required)
+- GPU and VRAM (NVIDIA, 16GB+)
+- CUDA version (12.0+)
+- Python (3.11+) and Node.js (v20+)
+- Ports availability (7801, 7821, 11434, 17801)
+- Internet connectivity
+
+**Usage:**
+```bash
+cd /path/to/ai4artsed_webserver
+./check_prerequisites.sh
+```
+
+**When to use:** Before installation, to catch issues early
+
+---
+
+### transfer_models.sh - Fast Model Transfer
+**NEW! Transfer models from existing installation over LAN**
+
+**Purpose:** Transfer AI models from source server (10-15 min) instead of downloading (45-60 min)
+
+**What it does:**
+- Transfers AI models via rsync over LAN
+- Progress bar during transfer
+- Verifies checksums after transfer
+- Creates required symlinks
+- **Saves 30-45 minutes!**
+
+**Usage:**
+```bash
+cd /path/to/ai4artsed_webserver
+./transfer_models.sh --source ai4artsed@SOURCE_SERVER
+
+# Custom SwarmUI path
+./transfer_models.sh --source ai4artsed@fedora --swarmui /custom/path
+
+# Dry run (preview only)
+./transfer_models.sh --source ai4artsed@fedora --dry-run
+```
+
+**When to use:** When you have another machine with AI4ArtsEd already installed
+
+**Full documentation:** [MODEL_TRANSFER.md](MODEL_TRANSFER.md)
+
+---
+
+### download_models.sh - Model Downloader
+**Download models from HuggingFace (fallback)**
+
+**Purpose:** Downloads all required AI models (~48GB) from HuggingFace
+
+**What it does:**
+- Downloads SD3.5 Large, CLIP encoders, LTX-Video, T5 encoder
+- Idempotent (skip existing files, safe to re-run)
+- Creates required symlinks
+- Progress feedback
+
+**Usage:**
+```bash
+cd /path/to/ai4artsed_webserver
+./download_models.sh
+
+# Custom SwarmUI path
+SWARMUI_PATH=/custom/path ./download_models.sh
+```
+
+**When to use:** Fresh installations or when transfer_models.sh is not available
+
+---
 
 ### setup.sh - Initial Setup
 
@@ -101,6 +190,38 @@ cd /path/to/ai4artsed_webserver
 ---
 
 ## Documentation Files
+
+### QUICKSTART.md
+**Quick installation guide for impatient users**
+
+**Contents:**
+- Prerequisites checklist (API keys!)
+- Option A: Installation with model transfer (55-65 min)
+- Option B: Installation with fresh download (80-100 min)
+- Copy-paste command blocks for each step
+- Production deployment with systemd
+- Troubleshooting quick-fixes
+- Timing breakdowns
+
+**When to read:** When you want the fastest path to a working installation
+
+---
+
+### MODEL_TRANSFER.md
+**Guide for transferring models between servers**
+
+**Contents:**
+- Why transfer instead of download
+- SSH setup for model transfer
+- Usage examples and options
+- Transfer speed comparisons
+- Ollama models transfer (optional)
+- Troubleshooting transfer issues
+- Security considerations
+
+**When to read:** When you have another machine with models already downloaded
+
+---
 
 ### SYSTEM_REQUIREMENTS.md
 **Complete list of system-level dependencies**

@@ -1,5 +1,170 @@
 # Development Log
 
+## Session 77 - Deployment Architecture Cleanup
+**Date:** 2025-11-27
+**Duration:** ~3 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Simplify deployment from dual-directory chaos to single-directory approach
+
+### Summary
+
+**MAJOR REFACTOR**: Eliminated confusing dual-directory deployment setup (`~/ai/` + `/opt/`) in favor of single-directory architecture with runtime-based PORT configuration. Removed all PORT merge conflicts and simplified deployment workflow from 10 steps to 7 steps.
+
+**DELETED**: `/opt/ai4artsed-production/` entire directory (backup created)
+**KILLED**: Orphaned `serve` process on port 5174 (7 days old)
+**UPDATED**: Comprehensive documentation rewrite
+
+### The Problem: Deployment Chaos
+
+**Discovery:**
+User asked: "Why is /dist gitignored in the development folder?" This led to investigating the deployment structure and uncovering significant chaos:
+
+**Issues Found:**
+1. **Two Git Clones**:
+   - `~/ai/ai4artsed_webserver/` (14GB, develop branch, GitHub remote)
+   - `/opt/ai4artsed-production/` (570MB, main branch, **LOCAL** git origin!)
+
+2. **PORT Merge Conflicts**:
+   - Dev: `config.py` has `PORT = 17802`
+   - Prod: `config.py` has `PORT = 17801`
+   - Every merge develop→main created conflicts
+   - Production always "1 commit ahead" with merge resolution
+
+3. **Confusing Git Setup**:
+   - `/opt/` git origin pointed to `~/ai/.git` (local path, not GitHub)
+   - Could not push to GitHub from production
+   - Manual sync required for every deployment
+
+4. **Orphaned Processes**:
+   - `serve -s dist` running on port 5174 since Nov 20 (unused)
+   - Two production backends attempted to run simultaneously
+
+5. **Build Artifact Confusion**:
+   - `/dist` gitignored but users didn't understand why
+   - No clear documentation about building locally
+
+### The Solution: Single Directory + Runtime Mode
+
+**New Architecture:**
+```
+Single Directory: ~/ai/ai4artsed_webserver/
+├─ Development: ./3_start_backend_dev.sh → PORT 17802 (from config.py)
+└─ Production:  ./5_start_backend_prod.sh → PORT 17801 (env var override)
+```
+
+**Key Principles:**
+1. **One Codebase**: Single git repo, no duplication
+2. **PORT Override**: `export PORT=17801` in production script overrides config.py
+3. **No Merge Conflicts**: config.py stays constant (17802) on all branches
+4. **Branch Separation**: develop (work) → main (deploy)
+5. **Build Locally**: /dist must be built, not pulled from git
+
+### Implementation Steps
+
+**Phase 1: Safety**
+- Created 291MB backup of `/opt/ai4artsed-production/`
+- Verified clean git status (no uncommitted changes)
+- Created safety commit before any modifications
+
+**Phase 2: Process Cleanup**
+- Killed orphaned `serve` process (PID 3417, port 5174)
+- Stopped both production backends
+
+**Phase 3: Verification**
+- Tested `./3_start_backend_dev.sh` → 17802 ✓
+- Tested `./5_start_backend_prod.sh` → 17801 ✓
+- Verified frontend served correctly
+- Confirmed Cloudflare tunnel works (https://lab.ai4artsed.org/ → HTTP/2 200)
+
+**Phase 4: Production from Dev Directory**
+- Started production backend from `~/ai/ai4artsed_webserver/`
+- Verified internet accessibility
+- Confirmed no conflicts
+
+**Phase 5: Cleanup**
+- User manually deleted `/opt/ai4artsed-production/` (sudo required)
+- Verified deletion complete
+
+**Phase 6: Documentation**
+- Rewrote `docs/DEPLOYMENT.md` (architecture, workflow, rationale)
+- Updated `.claude/CLAUDE.md` (added deployment architecture section)
+- Added this DEVELOPMENT_LOG.md entry
+
+### Files Modified
+
+**Deleted:**
+- `/opt/ai4artsed-production/` (entire directory)
+
+**Updated:**
+- `docs/DEPLOYMENT.md` - Comprehensive rewrite
+  - System Architecture Overview (single directory approach)
+  - Initial Setup (removed /opt/ sections 6-10)
+  - Production Deployment Workflow (10 steps → 7 steps)
+  - Added "Why /dist is Gitignored" explanation
+- `.claude/CLAUDE.md` - Added deployment architecture section
+- `DEVELOPMENT_LOG.md` - This entry
+
+**Created:**
+- `/home/joerissen/ai4artsed-production-backup-20251127_172234.tar.gz` (291MB backup)
+
+### Key Benefits
+
+**Before (Chaotic):**
+- 2 git clones (14GB + 570MB)
+- PORT merge conflicts every deployment
+- Confusing local git origins
+- 10-step deployment process
+- "Branch ahead" confusion
+- Hidden orphaned processes
+
+**After (Clean):**
+- ✅ 1 git repository
+- ✅ No PORT merge conflicts
+- ✅ Standard GitHub workflow
+- ✅ 7-step deployment process
+- ✅ Clear dev vs prod separation
+- ✅ All processes visible
+
+### Technical Details
+
+**PORT Override Mechanism:**
+```python
+# config.py (constant on all branches)
+PORT = 17802  # Default for development
+
+# server.py (reads environment first)
+port = int(os.environ.get("PORT", config.PORT))
+
+# Development script
+python3 server.py  # Uses 17802
+
+# Production script
+export PORT=17801  # Override
+python3 server.py  # Uses 17801
+```
+
+**Why This Works:**
+- Environment variable takes precedence over config.py
+- No file modifications needed
+- No merge conflicts
+- Simple and transparent
+
+### Lessons Learned
+
+1. **Git Origins Matter**: Local git origins (`~/ai/.git`) are confusing and error-prone
+2. **Environment Variables > Config Files**: For deployment variations, use env vars
+3. **Build Artifacts Should Be Gitignored**: Never commit /dist, node_modules, etc.
+4. **Simpler Is Better**: Dual-directory setup seemed organized but created complexity
+5. **Hidden Processes Are Dangerous**: Always check for orphaned processes
+
+### Future Considerations
+
+- Consider environment-specific config files (.env) if more differences emerge
+- Document rollback procedure if issues arise
+- Monitor for any /opt/-related references in other scripts
+
+---
+
 ## Session 76 - Audio Playback Fix & Stable Audio Open Integration
 **Date:** 2025-11-26
 **Duration:** ~3 hours

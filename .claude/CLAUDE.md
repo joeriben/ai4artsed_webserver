@@ -46,6 +46,19 @@
 DevServer orchestriert, was die Pipeline definiert.
 Frontend visualisiert, was die Pipeline strukturiert.
 
+### Deployment Architecture (November 2025)
+
+**Single Directory Approach:**
+- **Location**: `~/ai/ai4artsed_webserver/` (no /opt/ production directory)
+- **PORT Configuration**: config.py has PORT=17802 (default), production script exports PORT=17801
+- **Branch Strategy**: develop (work) → main (production)
+- **Frontend Build**: `/dist` is gitignored, must be built locally before deployment
+- **No Merge Conflicts**: PORT override via environment variable, not hardcoded per branch
+
+**Key Change from Previous Architecture:**
+- ❌ OLD: Two directories (`~/ai/` dev + `/opt/` prod) with PORT conflicts
+- ✅ NEW: One directory, startup script determines runtime mode
+
 ## Documentation
 - **For architecture details**: See `docs/ARCHITECTURE PART 01-20.md`
 - **For current tasks**: See `docs/devserver_todos.md`
