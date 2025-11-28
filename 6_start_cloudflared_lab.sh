@@ -13,20 +13,23 @@ if pgrep -f "cloudflared.*${CONFIG_FILE}" > /dev/null; then
     echo "❌ ERROR: Cloudflared with config ${CONFIG_FILE} is already running!"
     echo "   PID: $(pgrep -f "cloudflared.*${CONFIG_FILE}")"
     echo ""
-    echo "To stop it, run: pkill -f 'cloudflared.*${CONFIG_FILE}'"
+    echo "To switch modes, first stop the running tunnel:"
+    echo "   ./6_stop_cloudflared.sh"
+    echo ""
+    echo "Then start this script again."
     exit 1
 fi
 
-# Check 2: Does our tunnel show active connections?
-echo "Checking tunnel status for ${TUNNEL_NAME}..."
-TUNNEL_INFO=$(cloudflared tunnel info ${TUNNEL_NAME} 2>&1)
-if echo "$TUNNEL_INFO" | grep -q "active connection"; then
-    echo "❌ ERROR: Tunnel ${TUNNEL_NAME} already has active connections!"
+# Check 2: Is the other script running (different config file)?
+if pgrep -f "cloudflared.*tunnel run" > /dev/null; then
+    echo "❌ ERROR: Another cloudflared tunnel is running (probably 6_start_cloudflared_both.sh)!"
     echo ""
-    echo "$TUNNEL_INFO"
+    ps aux | grep "cloudflared.*tunnel run" | grep -v grep
     echo ""
-    echo "Another process might be running this tunnel."
-    echo "To find it: ps aux | grep cloudflared"
+    echo "To switch modes, first stop the running tunnel:"
+    echo "   ./6_stop_cloudflared.sh"
+    echo ""
+    echo "Then start this script again."
     exit 1
 fi
 

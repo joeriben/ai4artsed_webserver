@@ -101,7 +101,8 @@ class PipelineExecutor:
         safety_level: str = 'kids',
         tracker=None,
         config_override=None,  # Phase 2: Optional pre-modified config
-        context_override: Optional[PipelineContext] = None  # Multi-stage: Pre-populated context
+        context_override: Optional[PipelineContext] = None,  # Multi-stage: Pre-populated context
+        seed_override: Optional[int] = None  # Phase 4: Intelligent seed for media generation
     ) -> PipelineResult:
         """Execute complete pipeline with 4-Stage Pre-Interception System
 
@@ -154,6 +155,11 @@ class PipelineExecutor:
                 input_text=input_text,
                 user_input=user_input or input_text
             )
+
+        # Phase 4: Add seed_override to context if provided
+        if seed_override is not None:
+            context.custom_placeholders['seed_override'] = seed_override
+            logger.info(f"[PHASE4-SEED] Added seed_override to context: {seed_override}")
 
         # Plan pipeline steps
         steps = self._plan_pipeline_steps(resolved_config)
@@ -480,10 +486,16 @@ class PipelineExecutor:
             resolved_config=self._current_config,
             context=chunk_context
         )
-        
+
         step.input_data = chunk_request['prompt']
         step.metadata.update(chunk_request['metadata'])
-        
+
+        # Phase 4: Add seed_override to parameters if present in context
+        if 'seed_override' in context.custom_placeholders:
+            seed_value = context.custom_placeholders['seed_override']
+            chunk_request['parameters']['seed'] = seed_value  # lowercase!
+            logger.info(f"[PHASE4-SEED] Injected seed into chunk parameters: {seed_value}")
+
         backend_request = BackendRequest(
             backend_type=BackendType(chunk_request['backend_type']),
             model=chunk_request['model'],

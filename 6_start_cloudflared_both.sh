@@ -11,13 +11,15 @@ echo ""
 
 # Check: Is any cloudflared already running?
 if pgrep -f "cloudflared.*tunnel run" > /dev/null; then
-    echo "❌ ERROR: Cloudflared is already running!"
+    echo "❌ ERROR: Cloudflared is already running (probably 6_start_cloudflared_lab.sh)!"
     echo "   PID: $(pgrep -f "cloudflared.*tunnel run")"
     echo ""
-    echo "This is likely script 6 running. You need to stop it first:"
-    echo "   pkill -f 'cloudflared.*tunnel run'"
+    ps aux | grep "cloudflared.*tunnel run" | grep -v grep
     echo ""
-    echo "Or press Ctrl+C in the terminal where script 6 is running."
+    echo "To switch modes, first stop the running tunnel:"
+    echo "   ./6_stop_cloudflared.sh"
+    echo ""
+    echo "Then start this script again."
     exit 1
 fi
 

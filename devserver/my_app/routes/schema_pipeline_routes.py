@@ -60,6 +60,11 @@ pipeline_executor = None
 # Cache for output_config_defaults.json
 _output_config_defaults = None
 
+# Phase 4: Intelligent Seed Logic - Global State
+# Tracks last prompt and seed for iterative image correction
+_last_prompt = None
+_last_seed = None
+
 def init_schema_engine():
     """Schema-Engine initialisieren"""
     global pipeline_executor
@@ -964,6 +969,36 @@ def execute_stage3_4():
         logger.info(f"[STAGE3-4-ENDPOINT] Stage 2 result (first 100 chars): {stage2_result[:100]}...")
 
         # ====================================================================
+        # PHASE 4: INTELLIGENT SEED LOGIC
+        # ====================================================================
+        # Decision happens BEFORE Stage 3 translation, based on Stage 2 result
+        global _last_prompt, _last_seed
+        import random
+
+        if stage2_result != _last_prompt:
+            # Prompt CHANGED → keep same seed (iterate on same image)
+            if _last_seed is not None:
+                calculated_seed = _last_seed
+                logger.info(f"[PHASE4-SEED] Prompt CHANGED (iteration) → reusing seed {calculated_seed}")
+            else:
+                # First run ever → use standard seed for comparative research
+                calculated_seed = 123456789
+                logger.info(f"[PHASE4-SEED] First run → using standard seed {calculated_seed}")
+        else:
+            # Prompt UNCHANGED → new random seed (different image with same prompt)
+            calculated_seed = random.randint(0, 2147483647)
+            logger.info(f"[PHASE4-SEED] Prompt UNCHANGED (re-run) → new random seed {calculated_seed}")
+
+        # Update global state AFTER decision
+        _last_prompt = stage2_result
+        _last_seed = calculated_seed
+
+        # Override with user-provided seed if specified
+        if seed_override is not None:
+            calculated_seed = seed_override
+            logger.info(f"[PHASE4-SEED] User override → using seed {calculated_seed}")
+
+        # ====================================================================
         # STAGE 3: TRANSLATION + PRE-OUTPUT SAFETY
         # ====================================================================
         logger.info(f"[STAGE3-4-ENDPOINT] Stage 3: Translation + Pre-Output Safety")
@@ -1023,7 +1058,8 @@ def execute_stage3_4():
                 input_text=translated_prompt,
                 user_input=translated_prompt,
                 execution_mode=execution_mode,
-                tracker=tracker
+                tracker=tracker,
+                seed_override=calculated_seed
             ))
 
             stage4_time = (time.time() - stage4_start) * 1000  # ms
@@ -1145,6 +1181,10 @@ def execute_stage3_4():
 @schema_bp.route('/pipeline/execute', methods=['POST'])
 def execute_pipeline():
     """Schema-Pipeline ausführen mit 4-Stage Orchestration"""
+    # Phase 4: Declare global state at function start
+    global _last_prompt, _last_seed
+    import random
+
     try:
         # Request-Validation
         data = request.get_json()
@@ -1591,6 +1631,35 @@ def execute_pipeline():
                     media_type = 'image'  # Default fallback
 
                 # ====================================================================
+                # PHASE 4: INTELLIGENT SEED LOGIC (before Stage 3)
+                # ====================================================================
+                # Decision happens BEFORE Stage 3 translation, based on Stage 2 result
+                stage2_prompt = result.final_output  # Prompt from Stage 2 (before translation)
+
+                if stage2_prompt != _last_prompt:
+                    # Prompt CHANGED → keep same seed (iterate on same image)
+                    if _last_seed is not None:
+                        calculated_seed = _last_seed
+                        logger.info(f"[PHASE4-SEED] Prompt CHANGED (iteration) → reusing seed {calculated_seed}")
+                    else:
+                        # First run ever → use standard seed for comparative research
+                        calculated_seed = 123456789
+                        logger.info(f"[PHASE4-SEED] First run → using standard seed {calculated_seed}")
+                else:
+                    # Prompt UNCHANGED → new random seed (different image with same prompt)
+                    calculated_seed = random.randint(0, 2147483647)
+                    logger.info(f"[PHASE4-SEED] Prompt UNCHANGED (re-run) → new random seed {calculated_seed}")
+
+                # Update global state AFTER decision
+                _last_prompt = stage2_prompt
+                _last_seed = calculated_seed
+
+                # Override with user-provided seed if specified
+                if seed_override is not None:
+                    calculated_seed = seed_override
+                    logger.info(f"[PHASE4-SEED] User override → using seed {calculated_seed}")
+
+                # ====================================================================
                 # STAGE 3: PRE-OUTPUT SAFETY (per output config)
                 # ====================================================================
                 stage_3_blocked = False
@@ -1703,7 +1772,8 @@ def execute_pipeline():
                             config_name=output_config_name,
                             input_text=prompt_for_media,  # Use translated English text from Stage 3!
                             user_input=prompt_for_media,
-                            execution_mode=execution_mode
+                            execution_mode=execution_mode,
+                            seed_override=calculated_seed  # Phase 4: Intelligent seed
                         ))
 
                         # Add media output to results
