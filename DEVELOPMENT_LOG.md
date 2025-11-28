@@ -1,5 +1,131 @@
 # Development Log
 
+## Session 79 - Phase 4: Intelligent Seed Logic for Iterative Image Correction
+**Date:** 2025-11-28
+**Duration:** ~1.5 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Implement smart seed management for media generation iteration
+
+### Summary
+
+**NEW FEATURE**: Phase 4 intelligent seed logic enables iterative image correction by comparing Stage 2 prompts and intelligently deciding seed reuse.
+
+**Behavior:**
+- **First run ever**: seed = 123456789 (standard seed for comparative research)
+- **Prompt unchanged** (re-run with same prompt): new random seed → different image
+- **Prompt changed** (iteration): reuse previous seed → iterate on same image
+
+**Example Workflow:**
+1. "geometric cat" → seed 123456789 → Image A
+2. "geometric cat" (re-run) → seed 987654321 → Image B (different cat)
+3. "geometric GREEN cat" (changed) → seed 987654321 → Image B with green color (iterate on same cat)
+
+### Implementation
+
+**Architecture Decision:**
+Backend-only implementation using global state tracking before Stage 3 translation. Simple and performant - no frontend complexity.
+
+**Code Changes:**
+
+1. **Global State** (`schema_pipeline_routes.py:63-66`)
+   ```python
+   _last_prompt = None
+   _last_seed = None
+   ```
+
+2. **Seed Logic** (`schema_pipeline_routes.py:1633-1658`)
+   - Runs in `/pipeline/execute` endpoint
+   - Location: BEFORE Stage 3 translation (after Stage 2 interception)
+   - Comparison point: `result.final_output` (Stage 2 output)
+   - Decision logic:
+     ```python
+     if stage2_prompt != _last_prompt:
+         # Prompt CHANGED → keep same seed
+         seed = _last_seed or 123456789
+     else:
+         # Prompt UNCHANGED → new random seed
+         seed = random.randint(0, 2147483647)
+     ```
+
+3. **Seed Propagation** (`pipeline_executor.py:105, 161-162, 496`)
+   - Added `seed_override` parameter to `execute_pipeline()`
+   - Stored in `context.custom_placeholders['seed_override']`
+   - Injected into `chunk_request['parameters']['seed']` (lowercase!)
+
+4. **Backend Integration** (`backend_router.py:398`)
+   - Reads `input_data.get('seed')` (lowercase)
+   - If present: uses provided seed
+   - If 'random' or missing: generates random seed
+
+### Bug Fixes During Implementation
+
+**Bug 1: Wrong Endpoint**
+- Initial implementation in `/stage3-4` endpoint (unused)
+- Fixed: Moved to `/pipeline/execute` endpoint (actual orchestrator)
+
+**Bug 2: Global Variable Scope**
+- Error: "cannot access local variable '_last_prompt'"
+- Fixed: Added `global _last_prompt, _last_seed` at function start
+
+**Bug 3: Case Mismatch**
+- Injected `SEED` (uppercase), backend reads `seed` (lowercase)
+- Fixed: Changed to lowercase in pipeline_executor.py:496
+
+### Files Modified
+
+1. `devserver/my_app/routes/schema_pipeline_routes.py`
+   - Global state variables
+   - Seed logic in /execute endpoint (line 1633-1658)
+   - Seed logic in /stage3-4 endpoint (cleanup needed - not used)
+
+2. `devserver/schemas/engine/pipeline_executor.py`
+   - Added `seed_override` parameter (line 105)
+   - Context integration (line 161-162)
+   - Seed injection to chunk parameters (line 496)
+
+### Testing Results
+
+**Verified behavior:**
+- ✅ First run: seed 123456789 (logs: `[PHASE4-SEED] First run`)
+- ✅ Prompt changed: reused seed (logs: `[PHASE4-SEED] Prompt CHANGED (iteration)`)
+- ✅ Seed injected and used (logs: `[PHASE4-SEED] Injected seed into chunk parameters`)
+
+**Known Issue:**
+- SwarmUI still shows "Generated random seed: XXX" in logs AFTER our seed injection
+- This is cosmetic only - the correct seed IS used (verified in output metadata)
+- TODO: Update backend_router logging to reflect when seed is overridden
+
+### Architecture Impact
+
+**Minimal footprint:**
+- No database required (global state in memory)
+- No frontend changes needed
+- Resets on server restart (acceptable for MVP)
+
+**Performance benefit:**
+- Could be extended to cache translations (skip Stage 3 on repeated prompts)
+- Currently only tracks seed, but infrastructure supports more
+
+**Future enhancements (Phase 4b):**
+- Inpainting support (alphamaske + prompt for iterative refinement)
+- Seed UI display (show current seed to user)
+- Seed persistence across server restarts (Redis/database)
+- Translation caching (skip expensive Stage 3 on cache hit)
+
+### Commit
+
+```
+feat: Add Phase 4 intelligent seed logic for iterative image correction
+
+Implements smart seed management for media generation:
+- First run: seed 123456789 (standard seed for comparative research)
+- Prompt unchanged (re-run): new random seed (different image)
+- Prompt changed (iteration): reuse previous seed (iterate on same image)
+
+Commit: 2149973
+Pushed to: develop + main
+```
+
 ## Session 77 - Deployment Architecture Cleanup
 **Date:** 2025-11-27
 **Duration:** ~3 hours
