@@ -605,7 +605,101 @@ This refactoring follows the project's core principles:
 
 ---
 
-**Document Version:** 2.2
-**Last Updated:** 2025-11-23 (Session 65)
-**Status:** v2.1.0-alpha - 2-Phase Stage 2 Execution + Centralized Model Selection
+## 3. Phase 4: Intelligent Seed Logic (Session 79)
+
+**Added:** 2025-11-28 - Iterative image correction workflow
+
+### 3.1 Purpose
+
+Enable two distinct workflows:
+- **Iterative correction**: User changes prompt → wants to refine SAME image (keep seed)
+- **Re-generation**: User re-runs unchanged prompt → wants DIFFERENT image (new seed)
+
+### 3.2 Logic
+
+**Global State** (`schema_pipeline_routes.py:63-66`):
+```python
+_last_prompt = None  # Stage 2 output (comparison point)
+_last_seed = None    # Last used seed
+```
+
+**Decision Flow** (Before Stage 3, After Stage 2):
+```python
+if stage2_prompt != _last_prompt:
+    # Prompt CHANGED → keep seed (iterate)
+    seed = _last_seed or 123456789  # First run = standard seed
+else:
+    # Prompt UNCHANGED → new random seed (variation)
+    seed = random.randint(0, 2147483647)
+```
+
+### 3.3 Timing in 4-Stage Flow
+
+```
+Stage 1: Safety ✅
+  ↓
+Stage 2: Interception ✅
+  ↓
+🎯 PHASE 4: SEED DECISION (HERE!)
+  - Compare: stage2_prompt vs _last_prompt
+  - Decide: reuse / new / first-run seed
+  ↓
+Stage 3: Translation ✅
+  ↓
+Stage 4: Media Generation (with calculated seed) ✅
+```
+
+**Why after Stage 2?** Captures pedagogical transformation (the meaningful prompt)
+**Why before Stage 3?** Translation doesn't change semantic intent
+
+### 3.4 Example Workflow
+
+```
+1. "cat" → First run → seed 123456789 → Image A
+2. "cat" → Unchanged → seed 789456 → Image B (different)
+3. "green cat" → Changed → seed 789456 → Image B + green (iterate)
+```
+
+### 3.5 Propagation Chain
+
+1. **DevServer** (`schema_pipeline_routes.py:1776`): `seed_override=calculated_seed`
+2. **PipelineExecutor** (`pipeline_executor.py:105`): Parameter added
+3. **Context** (`pipeline_executor.py:161`): `custom_placeholders['seed_override']`
+4. **Chunks** (`pipeline_executor.py:496`): `parameters['seed']` (lowercase!)
+
+### 3.6 Design Decisions
+
+**Backend-only state** (not frontend):
+- ✅ Simplicity (no frontend complexity)
+- ✅ Single source of truth
+- ❌ Resets on server restart (acceptable - rare)
+
+**Standard seed 123456789**:
+- Reproducible research baseline
+- Consistent first-run behavior
+- Enables comparative studies
+
+**Comparison point = Stage 2 output**:
+- Captures pedagogical transformation
+- Pre-translation (language-agnostic intent)
+
+### 3.7 Code Locations
+
+- `schema_pipeline_routes.py:63-66` - Global state
+- `schema_pipeline_routes.py:1633-1660` - Decision logic
+- `pipeline_executor.py:105, 161, 496` - Propagation
+
+### 3.8 Known Limitations
+
+- Single-user only (not thread-safe)
+- State lost on server restart
+- Language switches trigger false "prompt changed"
+
+**See:** `DEVELOPMENT_LOG.md` Session 79 for implementation details
+
+---
+
+**Document Version:** 2.3
+**Last Updated:** 2025-11-28 (Session 79)
+**Status:** v2.2.0-alpha - 2-Phase Stage 2 + Centralized Models + Phase 4 Intelligent Seeds
 **Authors:** Joerissen + Claude collaborative design
