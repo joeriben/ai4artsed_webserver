@@ -1,0 +1,64 @@
+{
+  "pipeline": "single_text_media_generation",
+  "name": {
+    "en": "Qwen Test",
+    "de": "Qwen Test"
+  },
+  "description": {
+    "en": "TEST VERSION - New QWEN implementation from scratch",
+    "de": "TEST VERSION - Neue QWEN Implementierung von Grund auf"
+  },
+  "category": {
+    "en": "Image Generation",
+    "de": "Bildgenerierung"
+  },
+
+  "parameters": {
+    "output_chunk": "output_image_qwen_test",
+    "negative_prompt": "",
+    "width": 1328,
+    "height": 1328,
+    "steps": 20,
+    "cfg": 2.5,
+    "sampler": "euler",
+    "scheduler": "simple",
+    "seed": "random"
+  },
+
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+
+  "meta": {
+    "stage": "output",
+    "model": "qwen_image_test",
+    "model_file": "qwen_image_fp8_e4m3fn.safetensors",
+    "backend": "comfyui",
+    "backend_type": "comfyui",
+    "clip_models": ["qwen_2.5_vl_7b_fp8_scaled.safetensors"],
+    "vae_model": "qwen_image_vae.safetensors",
+    "requires_gpu": true,
+    "gpu_vram_mb": 6000,
+    "notes": "TEST VERSION - New implementation from scratch to debug prompt injection issue"
+  },
+
+  "display": {
+    "icon": "🔬",
+    "color": "#FF0000",
+    "category": "image_generation",
+    "difficulty": 2,
+    "order": 16
+  },
+
+  "tags": {
+    "en": ["test", "qwen", "debug"],
+    "de": ["test", "qwen", "debug"]
+  },
+
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 10,
+    "complexity": "beginner"
+  }
+}

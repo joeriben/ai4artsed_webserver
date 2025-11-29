@@ -324,9 +324,9 @@ class BackendRouter:
             execution_mode = chunk.get('execution_mode', 'standard')
             logger.info(f"Loaded Output-Chunk: {chunk_name} ({media_type} media, {execution_mode} mode)")
 
-            # FIX: Extract text prompt from parameters (not from 'prompt' param which is workflow dict)
-            text_prompt = parameters.get('prompt', '') or parameters.get('PREVIOUS_OUTPUT', '')
-            logger.info(f"[DEBUG-FIX] Extracted text_prompt from parameters: '{text_prompt[:200]}...'" if text_prompt else f"[DEBUG-FIX] ⚠️ No text prompt in parameters!")
+            # Use the prompt parameter directly (contains translated Stage 3 output)
+            text_prompt = prompt
+            logger.info(f"[WORKFLOW-CHUNK] Using prompt: '{text_prompt[:200]}...'" if text_prompt else f"[WORKFLOW-CHUNK] ⚠️ Empty prompt received!")
 
             # 2. Route based on execution mode first
             if execution_mode == 'legacy_workflow':
@@ -1256,7 +1256,7 @@ class BackendRouter:
                 # Set the final value
                 target[field_path[-1]] = value
 
-                logger.debug(f"Mapped '{key}' = '{str(value)[:50]}...' to node {node_id}.{mapping['field']}")
+                logger.info(f"Mapped '{key}' = '{str(value)[:50]}...' to node {node_id}.{mapping['field']}")
 
         return workflow, generated_seed
 

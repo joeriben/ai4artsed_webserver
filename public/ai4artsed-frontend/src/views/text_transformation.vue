@@ -81,7 +81,7 @@
         </section>
 
         <!-- Section 2: Category Selection (Horizontal Row) - Always visible -->
-        <section class="category-section">
+        <section class="category-section" ref="categorySectionRef">
           <h2 v-if="executionPhase !== 'initial'" class="section-title">Wähle ein Medium aus</h2>
           <div class="category-bubbles-row">
             <div
@@ -333,6 +333,7 @@ const startButtonRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<HTMLElement | null>(null)
 const interceptionTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
+const categorySectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // Data
@@ -350,7 +351,8 @@ const configsByCategory: Record<string, Config[]> = {
     { id: 'sd35_large', label: 'Stable\nDiffusion', emoji: '🎨', color: '#2196F3', description: 'Klassische Bildgenerierung', logo: '/logos/logo_stable_diffusion.png', lightBg: false },
     { id: 'gpt_image_1', label: 'GPT Image', emoji: '🌟', color: '#FFC107', description: 'Moderne KI-Bilder', logo: '/logos/ChatGPT-Logo.png', lightBg: true },
     { id: 'gemini_3_pro_image', label: 'Gemini 3\nPro', emoji: '🔷', color: '#4285F4', description: 'Google Gemini Bildgenerierung', lightBg: false },
-    { id: 'qwen', label: 'Qwen', emoji: '🌸', color: '#9C27B0', description: 'Qwen Vision Model', logo: '/logos/Qwen_logo.png', lightBg: false }
+    { id: 'qwen', label: 'Qwen', emoji: '🌸', color: '#9C27B0', description: 'Qwen Vision Model', logo: '/logos/Qwen_logo.png', lightBg: false },
+    { id: 'qwen_test', label: 'Qwen\nTest', emoji: '🔬', color: '#7B1FA2', description: 'Qwen Test (Neue Implementation)', logo: '/logos/Qwen_logo.png', lightBg: false }
   ],
   video: [
     { id: 'ltx_video', label: 'LTX\nVideo', emoji: '⚡', color: '#9C27B0', description: 'Schnelle lokale Videogenerierung', lightBg: false },
@@ -493,10 +495,33 @@ onMounted(async () => {
 // Methods
 // ============================================================================
 
-function selectCategory(categoryId: string) {
+// Helper: Only scroll DOWN, never back up
+function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPosition = 'start') {
+  if (!element) return
+  const rect = element.getBoundingClientRect()
+  const targetTop = block === 'start' ? rect.top : rect.bottom - window.innerHeight
+  // Only scroll if target is below current viewport
+  if (targetTop > 0) {
+    element.scrollIntoView({ behavior: 'smooth', block })
+  }
+}
+
+function scrollToBottomOnly() {
+  const maxScroll = document.body.scrollHeight - window.innerHeight
+  // Only scroll if not already at bottom
+  if (window.scrollY < maxScroll - 10) {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+  }
+}
+
+async function selectCategory(categoryId: string) {
   selectedCategory.value = categoryId
   selectedConfig.value = null
   // Don't clear interception or optimization results when changing category
+
+  // Scroll2: Category bubbles at top, model selection + prompt/start2 visible below
+  await nextTick()
+  scrollDownOnly(categorySectionRef.value, 'start')
 }
 
 async function selectConfig(configId: string) {
@@ -540,6 +565,10 @@ async function runInterception() {
       interceptionResult.value = response.data.interception_result || response.data.stage2_result || ''
       executionPhase.value = 'interception_done'
       console.log('[2-Phase] Interception complete:', interceptionResult.value.substring(0, 60))
+
+      // Scroll1: Show category bubbles at bottom of viewport
+      await nextTick()
+      scrollDownOnly(categorySectionRef.value, 'end')
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
@@ -664,11 +693,19 @@ async function executePipeline() {
         outputMediaType.value = mediaType
         outputImage.value = `/api/media/${mediaType}/${runId}`
         executionPhase.value = 'generation_done'
+
+        // Scroll4: Show complete image - scroll to bottom
+        await nextTick()
+        scrollToBottomOnly()
       } else if (response.data.outputs && response.data.outputs.length > 0) {
         // Fallback: use outputs array (assume image)
         outputMediaType.value = 'image'
         outputImage.value = `http://localhost:17802${response.data.outputs[0]}`
         executionPhase.value = 'generation_done'
+
+        // Scroll4: Show complete image - scroll to bottom
+        await nextTick()
+        scrollToBottomOnly()
       }
     } else {
       alert(`Generation fehlgeschlagen: ${response.data.error}`)
@@ -971,9 +1008,9 @@ watch(optimizedPrompt, async () => {
 }
 
 .auto-resize-textarea {
-  overflow-y: hidden;
-  min-height: clamp(120px, 15vh, 150px);
-  max-height: clamp(300px, 40vh, 500px);
+  overflow-y: auto;
+  min-height: clamp(80px, 10vh, 100px);
+  max-height: clamp(150px, 20vh, 250px);
   resize: none;
   padding: clamp(0.75rem, 2vw, 1rem) clamp(0.75rem, 2vw, 1rem);
 }
@@ -1266,6 +1303,8 @@ watch(optimizedPrompt, async () => {
 .interception-preview {
   width: 100%;
   max-width: 1000px;
+  max-height: clamp(200px, 30vh, 350px);
+  overflow-y: auto;
   background: rgba(76, 175, 80, 0.15);
   border: 3px solid #4a8f4d;
   box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
@@ -1275,6 +1314,8 @@ watch(optimizedPrompt, async () => {
 .optimization-preview {
   width: 100%;
   max-width: 1000px;
+  max-height: clamp(200px, 30vh, 350px);
+  overflow-y: auto;
   background: rgba(255, 152, 0, 0.15);
   border: 3px solid #FF9800;
   box-shadow: 0 0 30px rgba(255, 152, 0, 0.4);
