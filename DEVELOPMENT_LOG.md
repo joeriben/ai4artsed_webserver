@@ -1,5 +1,116 @@
 # Development Log
 
+## Session 81 - Native Browser Scrollbars: Restore Lost Fix from git reset
+**Date:** 2025-11-29
+**Duration:** ~30 minutes
+**Model:** Claude Sonnet 4.5
+**Focus:** Replace canvas scrollbars with native browser scrollbars
+
+### Summary
+
+**BUG FIX**: Restored scrollbar fix that was lost in yesterday's git reset. Changed from internal canvas scrolling to native browser window scrolling.
+
+**Problem Identified:**
+- Thin white scrollbar appeared **inside the canvas** (`.phase-2a` container)
+- Browser window itself had **no scrollbar** on the right
+- Content was **clipped** at top and bottom
+- This fix was originally in commit `fa57740` but lost in git reset
+
+**Root Cause:**
+1. `.phase-2a` had `overflow-y: auto` → created internal scrolling
+2. `.text-transformation-view` with `position: fixed` and `align-items: center` → prevented natural window scrolling
+
+### Implementation
+
+**CSS Changes:**
+
+```css
+/* BEFORE: Internal container scrolling */
+.phase-2a {
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.text-transformation-view {
+  align-items: center;  /* Centers vertically, breaks scrolling */
+}
+
+/* AFTER: Browser window scrolling */
+.phase-2a {
+  /* Removed max-height, overflow-y, overflow-x */
+}
+.text-transformation-view {
+  align-items: flex-start;  /* Content starts from top */
+}
+```
+
+**JavaScript Changes:**
+
+```javascript
+// BEFORE: Scroll container (didn't work after removing overflow)
+function scrollToBottomOnly() {
+  if (mainContainerRef.value) {
+    mainContainerRef.value.scrollTo({
+      top: mainContainerRef.value.scrollHeight,
+      behavior: 'smooth'
+    })
+  }
+}
+
+// AFTER: Use scrollDownOnly like Scroll1 & Scroll2 (consistent pattern)
+// Replaced all scrollToBottomOnly() calls with:
+scrollDownOnly(pipelineSectionRef.value, 'start')
+```
+
+### Result
+
+- ✅ Native OS scrollbar appears in **browser window** (right side)
+- ✅ No scrollbar inside canvas/container
+- ✅ Content not clipped (full visibility top to bottom)
+- ✅ Auto-scroll (Scroll1, Scroll2, Scroll3) all working correctly
+- ✅ Animation and images display correctly
+
+### Files Modified
+
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - CSS: `.phase-2a` (lines 843-853) - removed overflow properties
+  - CSS: `.text-transformation-view` (line 775) - changed to `flex-start`
+  - JavaScript: Scroll3 calls (lines 619, 697, 706) - use `scrollDownOnly()`
+
+### Deployment
+
+**Full production deployment completed:**
+1. ✅ Built frontend in development
+2. ✅ Committed and pushed to develop (`1db6397`)
+3. ✅ Merged develop → main and pushed
+4. ✅ Pulled in production (`/home/joerissen/ai/ai4artsed_production`)
+5. ✅ Built frontend in production
+6. ✅ Restarted production server (Port 17801)
+7. ✅ Verified: https://lab.ai4artsed.org/
+
+**Commit:** `1db6397` - "fix: Replace canvas scrollbars with native browser scrollbars"
+
+### Architecture Notes
+
+**Design Pattern**: Native Browser Scrolling
+- Browser window handles all scrolling (standard UX)
+- Container grows naturally with content (no artificial constraints)
+- Consistent with web platform conventions
+- Better accessibility (OS-level scrollbar support)
+
+**Textareas Exception**: Form textareas retain their own `overflow-y: auto` for internal scrolling of long text content.
+
+### Testing Notes
+
+- ✅ Browser scrollbar visible on right edge
+- ✅ No content clipping
+- ✅ Scroll1: Category selection appears after interception
+- ✅ Scroll2: Model selection appears after category click
+- ✅ Scroll3: Output/animation appears after generation start
+- ✅ Responsive layout maintained
+
+---
+
 ## Session 80 - Auto-Scroll Implementation: Didactic Guidance Through Creative Phases
 **Date:** 2025-11-29
 **Duration:** ~45 minutes
