@@ -846,6 +846,79 @@ const handlePropertyToggle = (property: string) => {
 }
 ```
 
+#### Progressive Disclosure Scrolling Pattern
+
+**Purpose:** Didactic guidance through multi-stage creative workflows
+
+**Pedagogical Principle:**
+The interface reveals complexity progressively, guiding users through distinct phases of the creative-technical process. Each scroll marks a **conceptual transition**, preventing cognitive overload while maintaining user agency.
+
+**Implementation:** `text_transformation.vue` (Session 80, 2025-11-29)
+
+**The Three Phases:**
+
+1. **Phase 1 (Scroll1)**: After interception → Reveal media category selection
+   ```javascript
+   // In runInterception() after success
+   await nextTick()
+   scrollDownOnly(categorySectionRef.value, 'end')
+   ```
+
+2. **Phase 2 (Scroll2)**: After category selection → Reveal model options and generation controls
+   ```javascript
+   // In selectCategory()
+   await nextTick()
+   scrollDownOnly(categorySectionRef.value, 'start')
+   ```
+
+3. **Phase 3 (Scroll3)**: After generation start → Focus on output/animation
+   ```javascript
+   // In startGeneration()
+   await nextTick()
+   setTimeout(() => scrollToBottomOnly(), 150)
+   ```
+
+**Key Functions:**
+
+```javascript
+// Helper: Only scroll DOWN, never back up (forward progression)
+function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPosition = 'start') {
+  if (!element) return
+  const rect = element.getBoundingClientRect()
+  const targetTop = block === 'start' ? rect.top : rect.bottom - window.innerHeight
+  // Only scroll if target is below current viewport
+  if (targetTop > 0) {
+    element.scrollIntoView({ behavior: 'smooth', block })
+  }
+}
+
+// Scroll container to bottom (for output phase)
+function scrollToBottomOnly() {
+  // Scroll the container (not window, because container is position:fixed)
+  if (mainContainerRef.value) {
+    mainContainerRef.value.scrollTo({
+      top: mainContainerRef.value.scrollHeight,
+      behavior: 'smooth'
+    })
+  }
+}
+```
+
+**Critical Implementation Detail:**
+The `.text-transformation-view` uses `position: fixed; inset: 0;`, making it the viewport. Therefore, scrolling must target the **container** (`.phase-2a` / `mainContainerRef`), NOT `window`.
+
+**Design Rule:**
+Scrolling only moves **downward**, never backward → reinforces forward progression through the creative pipeline.
+
+**When to Use This Pattern:**
+- Multi-stage pedagogical workflows
+- Complex interfaces requiring guided learning
+- Processes where users benefit from step-by-step revelation
+- Educational tools where cognitive load management is critical
+
+**Educational Outcome:**
+Users learn the workflow structure through **spatial navigation** - the physical act of scrolling becomes part of the learning experience.
+
 ### State Management
 
 **Store:** `/public/ai4artsed-frontend/src/stores/configSelection.ts`

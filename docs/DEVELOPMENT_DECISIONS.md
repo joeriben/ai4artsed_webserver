@@ -29,6 +29,65 @@
 
 ---
 
+## 🎯 Active Decision: Progressive Disclosure Scrolling Pattern (2025-11-29, Session 80)
+
+**Status:** ✅ IMPLEMENTED
+**Component:** `text_transformation.vue`
+**Pattern Name:** Progressive Disclosure for Educational UX
+
+### Summary
+
+Auto-scroll functionality that serves a **didactic purpose** - actively guiding users through distinct phases of the creative-technical workflow to prevent cognitive overload.
+
+### The Pattern
+
+**Three phases of guided progression:**
+
+1. **Scroll1**: After interception → Reveals media category selection
+2. **Scroll2**: After category selection → Reveals model options and generation controls
+3. **Scroll3**: After generation start → Focuses on output/animation
+
+**Design Principle:** Interface complexity is revealed step-by-step. Each scroll marks a **conceptual transition** in the creative process.
+
+**Key Rule:** Scrolling only moves **downward** (forward progression through pipeline).
+
+### Why This Matters
+
+**Educational UX Design:**
+- Users learn workflow structure through **spatial navigation**
+- Physical scrolling becomes part of the learning experience
+- Prevents overwhelming users with all options simultaneously
+- Maintains user agency while providing guidance
+
+**Cognitive Load Management:**
+- Complex multi-stage workflows broken into digestible phases
+- Interface reveals what's needed when it's needed
+- Visual feedback reinforces mental model of pipeline stages
+
+### Implementation Detail
+
+**Critical:** The `.text-transformation-view` uses `position: fixed`, so scrolling must target the **container** (`mainContainerRef`), NOT `window`.
+
+```javascript
+// Correct implementation
+mainContainerRef.value.scrollTo({
+  top: mainContainerRef.value.scrollHeight,
+  behavior: 'smooth'
+})
+```
+
+### Full Documentation
+
+See [ARCHITECTURE PART 12 - Frontend-Architecture.md](./ARCHITECTURE%20PART%2012%20-%20Frontend-Architecture.md#progressive-disclosure-scrolling-pattern) for complete implementation details and code examples.
+
+### Files Changed
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - Functions: `scrollDownOnly()`, `scrollToBottomOnly()`
+  - CSS: `.output-frame` dimensioning fixed (adaptive to image size)
+- `docs/ARCHITECTURE PART 12 - Frontend-Architecture.md` - Pattern documentation
+
+---
+
 ## 🎯 Active Decision: Stage 2 Optimization - Two Separate Endpoints (2025-11-26, Session 76)
 
 **Status:** ✅ IMPLEMENTED

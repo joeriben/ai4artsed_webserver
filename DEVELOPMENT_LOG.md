@@ -1,5 +1,97 @@
 # Development Log
 
+## Session 80 - Auto-Scroll Implementation: Didactic Guidance Through Creative Phases
+**Date:** 2025-11-29
+**Duration:** ~45 minutes
+**Model:** Claude Sonnet 4.5
+**Focus:** Complete auto-scroll implementation with didactic purpose
+
+### Summary
+
+**FEATURE COMPLETION**: Auto-scroll functionality guides users through technical-creative phases with pedagogical intent.
+
+**Didactic Purpose:**
+The scroll function serves a **pedagogical role** - it actively guides users through distinct phases of the creative-technical workflow:
+1. **Phase 1** (Scroll1): After interception → show media category selection
+2. **Phase 2** (Scroll2): After category selection → show model options and generation controls
+3. **Phase 3** (Scroll3): After generation start → focus on output/animation
+
+This creates a **guided learning experience** where the interface reveals complexity progressively, preventing cognitive overload while maintaining user agency.
+
+### Implementation
+
+**Fixed Issues:**
+1. **Scroll3 not working** - Root cause: `position: fixed` container
+   - **Solution**: Scroll `mainContainerRef` container instead of `window`
+   - Location: `text_transformation.vue:503-511`
+
+2. **Output frame dimensional mismatch** - Fixed height created unnatural spacing around images
+   - **Solution**: Removed fixed `height`, added `min-height` only for empty/generating states
+   - Result: Frame adapts to image aspect ratio naturally
+   - Location: `text_transformation.vue:1666-1691`
+
+3. **Custom scrollbar styles** - Removed for consistency with browser standards
+   - Deleted all `::-webkit-scrollbar` overrides
+
+**Code Changes:**
+
+```javascript
+// Before: Tried to scroll window (doesn't work with position:fixed)
+window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+
+// After: Scroll the container itself
+if (mainContainerRef.value) {
+  mainContainerRef.value.scrollTo({
+    top: mainContainerRef.value.scrollHeight,
+    behavior: 'smooth'
+  })
+}
+```
+
+```css
+/* Before: Fixed height caused rectangular frame around images */
+.output-frame {
+  height: clamp(320px, 40vh, 450px);
+}
+
+/* After: Adapts to image, min-height only for empty/generating states */
+.output-frame {
+  /* no fixed height */
+}
+.output-frame.empty,
+.output-frame.generating {
+  min-height: clamp(320px, 40vh, 450px);
+}
+```
+
+### Architectural Insight
+
+**Design Pattern**: Progressive Disclosure for Educational UX
+- Interface complexity is revealed step-by-step
+- Each scroll marks a **conceptual transition** in the creative process
+- Users learn the workflow structure through spatial navigation
+- Prevents overwhelming users with all options simultaneously
+
+**Rule**: Scrolling only moves **downward**, never back - reinforcing forward progression through the creative pipeline.
+
+### Files Modified
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - Functions: `scrollToBottomOnly()` (lines 503-511)
+  - CSS: `.output-frame` and states (lines 1666-1691)
+  - Removed: Custom scrollbar styles
+
+### Testing Notes
+- Scroll1 ✅: Category bubbles visible after interception
+- Scroll2 ✅: Model selection visible after category click
+- Scroll3 ✅: Full animation/output visible after Start2 click
+- Output frame ✅: Natural aspect ratio, no rectangular spacing
+
+### Next Steps
+- User testing on iPad 10.5" Landscape
+- Monitor scroll behavior across different viewport sizes
+
+---
+
 ## Session 79 - Phase 4: Intelligent Seed Logic for Iterative Image Correction
 **Date:** 2025-11-28
 **Duration:** ~1.5 hours

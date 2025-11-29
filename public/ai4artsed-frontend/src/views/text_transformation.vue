@@ -501,9 +501,13 @@ function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPositio
 }
 
 function scrollToBottomOnly() {
-  // Box has fixed height, so page height is always known - just scroll
-  console.log('[Scroll3] scrollToBottomOnly called, scrollHeight:', document.body.scrollHeight, 'innerHeight:', window.innerHeight)
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+  // Scroll the container (not window, because container is position:fixed)
+  if (mainContainerRef.value) {
+    mainContainerRef.value.scrollTo({
+      top: mainContainerRef.value.scrollHeight,
+      behavior: 'smooth'
+    })
+  }
 }
 
 async function selectCategory(categoryId: string) {
@@ -1662,7 +1666,6 @@ watch(optimizedPrompt, async () => {
 .output-frame {
   width: 100%;
   max-width: 1000px;
-  height: clamp(320px, 40vh, 450px);  /* Fixed height for stable scrolling */
   margin: clamp(1rem, 3vh, 2rem) auto;
   display: flex;
   align-items: center;
@@ -1675,11 +1678,13 @@ watch(optimizedPrompt, async () => {
 }
 
 .output-frame.empty {
+  min-height: clamp(320px, 40vh, 450px);  /* Only for empty state */
   border: 2px dashed rgba(255, 255, 255, 0.2);
   background: rgba(20, 20, 20, 0.5);
 }
 
 .output-frame.generating {
+  min-height: clamp(320px, 40vh, 450px);  /* Only for animation */
   border: 2px solid rgba(76, 175, 80, 0.6);
   background: rgba(30, 30, 30, 0.9);
   box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
@@ -1919,28 +1924,6 @@ watch(optimizedPrompt, async () => {
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
-}
-
-/* ============================================================================
-   Scrollbar Styling
-   ============================================================================ */
-
-.phase-2a::-webkit-scrollbar {
-  width: 8px;
-}
-
-.phase-2a::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-}
-
-.phase-2a::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-
-.phase-2a::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
 }
 
 /* ============================================================================
