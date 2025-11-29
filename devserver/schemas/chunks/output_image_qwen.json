@@ -163,7 +163,7 @@
     "prompt": {
       "node_id": "75",
       "field": "inputs.value",
-      "source": "{{PREVIOUS_OUTPUT}}",
+      "source": "{{INPUT_TEXT}}",
       "description": "Main prompt - image description"
     },
     "negative_prompt": {

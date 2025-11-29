@@ -14,7 +14,7 @@
   },
 
   "parameters": {
-    "OUTPUT_CHUNK": "output_image_gemini_3_pro",
+    "output_chunk": "output_image_gemini_3_pro",
     "max_tokens": 4096
   },
 

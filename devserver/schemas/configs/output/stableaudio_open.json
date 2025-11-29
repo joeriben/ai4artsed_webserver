@@ -14,14 +14,14 @@
   },
 
   "parameters": {
-    "OUTPUT_CHUNK": "output_audio_stableaudio",
-    "NEGATIVE_PROMPT": "",
-    "SECONDS": 47.6,
-    "STEPS": 50,
-    "CFG": 4.98,
-    "SAMPLER": "dpmpp_3m_sde_gpu",
-    "SCHEDULER": "exponential",
-    "SEED": "random"
+    "output_chunk": "output_audio_stableaudio",
+    "negative_prompt": "",
+    "seconds": 47.6,
+    "steps": 50,
+    "cfg": 4.98,
+    "sampler": "dpmpp_3m_sde_gpu",
+    "scheduler": "exponential",
+    "seed": "random"
   },
 
   "media_preferences": {

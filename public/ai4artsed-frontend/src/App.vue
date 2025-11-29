@@ -24,7 +24,7 @@
 
 html, body {
   width: 100%;
-  height: 100%;
+  height: auto;
   margin: 0;
   padding: 0;
   overflow: auto;
@@ -32,12 +32,16 @@ html, body {
   background: #0a0a0a;
 }
 
+/* Smooth scrolling for all scroll actions */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 #app {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 </style>

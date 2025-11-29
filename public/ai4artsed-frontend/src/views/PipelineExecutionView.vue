@@ -304,12 +304,9 @@ function handleRetry() {
 
 <style scoped>
 .pipeline-execution-view {
-  position: fixed;
-  top: 0;
-  left: 0;
+  position: relative;
+  min-height: 100vh;
   width: 100%;
-  height: 100%;
-  overflow-y: auto;
   background: #0a0a0a;
   color: #ffffff;
 }

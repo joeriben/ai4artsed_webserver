@@ -105,11 +105,11 @@
   },
 
   "input_mappings": {
-    "text_prompt": {
+    "prompt": {
       "node_id": "75",
       "field": "inputs.value",
-      "source": "direct",
-      "description": "Direct prompt injection - NO TEMPLATE"
+      "source": "{{INPUT_TEXT}}",
+      "description": "Main prompt from input_text context"
     },
     "negative_prompt": {
       "node_id": "7",

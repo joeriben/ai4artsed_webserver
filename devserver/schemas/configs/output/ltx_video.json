@@ -14,15 +14,15 @@
   },
 
   "parameters": {
-    "OUTPUT_CHUNK": "output_video_ltx",
-    "NEGATIVE_PROMPT": "blurry, distorted, bad quality, watermark, low resolution, flickering",
-    "WIDTH": 1216,
-    "HEIGHT": 704,
-    "FRAMES": 121,
-    "STEPS": 25,
-    "CFG": 3.0,
-    "FPS": 30,
-    "SEED": "random"
+    "output_chunk": "output_video_ltx",
+    "negative_prompt": "blurry, distorted, bad quality, watermark, low resolution, flickering",
+    "width": 1216,
+    "height": 704,
+    "frames": 121,
+    "steps": 25,
+    "cfg": 3.0,
+    "fps": 30,
+    "seed": "random"
   },
 
   "media_preferences": {

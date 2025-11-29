@@ -14,16 +14,16 @@
   },
 
   "parameters": {
-    "OUTPUT_CHUNK": "output_audio_acenet",
-    "LYRICS": "[instrumental]",
-    "LYRICS_STRENGTH": 0.99,
-    "SECONDS": 30,
-    "STEPS": 50,
-    "CFG": 5.0,
-    "SAMPLER": "dpmpp_2m_sde_gpu",
-    "SCHEDULER": "simple",
-    "DENOISE": 0.9,
-    "SEED": "random"
+    "output_chunk": "output_audio_acenet",
+    "lyrics": "[instrumental]",
+    "lyrics_strength": 0.99,
+    "seconds": 30,
+    "steps": 50,
+    "cfg": 5.0,
+    "sampler": "dpmpp_2m_sde_gpu",
+    "scheduler": "simple",
+    "denoise": 0.9,
+    "seed": "random"
   },
 
   "media_preferences": {

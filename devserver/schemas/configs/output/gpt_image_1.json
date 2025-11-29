@@ -14,12 +14,12 @@
   },
 
   "parameters": {
-    "OUTPUT_CHUNK": "output_image_gpt_image_1",
-    "MODEL": "gpt-image-1",
-    "QUALITY": "high",
-    "SIZE": "1024x1024",
-    "BACKGROUND": "opaque",
-    "N": 1
+    "output_chunk": "output_image_gpt_image_1",
+    "model": "gpt-image-1",
+    "quality": "high",
+    "size": "1024x1024",
+    "background": "opaque",
+    "n": 1
   },
 
   "media_preferences": {

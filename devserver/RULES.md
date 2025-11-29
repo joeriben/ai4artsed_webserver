@@ -185,12 +185,43 @@ Selection based on:
 
 ---
 
+## 6. PARAMETER NAMING CONVENTION
+
+**MANDATORY**: ALL dict keys in configs/parameters MUST be lowercase
+
+```python
+# ✅ CORRECT
+"parameters": {
+  "seed": "random",
+  "width": 1024,
+  "output_chunk": "output_image_sd35"
+}
+
+# ❌ WRONG
+"parameters": {
+  "SEED": "random",        # NEVER UPPERCASE for parameter keys!
+  "WIDTH": 1024,
+  "OUTPUT_CHUNK": "..."
+}
+```
+
+**Rationale**:
+- Python convention: lowercase for dict keys
+- UPPERCASE reserved for placeholder names: `{{PREVIOUS_OUTPUT}}`, `{{PROMPT}}`
+- Prevents case-sensitivity bugs (SEED vs seed collision)
+- Enables proper parameter override (seed_override can replace config seed)
+
+**Exception**: Placeholder names in templates MUST be UPPERCASE for clarity
+
+---
+
 ## BEFORE MAKING CHANGES - CHECKLIST
 
 □ **Did I read the relevant docs?** (ARCHITECTURE.md, DEVELOPMENT_DECISIONS.md, RULES.md)
 □ **Am I using `rm`?** (NEVER! Use .obsolete instead)
 □ Which use case am I working on? (Interception OR Output)
 □ Does my change follow naming conventions?
+□ **Are ALL parameter dict keys lowercase?** (Python convention - UPPERCASE only for placeholders like {{PREVIOUS_OUTPUT}})
 □ Am I adding complexity to Output-Pipelines? (DON'T!)
 □ Am I hardcoding chunks in pipeline definition? (DON'T!)
 □ Did I confuse config-level and chunk-level concepts?

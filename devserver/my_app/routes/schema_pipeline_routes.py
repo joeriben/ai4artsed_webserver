@@ -134,8 +134,8 @@ def _load_optimization_instruction(output_config_name: str):
         logger.info(f"[LOAD-OPT] Config loaded: {output_config_obj is not None}")
 
         if output_config_obj and hasattr(output_config_obj, 'parameters'):
-            output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
-            logger.info(f"[LOAD-OPT] OUTPUT_CHUNK name: '{output_chunk_name}'")
+            output_chunk_name = output_config_obj.parameters.get('output_chunk')
+            logger.info(f"[LOAD-OPT] output_chunk name: '{output_chunk_name}'")
 
             if output_chunk_name:
                 import json
@@ -382,10 +382,10 @@ async def execute_stage2_with_optimization_SINGLE_RUN_VERSION(
     if target_output_config:
         logger.info(f"[STAGE2-OPT] Target output config: {target_output_config}")
         try:
-            # Load output config to get OUTPUT_CHUNK name
+            # Load output config to get output_chunk name
             output_config_obj = pipeline_executor.config_loader.get_config(target_output_config)
             if output_config_obj and hasattr(output_config_obj, 'parameters'):
-                output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
+                output_chunk_name = output_config_obj.parameters.get('output_chunk')
                 if output_chunk_name:
                     logger.info(f"[STAGE2-OPT] Output chunk: {output_chunk_name}")
                     # Load output chunk JSON directly to get optimization_instruction

@@ -9,7 +9,7 @@
     "de": "Komplexe surrealistische Bildgenerierung mit Legacy-ComfyUI-Workflow. Dieser Workflow kann nicht in DevServers Chunk-System zerlegt werden aufgrund seiner komplexen Node-Verbindungen und benutzerdefinierten Verarbeitungslogik."
   },
   "parameters": {
-    "OUTPUT_CHUNK": "legacy_surrealization"
+    "output_chunk": "legacy_surrealization"
   },
   "media_preferences": {
     "default_output": "image",
