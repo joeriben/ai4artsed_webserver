@@ -258,6 +258,12 @@ import { useRoute } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import { useCurrentSession } from '@/composables/useCurrentSession'
+
+// ============================================================================
+// Session Management (Session 82: Chat Overlay Context)
+// ============================================================================
+const { updateSession } = useCurrentSession()
 
 // ============================================================================
 // Types
@@ -691,6 +697,13 @@ async function executePipeline() {
         outputMediaType.value = mediaType
         outputImage.value = `/api/media/${mediaType}/${runId}`
         executionPhase.value = 'generation_done'
+
+        // Session 82: Register session for chat overlay context
+        updateSession(runId, {
+          mediaType,
+          configName: selectedConfig.value || 'unknown'
+        })
+        console.log('[Session 82] Registered session with chat overlay:', runId)
 
         // Scroll3: Show complete media after layout settles
         await nextTick()

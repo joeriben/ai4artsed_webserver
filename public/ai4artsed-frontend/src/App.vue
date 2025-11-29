@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <router-view />
+    <ChatOverlay />
   </div>
 </template>
 
@@ -12,7 +13,10 @@
  * - / (home): Legacy execution interface
  * - /select: Phase 1 Property Quadrants selection interface
  * - /about: About page
+ *
+ * Session 82: Added ChatOverlay global component for interactive LLM help
  */
+import ChatOverlay from './components/ChatOverlay.vue'
 </script>
 
 <style>

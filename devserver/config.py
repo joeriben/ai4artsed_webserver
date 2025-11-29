@@ -100,6 +100,7 @@ STAGE2_INTERCEPTION_MODEL = REMOTE_FAST_MODEL         # Stage 2: Prompt intercep
 STAGE2_OPTIMIZATION_MODEL = REMOTE_FAST_MODEL         # Stage 2: Prompt optimization (complex task)
 STAGE3_MODEL = REMOTE_FAST_MODEL                          # Stage 3: Translation and final safety check (simple task)
 STAGE4_LEGACY_MODEL = REMOTE_FAST_MODEL               #for legacy workflow execution
+CHAT_HELPER_MODEL = REMOTE_FAST_MODEL                 # Chat overlay: Interactive help system
 
 # Legacy Model Configuration
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama
@@ -122,6 +123,7 @@ LOCAL_WORKFLOWS_DIR = BASE_DIR / "workflows"
 PUBLIC_DIR = Path(__file__).parent.parent / "public" / "ai4artsed-frontend" / "dist"
 EXPORTS_DIR = BASE_DIR / "exports"
 JSON_STORAGE_DIR = EXPORTS_DIR / "json"
+UPLOADS_TMP_DIR = EXPORTS_DIR / "uploads_tmp"  # Temporary image uploads for img2img
 
 # API Configuration
 # LLM Provider: "ollama" or "lmstudio"
