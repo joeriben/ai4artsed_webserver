@@ -102,7 +102,8 @@ class PipelineExecutor:
         tracker=None,
         config_override=None,  # Phase 2: Optional pre-modified config
         context_override: Optional[PipelineContext] = None,  # Multi-stage: Pre-populated context
-        seed_override: Optional[int] = None  # Phase 4: Intelligent seed for media generation
+        seed_override: Optional[int] = None,  # Phase 4: Intelligent seed for media generation
+        input_image: Optional[str] = None  # Session 80: IMG2IMG support - path to input image
     ) -> PipelineResult:
         """Execute complete pipeline with 4-Stage Pre-Interception System
 
@@ -160,6 +161,11 @@ class PipelineExecutor:
         if seed_override is not None:
             context.custom_placeholders['seed_override'] = seed_override
             logger.info(f"[PHASE4-SEED] Added seed_override to context: {seed_override}")
+
+        # Session 80: Add input_image to context if provided (IMG2IMG support)
+        if input_image is not None:
+            context.custom_placeholders['input_image'] = input_image
+            logger.info(f"[IMG2IMG] Added input_image to context: {input_image}")
 
         # Plan pipeline steps
         steps = self._plan_pipeline_steps(resolved_config)
@@ -495,6 +501,12 @@ class PipelineExecutor:
             seed_value = context.custom_placeholders['seed_override']
             chunk_request['parameters']['seed'] = seed_value  # lowercase!
             logger.info(f"[PHASE4-SEED] Injected seed into chunk parameters: {seed_value}")
+
+        # Session 80: Add input_image to parameters if present in context (IMG2IMG support)
+        if 'input_image' in context.custom_placeholders:
+            image_path = context.custom_placeholders['input_image']
+            chunk_request['parameters']['input_image'] = image_path
+            logger.info(f"[IMG2IMG] Injected input_image into chunk parameters: {image_path}")
 
         backend_request = BackendRequest(
             backend_type=BackendType(chunk_request['backend_type']),

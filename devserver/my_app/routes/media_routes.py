@@ -6,13 +6,19 @@ Migration Status (Session 37):
 - Updated to use LivePipelineRecorder metadata format (entities array)
 - No longer depends on MediaStorage
 - Supports both numbered filenames (06_output_image.png) and legacy (output_image.png)
+
+Session 80: Added image upload endpoint for img2img workflow
 """
-from flask import Blueprint, send_file, jsonify
+from flask import Blueprint, send_file, jsonify, request
 import logging
 from pathlib import Path
+import uuid
+import os
+from werkzeug.utils import secure_filename
+from PIL import Image
 
 from my_app.services.pipeline_recorder import load_recorder
-from config import JSON_STORAGE_DIR
+from config import JSON_STORAGE_DIR, UPLOADS_TMP_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +49,152 @@ def _find_entity_by_type(entities: list, media_type: str) -> dict:
             return entity
 
     return None
+
+
+# Image upload configuration
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+SUPPORTED_RESOLUTIONS = [512, 768, 1024, 1280]  # SD3.5 Large supported resolutions
+
+
+def _allowed_file(filename: str) -> bool:
+    """Check if filename has allowed extension"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _resize_image_to_supported_resolution(image: Image.Image, max_size: int = 1024) -> Image.Image:
+    """
+    Resize image to fit within supported resolution while maintaining aspect ratio.
+
+    Args:
+        image: PIL Image object
+        max_size: Maximum dimension (default 1024 for SD3.5 Large)
+
+    Returns:
+        Resized PIL Image object
+    """
+    width, height = image.size
+
+    # If image is already within bounds, return as-is
+    if width <= max_size and height <= max_size:
+        return image
+
+    # Calculate scaling factor to fit within max_size
+    if width > height:
+        new_width = max_size
+        new_height = int((height / width) * max_size)
+    else:
+        new_height = max_size
+        new_width = int((width / height) * max_size)
+
+    # Resize with high-quality Lanczos filter
+    resized = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+    logger.info(f"Resized image from {width}x{height} to {new_width}x{new_height}")
+
+    return resized
+
+
+@media_bp.route('/upload/image', methods=['POST'])
+def upload_image():
+    """
+    Upload image for img2img processing.
+
+    Automatically resizes images to fit within supported model resolutions.
+
+    Request body (multipart/form-data):
+        - file: Image file (PNG, JPG, JPEG, WEBP)
+        - run_id: Optional run ID to associate with (for organization)
+
+    Returns:
+        JSON with:
+        - success: Boolean
+        - image_id: Unique identifier for this upload
+        - image_path: Absolute path to uploaded image (for backend)
+        - filename: Secure filename with UUID
+        - original_filename: Original filename from upload
+        - original_size: Original dimensions [width, height]
+        - resized_size: Final dimensions after resize [width, height]
+        - file_size_bytes: File size in bytes
+    """
+    try:
+        # Check if file part exists
+        if 'file' not in request.files:
+            return jsonify({"error": "No file part in request"}), 400
+
+        file = request.files['file']
+
+        # Check if file was selected
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+
+        # Validate file type
+        if not _allowed_file(file.filename):
+            return jsonify({
+                "error": f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+            }), 400
+
+        # Load image to check size and resize
+        try:
+            image = Image.open(file.stream)
+            original_size = image.size  # (width, height)
+
+            # Convert RGBA to RGB if needed (for JPEG compatibility)
+            if image.mode == 'RGBA':
+                rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+                rgb_image.paste(image, mask=image.split()[3])  # Use alpha channel as mask
+                image = rgb_image
+
+            # Resize image to supported resolution
+            resized_image = _resize_image_to_supported_resolution(image, max_size=1024)
+            resized_size = resized_image.size
+
+        except Exception as e:
+            return jsonify({"error": f"Invalid image file: {str(e)}"}), 400
+
+        # Generate unique image ID
+        image_id = str(uuid.uuid4())
+
+        # Secure filename
+        original_filename = secure_filename(file.filename)
+        file_extension = original_filename.rsplit('.', 1)[1].lower()
+
+        # Force PNG for consistency (lossless)
+        if file_extension in ['jpg', 'jpeg']:
+            file_extension = 'png'
+
+        # Create filename with UUID to avoid collisions
+        new_filename = f"{image_id}.{file_extension}"
+
+        # Ensure uploads directory exists
+        UPLOADS_TMP_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Save resized image
+        file_path = UPLOADS_TMP_DIR / new_filename
+        resized_image.save(str(file_path), format='PNG' if file_extension == 'png' else 'JPEG', quality=95)
+
+        # Get final file size
+        file_size = file_path.stat().st_size
+
+        logger.info(f"Image uploaded: {new_filename} | Original: {original_size} → Resized: {resized_size} | Size: {file_size / 1024:.1f}KB")
+
+        # Return response
+        return jsonify({
+            "success": True,
+            "image_id": image_id,
+            "image_path": str(file_path),  # Absolute path for backend
+            "filename": new_filename,
+            "original_filename": original_filename,
+            "original_size": list(original_size),
+            "resized_size": list(resized_size),
+            "file_size_bytes": file_size
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error uploading image: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 @media_bp.route('/image/<run_id>', methods=['GET'])

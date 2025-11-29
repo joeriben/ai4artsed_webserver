@@ -36,8 +36,14 @@ const router = createRouter({
     {
       path: '/text-transformation',
       name: 'text-transformation',
-      // Phase 2: text_transformation pipeline visualization
+      // Phase 2: text_transformation pipeline visualization (text-based mode)
       component: () => import('../views/text_transformation.vue'),
+    },
+    {
+      path: '/image-transformation',
+      name: 'image-transformation',
+      // Session 80: image_transformation pipeline visualization (image-based mode)
+      component: () => import('../views/image_transformation.vue'),
     },
     {
       path: '/direct',

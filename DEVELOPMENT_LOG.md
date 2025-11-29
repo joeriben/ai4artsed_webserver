@@ -98,6 +98,115 @@ scrollDownOnly(pipelineSectionRef.value, 'start')
 - Consistent with web platform conventions
 - Better accessibility (OS-level scrollbar support)
 
+---
+
+## Session 82 - Träshy Chat Overlay Helper Implementation
+**Date:** 2025-11-29
+**Duration:** ~45 minutes
+**Model:** Claude Haiku 4.5
+**Focus:** Add interactive AI assistant chat overlay with pedagogical guidance
+
+### Summary
+
+**FEATURE ADDITION**: Implemented Träshy chat overlay helper - a floating interactive AI assistant integrated into the DevServer that provides session-aware pedagogical guidance with technical interface reference.
+
+**User Story:**
+- Floating icon in bottom-left corner with Träshy character (mascot)
+- Expandable chat panel (380px width × 520px height)
+- Session-aware context loading from `/exports/json/{run_id}`
+- Persistent chat history per session
+- Branded colors: #BED882 (green) + #E79EAF (pink)
+- AI assistant refers to technical interface when uncertain
+
+### Implementation
+
+**Backend Architecture:**
+- New Flask route: `/api/chat` (POST) for chat interactions
+- Context loader pulls from session exports JSON
+- Claude Haiku 4.5 via OpenRouter API
+- System prompt includes interface reference for accurate guidance
+- Per-session chat history management
+
+**Frontend Architecture:**
+- `ChatOverlay.vue` component (collapsible floating panel)
+- `useCurrentSession.ts` composable for global run_id tracking
+- Global integration in `App.vue`
+- Integration point in `text_transformation.vue` (session registration)
+- Träshy icon (transparent PNG, 120px)
+
+### Files Created
+
+**Backend:**
+- `devserver/my_app/routes/chat_routes.py` (new Flask blueprint)
+- `devserver/trashy_interface_reference.txt` (system prompt reference)
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/components/ChatOverlay.vue` (new component)
+- `public/ai4artsed-frontend/src/composables/useCurrentSession.ts` (new composable)
+- `public/ai4artsed-frontend/src/assets/trashy-icon.png` (new asset)
+- `docs/SESSION_82_chat_overlay_implementation.md` (technical documentation)
+
+### Files Modified
+
+**Backend:**
+- `devserver/config.py` (added CHAT_HELPER_MODEL constant)
+- `devserver/my_app/__init__.py` (registered chat_bp blueprint)
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/App.vue` (integrated ChatOverlay globally)
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` (session registration)
+
+### Technical Details
+
+**Chat Interface:**
+```
+Bottom-left: Träshy icon (120px transparent PNG)
+Expanded panel: 380px width × 520px height
+Colors: #BED882 (primary green), #E79EAF (accent pink)
+Collapsible: Click icon to expand/collapse chat
+Auto-scroll: Chat history auto-scrolls to latest message
+```
+
+**Session Awareness:**
+- Extracts `run_id` from URL or component context
+- Loads context from `/exports/json/{run_id}/context.json`
+- Builds pedagogical prompt with current session state
+- Maintains chat history per session in sessionStorage
+
+**AI Guidance:**
+- Uses Claude Haiku 4.5 via OpenRouter
+- System prompt includes complete interface reference
+- Instructed to refer students to course instructor when uncertain
+- Focuses on pedagogical guidance, not content generation
+
+### Deployment
+
+**Status: LIVE**
+1. ✅ Committed to develop branch
+2. ✅ Merged to main branch
+3. ✅ Deployed to production
+4. ✅ Verified: https://lab.ai4artsed.org/ (Träshy icon visible bottom-left)
+
+**Commits:**
+- `develop` branch: Session 82 chat overlay implementation
+- `main` branch: Merged from develop
+- `production` deployment: Updated and running
+
+### Architecture Notes
+
+**Design Pattern**: Pedagogical AI Assistant
+- Floating helper maintains non-intrusive presence
+- Session-aware context prevents out-of-scope questions
+- Interface reference ensures technical accuracy
+- Per-session history creates continuity
+- Integrated globally but non-blocking (can be minimized)
+
+**Design Decisions:**
+- Bottom-left placement: Doesn't interfere with main content
+- Collapsible UI: Users control when to engage
+- Per-session storage: Respects student privacy and context boundaries
+- Haiku 4.5 model: Balance between cost and quality for pedagogical guidance
+
 **Textareas Exception**: Form textareas retain their own `overflow-y: auto` for internal scrolling of long text content.
 
 ### Testing Notes

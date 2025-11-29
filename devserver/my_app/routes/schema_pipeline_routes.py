@@ -1207,6 +1207,9 @@ def execute_pipeline():
         # Media generation support
         output_config = data.get('output_config')  # Optional: specific output config for Stage 4 (e.g., 'sd35_large')
 
+        # IMG2IMG support (Session 80)
+        input_image = data.get('input_image')  # Optional: path to uploaded image for img2img
+
         # Stage 2 result support: use frontend-provided interception result
         interception_result = data.get('interception_result')  # Optional: frontend-provided Stage 2 output (if already executed)
 
@@ -1773,7 +1776,8 @@ def execute_pipeline():
                             input_text=prompt_for_media,  # Use translated English text from Stage 3!
                             user_input=prompt_for_media,
                             execution_mode=execution_mode,
-                            seed_override=calculated_seed  # Phase 4: Intelligent seed
+                            seed_override=calculated_seed,  # Phase 4: Intelligent seed
+                            input_image=input_image  # Session 80: IMG2IMG support
                         ))
 
                         # Add media output to results

@@ -1,0 +1,59 @@
+{
+  "pipeline": "image_transformation",
+  "instruction_type": "image_transformation",
+  "name": {
+    "en": "Image Transformation",
+    "de": "Bild-Transformation"
+  },
+  "description": {
+    "en": "Transform images using AI. Upload an image and describe how you want it changed.",
+    "de": "Transformiere Bilder mit KI. Lade ein Bild hoch und beschreibe, wie es verändert werden soll."
+  },
+  "category": {
+    "de": "Bild-Modi",
+    "en": "Image Modes"
+  },
+  "properties": [
+    "image",
+    "transformation"
+  ],
+  "context": {
+    "en": "Transform the uploaded image according to the user's instructions.",
+    "de": "Transformiere das hochgeladene Bild gemäß den Anweisungen des Benutzers."
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 1024
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image",
+      "video",
+      "audio"
+    ]
+  },
+  "meta": {
+    "stage": "direct",
+    "skip_stage2": true,
+    "requires_input_image": true,
+    "transformation_type": "img2img"
+  },
+  "display": {
+    "icon": "🖼️",
+    "color": "#4CAF50",
+    "category": "image",
+    "difficulty": 1,
+    "order": 1
+  },
+  "tags": {
+    "en": ["image", "img2img", "transformation"],
+    "de": ["bild", "img2img", "transformation"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 8,
+    "complexity": "beginner"
+  }
+}
