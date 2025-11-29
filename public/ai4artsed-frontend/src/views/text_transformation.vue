@@ -501,13 +501,11 @@ function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPositio
 }
 
 function scrollToBottomOnly() {
-  // Scroll the container (not window, because container is position:fixed)
-  if (mainContainerRef.value) {
-    mainContainerRef.value.scrollTo({
-      top: mainContainerRef.value.scrollHeight,
-      behavior: 'smooth'
-    })
-  }
+  // Scroll the window (container no longer has overflow)
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: 'smooth'
+  })
 }
 
 async function selectCategory(categoryId: string) {
@@ -616,9 +614,9 @@ async function startGeneration() {
 
   isPipelineExecuting.value = true
 
-  // Scroll3: Show animation/output box fully - scroll to bottom
+  // Scroll3: Show animation/output box fully
   await nextTick()
-  setTimeout(() => scrollToBottomOnly(), 150)
+  setTimeout(() => scrollDownOnly(pipelineSectionRef.value, 'start'), 150)
 
   // Start pipeline execution (Stage 3-4)
   await executePipeline()
@@ -694,18 +692,18 @@ async function executePipeline() {
         outputImage.value = `/api/media/${mediaType}/${runId}`
         executionPhase.value = 'generation_done'
 
-        // Scroll3: Show complete media - scroll to bottom after layout settles
+        // Scroll3: Show complete media after layout settles
         await nextTick()
-        setTimeout(() => scrollToBottomOnly(), 150)
+        setTimeout(() => scrollDownOnly(pipelineSectionRef.value, 'start'), 150)
       } else if (response.data.outputs && response.data.outputs.length > 0) {
         // Fallback: use outputs array (assume image)
         outputMediaType.value = 'image'
         outputImage.value = `http://localhost:17802${response.data.outputs[0]}`
         executionPhase.value = 'generation_done'
 
-        // Scroll3: Show complete media - scroll to bottom after layout settles
+        // Scroll3: Show complete media after layout settles
         await nextTick()
-        setTimeout(() => scrollToBottomOnly(), 150)
+        setTimeout(() => scrollDownOnly(pipelineSectionRef.value, 'start'), 150)
       }
     } else {
       alert(`Generation fehlgeschlagen: ${response.data.error}`)
@@ -774,7 +772,7 @@ watch(optimizedPrompt, async () => {
   background: #0a0a0a;
   color: #ffffff;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
   overflow-x: hidden;
@@ -842,7 +840,6 @@ watch(optimizedPrompt, async () => {
 
 .phase-2a {
   max-width: clamp(320px, 90vw, 1100px);
-  max-height: 90vh;
   width: 100%;
   padding: clamp(1rem, 3vw, 2rem);
   padding-top: clamp(5rem, 10vh, 7rem); /* Space for fixed header */
@@ -851,9 +848,6 @@ watch(optimizedPrompt, async () => {
   flex-direction: column;
   align-items: center;
   gap: clamp(1rem, 3vh, 2rem);
-
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 /* Section Titles */
