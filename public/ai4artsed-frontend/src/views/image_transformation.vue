@@ -394,11 +394,18 @@ async function startGeneration() {
       // Complete progress
       generationProgress.value = 100
 
+      // DEBUG: Log full response structure
+      console.log('[DEBUG] Full response.data:', JSON.stringify(response.data, null, 2))
+      console.log('[DEBUG] response.data.status:', response.data.status)
+      console.log('[DEBUG] response.data.run_id:', response.data.run_id)
+      console.log('[DEBUG] response.data.media_output:', response.data.media_output)
+
       // Get run_id and media_type from response
       const runId = response.data.media_output?.run_id || response.data.run_id
       const mediaType = response.data.media_output?.media_type || 'image'
 
       console.log('[Generation] Success, run_id:', runId, 'media_type:', mediaType)
+      console.log('[DEBUG] Constructed URL:', `/api/media/${mediaType}/${runId}`)
 
       if (runId) {
         // Dynamic URL based on media type: /api/media/{type}/{run_id}
@@ -406,6 +413,10 @@ async function startGeneration() {
         outputImage.value = `/api/media/${mediaType}/${runId}`
         executionPhase.value = 'generation_done'
         showSafetyApprovedStamp.value = true
+
+        console.log('[DEBUG] outputImage.value set to:', outputImage.value)
+        console.log('[DEBUG] outputMediaType.value set to:', outputMediaType.value)
+        console.log('[DEBUG] executionPhase.value set to:', executionPhase.value)
 
         // Hide stamp after 3 seconds
         setTimeout(() => {

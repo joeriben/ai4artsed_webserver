@@ -1,5 +1,74 @@
 # Development Log
 
+## Session 83 - IMG2IMG Display Issue: Debug & Resolution
+**Date:** 2025-11-29
+**Duration:** ~1 hour
+**Model:** Claude Sonnet 4.5
+**Focus:** Debug and fix image display issue from Session 80
+
+### Summary
+
+**BUG FIX**: Images now display correctly after generation. Issue was stale frontend build, not code logic.
+
+**Problem from Session 80:**
+- Backend generated images successfully (verified: 1.7MB file exists)
+- Media route served images correctly (curl: 200 OK)
+- Frontend code appeared correct
+- **Issue**: Image didn't render in browser
+
+**Investigation:**
+- Consulted architecture expert and bughunter agents
+- Tested media route with curl → 200 OK, file served correctly
+- User insight: "This is just serving a file since 1991" (back to basics)
+- Added comprehensive debug logging to frontend
+- Rebuilt frontend: `npm run build`
+
+**Result:** Image displays correctly! ✅
+
+### Implementation
+
+**Frontend Changes:**
+- Added debug logging to `image_transformation.vue` (lines 397-419)
+- Logs: full response.data, runId extraction, URL construction, state updates
+- Rebuilt frontend to apply Vue component changes
+
+**Root Cause:** Stale frontend build from Session 80 changes.
+
+### TODO for Next Session
+
+**HIGH PRIORITY:**
+1. **Verify IMG2IMG vs T2IMG behavior**
+   - Current observation: Appears to be text-to-image, not image-to-image
+   - Test if input image actually affects output
+   - Check ComfyUI workflow node connections
+   - Verify `input_image` parameter flow through pipeline
+
+2. **Test input_image parameter**
+   - Upload different images → verify outputs differ based on input
+   - Check ComfyUI logs for LoadImage node
+   - Verify denoise parameter (0.75)
+
+**MEDIUM PRIORITY:**
+3. Enable additional models (Qwen img2img, LTX video, AceStep sound)
+4. Add mode switcher in header (text-based ↔ image-based)
+5. Cleanup debug logging once verified working
+
+### Technical Notes
+
+**Image Display Flow (Now Working):**
+```
+Frontend → Backend → Pipeline Executor → ComfyUI → File saved
+→ Response with run_id → Frontend constructs URL → Browser loads image
+```
+
+**Key Learning:** Always rebuild frontend after Vue component changes in production mode.
+
+### Files Modified
+- `/public/ai4artsed-frontend/src/views/image_transformation.vue` - Debug logging
+- `/docs/SESSION_83_IMG2IMG_DEBUG.md` - Detailed handover
+
+---
+
 ## Session 81 - Native Browser Scrollbars: Restore Lost Fix from git reset
 **Date:** 2025-11-29
 **Duration:** ~30 minutes
