@@ -1,0 +1,38 @@
+{
+  "name": "code_generation",
+  "pipeline_type": "prompt_interception",
+  "pipeline_stage": "2",
+  "requires_interception_prompt": true,
+  "description": "Code Generation Pipeline: Scene Description → P5.js Code",
+  "instruction_type": "code_generation",
+  "input_requirements": {
+    "texts": 1
+  },
+  "chunks": [
+    "manipulate"
+  ],
+  "required_configs": [
+    "manipulate_config"
+  ],
+  "config_mappings": {
+    "manipulate_config": "{{MANIPULATE_CONFIG}}"
+  },
+  "meta": {
+    "workflow_type": "code_generation",
+    "reusable": true,
+    "skip_translation": true,
+    "prompt_structure": {
+      "type": "three_part_interception",
+      "parts": ["task_instruction", "context", "prompt"],
+      "description": "Code generation: TASK (p5.js requirements) + CONTEXT (meta-prompt) + PROMPT (scene description)"
+    },
+    "steps": [
+      {
+        "step": 1,
+        "chunk": "manipulate",
+        "description": "Code Generation: Scene → P5.js JavaScript",
+        "config_key": "manipulate_config"
+      }
+    ]
+  }
+}

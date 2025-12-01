@@ -2,19 +2,19 @@
   "pipeline": "direct",
   "instruction_type": "direct_workflow",
   "name": {
-    "en": "Direct Workflow",
-    "de": "Direkter Workflow"
+    "en": "hacking the AI",
+    "de": "die KI hacken"
   },
   "description": {
-    "en": "Direct execution of legacy ComfyUI workflows without Stage 2 interception. Input is passed directly to Stage 3 (safety) and Stage 4 (workflow execution).",
-    "de": "Direkte Ausführung von Legacy-ComfyUI-Workflows ohne Stage-2-Interception. Input wird direkt an Stage 3 (Safety) und Stage 4 (Workflow-Ausführung) weitergegeben."
+    "en": "Various ways to hack the AI.",
+    "de": "Verschiedene Möglichkeiten, die KI zu hacken."
   },
   "category": {
-    "de": "System",
-    "en": "System"
+    "de": "Fotografie & Medien",
+    "en": "Photography & Media"
   },
   "properties": [
-    "system"
+    "technical_imaging"
   ],
   "context": {
     "en": "This is a system config for direct workflow execution. No prompt transformation is performed.",
@@ -42,11 +42,11 @@
   },
   "display": {
     "icon": "⚡",
-    "color": "#607D8B",
-    "category": "system",
+    "color": "#2196F3",
+    "category": "technical_imaging",
     "difficulty": 5,
     "order": 999,
-    "hidden": true
+    "hidden": false
   },
   "tags": {
     "en": [

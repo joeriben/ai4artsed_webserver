@@ -1,0 +1,84 @@
+{
+  "name": "qwen_img2img",
+  "display_name": "QWEN Image Edit (4-step Lightning)",
+  "description": "Ultra-fast image transformation with QWEN Image Edit Lightning (4 steps)",
+  "category": "image",
+  "media_type": "image",
+
+  "backend": "comfyui",
+  "chunk_name": "output_image_qwen_img2img",
+
+  "default_parameters": {
+    "steps": 4,
+    "cfg": 1,
+    "sampler_name": "euler",
+    "scheduler": "simple",
+    "denoise": 1.0,
+    "megapixels": 1,
+    "seed": null
+  },
+
+  "parameter_ranges": {
+    "steps": {
+      "min": 4,
+      "max": 8,
+      "default": 4,
+      "description": "Lightning LoRA optimized for 4 steps"
+    },
+    "cfg": {
+      "min": 1,
+      "max": 2,
+      "default": 1,
+      "description": "CFG scale (Lightning uses low CFG)"
+    },
+    "denoise": {
+      "min": 0.8,
+      "max": 1.0,
+      "default": 1.0,
+      "description": "Denoise strength (QWEN uses high denoise)"
+    },
+    "megapixels": {
+      "min": 0.5,
+      "max": 2,
+      "default": 1,
+      "description": "Target image size (1 MP = ~1024x1024)"
+    }
+  },
+
+  "capabilities": {
+    "img2img": true,
+    "text2img": false,
+    "inpainting": false,
+    "outpainting": false,
+    "controlnet": false
+  },
+
+  "requirements": {
+    "gpu_vram_mb": 10000,
+    "estimated_duration_seconds": "5-10",
+    "requires_models": [
+      "qwen_image_edit_fp8_e4m3fn.safetensors",
+      "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "qwen_image_vae.safetensors",
+      "Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors"
+    ]
+  },
+
+  "ui_config": {
+    "icon": "✨",
+    "color": "#FF6B6B",
+    "badge": "Lightning",
+    "recommended_for": ["fast_edits", "text_guided_transformation", "object_manipulation"],
+    "best_for": "Quick image transformations with text instructions (add/remove/modify objects)"
+  },
+
+  "meta": {
+    "version": "1.0",
+    "created": "2025-11-30",
+    "last_updated": "2025-11-30",
+    "model_type": "qwen_image_edit",
+    "lightning_optimized": true,
+    "dsgvo_compliant": true,
+    "local_only": true
+  }
+}

@@ -622,3 +622,161 @@ async def execute_stage3_safety(
             "positive_prompt": translated_prompt,
             "negative_prompt": ""
         }
+
+
+# ============================================================================
+# SESSION 84: STAGE 3 SAFETY CHECK FOR CODE OUTPUT
+# ============================================================================
+
+async def execute_stage3_safety_code(
+    code: str,
+    safety_level: str,
+    media_type: str,
+    execution_mode: str,
+    pipeline_executor
+) -> dict:
+    """
+    Stage 3 Safety Check for Code Output (P5.js, SonicPi, etc.)
+
+    Checks generated code for unsafe patterns without translation.
+    Uses fast filter + conditional LLM verification.
+
+    Args:
+        code: Generated code (JavaScript, Ruby, etc.)
+        safety_level: Safety level ('kids', 'youth', 'off')
+        media_type: Media type ('code')
+        execution_mode: Execution mode ('eco', 'fast')
+        pipeline_executor: Pipeline executor for LLM calls
+
+    Returns:
+        dict: Safety result with structure:
+            {
+                'safe': bool,
+                'positive_prompt': str (original code if safe),
+                'method': str,
+                'abort_reason': Optional[str],
+                'patterns_found': Optional[List[str]],
+                'execution_time': float
+            }
+    """
+    from datetime import datetime
+
+    start_time = datetime.now()
+
+    logger.info(f"[STAGE3-CODE] Safety check for code (level: {safety_level})")
+
+    # If safety is off, skip all checks
+    if safety_level == 'off':
+        logger.info(f"[STAGE3-CODE] Safety level 'off' → allowing code")
+        return {
+            'safe': True,
+            'positive_prompt': code,
+            'method': 'safety_off',
+            'execution_time': (datetime.now() - start_time).total_seconds()
+        }
+
+    # Fast filter: Check for dangerous code patterns
+    UNSAFE_CODE_PATTERNS = [
+        'eval(',
+        'Function(',
+        'document.cookie',
+        'localStorage.',
+        'sessionStorage.',
+        'fetch(',
+        'XMLHttpRequest',
+        'import(',
+        'require(',
+        '<script',
+        '</script',
+        'innerHTML',
+        'outerHTML',
+        'document.write',
+        'setTimeout(',
+        'setInterval('
+    ]
+
+    found_patterns = []
+    code_lower = code.lower()
+    for pattern in UNSAFE_CODE_PATTERNS:
+        if pattern.lower() in code_lower:
+            found_patterns.append(pattern)
+
+    if not found_patterns:
+        # FAST PATH: No unsafe patterns detected
+        logger.info(f"[STAGE3-CODE] Safety check passed (fast filter, no patterns found)")
+        return {
+            'safe': True,
+            'positive_prompt': code,
+            'method': 'fast_filter',
+            'execution_time': (datetime.now() - start_time).total_seconds()
+        }
+
+    # SLOW PATH: Unsafe patterns found → LLM context verification
+    logger.warning(f"[STAGE3-CODE] Found patterns: {found_patterns} → LLM verification")
+
+    # Create verification prompt
+    verification_prompt = f"""You are a code safety analyzer for educational creative coding environments.
+
+A student generated code that contains potentially unsafe patterns: {', '.join(found_patterns)}
+
+Analyze the code and determine:
+1. Is this code actually dangerous, or are these patterns used safely?
+2. Could this code be executed in a sandboxed iframe without risk?
+
+Code to analyze:
+```javascript
+{code}
+```
+
+Respond with JSON only:
+{{
+  "safe": true or false,
+  "reasoning": "brief explanation",
+  "abort_reason": "reason if unsafe, otherwise null"
+}}
+"""
+
+    # Call LLM for context verification
+    try:
+        llm_result = await pipeline_executor.execute_chunk_async(
+            chunk_name='manipulate',
+            inputs={'INPUT_TEXT': verification_prompt},
+            execution_mode=execution_mode
+        )
+
+        # Parse JSON response
+        import json
+        import re
+
+        # Extract JSON from response (handle markdown code blocks)
+        response_text = llm_result.get('output', '{"safe": false}')
+        json_match = re.search(r'\{[^{}]*"safe"[^{}]*\}', response_text, re.DOTALL)
+        if json_match:
+            response_data = json.loads(json_match.group())
+        else:
+            response_data = json.loads(response_text)
+
+        is_safe = response_data.get('safe', False)
+        abort_reason = response_data.get('abort_reason')
+
+        logger.info(f"[STAGE3-CODE] LLM verification result: safe={is_safe}, reason={abort_reason}")
+
+        return {
+            'safe': is_safe,
+            'positive_prompt': code if is_safe else '',
+            'abort_reason': abort_reason if not is_safe else None,
+            'method': 'llm_context_check',
+            'patterns_found': found_patterns,
+            'execution_time': (datetime.now() - start_time).total_seconds()
+        }
+
+    except Exception as e:
+        # Fail-open: Allow code if LLM check fails (sandbox provides final protection)
+        logger.error(f"[STAGE3-CODE] LLM verification failed: {e} → allowing code (fail-open)")
+        return {
+            'safe': True,
+            'positive_prompt': code,
+            'method': 'llm_failed_failopen',
+            'patterns_found': found_patterns,
+            'execution_time': (datetime.now() - start_time).total_seconds()
+        }

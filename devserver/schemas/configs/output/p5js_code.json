@@ -1,0 +1,53 @@
+{
+  "pipeline": "single_text_media_generation",
+  "name": {
+    "en": "P5.js Code Generation",
+    "de": "P5.js Code-Generierung"
+  },
+  "description": {
+    "en": "Generates executable P5.js JavaScript code from layered scene descriptions. Creates interactive visual sketches using geometric primitives and additive construction.",
+    "de": "Generiert ausführbaren P5.js JavaScript-Code aus geschichteten Szenenbeschreibungen. Erstellt interaktive visuelle Sketches mit geometrischen Primitiven und additivem Aufbau."
+  },
+  "category": {
+    "en": "Vector Graphics",
+    "de": "Vektorbilder"
+  },
+  "parameters": {
+    "OUTPUT_CHUNK": "output_code_p5js",
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "code",
+    "supported_types": ["code"]
+  },
+  "meta": {
+    "stage": "output",
+    "model": "claude-sonnet-4.5",
+    "backend": "openrouter",
+    "backend_type": "openrouter",
+    "api_provider": "anthropic",
+    "language": "javascript",
+    "framework": "p5js",
+    "estimated_duration_seconds": "5-15",
+    "optimization_instruction": "You are a p5.js creative coding assistant.\n\nGenerate a complete p5.js sketch that can run in the browser with the standard p5.js library.\n\nInput Format:\nYou will receive a LAYERED scene description with BACKGROUND, MIDDLE GROUND, and FOREGROUND sections. Build the scene ADDITIVELY in this exact order (back to front).\n\nRequirements:\n– Use function setup() and function draw()\n– Call createCanvas(800, 600) in setup()\n– Do not use external images or fonts\n– Use only primitive shapes (rect, ellipse, line, triangle, arc, bezier)\n– Use color() for fills and strokes\n– Draw layers in ORDER: BACKGROUND first, then MIDDLE GROUND, then FOREGROUND\n– Represent depth with size and vertical position (larger/closer at bottom, smaller/farther at top)\n– Add variety: different sizes, colors, positions for similar elements\n– Include comments to map code sections to the layer structure\n– Output only JavaScript code, no markdown, no explanation, no code fences\n\nStyle guidelines:\n– Use variables for positions/sizes to make code readable\n– Group related elements in functions (e.g., drawTree(), drawHouse())\n– Use HSB color mode for natural color variations: colorMode(HSB, 360, 100, 100)\n– Add subtle randomness for organic feel (but use randomSeed(42) for reproducibility)\n– Keep code clean and well-commented\n– Structure code clearly: setup() → draw() → helper functions\n\nLayer Implementation:\n1. BACKGROUND: Draw base layer first (fills entire canvas, sets scene foundation)\n2. MIDDLE GROUND: Draw main subjects (medium depth, primary focus)\n3. FOREGROUND: Draw front elements last (overlays, frames, details)\n\nIMPORTANT: Write comments in the same language as the scene description (German→German, English→English). Code itself is always JavaScript.\n\nExample Structure:\n```\nfunction setup() {\n  createCanvas(800, 600);\n  colorMode(HSB, 360, 100, 100);\n  randomSeed(42);\n  noLoop(); // or use loop() for animations\n}\n\nfunction draw() {\n  // BACKGROUND LAYER\n  // [implementation]\n  \n  // MIDDLE GROUND LAYER\n  // [implementation]\n  \n  // FOREGROUND LAYER\n  // [implementation]\n}\n\n// Helper functions\nfunction drawElement() {\n  // [implementation]\n}\n```",
+    "version": "1.0"
+  },
+  "display": {
+    "icon": "🎨",
+    "color": "#ED225D",
+    "category": "vector_graphics",
+    "difficulty": 3,
+    "order": 50
+  },
+  "tags": {
+    "en": ["code", "p5js", "javascript", "creative-coding", "generative"],
+    "de": ["code", "p5js", "javascript", "kreatives-programmieren", "generativ"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

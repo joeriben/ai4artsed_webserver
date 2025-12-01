@@ -1622,7 +1622,10 @@ def execute_pipeline():
                 # ====================================================================
                 # Extract media type from output config name BEFORE Stage 3
                 # This ensures media_type is ALWAYS defined, even when stage4_only=True
-                if 'image' in output_config_name.lower() or 'sd' in output_config_name.lower() or 'flux' in output_config_name.lower() or 'gpt' in output_config_name.lower():
+                # SESSION 84: Added 'code' media type for P5.js code generation
+                if 'code' in output_config_name.lower() or 'p5js' in output_config_name.lower():
+                    media_type = 'code'
+                elif 'image' in output_config_name.lower() or 'sd' in output_config_name.lower() or 'flux' in output_config_name.lower() or 'gpt' in output_config_name.lower():
                     media_type = 'image'
                 elif 'audio' in output_config_name.lower():
                     media_type = 'audio'
@@ -1673,15 +1676,40 @@ def execute_pipeline():
                     tracker.set_stage(3)
                     recorder.set_state(3, "pre_output_safety")
 
-                    logger.info(f"[4-STAGE] Stage 3: Pre-Output Safety for {output_config_name} (type: {media_type}, level: {safety_level})")
+                    # SESSION 84: Check if pipeline requests skip_translation
+                    pipeline_meta = pipeline_def.meta or {}
+                    skip_translation = pipeline_meta.get('skip_translation', False)
 
-                    safety_result = asyncio.run(execute_stage3_safety(
-                        result.final_output,
-                        safety_level,
-                        media_type,
-                        execution_mode,
-                        pipeline_executor
-                    ))
+                    if skip_translation:
+                        # For code generation: Skip translation, but keep safety check
+                        logger.info(f"[4-STAGE] Stage 3: Skip translation (skip_translation=true), safety only for {output_config_name}")
+
+                        # Import code safety function
+                        from devserver.schemas.engine.stage_orchestrator import execute_stage3_safety_code
+
+                        # Use Stage 2 output directly (already in target language)
+                        safety_result = asyncio.run(execute_stage3_safety_code(
+                            result.final_output,
+                            safety_level,
+                            media_type,
+                            execution_mode,
+                            pipeline_executor
+                        ))
+
+                        # Code path: no translation, use Stage 2 output directly
+                        if safety_result['safe']:
+                            safety_result['positive_prompt'] = result.final_output
+                    else:
+                        # Standard path: Translation + Safety
+                        logger.info(f"[4-STAGE] Stage 3: Translation + Safety for {output_config_name} (type: {media_type}, level: {safety_level})")
+
+                        safety_result = asyncio.run(execute_stage3_safety(
+                            result.final_output,
+                            safety_level,
+                            media_type,
+                            execution_mode,
+                            pipeline_executor
+                        ))
 
                     # Log Stage 3 safety check
                     tracker.log_stage3_safety_check(
@@ -1804,9 +1832,49 @@ def execute_pipeline():
                                 logger.info(f"[MEDIA-STORAGE-DEBUG] output_value type: {type(output_value)}, length: {len(output_value) if output_value else 0}")
                                 logger.info(f"[MEDIA-STORAGE-DEBUG] Checking routing conditions...")
 
+                                # SESSION 84: Handle code output (P5.js, SonicPi, etc.)
+                                if media_type == 'code':
+                                    logger.info(f"[STAGE4-CODE] Handling code output for {output_config_name}")
+
+                                    # Code is already in output_value (from API response)
+                                    if isinstance(output_value, str) and len(output_value) > 0:
+                                        # Save code as entity
+                                        saved_filename = recorder.save_entity(
+                                            entity_type='p5',  # Matches /api/media/p5/<run_id> route
+                                            content=output_value.encode('utf-8'),
+                                            metadata={
+                                                'config': output_config_name,
+                                                'backend': output_result.metadata.get('backend', 'openrouter'),
+                                                'model': output_result.metadata.get('model', 'unknown'),
+                                                'language': 'javascript',
+                                                'framework': 'p5js',
+                                                'seed': seed,
+                                                'format': 'js'
+                                            }
+                                        )
+                                        logger.info(f"[STAGE4-CODE] Saved code entity: {saved_filename}")
+                                        media_stored = True
+
+                                        # Create media output data for frontend
+                                        media_output_data = {
+                                            'config': output_config_name,
+                                            'status': 'success',
+                                            'media_type': 'code',
+                                            'filename': saved_filename,
+                                            'url': f'/api/media/p5/{run_id}',
+                                            'code': output_value  # Include code in response
+                                        }
+                                    else:
+                                        logger.error(f"[STAGE4-CODE] Code generation failed: empty output")
+                                        media_stored = False
+                                        media_output_data = {
+                                            'config': output_config_name,
+                                            'status': 'error',
+                                            'error': 'Code generation failed: empty output'
+                                        }
+
                                 # Detect generation backend and download appropriately
-                                logger.info(f"[MEDIA-STORAGE-DEBUG] Checking if output_value == 'swarmui_generated': {output_value == 'swarmui_generated'}")
-                                if output_value == 'swarmui_generated':
+                                elif output_value == 'swarmui_generated':
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: swarmui_generated")
                                     # SwarmUI generation - image paths returned directly
                                     logger.info(f"[RECORDER-DEBUG] output_result.metadata keys: {list(output_result.metadata.keys())}")

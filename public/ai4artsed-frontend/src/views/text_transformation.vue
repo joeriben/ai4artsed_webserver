@@ -344,6 +344,7 @@ const availableCategories: Category[] = [
   { id: 'image', label: 'Bild', emoji: '🖼️', color: '#4CAF50' },
   { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0' },
   { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800' },
+  { id: 'vector', label: 'Vektor', emoji: '💻', color: '#ED225D' },
   { id: '3d', label: '3D', emoji: '🧊', color: '#00BCD4', disabled: true }
 ]
 
@@ -361,6 +362,9 @@ const configsByCategory: Record<string, Config[]> = {
   sound: [
     { id: 'acenet_t2instrumental', label: 'ACE\nInstrumental', emoji: '🎵', color: '#FF5722', description: 'KI-Musikgenerierung für Instrumentalstücke', lightBg: false },
     { id: 'stableaudio_open', label: 'Stable\nAudio', emoji: '🔊', color: '#00BCD4', description: 'Open-Source Audio-Generierung (max 47s)', lightBg: false }
+  ],
+  vector: [
+    { id: 'p5js_code', label: 'P5.js', emoji: '💻', color: '#ED225D', description: 'Generative Vektorgrafik mit P5.js Code', lightBg: false }
   ],
   '3d': []
 }

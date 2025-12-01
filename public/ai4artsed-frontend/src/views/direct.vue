@@ -86,28 +86,33 @@
                 <p class="output-caption">{{ output.filename }}</p>
               </div>
 
-              <!-- Text Output -->
-              <div v-else-if="output.type === 'text'" class="output-text-wrapper">
-                <div class="text-header">
-                  <span class="text-icon">📄</span>
-                  <span class="text-filename">{{ output.filename }}</span>
-                </div>
-                <pre class="output-text">{{ output.content }}</pre>
+              <!-- Video Output -->
+              <div v-else-if="output.type === 'video'" class="output-video-wrapper">
+                <video
+                  :src="output.url"
+                  class="output-video"
+                  controls
+                  preload="metadata"
+                >
+                  Your browser doesn't support video playback.
+                </video>
+                <p class="output-caption">{{ output.filename }}</p>
               </div>
 
-              <!-- JSON Output -->
-              <div v-else-if="output.type === 'json'" class="output-json-wrapper">
-                <div class="json-header">
-                  <span class="json-icon">📋</span>
-                  <span class="json-filename">{{ output.filename }}</span>
+              <!-- Audio Output -->
+              <div v-else-if="output.type === 'audio'" class="output-audio-wrapper">
+                <div class="audio-header">
+                  <span class="audio-icon">🔊</span>
+                  <span class="audio-filename">{{ output.filename }}</span>
                 </div>
-                <pre class="output-json">{{ output.content ? formatJSON(output.content) : '' }}</pre>
-              </div>
-
-              <!-- Unknown Output Type -->
-              <div v-else class="output-unknown-wrapper">
-                <p class="unknown-type">Unbekannter Output-Typ: {{ output.type }}</p>
-                <p class="unknown-filename">{{ output.filename }}</p>
+                <audio
+                  :src="output.url"
+                  class="output-audio"
+                  controls
+                  preload="metadata"
+                >
+                  Your browser doesn't support audio playback.
+                </audio>
               </div>
             </div>
           </div>
@@ -141,10 +146,9 @@ interface OutputConfig {
 }
 
 interface WorkflowOutput {
-  type: 'image' | 'text' | 'json' | 'unknown'
+  type: 'image' | 'video' | 'audio'
   filename: string
-  url?: string
-  content?: string
+  url: string
 }
 
 // ============================================================================
@@ -259,7 +263,7 @@ async function processEntity(runId: string, entity: any): Promise<WorkflowOutput
 
     const contentType = response.headers['content-type']
 
-    // Determine output type from content-type
+    // Determine output type from content-type - only show media outputs
     if (contentType.startsWith('image/')) {
       // Image output
       const url = URL.createObjectURL(response.data)
@@ -268,41 +272,29 @@ async function processEntity(runId: string, entity: any): Promise<WorkflowOutput
         filename,
         url
       }
-    } else if (contentType.includes('application/json')) {
-      // JSON output
-      const text = await response.data.text()
+    } else if (contentType.startsWith('video/')) {
+      // Video output
+      const url = URL.createObjectURL(response.data)
       return {
-        type: 'json',
+        type: 'video',
         filename,
-        content: text
+        url
       }
-    } else if (contentType.includes('text/')) {
-      // Text output
-      const text = await response.data.text()
+    } else if (contentType.startsWith('audio/')) {
+      // Audio output
+      const url = URL.createObjectURL(response.data)
       return {
-        type: 'text',
+        type: 'audio',
         filename,
-        content: text
+        url
       }
     } else {
-      // Unknown type
-      return {
-        type: 'unknown',
-        filename
-      }
+      // Skip all other types (JSON, text, etc.)
+      return null
     }
   } catch (error: any) {
     console.error(`[Direct] Error processing entity:`, error)
     return null
-  }
-}
-
-function formatJSON(jsonString: string): string {
-  try {
-    const obj = JSON.parse(jsonString)
-    return JSON.stringify(obj, null, 2)
-  } catch {
-    return jsonString
   }
 }
 
@@ -560,61 +552,42 @@ function showFullscreen(url: string) {
   font-size: 0.9rem;
 }
 
-/* Text Output */
-.output-text-wrapper,
-.output-json-wrapper {
+/* Video Output */
+.output-video-wrapper {
+  text-align: center;
+}
+
+.output-video {
+  max-width: 100%;
+  border-radius: 8px;
+  background: black;
+}
+
+/* Audio Output */
+.output-audio-wrapper {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.text-header,
-.json-header {
+.audio-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: rgba(255, 255, 255, 0.9);
 }
 
-.text-icon,
-.json-icon {
+.audio-icon {
   font-size: 1.2rem;
 }
 
-.text-filename,
-.json-filename {
+.audio-filename {
   font-weight: 600;
 }
 
-.output-text,
-.output-json {
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 1rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-/* Unknown Output */
-.output-unknown-wrapper {
-  text-align: center;
-  padding: 1rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.unknown-type {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.unknown-filename {
-  font-size: 0.9rem;
+.output-audio {
+  width: 100%;
+  border-radius: 8px;
 }
 
 /* ============================================================================

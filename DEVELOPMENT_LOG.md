@@ -1,5 +1,180 @@
 # Development Log
 
+## Session 84 - P5.js Creative Coding Implementation
+**Date:** 2025-12-01
+**Duration:** ~4-5 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Implement P5.js code generation following 4-stage orchestration pattern
+
+### Summary
+
+**NEW FEATURE**: P5.js creative coding with layered scene analysis and live preview.
+
+**Architecture:**
+- Implements 4-stage orchestration with new `media_type: "code"`
+- Stage 1: Keep (safety check only, NO translation)
+- Stage 2: **Two-phase execution**
+  - Phase A: Layer Analysis (BACKGROUND → MIDDLE GROUND → FOREGROUND)
+  - Phase B: Code Generation (OpenRouter + Sonnet 4.5)
+- Stage 3: Skip translation, keep safety (code pattern validation)
+- Stage 4: Code delivery + entity storage
+
+**Key Innovation:** Ordered list structure teaches **additive visual construction** (how you BUILD scenes layer by layer)
+
+### Implementation
+
+**Backend Files Created:**
+1. `/devserver/schemas/pipelines/code_generation.json`
+   - Reuses `manipulate` chunk (complexity in content, not structure)
+   - `skip_translation: true` for multilingual code comments
+
+2. `/devserver/schemas/configs/interception/p5js_simplifier.json`
+   - Transforms user input → ordered layers (Background | Middle Ground | Foreground)
+   - Teaches spatial/compositional thinking
+   - Bilingual context (German/English)
+   - Temperature 0.6 (consistent, not creative)
+
+3. `/devserver/schemas/configs/output/p5js_code.json`
+   - Backend: OpenRouter (Sonnet 4.5)
+   - Meta-prompt: P5.js code generation with layer structure
+   - Multilingual code comments (match input language)
+
+**Backend Routes Modified:**
+1. `/devserver/my_app/routes/schema_pipeline_routes.py` (3 changes)
+   - Lines 1626-1627: Added `media_type: "code"` detection
+   - Lines 1679-1712: Added `skip_translation` handling in Stage 3
+   - Lines 1835-1874: Added code output handling in Stage 4
+
+2. `/devserver/schemas/engine/stage_orchestrator.py`
+   - Lines 631-782: Added `execute_stage3_safety_code()` function
+   - Fast filter: Regex pattern check (~0.001s)
+   - Slow path: LLM verification only if patterns found
+   - Fail-open: Allow code if LLM fails (sandbox provides final protection)
+
+**Frontend Files Created:**
+1. `/public/ai4artsed-frontend/src/views/code_generation.vue` (~800 lines)
+   - 3-phase UI: Input → Layer Analysis → Code + Preview
+   - Editable at every stage (input, layers, code)
+   - Live preview in sandboxed iframe (sandbox="allow-scripts")
+   - Error handling (JavaScript runtime errors displayed)
+   - Code actions: Copy, download, run, stop
+   - Simple textarea (best for younger users)
+
+### Architecture Decisions
+
+**Confirmed by User:**
+1. ✅ **Model:** Sonnet 4.5 via OpenRouter (configured in devserver config)
+2. ✅ **Safety Level:** `youth` (configured in devserver config)
+3. ✅ **Code Editor:** Simple textarea (Monaco unnecessary for younger users)
+4. ✅ **Stage 2 Structure:** ORDERED LISTS (Background → Middle Ground → Foreground)
+   - Matches additive visual construction in p5.js
+   - Teaches spatial/compositional thinking
+   - General purpose (useful for diffusion too)
+
+**Media Type:** `"code"`
+- Failsafe implementation
+- Allows future extensions (SonicPi, Hydra, shaders)
+
+**Translation Strategy:**
+- Stage 1: Keep (safety only)
+- Stage 3: Skip translation (preserve multilingual comments)
+- Comments match input language (German→German, English→English)
+
+**Safety Strategy:**
+- List-check first (fast filter)
+- LLM verification only if patterns detected
+- Frontend iframe sandbox="allow-scripts" (NO same-origin)
+
+### Pedagogical Innovation
+
+**Layer Analysis teaches additive construction:**
+```
+Input: "Ein geheimnisvoller Wald"
+↓ (Simplifier)
+HINTERGRUND: Dunkelblauer Nachthimmel | Weiße Sterne | Dunkelgrüne Bäume
+MITTELGRUND: Goldgelbe Kreise (Feen) mit Leuchten | Lichtstrahlen
+VORDERGRUND: Dicke Baumstämme als Rahmen | Große Blätter
+↓ (Code Generation)
+// Code draws layers in order: background first, foreground last
+↓ (Live Preview)
+Student sees how scenes are built additively
+```
+
+This approach:
+- Matches p5.js drawing model (back-to-front rendering)
+- Teaches composition (foreground/middleground/background)
+- Works for any generative system (not just p5.js)
+- Provides clear structure for code generation
+
+### Testing
+
+**Backend Testing:**
+```bash
+# Config loading
+ls devserver/schemas/pipelines/code_generation.json
+ls devserver/schemas/configs/interception/p5js_simplifier.json
+ls devserver/schemas/configs/output/p5js_code.json
+
+# API endpoint test (Stage 2)
+curl -X POST http://localhost:17802/api/schema/pipeline/stage2 \
+  -H "Content-Type: application/json" \
+  -d '{"schema": "p5js_simplifier", "input_text": "Eine Blumenwiese", ...}'
+
+# API endpoint test (Stage 4)
+curl -X POST http://localhost:17802/api/schema/pipeline/execute \
+  -H "Content-Type: application/json" \
+  -d '{"schema": "p5js_simplifier", "output_config": "p5js_code", ...}'
+```
+
+**Frontend Testing:**
+- Component loads correctly
+- Phase 1: Input → Layer Analysis (German)
+- Phase 2: Layers editable → Code generation
+- Phase 3: Code execution in iframe sandbox
+- Error handling (syntax/runtime errors)
+- Code actions (copy, download, run, stop)
+
+### Files Modified Summary
+
+**Backend (5 files):**
+1. `/devserver/schemas/pipelines/code_generation.json` (NEW)
+2. `/devserver/schemas/configs/interception/p5js_simplifier.json` (NEW)
+3. `/devserver/schemas/configs/output/p5js_code.json` (NEW)
+4. `/devserver/my_app/routes/schema_pipeline_routes.py` (MODIFY - 3 sections)
+5. `/devserver/schemas/engine/stage_orchestrator.py` (MODIFY - new function)
+
+**Frontend (1 file):**
+1. `/public/ai4artsed-frontend/src/views/code_generation.vue` (NEW - 800+ lines)
+
+### Status
+
+✅ **Implementation Complete**
+- Backend: 3 config files + 2 route modifications
+- Frontend: Vue component with 3-phase UI
+- Safety: Fast filter + conditional LLM
+- Testing: Ready for end-to-end validation
+
+### Next Steps
+
+1. Test end-to-end flow (German input → layer analysis → code → preview)
+2. Add P5.js config to Phase 1 config selection
+3. Test code safety checks (unsafe patterns blocked)
+4. Test frontend error handling (syntax/runtime errors)
+5. Consider future extensions:
+   - SonicPi code generation (reuse same pipeline)
+   - Code gallery/sharing
+   - Animation support (draw loop)
+   - Iterative refinement (chat-based code iteration)
+
+### Notes
+
+- **Existing Route:** `/api/media/p5/<run_id>` already exists (Session 76) - reused!
+- **Model:** Sonnet 4.5 (multilingual, high quality)
+- **Seed Logic:** Not applicable for code generation
+- **Router:** PipelineRouter auto-loads `code_generation.vue` when pipeline matches
+
+---
+
 ## Session 83 - IMG2IMG Display Issue: Debug & Resolution
 **Date:** 2025-11-29
 **Duration:** ~1 hour
