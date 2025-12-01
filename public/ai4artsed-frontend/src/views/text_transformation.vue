@@ -222,7 +222,7 @@
               />
 
               <!-- Code Output (p5.js) -->
-              <div v-else-if="outputMediaType === 'code'" class="code-output-container">
+              <div v-else-if="outputMediaType === 'code' && outputCode" class="code-output-container">
                 <div class="code-display">
                   <h3>Generated Code</h3>
                   <textarea
@@ -235,7 +235,7 @@
                 <div class="code-preview">
                   <h3>Live Preview</h3>
                   <iframe
-                    ref="p5jsIframe"
+                    :srcdoc="getP5jsIframeContent()"
                     class="p5js-iframe"
                     sandbox="allow-scripts"
                   ></iframe>
@@ -346,7 +346,6 @@ const isPipelineExecuting = ref(false)
 const outputImage = ref<string | null>(null)
 const outputMediaType = ref<string>('image') // Media type: image, video, audio, music, 3d, code
 const outputCode = ref<string | null>(null) // For code output (p5.js, etc.)
-const p5jsIframe = ref<HTMLIFrameElement | null>(null)
 const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
@@ -727,54 +726,15 @@ async function executePipeline() {
         outputImage.value = `/api/media/${mediaType}/${runId}`
         executionPhase.value = 'generation_done'
 
-        // Handle code output (p5.js)
-        if (mediaType === 'code') {
-          try {
-            // HARDCODED TEST: Fetch specific file directly
-            const testFilePath = '/exports/json/4a4b2678-8967-4e05-b9c2-345384dfac7d/06_interception.txt'
-            const codeResponse = await axios.get(testFilePath)
-            outputCode.value = codeResponse.data
-
-            /* Original logic (commented for test):
-            const codeContent = response.data.media_output?.content || response.data.final_output
-            if (codeContent) {
-              outputCode.value = codeContent
-            } else {
-              const codeResponse = await axios.get(`/api/media/code/${runId}`)
-              outputCode.value = codeResponse.data
-            }
-            */
-
-            // Render code in iframe with p5.js
-            await nextTick()
-            if (p5jsIframe.value && outputCode.value) {
-              const iframeDoc = p5jsIframe.value.contentDocument
-              if (iframeDoc) {
-                const htmlContent = [
-                  '<!DOCTYPE html>',
-                  '<html>',
-                  '<head>',
-                  '<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"><\/script>',
-                  '<style>',
-                  'body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; }',
-                  'canvas { display: block; }',
-                  '<\/style>',
-                  '<\/head>',
-                  '<body>',
-                  '<script>',
-                  outputCode.value,
-                  '<\/script>',
-                  '<\/body>',
-                  '<\/html>'
-                ].join('\n')
-                iframeDoc.open()
-                iframeDoc.write(htmlContent)
-                iframeDoc.close()
-              }
-            }
-          } catch (error) {
-            console.error('Error loading code:', error)
-          }
+        // Handle code output (p5.js, etc.)
+        if (mediaType === 'code' && response.data.media_output?.code) {
+          // Code is in the response - clean markdown wrappers
+          let code = response.data.media_output.code
+          code = code.replace(/```javascript\n?/g, '')
+                     .replace(/```js\n?/g, '')
+                     .replace(/```\n?/g, '')
+                     .trim()
+          outputCode.value = code
         }
 
         // Session 82: Register session for chat overlay context
@@ -815,6 +775,41 @@ async function executePipeline() {
   } finally {
     isPipelineExecuting.value = false
   }
+}
+
+// Generate iframe content for p5.js code display
+function getP5jsIframeContent(): string {
+  if (!outputCode.value) return ''
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"><\/script>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f7fafc;
+        }
+        canvas {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <script>
+        try {
+            ${outputCode.value}
+        } catch (error) {
+            document.body.innerHTML = '<div style="color: red; padding: 20px; font-family: monospace;">Error: ' + error.message + '<\/div>';
+            console.error('p5.js error:', error);
+        }
+    <\/script>
+</body>
+</html>`
 }
 
 function showImageFullscreen(imageUrl: string) {

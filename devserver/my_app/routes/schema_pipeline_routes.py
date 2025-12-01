@@ -2121,16 +2121,25 @@ def execute_pipeline():
                                 execution_time=output_result.execution_time
                             )
 
-                            media_outputs.append({
-                                'config': output_config_name,
-                                'status': 'success',
-                                'run_id': run_id,  # NEW: Unified identifier for media
-                                'output': run_id if media_stored else output_result.final_output,  # Use run_id if stored, fallback to raw output
-                                'media_type': media_type,
-                                'media_stored': media_stored,  # Indicates if media was successfully stored
-                                'execution_time': output_result.execution_time,
-                                'metadata': output_result.metadata
-                            })
+                            # Use media_output_data if it was created (for code, etc.), otherwise create generic object
+                            if media_output_data is not None:
+                                # Add run_id to existing media_output_data
+                                media_output_data['run_id'] = run_id
+                                media_output_data['execution_time'] = output_result.execution_time
+                                media_output_data['metadata'] = output_result.metadata
+                                media_outputs.append(media_output_data)
+                            else:
+                                # Generic object for image/video/audio
+                                media_outputs.append({
+                                    'config': output_config_name,
+                                    'status': 'success',
+                                    'run_id': run_id,  # NEW: Unified identifier for media
+                                    'output': run_id if media_stored else output_result.final_output,  # Use run_id if stored, fallback to raw output
+                                    'media_type': media_type,
+                                    'media_stored': media_stored,  # Indicates if media was successfully stored
+                                    'execution_time': output_result.execution_time,
+                                    'metadata': output_result.metadata
+                                })
                             logger.info(f"[4-STAGE] Stage 4 successful for {output_config_name}: run_id={run_id}, media_stored={media_stored}")
                         else:
                             # Media generation failed
