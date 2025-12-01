@@ -4,6 +4,7 @@
   "backend_type": "vue_p5js",
   "media_type": "code",
   "description": "P5.js Code Output - Passthrough to Vue frontend for display",
+  "template": "{{PREVIOUS_OUTPUT}}",
 
   "meta": {
     "estimated_duration_seconds": "0",

@@ -712,6 +712,10 @@ async function executePipeline() {
 
     clearInterval(progressInterval)
 
+    console.log('[CODE-DEBUG] Full response:', response.data)
+    console.log('[CODE-DEBUG] response.data.status:', response.data.status)
+    console.log('[CODE-DEBUG] response.data.media_output:', response.data.media_output)
+
     if (response.data.status === 'success') {
       // Complete progress
       generationProgress.value = 100
@@ -719,6 +723,10 @@ async function executePipeline() {
       // Get run_id and media_type from response
       const runId = response.data.media_output?.run_id || response.data.run_id
       const mediaType = response.data.media_output?.media_type || 'image'
+
+      console.log('[CODE-DEBUG] runId:', runId)
+      console.log('[CODE-DEBUG] mediaType:', mediaType)
+      console.log('[CODE-DEBUG] Has code?:', !!response.data.media_output?.code)
 
       if (runId) {
         // Dynamic URL based on media type: /api/media/{type}/{run_id}

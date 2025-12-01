@@ -8,12 +8,10 @@
         <div class="header-center">
           <div class="mode-selector">
             <router-link to="/text-transformation" class="mode-button" active-class="active">
-              <span class="mode-icon">⌨️</span>
-              <span class="mode-label">Text→Bild</span>
+              <span class="mode-icon">📝</span>
             </router-link>
             <router-link to="/image-transformation" class="mode-button" active-class="active">
               <span class="mode-icon">🖼️</span>
-              <span class="mode-label">Bild→Bild</span>
             </router-link>
           </div>
         </div>
@@ -79,7 +77,7 @@ html, body {
   background: rgba(10, 10, 10, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1rem 2rem;
-  z-index: 100;
+  z-index: 50;
   flex-shrink: 0;
 }
 
@@ -110,10 +108,9 @@ html, body {
 
 .mode-button {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.75rem 1.5rem;
+  justify-content: center;
+  padding: 1rem 1.5rem;
   background: transparent;
   border: 2px solid transparent;
   border-radius: 8px;
@@ -121,7 +118,7 @@ html, body {
   text-decoration: none;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 100px;
+  min-width: 80px;
 }
 
 .mode-button:hover {
@@ -136,13 +133,7 @@ html, body {
 }
 
 .mode-icon {
-  font-size: 1.5rem;
-}
-
-.mode-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  white-space: nowrap;
+  font-size: 2.5rem;
 }
 
 .header-right {
@@ -184,16 +175,12 @@ html, body {
   }
 
   .mode-button {
-    padding: 0.5rem 1rem;
-    min-width: 80px;
+    padding: 0.75rem 1.25rem;
+    min-width: 70px;
   }
 
   .mode-icon {
-    font-size: 1.25rem;
-  }
-
-  .mode-label {
-    font-size: 0.75rem;
+    font-size: 2rem;
   }
 }
 </style>
