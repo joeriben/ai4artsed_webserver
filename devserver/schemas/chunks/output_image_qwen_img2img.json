@@ -2,6 +2,7 @@
   "name": "output_image_qwen_img2img",
   "type": "output_chunk",
   "backend_type": "comfyui",
+  "execution_mode": "legacy_workflow",
   "media_type": "image",
   "description": "QWEN Image Edit - Fast 4-step image transformation with text-guided editing",
 

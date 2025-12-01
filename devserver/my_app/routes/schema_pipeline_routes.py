@@ -21,6 +21,7 @@ from schemas.engine.stage_orchestrator import (
     execute_stage1_safety,
     execute_stage1_gpt_oss_unified,
     execute_stage3_safety,
+    execute_stage3_safety_code,
     build_safety_message
 )
 
@@ -1212,6 +1213,7 @@ def execute_pipeline():
 
         # Stage 2 result support: use frontend-provided interception result
         interception_result = data.get('interception_result')  # Optional: frontend-provided Stage 2 output (if already executed)
+        optimization_result = data.get('optimization_result')  # Optional: frontend-provided optimization output (code from Stage 2 optimization)
 
         # Fast regeneration support: skip Stage 1-3 with stage4_only flag
         stage4_only = data.get('stage4_only', False)  # Boolean: skip to Stage 4 (media generation) only
@@ -1432,8 +1434,11 @@ def execute_pipeline():
             recorder.set_state(2, "interception")
 
             # Check if frontend already executed Stage 2 and provides result
-            if interception_result:
-                logger.info(f"[4-STAGE] Stage 2: Using frontend-provided interception_result (already executed)")
+            if interception_result or optimization_result:
+                # For code output: use optimization_result (the code), not interception_result (scene description)
+                # For image/audio: use interception_result (the prompt)
+                stage2_output = optimization_result if optimization_result else interception_result
+                logger.info(f"[4-STAGE] Stage 2: Using frontend-provided {'optimization_result (code)' if optimization_result else 'interception_result'} (already executed)")
 
                 # Create mock result object to maintain interface compatibility
                 class MockResult:
@@ -1442,10 +1447,10 @@ def execute_pipeline():
                         self.final_output = output
                         self.error = None
                         self.steps = []
-                        self.metadata = {'frontend_provided': True}
+                        self.metadata = {'frontend_provided': True, 'has_optimization': bool(optimization_result)}
                         self.execution_time = 0
 
-                result = MockResult(interception_result)
+                result = MockResult(stage2_output)
             else:
                 # Check if pipeline has skip_stage2 flag (graceful check)
                 pipeline_def = pipeline_executor.config_loader.get_pipeline(config.pipeline_name)
@@ -1676,16 +1681,13 @@ def execute_pipeline():
                     tracker.set_stage(3)
                     recorder.set_state(3, "pre_output_safety")
 
-                    # SESSION 84: Check if pipeline requests skip_translation
-                    pipeline_meta = pipeline_def.meta or {}
-                    skip_translation = pipeline_meta.get('skip_translation', False)
+                    # SESSION 84: Skip translation for code output (code is already in target format)
+                    # Code output doesn't need translation - it's JavaScript, not natural language
+                    skip_translation = (media_type == 'code')
 
                     if skip_translation:
                         # For code generation: Skip translation, but keep safety check
                         logger.info(f"[4-STAGE] Stage 3: Skip translation (skip_translation=true), safety only for {output_config_name}")
-
-                        # Import code safety function
-                        from devserver.schemas.engine.stage_orchestrator import execute_stage3_safety_code
 
                         # Use Stage 2 output directly (already in target language)
                         safety_result = asyncio.run(execute_stage3_safety_code(

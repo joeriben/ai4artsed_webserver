@@ -1,21 +1,23 @@
 {
   "name": "qwen_img2img",
+  "pipeline": "single_text_media_generation",
   "display_name": "QWEN Image Edit (4-step Lightning)",
   "description": "Ultra-fast image transformation with QWEN Image Edit Lightning (4 steps)",
   "category": "image",
   "media_type": "image",
 
-  "backend": "comfyui",
-  "chunk_name": "output_image_qwen_img2img",
-
-  "default_parameters": {
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_qwen_img2img",
     "steps": 4,
     "cfg": 1,
     "sampler_name": "euler",
     "scheduler": "simple",
     "denoise": 1.0,
     "megapixels": 1,
-    "seed": null
+    "seed": null,
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 512
   },
 
   "parameter_ranges": {
@@ -73,6 +75,7 @@
   },
 
   "meta": {
+    "stage": "output",
     "version": "1.0",
     "created": "2025-11-30",
     "last_updated": "2025-11-30",

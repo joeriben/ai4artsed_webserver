@@ -214,14 +214,14 @@ class PipelineExecutor:
     def _plan_pipeline_steps(self, resolved_config: ResolvedConfig) -> List[PipelineStep]:
         """Plan pipeline steps from resolved config"""
         steps = []
-        
+
         for i, chunk_name in enumerate(resolved_config.chunks):
             step = PipelineStep(
                 step_id=f"step_{i+1}_{chunk_name}",
                 chunk_name=chunk_name
             )
             steps.append(step)
-        
+
         logger.debug(f"Pipeline planned: {len(steps)} steps for config '{resolved_config.name}' (Pipeline: {resolved_config.pipeline_name})")
         return steps
     

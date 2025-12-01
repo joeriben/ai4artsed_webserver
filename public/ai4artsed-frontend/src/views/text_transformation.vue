@@ -221,6 +221,27 @@
                 class="output-audio"
               />
 
+              <!-- Code Output (p5.js) -->
+              <div v-else-if="outputMediaType === 'code'" class="code-output-container">
+                <div class="code-display">
+                  <h3>Generated Code</h3>
+                  <textarea
+                    :value="outputCode"
+                    readonly
+                    class="code-textarea"
+                    rows="15"
+                  ></textarea>
+                </div>
+                <div class="code-preview">
+                  <h3>Live Preview</h3>
+                  <iframe
+                    ref="p5jsIframe"
+                    class="p5js-iframe"
+                    sandbox="allow-scripts"
+                  ></iframe>
+                </div>
+              </div>
+
               <!-- 3D Model -->
               <div v-else-if="outputMediaType === '3d'" class="model-container">
                 <div class="model-icon">🎨</div>
@@ -323,7 +344,9 @@ const executionPhase = ref<'initial' | 'interception_done' | 'optimization_done'
 // Pipeline execution state
 const isPipelineExecuting = ref(false)
 const outputImage = ref<string | null>(null)
-const outputMediaType = ref<string>('image') // Media type: image, video, audio, music, 3d
+const outputMediaType = ref<string>('image') // Media type: image, video, audio, music, 3d, code
+const outputCode = ref<string | null>(null) // For code output (p5.js, etc.)
+const p5jsIframe = ref<HTMLIFrameElement | null>(null)
 const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
@@ -635,6 +658,7 @@ async function startGeneration() {
 async function executePipeline() {
   // Reset UI state for fresh generation
   outputImage.value = ''  // Clear previous image
+  outputCode.value = null  // Clear previous code
   showSafetyApprovedStamp.value = false  // Reset safety stamp
   generationProgress.value = 0  // Reset progress
 
@@ -677,7 +701,8 @@ async function executePipeline() {
     const response = await axios.post('/api/schema/pipeline/execute', {
       schema: pipelineStore.selectedConfig?.id || 'overdrive',
       input_text: currentPromptToUse,
-      interception_result: optimizedPrompt.value,  // Use optimized prompt (not raw interception)
+      interception_result: interceptionResult.value,  // Raw interception result (scene description)
+      optimization_result: optimizedPrompt.value,     // Optimized result (code or model-specific prompt)
       context_prompt: contextPrompt.value || undefined,
       user_language: 'de',
       safety_level: 'youth',
@@ -701,6 +726,56 @@ async function executePipeline() {
         outputMediaType.value = mediaType
         outputImage.value = `/api/media/${mediaType}/${runId}`
         executionPhase.value = 'generation_done'
+
+        // Handle code output (p5.js)
+        if (mediaType === 'code') {
+          try {
+            // HARDCODED TEST: Fetch specific file directly
+            const testFilePath = '/exports/json/4a4b2678-8967-4e05-b9c2-345384dfac7d/06_interception.txt'
+            const codeResponse = await axios.get(testFilePath)
+            outputCode.value = codeResponse.data
+
+            /* Original logic (commented for test):
+            const codeContent = response.data.media_output?.content || response.data.final_output
+            if (codeContent) {
+              outputCode.value = codeContent
+            } else {
+              const codeResponse = await axios.get(`/api/media/code/${runId}`)
+              outputCode.value = codeResponse.data
+            }
+            */
+
+            // Render code in iframe with p5.js
+            await nextTick()
+            if (p5jsIframe.value && outputCode.value) {
+              const iframeDoc = p5jsIframe.value.contentDocument
+              if (iframeDoc) {
+                const htmlContent = [
+                  '<!DOCTYPE html>',
+                  '<html>',
+                  '<head>',
+                  '<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"><\/script>',
+                  '<style>',
+                  'body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; }',
+                  'canvas { display: block; }',
+                  '<\/style>',
+                  '<\/head>',
+                  '<body>',
+                  '<script>',
+                  outputCode.value,
+                  '<\/script>',
+                  '<\/body>',
+                  '<\/html>'
+                ].join('\n')
+                iframeDoc.open()
+                iframeDoc.write(htmlContent)
+                iframeDoc.close()
+              }
+            }
+          } catch (error) {
+            console.error('Error loading code:', error)
+          }
+        }
 
         // Session 82: Register session for chat overlay context
         updateSession(runId, {
@@ -730,8 +805,13 @@ async function executePipeline() {
     clearInterval(progressInterval)
     console.error('Pipeline error:', error)
     const errorMessage = error.response?.data?.error || error.message
-    alert(`Fehler: ${errorMessage}`)
+    alert(`Pipeline failed: ${errorMessage}`)
+
+    // Reset UI completely
     generationProgress.value = 0
+    isPipelineExecuting.value = false
+    outputImage.value = null
+    outputCode.value = null
   } finally {
     isPipelineExecuting.value = false
   }
@@ -1769,6 +1849,51 @@ watch(optimizedPrompt, async () => {
   max-height: 500px;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Code Output (p5.js) */
+.code-output-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+  padding: 1rem;
+}
+
+.code-display,
+.code-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.code-display h3,
+.code-preview h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.code-textarea {
+  width: 100%;
+  min-height: 400px;
+  padding: 1rem;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border: 1px solid #3e3e3e;
+  border-radius: 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.p5js-iframe {
+  width: 100%;
+  height: 600px;
+  border: 1px solid #3e3e3e;
+  border-radius: 8px;
+  background: white;
 }
 
 /* 3D Model Output */
