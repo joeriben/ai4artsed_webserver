@@ -278,7 +278,21 @@ class BackendRouter:
                     )
 
                 # Route based on chunk type
-                if chunk.get('type') == 'api_output_chunk':
+                if chunk.get('type') == 'text_passthrough':
+                    # Text passthrough: return input unchanged (code output, frontend handles display)
+                    logger.info(f"[TEXT-PASSTHROUGH] Chunk {output_chunk_name}: returning input as-is for frontend processing")
+                    return BackendResponse(
+                        success=True,
+                        content=schema_output,
+                        metadata={
+                            'chunk_name': output_chunk_name,
+                            'media_type': chunk.get('media_type', 'code'),
+                            'backend_type': chunk.get('backend_type'),
+                            'frontend_processor': chunk.get('meta', {}).get('frontend_processor'),
+                            'passthrough': True
+                        }
+                    )
+                elif chunk.get('type') == 'api_output_chunk':
                     # API-based generation (OpenRouter, Replicate, etc.)
                     return await self._process_api_output_chunk(output_chunk_name, schema_output, request.parameters, chunk)
                 else:
@@ -1182,9 +1196,9 @@ class BackendRouter:
             with open(chunk_path, 'r', encoding='utf-8') as f:
                 chunk = json.load(f)
 
-            # Validate it's an Output-Chunk (either 'output_chunk' or 'api_output_chunk')
+            # Validate it's an Output-Chunk (output_chunk, api_output_chunk, or text_passthrough)
             chunk_type = chunk.get('type')
-            if chunk_type not in ['output_chunk', 'api_output_chunk']:
+            if chunk_type not in ['output_chunk', 'api_output_chunk', 'text_passthrough']:
                 logger.error(f"Chunk '{chunk_name}' is not an Output-Chunk (type: {chunk_type})")
                 return None
 
@@ -1201,6 +1215,10 @@ class BackendRouter:
                     required_fields = ['workflow', 'input_mappings', 'output_mapping', 'backend_type']
             elif chunk_type == 'api_output_chunk':
                 required_fields = ['api_config', 'input_mappings', 'output_mapping', 'backend_type']
+            elif chunk_type == 'text_passthrough':
+                # Text passthrough: no backend execution, returns input unchanged
+                # Used for code output where generation happens in Stage 2 optimization
+                required_fields = ['backend_type', 'media_type']
 
             missing = [f for f in required_fields if f not in chunk]
             if missing:

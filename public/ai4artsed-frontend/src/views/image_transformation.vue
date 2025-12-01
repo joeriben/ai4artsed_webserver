@@ -222,8 +222,8 @@ const availableCategories: Category[] = [
 const configsByCategory: Record<string, Config[]> = {
   image: [
     // Local ComfyUI models only (DSGVO-compliant)
-    { id: 'sd35_large_img2img', label: 'SD3.5\nIMG2IMG', emoji: '🎨', color: '#2196F3', lightBg: false, disabled: false },
-    { id: 'qwen_img2img', label: 'Qwen\nIMG2IMG', emoji: '🌟', color: '#FFC107', lightBg: true, disabled: true }
+    { id: 'sd35_large_img2img', label: 'SD3.5\nIMG2IMG', emoji: '🎨', color: '#2196F3', lightBg: false, disabled: true },
+    { id: 'qwen_img2img', label: 'Qwen\nIMG2IMG', emoji: '🌟', color: '#FFC107', lightBg: true, disabled: false }
   ],
   video: [
     // img2video via ComfyUI (local) - disabled for Phase 2

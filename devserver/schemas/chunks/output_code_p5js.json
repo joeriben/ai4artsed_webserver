@@ -1,94 +1,23 @@
 {
   "name": "output_code_p5js",
-  "type": "api_output_chunk",
-  "backend_type": "openrouter",
+  "type": "text_passthrough",
+  "backend_type": "vue_p5js",
   "media_type": "code",
-  "description": "P5.js Code Generation via OpenRouter (Claude Sonnet 4.5)",
-
-  "api_config": {
-    "provider": "openrouter",
-    "model": "anthropic/claude-sonnet-4.5",
-    "endpoint": "https://openrouter.ai/api/v1/chat/completions",
-    "method": "POST",
-    "headers": {
-      "Authorization": "Bearer {{OPENROUTER_API_KEY}}",
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://ai4artsed.de",
-      "X-Title": "AI4ArtsEd DevServer"
-    },
-    "request_body": {
-      "model": "anthropic/claude-sonnet-4.5",
-      "messages": [
-        {
-          "role": "system",
-          "content": "{{SYSTEM_PROMPT}}"
-        },
-        {
-          "role": "user",
-          "content": "{{PROMPT}}"
-        }
-      ],
-      "temperature": 0.7,
-      "top_p": 0.9,
-      "max_tokens": 2048
-    }
-  },
-
-  "input_mappings": {
-    "prompt": {
-      "field": "request_body.messages[1].content",
-      "source": "{{PREVIOUS_OUTPUT}}",
-      "description": "Layered scene description for code generation"
-    },
-    "system_prompt": {
-      "field": "request_body.messages[0].content",
-      "source": "{{OPTIMIZATION_INSTRUCTION}}",
-      "description": "P5.js code generation meta-prompt from config"
-    },
-    "model": {
-      "field": "request_body.model",
-      "default": "anthropic/claude-sonnet-4.5",
-      "description": "Model to use (sonnet, opus, haiku)"
-    },
-    "temperature": {
-      "field": "request_body.temperature",
-      "default": 0.7,
-      "description": "Sampling temperature"
-    },
-    "top_p": {
-      "field": "request_body.top_p",
-      "default": 0.9,
-      "description": "Nucleus sampling parameter"
-    },
-    "max_tokens": {
-      "field": "request_body.max_tokens",
-      "default": 2048,
-      "description": "Maximum tokens in response"
-    }
-  },
-
-  "output_mapping": {
-    "type": "chat_completion_text",
-    "format": "text",
-    "extract_path": "choices[0].message.content",
-    "description": "Extract JavaScript code from OpenRouter chat completion response"
-  },
+  "description": "P5.js Code Output - Passthrough to Vue frontend for display",
 
   "meta": {
-    "estimated_duration_seconds": "5-15",
+    "estimated_duration_seconds": "0",
     "requires_gpu": false,
-    "api_provider": "openrouter",
-    "model_id": "anthropic/claude-sonnet-4.5",
     "language": "javascript",
     "framework": "p5js",
-    "cost_per_request": "~$0.003 per 1K tokens (Sonnet 4.5)",
+    "frontend_processor": "vue_p5js",
     "features": [
       "Multilingual code generation",
       "Layer-aware code structure",
       "Clean, well-commented code",
       "Geometric primitive focus"
     ],
-    "notes": "Generates P5.js code from layered scene descriptions. Requires OPENROUTER_API_KEY environment variable. Code is stored as text entity.",
+    "notes": "Code generation happens in Stage 2 optimization. Stage 4 passes code through to Vue frontend p5.js media player.",
     "optimization_instruction": "You are a p5.js creative coding assistant. Generate a complete p5.js sketch that can run in the browser with the standard p5.js library. Requirements: – Use function setup() and function draw() – Call createCanvas(800, 600) in setup() – Do not use external images or fonts. – Use only primitive shapes (rect, ellipse, line, etc.) and color. – Represent depth with size and vertical position (larger/closer, smaller/farther). – Include comments to map parts of the code to the scene description. – Output only JavaScript code, no markdown, no explanation."
   }
 }
