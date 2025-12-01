@@ -1,5 +1,5 @@
 {
-  "pipeline": "code_generation",
+  "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
     "en": "Listifier",
