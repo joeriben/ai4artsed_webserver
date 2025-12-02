@@ -97,7 +97,7 @@
 
         <!-- Section 2.5: Model Selection (Shows DIRECTLY under category, disabled until after interception) -->
         <section class="config-section">
-          <h2 v-if="selectedCategory" class="section-title">wähle ein KI-Modell aus</h2>
+          <h2 v-if="selectedCategory" class="section-title">wähle ein Modell aus</h2>
           <div class="config-bubbles-container">
             <div class="config-bubbles-row">
               <div
@@ -139,7 +139,7 @@
             </div>
             <div v-if="isOptimizationLoading" class="preview-loading">
               <div class="spinner-large"></div>
-              <p class="loading-text">Der Prompt wird jetzt für das gewählte KI-Modell angepasst. Jedes Modell versteht Beschreibungen etwas anders – die KI optimiert den Text für die beste Ausgabe.</p>
+              <p class="loading-text">Der Prompt wird jetzt für das gewählte Modell angepasst. Jedes Modell versteht Beschreibungen etwas anders – die KI optimiert den Text für die beste Ausgabe.</p>
             </div>
             <textarea
               v-else
@@ -641,7 +641,7 @@ async function runOptimization() {
 async function startGeneration() {
   // Check if model is selected
   if (!selectedConfig.value) {
-    alert('Bitte wähle ein KI-Modell aus')
+    alert('Bitte wähle ein Modell aus')
     return
   }
 
