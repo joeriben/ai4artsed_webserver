@@ -94,29 +94,28 @@ html, body {
   background: rgba(10, 10, 10, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.5rem 1.5rem;
+  padding: 0.5rem 0;
   z-index: 1000;
   flex-shrink: 0;
 }
 
 .header-content {
-  position: relative;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   max-width: 1400px;
   margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .header-left {
-  position: absolute;
-  left: 0;
   display: flex;
   justify-content: flex-start;
 }
 
 .return-button {
   padding: 0.4rem 1rem;
+  margin-left: 0;
   background: rgba(30, 30, 30, 0.9);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
