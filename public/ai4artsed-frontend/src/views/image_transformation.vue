@@ -1,9 +1,6 @@
 <template>
   <div class="image-transformation-view">
 
-    <!-- Shared Header Component -->
-    <PageHeader />
-
     <div class="phase-2a" ref="mainContainerRef">
 
       <!-- Section 1: Image Upload (Bubble Card) -->
@@ -145,7 +142,6 @@ import { ref, computed, watch, nextTick } from 'vue'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
-import PageHeader from '@/components/PageHeader.vue'
 
 // ============================================================================
 // STATE
@@ -415,7 +411,7 @@ function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPositio
   max-width: clamp(320px, 90vw, 1100px);
   width: 100%;
   padding: clamp(1rem, 3vw, 2rem);
-  padding-top: clamp(5rem, 10vh, 7rem); /* Space for fixed header */
+  padding-top: clamp(1rem, 3vw, 2rem); /* Reduced - App.vue header is smaller now */
 
   display: flex;
   flex-direction: column;

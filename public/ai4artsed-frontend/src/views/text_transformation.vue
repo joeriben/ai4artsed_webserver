@@ -1,9 +1,6 @@
 <template>
   <div class="text-transformation-view">
 
-    <!-- Shared Header Component -->
-    <PageHeader />
-
     <!-- Single Continuous Flow (no phase transitions) -->
     <div class="phase-2a" ref="mainContainerRef">
 
@@ -274,7 +271,6 @@ import { useRoute } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
-import PageHeader from '@/components/PageHeader.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
 
 // ============================================================================
@@ -895,7 +891,7 @@ watch(optimizedPrompt, async () => {
   max-width: clamp(320px, 90vw, 1100px);
   width: 100%;
   padding: clamp(1rem, 3vw, 2rem);
-  padding-top: clamp(5rem, 10vh, 7rem); /* Space for fixed header */
+  padding-top: clamp(1rem, 3vw, 2rem); /* Reduced - App.vue header is smaller now */
 
   display: flex;
   flex-direction: column;
