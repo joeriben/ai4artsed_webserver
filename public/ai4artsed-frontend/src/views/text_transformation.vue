@@ -148,7 +148,6 @@
               :placeholder="optimizedPrompt ? '' : 'Der optimierte Prompt erscheint nach Modellauswahl.'"
               class="bubble-textarea auto-resize-textarea"
               rows="5"
-              :readonly="!optimizedPrompt"
             ></textarea>
           </div>
         </section>
