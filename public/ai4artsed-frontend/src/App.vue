@@ -5,7 +5,6 @@
       <div class="header-content">
         <div class="header-left">
           <button
-            v-if="showReturnButton"
             class="return-button"
             @click="$router.push('/')"
             title="Zurück zu Phase 1"
@@ -49,16 +48,9 @@
  * - /about: About page
  *
  * Session 82: Added ChatOverlay global component for interactive LLM help
- * Session 86: Integrated return button into global header
+ * Session 86: Integrated return button into global header (always visible)
  */
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
 import ChatOverlay from './components/ChatOverlay.vue'
-
-const route = useRoute()
-const showReturnButton = computed(() => {
-  return route.path === '/text-transformation' || route.path === '/image-transformation'
-})
 </script>
 
 <style>
