@@ -11,6 +11,7 @@
             <span class="bubble-label">Lade dein Bild hoch</span>
           </div>
           <ImageUploadWidget
+            :initial-image="uploadedImage"
             @image-uploaded="handleImageUpload"
             @image-removed="handleImageRemove"
           />
@@ -391,36 +392,43 @@ function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPositio
 
 onMounted(() => {
   // Check if there's a transferred image from text_transformation (Weiterreichen)
-  const transferredImage = localStorage.getItem('i2i_transfer_image')
-  const transferTimestamp = localStorage.getItem('i2i_transfer_timestamp')
+  const transferDataStr = localStorage.getItem('i2i_transfer_data')
 
-  if (transferredImage && transferTimestamp) {
-    // Check if transfer is recent (within last 5 minutes)
-    const now = Date.now()
-    const timestamp = parseInt(transferTimestamp)
-    const fiveMinutes = 5 * 60 * 1000
+  if (transferDataStr) {
+    try {
+      const transferData = JSON.parse(transferDataStr)
+      const now = Date.now()
+      const fiveMinutes = 5 * 60 * 1000
 
-    if (now - timestamp < fiveMinutes) {
-      console.log('[i2i Transfer] Loading transferred image:', transferredImage)
+      // Check if transfer is recent (within last 5 minutes)
+      if (now - transferData.timestamp < fiveMinutes) {
+        console.log('[i2i Transfer] Loading transferred image:', transferData)
 
-      // Set the image as if it was uploaded
-      uploadedImage.value = transferredImage
-      uploadedImagePath.value = transferredImage // Use same URL for path
-      uploadedImageId.value = `transferred_${timestamp}`
-      executionPhase.value = 'image_uploaded'
+        // Set the image as if it was uploaded
+        uploadedImage.value = transferData.imageUrl
+        // Use the URL for display, but store run_id for backend
+        uploadedImagePath.value = transferData.imageUrl
+        uploadedImageId.value = transferData.runId || `transferred_${transferData.timestamp}`
+        executionPhase.value = 'image_uploaded'
 
-      // Clear the transfer data
-      localStorage.removeItem('i2i_transfer_image')
-      localStorage.removeItem('i2i_transfer_timestamp')
+        // Clear the transfer data
+        localStorage.removeItem('i2i_transfer_data')
 
-      console.log('[i2i Transfer] Image loaded successfully')
-    } else {
-      // Transfer expired, clean up
-      localStorage.removeItem('i2i_transfer_image')
-      localStorage.removeItem('i2i_transfer_timestamp')
-      console.log('[i2i Transfer] Transfer expired (>5 minutes old)')
+        console.log('[i2i Transfer] Image loaded successfully')
+      } else {
+        // Transfer expired, clean up
+        localStorage.removeItem('i2i_transfer_data')
+        console.log('[i2i Transfer] Transfer expired (>5 minutes old)')
+      }
+    } catch (error) {
+      console.error('[i2i Transfer] Error parsing transfer data:', error)
+      localStorage.removeItem('i2i_transfer_data')
     }
   }
+
+  // Clean up old format (backward compatibility)
+  localStorage.removeItem('i2i_transfer_image')
+  localStorage.removeItem('i2i_transfer_timestamp')
 })
 </script>
 

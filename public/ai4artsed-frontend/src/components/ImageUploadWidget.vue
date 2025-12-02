@@ -53,16 +53,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
 
 // Props
 interface Props {
   maxSizeMB?: number
+  initialImage?: string | null  // URL to pre-load image
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  maxSizeMB: 10
+  maxSizeMB: 10,
+  initialImage: null
 })
 
 // Emits
@@ -182,6 +184,22 @@ function removeImage() {
   }
   emit('image-removed')
 }
+
+// Watch for initial image prop changes
+watch(() => props.initialImage, (newImage) => {
+  if (newImage) {
+    console.log('[ImageUploadWidget] Loading initial image:', newImage)
+    previewUrl.value = newImage
+  }
+}, { immediate: true })
+
+// Load initial image on mount (if provided)
+onMounted(() => {
+  if (props.initialImage) {
+    console.log('[ImageUploadWidget] Mounted with initial image:', props.initialImage)
+    previewUrl.value = props.initialImage
+  }
+})
 </script>
 
 <style scoped>

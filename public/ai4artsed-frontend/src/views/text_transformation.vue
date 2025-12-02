@@ -875,11 +875,20 @@ function printImage() {
 function sendToI2I() {
   if (!outputImage.value || outputMediaType.value !== 'image') return
 
-  // Store image URL in localStorage for cross-component transfer
-  localStorage.setItem('i2i_transfer_image', outputImage.value)
-  localStorage.setItem('i2i_transfer_timestamp', Date.now().toString())
+  // Extract run_id from URL: /api/media/image/run_123 -> run_123
+  const runIdMatch = outputImage.value.match(/\/api\/media\/image\/(.+)$/)
+  const runId = runIdMatch ? runIdMatch[1] : null
 
-  console.log('[Image Actions] Transferring to i2i:', outputImage.value)
+  // Store image data in localStorage for cross-component transfer
+  const transferData = {
+    imageUrl: outputImage.value,  // For display
+    runId: runId,  // For backend reference
+    timestamp: Date.now()
+  }
+
+  localStorage.setItem('i2i_transfer_data', JSON.stringify(transferData))
+
+  console.log('[Image Actions] Transferring to i2i:', transferData)
 
   // Navigate to image transformation
   router.push('/image-transformation')
