@@ -1,5 +1,132 @@
 # Development Log
 
+## Session 88 - Image Transfer Fix (t2i → i2i) (COMPLETE)
+**Date:** 2025-12-03
+**Duration:** ~2 hours
+**Focus:** Fix image transfer from text_transformation to image_transformation + Session 87 cleanup
+
+### Summary
+
+Fixed broken "Weiterreichen" (send to i2i) functionality that was partially implemented but non-functional. Images now properly transfer from t2i to i2i view AND backend correctly processes them for QWEN image transformation.
+
+### Session 87 Cleanup
+
+**Problem:** Session 87 attempted to add state persistence but broke existing context prompt persistence.
+
+**Solution:** Reverted all Session 87 commits (8 commits: 8669189→6f650fb) via selective cherry-pick, preserving only the p5.js fix from parallel session (commit 4b51440).
+
+**Recovery Strategy:**
+```bash
+git branch session87-backup HEAD
+git reset --hard 1436299  # Last known good
+git cherry-pick 4b51440   # Preserve p5.js fix
+```
+
+### Implementation
+
+#### 1. Frontend: ImageUploadWidget Pre-loading Support
+**File:** `src/components/ImageUploadWidget.vue`
+
+**Changes:**
+- Added `initialImage?: string | null` prop
+- Added watcher to load image when prop changes
+- Component now supports both file upload AND pre-loaded images
+
+**Code:**
+```vue
+<ImageUploadWidget
+  :initial-image="uploadedImage"
+  @image-uploaded="handleImageUpload"
+/>
+```
+
+#### 2. Frontend: Structured Data Transfer
+**File:** `src/views/text_transformation.vue`
+
+**Changes:**
+- Enhanced `sendToI2I()` to store structured data (not just URL)
+- Extracts run_id from image URL for backend compatibility
+- Uses JSON format in localStorage: `i2i_transfer_data`
+
+**Data Structure:**
+```javascript
+{
+  imageUrl: "/api/media/image/run_id",  // For display
+  runId: "run_id",                       // For backend
+  timestamp: Date.now()
+}
+```
+
+#### 3. Frontend: Receive Transferred Images
+**File:** `src/views/image_transformation.vue`
+
+**Changes:**
+- Enhanced `onMounted()` to read structured transfer data
+- Passes `uploadedImage` to ImageUploadWidget via `:initial-image` prop
+- Images now display immediately when navigating from t2i
+
+#### 4. Backend: URL-to-Path Resolution
+**File:** `devserver/schemas/engine/backend_router.py`
+
+**Problem:** Backend received URL `/api/media/image/<run_id>` but tried to open it as filesystem path → FileNotFoundError
+
+**Solution:** Added `_resolve_media_url_to_path()` helper function
+
+**Code:**
+```python
+def _resolve_media_url_to_path(url_or_path: str) -> str:
+    """Resolve /api/media/image/<run_id> to actual file path"""
+    if url_or_path.startswith('/api/media/image/'):
+        run_id = url_or_path.replace('/api/media/image/', '')
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if recorder:
+            image_entity = _find_entity_by_type(
+                recorder.metadata.get('entities', []), 'image'
+            )
+            if image_entity:
+                return str(recorder.run_folder / image_entity['filename'])
+    return url_or_path
+```
+
+**Integration:**
+```python
+# Line 746 in backend_router.py
+source_path = _resolve_media_url_to_path(parameters['input_image'])
+```
+
+### Testing
+
+**Complete Workflow:**
+1. Generate image in t2i (text → image) ✓
+2. Click "➡️ Weiterreichen" button ✓
+3. Navigate to i2i view ✓
+4. **Image displays in upload widget** ✓ (was broken)
+5. Add transformation prompt ✓
+6. **Backend resolves URL to file path** ✓ (was broken)
+7. QWEN processes image transformation ✓
+8. Transformed image generated ✓
+
+### Commits
+
+**Frontend Fix:**
+- `d532adc` - fix: Implement image transfer from t2i to i2i (Session 88)
+
+**Backend Fix:**
+- `d0c0512` - fix: Resolve media URLs to filesystem paths for i2i transfer
+
+### Deployment
+
+**Status:** ✅ DEPLOYED to production (https://lab.ai4artsed.org/)
+
+**Process:**
+1. Built frontend in development
+2. Committed & pushed to develop
+3. Merged develop → main
+4. Production synced with main
+5. Production server restarted
+
+---
+
 ## Session 86 - Image Transformation UI Restructure (COMPLETE)
 **Date:** 2025-12-02
 **Duration:** ~3 hours
