@@ -694,6 +694,7 @@ async function executePipeline() {
   // Reset UI state for fresh generation
   outputImage.value = ''  // Clear previous image
   outputCode.value = null  // Clear previous code
+  outputMediaType.value = 'image'  // Reset to default media type
   showSafetyApprovedStamp.value = false  // Reset safety stamp
   generationProgress.value = 0  // Reset progress
 
