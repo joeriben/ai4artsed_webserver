@@ -1,13 +1,8 @@
 <template>
   <div class="text-transformation-view">
 
-    <!-- Header with Return Button -->
-    <header class="page-header">
-      <button class="return-button" @click="$router.push('/')" title="Zurück zu Phase 1">
-        ← Phase 1
-      </button>
-      <h1 class="page-title">AI4ArtsEd - AI-Lab</h1>
-    </header>
+    <!-- Shared Header Component -->
+    <PageHeader />
 
     <!-- Single Continuous Flow (no phase transitions) -->
     <div class="phase-2a" ref="mainContainerRef">
@@ -161,6 +156,27 @@
           </div>
         </section>
 
+        <!-- Code Output (p5.js) - appears right after optimization -->
+        <div v-if="outputMediaType === 'code' && outputCode" class="code-output-stage2">
+          <div class="code-display">
+            <h3>Generated Code</h3>
+            <textarea
+              :value="outputCode"
+              readonly
+              class="code-textarea"
+              rows="15"
+            ></textarea>
+          </div>
+          <div class="code-preview">
+            <h3>Live Preview</h3>
+            <iframe
+              :srcdoc="getP5jsIframeContent()"
+              class="p5js-iframe"
+              sandbox="allow-scripts"
+            ></iframe>
+          </div>
+        </div>
+
         <!-- START BUTTON #2: Trigger Generation (Between Optimized Prompt and Output) -->
         <div class="start-button-container">
           <button
@@ -188,14 +204,14 @@
         <!-- Section 5: Pipeline Path (always visible, inactive until generation starts) -->
         <section class="pipeline-section" ref="pipelineSectionRef">
           <!-- Output Frame (Always visible) -->
-          <div class="output-frame" :class="{ empty: !isPipelineExecuting && !outputImage && !outputCode, generating: isPipelineExecuting && !outputImage && !outputCode }">
-            <!-- Generation Progress Animation -->
-            <div v-if="isPipelineExecuting && !outputImage && !outputCode" class="generation-animation-container">
+          <div class="output-frame" :class="{ empty: !isPipelineExecuting && !outputImage, generating: isPipelineExecuting && !outputImage }">
+            <!-- Generation Progress Animation (only for non-code configs) -->
+            <div v-if="isPipelineExecuting && !outputImage && outputMediaType !== 'code'" class="generation-animation-container">
               <SpriteProgressAnimation :progress="generationProgress" />
             </div>
 
             <!-- Final Output -->
-            <div v-else-if="outputImage || outputCode" class="final-output">
+            <div v-else-if="outputImage" class="final-output">
               <!-- Image -->
               <img
                 v-if="outputMediaType === 'image'"
@@ -220,27 +236,6 @@
                 controls
                 class="output-audio"
               />
-
-              <!-- Code Output (p5.js) -->
-              <div v-else-if="outputMediaType === 'code' && outputCode" class="code-output-container">
-                <div class="code-display">
-                  <h3>Generated Code</h3>
-                  <textarea
-                    :value="outputCode"
-                    readonly
-                    class="code-textarea"
-                    rows="15"
-                  ></textarea>
-                </div>
-                <div class="code-preview">
-                  <h3>Live Preview</h3>
-                  <iframe
-                    :srcdoc="getP5jsIframeContent()"
-                    class="p5js-iframe"
-                    sandbox="allow-scripts"
-                  ></iframe>
-                </div>
-              </div>
 
               <!-- 3D Model -->
               <div v-else-if="outputMediaType === '3d'" class="model-container">
@@ -279,6 +274,7 @@ import { useRoute } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
 
 // ============================================================================
@@ -889,62 +885,6 @@ watch(optimizedPrompt, async () => {
   justify-content: center;
   overflow-y: auto;
   overflow-x: hidden;
-}
-
-/* ============================================================================
-   Page Header
-   ============================================================================ */
-
-.page-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
-  padding: clamp(1rem, 2vh, 1.5rem) clamp(1rem, 3vw, 2rem);
-  background: rgba(10, 10, 10, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.page-title {
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0;
-  text-align: center;
-  letter-spacing: 0.5px;
-}
-
-.return-button {
-  position: absolute;
-  left: clamp(1rem, 3vw, 2rem);
-
-  padding: clamp(0.4rem, 1vw, 0.6rem) clamp(0.8rem, 2vw, 1.2rem);
-  background: rgba(30, 30, 30, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.return-button:hover {
-  border-color: rgba(102, 126, 234, 0.8);
-  background: rgba(102, 126, 234, 0.2);
-  transform: translateX(-4px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.return-button:active {
-  transform: translateX(-2px) scale(0.98);
 }
 
 /* ============================================================================
@@ -1865,6 +1805,19 @@ watch(optimizedPrompt, async () => {
   max-height: 500px;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Code Output in Stage 2 (after optimization) */
+.code-output-stage2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+  padding: 2rem;
+  margin: 2rem 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Code Output (p5.js) */

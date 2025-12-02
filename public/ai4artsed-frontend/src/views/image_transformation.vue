@@ -1,144 +1,141 @@
 <template>
-  <div class="image-transformation-container">
+  <div class="image-transformation-view">
 
-    <!-- Section 1: Image Upload -->
-    <section class="image-upload-section">
-      <h2 class="section-title neon-glow">Lade dein Bild hoch</h2>
-      <div class="image-bubble bubble-card" :class="{ filled: uploadedImage }">
-        <ImageUploadWidget
-          @image-uploaded="handleImageUpload"
-          @image-removed="handleImageRemove"
-        />
-      </div>
-    </section>
+    <!-- Shared Header Component -->
+    <PageHeader />
 
-    <!-- Section 1.5: Context Prompt (Mandatory) -->
-    <section v-if="uploadedImage" class="context-section">
-      <h2 class="section-title neon-glow">Wie soll das Bild verändert werden?</h2>
-      <div class="context-bubble bubble-card" :class="{ filled: contextPrompt, required: !contextPrompt }">
-        <div class="bubble-header">
-          <span class="bubble-icon">📋</span>
-          <span class="bubble-label">Beschreibe die gewünschte Transformation</span>
+    <div class="phase-2a" ref="mainContainerRef">
+
+      <!-- Section 1: Image Upload (Bubble Card) -->
+      <section class="image-upload-section">
+        <div class="image-bubble bubble-card" :class="{ filled: uploadedImage }">
+          <div class="bubble-header">
+            <span class="bubble-icon">🖼️</span>
+            <span class="bubble-label">Lade dein Bild hoch</span>
+          </div>
+          <ImageUploadWidget
+            @image-uploaded="handleImageUpload"
+            @image-removed="handleImageRemove"
+          />
         </div>
-        <textarea
-          v-model="contextPrompt"
-          @input="handleContextPromptEdit"
-          placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
-          class="bubble-textarea"
-          rows="4"
-        ></textarea>
-      </div>
-    </section>
+      </section>
 
-    <!-- Section 2: Category Selection (Media Type) -->
-    <section v-if="canSelectMedia" class="category-section" ref="categorySectionRef">
-      <h2 class="section-title neon-glow">Wähle ein Medium aus</h2>
-      <div class="category-bubbles-row">
-        <div
-          v-for="category in availableCategories"
-          :key="category.id"
-          class="category-bubble"
-          :class="{ selected: selectedCategory === category.id, disabled: category.disabled }"
-          :style="{ '--bubble-color': category.color }"
-          @click="!category.disabled && selectCategory(category.id)"
-        >
-          <div class="bubble-emoji-small">{{ category.emoji }}</div>
+      <!-- Section 2: Context Prompt (Bubble Card) -->
+      <section v-if="uploadedImage" class="context-section">
+        <div class="context-bubble bubble-card" :class="{ filled: contextPrompt, required: !contextPrompt }">
+          <div class="bubble-header">
+            <span class="bubble-icon">📋</span>
+            <span class="bubble-label">Wie soll das Bild verändert werden?</span>
+          </div>
+          <textarea
+            v-model="contextPrompt"
+            @input="handleContextPromptEdit"
+            placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
+            class="bubble-textarea"
+            rows="4"
+          ></textarea>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Section 2.5: Model Selection -->
-    <section v-if="selectedCategory" class="config-section">
-      <h2 class="section-title neon-glow">Wähle ein KI-Modell aus</h2>
-      <div class="config-bubbles-container">
-        <div class="config-bubbles-row">
+      <!-- Section 3: Category Selection (Horizontal Row) - Always visible after context -->
+      <section v-if="canSelectMedia" class="category-section" ref="categorySectionRef">
+        <div class="category-bubbles-row">
           <div
-            v-for="config in configsForCategory"
-            :key="config.id"
-            class="config-bubble"
-            :class="{
-              selected: selectedConfig === config.id,
-              loading: config.id === selectedConfig && isOptimizationLoading,
-              'light-bg': config.lightBg,
-              disabled: config.disabled || !areModelBubblesEnabled
-            }"
-            @click="areModelBubblesEnabled && !config.disabled && selectConfig(config.id)"
+            v-for="category in availableCategories"
+            :key="category.id"
+            class="category-bubble"
+            :class="{ selected: selectedCategory === category.id, disabled: category.disabled }"
+            :style="{ '--bubble-color': category.color }"
+            @click="!category.disabled && selectCategory(category.id)"
+            role="button"
+            :aria-pressed="selectedCategory === category.id"
+            :aria-disabled="category.disabled"
+            :tabindex="category.disabled ? -1 : 0"
+            @keydown.enter="!category.disabled && selectCategory(category.id)"
+            @keydown.space.prevent="!category.disabled && selectCategory(category.id)"
           >
-            <img v-if="config.logo" :src="config.logo" class="bubble-logo" />
-            <div v-else class="bubble-emoji-medium">{{ config.emoji }}</div>
-            <div class="bubble-label-medium">{{ config.label }}</div>
-            <div v-if="config.disabled" class="coming-soon-badge">Bald</div>
+            <div class="bubble-emoji-small">{{ category.emoji }}</div>
           </div>
         </div>
+      </section>
+
+      <!-- START BUTTON (Always Visible) -->
+      <div class="start-button-container">
+        <button
+          class="start-button"
+          :class="{ disabled: !canStartGeneration || isPipelineExecuting }"
+          :disabled="!canStartGeneration || isPipelineExecuting"
+          @click="startGeneration"
+        >
+          <span class="button-arrows button-arrows-left">&gt;&gt;&gt;</span>
+          <span class="button-text">Start</span>
+          <span class="button-arrows button-arrows-right">&gt;&gt;&gt;</span>
+        </button>
+
+        <!-- Safety Stamp (next to button, not on image) -->
+        <transition name="fade">
+          <div v-if="showSafetyApprovedStamp" class="safety-stamp">
+            <div class="stamp-inner">
+              <div class="stamp-icon">✓</div>
+              <div class="stamp-text">Safety<br/>Approved</div>
+            </div>
+          </div>
+        </transition>
       </div>
-    </section>
 
-    <!-- Section 3: Optimization Preview (if optimization happened) -->
-    <section v-if="hasOptimization" class="optimization-section">
-      <h2 class="section-title neon-glow">Optimierter Prompt</h2>
-      <div class="optimization-preview bubble-card" :class="{ empty: !optimizedPrompt, loading: isOptimizationLoading }">
-        <div class="bubble-header">
-          <span class="bubble-icon">✨</span>
-          <span class="bubble-label">Modell-Optimierter Prompt</span>
+      <!-- OUTPUT FRAME (3 States: empty, generating, final) -->
+      <section class="pipeline-section" ref="pipelineSectionRef">
+        <div class="output-frame" :class="{
+          empty: !isPipelineExecuting && !outputImage,
+          generating: isPipelineExecuting && !outputImage
+        }">
+          <!-- State 1: Empty (before generation) -->
+          <div v-if="!isPipelineExecuting && !outputImage" class="empty-state">
+            <div class="empty-icon">🖼️</div>
+            <p>Dein transformiertes Bild erscheint hier</p>
+          </div>
+
+          <!-- State 2: Generating (progress animation) -->
+          <div v-if="isPipelineExecuting && !outputImage" class="generation-animation-container">
+            <SpriteProgressAnimation :progress="generationProgress" />
+          </div>
+
+          <!-- State 3: Final Output -->
+          <div v-else-if="outputImage" class="final-output">
+            <img
+              v-if="outputMediaType === 'image'"
+              :src="outputImage"
+              alt="Generated image"
+              class="output-image"
+              @click="openFullscreen"
+            />
+            <video
+              v-else-if="outputMediaType === 'video'"
+              :src="outputImage"
+              controls
+              class="output-video"
+            />
+            <audio
+              v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'"
+              :src="outputImage"
+              controls
+              class="output-audio"
+            />
+          </div>
         </div>
-        <div v-if="isOptimizationLoading" class="preview-loading">
-          <div class="spinner-large"></div>
-          <p class="loading-text">Der Prompt wird jetzt für das gewählte KI-Modell angepasst...</p>
-        </div>
-        <textarea
-          v-else
-          ref="optimizationTextareaRef"
-          v-model="optimizedPrompt"
-          class="bubble-textarea auto-resize-textarea"
-          rows="5"
-          :readonly="!optimizedPrompt"
-        ></textarea>
-      </div>
-    </section>
+      </section>
 
-    <!-- Section 4: Start Generation Button -->
-    <section v-if="canStartGeneration" class="start-button-container">
-      <button
-        class="start-button"
-        :class="{ disabled: !canStartGeneration || isPipelineExecuting }"
-        :disabled="!canStartGeneration || isPipelineExecuting"
-        @click="startGeneration"
-      >
-        <span class="button-arrows button-arrows-left">&gt;&gt;&gt;</span>
-        <span class="button-text">{{ isPipelineExecuting ? 'Generierung läuft...' : 'Start' }}</span>
-        <span class="button-arrows button-arrows-right">&gt;&gt;&gt;</span>
-      </button>
-    </section>
-
-    <!-- Section 5: Pipeline Execution Progress -->
-    <section v-if="isPipelineExecuting" class="progress-section">
-      <SpriteProgressAnimation
-        :progress="generationProgress"
-        message="Die KI transformiert dein Bild..."
-      />
-    </section>
-
-    <!-- Section 6: Output Display -->
-    <section v-if="outputImage" class="output-section">
-      <h2 class="section-title neon-glow">Dein transformiertes Bild</h2>
-      <div class="output-frame" @click="openFullscreen">
-        <img v-if="outputMediaType === 'image'" :src="outputImage" alt="Generated image" />
-        <video v-else-if="outputMediaType === 'video'" :src="outputImage" controls />
-        <audio v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'" :src="outputImage" controls />
-
-        <!-- Safety Approved Stamp -->
-        <div v-if="showSafetyApprovedStamp" class="safety-stamp">
-          <div class="stamp-inner">✓</div>
-          <span class="stamp-text">FREIGEGEBEN</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Fullscreen Modal -->
-    <div v-if="fullscreenImage" class="fullscreen-modal" @click="closeFullscreen">
-      <img :src="fullscreenImage" alt="Fullscreen image" />
-      <button class="close-fullscreen" @click="closeFullscreen">✕</button>
     </div>
+
+    <!-- Fullscreen Image Modal -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="fullscreenImage" class="fullscreen-modal" @click="fullscreenImage = null">
+          <img :src="fullscreenImage" alt="Dein Bild" class="fullscreen-image" />
+          <button class="close-fullscreen" @click="fullscreenImage = null">×</button>
+        </div>
+      </Transition>
+    </Teleport>
 
   </div>
 </template>
@@ -148,6 +145,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import PageHeader from '@/components/PageHeader.vue'
 
 // ============================================================================
 // STATE
@@ -161,19 +159,14 @@ const uploadedImageId = ref<string | null>(null)
 // Form inputs
 const contextPrompt = ref('')
 const selectedCategory = ref<string | null>(null)
-const selectedConfig = ref<string | null>(null)
-
-// Optimization
-const optimizedPrompt = ref('')
-const isOptimizationLoading = ref(false)
-const hasOptimization = ref(false)
+const selectedConfig = ref<string>('qwen_img2img')  // Auto-selected, no UI
 
 // Phase 4: Seed management
 const previousOptimizedPrompt = ref('')
 const currentSeed = ref<number | null>(null)
 
 // Execution
-const executionPhase = ref<'initial' | 'image_uploaded' | 'ready_for_media' | 'optimization_done' | 'generation_done'>('initial')
+const executionPhase = ref<'initial' | 'image_uploaded' | 'ready_for_media' | 'generation_done'>('initial')
 const isPipelineExecuting = ref(false)
 const outputImage = ref<string | null>(null)
 const outputMediaType = ref<string>('image')
@@ -182,8 +175,9 @@ const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
 
 // Refs
+const mainContainerRef = ref<HTMLElement | null>(null)
 const categorySectionRef = ref<HTMLElement | null>(null)
-const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
+const pipelineSectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // CONFIGURATION
@@ -197,60 +191,33 @@ interface Category {
   disabled?: boolean
 }
 
-interface Config {
-  id: string
-  label: string
-  emoji?: string
-  logo?: string
-  color: string
-  lightBg?: boolean
-  disabled?: boolean
-}
-
 const availableCategories: Category[] = [
   { id: 'image', label: 'Bild', emoji: '🖼️', color: '#4CAF50' },
   { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0', disabled: true },
   { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800', disabled: true }
 ]
 
-const configsByCategory: Record<string, Config[]> = {
-  image: [
-    // Local ComfyUI models only (DSGVO-compliant)
-    { id: 'qwen_img2img', label: 'Qwen\nIMG2IMG', emoji: '🌟', color: '#FFC107', lightBg: true, disabled: false }
-  ],
-  video: [
-    // img2video via ComfyUI (local) - disabled for Phase 2
-    { id: 'ltx_video_img2video', label: 'LTX\nIMG2Video', emoji: '🎬', color: '#9C27B0', lightBg: false, disabled: true }
-  ],
-  sound: [
-    // img2sound via image analysis → text → sound (local pipeline) - disabled for Phase 2
-    { id: 'acestep_img2sound', label: 'ACE\nIMG2Sound', emoji: '🔊', color: '#FF9800', lightBg: false, disabled: true }
-  ]
+// Config mapping (auto-select based on category, no UI)
+const configByCategory: Record<string, string> = {
+  image: 'qwen_img2img',
+  video: 'ltx_video_img2video',  // Future
+  sound: 'acestep_img2sound'      // Future
 }
 
 // ============================================================================
 // COMPUTED
 // ============================================================================
 
-const configsForCategory = computed(() => {
-  if (!selectedCategory.value) return []
-  return configsByCategory[selectedCategory.value] || []
-})
-
 const canSelectMedia = computed(() => {
   return uploadedImage.value && contextPrompt.value.trim().length > 0
-})
-
-const areModelBubblesEnabled = computed(() => {
-  return canSelectMedia.value
 })
 
 const canStartGeneration = computed(() => {
   return (
     uploadedImage.value &&
     contextPrompt.value.trim().length > 0 &&
+    selectedCategory.value &&
     selectedConfig.value &&
-    executionPhase.value === 'optimization_done' &&
     !isPipelineExecuting.value
   )
 })
@@ -274,10 +241,10 @@ function handleImageRemove() {
   uploadedImageId.value = null
   contextPrompt.value = ''
   selectedCategory.value = null
-  selectedConfig.value = null
-  optimizedPrompt.value = ''
-  hasOptimization.value = false
+  selectedConfig.value = 'qwen_img2img'
   executionPhase.value = 'initial'
+  outputImage.value = null
+  isPipelineExecuting.value = false
 }
 
 function handleContextPromptEdit() {
@@ -296,59 +263,18 @@ function handleContextPromptEdit() {
 }
 
 // ============================================================================
-// CATEGORY & CONFIG SELECTION
+// CATEGORY SELECTION (Auto-select config)
 // ============================================================================
 
 async function selectCategory(categoryId: string) {
   selectedCategory.value = categoryId
-  selectedConfig.value = null
+
+  // Auto-select config based on category (no UI)
+  selectedConfig.value = configByCategory[categoryId] || 'qwen_img2img'
+  console.log('[Auto-Select] Category:', categoryId, '→ Config:', selectedConfig.value)
+
   await nextTick()
-  if (categorySectionRef.value) {
-    categorySectionRef.value.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center'
-    })
-  }
-}
-
-async function selectConfig(configId: string) {
-  if (!areModelBubblesEnabled.value || isOptimizationLoading.value) return
-
-  selectedConfig.value = configId
-  console.log('[SelectConfig] Selected:', configId)
-
-  // Trigger optimization
-  await runOptimization()
-}
-
-// ============================================================================
-// OPTIMIZATION (Stage 3)
-// ============================================================================
-
-async function runOptimization() {
-  isOptimizationLoading.value = true
-
-  try {
-    const response = await axios.post('/api/schema/pipeline/optimize', {
-      input_text: contextPrompt.value,  // Context prompt goes directly to optimization
-      output_config: selectedConfig.value
-    })
-
-    if (response.data.success) {
-      optimizedPrompt.value = response.data.optimized_prompt || ''
-      hasOptimization.value = response.data.optimization_applied || false
-      executionPhase.value = 'optimization_done'
-      console.log('[Optimize] Complete:', optimizedPrompt.value.substring(0, 60))
-    }
-  } catch (error) {
-    console.error('[Optimize] Error:', error)
-    // Fallback: use context prompt directly
-    optimizedPrompt.value = contextPrompt.value
-    hasOptimization.value = false
-    executionPhase.value = 'optimization_done'
-  } finally {
-    isOptimizationLoading.value = false
-  }
+  scrollDownOnly(categorySectionRef.value, 'start')
 }
 
 // ============================================================================
@@ -360,31 +286,36 @@ async function startGeneration() {
 
   isPipelineExecuting.value = true
   generationProgress.value = 0
+  outputImage.value = null  // Clear previous output
+
+  // Scroll to output frame
+  await nextTick()
+  setTimeout(() => scrollDownOnly(pipelineSectionRef.value, 'start'), 150)
 
   // Start progress simulation based on estimated duration (23 seconds for QWEN)
   const estimatedDuration = 23000 // milliseconds
-  const progressIncrement = 90 / (estimatedDuration / 100) // Progress to 90% over estimated time
+  const progressIncrement = 90 / (estimatedDuration / 100)
   const progressInterval = setInterval(() => {
     if (generationProgress.value < 90) {
       generationProgress.value = Math.min(90, generationProgress.value + progressIncrement)
     }
-  }, 100) // Update every 100ms
+  }, 100)
 
   // Phase 4: Intelligent seed logic
-  const promptChanged = optimizedPrompt.value !== previousOptimizedPrompt.value
+  const promptChanged = contextPrompt.value !== previousOptimizedPrompt.value
   if (promptChanged || currentSeed.value === null) {
     currentSeed.value = Math.floor(Math.random() * 1000000000)
     console.log('[Seed] New prompt or first run → new seed:', currentSeed.value)
   } else {
     console.log('[Seed] Same prompt → reusing seed:', currentSeed.value)
   }
-  previousOptimizedPrompt.value = optimizedPrompt.value
+  previousOptimizedPrompt.value = contextPrompt.value
 
   try {
     const response = await axios.post('/api/schema/pipeline/execute', {
       schema: 'image_transformation',
       input_image: uploadedImagePath.value,
-      input_text: optimizedPrompt.value || contextPrompt.value,
+      input_text: contextPrompt.value,
       context_prompt: contextPrompt.value,
       output_config: selectedConfig.value,
       user_language: 'de',
@@ -397,18 +328,11 @@ async function startGeneration() {
       clearInterval(progressInterval)
       generationProgress.value = 100
 
-      // DEBUG: Log full response structure
-      console.log('[DEBUG] Full response.data:', JSON.stringify(response.data, null, 2))
-      console.log('[DEBUG] response.data.status:', response.data.status)
-      console.log('[DEBUG] response.data.run_id:', response.data.run_id)
-      console.log('[DEBUG] response.data.media_output:', response.data.media_output)
-
       // Get run_id and media_type from response
       const runId = response.data.media_output?.run_id || response.data.run_id
       const mediaType = response.data.media_output?.media_type || 'image'
 
       console.log('[Generation] Success, run_id:', runId, 'media_type:', mediaType)
-      console.log('[DEBUG] Constructed URL:', `/api/media/${mediaType}/${runId}`)
 
       if (runId) {
         // Dynamic URL based on media type: /api/media/{type}/{run_id}
@@ -417,20 +341,14 @@ async function startGeneration() {
         executionPhase.value = 'generation_done'
         showSafetyApprovedStamp.value = true
 
-        console.log('[DEBUG] outputImage.value set to:', outputImage.value)
-        console.log('[DEBUG] outputMediaType.value set to:', outputMediaType.value)
-        console.log('[DEBUG] executionPhase.value set to:', executionPhase.value)
-
         // Hide stamp after 3 seconds
         setTimeout(() => {
           showSafetyApprovedStamp.value = false
         }, 3000)
-      } else if (response.data.outputs && response.data.outputs.length > 0) {
-        // Fallback: use outputs array
-        outputMediaType.value = 'image'
-        outputImage.value = `http://localhost:17802${response.data.outputs[0]}`
-        executionPhase.value = 'generation_done'
-        showSafetyApprovedStamp.value = true
+
+        // Scroll to show complete output
+        await nextTick()
+        setTimeout(() => scrollDownOnly(pipelineSectionRef.value, 'start'), 150)
       }
     } else {
       clearInterval(progressInterval)
@@ -441,11 +359,11 @@ async function startGeneration() {
     clearInterval(progressInterval)
     console.error('[Generation] Error:', error)
     alert('Fehler bei der Generierung: ' + (error.response?.data?.error || error.message))
+    generationProgress.value = 0
   } finally {
     isPipelineExecuting.value = false
   }
 }
-
 
 // ============================================================================
 // FULLSCREEN
@@ -457,257 +375,221 @@ function openFullscreen() {
   }
 }
 
-function closeFullscreen() {
-  fullscreenImage.value = null
-}
-
 // ============================================================================
-// WATCHERS
+// SCROLL HELPERS
 // ============================================================================
 
-// Auto-resize optimization textarea when content changes
-watch(optimizedPrompt, async () => {
-  await nextTick()
-  if (optimizationTextareaRef.value) {
-    optimizationTextareaRef.value.style.height = 'auto'
-    optimizationTextareaRef.value.style.height = optimizationTextareaRef.value.scrollHeight + 'px'
+function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPosition = 'start') {
+  if (!element) return
+  const rect = element.getBoundingClientRect()
+  const targetTop = block === 'start' ? rect.top : rect.bottom - window.innerHeight
+  // Only scroll if target is below current viewport
+  if (targetTop > 0) {
+    element.scrollIntoView({ behavior: 'smooth', block })
   }
-})
+}
 </script>
 
 <style scoped>
-/* Container */
-.image-transformation-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-  padding-bottom: 4rem;
-}
+/* ============================================================================
+   Root Container
+   ============================================================================ */
 
-/* Section Titles */
-.section-title {
-  font-size: clamp(1.8rem, 4vw, 2.5rem);
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 2rem;
+.image-transformation-view {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
   color: #ffffff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.neon-glow {
-  text-shadow:
-    0 0 10px rgba(255, 179, 0, 0.5),
-    0 0 20px rgba(255, 179, 0, 0.3),
-    0 0 30px rgba(255, 179, 0, 0.2);
+/* ============================================================================
+   Phase 2a: Vertical Flow
+   ============================================================================ */
+
+.phase-2a {
+  max-width: clamp(320px, 90vw, 1100px);
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2rem);
+  padding-top: clamp(5rem, 10vh, 7rem); /* Space for fixed header */
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1rem, 3vh, 2rem);
 }
 
-/* Sections */
-section {
-  margin-bottom: 3rem;
-}
+/* ============================================================================
+   Bubble Cards (Input/Context)
+   ============================================================================ */
 
-/* Bubble Cards */
 .bubble-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 1.5rem;
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: clamp(12px, 2vw, 20px);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
   transition: all 0.3s ease;
+  width: 100%;
+  max-width: 1000px;
 }
 
 .bubble-card.filled {
-  border-color: rgba(76, 175, 80, 0.5);
-  background: rgba(76, 175, 80, 0.05);
+  border-color: rgba(102, 126, 234, 0.6);
+  background: rgba(102, 126, 234, 0.1);
 }
 
 .bubble-card.required {
-  border-color: rgba(255, 179, 0, 0.5);
-  background: rgba(255, 179, 0, 0.05);
-  animation: pulse-required 2s infinite;
+  border-color: rgba(255, 193, 7, 0.6);
+  background: rgba(255, 193, 7, 0.05);
+  animation: pulse-required 2s ease-in-out infinite;
 }
 
 @keyframes pulse-required {
-  0%, 100% { border-color: rgba(255, 179, 0, 0.5); }
-  50% { border-color: rgba(255, 179, 0, 0.8); }
+  0%, 100% {
+    border-color: rgba(255, 193, 7, 0.6);
+  }
+  50% {
+    border-color: rgba(255, 193, 7, 0.9);
+  }
 }
 
 .bubble-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  color: #e0e0e0;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .bubble-icon {
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  flex-shrink: 0;
 }
 
 .bubble-label {
-  font-size: 1rem;
+  font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .bubble-textarea {
   width: 100%;
-  min-height: 80px;
-  padding: 1rem;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  color: #ffffff;
-  font-size: 1rem;
-  font-family: inherit;
+  color: white;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  padding: clamp(0.5rem, 1.5vw, 0.75rem);
   resize: vertical;
-  transition: border-color 0.3s ease;
+  font-family: inherit;
+  line-height: 1.4;
 }
 
 .bubble-textarea:focus {
   outline: none;
-  border-color: rgba(76, 175, 80, 0.6);
+  border-color: rgba(102, 126, 234, 0.8);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .bubble-textarea::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Category Bubbles */
-.category-bubbles-row {
+/* ============================================================================
+   Section: Image Upload & Context
+   ============================================================================ */
+
+.image-upload-section,
+.context-section {
+  width: 100%;
   display: flex;
   justify-content: center;
-  gap: 2rem;
+}
+
+/* ============================================================================
+   Section 3: Category Bubbles (Horizontal Row)
+   ============================================================================ */
+
+.category-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.category-bubbles-row {
+  display: flex;
+  flex-direction: row;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  justify-content: center;
   flex-wrap: wrap;
 }
 
 .category-bubble {
   width: clamp(70px, 12vw, 90px);
   height: clamp(70px, 12vw, 90px);
-  border-radius: 50%;
-  background: var(--bubble-color, #4CAF50);
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  background: rgba(30, 30, 30, 0.9);
+  border: 3px solid var(--bubble-color, rgba(255, 255, 255, 0.3));
+  border-radius: 50%;
+
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 3px solid transparent;
-  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
 }
 
-.category-bubble:hover:not(.disabled) {
-  transform: scale(1.1);
+.category-bubble:hover {
+  transform: scale(1.08);
   box-shadow: 0 0 20px var(--bubble-color);
+  border-width: 4px;
 }
 
 .category-bubble.selected {
-  border-color: #FFB300;
-  box-shadow: 0 0 30px var(--bubble-color);
+  transform: scale(1.15);
+  background: var(--bubble-color);
+  box-shadow: 0 0 30px var(--bubble-color),
+              0 0 60px var(--bubble-color);
+  border-color: #ffffff;
+}
+
+.category-bubble:focus-visible {
+  outline: 3px solid rgba(102, 126, 234, 0.8);
+  outline-offset: 4px;
+}
+
+.category-bubble:active {
+  transform: scale(0.95);
 }
 
 .category-bubble.disabled {
   opacity: 0.3;
   cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(1);
 }
 
 .bubble-emoji-small {
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(2rem, 4.5vw, 2.5rem);
+  line-height: 1;
+  transition: filter 0.3s ease;
 }
 
-/* Config Bubbles */
-.config-bubbles-container {
-  display: flex;
-  justify-content: center;
+.category-bubble.selected .bubble-emoji-small {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
-.config-bubbles-row {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+/* ============================================================================
+   Start Button Container
+   ============================================================================ */
 
-.config-bubble {
-  width: clamp(100px, 15vw, 130px);
-  height: clamp(100px, 15vw, 130px);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 3px solid transparent;
-  position: relative;
-}
-
-.config-bubble:hover:not(.disabled) {
-  transform: scale(1.05);
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.config-bubble.selected {
-  border-color: #FFB300;
-  box-shadow: 0 0 30px rgba(255, 179, 0, 0.5);
-}
-
-.config-bubble.disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.bubble-emoji-medium {
-  font-size: clamp(2rem, 4vw, 2.5rem);
-  margin-bottom: 0.5rem;
-}
-
-.bubble-label-medium {
-  font-size: clamp(0.7rem, 1.5vw, 0.85rem);
-  text-align: center;
-  line-height: 1.2;
-  color: #e0e0e0;
-  white-space: pre-line;
-}
-
-.coming-soon-badge {
-  position: absolute;
-  bottom: -10px;
-  background: #FF9800;
-  color: #000;
-  font-size: 0.65rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-}
-
-/* Optimization Preview */
-.optimization-preview {
-  border-color: rgba(76, 175, 80, 0.5);
-}
-
-.preview-loading {
-  text-align: center;
-  padding: 2rem;
-}
-
-.spinner-large {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #4CAF50;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  color: #b0e0b3;
-  font-size: 0.95rem;
-}
-
-/* Start Button Container */
 .start-button-container {
   display: flex;
   align-items: center;
@@ -716,7 +598,10 @@ section {
   flex-wrap: wrap;
 }
 
-/* Start Button */
+/* ============================================================================
+   Start Button
+   ============================================================================ */
+
 .start-button {
   display: flex;
   align-items: center;
@@ -801,135 +686,238 @@ section {
   opacity: 0.3;
 }
 
-/* Output Frame */
-.output-frame {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.5);
-  cursor: pointer;
-  max-width: 100%;
-}
-
-.output-frame img,
-.output-frame video {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
+/* Safety Approved Stamp */
 .safety-stamp {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(76, 175, 80, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stamp-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
+  background: rgba(76, 175, 80, 0.15);
+  border: 2px solid #4CAF50;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes stamp-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.stamp-icon {
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  color: #4CAF50;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.stamp-text {
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+  font-weight: 700;
+  color: #4CAF50;
+  text-align: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================================
+   Output Frame (3 States)
+   ============================================================================ */
+
+.pipeline-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.output-frame {
+  width: 100%;
+  max-width: 1000px;
+  margin: clamp(1rem, 3vh, 2rem) auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 3vh, 2rem);
+  background: rgba(30, 30, 30, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: clamp(12px, 2vw, 20px);
+  transition: all 0.3s ease;
+}
+
+.output-frame.empty {
+  min-height: clamp(320px, 40vh, 450px);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(20, 20, 20, 0.5);
+}
+
+.output-frame.generating {
+  min-height: clamp(320px, 40vh, 450px);
+  border: 2px solid rgba(76, 175, 80, 0.6);
+  background: rgba(30, 30, 30, 0.9);
+  box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
+}
+
+/* Empty State */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  animation: stamp-appear 0.5s ease;
+  gap: 1rem;
+  opacity: 0.4;
 }
 
-@keyframes stamp-appear {
-  from {
-    transform: scale(0) rotate(-45deg);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
+.empty-icon {
+  font-size: clamp(3rem, 8vw, 5rem);
+  opacity: 0.5;
 }
 
-.stamp-inner {
-  font-size: 2rem;
-  color: white;
-  font-weight: 700;
+.empty-state p {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  margin: 0;
 }
 
-.stamp-text {
-  font-size: 0.6rem;
-  color: white;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-/* Retry Button */
-.retry-button {
-  margin-top: 1rem;
+/* Generation Animation Container */
+.generation-animation-container {
   width: 100%;
-  padding: 1rem;
-  background: rgba(255, 152, 0, 0.2);
-  border: 2px solid rgba(255, 152, 0, 0.5);
-  border-radius: 8px;
-  color: #FFB300;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
 }
 
-.retry-button:hover {
-  background: rgba(255, 152, 0, 0.3);
-  border-color: rgba(255, 152, 0, 0.7);
+/* Final Output */
+.final-output {
+  width: 100%;
+  text-align: center;
 }
 
-/* Fullscreen Modal */
+.output-image {
+  max-width: 100%;
+  max-height: clamp(300px, 40vh, 500px);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.output-image:hover {
+  transform: scale(1.02);
+}
+
+.output-video {
+  width: 100%;
+  max-height: 500px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.output-audio {
+  width: 100%;
+  max-height: 500px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================================
+   Fullscreen Modal
+   ============================================================================ */
+
 .fullscreen-modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
   background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
   cursor: pointer;
 }
 
-.fullscreen-modal img {
-  max-width: 95vw;
-  max-height: 95vh;
+.fullscreen-image {
+  max-width: 90vw;
+  max-height: 90vh;
   object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .close-fullscreen {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.5);
+  top: 2rem;
+  right: 2rem;
+  width: 4rem;
+  height: 4rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid white;
   color: white;
-  font-size: 1.5rem;
+  font-size: 2.5rem;
+  border-radius: 50%;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
 }
 
 .close-fullscreen:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
   transform: scale(1.1);
 }
 
-/* Responsive */
+/* ============================================================================
+   Transitions
+   ============================================================================ */
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+/* ============================================================================
+   Responsive: Mobile Adjustments
+   ============================================================================ */
+
 @media (max-width: 768px) {
   .category-bubbles-row {
     gap: 1rem;
   }
+}
 
-  .config-bubbles-row {
-    gap: 1rem;
+/* iPad 1024×768 Optimization */
+@media (min-width: 1024px) and (max-height: 768px) {
+  .phase-2a {
+    padding: 1.5rem;
+    gap: 1.25rem;
   }
 }
 </style>
