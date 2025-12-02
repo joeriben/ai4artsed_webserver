@@ -206,16 +206,46 @@
               <SpriteProgressAnimation :progress="generationProgress" />
             </div>
 
+            <!-- Empty State with inactive Actions -->
+            <div v-else-if="!outputImage" class="empty-with-actions">
+              <!-- Action Toolbar (inactive) -->
+              <div class="action-toolbar inactive">
+                <button class="action-btn" disabled title="Merken (Coming Soon)">
+                  <span class="action-icon">⭐</span>
+                </button>
+                <button class="action-btn" disabled title="Drucken">
+                  <span class="action-icon">🖨️</span>
+                </button>
+                <button class="action-btn" disabled title="Weiterreichen">
+                  <span class="action-icon">➡️</span>
+                </button>
+              </div>
+            </div>
+
             <!-- Final Output -->
             <div v-else-if="outputImage" class="final-output">
-              <!-- Image -->
-              <img
-                v-if="outputMediaType === 'image'"
-                :src="outputImage"
-                alt="Generiertes Bild"
-                class="output-image"
-                @click="showImageFullscreen(outputImage)"
-              />
+              <!-- Image with Actions -->
+              <div v-if="outputMediaType === 'image'" class="image-with-actions">
+                <img
+                  :src="outputImage"
+                  alt="Generiertes Bild"
+                  class="output-image"
+                  @click="showImageFullscreen(outputImage)"
+                />
+
+                <!-- Action Toolbar (vertical, right side) -->
+                <div class="action-toolbar">
+                  <button class="action-btn" @click="saveImage" disabled title="Merken (Coming Soon)">
+                    <span class="action-icon">⭐</span>
+                  </button>
+                  <button class="action-btn" @click="printImage" title="Drucken">
+                    <span class="action-icon">🖨️</span>
+                  </button>
+                  <button class="action-btn" @click="sendToI2I" title="Weiterreichen zu Bild-Transformation">
+                    <span class="action-icon">➡️</span>
+                  </button>
+                </div>
+              </div>
 
               <!-- Video -->
               <video
@@ -266,7 +296,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
@@ -458,6 +488,7 @@ const areModelBubblesEnabled = computed(() => {
 // ============================================================================
 
 const route = useRoute()
+const router = useRouter()
 const pipelineStore = usePipelineExecutionStore()
 
 // ============================================================================
@@ -823,6 +854,41 @@ function getP5jsIframeContent(): string {
 
 function showImageFullscreen(imageUrl: string) {
   fullscreenImage.value = imageUrl
+}
+
+// ============================================================================
+// Image Actions
+// ============================================================================
+
+function saveImage() {
+  // TODO: Implement save/bookmark feature
+  console.log('[Image Actions] Save image (not yet implemented)')
+  alert('Merken-Funktion kommt bald!')
+}
+
+function printImage() {
+  if (!outputImage.value) return
+
+  // Open image in new window and print
+  const printWindow = window.open(outputImage.value, '_blank')
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.print()
+    }
+  }
+}
+
+function sendToI2I() {
+  if (!outputImage.value || outputMediaType.value !== 'image') return
+
+  // Store image URL in localStorage for cross-component transfer
+  localStorage.setItem('i2i_transfer_image', outputImage.value)
+  localStorage.setItem('i2i_transfer_timestamp', Date.now().toString())
+
+  console.log('[Image Actions] Transferring to i2i:', outputImage.value)
+
+  // Navigate to image transformation
+  router.push('/image-transformation')
 }
 
 function handleContextPromptEdit() {
@@ -2044,6 +2110,92 @@ watch(optimizedPrompt, async () => {
   .phase-2a {
     padding: 1.5rem;
     gap: 1.25rem;
+  }
+}
+
+/* ============================================================================
+   Image Actions Toolbar
+   ============================================================================ */
+
+/* Empty State with Actions */
+.empty-with-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Image with Actions Container */
+.image-with-actions {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Action Toolbar (vertical, right side) */
+.action-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.action-toolbar.inactive {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Action Buttons */
+.action-btn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 30, 30, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.action-btn:hover:not(:disabled) {
+  border-color: rgba(102, 126, 234, 0.8);
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.1);
+}
+
+.action-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* Responsive: smaller buttons on mobile */
+@media (max-width: 768px) {
+  .action-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .action-icon {
+    font-size: 1.25rem;
   }
 }
 </style>
