@@ -188,14 +188,14 @@
         <!-- Section 5: Pipeline Path (always visible, inactive until generation starts) -->
         <section class="pipeline-section" ref="pipelineSectionRef">
           <!-- Output Frame (Always visible) -->
-          <div class="output-frame" :class="{ empty: !isPipelineExecuting && !outputImage, generating: isPipelineExecuting && !outputImage }">
+          <div class="output-frame" :class="{ empty: !isPipelineExecuting && !outputImage && !outputCode, generating: isPipelineExecuting && !outputImage && !outputCode }">
             <!-- Generation Progress Animation -->
-            <div v-if="isPipelineExecuting && !outputImage" class="generation-animation-container">
+            <div v-if="isPipelineExecuting && !outputImage && !outputCode" class="generation-animation-container">
               <SpriteProgressAnimation :progress="generationProgress" />
             </div>
 
             <!-- Final Output -->
-            <div v-else-if="outputImage" class="final-output">
+            <div v-else-if="outputImage || outputCode" class="final-output">
               <!-- Image -->
               <img
                 v-if="outputMediaType === 'image'"
@@ -625,6 +625,19 @@ async function runOptimization() {
       hasOptimization.value = response.data.optimization_applied || false
       executionPhase.value = 'optimization_done'
       console.log('[Optimize] Complete:', optimizedPrompt.value.substring(0, 60), '| Applied:', hasOptimization.value)
+
+      // Extract and display code for p5js_simplifier
+      if (selectedConfig.value === 'p5js_simplifier' && optimizedPrompt.value) {
+        // Clean markdown wrappers
+        let code = optimizedPrompt.value
+        code = code.replace(/```javascript\n?/g, '')
+                   .replace(/```js\n?/g, '')
+                   .replace(/```\n?/g, '')
+                   .trim()
+        outputCode.value = code
+        outputMediaType.value = 'code'
+        console.log('[Stage2-Code] Code extracted and displayed, length:', code.length)
+      }
     } else {
       alert(`Fehler: ${response.data.error}`)
     }
