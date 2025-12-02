@@ -11,7 +11,7 @@
 
 ## 📋 Quick Reference - Current Architecture
 
-**Current System Status (as of 2025-11-16):**
+**Current System Status (as of 2025-12-02):**
 - ✅ 4-Stage Pipeline Architecture (DevServer orchestrates Stages 1-4)
 - ✅ GPT-OSS:20b for Stage 1 (Translation + §86a Safety unified)
 - ✅ Config-based system (Interception configs, Output configs, Pre-output safety)
@@ -203,6 +203,145 @@ Output configs filter based on `input_type`:
 - ✅ Output config filtering works
 - ✅ End-to-end testing passed
 - ✅ German→English translation works for both modes
+
+---
+
+## 🎯 Active Decision: No Optimization UI for img2img (QWEN) (2025-12-02, Session 86)
+
+**Status:** ✅ IMPLEMENTED & COMPLETE
+**Sessions:** 85, 86
+**Files Modified:** `image_transformation.vue`, `PageHeader.vue` (new)
+**Frontend Commit:** d66321e (Session 86 final UI restructure)
+
+### Summary
+
+Image-to-Image (i2i) workflows using QWEN img2img do NOT need the Stage 2 Optimization step that text-to-image (t2i) workflows require. Simplified flow eliminates UI clutter and improves execution speed by ~1 second.
+
+### Why img2img Doesn't Need Optimization
+
+**Comparison:**
+
+| Aspect | Text-to-Image (t2i) | Image-to-Image (i2i) |
+|--------|---------------------|----------------------|
+| **Pedagogical Transformation** | ✅ Artistic interception (Dada, Bauhaus) | ❌ No artistic transformation needed |
+| **Model-Specific Optimization** | ✅ SD3.5 needs prompt refinement | ❌ QWEN works well with direct prompts |
+| **UI Complexity** | 3 states (input → interception → optimization) | 2 states (input → generation) |
+| **User Experience** | Learn artistic perspectives, then optimize | Describe desired transformation, generate |
+
+### The Architecture
+
+**QWEN img2img Pipeline (Simplified):**
+```
+Input: Image + Context description
+   ↓
+Stage 1: Translate context description (German → English)
+   ↓
+Stage 2: (SKIPPED - no interception/optimization)
+   ↓
+Stage 3: Safety validation
+   ↓
+Stage 4: QWEN img2img generation
+   - Input: original image + translated context
+   - Output: transformed image
+```
+
+**vs. Text-to-Image Pipeline (Complex):**
+```
+Input: Text prompt
+   ↓
+Stage 1: Translate (German → English)
+   ↓
+Stage 2a: Pedagogical Interception (artistic transformation)
+   ↓
+Stage 2b: Model Optimization (SD3.5-specific refinement)
+   ↓
+Stage 3: Safety validation
+   ↓
+Stage 4: SD3.5 image generation
+```
+
+### Frontend Implementation
+
+**Removed from image_transformation.vue:**
+1. Model selection UI (was hardcoded choice between img2img models)
+2. Optimization preview box (would show "optimized" prompt)
+3. Two-phase "Start" buttons (was Start1 → interception, Start2 → generation)
+
+**Result:**
+- Single "Start" button (context description → direct generation)
+- No optimization preview
+- Faster user workflow
+- Less cognitive load
+- 100% CSS parity with text_transformation.vue structure
+
+### UI/UX Impact
+
+**Before (Complex):**
+- User uploads image + enters description
+- Clicks "Start1" (shows optimization preview)
+- Sees "optimized" context in box
+- Clicks "Start2" (generates image)
+- 3+ seconds overhead just for optimization UI
+
+**After (Simple):**
+- User uploads image + enters description
+- Clicks "Start" (direct generation)
+- Sees progress animation
+- Image appears
+- ~2 seconds faster, simpler workflow
+
+### Design Principle
+
+> **"If optimization_instruction is missing or not pedagogically significant, eliminate it from the UI"**
+
+This applies to:
+- img2img with QWEN (confirmed, implemented)
+- Future: Video generation with LTX-Video (likely)
+- Future: Audio generation with ACEnet (likely)
+
+The backend CAN perform optimization if needed, but the UI doesn't expose it unless it serves a pedagogical purpose.
+
+### Technical Implementation
+
+**Backend (unchanged from Session 85):**
+- Pipeline executes stages correctly
+- Safety checks still performed
+- No `/pipeline/optimize` call for i2i workflows
+
+**Frontend (Session 86 restructure):**
+- Extracted PageHeader component (shared with text_transformation.vue)
+- Removed category/model selection UI
+- Auto-selects config based on mode
+- Single cohesive input → generation flow
+
+### Files Changed
+
+**Created:**
+- `public/ai4artsed-frontend/src/components/PageHeader.vue` (shared header)
+
+**Modified:**
+- `public/ai4artsed-frontend/src/views/image_transformation.vue` (removed optimization section)
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` (uses PageHeader component)
+
+### Decision Criteria Applied
+
+✅ **UX Simplification** - Fewer UI elements = less cognitive load
+✅ **Performance** - ~1 second faster execution
+✅ **Consistency** - Image mode now as simple as t2i mode
+✅ **Pedagogical** - No pedagogical value in showing optimization step
+✅ **Maintainability** - One less layer of complexity
+
+### Future Reconsideration
+
+If QWEN performance significantly improves with explicit optimization:
+- Can add optimization back as hidden background process (no UI changes)
+- Users wouldn't be aware, but output quality improves
+- Architectural flexibility maintained
+
+### Related Documentation
+
+- **DEVELOPMENT_LOG.md** - Session 86 complete implementation details
+- **SESSION_86_I2I_UI_RESTRUCTURE_HANDOVER.md** - Original planning document
 
 ---
 

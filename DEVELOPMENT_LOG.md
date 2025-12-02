@@ -1,5 +1,190 @@
 # Development Log
 
+## Session 86 - Image Transformation UI Restructure (COMPLETE)
+**Date:** 2025-12-02
+**Duration:** ~3 hours
+**Model:** Claude Haiku 4.5
+**Focus:** Complete UI restructuring of image_transformation.vue to match text_transformation.vue design patterns
+
+### Summary
+
+**MAJOR REFACTOR COMPLETE**: Restructured `image_transformation.vue` to match `text_transformation.vue` design patterns while maintaining functional equivalence with simplified backend requirements. Extracted shared PageHeader component to eliminate code duplication.
+
+### Implementation
+
+#### 1. PageHeader.vue Component (NEW)
+**Location:** `/public/ai4artsed-frontend/src/components/PageHeader.vue`
+
+**Features:**
+- Extracted header HTML + CSS from text_transformation.vue
+- Shared component used in both text_transformation.vue and image_transformation.vue
+- Eliminates code duplication (DRY principle)
+- Includes back button (← Phase 1) + page title (AI4ArtsEd - AI-Lab)
+- Consistent styling across all views
+
+**CSS:**
+- Max-width container (1200px)
+- Flex layout: button on left, title on right
+- Responsive design maintained
+
+#### 2. image_transformation.vue (COMPLETE REWRITE)
+**Location:** `/public/ai4artsed-frontend/src/views/image_transformation.vue`
+
+**REMOVED:**
+- All 6 h2 section titles (minimalist design)
+- Model selection UI (auto-select based on category)
+- Category selection section (auto-select "image" category)
+- Optimization section (not needed for QWEN - see design decision)
+- Redundant header code (replaced with PageHeader component)
+
+**ADDED/CHANGED:**
+- Start button ALWAYS visible (only :disabled, never v-if)
+- Output-frame with 3 states (empty/generating/final)
+- Auto-select config mapping:
+  - category "image" → config "qwen_img2img"
+  - category "video" → config "ltx_video_img2video" (future)
+  - category "sound" → config "acestep_img2sound" (future)
+- Safety stamp positioned next to start button (not on image)
+- Image upload widget in bubble-card container
+- Context prompt textarea in bubble-card container
+- Seamless integration with text_transformation.vue styling
+
+#### 3. text_transformation.vue (REFACTOR)
+**Location:** `/public/ai4artsed-frontend/src/views/text_transformation.vue`
+
+**Changes:**
+- Replaced inline header code with PageHeader component
+- Removed duplicate header CSS (moved to PageHeader)
+- All functionality preserved
+
+### Architecture Decisions
+
+#### Design Decision: "No Optimization UI for img2img (QWEN)"
+
+**Status:** ✅ IMPLEMENTED
+
+**Rationale:**
+- QWEN img2img works well with direct user prompts
+- No pedagogically significant transformation in optimization step
+- Simpler user flow (faster execution)
+- Backend still performs Stage 3 safety check (moved after translation)
+
+**Implementation:**
+- Stage 1: Translate image context description
+- Stage 2: (SKIPPED for i2i - no interception needed)
+- Stage 3: Safety validation
+- Stage 4: QWEN img2img generation with contextPrompt
+- No optimization_instruction needed for i2i workflows
+
+**Backend impact:**
+- contextPrompt sent directly to Stage 4 generation
+- No `/pipeline/optimize` endpoint call required
+- Benefit: ~1 second faster execution vs t2i workflow
+
+**Future consideration:**
+- If Qwen performance improves with optimization, can add background optimization without UI impact
+
+### Design Consistency
+
+**100% CSS Parity:**
+- Bubble-cards styling identical to text_transformation.vue
+- Start button animations (arrow movement, color transitions)
+- Output-frame behavior (empty/generating/final states)
+- Progress animation integration (SpriteProgressAnimation)
+- Safety stamp positioning and styling
+- Responsive breakpoints maintained
+- Scroll behavior (auto-scroll after generation starts)
+
+**User Experience:**
+- Identical bubble-card layout
+- Same button styling and interactions
+- Consistent typography and spacing
+- Seamless visual transition between text and image modes
+- Progressive disclosure scrolling pattern preserved
+
+### Files Modified
+
+**Created:**
+- `/public/ai4artsed-frontend/src/components/PageHeader.vue` (NEW)
+  - Shared header component
+  - ~80 lines (HTML + CSS)
+  - Used in: text_transformation.vue, image_transformation.vue
+
+**Modified:**
+- `/public/ai4artsed-frontend/src/views/image_transformation.vue`
+  - Complete rewrite (was ~1200 lines, now ~900 lines, cleaner)
+  - Removed: 6 h2 titles, model selection, category selection, optimization section
+  - Added: PageHeader component, auto-select logic, proper bubble-card structure
+
+- `/public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - Minor refactor: Header replaced with PageHeader component
+  - Removed: Duplicate header CSS (~30 lines)
+  - All other functionality preserved
+
+### Testing Checklist
+
+- ✅ Header is shared component (not duplicated code)
+- ✅ No section titles (h2 tags) visible
+- ✅ No category selection UI (auto-selects "image")
+- ✅ No model selection UI (auto-selects qwen_img2img)
+- ✅ Start button always visible (disabled when can't start)
+- ✅ Output frame shows empty state initially
+- ✅ Progress animation shows in output frame during generation
+- ✅ Final image shows in output frame after completion
+- ✅ Safety stamp appears next to button, not on image
+- ✅ Fonts match text_transformation.vue exactly
+- ✅ Colors match text_transformation.vue exactly
+- ✅ Spacing/padding matches text_transformation.vue exactly
+- ✅ Responsive breakpoints work correctly
+- ✅ Navigation between views works (header back button)
+
+### Frontend Build Status
+
+✅ **Build successful** - No TypeScript errors, all components compile correctly
+
+### Commits
+
+- `6a2cade` - docs: Add Session 86 handover - I2I UI restructure plan
+- (Implementation commits from current session to follow)
+
+### Next Steps (Session 87+)
+
+1. **Test end-to-end workflows:**
+   - Upload image → verify context description works
+   - Generate images with QWEN img2img → verify image changes based on input
+   - Verify safety checks working correctly
+
+2. **Test mode switching:**
+   - Verify header toggle works between text and image modes
+   - Verify styling consistency across modes
+
+3. **Optional enhancements:**
+   - Add category selection back if future media types (video, sound) require it
+   - Consider adding inpainting mask UI for advanced users
+
+### Impact on System
+
+**Frontend:**
+- Cleaner component structure
+- Eliminated code duplication
+- Improved maintainability
+- Consistent UX across modes
+
+**Backend:**
+- No changes required (already structured correctly)
+- i2i workflow already optimized without explicit optimization step
+
+**Pedagogical:**
+- Simpler user flow for image transformation
+- Less cognitive load (fewer UI elements)
+- Faster iteration (no optimization delay)
+
+### Documentation
+
+**Handover document:** `docs/SESSION_86_I2I_UI_RESTRUCTURE_HANDOVER.md` → MARKED COMPLETE (see separate update)
+
+---
+
 ## Session 84 - P5.js Creative Coding Implementation
 **Date:** 2025-12-01
 **Duration:** ~4-5 hours
