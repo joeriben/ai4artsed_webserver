@@ -100,6 +100,7 @@ html, body {
 }
 
 .header-content {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -108,6 +109,8 @@ html, body {
 }
 
 .header-left {
+  position: absolute;
+  left: 0;
   display: flex;
   justify-content: flex-start;
 }
