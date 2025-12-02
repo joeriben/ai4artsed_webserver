@@ -9,12 +9,51 @@ import asyncio
 from pathlib import Path
 import json
 
+from my_app.services.pipeline_recorder import load_recorder
+from config import JSON_STORAGE_DIR
+
 logger = logging.getLogger(__name__)
+
+
+def _find_entity_by_type(entities: list, media_type: str) -> dict:
+    """Find entity in entities array by media type."""
+    for entity in entities:
+        entity_type = entity.get('type', '')
+        if entity_type == f'output_{media_type}':
+            return entity
+    for entity in entities:
+        if entity.get('type') == media_type:
+            return entity
+    return None
+
+
+def _resolve_media_url_to_path(url_or_path: str) -> str:
+    """
+    Resolve media URL to filesystem path.
+
+    If input is a URL like /api/media/image/<run_id>, resolves to actual file path.
+    Otherwise returns the input unchanged.
+    """
+    if url_or_path.startswith('/api/media/image/'):
+        run_id = url_or_path.replace('/api/media/image/', '')
+        try:
+            recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+            if recorder:
+                image_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'image')
+                if image_entity:
+                    resolved_path = str(recorder.run_folder / image_entity['filename'])
+                    logger.info(f"[URL-RESOLVE] {url_or_path} → {resolved_path}")
+                    return resolved_path
+        except Exception as e:
+            logger.error(f"[URL-RESOLVE] Failed to resolve {url_or_path}: {e}")
+
+    return url_or_path
+
 
 class BackendType(Enum):
     """Backend-Typen"""
     OLLAMA = "ollama"
-    OPENROUTER = "openrouter" 
+    OPENROUTER = "openrouter"
     COMFYUI = "comfyui"
 
 @dataclass
@@ -703,7 +742,8 @@ class BackendRouter:
                 from pathlib import Path
 
                 image_mapping = input_mappings['input_image']
-                source_path = parameters['input_image']
+                # Resolve media URL to filesystem path if needed
+                source_path = _resolve_media_url_to_path(parameters['input_image'])
                 source_file = Path(source_path)
 
                 # Upload image via ComfyUI API
