@@ -392,8 +392,7 @@ function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPositio
    ============================================================================ */
 
 .image-transformation-view {
-  position: fixed;
-  inset: 0;
+  min-height: 100%;
   background: #0a0a0a;
   color: #ffffff;
   display: flex;

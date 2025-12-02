@@ -869,8 +869,7 @@ watch(optimizedPrompt, async () => {
    ============================================================================ */
 
 .text-transformation-view {
-  position: fixed;
-  inset: 0;
+  min-height: 100%;
   background: #0a0a0a;
   color: #ffffff;
   display: flex;
