@@ -645,8 +645,12 @@ async function runOptimization() {
       executionPhase.value = 'optimization_done'
       console.log('[Optimize] Complete:', optimizedPrompt.value.substring(0, 60), '| Applied:', hasOptimization.value)
 
-      // Extract and display code for p5js_simplifier
-      if (selectedConfig.value === 'p5js_simplifier' && optimizedPrompt.value) {
+      // Extract and display code if optimization result is JavaScript (content-based detection)
+      if (optimizedPrompt.value && (
+          optimizedPrompt.value.includes('```javascript') ||
+          optimizedPrompt.value.includes('function setup(') ||
+          optimizedPrompt.value.includes('function draw(')
+      )) {
         // Clean markdown wrappers
         let code = optimizedPrompt.value
         code = code.replace(/```javascript\n?/g, '')
@@ -655,7 +659,7 @@ async function runOptimization() {
                    .trim()
         outputCode.value = code
         outputMediaType.value = 'code'
-        console.log('[Stage2-Code] Code extracted and displayed, length:', code.length)
+        console.log('[Stage2-Code] Code detected and displayed, length:', code.length)
       }
     } else {
       alert(`Fehler: ${response.data.error}`)
@@ -765,17 +769,6 @@ async function executePipeline() {
         outputMediaType.value = mediaType
         outputImage.value = `/api/media/${mediaType}/${runId}`
         executionPhase.value = 'generation_done'
-
-        // Handle code output (p5.js, etc.)
-        if (mediaType === 'code' && response.data.media_output?.code) {
-          // Code is in the response - clean markdown wrappers
-          let code = response.data.media_output.code
-          code = code.replace(/```javascript\n?/g, '')
-                     .replace(/```js\n?/g, '')
-                     .replace(/```\n?/g, '')
-                     .trim()
-          outputCode.value = code
-        }
 
         // Session 82: Register session for chat overlay context
         updateSession(runId, {
