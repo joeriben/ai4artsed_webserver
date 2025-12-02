@@ -223,7 +223,7 @@
 
   "meta": {
     "img2img": true,
-    "estimated_duration_seconds": "5-10",
+    "estimated_duration_seconds": 23,
     "requires_gpu": true,
     "gpu_vram_mb": 10000,
     "model_files": {
@@ -239,6 +239,6 @@
       "2 MP (1440x1440)"
     ],
     "notes": "QWEN Image Edit Lightning: Ultra-fast 4-step image transformation. Uses specialized TextEncodeQwenImageEdit nodes that encode both prompt AND input image together. Auto-resizes to 1 megapixel. Supports text-guided editing (add/remove/transform objects). CFG=1 optimized for Lightning LoRA.",
-    "optimization_instruction": "Transform the INPUT TEXT into a clear, action-oriented editing instruction for QWEN Image Edit. Focus on SPECIFIC CHANGES to make: add objects, remove elements, change materials, adjust colors, modify composition. Use direct, imperative language (e.g., 'Remove the UI elements', 'Change water to lava', 'Add a rainbow in the sky'). Keep instructions concise (1-2 sentences max). QWEN understands natural language - no need for keyword stuffing. Preserve the semantic intent while making instructions clear and actionable. For multilingual input, keep the output in the SAME LANGUAGE as input."
+    "optimization_instruction": "Output a direct action command for QWEN Image Edit. Use imperative verbs (Transform, Add, Remove, Change, Modify). NO headers, NO labels, NO formatting - output ONLY the raw instruction. Examples: 'Transform into a pencil sketch', 'Add mountains in the background', 'Remove all text elements', 'Change the sky to sunset colors'. Keep it concise (1-2 sentences max). QWEN understands natural language. Preserve semantic intent. For multilingual input, output in the SAME LANGUAGE as input."
   }
 }

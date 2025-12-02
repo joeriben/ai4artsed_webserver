@@ -97,16 +97,16 @@
     </section>
 
     <!-- Section 4: Start Generation Button -->
-    <section v-if="canStartGeneration" class="start-section">
+    <section v-if="canStartGeneration" class="start-button-container">
       <button
         class="start-button"
         :class="{ disabled: !canStartGeneration || isPipelineExecuting }"
         :disabled="!canStartGeneration || isPipelineExecuting"
         @click="startGeneration"
       >
-        <span class="button-icon">🎨</span>
-        <span class="button-text">{{ isPipelineExecuting ? 'Generierung läuft...' : 'Bild transformieren' }}</span>
-        <span v-if="!isPipelineExecuting" class="button-arrow">→</span>
+        <span class="button-arrows button-arrows-left">&gt;&gt;&gt;</span>
+        <span class="button-text">{{ isPipelineExecuting ? 'Generierung läuft...' : 'Start' }}</span>
+        <span class="button-arrows button-arrows-right">&gt;&gt;&gt;</span>
       </button>
     </section>
 
@@ -132,12 +132,6 @@
           <span class="stamp-text">FREIGEGEBEN</span>
         </div>
       </div>
-
-      <!-- Retry Button -->
-      <button class="retry-button" @click="retryGeneration">
-        <span class="button-icon">🔄</span>
-        <span class="button-text">Nochmal mit anderem Seed</span>
-      </button>
     </section>
 
     <!-- Fullscreen Modal -->
@@ -222,7 +216,6 @@ const availableCategories: Category[] = [
 const configsByCategory: Record<string, Config[]> = {
   image: [
     // Local ComfyUI models only (DSGVO-compliant)
-    { id: 'sd35_large_img2img', label: 'SD3.5\nIMG2IMG', emoji: '🎨', color: '#2196F3', lightBg: false, disabled: true },
     { id: 'qwen_img2img', label: 'Qwen\nIMG2IMG', emoji: '🌟', color: '#FFC107', lightBg: true, disabled: false }
   ],
   video: [
@@ -368,6 +361,15 @@ async function startGeneration() {
   isPipelineExecuting.value = true
   generationProgress.value = 0
 
+  // Start progress simulation based on estimated duration (23 seconds for QWEN)
+  const estimatedDuration = 23000 // milliseconds
+  const progressIncrement = 90 / (estimatedDuration / 100) // Progress to 90% over estimated time
+  const progressInterval = setInterval(() => {
+    if (generationProgress.value < 90) {
+      generationProgress.value = Math.min(90, generationProgress.value + progressIncrement)
+    }
+  }, 100) // Update every 100ms
+
   // Phase 4: Intelligent seed logic
   const promptChanged = optimizedPrompt.value !== previousOptimizedPrompt.value
   if (promptChanged || currentSeed.value === null) {
@@ -391,7 +393,8 @@ async function startGeneration() {
     })
 
     if (response.data.status === 'success') {
-      // Complete progress
+      // Stop progress simulation and complete
+      clearInterval(progressInterval)
       generationProgress.value = 100
 
       // DEBUG: Log full response structure
@@ -430,24 +433,19 @@ async function startGeneration() {
         showSafetyApprovedStamp.value = true
       }
     } else {
+      clearInterval(progressInterval)
       alert(`Generation fehlgeschlagen: ${response.data.error}`)
       generationProgress.value = 0
     }
   } catch (error: any) {
+    clearInterval(progressInterval)
     console.error('[Generation] Error:', error)
     alert('Fehler bei der Generierung: ' + (error.response?.data?.error || error.message))
   } finally {
     isPipelineExecuting.value = false
-    generationProgress.value = 100
   }
 }
 
-function retryGeneration() {
-  // Force new seed
-  currentSeed.value = Math.floor(Math.random() * 1000000000)
-  console.log('[Retry] New seed:', currentSeed.value)
-  startGeneration()
-}
 
 // ============================================================================
 // FULLSCREEN
@@ -709,47 +707,98 @@ section {
   font-size: 0.95rem;
 }
 
-/* Start Button */
-.start-button {
-  width: 100%;
-  padding: 1.5rem 2rem;
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 1.3rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
+/* Start Button Container */
+.start-button-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+  gap: clamp(1rem, 3vw, 2rem);
+  flex-wrap: wrap;
 }
 
-.start-button:hover:not(.disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+/* Start Button */
+.start-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  padding: clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.5rem);
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-weight: 700;
+  background: #000000;
+  color: #FFB300;
+  border: 3px solid #FFB300;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(255, 179, 0, 0.4),
+              0 4px 15px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6);
+  transition: all 0.3s ease;
 }
 
-.start-button.disabled {
-  opacity: 0.5;
+.button-arrows {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+}
+
+.button-arrows-left {
+  animation: arrow-pulse-left 1.5s ease-in-out infinite;
+}
+
+.button-arrows-right {
+  animation: arrow-pulse-right 1.5s ease-in-out infinite;
+}
+
+.button-text {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+}
+
+@keyframes arrow-pulse-left {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes arrow-pulse-right {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+}
+
+.start-button:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 0 30px rgba(255, 179, 0, 0.6),
+              0 6px 25px rgba(0, 0, 0, 0.6);
+  border-color: #FF8F00;
+}
+
+.start-button:active {
+  transform: scale(0.98);
+}
+
+.start-button.disabled,
+.start-button:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.8);
+  box-shadow: none;
+  text-shadow: none;
 }
 
-.button-icon {
-  font-size: 1.5rem;
-}
-
-.button-arrow {
-  font-size: 1.8rem;
-  animation: arrow-pulse 1.5s infinite;
-}
-
-@keyframes arrow-pulse {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(5px); }
+.start-button.disabled .button-arrows,
+.start-button:disabled .button-arrows {
+  animation: none;
+  opacity: 0.3;
 }
 
 /* Output Frame */

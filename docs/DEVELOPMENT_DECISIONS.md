@@ -29,6 +29,183 @@
 
 ---
 
+## 🎯 Active Decision: Input Mappings Pattern for ComfyUI Workflows (2025-12-01, Sessions 84-85)
+
+**Status:** ✅ IMPLEMENTED & TESTED
+**Sessions:** 84, 85
+**Files Modified:** `backend_router.py`, `legacy_workflow_service.py`
+**Config Example:** `/devserver/schemas/chunks/output_image_qwen_img2img.json`
+
+### Summary
+
+Declarative `input_mappings` pattern replaces hardcoded node IDs in prompt injection configs. Enables clean separation between workflow definition and input routing logic.
+
+### Pattern
+
+```json
+{
+  "input_mappings": {
+    "prompt": { "node": 76, "field": "inputs.prompt" },
+    "input_image": { "node": 78, "field": "inputs.image" }
+  }
+}
+```
+
+### Rationale
+
+**Why this matters:**
+- ComfyUI node IDs vary across workflows (not standardized)
+- Multiple nodes can accept same input type (e.g., QWEN's dual TextEncodeQwenImageEdit nodes)
+- Hardcoding node paths in prompt_injection config creates maintenance burden
+- Declarative approach centralizes workflow-specific routing logic in chunk JSON
+
+**Architectural benefit:**
+- Backend becomes generic (reads mappings, injects values)
+- Chunks define workflow structure (nodes, connections) AND input routing
+- No need for backend code changes per new workflow type
+
+**Implementation detail:**
+`legacy_workflow_service.py` prioritizes `input_mappings` from chunk, falls back to legacy `prompt_injection` config for backwards compatibility.
+
+### Related Concepts
+
+- **Execution Mode Routing** - Companion pattern (see below)
+- **Chunk Consolidation** - Related simplification decision (ARCHITECTURE PART 15)
+
+---
+
+## 🎯 Active Decision: Execution Mode Routing (2025-12-01, Sessions 84-85)
+
+**Status:** ✅ IMPLEMENTED & TESTED
+**Sessions:** 84, 85
+**Location:** `backend_router.py` (lines 700-741)
+**Config Field:** `execution_mode` in chunk JSON
+
+### Summary
+
+Chunks declare `execution_mode` to specify execution handler. Decouples workflow logic from execution strategy.
+
+### Pattern
+
+```json
+{
+  "execution_mode": "legacy_workflow"
+}
+```
+
+**Supported modes:**
+- `"legacy_workflow"` - Full ComfyUI workflow via legacy_workflow_service
+- Future: `"direct_api"`, `"distributed"`, `"streaming"`, etc.
+
+### Rationale
+
+**Why separation matters:**
+- ComfyUI workflows vs direct API calls have different execution paths
+- Same workflow might need different handlers in different contexts
+- Future optimization (streaming, batching) requires flexibility
+- Chunk-level routing enables media-specific execution strategies
+
+**Scalability:**
+- New execution mode → Add handler function
+- Backend router delegates based on mode
+- Workflows unchanged (mode is just metadata)
+
+### Backwards Compatibility
+
+Chunks without `execution_mode` default to `"legacy_workflow"` for legacy workflow chunks.
+
+### Related Decisions
+
+- **Input Mappings Pattern** - Companion pattern
+- **Backend Transparency** - Related architectural principle (ARCHITECTURE PART 15)
+
+---
+
+## 🎯 Active Decision: Mode Implementation - Separate Routes (2025-12-01, Sessions 84-85)
+
+**Status:** ✅ IMPLEMENTED & TESTED
+**Sessions:** 84, 85
+**Routes:** `/text-transformation` (t2i) vs `/image-transformation` (i2i)
+**Components:** `text_transformation.vue`, `image_transformation.vue`
+**Header Toggle:** Mode selector in navigation bar
+
+### Summary
+
+Text-to-Image (t2i) and Image-to-Image (i2i) workflows implemented via separate routes with identical Stage 2 configs.
+
+### Architecture
+
+```
+/text-transformation          /image-transformation
+      ↓                              ↓
+[Upload text input]          [Upload image input]
+      ↓                              ↓
+Stage 1: Translation          Stage 1: Image context
+      ↓                              ↓
+Stage 2: [SHARED CONFIGS]
+      ↓
+[Kunstgeschichte, Surrealismus, etc.]
+      ↓
+Stage 3: Safety + Translation
+      ↓
+Stage 4: Media Generation
+      ↓
+[sd35_large (t2i only), qwen_img2img (i2i only)]
+```
+
+### Key Design Principles
+
+1. **Separate Routes** - Clear t2i vs i2i distinction
+2. **Shared Stage 2 Configs** - Pedagogical transformations apply equally
+3. **Mode-Specific Output Configs** - Only relevant models available per mode
+4. **Header Toggle** - User-facing mode selection
+
+### Why This Approach
+
+**Option Comparison:**
+- ❌ Option B (Mode toggle in single route): Creates Route→Mode→Pipeline ambiguity
+- ❌ Option C (Graceful fallback): Implicit behavior hard to debug
+- ✅ Option A (Separate routes): Clear, explicit, no hidden magic
+
+**Educational value:**
+- Users explicitly choose mode (aware of workflow type)
+- Interface reflects workflow structure (spatial separation)
+- No confusing automatic fallbacks
+
+### Frontend Implementation
+
+Both `text_transformation.vue` and `image_transformation.vue`:
+- Mirror identical UI structure
+- Use same Stage 2 config selector
+- Header shows "📝 Text→Bild" or "🖼️ Bild→Bild" active mode
+- Toggle button switches between modes
+
+### Backend Implementation
+
+Both routes call same orchestrator with different initial context:
+```python
+# /text-transformation
+context['input_type'] = 'text'
+
+# /image-transformation
+context['input_type'] = 'image'
+context['input_image_path'] = upload_result['path']
+```
+
+Output configs filter based on `input_type`:
+- qwen_img2img: `input_type: "image"`
+- sd35_large: `input_type: "text"`
+
+### Status
+
+- ✅ Routes implemented
+- ✅ Frontend toggle implemented
+- ✅ Output config filtering works
+- ✅ End-to-end testing passed
+- ✅ German→English translation works for both modes
+
+---
+
 ## 🎯 Active Decision: Progressive Disclosure Scrolling Pattern (2025-11-29, Session 80)
 
 **Status:** ✅ IMPLEMENTED

@@ -27,6 +27,217 @@
 
 ---
 
+## Sessions 84-85 (2025-12-01 to 2025-12-02): QWEN Image Edit i2i Implementation + Architecture Patterns
+
+**Date:** 2025-12-01 to 2025-12-02
+**Duration:** ~4 hours total (Sessions 84-85 combined)
+**Status:** ✅ COMPLETE - Full img2img implementation with architecture decisions documented
+**Branch:** develop
+**Commit:** 76e26b7
+**Commit Message:** "feat: Complete QWEN Image Edit i2i implementation (Session 84-85)"
+
+### Objective
+
+Implement production-ready image-to-image (img2img) workflow using QWEN Image Edit (Lightning 4-step) model, replacing non-functional SD3.5 img2img attempt. Define and implement three new architectural patterns for ComfyUI workflow integration.
+
+### Major Accomplishments
+
+#### 1. Input Mappings Pattern (Architecture)
+
+**Decision:** Declarative `input_mappings` in chunk JSON replaces hardcoded node IDs in prompt injection configs.
+
+**Example Pattern:**
+```json
+{
+  "input_mappings": {
+    "prompt": { "node": 76, "field": "inputs.prompt" },
+    "input_image": { "node": 78, "field": "inputs.image" }
+  }
+}
+```
+
+**Rationale:**
+- Enables clean separation between workflow definition and input routing logic
+- Supports complex workflows where multiple nodes accept same input type
+- More maintainable than legacy hardcoded node references
+
+**Implementation:** `legacy_workflow_service.py` (lines 126-176) prioritizes `input_mappings` from chunk, falls back to legacy `prompt_injection` for backwards compatibility
+
+**Files Modified:**
+- `devserver/my_app/engine/services/legacy_workflow_service.py`
+
+**Documentation:**
+- DEVELOPMENT_DECISIONS.md: "Input Mappings Pattern for ComfyUI Workflows"
+
+#### 2. Execution Mode Routing Pattern (Architecture)
+
+**Decision:** Chunks declare `execution_mode` to specify execution handler (legacy_workflow vs future alternatives).
+
+**Pattern:**
+```json
+{
+  "execution_mode": "legacy_workflow"
+}
+```
+
+**Supported Modes:**
+- `"legacy_workflow"` - Full ComfyUI workflow via legacy_workflow_service
+- Future: `"direct_api"`, `"distributed"`, `"streaming"`, etc.
+
+**Rationale:**
+- Decouples workflow logic from execution strategy
+- Enables future optimization paths (streaming, batching)
+- Chunk-level routing supports media-specific execution strategies
+
+**Implementation:** `backend_router.py` (lines 700-741) reads execution_mode and delegates accordingly
+
+**Files Modified:**
+- `devserver/my_app/routes/backend_router.py`
+
+**Documentation:**
+- DEVELOPMENT_DECISIONS.md: "Execution Mode Routing"
+
+#### 3. Mode Implementation - Separate Routes (Architecture)
+
+**Decision:** Text-to-Image (t2i) and Image-to-Image (i2i) workflows via separate routes (`/text-transformation` vs `/image-transformation`) with identical Stage 2 configs.
+
+**Architecture:**
+- Both routes use same pedagogical transformation configs (Stage 2)
+- Output config selection determines model (sd35_large for t2i, qwen_img2img for i2i)
+- Header toggle switches between modes
+
+**Rationale:**
+- Clear, explicit distinction between workflow types
+- No hidden automatic fallbacks
+- Users aware of workflow mode selection
+- Educational value: interface reflects workflow structure
+
+**Files Created:**
+- `public/ai4artsed-frontend/src/views/image_transformation.vue` (new i2i mode UI)
+
+**Files Modified:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` (mode toggle added)
+- `public/ai4artsed-frontend/src/components/Navigation.vue` (mode selector)
+
+**Documentation:**
+- DEVELOPMENT_DECISIONS.md: "Mode Implementation - Separate Routes"
+
+#### 4. ComfyUI Image Upload API Integration
+
+**Implementation:** Use ComfyUI's native `/upload/image` endpoint for img2img workflows instead of manual file copying.
+
+**Rationale:**
+- Leverages ComfyUI's built-in image management
+- Proper temporary file cleanup
+- Supports all ComfyUI image node types natively
+- More robust than manual file system operations
+
+**API Call Pattern:**
+```python
+response = requests.post(
+    f"{COMFYUI_BASE_URL}/upload/image",
+    files={"image": open(image_path, "rb")},
+    data={"overwrite": "false"}
+)
+image_name = response.json()["name"]
+```
+
+**Implementation Location:** `backend_router.py` (lines 700-741)
+
+**Files Modified:**
+- `devserver/my_app/routes/backend_router.py`
+
+#### 5. Configuration Files
+
+**New Files Created:**
+- `devserver/schemas/chunks/output_image_qwen_img2img.json` - Complete QWEN ComfyUI workflow
+- `devserver/schemas/configs/output/qwen_img2img.json` - Output config with Lightning parameters
+
+**Configuration Highlights:**
+- 4-step Lightning optimization
+- CFG scale = 1.0 (Lightning-optimized)
+- Denoise = 1.0 (full transformation)
+- Auto-scales to 1 megapixel
+- Dual TextEncodeQwenImageEdit nodes for positive/negative prompts
+
+#### 6. Model Downloads
+
+All models downloaded to `/home/joerissen/ai/SwarmUI/Models/`:
+- `diffusion_models/qwen_image_edit_fp8_e4m3fn.safetensors` (20 GB)
+- `loras/Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors` (811 MB)
+- `VAE/qwen_image_vae.safetensors` (already present)
+- `clip/qwen_2.5_vl_7b_fp8_scaled.safetensors` (already present)
+
+**Total:** 20.8 GB
+
+### Testing Completed
+
+- ✅ QWEN img2img workflow execution (full pipeline, 4 steps = ~8 seconds)
+- ✅ Image upload → ComfyUI `/upload/image` endpoint
+- ✅ Prompt injection into TextEncodeQwenImageEdit nodes (positive and negative)
+- ✅ Output image display in frontend modal
+- ✅ Retry with different seed (generates different outputs consistently)
+- ✅ Fullscreen modal functionality
+- ✅ Header toggle between modes (Text↔Image)
+- ✅ Round-trip: German prompt → English translation → QWEN generation
+
+### Key Files Modified/Created
+
+**Backend Changes:**
+- `devserver/my_app/routes/backend_router.py` - ComfyUI image upload + execution_mode routing
+- `devserver/my_app/engine/services/legacy_workflow_service.py` - input_mappings support
+
+**Frontend Changes:**
+- `public/ai4artsed-frontend/src/views/image_transformation.vue` - New i2i mode UI
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Mode toggle
+- `public/ai4artsed-frontend/src/components/Navigation.vue` - Mode selector button
+
+**Configuration Files:**
+- `devserver/schemas/chunks/output_image_qwen_img2img.json` - New chunk
+- `devserver/schemas/configs/output/qwen_img2img.json` - New output config
+
+### Architecture Decisions
+
+Four major architecture patterns established and documented:
+1. Input Mappings Pattern (declarative node routing)
+2. Execution Mode Routing (handler selection)
+3. Mode Implementation (separate routes with shared Stage 2)
+4. ComfyUI Image Upload API (native file handling)
+
+All documented in `DEVELOPMENT_DECISIONS.md` for future reference.
+
+### Known Limitations
+
+**QWEN Image Edit Model:**
+- Bilingual only (Chinese/English) - requires Stage 3 German→English translation
+- Best results with simple, descriptive prompts
+- Designed for editing (not complete image synthesis)
+- 4-step Lightning = ~8 seconds per image
+
+**Frontend:**
+- Mode toggle currently simple button (no persistence across sessions)
+- No model comparison for img2img (unlike t2i)
+
+### Lessons Learned
+
+1. **Architecture-First Approach Works** - Defined patterns BEFORE implementation prevented rework
+2. **Declarative Configuration Scales** - input_mappings pattern eliminates hardcoded backend changes per workflow
+3. **Separate Routes > Implicit Fallbacks** - Clear t2i/i2i distinction more maintainable than automatic detection
+4. **Stage 2 Generality** - Pedagogical transformations apply identically to t2i AND i2i workflows
+
+### Next Steps
+
+1. **Optional:** Add model comparison UI for img2img (mirrors t2i implementation)
+2. **Optional:** Persist mode selection in localStorage
+3. **Optional:** Add more i2i-capable models (ControlNet variants)
+4. **Monitoring:** Track img2img generation times and success rates in production
+
+### Status
+
+✅ PRODUCTION READY - All tests passing, architecture documented, ready for student deployment
+
+---
+
 ## Session 64 (2025-11-22): Stage 2 Endpoint Architecture Refactoring + Media-Specific Optimization
 
 **Date:** 2025-11-22
