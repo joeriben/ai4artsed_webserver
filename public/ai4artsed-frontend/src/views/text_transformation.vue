@@ -1397,7 +1397,6 @@ watch(optimizedPrompt, async () => {
 .optimization-preview.empty .bubble-textarea {
   background: rgba(0, 0, 0, 0.3);
   color: rgba(255, 255, 255, 0.5);
-  cursor: not-allowed;
 }
 
 .preview-loading {
