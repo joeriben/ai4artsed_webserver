@@ -138,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
@@ -384,6 +384,44 @@ function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPositio
     element.scrollIntoView({ behavior: 'smooth', block })
   }
 }
+
+// ============================================================================
+// Lifecycle - Load transferred image from text_transformation
+// ============================================================================
+
+onMounted(() => {
+  // Check if there's a transferred image from text_transformation (Weiterreichen)
+  const transferredImage = localStorage.getItem('i2i_transfer_image')
+  const transferTimestamp = localStorage.getItem('i2i_transfer_timestamp')
+
+  if (transferredImage && transferTimestamp) {
+    // Check if transfer is recent (within last 5 minutes)
+    const now = Date.now()
+    const timestamp = parseInt(transferTimestamp)
+    const fiveMinutes = 5 * 60 * 1000
+
+    if (now - timestamp < fiveMinutes) {
+      console.log('[i2i Transfer] Loading transferred image:', transferredImage)
+
+      // Set the image as if it was uploaded
+      uploadedImage.value = transferredImage
+      uploadedImagePath.value = transferredImage // Use same URL for path
+      uploadedImageId.value = `transferred_${timestamp}`
+      executionPhase.value = 'image_uploaded'
+
+      // Clear the transfer data
+      localStorage.removeItem('i2i_transfer_image')
+      localStorage.removeItem('i2i_transfer_timestamp')
+
+      console.log('[i2i Transfer] Image loaded successfully')
+    } else {
+      // Transfer expired, clean up
+      localStorage.removeItem('i2i_transfer_image')
+      localStorage.removeItem('i2i_transfer_timestamp')
+      console.log('[i2i Transfer] Transfer expired (>5 minutes old)')
+    }
+  }
+})
 </script>
 
 <style scoped>
