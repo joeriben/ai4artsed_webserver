@@ -170,6 +170,7 @@ const outputMediaType = ref<string>('image')
 const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
+const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
 
 // Refs
 const mainContainerRef = ref<HTMLElement | null>(null)
@@ -289,14 +290,44 @@ async function startGeneration() {
   await nextTick()
   setTimeout(() => scrollDownOnly(pipelineSectionRef.value, 'start'), 150)
 
-  // Start progress simulation based on estimated duration (23 seconds for QWEN)
-  const estimatedDuration = 23000 // milliseconds
-  const progressIncrement = 90 / (estimatedDuration / 100)
+  // Start progress simulation based on estimated duration from stage4-chunk
+
+  // Parse estimated_duration_seconds (handle ranges like "20-60" → use minimum 20)
+  let durationSeconds = 30  // fallback if parsing fails
+  const durationStr = estimatedDurationSeconds.value
+
+  if (durationStr.includes('-')) {
+    // Range value: "20-60" → use minimum
+    durationSeconds = parseInt(durationStr.split('-')[0])
+  } else {
+    durationSeconds = parseInt(durationStr)
+  }
+
+  // Handle instant completion (duration=0 → show 5-second animation for UX)
+  if (durationSeconds === 0 || isNaN(durationSeconds)) {
+    durationSeconds = 5
+  }
+
+  // Finish 10% before estimated time (more buffer for backend completion)
+  durationSeconds = durationSeconds * 0.9
+
+  console.log(`[Progress] Using ${durationSeconds}s animation (10% faster than estimate: "${durationStr}")`)
+
+  // Calculate progress to reach 98% at adjusted time (finishes ~10% early)
+  const targetProgress = 98
+  const updateInterval = 100  // Update every 100ms
+  const totalUpdates = (durationSeconds * 1000) / updateInterval
+  const progressPerUpdate = targetProgress / totalUpdates
+
   const progressInterval = setInterval(() => {
-    if (generationProgress.value < 90) {
-      generationProgress.value = Math.min(90, generationProgress.value + progressIncrement)
+    if (generationProgress.value < targetProgress) {
+      generationProgress.value += progressPerUpdate
+      if (generationProgress.value > targetProgress) {
+        generationProgress.value = targetProgress
+      }
     }
-  }, 100)
+    // Stop at 98%, backend completion will jump to 100%
+  }, updateInterval)
 
   // Phase 4: Intelligent seed logic
   const promptChanged = contextPrompt.value !== previousOptimizedPrompt.value

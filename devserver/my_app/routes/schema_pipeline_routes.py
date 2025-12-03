@@ -165,6 +165,44 @@ def _load_optimization_instruction(output_config_name: str):
     return None
 
 
+def _load_estimated_duration(output_config_name: str) -> str:
+    """Load estimated_duration_seconds from output chunk meta.
+
+    Returns:
+        String value like "20-60", "5-15", "0", or "30" (fallback)
+    """
+    try:
+        logger.info(f"[LOAD-DURATION] Loading estimated_duration_seconds for config '{output_config_name}'")
+
+        output_config_obj = pipeline_executor.config_loader.get_config(output_config_name)
+
+        if output_config_obj and hasattr(output_config_obj, 'parameters'):
+            output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
+
+            if output_chunk_name:
+                import json
+                from pathlib import Path
+
+                chunk_file = Path(__file__).parent.parent.parent / "schemas" / "chunks" / f"{output_chunk_name}.json"
+
+                if chunk_file.exists():
+                    with open(chunk_file, 'r', encoding='utf-8') as f:
+                        output_chunk = json.load(f)
+
+                    if output_chunk and 'meta' in output_chunk:
+                        duration = output_chunk['meta'].get('estimated_duration_seconds')
+                        if duration is not None:
+                            logger.info(f"[LOAD-DURATION] Found: {duration}")
+                            return str(duration)
+
+        logger.warning(f"[LOAD-DURATION] No duration found for '{output_config_name}', using fallback")
+        return "30"  # Fallback (default when optimization skipped)
+
+    except Exception as e:
+        logger.warning(f"[LOAD-DURATION] Failed to load duration: {e}")
+        return "30"  # Fallback
+
+
 def _build_stage2_result(interception_result: str, optimized_prompt: str, result1, optimization_instruction):
     """Build Stage2Result for backward compatibility."""
     from dataclasses import dataclass
@@ -857,10 +895,13 @@ def optimize_prompt():
         if not optimization_instruction:
             # No optimization available - return input unchanged
             logger.info(f"[OPTIMIZE-ENDPOINT] No optimization_instruction found for '{output_config}' - returning input unchanged")
+            # Load duration even when no optimization
+            estimated_duration = _load_estimated_duration(output_config)
             return jsonify({
                 'success': True,
                 'optimized_prompt': input_text,
                 'optimization_applied': False,
+                'estimated_duration_seconds': estimated_duration,
                 'execution_time_ms': int((time.time() - start_time) * 1000)
             })
 
@@ -877,10 +918,14 @@ def optimize_prompt():
 
         logger.info(f"[OPTIMIZE-ENDPOINT] Optimization complete ({execution_time}ms)")
 
+        # Load estimated_duration_seconds using same pattern as optimization_instruction
+        estimated_duration = _load_estimated_duration(output_config)
+
         return jsonify({
             'success': True,
             'optimized_prompt': optimized,
             'optimization_applied': True,
+            'estimated_duration_seconds': estimated_duration,
             'execution_time_ms': execution_time
         })
 

@@ -370,6 +370,7 @@ const outputCode = ref<string | null>(null) // For code output (p5.js, etc.)
 const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
+const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
 
 // Refs for DOM elements and scrolling
 const mainContainerRef = ref<HTMLElement | null>(null)
@@ -642,6 +643,8 @@ async function runOptimization() {
     if (response.data.success) {
       optimizedPrompt.value = response.data.optimized_prompt || ''
       hasOptimization.value = response.data.optimization_applied || false
+      estimatedDurationSeconds.value = response.data.estimated_duration_seconds || '30'  // Extract duration (30s fallback)
+      console.log('[Optimize] Estimated duration:', estimatedDurationSeconds.value)
       executionPhase.value = 'optimization_done'
       console.log('[Optimize] Complete:', optimizedPrompt.value.substring(0, 60), '| Applied:', hasOptimization.value)
 
@@ -724,14 +727,42 @@ async function executePipeline() {
 
   // Stage 2: Generation with progress simulation
 
+  // Parse estimated_duration_seconds (handle ranges like "20-60" → use minimum 20)
+  let durationSeconds = 30  // fallback if parsing fails
+  const durationStr = estimatedDurationSeconds.value
+
+  if (durationStr.includes('-')) {
+    // Range value: "20-60" → use minimum
+    durationSeconds = parseInt(durationStr.split('-')[0])
+  } else {
+    durationSeconds = parseInt(durationStr)
+  }
+
+  // Handle instant completion (duration=0 → show 5-second animation for UX)
+  if (durationSeconds === 0 || isNaN(durationSeconds)) {
+    durationSeconds = 5
+  }
+
+  // Finish 10% before estimated time (more buffer for backend completion)
+  durationSeconds = durationSeconds * 0.9
+
+  console.log(`[Progress] Using ${durationSeconds}s animation (10% faster than estimate: "${durationStr}")`)
+
+  // Calculate progress to reach 98% at adjusted time (finishes ~10% early)
+  const targetProgress = 98
+  const updateInterval = 100  // Update every 100ms
+  const totalUpdates = (durationSeconds * 1000) / updateInterval
+  const progressPerUpdate = targetProgress / totalUpdates
+
   const progressInterval = setInterval(() => {
-    if (generationProgress.value < 85) {
-      generationProgress.value += Math.random() * 15
-      if (generationProgress.value > 85) {
-        generationProgress.value = 85
+    if (generationProgress.value < targetProgress) {
+      generationProgress.value += progressPerUpdate
+      if (generationProgress.value > targetProgress) {
+        generationProgress.value = targetProgress
       }
     }
-  }, 500)
+    // Stop at 98%, backend completion will jump to 100%
+  }, updateInterval)
 
   try {
     const response = await axios.post('/api/schema/pipeline/execute', {
