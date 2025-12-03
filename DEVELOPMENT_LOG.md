@@ -1,5 +1,103 @@
 # Development Log
 
+## Session 89 - Audiovisual Feature (FAILED - REVERTED)
+**Date:** 2025-12-03
+**Duration:** ~6 hours
+**Focus:** Combine image + audio into single video output
+**Status:** COMPLETE FAILURE - All changes reverted
+
+### User Request
+Kids in surveys wanted image AND sound generated from a single prompt. User asked if this was possible with current system.
+
+### Approach Chosen
+Create new "audiovisual proxy" backend type that:
+1. Executes image chunk (SD3.5)
+2. Executes audio chunk (StableAudio)
+3. Combines via ffmpeg into video
+4. Returns single video file
+
+### Critical Mistakes Made by Claude
+
+#### 1. Failed to Understand Existing Architecture
+- **Mistake:** Assumed `View/local/raw/...` paths are filesystem paths
+- **Reality:** SwarmUI returns relative paths that must be accessed via HTTP API (`client.download_image()`)
+- **Impact:** Wasted hours trying filesystem path resolution instead of using existing download pattern
+
+#### 2. Incremental Patch Approach Instead of Understanding First
+- **Mistake:** Fixed each error one by one without understanding the full system
+- **Pattern:** Error → Quick fix → New error → Quick fix → ...
+- **Result:** ~15 incremental fixes, each revealing another problem
+- **Should have:** Read existing working code FIRST, understood the pattern, THEN implemented
+
+#### 3. Wrong Path Calculations (Multiple Times)
+- **Mistake 1:** Used `parent.parent.parent` instead of `parent.parent` for devserver root
+- **Mistake 2:** Assumed View/ maps to filesystem instead of HTTP endpoint
+- **Mistake 3:** Hardcoded SwarmUI path (`/home/joerissen/ai/SwarmUI/Output/`) as workaround
+- **Result:** Helper script not found, images not found - repeated failures
+
+#### 4. Ignored Existing Patterns
+- **Mistake:** Created custom path resolution logic instead of using `swarmui_client.download_image()`
+- **Existing Pattern:** `pipeline_recorder.py` lines 440-446 show correct approach
+- **Wasted Time:** Hours of debugging path issues that existing code already solved
+
+#### 5. Created Fat Central File Instead of Modular Helpers
+- **Mistake:** Initially put ~175 lines of audiovisual logic into backend_router.py
+- **User Feedback:** "wieso eigentlich immer alles im Router anstatt in selbstgemachten helper py?"
+- **Fix Attempted:** Extracted to `devserver/helpers/audiovisual_proxy.py` (but too late, code was already broken)
+
+#### 6. Module Import Errors
+- **Mistake:** Used `from devserver.helpers.audiovisual_proxy import ...`
+- **Reality:** `devserver` is not an importable package
+- **Should have:** Checked how other imports work in codebase (`from helpers.xxx` with sys.path manipulation)
+
+#### 7. Bytes vs String Confusion
+- **Mistake:** Assumed audio chunk returns file paths
+- **Reality:** Legacy workflow returns binary data in `media_files`
+- **Attempted Fix:** Detect bytes, save to temp file - but this was treating symptoms, not root cause
+
+#### 8. Template Variable Leak
+- **Mistake:** Passed `{{WIDTH}}`, `{{HEIGHT}}` template variables to sub-chunks
+- **Error:** `ValueError: invalid literal for int() with base 10: '{{WIDTH}}'`
+- **Fix:** Filtered out template variables - but this was a band-aid
+
+### Files Created (All to be deleted)
+- `devserver/helpers/audiovisual_proxy.py`
+- `devserver/scripts/combine_image_audio_to_video.py`
+- `devserver/schemas/chunks/output_audiovisual_sd35_stableaudio.json`
+- `devserver/schemas/chunks/output_audiovisual_qwen_acestep.json`
+- `devserver/schemas/configs/output/audiovisual_sd35_stableaudio.json`
+- `devserver/schemas/configs/output/audiovisual_qwen_acestep.json`
+
+### Files Modified (To be reverted)
+- `devserver/schemas/engine/backend_router.py`
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+
+### Lessons for Future
+1. **READ EXISTING CODE FIRST** - The pattern already exists in `pipeline_recorder.py`
+2. **Understand the data flow** - SwarmUI paths are HTTP endpoints, not filesystem paths
+3. **No incremental patches** - If 3+ fixes don't work, STOP and understand the system
+4. **Test assumptions early** - One quick test would have revealed View/ is HTTP-served
+5. **Keep central files thin** - Router should ONLY route, all logic in separate helpers
+6. **Follow existing import patterns** - Check how other files import before guessing
+
+### Time Breakdown
+- 11:00-12:00: Initial investigation, plan creation
+- 12:00-14:00: Implementation of backend_router changes, chunks, configs
+- 14:00-16:00: Debugging import errors, path errors, template variable errors
+- 16:00-21:30: Continuous patching, each fix revealing new problem
+- 21:30: User requested reset after ~15th failed fix attempt
+
+### User Quotes
+- "wieso eigentlich immer alles im Router anstatt in selbstgemachten helper py? die zentralen Dateien werden immer fetter"
+- "Was soll das??? Rumraten hier??"
+- "ALLE ANDEREN CHUNKS FINDEN IHR ZEUG, UND DU FAILST HIER SEIT STUNDEN FÜR EINE AUFGABE DIE LÄNGST IM CODE EXISTIERT"
+- "ja, träum weiter. Git reset"
+
+### Conclusion
+Complete failure due to not understanding the existing system before implementing. The solution existed in the codebase (`swarmui_client.download_image()`) but was ignored in favor of custom path resolution. This session demonstrates the importance of reading and understanding existing patterns before writing new code.
+
+---
+
 ## Session 88 - Image Transfer Fix (t2i → i2i) (COMPLETE)
 **Date:** 2025-12-03
 **Duration:** ~2 hours
