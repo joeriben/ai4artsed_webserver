@@ -2912,3 +2912,151 @@ def get_config_pipeline(config_id):
     except Exception as e:
         logger.error(f"Error loading pipeline metadata for config {config_id}: {e}")
         return jsonify({"error": f"Failed to load pipeline metadata: {str(e)}"}), 500
+
+
+@schema_compat_bp.route('/api/schema/pipeline/stage5', methods=['POST'])
+async def stage5_image_analysis():
+    """
+    Stage 5: Image Analysis & Pedagogical Reflection
+
+    Analyzes a generated image and provides pedagogical insights.
+    Standalone endpoint (not part of main pipeline execution).
+
+    This is a POST-GENERATION analysis tool, called on-demand by the user
+    after Stage 4 (media generation) completes.
+
+    Request Body:
+        {
+            "run_id": "run_abc123",
+            "media_type": "image",  # Currently only 'image' supported
+            "generated_prompt": "original prompt text",
+            "output_config": "sd35_large",  # Optional
+            "safety_level": "youth",  # Optional: 'kids', 'youth', 'open'
+            "language": "de"  # i18n: User's current language
+        }
+
+    Response:
+        {
+            "success": true,
+            "analysis": "Full analysis text...",
+            "reflection_prompts": ["Question 1", "Question 2", ...],
+            "insights": ["Theme 1", "Theme 2", ...]
+        }
+    """
+    try:
+        data = await request.get_json()
+        run_id = data.get('run_id')
+        media_type = data.get('media_type', 'image')
+        generated_prompt = data.get('generated_prompt', '')
+        safety_level = data.get('safety_level', 'youth')
+        language = data.get('language', 'en')
+
+        # Validation
+        if not run_id:
+            return jsonify({'success': False, 'error': 'Missing run_id'}), 400
+
+        if media_type != 'image':
+            return jsonify({
+                'success': False,
+                'error': 'Stage 5 only supports images. Other media types coming soon.'
+            }), 400
+
+        logger.info(f"[STAGE 5 API] Starting image analysis for run_id: {run_id}")
+
+        # 1. Load recorder and resolve image path
+        from my_app.services.pipeline_recorder import load_recorder
+        from config import JSON_STORAGE_DIR
+
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return jsonify({
+                'success': False,
+                'error': f'Run {run_id} not found'
+            }), 404
+
+        # Find image entity
+        def _find_entity_by_type(entities: list, media_type: str) -> dict:
+            """Find entity in entities array by media type"""
+            for entity in entities:
+                entity_type = entity.get('type', '')
+                if entity_type == f'output_{media_type}':
+                    return entity
+            for entity in entities:
+                if entity.get('type') == media_type:
+                    return entity
+            return None
+
+        image_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'image')
+        if not image_entity:
+            return jsonify({
+                'success': False,
+                'error': f'No image found for run {run_id}'
+            }), 404
+
+        # Get filesystem path
+        image_filename = image_entity['filename']
+        image_path = recorder.run_folder / image_filename
+
+        if not image_path.exists():
+            return jsonify({
+                'success': False,
+                'error': f'Image file not found: {image_filename}'
+            }), 404
+
+        logger.info(f"[STAGE 5 API] Image path resolved: {image_path}")
+
+        # 2. Load image as base64
+        import base64
+        with open(image_path, 'rb') as f:
+            image_bytes = f.read()
+            image_data = base64.b64encode(image_bytes).decode('utf-8')
+
+        logger.info(f"[STAGE 5 API] Image loaded: {len(image_bytes)} bytes")
+
+        # 3. Call Ollama with pedagogical analysis
+        from my_app.services.ollama_service import OllamaService
+
+        ollama = OllamaService()
+        result = ollama.analyze_image_pedagogical(
+            image_data=image_data,
+            original_prompt=generated_prompt,
+            safety_level=safety_level,
+            language=language
+        )
+
+        if not result['success']:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Analysis failed')
+            }), 500
+
+        logger.info(f"[STAGE 5 API] Analysis successful: {len(result['analysis'])} chars, {len(result['reflection_prompts'])} prompts")
+
+        # 4. Optional: Save to pipeline recorder for history (commented out for now)
+        # recorder.save_entity(
+        #     entity_type='stage5_analysis',
+        #     content=result['analysis'],
+        #     metadata={
+        #         'reflection_prompts': result['reflection_prompts'],
+        #         'insights': result['insights'],
+        #         'model': 'llama3.2-vision',
+        #         'timestamp': datetime.now().isoformat()
+        #     }
+        # )
+
+        # 5. Return analysis
+        return jsonify({
+            'success': True,
+            'analysis': result['analysis'],
+            'reflection_prompts': result['reflection_prompts'],
+            'insights': result['insights']
+        })
+
+    except Exception as e:
+        logger.error(f"[STAGE 5 API] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

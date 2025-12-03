@@ -219,9 +219,14 @@
                 <button class="action-btn" disabled title="Weiterreichen">
                   <span class="action-icon">➡️</span>
                 </button>
+                <button class="action-btn" disabled title="Herunterladen">
+                  <span class="action-icon">💾</span>
+                </button>
+                <button class="action-btn" disabled title="Bildanalyse">
+                  <span class="action-icon">🔍</span>
+                </button>
               </div>
             </div>
-
             <!-- Final Output -->
             <div v-else-if="outputImage" class="final-output">
               <!-- Image with Actions -->
@@ -235,7 +240,7 @@
 
                 <!-- Action Toolbar (vertical, right side) -->
                 <div class="action-toolbar">
-                  <button class="action-btn" @click="saveImage" disabled title="Merken (Coming Soon)">
+                  <button class="action-btn" @click="saveMedia" disabled title="Merken (Coming Soon)">
                     <span class="action-icon">⭐</span>
                   </button>
                   <button class="action-btn" @click="printImage" title="Drucken">
@@ -244,37 +249,122 @@
                   <button class="action-btn" @click="sendToI2I" title="Weiterreichen zu Bild-Transformation">
                     <span class="action-icon">➡️</span>
                   </button>
+                  <button class="action-btn" @click="downloadMedia" title="Herunterladen">
+                    <span class="action-icon">💾</span>
+                  </button>
+                  <button class="action-btn" @click="analyzeImage" :disabled="isAnalyzing" :title="isAnalyzing ? 'Analysiere...' : 'Bildanalyse'">
+                    <span class="action-icon">{{ isAnalyzing ? '⏳' : '🔍' }}</span>
+                  </button>
                 </div>
               </div>
 
-              <!-- Video -->
-              <video
-                v-else-if="outputMediaType === 'video'"
-                :src="outputImage"
-                controls
-                class="output-video"
-              />
+              <!-- Video with Actions -->
+              <div v-else-if="outputMediaType === 'video'" class="video-with-actions">
+                <video
+                  :src="outputImage"
+                  controls
+                  class="output-video"
+                />
 
-              <!-- Audio / Music -->
-              <audio
-                v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'"
-                :src="outputImage"
-                controls
-                class="output-audio"
-              />
-
-              <!-- 3D Model -->
-              <div v-else-if="outputMediaType === '3d'" class="model-container">
-                <div class="model-icon">🎨</div>
-                <a :href="outputImage" download class="download-button">3D-Modell herunterladen</a>
-                <p class="model-hint">Öffne mit Blender oder anderer 3D-Software</p>
+                <!-- Action Toolbar -->
+                <div class="action-toolbar">
+                  <button class="action-btn" @click="saveMedia" disabled title="Merken (Coming Soon)">
+                    <span class="action-icon">⭐</span>
+                  </button>
+                  <button class="action-btn" @click="downloadMedia" title="Herunterladen">
+                    <span class="action-icon">💾</span>
+                  </button>
+                </div>
               </div>
 
-              <!-- Fallback for unknown types -->
-              <div v-else class="unknown-media">
-                <a :href="outputImage" download class="download-button">Datei herunterladen</a>
+              <!-- Audio / Music with Actions -->
+              <div v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'" class="audio-with-actions">
+                <audio
+                  :src="outputImage"
+                  controls
+                  class="output-audio"
+                />
+
+                <!-- Action Toolbar -->
+                <div class="action-toolbar">
+                  <button class="action-btn" @click="saveMedia" disabled title="Merken (Coming Soon)">
+                    <span class="action-icon">⭐</span>
+                  </button>
+                  <button class="action-btn" @click="downloadMedia" title="Herunterladen">
+                    <span class="action-icon">💾</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3D Model with Actions -->
+              <div v-else-if="outputMediaType === '3d'" class="model-with-actions">
+                <div class="model-container">
+                  <div class="model-icon">🎨</div>
+                  <p class="model-hint">3D-Modell erstellt</p>
+                </div>
+
+                <!-- Action Toolbar -->
+                <div class="action-toolbar">
+                  <button class="action-btn" @click="saveMedia" disabled title="Merken (Coming Soon)">
+                    <span class="action-icon">⭐</span>
+                  </button>
+                  <button class="action-btn" @click="downloadMedia" title="Herunterladen">
+                    <span class="action-icon">💾</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Fallback for unknown types with Actions -->
+              <div v-else class="unknown-media-with-actions">
+                <div class="unknown-media">
+                  <p>Mediendatei erstellt</p>
+                </div>
+
+                <!-- Action Toolbar -->
+                <div class="action-toolbar">
+                  <button class="action-btn" @click="downloadMedia" title="Herunterladen">
+                    <span class="action-icon">💾</span>
+                  </button>
+                </div>
               </div>
             </div>
+
+            <!-- Stage 5: Image Analysis Section -->
+            <Transition name="analysis-expand">
+              <div v-if="showAnalysis && imageAnalysis" class="image-analysis-section">
+                <div class="analysis-header">
+                  <h3>🔍 {{ currentLanguage === 'de' ? 'Bildanalyse' : 'Image Analysis' }}</h3>
+                  <button class="collapse-btn" @click="showAnalysis = false" :title="currentLanguage === 'de' ? 'Schließen' : 'Close'">×</button>
+                </div>
+
+                <div class="analysis-content">
+                  <!-- Main Analysis Text -->
+                  <div class="analysis-main">
+                    <p class="analysis-text">{{ imageAnalysis.analysis }}</p>
+                  </div>
+
+                  <!-- Reflection Prompts -->
+                  <div v-if="imageAnalysis.reflection_prompts && imageAnalysis.reflection_prompts.length > 0" class="reflection-prompts">
+                    <h4>💬 {{ currentLanguage === 'de' ? 'Sprich mit Träshi über:' : 'Talk with Träshi about:' }}</h4>
+                    <ul>
+                      <li v-for="(prompt, idx) in imageAnalysis.reflection_prompts" :key="idx">
+                        {{ prompt }}
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- Insights (optional, for tag display) -->
+                  <div v-if="imageAnalysis.insights && imageAnalysis.insights.length > 0" class="analysis-insights">
+                    <h4>✨ {{ currentLanguage === 'de' ? 'Erkannte Themen:' : 'Identified Themes:' }}</h4>
+                    <div class="insight-tags">
+                      <span v-for="(insight, idx) in imageAnalysis.insights" :key="idx" class="insight-tag">
+                        {{ insight }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Transition>
 
           </div>
         </section>
@@ -882,12 +972,12 @@ function showImageFullscreen(imageUrl: string) {
 }
 
 // ============================================================================
-// Image Actions
+// Media Actions (Universal for all media types)
 // ============================================================================
 
-function saveImage() {
-  // TODO: Implement save/bookmark feature
-  console.log('[Image Actions] Save image (not yet implemented)')
+function saveMedia() {
+  // TODO: Implement save/bookmark feature for all media types
+  console.log('[Media Actions] Save media (not yet implemented):', outputMediaType.value)
   alert('Merken-Funktion kommt bald!')
 }
 
@@ -923,6 +1013,133 @@ function sendToI2I() {
 
   // Navigate to image transformation
   router.push('/image-transformation')
+}
+
+async function downloadMedia() {
+  if (!outputImage.value || !outputMediaType.value) return
+
+  try {
+    // Extract run_id from URL: /api/media/{type}/{run_id}
+    const runIdMatch = outputImage.value.match(/\/api\/media\/\w+\/(.+)$/)
+    const runId = runIdMatch ? runIdMatch[1] : 'media'
+
+    // Determine file extension based on media type
+    const extensions: Record<string, string> = {
+      'image': 'png',
+      'audio': 'mp3',
+      'video': 'mp4',
+      'music': 'mp3',
+      'code': 'js',
+      '3d': 'glb'
+    }
+    const ext = extensions[outputMediaType.value] || 'bin'
+    const filename = `ai4artsed_${runId}.${ext}`
+
+    // Special handling for code output (Blob from variable, not URL)
+    if (outputMediaType.value === 'code' && outputCode.value) {
+      const blob = new Blob([outputCode.value], { type: 'text/javascript' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
+      URL.revokeObjectURL(url)
+      console.log('[Download] Code downloaded:', filename)
+      return
+    }
+
+    // For binary media: Fetch and download
+    const response = await fetch(outputImage.value)
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`)
+    }
+
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(url)
+
+    console.log('[Download] Media downloaded:', filename)
+
+  } catch (error) {
+    console.error('[Download] Error:', error)
+    alert('Download fehlgeschlagen. Bitte versuche es erneut.')
+  }
+}
+
+// ============================================================================
+// Stage 5: Image Analysis (Pedagogical Reflection)
+// ============================================================================
+
+const isAnalyzing = ref(false)
+const imageAnalysis = ref<{
+  analysis: string
+  reflection_prompts: string[]
+  insights: string[]
+  success: boolean
+} | null>(null)
+const showAnalysis = ref(false)
+
+async function analyzeImage() {
+  if (!outputImage.value || outputMediaType.value !== 'image') {
+    console.warn('[Stage 5] Can only analyze images')
+    return
+  }
+
+  // Extract run_id from URL: /api/media/image/run_abc123
+  const runIdMatch = outputImage.value.match(/\/api\/media\/image\/(.+)$/)
+  const runId = runIdMatch ? runIdMatch[1] : null
+
+  if (!runId) {
+    alert('Error: Cannot determine image ID')
+    return
+  }
+
+  isAnalyzing.value = true
+  imageAnalysis.value = null
+  console.log('[Stage 5] Starting image analysis for run_id:', runId)
+
+  try {
+    const response = await fetch('/api/schema/pipeline/stage5', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        run_id: runId,
+        media_type: 'image',
+        generated_prompt: inputText.value,
+        safety_level: safetyLevel.value || 'youth',
+        language: currentLanguage.value || 'en'
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || `HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    if (data.success) {
+      imageAnalysis.value = data
+      showAnalysis.value = true
+      console.log('[Stage 5] Analysis complete:', {
+        analysis_length: data.analysis.length,
+        prompts_count: data.reflection_prompts.length,
+        insights_count: data.insights.length
+      })
+    } else {
+      throw new Error(data.error || 'Unknown error')
+    }
+
+  } catch (error: any) {
+    console.error('[Stage 5] Error:', error)
+    alert(`Image analysis failed: ${error.message || error}`)
+  } finally {
+    isAnalyzing.value = false
+  }
 }
 
 function handleContextPromptEdit() {
@@ -2169,6 +2386,33 @@ watch(optimizedPrompt, async () => {
   justify-content: center;
 }
 
+/* Universal Media with Actions Containers */
+.video-with-actions,
+.audio-with-actions,
+.model-with-actions,
+.unknown-media-with-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.video-with-actions .output-video,
+.audio-with-actions .output-audio {
+  flex: 1;
+  max-width: 800px;
+}
+
+.model-with-actions .model-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
 /* Action Toolbar (vertical, right side) */
 .action-toolbar {
   display: flex;
@@ -2221,8 +2465,19 @@ watch(optimizedPrompt, async () => {
   line-height: 1;
 }
 
-/* Responsive: smaller buttons on mobile */
+/* Responsive: Stack toolbar below media on mobile */
 @media (max-width: 768px) {
+  .video-with-actions,
+  .audio-with-actions,
+  .model-with-actions {
+    flex-direction: column;
+  }
+
+  .action-toolbar {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
   .action-btn {
     width: 40px;
     height: 40px;
@@ -2230,6 +2485,189 @@ watch(optimizedPrompt, async () => {
 
   .action-icon {
     font-size: 1.25rem;
+  }
+}
+
+/* ============================================================================
+   Stage 5: Image Analysis Section
+   ============================================================================ */
+
+.image-analysis-section {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(20, 20, 20, 0.95);
+  border: 2px solid rgba(102, 126, 234, 0.6);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+.analysis-header h3 {
+  margin: 0;
+  color: rgba(102, 126, 234, 1);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.collapse-btn {
+  width: 36px;
+  height: 36px;
+  background: rgba(30, 30, 30, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: white;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collapse-btn:hover {
+  border-color: rgba(255, 100, 100, 0.8);
+  background: rgba(255, 100, 100, 0.2);
+  transform: scale(1.1);
+}
+
+.analysis-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.analysis-main {
+  line-height: 1.8;
+}
+
+.analysis-text {
+  color: rgba(255, 255, 255, 0.95);
+  white-space: pre-wrap;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.reflection-prompts {
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-left: 4px solid rgba(102, 126, 234, 0.6);
+  border-radius: 8px;
+}
+
+.reflection-prompts h4 {
+  margin: 0 0 0.75rem 0;
+  color: rgba(102, 126, 234, 1);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.reflection-prompts ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.reflection-prompts li {
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+
+.reflection-prompts li:last-child {
+  margin-bottom: 0;
+}
+
+.analysis-insights {
+  padding: 1rem;
+  background: rgba(50, 50, 50, 0.5);
+  border-radius: 8px;
+}
+
+.analysis-insights h4 {
+  margin: 0 0 0.75rem 0;
+  color: rgba(255, 200, 100, 1);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.insight-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.insight-tag {
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.25);
+  border: 1px solid rgba(102, 126, 234, 0.5);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.95);
+  transition: all 0.3s ease;
+}
+
+.insight-tag:hover {
+  background: rgba(102, 126, 234, 0.35);
+  border-color: rgba(102, 126, 234, 0.7);
+}
+
+/* Analysis expand transition */
+.analysis-expand-enter-active {
+  transition: all 0.4s ease;
+}
+
+.analysis-expand-leave-active {
+  transition: all 0.3s ease;
+}
+
+.analysis-expand-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.analysis-expand-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .image-analysis-section {
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .analysis-header h3 {
+    font-size: 1rem;
+  }
+
+  .collapse-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 24px;
+  }
+
+  .analysis-text {
+    font-size: 0.9rem;
+  }
+
+  .reflection-prompts,
+  .analysis-insights {
+    padding: 0.75rem;
+  }
+
+  .insight-tag {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
   }
 }
 </style>

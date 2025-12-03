@@ -304,7 +304,298 @@ class OllamaService:
             logger.info("Ollama analysis successful.")
             return generated_text
         return None
-    
+
+    def analyze_image_pedagogical(self, image_data: str, original_prompt: str, safety_level: str = 'youth', language: str = 'en') -> Dict[str, Any]:
+        """
+        Stage 5: Pedagogical image analysis using LLaVA (llama3.2-vision)
+
+        Analyzes AI-generated image with focus on pedagogical reflection and learning outcomes.
+
+        Args:
+            image_data: Base64 encoded image data
+            original_prompt: Original prompt used to generate the image
+            safety_level: Safety level ('kids', 'youth', 'open') for age-appropriate language
+            language: Output language ('en', 'de', etc.) - respects i18n
+
+        Returns:
+            Dictionary with:
+            - 'analysis': str (Full analysis text in specified language)
+            - 'reflection_prompts': List[str] (3-5 conversation starters)
+            - 'insights': List[str] (Key themes/techniques identified)
+            - 'success': bool
+        """
+        # Remove data URL prefix if present
+        if ',' in image_data:
+            image_data = image_data.split(',', 1)[-1]
+
+        # Age-appropriate language based on safety level
+        age_mapping = {
+            'kids': ('8-12', 'children', 'Kinder'),
+            'youth': ('13-17', 'teenagers', 'Jugendliche'),
+            'open': ('16-18', 'young adults', 'junge Erwachsene')
+        }
+        age_range_en, audience_en, audience_de = age_mapping.get(safety_level, ('8-17', 'students', 'Schüler'))
+
+        # Language-specific prompts
+        if language == 'de':
+            pedagogical_prompt = f"""Du analysierst ein KI-generiertes Bild, das von einem Schüler (Alter: {age_range_en} Jahren) im Kunstunterricht erstellt wurde.
+
+ORIGINAL SCHÜLER-PROMPT: "{original_prompt}"
+
+Erstelle eine strukturierte Analyse nach diesem Schema:
+
+1. MATERIELLE UND MEDIALE EIGENSCHAFTEN
+   - Identifiziere den KI-Generierungsstil und visuelle Charakteristika
+   - Beschreibe die technische Umsetzung (Rendering, Textur, Beleuchtung)
+
+2. VORIKONOGRAPHISCHE BESCHREIBUNG
+   - Beschreibe ALLE sichtbaren Elemente: Objekte, Figuren, Räumlichkeit
+   - Analysiere Komposition, Farbgebung, Texturen, räumliche Beziehungen
+   - Beschreibe Perspektive und visuelle Struktur
+
+3. IKONOGRAPHISCHE ANALYSE
+   - Interpretiere symbolische Bedeutungen und künstlerische Techniken
+   - Erkläre, wie die KI den Schüler-Prompt interpretiert hat
+   - Identifiziere künstlerische Stile oder Referenzen
+
+4. IKONOLOGISCHE INTERPRETATION
+   - Reflektiere, wie die KI die kreative Vision des Schülers umgesetzt hat
+   - Diskutiere kulturelle und konzeptuelle Bedeutungen
+   - Bewerte die Beziehung zwischen Prompt und visueller Umsetzung
+
+5. PÄDAGOGISCHE REFLEXIONSFRAGEN
+   Generiere 3-5 konkrete Gesprächsanregungen:
+   - Fragen zu kreativen Entscheidungen und Intentionen
+   - Fragen zur KI-Interpretation des Prompts
+   - Fragen zu künstlerischen Techniken und Konzepten
+   - Fragen zu möglichen Verbesserungen oder Experimenten
+
+KRITISCHE REGELN:
+- Schreibe auf Deutsch
+- Verwende deklarative Sprache (als Fakten formulieren, nicht als Möglichkeiten)
+- Fokus auf Lernmöglichkeiten, nicht auf Kritik
+- Keine Phrasen wie "möglicherweise", "könnte sein", "schwer zu bestimmen"
+- Generiere spezifische, umsetzbare Reflexionsfragen
+
+FORMATIERUNG FÜR REFLEXIONSFRAGEN:
+Am Ende der Analyse füge einen eigenen Abschnitt hinzu:
+
+REFLEXIONSFRAGEN:
+- [Konkrete Frage 1]
+- [Konkrete Frage 2]
+- [Konkrete Frage 3]
+- [...]
+"""
+        else:  # English
+            pedagogical_prompt = f"""You are analyzing an AI-generated image created by a student (age: {age_range_en}) in an arts education context.
+
+ORIGINAL STUDENT PROMPT: "{original_prompt}"
+
+Provide a structured analysis following this framework:
+
+1. MATERIAL AND MEDIAL PROPERTIES
+   - Identify the AI generation style and visual characteristics
+   - Describe the technical implementation (rendering, texture, lighting)
+
+2. PRE-ICONOGRAPHIC DESCRIPTION
+   - Describe ALL visible elements: objects, figures, spatial relationships
+   - Analyze composition, color palette, textures, spatial structure
+   - Describe perspective and visual organization
+
+3. ICONOGRAPHIC ANALYSIS
+   - Interpret symbolic meanings and artistic techniques
+   - Explain how the AI interpreted the student's prompt
+   - Identify artistic styles or references
+
+4. ICONOLOGICAL INTERPRETATION
+   - Reflect on how the AI realized the student's creative vision
+   - Discuss cultural and conceptual meanings
+   - Evaluate the relationship between prompt and visual output
+
+5. PEDAGOGICAL REFLECTION QUESTIONS
+   Generate 3-5 specific conversation prompts:
+   - Questions about creative decisions and intentions
+   - Questions about the AI's interpretation
+   - Questions about artistic techniques and concepts
+   - Questions about possible improvements or experiments
+
+CRITICAL RULES:
+- Write in English
+- Use declarative language (state as facts, not possibilities)
+- Focus on learning opportunities, not critique
+- No phrases like "possibly", "might be", "difficult to determine"
+- Generate specific, actionable reflection questions
+
+FORMATTING FOR REFLECTION QUESTIONS:
+At the end of the analysis, add a dedicated section:
+
+REFLECTION QUESTIONS:
+- [Specific question 1]
+- [Specific question 2]
+- [Specific question 3]
+- [...]
+"""
+
+        try:
+            from config import IMAGE_ANALYSIS_MODEL
+
+            payload = {
+                "model": IMAGE_ANALYSIS_MODEL,
+                "prompt": pedagogical_prompt,
+                "images": [image_data],
+                "stream": False,
+                "options": {
+                    "temperature": 0.7,
+                    "num_predict": 2000  # Allow longer responses for detailed analysis
+                },
+                "keep_alive": "0s"  # Unload model after use (save VRAM)
+            }
+
+            logger.info(f"[STAGE 5] Sending image to {IMAGE_ANALYSIS_MODEL} for pedagogical analysis (language: {language})")
+            result = self._make_request("api/generate", payload)
+
+            if not result:
+                return {
+                    'analysis': '',
+                    'reflection_prompts': [],
+                    'insights': [],
+                    'success': False,
+                    'error': 'Ollama request failed'
+                }
+
+            analysis_text = result.get("response", "").strip()
+
+            if not analysis_text:
+                return {
+                    'analysis': '',
+                    'reflection_prompts': [],
+                    'insights': [],
+                    'success': False,
+                    'error': 'Empty analysis response'
+                }
+
+            logger.info(f"[STAGE 5] Analysis complete: {len(analysis_text)} chars")
+
+            # Extract reflection prompts from analysis
+            reflection_prompts = self._extract_reflection_prompts(analysis_text, language)
+
+            # Extract key insights (optional, for tag display)
+            insights = self._extract_insights(analysis_text, language)
+
+            return {
+                'analysis': analysis_text,
+                'reflection_prompts': reflection_prompts,
+                'insights': insights,
+                'success': True
+            }
+
+        except Exception as e:
+            logger.error(f"[STAGE 5] Pedagogical analysis error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'analysis': '',
+                'reflection_prompts': [],
+                'insights': [],
+                'success': False,
+                'error': str(e)
+            }
+
+    def _extract_reflection_prompts(self, analysis_text: str, language: str = 'en') -> list:
+        """
+        Extract reflection prompts from analysis text
+
+        Looks for section starting with "REFLEXIONSFRAGEN:" (DE) or "REFLECTION QUESTIONS:" (EN)
+        and extracts bullet points.
+
+        Args:
+            analysis_text: Full analysis text from vision model
+            language: Output language for fallback prompts
+
+        Returns:
+            List of reflection prompts (strings)
+        """
+        prompts = []
+
+        # Find section header based on language
+        section_header = "REFLEXIONSFRAGEN:" if language == 'de' else "REFLECTION QUESTIONS:"
+
+        if section_header in analysis_text:
+            # Split at section header
+            parts = analysis_text.split(section_header, 1)
+            if len(parts) > 1:
+                questions_section = parts[1].strip()
+
+                # Extract bullet points (lines starting with - or •)
+                lines = questions_section.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith('-') or line.startswith('•'):
+                        # Remove bullet point prefix
+                        question = line.lstrip('-•').strip()
+                        if question:
+                            prompts.append(question)
+
+        # Fallback: If no section found, generate generic prompts
+        if not prompts:
+            logger.warning("[STAGE 5] No reflection prompts found in analysis, using fallback")
+            if language == 'de':
+                prompts = [
+                    "Was war deine Hauptidee bei diesem Bild?",
+                    "Hat die KI deinen Prompt so umgesetzt, wie du es dir vorgestellt hast?",
+                    "Welche künstlerischen Techniken oder Stile siehst du in dem Bild?",
+                    "Was würdest du beim nächsten Mal anders machen?"
+                ]
+            else:
+                prompts = [
+                    "What was your main idea for this image?",
+                    "Did the AI implement your prompt as you imagined?",
+                    "What artistic techniques or styles do you see in the image?",
+                    "What would you do differently next time?"
+                ]
+
+        return prompts
+
+    def _extract_insights(self, analysis_text: str, language: str = 'en') -> list:
+        """
+        Extract key insights/themes from analysis for tag display
+
+        Simple keyword extraction looking for art historical terms.
+
+        Args:
+            analysis_text: Full analysis text
+            language: Analysis language (for keyword matching)
+
+        Returns:
+            List of short insight tags (max 5)
+        """
+        insights = []
+
+        # Language-specific keywords
+        if language == 'de':
+            keywords = [
+                'Perspektive', 'Komposition', 'Farbgebung', 'Symbolik',
+                'Realismus', 'Abstraktion', 'Surrealismus', 'Expressionismus',
+                'Licht und Schatten', 'Textur', 'Räumlichkeit', 'Figur',
+                'Landschaft', 'Portrait', 'Stillleben', 'Fantasy'
+            ]
+        else:
+            keywords = [
+                'Perspective', 'Composition', 'Color', 'Symbolism',
+                'Realism', 'Abstraction', 'Surrealism', 'Expressionism',
+                'Light and Shadow', 'Texture', 'Spatiality', 'Figure',
+                'Landscape', 'Portrait', 'Still Life', 'Fantasy'
+            ]
+
+        text_lower = analysis_text.lower()
+        for keyword in keywords:
+            if keyword.lower() in text_lower:
+                insights.append(keyword)
+                if len(insights) >= 5:
+                    break
+
+        return insights
+
     def validate_and_translate_prompt(self, prompt: str) -> Dict[str, Any]:
         """
         Validate and translate a prompt with caching

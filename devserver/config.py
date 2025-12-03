@@ -108,6 +108,9 @@ ANALYSIS_MODEL = "local/llama3.2-vision:latest"
 TRANSLATION_MODEL = GPT_OSS_MODEL  # GPT-OSS replaces mistral-nemo
 SAFETY_MODEL = GPT_OSS_MODEL
 
+# Stage 5: Image Analysis (Reflexions-Stage) - Post-Generation Analysis
+IMAGE_ANALYSIS_MODEL = "local/llama3.2-vision:latest"  # Reuses existing LLaVA model for pedagogical image analysis
+
 # Note: Stage 4 (output generation) models are defined in output configs (SD3.5, FLUX, etc.)
 
 # ============================================================================
