@@ -1103,15 +1103,15 @@ async function analyzeImage() {
   console.log('[Stage 5] Starting image analysis for run_id:', runId)
 
   try {
-    const response = await fetch('/api/schema/pipeline/stage5', {
+    // NEW: Call universal image analysis endpoint
+    const response = await fetch('/api/image/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         run_id: runId,
-        media_type: 'image',
-        generated_prompt: inputText.value,
-        safety_level: safetyLevel.value || 'youth',
-        language: currentLanguage.value || 'en'
+        analysis_type: 'bildwissenschaftlich'  // Default: Panofsky framework
+        // Can be changed to: bildungstheoretisch, ethisch, kritisch
+        // No prompt parameter = uses default from config.py
       })
     })
 
@@ -1122,14 +1122,16 @@ async function analyzeImage() {
 
     const data = await response.json()
 
-    if (data.success) {
-      imageAnalysis.value = data
+    if (data.success && data.analysis) {
+      // Parse analysis text into structured format
+      imageAnalysis.value = {
+        analysis: data.analysis,
+        reflection_prompts: extractReflectionPrompts(data.analysis),
+        insights: extractInsights(data.analysis),
+        success: true
+      }
       showAnalysis.value = true
-      console.log('[Stage 5] Analysis complete:', {
-        analysis_length: data.analysis.length,
-        prompts_count: data.reflection_prompts.length,
-        insights_count: data.insights.length
-      })
+      console.log('[Stage 5] Analysis complete')
     } else {
       throw new Error(data.error || 'Unknown error')
     }
@@ -1140,6 +1142,27 @@ async function analyzeImage() {
   } finally {
     isAnalyzing.value = false
   }
+}
+
+// Helper functions for parsing analysis text
+function extractReflectionPrompts(analysisText: string): string[] {
+  const match = analysisText.match(/REFLEXIONSFRAGEN:|REFLECTION QUESTIONS:([\s\S]*?)(?:\n\n|$)/i)
+  if (match) {
+    return match[1]
+      .split('\n')
+      .filter(line => line.trim().startsWith('-'))
+      .map(line => line.replace(/^-\s*/, '').trim())
+      .filter(q => q.length > 0)
+  }
+  return []
+}
+
+function extractInsights(analysisText: string): string[] {
+  const keywords = ['Komposition', 'Farbe', 'Licht', 'Perspektive', 'Stil',
+                   'Composition', 'Color', 'Light', 'Perspective', 'Style']
+  return keywords.filter(kw =>
+    analysisText.toLowerCase().includes(kw.toLowerCase())
+  )
 }
 
 function handleContextPromptEdit() {

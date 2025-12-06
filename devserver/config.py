@@ -111,6 +111,121 @@ SAFETY_MODEL = GPT_OSS_MODEL
 # Stage 5: Image Analysis (Reflexions-Stage) - Post-Generation Analysis
 IMAGE_ANALYSIS_MODEL = "local/llama3.2-vision:latest"  # Reuses existing LLaVA model for pedagogical image analysis
 
+# Stage 5: Image Analysis Prompts (4 Theoretical Frameworks)
+IMAGE_ANALYSIS_PROMPTS = {
+    'bildwissenschaftlich': {
+        # Panofsky - Art-historical analysis (4-stage iconological method)
+        'de': """Du analysierst ein KI-generiertes Bild im Kunstunterricht.
+
+Erstelle eine strukturierte Analyse nach diesem Schema:
+
+1. MATERIELLE UND MEDIALE EIGENSCHAFTEN
+   - Identifiziere den KI-Generierungsstil und visuelle Charakteristika
+   - Beschreibe die technische Umsetzung (Rendering, Textur, Beleuchtung)
+
+2. VORIKONOGRAPHISCHE BESCHREIBUNG
+   - Beschreibe ALLE sichtbaren Elemente: Objekte, Figuren, Räumlichkeit
+   - Analysiere Komposition, Farbgebung, Texturen, räumliche Beziehungen
+   - Beschreibe Perspektive und visuelle Struktur
+
+3. IKONOGRAPHISCHE ANALYSE
+   - Interpretiere symbolische Bedeutungen und künstlerische Techniken
+   - Identifiziere künstlerische Stile oder Referenzen
+
+4. IKONOLOGISCHE INTERPRETATION
+   - Diskutiere kulturelle und konzeptuelle Bedeutungen
+   - Reflektiere über die visuelle Umsetzung
+
+5. PÄDAGOGISCHE REFLEXIONSFRAGEN
+   Generiere 3-5 konkrete Gesprächsanregungen:
+   - Fragen zu kreativen Entscheidungen
+   - Fragen zu künstlerischen Techniken und Konzepten
+   - Fragen zu möglichen Experimenten
+
+KRITISCHE REGELN:
+- Schreibe auf Deutsch
+- Verwende deklarative Sprache (als Fakten formulieren, nicht als Möglichkeiten)
+- Fokus auf Lernmöglichkeiten, nicht auf Kritik
+- Keine Phrasen wie "möglicherweise", "könnte sein", "schwer zu bestimmen"
+- Generiere spezifische, umsetzbare Reflexionsfragen
+
+FORMATIERUNG FÜR REFLEXIONSFRAGEN:
+Am Ende der Analyse füge einen eigenen Abschnitt hinzu:
+
+REFLEXIONSFRAGEN:
+- [Konkrete Frage 1]
+- [Konkrete Frage 2]
+- [Konkrete Frage 3]
+- [...]""",
+        'en': """You are analyzing an AI-generated image in an arts education context.
+
+Provide a structured analysis following this framework:
+
+1. MATERIAL AND MEDIAL PROPERTIES
+   - Identify the AI generation style and visual characteristics
+   - Describe the technical implementation (rendering, texture, lighting)
+
+2. PRE-ICONOGRAPHIC DESCRIPTION
+   - Describe ALL visible elements: objects, figures, spatial relationships
+   - Analyze composition, color palette, textures, spatial structure
+   - Describe perspective and visual organization
+
+3. ICONOGRAPHIC ANALYSIS
+   - Interpret symbolic meanings and artistic techniques
+   - Identify artistic styles or references
+
+4. ICONOLOGICAL INTERPRETATION
+   - Discuss cultural and conceptual meanings
+   - Reflect on the visual realization
+
+5. PEDAGOGICAL REFLECTION QUESTIONS
+   Generate 3-5 specific conversation prompts:
+   - Questions about creative decisions
+   - Questions about artistic techniques and concepts
+   - Questions about possible experiments
+
+CRITICAL RULES:
+- Write in English
+- Use declarative language (state as facts, not possibilities)
+- Focus on learning opportunities, not critique
+- No phrases like "possibly", "might be", "difficult to determine"
+- Generate specific, actionable reflection questions
+
+FORMATTING FOR REFLECTION QUESTIONS:
+At the end of the analysis, add a dedicated section:
+
+REFLECTION QUESTIONS:
+- [Specific question 1]
+- [Specific question 2]
+- [Specific question 3]
+- [...]"""
+    },
+
+    'bildungstheoretisch': {
+        # Jörissen/Marotzki - Analysis of educational potentials (Bildungspotenziale)
+        'de': """TODO: User provides prompt for bildungstheoretisch analysis (DE)
+Jörissen/Marotzki framework - Analyse von Bildungspotenzialen""",
+        'en': """TODO: User provides prompt for bildungstheoretisch analysis (EN)
+Jörissen/Marotzki framework - Analysis of educational potentials"""
+    },
+
+    'ethisch': {
+        # Ethical analysis (see legacy → ethical advisor)
+        'de': """TODO: User provides prompt for ethisch analysis (DE)
+Ethische Bildanalyse""",
+        'en': """TODO: User provides prompt for ethisch analysis (EN)
+Ethical image analysis"""
+    },
+
+    'kritisch': {
+        # Decolonial & critical media studies
+        'de': """TODO: User provides prompt for kritisch analysis (DE)
+Dekoloniale & kritische Medienwissenschaft""",
+        'en': """TODO: User provides prompt for kritisch analysis (EN)
+Decolonial & critical media studies"""
+    }
+}
+
 # Note: Stage 4 (output generation) models are defined in output configs (SD3.5, FLUX, etc.)
 
 # ============================================================================
