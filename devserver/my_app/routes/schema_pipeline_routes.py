@@ -625,7 +625,7 @@ def execute_stage2():
         "stage2_result": "Ein roter Apfel in fragmentierter dadaistischer Form...",
         "run_id": "uuid",                      # Session ID for Stage 3-4
         "model_used": "llama3:8b",
-        "backend_used": "ollama",
+        "backend_type": "ollama",
         "execution_time_ms": 1234
     }
     """
@@ -793,13 +793,13 @@ def execute_stage2():
 
         # Extract metadata
         model_used = None
-        backend_used = None
+        backend_type = None
         if result.steps and len(result.steps) > 0:
             for step in reversed(result.steps):
                 if step.metadata:
                     model_used = step.metadata.get('model_used', model_used)
-                    backend_used = step.metadata.get('backend_type', backend_used)
-                    if model_used and backend_used:
+                    backend_type = step.metadata.get('backend_type', backend_type)
+                    if model_used and backend_type:
                         break
 
         # Generate session ID for Stage 3-4 continuation
@@ -815,7 +815,7 @@ def execute_stage2():
             'stage2_result': result.final_output,
             'run_id': run_id,
             'model_used': model_used,
-            'backend_used': backend_used,
+            'backend_type': backend_type,
             'execution_time_ms': total_time,
             'stage1_time_ms': stage1_time,
             'stage2_time_ms': stage2_time
@@ -1552,14 +1552,14 @@ def execute_pipeline():
 
             # Extract metadata from pipeline result
             model_used = None
-            backend_used = None
+            backend_type = None
             if result.steps and len(result.steps) > 0:
                 # Get metadata from last successful step
                 for step in reversed(result.steps):
                     if step.metadata:
                         model_used = step.metadata.get('model_used', model_used)
-                        backend_used = step.metadata.get('backend_type', backend_used)
-                        if model_used and backend_used:
+                        backend_type = step.metadata.get('backend_type', backend_type)
+                        if model_used and backend_type:
                             break
 
             # Get actual total_iterations from result metadata (for recursive pipelines like Stille Post)
@@ -1571,7 +1571,7 @@ def execute_pipeline():
                 total_iterations=total_iterations,
                 config_used=schema_name,
                 model_used=model_used,
-                backend_used=backend_used,
+                backend_type=backend_type,
                 execution_time=result.execution_time
             )
 
@@ -1580,7 +1580,7 @@ def execute_pipeline():
                 'config': schema_name,
                 'iterations': total_iterations,
                 'model_used': model_used,
-                'backend_used': backend_used
+                'backend_type': backend_type
             })
             logger.info(f"[RECORDER] Saved interception entity")
 
@@ -1765,7 +1765,7 @@ def execute_pipeline():
                         method=safety_result.get('method', 'hybrid'),
                         config_used=output_config_name,
                         model_used=safety_result.get('model_used'),
-                        backend_used=safety_result.get('backend_used'),
+                        backend_type=safety_result.get('backend_type'),
                         execution_time=safety_result.get('execution_time')
                     )
 
@@ -2161,7 +2161,7 @@ def execute_pipeline():
                                 config_used=output_config_name,
                                 file_path=run_id if media_stored else output_result.final_output,
                                 model_used=output_result.metadata.get('model_used', 'unknown'),
-                                backend_used=output_result.metadata.get('backend', 'comfyui'),
+                                backend_type=output_result.metadata.get('backend_type', 'comfyui'),
                                 metadata=output_result.metadata,
                                 execution_time=output_result.execution_time
                             )

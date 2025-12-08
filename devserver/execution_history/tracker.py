@@ -170,7 +170,7 @@ class ExecutionTracker:
         to_lang: str,
         model_used: str,
         execution_time: float,
-        backend_used: str = None
+        backend_type: str = None
     ):
         """Log translation result (Stage 1)"""
         try:
@@ -180,7 +180,7 @@ class ExecutionTracker:
                 item_type=ItemType.TRANSLATION_RESULT,
                 content=translated_text,
                 model_used=model_used,
-                backend_used=backend_used,
+                backend_type=backend_type,
                 execution_time=execution_time,
                 metadata={
                     'from_lang': from_lang,
@@ -274,7 +274,7 @@ class ExecutionTracker:
         total_iterations: int,
         config_used: str = None,
         model_used: str = None,
-        backend_used: str = None,
+        backend_type: str = None,
         execution_time: float = None
     ):
         """Log final interception result (Stage 2)"""
@@ -286,7 +286,7 @@ class ExecutionTracker:
                 content=final_text,
                 config_used=config_used,
                 model_used=model_used,
-                backend_used=backend_used,
+                backend_type=backend_type,
                 execution_time=execution_time,
                 metadata={
                     'total_iterations': total_iterations,
@@ -303,7 +303,7 @@ class ExecutionTracker:
         method: str,
         config_used: str,
         model_used: str = None,
-        backend_used: str = None,
+        backend_type: str = None,
         execution_time: float = None
     ):
         """Log Stage 3 pre-output safety check"""
@@ -316,7 +316,7 @@ class ExecutionTracker:
                 content=None,
                 config_used=config_used,
                 model_used=model_used,
-                backend_used=backend_used,
+                backend_type=backend_type,
                 execution_time=execution_time,
                 metadata={
                     'safe': safe,
@@ -357,7 +357,7 @@ class ExecutionTracker:
         config_used: str,
         file_path: str,
         model_used: str,
-        backend_used: str,
+        backend_type: str,
         metadata: Dict[str, Any],
         execution_time: float = None
     ):
@@ -371,7 +371,7 @@ class ExecutionTracker:
                 file_path=file_path,
                 config_used=config_used,
                 model_used=model_used,
-                backend_used=backend_used,
+                backend_type=backend_type,
                 execution_time=execution_time,
                 metadata=metadata  # width, height, seed, cfg_scale, steps, sampler, etc.
             )
@@ -384,7 +384,7 @@ class ExecutionTracker:
         config_used: str,
         file_path: str,
         model_used: str,
-        backend_used: str,
+        backend_type: str,
         metadata: Dict[str, Any],
         execution_time: float = None
     ):
@@ -398,7 +398,7 @@ class ExecutionTracker:
                 file_path=file_path,
                 config_used=config_used,
                 model_used=model_used,
-                backend_used=backend_used,
+                backend_type=backend_type,
                 execution_time=execution_time,
                 metadata=metadata  # duration, sample_rate, channels, format
             )
@@ -411,7 +411,7 @@ class ExecutionTracker:
         config_used: str,
         file_path: str,
         model_used: str,
-        backend_used: str,
+        backend_type: str,
         metadata: Dict[str, Any],
         execution_time: float = None
     ):
@@ -425,7 +425,7 @@ class ExecutionTracker:
                 file_path=file_path,
                 config_used=config_used,
                 model_used=model_used,
-                backend_used=backend_used,
+                backend_type=backend_type,
                 execution_time=execution_time,
                 metadata=metadata  # duration, genre, tempo, key, format
             )
@@ -514,7 +514,7 @@ class ExecutionTracker:
         file_path: Optional[str] = None,
         config_used: Optional[str] = None,
         model_used: Optional[str] = None,
-        backend_used: Optional[str] = None,
+        backend_type: Optional[str] = None,
         execution_time: Optional[float] = None,
         stage_iteration: Optional[int] = None,
         loop_iteration: Optional[int] = None,
@@ -539,7 +539,7 @@ class ExecutionTracker:
             file_path=file_path,
             config_used=config_used,
             model_used=model_used,
-            backend_used=backend_used,
+            backend_type=backend_type,
             execution_time=execution_time,
             metadata=metadata or {}
         )

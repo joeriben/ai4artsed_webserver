@@ -2,7 +2,7 @@
   "name": "output_image_qwen",
   "type": "output_chunk",
   "backend_type": "comfyui",
-  "media_type": "image",
+  "media_type": "image_workflow",
   "description": "Qwen Image - High quality image generation with Qwen 2.5 VL 7B",
 
   "workflow": {

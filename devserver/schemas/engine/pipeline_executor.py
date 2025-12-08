@@ -376,7 +376,7 @@ class PipelineExecutor:
 
                     # Extract metadata from step
                     model_used = step.metadata.get('model_used') if step.metadata else None
-                    backend_used = step.metadata.get('backend_type') if step.metadata else None
+                    backend_type = step.metadata.get('backend_type') if step.metadata else None
 
                     # Calculate iteration execution time (approximate from step timing)
                     iteration_time = time.time() - start_time - sum(

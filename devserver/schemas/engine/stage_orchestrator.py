@@ -548,7 +548,7 @@ async def execute_stage3_safety(
             "positive_prompt": translated_prompt,
             "negative_prompt": "",
             "model_used": None,
-            "backend_used": None,
+            "backend_type": None,
             "execution_time": translate_time + fast_check_time
         }
 
@@ -568,13 +568,13 @@ async def execute_stage3_safety(
 
     # Extract metadata from pipeline result
     model_used = None
-    backend_used = None
+    backend_type = None
     if result.steps and len(result.steps) > 0:
         for step in reversed(result.steps):
             if step.metadata:
                 model_used = step.metadata.get('model_used', model_used)
-                backend_used = step.metadata.get('backend_type', backend_used)
-                if model_used and backend_used:
+                backend_type = step.metadata.get('backend_type', backend_type)
+                if model_used and backend_type:
                     break
 
     if result.success:
@@ -594,7 +594,7 @@ async def execute_stage3_safety(
                 "negative_prompt": None,
                 "found_terms": found_terms,
                 "model_used": model_used,
-                "backend_used": backend_used,
+                "backend_type": backend_type,
                 "execution_time": llm_check_time
             }
         else:
@@ -610,7 +610,7 @@ async def execute_stage3_safety(
                 "found_terms": found_terms,
                 "false_positive": True,
                 "model_used": model_used,
-                "backend_used": backend_used,
+                "backend_type": backend_type,
                 "execution_time": translate_time + llm_check_time
             }
     else:
