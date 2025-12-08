@@ -124,7 +124,7 @@
     },
     "60": {
       "inputs": {
-        "filename_prefix": "ComfyUI",
+        "filename_prefix": "ai4artsed_qwen",
         "images": [
           "8",
           0
