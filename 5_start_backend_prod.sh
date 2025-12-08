@@ -7,6 +7,14 @@ BACKEND_PORT=17801
 # Get directory where this script lives
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Safety check: Only run from 'production' directory
+if [[ ! "$SCRIPT_DIR" =~ "production" ]]; then
+    echo "❌ ERROR: This production script can only be run from a directory containing 'production' in its path."
+    echo "   Current directory: $SCRIPT_DIR"
+    echo "   Expected: Path must contain 'production' (e.g., ~/ai/ai4artsed_production)"
+    exit 1
+fi
+
 echo "=== AI4ArtsEd Backend (Production) ==="
 echo ""
 
