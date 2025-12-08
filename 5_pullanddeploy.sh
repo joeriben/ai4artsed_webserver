@@ -2,6 +2,17 @@
 # Pull latest code from main branch and deploy in production
 # Automates Steps 4 & 5 from DEPLOYMENT.md
 
+# Ensure script runs in a terminal window
+if [ ! -t 0 ]; then
+    # Not running in terminal, launch in one
+    gnome-terminal -- bash -c "$0; exec bash" || xterm -e "$0; exec bash" || konsole -e "$0; exec bash"
+    exit 0
+fi
+
+# Error handler - pause on any error
+trap 'echo ""; echo "❌ ERROR: Command failed! (exit code: $?)"; echo ""; read -n 1 -s -r -p "Press any key to close..."; exit 1' ERR
+set -e  # Exit on error
+
 # Get directory where this script lives
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -19,16 +30,7 @@ echo ""
 # Step 4: Pull latest code from main
 echo "📥 Step 4: Pulling latest code from main branch..."
 git checkout main
-if [ $? -ne 0 ]; then
-    echo "❌ ERROR: Failed to checkout main branch"
-    exit 1
-fi
-
 git pull origin main
-if [ $? -ne 0 ]; then
-    echo "❌ ERROR: Failed to pull from origin main"
-    exit 1
-fi
 echo "✅ Code updated successfully"
 echo ""
 
@@ -36,32 +38,15 @@ echo ""
 echo "🔨 Step 5a: Building frontend..."
 cd "$SCRIPT_DIR/public/ai4artsed-frontend"
 npm run build
-if [ $? -ne 0 ]; then
-    echo "❌ ERROR: Frontend build failed"
-    exit 1
-fi
 echo "✅ Frontend built successfully"
 echo ""
 
 echo "🚀 Step 5b: Restarting production backend..."
-cd "$SCRIPT_DIR"
-
-# Check if backend is already running and kill it
-BACKEND_PORT=17801
-if lsof -ti:${BACKEND_PORT} > /dev/null 2>&1; then
-    echo "Stopping existing backend on port ${BACKEND_PORT}..."
-    lsof -ti:${BACKEND_PORT} | xargs -r kill -9
-    sleep 2
-    echo "✅ Existing backend stopped"
-fi
-
+echo "Now manually restart the backend from the _production folder using 5_start_backend_prod.sh"
 echo ""
-echo "✅ Deployment completed successfully!"
-echo "🌐 Starting production backend..."
-echo "   Verify at: https://lab.ai4artsed.org/"
+echo "✅ Deployment completed!"
 echo ""
-echo "Press Ctrl+C to stop the backend"
+echo "================================================"
+read -n 1 -s -r -p "Press any key to close this window..."
 echo ""
-
-# Start production backend (runs in foreground)
-./5_start_backend_prod.sh
+exec bash
