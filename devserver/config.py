@@ -467,3 +467,73 @@ FIXED_WORKFLOW = "model/ai4artsed_Stable-Diffusion-3.5_2507152202.json"  # Only 
 # System mode: Random workflow selection from specified folders
 # These correspond directly to folder names under /workflows_legacy/
 SYSTEM_WORKFLOW_FOLDERS = ["aesthetics", "semantics", "arts"]
+
+# ============================================================================
+# HARDWARE PRESETS - Machine-specific model configuration
+# ============================================================================
+# Each machine can create devserver/user_settings.json with "hardware_preset" key
+# This allows different model configurations per machine without modifying config.py
+
+HARDWARE_PRESETS = {
+    "vram_96": {
+        "label": "96GB Blackwell - Universal Model",
+        "models": {
+            "STAGE1_TEXT_MODEL": "ollama/llama3.2-vision:90b",
+            "STAGE1_VISION_MODEL": "ollama/llama3.2-vision:90b",
+            "STAGE2_INTERCEPTION_MODEL": "ollama/llama3.2-vision:90b",
+            "STAGE2_OPTIMIZATION_MODEL": "ollama/llama3.2-vision:90b",
+            "STAGE3_MODEL": "ollama/llama3.2-vision:90b",
+            "STAGE4_LEGACY_MODEL": "ollama/llama3.2-vision:90b",
+            "CHAT_HELPER_MODEL": "ollama/llama3.2-vision:90b",
+            "IMAGE_ANALYSIS_MODEL": "ollama/llama3.2-vision:90b"
+        }
+    },
+    "vram_24": {
+        "label": "24GB RTX 4090 - Separated Models",
+        "models": {
+            "STAGE1_TEXT_MODEL": "ollama/mistral-nemo",
+            "STAGE1_VISION_MODEL": "ollama/llama3.2-vision:11b",
+            "STAGE2_INTERCEPTION_MODEL": "ollama/mistral-nemo",
+            "STAGE2_OPTIMIZATION_MODEL": "ollama/mistral-nemo",
+            "STAGE3_MODEL": "ollama/mistral-nemo",
+            "STAGE4_LEGACY_MODEL": "ollama/mistral-nemo",
+            "CHAT_HELPER_MODEL": "ollama/mistral-nemo",
+            "IMAGE_ANALYSIS_MODEL": "ollama/llama3.2-vision:11b"
+        }
+    }
+}
+
+def _load_hardware_preset():
+    """
+    Load hardware preset from user_settings.json if exists.
+    Overrides model variables defined above.
+    """
+    try:
+        import json
+        from pathlib import Path
+        settings_file = Path(__file__).parent / "user_settings.json"
+
+        if settings_file.exists():
+            with open(settings_file) as f:
+                data = json.load(f)
+                preset_id = data.get("hardware_preset")
+
+                if preset_id and preset_id in HARDWARE_PRESETS:
+                    preset = HARDWARE_PRESETS[preset_id]
+                    print(f"[CONFIG] Loading hardware preset: {preset['label']}")
+
+                    # Override model variables
+                    for key, value in preset["models"].items():
+                        globals()[key] = value
+
+                    print(f"[CONFIG] Hardware preset '{preset_id}' applied successfully")
+                else:
+                    print(f"[CONFIG] No valid hardware preset found in user_settings.json")
+        else:
+            print("[CONFIG] No user_settings.json found, using default config")
+
+    except Exception as e:
+        print(f"[CONFIG] Could not load hardware preset: {e}")
+
+# Apply preset on module load
+_load_hardware_preset()

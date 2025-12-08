@@ -58,6 +58,9 @@ ehthumbs.db
 api_keys.json
 devserver/api_keys.json
 
+# Machine-specific hardware configuration (Session 93+)
+devserver/user_settings.json
+
 # -------------------------------------
 # Exported media/research data
 exports/

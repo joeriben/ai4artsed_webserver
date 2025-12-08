@@ -3,12 +3,13 @@
 
     <div class="phase-2a" ref="mainContainerRef">
 
-      <!-- Section 1: Image Upload (Bubble Card) -->
-      <section class="image-upload-section">
-        <div class="image-bubble bubble-card" :class="{ filled: uploadedImage }">
+      <!-- Section 1: Image Upload + Context (Side by Side) -->
+      <section class="input-context-section">
+        <!-- Image Upload Bubble (LEFT) -->
+        <div class="input-bubble bubble-card" :class="{ filled: uploadedImage }">
           <div class="bubble-header">
-            <span class="bubble-icon">🖼️</span>
-            <span class="bubble-label">Lade dein Bild hoch</span>
+            <span class="bubble-icon">💡</span>
+            <span class="bubble-label">Dein kreatives Bild</span>
           </div>
           <ImageUploadWidget
             :initial-image="uploadedImage"
@@ -16,21 +17,24 @@
             @image-removed="handleImageRemove"
           />
         </div>
-      </section>
 
-      <!-- Section 2: Context Prompt (Bubble Card) -->
-      <section v-if="uploadedImage" class="context-section">
+        <!-- Context Bubble (RIGHT) -->
         <div class="context-bubble bubble-card" :class="{ filled: contextPrompt, required: !contextPrompt }">
           <div class="bubble-header">
             <span class="bubble-icon">📋</span>
-            <span class="bubble-label">Wie soll das Bild verändert werden?</span>
+            <span class="bubble-label">Bestimme Regeln, Material, Besonderheiten</span>
+            <div class="bubble-actions">
+              <button @click="copyContextPrompt" class="action-btn" title="Kopieren">📋</button>
+              <button @click="pasteContextPrompt" class="action-btn" title="Einfügen">📄</button>
+              <button @click="clearContextPrompt" class="action-btn" title="Löschen">🗑️</button>
+            </div>
           </div>
           <textarea
             v-model="contextPrompt"
             @input="handleContextPromptEdit"
             placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
             class="bubble-textarea"
-            rows="4"
+            rows="6"
           ></textarea>
         </div>
       </section>
@@ -140,9 +144,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 
 // ============================================================================
 // STATE
@@ -418,11 +424,79 @@ function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPositio
 }
 
 // ============================================================================
-// Lifecycle - Load transferred image from text_transformation
+// Route handling & Store
 // ============================================================================
 
-onMounted(() => {
-  // Check if there's a transferred image from text_transformation (Weiterreichen)
+const route = useRoute()
+const pipelineStore = usePipelineExecutionStore()
+
+// ============================================================================
+// Textbox Actions (Copy/Paste/Delete)
+// ============================================================================
+
+async function copyContextPrompt() {
+  try {
+    await navigator.clipboard.writeText(contextPrompt.value)
+    console.log('[I2I] Context prompt copied to clipboard')
+  } catch (error) {
+    console.error('[I2I] Failed to copy:', error)
+  }
+}
+
+async function pasteContextPrompt() {
+  try {
+    const text = await navigator.clipboard.readText()
+    contextPrompt.value = text
+    console.log('[I2I] Text pasted into context')
+  } catch (error) {
+    console.error('[I2I] Failed to paste:', error)
+  }
+}
+
+function clearContextPrompt() {
+  contextPrompt.value = ''
+  sessionStorage.removeItem('i2i_context_prompt')
+  console.log('[I2I] Context prompt cleared')
+}
+
+// ============================================================================
+// Lifecycle - sessionStorage persistence + Phase1 config loading
+// ============================================================================
+
+onMounted(async () => {
+  // UNIFIED PATTERN: Always restore ALL boxes from storage first
+  const savedContext = sessionStorage.getItem('i2i_context_prompt')
+  if (savedContext) {
+    contextPrompt.value = savedContext
+    console.log('[I2I] Restored context from sessionStorage')
+  }
+
+  // Check if coming from Phase1 with configId
+  const configId = route.params.configId as string
+
+  if (configId) {
+    console.log('[I2I] Received configId from Phase1:', configId)
+
+    try {
+      // Load config and meta-prompt from backend
+      await pipelineStore.setConfig(configId)
+      await pipelineStore.loadMetaPromptForLanguage('de')
+
+      // Overwrite ONLY context (unified with t2i pattern)
+      const freshContext = pipelineStore.metaPrompt || ''
+      contextPrompt.value = freshContext
+
+      // Overwrite context storage for both t2i and i2i
+      sessionStorage.setItem('t2i_context_prompt', freshContext)
+      sessionStorage.setItem('i2i_context_prompt', freshContext)
+
+      console.log('[I2I] Context overwritten from Phase1 config')
+    } catch (error) {
+      console.error('[I2I] Failed to load config:', error)
+    }
+  }
+
+  // LEGACY: Check if there's a transferred image from text_transformation (Weiterreichen)
   const transferDataStr = localStorage.getItem('i2i_transfer_data')
 
   if (transferDataStr) {
@@ -461,6 +535,11 @@ onMounted(() => {
   localStorage.removeItem('i2i_transfer_image')
   localStorage.removeItem('i2i_transfer_timestamp')
 })
+
+// Watch for changes and persist to sessionStorage
+watch(contextPrompt, (newVal) => {
+  sessionStorage.setItem('i2i_context_prompt', newVal)
+})
 </script>
 
 <style scoped>
@@ -493,6 +572,30 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: clamp(1rem, 3vh, 2rem);
+}
+
+/* ============================================================================
+   Input + Context Section (Side by Side)
+   ============================================================================ */
+
+.input-context-section {
+  display: flex;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  width: 100%;
+  max-width: 1000px;
+  align-items: stretch;
+}
+
+.input-bubble,
+.context-bubble {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .input-context-section {
+    flex-direction: column;
+  }
 }
 
 /* ============================================================================
@@ -545,6 +648,26 @@ onMounted(() => {
   font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.bubble-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  padding: 0.25rem;
+}
+
+.action-btn:hover {
+  opacity: 0.8;
 }
 
 .bubble-textarea {

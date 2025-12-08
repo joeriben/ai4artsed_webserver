@@ -4,17 +4,13 @@
     <header class="app-header">
       <div class="header-content">
         <div class="header-left">
-          <button
-            class="return-button"
-            @click="$router.push('/')"
-            title="Zurück zu Phase 1"
-          >
-            ← Phase 1
-          </button>
         </div>
 
         <div class="header-center">
           <div class="mode-selector">
+            <router-link to="/" class="mode-button" active-class="active">
+              <span class="mode-icon">🫵</span>
+            </router-link>
             <router-link to="/text-transformation" class="mode-button" active-class="active">
               <span class="mode-icon">📝</span>
             </router-link>
@@ -105,30 +101,6 @@ html, body {
   justify-content: flex-start;
 }
 
-.return-button {
-  padding: 0.4rem 1rem;
-  margin-left: 0;
-  background: rgba(30, 30, 30, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.return-button:hover {
-  border-color: rgba(102, 126, 234, 0.8);
-  background: rgba(102, 126, 234, 0.2);
-  transform: translateX(-4px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.return-button:active {
-  transform: translateX(-2px) scale(0.98);
-}
-
 .header-center {
   display: flex;
   justify-content: center;
@@ -206,11 +178,6 @@ html, body {
   .header-center,
   .header-right {
     justify-content: center;
-  }
-
-  .return-button {
-    font-size: 0.8rem;
-    padding: 0.3rem 0.8rem;
   }
 
   .app-title {

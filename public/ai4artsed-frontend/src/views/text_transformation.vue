@@ -11,6 +11,11 @@
             <div class="bubble-header">
               <span class="bubble-icon">💡</span>
               <span class="bubble-label">Deine Idee: Worum soll es gehen?</span>
+              <div class="bubble-actions">
+                <button @click="copyInputText" class="action-btn" title="Kopieren">📋</button>
+                <button @click="pasteInputText" class="action-btn" title="Einfügen">📄</button>
+                <button @click="clearInputText" class="action-btn" title="Löschen">🗑️</button>
+              </div>
             </div>
             <textarea
               v-model="inputText"
@@ -25,6 +30,11 @@
             <div class="bubble-header">
               <span class="bubble-icon">📋</span>
               <span class="bubble-label">Bestimme Regeln, Material, Besonderheiten</span>
+              <div class="bubble-actions">
+                <button @click="copyContextPrompt" class="action-btn" title="Kopieren">📋</button>
+                <button @click="pasteContextPrompt" class="action-btn" title="Einfügen">📄</button>
+                <button @click="clearContextPrompt" class="action-btn" title="Löschen">🗑️</button>
+              </div>
             </div>
             <textarea
               v-model="contextPrompt"
@@ -592,25 +602,50 @@ const pipelineStore = usePipelineExecutionStore()
 // ============================================================================
 
 onMounted(async () => {
+  // UNIFIED PATTERN: Always restore ALL boxes from storage first
+  const savedInput = sessionStorage.getItem('t2i_input_text')
+  const savedContext = sessionStorage.getItem('t2i_context_prompt')
+  const savedInterception = sessionStorage.getItem('t2i_interception_result')
+
+  if (savedInput) {
+    inputText.value = savedInput
+    console.log('[T2I] Restored input from sessionStorage')
+  }
+  if (savedContext) {
+    contextPrompt.value = savedContext
+    console.log('[T2I] Restored context from sessionStorage')
+  }
+  if (savedInterception) {
+    interceptionResult.value = savedInterception
+    console.log('[T2I] Restored interception from sessionStorage')
+  }
+
   // Check if we're coming from Phase1 with a configId
   const configId = route.params.configId as string
 
   if (configId) {
-    console.log('[Youth Flow] Received configId from Phase1:', configId)
+    console.log('[T2I] Received configId from Phase1:', configId)
 
     try {
       // STEP 1: Load config from backend
       await pipelineStore.setConfig(configId)
-      console.log('[Youth Flow] Config loaded:', pipelineStore.selectedConfig?.id)
+      console.log('[T2I] Config loaded:', pipelineStore.selectedConfig?.id)
 
-      // STEP 2: Load meta-prompt for German (Youth Flow is German-only)
+      // STEP 2: Load meta-prompt for German
       await pipelineStore.loadMetaPromptForLanguage('de')
-      console.log('[Youth Flow] Meta-prompt loaded:', pipelineStore.metaPrompt?.substring(0, 50))
+      console.log('[T2I] Meta-prompt loaded:', pipelineStore.metaPrompt?.substring(0, 50))
 
-      // STEP 3: Initialize context prompt
-      contextPrompt.value = pipelineStore.metaPrompt || ''
+      // STEP 3: Overwrite ONLY context (NOT input!)
+      const freshContext = pipelineStore.metaPrompt || ''
+      contextPrompt.value = freshContext
 
-      // STEP 4: Find which category this config belongs to
+      // STEP 4: Overwrite context storage for both t2i and i2i
+      sessionStorage.setItem('t2i_context_prompt', freshContext)
+      sessionStorage.setItem('i2i_context_prompt', freshContext)
+
+      console.log('[T2I] Context overwritten from Phase1 config (input preserved)')
+
+      // STEP 5: Find which category this config belongs to
       let foundCategory: string | null = null
       for (const [categoryId, configs] of Object.entries(configsByCategory)) {
         if (configs.some(config => config.id === configId)) {
@@ -620,17 +655,84 @@ onMounted(async () => {
       }
 
       if (foundCategory) {
-        console.log('[Youth Flow] Auto-selecting category:', foundCategory, 'and config:', configId)
+        console.log('[T2I] Auto-selecting category:', foundCategory, 'and config:', configId)
         selectedCategory.value = foundCategory
         selectedConfig.value = configId
       } else {
-        console.warn('[Youth Flow] ConfigId not found in any category:', configId)
+        console.warn('[T2I] ConfigId not found in any category:', configId)
       }
     } catch (error) {
-      console.error('[Youth Flow] Initialization error:', error)
+      console.error('[T2I] Initialization error:', error)
     }
   }
 })
+
+// Watch for changes and persist to sessionStorage
+watch(inputText, (newVal) => {
+  sessionStorage.setItem('t2i_input_text', newVal)
+})
+
+watch(contextPrompt, (newVal) => {
+  sessionStorage.setItem('t2i_context_prompt', newVal)
+})
+
+watch(interceptionResult, (newVal) => {
+  sessionStorage.setItem('t2i_interception_result', newVal)
+})
+
+// ============================================================================
+// Textbox Actions (Copy/Paste/Delete)
+// ============================================================================
+
+async function copyInputText() {
+  try {
+    await navigator.clipboard.writeText(inputText.value)
+    console.log('[T2I] Input text copied to clipboard')
+  } catch (error) {
+    console.error('[T2I] Failed to copy:', error)
+  }
+}
+
+async function pasteInputText() {
+  try {
+    const text = await navigator.clipboard.readText()
+    inputText.value = text
+    console.log('[T2I] Text pasted into input')
+  } catch (error) {
+    console.error('[T2I] Failed to paste:', error)
+  }
+}
+
+function clearInputText() {
+  inputText.value = ''
+  sessionStorage.removeItem('t2i_input_text')
+  console.log('[T2I] Input text cleared')
+}
+
+async function copyContextPrompt() {
+  try {
+    await navigator.clipboard.writeText(contextPrompt.value)
+    console.log('[T2I] Context prompt copied to clipboard')
+  } catch (error) {
+    console.error('[T2I] Failed to copy:', error)
+  }
+}
+
+async function pasteContextPrompt() {
+  try {
+    const text = await navigator.clipboard.readText()
+    contextPrompt.value = text
+    console.log('[T2I] Text pasted into context')
+  } catch (error) {
+    console.error('[T2I] Failed to paste:', error)
+  }
+}
+
+function clearContextPrompt() {
+  contextPrompt.value = ''
+  sessionStorage.removeItem('t2i_context_prompt')
+  console.log('[T2I] Context prompt cleared')
+}
 
 // ============================================================================
 // Methods
@@ -1366,6 +1468,26 @@ watch(optimizedPrompt, async () => {
   font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.bubble-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  padding: 0.25rem;
+}
+
+.action-btn:hover {
+  opacity: 0.8;
 }
 
 .bubble-textarea {
