@@ -51,6 +51,12 @@ const router = createRouter({
       // Phase 2: direct pipeline (surrealization) visualization
       component: () => import('../views/direct.vue'),
     },
+    {
+      path: '/settings',
+      name: 'settings',
+      // Configuration settings page
+      component: () => import('../views/SettingsView.vue'),
+    },
   ],
 })
 

@@ -9,15 +9,55 @@ from flask_cors import CORS
 from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR
 
 
+def _load_user_settings():
+    """Load user settings from user_settings.json and override config.py defaults"""
+    try:
+        import json
+        from pathlib import Path
+        import config
+
+        settings_file = Path(__file__).parent.parent / "user_settings.json"
+
+        if not settings_file.exists():
+            logging.info("[CONFIG] No user_settings.json found, using defaults")
+            return
+
+        with open(settings_file) as f:
+            data = json.load(f)
+
+        if not data:
+            logging.info("[CONFIG] user_settings.json is empty, using defaults")
+            return
+
+        logging.info(f"[CONFIG] Loading user settings from {settings_file.name}")
+
+        # Override config values
+        count = 0
+        for key, value in data.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+                count += 1
+            else:
+                logging.warning(f"[CONFIG] Unknown setting '{key}' ignored")
+
+        logging.info(f"[CONFIG] {count} user settings applied successfully")
+
+    except Exception as e:
+        logging.error(f"[CONFIG] Error loading user settings: {e}")
+
+
 def create_app():
     """
     Create and configure the Flask application
-    
+
     Returns:
         Flask app instance
     """
     # Configure logging
     logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
+
+    # Load user settings BEFORE creating app
+    _load_user_settings()
     
     # Create Flask app
     # static_url_path=None disables Flask's automatic static file serving
@@ -68,9 +108,11 @@ def create_app():
     from my_app.routes.execution_routes import execution_bp
     from my_app.routes.pipeline_routes import pipeline_bp  # NEW: LivePipelineRecorder API
     from my_app.routes.chat_routes import chat_bp  # Session 82: Chat overlay helper
+    from my_app.routes.settings_routes import settings_bp  # Settings configuration API
 
     # Register API blueprints FIRST (before static catch-all)
     app.register_blueprint(config_bp)
+    app.register_blueprint(settings_bp)
     app.register_blueprint(workflow_streaming_bp)
     app.register_blueprint(export_bp)
     app.register_blueprint(sse_bp)
