@@ -605,8 +605,8 @@ class BackendRouter:
 
             logger.info(f"[WORKFLOW-CHUNK] Workflow submitted: {prompt_id}")
 
-            # 5. Wait for completion
-            timeout = parameters.get('timeout', 300)
+            # 5. Wait for completion (increased timeout for heavy models like Flux2)
+            timeout = parameters.get('timeout', 600)  # 10 minutes default (Flux2 needs ~8min)
             history = await client.wait_for_completion(prompt_id, timeout=timeout)
 
             if not history:
