@@ -388,9 +388,14 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
+import { useUserPreferencesStore } from '@/stores/userPreferences'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
+
+// Language support
+const userPreferences = useUserPreferencesStore()
+const currentLanguage = computed(() => userPreferences.language)
 
 // ============================================================================
 // Session Management (Session 82: Chat Overlay Context)
@@ -823,7 +828,7 @@ async function executePipeline() {
 
   if (durationStr.includes('-')) {
     // Range value: "20-60" → use minimum
-    durationSeconds = parseInt(durationStr.split('-')[0])
+    durationSeconds = parseInt(durationStr.split('-')[0] || '30')
   } else {
     durationSeconds = parseInt(durationStr)
   }
@@ -1147,7 +1152,7 @@ async function analyzeImage() {
 // Helper functions for parsing analysis text
 function extractReflectionPrompts(analysisText: string): string[] {
   const match = analysisText.match(/REFLEXIONSFRAGEN:|REFLECTION QUESTIONS:([\s\S]*?)(?:\n\n|$)/i)
-  if (match) {
+  if (match && match[1]) {
     return match[1]
       .split('\n')
       .filter(line => line.trim().startsWith('-'))

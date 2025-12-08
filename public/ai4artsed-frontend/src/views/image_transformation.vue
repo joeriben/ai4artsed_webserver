@@ -298,7 +298,7 @@ async function startGeneration() {
 
   if (durationStr.includes('-')) {
     // Range value: "20-60" → use minimum
-    durationSeconds = parseInt(durationStr.split('-')[0])
+    durationSeconds = parseInt(durationStr.split('-')[0] || '30')
   } else {
     durationSeconds = parseInt(durationStr)
   }
