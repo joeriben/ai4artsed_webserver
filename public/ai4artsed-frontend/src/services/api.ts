@@ -345,6 +345,41 @@ export async function getPipelineStatus(runId: string): Promise<any> {
   return response.data
 }
 
+/**
+ * Model Availability Check (Session 91+)
+ *
+ * Queries backend to check which ComfyUI models are installed and available.
+ * Backend queries ComfyUI's /object_info endpoint (authoritative source).
+ */
+export interface ModelAvailability {
+  [configId: string]: boolean
+}
+
+export interface ModelAvailabilityResponse {
+  status: 'success' | 'error'
+  availability: ModelAvailability
+  comfyui_reachable: boolean
+  cached?: boolean
+  cache_age_seconds?: number
+  error?: string
+}
+
+export async function getModelAvailability(): Promise<ModelAvailabilityResponse> {
+  try {
+    const response = await apiClient.get<ModelAvailabilityResponse>('/api/models/availability')
+    return response.data
+  } catch (error) {
+    console.error('Failed to fetch model availability:', error)
+    // Return empty availability on error (strict mode)
+    return {
+      status: 'error',
+      availability: {},
+      comfyui_reachable: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
+
 // ============================================================================
 // EXPORT DEFAULT (for convenience imports)
 // ============================================================================

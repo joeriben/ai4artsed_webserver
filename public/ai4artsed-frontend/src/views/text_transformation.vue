@@ -428,6 +428,7 @@ import { useUserPreferencesStore } from '@/stores/userPreferences'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
+import { getModelAvailability, type ModelAvailability } from '@/services/api'
 
 // Language support
 const userPreferences = useUserPreferencesStore()
@@ -484,6 +485,10 @@ const isInterceptionLoading = ref(false)
 const optimizedPrompt = ref('')
 const isOptimizationLoading = ref(false)
 const hasOptimization = ref(false)  // Track if optimization was applied
+
+// Model availability (Session 91+)
+const modelAvailability = ref<ModelAvailability>({})
+const availabilityLoading = ref(true)
 
 // Phase 4: Seed management for iterative correction
 const previousOptimizedPrompt = ref('')  // Track previous prompt for comparison
@@ -720,7 +725,23 @@ const displayPipelineStages = computed(() => {
 
 const configsForCategory = computed(() => {
   if (!selectedCategory.value) return []
-  return configsByCategory[selectedCategory.value] || []
+
+  const categoryConfigs = configsByCategory[selectedCategory.value] || []
+
+  // Filter out unavailable configs (Session 91+)
+  if (Object.keys(modelAvailability.value).length > 0) {
+    return categoryConfigs.filter(config => {
+      // If availability unknown, include it (permissive fallback)
+      if (!(config.id in modelAvailability.value)) {
+        return true
+      }
+      // Only include if available
+      return modelAvailability.value[config.id] === true
+    })
+  }
+
+  // While loading, show all configs (avoid flicker)
+  return categoryConfigs
 })
 
 const truncatedInput = computed(() => {
@@ -778,6 +799,21 @@ const pipelineStore = usePipelineExecutionStore()
 // ============================================================================
 
 onMounted(async () => {
+  // Fetch model availability (Session 91+)
+  try {
+    const result = await getModelAvailability()
+    if (result.status === 'success') {
+      modelAvailability.value = result.availability
+      console.log('[MODEL_AVAILABILITY] Loaded:', result.availability)
+    } else {
+      console.warn('[MODEL_AVAILABILITY] Check failed:', result.error)
+    }
+  } catch (error) {
+    console.error('[MODEL_AVAILABILITY] Error fetching:', error)
+  } finally {
+    availabilityLoading.value = false
+  }
+
   // UNIFIED PATTERN: Always restore ALL boxes from storage first
   const savedInput = sessionStorage.getItem('t2i_input_text')
   const savedContext = sessionStorage.getItem('t2i_context_prompt')

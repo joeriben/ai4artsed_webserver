@@ -8,12 +8,12 @@
 
 ### Getting Started
 - **readme.md** - Project introduction and setup guide
-- **DEPLOYMENT.md** - Complete deployment workflow (dev → production)
 
 ### Architecture
 - **ARCHITECTURE PART 01** - 4-Stage Orchestration Flow (AUTHORITATIVE)
 - **ARCHITECTURE PART 02-19** - Comprehensive system architecture documentation
-- **DATA_FLOW_ARCHITECTURE.md** - How data flows between pipeline stages (custom_placeholders)
+
+******NO OTHER DOCUMENTATION ARCHITECTURE "CREATIVE ENHANCEMENTS" ARE ALLOWED!******
 
 ---
 
@@ -24,10 +24,9 @@
 - **DEVELOPMENT_DECISIONS.md** - Architectural decisions (WHAT & WHY)
 - **devserver_todos.md** - Current priorities and task tracking
 
-### Recent Session Handovers
-- **SESSION_74_GIT_RECOVERY_AND_DEPLOYMENT.md** - Git recovery, production deployment (2025-11-26)
-- **SESSION_71_QWEN_IMAGE_INTEGRATION.md** - Qwen Image integration (2025-11-25)
-- **SESSION_GEMINI_3_PRO_INTEGRATION.md** - Gemini 3 Pro image generation (2025-11-24)
+### Recent Session Handovers & Failed Attempts
+- **HANDOVER_Session****.md**
+
 
 ---
 
@@ -52,5 +51,5 @@ Completed session summaries and obsolete documentation are in `archive/`:
 
 ---
 
-**Last Updated:** 2025-11-26
-**Status:** Session 74 documented - Git recovery, production deployment, and deployment guide
+**Last Updated:** 2025-12-09
+**Status:** Model Hover Cards feature documented with backend/frontend architecture

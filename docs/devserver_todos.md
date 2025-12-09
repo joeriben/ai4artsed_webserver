@@ -1,6 +1,93 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-11-26 (Bug Report: Prompt Optimization Context Issue)
+**Last Updated:** 2025-12-09 (Session 91: Model Availability Check Completed)
 **Context:** Current priorities and active TODOs
+
+---
+
+## ✅ COMPLETED (Session 91 - 2025-12-09)
+
+### Model Availability Check - API-Based
+**Status:** ✅ **COMPLETED** - All models correctly detected, frontend filters by availability
+**Session:** 91 (2025-12-09)
+**Duration:** ~95 minutes
+
+**Implemented:**
+- Backend: ModelAvailabilityService queries ComfyUI `/object_info` API
+- Endpoint: `GET /api/models/availability` returns availability map
+- Frontend: text_transformation.vue filters configs by availability
+- Result: wan22_video and stableaudio_open correctly shown (Session 90 failed at this)
+
+---
+
+## 📋 FOLLOW-UP (Session 91+)
+
+### Automate configsByCategory in text_transformation.vue
+**Status:** 📋 **PLANNED** - After Session 91 success
+**Priority:** MEDIUM
+**Context:** User requested this AFTER model availability check working
+
+**Current Problem:**
+`text_transformation.vue` has hardcoded model lists:
+```typescript
+const configsByCategory = {
+  image: [
+    { id: 'flux2', label: 'Flux 2', ... },  // Hardcoded
+    { id: 'sd35_large', label: 'SD 3.5', ... },  // Hardcoded
+  ],
+  video: [...],  // Hardcoded
+  sound: [...]   // Hardcoded
+}
+```
+
+**Desired Behavior:**
+- Fetch all output configs from backend dynamically
+- Categorize automatically by `media_preferences.default_output` (image/video/sound)
+- Apply availability filter (from Session 91)
+- New models appear automatically without Vue changes
+
+**Implementation Plan:**
+
+1. **Backend: Extend `/api/models/availability` endpoint** (or create new endpoint)
+   - Return not just `{config_id: boolean}` but full metadata:
+     ```json
+     {
+       "configs": [
+         {
+           "id": "flux2",
+           "name": {"en": "Flux 2", "de": "Flux 2"},
+           "media_type": "image",
+           "logo": "/logos/flux_logo.png",
+           "color": "#FF6B35",
+           "available": true
+         },
+         ...
+       ]
+     }
+     ```
+   - Use existing `/pipeline_configs_with_properties` as reference
+   - Filter to only Stage 4 output configs
+
+2. **Frontend: Replace hardcoded configsByCategory**
+   - Fetch configs on mount
+   - Group by `media_type` (image/video/sound)
+   - Apply availability filter
+   - Map to existing Config interface format
+
+3. **Benefits:**
+   - Add new model in backend → automatically appears in UI
+   - Consistent with Phase 1 property-based config loading
+   - Logo, color, name changes centralized in backend configs
+
+**Files to Modify:**
+- `devserver/my_app/routes/config_routes.py` (extend /api/models/availability or new endpoint)
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` (replace configsByCategory)
+- `public/ai4artsed-frontend/src/services/api.ts` (add interface for extended response)
+
+**Testing:**
+- All current configs still appear correctly
+- Add new test config → appears without Vue changes
+- Availability filter still works
+- Logo and colors render correctly
 
 ---
 
