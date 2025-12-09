@@ -26,7 +26,7 @@
     },
     "4": {
       "inputs": {
-        "ckpt_name": "Flux1/flux2-dev.safetensors"
+        "ckpt_name": "Flux1/flux2_dev_fp8mixed.safetensors"
       },
       "class_type": "CheckpointLoaderSimple",
       "_meta": {
@@ -207,7 +207,7 @@
   },
 
   "meta": {
-    "estimated_duration_seconds": "120-180",
+    "estimated_duration_seconds": "90",
     "requires_gpu": true,
     "gpu_vram_mb": 7000,
     "model_file": "flux2-dev.safetensors",
