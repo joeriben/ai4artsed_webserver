@@ -2353,6 +2353,36 @@ def list_schemas():
             'error': str(e)
         }), 500
 
+@schema_bp.route('/chunk-metadata', methods=['GET'])
+def get_chunk_metadata():
+    """Serve chunk metadata for hover cards (Q/Spd ratings + durations from chunks)"""
+    try:
+        chunks = {}
+        chunks_dir = Path(__file__).parent.parent.parent / "schemas" / "chunks"
+
+        for chunk_file in chunks_dir.glob("output_*.json"):
+            try:
+                with open(chunk_file, 'r') as f:
+                    chunk = json.load(f)
+                    chunk_name = chunk.get('name', chunk_file.stem)
+
+                    chunks[chunk_name] = {
+                        'name': chunk_name,
+                        'meta': chunk.get('meta', {})
+                    }
+            except Exception as e:
+                logger.error(f"Error loading chunk {chunk_file}: {e}")
+                continue
+
+        return jsonify(chunks)
+
+    except Exception as e:
+        logger.error(f"Chunk metadata error: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
 
 # ============================================================================
 # BACKWARD COMPATIBILITY ENDPOINTS (Legacy Frontend Support)

@@ -207,7 +207,9 @@
   },
 
   "meta": {
-    "estimated_duration_seconds": "90",
+    "estimated_duration_seconds": "90-120",
+    "quality_rating": 4,
+    "speed_rating": 2,
     "requires_gpu": true,
     "gpu_vram_mb": 7000,
     "model_file": "flux2-dev.safetensors",

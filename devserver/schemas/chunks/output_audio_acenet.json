@@ -199,6 +199,8 @@
 
   "meta": {
     "estimated_duration_seconds": "10-30",
+    "quality_rating": 2,
+    "speed_rating": 5,
     "requires_gpu": true,
     "gpu_vram_mb": 8000,
     "model_file": "ace_step_v1_3.5b.safetensors",

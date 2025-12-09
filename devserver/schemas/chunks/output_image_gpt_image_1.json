@@ -65,7 +65,9 @@
   },
 
   "meta": {
-    "estimated_duration_seconds": "5-15",
+    "estimated_duration_seconds": "45-60",
+    "quality_rating": 4,
+    "speed_rating": 3,
     "requires_gpu": false,
     "api_provider": "openai",
     "model_id": "gpt-image-1",

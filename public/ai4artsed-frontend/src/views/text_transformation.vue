@@ -118,11 +118,14 @@
                   selected: selectedConfig === config.id,
                   loading: config.id === selectedConfig && isOptimizationLoading,
                   'light-bg': config.lightBg,
-                  disabled: !areModelBubblesEnabled
+                  disabled: !areModelBubblesEnabled,
+                  hovered: hoveredConfigId === config.id
                 }"
                 :style="{ '--bubble-color': config.color }"
                 :data-config="config.id"
                 @click="areModelBubblesEnabled && selectConfig(config.id)"
+                @mouseenter="handleBubbleMouseEnter(config.id)"
+                @mouseleave="handleBubbleMouseLeave"
                 role="button"
                 :aria-pressed="selectedConfig === config.id"
                 :aria-disabled="!areModelBubblesEnabled"
@@ -132,7 +135,29 @@
               >
                 <img v-if="config.logo" :src="config.logo" :alt="config.label" class="bubble-logo" />
                 <div v-else class="bubble-emoji-medium">{{ config.emoji }}</div>
-                <div class="bubble-label-medium">{{ config.label }}</div>
+
+                <!-- Hover info overlay (shows INSIDE bubble when hovered) -->
+                <div v-if="hoveredConfigId === config.id" class="bubble-hover-info">
+                  <div class="hover-info-name">{{ getHoverCardData(config.id).name }}</div>
+                  <div class="hover-info-meta">
+                    <div class="meta-row">
+                      <span class="meta-label">Qual.</span>
+                      <span class="meta-value">
+                        <span class="stars-filled">{{ '★'.repeat(getHoverCardData(config.id).quality) }}</span><span class="stars-unfilled">{{ '☆'.repeat(5 - getHoverCardData(config.id).quality) }}</span>
+                      </span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Speed</span>
+                      <span class="meta-value">
+                        <span class="stars-filled">{{ '★'.repeat(getHoverCardData(config.id).speed) }}</span><span class="stars-unfilled">{{ '☆'.repeat(5 - getHoverCardData(config.id).speed) }}</span>
+                      </span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-value duration-only">⏱ {{ getHoverCardData(config.id).durationRange }} sec</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div v-if="config.id === selectedConfig && isOptimizationLoading" class="loading-indicator">
                   <div class="spinner"></div>
                 </div>
@@ -515,6 +540,155 @@ const configsByCategory: Record<string, Config[]> = {
     { id: 'stableaudio_open', label: 'Stable\nAudio', emoji: '🔊', color: '#00BCD4', description: 'Open-Source Audio-Generierung (max 47s)', logo: '/logos/stableaudio_logo.png', lightBg: false }
   ],
   '3d': []
+}
+
+// ============================================================================
+// Hover Card State & Metadata
+// ============================================================================
+
+// Hover state
+const hoveredConfigId = ref<string | null>(null)
+
+// Chunk metadata (loaded from API - NO hardcoded values!)
+const chunkMetadata = ref<Record<string, any>>({})
+
+// Mapping from config IDs to chunk base names (after stripping "output_X_")
+const configIdToChunkName: Record<string, string> = {
+  'sd35_large': 'sd35_large',
+  'qwen': 'qwen',
+  'flux2': 'flux2',
+  'gemini_3_pro_image': 'gemini_3_pro',
+  'gpt_image_1': 'gpt_image_1',
+  'p5js_code': 'p5js',
+  'ltx_video': 'ltx',
+  'wan22_video': 'wan22',
+  'acenet_t2instrumental': 'acenet',
+  'stableaudio_open': 'stableaudio'
+}
+
+// Helper to calculate speed from duration (0s=5★, 90s=1★)
+function calculateSpeedFromDuration(durationStr: string | number): number {
+  // Parse duration (handle ranges like "10-30" or single values like "12")
+  let duration: number
+  const durationString = String(durationStr)
+
+  if (durationString.includes('-')) {
+    // Range: take the lower bound for speed calculation
+    const [min] = durationString.split('-').map(s => parseFloat(s.trim()))
+    duration = min
+  } else {
+    duration = parseFloat(durationString) || 0
+  }
+
+  // Linear interpolation: 0s → 5★, 90s → 1★
+  // Formula: speed = max(1, min(5, floor((90 - duration) / 18) + 1))
+  const speed = Math.max(1, Math.min(5, Math.floor((90 - duration) / 18) + 1))
+  return speed
+}
+
+// Load ALL metadata from chunks (Q, Spd auto-calculated, Duration, VRAM)
+onMounted(async () => {
+  try {
+    const response = await fetch('/api/schema/chunk-metadata')
+    const chunks = await response.json()
+
+    Object.values(chunks).forEach((chunk: any) => {
+      const chunkName = chunk.name
+      const chunkBaseName = chunkName.replace(/^output_(image|video|audio|code)_/, '')
+
+      // Find matching config ID
+      const configId = Object.keys(configIdToChunkName).find(
+        key => configIdToChunkName[key] === chunkBaseName
+      )
+
+      if (configId) {
+        const duration = chunk.meta?.estimated_duration_seconds || '?'
+
+        chunkMetadata.value[configId] = {
+          quality: chunk.meta?.quality_rating || 3,
+          speed: duration !== '?' ? calculateSpeedFromDuration(duration) : 3,
+          duration: duration,
+          vram: chunk.meta?.gpu_vram_mb || 0
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Failed to load chunk metadata:', error)
+  }
+})
+
+// Hover handlers
+function handleBubbleMouseEnter(configId: string) {
+  if (!areModelBubblesEnabled.value) return
+  hoveredConfigId.value = configId
+}
+
+function handleBubbleMouseLeave() {
+  hoveredConfigId.value = null
+}
+
+// Helper to calculate duration range
+function calculateDurationRange(configId: string): string {
+  const chunk = chunkMetadata.value[configId]
+  if (!chunk) return '?'
+
+  const baseDuration = chunk.duration
+  const vramMb = chunk.vram || 0
+
+  // Handle existing ranges (e.g., "5-15", "20-60")
+  if (typeof baseDuration === 'string' && baseDuration.includes('-')) {
+    return baseDuration  // Already a range, use as-is
+  }
+
+  // Parse numeric duration
+  const base = parseInt(String(baseDuration)) || 0
+
+  // Special case: API models or instant (0s)
+  if (base === 0 || vramMb === 0) {
+    return '~1'  // API latency or instant
+  }
+
+  // Calculate VRAM load time: ~1s per GB, minimum 2s
+  const loadTime = Math.max(2, Math.round(vramMb / 1000))
+
+  // Only show range if load time significant (>2s)
+  if (loadTime > 2) {
+    return `${base}-${base + loadTime}`
+  } else {
+    return String(base)
+  }
+}
+
+// Full model names for hover cards
+const modelFullNames: Record<string, string> = {
+  sd35_large: 'Stable Diffusion 3.5 Large',
+  qwen: 'Qwen 2.5 Vision',
+  flux2: 'Flux 2 Dev',
+  gemini_3_pro_image: 'Gemini 3 Pro',
+  gpt_image_1: 'GPT Image 1',
+  p5js_code: 'p5.js Code Generation',
+  ltx_video: 'LTX Video',
+  wan22_video: 'Wan 2.2 Text-to-Video',
+  acenet_t2instrumental: 'ACE Step Instrumental',
+  stableaudio_open: 'Stable Audio Open'
+}
+
+// Helper to get hover data from chunks
+function getHoverCardData(configId: string) {
+  const chunk = chunkMetadata.value[configId]
+  if (!chunk) return { name: '', quality: 3, speed: 3, durationRange: '?' }
+
+  return {
+    name: modelFullNames[configId] || configId,
+    quality: chunk.quality,
+    speed: chunk.speed,
+    durationRange: calculateDurationRange(configId)
+  }
+}
+
+// Helper to render stars
+function renderStars(count: number): string {
+  return '★'.repeat(count) + '☆'.repeat(5 - count)
 }
 
 const pipelineStages = ref<PipelineStage[]>([
@@ -1689,6 +1863,7 @@ watch(optimizedPrompt, async () => {
 
 .config-bubble {
   position: relative;
+  z-index: 1;
   width: clamp(80px, 12vw, 100px);
   height: clamp(80px, 12vw, 100px);
 
@@ -1705,9 +1880,12 @@ watch(optimizedPrompt, async () => {
   outline: none;
 }
 
-.config-bubble:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px var(--bubble-color);
+.config-bubble:hover:not(.disabled):not(.loading),
+.config-bubble.hovered {
+  transform: scale(2.0);
+  background: rgba(20, 20, 20, 0.9);
+  box-shadow: 0 0 30px var(--bubble-color);
+  z-index: 100;
 }
 
 .config-bubble.selected {
@@ -1744,47 +1922,139 @@ watch(optimizedPrompt, async () => {
   background: rgba(255, 255, 255, 0.95);
 }
 
-.config-bubble.light-bg .bubble-label-medium {
-  color: #0a0a0a;
-}
-
 .config-bubble.light-bg.selected {
   background: var(--bubble-color);
 }
 
-.config-bubble.light-bg.selected .bubble-label-medium {
-  color: #0a0a0a;
-}
+/* ============================================================================
+   Hover info overlay - Mathematical precision for circular constraint
+   ============================================================================
 
-.bubble-label-medium {
+   DESIGN CONSTRAINTS:
+   - Base bubble: 80-100px diameter (clamp(80px, 12vw, 100px))
+   - Hover scale: 2.0x → Final diameter: 160-200px
+   - Usable area after 15% padding: 136-170px diameter
+
+   TYPOGRAPHY CALCULATION:
+   - Based on 200px max diameter (worst case)
+   - Usable width: 170px (after padding)
+   - Font size calculation: 170px ÷ expected characters
+     * Model name (~25 chars): 170 ÷ 25 = 6.8px → 0.5rem base
+     * Labels (8 chars): 170 ÷ 30 (with stars) = 5.6px → 0.45rem
+     * Stars (★ = 1.2x width): Account in layout, not font size
+
+   APPROACH:
+   - Use rem units (relative to root font, typically 16px)
+   - Scale with container using percentage-based spacing
+   - Fixed ratios ensure consistency across bubble sizes
+   ============================================================================ */
+
+.bubble-hover-info {
   position: absolute;
-  bottom: clamp(6px, 1.2vw, 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 95%;
-  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18%; /* Slightly more padding for visual breathing room */
+  color: white;
+  z-index: 10;
+  pointer-events: none;
+  gap: 0.3rem; /* Increased spacing between header and star rows */
+}
+
+.hover-info-name {
+  /*
+   * Model name (longest: "Stable Diffusion 3.5 Large" = 30 chars)
+   * Target: 2-3 lines max within 64% of diameter
+   * Calculation: (200px × 0.64) ÷ 30 chars ÷ 1.3 line-height = ~3.3px/char → 0.55rem
+   */
+  font-size: 0.5rem; /* 8px at 16px root */
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
   text-align: center;
-  line-height: 1.1;
-  white-space: pre-line;
+  line-height: 1.25;
+  margin-bottom: 0;
+  letter-spacing: -0.01em; /* Tighter spacing for long names */
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 100%;
+  word-wrap: break-word;
+  hyphens: manual;
 }
 
-.config-bubble.selected .bubble-label-medium {
-  color: #0a0a0a;
+.hover-info-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* No gap between Qual and Speed rows */
+  width: 100%;
 }
 
-/* Config-specific label colors for better readability */
-.config-bubble[data-config="flux2"] .bubble-label-medium,
-.config-bubble[data-config="p5js_code"] .bubble-label-medium,
-.config-bubble[data-config="stableaudio_open"] .bubble-label-medium {
-  display: none; /* Logo shows name already, label is redundant */
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.18rem; /* Halved gap between label and stars */
+  width: 100%;
+  line-height: 1; /* Eliminate extra vertical spacing */
+  margin: 0;
+  padding: 0;
 }
 
-.config-bubble[data-config="sd35_large"] .bubble-label-medium {
-  color: #000000;
-  font-weight: 700;
-  text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+.meta-label {
+  /*
+   * Labels: "Quality" (7 chars), "Speed" (5 chars)
+   * Target: Left-aligned, ~35% of row width
+   * Font calculation: Smaller than value, but readable
+   */
+  font-size: 0.45rem; /* 7.2px at 16px root */
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 400;
+  text-align: left;
+  flex-shrink: 0;
+  flex-basis: 35%;
+  letter-spacing: -0.01em;
+}
+
+.meta-value {
+  /*
+   * Star values: Larger for emphasis (most important orientation)
+   * Filled stars: gold, unfilled stars: light gray
+   */
+  font-size: 0.65rem; /* Increased from 0.5rem for better visibility */
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  flex-basis: 60%;
+  letter-spacing: 0.02em;
+}
+
+.stars-filled {
+  color: #FFD700;
+}
+
+.stars-unfilled {
+  color: rgba(150, 150, 150, 0.5);
+}
+
+.meta-value.duration-only {
+  /*
+   * Duration: "⏱ 12-20 sec" (~12 chars including icon)
+   * Target: Centered, full width, unified smaller font
+   */
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.45rem;
+  flex-basis: auto;
+  margin-top: 0.25rem;
+  line-height: 1;
+}
+
+/* Hide logo/emoji when hovering */
+.config-bubble.hovered .bubble-logo,
+.config-bubble.hovered .bubble-emoji-medium {
+  opacity: 0;
+  display: none;
 }
 
 .loading-indicator {
