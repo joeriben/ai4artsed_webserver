@@ -492,7 +492,7 @@ const categorySectionRef = ref<HTMLElement | null>(null)
 
 const availableCategories: Category[] = [
   { id: 'image', label: 'Bild', emoji: '🖼️', color: '#4CAF50' },
-  { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0' },
+  { id: 'video', label: 'Video', emoji: '📽️', color: '#9C27B0' },
   { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800' },
   { id: '3d', label: '3D', emoji: '🧊', color: '#00BCD4', disabled: true }
 ]
