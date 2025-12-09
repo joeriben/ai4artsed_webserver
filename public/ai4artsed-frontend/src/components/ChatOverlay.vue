@@ -249,8 +249,8 @@ watch(
 
 /* Collapsed State */
 .chat-toggle-icon {
-  width: 120px;
-  height: 120px;
+  width: clamp(75px, 10vw, 100px);
+  height: clamp(75px, 10vw, 100px);
   background: transparent;
   border: none;
   box-shadow: none;
@@ -267,8 +267,8 @@ watch(
 }
 
 .chat-icon-img {
-  width: 120px;
-  height: 120px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
