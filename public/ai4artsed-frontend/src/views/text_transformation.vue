@@ -731,11 +731,8 @@ const configsForCategory = computed(() => {
   // Filter out unavailable configs (Session 91+)
   if (Object.keys(modelAvailability.value).length > 0) {
     return categoryConfigs.filter(config => {
-      // If availability unknown, include it (permissive fallback)
-      if (!(config.id in modelAvailability.value)) {
-        return true
-      }
-      // Only include if available
+      // STRICT MODE: Only show if explicitly marked as available
+      // If not in availability map or marked as false → HIDE
       return modelAvailability.value[config.id] === true
     })
   }
