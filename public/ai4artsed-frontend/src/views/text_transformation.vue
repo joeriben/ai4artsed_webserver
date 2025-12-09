@@ -574,8 +574,8 @@ function calculateSpeedFromDuration(durationStr: string | number): number {
 
   if (durationString.includes('-')) {
     // Range: take the lower bound for speed calculation
-    const [min] = durationString.split('-').map(s => parseFloat(s.trim()))
-    duration = min
+    const parts = durationString.split('-').map(s => parseFloat(s.trim()))
+    duration = parts[0] || 0
   } else {
     duration = parseFloat(durationString) || 0
   }
