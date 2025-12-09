@@ -9,7 +9,6 @@
   "meta": {
     "estimated_duration_seconds": "0",
     "quality_rating": 1,
-    "speed_rating": 5,
     "requires_gpu": false,
     "language": "javascript",
     "framework": "p5js",

@@ -220,7 +220,6 @@
   "meta": {
     "estimated_duration_seconds": "5-15",
     "quality_rating": 2,
-    "speed_rating": 5,
     "requires_gpu": true,
     "gpu_vram_mb": 16000,
     "model_file": "ltxv-13b-0.9.7-distilled-fp8.safetensors",

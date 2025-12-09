@@ -233,7 +233,6 @@
   "meta": {
     "estimated_duration_seconds": "30",
     "quality_rating": 3,
-    "speed_rating": 3,
     "requires_gpu": true,
     "gpu_vram_mb": 6000,
     "model_file": "qwen_image_fp8_e4m3fn.safetensors",

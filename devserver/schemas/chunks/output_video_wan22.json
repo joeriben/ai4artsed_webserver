@@ -208,7 +208,6 @@
   "meta": {
     "estimated_duration_seconds": "30-60",
     "quality_rating": 3,
-    "speed_rating": 3,
     "requires_gpu": true,
     "gpu_vram_mb": 20000,
     "model_file": "wan2.2_ti2v_5B_fp16.safetensors",

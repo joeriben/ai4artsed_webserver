@@ -55,7 +55,6 @@
   "meta": {
     "estimated_duration_seconds": "25-50",
     "quality_rating": 5,
-    "speed_rating": 1,
     "requires_gpu": false,
     "api_provider": "openrouter",
     "model_id": "google/gemini-3-pro-image-preview",

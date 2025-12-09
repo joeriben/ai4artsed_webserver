@@ -167,9 +167,8 @@
   },
 
   "meta": {
-    "estimated_duration_seconds": "20-60",
-    "quality_rating": 2,
-    "speed_rating": 5,
+    "estimated_duration_seconds": "8-12",
+    "quality_rating": 1,
     "requires_gpu": true,
     "gpu_vram_mb": 15000,
     "model_file": "stable_audio_open_1.0.safetensors",
