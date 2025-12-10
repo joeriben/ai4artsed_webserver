@@ -10,7 +10,7 @@ from pathlib import Path
 import json
 
 from my_app.services.pipeline_recorder import load_recorder
-from config import JSON_STORAGE_DIR
+from config import JSON_STORAGE_DIR, COMFYUI_BASE_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -625,17 +625,17 @@ class BackendRouter:
             import glob
 
             if media_type in ['image', 'image_workflow']:
-                output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output'
+                output_dir = f'{COMFYUI_BASE_PATH}/output'
                 file_extension = 'png'
             elif media_type == 'audio':
-                output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/audio'
+                output_dir = f'{COMFYUI_BASE_PATH}/output/audio'
                 file_extension = 'mp3'
             elif media_type == 'video':
-                output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/video'
+                output_dir = f'{COMFYUI_BASE_PATH}/output/video'
                 file_extension = 'mp4'
             else:
                 logger.warning(f"Unknown media type '{media_type}', using audio directory")
-                output_dir = '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/output/audio'
+                output_dir = f'{COMFYUI_BASE_PATH}/output/audio'
                 file_extension = 'mp3'
 
             # Get most recent file from output directory
