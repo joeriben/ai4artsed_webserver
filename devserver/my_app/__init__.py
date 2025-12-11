@@ -6,7 +6,7 @@ import os
 from flask import Flask, request
 from flask_cors import CORS
 
-from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR
+from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR, DISABLE_API_CACHE, CACHE_STRATEGY
 
 
 def _load_user_settings():
@@ -73,27 +73,35 @@ def create_app():
     # Enable CORS with session support
     CORS(app, supports_credentials=True)
 
-    # CRITICAL: Prevent API response caching (Cloudflare + Browser)
-    # Without this, Cloudflare Edge and Safari cache API responses permanently
+    # Environment-based API caching strategy
     @app.after_request
-    def add_no_cache_headers(response):
+    def add_cache_headers(response):
         """
-        Add no-cache headers to all API responses to prevent caching issues
+        Add cache headers to API responses based on environment
 
-        Problem: Cloudflare Tunnel + Safari cache API responses despite "Development Mode"
-        Solution: Explicit Cache-Control headers on all /api/* routes
+        Development (DISABLE_API_CACHE=true):
+        - Aggressive no-cache headers to prevent stale data during development
+        - Fixes: Cloudflare Edge + Safari caching issues
 
-        Why this is needed:
-        - Cloudflare Edge caches responses even in dev mode
-        - Safari aggressively caches GET requests
-        - Hard reload only clears HTML/CSS/JS cache, not API cache
-        - Cached 404 responses persist across reloads
+        Production (DISABLE_API_CACHE=false):
+        - Intelligent caching for GET requests (configs/models: 5min)
+        - POST/SSE requests are never cached (browser default)
+        - Reduces server load and improves performance
         """
         # Only add headers to API routes (not static assets)
         if request.path.startswith('/api/') or request.path.startswith('/pipeline_configs_'):
-            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
+            if DISABLE_API_CACHE:
+                # Development: Disable all caching
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+            else:
+                # Production: Enable intelligent caching for GET requests
+                for route_prefix, cache_header in CACHE_STRATEGY.items():
+                    if request.path.startswith(route_prefix):
+                        response.headers['Cache-Control'] = cache_header
+                        break
+                # If no cache strategy matched, don't add headers (browser default)
 
         return response
 

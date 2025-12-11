@@ -400,6 +400,19 @@ OPENROUTER_TO_OLLAMA_MAP = {v: k for k, v in OLLAMA_TO_OPENROUTER_MAP.items()}
 # Cache Configuration
 PROMPT_CACHE = {}
 
+# API Cache Control (for Browser Caching)
+# Development: Set to True to disable all API caching (aggressive no-cache headers)
+# Production: Set to False to enable intelligent caching (configs/models: 5min cache)
+DISABLE_API_CACHE = os.environ.get("DISABLE_API_CACHE", "true").lower() == "true"
+
+# Cache strategy for production (only applies when DISABLE_API_CACHE=False)
+# Only GET requests to these routes will be cached. POST/SSE are never cached by browsers.
+CACHE_STRATEGY = {
+    "/api/config/": "public, max-age=300",         # Configs: 5 minutes
+    "/pipeline_configs_": "public, max-age=300",   # Metadata: 5 minutes
+    "/api/models/": "public, max-age=300",         # Models: 5 minutes (matches backend cache TTL)
+}
+
 # Logging Configuration
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'

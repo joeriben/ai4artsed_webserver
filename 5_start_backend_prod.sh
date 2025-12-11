@@ -42,4 +42,8 @@ echo ""
 
 # Override PORT via environment variable
 export PORT=17801
+
+# Enable browser caching for production (configs/models cached for 5min)
+export DISABLE_API_CACHE=false
+
 python3 server.py
