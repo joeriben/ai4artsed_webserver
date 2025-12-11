@@ -438,6 +438,7 @@ import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
+import { useAppClipboard } from '@/composables/useAppClipboard'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
@@ -488,8 +489,8 @@ interface PipelineStage {
 // State
 // ============================================================================
 
-// Internal clipboard buffer (shared by all textareas)
-const appClipboard = ref('')
+// Global clipboard (shared across all views)
+const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 // Form state
 const inputText = ref('')
@@ -910,12 +911,12 @@ watch(interceptionResult, (newVal) => {
 // ============================================================================
 
 function copyInputText() {
-  appClipboard.value = inputText.value
+  copyToClipboard(inputText.value)
   console.log('[T2I] Input text copied to app clipboard')
 }
 
 function pasteInputText() {
-  inputText.value = appClipboard.value
+  inputText.value = pasteFromClipboard()
   console.log('[T2I] Text pasted from app clipboard into input')
 }
 
@@ -926,12 +927,12 @@ function clearInputText() {
 }
 
 function copyContextPrompt() {
-  appClipboard.value = contextPrompt.value
+  copyToClipboard(contextPrompt.value)
   console.log('[T2I] Context prompt copied to app clipboard')
 }
 
 function pasteContextPrompt() {
-  contextPrompt.value = appClipboard.value
+  contextPrompt.value = pasteFromClipboard()
   console.log('[T2I] Text pasted from app clipboard into context')
 }
 
@@ -942,12 +943,12 @@ function clearContextPrompt() {
 }
 
 function copyInterceptionResult() {
-  appClipboard.value = interceptionResult.value
+  copyToClipboard(interceptionResult.value)
   console.log('[T2I] Interception result copied to app clipboard')
 }
 
 function pasteInterceptionResult() {
-  interceptionResult.value = appClipboard.value
+  interceptionResult.value = pasteFromClipboard()
   console.log('[T2I] Text pasted from app clipboard into interception result')
 }
 
@@ -958,12 +959,12 @@ function clearInterceptionResult() {
 }
 
 function copyOptimizedPrompt() {
-  appClipboard.value = optimizedPrompt.value
+  copyToClipboard(optimizedPrompt.value)
   console.log('[T2I] Optimized prompt copied to app clipboard')
 }
 
 function pasteOptimizedPrompt() {
-  optimizedPrompt.value = appClipboard.value
+  optimizedPrompt.value = pasteFromClipboard()
   console.log('[T2I] Text pasted from app clipboard into optimized prompt')
 }
 
@@ -973,7 +974,7 @@ function clearOptimizedPrompt() {
 }
 
 function copyOutputCode() {
-  appClipboard.value = outputCode.value
+  copyToClipboard(outputCode.value)
   console.log('[T2I] Output code copied to app clipboard')
 }
 

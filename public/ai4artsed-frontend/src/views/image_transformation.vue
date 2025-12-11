@@ -149,13 +149,14 @@ import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
+import { useAppClipboard } from '@/composables/useAppClipboard'
 
 // ============================================================================
 // STATE
 // ============================================================================
 
-// Internal clipboard buffer (shared with text_transformation.vue)
-const appClipboard = ref('')
+// Global clipboard (shared across all views)
+const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 // Image upload
 const uploadedImage = ref<string | null>(null)  // Base64 preview URL
@@ -438,12 +439,12 @@ const pipelineStore = usePipelineExecutionStore()
 // ============================================================================
 
 function copyContextPrompt() {
-  appClipboard.value = contextPrompt.value
+  copyToClipboard(contextPrompt.value)
   console.log('[I2I] Context prompt copied to app clipboard')
 }
 
 function pasteContextPrompt() {
-  contextPrompt.value = appClipboard.value
+  contextPrompt.value = pasteFromClipboard()
   console.log('[I2I] Text pasted from app clipboard into context')
 }
 
