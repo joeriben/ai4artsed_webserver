@@ -66,6 +66,11 @@
             <div class="bubble-header">
               <span class="bubble-icon">→</span>
               <span class="bubble-label">Idee + Regeln = Prompt</span>
+              <div class="bubble-actions">
+                <button @click="copyInterceptionResult" class="action-btn" title="Kopieren">📋</button>
+                <button @click="pasteInterceptionResult" class="action-btn" title="Einfügen">📄</button>
+                <button @click="clearInterceptionResult" class="action-btn" title="Löschen">🗑️</button>
+              </div>
             </div>
             <div v-if="isInterceptionLoading" class="preview-loading">
               <div class="spinner-large"></div>
@@ -172,6 +177,11 @@
             <div class="bubble-header">
               <span class="bubble-icon">✨</span>
               <span class="bubble-label">Modell-Optimierter Prompt</span>
+              <div class="bubble-actions">
+                <button @click="copyOptimizedPrompt" class="action-btn" title="Kopieren">📋</button>
+                <button @click="pasteOptimizedPrompt" class="action-btn" title="Einfügen">📄</button>
+                <button @click="clearOptimizedPrompt" class="action-btn" title="Löschen">🗑️</button>
+              </div>
             </div>
             <div v-if="isOptimizationLoading" class="preview-loading">
               <div class="spinner-large"></div>
@@ -191,7 +201,10 @@
         <!-- Code Output (p5.js) - appears right after optimization -->
         <div v-if="outputMediaType === 'code' && outputCode" class="code-output-stage2">
           <div class="code-display">
-            <h3>Generated Code</h3>
+            <div class="code-header">
+              <h3>Generated Code</h3>
+              <button @click="copyOutputCode" class="action-btn" title="Kopieren">📋</button>
+            </div>
             <textarea
               :value="outputCode"
               readonly
@@ -474,6 +487,9 @@ interface PipelineStage {
 // ============================================================================
 // State
 // ============================================================================
+
+// Internal clipboard buffer (shared by all textareas)
+const appClipboard = ref('')
 
 // Form state
 const inputText = ref('')
@@ -893,23 +909,14 @@ watch(interceptionResult, (newVal) => {
 // Textbox Actions (Copy/Paste/Delete)
 // ============================================================================
 
-async function copyInputText() {
-  try {
-    await navigator.clipboard.writeText(inputText.value)
-    console.log('[T2I] Input text copied to clipboard')
-  } catch (error) {
-    console.error('[T2I] Failed to copy:', error)
-  }
+function copyInputText() {
+  appClipboard.value = inputText.value
+  console.log('[T2I] Input text copied to app clipboard')
 }
 
-async function pasteInputText() {
-  try {
-    const text = await navigator.clipboard.readText()
-    inputText.value = text
-    console.log('[T2I] Text pasted into input')
-  } catch (error) {
-    console.error('[T2I] Failed to paste:', error)
-  }
+function pasteInputText() {
+  inputText.value = appClipboard.value
+  console.log('[T2I] Text pasted from app clipboard into input')
 }
 
 function clearInputText() {
@@ -918,29 +925,56 @@ function clearInputText() {
   console.log('[T2I] Input text cleared')
 }
 
-async function copyContextPrompt() {
-  try {
-    await navigator.clipboard.writeText(contextPrompt.value)
-    console.log('[T2I] Context prompt copied to clipboard')
-  } catch (error) {
-    console.error('[T2I] Failed to copy:', error)
-  }
+function copyContextPrompt() {
+  appClipboard.value = contextPrompt.value
+  console.log('[T2I] Context prompt copied to app clipboard')
 }
 
-async function pasteContextPrompt() {
-  try {
-    const text = await navigator.clipboard.readText()
-    contextPrompt.value = text
-    console.log('[T2I] Text pasted into context')
-  } catch (error) {
-    console.error('[T2I] Failed to paste:', error)
-  }
+function pasteContextPrompt() {
+  contextPrompt.value = appClipboard.value
+  console.log('[T2I] Text pasted from app clipboard into context')
 }
 
 function clearContextPrompt() {
   contextPrompt.value = ''
   sessionStorage.removeItem('t2i_context_prompt')
   console.log('[T2I] Context prompt cleared')
+}
+
+function copyInterceptionResult() {
+  appClipboard.value = interceptionResult.value
+  console.log('[T2I] Interception result copied to app clipboard')
+}
+
+function pasteInterceptionResult() {
+  interceptionResult.value = appClipboard.value
+  console.log('[T2I] Text pasted from app clipboard into interception result')
+}
+
+function clearInterceptionResult() {
+  interceptionResult.value = ''
+  sessionStorage.removeItem('t2i_interception_result')
+  console.log('[T2I] Interception result cleared')
+}
+
+function copyOptimizedPrompt() {
+  appClipboard.value = optimizedPrompt.value
+  console.log('[T2I] Optimized prompt copied to app clipboard')
+}
+
+function pasteOptimizedPrompt() {
+  optimizedPrompt.value = appClipboard.value
+  console.log('[T2I] Text pasted from app clipboard into optimized prompt')
+}
+
+function clearOptimizedPrompt() {
+  optimizedPrompt.value = ''
+  console.log('[T2I] Optimized prompt cleared')
+}
+
+function copyOutputCode() {
+  appClipboard.value = outputCode.value
+  console.log('[T2I] Output code copied to app clipboard')
 }
 
 // ============================================================================
@@ -2609,6 +2643,12 @@ watch(optimizedPrompt, async () => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .code-display h3,

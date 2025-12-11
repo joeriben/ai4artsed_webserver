@@ -29,6 +29,36 @@
 
 ---
 
+## Session 96 - 2025-12-11
+
+### Decision: Internal App Clipboard for Copy/Paste Buttons
+**Context:** All textareas needed consistent copy/paste/delete functionality. Initial approach attempted browser Clipboard API (`navigator.clipboard.readText()`) and `execCommand('paste')`, but both had issues:
+- `navigator.clipboard.readText()` requires permission dialog (bad UX)
+- `execCommand('paste')` is deprecated and unreliable across browsers
+
+**Decision:** Implement internal app-wide clipboard buffer (`const appClipboard = ref('')`)
+- Copy buttons write to `appClipboard.value`
+- Paste buttons read from `appClipboard.value` and set directly to textarea refs
+- No browser permissions, no deprecated APIs
+- Works reliably across all textareas in the app
+
+**Reasoning:**
+- Simple, predictable, consistent behavior
+- No security dialogs interrupting workflow
+- Copy/paste within app is sufficient for the use case (users can still use Ctrl+V for external content)
+- Same pattern as existing "Config → Context" functionality
+
+**Affected Files:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - Added: `appClipboard` ref (line 492)
+  - Modified: All copy/paste functions for 5 textareas (inputText, contextPrompt, interceptionResult, optimizedPrompt, outputCode)
+  - Added: Copy/Paste/Delete buttons to interceptionResult, optimizedPrompt
+  - Added: Copy button to outputCode (readonly)
+
+**Alternative Rejected:** Draft Context feature (Provide/Inject pattern to share form state with Träshy chat) - too complex, didn't solve the core problem, unreliable
+
+---
+
 ## 🎯 Active Decision: Input Mappings Pattern for ComfyUI Workflows (2025-12-01, Sessions 84-85)
 
 **Status:** ✅ IMPLEMENTED & TESTED
