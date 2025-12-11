@@ -604,6 +604,8 @@ watch(contextPrompt, (newVal) => {
   transition: all 0.3s ease;
   width: 100%;
   max-width: 1000px;
+  display: flex;
+  flex-direction: column;
 }
 
 .bubble-card.filled {
@@ -675,6 +677,8 @@ watch(contextPrompt, (newVal) => {
   resize: vertical;
   font-family: inherit;
   line-height: 1.4;
+  flex-grow: 1;
+  min-height: 0;
 }
 
 .bubble-textarea:focus {
