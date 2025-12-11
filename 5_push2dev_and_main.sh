@@ -127,3 +127,7 @@ echo "✅ All done!"
 echo "   - develop: pushed ✓"
 echo "   - main: merged and pushed ✓"
 echo "   - current branch: develop"
+echo "================================================"
+read -n 1 -s -r -p "Press any key to close this window..."
+echo ""
+exec bash
