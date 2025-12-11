@@ -342,10 +342,13 @@ def chat():
         # Build system prompt
         system_prompt = build_system_prompt(context)
 
-        # Load chat history (if run_id provided)
+        # Load chat history (priority: run_id file > request history > empty)
         history = []
         if run_id:
             history = load_chat_history(run_id)
+        elif 'history' in data and isinstance(data['history'], list):
+            history = data['history']
+            logger.info(f"Using history from request: {len(history)} messages")
 
         # Build messages for LLM
         messages = [{"role": "system", "content": system_prompt}]
