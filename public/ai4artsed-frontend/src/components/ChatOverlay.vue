@@ -176,9 +176,16 @@ async function sendMessage() {
   isLoading.value = true
 
   try {
+    // Prepare history for backend
+    const historyForBackend = messages.value.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }))
+
     const response = await axios.post('/api/chat', {
       message: userMessage,
-      run_id: currentSession.value.runId || undefined
+      run_id: currentSession.value.runId || undefined,
+      history: historyForBackend
     })
 
     const assistantReply = response.data.reply
