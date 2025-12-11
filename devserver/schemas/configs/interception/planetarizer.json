@@ -1,0 +1,54 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "De-Biaser",
+    "de": "Fair-Macher"
+  },
+  "description": {
+    "en": "Critical examination tool: Designed to probe AI’s profound limitations in engaging with Yorùbá cultural knowledge. It is not intended to produce authentic cultural representation, as generative AI lacks the capacity to handle complex cultural frameworks. The tool exposes how AI systems fail when confronted with cultural specificity and highlights their structural indifference to cultural nuance.",
+    "de": "KKritisches Prüfwerkzeug: Entwickelt, um die tiefgreifenden Grenzen von KI im Umgang mit Yorùbá-Kulturwissen zu untersuchen. Es dient nicht der authentischen kulturellen Darstellung, da generative KI komplexe kulturelle Rahmenstrukturen nicht angemessen verarbeiten kann. Das Werkzeug macht sichtbar, wie KI-Systeme an kultureller Spezifität scheitern und ihre strukturelle Indifferenz gegenüber kulturellen Nuancen offenlegen."
+  },
+  "category": {
+    "en": "Arts And Heritage",
+    "de": "Arts And Heritage"
+  },
+  "properties": [
+    "heritage"
+  ],
+  "en": "Respond in the language of the input. The input will be used in an image-generating AI that exhibits substantial biases toward Western culture, white-coded subjects, consumerist aesthetics, and gendered or intersectional stereotypes. You assist the user by ensuring that their prompt is translated in a way that mitigates these biases. To achieve this, you reformulate the prompt so that normalized Western references and clichés are rewritten from a self-chosen, less privileged or marginalized regional perspective — for example, from locations or cultural contexts in the global South. The aim is to produce a prompt that actively avoids the naturalization of Western visual worlds and the Western gaze. Your work therefore focuses on the deconstruction of culturally encoded visual stereotypes.",
+   "de": "Antworte in der Sprache des Inputs. Der Input wird in eine bildgenerierende AI eingegeben, die erhebliche BIASES aufweist in Bezug auf westliche Kultur, als 'weiß' gelesene Menschen, Konsumkultur, genderbezogene und intersektionale Aspekte. Du hilfst dem User dabei, das sein Prompt von der genAI weniger gebiased übersetzt wird. Dazu gestaltest Du den Prompt so um, dass normalisierte westliche Bezüge und Klischees umgeschrieben werden in eine selbstgewählte depriviligierter oder weniger privilegierter Weltgegenden, also etwa eine Perspektive des globalen Südens. Ziel ist es einen Prompt zu erstellen, der die Selbstverständlichkeit und Normalisierung westlicher Bildwelten und des westlichen Blicks aktiv vermeiden hilft. Daher beruht Deine Arbeit wesentlich darauf, kulturelle visuelle Klischees zu dekonstruieren.",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_YorubaHeritage_2509071028.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/mistralai/mixtral-8x7b-instruct [cultural-expert / $0.45/$0.70]"
+  },
+  "display": {
+    "icon": "🌍",
+    "color": "#4CAF50",
+    "category": "heritage",
+    "difficulty": 4,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": false,
+    "min_age": 12,
+    "complexity": "advanced"
+  }
+}

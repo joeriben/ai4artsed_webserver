@@ -1,0 +1,77 @@
+{
+  "pipeline": "direct",
+  "instruction_type": "surrealizer",
+  "name": {
+    "en": "Surrealizer",
+    "de": "Surrealisierer"
+  },
+  "description": {
+    "en": "Transform your ideas into surreal artworks using advanced T5-CLIP vector interpolation. Your text prompt is directly fed into a specialized ComfyUI workflow for dreamlike, unexpected image compositions.",
+    "de": "Verwandle deine Ideen in surrealistische Kunstwerke mit fortgeschrittener T5-CLIP-Vektor-Interpolation. Dein Text-Prompt wird direkt in einen spezialisierten ComfyUI-Workflow für traumhafte, unerwartete Bildkompositionen eingespeist."
+  },
+  "category": {
+    "de": "Forschung",
+    "en": "Research"
+  },
+  "properties": [
+    "research"
+  ],
+  "context": {
+    "en": "The Surrealizer uses a legacy ComfyUI workflow with T5-CLIP token-level manipulation to create surreal image compositions. Your prompt is passed directly to the workflow without Stage 2 transformation.",
+    "de": "Der Surrealisierer verwendet einen Legacy-ComfyUI-Workflow mit T5-CLIP-Token-Level-Manipulation, um surrealistische Bildkompositionen zu erstellen. Dein Prompt wird ohne Stage-2-Transformation direkt an den Workflow übergeben."
+  },
+  "parameters": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_tokens": 1
+  },
+  "media_preferences": {
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "skip_stage2": true,
+    "backend": "none",
+    "workflow_type": "passthrough",
+    "note": "Surrealizer config for legacy surrealization workflow. Stage 2 is skipped to preserve original prompt.",
+    "system_config": false
+  },
+  "display": {
+    "icon": "🔬",
+    "color": "#FF6F00",
+    "category": "research",
+    "difficulty": 4,
+    "order": 50,
+    "hidden": false
+  },
+  "tags": {
+    "en": [
+      "surreal",
+      "research",
+      "experimental",
+      "legacy",
+      "T5-CLIP",
+      "vector interpolation",
+      "advanced"
+    ],
+    "de": [
+      "surreal",
+      "forschung",
+      "experimentell",
+      "legacy",
+      "T5-CLIP",
+      "Vektor-Interpolation",
+      "fortgeschritten"
+    ]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate",
+    "requires": [
+      "ComfyUI backend"
+    ]
+  }
+}

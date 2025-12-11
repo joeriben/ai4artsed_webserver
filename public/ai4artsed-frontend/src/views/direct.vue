@@ -5,7 +5,7 @@
       <button class="return-button" @click="$router.push('/')" title="Zurück zur Startseite">
         ← Zurück
       </button>
-      <h1 class="page-title">Direct Workflow Execution</h1>
+      <h1 class="page-title">Surrealisierer</h1>
     </header>
 
     <!-- Main Content -->
@@ -29,10 +29,10 @@
         <div class="section-card">
           <div class="card-header">
             <span class="card-icon">⚙️</span>
-            <span class="card-label">Workflow auswählen</span>
+            <span class="card-label">Surrealisierungs-Stil auswählen</span>
           </div>
           <select v-model="selectedOutputConfig" class="config-select">
-            <option value="" disabled>Workflow auswählen...</option>
+            <option value="" disabled>Stil auswählen...</option>
             <option
               v-for="config in availableConfigs"
               :key="config.id"
@@ -50,7 +50,7 @@
           :disabled="!canExecute"
           @click="executeWorkflow"
         >
-          <span class="button-text">{{ isExecuting ? 'Läuft...' : 'Workflow starten' }}</span>
+          <span class="button-text">{{ isExecuting ? 'Surrealisiere...' : 'Surrealisieren' }}</span>
         </button>
       </section>
 
@@ -58,14 +58,14 @@
       <section class="output-section" v-if="hasOutputs || isExecuting">
         <div class="section-card">
           <div class="card-header">
-            <span class="card-icon">📦</span>
-            <span class="card-label">Workflow Outputs</span>
+            <span class="card-icon">🎨</span>
+            <span class="card-label">Surrealisierte Ausgabe</span>
           </div>
 
           <!-- Loading State -->
           <div v-if="isExecuting && !hasOutputs" class="loading-container">
             <div class="spinner"></div>
-            <p class="loading-text">Workflow wird ausgeführt...</p>
+            <p class="loading-text">Surrealisierung läuft...</p>
           </div>
 
           <!-- Outputs Display (naiv, alle Outputs in Reihenfolge) -->
@@ -81,38 +81,33 @@
                   :src="output.url"
                   :alt="`Output ${index + 1}`"
                   class="output-image"
-                  @click="output.url && showFullscreen(output.url)"
+                  @click="showFullscreen(output.url)"
                 />
                 <p class="output-caption">{{ output.filename }}</p>
               </div>
 
-              <!-- Video Output -->
-              <div v-else-if="output.type === 'video'" class="output-video-wrapper">
-                <video
-                  :src="output.url"
-                  class="output-video"
-                  controls
-                  preload="metadata"
-                >
-                  Your browser doesn't support video playback.
-                </video>
-                <p class="output-caption">{{ output.filename }}</p>
+              <!-- Text Output -->
+              <div v-else-if="output.type === 'text'" class="output-text-wrapper">
+                <div class="text-header">
+                  <span class="text-icon">📄</span>
+                  <span class="text-filename">{{ output.filename }}</span>
+                </div>
+                <pre class="output-text">{{ output.content }}</pre>
               </div>
 
-              <!-- Audio Output -->
-              <div v-else-if="output.type === 'audio'" class="output-audio-wrapper">
-                <div class="audio-header">
-                  <span class="audio-icon">🔊</span>
-                  <span class="audio-filename">{{ output.filename }}</span>
+              <!-- JSON Output -->
+              <div v-else-if="output.type === 'json'" class="output-json-wrapper">
+                <div class="json-header">
+                  <span class="json-icon">📋</span>
+                  <span class="json-filename">{{ output.filename }}</span>
                 </div>
-                <audio
-                  :src="output.url"
-                  class="output-audio"
-                  controls
-                  preload="metadata"
-                >
-                  Your browser doesn't support audio playback.
-                </audio>
+                <pre class="output-json">{{ formatJSON(output.content) }}</pre>
+              </div>
+
+              <!-- Unknown Output Type -->
+              <div v-else class="output-unknown-wrapper">
+                <p class="unknown-type">Unbekannter Output-Typ: {{ output.type }}</p>
+                <p class="unknown-filename">{{ output.filename }}</p>
               </div>
             </div>
           </div>
@@ -146,9 +141,10 @@ interface OutputConfig {
 }
 
 interface WorkflowOutput {
-  type: 'image' | 'video' | 'audio'
+  type: 'image' | 'text' | 'json' | 'unknown'
   filename: string
-  url: string
+  url?: string
+  content?: string
 }
 
 // ============================================================================
@@ -190,15 +186,15 @@ async function executeWorkflow() {
   outputs.value = [] // Clear previous outputs
 
   try {
-    // Call 4-stage pipeline with direct workflow execution
+    // Call 4-stage pipeline with surrealizer workflow execution
     // Stage 1: Translation
-    // Skip Stage 2 (no interception for direct workflows)
+    // Skip Stage 2 (no interception for surrealizer)
     // Stage 3: Safety check
     // Stage 4: Legacy workflow execution
     const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: 'direct_workflow', // Special config for direct execution
+      schema: 'surrealizer', // Surrealizer config for legacy surrealization workflow
       input_text: inputText.value,
-      safety_level: 'open', // Direct workflows use open safety level
+      safety_level: 'open', // Surrealizer uses open safety level
       output_config: selectedOutputConfig.value,
       user_language: 'de'
     })
@@ -251,8 +247,10 @@ async function processEntity(runId: string, entity: any): Promise<WorkflowOutput
     const entityType = entity.type
     const filename = entity.filename
 
-    // Skip input/translation/safety entities (only show workflow outputs)
-    if (['input', 'translation', 'safety', 'safety_pre_output'].includes(entityType)) {
+    // FAILSAFE: Only show final outputs (entities with prefix 'output_')
+    // This filters out all intermediate results:
+    // - config_used, input, stage1_output, interception, safety, safety_pre_output, etc.
+    if (!entityType.startsWith('output_')) {
       return null
     }
 
@@ -263,7 +261,7 @@ async function processEntity(runId: string, entity: any): Promise<WorkflowOutput
 
     const contentType = response.headers['content-type']
 
-    // Determine output type from content-type - only show media outputs
+    // Determine output type from content-type
     if (contentType.startsWith('image/')) {
       // Image output
       const url = URL.createObjectURL(response.data)
@@ -272,29 +270,41 @@ async function processEntity(runId: string, entity: any): Promise<WorkflowOutput
         filename,
         url
       }
-    } else if (contentType.startsWith('video/')) {
-      // Video output
-      const url = URL.createObjectURL(response.data)
+    } else if (contentType.includes('application/json')) {
+      // JSON output
+      const text = await response.data.text()
       return {
-        type: 'video',
+        type: 'json',
         filename,
-        url
+        content: text
       }
-    } else if (contentType.startsWith('audio/')) {
-      // Audio output
-      const url = URL.createObjectURL(response.data)
+    } else if (contentType.includes('text/')) {
+      // Text output
+      const text = await response.data.text()
       return {
-        type: 'audio',
+        type: 'text',
         filename,
-        url
+        content: text
       }
     } else {
-      // Skip all other types (JSON, text, etc.)
-      return null
+      // Unknown type
+      return {
+        type: 'unknown',
+        filename
+      }
     }
   } catch (error: any) {
     console.error(`[Direct] Error processing entity:`, error)
     return null
+  }
+}
+
+function formatJSON(jsonString: string): string {
+  try {
+    const obj = JSON.parse(jsonString)
+    return JSON.stringify(obj, null, 2)
+  } catch {
+    return jsonString
   }
 }
 
@@ -552,42 +562,61 @@ function showFullscreen(url: string) {
   font-size: 0.9rem;
 }
 
-/* Video Output */
-.output-video-wrapper {
-  text-align: center;
-}
-
-.output-video {
-  max-width: 100%;
-  border-radius: 8px;
-  background: black;
-}
-
-/* Audio Output */
-.output-audio-wrapper {
+/* Text Output */
+.output-text-wrapper,
+.output-json-wrapper {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.audio-header {
+.text-header,
+.json-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: rgba(255, 255, 255, 0.9);
 }
 
-.audio-icon {
+.text-icon,
+.json-icon {
   font-size: 1.2rem;
 }
 
-.audio-filename {
+.text-filename,
+.json-filename {
   font-weight: 600;
 }
 
-.output-audio {
-  width: 100%;
-  border-radius: 8px;
+.output-text,
+.output-json {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Unknown Output */
+.output-unknown-wrapper {
+  text-align: center;
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.unknown-type {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.unknown-filename {
+  font-size: 0.9rem;
 }
 
 /* ============================================================================
