@@ -974,6 +974,10 @@ function clearOptimizedPrompt() {
 }
 
 function copyOutputCode() {
+  if (!outputCode.value) {
+    console.warn('[T2I] No output code to copy')
+    return
+  }
   copyToClipboard(outputCode.value)
   console.log('[T2I] Output code copied to app clipboard')
 }
