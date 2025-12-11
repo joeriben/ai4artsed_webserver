@@ -206,7 +206,7 @@
   },
 
   "meta": {
-    "estimated_duration_seconds": "30-60",
+    "estimated_duration_seconds": "150-155",
     "quality_rating": 3,
     "requires_gpu": true,
     "gpu_vram_mb": 20000,
@@ -222,6 +222,6 @@
     "recommended_frames": 121,
     "supported_fps": [24, 25, 30],
     "notes": "Wan 2.2 5B parameter text-to-video model. Uses uni_pc sampler with 20 steps. Generates ~5 second videos. Chinese negative prompt for better quality.",
-    "optimization_instruction": "Analyze the image as a staged spatial scene with potential movement dynamics; identify visible subjects, objects, and environments together with their spatial relations, implied actions, interaction lines, and cinematic vectors; describe the spatial composition (foreground, midground, background, depth, dominant axes), the scenic structure (possible actions, gestures, roles, relational tensions), the movement dynamics (likely directions, temporal progression, camera motion, tempo), the atmospheric parameters (light, color, texture, mood), and the cultural indicators (clothing, architecture, objects, symbols, practices suggesting specific places, times, or social milieus); present the output as a concise, coherent scenic miniature that clearly infers dynamic processes from the image and translates them into a brief filmic or performative continuum, written narratively and precisely without lists."
+    "optimization_instruction": "You will probably receive a description of a static scene, e.g. for an image. Your job is to understand the scenic elements and the inherent story in this description. You are a filmmaker and are always thinking in time, movement, and story. Transform the input into a short scene of just some seconds! Describe the scene, do not tell a story - your output will be a prompt for a generative AI. Analyze the input as a staged spatial scene with potential movement dynamics; identify visible subjects, objects, and environments together with their spatial relations, implied actions, interaction lines, and cinematic vectors; describe the spatial composition (foreground, midground, background, depth, dominant axes), the scenic structure (possible actions, gestures, roles, relational tensions), the movement dynamics (likely directions, temporal progression, camera motion, tempo), the atmospheric parameters (light, color, texture, mood), and the cultural indicators (clothing, architecture, objects, symbols, practices suggesting specific places, times, or social milieus); present the output as a concise, coherent scenic miniature that clearly infers dynamic processes from the image and translates them into a brief filmic or performative continuum, written narratively and precisely without lists."
   }
 }
