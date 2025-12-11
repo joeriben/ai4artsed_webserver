@@ -154,6 +154,9 @@ import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 // STATE
 // ============================================================================
 
+// Internal clipboard buffer (shared with text_transformation.vue)
+const appClipboard = ref('')
+
 // Image upload
 const uploadedImage = ref<string | null>(null)  // Base64 preview URL
 const uploadedImagePath = ref<string | null>(null)  // Server path
@@ -434,23 +437,14 @@ const pipelineStore = usePipelineExecutionStore()
 // Textbox Actions (Copy/Paste/Delete)
 // ============================================================================
 
-async function copyContextPrompt() {
-  try {
-    await navigator.clipboard.writeText(contextPrompt.value)
-    console.log('[I2I] Context prompt copied to clipboard')
-  } catch (error) {
-    console.error('[I2I] Failed to copy:', error)
-  }
+function copyContextPrompt() {
+  appClipboard.value = contextPrompt.value
+  console.log('[I2I] Context prompt copied to app clipboard')
 }
 
-async function pasteContextPrompt() {
-  try {
-    const text = await navigator.clipboard.readText()
-    contextPrompt.value = text
-    console.log('[I2I] Text pasted into context')
-  } catch (error) {
-    console.error('[I2I] Failed to paste:', error)
-  }
+function pasteContextPrompt() {
+  contextPrompt.value = appClipboard.value
+  console.log('[I2I] Text pasted from app clipboard into context')
 }
 
 function clearContextPrompt() {
