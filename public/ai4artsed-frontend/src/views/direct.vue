@@ -47,15 +47,22 @@
             <span class="card-label">Surrealisierung</span>
           </div>
           <div class="slider-container">
-            <input
-              type="range"
-              min="1"
-              max="50"
-              v-model.number="alphaFaktor"
-              class="slider"
-              :style="{ '--slider-value': alphaPercentage + '%' }"
-            />
-            <div class="slider-value">{{ alphaFaktor }}</div>
+            <div class="slider-labels">
+              <span class="slider-label-left">weird</span>
+              <span class="slider-label-center">normal</span>
+              <span class="slider-label-right">crazy</span>
+            </div>
+            <div class="slider-wrapper">
+              <input
+                type="range"
+                min="-75"
+                max="75"
+                v-model.number="alphaFaktor"
+                class="slider"
+                :style="{ '--slider-value': alphaPercentage + '%' }"
+              />
+              <div class="slider-value">{{ alphaFaktor }}</div>
+            </div>
           </div>
         </div>
 
@@ -169,7 +176,7 @@ const router = useRouter()
 
 const inputText = ref('')
 const selectedOutputConfig = ref('surrealization_legacy')  // Pre-select surrealization
-const alphaFaktor = ref<number>(25)  // Slider (1-50), default middle
+const alphaFaktor = ref<number>(0)  // Slider (-75 to +75), default 0 = normal/balanced
 const isExecuting = ref(false)
 const outputs = ref<WorkflowOutput[]>([])
 const fullscreenImage = ref<string | null>(null)
@@ -178,7 +185,7 @@ const primaryOutput = ref<WorkflowOutput | null>(null)
 
 // Seed management for iterative experimentation
 const previousPrompt = ref('')  // Track previous prompt
-const previousAlpha = ref<number>(25)  // Track previous alpha value
+const previousAlpha = ref<number>(0)  // Track previous alpha value
 const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
 
 // Image analysis state (for Stage 5)
@@ -209,16 +216,16 @@ const hasOutputs = computed(() => {
   return outputs.value.length > 0
 })
 
+// Slider percentage for CSS variable (0-100%)
+// Map -75 to 0%, 0 to 50%, +75 to 100%
 const alphaPercentage = computed(() => {
-  return ((alphaFaktor.value - 1) / 49) * 100
+  return ((alphaFaktor.value + 75) / 150) * 100
 })
 
-// Map slider value (1-50) to alpha range (-1.5 to 2.0)
+// Alpha value is used directly (no mapping needed)
+// Slider range: -75 (weird/CLIP) to 0 (normal/balanced) to +75 (crazy/T5)
 const mappedAlpha = computed(() => {
-  const min = -1.5
-  const max = 2.0
-  const range = max - min
-  return min + ((alphaFaktor.value - 1) / 49) * range
+  return alphaFaktor.value
 })
 
 // ============================================================================
@@ -733,6 +740,25 @@ function extractInsights(analysisText: string): string[] {
    ============================================================================ */
 
 .slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.25rem;
+}
+
+.slider-label-center {
+  font-weight: 600;
+  color: rgba(76, 175, 80, 0.9);
+}
+
+.slider-wrapper {
   display: flex;
   align-items: center;
   gap: 1rem;
