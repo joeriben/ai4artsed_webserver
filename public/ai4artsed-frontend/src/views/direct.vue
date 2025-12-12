@@ -48,9 +48,11 @@
           </div>
           <div class="slider-container">
             <div class="slider-labels">
-              <span class="slider-label-left">weird</span>
+              <span class="slider-label-left">very weird</span>
+              <span class="slider-label-mid-left">weird</span>
               <span class="slider-label-center">normal</span>
-              <span class="slider-label-right">crazy</span>
+              <span class="slider-label-mid-right">crazy</span>
+              <span class="slider-label-right">really crazy</span>
             </div>
             <div class="slider-wrapper">
               <input
@@ -59,10 +61,9 @@
                 max="75"
                 v-model.number="alphaFaktor"
                 class="slider"
-                :style="{ '--slider-value': alphaPercentage + '%' }"
               />
-              <div class="slider-value">{{ alphaFaktor }}</div>
             </div>
+            <div class="slider-value">{{ alphaFaktor }}</div>
           </div>
         </div>
 
@@ -748,78 +749,112 @@ function extractInsights(analysisText: string): string[] {
 .slider-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.slider-label-left {
+  color: rgba(147, 51, 234, 0.9); /* Purple for "very weird" */
+}
+
+.slider-label-mid-left {
+  color: rgba(120, 80, 240, 0.8); /* Purple-Blue for "weird" */
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .slider-label-center {
-  font-weight: 600;
-  color: rgba(76, 175, 80, 0.9);
+  color: rgba(59, 130, 246, 0.9); /* Blue for "normal" */
+  font-weight: 700;
+}
+
+.slider-label-mid-right {
+  color: rgba(180, 100, 200, 0.8); /* Blue-Pink for "crazy" */
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.slider-label-right {
+  color: rgba(236, 72, 153, 0.9); /* Pink for "really crazy" */
 }
 
 .slider-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  width: 100%;
+  padding: 0.5rem 0;
 }
 
 .slider {
-  flex: 1;
+  width: 100%;
   -webkit-appearance: none;
   appearance: none;
-  height: 8px;
+  height: 16px; /* Double thickness */
   background: linear-gradient(
     to right,
-    rgba(76, 175, 80, 0.6) 0%,
-    rgba(76, 175, 80, 0.6) var(--slider-value),
-    rgba(255, 255, 255, 0.2) var(--slider-value),
-    rgba(255, 255, 255, 0.2) 100%
+    rgba(147, 51, 234, 0.6) 0%,    /* Purple (weird) */
+    rgba(59, 130, 246, 0.6) 50%,   /* Blue (normal) */
+    rgba(236, 72, 153, 0.6) 100%   /* Pink (crazy) */
   );
-  border-radius: 4px;
+  border-radius: 8px;
   outline: none;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
-  background: #4CAF50;
-  cursor: pointer;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(99, 102, 241, 0.95));
+  cursor: grab;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
 }
 
 .slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.6);
+  transform: scale(1.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+  cursor: grabbing;
+}
+
+.slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.05);
 }
 
 .slider::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
-  background: #4CAF50;
-  cursor: pointer;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(99, 102, 241, 0.95));
+  cursor: grab;
   border-radius: 50%;
-  border: none;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
 }
 
 .slider::-moz-range-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.6);
+  transform: scale(1.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+  cursor: grabbing;
 }
 
+.slider::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+/* Value display centered below slider */
 .slider-value {
+  text-align: center;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #4CAF50;
-  min-width: 3rem;
-  text-align: center;
+  color: rgba(59, 130, 246, 0.95); /* Blue color matching thumb */
+  margin-top: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* ============================================================================
