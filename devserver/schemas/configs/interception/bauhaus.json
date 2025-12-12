@@ -38,7 +38,7 @@
     "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
   },
   "display": {
-    "icon": "🖌️",
+    "icon": "💭",
     "color": "#E91E63",
     "category": "arts",
     "difficulty": 4,

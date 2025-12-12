@@ -2,8 +2,8 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "Sensitive Exploration",
-    "de": "sensible Erkundung"
+    "en": "Sensitive",
+    "de": "sensibel"
   },
   "description": {
     "en": "Sensitive exploration is about paying close attention to what happens between things, images, sounds, or movements. Instead of looking at single objects, it notices transitions, small changes, and shifts. Rather than explaining or fixing meanings, it stays open and responds through an aesthetic form. The result does not have to be finished or clear.",
@@ -38,7 +38,7 @@
     "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
   },
   "display": {
-    "icon": "🖌️",
+    "icon": "💭",
     "color": "#E91E63",
     "category": "arts",
     "difficulty": 4,

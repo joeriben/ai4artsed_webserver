@@ -56,7 +56,7 @@
     "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Dada_2506220140.json"
   },
   "display": {
-    "icon": "🖌️",
+    "icon": "💭",
     "color": "#E91E63",
     "category": "arts",
     "difficulty": 4,
