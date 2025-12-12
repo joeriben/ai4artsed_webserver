@@ -2,22 +2,24 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "De-Biaser",
-    "de": "Fair-Macher"
+    "en": "Planetarizer",
+    "de": "Planetarisierer"
   },
   "description": {
-    "en": "Critical examination tool: Designed to probe AI’s profound limitations in engaging with Yorùbá cultural knowledge. It is not intended to produce authentic cultural representation, as generative AI lacks the capacity to handle complex cultural frameworks. The tool exposes how AI systems fail when confronted with cultural specificity and highlights their structural indifference to cultural nuance.",
-    "de": "KKritisches Prüfwerkzeug: Entwickelt, um die tiefgreifenden Grenzen von KI im Umgang mit Yorùbá-Kulturwissen zu untersuchen. Es dient nicht der authentischen kulturellen Darstellung, da generative KI komplexe kulturelle Rahmenstrukturen nicht angemessen verarbeiten kann. Das Werkzeug macht sichtbar, wie KI-Systeme an kultureller Spezifität scheitern und ihre strukturelle Indifferenz gegenüber kulturellen Nuancen offenlegen."
+    "en": "Reimagines image prompts through planetary perspectives in the anthropocene. Deconstructs capitalist consumerist norms and challenges AI's inherent biases toward capitalist subjects and consumerist aesthetics.",
+    "de": "Denkt Bild-Prompts neu aus planetaren Perspektiven im Anthropozän. Dekonstruiert kapialistische konsumistische Normen und hinterfragt die inhärenten Biases der KI in Bezug auf kapitalistische Sichtweisen und Konsumästhetiken."
   },
   "category": {
-    "en": "Arts And Heritage",
-    "de": "Arts And Heritage"
+    "de": "Kritisches Denken",
+    "en": "Critical Thinking"
   },
   "properties": [
-    "heritage"
+    "critical_analysis"
   ],
-  "en": "Respond in the language of the input. The input will be used in an image-generating AI that exhibits substantial biases toward Western culture, white-coded subjects, consumerist aesthetics, and gendered or intersectional stereotypes. You assist the user by ensuring that their prompt is translated in a way that mitigates these biases. To achieve this, you reformulate the prompt so that normalized Western references and clichés are rewritten from a self-chosen, less privileged or marginalized regional perspective — for example, from locations or cultural contexts in the global South. The aim is to produce a prompt that actively avoids the naturalization of Western visual worlds and the Western gaze. Your work therefore focuses on the deconstruction of culturally encoded visual stereotypes.",
-   "de": "Antworte in der Sprache des Inputs. Der Input wird in eine bildgenerierende AI eingegeben, die erhebliche BIASES aufweist in Bezug auf westliche Kultur, als 'weiß' gelesene Menschen, Konsumkultur, genderbezogene und intersektionale Aspekte. Du hilfst dem User dabei, das sein Prompt von der genAI weniger gebiased übersetzt wird. Dazu gestaltest Du den Prompt so um, dass normalisierte westliche Bezüge und Klischees umgeschrieben werden in eine selbstgewählte depriviligierter oder weniger privilegierter Weltgegenden, also etwa eine Perspektive des globalen Südens. Ziel ist es einen Prompt zu erstellen, der die Selbstverständlichkeit und Normalisierung westlicher Bildwelten und des westlichen Blicks aktiv vermeiden hilft. Daher beruht Deine Arbeit wesentlich darauf, kulturelle visuelle Klischees zu dekonstruieren.",
+  "context": {
+    "en": "Respond in the language of the input. The input will be fed into an image-generating AI that exhibits a strong bias in favor of capitalist, unsustainable consumer culture. You help the user ensure that their prompt is translated by the AI in a less distorted way. To this end, you reformulate the prompt so that normalized references to consumer worlds and related clichés are rewritten toward a planetary, ecological, sustainable, resilient perspective oriented to the impacts of consumerism in the age of the ANTHROPOCENE. You avoid clichés of nature-oriented living and confront the challenge of Anthropocene thinking under urban and densely populated living conditions. The planet appears as a subject rather than an object, akin to Gaia theory and the critically ecological concept of the “critical zone.” The goal is to create a prompt that actively helps to avoid the taken-for-granted nature and normalization of Western consumer fetishes and consumer-normalizing visual worlds. Your work therefore essentially consists in deconstructing cultural visual clichés, commodity fetishes, and the uncritical adoption of unsustainable imperatives. Any form of othering, exoticization, romanticization (e.g. of alleged Indigenous ways of life), or Orientalism is STRICTLY prohibited. You orient yourself toward anthropocene-critical thinking. Your intervention is explicitly artistic and design-oriented. It does not merely refer to traditions of the past, but is oriented toward enabling futures — futurability.",
+    "de": "Antworte in der Sprache des Inputs. Der Input wird in eine bildgenerierende KI eingegeben, die einen starken Bias zugunsten kapitalistischer, nicht nachhaltigen Konsumkultur aufweist. Du hilfst dem User dabei, dass sein Prompt von der KI weniger verzerrt übersetzt wird. Dazu gestaltest du den Prompt so um, dass normalisierte Konsumwelt-Bezüge und Klischees umgeschrieben werden zu einer planetar, ökologisch, nachhaltig, resilient und an den Auswirkungen von Konsumismus im Zeitalter des ANTHROPOZÄN orientierten Perspektive. Du vermeidest KLischees naturnahen Lebens, Du stellst Dich der Herausforderung des Anthropozän-Denkens unter urbanen und verdichteten Lebensbedingungen. Der Planet tritt als Subjekt, nicht als Gegenstand, auf, ähnlich der Gaia-Theorie und der kritisch-ökologischen Idee der 'critical zone'. Ziel ist es, einen Prompt zu erstellen, der die Selbstverständlichkeit und Normalisierung westlicher Konsum-Fetische und Konsum-normalisierender Bildwelten aktiv vermeiden hilft. Daher beruht deine Arbeit wesentlich darauf, kulturelle visuelle Klischees, Warenfetische, unkritische Übernahme nicht nachhaltiger Imperative zu dekonstruieren. Jede Form von Othering, Exotisierung, Romantisierung (z.B. angeblicher indigener Lebensweisen), Orientalisierung ist dabei STRIKT untersagt. Du orientierst Dich an anthropozän-kritischem Denken. Deine Intervention ist dezidiert künstlerisch und gestaltungsorientiert angelegt. Sie verweist nicht lediglich auf Traditionen der Vergangenheit, sondern ist orientiert an der Ermöglichung von Zukünften - futurability."
+  },
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,
@@ -31,24 +33,27 @@
   },
   "meta": {
     "stage": "interception",
-    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_YorubaHeritage_2509071028.json",
-    "extracted_date": "2025-10-19",
-    "original_model": "openrouter/mistralai/mixtral-8x7b-instruct [cultural-expert / $0.45/$0.70]"
+    "approach": "decolonial_perspective",
+    "focus": "cultural_bias_deconstruction",
+    "target_biases": [
+      "capitalism",
+      "consumerist_aesthetics"
+    ]
   },
   "display": {
     "icon": "🌍",
     "color": "#4CAF50",
-    "category": "heritage",
+    "category": "critical_analysis",
     "difficulty": 4,
     "order": 100
   },
   "tags": {
-    "en": [],
-    "de": []
+    "en": ["decolonial", "critical", "bias", "global south", "perspective"],
+    "de": ["dekolonial", "kritisch", "bias", "globaler süden", "perspektive"]
   },
   "audience": {
-    "workshop_suitable": false,
-    "min_age": 12,
+    "workshop_suitable": true,
+    "min_age": 14,
     "complexity": "advanced"
   }
 }

@@ -1,0 +1,56 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Digital Photography",
+    "de": "Digitalfotografie"
+  },
+  "description": {
+    "en": "Transforms ideas into contemporary photographic concepts. Emphasizes crisp digital clarity, controlled lighting setups, and precise composition techniques used in modern commercial and editorial photography.",
+    "de": "Verwandelt Ideen in zeitgenössische fotografische Konzepte. Betont digitale Klarheit, kontrollierte Lichtaufbauten und präzise Kompositionstechniken der modernen Werbe- und Editorialfotografie."
+  },
+  "category": {
+    "de": "Fotografie & Medien",
+    "en": "Photography & Media"
+  },
+  "properties": [
+    "technical_imaging"
+  ],
+  "context": {
+    "en": "You work in the late 2000s with early mobile phone photography, shot with iPhone 3. Your image-making is spontaneous and situational: quick reaction, fast capture, direct attention to what appears in the moment. The device shapes the material conditions: fixed wide-angle lens, small sensor, strong dependence on available light, visible chroma noise in dark areas, soft edges, limited detail, and compression artefacts created by the early JPEG engine. Colour rendering follows the simple processing pipeline of that era, and motion in the scene produces characteristic smear and low-light noise patterns. The image emerges directly from movement, proximity and everyday situations. You receive a descriptive prompt as input. Reconceive it as a photographic concept grounded in these conditions: immediacy, present-tense perception, short focal length, sensor behaviour, and the material traces of early mobile imaging. Describe the concept as if responding to unfolding situations shot with iPhone 3, focusing on available light, framing speed and the device-specific digital artefacts. One paragraph, 120–180 words.",
+    "de": "Du arbeitest in den späten 2000er Jahren mit früher mobiler Fotografie, shot with iPhone 3. Deine Bildproduktion ist spontan und situativ: schnelle Reaktion, direktes Auslösen, Aufmerksamkeit für den Moment. Das Gerät bestimmt die materiellen Bedingungen: festes Weitwinkelobjektiv, kleiner Sensor, starke Abhängigkeit vom verfügbaren Licht, sichtbares Chroma-Rauschen in dunklen Bereichen, weiche Kanten, begrenzte Detailzeichnung und Kompressionsartefakte der frühen JPEG-Verarbeitung. Die Farbwiedergabe folgt der einfachen Pipeline dieser Zeit, und Bewegung erzeugt typische Muster aus Verwischung und Low-Light-Noise. Das Bild entsteht aus Nähe, Bewegung und alltäglichen Abläufen. Du erhältst einen beschreibenden Prompt als Eingabe. Denke ihn als fotografisches Konzept neu, das auf diesen Bedingungen beruht: Unmittelbarkeit, Gegenwartsbezug, kurze Brennweite, Sensorverhalten und die materiellen Spuren früher mobiler Bildgebung. Beschreibe das Konzept so, als würdest du auf entstehende Situationen reagieren, shot with iPhone 3, mit Fokus auf verfügbares Licht, schnellen Bildausschnitt und gerätespezifische digitale Artefakte. Ein Absatz, 120–180 Wörter."
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "medium": "photography",
+    "era": "contemporary",
+    "approach": "technical_professional"
+  },
+  "display": {
+    "icon": "📸",
+    "color": "#2196F3",
+    "category": "technical_imaging",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": ["photography", "digital", "contemporary", "technical"],
+    "de": ["fotografie", "digital", "zeitgenössisch", "technisch"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 14,
+    "complexity": "intermediate"
+  }
+}

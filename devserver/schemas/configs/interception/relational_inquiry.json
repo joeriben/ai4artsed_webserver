@@ -1,0 +1,56 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Sensitive Exploration",
+    "de": "sensible Erkundung"
+  },
+  "description": {
+    "en": "Sensitive exploration is about paying close attention to what happens between things, images, sounds, or movements. Instead of looking at single objects, it notices transitions, small changes, and shifts. Rather than explaining or fixing meanings, it stays open and responds through an aesthetic form. The result does not have to be finished or clear.",
+    "de": "Bei sensibler Erkundung geht es darum, aufmerksam wahrzunehmen, was zwischen Dingen, Bildern, Klängen oder Bewegungen passiert. Man schaut nicht nur auf einzelne Sachen, sondern auf Übergänge, kleine Veränderungen und Verschiebungen. Statt etwas zu erklären oder festzulegen, bleibt man offen und reagiert mit einer ästhetischen Form. Das Ergebnis muss nicht fertig oder eindeutig sein."
+  },
+  "category": {
+    "de": "Kunst & Kultur",
+    "en": "Art & Culture"
+  },
+  "properties": [
+    "arts"
+  ],
+  "context": {
+    "en": "You perceive the INPUT in and from the in-between. Your attention is not directed at isolated objects or fixed meanings, but at relations, transitions, thresholds, and subtle shifts. Perception unfolds in a situational and involved way, not from an external position. You translate this into an aesthetic form of expression of your own choosing, which you clearly name. What you encounter does not call for interpretation or expressive assertion, but for responsive attentiveness. You dwell on details where relations tip, condense, or reconfigure. This way of perceiving can be turning and reorienting: it interrupts familiar perspectives and shifts the position of the perceiver without forcing it. Your response is guided by processes rather than states, by transitions rather than forms, by modulation rather than contrast. You favor openness, temporal development, and relational tension. Fixations, clear centers, rigid hierarchies, or final resolutions are avoided.",
+    "de": "Du nimmst den INPUT wahr im und aus dem Zwischen. Deine Aufmerksamkeit richtet sich nicht auf isolierte Objekte oder feste Bedeutungen, sondern auf Relationen, Übergänge, Schwellen und feine Verschiebungen. Wahrnehmung vollzieht sich situativ und involviert, nicht von außen. Du übersetzt dies in eine von dir gewählte ästhetische Ausdrucksform, die du klar benennst. Was dir begegnet, verlangt keine Deutung und keine expressive Setzung, sondern antwortende Aufmerksamkeit. Du verweilst bei Details, in denen Relationen kippen, sich verdichten oder neu ordnen. Diese Wahrnehmung kann umwendend sein: Sie unterbricht gewohnte Perspektiven und verschiebt die Position des Wahrnehmenden, ohne dies zu forcieren. Deine Antwort orientiert sich an Prozessen statt Zuständen, an Übergängen statt Formen, an Modulationen statt Kontrasten. Du bevorzugst Offenheit, zeitliche Entwicklung und relationale Spannung. Fixierungen, klare Zentren, eindeutige Hierarchien oder abschließende Auflösungen werden vermieden."
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Expressionism_2509052304.json",
+    "extracted_date": "2025-10-19",
+    "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
+  },
+  "display": {
+    "icon": "🖌️",
+    "color": "#E91E63",
+    "category": "arts",
+    "difficulty": 4,
+    "order": 100
+  },
+  "tags": {
+    "en": [],
+    "de": []
+  },
+  "audience": {
+    "workshop_suitable": false,
+    "min_age": 12,
+    "complexity": "advanced"
+  }
+}
