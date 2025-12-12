@@ -103,7 +103,8 @@ class PipelineExecutor:
         config_override=None,  # Phase 2: Optional pre-modified config
         context_override: Optional[PipelineContext] = None,  # Multi-stage: Pre-populated context
         seed_override: Optional[int] = None,  # Phase 4: Intelligent seed for media generation
-        input_image: Optional[str] = None  # Session 80: IMG2IMG support - path to input image
+        input_image: Optional[str] = None,  # Session 80: IMG2IMG support - path to input image
+        alpha_factor: Optional[float] = None  # Surrealizer: T5-CLIP fusion alpha factor
     ) -> PipelineResult:
         """Execute complete pipeline with 4-Stage Pre-Interception System
 
@@ -166,6 +167,11 @@ class PipelineExecutor:
         if input_image is not None:
             context.custom_placeholders['input_image'] = input_image
             logger.info(f"[IMG2IMG] Added input_image to context: {input_image}")
+
+        # Surrealizer: Add alpha_factor to context if provided (T5-CLIP fusion)
+        if alpha_factor is not None:
+            context.custom_placeholders['alpha_factor'] = alpha_factor
+            logger.info(f"[SURREALIZER] Added alpha_factor to context: {alpha_factor}")
 
         # Plan pipeline steps
         steps = self._plan_pipeline_steps(resolved_config)
@@ -507,6 +513,12 @@ class PipelineExecutor:
             image_path = context.custom_placeholders['input_image']
             chunk_request['parameters']['input_image'] = image_path
             logger.info(f"[IMG2IMG] Injected input_image into chunk parameters: {image_path}")
+
+        # Surrealizer: Add alpha_factor to parameters if present in context (T5-CLIP fusion)
+        if 'alpha_factor' in context.custom_placeholders:
+            alpha_value = context.custom_placeholders['alpha_factor']
+            chunk_request['parameters']['alpha_factor'] = alpha_value
+            logger.info(f"[SURREALIZER] Injected alpha_factor into chunk parameters: {alpha_value}")
 
         backend_request = BackendRequest(
             backend_type=BackendType(chunk_request['backend_type']),

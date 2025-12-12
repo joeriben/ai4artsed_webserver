@@ -1263,6 +1263,7 @@ def execute_pipeline():
         # Fast regeneration support: skip Stage 1-3 with stage4_only flag
         stage4_only = data.get('stage4_only', False)  # Boolean: skip to Stage 4 (media generation) only
         seed_override = data.get('seed')  # Optional: specific seed for exact regeneration
+        alpha_factor = data.get('alpha_factor')  # Optional: alpha factor for T5-CLIP fusion (Surrealizer)
 
         if not schema_name or not input_text:
             return jsonify({
@@ -1852,7 +1853,8 @@ def execute_pipeline():
                             user_input=prompt_for_media,
                             execution_mode=execution_mode,
                             seed_override=calculated_seed,  # Phase 4: Intelligent seed
-                            input_image=input_image  # Session 80: IMG2IMG support
+                            input_image=input_image,  # Session 80: IMG2IMG support
+                            alpha_factor=alpha_factor  # Surrealizer: T5-CLIP fusion alpha
                         ))
 
                         # Add media output to results
