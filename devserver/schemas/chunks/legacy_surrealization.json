@@ -371,6 +371,12 @@
       "node_id": "50",
       "field": "inputs.value",
       "description": "T5-CLIP fusion alpha factor (range -1.5 to 2.0)"
+    },
+    "seed": {
+      "node_id": "3",
+      "field": "inputs.seed",
+      "default": "random",
+      "description": "Random seed for KSampler (Node 3)"
     }
   },
   "legacy_config": {

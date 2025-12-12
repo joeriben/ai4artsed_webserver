@@ -176,6 +176,11 @@ const fullscreenImage = ref<string | null>(null)
 const generationProgress = ref(0)
 const primaryOutput = ref<WorkflowOutput | null>(null)
 
+// Seed management for iterative experimentation
+const previousPrompt = ref('')  // Track previous prompt
+const previousAlpha = ref<number>(25)  // Track previous alpha value
+const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
+
 // Image analysis state (for Stage 5)
 const isAnalyzing = ref(false)
 const imageAnalysis = ref<{
@@ -245,6 +250,28 @@ async function executeWorkflow() {
   }, updateInterval)
 
   try {
+    // Intelligent seed logic
+    const promptChanged = inputText.value !== previousPrompt.value
+    const alphaChanged = alphaFaktor.value !== previousAlpha.value
+
+    if (promptChanged || alphaChanged) {
+      // Prompt OR alpha changed → Keep same seed (user wants to see parameter variation)
+      if (currentSeed.value === null) {
+        // First run → Use default seed
+        currentSeed.value = 123456789
+        console.log('[Seed Logic] First run → Default seed:', currentSeed.value)
+      } else {
+        console.log('[Seed Logic] Prompt or alpha changed → Keeping seed:', currentSeed.value)
+      }
+      // Update tracking variables
+      previousPrompt.value = inputText.value
+      previousAlpha.value = alphaFaktor.value
+    } else {
+      // Prompt AND alpha unchanged → New random seed (user wants different variation)
+      currentSeed.value = Math.floor(Math.random() * 2147483647)
+      console.log('[Seed Logic] No changes → New random seed:', currentSeed.value)
+    }
+
     // Call 4-stage pipeline with surrealizer workflow execution
     // Stage 1: Translation
     // Skip Stage 2 (no interception for surrealizer)
@@ -256,7 +283,8 @@ async function executeWorkflow() {
       safety_level: 'open', // Surrealizer uses open safety level
       output_config: selectedOutputConfig.value,
       user_language: 'de',
-      alpha_factor: mappedAlpha.value  // Inject alpha factor
+      alpha_factor: mappedAlpha.value,  // Inject alpha factor
+      seed: currentSeed.value  // Inject seed for reproducibility
     })
 
     if (response.data.status === 'success') {
