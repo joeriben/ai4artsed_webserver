@@ -1845,6 +1845,10 @@ def execute_pipeline():
                     tracker.set_stage(4)
                     recorder.set_state(4, "media_generation")
 
+                    # Save model name primitively to JSON folder
+                    recorder.save_entity('model_used', output_config_name)
+                    logger.info(f"[RECORDER] Saved model_used: {output_config_name}")
+
                     try:
                         # Execute Output-Pipeline with translated/transformed text
                         output_result = asyncio.run(pipeline_executor.execute_pipeline(
