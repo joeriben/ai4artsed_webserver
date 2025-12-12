@@ -1,5 +1,5 @@
 {
-  "pipeline": "direct",
+  "pipeline": "surrealizer",
   "instruction_type": "surrealizer",
   "name": {
     "en": "Surrealizer",
