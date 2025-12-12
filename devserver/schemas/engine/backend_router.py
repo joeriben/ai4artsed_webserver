@@ -736,6 +736,24 @@ class BackendRouter:
                         target = target.setdefault(part, {})
                     target[field_parts[-1]] = seed_value
 
+            # Handle alpha_factor for T5-CLIP fusion workflows
+            if input_mappings and 'alpha' in input_mappings and 'alpha_factor' in parameters:
+                alpha_mapping = input_mappings['alpha']
+                alpha_value = parameters['alpha_factor']
+
+                logger.info(f"[LEGACY-WORKFLOW] Injecting alpha_factor={alpha_value}")
+
+                # Inject alpha into workflow
+                alpha_node_id = alpha_mapping.get('node_id')
+                alpha_field = alpha_mapping.get('field', 'inputs.value')
+                if alpha_node_id and alpha_node_id in workflow:
+                    field_parts = alpha_field.split('.')
+                    target = workflow[alpha_node_id]
+                    for part in field_parts[:-1]:
+                        target = target.setdefault(part, {})
+                    target[field_parts[-1]] = alpha_value
+                    logger.info(f"[ALPHA-INJECT] ✓ Injected alpha={alpha_value} into node {alpha_node_id}.{alpha_field}")
+
             # Handle input_image for img2img workflows
             if input_mappings and 'input_image' in input_mappings and 'input_image' in parameters:
                 import aiohttp

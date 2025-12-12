@@ -366,6 +366,13 @@
       }
     }
   },
+  "input_mappings": {
+    "alpha": {
+      "node_id": "50",
+      "field": "inputs.value",
+      "description": "T5-CLIP fusion alpha factor (range -1.5 to 2.0)"
+    }
+  },
   "legacy_config": {
     "source": "legacy_server_v1",
     "original_file": "/home/joerissen/ai/ai4artsed_webserver_legacy/workflows/vector/ai4artsed_Surrealization_2506092253.json",
