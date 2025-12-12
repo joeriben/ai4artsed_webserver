@@ -1956,6 +1956,15 @@ def execute_pipeline():
                                                     entity_type='workflow_archive'
                                                 )
                                                 logger.info(f"[RECORDER] ✓ Saved workflow JSON")
+
+                                                # Extract seed from workflow Node 3 (KSampler) for metadata
+                                                if 'workflow' in workflow_json or '3' in workflow_json:
+                                                    workflow_dict = workflow_json.get('workflow', workflow_json)
+                                                    if '3' in workflow_dict and 'inputs' in workflow_dict['3']:
+                                                        injected_seed = workflow_dict['3']['inputs'].get('seed')
+                                                        if injected_seed is not None:
+                                                            seed = injected_seed
+                                                            logger.info(f"[RECORDER] ✓ Extracted seed from workflow Node 3: {seed}")
                                             except Exception as e:
                                                 logger.error(f"[RECORDER] Failed to save workflow JSON: {e}")
 
