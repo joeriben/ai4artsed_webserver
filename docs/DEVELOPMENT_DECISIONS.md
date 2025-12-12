@@ -2011,3 +2011,99 @@ context.custom_placeholders['LYRICS'] = user_input_2
 - Clarifies the separation of concerns (metadata vs data flow)
 - Makes multi-stage workflows simple to implement
 
+
+---
+
+## Session 94: Surrealizer/Direct Vue Separation (2025-12-12)
+
+### Decision: Create Dedicated surrealizer.vue While Preserving Generic direct.vue
+
+**Context:**
+- Surrealizer is production-stable workflow with alpha slider (-75 to +75)
+- User has 2-3 additional Hacking workflows in ComfyUI
+- Previous attempts at routing changes failed due to misunderstanding convention-based routing
+
+**Problem:**
+- `surrealizer.json` config pointed to `direct` pipeline → loaded `direct.vue` with dropdown
+- Dropdown caused confusion for production workflow
+- User wanted dedicated Vue for each stable workflow
+
+**Architecture Decision:**
+
+**Production Workflow (Dedicated):**
+```
+surrealizer.json config → surrealizer.json pipeline → surrealizer.vue
+- Hardcoded to surrealization_legacy output config
+- Alpha slider (-75 to +75) with 5 labels
+- No dropdown selection
+- Clean, focused UX for workshop use
+```
+
+**Convention-Based Routing Pattern:**
+```
+Config JSON → Pipeline JSON → Vue Component
+├─ "pipeline": "X" → ├─ "name": "X" → X.vue
+└─ (Stage 2 config)  └─ (Pipeline def)   └─ (Frontend)
+```
+
+**Critical Insight - Why Previous Attempts Failed:**
+1. **Pipeline name MUST exactly match Vue filename** (case-sensitive!)
+2. **Correct order of creation:**
+   - ✅ FIRST: Create Vue component
+   - ✅ THEN: Create pipeline definition
+   - ✅ LAST: Update config reference
+   - ❌ WRONG: Change config first (breaks routing before Vue exists)
+
+3. **No explicit registry needed** - PipelineRouter.vue uses dynamic import:
+   ```typescript
+   import(`../views/${pipelineName}.vue`)
+   ```
+
+**Files Created:**
+- `/devserver/schemas/pipelines/surrealizer.json` (new pipeline, reusable: false)
+- `/public/ai4artsed-frontend/src/views/surrealizer.vue` (dedicated component)
+
+**Files Modified:**
+- `/devserver/schemas/configs/interception/surrealizer.json` (pipeline: "surrealizer")
+
+**Changes in surrealizer.vue:**
+- Removed output config dropdown section
+- Removed `availableConfigs` array
+- Removed `selectedOutputConfig` ref
+- Hardcoded API call: `output_config: 'surrealization_legacy'`
+- Simplified `canExecute` computed (no config check)
+
+**Testing:**
+```bash
+curl http://localhost:17802/api/config/surrealizer/pipeline
+# Returns: {"pipeline_name": "surrealizer", ...}
+```
+
+**Benefits:**
+- **Production stability** - Dedicated Vue, no accidental config changes
+- **Clean UX** - No dropdown confusion for workshop students
+- **Scalability** - Pattern ready for 2-3 additional Hacking workflows
+- **Zero router changes** - Convention-based routing handles automatically
+
+**Migration Path for Future Workflows:**
+1. **Stable/Production workflow** → Create dedicated Vue (like Surrealizer)
+2. **Experimental/Research** → Keep in `direct.vue` with dropdown (if reactivated)
+
+**Architectural Note:**
+The `direct_workflow.json` config was deactivated (`.deactivated` suffix) during this session. If needed in future, it can be reactivated as a generic "Hacking Lab" with dropdown for experimental workflows.
+
+**Documentation:**
+- Plan file: `/home/joerissen/.claude/plans/hashed-stargazing-dongarra.md`
+- Contains complete routing simulation with line numbers
+- Shows exact data flow through Backend (lines 2931, 2937, 2945) and Frontend (lines 31, 37)
+
+**Session Commits:**
+- `4a52aa1` - Enhanced slider (5 labels, gradient, 48px thumb)
+- `c332f48` - Dedicated surrealizer.vue with routing separation
+
+**Why This Documentation Matters:**
+- **Future-proofing:** Next time routing needs to change, follow this pattern
+- **Prevents regression:** Explicit order of operations prevents breaking changes
+- **Educational:** Shows convention-based routing is simpler than explicit registry
+- **Template:** Use for displaced_world, relational_inquiry, other new workflows
+
