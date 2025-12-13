@@ -210,12 +210,20 @@ async function executeWorkflow() {
     }
 
     const result = await response.json()
+    console.log('Execute response:', result)
 
-    if (!result.media_outputs || result.media_outputs.length === 0) {
-      throw new Error('No media outputs in response')
+    // Extract run_id from various possible locations
+    if (result.media_outputs && result.media_outputs.length > 0) {
+      runId.value = result.media_outputs[0].run_id
+    } else if (result.run_id) {
+      runId.value = result.run_id
+    } else if (result.pipeline_run_id) {
+      runId.value = result.pipeline_run_id
+    } else {
+      throw new Error('No run_id in response')
     }
 
-    runId.value = result.media_outputs[0].run_id
+    console.log('Using run_id:', runId.value)
 
     // 2. Simulate progress (60-second workflow)
     const progressInterval = setInterval(() => {
@@ -224,29 +232,40 @@ async function executeWorkflow() {
       }
     }, 1000)
 
-    // 3. Poll for completion
+    // 3. Poll for images using the simple /api/media/images endpoint
     let pollCount = 0
     const maxPolls = 90 // 3 minutes max
     const pollInterval = setInterval(async () => {
       pollCount++
 
       try {
-        const metaResponse = await fetch(`/api/pipeline/${runId.value}/entities`)
-        if (!metaResponse.ok) {
-          console.warn('Metadata not yet available')
-          return
+        const imagesResponse = await fetch(`/api/media/images/${runId.value}`)
+
+        if (imagesResponse.ok) {
+          const imagesData = await imagesResponse.json()
+          console.log('Images data:', imagesData)
+
+          if (imagesData.images && imagesData.images.length === 3) {
+            clearInterval(pollInterval)
+            clearInterval(progressInterval)
+
+            // Map images to display structure
+            images.value = imagesData.images.map((img, idx) => ({
+              url: img.url,
+              label: ['Referenzbild', 'Erste Hälfte eliminiert', 'Zweite Hälfte eliminiert'][idx],
+              description: img.metadata?.original_filename || `Bild ${idx + 1}`,
+              index: idx,
+              nodeId: img.node_id
+            }))
+
+            isGenerating.value = false
+            generationProgress.value = 100
+          }
+        } else {
+          console.warn('Images not yet available, continuing to poll...')
         }
 
-        const meta = await metaResponse.json()
-        const outputEntities = meta.entities.filter(e => e.type.startsWith('output_'))
-
-        if (outputEntities.length === 3) {
-          clearInterval(pollInterval)
-          clearInterval(progressInterval)
-          await loadImages()
-          isGenerating.value = false
-          generationProgress.value = 100
-        } else if (pollCount >= maxPolls) {
+        if (pollCount >= maxPolls) {
           clearInterval(pollInterval)
           clearInterval(progressInterval)
           throw new Error('Timeout waiting for images')
