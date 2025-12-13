@@ -81,6 +81,52 @@ def get_pipeline_status(run_id: str):
         return jsonify({'error': str(e)}), 500
 
 
+@pipeline_bp.route('/<run_id>/file/<filename>', methods=['GET'])
+def get_file_by_name(run_id: str, filename: str):
+    """
+    Serve specific file by filename from run folder
+
+    Enables fetching multiple entities of the same type by their unique filename.
+
+    Args:
+        run_id: UUID of the pipeline run
+        filename: Filename (e.g., '09_output_image.png', '12_output_image_composite.png')
+
+    Returns:
+        File content with appropriate MIME type or 404 error
+    """
+    try:
+        recorder = load_recorder(run_id, base_path=PIPELINE_BASE_PATH)
+        if not recorder:
+            return jsonify({'error': f'Run {run_id} not found'}), 404
+
+        # Construct file path directly from filename
+        file_path = recorder.run_folder / filename
+        if not file_path.exists():
+            return jsonify({'error': f'File {filename} not found in run {run_id}'}), 404
+
+        # Determine MIME type from file extension
+        extension = file_path.suffix.lower()
+        mimetype_map = {
+            '.txt': 'text/plain',
+            '.json': 'application/json',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.webp': 'image/webp',
+            '.mp3': 'audio/mpeg',
+            '.wav': 'audio/wav',
+            '.mp4': 'video/mp4',
+        }
+        mimetype = mimetype_map.get(extension, 'application/octet-stream')
+
+        # Serve file
+        return send_file(str(file_path), mimetype=mimetype)
+
+    except Exception as e:
+        logger.error(f"Error serving file {filename} for run {run_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @pipeline_bp.route('/<run_id>/entity/<entity_type>', methods=['GET'])
 def get_entity(run_id: str, entity_type: str):
     """

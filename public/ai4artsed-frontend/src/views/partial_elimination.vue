@@ -276,26 +276,65 @@ async function executeWorkflow() {
 
 async function fetchAllOutputs(runId: string) {
   try {
-    // Fetch all images via /api/media/images endpoint (returns all images for a run)
-    const response = await axios.get(`/api/media/images/${runId}`)
+    // Step 1: Fetch all entities metadata
+    const entitiesResponse = await axios.get(`/api/pipeline/${runId}/entities`)
+    const entities = entitiesResponse.data.entities || []
 
-    if (response.data.images && response.data.images.length > 0) {
-      console.log('[Partial Elimination] Fetched images:', response.data.images)
+    console.log('[Partial Elimination] All entities:', entities)
 
-      // Labels for the images (works for both 3 individual images or 1 composite + 3 individual)
-      const labels = [
-        { label: 'Referenzbild', description: 'Unmanipulierte Ausgabe (Original)' },
-        { label: 'Erste Hälfte eliminiert', description: `Dimensionen 0-2047 (${eliminationMode.value})` },
-        { label: 'Zweite Hälfte eliminiert', description: `Dimensionen 2048-4095 (${eliminationMode.value})` }
-      ]
+    // Step 2: First, get the 3 individual images using /api/media/images
+    try {
+      const imagesResponse = await axios.get(`/api/media/images/${runId}`)
 
-      // Map images to output format
-      outputs.value = response.data.images.map((img: any, idx: number) => ({
-        url: img.url,
-        label: labels[idx]?.label || `Bild ${idx + 1}`,
-        description: labels[idx]?.description || img.metadata?.original_filename || '',
-        filename: img.metadata?.original_filename || `image_${idx}.png`
-      }))
+      if (imagesResponse.data.images && imagesResponse.data.images.length > 0) {
+        const labels = [
+          { label: 'Referenzbild', description: 'Unmanipulierte Ausgabe (Original)' },
+          { label: 'Erste Hälfte eliminiert', description: `Dimensionen 0-2047 (${eliminationMode.value})` },
+          { label: 'Zweite Hälfte eliminiert', description: `Dimensionen 2048-4095 (${eliminationMode.value})` }
+        ]
+
+        // Add the 3 individual images
+        outputs.value = imagesResponse.data.images.map((img: any, idx: number) => ({
+          url: img.url,
+          label: labels[idx]?.label || `Bild ${idx + 1}`,
+          description: labels[idx]?.description || '',
+          filename: img.metadata?.original_filename || `image_${idx}.png`
+        }))
+
+        console.log('[Partial Elimination] Loaded 3 individual images')
+      }
+    } catch (error) {
+      console.error('[Partial Elimination] Failed to load individual images:', error)
+    }
+
+    // Step 3: Then, try to fetch the composite image separately
+    const compositeEntity = entities.find((e: any) => e.type === 'output_image_composite')
+
+    if (compositeEntity) {
+      try {
+        console.log('[Partial Elimination] Found composite entity:', compositeEntity.filename)
+
+        // Fetch composite using new filename-based endpoint
+        const compositeResponse = await axios.get(`/api/pipeline/${runId}/file/${compositeEntity.filename}`, {
+          responseType: 'blob'
+        })
+
+        const compositeUrl = URL.createObjectURL(compositeResponse.data)
+
+        // Add composite as 4th image
+        outputs.value.push({
+          url: compositeUrl,
+          label: 'Composite (alle 3)',
+          description: 'Zusammengesetztes Bild mit allen Varianten',
+          filename: compositeEntity.filename
+        })
+
+        console.log('[Partial Elimination] Loaded composite image:', compositeEntity.filename)
+      } catch (error) {
+        console.error('[Partial Elimination] Failed to load composite:', error)
+      }
+    } else {
+      console.log('[Partial Elimination] No composite entity found')
     }
   } catch (error: any) {
     console.error('[Partial Elimination] Error fetching outputs:', error)
