@@ -276,55 +276,29 @@ async function executeWorkflow() {
 
 async function fetchAllOutputs(runId: string) {
   try {
-    // Fetch entities metadata
-    const entitiesResponse = await axios.get(`/api/pipeline/${runId}/entities`)
-    const entities = entitiesResponse.data.entities || []
+    // Fetch all images via /api/media/images endpoint (returns all images for a run)
+    const response = await axios.get(`/api/media/images/${runId}`)
 
-    console.log('[Partial Elimination] Entities:', entities)
+    if (response.data.images && response.data.images.length > 0) {
+      console.log('[Partial Elimination] Fetched images:', response.data.images)
 
-    // Filter for output images only
-    const imageEntities = entities.filter((e: any) => e.type.startsWith('output_image'))
+      // Labels for the images (works for both 3 individual images or 1 composite + 3 individual)
+      const labels = [
+        { label: 'Referenzbild', description: 'Unmanipulierte Ausgabe (Original)' },
+        { label: 'Erste Hälfte eliminiert', description: `Dimensionen 0-2047 (${eliminationMode.value})` },
+        { label: 'Zweite Hälfte eliminiert', description: `Dimensionen 2048-4095 (${eliminationMode.value})` }
+      ]
 
-    // Labels for the 3 images
-    const labels = [
-      { label: 'Referenzbild', description: 'Unmanipulierte Ausgabe (Original)' },
-      { label: 'Erste Hälfte eliminiert', description: `Dimensionen 0-2047 (${eliminationMode.value})` },
-      { label: 'Zweite Hälfte eliminiert', description: `Dimensionen 2048-4095 (${eliminationMode.value})` }
-    ]
-
-    // Process each image entity
-    for (let i = 0; i < imageEntities.length; i++) {
-      const entity = imageEntities[i]
-      const output = await processImageEntity(runId, entity, labels[i] || { label: `Bild ${i + 1}`, description: '' })
-      if (output) {
-        outputs.value.push(output)
-      }
+      // Map images to output format
+      outputs.value = response.data.images.map((img: any, idx: number) => ({
+        url: img.url,
+        label: labels[idx]?.label || `Bild ${idx + 1}`,
+        description: labels[idx]?.description || img.metadata?.original_filename || '',
+        filename: img.metadata?.original_filename || `image_${idx}.png`
+      }))
     }
   } catch (error: any) {
     console.error('[Partial Elimination] Error fetching outputs:', error)
-  }
-}
-
-async function processImageEntity(runId: string, entity: any, labelInfo: { label: string, description: string }): Promise<ImageOutput | null> {
-  try {
-    const entityType = entity.type
-    const filename = entity.filename
-
-    // Fetch entity content
-    const response = await axios.get(`/api/pipeline/${runId}/entity/${entityType}`, {
-      responseType: 'blob'
-    })
-
-    const url = URL.createObjectURL(response.data)
-    return {
-      url,
-      label: labelInfo.label,
-      description: labelInfo.description,
-      filename
-    }
-  } catch (error: any) {
-    console.error(`[Partial Elimination] Error processing entity:`, error)
-    return null
   }
 }
 
