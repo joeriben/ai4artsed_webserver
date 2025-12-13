@@ -1,21 +1,45 @@
 {
   "pipeline": "partial_elimination",
   "instruction_type": "partial_elimination",
-  "display_icon": "🧬",
-  "display_color": "#9C27B0",
-  "display_name": "Partial Elimination",
-  "difficulty": 4,
-  "tags": ["vector", "research", "experimental", "legacy", "dimension-elimination", "advanced"],
+  "name": {
+    "en": "Partial Elimination",
+    "de": "Partielle Elimination"
+  },
+  "description": {
+    "en": "Explore semantic decomposition through vector dimension manipulation. This experimental workflow systematically eliminates parts of latent vectors to reveal hidden semantic structure.",
+    "de": "Erkunde semantische Dekomposition durch Vektor-Dimensions-Manipulation. Dieser experimentelle Workflow eliminiert systematisch Teile von latenten Vektoren, um verborgene semantische Strukturen aufzudecken."
+  },
+  "category": {
+    "de": "Forschung",
+    "en": "Research"
+  },
+  "properties": [
+    "research"
+  ],
+  "display": {
+    "icon": "🔬",
+    "color": "#9C27B0",
+    "category": "research",
+    "difficulty": 4,
+    "order": 60,
+    "hidden": false
+  },
+  "tags": {
+    "en": ["vector", "research", "experimental", "legacy", "dimension-elimination", "advanced"],
+    "de": ["vektor", "forschung", "experimentell", "legacy", "dimensions-elimination", "fortgeschritten"]
+  },
   "audience": {
     "workshop_suitable": true,
     "min_age": 14,
-    "complexity_level": "advanced"
+    "complexity": "advanced",
+    "requires": ["ComfyUI backend"]
   },
   "meta": {
     "stage": "interception",
     "skip_stage2": true,
     "backend": "none",
     "workflow_type": "passthrough",
-    "description": "Explore semantic decomposition through vector dimension manipulation"
+    "note": "Partial Elimination config for legacy vector manipulation workflow. Stage 2 is skipped to preserve original prompt.",
+    "system_config": false
   }
 }
