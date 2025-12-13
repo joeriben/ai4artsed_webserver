@@ -20,7 +20,7 @@ import requests
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
@@ -364,48 +364,108 @@ class LivePipelineRecorder:
                 logger.error(f"[RECORDER] History keys: {list(history.keys()) if history else 'None'}")
                 return None
 
-            # Download first file
-            first_file = files[0]
-            file_data = await client.get_image(
-                filename=first_file['filename'],
-                subfolder=first_file.get('subfolder', ''),
-                folder_type=first_file.get('type', 'output')
-            )
+            logger.info(f"[RECORDER] Found {len(files)} {media_type} file(s) from ComfyUI")
 
-            if not file_data:
-                logger.error(f"Failed to download {media_type} from ComfyUI: {prompt_id}")
+            # Download ALL files (for multi-image workflows)
+            downloaded_files = []
+            saved_filenames = []
+
+            for idx, file_info in enumerate(files):
+                file_data = await client.get_image(
+                    filename=file_info['filename'],
+                    subfolder=file_info.get('subfolder', ''),
+                    folder_type=file_info.get('type', 'output')
+                )
+
+                if not file_data:
+                    logger.warning(f"[RECORDER] Failed to download file {idx+1}/{len(files)}: {file_info['filename']}")
+                    continue
+
+                downloaded_files.append(file_data)
+
+                # Detect format
+                file_format = self._detect_format_from_data(file_data, media_type)
+
+                # Get dimensions for images
+                metadata = {
+                    'config': config,
+                    'format': file_format,
+                    'backend': 'comfyui',
+                    'prompt_id': prompt_id,
+                    'file_index': idx,
+                    'total_files': len(files),
+                    'node_id': file_info.get('node_id', 'unknown')
+                }
+
+                # Add seed if provided
+                if seed is not None:
+                    metadata['seed'] = seed
+
+                if media_type == 'image':
+                    width, height = self._get_image_dimensions_from_bytes(file_data)
+                    if width and height:
+                        metadata['width'] = width
+                        metadata['height'] = height
+
+                # Save individual file as entity
+                filename = self.save_entity(
+                    entity_type=f'output_{media_type}',
+                    content=file_data,
+                    metadata=metadata
+                )
+                saved_filenames.append(filename)
+                logger.info(f"[RECORDER] ✓ Saved image {idx+1}/{len(files)}: {filename}")
+
+            if not downloaded_files:
+                logger.error(f"[RECORDER] ✗ Failed to download any {media_type} files")
                 return None
 
-            # Detect format
-            file_format = self._detect_format_from_data(file_data, media_type)
+            # If multiple images, create composite
+            if len(downloaded_files) > 1 and media_type == 'image' and config == 'partial_elimination_legacy':
+                try:
+                    logger.info(f"[RECORDER] Creating composite image from {len(downloaded_files)} images...")
 
-            # Get dimensions for images
-            metadata = {
-                'config': config,
-                'format': file_format,
-                'backend': 'comfyui',
-                'prompt_id': prompt_id
-            }
+                    # Define labels for Partial Elimination workflow
+                    labels = [
+                        "Reference Image\n(Unmodified)",
+                        "First Half of Latent Space\nEliminated (Dim 0-2047)",
+                        "Second Half of Latent Space\nEliminated (Dim 2048-4095)"
+                    ]
 
-            # Add seed if provided
-            if seed is not None:
-                metadata['seed'] = seed
+                    # Create composite
+                    composite_data = self.create_composite_image(
+                        image_data_list=downloaded_files[:3],  # Use first 3 images
+                        labels=labels[:len(downloaded_files)],
+                        workflow_title="Partial Elimination Workflow"
+                    )
 
-            if media_type == 'image':
-                width, height = self._get_image_dimensions_from_bytes(file_data)
-                if width and height:
-                    metadata['width'] = width
-                    metadata['height'] = height
+                    # Save composite as separate entity
+                    composite_filename = self.save_entity(
+                        entity_type='output_image_comparison',
+                        content=composite_data,
+                        metadata={
+                            'config': config,
+                            'format': 'png',
+                            'backend': 'comfyui',
+                            'prompt_id': prompt_id,
+                            'composite': True,
+                            'source_files': saved_filenames,
+                            'seed': seed
+                        }
+                    )
 
-            # Save as entity
-            filename = self.save_entity(
-                entity_type=f'output_{media_type}',
-                content=file_data,
-                metadata=metadata
-            )
+                    logger.info(f"[RECORDER] ✓ Created composite image: {composite_filename}")
+                    return composite_filename  # Return composite filename
 
-            logger.info(f"[RECORDER] Downloaded and saved {media_type} from ComfyUI ({len(file_data)} bytes)")
-            return filename
+                except Exception as e:
+                    logger.error(f"[RECORDER] Failed to create composite: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Fallback to first image
+                    return saved_filenames[0] if saved_filenames else None
+
+            # Return first filename for single-image workflows
+            return saved_filenames[0] if saved_filenames else None
 
         except Exception as e:
             logger.error(f"[RECORDER] Error downloading from ComfyUI: {e}")
@@ -600,6 +660,112 @@ class LivePipelineRecorder:
             return img.width, img.height
         except:
             return None, None
+
+    def create_composite_image(
+        self,
+        image_data_list: List[bytes],
+        labels: List[str],
+        workflow_title: str = "Partial Elimination Workflow"
+    ) -> bytes:
+        """
+        Create a composite image with header and labeled sub-images arranged horizontally.
+
+        Args:
+            image_data_list: List of image data (bytes) to composite
+            labels: List of labels for each image (same length as image_data_list)
+            workflow_title: Title to display in header
+
+        Returns:
+            PNG bytes of composite image
+        """
+        try:
+            # Load images from bytes
+            images = [Image.open(BytesIO(data)) for data in image_data_list]
+
+            # Get dimensions (assuming all images are same size)
+            img_width, img_height = images[0].size
+            num_images = len(images)
+
+            # Layout constants
+            SPACING = 30  # Space between images
+            HEADER_HEIGHT = 80  # Header section height
+            FOOTER_HEIGHT = 120  # Footer for labels (2-3 lines of text)
+
+            # Calculate composite dimensions
+            composite_width = (img_width * num_images) + (SPACING * (num_images - 1))
+            composite_height = HEADER_HEIGHT + img_height + FOOTER_HEIGHT
+
+            # Create composite image with white background
+            composite = Image.new('RGB', (composite_width, composite_height), color='white')
+            draw = ImageDraw.Draw(composite)
+
+            # Try to load fonts (with fallback)
+            try:
+                header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+                label_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
+            except:
+                # Fallback to default font if DejaVu not available
+                logger.warning("[COMPOSITE] DejaVu fonts not found, using default font")
+                header_font = ImageFont.load_default()
+                label_font = ImageFont.load_default()
+
+            # Draw header with light gray background
+            draw.rectangle([(0, 0), (composite_width, HEADER_HEIGHT)], fill='#f5f5f5')
+
+            # Draw header text (2 lines)
+            header_line1 = "UNESCO Chair in Digital Culture and Arts in Education"
+            header_line2 = f"ai4artsed Project - {workflow_title}"
+
+            # Center header text
+            bbox1 = draw.textbbox((0, 0), header_line1, font=header_font)
+            bbox2 = draw.textbbox((0, 0), header_line2, font=header_font)
+            text1_width = bbox1[2] - bbox1[0]
+            text2_width = bbox2[2] - bbox2[0]
+
+            draw.text(
+                ((composite_width - text1_width) // 2, 15),
+                header_line1,
+                fill='#333333',
+                font=header_font
+            )
+            draw.text(
+                ((composite_width - text2_width) // 2, 45),
+                header_line2,
+                fill='#333333',
+                font=header_font
+            )
+
+            # Paste images horizontally
+            current_x = 0
+            for i, img in enumerate(images):
+                y_offset = HEADER_HEIGHT
+                composite.paste(img, (current_x, y_offset))
+
+                # Draw label below image (centered, multi-line)
+                label = labels[i]
+                label_lines = label.split('\n')
+
+                # Calculate label position (centered under image)
+                label_y = HEADER_HEIGHT + img_height + 15
+                for line in label_lines:
+                    bbox = draw.textbbox((0, 0), line, font=label_font)
+                    line_width = bbox[2] - bbox[0]
+                    label_x = current_x + (img_width - line_width) // 2
+                    draw.text((label_x, label_y), line, fill='#000000', font=label_font)
+                    label_y += 30  # Line spacing
+
+                current_x += img_width + SPACING
+
+            # Convert to PNG bytes
+            output_buffer = BytesIO()
+            composite.save(output_buffer, format='PNG')
+            return output_buffer.getvalue()
+
+        except Exception as e:
+            logger.error(f"[COMPOSITE] Error creating composite image: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def _write_file(self, filepath: Path, content: Union[str, bytes, dict]):
         """

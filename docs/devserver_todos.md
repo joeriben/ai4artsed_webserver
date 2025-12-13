@@ -1,6 +1,33 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-12-09 (Session 91: Model Availability Check Completed)
+**Last Updated:** 2025-12-13 (Session 96: Partial Elimination Composite - Incomplete)
 **Context:** Current priorities and active TODOs
+
+---
+
+## 🚧 IN PROGRESS (Session 96 - 2025-12-13)
+
+### Partial Elimination: Complete Integration
+**Status:** 🚧 **BACKEND READY** - Frontend needs rewrite
+**Priority:** HIGH (Multi-session effort, must finish)
+**Session:** 96 (continued from 95)
+
+**What's Done:**
+- ✅ Backend composite-image helper (`pipeline_recorder.py` lines 604-708)
+- ✅ All config files (chunk, pipeline, output, interception)
+- ✅ Multi-image API endpoints (Session 95)
+
+**What's Missing:**
+1. **Backend:** Integrate composite call in `schema_pipeline_routes.py` after line 2015 (40 lines with try-catch failsafe)
+2. **Frontend:** Rewrite `partial_elimination.vue` by copy-pasting `surrealizer.vue`:
+   - Copy complete file: `surrealizer.vue` → `partial_elimination.vue`
+   - Replace: `'surrealizer'` → `'partial_elimination'`
+   - Replace: `'surrealization_legacy'` → `'partial_elimination_legacy'`
+   - Replace slider with mode dropdown (average/random/invert/zero_out)
+   - Replace `alphaFaktor` with `eliminationMode`
+
+**Handover Document:** `/home/joerissen/.claude/plans/modular-jumping-pudding.md`
+
+**Estimated Effort:** 1-2 hours (backend integration 30min + Vue rewrite 30min + testing 30min)
 
 ---
 

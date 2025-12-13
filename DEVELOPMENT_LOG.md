@@ -1,5 +1,74 @@
 # Development Log
 
+## Session 96 - Partial Elimination: Composite Image Backend - INCOMPLETE
+**Date:** 2025-12-13
+**Duration:** ~3 hours (continued from Session 95)
+**Focus:** Backend composite-image creation for multi-output workflows
+**Status:** INCOMPLETE - Backend helper ready, integration pending
+**Cost:** Sonnet 4.5 tokens: ~160k
+
+### User Request
+Create backend helper to combine 3 images from Partial Elimination workflow into 1 composite image with UNESCO header and labels. Frontend should display only this composite (Output = 1 image like everywhere else).
+
+### Implementation Summary
+
+#### Backend: Composite-Image Helper ✅
+**File:** `devserver/my_app/services/pipeline_recorder.py`
+
+**Changes:**
+1. Line 23: Extended imports `from PIL import Image, ImageDraw, ImageFont`
+2. Lines 604-708: New method `create_composite_image()`
+   - Creates horizontal 3-image composite (3150x1250px)
+   - UNESCO Chair header (80px height, gray background)
+   - Labels under each image (multi-line, centered)
+   - Font: DejaVu Sans Bold/Regular with fallback
+   - Output: PNG bytes
+
+**Layout:**
+```
+┌──────────────────────────────────────────────────────────┐
+│  UNESCO Chair in Digital Culture and Arts in Education   │
+│  ai4artsed Project - Partial Elimination Workflow        │
+├────────────┬────────────┬──────────────────────────────┤
+│  Image 1   │  Image 2   │  Image 3                     │
+│ 1024x1024  │ 1024x1024  │ 1024x1024                    │
+└────────────┴────────────┴──────────────────────────────┘
+  Reference     First Half    Second Half
+  Image        Eliminated    Eliminated
+```
+
+**Labels (English):**
+- "Reference Image\n(Unmodified)"
+- "First Half of Latent Space\nEliminated (Dim 0-2047)"
+- "Second Half of Latent Space\nEliminated (Dim 2048-4095)"
+
+#### What's NOT Done ❌
+
+**Backend Integration Missing:**
+The composite helper exists but is **never called**. Legacy workflows use a different code path in `schema_pipeline_routes.py` (lines 1954-2016) that saves files directly without calling `download_and_save_from_comfyui()`.
+
+**Required Change:** Add 40 lines in `schema_pipeline_routes.py` after line 2015 to call `recorder.create_composite_image()` for `partial_elimination_legacy` config.
+
+**Frontend Wrong:**
+Current `partial_elimination.vue` does NOT follow surrealizer.vue structure. Needs complete rewrite (copy-paste surrealizer.vue, replace slider with mode dropdown).
+
+### Files Modified
+1. `devserver/my_app/services/pipeline_recorder.py` - Composite helper (+107 lines)
+2. `public/ai4artsed-frontend/src/views/partial_elimination.vue` - Wrong structure (needs rewrite)
+
+### Architecture Note
+**Current approach:** Hardcoded check `if config == 'partial_elimination_legacy'` in pipeline routes
+**Future improvement:** Config-driven via chunk `"output_rendering": {"type": "composite"}`
+**For now:** Acceptable as proof-of-concept for 1 workflow
+
+### Next Session TODO
+1. Integrate composite call in schema_pipeline_routes.py (40 lines, failsafe with try-catch)
+2. Rewrite Vue by copying surrealizer.vue (30 minutes)
+3. Test full workflow end-to-end
+4. Commit working solution
+
+---
+
 ## Session 95 - Multi-Image Output Support for Legacy Vector Workflows - SUCCESS
 **Date:** 2025-12-13
 **Duration:** ~2 hours
