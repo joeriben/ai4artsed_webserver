@@ -1,5 +1,103 @@
 # Development Log
 
+## Session 95 - Multi-Image Output Support for Legacy Vector Workflows - SUCCESS
+**Date:** 2025-12-13
+**Duration:** ~2 hours
+**Focus:** Enable multiple image outputs from single Stage4 execution for Partial Elimination workflow
+**Status:** SUCCESS - Infrastructure implemented, ready for testing
+**Cost:** Sonnet 4.5 tokens: ~95k
+
+### User Request
+Implement support for legacy vector workflows that produce multiple images (Partial Elimination: 3 images, Split & Combine: 4 images). The system already saves all files to disk but only returns the first one via API.
+
+### The Core Discovery
+**Good News:** Infrastructure ALREADY supports storing multiple files with complete metadata (file_index, total_files, node_id). Problem was only in retrieval layer.
+
+**Evidence:**
+- Lines 1984-2016 in `schema_pipeline_routes.py` save ALL files in a loop
+- Line 2016: `saved_filename = saved_filenames[0]` - only first is used
+- `_find_entity_by_type()` returns first match only
+
+### Implementation Summary
+
+#### Phase 1: Backend Foundation (Non-Breaking Changes)
+1. **New helper:** `_find_entities_by_type()` - Returns ALL entities by type (sorted by file_index)
+2. **New endpoint:** `GET /api/media/images/<run_id>` - Returns JSON array with metadata for all images
+3. **Enhanced endpoint:** `GET /api/media/image/<run_id>/<index>` - Indexed access (default index=0 for backward compat)
+
+**Backward Compatibility:**
+- Existing `/api/media/image/<run_id>` unchanged (returns first, index=0)
+- Single-output workflows: Zero changes needed
+- Frontend auto-detects multi via array.length
+
+#### Phase 2: Legacy Workflow Migration - Partial Elimination
+**Source:** `/home/joerissen/ai/ai4artsed_webserver_legacy/workflows/vector/ai4artsed_PartialElimination_average_clip-g_2507271232.json`
+
+**Created 4 config files:**
+1. `devserver/schemas/chunks/legacy_partial_elimination.json`
+   - Custom node: `ai4artsed_vector_dimension_eliminator` (Nodes 49, 77)
+   - 3 SaveImage nodes: Reference (9), First half (45), Second half (69)
+   - Parameter injection: mode (average/random/invert/zero_out) + seed
+   - output_labels with semantic roles (baseline, variant_a, variant_b)
+
+2. `devserver/schemas/configs/output/partial_elimination_legacy.json`
+   - Links to legacy_partial_elimination chunk
+   - backend: comfyui_legacy (port 7821)
+   - expected_outputs: 3
+
+3. `devserver/schemas/pipelines/partial_elimination.json`
+   - Passthrough pipeline (skip Stage2)
+
+4. `devserver/schemas/configs/interception/partial_elimination.json`
+   - Icon: 🧬, Color: #9C27B0, Difficulty: 4
+   - Tags: vector, research, experimental, dimension-elimination
+
+#### Phase 3: Vue Component - partial_elimination.vue
+**Structure** (following surrealizer.vue pattern):
+- Two-column layout: Input section (420px) + Output section (1fr)
+- Mode selector: 4 elimination modes with descriptions
+- 3-image comparison grid with hover actions (download, i2i transfer)
+- Fullscreen modal with prev/next navigation
+- Progress animation with 60-second simulation
+- Polls `/api/pipeline/{run_id}/entities` until 3 outputs appear
+- Fetches metadata via `/api/media/images/{run_id}`
+
+**Router:** Added routes for `/partial-elimination` and `/surrealizer`
+
+### Critical Files Modified
+1. `devserver/my_app/routes/media_routes.py` - +77 lines (helper + 2 endpoints)
+2. 4 new config files in `devserver/schemas/`
+3. `public/ai4artsed-frontend/src/views/partial_elimination.vue` - +850 lines
+4. `public/ai4artsed-frontend/src/router/index.ts` - +10 lines
+
+### Bug Fix
+**Issue:** Config error "missing 'pipeline' field"
+**Solution:** Added `"pipeline": "partial_elimination"` to output config
+
+### Testing Status
+**Backend:** ✅ Endpoints implemented, server running
+**Frontend:** ✅ Component created, routes added, dev server running
+**Integration:** ⏳ PENDING - Requires legacy ComfyUI server (port 7821) + actual workflow execution
+
+**Next Steps:**
+1. Start legacy ComfyUI server
+2. Execute workflow via frontend
+3. Verify 3 images returned and displayed
+4. Test fullscreen navigation, download, i2i transfer
+
+### Success Criteria (for full testing)
+- [ ] `/api/media/images/<run_id>` returns array of 3 images
+- [ ] `/api/media/image/<run_id>/0,1,2` serves correct indexed images
+- [ ] 3-image grid displays with correct labels
+- [ ] Fullscreen modal navigation works
+- [ ] Download + i2i transfer functional
+
+### Commits
+- `9db773b` - feat: Add multi-image output support for legacy vector workflows
+- `61b0cf6` - fix: Add missing pipeline field to partial_elimination_legacy config
+
+---
+
 ## Session 91 - Model Availability Check (API-Based) - SUCCESS
 **Date:** 2025-12-09
 **Duration:** ~95 minutes
