@@ -1,14 +1,36 @@
 {
-  "name": "partial_elimination_legacy",
-  "display_name": "Partial Elimination (Legacy)",
-  "pipeline": "partial_elimination",
-  "media_type": "image",
-  "chunks": ["legacy_partial_elimination"],
-  "backend": "comfyui_legacy",
+  "pipeline": "legacy_workflow_passthrough",
+  "name": {
+    "en": "Partial Elimination (Legacy)",
+    "de": "Partielle Elimination (Legacy)"
+  },
+  "description": {
+    "en": "Vector dimension manipulation showing semantic decomposition through elimination. Produces 3 images: reference, first half eliminated, second half eliminated.",
+    "de": "Vektordimension-Manipulation zeigt semantische Dekomposition durch Elimination. Produziert 3 Bilder: Referenz, erste Hälfte eliminiert, zweite Hälfte eliminiert."
+  },
+  "parameters": {
+    "OUTPUT_CHUNK": "legacy_partial_elimination"
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
   "meta": {
-    "description": "Vector dimension elimination for semantic decomposition",
+    "stage": "output",
+    "backend": "comfyui",
+    "backend_type": "comfyui_legacy",
+    "execution_mode": "legacy_workflow",
+    "workflow_type": "vector_manipulation",
+    "requires_gpu": true,
+    "estimated_duration_seconds": "40-80",
+    "expected_outputs": 3,
     "version": "1.0",
-    "backend_port": 7821,
-    "expected_outputs": 3
+    "migration_status": "legacy_passthrough",
+    "notes": [
+      "Legacy workflow - uses complete ComfyUI API workflow JSON",
+      "Produces 3 images via multiple SaveImage nodes",
+      "Prompt injection via title-based node search (ai4artsed_text_prompt)",
+      "Mode parameter: average, random, invert, zero_out"
+    ]
   }
 }
