@@ -1,10 +1,504 @@
 {
   "name": "legacy_partial_elimination",
-  "chunk_type": "legacy_workflow",
-  "chunk_stage": "4",
-  "comfyui_port": 7821,
-  "workflow_path": "/home/joerissen/ai/ai4artsed_webserver_legacy/workflows/vector/ai4artsed_PartialElimination_average_clip-g_2507271232.json",
-  "prompt_injection_params": {
+  "type": "output_chunk",
+  "backend_type": "comfyui",
+  "execution_mode": "legacy_workflow",
+  "media_type": "image",
+  "description": "Legacy Partial Elimination workflow - vector dimension manipulation for semantic decomposition. Produces 3 images.",
+  "workflow": {
+    "3": {
+      "inputs": {
+        "seed": [
+          "53",
+          0
+        ],
+        "steps": [
+          "55",
+          0
+        ],
+        "cfg": [
+          "54",
+          0
+        ],
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "denoise": 1,
+        "model": [
+          "4",
+          0
+        ],
+        "positive": [
+          "6",
+          0
+        ],
+        "negative": [
+          "7",
+          0
+        ],
+        "latent_image": [
+          "5",
+          0
+        ]
+      },
+      "class_type": "KSampler",
+      "_meta": {
+        "title": "KSampler"
+      }
+    },
+    "4": {
+      "inputs": {
+        "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Choose your checkpoint ( = image generation model)"
+      }
+    },
+    "5": {
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentImage",
+      "_meta": {
+        "title": "Empty Latent Image"
+      }
+    },
+    "6": {
+      "inputs": {
+        "text": [
+          "26",
+          0
+        ],
+        "clip": [
+          "39",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "7": {
+      "inputs": {
+        "text": "text, watermark",
+        "clip": [
+          "39",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "8": {
+      "inputs": {
+        "samples": [
+          "3",
+          0
+        ],
+        "vae": [
+          "4",
+          2
+        ]
+      },
+      "class_type": "VAEDecode",
+      "_meta": {
+        "title": "VAE Decode"
+      }
+    },
+    "9": {
+      "inputs": {
+        "filename_prefix": "ComfyUI",
+        "images": [
+          "8",
+          0
+        ]
+      },
+      "class_type": "SaveImage",
+      "_meta": {
+        "title": "unmanipulated ouput (reference)"
+      }
+    },
+    "11": {
+      "inputs": {},
+      "class_type": "ai4artsed_openrouter_key",
+      "_meta": {
+        "title": "Secure Access to OpenRouter API Key"
+      }
+    },
+    "26": {
+      "inputs": {
+        "value": [
+          "37",
+          0
+        ]
+      },
+      "class_type": "PrimitiveString",
+      "_meta": {
+        "title": "ai4artsed_text_prompt"
+      }
+    },
+    "37": {
+      "inputs": {
+        "value": "A cat sitting on a wall, in the background a huge desert with old steel boats, bright full moon night, photorealistic, black and white photography, leica noctilux, f 0.9, real light, real shadows, silver gelatine print"
+      },
+      "class_type": "PrimitiveStringMultiline",
+      "_meta": {
+        "title": "Just a more convenient input for your prompt"
+      }
+    },
+    "39": {
+      "inputs": {
+        "clip_name": "clip_g.safetensors",
+        "type": "sd3",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {
+        "title": "Models without CLIP need this"
+      }
+    },
+    "42": {
+      "inputs": {
+        "text": [
+          "26",
+          0
+        ],
+        "clip": [
+          "39",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "43": {
+      "inputs": {
+        "text": "text, watermark",
+        "clip": [
+          "39",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "44": {
+      "inputs": {
+        "samples": [
+          "48",
+          0
+        ],
+        "vae": [
+          "46",
+          2
+        ]
+      },
+      "class_type": "VAEDecode",
+      "_meta": {
+        "title": "VAE Decode"
+      }
+    },
+    "45": {
+      "inputs": {
+        "filename_prefix": "ComfyUI",
+        "images": [
+          "44",
+          0
+        ]
+      },
+      "class_type": "SaveImage",
+      "_meta": {
+        "title": "first half eliminated (averaged)"
+      }
+    },
+    "46": {
+      "inputs": {
+        "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Choose your checkpoint ( = image generation model)"
+      }
+    },
+    "47": {
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentImage",
+      "_meta": {
+        "title": "Empty Latent Image"
+      }
+    },
+    "48": {
+      "inputs": {
+        "seed": [
+          "53",
+          0
+        ],
+        "steps": [
+          "55",
+          0
+        ],
+        "cfg": [
+          "54",
+          0
+        ],
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "denoise": 1,
+        "model": [
+          "46",
+          0
+        ],
+        "positive": [
+          "49",
+          0
+        ],
+        "negative": [
+          "43",
+          0
+        ],
+        "latent_image": [
+          "47",
+          0
+        ]
+      },
+      "class_type": "KSampler",
+      "_meta": {
+        "title": "KSampler"
+      }
+    },
+    "49": {
+      "inputs": {
+        "start_dimension": 0,
+        "num_dimensions": 2048,
+        "fill_value": 0,
+        "mode": "average",
+        "output_info": true,
+        "conditioning": [
+          "42",
+          0
+        ]
+      },
+      "class_type": "ai4artsed_vector_dimension_eliminator",
+      "_meta": {
+        "title": "AI4ArtsEd Vector Dimension Eliminator"
+      }
+    },
+    "50": {
+      "inputs": {
+        "preview": "",
+        "source": [
+          "49",
+          1
+        ]
+      },
+      "class_type": "PreviewAny",
+      "_meta": {
+        "title": "Preview Any"
+      }
+    },
+    "53": {
+      "inputs": {
+        "value": -687734797039316
+      },
+      "class_type": "PrimitiveInt",
+      "_meta": {
+        "title": "seed"
+      }
+    },
+    "54": {
+      "inputs": {
+        "value": 5.5
+      },
+      "class_type": "PrimitiveFloat",
+      "_meta": {
+        "title": "cfg"
+      }
+    },
+    "55": {
+      "inputs": {
+        "value": 25
+      },
+      "class_type": "PrimitiveInt",
+      "_meta": {
+        "title": "steps"
+      }
+    },
+    "59": {
+      "inputs": {},
+      "class_type": "VAEDecode",
+      "_meta": {
+        "title": "VAE Decode"
+      }
+    },
+    "68": {
+      "inputs": {
+        "samples": [
+          "73",
+          0
+        ],
+        "vae": [
+          "70",
+          2
+        ]
+      },
+      "class_type": "VAEDecode",
+      "_meta": {
+        "title": "VAE Decode"
+      }
+    },
+    "69": {
+      "inputs": {
+        "filename_prefix": "ComfyUI",
+        "images": [
+          "68",
+          0
+        ]
+      },
+      "class_type": "SaveImage",
+      "_meta": {
+        "title": "second half eliminated (averaged)"
+      }
+    },
+    "70": {
+      "inputs": {
+        "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Choose your checkpoint ( = image generation model)"
+      }
+    },
+    "71": {
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentImage",
+      "_meta": {
+        "title": "Empty Latent Image"
+      }
+    },
+    "72": {
+      "inputs": {
+        "preview": "",
+        "source": [
+          "77",
+          1
+        ]
+      },
+      "class_type": "PreviewAny",
+      "_meta": {
+        "title": "Preview Any"
+      }
+    },
+    "73": {
+      "inputs": {
+        "seed": 123456789,
+        "steps": 25,
+        "cfg": 5.5,
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "denoise": 1,
+        "model": [
+          "70",
+          0
+        ],
+        "positive": [
+          "77",
+          0
+        ],
+        "negative": [
+          "80",
+          0
+        ],
+        "latent_image": [
+          "71",
+          0
+        ]
+      },
+      "class_type": "KSampler",
+      "_meta": {
+        "title": "KSampler"
+      }
+    },
+    "77": {
+      "inputs": {
+        "start_dimension": 2048,
+        "num_dimensions": 2048,
+        "fill_value": 0,
+        "mode": "average",
+        "output_info": true,
+        "conditioning": [
+          "79",
+          0
+        ]
+      },
+      "class_type": "ai4artsed_vector_dimension_eliminator",
+      "_meta": {
+        "title": "AI4ArtsEd Vector Dimension Eliminator"
+      }
+    },
+    "79": {
+      "inputs": {
+        "text": [
+          "26",
+          0
+        ],
+        "clip": [
+          "39",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "80": {
+      "inputs": {
+        "text": "text, watermark",
+        "clip": [
+          "39",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "81": {
+      "inputs": {},
+      "class_type": "VAEDecode",
+      "_meta": {
+        "title": "VAE Decode"
+      }
+    },
+    "83": {
+      "inputs": {
+        "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Choose your checkpoint ( = image generation model)"
+      }
+    }
+  },
+  "prompt_injection": {
     "search_by_title": "ai4artsed_text_prompt",
     "fallback_node": "26",
     "fallback_field": "inputs.value"
@@ -14,15 +508,13 @@
       "param_name": "mode",
       "node_id": "49",
       "field": "inputs.mode",
-      "default": "average",
-      "allowed_values": ["average", "random", "invert", "zero_out"]
+      "default": "average"
     },
     {
       "param_name": "mode",
       "node_id": "77",
       "field": "inputs.mode",
-      "default": "average",
-      "allowed_values": ["average", "random", "invert", "zero_out"]
+      "default": "average"
     },
     {
       "param_name": "seed",
@@ -40,24 +532,19 @@
     },
     {
       "index": 1,
-      "label": "Erste Hälfte eliminiert",
+      "label": "Erste H\u00e4lfte eliminiert",
       "description": "Vektordimensionen 0-2047 manipuliert",
       "semantic_role": "variant_a",
       "node_id": "45"
     },
     {
       "index": 2,
-      "label": "Zweite Hälfte eliminiert",
+      "label": "Zweite H\u00e4lfte eliminiert",
       "description": "Vektordimensionen 2048-4095 manipuliert",
       "semantic_role": "variant_b",
       "node_id": "69"
     }
   ],
   "estimated_duration_seconds": 60,
-  "meta": {
-    "pedagogical_focus": "Vector space manipulation and semantic decomposition",
-    "requires_custom_nodes": true,
-    "expected_outputs": 3,
-    "backend": "comfyui_legacy"
-  }
+  "expected_outputs": 3
 }
