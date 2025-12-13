@@ -1,5 +1,104 @@
 # Development Log
 
+## Session 99 - Partial Elimination: Issues #1 & #2 Resolution - SUCCESS
+**Date:** 2025-12-13
+**Duration:** ~2 hours
+**Focus:** Resolved Session 98 handover issues (composite + routing)
+**Status:** SUCCESS - Both issues fully resolved
+**Cost:** Sonnet 4.5 tokens: ~125k
+
+### User Request
+Complete the two open issues from Session 98:
+1. Composite image not being created (backend code reverted)
+2. Partial elimination not appearing in PropertyQuadrants (/execute/ routing)
+
+### Implementation Summary
+
+#### Issue #1: Composite Image Creation ✅
+**Problem:** Backend composite creation code was reverted in Session 97
+**Solution:** Re-added 35 lines to `schema_pipeline_routes.py:2018-2051`
+
+**File:** `devserver/my_app/routes/schema_pipeline_routes.py`
+**Changes:**
+- Lines 2018-2051: Automatic composite generation for multi-image workflows
+- Triggers when `len(media_files) > 1`
+- Auto-generates labels ("Image 1", "Image 2", etc.)
+- Saves as `output_image_composite` entity type
+- Failsafe try-catch (workflow continues if composite fails)
+
+**Result:** User confirmed "composite ist wieder da!" ✅
+
+#### Issue #2: PropertyQuadrants Integration ✅
+**Problem:** Partial elimination not appearing in Phase 1 selection
+
+**Root Cause Analysis:**
+- Config missing `"properties": ["research"]` field (required for PropertyQuadrants filtering)
+- Missing structured `"display"` section
+- Missing bilingual `name`, `description`, `category` fields
+
+**Solution:** Updated `schemas/configs/interception/partial_elimination.json`
+
+**Changes:**
+1. Added `"properties": ["research"]` - enables PropertyQuadrants filtering
+2. Added `"category"` with EN/DE translations
+3. Restructured display section:
+   - `"icon": "🔬"` (microscope, matches Research category)
+   - `"color": "#9C27B0"` (purple)
+   - `"difficulty": 4` (advanced)
+   - `"order": 60` (after surrealizer)
+4. Made `tags` bilingual (en/de)
+5. Added bilingual `name` and `description`
+
+**Sub-Issue:** Routing via `/execute/` path
+- Removed redundant direct route `/partial-elimination` from router
+- Now uses standard `/execute/partial_elimination` (note: underscore, not hyphen)
+- Config ID must match URL exactly (underscores preserved)
+
+**Result:** Partial Elimination now appears in Research category (🔬) in PropertyQuadrants ✅
+
+### Files Modified
+
+#### Backend
+1. `devserver/my_app/routes/schema_pipeline_routes.py` - Composite creation (+35 lines)
+2. `devserver/schemas/configs/interception/partial_elimination.json` - PropertyQuadrants metadata (+24 lines, restructured)
+
+#### Frontend
+1. `public/ai4artsed-frontend/src/router/index.ts` - Removed redundant route (-6 lines)
+
+### Architecture Notes
+
+**Config vs Category Icons:**
+- Categories have icons (e.g., Research = 🔬)
+- Individual configs display with images (Bilder), not icons
+- The `display.icon` field is for internal/legacy use
+
+**URL Naming Convention:**
+- Config IDs with underscores require underscores in URLs
+- `/execute/partial_elimination` ✅ (correct)
+- `/execute/partial-elimination` ❌ (returns 404)
+
+**PropertyQuadrants Filtering:**
+- Requires `"properties": []` array in config
+- Properties determine which quadrant config appears in
+- Without properties field, config is invisible in Phase 1
+
+### Commits
+1. `738d78a` - fix: Re-add composite image creation for multi-image workflows
+2. `ef7a1ce` - fix: Remove redundant /partial-elimination route, use /execute/ path
+3. `8cf99af` - feat: Add PropertyQuadrants metadata to partial_elimination config
+
+### Testing Checklist
+- [x] Composite image created automatically
+- [x] Partial Elimination appears in PropertyQuadrants
+- [x] `/execute/partial_elimination` route works
+- [x] Research category shows microscope icon (🔬)
+- [x] Config displays correctly in Phase 1
+
+### Next Session TODO
+- Document how partial_elimination workflow manipulates vectors (user request)
+
+---
+
 ## Session 96 - Partial Elimination: Composite Image Backend - INCOMPLETE
 **Date:** 2025-12-13
 **Duration:** ~3 hours (continued from Session 95)
