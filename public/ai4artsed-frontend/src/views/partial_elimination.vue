@@ -1,178 +1,181 @@
 <template>
-  <div class="partial-elimination-container">
-    <!-- Left Column: Input -->
-    <div class="input-section">
-      <div class="header">
-        <h2>🧬 Partial Elimination</h2>
-        <p class="subtitle">Vektordimension-Manipulation</p>
-      </div>
+  <div class="direct-view">
+    <!-- Main Content -->
+    <div class="main-container">
+      <!-- Input Section -->
+      <section class="input-section">
+        <div class="section-card">
+          <div class="card-header">
+            <span class="card-icon">💡</span>
+            <span class="card-label">Dein Input</span>
+            <div class="bubble-actions">
+              <button @click="copyInputText" class="action-btn" title="Kopieren">📋</button>
+              <button @click="pasteInputText" class="action-btn" title="Einfügen">📄</button>
+              <button @click="clearInputText" class="action-btn" title="Löschen">🗑️</button>
+            </div>
+          </div>
+          <textarea
+            v-model="inputText"
+            placeholder="Beschreibe deine Idee..."
+            class="input-textarea"
+            rows="6"
+          ></textarea>
+        </div>
 
-      <div class="prompt-input">
-        <label>Prompt-Eingabe</label>
-        <textarea
-          v-model="userPrompt"
-          placeholder="Beschreibe dein Bild..."
-          rows="6"
-        ></textarea>
-      </div>
+        <!-- Elimination Mode Dropdown -->
+        <div class="section-card">
+          <div class="card-header">
+            <span class="card-icon">🎛️</span>
+            <span class="card-label">Eliminationsmodus</span>
+          </div>
+          <div class="dropdown-container">
+            <select v-model="eliminationMode" class="mode-select">
+              <option value="average">Average (Durchschnitt)</option>
+              <option value="random">Random (Zufall)</option>
+              <option value="invert">Invert (Umkehrung)</option>
+              <option value="zero_out">Zero Out (Nullsetzen)</option>
+            </select>
+            <div class="mode-description">{{ modeDescription }}</div>
+          </div>
+        </div>
 
-      <!-- Mode Selector -->
-      <div class="mode-selector">
-        <label>Eliminationsmodus</label>
-        <select v-model="eliminationMode">
-          <option value="average">Average (Durchschnitt)</option>
-          <option value="random">Random (Zufall)</option>
-          <option value="invert">Invert (Umkehrung)</option>
-          <option value="zero_out">Zero Out (Nullsetzen)</option>
-        </select>
-        <small class="mode-description">{{ modeDescription }}</small>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="action-buttons">
-        <button @click="copyPrompt" class="icon-btn" title="Kopieren">
-          📋
+        <!-- Execute Button -->
+        <button
+          class="execute-button"
+          :class="{ disabled: !canExecute }"
+          :disabled="!canExecute"
+          @click="executeWorkflow"
+        >
+          <span class="button-text">{{ isExecuting ? 'Generiere...' : 'Ausführen' }}</span>
         </button>
-        <button @click="pastePrompt" class="icon-btn" title="Einfügen">
-          📄
-        </button>
-        <button @click="clearPrompt" class="icon-btn" title="Löschen">
-          🗑️
-        </button>
-      </div>
+      </section>
 
-      <button
-        class="execute-btn"
-        @click="executeWorkflow"
-        :disabled="isGenerating || !userPrompt.trim()"
-      >
-        {{ isGenerating ? 'Generiere...' : 'Ausführen' }}
-      </button>
+      <!-- Output Frame (3 States: empty, generating, final) -->
+      <section class="output-section">
+        <div class="output-frame" :class="{
+          empty: !isExecuting && outputs.length === 0,
+          generating: isExecuting && outputs.length === 0
+        }">
+          <!-- State 1: Empty (before generation) -->
+          <div v-if="!isExecuting && outputs.length === 0" class="empty-state">
+            <div class="empty-icon">🖼️</div>
+            <p>Deine 3 Bildvarianten erscheinen hier</p>
+            <p class="empty-subtitle">Referenz · Erste Hälfte · Zweite Hälfte</p>
+          </div>
 
-      <!-- Info Box -->
-      <div class="info-box">
-        <h4>ℹ️ Wie funktioniert das?</h4>
-        <p>Partial Elimination manipuliert Teile des Vektorraums, um zu zeigen, welche Dimensionen welche semantischen Informationen enthalten.</p>
-        <ul>
-          <li><strong>Referenzbild:</strong> Original ohne Manipulation</li>
-          <li><strong>Erste Hälfte:</strong> Dimensionen 0-2047 manipuliert</li>
-          <li><strong>Zweite Hälfte:</strong> Dimensionen 2048-4095 manipuliert</li>
-        </ul>
-      </div>
+          <!-- State 2: Generating (progress animation) -->
+          <div v-if="isExecuting && outputs.length === 0" class="generation-animation-container">
+            <SpriteProgressAnimation :progress="generationProgress" />
+          </div>
+
+          <!-- State 3: Final Output (3 Images Side by Side) -->
+          <div v-else-if="outputs.length > 0" class="final-output">
+            <div class="multi-image-grid">
+              <div
+                v-for="(output, idx) in outputs"
+                :key="idx"
+                class="image-box"
+              >
+                <!-- Image with Actions -->
+                <div class="image-with-actions">
+                  <img
+                    :src="output.url"
+                    :alt="output.label"
+                    class="output-image"
+                    @click="showFullscreen(output.url)"
+                  />
+
+                  <!-- Action Toolbar (vertical, right side) -->
+                  <div class="action-toolbar">
+                    <button class="action-btn" @click="saveMedia(idx)" disabled title="Merken (Coming Soon)">
+                      <span class="action-icon">⭐</span>
+                    </button>
+                    <button class="action-btn" @click="printImage(idx)" title="Drucken">
+                      <span class="action-icon">🖨️</span>
+                    </button>
+                    <button class="action-btn" @click="sendToI2I(idx)" title="Weiterreichen zu Bild-Transformation">
+                      <span class="action-icon">➡️</span>
+                    </button>
+                    <button class="action-btn" @click="downloadMedia(idx)" title="Herunterladen">
+                      <span class="action-icon">💾</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Image Label -->
+                <div class="image-label">
+                  <h4>{{ output.label }}</h4>
+                  <p>{{ output.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- Right Column: Output (3-Image Grid) -->
-    <div class="output-section">
-      <!-- Empty State -->
-      <div v-if="!hasResults && !isGenerating" class="empty-state">
-        <div class="empty-icon">🎨</div>
-        <h3>Deine 3 Bildvarianten erscheinen hier</h3>
-        <p class="empty-subtitle">Referenzbild · Variante A · Variante B</p>
-        <div class="preview-grid">
-          <div class="preview-placeholder">
-            <span>Referenz</span>
-          </div>
-          <div class="preview-placeholder">
-            <span>Erste Hälfte</span>
-          </div>
-          <div class="preview-placeholder">
-            <span>Zweite Hälfte</span>
-          </div>
+    <!-- Fullscreen Image Modal -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="fullscreenImage" class="fullscreen-modal" @click="fullscreenImage = null">
+          <img :src="fullscreenImage" alt="Fullscreen" class="fullscreen-image" />
+          <button class="close-fullscreen" @click="fullscreenImage = null">×</button>
         </div>
-      </div>
-
-      <!-- Generating State -->
-      <div v-if="isGenerating" class="generating-state">
-        <SpriteProgressAnimation :progress="generationProgress" />
-        <div class="progress-info">
-          <p class="progress-text">{{ progressText }}</p>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: generationProgress + '%' }"></div>
-          </div>
-          <p class="progress-percent">{{ generationProgress }}%</p>
-        </div>
-      </div>
-
-      <!-- Results: 3-Image Comparison Grid -->
-      <div v-if="hasResults && !isGenerating" class="results-container">
-        <div class="results-header">
-          <h3>Ergebnisse: {{ eliminationMode }} Modus</h3>
-          <button @click="clearResults" class="clear-btn">🗑️ Löschen</button>
-        </div>
-
-        <div class="image-grid">
-          <div
-            v-for="(image, idx) in images"
-            :key="idx"
-            class="image-card"
-            @click="openFullscreen(idx)"
-          >
-            <div class="image-wrapper">
-              <img :src="image.url" :alt="image.label" loading="lazy" />
-            </div>
-            <div class="image-label">
-              <h4>{{ image.label }}</h4>
-              <p>{{ image.description }}</p>
-            </div>
-            <div class="image-actions">
-              <button @click.stop="downloadImage(idx)" class="action-btn" title="Download">
-                💾
-              </button>
-              <button @click.stop="sendToI2I(idx)" class="action-btn" title="Send to Img2Img">
-                🎨
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Fullscreen Modal -->
-      <div v-if="fullscreenIndex !== null" class="fullscreen-modal" @click="closeFullscreen">
-        <button class="close-btn" @click.stop="closeFullscreen">✕</button>
-        <img :src="images[fullscreenIndex].url" @click.stop />
-        <div class="fullscreen-info">
-          <h3>{{ images[fullscreenIndex].label }}</h3>
-          <p>{{ images[fullscreenIndex].description }}</p>
-        </div>
-        <div class="fullscreen-nav">
-          <button @click.stop="prevImage" :disabled="fullscreenIndex === 0">◀</button>
-          <span>{{ fullscreenIndex + 1 }} / {{ images.length }}</span>
-          <button @click.stop="nextImage" :disabled="fullscreenIndex === images.length - 1">▶</button>
-        </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
-import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import { useAppClipboard } from '@/composables/useAppClipboard'
 
+// ============================================================================
+// Types
+// ============================================================================
+
+interface ImageOutput {
+  url: string
+  label: string
+  description: string
+  filename: string
+}
+
+// ============================================================================
+// STATE
+// ============================================================================
+
+// Global clipboard
+const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+
+// Router for navigation
 const router = useRouter()
 
-// State
-const userPrompt = ref('')
+const inputText = ref('')
 const eliminationMode = ref('average')
-const isGenerating = ref(false)
+const isExecuting = ref(false)
+const outputs = ref<ImageOutput[]>([])
+const fullscreenImage = ref<string | null>(null)
 const generationProgress = ref(0)
-const runId = ref(null)
-const images = ref([])
-const fullscreenIndex = ref(null)
 
+// Seed management for iterative experimentation
+const previousPrompt = ref('')
+const previousMode = ref('average')
+const currentSeed = ref<number | null>(null)
+
+// ============================================================================
 // Computed
-const hasResults = computed(() => images.value.length > 0)
+// ============================================================================
 
-const progressText = computed(() => {
-  if (generationProgress.value < 20) return 'Starte Workflow...'
-  if (generationProgress.value < 40) return 'Lade Modell...'
-  if (generationProgress.value < 60) return 'Generiere Referenzbild...'
-  if (generationProgress.value < 80) return 'Manipuliere Vektordimensionen...'
-  return 'Fast fertig...'
+const canExecute = computed(() => {
+  return inputText.value.trim().length > 0 && !isExecuting.value
 })
 
 const modeDescription = computed(() => {
-  const descriptions = {
+  const descriptions: Record<string, string> = {
     average: 'Ersetzt Dimensionen durch Durchschnittswert',
     random: 'Ersetzt Dimensionen durch Zufallswerte',
     invert: 'Kehrt Vorzeichen der Dimensionen um',
@@ -181,389 +184,447 @@ const modeDescription = computed(() => {
   return descriptions[eliminationMode.value] || ''
 })
 
+// ============================================================================
 // Methods
-async function executeWorkflow() {
-  if (!userPrompt.value.trim()) return
+// ============================================================================
 
-  isGenerating.value = true
+async function executeWorkflow() {
+  if (!canExecute.value) return
+
+  isExecuting.value = true
+  outputs.value = []
   generationProgress.value = 0
-  images.value = []
+
+  // Progress simulation (60 seconds for partial elimination)
+  const durationSeconds = 60 * 0.9
+  const targetProgress = 98
+  const updateInterval = 100
+  const totalUpdates = (durationSeconds * 1000) / updateInterval
+  const progressPerUpdate = targetProgress / totalUpdates
+
+  const progressInterval = setInterval(() => {
+    if (generationProgress.value < targetProgress) {
+      generationProgress.value += progressPerUpdate
+      if (generationProgress.value > targetProgress) {
+        generationProgress.value = targetProgress
+      }
+    }
+  }, updateInterval)
 
   try {
-    // 1. POST to /api/schema/pipeline/execute
-    const response = await fetch('/api/schema/pipeline/execute', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        schema: 'partial_elimination',
-        input_text: userPrompt.value,
-        safety_level: 'open',
-        output_config: 'partial_elimination_legacy',
-        user_language: 'de',
-        mode: eliminationMode.value,
-        seed: Math.floor(Math.random() * 1000000)
-      })
+    // Intelligent seed logic
+    const promptChanged = inputText.value !== previousPrompt.value
+    const modeChanged = eliminationMode.value !== previousMode.value
+
+    if (promptChanged || modeChanged) {
+      // Prompt OR mode changed → Keep same seed (user wants to see parameter variation)
+      if (currentSeed.value === null) {
+        // First run → Use default seed
+        currentSeed.value = 123456789
+        console.log('[Seed Logic] First run → Default seed:', currentSeed.value)
+      } else {
+        console.log('[Seed Logic] Prompt or mode changed → Keeping seed:', currentSeed.value)
+      }
+      // Update tracking variables
+      previousPrompt.value = inputText.value
+      previousMode.value = eliminationMode.value
+    } else {
+      // Prompt AND mode unchanged → New random seed (user wants different variation)
+      currentSeed.value = Math.floor(Math.random() * 2147483647)
+      console.log('[Seed Logic] No changes → New random seed:', currentSeed.value)
+    }
+
+    // Call 4-stage pipeline with partial_elimination workflow execution
+    const response = await axios.post('/api/schema/pipeline/execute', {
+      schema: 'partial_elimination',
+      input_text: inputText.value,
+      safety_level: 'open',
+      output_config: 'partial_elimination_legacy',
+      user_language: 'de',
+      mode: eliminationMode.value,
+      seed: currentSeed.value
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
+    if (response.data.status === 'success') {
+      // Get run_id to fetch all entities
+      const runId = response.data.run_id
 
-    const result = await response.json()
-    console.log('Execute response:', result)
+      if (runId) {
+        clearInterval(progressInterval)
+        generationProgress.value = 100
 
-    // Extract run_id from various possible locations
-    if (result.media_outputs && result.media_outputs.length > 0) {
-      runId.value = result.media_outputs[0].run_id
-    } else if (result.run_id) {
-      runId.value = result.run_id
-    } else if (result.pipeline_run_id) {
-      runId.value = result.pipeline_run_id
+        // Fetch all outputs from pipeline recorder
+        await fetchAllOutputs(runId)
+      } else {
+        clearInterval(progressInterval)
+        console.error('[Partial Elimination] No run_id in response')
+        alert('Fehler: Keine run_id erhalten')
+      }
     } else {
-      throw new Error('No run_id in response')
+      clearInterval(progressInterval)
+      alert(`Fehler: ${response.data.error}`)
     }
-
-    console.log('Using run_id:', runId.value)
-
-    // 2. Simulate progress (60-second workflow)
-    const progressInterval = setInterval(() => {
-      if (generationProgress.value < 98) {
-        generationProgress.value = Math.min(98, generationProgress.value + 1.5)
-      }
-    }, 1000)
-
-    // 3. Poll for images using the simple /api/media/images endpoint
-    let pollCount = 0
-    const maxPolls = 90 // 3 minutes max
-    const pollInterval = setInterval(async () => {
-      pollCount++
-
-      try {
-        const imagesResponse = await fetch(`/api/media/images/${runId.value}`)
-
-        if (imagesResponse.ok) {
-          const imagesData = await imagesResponse.json()
-          console.log('Images data:', imagesData)
-
-          if (imagesData.images && imagesData.images.length === 3) {
-            clearInterval(pollInterval)
-            clearInterval(progressInterval)
-
-            // Map images to display structure
-            images.value = imagesData.images.map((img, idx) => ({
-              url: img.url,
-              label: ['Referenzbild', 'Erste Hälfte eliminiert', 'Zweite Hälfte eliminiert'][idx],
-              description: img.metadata?.original_filename || `Bild ${idx + 1}`,
-              index: idx,
-              nodeId: img.node_id
-            }))
-
-            isGenerating.value = false
-            generationProgress.value = 100
-          }
-        } else {
-          console.warn('Images not yet available, continuing to poll...')
-        }
-
-        if (pollCount >= maxPolls) {
-          clearInterval(pollInterval)
-          clearInterval(progressInterval)
-          throw new Error('Timeout waiting for images')
-        }
-      } catch (error) {
-        console.error('Polling error:', error)
-      }
-    }, 2000)
-
-  } catch (error) {
-    console.error('Execution failed:', error)
-    alert(`Fehler bei der Generierung: ${error.message}`)
-    isGenerating.value = false
+  } catch (error: any) {
+    clearInterval(progressInterval)
+    console.error('[Partial Elimination] Execution error:', error)
+    const errorMessage = error.response?.data?.error || error.message
+    alert(`Fehler: ${errorMessage}`)
+  } finally {
+    isExecuting.value = false
   }
 }
 
-async function loadImages() {
+async function fetchAllOutputs(runId: string) {
   try {
-    // Fetch all images via new endpoint
-    const response = await fetch(`/api/media/images/${runId.value}`)
+    // Fetch entities metadata
+    const entitiesResponse = await axios.get(`/api/pipeline/${runId}/entities`)
+    const entities = entitiesResponse.data.entities || []
 
-    if (!response.ok) {
-      throw new Error('Failed to load images')
-    }
+    console.log('[Partial Elimination] Entities:', entities)
 
-    const data = await response.json()
+    // Filter for output images only
+    const imageEntities = entities.filter((e: any) => e.type.startsWith('output_image'))
 
-    // Map to display structure with labels
+    // Labels for the 3 images
     const labels = [
-      {
-        label: 'Referenzbild',
-        description: 'Unmanipulierte Ausgabe (Original)'
-      },
-      {
-        label: 'Erste Hälfte eliminiert',
-        description: `Vektordimensionen 0-2047 (${eliminationMode.value})`
-      },
-      {
-        label: 'Zweite Hälfte eliminiert',
-        description: `Vektordimensionen 2048-4095 (${eliminationMode.value})`
-      }
+      { label: 'Referenzbild', description: 'Unmanipulierte Ausgabe (Original)' },
+      { label: 'Erste Hälfte eliminiert', description: `Dimensionen 0-2047 (${eliminationMode.value})` },
+      { label: 'Zweite Hälfte eliminiert', description: `Dimensionen 2048-4095 (${eliminationMode.value})` }
     ]
 
-    images.value = data.images.map((img, idx) => ({
-      url: img.url,
-      label: labels[idx]?.label || `Bild ${idx + 1}`,
-      description: labels[idx]?.description || '',
-      index: idx,
-      metadata: img.metadata
-    }))
-
-    console.log('Loaded images:', images.value)
-
-  } catch (error) {
-    console.error('Failed to load images:', error)
-    alert('Fehler beim Laden der Bilder')
+    // Process each image entity
+    for (let i = 0; i < imageEntities.length; i++) {
+      const entity = imageEntities[i]
+      const output = await processImageEntity(runId, entity, labels[i] || { label: `Bild ${i + 1}`, description: '' })
+      if (output) {
+        outputs.value.push(output)
+      }
+    }
+  } catch (error: any) {
+    console.error('[Partial Elimination] Error fetching outputs:', error)
   }
 }
 
-function openFullscreen(idx) {
-  fullscreenIndex.value = idx
-}
-
-function closeFullscreen() {
-  fullscreenIndex.value = null
-}
-
-function prevImage() {
-  if (fullscreenIndex.value > 0) {
-    fullscreenIndex.value--
-  }
-}
-
-function nextImage() {
-  if (fullscreenIndex.value < images.value.length - 1) {
-    fullscreenIndex.value++
-  }
-}
-
-async function downloadImage(idx) {
+async function processImageEntity(runId: string, entity: any, labelInfo: { label: string, description: string }): Promise<ImageOutput | null> {
   try {
-    const response = await fetch(images.value[idx].url)
+    const entityType = entity.type
+    const filename = entity.filename
+
+    // Fetch entity content
+    const response = await axios.get(`/api/pipeline/${runId}/entity/${entityType}`, {
+      responseType: 'blob'
+    })
+
+    const url = URL.createObjectURL(response.data)
+    return {
+      url,
+      label: labelInfo.label,
+      description: labelInfo.description,
+      filename
+    }
+  } catch (error: any) {
+    console.error(`[Partial Elimination] Error processing entity:`, error)
+    return null
+  }
+}
+
+function showFullscreen(url: string) {
+  fullscreenImage.value = url
+}
+
+// ============================================================================
+// Textbox Actions (Copy/Paste/Delete)
+// ============================================================================
+
+function copyInputText() {
+  copyToClipboard(inputText.value)
+  console.log('[Partial Elimination] Input copied to clipboard')
+}
+
+function pasteInputText() {
+  inputText.value = pasteFromClipboard()
+  console.log('[Partial Elimination] Text pasted from clipboard')
+}
+
+function clearInputText() {
+  inputText.value = ''
+  console.log('[Partial Elimination] Input cleared')
+}
+
+// ============================================================================
+// Media Actions (For Each Image)
+// ============================================================================
+
+function saveMedia(idx: number) {
+  // TODO: Implement save/bookmark feature
+  console.log('[Media Actions] Save media (not yet implemented)', idx)
+  alert('Merken-Funktion kommt bald!')
+}
+
+function printImage(idx: number) {
+  if (!outputs.value[idx]?.url) return
+
+  const printWindow = window.open(outputs.value[idx].url, '_blank')
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.print()
+    }
+  }
+}
+
+function sendToI2I(idx: number) {
+  if (!outputs.value[idx]?.url) return
+
+  // Extract run_id from URL
+  const runIdMatch = outputs.value[idx].url.match(/\/api\/.*\/(.+)$/)
+  const runId = runIdMatch ? runIdMatch[1] : null
+
+  // Store image data in localStorage for cross-component transfer
+  const transferData = {
+    imageUrl: outputs.value[idx].url,
+    runId: runId,
+    timestamp: Date.now()
+  }
+
+  localStorage.setItem('i2i_transfer_data', JSON.stringify(transferData))
+
+  console.log('[Image Actions] Transferring to i2i:', transferData)
+
+  // Navigate to image transformation
+  router.push('/image-transformation')
+}
+
+async function downloadMedia(idx: number) {
+  if (!outputs.value[idx]?.url) return
+
+  try {
+    // Extract run_id from URL
+    const runIdMatch = outputs.value[idx].url.match(/\/api\/.*\/(.+)$/)
+    const runId = runIdMatch ? runIdMatch[1] : 'media'
+
+    const filename = `ai4artsed_partial_elimination_${outputs.value[idx].label.replace(/\s+/g, '_')}_${runId}.png`
+
+    // Fetch and download
+    const response = await fetch(outputs.value[idx].url)
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`)
+    }
+
     const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `partial_elimination_${eliminationMode.value}_${idx}.png`
+    link.download = filename
     link.click()
-    window.URL.revokeObjectURL(url)
+    URL.revokeObjectURL(url)
+
+    console.log('[Download] Media downloaded:', filename)
+
   } catch (error) {
-    console.error('Download failed:', error)
+    console.error('[Download] Error:', error)
+    alert('Download fehlgeschlagen. Bitte versuche es erneut.')
   }
-}
-
-function sendToI2I(idx) {
-  const transferData = {
-    sourceImage: images.value[idx].url,
-    runId: runId.value,
-    index: idx,
-    workflow: 'partial_elimination'
-  }
-  localStorage.setItem('i2i_transfer_data', JSON.stringify(transferData))
-  router.push('/img2img')
-}
-
-function copyPrompt() {
-  navigator.clipboard.writeText(userPrompt.value)
-}
-
-async function pastePrompt() {
-  try {
-    const text = await navigator.clipboard.readText()
-    userPrompt.value = text
-  } catch (error) {
-    console.error('Paste failed:', error)
-  }
-}
-
-function clearPrompt() {
-  userPrompt.value = ''
-}
-
-function clearResults() {
-  images.value = []
-  runId.value = null
 }
 </script>
 
 <style scoped>
-.partial-elimination-container {
-  display: grid;
-  grid-template-columns: 420px 1fr;
-  gap: 2rem;
-  height: 100vh;
-  padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  overflow: hidden;
+/* ============================================================================
+   Root Container
+   ============================================================================ */
+
+.direct-view {
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Left Column: Input Section */
-.input-section {
-  background: white;
-  border-radius: 16px;
+/* ============================================================================
+   Main Container
+   ============================================================================ */
+
+.main-container {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
   padding: 2rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ============================================================================
+   Sections
+   ============================================================================ */
+
+.input-section,
+.output-section {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.header h2 {
-  margin: 0;
-  color: #9C27B0;
-  font-size: 1.8rem;
+.section-card {
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
 }
 
-.subtitle {
-  margin: 0.25rem 0 0 0;
-  color: #666;
-  font-size: 0.9rem;
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-.prompt-input label {
-  display: block;
-  margin-bottom: 0.5rem;
+.card-icon {
+  font-size: 1.5rem;
+}
+
+.card-label {
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #333;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.prompt-input textarea {
+.bubble-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  padding: 0.25rem;
+}
+
+.action-btn:hover {
+  opacity: 0.8;
+}
+
+/* ============================================================================
+   Input Elements
+   ============================================================================ */
+
+.input-textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e0e0e0;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  font-family: inherit;
+  color: white;
   font-size: 1rem;
+  padding: 0.75rem;
   resize: vertical;
-  transition: border-color 0.2s;
+  font-family: inherit;
+  line-height: 1.5;
+  min-height: 150px;
 }
 
-.prompt-input textarea:focus {
+.input-textarea:focus {
   outline: none;
-  border-color: #9C27B0;
+  border-color: rgba(102, 126, 234, 0.8);
+  background: rgba(0, 0, 0, 0.4);
 }
 
-.mode-selector {
+/* ============================================================================
+   Dropdown
+   ============================================================================ */
+
+.dropdown-container {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.mode-selector label {
-  font-weight: 600;
-  color: #333;
-}
-
-.mode-selector select {
-  padding: 0.75rem;
-  border: 2px solid #e0e0e0;
+.mode-select {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
+  color: white;
   font-size: 1rem;
+  padding: 0.75rem;
   cursor: pointer;
-  background: white;
-  transition: border-color 0.2s;
+  font-family: inherit;
 }
 
-.mode-selector select:focus {
+.mode-select:focus {
   outline: none;
-  border-color: #9C27B0;
+  border-color: rgba(102, 126, 234, 0.8);
 }
 
 .mode-description {
-  color: #666;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
   font-style: italic;
+  padding-left: 0.5rem;
 }
 
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
+/* ============================================================================
+   Execute Button
+   ============================================================================ */
 
-.icon-btn {
-  flex: 1;
-  padding: 0.75rem;
-  background: #f5f5f5;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  transition: all 0.2s;
-}
-
-.icon-btn:hover {
-  background: #e0e0e0;
-  transform: translateY(-2px);
-}
-
-.execute-btn {
+.execute-button {
   width: 100%;
-  padding: 1rem;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  border-radius: 12px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.execute-btn:hover:not(:disabled) {
+.execute-button:hover:not(.disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
-.execute-btn:disabled {
+.execute-button.disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-.info-box {
-  background: #f0f4ff;
-  border-left: 4px solid #9C27B0;
-  padding: 1rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-}
+/* ============================================================================
+   Output Frame (3 States)
+   ============================================================================ */
 
-.info-box h4 {
-  margin: 0 0 0.5rem 0;
-  color: #9C27B0;
-}
-
-.info-box p {
-  margin: 0 0 0.5rem 0;
-  color: #555;
-}
-
-.info-box ul {
-  margin: 0;
-  padding-left: 1.5rem;
-  color: #555;
-}
-
-.info-box li {
-  margin-bottom: 0.25rem;
-}
-
-/* Right Column: Output Section */
-.output-section {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  overflow-y: auto;
+.output-frame {
+  width: 100%;
+  max-width: 1400px;
+  margin: 2rem auto;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: rgba(30, 30, 30, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  min-height: 400px;
+}
+
+.output-frame.empty {
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(20, 20, 20, 0.5);
+}
+
+.output-frame.generating {
+  border: 2px solid rgba(76, 175, 80, 0.6);
+  background: rgba(30, 30, 30, 0.9);
+  box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
 }
 
 /* Empty State */
@@ -572,332 +633,240 @@ function clearResults() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: #999;
+  gap: 1rem;
+  opacity: 0.4;
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  font-size: 5rem;
+  opacity: 0.5;
 }
 
-.empty-state h3 {
-  margin: 0 0 0.5rem 0;
-  color: #666;
+.empty-state p {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  margin: 0;
 }
 
 .empty-subtitle {
-  margin: 0 0 2rem 0;
-  color: #999;
   font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-.preview-grid {
+/* Generation Animation Container */
+.generation-animation-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Final Output - Multi-Image Grid */
+.final-output {
+  width: 100%;
+}
+
+.multi-image-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  width: 100%;
+}
+
+.image-box {
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
-  width: 100%;
-  max-width: 600px;
 }
 
-.preview-placeholder {
-  aspect-ratio: 1;
-  border: 2px dashed #ddd;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #999;
-  font-size: 0.85rem;
-}
-
-/* Generating State */
-.generating-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-
-.progress-info {
-  margin-top: 2rem;
-  text-align: center;
-  width: 100%;
-  max-width: 400px;
-}
-
-.progress-text {
-  margin: 0 0 1rem 0;
-  color: #666;
-  font-size: 1.1rem;
-  font-weight: 500;
-}
-
-.progress-bar {
-  height: 8px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 0.5rem;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  transition: width 0.3s ease;
-}
-
-.progress-percent {
-  margin: 0;
-  color: #999;
-  font-size: 0.9rem;
-}
-
-/* Results */
-.results-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  height: 100%;
-}
-
-.results-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e0e0e0;
-}
-
-.results-header h3 {
-  margin: 0;
-  color: #333;
-}
-
-.clear-btn {
-  padding: 0.5rem 1rem;
-  background: #f5f5f5;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.clear-btn:hover {
-  background: #ffebee;
-  border-color: #ef5350;
-  color: #ef5350;
-}
-
-.image-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  flex: 1;
-}
-
-.image-card {
+/* Image with Actions */
+.image-with-actions {
   position: relative;
-  border: 2px solid #9C27B0;
+  display: inline-block;
+}
+
+.output-image {
+  width: 100%;
+  max-width: 100%;
+  max-height: 400px;
   border-radius: 12px;
-  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.3s ease;
+  object-fit: contain;
+}
+
+.output-image:hover {
+  transform: scale(1.02);
+}
+
+/* Action Toolbar */
+.action-toolbar {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
 }
 
-.image-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(156, 39, 176, 0.3);
+.action-toolbar .action-btn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 30, 30, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  opacity: 1;
 }
 
-.image-wrapper {
-  aspect-ratio: 1;
-  overflow: hidden;
-  background: #f5f5f5;
+.action-toolbar .action-btn:hover:not(:disabled) {
+  border-color: rgba(102, 126, 234, 0.8);
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.1);
 }
 
-.image-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.action-toolbar .action-btn:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
+.action-toolbar .action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* Image Label */
 .image-label {
+  text-align: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
+  background: rgba(20, 20, 20, 0.8);
+  border-radius: 8px;
 }
 
 .image-label h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .image-label p {
   margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.8;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
 }
 
-.image-actions {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  display: flex;
-  gap: 0.5rem;
-  opacity: 0;
-  transition: opacity 0.2s;
+/* Responsive: Stack toolbar below media on mobile */
+@media (max-width: 768px) {
+  .multi-image-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .image-with-actions {
+    flex-direction: column;
+  }
+
+  .action-toolbar {
+    position: static;
+    transform: none;
+    flex-direction: row;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    justify-content: center;
+  }
+
+  .action-toolbar .action-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .action-icon {
+    font-size: 1.25rem;
+  }
 }
 
-.image-card:hover .image-actions {
-  opacity: 1;
-}
+/* ============================================================================
+   Fullscreen Modal
+   ============================================================================ */
 
-.action-btn {
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.95);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s;
-}
-
-.action-btn:hover {
-  transform: scale(1.1);
-}
-
-/* Fullscreen Modal */
 .fullscreen-modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
   background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-  padding: 2rem;
+  cursor: pointer;
 }
 
-.fullscreen-modal img {
-  max-width: 90%;
-  max-height: 70vh;
+.fullscreen-image {
+  max-width: 90vw;
+  max-height: 90vh;
   object-fit: contain;
   border-radius: 8px;
 }
 
-.close-btn {
+.close-fullscreen {
   position: absolute;
   top: 2rem;
   right: 2rem;
-  width: 48px;
-  height: 48px;
+  width: 4rem;
+  height: 4rem;
   background: rgba(255, 255, 255, 0.1);
   border: 2px solid white;
-  border-radius: 50%;
   color: white;
-  font-size: 1.5rem;
+  font-size: 2.5rem;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
-.close-btn:hover {
+.close-fullscreen:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: scale(1.1);
 }
 
-.fullscreen-info {
-  margin-top: 2rem;
-  text-align: center;
-  color: white;
+/* ============================================================================
+   Transitions
+   ============================================================================ */
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
 }
 
-.fullscreen-info h3 {
-  margin: 0 0 0.5rem 0;
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
 }
 
-.fullscreen-info p {
-  margin: 0;
-  opacity: 0.8;
-  font-size: 0.9rem;
-}
+/* ============================================================================
+   Responsive
+   ============================================================================ */
 
-.fullscreen-nav {
-  position: absolute;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  color: white;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 1rem 1.5rem;
-  border-radius: 24px;
-}
-
-.fullscreen-nav button {
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid white;
-  border-radius: 50%;
-  color: white;
-  font-size: 1.2rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.fullscreen-nav button:not(:disabled):hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
-}
-
-.fullscreen-nav button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.fullscreen-nav span {
-  font-weight: 600;
-  min-width: 60px;
-  text-align: center;
-}
-
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #9C27B0;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #7B1FA2;
+@media (max-width: 768px) {
+  .main-container {
+    padding: 1rem;
+  }
 }
 </style>
