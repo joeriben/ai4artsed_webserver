@@ -6,8 +6,8 @@
     "de": "Partielle Elimination"
   },
   "description": {
-    "en": "Explore semantic decomposition through vector dimension manipulation. This experimental workflow systematically eliminates parts of latent vectors to reveal hidden semantic structure.",
-    "de": "Erkunde semantische Dekomposition durch Vektor-Dimensions-Manipulation. Dieser experimentelle Workflow eliminiert systematisch Teile von latenten Vektoren, um verborgene semantische Strukturen aufzudecken."
+    "en": "What happens when we 'switch off' parts of the AI's understanding? This workflow creates three images: one normal, and two where we've removed different halves of the AI's internal representation of your prompt. By comparing them, you can see which semantic features (objects, colors, moods) are stored in which parts of the neural network's 'memory'.",
+    "de": "Was passiert, wenn wir Teile des KI-Verständnisses 'ausschalten'? Dieser Workflow erzeugt drei Bilder: eines normal, und zwei, bei denen wir verschiedene Hälften der internen Repräsentation deines Prompts entfernt haben. Durch den Vergleich siehst du, welche semantischen Features (Objekte, Farben, Stimmungen) in welchen Teilen des neuronalen Netzwerk-'Gedächtnisses' gespeichert sind."
   },
   "category": {
     "de": "Forschung",
