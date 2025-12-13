@@ -1,27 +1,55 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-12-13 (Session 97: Composite Images - Config-Driven Approach Defined)
+**Last Updated:** 2025-12-13 (Session 98: Two Open Issues)
 **Context:** Current priorities and active TODOs
 
 ---
 
-## ❌ ABANDONED (Session 97 - 2025-12-13)
+## 🚧 IN PROGRESS (Session 98 - 2025-12-13)
 
-### Composite Image Implementation - ABANDONED
-**Status:** ❌ **ABANDONED** - Not worth the debugging effort
-**Priority:** LOW (minor feature)
-**Sessions:** 96 (rejected), 97 (abandoned)
+### Two Open Issues - partial_elimination
+**Status:** ⚠️ **INCOMPLETE** - Two related issues need resolution
+**Priority:** HIGH (composite important, routing required)
+**Sessions:** 97 (abandoned), 98 (redesign + partial fixes)
 
-**What Was Attempted:**
-- ✅ Backend composite-image helper exists (`pipeline_recorder.py` lines 604-708)
-- ✅ Simple implementation: `if len(media_files) > 1` → create composite
-- ❌ Testing showed: Still 3 separate images, no composite created
-- ❌ Unknown root cause, insufficient debugging time
+**⚠️ READ THIS FIRST:** `docs/HANDOVER_Session_98_Two_Open_Issues.md`
 
-**Decision:** "Es lohnt sich nicht 5 Stunden mit so einer Lappalie zugange zu sein."
+### Issue #1: Composite Image Not Created (Backend)
 
-**Conclusion:** Feature abandoned. Helper function exists if needed later, but integration into pipeline flow requires more investigation than this minor feature warrants.
+**Problem:** Backend doesn't create composite image (code was reverted in Session 97)
 
-**See:** `docs/DEVELOPMENT_LOG.md` Session 97 for full details
+**Solution:** Re-add 36 lines after `schema_pipeline_routes.py:2016`
+```python
+if len(media_files) > 1:
+    composite_data = recorder.create_composite_image(...)
+    recorder.save_entity(entity_type='output_image_composite', ...)
+```
+
+**Effort:** 5 minutes
+
+### Issue #2: Vue Not in /execute/ Path (Frontend)
+
+**Problem:** `partial_elimination.vue` in wrong location
+- Current: `src/views/partial_elimination.vue`
+- Expected: `src/views/execute/partial_elimination.vue` (or similar)
+- Missing: Stage2 proxy config for routing
+
+**Solution:**
+1. Investigate existing `/execute/` routing pattern
+2. Create proxy config (if needed)
+3. Move Vue file to correct location
+4. Update router
+
+**Effort:** 30-60 minutes
+
+### What Works Already ✅
+
+- ✅ Frontend redesigned (design standards compliant)
+- ✅ Dual-fetch logic (individuals + composite)
+- ✅ New backend endpoint: `/api/pipeline/<run_id>/file/<filename>`
+- ✅ Flexible 3-4 image grid layout
+- ✅ All standard actions functional
+
+**See:** Full details in `docs/HANDOVER_Session_98_Two_Open_Issues.md`
 
 ---
 

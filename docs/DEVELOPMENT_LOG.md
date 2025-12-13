@@ -27,6 +27,124 @@
 
 ---
 
+## Session 98 (2025-12-13): Partial Elimination Vue Redesign + Two Open Issues
+
+**Date:** 2025-12-13
+**Duration:** ~60 minutes
+**Status:** ⚠️ PARTIAL - Vue redesigned, two issues remain
+**Branch:** develop
+**Commits:** 7ffd4d5, c08fc3a, 42d18cf
+
+### Objective
+
+Fix partial_elimination.vue to follow design standards (violates surrealizer template pattern) and ensure composite images display correctly.
+
+### What Was Completed
+
+#### 1. Vue Component Redesign ✅
+
+**Problem:** Previous session created custom Vue that broke design standards
+- Custom 2-column layout (not standard)
+- Not in `/execute/` path
+- Missing standard elements
+
+**Solution:** Complete redesign based on surrealizer.vue template
+- Standard single-column layout
+- Standard section-cards (input, dropdown, execute button)
+- Standard output frame with 3 states (empty/generating/final)
+- Flexible multi-image grid (`auto-fit, minmax(300px, 1fr)`)
+- All standard actions: copy/paste/clear, print, i2i, download, fullscreen
+- Responsive: 3-column desktop, 1-column mobile
+
+**Changes:**
+- Slider → Dropdown (4 modes: average, random, invert, zero_out)
+- Hardcoded layout → Flexible grid
+- Custom design → Surrealizer template
+- 616 insertions(+), 647 deletions(-) (31 lines cleaner!)
+
+#### 2. New Backend Endpoint ✅
+
+**Problem:** `/api/pipeline/<run_id>/entity/<type>` only returns FIRST entity of each type
+- 3 images with `type=output_image` → always returns first one
+- Composite with `type=output_image_composite` → can't be fetched alongside individuals
+
+**Solution:** New endpoint `/api/pipeline/<run_id>/file/<filename>`
+- Fetches specific files by unique filename
+- Works for any file in run folder
+- Clean, simple implementation (~45 lines)
+
+**File:** `devserver/my_app/routes/pipeline_routes.py:84-128`
+
+#### 3. Dual-Fetch Frontend Logic ✅
+
+**Approach:** Fetch images in two steps
+1. `/api/media/images/${runId}` → 3 individual images
+2. `/api/pipeline/${runId}/file/${filename}` → composite image
+
+**Result:** Frontend ready to display all 4 images when backend creates them
+
+### What's Still Broken
+
+#### Issue #1: Composite Not Created ❌
+
+**Status:** Backend doesn't create composite (code reverted in Session 97)
+
+**Why:** Testing failure in Session 97 led to revert, but user now confirms composite IS important
+
+**User Quote:** "Composite soll da UNBEDINGT BLEIBEN, es ist WICHTIGER als die Einzelbilder"
+
+**Fix Required:** Re-add 36 lines to `schema_pipeline_routes.py:2016`
+
+#### Issue #2: Vue Not in /execute/ Path ❌
+
+**Status:** File at wrong location, no proxy config
+
+**Current:** `src/views/partial_elimination.vue`
+**Expected:** `src/views/execute/partial_elimination.vue` (or similar)
+
+**Missing:** Stage2 proxy config for `/execute/` routing
+
+**Fix Required:** Investigate routing architecture, create proxy config, move file
+
+### Files Modified
+
+**Backend:**
+- `devserver/my_app/routes/pipeline_routes.py` - New `/file/<filename>` endpoint
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/views/partial_elimination.vue` - Complete redesign
+
+**Documentation:**
+- `docs/HANDOVER_Session_98_Two_Open_Issues.md` - Detailed handover
+- `docs/devserver_todos.md` - Updated priorities
+
+### Git Commits
+
+1. `7ffd4d5` - refactor: Redesign partial_elimination.vue following design standards
+2. `c08fc3a` - fix: Use correct image fetching from old Vue implementation
+3. `42d18cf` - feat: Add filename-based file endpoint + dual-fetch for composite
+
+### Next Steps (Session 99)
+
+1. **Fix Composite Creation** (5 min) - Re-add backend code
+2. **Fix Routing** (30-60 min) - Investigate `/execute/` architecture, move Vue
+
+### User Feedback
+
+**Disappointment:** "schade" (composite not showing)
+**Expectation:** Composite MORE important than individual images
+
+### Cost Estimate
+
+- Vue redesign: ~30 minutes
+- Backend endpoint: ~15 minutes
+- Dual-fetch logic: ~15 minutes
+- **Total:** ~60 minutes (~$2.00 estimated)
+
+**See:** `docs/HANDOVER_Session_98_Two_Open_Issues.md` for complete details
+
+---
+
 ## Session 97 (2025-12-13): Composite Images - ABANDONED
 
 **Date:** 2025-12-13
