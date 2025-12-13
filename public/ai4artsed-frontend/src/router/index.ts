@@ -58,12 +58,6 @@ const router = createRouter({
       component: () => import('../views/surrealizer.vue'),
     },
     {
-      path: '/partial-elimination',
-      name: 'partial-elimination',
-      // Partial Elimination: Vector dimension manipulation (3 images)
-      component: () => import('../views/partial_elimination.vue'),
-    },
-    {
       path: '/settings',
       name: 'settings',
       // Configuration settings page
