@@ -1,0 +1,63 @@
+{
+  "name": "legacy_partial_elimination",
+  "chunk_type": "legacy_workflow",
+  "chunk_stage": "4",
+  "comfyui_port": 7821,
+  "workflow_path": "/home/joerissen/ai/ai4artsed_webserver_legacy/workflows/vector/ai4artsed_PartialElimination_average_clip-g_2507271232.json",
+  "prompt_injection_params": {
+    "search_by_title": "ai4artsed_text_prompt",
+    "fallback_node": "26",
+    "fallback_field": "inputs.value"
+  },
+  "parameter_injection": [
+    {
+      "param_name": "mode",
+      "node_id": "49",
+      "field": "inputs.mode",
+      "default": "average",
+      "allowed_values": ["average", "random", "invert", "zero_out"]
+    },
+    {
+      "param_name": "mode",
+      "node_id": "77",
+      "field": "inputs.mode",
+      "default": "average",
+      "allowed_values": ["average", "random", "invert", "zero_out"]
+    },
+    {
+      "param_name": "seed",
+      "node_id": "3",
+      "field": "inputs.seed"
+    }
+  ],
+  "output_labels": [
+    {
+      "index": 0,
+      "label": "Referenzbild",
+      "description": "Unmanipulierte Ausgabe (Original)",
+      "semantic_role": "baseline",
+      "node_id": "9"
+    },
+    {
+      "index": 1,
+      "label": "Erste Hälfte eliminiert",
+      "description": "Vektordimensionen 0-2047 manipuliert",
+      "semantic_role": "variant_a",
+      "node_id": "45"
+    },
+    {
+      "index": 2,
+      "label": "Zweite Hälfte eliminiert",
+      "description": "Vektordimensionen 2048-4095 manipuliert",
+      "semantic_role": "variant_b",
+      "node_id": "69"
+    }
+  ],
+  "estimated_duration_seconds": 60,
+  "meta": {
+    "pedagogical_focus": "Vector space manipulation and semantic decomposition",
+    "requires_custom_nodes": true,
+    "expected_outputs": 3,
+    "backend": "comfyui_legacy"
+  }
+}

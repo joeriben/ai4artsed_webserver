@@ -51,6 +51,31 @@ def _find_entity_by_type(entities: list, media_type: str) -> dict:
     return None
 
 
+def _find_entities_by_type(entities: list, media_type: str) -> list:
+    """
+    Find ALL entities in entities array by media type.
+
+    Args:
+        entities: List of entity records from metadata
+        media_type: Type to search for ('image', 'audio', 'video')
+
+    Returns:
+        List of entity dicts (empty list if none found)
+    """
+    results = []
+
+    # Search for output_TYPE entities (e.g., output_image, output_audio)
+    for entity in entities:
+        entity_type = entity.get('type', '')
+        if entity_type == f'output_{media_type}':
+            results.append(entity)
+
+    # Sort by file_index if available (maintains order from workflow)
+    results.sort(key=lambda e: e.get('metadata', {}).get('file_index', 0))
+
+    return results
+
+
 # Image upload configuration
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -198,12 +223,14 @@ def upload_image():
 
 
 @media_bp.route('/image/<run_id>', methods=['GET'])
-def get_image(run_id: str):
+@media_bp.route('/image/<run_id>/<int:index>', methods=['GET'])
+def get_image(run_id: str, index: int = 0):
     """
-    Serve image from local storage by run_id
+    Serve image from local storage by run_id (optionally by index for multi-output).
 
     Args:
         run_id: UUID of the pipeline run
+        index: Image index (default 0 for backward compatibility)
 
     Returns:
         Image file or 404 error
@@ -214,10 +241,18 @@ def get_image(run_id: str):
         if not recorder:
             return jsonify({"error": f"Run {run_id} not found"}), 404
 
-        # Find image entity
-        image_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'image')
-        if not image_entity:
-            return jsonify({"error": f"No image found for run {run_id}"}), 404
+        # Find ALL image entities
+        image_entities = _find_entities_by_type(recorder.metadata.get('entities', []), 'image')
+
+        if not image_entities:
+            return jsonify({"error": f"No images found for run {run_id}"}), 404
+
+        # Validate index
+        if index < 0 or index >= len(image_entities):
+            return jsonify({"error": f"Invalid index {index}. Available: 0-{len(image_entities)-1}"}), 404
+
+        # Get requested image entity
+        image_entity = image_entities[index]
 
         # Get file path
         filename = image_entity['filename']
@@ -241,11 +276,88 @@ def get_image(run_id: str):
             file_path,
             mimetype=mimetype,
             as_attachment=False,
-            download_name=f'{run_id}.{file_format}'
+            download_name=f'{run_id}_{index}.{file_format}'
         )
 
     except Exception as e:
-        logger.error(f"Error serving image for run {run_id}: {e}")
+        logger.error(f"Error serving image for run {run_id} (index {index}): {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@media_bp.route('/images/<run_id>', methods=['GET'])
+def get_images(run_id: str):
+    """
+    Get metadata for ALL images from a run (for multi-output workflows).
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        JSON array with image metadata:
+        {
+            "run_id": "...",
+            "total_images": 3,
+            "images": [
+                {
+                    "index": 0,
+                    "filename": "06_output_image.png",
+                    "url": "/api/media/image/<run_id>/0",
+                    "file_size_bytes": 1234567,
+                    "node_id": "123",
+                    "file_index": 0,
+                    "total_files": 3,
+                    "metadata": {...}
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return jsonify({"error": f"Run {run_id} not found"}), 404
+
+        # Find ALL image entities
+        image_entities = _find_entities_by_type(recorder.metadata.get('entities', []), 'image')
+
+        if not image_entities:
+            return jsonify({"error": f"No images found for run {run_id}"}), 404
+
+        # Build response
+        images = []
+        for idx, entity in enumerate(image_entities):
+            filename = entity['filename']
+            file_path = recorder.run_folder / filename
+
+            if not file_path.exists():
+                logger.warning(f"Image file not found: {filename}")
+                continue
+
+            file_size = file_path.stat().st_size
+            entity_meta = entity.get('metadata', {})
+
+            images.append({
+                'index': idx,
+                'filename': filename,
+                'url': f'/api/media/image/{run_id}/{idx}',
+                'file_size_bytes': file_size,
+                'node_id': entity_meta.get('node_id', 'unknown'),
+                'file_index': entity_meta.get('file_index', idx),
+                'total_files': entity_meta.get('total_files', len(image_entities)),
+                'metadata': entity_meta
+            })
+
+        return jsonify({
+            'run_id': run_id,
+            'total_images': len(images),
+            'images': images
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting images for run {run_id}: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500

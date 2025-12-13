@@ -1,0 +1,13 @@
+{
+  "name": "partial_elimination_legacy",
+  "display_name": "Partial Elimination (Legacy)",
+  "media_type": "image",
+  "chunks": ["legacy_partial_elimination"],
+  "backend": "comfyui_legacy",
+  "meta": {
+    "description": "Vector dimension elimination for semantic decomposition",
+    "version": "1.0",
+    "backend_port": 7821,
+    "expected_outputs": 3
+  }
+}

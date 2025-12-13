@@ -52,6 +52,18 @@ const router = createRouter({
       component: () => import('../views/direct.vue'),
     },
     {
+      path: '/surrealizer',
+      name: 'surrealizer',
+      // Surrealizer: T5-CLIP interpolation for surreal image variations
+      component: () => import('../views/surrealizer.vue'),
+    },
+    {
+      path: '/partial-elimination',
+      name: 'partial-elimination',
+      // Partial Elimination: Vector dimension manipulation (3 images)
+      component: () => import('../views/partial_elimination.vue'),
+    },
+    {
       path: '/settings',
       name: 'settings',
       // Configuration settings page

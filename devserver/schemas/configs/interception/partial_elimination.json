@@ -1,0 +1,21 @@
+{
+  "pipeline": "partial_elimination",
+  "instruction_type": "partial_elimination",
+  "display_icon": "🧬",
+  "display_color": "#9C27B0",
+  "display_name": "Partial Elimination",
+  "difficulty": 4,
+  "tags": ["vector", "research", "experimental", "legacy", "dimension-elimination", "advanced"],
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 14,
+    "complexity_level": "advanced"
+  },
+  "meta": {
+    "stage": "interception",
+    "skip_stage2": true,
+    "backend": "none",
+    "workflow_type": "passthrough",
+    "description": "Explore semantic decomposition through vector dimension manipulation"
+  }
+}
