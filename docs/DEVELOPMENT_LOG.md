@@ -27,6 +27,68 @@
 
 ---
 
+## Session 97 (2025-12-13): Composite Images - ABANDONED
+
+**Date:** 2025-12-13
+**Duration:** ~45 minutes
+**Status:** ❌ ABANDONED - Not worth the effort
+**Branch:** develop
+**Commit:** None (reverted)
+
+### Objective
+
+Automatically combine multiple images from ComfyUI workflows (e.g., 3 images from partial_elimination) into a single composite image using the existing `create_composite_image()` helper function.
+
+### What Was Attempted
+
+**Approach:** Automatic composite generation after saving individual images
+- Added logic after line 2016 in `schema_pipeline_routes.py`
+- Check: `if len(media_files) > 1` → create composite
+- No config changes needed (fully automatic)
+- Auto-generated labels ("Image 1", "Image 2", "Image 3")
+
+**Implementation:**
+```python
+if len(media_files) > 1:
+    composite_data = recorder.create_composite_image(
+        image_data_list=media_files,
+        labels=[f"Image {i+1}" for i in range(len(media_files))],
+        workflow_title=output_config_name.replace('_', ' ').title()
+    )
+    # Save as output_image_composite entity
+```
+
+### Why It Failed
+
+- Implementation was clean and simple
+- Backend restarted successfully
+- **Testing showed: Still 3 separate images, no composite**
+- Unknown root cause (insufficient debugging time)
+
+### Decision
+
+**User:** "Es lohnt sich nicht 5 Stunden mit so einer Lappalie zugange zu sein."
+
+**Conclusion:** Feature abandoned. Not critical enough to justify extensive debugging. The existing helper function works, but integration into the pipeline flow requires more investigation than this minor feature warrants.
+
+### Files Modified (Reverted)
+
+- `devserver/my_app/routes/schema_pipeline_routes.py` - Added 36 lines, reverted
+
+### Lessons Learned
+
+- Simple features can have hidden complexity in integration
+- Cost-benefit analysis important: don't spend hours on minor features
+- Helper function exists (`pipeline_recorder.py:604-708`) if needed later
+
+### Cost Estimate
+
+- Implementation: ~15 minutes
+- Testing/debugging: ~30 minutes
+- **Total:** ~45 minutes (~$1.50 estimated)
+
+---
+
 ## Sessions 84-85 (2025-12-01 to 2025-12-02): QWEN Image Edit i2i Implementation + Architecture Patterns
 
 **Date:** 2025-12-01 to 2025-12-02

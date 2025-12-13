@@ -1,33 +1,27 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-12-13 (Session 96: Partial Elimination Composite - Incomplete)
+**Last Updated:** 2025-12-13 (Session 97: Composite Images - Config-Driven Approach Defined)
 **Context:** Current priorities and active TODOs
 
 ---
 
-## 🚧 IN PROGRESS (Session 96 - 2025-12-13)
+## ❌ ABANDONED (Session 97 - 2025-12-13)
 
-### Partial Elimination: Complete Integration
-**Status:** 🚧 **BACKEND READY** - Frontend needs rewrite
-**Priority:** HIGH (Multi-session effort, must finish)
-**Session:** 96 (continued from 95)
+### Composite Image Implementation - ABANDONED
+**Status:** ❌ **ABANDONED** - Not worth the debugging effort
+**Priority:** LOW (minor feature)
+**Sessions:** 96 (rejected), 97 (abandoned)
 
-**What's Done:**
-- ✅ Backend composite-image helper (`pipeline_recorder.py` lines 604-708)
-- ✅ All config files (chunk, pipeline, output, interception)
-- ✅ Multi-image API endpoints (Session 95)
+**What Was Attempted:**
+- ✅ Backend composite-image helper exists (`pipeline_recorder.py` lines 604-708)
+- ✅ Simple implementation: `if len(media_files) > 1` → create composite
+- ❌ Testing showed: Still 3 separate images, no composite created
+- ❌ Unknown root cause, insufficient debugging time
 
-**What's Missing:**
-1. **Backend:** Integrate composite call in `schema_pipeline_routes.py` after line 2015 (40 lines with try-catch failsafe)
-2. **Frontend:** Rewrite `partial_elimination.vue` by copy-pasting `surrealizer.vue`:
-   - Copy complete file: `surrealizer.vue` → `partial_elimination.vue`
-   - Replace: `'surrealizer'` → `'partial_elimination'`
-   - Replace: `'surrealization_legacy'` → `'partial_elimination_legacy'`
-   - Replace slider with mode dropdown (average/random/invert/zero_out)
-   - Replace `alphaFaktor` with `eliminationMode`
+**Decision:** "Es lohnt sich nicht 5 Stunden mit so einer Lappalie zugange zu sein."
 
-**Handover Document:** `/home/joerissen/.claude/plans/modular-jumping-pudding.md`
+**Conclusion:** Feature abandoned. Helper function exists if needed later, but integration into pipeline flow requires more investigation than this minor feature warrants.
 
-**Estimated Effort:** 1-2 hours (backend integration 30min + Vue rewrite 30min + testing 30min)
+**See:** `docs/DEVELOPMENT_LOG.md` Session 97 for full details
 
 ---
 
