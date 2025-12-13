@@ -2014,6 +2014,41 @@ def execute_pipeline():
 
                                             logger.info(f"[RECORDER] ✓ Saved {len(saved_filenames)}/{len(media_files)} file(s)")
                                             saved_filename = saved_filenames[0] if saved_filenames else None
+
+                                            # If multiple images were generated, create composite automatically
+                                            if len(media_files) > 1:
+                                                try:
+                                                    logger.info(f"[COMPOSITE] Creating composite from {len(media_files)} images...")
+
+                                                    # Auto-generate labels
+                                                    labels = [f"Image {i+1}" for i in range(len(media_files))]
+
+                                                    # Create composite
+                                                    composite_data = recorder.create_composite_image(
+                                                        image_data_list=media_files,
+                                                        labels=labels,
+                                                        workflow_title=output_config_name.replace('_', ' ').title()
+                                                    )
+
+                                                    # Save composite as new entity
+                                                    composite_filename = recorder.save_entity(
+                                                        entity_type='output_image_composite',
+                                                        content=composite_data,
+                                                        metadata={
+                                                            'config': output_config_name,
+                                                            'format': 'png',
+                                                            'backend': 'comfyui_legacy',
+                                                            'prompt_id': prompt_id,
+                                                            'composite': True,
+                                                            'source_files': saved_filenames,
+                                                            'seed': seed
+                                                        }
+                                                    )
+
+                                                    logger.info(f"[COMPOSITE] ✓ Created: {composite_filename}")
+
+                                                except Exception as e:
+                                                    logger.warning(f"[COMPOSITE] Failed (using individual images): {e}")
                                         else:
                                             logger.warning(f"[RECORDER] No media_files in metadata for legacy workflow")
                                             saved_filename = None
