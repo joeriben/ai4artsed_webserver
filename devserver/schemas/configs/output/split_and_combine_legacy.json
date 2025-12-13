@@ -1,0 +1,36 @@
+{
+  "pipeline": "legacy_workflow_passthrough",
+  "name": {
+    "en": "Split and Combine (Legacy)",
+    "de": "Teilen und Kombinieren (Legacy)"
+  },
+  "description": {
+    "en": "Vector fusion with split and combine. Produces 4 images: prompt A, prompt B, fused vector, interpolated blend.",
+    "de": "Vektorfusion mit Teilen und Kombinieren. Produziert 4 Bilder: Prompt A, Prompt B, fusionierter Vektor, interpolierte Mischung."
+  },
+  "parameters": {
+    "OUTPUT_CHUNK": "legacy_split_and_combine"
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+  "meta": {
+    "stage": "output",
+    "backend": "comfyui",
+    "backend_type": "comfyui_legacy",
+    "execution_mode": "legacy_workflow",
+    "workflow_type": "vector_fusion",
+    "requires_gpu": true,
+    "estimated_duration_seconds": "40-80",
+    "expected_outputs": 4,
+    "version": "1.0",
+    "migration_status": "legacy_passthrough",
+    "notes": [
+      "Legacy workflow - uses complete ComfyUI API workflow JSON",
+      "Produces 4 images via multiple SaveImage nodes",
+      "Prompt injection via title-based node search (ai4artsed_text_prompt)",
+      "Combination type parameter: linear, spherical"
+    ]
+  }
+}

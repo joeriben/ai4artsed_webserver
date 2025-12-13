@@ -754,6 +754,29 @@ class BackendRouter:
                     target[field_parts[-1]] = alpha_value
                     logger.info(f"[ALPHA-INJECT] ✓ Injected alpha={alpha_value} into node {alpha_node_id}.{alpha_field}")
 
+            # Handle combination_type for split_and_combine workflows (array of mappings)
+            if input_mappings and 'combination_type' in input_mappings and 'combination_type' in parameters:
+                combination_value = parameters['combination_type']
+                combination_mappings = input_mappings['combination_type']
+
+                logger.info(f"[LEGACY-WORKFLOW] Injecting combination_type={combination_value}")
+
+                # Support both single mapping (dict) and multiple mappings (list)
+                if isinstance(combination_mappings, dict):
+                    combination_mappings = [combination_mappings]
+
+                for mapping in combination_mappings:
+                    node_id = mapping.get('node_id')
+                    field = mapping.get('field', 'inputs.interpolation_method')
+
+                    if node_id and node_id in workflow:
+                        field_parts = field.split('.')
+                        target = workflow[node_id]
+                        for part in field_parts[:-1]:
+                            target = target.setdefault(part, {})
+                        target[field_parts[-1]] = combination_value
+                        logger.info(f"[COMBINATION-INJECT] ✓ Injected combination_type={combination_value} into node {node_id}.{field}")
+
             # Handle input_image for img2img workflows
             if input_mappings and 'input_image' in input_mappings and 'input_image' in parameters:
                 import aiohttp

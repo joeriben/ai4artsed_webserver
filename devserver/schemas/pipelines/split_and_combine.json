@@ -1,0 +1,13 @@
+{
+  "name": "split_and_combine",
+  "pipeline_type": "passthrough",
+  "pipeline_stage": "2",
+  "skip_stage2": true,
+  "requires_interception_prompt": false,
+  "chunks": [],
+  "meta": {
+    "workflow_type": "skip",
+    "reusable": false,
+    "description": "Passthrough pipeline for Split and Combine workflow"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "pipeline": "split_and_combine",
+  "instruction_type": "split_and_combine",
+  "name": {
+    "en": "Split and Combine",
+    "de": "Teilen und Kombinieren"
+  },
+  "description": {
+    "en": "Split your prompt into two semantic parts and explore how they interact. This workflow creates four images: the original scene with both elements, each element separately, and a final recombination showing how AI understands their relationship. Perfect for exploring how concepts blend in neural networks.",
+    "de": "Teile deinen Prompt in zwei semantische Teile und erkunde, wie sie interagieren. Dieser Workflow erzeugt vier Bilder: die ursprüngliche Szene mit beiden Elementen, jedes Element separat, und eine finale Rekombination, die zeigt, wie die KI ihre Beziehung versteht. Perfekt, um zu erforschen, wie Konzepte in neuronalen Netzwerken verschmelzen."
+  },
+  "category": {
+    "de": "Forschung",
+    "en": "Research"
+  },
+  "properties": [
+    "research"
+  ],
+  "display": {
+    "icon": "🔀",
+    "color": "#9C27B0",
+    "category": "research",
+    "difficulty": 4,
+    "order": 61,
+    "hidden": false
+  },
+  "tags": {
+    "en": ["vector", "research", "experimental", "legacy", "prompt-splitting", "advanced"],
+    "de": ["vektor", "forschung", "experimentell", "legacy", "prompt-aufteilung", "fortgeschritten"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 14,
+    "complexity": "advanced",
+    "requires": ["ComfyUI backend"]
+  },
+  "meta": {
+    "stage": "interception",
+    "skip_stage2": true,
+    "backend": "none",
+    "workflow_type": "passthrough",
+    "note": "Split and Combine config for legacy vector manipulation workflow. Stage 2 is skipped to preserve original prompt.",
+    "system_config": false
+  }
+}
