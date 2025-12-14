@@ -18,7 +18,7 @@
         "scheduler": "normal",
         "denoise": 1,
         "model": [
-          "129",
+          "4",
           0
         ],
         "positive": [
@@ -30,7 +30,7 @@
           0
         ],
         "latent_image": [
-          "127",
+          "5",
           0
         ]
       },
@@ -39,10 +39,30 @@
         "title": "KSampler"
       }
     },
+    "4": {
+      "inputs": {
+        "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Load Checkpoint"
+      }
+    },
+    "5": {
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentImage",
+      "_meta": {
+        "title": "Empty Latent Image"
+      }
+    },
     "6": {
       "inputs": {
         "text": [
-          "137",
+          "102",
           0
         ],
         "clip": [
@@ -62,7 +82,7 @@
           0
         ],
         "vae": [
-          "129",
+          "4",
           2
         ]
       },
@@ -81,13 +101,20 @@
       },
       "class_type": "SaveImage",
       "_meta": {
-        "title": "Combined Vectors"
+        "title": "vector-fused"
+      }
+    },
+    "14": {
+      "inputs": {},
+      "class_type": "ai4artsed_openrouter_key",
+      "_meta": {
+        "title": "Secure Access to OpenRouter API Key"
       }
     },
     "21": {
       "inputs": {
         "text": [
-          "43",
+          "72",
           0
         ],
         "clip": [
@@ -97,14 +124,14 @@
       },
       "class_type": "CLIPTextEncode",
       "_meta": {
-        "title": "CLIP Text Encode prompt#1  POSITIVE"
+        "title": "CLIP Text Encode POSITIVE (t5)"
       }
     },
     "24": {
       "inputs": {
         "text": "watermark",
         "clip": [
-          "101",
+          "94",
           0
         ]
       },
@@ -117,7 +144,7 @@
       "inputs": {
         "text": "watermark",
         "clip": [
-          "101",
+          "94",
           0
         ]
       },
@@ -126,13 +153,29 @@
         "title": "CLIP Text Encode NEGATIVE (t5)"
       }
     },
+    "39": {
+      "inputs": {
+        "preview": "",
+        "source": [
+          "72",
+          0
+        ]
+      },
+      "class_type": "PreviewAny",
+      "_meta": {
+        "title": "Prompt #1"
+      }
+    },
     "43": {
       "inputs": {
-        "value": "an Apple - INJECT Prompt1 HERE"
+        "value": [
+          "86",
+          0
+        ]
       },
       "class_type": "PrimitiveString",
       "_meta": {
-        "title": "ai4artsed_text_prompt 1"
+        "title": "ai4artsed_text_prompt"
       }
     },
     "50": {
@@ -142,6 +185,44 @@
       "class_type": "PrimitiveFloat",
       "_meta": {
         "title": "set t5-optimized prompt Influence (beween -75 and +78)"
+      }
+    },
+    "72": {
+      "inputs": {
+        "value": "element1_placeholder"
+      },
+      "class_type": "PrimitiveString",
+      "_meta": {
+        "title": "ai4artsed_element1"
+      }
+    },
+    "86": {
+      "inputs": {
+        "value": "[a huge meteroid in vast space] [a silver spoon in the cutlery drawer]"
+      },
+      "class_type": "PrimitiveStringMultiline",
+      "_meta": {
+        "title": "YOUR PROMPT GOES HERE"
+      }
+    },
+    "91": {
+      "inputs": {
+        "value": "extra fingers, extra legs, disconnected limbs, extra arms, extra limbs, extra hands, fused fingers, gross proportions, long neck, poorly drawn hands, poorly drawn face, poorly drawn feet"
+      },
+      "class_type": "PrimitiveStringMultiline",
+      "_meta": {
+        "title": "SD 3.5 minimal negative prompt"
+      }
+    },
+    "94": {
+      "inputs": {
+        "clip_name": "clip_l.safetensors",
+        "type": "sd3",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {
+        "title": "Load CLIP"
       }
     },
     "101": {
@@ -156,9 +237,31 @@
         "title": "DualCLIPLoader"
       }
     },
+    "102": {
+      "inputs": {
+        "value": "element2_placeholder"
+      },
+      "class_type": "PrimitiveString",
+      "_meta": {
+        "title": "ai4artsed_element2"
+      }
+    },
+    "103": {
+      "inputs": {
+        "preview": "",
+        "source": [
+          "102",
+          0
+        ]
+      },
+      "class_type": "PreviewAny",
+      "_meta": {
+        "title": "Prompt #2"
+      }
+    },
     "104": {
       "inputs": {
-        "value": -237268207006991
+        "value": 123456789
       },
       "class_type": "PrimitiveInt",
       "_meta": {
@@ -175,7 +278,7 @@
       },
       "class_type": "SaveImage",
       "_meta": {
-        "title": "Reference (Prompt1 + Prompt 2)"
+        "title": "original"
       }
     },
     "111": {
@@ -185,13 +288,24 @@
           0
         ],
         "vae": [
-          "129",
+          "117",
           2
         ]
       },
       "class_type": "VAEDecode",
       "_meta": {
         "title": "VAE Decode"
+      }
+    },
+    "112": {
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentImage",
+      "_meta": {
+        "title": "Empty Latent Image"
       }
     },
     "114": {
@@ -206,7 +320,7 @@
         "scheduler": "normal",
         "denoise": 1,
         "model": [
-          "129",
+          "117",
           0
         ],
         "positive": [
@@ -218,7 +332,7 @@
           0
         ],
         "latent_image": [
-          "127",
+          "112",
           0
         ]
       },
@@ -230,7 +344,7 @@
     "115": {
       "inputs": {
         "text": [
-          "138",
+          "43",
           0
         ],
         "clip": [
@@ -240,12 +354,37 @@
       },
       "class_type": "CLIPTextEncode",
       "_meta": {
-        "title": "CLIP Text Encode POSITIVE Prompt 1+2 concatenated"
+        "title": "CLIP Text Encode POSITIVE (t5)"
       }
     },
     "116": {
       "inputs": {
         "text": "watermark",
+        "clip": [
+          "94",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode NEGATIVE (t5)"
+      }
+    },
+    "117": {
+      "inputs": {
+        "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Load Checkpoint"
+      }
+    },
+    "118": {
+      "inputs": {
+        "text": [
+          "72",
+          0
+        ],
         "clip": [
           "101",
           0
@@ -253,7 +392,31 @@
       },
       "class_type": "CLIPTextEncode",
       "_meta": {
+        "title": "CLIP Text Encode POSITIVE (t5)"
+      }
+    },
+    "119": {
+      "inputs": {
+        "text": "watermark",
+        "clip": [
+          "94",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
         "title": "CLIP Text Encode NEGATIVE (t5)"
+      }
+    },
+    "120": {
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentImage",
+      "_meta": {
+        "title": "Empty Latent Image"
       }
     },
     "121": {
@@ -268,25 +431,34 @@
         "scheduler": "normal",
         "denoise": 1,
         "model": [
-          "129",
+          "122",
           0
         ],
         "positive": [
-          "21",
+          "118",
           0
         ],
         "negative": [
-          "24",
+          "119",
           0
         ],
         "latent_image": [
-          "127",
+          "120",
           0
         ]
       },
       "class_type": "KSampler",
       "_meta": {
         "title": "KSampler"
+      }
+    },
+    "122": {
+      "inputs": {
+        "ckpt_name": "OfficialStableDiffusion/sd3.5_large.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Load Checkpoint"
       }
     },
     "123": {
@@ -296,7 +468,7 @@
           0
         ],
         "vae": [
-          "129",
+          "122",
           2
         ]
       },
@@ -315,7 +487,36 @@
       },
       "class_type": "SaveImage",
       "_meta": {
-        "title": "Prompt 1 only"
+        "title": "prompt#1"
+      }
+    },
+    "125": {
+      "inputs": {
+        "text": [
+          "102",
+          0
+        ],
+        "clip": [
+          "101",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode POSITIVE (t5)"
+      }
+    },
+    "126": {
+      "inputs": {
+        "text": "watermark",
+        "clip": [
+          "94",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode NEGATIVE (t5)"
       }
     },
     "127": {
@@ -345,11 +546,11 @@
           0
         ],
         "positive": [
-          "6",
+          "125",
           0
         ],
         "negative": [
-          "24",
+          "126",
           0
         ],
         "latent_image": [
@@ -397,7 +598,20 @@
       },
       "class_type": "SaveImage",
       "_meta": {
-        "title": "Prompt 2 only"
+        "title": "prompt#2"
+      }
+    },
+    "132": {
+      "inputs": {
+        "preview": "",
+        "source": [
+          "104",
+          0
+        ]
+      },
+      "class_type": "PreviewAny",
+      "_meta": {
+        "title": "seed"
       }
     },
     "133": {
@@ -406,7 +620,7 @@
           "50",
           0
         ],
-        "interpolation_method": "spherical",
+        "interpolation_method": "linear",
         "steps": 2,
         "conditioning_a": [
           "21",
@@ -428,7 +642,7 @@
           "50",
           0
         ],
-        "interpolation_method": "spherical",
+        "interpolation_method": "linear",
         "steps": 2,
         "conditioning_a": [
           "25",
@@ -444,37 +658,47 @@
         "title": "AI4ArtsEd Conditioning Fusion NEGATIVE"
       }
     },
+    "135": {
+      "inputs": {
+        "value": "Lineare Vektoraufteilung\nMathematische Dekonstruktion von Bedeutungsr\u00e4umen, lineare Variante\nZerlegt Prompts in Vektorkomponenten und sucht den direkten (linearen) Weg zwischen den Punkten im latenten Bedeutungsraum. Ergebnisse k\u00f6nnen \u00fcberraschen oder auch konventionell ausfallen."
+      },
+      "class_type": "PrimitiveStringMultiline",
+      "_meta": {
+        "title": "\u00fcber"
+      }
+    },
+    "136": {
+      "inputs": {
+        "value": "Linear Vector Split\nMathematical deconstruction of meaning spaces, linear variant\nBreaks down prompts into vector components and finds the direct (linear) path between points in latent meaning space. Results can be surprising or conventional."
+      },
+      "class_type": "PrimitiveStringMultiline",
+      "_meta": {
+        "title": "about"
+      }
+    },
     "137": {
       "inputs": {
-        "value": "a banana - INJECT Prompt2 HERE"
+        "value": "Lineare Vektoraufteilung\nMathematische Dekonstruktion von Bedeutungsr\u00e4umen, lineare Variante\nZerlegt Prompts in Vektorkomponenten und sucht den direkten (linearen) Weg zwischen den Punkten im latenten Bedeutungsraum. Ergebnisse k\u00f6nnen \u00fcberraschen oder auch konventionell ausfallen."
       },
-      "class_type": "PrimitiveString",
+      "class_type": "PrimitiveStringMultiline",
       "_meta": {
-        "title": "ai4artsed_text_prompt 2"
+        "title": "\u00fcber"
       }
     },
     "138": {
       "inputs": {
-        "string_a": [
-          "43",
-          0
-        ],
-        "string_b": [
-          "137",
-          0
-        ],
-        "delimiter": " and "
+        "value": "Linear Vector Split\nMathematical deconstruction of meaning spaces, linear variant\nBreaks down prompts into vector components and finds the direct (linear) path between points in latent meaning space. Results can be surprising or conventional."
       },
-      "class_type": "StringConcatenate",
+      "class_type": "PrimitiveStringMultiline",
       "_meta": {
-        "title": "ai4artsed_text_prompt 1+2"
+        "title": "about"
       }
     }
   },
   "prompt_injection": {
     "search_by_title": "ai4artsed_text_prompt",
-    "fallback_node": "138",
-    "fallback_field": "inputs.string_a"
+    "fallback_node": "86",
+    "fallback_field": "inputs.value"
   },
   "input_mappings": {
     "combination_type": [
@@ -489,17 +713,47 @@
     ],
     "element1": [
       {
-        "node_id": "43",
+        "node_id": "72",
         "field": "inputs.value"
       }
     ],
     "element2": [
       {
-        "node_id": "137",
+        "node_id": "102",
         "field": "inputs.value"
       }
     ]
   },
   "estimated_duration_seconds": 60,
-  "expected_outputs": 4
+  "expected_outputs": 4,
+  "output_labels": [
+    {
+      "index": 0,
+      "label": "Vektor-Fusion",
+      "description": "Mathematisch kombinierte Vektoren von Prompt A und B",
+      "semantic_role": "fused",
+      "node_id": "9"
+    },
+    {
+      "index": 1,
+      "label": "Original (Vollprompt)",
+      "description": "Unmodifiziertes Original beider Prompts kombiniert",
+      "semantic_role": "baseline",
+      "node_id": "110"
+    },
+    {
+      "index": 2,
+      "label": "Prompt A",
+      "description": "Nur der erste Teil des Split-Prompts",
+      "semantic_role": "part_a",
+      "node_id": "124"
+    },
+    {
+      "index": 3,
+      "label": "Prompt B",
+      "description": "Nur der zweite Teil des Split-Prompts",
+      "semantic_role": "part_b",
+      "node_id": "131"
+    }
+  ]
 }

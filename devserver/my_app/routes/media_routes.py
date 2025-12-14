@@ -345,6 +345,7 @@ def get_images(run_id: str):
                 'url': f'/api/media/image/{run_id}/{idx}',
                 'file_size_bytes': file_size,
                 'node_id': entity_meta.get('node_id', 'unknown'),
+                'node_title': entity_meta.get('node_title', 'unknown'),
                 'file_index': entity_meta.get('file_index', idx),
                 'total_files': entity_meta.get('total_files', len(image_entities)),
                 'metadata': entity_meta

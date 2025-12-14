@@ -1969,6 +1969,18 @@ def execute_pipeline():
                                     is_legacy_workflow = output_result.metadata.get('legacy_workflow', False)
                                     download_all = output_result.metadata.get('download_all', False)
 
+                                    def _extract_saveimage_titles(workflow_json: dict) -> dict:
+                                        """Extract SaveImage node titles from workflow JSON.
+                                        Returns: {node_id: title}
+                                        """
+                                        titles = {}
+                                        workflow_dict = workflow_json.get('workflow', workflow_json)
+                                        for node_id, node_data in workflow_dict.items():
+                                            if node_data.get('class_type') == 'SaveImage':
+                                                title = node_data.get('_meta', {}).get('title', f'SaveImage_{node_id}')
+                                                titles[node_id] = title
+                                        return titles
+
                                     if is_legacy_workflow:
                                         # Legacy workflow: media files already downloaded by service
                                         logger.info(f"[4-STAGE] Legacy workflow detected - saving media files")
@@ -1999,12 +2011,28 @@ def execute_pipeline():
                                         outputs_metadata = output_result.metadata.get('outputs_metadata', [])
                                         prompt_id = output_result.metadata.get('prompt_id')
 
+                                        # IMMEDIATE CLEANUP: Remove binary data from metadata before it goes into response dicts
+                                        # This prevents "Object of type bytes is not JSON serializable" errors
+                                        if 'media_files' in output_result.metadata:
+                                            del output_result.metadata['media_files']
+                                        if 'outputs_metadata' in output_result.metadata:
+                                            del output_result.metadata['outputs_metadata']
+
+                                        # Extract SaveImage node titles for image labeling
+                                        saveimage_titles = _extract_saveimage_titles(workflow_json) if workflow_json else {}
+                                        if saveimage_titles:
+                                            logger.info(f"[RECORDER] ✓ Extracted {len(saveimage_titles)} SaveImage node titles")
+
                                         if media_files:
                                             saved_filenames = []
                                             for idx, file_data in enumerate(media_files):
                                                 try:
                                                     # Get metadata for this file
                                                     file_metadata = outputs_metadata[idx] if idx < len(outputs_metadata) else {}
+
+                                                    # Get node_id and lookup title
+                                                    node_id = file_metadata.get('node_id', 'unknown')
+                                                    node_title = saveimage_titles.get(node_id, f'unknown_{node_id}')
 
                                                     # Build metadata for recorder
                                                     entity_metadata = {
@@ -2013,7 +2041,8 @@ def execute_pipeline():
                                                         'prompt_id': prompt_id,
                                                         'file_index': idx,
                                                         'total_files': len(media_files),
-                                                        'node_id': file_metadata.get('node_id', 'unknown'),
+                                                        'node_id': node_id,
+                                                        'node_title': node_title,
                                                         'original_filename': file_metadata.get('filename', 'unknown')
                                                     }
 

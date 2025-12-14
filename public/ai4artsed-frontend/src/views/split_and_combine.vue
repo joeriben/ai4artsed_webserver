@@ -314,27 +314,26 @@ async function fetchAllOutputs(runId: string) {
       const imagesResponse = await axios.get(`/api/media/images/${runId}`)
 
       if (imagesResponse.data.images && imagesResponse.data.images.length > 0) {
-        // Reorder images: swap positions 2 and 3 for correct display order
-        const reorderedImages = [
-          imagesResponse.data.images[0],  // Original
-          imagesResponse.data.images[1],  // Vektor-Fusion
-          imagesResponse.data.images[3],  // Element 1 (Prompt 1 - was at index 3)
-          imagesResponse.data.images[2]   // Element 2 (Prompt 2 - was at index 2)
-        ]
+        // Match images by SaveImage node title (robust against non-deterministic order)
+        // Node titles from workflow are used DIRECTLY as display labels
+        const images = imagesResponse.data.images || []
 
-        const labels = [
-          { label: 'Original', description: 'Beide Elemente kombiniert' },
-          { label: 'Vektor-Fusion', description: `${combinationType.value === 'linear' ? 'Lineare' : 'Sphärische'} Kombination` },
-          { label: 'Element 1', description: 'Nur das erste Element' },
-          { label: 'Element 2', description: 'Nur das zweite Element' }
-        ]
+        const findByTitle = (substring: string) =>
+          images.find((img: any) => img.node_title?.includes(substring))
 
-        // Add the 4 individual images
-        outputs.value = reorderedImages.map((img: any, idx: number) => ({
+        const orderedImages = [
+          findByTitle('Reference'),        // Node 110: "Reference (Prompt1 + Prompt 2)"
+          findByTitle('Combined Vectors'),  // Node 9: "Combined Vectors"
+          findByTitle('Prompt 1 only'),    // Node 124: "Prompt 1 only"
+          findByTitle('Prompt 2 only')     // Node 131: "Prompt 2 only"
+        ].filter(img => img !== undefined)
+
+        // Use node_title DIRECTLY as label (NO translation)
+        outputs.value = orderedImages.map((img: any) => ({
           url: img.url,
-          label: labels[idx]?.label || `Bild ${idx + 1}`,
-          description: labels[idx]?.description || '',
-          filename: img.metadata?.original_filename || `image_${idx}.png`
+          label: img.node_title,  // ← DIRECT from backend, NO mapping
+          description: '',
+          filename: img.metadata?.original_filename || img.filename
         }))
 
         console.log('[Split and Combine] Loaded 4 individual images')

@@ -120,7 +120,7 @@
       },
       "class_type": "SaveImage",
       "_meta": {
-        "title": "unmanipulated ouput (reference)"
+        "title": "Reference (normal output)"
       }
     },
     "11": {
@@ -369,7 +369,7 @@
       },
       "class_type": "SaveImage",
       "_meta": {
-        "title": "second half eliminated (averaged)"
+        "title": "second half eliminated"
       }
     },
     "70": {
