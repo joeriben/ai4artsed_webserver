@@ -520,6 +520,12 @@ class PipelineExecutor:
             chunk_request['parameters']['alpha_factor'] = alpha_value
             logger.info(f"[SURREALIZER] Injected alpha_factor into chunk parameters: {alpha_value}")
 
+        # Add ALL custom placeholders to parameters (for legacy workflows with input_mappings)
+        for key, value in context.custom_placeholders.items():
+            if key not in chunk_request['parameters']:  # Don't overwrite existing
+                chunk_request['parameters'][key] = value
+                logger.info(f"[CUSTOM-PARAMS] Injected '{key}' = '{str(value)[:50]}' into chunk parameters")
+
         backend_request = BackendRequest(
             backend_type=BackendType(chunk_request['backend_type']),
             model=chunk_request['model'],
