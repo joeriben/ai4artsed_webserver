@@ -1268,9 +1268,12 @@ def execute_pipeline():
         # Extract custom workflow parameters (split_and_combine, partial_elimination, surrealizer, etc.)
         # This ensures strict parallelization across all legacy workflows
         custom_params = {}
+        logger.info(f"[EXTRACT-DEBUG] Request data keys: {list(data.keys())}")
         for param_name in ['prompt1', 'prompt2', 'combination_type', 'mode', 'alpha_factor']:
             if param_name in data:
-                custom_params[param_name] = data.get(param_name)
+                value = data.get(param_name)
+                logger.info(f"[EXTRACT-DEBUG] Extracted {param_name} = {repr(value)}")
+                custom_params[param_name] = value
 
         if not schema_name or not input_text:
             return jsonify({

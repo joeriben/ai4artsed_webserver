@@ -1381,6 +1381,7 @@ class BackendRouter:
         for key, mapping_or_list in mappings.items():
             # Get value from input_data
             value = input_data.get(key)
+            logger.info(f"[INPUT-MAPPING-DEBUG] Key='{key}', Value='{str(value)[:100] if value else repr(value)}'")
 
             # Convert single mapping to list for uniform processing
             mapping_list = mapping_or_list if isinstance(mapping_or_list, list) else [mapping_or_list]
