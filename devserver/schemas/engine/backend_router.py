@@ -715,9 +715,18 @@ class BackendRouter:
                     error="No workflow definition in legacy chunk"
                 )
 
-            # Apply seed randomization from input_mappings (but not prompt)
+            # Apply ALL input_mappings (element1, element2, combination_type, seed, etc.)
             input_mappings = chunk.get('input_mappings', {})
-            if input_mappings and 'seed' in input_mappings:
+            if input_mappings:
+                input_data = {'prompt': prompt, **parameters}
+                logger.info(f"[LEGACY-WORKFLOW] Applying input_mappings for: {list(input_mappings.keys())}")
+                workflow, generated_seed = self._apply_input_mappings(workflow, input_mappings, input_data)
+                if generated_seed:
+                    logger.info(f"[LEGACY-WORKFLOW] Generated seed: {generated_seed}")
+
+            # Legacy: Apply seed randomization from input_mappings (DEPRECATED - handled by _apply_input_mappings above)
+            # Keeping this block for backwards compatibility, but it should no longer execute
+            if False and input_mappings and 'seed' in input_mappings:
                 import random
                 seed_mapping = input_mappings['seed']
                 seed_value = parameters.get('seed', seed_mapping.get('default', 'random'))
