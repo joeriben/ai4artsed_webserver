@@ -1367,6 +1367,10 @@ class BackendRouter:
     def _apply_input_mappings(self, workflow: Dict, mappings: Dict[str, Any], input_data: Dict[str, Any]) -> Tuple[Dict, Optional[int]]:
         """Apply input_mappings to workflow - inject prompts and parameters
 
+        Supports two formats:
+        1. Single mapping: "key": {"node_id": "X", "field": "Y"}
+        2. Multi-node mapping: "key": [{"node_id": "X", "field": "Y"}, {...}]
+
         Returns:
             Tuple[Dict, Optional[int]]: (modified_workflow, generated_seed)
         """
@@ -1374,19 +1378,26 @@ class BackendRouter:
 
         generated_seed = None
 
-        for key, mapping in mappings.items():
-            # Get value from input_data, or use default, or use source placeholder
+        for key, mapping_or_list in mappings.items():
+            # Get value from input_data
             value = input_data.get(key)
 
-            if value is None:
-                # Try default value
-                value = mapping.get('default')
+            # Convert single mapping to list for uniform processing
+            mapping_list = mapping_or_list if isinstance(mapping_or_list, list) else [mapping_or_list]
 
-            if value is None:
-                # Try source placeholder (like {{PREVIOUS_OUTPUT}})
-                source = mapping.get('source', '')
-                if source == '{{PREVIOUS_OUTPUT}}':
-                    value = input_data.get('prompt', '')
+            # Get default value from first mapping if value is None
+            if value is None and len(mapping_list) > 0:
+                first_mapping = mapping_list[0]
+                if isinstance(first_mapping, dict):
+                    value = first_mapping.get('default')
+
+            # Try source placeholder if still None
+            if value is None and len(mapping_list) > 0:
+                first_mapping = mapping_list[0]
+                if isinstance(first_mapping, dict):
+                    source = first_mapping.get('source', '')
+                    if source == '{{PREVIOUS_OUTPUT}}':
+                        value = input_data.get('prompt', '')
 
             # Special handling for "random" seed
             if value == "random" and key == "seed":
@@ -1394,17 +1405,28 @@ class BackendRouter:
                 generated_seed = value
                 logger.info(f"Generated random seed: {generated_seed}")
 
-            # Apply value to workflow
+            # Apply value to ALL nodes in the mapping list
             if value is not None:
-                node_id = mapping['node_id']
-                field_path = mapping['field'].split('.')
+                for mapping in mapping_list:
+                    if not isinstance(mapping, dict):
+                        logger.warning(f"Skipping invalid mapping for '{key}': {mapping}")
+                        continue
 
-                # Navigate to the nested field (e.g., "inputs.value" -> workflow[node_id]['inputs']['value'])
-                target = workflow.get(node_id, {})
-                for part in field_path[:-1]:
-                    target = target.setdefault(part, {})
+                    node_id = mapping.get('node_id')
+                    field = mapping.get('field')
 
-                # Set the final value
+                    if not node_id or not field:
+                        logger.warning(f"Skipping incomplete mapping for '{key}': missing node_id or field")
+                        continue
+
+                    field_path = field.split('.')
+
+                    # Navigate to the nested field (e.g., "inputs.value" -> workflow[node_id]['inputs']['value'])
+                    target = workflow.get(node_id, {})
+                    for part in field_path[:-1]:
+                        target = target.setdefault(part, {})
+
+                    # Set the final value
                 target[field_path[-1]] = value
 
                 logger.debug(f"Mapped '{key}' = '{str(value)[:50]}...' to node {node_id}.{mapping['field']}")
