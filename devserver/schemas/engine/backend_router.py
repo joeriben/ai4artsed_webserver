@@ -1422,14 +1422,14 @@ class BackendRouter:
                     field_path = field.split('.')
 
                     # Navigate to the nested field (e.g., "inputs.value" -> workflow[node_id]['inputs']['value'])
-                    target = workflow.get(node_id, {})
+                    target = workflow.setdefault(node_id, {})
                     for part in field_path[:-1]:
                         target = target.setdefault(part, {})
 
                     # Set the final value
-                target[field_path[-1]] = value
+                    target[field_path[-1]] = value
 
-                logger.debug(f"Mapped '{key}' = '{str(value)[:50]}...' to node {node_id}.{mapping['field']}")
+                    logger.info(f"✓ Injected '{key}' = '{str(value)[:50]}' to node {node_id}.{mapping['field']}")
 
         return workflow, generated_seed
 

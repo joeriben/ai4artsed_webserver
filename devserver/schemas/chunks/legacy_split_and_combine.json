@@ -487,13 +487,13 @@
         "field": "inputs.interpolation_method"
       }
     ],
-    "element1": [
+    "prompt1": [
       {
         "node_id": "43",
         "field": "inputs.value"
       }
     ],
-    "element2": [
+    "prompt2": [
       {
         "node_id": "137",
         "field": "inputs.value"

@@ -5,7 +5,7 @@
       <!-- Input Section: Element 1 + Element 2 (Side by Side) -->
       <section class="input-context-section">
         <!-- Element 1 Bubble -->
-        <div class="input-bubble bubble-card" :class="{ filled: element1 }">
+        <div class="input-bubble bubble-card" :class="{ filled: prompt1 }">
           <div class="bubble-header">
             <span class="bubble-icon">🅰️</span>
             <span class="bubble-label">Element 1</span>
@@ -16,7 +16,7 @@
             </div>
           </div>
           <textarea
-            v-model="element1"
+            v-model="prompt1"
             placeholder="z.B. ein Meteorit im Weltall"
             class="bubble-textarea"
             rows="6"
@@ -24,7 +24,7 @@
         </div>
 
         <!-- Element 2 Bubble -->
-        <div class="context-bubble bubble-card" :class="{ filled: element2 }">
+        <div class="context-bubble bubble-card" :class="{ filled: prompt2 }">
           <div class="bubble-header">
             <span class="bubble-icon">🅱️</span>
             <span class="bubble-label">Element 2</span>
@@ -35,7 +35,7 @@
             </div>
           </div>
           <textarea
-            v-model="element2"
+            v-model="prompt2"
             placeholder="z.B. ein Silberlöffel in der Besteckschublade"
             class="bubble-textarea"
             rows="6"
@@ -174,8 +174,8 @@ const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 // Router for navigation
 const router = useRouter()
 
-const element1 = ref('')
-const element2 = ref('')
+const prompt1 = ref('')
+const prompt2 = ref('')
 const combinationType = ref('linear')
 const isExecuting = ref(false)
 const outputs = ref<ImageOutput[]>([])
@@ -183,8 +183,8 @@ const fullscreenImage = ref<string | null>(null)
 const generationProgress = ref(0)
 
 // Seed management for iterative experimentation
-const previousElement1 = ref('')
-const previousElement2 = ref('')
+const previousPrompt1 = ref('')
+const previousPrompt2 = ref('')
 const previousType = ref('linear')
 const currentSeed = ref<number | null>(null)
 
@@ -193,7 +193,7 @@ const currentSeed = ref<number | null>(null)
 // ============================================================================
 
 const canExecute = computed(() => {
-  return element1.value.trim().length > 0 && element2.value.trim().length > 0 && !isExecuting.value
+  return prompt1.value.trim().length > 0 && prompt2.value.trim().length > 0 && !isExecuting.value
 })
 
 const modeDescription = computed(() => {
@@ -233,14 +233,14 @@ async function executeWorkflow() {
 
   try {
     // Combine elements with brackets for backend
-    const combinedPrompt = `${element1.value} ${element2.value}`  // For "Original" image (no brackets)
+    const combinedPrompt = `${prompt1.value} ${prompt2.value}`  // For "Original" image (no brackets)
 
     // Intelligent seed logic
-    const element1Changed = element1.value !== previousElement1.value
-    const element2Changed = element2.value !== previousElement2.value
+    const prompt1Changed = prompt1.value !== previousPrompt1.value
+    const prompt2Changed = prompt2.value !== previousPrompt2.value
     const typeChanged = combinationType.value !== previousType.value
 
-    if (element1Changed || element2Changed || typeChanged) {
+    if (prompt1Changed || prompt2Changed || typeChanged) {
       // Elements OR type changed → Keep same seed (user wants to see parameter variation)
       if (currentSeed.value === null) {
         // First run → Use default seed
@@ -250,8 +250,8 @@ async function executeWorkflow() {
         console.log('[Seed Logic] Elements or type changed → Keeping seed:', currentSeed.value)
       }
       // Update tracking variables
-      previousElement1.value = element1.value
-      previousElement2.value = element2.value
+      previousPrompt1.value = prompt1.value
+      previousPrompt2.value = prompt2.value
       previousType.value = combinationType.value
     } else {
       // Elements AND type unchanged → New random seed (user wants different variation)
@@ -263,8 +263,8 @@ async function executeWorkflow() {
     const response = await axios.post('/api/schema/pipeline/execute', {
       schema: 'split_and_combine',
       input_text: combinedPrompt,  // For "Original" output (combined prompt)
-      element1: element1.value,  // For Element 1 output
-      element2: element2.value,  // For Element 2 output
+      prompt1: prompt1.value,  // For Element 1 output
+      prompt2: prompt2.value,  // For Element 2 output
       safety_level: 'off',
       output_config: 'split_and_combine_legacy',
       combination_type: combinationType.value,  // 'linear' or 'spherical'
@@ -385,32 +385,32 @@ function showFullscreen(url: string) {
 // ============================================================================
 
 function copyElement1() {
-  copyToClipboard(element1.value)
+  copyToClipboard(prompt1.value)
   console.log('[Split and Combine] Element 1 copied to clipboard')
 }
 
 function pasteElement1() {
-  element1.value = pasteFromClipboard()
+  prompt1.value = pasteFromClipboard()
   console.log('[Split and Combine] Text pasted to Element 1')
 }
 
 function clearElement1() {
-  element1.value = ''
+  prompt1.value = ''
   console.log('[Split and Combine] Element 1 cleared')
 }
 
 function copyElement2() {
-  copyToClipboard(element2.value)
+  copyToClipboard(prompt2.value)
   console.log('[Split and Combine] Element 2 copied to clipboard')
 }
 
 function pasteElement2() {
-  element2.value = pasteFromClipboard()
+  prompt2.value = pasteFromClipboard()
   console.log('[Split and Combine] Text pasted to Element 2')
 }
 
 function clearElement2() {
-  element2.value = ''
+  prompt2.value = ''
   console.log('[Split and Combine] Element 2 cleared')
 }
 
