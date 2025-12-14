@@ -1265,6 +1265,13 @@ def execute_pipeline():
         seed_override = data.get('seed')  # Optional: specific seed for exact regeneration
         alpha_factor = data.get('alpha_factor')  # Optional: alpha factor for T5-CLIP fusion (Surrealizer)
 
+        # Extract custom workflow parameters (split_and_combine, partial_elimination, surrealizer, etc.)
+        # This ensures strict parallelization across all legacy workflows
+        custom_params = {}
+        for param_name in ['prompt1', 'prompt2', 'combination_type', 'mode', 'alpha_factor']:
+            if param_name in data:
+                custom_params[param_name] = data.get(param_name)
+
         if not schema_name or not input_text:
             return jsonify({
                 'status': 'error',
@@ -1850,15 +1857,28 @@ def execute_pipeline():
                     logger.info(f"[RECORDER] Saved model_used: {output_config_name}")
 
                     try:
+                        # Create context with custom placeholders if we have any custom parameters
+                        # This ensures strict parallelization across all legacy workflows
+                        from schemas.engine.pipeline_executor import PipelineContext
+                        context_override = None
+                        if custom_params:
+                            context_override = PipelineContext(
+                                input_text=prompt_for_media,
+                                user_input=prompt_for_media
+                            )
+                            context_override.custom_placeholders = custom_params
+                            logger.info(f"[CUSTOM-PARAMS] Injecting custom placeholders: {list(custom_params.keys())}")
+
                         # Execute Output-Pipeline with translated/transformed text
                         output_result = asyncio.run(pipeline_executor.execute_pipeline(
                             config_name=output_config_name,
                             input_text=prompt_for_media,  # Use translated English text from Stage 3!
                             user_input=prompt_for_media,
                             execution_mode=execution_mode,
+                            context_override=context_override,  # NEW: Pass custom parameters uniformly
                             seed_override=calculated_seed,  # Phase 4: Intelligent seed
                             input_image=input_image,  # Session 80: IMG2IMG support
-                            alpha_factor=alpha_factor  # Surrealizer: T5-CLIP fusion alpha
+                            alpha_factor=alpha_factor  # Surrealizer: T5-CLIP fusion alpha (backwards compat)
                         ))
 
                         # Add media output to results
