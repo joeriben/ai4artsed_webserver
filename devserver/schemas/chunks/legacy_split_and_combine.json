@@ -189,23 +189,11 @@
     },
     "72": {
       "inputs": {
-        "input_prompt": [
-          "43",
-          0
-        ],
-        "input_context": "prompting expert",
-        "style_prompt": "Extract the most foremost thing or aspect of the input. \n\nOf course, adjectives, adverbs and phrases that describe the main thing BELONG TO THE MAIN ASPECT AND WILL BE EXTRACTED AS A SEMANTIC GROUP. Pass on only this part of the desription. \n\nIf the input contains [expressions in brackets], treat those a one unit (and select the main unit)\n\nNO META-REMARKS OR COMMENTS WHATSOEVER!",
-        "api_key": [
-          "14",
-          0
-        ],
-        "model": "openrouter/mistralai/mistral-medium-3 [rule-oriented / $0.40/$2.00]",
-        "debug": "enable",
-        "unload_model": "yes"
+        "value": "element1_placeholder"
       },
-      "class_type": "ai4artsed_prompt_interception",
+      "class_type": "PrimitiveString",
       "_meta": {
-        "title": "Prompt Splitter"
+        "title": "ai4artsed_element1"
       }
     },
     "86": {
@@ -251,23 +239,11 @@
     },
     "102": {
       "inputs": {
-        "input_prompt": [
-          "43",
-          0
-        ],
-        "input_context": [
-          "72",
-          0
-        ],
-        "style_prompt": "You reseived two prompt: first, a complete input prompt. Second, a subset of this prompt. \n\nYour task: LEAVE OUT the subset. ONLY PASS ON THE REST of the input as a semantic unity. \n\nIf the input contains [expressions in brackets], treat those as one unit (but strip the brackets off your output).\n\nNO META-REMARKS OR COMMENTS WHATSOEVER!",
-        "api_key": "",
-        "model": "openrouter/mistralai/mistral-medium-3 [rule-oriented / $0.40/$2.00]",
-        "debug": "enable",
-        "unload_model": "yes"
+        "value": "element2_placeholder"
       },
-      "class_type": "ai4artsed_prompt_interception",
+      "class_type": "PrimitiveString",
       "_meta": {
-        "title": "Prompt Splitter"
+        "title": "ai4artsed_element2"
       }
     },
     "103": {
@@ -721,8 +697,8 @@
   },
   "prompt_injection": {
     "search_by_title": "ai4artsed_text_prompt",
-    "fallback_node": "102",
-    "fallback_field": "value"
+    "fallback_node": "86",
+    "fallback_field": "inputs.value"
   },
   "input_mappings": {
     "combination_type": [
@@ -733,6 +709,18 @@
       {
         "node_id": "134",
         "field": "inputs.interpolation_method"
+      }
+    ],
+    "element1": [
+      {
+        "node_id": "72",
+        "field": "inputs.value"
+      }
+    ],
+    "element2": [
+      {
+        "node_id": "102",
+        "field": "inputs.value"
       }
     ]
   },

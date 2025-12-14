@@ -233,7 +233,7 @@ async function executeWorkflow() {
 
   try {
     // Combine elements with brackets for backend
-    const combinedPrompt = `[${element1.value}] [${element2.value}]`
+    const combinedPrompt = `${element1.value} ${element2.value}`  // For "Original" image (no brackets)
 
     // Intelligent seed logic
     const element1Changed = element1.value !== previousElement1.value
@@ -262,7 +262,9 @@ async function executeWorkflow() {
     // Call 4-stage pipeline with split_and_combine workflow execution
     const response = await axios.post('/api/schema/pipeline/execute', {
       schema: 'split_and_combine',
-      input_text: combinedPrompt,
+      input_text: combinedPrompt,  // For "Original" output (combined prompt)
+      element1: element1.value,  // For Element 1 output
+      element2: element2.value,  // For Element 2 output
       safety_level: 'off',
       output_config: 'split_and_combine_legacy',
       combination_type: combinationType.value,  // 'linear' or 'spherical'
