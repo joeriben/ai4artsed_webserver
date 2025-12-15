@@ -1,0 +1,86 @@
+{
+  "name": "flux2_img2img",
+  "pipeline": "single_text_media_generation",
+  "display_name": "Flux2 Dev IMG2IMG (20-step Quality)",
+  "description": "High-quality image transformation with Flux2 Dev using ReferenceLatent conditioning (20 steps)",
+  "category": "image",
+  "media_type": "image",
+
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_flux2_img2img",
+    "steps": 20,
+    "cfg": 1,
+    "sampler_name": "euler",
+    "scheduler": "normal",
+    "denoise": 0.75,
+    "megapixels": 2.5,
+    "seed": null,
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 512
+  },
+
+  "parameter_ranges": {
+    "steps": {
+      "min": 15,
+      "max": 30,
+      "default": 20,
+      "description": "Flux2 Dev optimized for 20 steps"
+    },
+    "cfg": {
+      "min": 1,
+      "max": 2,
+      "default": 1,
+      "description": "CFG scale (Flux2 uses low CFG like 1-2)"
+    },
+    "denoise": {
+      "min": 0.5,
+      "max": 1.0,
+      "default": 0.75,
+      "description": "Denoise strength (0.5-1.0 for IMG2IMG, lower=more original preserved)"
+    },
+    "megapixels": {
+      "min": 1,
+      "max": 4,
+      "default": 2.5,
+      "description": "Target image size (2.5 MP = ~1600x1600, optimal for Flux2)"
+    }
+  },
+
+  "capabilities": {
+    "img2img": true,
+    "text2img": false,
+    "inpainting": false,
+    "outpainting": false,
+    "controlnet": false
+  },
+
+  "requirements": {
+    "gpu_vram_mb": 18000,
+    "estimated_duration_seconds": "40-50",
+    "requires_models": [
+      "flux2_dev_fp8mixed.safetensors",
+      "mistral_3_small_flux2_fp8.safetensors",
+      "flux2-vae.safetensors"
+    ]
+  },
+
+  "ui_config": {
+    "icon": "⚡",
+    "color": "#FF6B35",
+    "badge": "Quality",
+    "recommended_for": ["high_quality_edits", "creative_transformation", "natural_language_editing"],
+    "best_for": "Complex image transformations with natural language instructions (style changes, scene modifications, creative edits)"
+  },
+
+  "meta": {
+    "stage": "output",
+    "version": "1.0",
+    "created": "2025-12-15",
+    "last_updated": "2025-12-15",
+    "model_type": "flux2_dev",
+    "lightning_optimized": false,
+    "dsgvo_compliant": true,
+    "local_only": true
+  }
+}

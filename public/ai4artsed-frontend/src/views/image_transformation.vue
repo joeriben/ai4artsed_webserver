@@ -9,7 +9,10 @@
         <div class="input-bubble bubble-card" :class="{ filled: uploadedImage }">
           <div class="bubble-header">
             <span class="bubble-icon">💡</span>
-            <span class="bubble-label">Dein kreatives Bild</span>
+            <span class="bubble-label">Dein Bild</span>
+            <div class="bubble-actions">
+              <button @click="clearImage" class="action-btn" title="Löschen">🗑️</button>
+            </div>
           </div>
           <ImageUploadWidget
             :initial-image="uploadedImage"
@@ -22,7 +25,7 @@
         <div class="context-bubble bubble-card" :class="{ filled: contextPrompt, required: !contextPrompt }">
           <div class="bubble-header">
             <span class="bubble-icon">📋</span>
-            <span class="bubble-label">Bestimme Regeln, Material, Besonderheiten</span>
+            <span class="bubble-label">Sage was Du an dem Bild verändern möchtest</span>
             <div class="bubble-actions">
               <button @click="copyContextPrompt" class="action-btn" title="Kopieren">📋</button>
               <button @click="pasteContextPrompt" class="action-btn" title="Einfügen">📄</button>
@@ -57,6 +60,58 @@
             @keydown.space.prevent="!category.disabled && selectCategory(category.id)"
           >
             <div class="bubble-emoji-small">{{ category.emoji }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3.5: Model Selection (appears BELOW category, filtered by selected category) -->
+      <section v-if="selectedCategory" class="config-section">
+        <h2 class="section-title">wähle ein Modell aus</h2>
+        <div class="config-bubbles-container">
+          <div class="config-bubbles-row">
+            <div
+              v-for="config in configsForCategory"
+              :key="config.id"
+              class="config-bubble"
+              :class="{
+                selected: selectedConfig === config.id,
+                'light-bg': config.lightBg,
+                disabled: false,
+                hovered: hoveredConfigId === config.id
+              }"
+              :style="{ '--bubble-color': config.color }"
+              @click="selectModel(config.id)"
+              @mouseenter="hoveredConfigId = config.id"
+              @mouseleave="hoveredConfigId = null"
+              role="button"
+              :aria-pressed="selectedConfig === config.id"
+              tabindex="0"
+            >
+              <img v-if="config.logo" :src="config.logo" :alt="config.label" class="bubble-logo" />
+              <div v-else class="bubble-emoji-medium">{{ config.emoji }}</div>
+
+              <!-- Hover info overlay (shows INSIDE bubble when hovered) -->
+              <div v-if="hoveredConfigId === config.id" class="bubble-hover-info">
+                <div class="hover-info-name">{{ config.name }}</div>
+                <div class="hover-info-meta">
+                  <div class="meta-row">
+                    <span class="meta-label">Qual.</span>
+                    <span class="meta-value">
+                      <span class="stars-filled">{{ '★'.repeat(config.quality) }}</span><span class="stars-unfilled">{{ '☆'.repeat(5 - config.quality) }}</span>
+                    </span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-label">Speed</span>
+                    <span class="meta-value">
+                      <span class="stars-filled">{{ '★'.repeat(config.speed) }}</span><span class="stars-unfilled">{{ '☆'.repeat(5 - config.speed) }}</span>
+                    </span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-value duration-only">⏱ {{ config.duration }} sec</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -166,7 +221,8 @@ const uploadedImageId = ref<string | null>(null)
 // Form inputs
 const contextPrompt = ref('')
 const selectedCategory = ref<string | null>(null)
-const selectedConfig = ref<string>('qwen_img2img')  // Auto-selected, no UI
+const selectedConfig = ref<string | null>(null)  // User selects model from bubbles
+const hoveredConfigId = ref<string | null>(null)  // For hover cards
 
 // Phase 4: Seed management
 const previousOptimizedPrompt = ref('')
@@ -205,16 +261,59 @@ const availableCategories: Category[] = [
   { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800', disabled: true }
 ]
 
-// Config mapping (auto-select based on category, no UI)
-const configByCategory: Record<string, string> = {
-  image: 'qwen_img2img',
-  video: 'ltx_video_img2video',  // Future
-  sound: 'acestep_img2sound'      // Future
+// Available IMG2IMG Models (copied structure from text_transformation.vue)
+interface ModelConfig {
+  id: string
+  label: string
+  emoji: string
+  name: string
+  quality: number  // 1-5 stars
+  speed: number    // 1-5 stars
+  duration: string // e.g. "23" or "40-60"
+  color: string    // Bubble color
+  logo?: string    // Logo path
+  lightBg?: boolean
+}
+
+const configsByCategory: Record<string, ModelConfig[]> = {
+  image: [
+    {
+      id: 'qwen_img2img',
+      label: 'Qwen',
+      emoji: '🌸',
+      name: 'QWEN Image Edit',
+      quality: 3,
+      speed: 5,
+      duration: '23',
+      color: '#9C27B0',
+      logo: '/logos/Qwen_logo.png',
+      lightBg: false
+    },
+    {
+      id: 'flux2_img2img',
+      label: 'Flux 2',
+      emoji: '⚡',
+      name: 'Flux2 Dev IMG2IMG',
+      quality: 5,
+      speed: 3,
+      duration: '45',
+      color: '#FF6B35',
+      logo: '/logos/flux2_logo.png',
+      lightBg: false
+    }
+  ],
+  video: [],  // Future
+  sound: []   // Future
 }
 
 // ============================================================================
 // COMPUTED
 // ============================================================================
+
+const configsForCategory = computed(() => {
+  if (!selectedCategory.value) return []
+  return configsByCategory[selectedCategory.value] || []
+})
 
 const canSelectMedia = computed(() => {
   return uploadedImage.value && contextPrompt.value.trim().length > 0
@@ -242,6 +341,11 @@ function handleImageUpload(data: any) {
   executionPhase.value = 'image_uploaded'
 }
 
+function clearImage() {
+  handleImageRemove()
+  console.log('[I2I] Image cleared via action button')
+}
+
 function handleImageRemove() {
   console.log('[Image Upload] Removed')
   uploadedImage.value = null
@@ -249,7 +353,8 @@ function handleImageRemove() {
   uploadedImageId.value = null
   contextPrompt.value = ''
   selectedCategory.value = null
-  selectedConfig.value = 'qwen_img2img'
+  selectedConfig.value = null
+  hoveredConfigId.value = null
   executionPhase.value = 'initial'
   outputImage.value = null
   isPipelineExecuting.value = false
@@ -271,15 +376,21 @@ function handleContextPromptEdit() {
 }
 
 // ============================================================================
-// CATEGORY SELECTION (Auto-select config)
+// MODEL SELECTION (copied from text_transformation.vue)
+// ============================================================================
+
+function selectModel(modelId: string) {
+  selectedConfig.value = modelId
+  console.log('[Model] Selected:', modelId)
+}
+
+// ============================================================================
+// CATEGORY SELECTION
 // ============================================================================
 
 async function selectCategory(categoryId: string) {
   selectedCategory.value = categoryId
-
-  // Auto-select config based on category (no UI)
-  selectedConfig.value = configByCategory[categoryId] || 'qwen_img2img'
-  console.log('[Auto-Select] Category:', categoryId, '→ Config:', selectedConfig.value)
+  console.log('[Category] Selected:', categoryId)
 
   await nextTick()
   scrollDownOnly(categorySectionRef.value, 'start')
@@ -1113,5 +1224,179 @@ watch(contextPrompt, (newVal) => {
     padding: 1.5rem;
     gap: 1.25rem;
   }
+}
+
+/* ============================================================================
+   Model Selection Bubbles (copied from text_transformation.vue)
+   ============================================================================ */
+
+.config-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.config-bubbles-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.config-bubbles-row {
+  display: inline-flex;
+  flex-direction: row;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: fit-content;
+}
+
+.config-bubble {
+  position: relative;
+  z-index: 1;
+  width: clamp(80px, 12vw, 100px);
+  height: clamp(80px, 12vw, 100px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 30, 30, 0.9);
+  border: 3px solid var(--bubble-color, rgba(255, 255, 255, 0.3));
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.config-bubble:hover:not(.disabled),
+.config-bubble.hovered {
+  transform: scale(2.0);
+  background: rgba(20, 20, 20, 0.9);
+  box-shadow: 0 0 30px var(--bubble-color);
+  z-index: 100;
+}
+
+.config-bubble.selected {
+  transform: scale(1.1);
+  background: var(--bubble-color);
+  box-shadow: 0 0 30px var(--bubble-color);
+  border-color: #ffffff;
+}
+
+.config-bubble.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.8);
+}
+
+.bubble-emoji-medium {
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  line-height: 1;
+}
+
+.bubble-logo {
+  width: clamp(72px, 11vw, 92px);
+  height: clamp(72px, 11vw, 92px);
+  object-fit: contain;
+}
+
+.config-bubble.light-bg {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.config-bubble.light-bg.selected {
+  background: var(--bubble-color);
+}
+
+/* Hover info overlay */
+.bubble-hover-info {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18%;
+  color: white;
+  z-index: 10;
+  pointer-events: none;
+  gap: 0.3rem;
+}
+
+.hover-info-name {
+  font-size: 0.5rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  margin-bottom: 0;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+.hover-info-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.18rem;
+  width: 100%;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+}
+
+.meta-label {
+  font-size: 0.45rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 400;
+  text-align: left;
+  flex-shrink: 0;
+  flex-basis: 35%;
+  letter-spacing: -0.01em;
+}
+
+.meta-value {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  flex-basis: 60%;
+  letter-spacing: 0.02em;
+}
+
+.stars-filled {
+  color: #FFD700;
+}
+
+.stars-unfilled {
+  color: rgba(150, 150, 150, 0.5);
+}
+
+.meta-value.duration-only {
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.45rem;
+  flex-basis: auto;
+  margin-top: 0.25rem;
+  line-height: 1;
+}
+
+/* Hide logo/emoji when hovering */
+.config-bubble.hovered .bubble-logo,
+.config-bubble.hovered .bubble-emoji-medium {
+  opacity: 0;
+  display: none;
 }
 </style>

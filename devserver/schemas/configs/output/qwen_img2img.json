@@ -13,7 +13,7 @@
     "sampler_name": "euler",
     "scheduler": "simple",
     "denoise": 1.0,
-    "megapixels": 1,
+    "megapixels": 1.7,
     "seed": null,
     "temperature": 0.7,
     "top_p": 0.9,
@@ -42,8 +42,8 @@
     "megapixels": {
       "min": 0.5,
       "max": 2,
-      "default": 1,
-      "description": "Target image size (1 MP = ~1024x1024)"
+      "default": 1.7,
+      "description": "Target image size (1.7 MP = ~1300x1300, optimal for QWEN)"
     }
   },
 

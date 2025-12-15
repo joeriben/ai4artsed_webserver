@@ -13,7 +13,8 @@
       <div v-if="previewUrl" class="image-preview">
         <img :src="previewUrl" alt="Uploaded image preview" />
 
-        <!-- NEU: Maske malen Button -->
+        <!-- DEPRECATED 2025-12-15: Maske malen Button (not used, text-guided editing sufficient) -->
+        <!--
         <button
           class="btn-create-mask"
           @click.stop="openMaskEditor"
@@ -21,6 +22,7 @@
         >
           🎨 Maske malen
         </button>
+        -->
 
         <button class="remove-btn" @click.stop="removeImage" title="Bild entfernen">
           ✕
@@ -58,12 +60,16 @@
         → {{ uploadInfo.resized_size[0] }}×{{ uploadInfo.resized_size[1] }}px
       </span>
       <span class="info-label">Größe:</span> {{ (uploadInfo.file_size_bytes / 1024).toFixed(1) }}KB
+      <!-- DEPRECATED 2025-12-15: Mask badge (not used) -->
+      <!--
       <span v-if="hasMask" class="mask-badge">
         🎨 Maske vorhanden
       </span>
+      -->
     </div>
 
-    <!-- Mask Editor Modal -->
+    <!-- DEPRECATED 2025-12-15: Mask Editor Modal (not used, text-guided editing sufficient) -->
+    <!--
     <Teleport to="body">
       <div v-if="showMaskEditor" class="mask-editor-modal" @click="closeMaskEditor">
         <div class="mask-editor-content" @click.stop>
@@ -75,13 +81,15 @@
         </div>
       </div>
     </Teleport>
+    -->
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
-import SimpleMaskEditor from './SimpleMaskEditor.vue'
+// DEPRECATED 2025-12-15: SimpleMaskEditor not actively used (text-guided editing sufficient)
+// import SimpleMaskEditor from './SimpleMaskEditor.vue'
 
 // Props
 interface Props {
@@ -113,10 +121,10 @@ const isDragging = ref(false)
 const error = ref<string | null>(null)
 const uploadInfo = ref<any>(null)
 
-// NEU: Mask Editor State
-const showMaskEditor = ref(false)
-const maskBlob = ref<Blob | null>(null)
-const hasMask = ref(false)
+// DEPRECATED 2025-12-15: Mask Editor State (not used, text-guided editing sufficient)
+// const showMaskEditor = ref(false)
+// const maskBlob = ref<Blob | null>(null)
+// const hasMask = ref(false)
 
 // Computed
 const wasResized = computed(() => {
@@ -180,11 +188,11 @@ async function processFile(file: File) {
     const formData = new FormData()
     formData.append('file', file)
 
-    // NEU: Maske hinzufügen falls vorhanden
-    if (maskBlob.value) {
-      formData.append('mask', maskBlob.value, 'mask.png')
-      console.log('[ImageUploadWidget] Uploading with mask:', maskBlob.value.size, 'bytes')
-    }
+    // DEPRECATED 2025-12-15: Maske hinzufügen falls vorhanden (not used, text-guided editing sufficient)
+    // if (maskBlob.value) {
+    //   formData.append('mask', maskBlob.value, 'mask.png')
+    //   console.log('[ImageUploadWidget] Uploading with mask:', maskBlob.value.size, 'bytes')
+    // }
 
     const response = await axios.post('/api/media/upload/image', formData, {
       headers: {
@@ -217,15 +225,17 @@ function removeImage() {
   previewUrl.value = null
   uploadInfo.value = null
   error.value = null
-  maskBlob.value = null
-  hasMask.value = false
+  // DEPRECATED 2025-12-15: Mask cleanup (not used)
+  // maskBlob.value = null
+  // hasMask.value = false
   if (fileInput.value) {
     fileInput.value.value = ''
   }
   emit('image-removed')
 }
 
-// NEU: Mask Editor Functions
+// DEPRECATED 2025-12-15: Mask Editor Functions (not used, text-guided editing sufficient)
+/*
 function openMaskEditor() {
   if (!previewUrl.value) return
   showMaskEditor.value = true
@@ -244,6 +254,7 @@ async function handleMaskSave(blob: Blob) {
   // Optional: Re-upload image with mask immediately
   // For now, mask will be sent on next upload
 }
+*/
 
 // Watch for initial image prop changes
 watch(() => props.initialImage, (newImage) => {

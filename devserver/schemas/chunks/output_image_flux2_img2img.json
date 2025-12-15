@@ -4,187 +4,60 @@
   "backend_type": "comfyui",
   "execution_mode": "legacy_workflow",
   "media_type": "image",
-  "description": "Flux2 Dev IMG2IMG - Advanced 20-step image editing with ReferenceLatent conditioning",
+  "description": "Flux2 Dev IMG2IMG - High-quality 20-step image transformation with text guidance",
 
   "workflow": {
-    "10": {
+    "3": {
       "inputs": {
-        "vae_name": "flux2-vae.safetensors"
+        "seed": 468029244405114,
+        "steps": 20,
+        "cfg": 1,
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "denoise": 0.75,
+        "model": ["4", 0],
+        "positive": ["6", 0],
+        "negative": ["7", 0],
+        "latent_image": ["88", 0]
       },
-      "class_type": "VAELoader",
+      "class_type": "KSampler",
       "_meta": {
-        "title": "Load VAE"
+        "title": "KSampler"
       }
     },
-    "12": {
+    "4": {
       "inputs": {
-        "unet_name": "flux2_dev_fp8mixed.safetensors",
-        "weight_dtype": "default"
+        "ckpt_name": "Flux1/flux2_dev_fp8mixed.safetensors"
       },
-      "class_type": "UNETLoader",
+      "class_type": "CheckpointLoaderSimple",
       "_meta": {
-        "title": "Load Diffusion Model"
-      }
-    },
-    "38": {
-      "inputs": {
-        "clip_name": "mistral_3_small_flux2_fp8.safetensors",
-        "type": "flux2",
-        "device": "default"
-      },
-      "class_type": "CLIPLoader",
-      "_meta": {
-        "title": "Load CLIP"
+        "title": "Load Flux2 Checkpoint"
       }
     },
     "6": {
       "inputs": {
-        "text": "",
-        "clip": ["38", 0]
+        "text": ["26", 0],
+        "clip": ["45", 0]
       },
       "class_type": "CLIPTextEncode",
       "_meta": {
         "title": "CLIP Text Encode (Positive Prompt)"
       }
     },
-    "26": {
+    "7": {
       "inputs": {
-        "guidance": 4,
-        "conditioning": ["6", 0]
+        "text": "text, watermark",
+        "clip": ["45", 0]
       },
-      "class_type": "FluxGuidance",
+      "class_type": "CLIPTextEncode",
       "_meta": {
-        "title": "FluxGuidance"
-      }
-    },
-    "42": {
-      "inputs": {
-        "image": ""
-      },
-      "class_type": "LoadImage",
-      "_meta": {
-        "title": "Load Input Image"
-      }
-    },
-    "41": {
-      "inputs": {
-        "upscale_method": "area",
-        "megapixels": 1,
-        "image": ["42", 0]
-      },
-      "class_type": "ImageScaleToTotalPixels",
-      "_meta": {
-        "title": "Scale Input Image"
-      }
-    },
-    "40": {
-      "inputs": {
-        "pixels": ["41", 0],
-        "vae": ["10", 0]
-      },
-      "class_type": "VAEEncode",
-      "_meta": {
-        "title": "VAE Encode Input"
-      }
-    },
-    "39": {
-      "inputs": {
-        "conditioning": ["26", 0],
-        "latent": ["40", 0]
-      },
-      "class_type": "ReferenceLatent",
-      "_meta": {
-        "title": "Apply ReferenceLatent Conditioning"
-      }
-    },
-    "22": {
-      "inputs": {
-        "model": ["12", 0],
-        "conditioning": ["39", 0]
-      },
-      "class_type": "BasicGuider",
-      "_meta": {
-        "title": "BasicGuider"
-      }
-    },
-    "50": {
-      "inputs": {
-        "value": 1024,
-        "control_after_generate": "fixed"
-      },
-      "class_type": "PrimitiveNode",
-      "_meta": {
-        "title": "width"
-      }
-    },
-    "51": {
-      "inputs": {
-        "value": 1024,
-        "control_after_generate": "fixed"
-      },
-      "class_type": "PrimitiveNode",
-      "_meta": {
-        "title": "height"
-      }
-    },
-    "48": {
-      "inputs": {
-        "steps": 20,
-        "width": ["50", 0],
-        "height": ["51", 0]
-      },
-      "class_type": "Flux2Scheduler",
-      "_meta": {
-        "title": "Flux2Scheduler"
-      }
-    },
-    "47": {
-      "inputs": {
-        "width": ["50", 0],
-        "height": ["51", 0],
-        "batch_size": 1
-      },
-      "class_type": "EmptyFlux2LatentImage",
-      "_meta": {
-        "title": "Empty Latent Image"
-      }
-    },
-    "16": {
-      "inputs": {
-        "sampler_name": "euler"
-      },
-      "class_type": "KSamplerSelect",
-      "_meta": {
-        "title": "KSamplerSelect"
-      }
-    },
-    "25": {
-      "inputs": {
-        "noise_seed": 0,
-        "control_after_generate": "randomize"
-      },
-      "class_type": "RandomNoise",
-      "_meta": {
-        "title": "RandomNoise"
-      }
-    },
-    "13": {
-      "inputs": {
-        "noise": ["25", 0],
-        "guider": ["22", 0],
-        "sampler": ["16", 0],
-        "sigmas": ["48", 0],
-        "latent_image": ["47", 0]
-      },
-      "class_type": "SamplerCustomAdvanced",
-      "_meta": {
-        "title": "SamplerCustomAdvanced"
+        "title": "CLIP Text Encode (Negative Prompt)"
       }
     },
     "8": {
       "inputs": {
-        "samples": ["13", 0],
-        "vae": ["10", 0]
+        "samples": ["3", 0],
+        "vae": ["41", 0]
       },
       "class_type": "VAEDecode",
       "_meta": {
@@ -193,64 +66,132 @@
     },
     "9": {
       "inputs": {
-        "filename_prefix": "Flux2",
+        "filename_prefix": "ai4artsed_flux2_img2img",
         "images": ["8", 0]
       },
       "class_type": "SaveImage",
       "_meta": {
         "title": "Save Image"
       }
+    },
+    "41": {
+      "inputs": {
+        "vae_name": "Flux/flux2-vae.safetensors"
+      },
+      "class_type": "VAELoader",
+      "_meta": {
+        "title": "Load VAE"
+      }
+    },
+    "45": {
+      "inputs": {
+        "clip_name": "mistral_3_small_flux2_fp8.safetensors",
+        "type": "flux2",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {
+        "title": "Load Mistral 3 CLIP"
+      }
+    },
+    "26": {
+      "inputs": {
+        "value": ["37", 0]
+      },
+      "class_type": "PrimitiveString",
+      "_meta": {
+        "title": "ai4artsed_text_prompt"
+      }
+    },
+    "37": {
+      "inputs": {
+        "value": ""
+      },
+      "class_type": "PrimitiveStringMultiline",
+      "_meta": {
+        "title": "Prompt Input"
+      }
+    },
+    "78": {
+      "inputs": {
+        "image": ""
+      },
+      "class_type": "LoadImage",
+      "_meta": {
+        "title": "Load Input Image"
+      }
+    },
+    "93": {
+      "inputs": {
+        "upscale_method": "lanczos",
+        "megapixels": 1,
+        "image": ["78", 0]
+      },
+      "class_type": "ImageScaleToTotalPixels",
+      "_meta": {
+        "title": "ImageScaleToTotalPixels (1 Megapixel)"
+      }
+    },
+    "88": {
+      "inputs": {
+        "pixels": ["93", 0],
+        "vae": ["41", 0]
+      },
+      "class_type": "VAEEncode",
+      "_meta": {
+        "title": "VAE Encode Input Image"
+      }
     }
   },
 
   "input_mappings": {
     "input_image": {
-      "node_id": "42",
+      "node_id": "78",
       "field": "inputs.image",
       "source": "{{INPUT_IMAGE}}",
       "description": "Path to input image for Flux2 IMG2IMG transformation"
     },
     "prompt": {
-      "node_id": "6",
-      "field": "inputs.text",
+      "node_id": "37",
+      "field": "inputs.value",
       "source": "{{PREVIOUS_OUTPUT}}",
       "description": "Text prompt describing desired transformation"
     },
+    "negative_prompt": {
+      "node_id": "7",
+      "field": "inputs.text",
+      "default": "text, watermark",
+      "description": "Negative prompt - what to avoid"
+    },
     "seed": {
-      "node_id": "25",
-      "field": "inputs.noise_seed",
-      "default": 0,
+      "node_id": "3",
+      "field": "inputs.seed",
+      "default": 468029244405114,
       "description": "Seed for reproducibility"
     },
     "steps": {
-      "node_id": "48",
+      "node_id": "3",
       "field": "inputs.steps",
       "default": 20,
       "description": "Number of sampling steps (20 recommended for Flux2)"
     },
-    "guidance": {
-      "node_id": "26",
-      "field": "inputs.guidance",
-      "default": 4,
-      "description": "Guidance scale (higher = more prompt adherence, 4 recommended)"
+    "cfg": {
+      "node_id": "3",
+      "field": "inputs.cfg",
+      "default": 1,
+      "description": "CFG scale (Flux2 uses low CFG)"
     },
-    "width": {
-      "node_id": "50",
-      "field": "inputs.value",
-      "default": 1024,
-      "description": "Output image width in pixels"
-    },
-    "height": {
-      "node_id": "51",
-      "field": "inputs.value",
-      "default": 1024,
-      "description": "Output image height in pixels"
+    "denoise": {
+      "node_id": "3",
+      "field": "inputs.denoise",
+      "default": 0.75,
+      "description": "Denoise strength (0.7-0.9 for IMG2IMG, lower=more original image preserved)"
     },
     "megapixels": {
-      "node_id": "41",
+      "node_id": "93",
       "field": "inputs.megapixels",
-      "default": 1,
-      "description": "Input image scaling (1 = ~1024x1024)"
+      "default": 2.5,
+      "description": "Input image scaling (2.5 = ~1600x1600)"
     }
   },
 
@@ -264,11 +205,11 @@
 
   "meta": {
     "img2img": true,
-    "estimated_duration_seconds": 45,
+    "estimated_duration_seconds": "40-80",
     "requires_gpu": true,
     "gpu_vram_mb": 18000,
     "model_files": {
-      "diffusion_model": "flux2_dev_fp8mixed.safetensors",
+      "checkpoint": "flux2_dev_fp8mixed.safetensors",
       "clip": "mistral_3_small_flux2_fp8.safetensors",
       "vae": "flux2-vae.safetensors"
     },
@@ -281,7 +222,7 @@
       "1536x1024",
       "1024x1536"
     ],
-    "notes": "Flux2 Dev IMG2IMG: Advanced image-to-image transformation using ReferenceLatent conditioning. The input image guides the generation while allowing substantial creative freedom based on the text prompt. Uses 20 sampling steps with Euler sampler. Guidance=4 provides good balance between prompt adherence and image quality. Excellent for creative transformations like 'only change the sky', 'add mountains in background', 'transform to watercolor painting'. Better than QWEN for natural language understanding and complex edits.",
-    "optimization_instruction": "Output a natural language description of the desired transformation. Flux2 understands context and can handle complex instructions. Examples: 'Transform the sky to a dramatic sunset with orange and pink clouds', 'Add a forest of pine trees in the background', 'Change the style to a vintage 1970s photograph', 'Make the scene take place at night with street lights'. Can be 1-3 sentences. Flux2 excels at understanding 'only change X' instructions without explicit masks. For multilingual input, output in the SAME LANGUAGE as input."
+    "notes": "Flux2 Dev IMG2IMG: High-quality image-to-image transformation using standard ComfyUI nodes. Uses CheckpointLoaderSimple for easier model loading. The input image guides the generation while allowing creative freedom based on the text prompt. Uses 20 sampling steps with Euler sampler. Denoise=0.75 provides good balance between preserving original image and applying transformations. Excellent for creative transformations like 'change the sky', 'add objects', 'transform style'. Better than QWEN for natural language understanding and complex edits.",
+    "optimization_instruction": "Output a natural language description of the desired transformation. Flux2 understands context and can handle complex instructions. Examples: 'Transform the sky to a dramatic sunset with orange and pink clouds', 'Add a forest of pine trees in the background', 'Change the style to a vintage 1970s photograph', 'Make the scene take place at night with street lights'. Can be 1-3 sentences. Flux2 excels at understanding 'only change X' instructions. For multilingual input, output in the SAME LANGUAGE as input."
   }
 }

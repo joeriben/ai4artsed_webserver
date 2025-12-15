@@ -87,13 +87,13 @@ def _allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def _resize_image_to_supported_resolution(image: Image.Image, max_size: int = 1024) -> Image.Image:
+def _resize_image_to_supported_resolution(image: Image.Image, max_size: int = 2048) -> Image.Image:
     """
     Resize image to fit within supported resolution while maintaining aspect ratio.
 
     Args:
         image: PIL Image object
-        max_size: Maximum dimension (default 1024 for SD3.5 Large)
+        max_size: Maximum dimension (default 2048 for Flux2/QWEN)
 
     Returns:
         Resized PIL Image object
@@ -123,13 +123,13 @@ def _resize_image_to_supported_resolution(image: Image.Image, max_size: int = 10
 @media_bp.route('/upload/image', methods=['POST'])
 def upload_image():
     """
-    Upload image for img2img processing with optional mask for inpainting.
+    Upload image for img2img processing.
 
     Automatically resizes images to fit within supported model resolutions.
 
     Request body (multipart/form-data):
         - file: Image file (PNG, JPG, JPEG, WEBP) - REQUIRED
-        - mask: Mask image file (PNG) - OPTIONAL, for inpainting
+        - mask: Mask image file (PNG) - DEPRECATED (not used, text-guided editing sufficient)
         - run_id: Optional run ID to associate with (for organization)
 
     Returns:
@@ -142,8 +142,8 @@ def upload_image():
         - original_size: Original dimensions [width, height]
         - resized_size: Final dimensions after resize [width, height]
         - file_size_bytes: File size in bytes
-        - has_mask: Boolean indicating if mask was uploaded
-        - mask_url: URL to retrieve mask (if has_mask is True)
+        - has_mask: Boolean (always False, deprecated feature)
+        - mask_url: URL to retrieve mask (always None, deprecated feature)
     """
     try:
         # Check if file part exists
@@ -174,7 +174,7 @@ def upload_image():
                 image = rgb_image
 
             # Resize image to supported resolution
-            resized_image = _resize_image_to_supported_resolution(image, max_size=1024)
+            resized_image = _resize_image_to_supported_resolution(image, max_size=2048)
             resized_size = resized_image.size
 
         except Exception as e:
@@ -206,19 +206,20 @@ def upload_image():
 
         logger.info(f"Image uploaded: {new_filename} | Original: {original_size} → Resized: {resized_size} | Size: {file_size / 1024:.1f}KB")
 
-        # NEU: Process mask if provided
+        # DEPRECATED 2025-12-15: Process mask if provided (not used, text-guided editing sufficient)
+        # QWEN Image Edit and Flux2 IMG2IMG support text-guided editing without explicit masks
         mask_path = None
         has_mask = False
-        if 'mask' in request.files:
-            mask_file = request.files['mask']
-            if mask_file.filename != '':
-                try:
-                    mask_path = _process_and_save_mask(mask_file, image_id)
-                    has_mask = True
-                    logger.info(f"Mask uploaded for {image_id}: {mask_path}")
-                except Exception as e:
-                    logger.warning(f"Failed to process mask: {e}")
-                    # Continue without mask (non-critical)
+        # if 'mask' in request.files:
+        #     mask_file = request.files['mask']
+        #     if mask_file.filename != '':
+        #         try:
+        #             mask_path = _process_and_save_mask(mask_file, image_id)
+        #             has_mask = True
+        #             logger.info(f"Mask uploaded for {image_id}: {mask_path}")
+        #         except Exception as e:
+        #             logger.warning(f"Failed to process mask: {e}")
+        #             # Continue without mask (non-critical)
 
         # Return response
         return jsonify({
@@ -243,6 +244,8 @@ def upload_image():
 
 def _process_and_save_mask(mask_file, image_uuid: str) -> str:
     """
+    DEPRECATED 2025-12-15: Not actively used (text-guided editing sufficient)
+
     Process and save mask image for inpainting.
 
     Args:
@@ -292,6 +295,8 @@ def _process_and_save_mask(mask_file, image_uuid: str) -> str:
 @media_bp.route('/masks/<image_uuid>', methods=['GET'])
 def get_mask(image_uuid: str):
     """
+    DEPRECATED 2025-12-15: Not actively used (text-guided editing sufficient)
+
     Retrieve mask for given image UUID.
 
     Args:

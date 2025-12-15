@@ -1,3 +1,12 @@
+<!--
+  DEPRECATED 2025-12-15
+  This component is no longer actively used.
+  QWEN Image Edit and Flux2 IMG2IMG support text-guided editing without explicit masks.
+  Masks are only needed for very precise pixel-level control, which is not required
+  for the current kunstpädagogische use cases.
+
+  Kept for reference in case precise mask-based inpainting is needed in the future.
+-->
 <template>
   <div class="mask-editor">
     <!-- Header mit Tool-Auswahl -->

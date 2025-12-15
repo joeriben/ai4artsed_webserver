@@ -208,8 +208,8 @@
     "megapixels": {
       "node_id": "93",
       "field": "inputs.megapixels",
-      "default": 1,
-      "description": "Target image size in megapixels (1 = ~1024x1024)"
+      "default": 1.7,
+      "description": "Target image size in megapixels (1.7 = ~1300x1300)"
     }
   },
 
