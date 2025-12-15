@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoRA Studio – AI4ArtsEd</title>
+    <link rel="stylesheet" href="../css/lora.css">
+</head>
+<body>
+    <header>
+        <h1>LoRA Studio</h1>
+        <p>Konfiguriere, dokumentiere und starte deine LoRA-Trainings direkt vom AI4ArtsEd-Server.</p>
+    </header>
+
+    <main>
+        <section class="panel" id="project-panel">
+            <h2>1. Projektdaten</h2>
+            <div class="field">
+                <label for="projectName">Projektname</label>
+                <input type="text" id="projectName" placeholder="z.&nbsp;B. calla_lily_xl">
+                <p class="hint">Wird zur Ordner- und Dateibenennung genutzt. Nur Buchstaben, Zahlen und Unterstriche.</p>
+            </div>
+            <div class="field">
+                <label for="triggerToken">Trigger-Token (optional)</label>
+                <input type="text" id="triggerToken" placeholder="z.&nbsp;B. &lt;callalily&gt;">
+                <p class="hint">Hilft dir später beim Prompten und wird in der Jobübersicht gespeichert.</p>
+            </div>
+            <div class="field">
+                <label for="baseModel">Basis-Modell</label>
+                <select id="baseModel"></select>
+            </div>
+        </section>
+
+        <section class="panel" id="dataset-panel">
+            <h2>2. Datensatz</h2>
+            <div class="field">
+                <label for="datasetSelect">Verfügbare Datensätze</label>
+                <select id="datasetSelect"></select>
+                <div class="button-row">
+                    <button class="button-secondary" id="refreshDatasets">Aktualisieren</button>
+                    <span id="datasetSummary" class="hint"></span>
+                </div>
+            </div>
+
+            <h3>Neuen Datensatz hochladen</h3>
+            <div class="inline-fields">
+                <div class="field">
+                    <label for="datasetName">Datensatz-Name</label>
+                    <input type="text" id="datasetName" placeholder="z.&nbsp;B. calla_lily_v1">
+                </div>
+                <div class="field">
+                    <label for="datasetFile">ZIP-Archiv</label>
+                    <input type="file" id="datasetFile" accept=".zip">
+                </div>
+            </div>
+            <div class="button-row">
+                <button class="button-primary" id="uploadDataset">Upload starten</button>
+                <span id="datasetUploadStatus" class="hint"></span>
+            </div>
+            <p class="hint">Das Archiv sollte Bilder (z.&nbsp;B. im Ordner <code>images/</code>) und eine <code>metadata.jsonl</code> enthalten.</p>
+        </section>
+
+        <section class="panel" id="training-panel">
+            <h2>3. Trainingsparameter</h2>
+            <div class="preset-section">
+                <h3>Empfohlene Einstellungen</h3>
+                <div class="preset-grid" id="presetProfiles"></div>
+                <p class="hint" id="presetHelp">Tipp: Wähle eine Voreinstellung, um bewährte Parameter zu laden.</p>
+            </div>
+            <div class="inline-fields">
+                <div class="field">
+                    <label for="resolution">Auflösung</label>
+                    <input type="number" id="resolution" min="256" step="64">
+                </div>
+                <div class="field">
+                    <label for="maxSteps">Trainingsschritte</label>
+                    <input type="number" id="maxSteps" min="200" step="100">
+                </div>
+                <div class="field">
+                    <label for="batchSize">Batch-Größe</label>
+                    <input type="number" id="batchSize" min="1" step="1">
+                </div>
+                <div class="field">
+                    <label for="gradAccum">Gradient Accumulation</label>
+                    <input type="number" id="gradAccum" min="1" step="1">
+                </div>
+                <div class="field">
+                    <label for="learningRate">Learning Rate</label>
+                    <input type="number" id="learningRate" step="0.00001">
+                </div>
+                <div class="field">
+                    <label for="scheduler">LR Scheduler</label>
+                    <select id="scheduler"></select>
+                </div>
+                <div class="field">
+                    <label for="rank">LoRA Rank</label>
+                    <input type="number" id="rank" min="4" step="1">
+                </div>
+                <div class="field">
+                    <label for="alpha">Network Alpha</label>
+                    <input type="number" id="alpha" min="4" step="1">
+                </div>
+                <div class="field">
+                    <label for="seed">Seed</label>
+                    <input type="number" id="seed" min="0" step="1">
+                </div>
+            </div>
+            <div class="inline-fields" style="margin-top: 16px;">
+                <div class="field">
+                    <label for="mixedPrecision">Mixed Precision</label>
+                    <select id="mixedPrecision">
+                        <option value="fp16">fp16</option>
+                        <option value="bf16">bf16</option>
+                        <option value="no">none</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label><input type="checkbox" id="trainTextEncoder"> Text-Encoder mittrainieren</label>
+                </div>
+                <div class="field">
+                    <label><input type="checkbox" id="use8bitAdam" checked> 8-bit Adam verwenden</label>
+                </div>
+            </div>
+            <div class="field">
+                <label for="validationPrompt">Validierungs-Prompt (optional)</label>
+                <textarea id="validationPrompt" placeholder="z.&nbsp;B. portrait of &lt;callalily&gt; in watercolor"></textarea>
+            </div>
+        </section>
+
+        <section class="panel" id="summary-panel">
+            <h2>4. Trainingsjob speichern</h2>
+            <div class="field">
+                <label>Geplanter Befehl</label>
+                <pre id="commandPreview"></pre>
+            </div>
+            <div class="button-row">
+                <button class="button-secondary" id="copyCommand">Befehl kopieren</button>
+                <button class="button-primary" id="createJob">Job anlegen</button>
+                <span id="jobStatus" class="hint"></span>
+            </div>
+        </section>
+
+        <section class="panel" id="jobs-panel">
+            <h2>Gespeicherte LoRA-Jobs</h2>
+            <table class="jobs-table" id="jobsTable">
+                <thead>
+                    <tr>
+                        <th>Projekt</th>
+                        <th>Basis-Modell</th>
+                        <th>Datensatz</th>
+                        <th>Parameter</th>
+                        <th>Status</th>
+                        <th>Erstellt</th>
+                        <th>Befehl</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="../js/lora.js" type="module"></script>
+</body>
+</html>

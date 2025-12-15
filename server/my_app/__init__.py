@@ -38,13 +38,17 @@ def create_app():
     from my_app.routes.static_routes import static_bp
     from my_app.routes.config_routes import config_bp
     from my_app.routes.sse_routes import sse_bp
-    
+    from my_app.routes.lora_routes import lora_bp
+    from my_app.services.lora_store import ensure_directories as ensure_lora_directories, load_jobs as load_lora_jobs
+
+    ensure_lora_directories()
     app.register_blueprint(static_bp)
     app.register_blueprint(config_bp)
     app.register_blueprint(workflow_bp)
     app.register_blueprint(workflow_streaming_bp)
     app.register_blueprint(export_bp)
     app.register_blueprint(sse_bp)
+    app.register_blueprint(lora_bp)
     
     # Configure logging filter for ComfyUI proxy
     class ComfyUIFilter(logging.Filter):
@@ -59,5 +63,6 @@ def create_app():
     
     # Store pending exports in app context (in production, use a proper database)
     app.pending_exports = {}
-    
+    app.lora_jobs = load_lora_jobs()
+
     return app

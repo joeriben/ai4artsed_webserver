@@ -14,6 +14,13 @@ def index():
     return current_app.send_static_file('index.html')
 
 
+@static_bp.route('/lora')
+@static_bp.route('/lora/')
+def lora_home():
+    """Serve the LoRA configuration interface."""
+    return current_app.send_static_file('lora/index.html')
+
+
 @static_bp.route('/<path:filename>')
 def serve_static(filename):
     """Serve static files from the public directory and its subdirectories"""

@@ -11,6 +11,12 @@ LOCAL_WORKFLOWS_DIR = BASE_DIR / "workflows"
 PUBLIC_DIR = BASE_DIR / "public"
 EXPORTS_DIR = BASE_DIR / "exports"
 
+# LoRA storage paths
+LORA_ROOT_DIR = BASE_DIR / "lora"
+LORA_DATASETS_DIR = LORA_ROOT_DIR / "datasets"
+LORA_JOBS_DIR = LORA_ROOT_DIR / "jobs"
+LORA_OUTPUTS_DIR = LORA_ROOT_DIR / "outputs"
+
 # Server Configuration
 HOST = "0.0.0.0"
 PORT = 5000

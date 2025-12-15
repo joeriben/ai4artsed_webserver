@@ -1,0 +1,26 @@
+# Pinned requirements for configuring a LoRA training environment with CUDA 12.1
+# Adjust the torch/torchvision versions if you target a different CUDA runtime.
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# Core deep learning stack
+torch==2.3.1+cu121
+torchvision==0.18.1+cu121
+
+# Diffusion and LoRA ecosystem
+accelerate==0.30.1
+bitsandbytes==0.43.3
+datasets==2.19.1
+diffusers[torch]==0.30.0
+huggingface-hub==0.23.5
+numpy==1.26.4
+peft==0.11.1
+pillow==10.3.0
+safetensors==0.4.3
+scipy==1.11.4
+transformers==4.41.2
+xformers==0.0.27.post2
+
+# Experiment tracking and utilities
+wandb==0.17.4
+python-dotenv==1.0.1
+rich==13.7.1
