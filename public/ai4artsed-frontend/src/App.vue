@@ -22,6 +22,15 @@
 
         <div class="header-right">
           <span class="app-title">AI4ARTSED - AI LAB</span>
+          <nav class="header-nav-links">
+            <button @click="openAbout" class="nav-link" :title="$t('nav.about')">ⓘ</button>
+            <button @click="openDatenschutz" class="nav-link" :title="$t('nav.privacy')">🔒</button>
+            <button @click="openDokumentation" class="nav-link" :title="$t('nav.docs')">📖</button>
+            <button @click="toggleLanguage" class="nav-link lang-toggle" :title="$t('nav.language')">
+              {{ currentLanguage === 'de' ? 'EN' : 'DE' }}
+            </button>
+            <button @click="openImpressum" class="nav-link nav-link-text">{{ $t('nav.impressum') }}</button>
+          </nav>
         </div>
       </div>
     </header>
@@ -31,6 +40,19 @@
     </div>
 
     <ChatOverlay />
+
+    <!-- Permanent BMBFSFJ Funding Logo -->
+    <div class="funding-logo-fixed">
+      <a href="https://www.bmfsfj.de/" target="_blank" rel="noopener noreferrer">
+        <img src="/logos/BMBFSFJ_logo.png" alt="Gefördert vom BMFSFJ" />
+      </a>
+    </div>
+
+    <!-- Modals -->
+    <AboutModal v-model="showAbout" />
+    <DatenschutzModal v-model="showDatenschutz" />
+    <DokumentationModal v-model="showDokumentation" />
+    <ImpressumModal v-model="showImpressum" />
   </div>
 </template>
 
@@ -46,7 +68,40 @@
  * Session 82: Added ChatOverlay global component for interactive LLM help
  * Session 86: Integrated return button into global header (always visible)
  */
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ChatOverlay from './components/ChatOverlay.vue'
+import AboutModal from './components/AboutModal.vue'
+import DatenschutzModal from './components/DatenschutzModal.vue'
+import DokumentationModal from './components/DokumentationModal.vue'
+import ImpressumModal from './components/ImpressumModal.vue'
+
+const { locale, t } = useI18n()
+const currentLanguage = computed(() => locale.value)
+const showAbout = ref(false)
+const showDatenschutz = ref(false)
+const showDokumentation = ref(false)
+const showImpressum = ref(false)
+
+function toggleLanguage() {
+  locale.value = locale.value === 'de' ? 'en' : 'de'
+}
+
+function openAbout() {
+  showAbout.value = true
+}
+
+function openDatenschutz() {
+  showDatenschutz.value = true
+}
+
+function openDokumentation() {
+  showDokumentation.value = true
+}
+
+function openImpressum() {
+  showImpressum.value = true
+}
 </script>
 
 <style>
@@ -157,10 +212,95 @@ html, body {
   letter-spacing: 1px;
 }
 
+/* Header Right Reorganization */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* Navigation Links */
+.header-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 32px;
+  height: 32px;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-link.router-link-active {
+  color: #4CAF50;
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.lang-toggle {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.nav-link-text {
+  min-width: auto;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
 /* Content Area */
 .app-content {
   flex: 1;
   overflow: auto;
+}
+
+/* Permanent Funding Logo - Fixed Bottom Right */
+.funding-logo-fixed {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 900;
+  background: white;
+  padding: 0.75rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.funding-logo-fixed:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.funding-logo-fixed a {
+  display: block;
+  line-height: 0;
+}
+
+.funding-logo-fixed img {
+  width: 180px;
+  height: auto;
+  display: block;
 }
 
 /* Responsive */
@@ -191,6 +331,28 @@ html, body {
 
   .mode-icon {
     font-size: 1.25rem;
+  }
+
+  .header-nav-links {
+    gap: 0.25rem;
+    padding-left: 0.5rem;
+  }
+
+  .nav-link {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+    min-width: 28px;
+    height: 28px;
+  }
+
+  .funding-logo-fixed {
+    bottom: 1rem;
+    right: 1rem;
+    padding: 0.5rem;
+  }
+
+  .funding-logo-fixed img {
+    width: 140px;
   }
 }
 </style>

@@ -63,6 +63,21 @@ const router = createRouter({
       // Configuration settings page
       component: () => import('../views/SettingsView.vue'),
     },
+    {
+      path: '/impressum',
+      name: 'impressum',
+      component: () => import('../views/ImpressumView.vue'),
+    },
+    {
+      path: '/datenschutz',
+      name: 'datenschutz',
+      component: () => import('../views/DatenschutzView.vue'),
+    },
+    {
+      path: '/dokumentation',
+      name: 'dokumentation',
+      component: () => import('../views/DokumentationView.vue'),
+    },
   ],
 })
 

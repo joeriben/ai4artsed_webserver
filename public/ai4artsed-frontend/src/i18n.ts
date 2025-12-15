@@ -138,6 +138,85 @@ const messages = {
       yourInput: 'Dein Input',
       result: 'Ergebnis',
       generatedMedia: 'Erzeugtes Bild'
+    },
+    nav: {
+      about: 'Über das Projekt',
+      impressum: 'Impressum',
+      privacy: 'Datenschutz',
+      docs: 'Dokumentation',
+      language: 'Sprache wechseln'
+    },
+    about: {
+      title: 'Über AI4ArtsEd',
+      intro: 'AI4ArtsEd ist eine pädagogisch-künstlerische Experimentierplattform für den kreativen Einsatz von Künstlicher Intelligenz in der kulturellen Bildung.',
+      project: {
+        title: 'Das Projekt',
+        description: 'KI verändert Gesellschaft und Arbeitswelt; sie wird zunehmend Thema der Bildung. Das Projekt sondiert Chancen, Bedingungen und Grenzen des pädagogischen Einsatzes künstlicher Intelligenz (KI) in kulturell diversitätssensiblen Settings der Kulturellen Bildung (KuBi).',
+        paragraph2: 'In drei Teilprojekten – Allgemeinpädagogik (TPap), Informatik (TPinf) und Kunstpädagogik (TPkp) – greifen kreativitätsorientierte pädagogische KI-Praxisforschung und informatische KI-Konzeption und Programmierung in enger Kooperation ineinander. Das Projekt bezieht hierzu von Beginn an künstlerisch-pädagogische Praxisakteure in den Gestaltungsprozess systematisch ein; es agiert als Brücke zwischen der professionellen (qualitätsbezogenen, ästhetischen, ethischen und wertebezogenen) pädagogisch-praktischen Implementation einerseits und dem Umsetzungs- und Trainingsprozess des informatischen Teilprojekts andererseits.',
+        paragraph3: 'Aus einem insgesamt ca. zweijährigen partizipativen Designprozess soll eine Opensource-KI-Technologie hervorgehen, die auslotet, inwieweit KI-Systeme unter günstigen Realbedingungen bereits auf ihrer Strukturebene künstlerisch-pädagogische Maßgaben einbeziehen können.',
+        paragraph4: 'Dabei stehen a) die zukünftige Anwendbarkeit und der Mehrgewinn hochinnovativer Technologien für die Kulturelle Bildung im Zentrum, b) Reichweite und Grenzen der KI-Literacy von Lehrenden und Lernenden, sowie c) die übergreifende Frage nach der Bewertbarkeit und Bewertung der Transformation pädagogischer Settings durch komplexe nonhumane Akteure im Sinne einer pädagogischen Ethik und Technikfolgenabschätzung.',
+        moreInfo: 'Weitere Informationen:'
+      },
+      subproject: {
+        title: 'Teilprojekt "Allgemeine Pädagogik"',
+        description: 'Das Teilprojekt "Allgemeine Pädagogik" beforscht im Rahmen der dem Verbundprojekt gemeinsamen Fragestellung Möglichkeiten und Grenzen eines auf partizipativer Praxisforschung aufsetzenden künstlerisch-pädagogischen KI-Designprozesses. Es führt zu diesem Zweck im ersten Projektjahr eine Serie von Recherchen, Analysen, Expert_innenworkshops und OpenSpaces durch. Die nachfolgende, in mehreren Zyklen als Feedback-Loop angelegte Projektphase erforscht den Einsatz eines Prototypen mit pädagogischen Prakter_innen und Artist-Educators v.a. der non-formalen kulturellen Bildung als relationalen und kollektiven transformativen Bildungsprozess.'
+      },
+      team: {
+        title: 'Team',
+        projectLead: 'Projektleitung',
+        leadName: 'Prof. Dr. Benjamin Jörissen',
+        leadInstitute: 'Institut für Pädagogik',
+        leadChair: 'Lehrstuhl für Pädagogik mit dem Schwerpunkt Kultur und ästhetische Bildung',
+        leadUnesco: 'UNESCO Chair in Digital Culture and Arts in Education',
+        researcher: 'Wissenschaftliche Mitarbeiterin',
+        researcherName: 'Vanessa Baumann',
+        researcherInstitute: 'Institut für Pädagogik',
+        researcherChair: 'Lehrstuhl für Pädagogik mit dem Schwerpunkt Kultur und ästhetische Bildung',
+        researcherUnesco: 'UNESCO Chair in Digital Culture and Arts in Education'
+      },
+      funding: {
+        title: 'Gefördert vom'
+      }
+    },
+    legal: {
+      impressum: {
+        title: 'Impressum',
+        publisher: 'Herausgeber',
+        represented: 'Vertreten durch den Präsidenten',
+        responsible: 'Inhaltlich verantwortlich gem. § 18 Abs. 2 MStV',
+        authority: 'Zuständige Aufsichtsbehörde',
+        moreInfo: 'Weitere Informationen',
+        moreInfoText: 'Das vollständige Impressum der FAU:',
+        funding: 'Gefördert vom'
+      },
+      privacy: {
+        title: 'Datenschutzerklärung',
+        notice: 'Hinweis: Generierte Inhalte werden zu Forschungszwecken auf dem Server gespeichert. Es werden keine User- oder IP-Daten erfasst. Hochgeladene Bilder werden nicht gespeichert.',
+        usage: 'Die Nutzung dieser Plattform ist ausschließlich eingetragenen Kooperationspartnern des AI4ArtsEd-Projekts erlaubt. Es gelten die in diesem Rahmen vereinbarten datenschutzbezogenen Absprachen. Haben Sie hierzu Fragen, melden Sie sich bitte bei vanessa.baumann@fau.de.'
+      }
+    },
+    docs: {
+      title: 'Dokumentation & Anleitung',
+      intro: {
+        title: 'Willkommen',
+        content: 'Kreative Experimente mit KI-Transformationen.'
+      },
+      gettingStarted: {
+        title: 'Erste Schritte',
+        step1: 'Eigenschaften aus Quadranten wählen',
+        step2: 'Text oder Bild eingeben',
+        step3: 'Transformation starten'
+      },
+      modes: {
+        title: 'Modi',
+        mode1: { name: 'Direkt', desc: 'Schnelle Experimente' },
+        mode2: { name: 'Text', desc: 'Textbasierte Transformationen' },
+        mode3: { name: 'Bild', desc: 'Bildbasierte Verfahren' }
+      },
+      support: {
+        title: 'Unterstützung',
+        content: 'Bei Fragen:'
+      }
     }
   },
   en: {
@@ -277,6 +356,85 @@ const messages = {
       yourInput: 'Your input',
       result: 'Result',
       generatedMedia: 'Generated image'
+    },
+    nav: {
+      about: 'About',
+      impressum: 'Imprint',
+      privacy: 'Privacy',
+      docs: 'Documentation',
+      language: 'Switch language'
+    },
+    about: {
+      title: 'About AI4ArtsEd',
+      intro: 'AI4ArtsEd is a pedagogical-artistic experimentation platform for the creative use of artificial intelligence in cultural education.',
+      project: {
+        title: 'The Project',
+        description: 'AI is transforming society and the world of work; it is increasingly becoming a subject of education. The project explores opportunities, conditions, and limits of the pedagogical use of artificial intelligence (AI) in culturally diversity-sensitive settings of cultural education.',
+        paragraph2: 'In three sub-projects – General Pedagogy (TPap), Computer Science (TPinf), and Art Education (TPkp) – creativity-oriented pedagogical AI practice research and computer science AI conception and programming interlock in close cooperation. From the outset, the project systematically involves artistic-pedagogical practitioners in the design process; it acts as a bridge between professional (quality-related, aesthetic, ethical, and value-based) pedagogical-practical implementation on the one hand and the implementation and training process of the computer science sub-project on the other.',
+        paragraph3: 'A participatory design process spanning approximately two years aims to produce an open-source AI technology that explores the extent to which AI systems can already incorporate artistic-pedagogical principles at their structural level under favorable real-world conditions.',
+        paragraph4: 'The focus is on a) the future applicability and added value of highly innovative technologies for cultural education, b) the scope and limits of AI literacy among teachers and learners, and c) the overarching question of the assessability and evaluation of the transformation of pedagogical settings by complex non-human actors in terms of pedagogical ethics and technology assessment.',
+        moreInfo: 'More information:'
+      },
+      subproject: {
+        title: 'Sub-project "General Pedagogy"',
+        description: 'The sub-project "General Pedagogy" researches possibilities and limits of an artistic-pedagogical AI design process based on participatory practice research within the framework of the joint research question of the collaborative project. For this purpose, it conducts a series of research, analyses, expert workshops, and open spaces in the first project year. The subsequent project phase, designed as a feedback loop in several cycles, explores the use of a prototype with pedagogical practitioners and artist-educators, particularly in non-formal cultural education, as a relational and collective transformative educational process.'
+      },
+      team: {
+        title: 'Team',
+        projectLead: 'Project Lead',
+        leadName: 'Prof. Dr. Benjamin Jörissen',
+        leadInstitute: 'Institute of Education',
+        leadChair: 'Chair of Education with Focus on Culture and Aesthetic Education',
+        leadUnesco: 'UNESCO Chair in Digital Culture and Arts in Education',
+        researcher: 'Research Associate',
+        researcherName: 'Vanessa Baumann',
+        researcherInstitute: 'Institute of Education',
+        researcherChair: 'Chair of Education with Focus on Culture and Aesthetic Education',
+        researcherUnesco: 'UNESCO Chair in Digital Culture and Arts in Education'
+      },
+      funding: {
+        title: 'Funded by'
+      }
+    },
+    legal: {
+      impressum: {
+        title: 'Imprint',
+        publisher: 'Publisher',
+        represented: 'Represented by the President',
+        responsible: 'Responsible for content',
+        authority: 'Supervisory Authority',
+        moreInfo: 'Additional Information',
+        moreInfoText: 'Complete imprint of FAU:',
+        funding: 'Funded by'
+      },
+      privacy: {
+        title: 'Privacy Policy',
+        notice: 'Notice: Generated content is stored on the server for research purposes. No user or IP data is collected. Uploaded images are not stored.',
+        usage: 'Use of this platform is exclusively permitted for registered cooperation partners of the AI4ArtsEd project. The data protection agreements made in this context apply. If you have any questions, please contact vanessa.baumann@fau.de.'
+      }
+    },
+    docs: {
+      title: 'Documentation & Guide',
+      intro: {
+        title: 'Welcome',
+        content: 'Creative experiments with AI transformations.'
+      },
+      gettingStarted: {
+        title: 'Getting Started',
+        step1: 'Select properties from quadrants',
+        step2: 'Enter text or image',
+        step3: 'Start transformation'
+      },
+      modes: {
+        title: 'Modes',
+        mode1: { name: 'Direct', desc: 'Quick experiments' },
+        mode2: { name: 'Text', desc: 'Text-based transformations' },
+        mode3: { name: 'Image', desc: 'Image-based procedures' }
+      },
+      support: {
+        title: 'Support',
+        content: 'For questions:'
+      }
     }
   }
 }
