@@ -1,0 +1,1 @@
+- Obey the i18n rules and principles AT ALL TIMES.
