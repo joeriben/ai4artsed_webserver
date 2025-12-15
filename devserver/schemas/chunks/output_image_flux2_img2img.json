@@ -14,7 +14,7 @@
         "cfg": 1,
         "sampler_name": "euler",
         "scheduler": "normal",
-        "denoise": 0.75,
+        "denoise": 0.55,
         "model": ["4", 0],
         "positive": ["6", 0],
         "negative": ["7", 0],
@@ -184,8 +184,8 @@
     "denoise": {
       "node_id": "3",
       "field": "inputs.denoise",
-      "default": 0.75,
-      "description": "Denoise strength (0.7-0.9 for IMG2IMG, lower=more original image preserved)"
+      "default": 0.55,
+      "description": "Denoise strength (0.3=light, 0.55=moderate, 0.9=heavy transformation)"
     },
     "megapixels": {
       "node_id": "93",
