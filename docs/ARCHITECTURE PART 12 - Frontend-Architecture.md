@@ -1087,3 +1087,227 @@ schema: pipelineStore.selectedConfig?.pipeline  // Causes 404 error!
 
 ---
 
+### Reusable Components
+
+#### MediaOutputBox Component
+
+**Status:** ✅ Implemented (Session 99, 2025-12-15, commit 8e8e3e0)
+**Location:** `/public/ai4artsed-frontend/src/components/MediaOutputBox.vue`
+
+**Purpose:** Unified, reusable template for displaying generated media output across all views (text_transformation, image_transformation, future audio/video views).
+
+**Problem Solved:**
+- **Before:** ~300 lines of duplicated output box code in each view
+- **After:** Single 515-line component, used with 19 lines per view
+
+**Features:**
+
+1. **Complete Action Toolbar**
+   - ⭐ Save (stub, disabled)
+   - 🖨️ Print (opens print dialog)
+   - ➡️ Forward (re-transform/send to I2I)
+   - 💾 Download (with timestamped filename)
+   - 🔍 Analyze (calls `/api/image/analyze`)
+
+2. **3 States**
+   - **Empty:** Inactive toolbar visible, no media
+   - **Generating:** Progress animation (SpriteProgressAnimation)
+   - **Final:** Active toolbar + media display
+
+3. **All Media Types**
+   - Image (with click-to-fullscreen)
+   - Video (with HTML5 controls)
+   - Audio (with HTML5 controls)
+   - 3D Model (placeholder icon)
+   - Unknown (generic fallback)
+
+4. **Image Analysis**
+   - Expandable section below output
+   - Analysis text + reflection prompts
+   - Close button
+
+5. **Responsive Design**
+   - Desktop: Vertical toolbar on right
+   - Mobile (<768px): Horizontal toolbar below media
+
+**Props Interface:**
+
+```typescript
+interface Props {
+  outputImage: string | null       // Media URL
+  mediaType: string                // 'image', 'video', 'audio', 'music', '3d'
+  isExecuting: boolean             // Generating state
+  progress: number                 // 0-100 for progress bar
+  isAnalyzing?: boolean            // Analyzing state (button shows ⏳)
+  showAnalysis?: boolean           // Show/hide analysis section
+  analysisData?: AnalysisData | null  // Analysis results
+  forwardButtonTitle?: string      // Custom tooltip for ➡️ button
+}
+
+interface AnalysisData {
+  analysis: string
+  reflection_prompts: string[]
+  insights: string[]
+  success: boolean
+}
+```
+
+**Events:**
+
+```typescript
+defineEmits<{
+  'save': []                       // Save button clicked
+  'print': []                      // Print button clicked
+  'forward': []                    // Forward/re-transform clicked
+  'download': []                   // Download button clicked
+  'analyze': []                    // Analyze button clicked
+  'image-click': [imageUrl: string]  // Image clicked (fullscreen)
+  'close-analysis': []             // Close analysis section
+}>()
+```
+
+**Critical Feature: Autoscroll Support**
+
+The component exposes its internal `<section>` element via `defineExpose()` for autoscroll functionality:
+
+```typescript
+// MediaOutputBox.vue
+const sectionRef = ref<HTMLElement | null>(null)
+defineExpose({ sectionRef })
+```
+
+Parent views access it:
+```typescript
+// text_transformation.vue, image_transformation.vue
+const pipelineSectionRef = ref()
+
+// Autoscroll usage
+scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start')
+```
+
+**Usage Example:**
+
+```vue
+<script setup>
+import MediaOutputBox from '@/components/MediaOutputBox.vue'
+
+const pipelineSectionRef = ref()
+const outputImage = ref(null)
+const outputMediaType = ref('image')
+const isPipelineExecuting = ref(false)
+const generationProgress = ref(0)
+const isAnalyzing = ref(false)
+const showAnalysis = ref(false)
+const imageAnalysis = ref(null)
+
+function saveMedia() {
+  alert('Speichern-Funktion kommt bald!')
+}
+
+function printImage() {
+  if (!outputImage.value) return
+  const printWindow = window.open('', '_blank')
+  if (printWindow) {
+    printWindow.document.write(`
+      <html><head><title>Druck: Bild</title></head>
+      <body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;">
+        <img src="${outputImage.value}" style="max-width:100%;max-height:100%;" onload="window.print();window.close()">
+      </body></html>
+    `)
+    printWindow.document.close()
+  }
+}
+
+function sendToI2I() {
+  // Re-transform: use output as new input
+  uploadedImage.value = outputImage.value
+  outputImage.value = null
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+async function downloadMedia() {
+  const response = await fetch(outputImage.value)
+  const blob = await response.blob()
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
+  a.download = `ai4artsed_${timestamp}.png`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  window.URL.revokeObjectURL(url)
+}
+
+async function analyzeImage() {
+  isAnalyzing.value = true
+  const response = await fetch('/api/image/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image_url: outputImage.value,
+      context: contextPrompt.value || ''
+    })
+  })
+  const data = await response.json()
+  if (data.success) {
+    imageAnalysis.value = data
+    showAnalysis.value = true
+  }
+  isAnalyzing.value = false
+}
+
+function showImageFullscreen(imageUrl) {
+  // Implementation for fullscreen modal
+}
+</script>
+
+<template>
+  <MediaOutputBox
+    ref="pipelineSectionRef"
+    :output-image="outputImage"
+    :media-type="outputMediaType"
+    :is-executing="isPipelineExecuting"
+    :progress="generationProgress"
+    :is-analyzing="isAnalyzing"
+    :show-analysis="showAnalysis"
+    :analysis-data="imageAnalysis"
+    forward-button-title="Weiterreichen zu Bild-Transformation"
+    @save="saveMedia"
+    @print="printImage"
+    @forward="sendToI2I"
+    @download="downloadMedia"
+    @analyze="analyzeImage"
+    @image-click="showImageFullscreen"
+    @close-analysis="showAnalysis = false"
+  />
+</template>
+```
+
+**Implementation Notes:**
+
+1. **Action Handler Customization:** Each view implements its own action handlers (e.g., `sendToI2I()` in text_transformation forwards to image_transformation, while in image_transformation it re-uses the output as new input).
+
+2. **Forward Button Semantics:**
+   - `text_transformation.vue`: "Weiterreichen zu Bild-Transformation" (send to I2I)
+   - `image_transformation.vue`: "Erneut Transformieren" (re-transform)
+
+3. **Scoped CSS:** All styles are scoped to the component, no global CSS pollution.
+
+4. **TypeScript Typed:** Full type safety with TypeScript interfaces for props and events.
+
+5. **Accessibility:** All buttons have meaningful `title` attributes for tooltips.
+
+**Views Using MediaOutputBox:**
+- `/public/ai4artsed-frontend/src/views/text_transformation.vue`
+- `/public/ai4artsed-frontend/src/views/image_transformation.vue`
+
+**Code Reduction Impact:**
+- **text_transformation.vue:** ~505 lines removed (170 HTML + 300 CSS + 35 redundant methods)
+- **image_transformation.vue:** ~293 lines reduced (150 HTML + 200 CSS, added action methods)
+- **Total:** ~300 lines of duplicate code eliminated
+
+**Scalability:** Future views (video_transformation, audio_transformation, etc.) can reuse this component without any code duplication.
+
+---
+

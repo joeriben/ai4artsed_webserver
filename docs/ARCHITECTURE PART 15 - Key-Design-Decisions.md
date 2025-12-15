@@ -121,3 +121,108 @@ result = await pipeline_executor.execute_pipeline(
 
 ---
 
+### 7. Component Reusability: MediaOutputBox Template ✅
+
+**Decision:** Create single reusable MediaOutputBox.vue component instead of duplicating output box code in each view
+
+**Problem:**
+- ~300 lines of identical output box HTML/CSS duplicated in text_transformation.vue and image_transformation.vue
+- Every change (new button, styling, feature) required 2x editing + 2x testing
+- Inconsistencies accumulated (e.g., i2i lacked Print, Analyze buttons)
+- Poor scalability (adding video/audio views = more duplication)
+
+**Solution:**
+- **Single Component:** `/public/ai4artsed-frontend/src/components/MediaOutputBox.vue` (515 lines)
+- **Props-Based Configuration:** All state passed via props (outputImage, mediaType, progress, etc.)
+- **Event-Based Actions:** Parent views implement action handlers (save, print, download, analyze, forward)
+- **Exposed Section Ref:** Component exposes internal `<section>` element via `defineExpose({ sectionRef })` for autoscroll
+
+**Rationale:**
+
+1. **DRY Principle:**
+   - Before: ~300 lines × 2 views = 600 lines of duplicate code
+   - After: 515 lines component + (19 lines × 2 views) = 553 lines total
+   - Net reduction: 47 lines (plus better maintainability)
+
+2. **Single Source of Truth:**
+   - All output box UI/UX in one file
+   - Bug fixes apply to all views instantly
+   - Design changes (button order, colors, spacing) unified
+
+3. **Scalability:**
+   - Future views (video, audio, 3d) can reuse with 19 lines
+   - No need to copy/paste output box code ever again
+
+4. **Customization via Props:**
+   - `forwardButtonTitle` prop allows different tooltips per view
+   - Parent views implement action handlers differently (e.g., `sendToI2I()` in T2I forwards to I2I, in I2I it re-transforms)
+
+5. **Autoscroll Compatibility:**
+   - Critical requirement: Parent views need DOM element reference for `scrollDownOnly()`
+   - Solution: Component exposes `sectionRef` via `defineExpose()`
+   - Parent accesses: `pipelineSectionRef.value?.sectionRef`
+
+**Implementation Pattern:**
+
+```vue
+<!-- Parent View (text_transformation.vue, image_transformation.vue) -->
+<script setup>
+import MediaOutputBox from '@/components/MediaOutputBox.vue'
+
+const pipelineSectionRef = ref()
+
+// Action handlers (each view implements differently)
+function saveMedia() { /* ... */ }
+function printImage() { /* ... */ }
+function sendToI2I() { /* ... */ }  // T2I: forward to I2I, I2I: re-transform
+function downloadMedia() { /* ... */ }
+function analyzeImage() { /* ... */ }
+
+// Autoscroll usage
+scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start')
+</script>
+
+<template>
+  <MediaOutputBox
+    ref="pipelineSectionRef"
+    :output-image="outputImage"
+    :media-type="outputMediaType"
+    :is-executing="isPipelineExecuting"
+    :progress="generationProgress"
+    forward-button-title="Custom tooltip text"
+    @save="saveMedia"
+    @print="printImage"
+    @forward="sendToI2I"
+    @download="downloadMedia"
+    @analyze="analyzeImage"
+    @image-click="showImageFullscreen"
+  />
+</template>
+```
+
+**Code Reduction Impact:**
+- **text_transformation.vue:** -505 lines (170 HTML + 300 CSS + 35 methods)
+- **image_transformation.vue:** -293 lines (150 HTML + 200 CSS, added action methods)
+- **MediaOutputBox.vue:** +515 lines (new component)
+- **Net:** -283 lines total, plus improved maintainability
+
+**Features Included:**
+- ⭐ Save (stub, disabled)
+- 🖨️ Print (opens print dialog)
+- ➡️ Forward (customizable action)
+- 💾 Download (timestamped filename)
+- 🔍 Analyze (calls `/api/image/analyze`)
+- 3 states: Empty (inactive toolbar), Generating (progress), Final (active toolbar)
+- All media types: Image, Video, Audio, 3D, Unknown
+- Image analysis section (expandable)
+- Responsive (vertical toolbar desktop, horizontal mobile)
+
+**Views Using Component:**
+- `/public/ai4artsed-frontend/src/views/text_transformation.vue`
+- `/public/ai4artsed-frontend/src/views/image_transformation.vue`
+
+**Session:** Session 99 (2025-12-15)
+**Commit:** 8e8e3e0
+
+---
+
