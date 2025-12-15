@@ -123,12 +123,13 @@ def _resize_image_to_supported_resolution(image: Image.Image, max_size: int = 10
 @media_bp.route('/upload/image', methods=['POST'])
 def upload_image():
     """
-    Upload image for img2img processing.
+    Upload image for img2img processing with optional mask for inpainting.
 
     Automatically resizes images to fit within supported model resolutions.
 
     Request body (multipart/form-data):
-        - file: Image file (PNG, JPG, JPEG, WEBP)
+        - file: Image file (PNG, JPG, JPEG, WEBP) - REQUIRED
+        - mask: Mask image file (PNG) - OPTIONAL, for inpainting
         - run_id: Optional run ID to associate with (for organization)
 
     Returns:
@@ -141,6 +142,8 @@ def upload_image():
         - original_size: Original dimensions [width, height]
         - resized_size: Final dimensions after resize [width, height]
         - file_size_bytes: File size in bytes
+        - has_mask: Boolean indicating if mask was uploaded
+        - mask_url: URL to retrieve mask (if has_mask is True)
     """
     try:
         # Check if file part exists
@@ -203,6 +206,20 @@ def upload_image():
 
         logger.info(f"Image uploaded: {new_filename} | Original: {original_size} → Resized: {resized_size} | Size: {file_size / 1024:.1f}KB")
 
+        # NEU: Process mask if provided
+        mask_path = None
+        has_mask = False
+        if 'mask' in request.files:
+            mask_file = request.files['mask']
+            if mask_file.filename != '':
+                try:
+                    mask_path = _process_and_save_mask(mask_file, image_id)
+                    has_mask = True
+                    logger.info(f"Mask uploaded for {image_id}: {mask_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to process mask: {e}")
+                    # Continue without mask (non-critical)
+
         # Return response
         return jsonify({
             "success": True,
@@ -212,7 +229,9 @@ def upload_image():
             "original_filename": original_filename,
             "original_size": list(original_size),
             "resized_size": list(resized_size),
-            "file_size_bytes": file_size
+            "file_size_bytes": file_size,
+            "has_mask": has_mask,
+            "mask_url": f'/api/media/masks/{image_id}' if has_mask else None
         }), 200
 
     except Exception as e:
@@ -220,6 +239,83 @@ def upload_image():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+def _process_and_save_mask(mask_file, image_uuid: str) -> str:
+    """
+    Process and save mask image for inpainting.
+
+    Args:
+        mask_file: File upload from request.files
+        image_uuid: UUID of associated image
+
+    Returns:
+        Absolute path to saved mask file
+
+    Raises:
+        Exception if processing fails
+    """
+    try:
+        # Load mask image
+        mask_img = Image.open(mask_file.stream)
+
+        # Convert to grayscale (L mode)
+        if mask_img.mode != 'L':
+            # If RGBA, use alpha channel or convert
+            if mask_img.mode == 'RGBA':
+                # Extract alpha channel or convert based on brightness
+                mask_img = mask_img.convert('L')
+            else:
+                mask_img = mask_img.convert('L')
+
+        # Resize to standard size (1024x1024)
+        mask_img = mask_img.resize((1024, 1024), Image.Resampling.LANCZOS)
+
+        # Ensure masks directory exists
+        masks_dir = UPLOADS_TMP_DIR / 'masks'
+        masks_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save mask as PNG
+        mask_filename = f"{image_uuid}_mask.png"
+        mask_path = masks_dir / mask_filename
+        mask_img.save(str(mask_path), format='PNG')
+
+        logger.info(f"Mask saved: {mask_filename} | Size: {mask_img.size}")
+
+        return str(mask_path)
+
+    except Exception as e:
+        logger.error(f"Error processing mask: {e}")
+        raise
+
+
+@media_bp.route('/masks/<image_uuid>', methods=['GET'])
+def get_mask(image_uuid: str):
+    """
+    Retrieve mask for given image UUID.
+
+    Args:
+        image_uuid: UUID of the image
+
+    Returns:
+        Mask PNG file or 404 error
+    """
+    try:
+        mask_path = UPLOADS_TMP_DIR / 'masks' / f"{image_uuid}_mask.png"
+
+        if not mask_path.exists():
+            return jsonify({'error': 'Mask not found'}), 404
+
+        return send_file(
+            str(mask_path),
+            mimetype='image/png',
+            as_attachment=False,
+            download_name=f'{image_uuid}_mask.png'
+        )
+
+    except Exception as e:
+        logger.error(f"Error serving mask for {image_uuid}: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @media_bp.route('/image/<run_id>', methods=['GET'])

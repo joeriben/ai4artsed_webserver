@@ -12,6 +12,16 @@
       <!-- Preview -->
       <div v-if="previewUrl" class="image-preview">
         <img :src="previewUrl" alt="Uploaded image preview" />
+
+        <!-- NEU: Maske malen Button -->
+        <button
+          class="btn-create-mask"
+          @click.stop="openMaskEditor"
+          title="Maske für Inpainting erstellen"
+        >
+          🎨 Maske malen
+        </button>
+
         <button class="remove-btn" @click.stop="removeImage" title="Bild entfernen">
           ✕
         </button>
@@ -48,13 +58,30 @@
         → {{ uploadInfo.resized_size[0] }}×{{ uploadInfo.resized_size[1] }}px
       </span>
       <span class="info-label">Größe:</span> {{ (uploadInfo.file_size_bytes / 1024).toFixed(1) }}KB
+      <span v-if="hasMask" class="mask-badge">
+        🎨 Maske vorhanden
+      </span>
     </div>
+
+    <!-- Mask Editor Modal -->
+    <Teleport to="body">
+      <div v-if="showMaskEditor" class="mask-editor-modal" @click="closeMaskEditor">
+        <div class="mask-editor-content" @click.stop>
+          <SimpleMaskEditor
+            :image-url="previewUrl!"
+            @save="handleMaskSave"
+            @cancel="closeMaskEditor"
+          />
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
+import SimpleMaskEditor from './SimpleMaskEditor.vue'
 
 // Props
 interface Props {
@@ -85,6 +112,11 @@ const previewUrl = ref<string | null>(null)
 const isDragging = ref(false)
 const error = ref<string | null>(null)
 const uploadInfo = ref<any>(null)
+
+// NEU: Mask Editor State
+const showMaskEditor = ref(false)
+const maskBlob = ref<Blob | null>(null)
+const hasMask = ref(false)
 
 // Computed
 const wasResized = computed(() => {
@@ -148,6 +180,12 @@ async function processFile(file: File) {
     const formData = new FormData()
     formData.append('file', file)
 
+    // NEU: Maske hinzufügen falls vorhanden
+    if (maskBlob.value) {
+      formData.append('mask', maskBlob.value, 'mask.png')
+      console.log('[ImageUploadWidget] Uploading with mask:', maskBlob.value.size, 'bytes')
+    }
+
     const response = await axios.post('/api/media/upload/image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -179,10 +217,32 @@ function removeImage() {
   previewUrl.value = null
   uploadInfo.value = null
   error.value = null
+  maskBlob.value = null
+  hasMask.value = false
   if (fileInput.value) {
     fileInput.value.value = ''
   }
   emit('image-removed')
+}
+
+// NEU: Mask Editor Functions
+function openMaskEditor() {
+  if (!previewUrl.value) return
+  showMaskEditor.value = true
+}
+
+function closeMaskEditor() {
+  showMaskEditor.value = false
+}
+
+async function handleMaskSave(blob: Blob) {
+  console.log('[ImageUploadWidget] Mask saved:', blob.size, 'bytes')
+  maskBlob.value = blob
+  hasMask.value = true
+  showMaskEditor.value = false
+
+  // Optional: Re-upload image with mask immediately
+  // For now, mask will be sent on next upload
 }
 
 // Watch for initial image prop changes
@@ -343,5 +403,81 @@ onMounted(() => {
 
 .resize-badge {
   color: #FFB300;
+}
+
+.mask-badge {
+  color: #4a9eff;
+  font-weight: 600;
+}
+
+/* NEU: Maske malen Button */
+.btn-create-mask {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(74, 158, 255, 0.9);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-create-mask:hover {
+  background: rgba(74, 158, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
+}
+
+/* NEU: Mask Editor Modal */
+.mask-editor-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+.mask-editor-content {
+  width: 90vw;
+  max-width: 1200px;
+  height: 85vh;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 </style>
