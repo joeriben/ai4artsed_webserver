@@ -12,6 +12,7 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.utils import secure_filename
 
 from my_app.services.lora_store import (
+    dataset_info,
     default_output_dir,
     ensure_directories,
     list_datasets,
@@ -210,6 +211,13 @@ def _parse_float(payload: Dict[str, object], field: str) -> float:
         raise BadRequest(f"{field} must be a floating point value") from exc
 
 
+def _validate_positive_range(name: str, value: int | float, minimum: int | float, maximum: int | float | None = None) -> None:
+    if value < minimum:
+        raise BadRequest(f"{name} must be at least {minimum}")
+    if maximum is not None and value > maximum:
+        raise BadRequest(f"{name} must not exceed {maximum}")
+
+
 @lora_bp.route("/jobs", methods=["POST"])
 def create_job():
     """Persist a new LoRA training job configuration."""
@@ -237,8 +245,11 @@ def create_job():
     dataset_id = payload["dataset_id"]
     try:
         dataset_slug, dataset_path = resolve_dataset(dataset_id)
+        dataset_meta = dataset_info(dataset_slug)
     except FileNotFoundError as exc:
         raise BadRequest(str(exc)) from exc
+    if dataset_meta.get("image_count", 0) < 1:
+        raise BadRequest("Dataset contains no images to train on")
 
     base_model = payload["base_model"].strip()
     instance_token = payload.get("instance_token", "").strip()
@@ -249,10 +260,18 @@ def create_job():
     gradient_accumulation_steps = _parse_int(payload, "gradient_accumulation_steps")
     learning_rate = _parse_float(payload, "learning_rate")
 
+    _validate_positive_range("resolution", resolution, 256, 1536)
+    _validate_positive_range("max_train_steps", max_train_steps, 1, 20000)
+    _validate_positive_range("train_batch_size", train_batch_size, 1, 64)
+    _validate_positive_range("gradient_accumulation_steps", gradient_accumulation_steps, 1, 128)
+    _validate_positive_range("learning_rate", learning_rate, 1e-6, 1.0)
+
     network_rank = _parse_int({"network_rank": payload.get("network_rank", 16)}, "network_rank")
     network_alpha = _parse_int({"network_alpha": payload.get("network_alpha", network_rank)}, "network_alpha")
     mixed_precision = payload.get("mixed_precision", "fp16")
     scheduler = payload.get("scheduler") or "cosine"
+    if scheduler not in PRESET_SCHEDULERS:
+        raise BadRequest("Unknown scheduler; please pick one of the suggested options")
     seed = int(payload.get("seed", 42))
     validation_prompt = payload.get("validation_prompt", "").strip()
     use_8bit_adam = _parse_bool(payload.get("use_8bit_adam", True))

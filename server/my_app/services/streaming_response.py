@@ -1,6 +1,5 @@
-"""
-Streaming response utilities to prevent Cloudflare timeouts
-"""
+"""Streaming response utilities to prevent Cloudflare timeouts."""
+
 import json
 import time
 import logging
@@ -48,39 +47,42 @@ def create_streaming_response(workflow_execution_func, *args, **kwargs) -> Respo
             while not result['done']:
                 elapsed = time.time() - start_time
                 message_count += 1
-                
-                # Send progress update
-                yield f"data: {json.dumps({
+
+                payload = {
                     'status': 'processing',
                     'message': f'Workflow läuft... ({int(elapsed)}s)',
                     'elapsed': elapsed,
-                    'keepAlive': message_count
-                })}\n\n"
-                
+                    'keepAlive': message_count,
+                }
+                yield f"data: {json.dumps(payload)}\n\n"
+
                 # Wait 30 seconds before next keep-alive
                 for _ in range(30):
                     if result['done']:
                         break
                     time.sleep(1)
-            
+
             # Send final result
             if result['error']:
-                yield f"data: {json.dumps({
+                final_payload = {
                     'status': 'error',
-                    'error': result['error']
-                })}\n\n"
+                    'error': result['error'],
+                }
+                yield f"data: {json.dumps(final_payload)}\n\n"
             else:
-                yield f"data: {json.dumps({
+                final_payload = {
                     'status': 'completed',
-                    'result': result['data']
-                })}\n\n"
-                
+                    'result': result['data'],
+                }
+                yield f"data: {json.dumps(final_payload)}\n\n"
+
         except Exception as e:
             logger.error(f"Streaming response error: {e}")
-            yield f"data: {json.dumps({
+            error_payload = {
                 'status': 'error',
-                'error': str(e)
-            })}\n\n"
+                'error': str(e),
+            }
+            yield f"data: {json.dumps(error_payload)}\n\n"
     
     return Response(
         generate(),

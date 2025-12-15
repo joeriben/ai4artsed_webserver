@@ -130,6 +130,16 @@ def resolve_dataset(dataset_id: str) -> Tuple[str, Path]:
     return sanitized_id, dataset_path
 
 
+def dataset_info(dataset_id: str) -> Dict[str, object]:
+    """Return metadata about a dataset and validate its presence."""
+    ensure_directories()
+    sanitized_id = secure_filename(dataset_id).lower()
+    dataset_path = LORA_DATASETS_DIR / sanitized_id
+    if not dataset_path.exists():
+        raise FileNotFoundError(f"Dataset '{sanitized_id}' not found")
+    return _dataset_summary(dataset_path)
+
+
 def default_output_dir(project_name: str) -> Path:
     """Return the default output directory for a LoRA project."""
     ensure_directories()

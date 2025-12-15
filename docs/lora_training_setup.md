@@ -217,6 +217,8 @@ Der Webserver stellt unter [`/lora`](../public/lora/index.html) eine schlanke Ob
 3. **Datensatz importieren** – Lädt ein neues ZIP (Bilder + `metadata.jsonl`) direkt auf den Server oder greif auf vorhandene Datensätze zurück.
 4. **Hyperparameter festlegen** – Wähle zunächst eine der vorkonfigurierten Voreinstellungen, die typische Foto- und Kunst-Workflows abdecken, und passe bei Bedarf einzelne Werte an. Die Oberfläche zeigt den resultierenden `accelerate launch`-Befehl live an.
 
+   > Hinweis: Die Eingaben werden serverseitig auf sinnvolle Bereiche geprüft (z. B. Auflösung 256–1536 px, Lernrate ≥ 1e-6, Schritte > 0 und nur gültige Scheduler). So bleiben Experimente für Einsteiger:innen auf stabilen Werten.
+
    | Preset | Geeignet für | Schwerpunkte |
    | --- | --- | --- |
    | **Fotostudio – Schnellstart** | 10–30 Portrait- oder Objektmotive, schnelle Tests | Kurzes Training mit 512 px Auflösung und UNet-Feintuning |
