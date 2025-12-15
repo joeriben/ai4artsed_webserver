@@ -140,47 +140,25 @@
         </transition>
       </div>
 
-      <!-- OUTPUT FRAME (3 States: empty, generating, final) -->
-      <section class="pipeline-section" ref="pipelineSectionRef">
-        <div class="output-frame" :class="{
-          empty: !isPipelineExecuting && !outputImage,
-          generating: isPipelineExecuting && !outputImage
-        }">
-          <!-- State 1: Empty (before generation) -->
-          <div v-if="!isPipelineExecuting && !outputImage" class="empty-state">
-            <div class="empty-icon">🖼️</div>
-            <p>Dein transformiertes Bild erscheint hier</p>
-          </div>
-
-          <!-- State 2: Generating (progress animation) -->
-          <div v-if="isPipelineExecuting && !outputImage" class="generation-animation-container">
-            <SpriteProgressAnimation :progress="generationProgress" />
-          </div>
-
-          <!-- State 3: Final Output -->
-          <div v-else-if="outputImage" class="final-output">
-            <img
-              v-if="outputMediaType === 'image'"
-              :src="outputImage"
-              alt="Generated image"
-              class="output-image"
-              @click="openFullscreen"
-            />
-            <video
-              v-else-if="outputMediaType === 'video'"
-              :src="outputImage"
-              controls
-              class="output-video"
-            />
-            <audio
-              v-else-if="outputMediaType === 'audio' || outputMediaType === 'music'"
-              :src="outputImage"
-              controls
-              class="output-audio"
-            />
-          </div>
-        </div>
-      </section>
+      <!-- OUTPUT BOX (Template Component) -->
+      <MediaOutputBox
+        ref="pipelineSectionRef"
+        :output-image="outputImage"
+        :media-type="outputMediaType"
+        :is-executing="isPipelineExecuting"
+        :progress="generationProgress"
+        :is-analyzing="isAnalyzing"
+        :show-analysis="showAnalysis"
+        :analysis-data="imageAnalysis"
+        forward-button-title="Erneut Transformieren"
+        @save="saveMedia"
+        @print="printImage"
+        @forward="sendToI2I"
+        @download="downloadMedia"
+        @analyze="analyzeImage"
+        @image-click="showImageFullscreen"
+        @close-analysis="showAnalysis = false"
+      />
 
     </div>
 
@@ -202,7 +180,7 @@ import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
-import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 
@@ -237,6 +215,16 @@ const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
 const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
+
+// Image Analysis
+const isAnalyzing = ref(false)
+const imageAnalysis = ref<{
+  analysis: string
+  reflection_prompts: string[]
+  insights: string[]
+  success: boolean
+} | null>(null)
+const showAnalysis = ref(false)
 
 // Refs
 const mainContainerRef = ref<HTMLElement | null>(null)
@@ -409,7 +397,7 @@ async function startGeneration() {
 
   // Scroll to output frame
   await nextTick()
-  setTimeout(() => scrollDownOnly(pipelineSectionRef.value, 'start'), 150)
+  setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
 
   // Start progress simulation based on estimated duration from stage4-chunk
 
@@ -497,7 +485,7 @@ async function startGeneration() {
 
         // Scroll to show complete output
         await nextTick()
-        setTimeout(() => scrollDownOnly(pipelineSectionRef.value, 'start'), 150)
+        setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
       }
     } else {
       clearInterval(progressInterval)
@@ -518,10 +506,8 @@ async function startGeneration() {
 // FULLSCREEN
 // ============================================================================
 
-function openFullscreen() {
-  if (outputImage.value) {
-    fullscreenImage.value = outputImage.value
-  }
+function showImageFullscreen(imageUrl: string) {
+  fullscreenImage.value = imageUrl
 }
 
 // ============================================================================
@@ -563,6 +549,116 @@ function clearContextPrompt() {
   contextPrompt.value = ''
   sessionStorage.removeItem('i2i_context_prompt')
   console.log('[I2I] Context prompt cleared')
+}
+
+// ============================================================================
+// Output Actions (Print, Download, Re-transform, Analyze, Save)
+// ============================================================================
+
+function saveMedia() {
+  alert('Speichern-Funktion kommt bald!')
+}
+
+function printImage() {
+  if (!outputImage.value) return
+  const printWindow = window.open('', '_blank')
+  if (printWindow) {
+    printWindow.document.write(`
+      <html><head><title>Druck: Transformiertes Bild</title></head>
+      <body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;">
+        <img src="${outputImage.value}" style="max-width:100%;max-height:100%;" onload="window.print();window.close()">
+      </body></html>
+    `)
+    printWindow.document.close()
+  }
+  console.log('[I2I] Print initiated')
+}
+
+function sendToI2I() {
+  if (!outputImage.value || outputMediaType.value !== 'image') return
+
+  // Set current output as new input
+  uploadedImage.value = outputImage.value
+  uploadedImagePath.value = outputImage.value
+  uploadedImageId.value = `retransform_${Date.now()}`
+
+  // Keep context prompt for editing
+  // Clear output to start fresh
+  outputImage.value = null
+  isPipelineExecuting.value = false
+  executionPhase.value = 'image_uploaded'
+
+  // Scroll to top to show input section
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+
+  console.log('[I2I] Re-transform: Using output as new input')
+}
+
+async function downloadMedia() {
+  if (!outputImage.value) return
+
+  try {
+    const response = await fetch(outputImage.value)
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
+    const ext = outputMediaType.value === 'video' ? 'mp4' :
+                outputMediaType.value === 'audio' || outputMediaType.value === 'music' ? 'mp3' :
+                'png'
+    a.download = `ai4artsed_i2i_${timestamp}.${ext}`
+
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+
+    console.log('[I2I Download] Media saved:', a.download)
+  } catch (error) {
+    console.error('[I2I Download] Error:', error)
+    alert('Fehler beim Herunterladen')
+  }
+}
+
+async function analyzeImage() {
+  if (!outputImage.value || isAnalyzing.value) return
+
+  isAnalyzing.value = true
+
+  try {
+    const response = await fetch('/api/image/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_url: outputImage.value,
+        context: contextPrompt.value || ''
+      })
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      imageAnalysis.value = {
+        analysis: data.analysis || '',
+        reflection_prompts: data.reflection_prompts || [],
+        insights: data.insights || [],
+        success: true
+      }
+      showAnalysis.value = true
+      console.log('[I2I Analysis] Success:', data)
+    } else {
+      console.error('[I2I Analysis] Failed:', data.error)
+      alert('Bildanalyse fehlgeschlagen')
+    }
+  } catch (error) {
+    console.error('[I2I Analysis] Error:', error)
+    alert('Fehler bei der Bildanalyse')
+  } finally {
+    isAnalyzing.value = false
+  }
 }
 
 // ============================================================================
@@ -1038,104 +1134,7 @@ watch(contextPrompt, (newVal) => {
   letter-spacing: 0.5px;
 }
 
-/* ============================================================================
-   Output Frame (3 States)
-   ============================================================================ */
-
-.pipeline-section {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.output-frame {
-  width: 100%;
-  max-width: 1000px;
-  margin: clamp(1rem, 3vh, 2rem) auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(1.5rem, 3vh, 2rem);
-  background: rgba(30, 30, 30, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: clamp(12px, 2vw, 20px);
-  transition: all 0.3s ease;
-}
-
-.output-frame.empty {
-  min-height: clamp(320px, 40vh, 450px);
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  background: rgba(20, 20, 20, 0.5);
-}
-
-.output-frame.generating {
-  min-height: clamp(320px, 40vh, 450px);
-  border: 2px solid rgba(76, 175, 80, 0.6);
-  background: rgba(30, 30, 30, 0.9);
-  box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
-}
-
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  opacity: 0.4;
-}
-
-.empty-icon {
-  font-size: clamp(3rem, 8vw, 5rem);
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-  margin: 0;
-}
-
-/* Generation Animation Container */
-.generation-animation-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-/* Final Output */
-.final-output {
-  width: 100%;
-  text-align: center;
-}
-
-.output-image {
-  max-width: 100%;
-  max-height: clamp(300px, 40vh, 500px);
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.output-image:hover {
-  transform: scale(1.02);
-}
-
-.output-video {
-  width: 100%;
-  max-height: 500px;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-}
-
-.output-audio {
-  width: 100%;
-  max-height: 500px;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-}
+/* Output box styles moved to MediaOutputBox.vue component */
 
 /* ============================================================================
    Fullscreen Modal
@@ -1399,4 +1398,6 @@ watch(contextPrompt, (newVal) => {
   opacity: 0;
   display: none;
 }
+
+/* Action toolbar and analysis styles moved to MediaOutputBox.vue component */
 </style>
