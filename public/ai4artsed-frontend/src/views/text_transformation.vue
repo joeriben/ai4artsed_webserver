@@ -550,7 +550,7 @@ const configsByCategory: Record<string, Config[]> = {
     { id: 'qwen', label: 'Qwen', emoji: '🌸', color: '#9C27B0', description: 'Qwen Vision Model', logo: '/logos/Qwen_logo.png', lightBg: false },
     { id: 'flux2', label: 'Flux 2', emoji: '⚡', color: '#FF6B35', description: 'Hochwertige Bildgenerierung mit Flux 2 Dev', logo: '/logos/flux2_logo.png', lightBg: false },
     { id: 'gemini_3_pro_image', label: 'Gemini 3\nPro', emoji: '🔷', color: '#4285F4', description: 'Google Gemini Bildgenerierung', logo: '/logos/gemini_logo.png', lightBg: false },
-    { id: 'gpt_image_1', label: 'GPT Image', emoji: '🌟', color: '#FFC107', description: 'Moderne KI-Bilder', logo: '/logos/ChatGPT-Logo.png', lightBg: true },
+    // { id: 'gpt_image_1', label: 'GPT Image', emoji: '🌟', color: '#FFC107', description: 'Moderne KI-Bilder', logo: '/logos/ChatGPT-Logo.png', lightBg: true },
     { id: 'p5js_code', label: 'P5.js', emoji: '💻', color: '#ED225D', description: 'Generative Computergrafik mit P5.js Code', logo: '/logos/p5js_logo.png', lightBg: false }
   ],
   video: [
@@ -580,7 +580,7 @@ const configIdToChunkName: Record<string, string> = {
   'qwen': 'qwen',
   'flux2': 'flux2',
   'gemini_3_pro_image': 'gemini_3_pro',
-  'gpt_image_1': 'gpt_image_1',
+  // 'gpt_image_1': 'gpt_image_1',
   'p5js_code': 'p5js',
   'ltx_video': 'ltx',
   'wan22_video': 'wan22',
@@ -687,7 +687,7 @@ const modelFullNames: Record<string, string> = {
   qwen: 'Qwen 2.5 Vision',
   flux2: 'Flux 2 Dev',
   gemini_3_pro_image: 'Gemini 3 Pro',
-  gpt_image_1: 'GPT Image 1',
+  // gpt_image_1: 'GPT Image 1',
   p5js_code: 'p5.js Code Generation',
   ltx_video: 'LTX Video',
   wan22_video: 'Wan 2.2 Text-to-Video',
