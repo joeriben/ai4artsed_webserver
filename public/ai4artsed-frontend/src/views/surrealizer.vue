@@ -60,55 +60,26 @@
         </button>
       </section>
 
-      <!-- Output Frame (3 States: empty, generating, final) -->
+      <!-- Output Section -->
       <section class="output-section">
-        <div class="output-frame" :class="{
-          empty: !isExecuting && !primaryOutput,
-          generating: isExecuting && !primaryOutput
-        }">
-          <!-- State 1: Empty (before generation) -->
-          <div v-if="!isExecuting && !primaryOutput" class="empty-state">
-            <div class="empty-icon">🖼️</div>
-            <p>Dein surrealisiertes Bild erscheint hier</p>
-          </div>
-
-          <!-- State 2: Generating (progress animation) -->
-          <div v-if="isExecuting && !primaryOutput" class="generation-animation-container">
-            <SpriteProgressAnimation :progress="generationProgress" />
-          </div>
-
-          <!-- State 3: Final Output -->
-          <div v-else-if="primaryOutput" class="final-output">
-            <!-- Image with Actions -->
-            <div v-if="primaryOutput.type === 'image'" class="image-with-actions">
-              <img
-                :src="primaryOutput.url"
-                :alt="primaryOutput.filename"
-                class="output-image"
-                @click="primaryOutput.url && showFullscreen(primaryOutput.url)"
-              />
-
-              <!-- Action Toolbar (vertical, right side) -->
-              <div class="action-toolbar">
-                <button class="action-btn" @click="saveMedia" disabled title="Merken (Coming Soon)">
-                  <span class="action-icon">⭐</span>
-                </button>
-                <button class="action-btn" @click="printImage" title="Drucken">
-                  <span class="action-icon">🖨️</span>
-                </button>
-                <button class="action-btn" @click="sendToI2I" title="Weiterreichen zu Bild-Transformation">
-                  <span class="action-icon">➡️</span>
-                </button>
-                <button class="action-btn" @click="downloadMedia" title="Herunterladen">
-                  <span class="action-icon">💾</span>
-                </button>
-                <button class="action-btn" @click="analyzeImage" :disabled="isAnalyzing" :title="isAnalyzing ? 'Analysiere...' : 'Bildanalyse'">
-                  <span class="action-icon">{{ isAnalyzing ? '⏳' : '🔍' }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <MediaOutputBox
+          ref="pipelineSectionRef"
+          :output-image="primaryOutput?.url || null"
+          media-type="image"
+          :is-executing="isExecuting"
+          :progress="generationProgress"
+          :is-analyzing="isAnalyzing"
+          :show-analysis="showAnalysis"
+          :analysis-data="imageAnalysis"
+          forward-button-title="Weiterreichen zu Bild-Transformation"
+          @save="saveMedia"
+          @print="printImage"
+          @forward="sendToI2I"
+          @download="downloadMedia"
+          @analyze="analyzeImage"
+          @image-click="showImageFullscreen"
+          @close-analysis="showAnalysis = false"
+        />
       </section>
     </div>
 
@@ -129,6 +100,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 
 // ============================================================================
@@ -391,8 +363,8 @@ function formatJSON(jsonString: string): string {
   }
 }
 
-function showFullscreen(url: string) {
-  fullscreenImage.value = url
+function showImageFullscreen(imageUrl: string) {
+  fullscreenImage.value = imageUrl
 }
 
 // ============================================================================
@@ -656,7 +628,7 @@ function extractInsights(analysisText: string): string[] {
   margin-left: auto;
 }
 
-.action-btn {
+.bubble-actions .action-btn {
   background: transparent;
   border: none;
   font-size: 0.9rem;
@@ -666,7 +638,7 @@ function extractInsights(analysisText: string): string[] {
   padding: 0.25rem;
 }
 
-.action-btn:hover {
+.bubble-actions .action-btn:hover {
   opacity: 0.8;
 }
 
@@ -859,170 +831,6 @@ function extractInsights(analysisText: string): string[] {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-/* ============================================================================
-   Output Frame (3 States)
-   ============================================================================ */
-
-.output-frame {
-  width: 100%;
-  max-width: 1000px;
-  margin: 2rem auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background: rgba(30, 30, 30, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  transition: all 0.3s ease;
-  min-height: 400px;
-}
-
-.output-frame.empty {
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  background: rgba(20, 20, 20, 0.5);
-}
-
-.output-frame.generating {
-  border: 2px solid rgba(76, 175, 80, 0.6);
-  background: rgba(30, 30, 30, 0.9);
-  box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
-}
-
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  opacity: 0.4;
-}
-
-.empty-icon {
-  font-size: 5rem;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-  margin: 0;
-}
-
-/* Generation Animation Container */
-.generation-animation-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-/* Final Output */
-.final-output {
-  width: 100%;
-  text-align: center;
-}
-
-/* Image with Actions */
-.image-with-actions {
-  position: relative;
-  display: inline-block;
-}
-
-.output-image {
-  max-width: 100%;
-  max-height: 500px;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.output-image:hover {
-  transform: scale(1.02);
-}
-
-/* Action Toolbar */
-.action-toolbar {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background: rgba(20, 20, 20, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.action-toolbar.inactive {
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-/* Action Buttons */
-.action-btn {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(30, 30, 30, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  padding: 0;
-}
-
-.action-btn:hover:not(:disabled) {
-  border-color: rgba(102, 126, 234, 0.8);
-  background: rgba(102, 126, 234, 0.2);
-  transform: scale(1.1);
-}
-
-.action-btn:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.action-icon {
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
-/* Responsive: Stack toolbar below media on mobile */
-@media (max-width: 768px) {
-  .image-with-actions {
-    flex-direction: column;
-  }
-
-  .action-toolbar {
-    position: static;
-    transform: none;
-    flex-direction: row;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-
-  .action-btn {
-    width: 40px;
-    height: 40px;
-  }
-
-  .action-icon {
-    font-size: 1.25rem;
-  }
 }
 
 /* ============================================================================
