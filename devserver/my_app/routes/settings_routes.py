@@ -283,12 +283,13 @@ def authenticate():
         data = request.get_json()
         password = data.get('password', '')
 
+        # Use default password if file doesn't exist (fresh production deploy)
         if not SETTINGS_PASSWORD_FILE.exists():
-            logger.error("[SETTINGS] Password file not found")
-            return jsonify({"error": "Configuration error"}), 500
-
-        with open(SETTINGS_PASSWORD_FILE) as f:
-            correct_password = f.read().strip()
+            correct_password = "ai4artsedadmin"
+            logger.warning("[SETTINGS] No password file found, using default password")
+        else:
+            with open(SETTINGS_PASSWORD_FILE) as f:
+                correct_password = f.read().strip()
 
         if password == correct_password:
             session['settings_authenticated'] = True
