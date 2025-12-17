@@ -27,10 +27,11 @@
             </td>
           </tr>
           <tr>
-            <td class="label-cell">DSGVO Mode</td>
+            <td class="label-cell">Configuration Tier</td>
             <td class="value-cell">
-              <label><input type="radio" v-model="selectedDsgvoMode" value="dsgvo_compliant" /> DSGVO-compliant</label>
-              <label><input type="radio" v-model="selectedDsgvoMode" value="non_dsgvo" /> Non-DSGVO (Cloud allowed)</label>
+              <label><input type="radio" v-model="selectedDsgvoMode" value="dsgvo_local" /> Local Only (DSGVO ✓)</label>
+              <label><input type="radio" v-model="selectedDsgvoMode" value="dsgvo_cloud" /> AWS Bedrock EU (DSGVO ✓)</label>
+              <label><input type="radio" v-model="selectedDsgvoMode" value="non_dsgvo" /> OpenRouter US</label>
             </td>
           </tr>
           <tr>
@@ -82,23 +83,9 @@
             <td class="value-cell">
               <label style="display: flex; align-items: center; gap: 8px;">
                 <input type="checkbox" v-model="settings.DSGVO_CONFORMITY" style="width: auto;" />
-                <span><strong>Strenge Datenlokalisierung (nur lokale Modelle)</strong></span>
+                <span>DSGVO-compliant configuration</span>
               </label>
-              <div style="margin-top: 8px; padding: 8px; background: #f5f5f5; border-left: 3px solid #2196F3; font-size: 12px;">
-                <p style="margin: 4px 0;"><strong>Wenn aktiviert:</strong></p>
-                <ul style="margin: 6px 0 0 20px; padding: 0;">
-                  <li>Alle Daten verbleiben auf Ihrem Server (lokale Modelle via Ollama)</li>
-                  <li>Maximaler Datenschutz - keine externe Verarbeitung</li>
-                  <li>Ideal für: Schulen, Behörden, sensible personenbezogene Daten</li>
-                </ul>
-                <p style="margin: 8px 0 4px 0;"><strong>Wenn deaktiviert:</strong></p>
-                <ul style="margin: 6px 0 0 20px; padding: 0;">
-                  <li>Cloud-Dienste erlaubt (OpenRouter, Anthropic EU, OpenAI)</li>
-                  <li>Bessere Performance, aber Daten verlassen Ihren Server</li>
-                  <li><em>Hinweis: DSGVO-konforme EU-Dienste wie Anthropic EU sind rechtlich zulässig</em></li>
-                </ul>
-                <p style="margin: 8px 0 0 0; font-size: 11px; color: #666;"><strong>Rechtlicher Hinweis:</strong> Diese Einstellung betrifft die technische Datenlokalisierung. DSGVO-Compliance erfordert zusätzliche organisatorische Maßnahmen (Verträge, Dokumentation, etc.).</p>
-              </div>
+              <span class="help-text">Enforces DSGVO-compliant models (local or AWS Bedrock EU)</span>
             </td>
           </tr>
         </table>
@@ -132,7 +119,7 @@
       <!-- Model Configuration -->
       <div class="section">
         <h2>Model Configuration</h2>
-        <p class="help">Model identifiers with provider prefix (ollama/, openrouter/, local/)</p>
+        <p class="help">Model identifiers with provider prefix: local/, bedrock/, anthropic/, openai/, openrouter/</p>
 
         <!-- Data Localization Validation Warning -->
         <div v-if="settings.DSGVO_CONFORMITY && hasCloudModels" class="info-box" style="background: #fff3cd; border-color: #ff9800; border-left-color: #ff9800; margin-bottom: 15px;">
@@ -190,62 +177,17 @@
             <td class="value-cell">
               <select v-model="settings.EXTERNAL_LLM_PROVIDER">
                 <option value="none">None (Local only)</option>
-                <option value="openrouter">OpenRouter</option>
-                <option value="anthropic">Anthropic (EU servers available)</option>
-                <option value="openai">OpenAI</option>
+                <option value="bedrock">AWS Bedrock (EU region, DSGVO ✓)</option>
+                <option value="anthropic">Anthropic Direct API</option>
+                <option value="openai">OpenAI Direct API</option>
+                <option value="openrouter">OpenRouter Aggregator</option>
               </select>
-              <span class="help-text">Cloud-based LLM service (requires API key)</span>
+              <span class="help-text">Cloud LLM provider (bedrock uses ENV credentials, others require API key)</span>
 
-              <!-- DSGVO-aware help text -->
-              <div v-if="settings.DSGVO_CONFORMITY && settings.EXTERNAL_LLM_PROVIDER !== 'none'" class="info-box" style="margin-top: 12px;">
-                <strong>💡 DSGVO-Hinweis:</strong>
-                <p>Sie haben strenge Datenlokalisierung aktiviert, aber einen Cloud-Anbieter ausgewählt.</p>
-                <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'anthropic'">
-                  <p><strong>Anthropic (Direkt-API):</strong> Bietet DSGVO-konforme EU-Server. Modell-Ersetzungen:</p>
-                  <ul style="margin-left: 20px; margin-top: 8px;">
-                    <li><strong>Vision:</strong> <code>local/llama3.2-vision:90b</code> → <code>anthropic/claude-3.5-sonnet</code> (hat Vision)</li>
-                    <li><strong>Text:</strong> <code>local/llama3.1:70b</code> → <code>anthropic/claude-sonnet-4</code> (nur Text)</li>
-                  </ul>
-                </div>
-                <div v-else-if="settings.EXTERNAL_LLM_PROVIDER === 'openrouter'">
-                  <p><strong>OpenRouter (Proxy):</strong> Syntax mit Proxy-Präfix:</p>
-                  <ul style="margin-left: 20px; margin-top: 8px;">
-                    <li><strong>Vision:</strong> <code>local/llama3.2-vision:90b</code> → <code>openrouter/anthropic/claude-3.5-sonnet</code></li>
-                    <li><strong>Text:</strong> <code>local/llama3.1:70b</code> → <code>openrouter/anthropic/claude-sonnet-4</code></li>
-                  </ul>
-                </div>
-                <p style="margin-top: 8px;"><strong>Tipp:</strong> Ändern Sie die Modell-Strings in der "Model Configuration" Sektion.</p>
-              </div>
-
-              <div v-else-if="!settings.DSGVO_CONFORMITY && settings.EXTERNAL_LLM_PROVIDER !== 'none'" class="info-box" style="margin-top: 12px;">
-                <strong>☁️ Cloud-Anbieter aktiv</strong>
-                <p>Sie können lokale Modelle durch Cloud-Modelle ersetzen. <strong>Wichtig:</strong> Vision-Modelle nur durch Vision-fähige Modelle ersetzen!</p>
-                <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'anthropic'">
-                  <p><strong>Anthropic Direkt-API (ohne Proxy):</strong></p>
-                  <ul style="margin-left: 20px; margin-top: 8px;">
-                    <li><strong>Vision:</strong> <code>local/llama3.2-vision:90b</code> → <code>anthropic/claude-3.5-sonnet</code></li>
-                    <li><strong>Text:</strong> <code>local/llama3.1:70b</code> → <code>anthropic/claude-sonnet-4</code></li>
-                  </ul>
-                </div>
-                <div v-else-if="settings.EXTERNAL_LLM_PROVIDER === 'openrouter'">
-                  <p><strong>OpenRouter Proxy (alle Anbieter über OpenRouter):</strong></p>
-                  <ul style="margin-left: 20px; margin-top: 8px;">
-                    <li><strong>Vision:</strong> <code>local/llama3.2-vision:90b</code> → <code>openrouter/anthropic/claude-3.5-sonnet</code></li>
-                    <li><strong>Text:</strong> <code>local/llama3.1:70b</code> → <code>openrouter/anthropic/claude-sonnet-4</code></li>
-                  </ul>
-                </div>
-                <div v-else-if="settings.EXTERNAL_LLM_PROVIDER === 'openai'">
-                  <p><strong>OpenAI Direkt-API:</strong></p>
-                  <ul style="margin-left: 20px; margin-top: 8px;">
-                    <li><strong>Vision:</strong> <code>local/llama3.2-vision:90b</code> → <code>openai/gpt-4-vision</code></li>
-                    <li><strong>Text:</strong> <code>local/llama3.1:70b</code> → <code>openai/gpt-4-turbo</code></li>
-                  </ul>
-                </div>
-              </div>
-
-              <div v-else-if="settings.DSGVO_CONFORMITY && settings.EXTERNAL_LLM_PROVIDER === 'none'" class="info-box info-box-success" style="margin-top: 12px;">
-                <strong>✓ DSGVO-konform</strong>
-                <p>Alle Modelle laufen lokal über Ollama. Keine Daten verlassen Ihren Server.</p>
+              <!-- Provider info -->
+              <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'bedrock'" class="info-box" style="margin-top: 12px;">
+                <strong>AWS Bedrock (EU Region)</strong>
+                <p>Credentials via environment variables. See AWS_BEDROCK_SETUP.md for setup instructions.</p>
               </div>
             </td>
           </tr>
@@ -317,7 +259,7 @@ const error = ref(null)
 const settings = ref({})
 const matrix = ref({})
 const selectedVramTier = ref('vram_24')
-const selectedDsgvoMode = ref('non_dsgvo')
+const selectedDsgvoMode = ref('dsgvo_cloud')
 const openrouterKey = ref('')
 const openrouterKeyMasked = ref('')
 const anthropicKey = ref('')
