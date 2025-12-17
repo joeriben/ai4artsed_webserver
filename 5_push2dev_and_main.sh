@@ -5,6 +5,9 @@
 
 set -e  # Exit on error
 
+# Keep window open on error
+trap 'echo ""; echo "❌ Script failed! Press any key to close..."; read -n 1 -s -r' ERR EXIT
+
 # Get directory where this script lives
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
