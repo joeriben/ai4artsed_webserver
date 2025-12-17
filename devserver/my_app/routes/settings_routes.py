@@ -28,8 +28,8 @@ SETTINGS_PASSWORD_FILE = Path(__file__).parent.parent.parent / "settings_passwor
 # This is NOT configuration - just preset values to help users fill the form
 HARDWARE_MATRIX = {
     "vram_96": {
-        "dsgvo_compliant": {
-            "label": "96 GB VRAM (DSGVO-compliant, local models)",
+        "dsgvo_local": {
+            "label": "96 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -43,8 +43,23 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
+        "dsgvo_cloud": {
+            "label": "96 GB VRAM (DSGVO, AWS Bedrock EU)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "bedrock",
+            "DSGVO_CONFORMITY": True
+        },
         "non_dsgvo": {
-            "label": "96 GB VRAM (Non-DSGVO, OpenRouter aggregator)",
+            "label": "96 GB VRAM (non-DSGVO, OpenRouter)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -60,8 +75,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_32": {
-        "dsgvo_compliant": {
-            "label": "32 GB VRAM (DSGVO-compliant)",
+        "dsgvo_local": {
+            "label": "32 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -75,16 +90,31 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "32 GB VRAM (Cloud allowed)",
+        "dsgvo_cloud": {
+            "label": "32 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "bedrock",
+            "DSGVO_CONFORMITY": True
+        },
+        "non_dsgvo": {
+            "label": "32 GB VRAM (non-DSGVO, OpenRouter)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -92,8 +122,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_24": {
-        "dsgvo_compliant": {
-            "label": "24 GB VRAM (DSGVO-compliant, local models)",
+        "dsgvo_local": {
+            "label": "24 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/mistral-nemo",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -107,16 +137,31 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "24 GB VRAM (Cloud allowed)",
+        "dsgvo_cloud": {
+            "label": "24 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "bedrock",
+            "DSGVO_CONFORMITY": True
+        },
+        "non_dsgvo": {
+            "label": "24 GB VRAM (non-DSGVO, OpenRouter)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -124,8 +169,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_16": {
-        "dsgvo_compliant": {
-            "label": "16 GB VRAM (DSGVO-compliant, local models)",
+        "dsgvo_local": {
+            "label": "16 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/gemma:9b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -139,16 +184,31 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "16 GB VRAM (Cloud allowed)",
+        "dsgvo_cloud": {
+            "label": "16 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "bedrock",
+            "DSGVO_CONFORMITY": True
+        },
+        "non_dsgvo": {
+            "label": "16 GB VRAM (non-DSGVO, OpenRouter)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -156,8 +216,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_8": {
-        "dsgvo_compliant": {
-            "label": "8 GB VRAM (DSGVO-compliant, local only)",
+        "dsgvo_local": {
+            "label": "8 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/gemma:2b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
@@ -171,16 +231,31 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "8 GB VRAM (Cloud allowed)",
+        "dsgvo_cloud": {
+            "label": "8 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+            },
+            "EXTERNAL_LLM_PROVIDER": "bedrock",
+            "DSGVO_CONFORMITY": True
+        },
+        "non_dsgvo": {
+            "label": "8 GB VRAM (non-DSGVO, OpenRouter)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
