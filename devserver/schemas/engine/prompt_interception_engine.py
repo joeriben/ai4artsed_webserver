@@ -97,7 +97,11 @@ class PromptInterceptionEngine:
             self.ollama_models = self.model_selector.get_ollama_models()
 
             # Route based on provider prefix
-            if request.model.startswith("anthropic/"):
+            if request.model.startswith("bedrock/"):
+                output_text, model_used = await self._call_aws_bedrock(
+                    full_prompt, real_model_name, request.debug
+                )
+            elif request.model.startswith("anthropic/"):
                 output_text, model_used = await self._call_anthropic(
                     full_prompt, real_model_name, request.debug
                 )
@@ -317,6 +321,70 @@ class PromptInterceptionEngine:
 
         except Exception as e:
             logger.error(f"OpenAI API call failed: {e}")
+            raise e
+
+    async def _call_aws_bedrock(self, prompt: str, model: str, debug: bool) -> Tuple[str, str]:
+        """AWS Bedrock API Call for Anthropic Claude (EU region: eu-central-1)
+
+        IMPORTANT:
+        - Credentials loaded from environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+        - Region: eu-central-1
+        - Model ID must be exact Bedrock model ID (e.g., eu.anthropic.claude-sonnet-4-5-20250929-v1:0)
+        """
+        try:
+            logger.info(f"[BACKEND] ☁️  AWS Bedrock Request: {model}")
+
+            # Import boto3 (AWS SDK)
+            try:
+                import boto3
+            except ImportError:
+                raise Exception("boto3 not installed. Run: pip install boto3")
+
+            # Create Bedrock Runtime client
+            # boto3 automatically loads credentials from environment:
+            # - AWS_ACCESS_KEY_ID
+            # - AWS_SECRET_ACCESS_KEY
+            # - AWS_SESSION_TOKEN (optional)
+            bedrock = boto3.client(
+                service_name="bedrock-runtime",
+                region_name="eu-central-1"
+            )
+
+            # Model ID is used as-is (exact Bedrock model ID)
+            # Example: eu.anthropic.claude-sonnet-4-5-20250929-v1:0
+            bedrock_model_id = model
+
+            # Build request body (Anthropic Messages API format)
+            request_body = {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 4096,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            }
+
+            # Call Bedrock
+            response = bedrock.invoke_model(
+                modelId=bedrock_model_id,
+                body=json.dumps(request_body)
+            )
+
+            # Parse response
+            response_body = json.loads(response['body'].read())
+            output_text = response_body['content'][0]['text']
+
+            logger.info(f"[BACKEND] ✅ AWS Bedrock Success: {model} ({len(output_text)} chars)")
+
+            if debug:
+                self._log_debug("AWS Bedrock", model, prompt, output_text)
+
+            return output_text, model
+
+        except Exception as e:
+            logger.error(f"AWS Bedrock API call failed: {e}")
             raise e
 
     def _get_api_credentials(self, provider: str) -> Tuple[str, str]:

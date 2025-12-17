@@ -103,3 +103,5 @@ devserver/schemas/configs/tmp/
 # Archived/obsolete files
 **/archive/
 **/*.OBSOLETE
+aws_bedrock.key
+setup_aws_env.sh

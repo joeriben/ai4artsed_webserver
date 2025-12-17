@@ -56,6 +56,7 @@ class BackendType(Enum):
     OPENROUTER = "openrouter"
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
+    AWS_BEDROCK = "bedrock"
     COMFYUI = "comfyui"
 
 @dataclass
@@ -102,8 +103,8 @@ class BackendRouter:
             # This allows execution_mode to override the template's backend_type
             actual_backend = self._detect_backend_from_model(request.model, request.backend_type)
 
-            # Schema-Pipelines: Ollama/OpenRouter/Anthropic/OpenAI über Prompt Interception Engine
-            if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER, BackendType.ANTHROPIC, BackendType.OPENAI]:
+            # Schema-Pipelines: All LLM providers via Prompt Interception Engine
+            if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER, BackendType.ANTHROPIC, BackendType.OPENAI, BackendType.AWS_BEDROCK]:
                 # Create modified request with detected backend for proper routing
                 modified_request = BackendRequest(
                     backend_type=actual_backend,
@@ -137,6 +138,7 @@ class BackendRouter:
 
         Supported prefixes:
         - local/model-name → OLLAMA (local inference)
+        - bedrock/model-name → AWS_BEDROCK (Anthropic via AWS Bedrock, EU region)
         - anthropic/model-name → ANTHROPIC (direct API)
         - openai/model-name → OPENAI (direct API)
         - openrouter/provider/model-name → OPENROUTER (aggregator API)
@@ -150,12 +152,15 @@ class BackendRouter:
         """
         # Empty model or prefix-only → use fallback
         # This is important for Proxy-Chunks (output_image) which have empty model
-        if not model or model in ["local/", "openrouter/", "anthropic/", "openai/", ""]:
+        if not model or model in ["local/", "bedrock/", "openrouter/", "anthropic/", "openai/", ""]:
             logger.debug(f"[BACKEND-DETECT] Model '{model}' empty or prefix-only → {fallback_backend.value} (fallback)")
             return fallback_backend
 
         # Check provider prefixes
-        if model.startswith("anthropic/"):
+        if model.startswith("bedrock/"):
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → AWS_BEDROCK (Anthropic via AWS EU)")
+            return BackendType.AWS_BEDROCK
+        elif model.startswith("anthropic/"):
             logger.debug(f"[BACKEND-DETECT] Model '{model}' → ANTHROPIC (direct API)")
             return BackendType.ANTHROPIC
         elif model.startswith("openai/"):
