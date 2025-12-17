@@ -69,9 +69,16 @@ def create_app():
     app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    
+    app.config['SESSION_COOKIE_PATH'] = '/'
+    app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours
+
     # Enable CORS with session support
-    CORS(app, supports_credentials=True)
+    # Must explicitly set origins when using credentials (cannot use wildcard)
+    CORS(app,
+         supports_credentials=True,
+         origins=['http://localhost:17802', 'http://127.0.0.1:17802', 'http://localhost:5173', 'https://lab.ai4artsed.org'],
+         allow_headers=['Content-Type'],
+         expose_headers=['Set-Cookie'])
 
     # Environment-based API caching strategy
     @app.after_request

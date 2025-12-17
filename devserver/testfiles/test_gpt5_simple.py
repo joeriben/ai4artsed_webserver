@@ -8,7 +8,7 @@ async def test_direct_api():
     """Test OpenRouter GPT-5 Image API directly"""
 
     # Load API key
-    key_file = Path(__file__).parent / "openrouter_api.key"
+    key_file = Path(__file__).parent / "openrouter.key"
     api_key = key_file.read_text().strip()
 
     print(f"API Key: {api_key[:10]}...")

@@ -949,10 +949,13 @@ class BackendRouter:
             # Get API key from .key file based on provider
             provider = api_config.get('provider', 'openrouter')
             if provider == 'openai':
-                key_file = 'openai_api.key'
+                key_file = 'openai.key'
                 key_name = 'OpenAI'
+            elif provider == 'anthropic':
+                key_file = 'anthropic.key'
+                key_name = 'Anthropic'
             else:
-                key_file = 'openrouter_api.key'
+                key_file = 'openrouter.key'
                 key_name = 'OpenRouter'
 
             api_key = self._load_api_key(key_file)

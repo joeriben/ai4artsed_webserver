@@ -132,7 +132,15 @@ const messages = {
       back: 'Zurück',
       loading: 'Lädt...',
       error: 'Fehler',
-      retry: 'Erneut versuchen'
+      retry: 'Erneut versuchen',
+      cancel: 'Abbrechen'
+    },
+    settings: {
+      authRequired: 'Authentifizierung erforderlich',
+      authPrompt: 'Bitte geben Sie das Passwort ein, um auf die Einstellungen zuzugreifen:',
+      passwordPlaceholder: 'Passwort eingeben...',
+      authenticate: 'Anmelden',
+      authenticating: 'Authentifiziere...'
     },
     pipeline: {
       yourInput: 'Dein Input',
@@ -144,7 +152,8 @@ const messages = {
       impressum: 'Impressum',
       privacy: 'Datenschutz',
       docs: 'Dokumentation',
-      language: 'Sprache wechseln'
+      language: 'Sprache wechseln',
+      settings: 'Einstellungen'
     },
     about: {
       title: 'Über AI4ArtsEd',
@@ -350,7 +359,15 @@ const messages = {
       back: 'Back',
       loading: 'Loading...',
       error: 'Error',
-      retry: 'Retry'
+      retry: 'Retry',
+      cancel: 'Cancel'
+    },
+    settings: {
+      authRequired: 'Authentication Required',
+      authPrompt: 'Please enter the password to access settings:',
+      passwordPlaceholder: 'Enter password...',
+      authenticate: 'Sign In',
+      authenticating: 'Authenticating...'
     },
     pipeline: {
       yourInput: 'Your input',
@@ -362,7 +379,8 @@ const messages = {
       impressum: 'Imprint',
       privacy: 'Privacy',
       docs: 'Documentation',
-      language: 'Switch language'
+      language: 'Switch language',
+      settings: 'Settings'
     },
     about: {
       title: 'About AI4ArtsEd',

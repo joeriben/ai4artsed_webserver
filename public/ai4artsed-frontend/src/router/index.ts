@@ -62,6 +62,7 @@ const router = createRouter({
       name: 'settings',
       // Configuration settings page
       component: () => import('../views/SettingsView.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/impressum',
@@ -81,6 +82,28 @@ const router = createRouter({
   ],
 })
 
+// Check authentication for protected routes
+router.beforeEach(async (to, from, next) => {
+  if (to.meta.requiresAuth) {
+    try {
+      const response = await fetch('/api/settings/check-auth', {
+        credentials: 'include'
+      })
+      const data = await response.json()
 
+      if (data.authenticated) {
+        next()
+      } else {
+        // Redirect to home with auth requirement query param
+        next({ name: 'property-selection', query: { authRequired: 'settings' } })
+      }
+    } catch (e) {
+      console.error('Auth check failed:', e)
+      next({ name: 'property-selection' })
+    }
+  } else {
+    next()
+  }
+})
 
 export default router

@@ -2,7 +2,8 @@
 Settings API Routes
 Configuration management for AI4ArtsEd DevServer
 """
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
+from functools import wraps
 import json
 import logging
 from pathlib import Path
@@ -15,8 +16,13 @@ settings_bp = Blueprint('settings', __name__, url_prefix='/api/settings')
 # Path to user_settings.json
 SETTINGS_FILE = Path(__file__).parent.parent.parent / "user_settings.json"
 
-# Path to openrouter.key
+# Path to API key files
 OPENROUTER_KEY_FILE = Path(__file__).parent.parent.parent / "openrouter.key"
+ANTHROPIC_KEY_FILE = Path(__file__).parent.parent.parent / "anthropic.key"
+OPENAI_KEY_FILE = Path(__file__).parent.parent.parent / "openai.key"
+
+# Path to settings password file
+SETTINGS_PASSWORD_FILE = Path(__file__).parent.parent.parent / "settings_password.key"
 
 # Hardware Matrix - 2D Fill-Helper for UI (VRAM × DSGVO)
 # This is NOT configuration - just preset values to help users fill the form
@@ -33,7 +39,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "local/llama3.2-vision:90b",
                 "CHAT_HELPER_MODEL": "local/llama3.2-vision:90b",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "none",
+            "DSGVO_CONFORMITY": True
         },
         "non_dsgvo": {
             "label": "96 GB VRAM (Cloud allowed)",
@@ -46,7 +54,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "openrouter",
+            "DSGVO_CONFORMITY": False
         }
     },
     "vram_32": {
@@ -61,7 +71,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "local/llama3.2-vision:90b",
                 "CHAT_HELPER_MODEL": "local/llama3.2-vision:90b",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "none",
+            "DSGVO_CONFORMITY": True
         },
         "non_dsgvo": {
             "label": "32 GB VRAM (Cloud allowed)",
@@ -74,7 +86,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "openrouter",
+            "DSGVO_CONFORMITY": False
         }
     },
     "vram_24": {
@@ -89,7 +103,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "local/mistral-nemo",
                 "CHAT_HELPER_MODEL": "local/mistral-nemo",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "none",
+            "DSGVO_CONFORMITY": True
         },
         "non_dsgvo": {
             "label": "24 GB VRAM (Cloud allowed)",
@@ -102,7 +118,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "openrouter",
+            "DSGVO_CONFORMITY": False
         }
     },
     "vram_16": {
@@ -117,7 +135,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "local/gemma:9b",
                 "CHAT_HELPER_MODEL": "local/gemma:9b",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "none",
+            "DSGVO_CONFORMITY": True
         },
         "non_dsgvo": {
             "label": "16 GB VRAM (Cloud allowed)",
@@ -130,7 +150,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "openrouter",
+            "DSGVO_CONFORMITY": False
         }
     },
     "vram_8": {
@@ -145,7 +167,9 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "local/gemma:2b",
                 "CHAT_HELPER_MODEL": "local/gemma:2b",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "none",
+            "DSGVO_CONFORMITY": True
         },
         "non_dsgvo": {
             "label": "8 GB VRAM (Cloud allowed)",
@@ -158,13 +182,70 @@ HARDWARE_MATRIX = {
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
-            }
+            },
+            "EXTERNAL_LLM_PROVIDER": "openrouter",
+            "DSGVO_CONFORMITY": False
         }
     }
 }
 
 
+# Authentication decorator
+def require_settings_auth(f):
+    """Decorator to protect settings routes with password authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('settings_authenticated', False):
+            return jsonify({"error": "Authentication required"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@settings_bp.route('/auth', methods=['POST'])
+def authenticate():
+    """Authenticate with settings password"""
+    try:
+        data = request.get_json()
+        password = data.get('password', '')
+
+        if not SETTINGS_PASSWORD_FILE.exists():
+            logger.error("[SETTINGS] Password file not found")
+            return jsonify({"error": "Configuration error"}), 500
+
+        with open(SETTINGS_PASSWORD_FILE) as f:
+            correct_password = f.read().strip()
+
+        if password == correct_password:
+            session['settings_authenticated'] = True
+            session.permanent = True  # Remember across browser restarts
+            logger.info("[SETTINGS] Authentication successful")
+            return jsonify({"success": True}), 200
+        else:
+            logger.warning("[SETTINGS] Authentication failed - incorrect password")
+            return jsonify({"error": "Incorrect password"}), 403
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Authentication error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/logout', methods=['POST'])
+def logout():
+    """Clear settings authentication"""
+    session.pop('settings_authenticated', None)
+    logger.info("[SETTINGS] User logged out")
+    return jsonify({"success": True}), 200
+
+
+@settings_bp.route('/check-auth', methods=['GET'])
+def check_auth():
+    """Check if currently authenticated"""
+    authenticated = session.get('settings_authenticated', False)
+    return jsonify({"authenticated": authenticated}), 200
+
+
 @settings_bp.route('/', methods=['GET'])
+@require_settings_auth
 def get_settings():
     """Get current configuration and hardware matrix"""
     try:
@@ -194,6 +275,8 @@ def get_settings():
             "LLM_PROVIDER": config.LLM_PROVIDER,
             "OLLAMA_API_BASE_URL": config.OLLAMA_API_BASE_URL,
             "LMSTUDIO_API_BASE_URL": config.LMSTUDIO_API_BASE_URL,
+            "EXTERNAL_LLM_PROVIDER": config.EXTERNAL_LLM_PROVIDER,
+            "DSGVO_CONFORMITY": config.DSGVO_CONFORMITY,
         }
 
         return jsonify({
@@ -207,6 +290,7 @@ def get_settings():
 
 
 @settings_bp.route('/', methods=['POST'])
+@require_settings_auth
 def save_settings():
     """Save all settings to user_settings.json"""
     try:
@@ -215,13 +299,27 @@ def save_settings():
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
-        # Extract OpenRouter API Key if present (saved separately for security)
+        # Extract API Keys if present (saved separately for security)
         openrouter_key = data.pop('OPENROUTER_API_KEY', None)
         if openrouter_key:
             OPENROUTER_KEY_FILE.parent.mkdir(exist_ok=True)
             with open(OPENROUTER_KEY_FILE, 'w') as f:
                 f.write(openrouter_key.strip())
             logger.info("[SETTINGS] OpenRouter API Key updated")
+
+        anthropic_key = data.pop('ANTHROPIC_API_KEY', None)
+        if anthropic_key:
+            ANTHROPIC_KEY_FILE.parent.mkdir(exist_ok=True)
+            with open(ANTHROPIC_KEY_FILE, 'w') as f:
+                f.write(anthropic_key.strip())
+            logger.info("[SETTINGS] Anthropic API Key updated")
+
+        openai_key = data.pop('OPENAI_API_KEY', None)
+        if openai_key:
+            OPENAI_KEY_FILE.parent.mkdir(exist_ok=True)
+            with open(OPENAI_KEY_FILE, 'w') as f:
+                f.write(openai_key.strip())
+            logger.info("[SETTINGS] OpenAI API Key updated")
 
         # Write all other settings to user_settings.json
         SETTINGS_FILE.parent.mkdir(exist_ok=True)
@@ -241,6 +339,7 @@ def save_settings():
 
 
 @settings_bp.route('/openrouter-key', methods=['GET'])
+@require_settings_auth
 def get_openrouter_key():
     """Get masked OpenRouter API Key for display"""
     try:
@@ -263,4 +362,58 @@ def get_openrouter_key():
 
     except Exception as e:
         logger.error(f"[SETTINGS] Error reading OpenRouter key: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/anthropic-key', methods=['GET'])
+@require_settings_auth
+def get_anthropic_key():
+    """Get masked Anthropic API Key for display"""
+    try:
+        if not ANTHROPIC_KEY_FILE.exists():
+            return jsonify({"exists": False}), 200
+
+        with open(ANTHROPIC_KEY_FILE) as f:
+            key = f.read().strip()
+
+        # Return masked version (show only first 7 and last 4 chars)
+        if len(key) > 11:
+            masked = f"{key[:7]}...{key[-4:]}"
+        else:
+            masked = "***"
+
+        return jsonify({
+            "exists": True,
+            "masked": masked
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error reading Anthropic key: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/openai-key', methods=['GET'])
+@require_settings_auth
+def get_openai_key():
+    """Get masked OpenAI API Key for display"""
+    try:
+        if not OPENAI_KEY_FILE.exists():
+            return jsonify({"exists": False}), 200
+
+        with open(OPENAI_KEY_FILE) as f:
+            key = f.read().strip()
+
+        # Return masked version (show only first 7 and last 4 chars)
+        if len(key) > 11:
+            masked = f"{key[:7]}...{key[-4:]}"
+        else:
+            masked = "***"
+
+        return jsonify({
+            "exists": True,
+            "masked": masked
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error reading OpenAI key: {e}")
         return jsonify({"error": str(e)}), 500

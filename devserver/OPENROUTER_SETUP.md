@@ -10,11 +10,11 @@
 5. Copy your API key (starts with `sk-or-v1-...`)
 
 ### 2. Create the key file
-In the devserver directory, create a file named `openrouter_api.key`:
+In the devserver directory, create a file named `openrouter.key`:
 
 ```bash
 cd /home/joerissen/ai/ai4artsed_webserver/devserver
-nano openrouter_api.key
+nano openrouter.key
 ```
 
 Paste your API key (just the key, nothing else), save and exit.
@@ -64,7 +64,7 @@ curl -X POST http://localhost:5000/api/workflow \
 ## Troubleshooting
 
 **"OpenRouter API key not found"**
-- Make sure `openrouter_api.key` file exists in devserver root
+- Make sure `openrouter.key` file exists in devserver root
 - Check the file contains only your API key (no quotes, no spaces)
 
 **"API error: 401"**
@@ -79,4 +79,4 @@ curl -X POST http://localhost:5000/api/workflow \
 
 - The `.key` file is excluded from git (in `.gitignore`)
 - Never commit API keys to the repository
-- Each user needs their own `openrouter_api.key` file
+- Each user needs their own `openrouter.key` file

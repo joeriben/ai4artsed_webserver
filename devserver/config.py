@@ -250,6 +250,14 @@ UPLOADS_TMP_DIR = EXPORTS_DIR / "uploads_tmp"  # Temporary image uploads for img
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "ollama")  # Ollama supports keep_alive for VRAM management
 OLLAMA_API_BASE_URL = os.environ.get("OLLAMA_API_BASE_URL", "http://localhost:11434")
 LMSTUDIO_API_BASE_URL = os.environ.get("LMSTUDIO_API_BASE_URL", "http://localhost:1234")
+
+# External LLM Provider for cloud-based models
+# Options: "none", "openrouter", "anthropic", "openai"
+EXTERNAL_LLM_PROVIDER = os.environ.get("EXTERNAL_LLM_PROVIDER", "none")
+
+# DSGVO Conformity - determines if cloud services are allowed
+# True = DSGVO-compliant (no cloud services), False = Cloud services allowed
+DSGVO_CONFORMITY = os.environ.get("DSGVO_CONFORMITY", "true").lower() == "true"
 COMFYUI_PREFIX = "comfyui"
 COMFYUI_PORT = "7821"  # SwarmUI integrated ComfyUI (RTX 5090 compatible)
 SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)

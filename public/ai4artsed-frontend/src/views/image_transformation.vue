@@ -245,7 +245,7 @@ interface Category {
 
 const availableCategories: Category[] = [
   { id: 'image', label: 'Bild', emoji: '🖼️', color: '#4CAF50' },
-  { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0', disabled: true },
+  { id: 'video', label: 'Video', emoji: '🎬', color: '#9C27B0' },
   { id: 'sound', label: 'Sound', emoji: '🔊', color: '#FF9800', disabled: true }
 ]
 
@@ -290,7 +290,20 @@ const configsByCategory: Record<string, ModelConfig[]> = {
       lightBg: false
     }
   ],
-  video: [],  // Future
+  video: [
+    {
+      id: 'wan22_i2v_video',
+      label: 'WAN 2.2',
+      emoji: '🎬',
+      name: 'WAN 2.2 Image-to-Video (14B)',
+      quality: 4,
+      speed: 3,
+      duration: '35',
+      color: '#9C27B0',
+      logo: '/logos/wan_logo.png',
+      lightBg: false
+    }
+  ],
   sound: []   // Future
 }
 

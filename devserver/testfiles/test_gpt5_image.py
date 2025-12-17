@@ -22,15 +22,15 @@ async def test_gpt5_image_direct():
     print("=" * 80)
 
     # Check for API key file
-    key_file = project_root / "openrouter_api.key"
+    key_file = project_root / "openrouter.key"
     if not key_file.exists():
-        print("\n❌ ERROR: openrouter_api.key file not found!")
+        print("\n❌ ERROR: openrouter.key file not found!")
         print(f"Please create it at: {key_file}")
         print("Content: just paste your OpenRouter API key (one line)")
         return False
 
     api_key = key_file.read_text().strip()
-    print(f"\n✓ openrouter_api.key found: {api_key[:10]}...")
+    print(f"\n✓ openrouter.key found: {api_key[:10]}...")
 
     # Test prompt
     test_prompt = "A serene mountain landscape at sunset with golden light reflecting on a calm lake, photorealistic, highly detailed"
@@ -84,12 +84,12 @@ async def test_gpt5_via_executor():
     print("=" * 80)
 
     # Check for API key file
-    key_file = project_root / "openrouter_api.key"
+    key_file = project_root / "openrouter.key"
     if not key_file.exists():
-        print("\n❌ ERROR: openrouter_api.key file not found!")
+        print("\n❌ ERROR: openrouter.key file not found!")
         return False
 
-    print(f"\n✓ openrouter_api.key found")
+    print(f"\n✓ openrouter.key found")
 
     from schemas.engine.pipeline_executor import PipelineExecutor
 

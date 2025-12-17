@@ -26,6 +26,7 @@
             <button @click="openAbout" class="nav-link" :title="$t('nav.about')">ⓘ</button>
             <button @click="openDatenschutz" class="nav-link" :title="$t('nav.privacy')">🔒</button>
             <button @click="openDokumentation" class="nav-link" :title="$t('nav.docs')">📖</button>
+            <router-link to="/settings" class="nav-link" :title="$t('nav.settings')">⚙️</router-link>
             <button @click="toggleLanguage" class="nav-link lang-toggle" :title="$t('nav.language')">
               {{ currentLanguage === 'de' ? 'EN' : 'DE' }}
             </button>
@@ -53,6 +54,7 @@
     <DatenschutzModal v-model="showDatenschutz" />
     <DokumentationModal v-model="showDokumentation" />
     <ImpressumModal v-model="showImpressum" />
+    <SettingsAuthModal v-model="showSettingsAuth" @authenticated="onSettingsAuthenticated" />
   </div>
 </template>
 
@@ -68,20 +70,25 @@
  * Session 82: Added ChatOverlay global component for interactive LLM help
  * Session 86: Integrated return button into global header (always visible)
  */
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import ChatOverlay from './components/ChatOverlay.vue'
 import AboutModal from './components/AboutModal.vue'
 import DatenschutzModal from './components/DatenschutzModal.vue'
 import DokumentationModal from './components/DokumentationModal.vue'
 import ImpressumModal from './components/ImpressumModal.vue'
+import SettingsAuthModal from './components/SettingsAuthModal.vue'
 
 const { locale, t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const currentLanguage = computed(() => locale.value)
 const showAbout = ref(false)
 const showDatenschutz = ref(false)
 const showDokumentation = ref(false)
 const showImpressum = ref(false)
+const showSettingsAuth = ref(false)
 
 function toggleLanguage() {
   locale.value = locale.value === 'de' ? 'en' : 'de'
@@ -101,6 +108,18 @@ function openDokumentation() {
 
 function openImpressum() {
   showImpressum.value = true
+}
+
+// Watch for auth requirement from router guard
+watch(() => route.query.authRequired, (authRequired) => {
+  if (authRequired === 'settings') {
+    showSettingsAuth.value = true
+  }
+})
+
+// Handle successful authentication
+function onSettingsAuthenticated() {
+  router.push('/settings')
 }
 </script>
 
