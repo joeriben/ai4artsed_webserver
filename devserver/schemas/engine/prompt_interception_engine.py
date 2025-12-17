@@ -95,8 +95,17 @@ class PromptInterceptionEngine:
             # Backend-spezifische Verarbeitung (check fresh model lists)
             self.openrouter_models = self.model_selector.get_openrouter_models()
             self.ollama_models = self.model_selector.get_ollama_models()
-            
-            if request.model.startswith("openrouter/") or real_model_name in self.openrouter_models:
+
+            # Route based on provider prefix
+            if request.model.startswith("anthropic/"):
+                output_text, model_used = await self._call_anthropic(
+                    full_prompt, real_model_name, request.debug
+                )
+            elif request.model.startswith("openai/"):
+                output_text, model_used = await self._call_openai(
+                    full_prompt, real_model_name, request.debug
+                )
+            elif request.model.startswith("openrouter/") or real_model_name in self.openrouter_models:
                 output_text, model_used = await self._call_openrouter(
                     full_prompt, real_model_name, request.debug
                 )
@@ -228,20 +237,136 @@ class PromptInterceptionEngine:
             else:
                 raise e
     
-    def _get_openrouter_credentials(self) -> Tuple[str, str]:
-        """OpenRouter Credentials aus Environment oder Key-File"""
-        api_url = "https://openrouter.ai/api/v1/chat/completions"
-        
+    async def _call_anthropic(self, prompt: str, model: str, debug: bool) -> Tuple[str, str]:
+        """Anthropic API Call (direct, DSGVO-compliant with EU region)"""
+        try:
+            logger.info(f"[BACKEND] ☁️  Anthropic Request: {model}")
+
+            api_url, api_key = self._get_api_credentials("anthropic")
+
+            if not api_key:
+                raise Exception("Anthropic API Key not configured")
+
+            headers = {
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "model": model,
+                "max_tokens": 4096,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ]
+            }
+
+            response = requests.post(api_url, headers=headers, data=json.dumps(payload))
+            if response.status_code == 200:
+                result = response.json()
+                output_text = result["content"][0]["text"]
+                logger.info(f"[BACKEND] ✅ Anthropic Success: {model} ({len(output_text)} chars)")
+
+                if debug:
+                    self._log_debug("Anthropic", model, prompt, output_text)
+
+                return output_text, model
+            else:
+                raise Exception(f"API Error: {response.status_code}\n{response.text}")
+
+        except Exception as e:
+            logger.error(f"Anthropic API call failed: {e}")
+            raise e
+
+    async def _call_openai(self, prompt: str, model: str, debug: bool) -> Tuple[str, str]:
+        """OpenAI API Call (direct)"""
+        try:
+            logger.info(f"[BACKEND] ☁️  OpenAI Request: {model}")
+
+            api_url, api_key = self._get_api_credentials("openai")
+
+            if not api_key:
+                raise Exception("OpenAI API Key not configured")
+
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+
+            messages = [
+                {"role": "user", "content": prompt}
+            ]
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": 0.7
+            }
+
+            response = requests.post(api_url, headers=headers, data=json.dumps(payload))
+            if response.status_code == 200:
+                result = response.json()
+                output_text = result["choices"][0]["message"]["content"]
+                logger.info(f"[BACKEND] ✅ OpenAI Success: {model} ({len(output_text)} chars)")
+
+                if debug:
+                    self._log_debug("OpenAI", model, prompt, output_text)
+
+                return output_text, model
+            else:
+                raise Exception(f"API Error: {response.status_code}\n{response.text}")
+
+        except Exception as e:
+            logger.error(f"OpenAI API call failed: {e}")
+            raise e
+
+    def _get_api_credentials(self, provider: str) -> Tuple[str, str]:
+        """Get API credentials for any provider (openrouter, anthropic, openai)
+
+        Args:
+            provider: Provider name ("openrouter", "anthropic", "openai")
+
+        Returns:
+            Tuple of (api_url, api_key)
+        """
+        # Provider-specific configuration
+        provider_config = {
+            "openrouter": {
+                "url": "https://openrouter.ai/api/v1/chat/completions",
+                "key_file": "openrouter.key",
+                "env_var": "OPENROUTER_API_KEY",
+                "key_prefix": "sk-or-"
+            },
+            "anthropic": {
+                "url": "https://api.anthropic.com/v1/messages",
+                "key_file": "anthropic.key",
+                "env_var": "ANTHROPIC_API_KEY",
+                "key_prefix": "sk-ant-"
+            },
+            "openai": {
+                "url": "https://api.openai.com/v1/chat/completions",
+                "key_file": "openai.key",
+                "env_var": "OPENAI_API_KEY",
+                "key_prefix": "sk-"
+            }
+        }
+
+        if provider not in provider_config:
+            logger.error(f"Unknown provider: {provider}")
+            return "", ""
+
+        config = provider_config[provider]
+        api_url = config["url"]
+
         # 1. Try Environment Variable
-        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        api_key = os.environ.get(config["env_var"], "")
         if api_key:
-            logger.debug("OpenRouter API Key from environment variable")
+            logger.debug(f"{provider.title()} API Key from environment variable")
             return api_url, api_key
-        
-        # 2. Try Key-File (devserver/openrouter.key)
+
+        # 2. Try Key-File (devserver/{provider}.key)
         try:
             # Relative to devserver root
-            key_file = Path(__file__).parent.parent.parent / "openrouter.key"
+            key_file = Path(__file__).parent.parent.parent / config["key_file"]
             if key_file.exists():
                 # Read file and skip comment lines
                 lines = key_file.read_text().strip().split('\n')
@@ -250,22 +375,28 @@ class PromptInterceptionEngine:
                     line = line.strip()
                     # Skip empty lines and comments
                     if line and not line.startswith('#') and not line.startswith('//'):
-                        # Check if this looks like an API key (starts with sk-or- or sk-ant-)
-                        if line.startswith("sk-"):
+                        # Check if this looks like a valid API key for this provider
+                        if line.startswith(config["key_prefix"]) or line.startswith("sk-"):
                             api_key = line
                             break
-                
+
                 if api_key:
-                    logger.info(f"OpenRouter API Key loaded from {key_file}")
+                    logger.info(f"{provider.title()} API Key loaded from {key_file.name}")
                     return api_url, api_key
                 else:
-                    logger.error(f"No valid API key found in {key_file} (looking for lines starting with 'sk-')")
+                    logger.error(f"No valid API key found in {key_file} (looking for keys starting with '{config['key_prefix']}')")
+            else:
+                logger.debug(f"{provider.title()} key file not found: {key_file}")
         except Exception as e:
-            logger.warning(f"Failed to read openrouter.key: {e}")
-        
+            logger.warning(f"Failed to read {config['key_file']}: {e}")
+
         # 3. No key found
-        logger.error("OpenRouter API Key not found! Set OPENROUTER_API_KEY environment variable or create devserver/openrouter.key file")
+        logger.error(f"{provider.title()} API Key not found! Set {config['env_var']} environment variable or create devserver/{config['key_file']} file")
         return api_url, ""
+
+    def _get_openrouter_credentials(self) -> Tuple[str, str]:
+        """OpenRouter Credentials - Legacy wrapper for backward compatibility"""
+        return self._get_api_credentials("openrouter")
     
     def _find_openrouter_fallback(self, failed_model: str, debug: bool) -> str:
         """Use centralized OpenRouter fallback logic"""

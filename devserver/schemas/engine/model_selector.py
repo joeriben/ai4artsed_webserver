@@ -343,16 +343,26 @@ class ModelSelector:
     
     def strip_prefix(self, model: str) -> str:
         """
-        Remove local/ or openrouter/ prefix from model string
-        
+        Remove provider prefix from model string
+
+        Supported prefixes:
+        - local/
+        - anthropic/
+        - openai/
+        - openrouter/
+
         Args:
             model: Model string with or without prefix
-            
+
         Returns:
             Model name without prefix
         """
         if model.startswith("local/"):
             return model[6:]
+        elif model.startswith("anthropic/"):
+            return model[10:]
+        elif model.startswith("openai/"):
+            return model[7:]
         elif model.startswith("openrouter/"):
             return model[11:]
         return model
@@ -462,22 +472,28 @@ class ModelSelector:
     def extract_model_name(self, full_model_string: str) -> str:
         """
         Extract real model name from dropdown format
-        Transferred from prompt_interception_engine
-        
+        Supports all provider prefixes: local/, anthropic/, openai/, openrouter/
+
         Args:
             full_model_string: Model string (may have prefix and metadata)
-            
+
         Returns:
-            Clean model name
+            Clean model name without prefix or metadata
         """
-        if full_model_string.startswith("openrouter/"):
+        if full_model_string.startswith("anthropic/"):
+            without_prefix = full_model_string[10:]
+            return without_prefix.split(" [")[0]
+        elif full_model_string.startswith("openai/"):
+            without_prefix = full_model_string[7:]
+            return without_prefix.split(" [")[0]
+        elif full_model_string.startswith("openrouter/"):
             without_prefix = full_model_string[11:]
             return without_prefix.split(" [")[0]
         elif full_model_string.startswith("local/"):
             without_prefix = full_model_string[6:]
             return without_prefix.split(" [")[0]
         else:
-            return full_model_string
+            return full_model_string.split(" [")[0]
 
 
 # Singleton instance

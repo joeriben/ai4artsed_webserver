@@ -54,6 +54,8 @@ class BackendType(Enum):
     """Backend-Typen"""
     OLLAMA = "ollama"
     OPENROUTER = "openrouter"
+    ANTHROPIC = "anthropic"
+    OPENAI = "openai"
     COMFYUI = "comfyui"
 
 @dataclass
@@ -99,9 +101,9 @@ class BackendRouter:
             # IMPORTANT: Detect actual backend from model prefix, not template backend_type
             # This allows execution_mode to override the template's backend_type
             actual_backend = self._detect_backend_from_model(request.model, request.backend_type)
-            
-            # Schema-Pipelines: Ollama/OpenRouter über Prompt Interception Engine
-            if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER]:
+
+            # Schema-Pipelines: Ollama/OpenRouter/Anthropic/OpenAI über Prompt Interception Engine
+            if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER, BackendType.ANTHROPIC, BackendType.OPENAI]:
                 # Create modified request with detected backend for proper routing
                 modified_request = BackendRequest(
                     backend_type=actual_backend,
@@ -133,24 +135,37 @@ class BackendRouter:
         Detect backend from model prefix
         This allows execution_mode to override template's backend_type
 
+        Supported prefixes:
+        - local/model-name → OLLAMA (local inference)
+        - anthropic/model-name → ANTHROPIC (direct API)
+        - openai/model-name → OPENAI (direct API)
+        - openrouter/provider/model-name → OPENROUTER (aggregator API)
+
         Args:
-            model: Model string (may have local/ or openrouter/ prefix)
+            model: Model string (may have provider prefix)
             fallback_backend: Fallback if no prefix detected
 
         Returns:
             Detected backend type
         """
-        # Empty model or prefix-only (e.g., "local/" with no model name) → use fallback
+        # Empty model or prefix-only → use fallback
         # This is important for Proxy-Chunks (output_image) which have empty model
-        if not model or model in ["local/", "openrouter/", ""]:
+        if not model or model in ["local/", "openrouter/", "anthropic/", "openai/", ""]:
             logger.debug(f"[BACKEND-DETECT] Model '{model}' empty or prefix-only → {fallback_backend.value} (fallback)")
             return fallback_backend
 
-        if model.startswith("openrouter/"):
-            logger.debug(f"[BACKEND-DETECT] Model '{model}' → OPENROUTER")
+        # Check provider prefixes
+        if model.startswith("anthropic/"):
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → ANTHROPIC (direct API)")
+            return BackendType.ANTHROPIC
+        elif model.startswith("openai/"):
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → OPENAI (direct API)")
+            return BackendType.OPENAI
+        elif model.startswith("openrouter/"):
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → OPENROUTER (aggregator)")
             return BackendType.OPENROUTER
         elif model.startswith("local/"):
-            logger.debug(f"[BACKEND-DETECT] Model '{model}' → OLLAMA")
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → OLLAMA (local)")
             return BackendType.OLLAMA
         else:
             # No prefix, use fallback

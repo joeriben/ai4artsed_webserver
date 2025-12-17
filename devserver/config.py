@@ -81,7 +81,15 @@ DEFAULT_LANGUAGE = "de"  # "de" or "en"
 #
 # Configure which models are used in each pipeline stage.
 # Chunks reference these variables by name (e.g., "model": "STAGE2_MODEL")
-# Format: "local/model-name" for Ollama, "openrouter/provider/model-name" for cloud
+#
+# Provider Prefix Format & DSGVO Compliance:
+#   - "local/model-name" → Ollama (local inference, DSGVO-compliant ✓)
+#   - "anthropic/model-name" → Anthropic API direct (EU region, DSGVO-compliant ✓)
+#   - "openai/model-name" → OpenAI API direct (US-based, NOT DSGVO-compliant ✗)
+#   - "openrouter/provider/model-name" → OpenRouter aggregator (US proxy, NOT DSGVO-compliant ✗)
+#
+# IMPORTANT: OpenRouter routes through US servers even for EU models!
+# For DSGVO compliance with cloud AI, use direct Anthropic API (anthropic/ prefix).
 #
 # Base Models:
 LOCAL_DEFAULT_MODEL = "gpt-OSS:20b"                          # Default local text model
@@ -89,9 +97,9 @@ LOCAL_VISION_MODEL = "local/llama3.2-vision:latest"                # Local visio
 REMOTE_MULTIMODAL_MODEL = "openrouter/google/gemini-2.5-flash-lite"     # Input Modalitiestext, image, file, audio, video
 REMOTE_SMALL_MODEL = "openrouter/mistralai/mistral-nemo"       # Fast, cheap cloud model
 REMOTE_LIGHT_MODEL = "openrouter/mistralai/mistral-medium-3.1"       # Fast, cheap cloud model
-REMOTE_FAST_MODEL = "openrouter/anthropic/claude-haiku-4.5"       # Fast, cheap cloud model
-REMOTE_ADVANCED_MODEL = "openrouter/anthropic/claude-sonnet-4.5"  # High-quality cloud model
-REMOTE_EXTREME_MODEL = "openrouter/anthropic/claude-opus-4.1"  # Highest-quality cloud model, VERY EXPENSIVE!
+REMOTE_FAST_MODEL = "anthropic/claude-3-5-haiku-20241022"       # Fast, cheap cloud model (direct API)
+REMOTE_ADVANCED_MODEL = "anthropic/claude-3-5-sonnet-20241022"  # High-quality cloud model (direct API)
+REMOTE_EXTREME_MODEL = "anthropic/claude-opus-4-20250514"  # Highest-quality cloud model, VERY EXPENSIVE!
 
 # Stage-Specific Models:
 STAGE1_TEXT_MODEL = REMOTE_FAST_MODEL                     # Stage 1: conditional safety checks (simple task)

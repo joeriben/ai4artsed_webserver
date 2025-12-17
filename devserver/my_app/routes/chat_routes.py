@@ -146,10 +146,15 @@ def call_openrouter_chat(messages: list, temperature: float = 0.7, max_tokens: i
     """
     try:
         # Get model from config
-        model_string = CHAT_HELPER_MODEL  # e.g., "openrouter/anthropic/claude-haiku-4.5"
+        model_string = CHAT_HELPER_MODEL  # e.g., "anthropic/claude-3-5-haiku-20241022"
 
-        # Extract model name (remove "openrouter/" prefix if present)
-        if model_string.startswith("openrouter/"):
+        # Extract model name (remove provider prefix if present)
+        # NOTE: This function currently only supports OpenRouter, but model can have any prefix
+        if model_string.startswith("anthropic/"):
+            model = model_string[len("anthropic/"):]
+        elif model_string.startswith("openai/"):
+            model = model_string[len("openai/"):]
+        elif model_string.startswith("openrouter/"):
             model = model_string[len("openrouter/"):]
         else:
             model = model_string
