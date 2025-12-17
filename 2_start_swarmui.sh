@@ -1,6 +1,9 @@
 #!/bin/bash
 # Start SwarmUI (required dependency for AI4ArtsEd)
 
+# Keep window open on error
+trap 'echo ""; echo "❌ Script failed! Press any key to close..."; read -n 1 -s -r' ERR
+
 BACKEND_PORT=7801
 
 # Get directory where this script lives (repo root)

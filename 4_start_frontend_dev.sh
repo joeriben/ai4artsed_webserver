@@ -1,6 +1,9 @@
 #!/bin/bash
 # Start Vite dev server for frontend development
 
+# Keep window open on error
+trap 'echo ""; echo "❌ Script failed! Press any key to close..."; read -n 1 -s -r' ERR
+
 VITE_PORT=5173
 BACKEND_DEV_PORT=17802
 

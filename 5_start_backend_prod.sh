@@ -2,6 +2,9 @@
 # Start Flask backend in foreground (visible terminal output)
 # PRODUCTION backend on port 17801 (for cloudflared tunnel)
 
+# Keep window open on error
+trap 'echo ""; echo "❌ Script failed! Press any key to close..."; read -n 1 -s -r' ERR
+
 BACKEND_PORT=17801
 
 # Get directory where this script lives

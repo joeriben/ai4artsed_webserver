@@ -2,6 +2,9 @@
 # Start Flask backend in foreground (visible terminal output)
 # DEV backend on port 17802 (production uses 17801)
 
+# Keep window open on error
+trap 'echo ""; echo "❌ Script failed! Press any key to close..."; read -n 1 -s -r' ERR
+
 BACKEND_PORT=17802
 
 # Get directory where this script lives

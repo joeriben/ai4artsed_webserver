@@ -1,6 +1,9 @@
 #!/bin/bash
 # Stop all AI4ArtsEd services
 
+# Keep window open on error
+trap 'echo ""; echo "❌ Script failed! Press any key to close..."; read -n 1 -s -r' ERR
+
 echo "=== Stopping All AI4ArtsEd Services ==="
 echo ""
 
