@@ -121,21 +121,6 @@
         <h2>Model Configuration</h2>
         <p class="help">Model identifiers with provider prefix: local/, bedrock/, anthropic/, openai/, openrouter/</p>
 
-        <!-- Data Localization Validation Warning -->
-        <div v-if="settings.DSGVO_CONFORMITY && hasCloudModels" class="info-box" style="background: #fff3cd; border-color: #ff9800; border-left-color: #ff9800; margin-bottom: 15px;">
-          <strong>⚠️ Datenlokalisierungs-Warnung</strong>
-          <p>Sie haben <strong>"Strenge Datenlokalisierung"</strong> aktiviert, verwenden aber Cloud-Modelle in der Konfiguration.</p>
-          <p><strong>Gefundene Cloud-Modelle:</strong></p>
-          <ul style="margin: 8px 0; padding-left: 20px;">
-            <li v-for="model in cloudModelsDetected" :key="model">{{ model }}</li>
-          </ul>
-          <p style="margin-top: 8px;"><strong>Optionen:</strong></p>
-          <ol style="margin: 4px 0 0 20px; padding: 0;">
-            <li>Ersetzen Sie diese durch lokale Modelle (Präfix: <code>local/</code>)</li>
-            <li>ODER deaktivieren Sie "Strenge Datenlokalisierung", wenn Sie DSGVO-konforme Cloud-Dienste (z.B. Anthropic EU) verwenden möchten</li>
-          </ol>
-        </div>
-
         <table class="config-table">
           <tr v-for="(label, key) in modelLabels" :key="key">
             <td class="label-cell">{{ label }}</td>
