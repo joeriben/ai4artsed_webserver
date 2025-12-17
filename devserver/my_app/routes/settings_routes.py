@@ -492,3 +492,68 @@ def get_openai_key():
     except Exception as e:
         logger.error(f"[SETTINGS] Error reading OpenAI key: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/aws-credentials', methods=['POST'])
+@require_settings_auth
+def upload_aws_credentials():
+    """Upload AWS credentials CSV (from AWS IAM Console)"""
+    try:
+        if 'csv' not in request.files:
+            return jsonify({"error": "No CSV file provided"}), 400
+
+        file = request.files['csv']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+
+        # Read CSV content
+        import csv
+        import io
+        content = file.read().decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(content))
+
+        # Parse AWS credentials (format: Access key ID,Secret access key)
+        credentials = None
+        for row in csv_reader:
+            if 'Access key ID' in row and 'Secret access key' in row:
+                credentials = {
+                    'access_key_id': row['Access key ID'],
+                    'secret_access_key': row['Secret access key']
+                }
+                break
+
+        if not credentials:
+            return jsonify({"error": "Invalid CSV format. Expected columns: 'Access key ID', 'Secret access key'"}), 400
+
+        # Save credentials to setup_aws_env.sh
+        env_script_path = Path(__file__).parent.parent.parent / "setup_aws_env.sh"
+        env_script_content = f'''#!/bin/bash
+# AWS Bedrock Environment Setup (Auto-generated from Settings Page)
+# USAGE: source devserver/setup_aws_env.sh
+
+export AWS_ACCESS_KEY_ID="{credentials['access_key_id']}"
+export AWS_SECRET_ACCESS_KEY="{credentials['secret_access_key']}"
+export AWS_DEFAULT_REGION="eu-central-1"
+
+echo "✅ AWS Bedrock environment variables set"
+echo "   Region: $AWS_DEFAULT_REGION"
+echo "   Access Key: ${{AWS_ACCESS_KEY_ID:0:8}}..."
+'''
+
+        with open(env_script_path, 'w') as f:
+            f.write(env_script_content)
+
+        # Make executable
+        import stat
+        env_script_path.chmod(env_script_path.stat().st_mode | stat.S_IEXEC)
+
+        logger.info(f"[SETTINGS] AWS credentials saved to {env_script_path.name}")
+
+        return jsonify({
+            "success": True,
+            "message": "AWS credentials saved. Run 'source devserver/setup_aws_env.sh' and restart server."
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error uploading AWS credentials: {e}")
+        return jsonify({"error": str(e)}), 500

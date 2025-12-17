@@ -233,6 +233,20 @@
               <span class="help-text">Stored in devserver/openai.key</span>
             </td>
           </tr>
+
+          <tr v-if="settings.EXTERNAL_LLM_PROVIDER === 'bedrock'">
+            <td class="label-cell">AWS Credentials CSV</td>
+            <td class="value-cell">
+              <input
+                type="file"
+                accept=".csv"
+                @change="handleAwsCsvUpload"
+                class="file-input"
+              />
+              <span class="help-text">Upload AWS accessKeys.csv (from AWS IAM Console)</span>
+              <span class="help-text" v-if="awsCredentialsConfigured" style="color: green;">✓ AWS credentials configured</span>
+            </td>
+          </tr>
         </table>
       </div>
 
@@ -266,6 +280,7 @@ const anthropicKey = ref('')
 const anthropicKeyMasked = ref('')
 const openaiKey = ref('')
 const openaiKeyMasked = ref('')
+const awsCredentialsConfigured = ref(false)
 const saveMessage = ref('')
 const saveSuccess = ref(true)
 
@@ -381,6 +396,37 @@ function fillFromPreset() {
   saveMessage.value = `✓ Filled from: ${preset.label}`
   saveSuccess.value = true
   setTimeout(() => { saveMessage.value = '' }, 3000)
+}
+
+async function handleAwsCsvUpload(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  try {
+    const text = await file.text()
+    const formData = new FormData()
+    formData.append('csv', file)
+
+    const response = await fetch('/api/settings/aws-credentials', {
+      method: 'POST',
+      body: formData
+    })
+
+    const result = await response.json()
+
+    if (response.ok) {
+      awsCredentialsConfigured.value = true
+      saveMessage.value = '✓ AWS credentials uploaded successfully. Server restart required.'
+      saveSuccess.value = true
+    } else {
+      throw new Error(result.error || 'Upload failed')
+    }
+  } catch (err) {
+    saveMessage.value = `Error uploading AWS credentials: ${err.message}`
+    saveSuccess.value = false
+  }
+
+  setTimeout(() => { saveMessage.value = '' }, 5000)
 }
 
 async function saveSettings() {
