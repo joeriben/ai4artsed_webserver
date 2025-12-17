@@ -229,7 +229,7 @@ const showAnalysis = ref(false)
 // Refs
 const mainContainerRef = ref<HTMLElement | null>(null)
 const categorySectionRef = ref<HTMLElement | null>(null)
-const pipelineSectionRef = ref<HTMLElement | null>(null)
+const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
 
 // ============================================================================
 // CONFIGURATION
