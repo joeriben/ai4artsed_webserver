@@ -509,16 +509,34 @@ def upload_aws_credentials():
         # Read CSV content
         import csv
         import io
-        content = file.read().decode('utf-8')
+
+        # Decode and remove BOM if present
+        content = file.read().decode('utf-8-sig')  # utf-8-sig automatically strips BOM
         csv_reader = csv.DictReader(io.StringIO(content))
 
         # Parse AWS credentials (format: Access key ID,Secret access key)
+        # Be flexible with column names (spaces, case)
         credentials = None
         for row in csv_reader:
-            if 'Access key ID' in row and 'Secret access key' in row:
+            # Normalize column names (strip, lowercase)
+            normalized_row = {k.strip().lower(): v.strip() for k, v in row.items()}
+
+            # Look for access key and secret key (flexible matching)
+            access_key = (
+                normalized_row.get('access key id') or
+                normalized_row.get('accesskeyid') or
+                normalized_row.get('access_key_id')
+            )
+            secret_key = (
+                normalized_row.get('secret access key') or
+                normalized_row.get('secretaccesskey') or
+                normalized_row.get('secret_access_key')
+            )
+
+            if access_key and secret_key:
                 credentials = {
-                    'access_key_id': row['Access key ID'],
-                    'secret_access_key': row['Secret access key']
+                    'access_key_id': access_key,
+                    'secret_access_key': secret_key
                 }
                 break
 
