@@ -98,15 +98,15 @@ LOCAL_VISION_MODEL = "local/llama3.2-vision:latest"                # Local visio
 REMOTE_MULTIMODAL_MODEL = "openrouter/google/gemini-2.5-flash-lite"     # Input Modalitiestext, image, file, audio, video
 REMOTE_SMALL_MODEL = "openrouter/mistralai/mistral-nemo"       # Fast, cheap cloud model
 REMOTE_LIGHT_MODEL = "openrouter/mistralai/mistral-medium-3.1"       # Fast, cheap cloud model
-REMOTE_FAST_MODEL = "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0"       # Fast, cheap cloud (AWS Bedrock EU, DSGVO ✓)
-REMOTE_ADVANCED_MODEL = "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0"  # High-quality cloud (AWS Bedrock EU, DSGVO ✓)
+REMOTE_FAST_MODEL = "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0"       # Fast, cheap cloud (AWS Bedrock EU, DSGVO ✓, Haiku 4.5)
+REMOTE_ADVANCED_MODEL = "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0"  # High-quality cloud (AWS Bedrock EU, DSGVO ✓, Sonnet 4.5)
 REMOTE_EXTREME_MODEL = "bedrock/eu.anthropic.claude-opus-4-5-20251101-v2:0"  # Highest-quality cloud, VERY EXPENSIVE!
 
 # Stage-Specific Models:
 STAGE1_TEXT_MODEL = REMOTE_FAST_MODEL                     # Stage 1: conditional safety checks (simple task)
 STAGE1_VISION_MODEL = LOCAL_VISION_MODEL                  # Stage 1: Image analysis
-STAGE2_INTERCEPTION_MODEL = REMOTE_FAST_MODEL         # Stage 2: Prompt interception (complex task)
-STAGE2_OPTIMIZATION_MODEL = REMOTE_FAST_MODEL         # Stage 2: Prompt optimization (complex task)
+STAGE2_INTERCEPTION_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt interception (complex task) - Sonnet 4.5
+STAGE2_OPTIMIZATION_MODEL = REMOTE_ADVANCED_MODEL         # Stage 2: Prompt optimization (complex task) - Sonnet 4.5
 STAGE3_MODEL = REMOTE_FAST_MODEL                          # Stage 3: Translation and final safety check (simple task)
 STAGE4_LEGACY_MODEL = REMOTE_FAST_MODEL               #for legacy workflow execution
 CHAT_HELPER_MODEL = REMOTE_FAST_MODEL                 # Chat overlay: Interactive help system

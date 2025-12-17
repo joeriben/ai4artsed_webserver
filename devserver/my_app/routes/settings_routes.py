@@ -46,13 +46,13 @@ HARDWARE_MATRIX = {
         "dsgvo_cloud": {
             "label": "96 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
                 "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
@@ -93,13 +93,13 @@ HARDWARE_MATRIX = {
         "dsgvo_cloud": {
             "label": "32 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
                 "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
@@ -140,13 +140,13 @@ HARDWARE_MATRIX = {
         "dsgvo_cloud": {
             "label": "24 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
                 "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
@@ -187,13 +187,13 @@ HARDWARE_MATRIX = {
         "dsgvo_cloud": {
             "label": "16 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
                 "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
@@ -234,13 +234,13 @@ HARDWARE_MATRIX = {
         "dsgvo_cloud": {
             "label": "8 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
-                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
                 "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
-                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
@@ -330,11 +330,6 @@ def get_settings():
             "UI_MODE": config.UI_MODE,
             "DEFAULT_SAFETY_LEVEL": config.DEFAULT_SAFETY_LEVEL,
             "DEFAULT_LANGUAGE": config.DEFAULT_LANGUAGE,
-
-            # Server Settings
-            "HOST": config.HOST,
-            "PORT": config.PORT,
-            "THREADS": config.THREADS,
 
             # Model Configuration
             "STAGE1_TEXT_MODEL": config.STAGE1_TEXT_MODEL,

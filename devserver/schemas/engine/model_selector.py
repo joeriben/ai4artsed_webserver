@@ -359,6 +359,8 @@ class ModelSelector:
         """
         if model.startswith("local/"):
             return model[6:]
+        elif model.startswith("bedrock/"):
+            return model[8:]
         elif model.startswith("anthropic/"):
             return model[10:]
         elif model.startswith("openai/"):
@@ -480,7 +482,10 @@ class ModelSelector:
         Returns:
             Clean model name without prefix or metadata
         """
-        if full_model_string.startswith("anthropic/"):
+        if full_model_string.startswith("bedrock/"):
+            without_prefix = full_model_string[8:]
+            return without_prefix.split(" [")[0]
+        elif full_model_string.startswith("anthropic/"):
             without_prefix = full_model_string[10:]
             return without_prefix.split(" [")[0]
         elif full_model_string.startswith("openai/"):

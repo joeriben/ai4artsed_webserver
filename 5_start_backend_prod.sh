@@ -30,6 +30,12 @@ fi
 # Move to devserver directory
 cd "$SCRIPT_DIR/devserver"
 
+# Load AWS credentials if available
+if [ -f "$SCRIPT_DIR/devserver/setup_aws_env.sh" ]; then
+    echo "Loading AWS credentials..."
+    source "$SCRIPT_DIR/devserver/setup_aws_env.sh"
+fi
+
 # Clean Python cache
 echo "Cleaning Python cache..."
 rm -rf my_app/__pycache__ my_app/*/__pycache__ schemas/__pycache__ schemas/*/__pycache__

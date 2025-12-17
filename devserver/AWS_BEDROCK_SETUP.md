@@ -116,7 +116,7 @@ Each VRAM configuration has 3 options:
 
 | Model | Bedrock ID |
 |-------|------------|
-| Claude 3.5 Haiku | `bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0` |
+| Claude Haiku 4.5 | `bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0` |
 | Claude Sonnet 4.5 | `bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0` |
 | Claude Opus 4.5 | `bedrock/eu.anthropic.claude-opus-4-5-20251101-v2:0` |
 
