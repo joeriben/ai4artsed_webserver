@@ -376,7 +376,7 @@ const estimatedDurationSeconds = ref<string>('30')  // Stores duration from back
 // Refs for DOM elements and scrolling
 const mainContainerRef = ref<HTMLElement | null>(null)
 const startButtonRef = ref<HTMLElement | null>(null)
-const pipelineSectionRef = ref<HTMLElement | null>(null)
+const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
 const interceptionTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const categorySectionRef = ref<HTMLElement | null>(null)
