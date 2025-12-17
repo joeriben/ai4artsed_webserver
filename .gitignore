@@ -105,3 +105,4 @@ devserver/schemas/configs/tmp/
 **/*.OBSOLETE
 aws_bedrock.key
 setup_aws_env.sh
+aws_credentials.json
