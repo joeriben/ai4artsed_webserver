@@ -1,5 +1,131 @@
 # Development Log
 
+## Session 100 - AWS Bedrock Claude 4.5 Upgrade + Production Safety Fixes
+**Date:** 2025-12-18
+**Duration:** ~2 hours
+**Focus:** Upgrade to Claude 4.5 models, fix AWS credentials loading, remove PORT/HOST from Settings
+**Status:** SUCCESS - AWS Bedrock fully functional with auto-credential loading
+**Cost:** Sonnet 4.5 tokens: ~150k
+
+### User Request
+1. Upgrade AWS Bedrock models from Haiku 3.5 to Haiku 4.5 (EU Cross-Region Inference)
+2. Fix credentials issue - "Unable to locate credentials" despite CSV upload
+3. Remove PORT/HOST/THREADS from Settings (production deployment safety)
+
+### Implementation Summary
+
+#### 1. Claude 4.5 Model Upgrade ✅
+**Files:** `config.py`, `settings_routes.py`, `AWS_BEDROCK_SETUP.md`
+
+**Changes:**
+- `REMOTE_FAST_MODEL`: Haiku 3.5 → **Haiku 4.5 EU** (`eu.anthropic.claude-haiku-4-5-20251001-v1:0`)
+- `STAGE2_INTERCEPTION_MODEL`: → **Sonnet 4.5 EU** (complex task)
+- `STAGE2_OPTIMIZATION_MODEL`: → **Sonnet 4.5 EU** (complex task)
+- HARDWARE_MATRIX: All `dsgvo_cloud` tiers updated (Haiku 4.5 + Sonnet 4.5 for Stage2)
+
+**Key Principle:** ONLY EU Cross-Region Inference Profiles for DSGVO compliance
+
+#### 2. AWS Credentials Auto-Loading ✅
+**Problem:** boto3 couldn't find credentials despite CSV upload + manual source
+
+**Root Cause:** Startup scripts didn't source `setup_aws_env.sh`
+
+**Solution:**
+- `3_start_backend_dev.sh`: Auto-load setup_aws_env.sh if exists
+- `5_start_backend_prod.sh`: Auto-load setup_aws_env.sh if exists
+
+**Flow (fully automatic):**
+1. User uploads AWS CSV in Settings-Page
+2. Backend generates `setup_aws_env.sh` with ENV variables
+3. User restarts server with startup script
+4. Script automatically sources setup_aws_env.sh → credentials loaded ✅
+
+#### 3. Production Safety: Remove PORT/HOST/THREADS from Settings ✅
+**Problem:** PORT/HOST/THREADS configurable via Settings-Page → Production deployment risk
+
+**Files:** `settings_routes.py`
+
+**Changes:**
+- Removed PORT, HOST, THREADS from GET `/api/settings/` response
+- These are now ONLY set via config.py/ENV variables (startup scripts)
+- Prevents production from running on wrong port
+
+**PORT Management:**
+- Dev: 17802 (default in config.py)
+- Prod: 17801 (ENV override in startup script)
+
+#### 4. bedrock/ Prefix Support ✅
+**Problem:** `model_selector.py` didn't handle `bedrock/` prefix → invalid model ID
+
+**File:** `schemas/engine/model_selector.py`
+
+**Changes:**
+- Added `bedrock/` prefix handling to `strip_prefix()` and `extract_model_name()`
+- Model IDs now correctly extracted: `bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0` → `eu.anthropic.claude-haiku-4-5-20251001-v1:0`
+
+#### 5. Default Password for Fresh Deploys ✅
+**Problem:** Fresh production deploy → no `settings_password.key` → no access to Settings!
+
+**File:** `settings_routes.py`
+
+**Solution:**
+- Default password: `ai4artsedadmin` (when settings_password.key missing)
+- User can login and change password via Settings-Page
+- Enables Settings access on fresh production deployments
+
+#### 6. Error Handlers for Startup Scripts ✅
+**Problem:** Terminal window closes immediately on errors → can't read error messages
+
+**Files:** All startup scripts (1-6)
+
+**Solution:**
+- Added `trap` handlers to catch errors
+- Window stays open on failure: "Press any key to close..."
+- User can now read error messages before window closes
+
+#### 7. TypeScript Fixes ✅
+**Problem:** `Property 'sectionRef' does not exist on type 'HTMLElement'`
+
+**Files:** `text_transformation.vue`, `image_transformation.vue`
+
+**Changes:**
+- Changed `pipelineSectionRef` type from `HTMLElement` to `any`
+- MediaOutputBox component instance correctly typed
+- Build succeeds without TypeScript errors
+
+### Commits
+```
+6b5760e feat: add default password for fresh production deploys
+dca0e69 fix: correct TypeScript type for MediaOutputBox component refs
+9806df1 feat: add error handlers to all startup scripts
+47e2e13 fix: keep terminal window open on push script errors
+a3599ec feat: AWS Bedrock integration with auto-credential loading
+```
+
+### Testing Results
+✅ AWS Bedrock credentials auto-loading works
+✅ Default password enables Settings access on fresh deploys
+✅ PORT/HOST/THREADS removed from user_settings (production safe)
+✅ Claude 4.5 models (Haiku 4.5, Sonnet 4.5) functional
+✅ TypeScript build passes
+✅ Error handlers keep terminal windows open
+
+### Architecture Decisions
+1. **Credentials Management:** ENV variables via auto-sourced setup_aws_env.sh (not stored in JSON)
+2. **Port Configuration:** Startup scripts only (not user-configurable)
+3. **Default Password:** Known initial password for accessibility, user must change it
+4. **EU Cross-Region Inference:** Mandatory for DSGVO compliance (eu.anthropic.* prefix)
+
+### Open Issues
+None - all functionality working as expected
+
+### Next Steps
+- Deploy to production (`git pull` + restart)
+- Test AWS Bedrock in production environment
+- Consider adding "Change Password" reminder on first Settings login
+
+---
+
 ## Session 99 - Partial Elimination: Issues #1 & #2 Resolution - SUCCESS
 **Date:** 2025-12-13
 **Duration:** ~2 hours
