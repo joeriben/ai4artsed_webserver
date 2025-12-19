@@ -6,40 +6,33 @@
       <!-- Section 1: Image Upload + Context (Side by Side) -->
       <section class="input-context-section">
         <!-- Image Upload Bubble (LEFT) -->
-        <div class="input-bubble bubble-card" :class="{ filled: uploadedImage }">
-          <div class="bubble-header">
-            <span class="bubble-icon">💡</span>
-            <span class="bubble-label">Dein Bild</span>
-            <div class="bubble-actions">
-              <button @click="clearImage" class="action-btn" title="Löschen">🗑️</button>
-            </div>
-          </div>
-          <ImageUploadWidget
-            :initial-image="uploadedImage"
-            @image-uploaded="handleImageUpload"
-            @image-removed="handleImageRemove"
-          />
-        </div>
+        <MediaInputBox
+          icon="💡"
+          label="Dein Bild"
+          v-model:value="uploadedImage"
+          input-type="image"
+          :initial-image="uploadedImage"
+          :show-copy="false"
+          :show-paste="false"
+          @image-uploaded="handleImageUpload"
+          @image-removed="handleImageRemove"
+          @clear="clearImage"
+        />
 
         <!-- Context Bubble (RIGHT) -->
-        <div class="context-bubble bubble-card" :class="{ filled: contextPrompt, required: !contextPrompt }">
-          <div class="bubble-header">
-            <span class="bubble-icon">📋</span>
-            <span class="bubble-label">Sage was Du an dem Bild verändern möchtest</span>
-            <div class="bubble-actions">
-              <button @click="copyContextPrompt" class="action-btn" title="Kopieren">📋</button>
-              <button @click="pasteContextPrompt" class="action-btn" title="Einfügen">📄</button>
-              <button @click="clearContextPrompt" class="action-btn" title="Löschen">🗑️</button>
-            </div>
-          </div>
-          <textarea
-            v-model="contextPrompt"
-            @input="handleContextPromptEdit"
-            placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
-            class="bubble-textarea"
-            rows="6"
-          ></textarea>
-        </div>
+        <MediaInputBox
+          icon="📋"
+          label="Sage was Du an dem Bild verändern möchtest"
+          placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
+          v-model:value="contextPrompt"
+          input-type="text"
+          :rows="6"
+          :is-filled="!!contextPrompt"
+          :is-required="!contextPrompt"
+          @copy="copyContextPrompt"
+          @paste="pasteContextPrompt"
+          @clear="clearContextPrompt"
+        />
       </section>
 
       <!-- Section 3: Category Selection (Horizontal Row) - Always visible after context -->
@@ -181,6 +174,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
+import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 
@@ -361,11 +355,12 @@ function handleImageRemove() {
   isPipelineExecuting.value = false
 }
 
-function handleContextPromptEdit() {
-  console.log('[Context] Edited:', contextPrompt.value.length, 'chars')
+// Watch contextPrompt changes and update phase
+watch(contextPrompt, (newValue) => {
+  console.log('[Context] Edited:', newValue.length, 'chars')
 
   // Update phase based on context prompt presence
-  if (contextPrompt.value.trim() && uploadedImage.value) {
+  if (newValue.trim() && uploadedImage.value) {
     if (executionPhase.value === 'image_uploaded') {
       executionPhase.value = 'ready_for_media'
     }
@@ -374,7 +369,7 @@ function handleContextPromptEdit() {
       executionPhase.value = 'image_uploaded'
     }
   }
-}
+})
 
 // ============================================================================
 // MODEL SELECTION (copied from text_transformation.vue)
