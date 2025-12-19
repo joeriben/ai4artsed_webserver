@@ -4,23 +4,17 @@
     <div class="main-container">
       <!-- Input Section -->
       <section class="input-section">
-        <div class="section-card">
-          <div class="card-header">
-            <span class="card-icon">💡</span>
-            <span class="card-label">Dein Input</span>
-            <div class="bubble-actions">
-              <button @click="copyInputText" class="action-btn" title="Kopieren">📋</button>
-              <button @click="pasteInputText" class="action-btn" title="Einfügen">📄</button>
-              <button @click="clearInputText" class="action-btn" title="Löschen">🗑️</button>
-            </div>
-          </div>
-          <textarea
-            v-model="inputText"
-            placeholder="Beschreibe deine Idee..."
-            class="input-textarea"
-            rows="6"
-          ></textarea>
-        </div>
+        <MediaInputBox
+          icon="💡"
+          label="Dein Input"
+          placeholder="Beschreibe deine Idee..."
+          v-model:value="inputText"
+          input-type="text"
+          :rows="6"
+          @copy="copyInputText"
+          @paste="pasteInputText"
+          @clear="clearInputText"
+        />
 
         <!-- Output Config Selection -->
         <div class="section-card">
@@ -147,6 +141,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 
 // ============================================================================
