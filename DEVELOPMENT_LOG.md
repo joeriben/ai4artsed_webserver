@@ -1,5 +1,96 @@
 # Development Log
 
+## Session 101 - WAN 2.2 Image-to-Video (i2v) Implementation
+**Date:** 2025-12-18
+**Duration:** ~3 hours
+**Focus:** Implement WAN 2.2 14B i2v workflow, fix prompt injection architecture
+**Status:** SUCCESS - i2v now correctly processes text prompts
+**Cost:** Sonnet 4.5 tokens: ~130k
+
+### User Request
+Implement WAN 2.2 Image-to-Video (i2v) functionality using 14B fp8_scaled models with 4-step LightX2V LoRAs
+
+### Implementation Summary
+
+#### 1. Initial Setup ✅
+**Models Downloaded & Placed:**
+- 2× UNets (14GB each): `wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors`, `wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors`
+- 2× LoRAs (1.2GB each): `wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors`, `wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors`
+- VAE: `wan_2.1_vae.safetensors` (243MB) - **CRITICAL: 14B models use Wan 2.1 VAE, not 2.2!**
+
+**Files Created:**
+- `devserver/schemas/configs/output/wan22_i2v_video.json` - Output config
+- `devserver/schemas/chunks/output_video_wan22_i2v.json` - ComfyUI workflow chunk
+
+#### 2. Problem: Config Not Found ✅
+**Error:** `Config 'wan22_i2v_video' not found`
+
+**Root Cause:** Wrong pipeline reference in config
+- Had: `"pipeline": "single_image_media_generation"` (doesn't exist)
+- Fixed: `"pipeline": "single_text_media_generation"` (correct for video)
+
+#### 3. Problem: LoRAs Not Found ✅
+**Error:** `FileNotFoundError: Model in folder 'loras'`
+
+**Root Cause:** LoRAs in SwarmUI Models folder, ComfyUI expects them in its own models/loras/
+
+**Solution:** Created symlinks from ComfyUI to SwarmUI
+
+#### 4. Problem: Wrong VAE (Channel Mismatch) ✅
+**Error:** `RuntimeError: expected 36 channels, got 64 channels`
+
+**Root Cause:** Used `wan2.2_vae.safetensors` but 14B models require `wan_2.1_vae.safetensors`
+
+**Key Learning:** WAN 2.2 14B models still use Wan 2.1 VAE!
+
+#### 5. Problem: Prompt Ignored by Model ✗→✅
+**Symptom:** Video generated but ignored text prompt completely
+
+**Root Cause (CRITICAL):** **Orphaned Node Architecture**
+```
+Broken Flow:
+  {{PREVIOUS_OUTPUT}}
+    → "positive_prompt" (PrimitiveStringMultiline)
+    → **DEAD END** - not connected to CLIP encoder!
+
+  "positive_conditioning" (CLIPTextEncode)
+    → inputs.text: "" (hardcoded empty)
+```
+
+**Solution:** Direct injection to CLIP encoder (matching t2v pattern)
+- Changed `input_mappings.prompt.node_id` → `"positive_conditioning"`
+- Changed `input_mappings.prompt.field` → `"inputs.text"`
+
+**Commit:** `6745a04` - fix(wan22_i2v): correct prompt injection to reach CLIP encoder
+
+### Key Learnings
+
+#### Debugging Anti-Patterns (What NOT to do)
+❌ Speculate about root causes (CFG, model issues)
+❌ Try random fixes without understanding data flow
+❌ Assume "injection success" means prompt reaches the model
+
+#### Debugging Best Practices
+✅ Compare with working reference configs (t2v, other i2v)
+✅ Trace node connections explicitly (look for `["node_id", 0]` references)
+✅ Use systematic exploration (Explore agents for pattern analysis)
+✅ Check for orphaned nodes (input but no output consumers)
+
+### Architecture Pattern: i2v Prompt Injection
+
+**Working Pattern:** `{{PREVIOUS_OUTPUT}}` → Direct to `CLIPTextEncode.inputs.text` → Model
+
+**Failed Pattern:** `{{PREVIOUS_OUTPUT}}` → Intermediate node → **Not connected** → Model gets empty text
+
+**Key Rule:** For i2v workflows, inject prompts **directly into the CLIP encoder**
+
+### Result
+✅ WAN 2.2 Image-to-Video fully functional
+✅ Text prompts correctly guide video animation
+✅ Pattern established for future i2v implementations
+
+---
+
 ## Session 100 - AWS Bedrock Claude 4.5 Upgrade + Production Safety Fixes
 **Date:** 2025-12-18
 **Duration:** ~2 hours

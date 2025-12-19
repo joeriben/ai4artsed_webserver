@@ -11,34 +11,41 @@
       <!-- Hardware Quick-Fill Section -->
       <div class="section">
         <h2>Hardware Quick-Fill (Optional)</h2>
-        <p class="help">Select preset to auto-fill model fields based on your hardware</p>
+        <p class="help">Select preset to auto-fill model fields based on your hardware and cloud provider</p>
 
         <table class="config-table">
-          <tr>
-            <td class="label-cell">Graphic Card Memory (VRAM)</td>
-            <td class="value-cell">
-              <select v-model="selectedVramTier">
-                <option value="vram_96">96 GB</option>
-                <option value="vram_32">32 GB</option>
-                <option value="vram_24">24 GB</option>
-                <option value="vram_16">16 GB</option>
-                <option value="vram_8">8 GB</option>
-              </select>
-            </td>
-          </tr>
-          <tr>
-            <td class="label-cell">Configuration Tier</td>
-            <td class="value-cell">
-              <label><input type="radio" v-model="selectedDsgvoMode" value="dsgvo_local" /> Local Only (DSGVO ✓)</label>
-              <label><input type="radio" v-model="selectedDsgvoMode" value="dsgvo_cloud" /> AWS Bedrock EU (DSGVO ✓)</label>
-              <label><input type="radio" v-model="selectedDsgvoMode" value="non_dsgvo" /> OpenRouter US</label>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="2" style="text-align: center; padding: 12px;">
-              <button @click="fillFromPreset" class="action-btn">Fill Model Fields from Preset</button>
-            </td>
-          </tr>
+          <tbody>
+            <tr>
+              <td class="label-cell">Graphic Card Memory (VRAM)</td>
+              <td class="value-cell">
+                <select v-model="selectedVramTier">
+                  <option value="vram_96">96 GB</option>
+                  <option value="vram_32">32 GB</option>
+                  <option value="vram_24">24 GB</option>
+                  <option value="vram_16">16 GB</option>
+                  <option value="vram_8">8 GB</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">Cloud Provider</td>
+              <td class="value-cell">
+                <select v-model="selectedProvider">
+                  <option value="none">None (Local only)</option>
+                  <option value="bedrock">AWS Bedrock (EU region, DSGVO ✓)</option>
+                  <option value="mistral">Mistral AI (EU-based, DSGVO ✓)</option>
+                  <option value="anthropic">Anthropic Direct API (NOT DSGVO)</option>
+                  <option value="openai">OpenAI Direct API (NOT DSGVO)</option>
+                  <option value="openrouter">OpenRouter Aggregator (NOT DSGVO)</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="text-align: center; padding: 12px;">
+                <button @click="fillFromPreset" class="action-btn">Fill Model Fields from Preset</button>
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
 
@@ -46,48 +53,50 @@
       <div class="section">
         <h2>General Settings</h2>
         <table class="config-table">
-          <tr>
-            <td class="label-cell">UI Mode</td>
-            <td class="value-cell">
-              <select v-model="settings.UI_MODE">
-                <option value="kids">Kids (8-12)</option>
-                <option value="youth">Youth (13-17)</option>
-                <option value="expert">Expert</option>
-              </select>
-              <span class="help-text">Interface complexity level</span>
-            </td>
-          </tr>
-          <tr>
-            <td class="label-cell">Safety Level</td>
-            <td class="value-cell">
-              <select v-model="settings.DEFAULT_SAFETY_LEVEL">
-                <option value="kids">Kids</option>
-                <option value="youth">Youth</option>
-                <option value="adult">Adult</option>
-                <option value="off">Off</option>
-              </select>
-              <span class="help-text">Content filtering level</span>
-            </td>
-          </tr>
-          <tr>
-            <td class="label-cell">Default Language</td>
-            <td class="value-cell">
-              <select v-model="settings.DEFAULT_LANGUAGE">
-                <option value="de">German (de)</option>
-                <option value="en">English (en)</option>
-              </select>
-            </td>
-          </tr>
-          <tr>
-            <td class="label-cell">DSGVO Conformity</td>
-            <td class="value-cell">
-              <label style="display: flex; align-items: center; gap: 8px;">
-                <input type="checkbox" v-model="settings.DSGVO_CONFORMITY" style="width: auto;" />
-                <span>DSGVO-compliant configuration</span>
-              </label>
-              <span class="help-text">Enforces DSGVO-compliant models (local or AWS Bedrock EU)</span>
-            </td>
-          </tr>
+          <tbody>
+            <tr>
+              <td class="label-cell">UI Mode</td>
+              <td class="value-cell">
+                <select v-model="settings.UI_MODE">
+                  <option value="kids">Kids (8-12)</option>
+                  <option value="youth">Youth (13-17)</option>
+                  <option value="expert">Expert</option>
+                </select>
+                <span class="help-text">Interface complexity level</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">Safety Level</td>
+              <td class="value-cell">
+                <select v-model="settings.DEFAULT_SAFETY_LEVEL">
+                  <option value="kids">Kids</option>
+                  <option value="youth">Youth</option>
+                  <option value="adult">Adult</option>
+                  <option value="off">Off</option>
+                </select>
+                <span class="help-text">Content filtering level</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">Default Language</td>
+              <td class="value-cell">
+                <select v-model="settings.DEFAULT_LANGUAGE">
+                  <option value="de">German (de)</option>
+                  <option value="en">English (en)</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">DSGVO Conformity</td>
+              <td class="value-cell">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                  <input type="checkbox" v-model="settings.DSGVO_CONFORMITY" style="width: auto;" />
+                  <span>DSGVO-compliant configuration</span>
+                </label>
+                <span class="help-text">Enforces DSGVO-compliant models (local or AWS Bedrock EU)</span>
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
 
@@ -95,24 +104,26 @@
       <div class="section">
         <h2>Server Settings</h2>
         <table class="config-table">
-          <tr>
-            <td class="label-cell">Host</td>
-            <td class="value-cell">
-              <input type="text" v-model="settings.HOST" class="text-input" />
-            </td>
-          </tr>
-          <tr>
-            <td class="label-cell">Port</td>
-            <td class="value-cell">
-              <input type="number" v-model.number="settings.PORT" class="text-input" />
-            </td>
-          </tr>
-          <tr>
-            <td class="label-cell">Threads</td>
-            <td class="value-cell">
-              <input type="number" v-model.number="settings.THREADS" class="text-input" />
-            </td>
-          </tr>
+          <tbody>
+            <tr>
+              <td class="label-cell">Host</td>
+              <td class="value-cell">
+                <input type="text" v-model="settings.HOST" class="text-input" />
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">Port</td>
+              <td class="value-cell">
+                <input type="number" v-model.number="settings.PORT" class="text-input" />
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">Threads</td>
+              <td class="value-cell">
+                <input type="number" v-model.number="settings.THREADS" class="text-input" />
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
 
@@ -122,12 +133,14 @@
         <p class="help">Model identifiers with provider prefix: local/, bedrock/, anthropic/, openai/, openrouter/</p>
 
         <table class="config-table">
-          <tr v-for="(label, key) in modelLabels" :key="key">
-            <td class="label-cell">{{ label }}</td>
-            <td class="value-cell">
-              <input type="text" v-model="settings[key]" class="text-input" />
-            </td>
-          </tr>
+          <tbody>
+            <tr v-for="(label, key) in modelLabels" :key="key">
+              <td class="label-cell">{{ label }}</td>
+              <td class="value-cell">
+                <input type="text" v-model="settings[key]" class="text-input" />
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
 
@@ -135,8 +148,9 @@
       <div class="section">
         <h2>API Configuration</h2>
         <table class="config-table">
-          <tr>
-            <td class="label-cell">LLM Provider</td>
+          <tbody>
+            <tr>
+              <td class="label-cell">LLM Provider</td>
             <td class="value-cell">
               <select v-model="settings.LLM_PROVIDER">
                 <option value="ollama">Ollama</option>
@@ -163,16 +177,43 @@
               <select v-model="settings.EXTERNAL_LLM_PROVIDER">
                 <option value="none">None (Local only)</option>
                 <option value="bedrock">AWS Bedrock (EU region, DSGVO ✓)</option>
-                <option value="anthropic">Anthropic Direct API</option>
-                <option value="openai">OpenAI Direct API</option>
-                <option value="openrouter">OpenRouter Aggregator</option>
+                <option value="mistral">Mistral AI (EU-based, DSGVO ✓)</option>
+                <option value="anthropic">Anthropic Direct API (NOT DSGVO)</option>
+                <option value="openai">OpenAI Direct API (NOT DSGVO)</option>
+                <option value="openrouter">OpenRouter Aggregator (NOT DSGVO)</option>
               </select>
               <span class="help-text">Cloud LLM provider (bedrock uses ENV credentials, others require API key)</span>
 
-              <!-- Provider info -->
+              <!-- Provider info boxes -->
               <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'bedrock'" class="info-box" style="margin-top: 12px;">
                 <strong>AWS Bedrock (EU Region)</strong>
-                <p>Credentials via environment variables. See AWS_BEDROCK_SETUP.md for setup instructions.</p>
+                <p>✅ DSGVO-compliant (EU Frankfurt region)</p>
+                <p>Credentials via environment variables or CSV upload below.</p>
+              </div>
+
+              <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'mistral'" class="info-box info-box-success" style="margin-top: 12px;">
+                <strong>Mistral AI (EU-based)</strong>
+                <p>✅ DSGVO-compliant (EU infrastructure)</p>
+                <p>API Base URL: https://api.mistral.ai/v1</p>
+                <p>Get your API key at: <a href="https://console.mistral.ai/" target="_blank">console.mistral.ai</a></p>
+              </div>
+
+              <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'anthropic'" class="info-box" style="margin-top: 12px; border-color: #ff9800;">
+                <strong>Anthropic Direct API</strong>
+                <p>⚠️ NOT DSGVO-compliant</p>
+                <p>Data processed outside EU. Use only for non-educational contexts.</p>
+              </div>
+
+              <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'openai'" class="info-box" style="margin-top: 12px; border-color: #ff9800;">
+                <strong>OpenAI Direct API</strong>
+                <p>⚠️ NOT DSGVO-compliant (US-based)</p>
+                <p>Data processed in United States. Use only for non-educational contexts.</p>
+              </div>
+
+              <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'openrouter'" class="info-box" style="margin-top: 12px; border-color: #ff9800;">
+                <strong>OpenRouter Aggregator</strong>
+                <p>⚠️ NOT DSGVO-compliant (US proxy)</p>
+                <p>Routes through US servers even for EU models. Use only for non-educational contexts.</p>
               </div>
             </td>
           </tr>
@@ -219,6 +260,20 @@
             </td>
           </tr>
 
+          <tr v-if="settings.EXTERNAL_LLM_PROVIDER === 'mistral'">
+            <td class="label-cell">Mistral API Key</td>
+            <td class="value-cell">
+              <input
+                type="password"
+                v-model="mistralKey"
+                placeholder="..."
+                class="text-input"
+              />
+              <span class="help-text" v-if="mistralKeyMasked">Current: {{ mistralKeyMasked }}</span>
+              <span class="help-text">Stored in devserver/mistral.key</span>
+            </td>
+          </tr>
+
           <tr v-if="settings.EXTERNAL_LLM_PROVIDER === 'bedrock'">
             <td class="label-cell">AWS Credentials CSV</td>
             <td class="value-cell">
@@ -232,6 +287,7 @@
               <span class="help-text" v-if="awsCredentialsConfigured" style="color: green;">✓ AWS credentials configured</span>
             </td>
           </tr>
+          </tbody>
         </table>
       </div>
 
@@ -258,13 +314,15 @@ const error = ref(null)
 const settings = ref({})
 const matrix = ref({})
 const selectedVramTier = ref('vram_24')
-const selectedDsgvoMode = ref('dsgvo_cloud')
+const selectedProvider = ref('mistral')
 const openrouterKey = ref('')
 const openrouterKeyMasked = ref('')
 const anthropicKey = ref('')
 const anthropicKeyMasked = ref('')
 const openaiKey = ref('')
 const openaiKeyMasked = ref('')
+const mistralKey = ref('')
+const mistralKeyMasked = ref('')
 const awsCredentialsConfigured = ref(false)
 const saveMessage = ref('')
 const saveSuccess = ref(true)
@@ -345,6 +403,16 @@ async function loadSettings() {
       }
     }
 
+    const mistralResponse = await fetch('/api/settings/mistral-key', {
+      credentials: 'include'
+    })
+    if (mistralResponse.ok) {
+      const mistralData = await mistralResponse.json()
+      if (mistralData.exists) {
+        mistralKeyMasked.value = mistralData.masked
+      }
+    }
+
   } catch (e) {
     error.value = e.message
   } finally {
@@ -353,14 +421,14 @@ async function loadSettings() {
 }
 
 function fillFromPreset() {
-  if (!matrix.value[selectedVramTier.value] || !matrix.value[selectedVramTier.value][selectedDsgvoMode.value]) {
+  if (!matrix.value[selectedVramTier.value] || !matrix.value[selectedVramTier.value][selectedProvider.value]) {
     saveMessage.value = 'Preset not found'
     saveSuccess.value = false
     setTimeout(() => { saveMessage.value = '' }, 3000)
     return
   }
 
-  const preset = matrix.value[selectedVramTier.value][selectedDsgvoMode.value]
+  const preset = matrix.value[selectedVramTier.value][selectedProvider.value]
   const presetModels = preset.models
 
   // Fill model fields from preset
@@ -432,6 +500,9 @@ async function saveSettings() {
     if (openaiKey.value) {
       payload.OPENAI_API_KEY = openaiKey.value
     }
+    if (mistralKey.value) {
+      payload.MISTRAL_API_KEY = mistralKey.value
+    }
 
     const response = await fetch('/api/settings', {
       method: 'POST',
@@ -484,6 +555,19 @@ async function saveSettings() {
         const openaiData = await openaiResponse.json()
         if (openaiData.exists) {
           openaiKeyMasked.value = openaiData.masked
+        }
+      }
+    }
+
+    if (mistralKey.value) {
+      mistralKey.value = ''
+      const mistralResponse = await fetch('/api/settings/mistral-key', {
+        credentials: 'include'
+      })
+      if (mistralResponse.ok) {
+        const mistralData = await mistralResponse.json()
+        if (mistralData.exists) {
+          mistralKeyMasked.value = mistralData.masked
         }
       }
     }

@@ -20,16 +20,18 @@ SETTINGS_FILE = Path(__file__).parent.parent.parent / "user_settings.json"
 OPENROUTER_KEY_FILE = Path(__file__).parent.parent.parent / "openrouter.key"
 ANTHROPIC_KEY_FILE = Path(__file__).parent.parent.parent / "anthropic.key"
 OPENAI_KEY_FILE = Path(__file__).parent.parent.parent / "openai.key"
+MISTRAL_KEY_FILE = Path(__file__).parent.parent.parent / "mistral.key"
 
 # Path to settings password file
 SETTINGS_PASSWORD_FILE = Path(__file__).parent.parent.parent / "settings_password.key"
 
-# Hardware Matrix - 2D Fill-Helper for UI (VRAM × DSGVO)
-# This is NOT configuration - just preset values to help users fill the form
+# Hardware Matrix - 2D Fill-Helper for UI (VRAM × Provider)
+# Preset configurations to help users quickly fill model fields
+# Structure: HARDWARE_MATRIX[vram_tier][provider_name]
 HARDWARE_MATRIX = {
     "vram_96": {
-        "dsgvo_local": {
-            "label": "96 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "96 GB - Local only",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -43,8 +45,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "96 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "96 GB - AWS Bedrock EU",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -58,16 +60,61 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "96 GB VRAM (non-DSGVO, OpenRouter)",
+        "mistral": {
+            "label": "96 GB - Mistral AI",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-small-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "96 GB - Anthropic Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "96 GB - OpenAI Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
+        },
+        "openrouter": {
+            "label": "96 GB - OpenRouter",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -75,8 +122,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_32": {
-        "dsgvo_local": {
-            "label": "32 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "32 GB - Local only",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -90,8 +137,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "32 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "32 GB - AWS Bedrock EU",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -105,16 +152,61 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "32 GB VRAM (non-DSGVO, OpenRouter)",
+        "mistral": {
+            "label": "32 GB - Mistral AI",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-small-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "32 GB - Anthropic Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "32 GB - OpenAI Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
+        },
+        "openrouter": {
+            "label": "32 GB - OpenRouter",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -122,8 +214,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_24": {
-        "dsgvo_local": {
-            "label": "24 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "24 GB - Local only",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/mistral-nemo",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -137,8 +229,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "24 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "24 GB - AWS Bedrock EU",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -152,16 +244,61 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "24 GB VRAM (non-DSGVO, OpenRouter)",
+        "mistral": {
+            "label": "24 GB - Mistral AI",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-small-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "24 GB - Anthropic Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "24 GB - OpenAI Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
+        },
+        "openrouter": {
+            "label": "24 GB - OpenRouter",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -169,8 +306,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_16": {
-        "dsgvo_local": {
-            "label": "16 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "16 GB - Local only",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/gemma:9b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -184,8 +321,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "16 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "16 GB - AWS Bedrock EU",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -199,16 +336,61 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "16 GB VRAM (non-DSGVO, OpenRouter)",
+        "mistral": {
+            "label": "16 GB - Mistral AI",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-small-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "16 GB - Anthropic Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "16 GB - OpenAI Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
+        },
+        "openrouter": {
+            "label": "16 GB - OpenRouter",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -216,8 +398,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_8": {
-        "dsgvo_local": {
-            "label": "8 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "8 GB - Local only",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/gemma:2b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
@@ -231,8 +413,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "8 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "8 GB - AWS Bedrock EU",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
@@ -246,16 +428,61 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "8 GB VRAM (non-DSGVO, OpenRouter)",
+        "mistral": {
+            "label": "8 GB - Mistral AI",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-small-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "8 GB - Anthropic Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
+                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "8 GB - OpenAI Direct",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
+        },
+        "openrouter": {
+            "label": "8 GB - OpenRouter",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -392,6 +619,13 @@ def save_settings():
                 f.write(openai_key.strip())
             logger.info("[SETTINGS] OpenAI API Key updated")
 
+        mistral_key = data.pop('MISTRAL_API_KEY', None)
+        if mistral_key:
+            MISTRAL_KEY_FILE.parent.mkdir(exist_ok=True)
+            with open(MISTRAL_KEY_FILE, 'w') as f:
+                f.write(mistral_key.strip())
+            logger.info("[SETTINGS] Mistral API Key updated")
+
         # Write all other settings to user_settings.json
         SETTINGS_FILE.parent.mkdir(exist_ok=True)
         with open(SETTINGS_FILE, 'w') as f:
@@ -487,6 +721,33 @@ def get_openai_key():
 
     except Exception as e:
         logger.error(f"[SETTINGS] Error reading OpenAI key: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/mistral-key', methods=['GET'])
+@require_settings_auth
+def get_mistral_key():
+    """Get masked Mistral API Key for display"""
+    try:
+        if not MISTRAL_KEY_FILE.exists():
+            return jsonify({"exists": False}), 200
+
+        with open(MISTRAL_KEY_FILE) as f:
+            key = f.read().strip()
+
+        # Return masked version (show only first 7 and last 4 chars)
+        if len(key) > 11:
+            masked = f"{key[:7]}...{key[-4:]}"
+        else:
+            masked = "***"
+
+        return jsonify({
+            "exists": True,
+            "masked": masked
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error reading Mistral key: {e}")
         return jsonify({"error": str(e)}), 500
 
 
