@@ -76,3 +76,7 @@ Frontend visualisiert, was die Pipeline strukturiert.
 2. **ALWAYS UPDATE** `DEVELOPMENT_LOG.md` at end of session
 3. **NO WORKAROUNDS**: Fix root problems, not symptoms
 4. **CONSISTENCY IS CRUCIAL**: Follow existing patterns
+5. **MANDATORY: CONSULT DOCUMENTATION BEFORE CODING**
+   - Architecture documentation exists in `/docs` (ARCHITECTURE PART 01-20.md, dev logs, design decisions)
+   - ALWAYS use `devserver-architecture-expert` agent for questions about the system
+   - Read relevant documentation BEFORE making architectural decisions or code changes

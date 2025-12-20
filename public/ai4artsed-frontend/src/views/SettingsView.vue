@@ -1,5 +1,9 @@
 <template>
-  <div class="settings-container">
+  <!-- Authentication Modal -->
+  <SettingsAuthModal v-model="showAuthModal" @authenticated="onAuthenticated" />
+
+  <!-- Settings Content (only show if authenticated) -->
+  <div v-if="authenticated" class="settings-container">
     <div class="settings-header">
       <h1>Settings</h1>
       <div class="tabs">
@@ -330,7 +334,12 @@
 
 <script setup>
 import SessionExportView from '../components/SessionExportView.vue'
+import SettingsAuthModal from '../components/SettingsAuthModal.vue'
 import { ref, computed, onMounted } from 'vue'
+
+// Authentication state
+const authenticated = ref(false)
+const showAuthModal = ref(false)
 
 const activeTab = ref('export')
 const loading = ref(true)
@@ -606,8 +615,38 @@ async function saveSettings() {
   }
 }
 
-onMounted(() => {
+async function checkAuth() {
+  try {
+    const response = await fetch('/api/settings/check-auth', {
+      credentials: 'include'
+    })
+    if (response.ok) {
+      const data = await response.json()
+      authenticated.value = data.authenticated
+      if (!authenticated.value) {
+        showAuthModal.value = true
+      } else {
+        // Load settings only if authenticated
+        loadSettings()
+      }
+    } else {
+      showAuthModal.value = true
+    }
+  } catch (e) {
+    console.error('Auth check failed:', e)
+    showAuthModal.value = true
+  }
+}
+
+function onAuthenticated() {
+  authenticated.value = true
+  showAuthModal.value = false
+  // Load settings after authentication
   loadSettings()
+}
+
+onMounted(() => {
+  checkAuth()
 })
 </script>
 
