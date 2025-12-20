@@ -12,10 +12,10 @@
           v-model:value="uploadedImage"
           input-type="image"
           :initial-image="uploadedImage"
-          :show-copy="false"
-          :show-paste="false"
           @image-uploaded="handleImageUpload"
           @image-removed="handleImageRemove"
+          @copy="copyUploadedImage"
+          @paste="pasteUploadedImage"
           @clear="clearImage"
         />
 
@@ -338,7 +338,59 @@ function handleImageUpload(data: any) {
 
 function clearImage() {
   handleImageRemove()
+  sessionStorage.removeItem('i2i_uploaded_image')
+  sessionStorage.removeItem('i2i_uploaded_image_id')
   console.log('[I2I] Image cleared via action button')
+}
+
+// ============================================================================
+// Image Clipboard Actions
+// ============================================================================
+
+function copyUploadedImage() {
+  if (!uploadedImage.value) {
+    console.warn('[I2I] No image to copy')
+    return
+  }
+
+  // Copy image URL to clipboard (like text)
+  copyToClipboard(uploadedImage.value)
+  console.log('[I2I] Image URL copied to app clipboard:', uploadedImage.value)
+}
+
+function pasteUploadedImage() {
+  const clipboardContent = pasteFromClipboard()
+
+  if (!clipboardContent) {
+    console.warn('[I2I] Clipboard is empty')
+    return
+  }
+
+  // Check if clipboard contains a valid image URL
+  const isImageUrl = clipboardContent.startsWith('/api/media/image/') ||
+                     clipboardContent.startsWith('http://') ||
+                     clipboardContent.startsWith('https://')
+
+  if (!isImageUrl) {
+    console.warn('[I2I] Clipboard does not contain a valid image URL:', clipboardContent)
+    return
+  }
+
+  // Set as uploaded image (trigger handleImageUpload-like behavior)
+  uploadedImage.value = clipboardContent
+  uploadedImagePath.value = clipboardContent
+
+  // Extract run_id if it's an API URL
+  const runIdMatch = clipboardContent.match(/\/api\/media\/image\/(.+)$/)
+  uploadedImageId.value = runIdMatch ? runIdMatch[1] : `pasted_${Date.now()}`
+
+  // Update phase
+  executionPhase.value = 'image_uploaded'
+
+  console.log('[I2I] Image pasted from clipboard:', {
+    url: clipboardContent,
+    id: uploadedImageId.value
+  })
 }
 
 function handleImageRemove() {
@@ -744,11 +796,47 @@ onMounted(async () => {
   // Clean up old format (backward compatibility)
   localStorage.removeItem('i2i_transfer_image')
   localStorage.removeItem('i2i_transfer_timestamp')
+
+  // Check for sessionStorage persistence (normal reload)
+  const savedImage = sessionStorage.getItem('i2i_uploaded_image')
+  const savedImageId = sessionStorage.getItem('i2i_uploaded_image_id')
+
+  if (savedImage && !transferDataStr) {  // Only if NOT from transfer
+    console.log('[I2I] Restoring image from sessionStorage:', savedImage)
+
+    uploadedImage.value = savedImage
+    uploadedImagePath.value = savedImage
+    uploadedImageId.value = savedImageId || `restored_${Date.now()}`
+    executionPhase.value = 'image_uploaded'
+
+    console.log('[I2I] Image restored successfully')
+  }
 })
 
 // Watch for changes and persist to sessionStorage
 watch(contextPrompt, (newVal) => {
   sessionStorage.setItem('i2i_context_prompt', newVal)
+})
+
+// ============================================================================
+// Image Persistence - sessionStorage
+// ============================================================================
+
+watch(uploadedImage, (newVal) => {
+  if (newVal) {
+    sessionStorage.setItem('i2i_uploaded_image', newVal)
+    console.log('[I2I] Saved image URL to sessionStorage:', newVal)
+  } else {
+    sessionStorage.removeItem('i2i_uploaded_image')
+  }
+})
+
+watch(uploadedImageId, (newVal) => {
+  if (newVal) {
+    sessionStorage.setItem('i2i_uploaded_image_id', newVal)
+  } else {
+    sessionStorage.removeItem('i2i_uploaded_image_id')
+  }
 })
 </script>
 
