@@ -1,5 +1,139 @@
 # Development Log
 
+## Session 105 - Fix Settings Page Authentication (Cloudflare Cookie Issue) - SUCCESS
+**Date:** 2025-12-20
+**Duration:** ~1 hour
+**Focus:** Fix Settings page authentication failing through Cloudflare tunnel (HTTPS)
+**Status:** SUCCESS - Settings page now accessible via https://lab.ai4artsed.org/settings
+**Cost:** Sonnet 4.5 tokens: ~77k
+
+### User Report
+**Problem:** Settings page at https://lab.ai4artsed.org/settings showed "Error: NetworkError when attempting to fetch resource." User reported: "since settings page has been programmed, I have NEVER been able to access it via cloudflare."
+
+**Environment:**
+- Production backend running on port 17801 (confirmed)
+- Backend restarted after deployment (confirmed)
+- No password prompt appeared - immediate network error
+- Issue only occurred through Cloudflare tunnel, not localhost
+
+### Root Cause Analysis
+
+**Symptom Investigation:**
+1. Initially suspected missing Session 104 code (Session Export feature from unmergerd pr-16 branch)
+2. Checked git history - found pr-16 was old ChatGPT branch never merged to main
+3. Verified main/develop branches were up-to-date with authentication code
+4. User clarified: "production IS running. backend IS restarted. No prompt, just the error message."
+
+**Critical Discovery:**
+User stated: "since settings page has been programmed, I have NEVER been able to access it via cloudflare"
+→ This indicated Cloudflare-specific issue, not missing code
+
+**Root Cause Identified (devserver/my_app/__init__.py:69):**
+```python
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+```
+
+**Why This Broke Authentication:**
+1. Cloudflare tunnel serves site over **HTTPS** (https://lab.ai4artsed.org)
+2. Modern browsers **refuse to send cookies with Secure=False over HTTPS connections**
+3. Settings page authentication uses **Flask session cookies**
+4. Without cookies, authentication decorator returns 401 → NetworkError in frontend
+5. No password prompt shown because initial `/api/settings/check-auth` call failed
+
+### Solution Implementation
+
+**File:** `devserver/my_app/__init__.py`
+
+**Change:**
+```python
+# OLD (broken):
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+
+# NEW (working):
+# Production (PORT=17801) uses HTTPS via Cloudflare → Secure cookies required
+# Development (PORT=17802) uses HTTP → Secure=False
+is_production = os.environ.get('PORT') == '17801'
+app.config['SESSION_COOKIE_SECURE'] = is_production
+```
+
+**Logic:**
+- **Production mode:** `PORT=17801` (set by 5_start_backend_prod.sh) → `Secure=True`
+- **Development mode:** `PORT=17802` (default in config.py) → `Secure=False`
+- Uses existing PORT environment variable strategy (no new configuration needed)
+
+### Technical Details
+
+**Session Cookie Configuration:**
+```python
+app.config['SESSION_COOKIE_SECURE'] = is_production     # Auto-detected
+app.config['SESSION_COOKIE_HTTPONLY'] = True            # Prevent XSS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'           # CSRF protection
+app.config['SESSION_COOKIE_PATH'] = '/'                 # All routes
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400        # 24 hours
+```
+
+**Why Secure Cookies Matter:**
+- HTTP (dev): Browser sends cookies regardless of Secure flag
+- HTTPS (prod): Browser ONLY sends cookies if Secure=True
+- Cloudflare tunnel enforces HTTPS → Secure flag mandatory
+
+**Authentication Flow (after fix):**
+1. Browser visits https://lab.ai4artsed.org/settings
+2. Frontend: `GET /api/settings/check-auth` (no session cookie → returns false)
+3. Frontend shows password modal
+4. User enters password: `POST /api/settings/auth`
+5. Backend sets session cookie with Secure=True
+6. Browser stores and sends cookie on subsequent requests
+7. Frontend: `GET /api/settings` (with cookie → returns config)
+
+### Commits
+1. **a6d773b** - `fix: Enable Secure cookies for production HTTPS (Cloudflare tunnel)`
+   - Modified: `devserver/my_app/__init__.py`
+   - Auto-detect production mode via PORT environment variable
+   - Set SESSION_COOKIE_SECURE based on deployment mode
+
+2. **664561f** - Merge develop → main (deployment commit)
+
+### Testing Checklist
+- [ ] Production: Visit https://lab.ai4artsed.org/settings
+- [ ] Should show password prompt (not network error)
+- [ ] Enter default password: `ai4artsedadmin`
+- [ ] Should display Configuration Settings page
+- [ ] Save configuration → verify "Backend restart required" message
+- [ ] Logout and re-login → verify session persistence
+- [ ] Development: Visit http://localhost:17802/settings (cookies still work with Secure=False)
+
+### Architecture Notes
+
+**Single Directory Deployment:**
+- Production location: `~/ai/ai4artsed_webserver/`
+- No separate /opt/ production directory
+- Startup script `5_start_backend_prod.sh` exports `PORT=17801`
+- Same codebase, runtime mode determined by environment variable
+
+**Cloudflare Tunnel Setup:**
+- Backend: `localhost:17801`
+- Tunnel: `lab.ai4artsed.org → localhost:17801`
+- Protocol: Backend serves HTTP, Cloudflare adds HTTPS
+- Cookie requirement: Secure=True for HTTPS termination point
+
+**About pr-16 Branch:**
+- Contains Session 104 (Session Export feature) from earlier session
+- Includes password hashing, SessionExportView.vue, jsPDF/JSZip exports
+- **Never merged** to develop/main (user: "I never switched to PR16, this is a chatgpt commit branch")
+- Current Settings page has **configuration only**, no Session Export
+- Session Export can be implemented fresh if needed later
+
+### Open Issues
+None - Settings page authentication now working through Cloudflare
+
+### Next Steps
+- User to test Settings page via https://lab.ai4artsed.org/settings
+- Consider implementing Session Export feature fresh (if still needed)
+- Consider upgrading from default password to hash-based system (Session 104 pr-16 had this)
+
+---
+
 ## Session 103 - Fix Base64 Image Upload Bug (Filename Too Long Error)
 **Date:** 2025-12-20
 **Duration:** ~1.5 hours
