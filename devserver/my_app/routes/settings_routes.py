@@ -574,6 +574,52 @@ echo "   Access Key: ${{AWS_ACCESS_KEY_ID:0:8}}..."
         return jsonify({"error": str(e)}), 500
 
 
+@settings_bp.route('/sessions/available-dates', methods=['GET'])
+@require_settings_auth
+def get_available_dates():
+    """Get list of dates that have sessions with counts"""
+    try:
+        exports_path = Path(__file__).parent.parent.parent.parent / "exports" / "json"
+
+        if not exports_path.exists():
+            return jsonify({"dates": []}), 200
+
+        # Collect dates with session counts
+        date_counts = {}
+
+        for session_dir in exports_path.iterdir():
+            if not session_dir.is_dir():
+                continue
+
+            metadata_file = session_dir / "metadata.json"
+            if not metadata_file.exists():
+                continue
+
+            try:
+                with open(metadata_file) as f:
+                    metadata = json.load(f)
+
+                timestamp_str = metadata.get('timestamp', '')
+                timestamp_dt = datetime.fromisoformat(timestamp_str)
+                date_str = timestamp_dt.date().isoformat()
+
+                date_counts[date_str] = date_counts.get(date_str, 0) + 1
+            except:
+                continue
+
+        # Convert to sorted list
+        available_dates = [
+            {"date": date_str, "count": count}
+            for date_str, count in sorted(date_counts.items(), reverse=True)
+        ]
+
+        return jsonify({"dates": available_dates}), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error getting available dates: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @settings_bp.route('/sessions', methods=['GET'])
 @require_settings_auth
 def get_sessions():
@@ -583,7 +629,8 @@ def get_sessions():
     Query parameters:
     - page: Page number (default: 1)
     - per_page: Items per page (default: 50, max: 500)
-    - date: Filter by date (YYYY-MM-DD, default: today)
+    - date_from: Filter by start date (YYYY-MM-DD)
+    - date_to: Filter by end date (YYYY-MM-DD)
     - user_id: Filter by user ID
     - config_name: Filter by config name
     - safety_level: Filter by safety level
@@ -595,7 +642,8 @@ def get_sessions():
         # Get query parameters
         page = request.args.get('page', 1, type=int)
         per_page = min(request.args.get('per_page', 50, type=int), 500)
-        date_filter = request.args.get('date', date.today().isoformat())
+        date_from = request.args.get('date_from', None)
+        date_to = request.args.get('date_to', None)
         user_filter = request.args.get('user_id', None)
         config_filter = request.args.get('config_name', None)
         safety_filter = request.args.get('safety_level', None)
@@ -637,11 +685,23 @@ def get_sessions():
                 except:
                     continue
 
-                # Apply date filter (default: today)
-                if date_filter:
-                    session_date = timestamp_dt.date().isoformat()
-                    if session_date != date_filter:
-                        continue
+                # Apply date range filter
+                session_date = timestamp_dt.date()
+                if date_from:
+                    try:
+                        from_date = datetime.fromisoformat(date_from).date()
+                        if session_date < from_date:
+                            continue
+                    except:
+                        pass
+
+                if date_to:
+                    try:
+                        to_date = datetime.fromisoformat(date_to).date()
+                        if session_date > to_date:
+                            continue
+                    except:
+                        pass
 
                 # Apply user filter
                 if user_filter and metadata.get('user_id') != user_filter:

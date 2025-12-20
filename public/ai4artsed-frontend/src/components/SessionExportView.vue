@@ -35,8 +35,47 @@
         </div>
 
         <div class="filter-group">
-          <label>Date</label>
-          <input type="date" v-model="filters.date" @change="applyFilters" />
+          <label>Date Range</label>
+          <div class="date-range">
+            <input type="date" v-model="filters.date_from" @change="applyFilters" placeholder="From" />
+            <span class="date-separator">→</span>
+            <input type="date" v-model="filters.date_to" @change="applyFilters" placeholder="To" />
+          </div>
+        </div>
+
+        <div class="filter-group available-dates-group">
+          <label>Available Dates (click to select)</label>
+          <div class="available-dates">
+            <button
+              v-for="dateInfo in availableDates.slice(0, 10)"
+              :key="dateInfo.date"
+              @click="selectDate(dateInfo.date)"
+              :class="['date-btn', { active: isDateSelected(dateInfo.date) }]"
+              :title="`${dateInfo.count} sessions`"
+            >
+              {{ formatShortDate(dateInfo.date) }}
+              <span class="date-count">{{ dateInfo.count }}</span>
+            </button>
+            <button
+              v-if="availableDates.length > 10"
+              @click="showAllDates = !showAllDates"
+              class="date-btn more-dates"
+            >
+              {{ showAllDates ? 'Less' : `+${availableDates.length - 10} more` }}
+            </button>
+          </div>
+          <div v-if="showAllDates" class="available-dates">
+            <button
+              v-for="dateInfo in availableDates.slice(10)"
+              :key="dateInfo.date"
+              @click="selectDate(dateInfo.date)"
+              :class="['date-btn', { active: isDateSelected(dateInfo.date) }]"
+              :title="`${dateInfo.count} sessions`"
+            >
+              {{ formatShortDate(dateInfo.date) }}
+              <span class="date-count">{{ dateInfo.count }}</span>
+            </button>
+          </div>
         </div>
 
         <div class="filter-group">
@@ -262,12 +301,16 @@ const sortField = ref('timestamp')
 const sortOrder = ref('desc')
 
 const filters = ref({
-  date: new Date().toISOString().split('T')[0], // Today by default
+  date_from: new Date().toISOString().split('T')[0], // Today by default
+  date_to: new Date().toISOString().split('T')[0],   // Today by default
   user_id: '',
   config_name: '',
   safety_level: '',
   search: ''
 })
+
+const availableDates = ref([])
+const showAllDates = ref(false)
 
 const availableFilters = ref({
   users: [],
@@ -288,6 +331,23 @@ const loadingDetail = ref(false)
 
 let searchTimeout = null
 
+async function loadAvailableDates() {
+  try {
+    const response = await fetch('/api/settings/sessions/available-dates', {
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+    availableDates.value = data.dates
+  } catch (e) {
+    console.error('Failed to load available dates:', e)
+  }
+}
+
 async function loadSessions() {
   try {
     loading.value = true
@@ -298,7 +358,8 @@ async function loadSessions() {
       per_page: perPage.value,
       sort: sortField.value,
       order: sortOrder.value,
-      ...(filters.value.date && { date: filters.value.date }),
+      ...(filters.value.date_from && { date_from: filters.value.date_from }),
+      ...(filters.value.date_to && { date_to: filters.value.date_to }),
       ...(filters.value.user_id && { user_id: filters.value.user_id }),
       ...(filters.value.config_name && { config_name: filters.value.config_name }),
       ...(filters.value.safety_level && { safety_level: filters.value.safety_level }),
@@ -344,14 +405,35 @@ function debouncedSearch() {
 }
 
 function clearFilters() {
+  const today = new Date().toISOString().split('T')[0]
   filters.value = {
-    date: new Date().toISOString().split('T')[0],
+    date_from: today,
+    date_to: today,
     user_id: '',
     config_name: '',
     safety_level: '',
     search: ''
   }
   applyFilters()
+}
+
+function selectDate(dateStr) {
+  filters.value.date_from = dateStr
+  filters.value.date_to = dateStr
+  applyFilters()
+}
+
+function isDateSelected(dateStr) {
+  return filters.value.date_from === dateStr && filters.value.date_to === dateStr
+}
+
+function formatShortDate(dateStr) {
+  try {
+    const dt = new Date(dateStr)
+    return dt.toLocaleDateString('de-DE', { month: 'short', day: 'numeric' })
+  } catch {
+    return dateStr
+  }
 }
 
 function sortBy(field) {
@@ -502,6 +584,7 @@ function handleImageError(event) {
 }
 
 onMounted(() => {
+  loadAvailableDates()
   loadSessions()
 })
 </script>
@@ -598,6 +681,78 @@ onMounted(() => {
   font-size: 13px;
   background: #fff;
   color: #000;
+}
+
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-range input {
+  flex: 1;
+  min-width: 140px;
+}
+
+.date-separator {
+  color: #666;
+  font-weight: bold;
+}
+
+.available-dates-group {
+  min-width: 100%;
+  flex-basis: 100%;
+}
+
+.available-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.date-btn {
+  padding: 6px 10px;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  font-size: 12px;
+  color: #333;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.date-btn:hover {
+  background: #e0e0e0;
+  border-color: #999;
+}
+
+.date-btn.active {
+  background: #007bff;
+  color: #fff;
+  border-color: #0056b3;
+  font-weight: 600;
+}
+
+.date-btn.active .date-count {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.date-count {
+  background: #ddd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.date-btn.more-dates {
+  background: #e9ecef;
+  color: #666;
+  font-style: italic;
 }
 
 .clear-btn {
