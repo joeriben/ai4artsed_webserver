@@ -58,7 +58,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-./5_start_backend_prod.sh
+$SCRIPT_DIR/5_start_backend_prod.sh
 
 echo ""
 echo "✅ Deployment completed!"
