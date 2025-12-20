@@ -8,6 +8,9 @@ import json
 import logging
 from pathlib import Path
 from datetime import datetime, date
+import secrets
+import string
+from werkzeug.security import generate_password_hash, check_password_hash
 import config
 
 logger = logging.getLogger(__name__)
@@ -22,8 +25,41 @@ OPENROUTER_KEY_FILE = Path(__file__).parent.parent.parent / "openrouter.key"
 ANTHROPIC_KEY_FILE = Path(__file__).parent.parent.parent / "anthropic.key"
 OPENAI_KEY_FILE = Path(__file__).parent.parent.parent / "openai.key"
 
-# Path to settings password file
+# Path to settings password file (stores password hash)
 SETTINGS_PASSWORD_FILE = Path(__file__).parent.parent.parent / "settings_password.key"
+
+
+def generate_strong_password(length=24):
+    """Generate a cryptographically secure random password"""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+
+def initialize_password():
+    """Initialize password on first run - generate strong random password and store hash"""
+    if not SETTINGS_PASSWORD_FILE.exists():
+        # Generate strong random password
+        password = generate_strong_password(24)
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+
+        # Store hash
+        SETTINGS_PASSWORD_FILE.write_text(password_hash)
+        SETTINGS_PASSWORD_FILE.chmod(0o600)  # Restrict to owner only
+
+        # Log password ONCE so admin can save it
+        logger.warning("=" * 80)
+        logger.warning("[SETTINGS] NEW ADMIN PASSWORD GENERATED - SAVE THIS NOW!")
+        logger.warning(f"[SETTINGS] Password: {password}")
+        logger.warning("[SETTINGS] This password will NOT be shown again!")
+        logger.warning("=" * 80)
+
+        return password
+    return None
+
+
+# Initialize password on module load
+initialize_password()
+
 
 # Hardware Matrix - 2D Fill-Helper for UI (VRAM × DSGVO)
 # This is NOT configuration - just preset values to help users fill the form
@@ -279,20 +315,21 @@ def require_settings_auth(f):
 
 @settings_bp.route('/auth', methods=['POST'])
 def authenticate():
-    """Authenticate with settings password"""
+    """Authenticate with settings password (using password hash)"""
     try:
         data = request.get_json()
         password = data.get('password', '')
 
-        # Use default password if file doesn't exist (fresh production deploy)
+        # Password file should always exist (created by initialize_password)
         if not SETTINGS_PASSWORD_FILE.exists():
-            correct_password = "ai4artsedadmin"
-            logger.warning("[SETTINGS] No password file found, using default password")
-        else:
-            with open(SETTINGS_PASSWORD_FILE) as f:
-                correct_password = f.read().strip()
+            logger.error("[SETTINGS] Password file missing! Run initialize_password()")
+            return jsonify({"error": "Authentication system not initialized"}), 500
 
-        if password == correct_password:
+        # Read password hash
+        password_hash = SETTINGS_PASSWORD_FILE.read_text().strip()
+
+        # Verify password against hash
+        if check_password_hash(password_hash, password):
             session['settings_authenticated'] = True
             session.permanent = True  # Remember across browser restarts
             logger.info("[SETTINGS] Authentication successful")
@@ -319,6 +356,44 @@ def check_auth():
     """Check if currently authenticated"""
     authenticated = session.get('settings_authenticated', False)
     return jsonify({"authenticated": authenticated}), 200
+
+
+@settings_bp.route('/change-password', methods=['POST'])
+@require_settings_auth
+def change_password():
+    """Change admin password (requires current password)"""
+    try:
+        data = request.get_json()
+        current_password = data.get('current_password', '')
+        new_password = data.get('new_password', '')
+
+        # Validation
+        if not current_password or not new_password:
+            return jsonify({"error": "Both current and new password required"}), 400
+
+        if len(new_password) < 12:
+            return jsonify({"error": "New password must be at least 12 characters"}), 400
+
+        # Verify current password
+        if not SETTINGS_PASSWORD_FILE.exists():
+            return jsonify({"error": "Password file not found"}), 500
+
+        current_hash = SETTINGS_PASSWORD_FILE.read_text().strip()
+        if not check_password_hash(current_hash, current_password):
+            logger.warning("[SETTINGS] Password change failed - incorrect current password")
+            return jsonify({"error": "Current password is incorrect"}), 403
+
+        # Generate and store new password hash
+        new_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+        SETTINGS_PASSWORD_FILE.write_text(new_hash)
+        SETTINGS_PASSWORD_FILE.chmod(0o600)
+
+        logger.info("[SETTINGS] Password changed successfully")
+        return jsonify({"success": True, "message": "Password changed successfully"}), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Password change error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @settings_bp.route('/', methods=['GET'])
