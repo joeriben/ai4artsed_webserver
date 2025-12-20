@@ -719,18 +719,24 @@ def get_sessions():
                 if search_filter and search_filter.lower() not in metadata.get('run_id', '').lower():
                     continue
 
-                # Count media files and find first image for thumbnail
+                # Count media files and find first media for thumbnail
                 media_count = 0
                 thumbnail_path = None
+                thumbnail_type = None
                 for entity in metadata.get('entities', []):
                     entity_type = entity.get('type', '')
                     if entity_type.startswith('output_'):
                         media_count += 1
-                        # Find first image for thumbnail
-                        if thumbnail_path is None and entity_type == 'output_image':
+                        # Find first media (image or video) for thumbnail
+                        if thumbnail_path is None:
                             filename = entity.get('filename')
                             if filename:
-                                thumbnail_path = f"/exports/json/{session_dir.name}/{filename}"
+                                if entity_type == 'output_image':
+                                    thumbnail_path = f"/exports/json/{session_dir.name}/{filename}"
+                                    thumbnail_type = 'image'
+                                elif entity_type == 'output_video':
+                                    thumbnail_path = f"/exports/json/{session_dir.name}/{filename}"
+                                    thumbnail_type = 'video'
 
                 # Build session summary
                 session_summary = {
@@ -745,7 +751,8 @@ def get_sessions():
                     'entity_count': len(metadata.get('entities', [])),
                     'media_count': media_count,
                     'session_dir': str(session_dir.name),
-                    'thumbnail': thumbnail_path
+                    'thumbnail': thumbnail_path,
+                    'thumbnail_type': thumbnail_type
                 }
 
                 all_sessions.append(session_summary)
@@ -818,6 +825,11 @@ def get_session_detail(run_id):
                     # For images, provide URL path
                     if file_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
                         entity_copy['image_url'] = f"/exports/json/{run_id}/{filename}"
+                        entity_copy['media_type'] = 'image'
+                    # For videos, provide URL path
+                    elif file_path.suffix.lower() in ['.mp4', '.webm', '.mov']:
+                        entity_copy['video_url'] = f"/exports/json/{run_id}/{filename}"
+                        entity_copy['media_type'] = 'video'
                     # For text files, read content
                     elif file_path.suffix in ['.txt', '.json']:
                         try:

@@ -163,11 +163,15 @@
         <tbody>
           <tr v-for="session in sessions" :key="session.run_id">
             <td>
-              <div v-if="session.thumbnail" class="thumbnail-container">
+              <div v-if="session.thumbnail && session.thumbnail_type === 'image'" class="thumbnail-container">
                 <img :src="session.thumbnail" class="thumbnail" @error="handleImageError" />
               </div>
+              <div v-else-if="session.thumbnail && session.thumbnail_type === 'video'" class="thumbnail-container">
+                <video :src="session.thumbnail" class="thumbnail" muted preload="metadata" @error="handleImageError"></video>
+                <div class="video-indicator">▶</div>
+              </div>
               <div v-else class="no-thumbnail">
-                <span>No Image</span>
+                <span>No Media</span>
               </div>
             </td>
             <td>{{ formatTimestamp(session.timestamp) }}</td>
@@ -275,6 +279,11 @@
                 </div>
                 <div v-if="entity.image_url" class="entity-image">
                   <img :src="entity.image_url" :alt="entity.filename" class="detail-image" />
+                </div>
+                <div v-else-if="entity.video_url" class="entity-video">
+                  <video :src="entity.video_url" controls class="detail-video">
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
                 <div v-else-if="entity.content" class="entity-content">
                   <pre>{{ entity.content }}</pre>
@@ -1149,5 +1158,34 @@ onMounted(() => {
   font-size: 10px;
   color: #999;
   text-align: center;
+}
+
+.thumbnail-container {
+  position: relative;
+}
+
+.video-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  color: white;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.entity-video {
+  padding: 12px;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  text-align: center;
+}
+
+.detail-video {
+  max-width: 100%;
+  max-height: 600px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 </style>

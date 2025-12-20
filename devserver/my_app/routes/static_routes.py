@@ -19,6 +19,56 @@ import mimetypes
 static_bp = Blueprint('static', __name__)
 
 
+@static_bp.route('/exports/json/<path:path>')
+def serve_exports(path):
+    """
+    Serve exported session files (JSON, images, videos)
+
+    This endpoint makes /exports/json/* accessible for:
+    - Session thumbnails
+    - Session detail images
+    - Session videos
+    """
+    from pathlib import Path
+    import mimetypes
+
+    # Security check
+    if '..' in path or path.startswith('/'):
+        return "Invalid path", 403
+
+    # Construct full path
+    exports_dir = Path(__file__).parent.parent.parent.parent / "exports" / "json"
+    file_path = exports_dir / path
+
+    # Check if file exists
+    if not file_path.exists() or not file_path.is_file():
+        return "File not found", 404
+
+    # Determine MIME type
+    mime_type = mimetypes.guess_type(str(file_path))[0]
+    if mime_type is None:
+        if path.endswith('.png'):
+            mime_type = 'image/png'
+        elif path.endswith('.jpg') or path.endswith('.jpeg'):
+            mime_type = 'image/jpeg'
+        elif path.endswith('.gif'):
+            mime_type = 'image/gif'
+        elif path.endswith('.webp'):
+            mime_type = 'image/webp'
+        elif path.endswith('.mp4'):
+            mime_type = 'video/mp4'
+        elif path.endswith('.webm'):
+            mime_type = 'video/webm'
+        elif path.endswith('.json'):
+            mime_type = 'application/json'
+        elif path.endswith('.txt'):
+            mime_type = 'text/plain'
+
+    # Send file
+    from flask import send_file
+    return send_file(file_path, mimetype=mime_type)
+
+
 @static_bp.route('/', defaults={'path': ''})
 @static_bp.route('/<path:path>')
 def serve_spa(path):
@@ -44,6 +94,7 @@ def serve_spa(path):
     # Flask catch-all routes match by specificity, not registration order,
     # so we must explicitly exclude API patterns here
     if (path.startswith('api/') or
+        path.startswith('exports/json/') or
         path.startswith('pipeline_configs_') or
         path.startswith('list_workflows') or
         path.startswith('workflow_metadata') or
