@@ -7,6 +7,7 @@ from functools import wraps
 import json
 import logging
 from pathlib import Path
+from datetime import datetime, date
 import config
 
 logger = logging.getLogger(__name__)
@@ -570,4 +571,195 @@ echo "   Access Key: ${{AWS_ACCESS_KEY_ID:0:8}}..."
 
     except Exception as e:
         logger.error(f"[SETTINGS] Error uploading AWS credentials: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/sessions', methods=['GET'])
+@require_settings_auth
+def get_sessions():
+    """
+    Get list of all sessions from /exports/json with pagination and filtering
+
+    Query parameters:
+    - page: Page number (default: 1)
+    - per_page: Items per page (default: 50, max: 500)
+    - date: Filter by date (YYYY-MM-DD, default: today)
+    - user_id: Filter by user ID
+    - config_name: Filter by config name
+    - safety_level: Filter by safety level
+    - search: Search in run_id
+    - sort: Sort field (timestamp, user_id, config_name, default: timestamp)
+    - order: Sort order (asc, desc, default: desc)
+    """
+    try:
+        # Get query parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 50, type=int), 500)
+        date_filter = request.args.get('date', date.today().isoformat())
+        user_filter = request.args.get('user_id', None)
+        config_filter = request.args.get('config_name', None)
+        safety_filter = request.args.get('safety_level', None)
+        search_filter = request.args.get('search', None)
+        sort_field = request.args.get('sort', 'timestamp')
+        sort_order = request.args.get('order', 'desc')
+
+        # Path to exports/json
+        exports_path = Path(__file__).parent.parent.parent.parent / "exports" / "json"
+
+        if not exports_path.exists():
+            return jsonify({
+                "sessions": [],
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": 0
+            }), 200
+
+        # Collect all sessions
+        all_sessions = []
+
+        for session_dir in exports_path.iterdir():
+            if not session_dir.is_dir():
+                continue
+
+            metadata_file = session_dir / "metadata.json"
+            if not metadata_file.exists():
+                continue
+
+            try:
+                with open(metadata_file) as f:
+                    metadata = json.load(f)
+
+                # Parse timestamp
+                timestamp_str = metadata.get('timestamp', '')
+                try:
+                    timestamp_dt = datetime.fromisoformat(timestamp_str)
+                except:
+                    continue
+
+                # Apply date filter (default: today)
+                if date_filter:
+                    session_date = timestamp_dt.date().isoformat()
+                    if session_date != date_filter:
+                        continue
+
+                # Apply user filter
+                if user_filter and metadata.get('user_id') != user_filter:
+                    continue
+
+                # Apply config filter
+                if config_filter and metadata.get('config_name') != config_filter:
+                    continue
+
+                # Apply safety level filter
+                if safety_filter and metadata.get('safety_level') != safety_filter:
+                    continue
+
+                # Apply search filter
+                if search_filter and search_filter.lower() not in metadata.get('run_id', '').lower():
+                    continue
+
+                # Count media files
+                media_count = 0
+                for entity in metadata.get('entities', []):
+                    if entity.get('type', '').startswith('output_'):
+                        media_count += 1
+
+                # Build session summary
+                session_summary = {
+                    'run_id': metadata.get('run_id'),
+                    'timestamp': timestamp_str,
+                    'config_name': metadata.get('config_name'),
+                    'execution_mode': metadata.get('execution_mode'),
+                    'safety_level': metadata.get('safety_level'),
+                    'user_id': metadata.get('user_id'),
+                    'stage': metadata.get('current_state', {}).get('stage'),
+                    'step': metadata.get('current_state', {}).get('step'),
+                    'entity_count': len(metadata.get('entities', [])),
+                    'media_count': media_count,
+                    'session_dir': str(session_dir.name)
+                }
+
+                all_sessions.append(session_summary)
+
+            except Exception as e:
+                logger.error(f"[SETTINGS] Error reading metadata from {session_dir.name}: {e}")
+                continue
+
+        # Sort sessions
+        reverse = (sort_order == 'desc')
+        if sort_field in ['timestamp', 'user_id', 'config_name', 'safety_level']:
+            all_sessions.sort(key=lambda x: x.get(sort_field, ''), reverse=reverse)
+
+        # Pagination
+        total = len(all_sessions)
+        total_pages = (total + per_page - 1) // per_page
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_sessions = all_sessions[start:end]
+
+        # Collect unique values for filters
+        unique_users = sorted(set(s['user_id'] for s in all_sessions if s.get('user_id')))
+        unique_configs = sorted(set(s['config_name'] for s in all_sessions if s.get('config_name')))
+        unique_safety_levels = sorted(set(s['safety_level'] for s in all_sessions if s.get('safety_level')))
+
+        return jsonify({
+            "sessions": paginated_sessions,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "filters": {
+                "users": unique_users,
+                "configs": unique_configs,
+                "safety_levels": unique_safety_levels
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error getting sessions: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/sessions/<run_id>', methods=['GET'])
+@require_settings_auth
+def get_session_detail(run_id):
+    """Get detailed information for a specific session"""
+    try:
+        exports_path = Path(__file__).parent.parent.parent.parent / "exports" / "json"
+        session_dir = exports_path / run_id
+
+        if not session_dir.exists():
+            return jsonify({"error": "Session not found"}), 404
+
+        metadata_file = session_dir / "metadata.json"
+        if not metadata_file.exists():
+            return jsonify({"error": "Metadata not found"}), 404
+
+        with open(metadata_file) as f:
+            metadata = json.load(f)
+
+        # Read all entity files
+        entities_with_content = []
+        for entity in metadata.get('entities', []):
+            entity_copy = entity.copy()
+            filename = entity.get('filename')
+            if filename:
+                file_path = session_dir / filename
+                if file_path.exists():
+                    # Only read text files, not binary (images, etc.)
+                    if file_path.suffix in ['.txt', '.json']:
+                        try:
+                            with open(file_path) as f:
+                                entity_copy['content'] = f.read()
+                        except:
+                            entity_copy['content'] = None
+            entities_with_content.append(entity_copy)
+
+        metadata['entities'] = entities_with_content
+
+        return jsonify(metadata), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error getting session detail: {e}")
         return jsonify({"error": str(e)}), 500

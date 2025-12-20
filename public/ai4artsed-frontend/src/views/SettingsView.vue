@@ -1,13 +1,29 @@
 <template>
   <div class="settings-container">
     <div class="settings-header">
-      <h1>Configuration Settings</h1>
+      <h1>Settings</h1>
+      <div class="tabs">
+        <button
+          :class="['tab-btn', { active: activeTab === 'config' }]"
+          @click="activeTab = 'config'"
+        >
+          Configuration
+        </button>
+        <button
+          :class="['tab-btn', { active: activeTab === 'export' }]"
+          @click="activeTab = 'export'"
+        >
+          Session Export
+        </button>
+      </div>
     </div>
 
-    <div v-if="loading" class="loading">Loading settings...</div>
-    <div v-else-if="error" class="error">Error: {{ error }}</div>
+    <!-- Configuration Tab -->
+    <div v-if="activeTab === 'config'">
+      <div v-if="loading" class="loading">Loading settings...</div>
+      <div v-else-if="error" class="error">Error: {{ error }}</div>
 
-    <div v-else class="settings-content">
+      <div v-else class="settings-content">
       <!-- Hardware Quick-Fill Section -->
       <div class="section">
         <h2>Hardware Quick-Fill (Optional)</h2>
@@ -246,13 +262,21 @@
       <div class="info-note">
         Note: Backend restart required after saving changes.
       </div>
+      </div>
+    </div>
+
+    <!-- Session Export Tab -->
+    <div v-if="activeTab === 'export'">
+      <SessionExportView />
     </div>
   </div>
 </template>
 
 <script setup>
+import SessionExportView from '../components/SessionExportView.vue'
 import { ref, computed, onMounted } from 'vue'
 
+const activeTab = ref('config')
 const loading = ref(true)
 const error = ref(null)
 const settings = ref({})
@@ -518,18 +542,48 @@ onMounted(() => {
 
 .settings-header {
   border-bottom: 2px solid #ccc;
-  padding-bottom: 10px;
   margin-bottom: 20px;
   background: #fff;
-  padding: 15px;
   border: 1px solid #ccc;
 }
 
 .settings-header h1 {
   margin: 0;
+  padding: 15px 15px 0 15px;
   font-size: 20px;
   font-weight: 600;
   color: #333;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 15px;
+  margin-top: 10px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: #e0e0e0;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background: #d0d0d0;
+}
+
+.tab-btn.active {
+  background: #fff;
+  color: #333;
+  font-weight: 600;
+  border-top: 3px solid #007bff;
+  padding-top: 8px;
 }
 
 .loading, .error {
