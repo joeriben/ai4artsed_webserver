@@ -361,7 +361,50 @@ function copyUploadedImage() {
   console.log('[I2I] Image URL copied to app clipboard:', uploadedImage.value)
 }
 
-function pasteUploadedImage() {
+function base64ToBlob(dataUrl: string): Blob | null {
+  try {
+    const [header, base64Content] = dataUrl.split(',')
+    if (!header || !base64Content) return null
+
+    const mimeMatch = header.match(/data:(.*?);/)
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/png'
+
+    const binaryString = atob(base64Content)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+
+    return new Blob([bytes], { type: mimeType })
+  } catch (error) {
+    console.error('[I2I] Failed to convert Base64 to Blob:', error)
+    return null
+  }
+}
+
+async function uploadImageToBackend(imageBlob: Blob, filename: string = 'pasted-image.png'): Promise<string | null> {
+  try {
+    const formData = new FormData()
+    formData.append('file', imageBlob, filename)
+
+    const response = await axios.post('/api/media/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+
+    if (response.data.success) {
+      console.log('[I2I] Image uploaded successfully:', response.data.image_path)
+      return response.data.image_path
+    } else {
+      console.error('[I2I] Upload failed:', response.data.error)
+      return null
+    }
+  } catch (error: any) {
+    console.error('[I2I] Upload error:', error)
+    return null
+  }
+}
+
+async function pasteUploadedImage() {
   const clipboardContent = pasteFromClipboard()
 
   if (!clipboardContent) {
@@ -380,24 +423,52 @@ function pasteUploadedImage() {
     return
   }
 
-  // Set as uploaded image (trigger handleImageUpload-like behavior)
+  // CASE 1: Server URL or external URL - use directly
+  if (!clipboardContent.startsWith('data:image/')) {
+    uploadedImage.value = clipboardContent
+    uploadedImagePath.value = clipboardContent
+
+    const runIdMatch = clipboardContent.match(/\/api\/media\/image\/(.+)$/)
+    uploadedImageId.value = runIdMatch ? runIdMatch[1] : `pasted_${Date.now()}`
+    executionPhase.value = 'image_uploaded'
+
+    console.log('[I2I] Image pasted from URL:', clipboardContent.substring(0, 100))
+    return
+  }
+
+  // CASE 2: Base64 Data URL - convert and upload
+  console.log('[I2I] Detected Base64 data URL, uploading to backend...')
+
+  // Set preview immediately for instant feedback
   uploadedImage.value = clipboardContent
-  uploadedImagePath.value = clipboardContent.startsWith('data:image/')
-    ? clipboardContent  // For Base64, use same as uploadedImage
-    : clipboardContent  // For Server-URL, use as-is
-
-  // Extract run_id if it's an API URL, otherwise generate pasted ID
-  const runIdMatch = clipboardContent.match(/\/api\/media\/image\/(.+)$/)
-  uploadedImageId.value = runIdMatch ? runIdMatch[1] : `pasted_${Date.now()}`
-
-  // Update phase
   executionPhase.value = 'image_uploaded'
 
-  console.log('[I2I] Image pasted from clipboard:', {
-    url: clipboardContent.substring(0, 100) + '...',
-    id: uploadedImageId.value,
-    type: clipboardContent.startsWith('data:image/') ? 'Base64' : 'URL'
-  })
+  // Convert Base64 to Blob
+  const imageBlob = base64ToBlob(clipboardContent)
+  if (!imageBlob) {
+    console.error('[I2I] Failed to convert Base64 to Blob')
+    uploadedImagePath.value = clipboardContent // Fallback (will fail on generation)
+    return
+  }
+
+  // Generate filename from timestamp
+  const timestamp = Date.now()
+  const filename = `pasted-image-${timestamp}.png`
+
+  // Upload to backend
+  const serverPath = await uploadImageToBackend(imageBlob, filename)
+
+  if (serverPath) {
+    // Success: Update with server path
+    uploadedImagePath.value = serverPath
+    uploadedImageId.value = `pasted_${timestamp}`
+    console.log('[I2I] Base64 image uploaded successfully:', serverPath)
+  } else {
+    // Failure: Keep Base64 (will fail on generation, but at least preview works)
+    console.error('[I2I] Failed to upload Base64 image to backend')
+    uploadedImagePath.value = clipboardContent
+    uploadedImageId.value = `pasted_failed_${timestamp}`
+  }
 }
 
 function handleImageRemove() {
