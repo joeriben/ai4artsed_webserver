@@ -37,7 +37,14 @@ echo ""
 # Step 5: Build frontend
 echo "🔨 Step 5a: Building frontend..."
 cd "$SCRIPT_DIR/public/ai4artsed-frontend"
-npm run install
+
+# Check if 'install' script exists in package.json, run it only if present
+if npm run | grep -q "^\s*install$"; then
+    echo "Running custom install script..."
+    npm run install
+fi
+
+# Always run build
 npm run build
 echo "✅ Frontend built successfully"
 echo ""
