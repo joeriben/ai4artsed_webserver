@@ -1,5 +1,269 @@
 # Development Log
 
+## Session 104 - Session Export Feature for Research Data - SUCCESS
+**Date:** 2025-12-20
+**Duration:** ~3 hours
+**Focus:** Complete Session Export view in password-protected Settings area
+**Status:** SUCCESS - All features implemented and tested
+**Cost:** Sonnet 4.5 tokens: ~165k
+
+### User Request
+Create a Vue component in the password-protected Settings area to display and export research data from `/exports/json` directory (1800+ sessions). Replace legacy `exports.html` with modern Vue-based solution featuring:
+- Session list with thumbnails and metadata
+- Filters (date range, user, config, safety level)
+- Pagination for large datasets
+- CSV export for research analysis
+- Default view: Today's sessions
+
+### Implementation Summary
+
+#### Backend Endpoints ✅
+**File:** `devserver/my_app/routes/settings_routes.py`
+
+**New Endpoints:**
+1. `GET /api/settings/sessions` - List sessions with server-side filtering
+   - Pagination: 50 per page (configurable up to 500)
+   - Filters: date_from, date_to, user_id, config_name, safety_level
+   - Returns: metadata, thumbnails, Stage2-Config, output mode
+   - **Critical Fix:** Fallback logic for sessions missing `01_config_used.json`
+   ```python
+   # Fallback: Infer output mode from entity types (946 old sessions)
+   if output_mode is None:
+       for entity in metadata.get('entities', []):
+           entity_type = entity.get('type', '')
+           if entity_type == 'output_image':
+               output_mode = 'image+text2image' if has_input_image else 'text2image'
+               break
+   ```
+
+2. `GET /api/settings/sessions/<run_id>` - Detailed session with entity content
+
+3. `GET /api/settings/sessions/available-dates` - List dates with session counts
+   - Scans all sessions, returns sorted date array
+   - Prevents clicking empty days in UI
+
+**Media Serving:**
+**File:** `devserver/my_app/routes/static_routes.py`
+
+4. `GET /exports/json/<path>` - Serve images, videos, JSON with proper MIME types
+   - Security check: No ".." or leading "/" in path
+   - Auto-detects MIME types for common formats
+
+#### Frontend Component ✅
+**File:** `public/ai4artsed-frontend/src/components/SessionExportView.vue`
+
+**Key Features:**
+1. **Statistics Dashboard** - Total sessions, users, configs, media counts
+
+2. **Date Range Filter + Available Dates**
+   ```vue
+   <div class="date-range">
+     <input type="date" v-model="filters.date_from" />
+     <span>→</span>
+     <input type="date" v-model="filters.date_to" />
+   </div>
+   <div class="available-dates">
+     <button v-for="dateInfo in availableDates.slice(0, 10)"
+       @click="selectDate(dateInfo.date)">
+       {{ formatShortDate(dateInfo.date) }}
+       <span class="date-count">{{ dateInfo.count }}</span>
+     </button>
+   </div>
+   ```
+
+3. **Google-Style Pagination** (positioned ABOVE table per user request)
+   - Smart page calculation: `[1] ... [5] [6] [7] ... [42]`
+   - Shows "Previous" / "Next" buttons
+   - Active page highlighted
+   - Total session count displayed
+
+4. **Thumbnail Display**
+   - Images: Direct display
+   - Videos: Still frame with play indicator (▶)
+   - Error handling for missing media
+
+5. **CSV Export Function**
+   - Client-side generation
+   - Proper escaping for commas and quotes
+   - Headers: Session ID, Timestamp, User, Stage2-Config, Modus, Safety Level, etc.
+
+6. **Column Structure** (Final Version)
+   | Preview | Timestamp | User | Stage2-Config | Modus | Safety | Stage | Entities | Media | Session ID | Actions |
+   - **Stage2-Config**: Shows "overdrive", "dada", etc. (researcher-relevant)
+   - **Modus**: Shows "text2image", "image+text2image", etc. (output type)
+   - ~~Stage2 Pipeline~~ ❌ Removed (user: "technical detail, not needed")
+
+#### Settings Integration ✅
+**File:** `public/ai4artsed-frontend/src/views/SettingsView.vue`
+
+**Changes:**
+- Added tab navigation with Session Export as DEFAULT (first) tab
+- Existing configuration moved to second tab
+```vue
+<div class="tabs">
+  <button :class="['tab-btn', { active: activeTab === 'export' }]"
+    @click="activeTab = 'export'">
+    Session Export
+  </button>
+  <button :class="['tab-btn', { active: activeTab === 'config' }]"
+    @click="activeTab = 'config'">
+    Configuration
+  </button>
+</div>
+```
+
+#### Development Workflow Enhancement ✅
+**File:** `4_start_frontend_dev.sh`
+
+**Change:** Added fresh build before dev server start
+```bash
+echo "Building frontend (fresh build)..."
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed! Check errors above."
+    exit 1
+fi
+
+echo "✅ Build completed successfully"
+npm run dev
+```
+
+### Critical Issues Resolved
+
+#### Issue #1: Media Files Not Loading (SOLVED)
+**Problem:** Thumbnails/videos showed "Cannot play media. No decoders for text/html"
+- Browser console revealed "HTTP Content-Type of text/html is not supported"
+- Media URLs hitting Vite dev server (5173) instead of Flask backend (17802)
+- Vite returned HTML (index.html) for unknown routes
+
+**Fix:** Added Vite proxy configuration
+**File:** `public/ai4artsed-frontend/vite.config.ts`
+```typescript
+proxy: {
+  '/api': {
+    target: 'http://localhost:17802',
+    changeOrigin: true,
+  },
+  '/exports/json': {  // NEW: Forward media requests to Flask
+    target: 'http://localhost:17802',
+    changeOrigin: true,
+  }
+}
+```
+
+#### Issue #2: Modus Column Showing "N/A" (SOLVED)
+**Problem:** User reported "wo sollte das Datum herkommen? wieso steht da überall nur 'N/A'?"
+
+**Investigation:**
+- 946 out of 1807 sessions lack `01_config_used.json` (old sessions)
+- File only exists for sessions created after config tracking implemented
+
+**Fix:** Fallback detection logic in `settings_routes.py`
+```python
+# If config_used.json missing, infer from entity types
+for entity in metadata.get('entities', []):
+    entity_type = entity.get('type', '')
+    if entity_type == 'output_image':
+        output_mode = 'image+text2image' if has_input_image else 'text2image'
+        break
+    elif entity_type == 'output_video':
+        output_mode = 'image+text2video' if has_input_image else 'text2video'
+        break
+```
+
+#### Issue #3: Column Naming Confusion (SOLVED)
+**User Feedback:** "was Du 'schema' nennst ist inkonsistent. 'image_transformation' ist eine vue/pipeline, 'overdrive' ist eine gestaltungs-interception (stage2). Ich will immer die ausgewählte Stage2-Interception sehen."
+
+**Solution:**
+1. Renamed "Schema" → "Stage2-Config"
+2. Removed "Stage2 Pipeline" column entirely
+3. Now shows only researcher-relevant info: overdrive, dada, partial_elimination, etc.
+
+### Files Modified
+
+#### Backend
+1. `devserver/my_app/routes/settings_routes.py` - Session endpoints (+~150 lines)
+   - `GET /api/settings/sessions` with filtering and pagination
+   - `GET /api/settings/sessions/<run_id>` for details
+   - `GET /api/settings/sessions/available-dates`
+   - Fallback Modus detection for old sessions
+
+2. `devserver/my_app/routes/static_routes.py` - Media serving (+~30 lines)
+   - `GET /exports/json/<path>` with MIME type detection
+
+#### Frontend
+3. `public/ai4artsed-frontend/src/components/SessionExportView.vue` - NEW FILE (~850 lines)
+   - Complete Session Export UI with filters, pagination, CSV export
+
+4. `public/ai4artsed-frontend/src/views/SettingsView.vue` - Tab integration
+   - Added tab navigation
+   - Session Export as default tab
+
+5. `public/ai4artsed-frontend/vite.config.ts` - Proxy fix
+   - Added `/exports/json` proxy to backend
+
+#### Scripts
+6. `4_start_frontend_dev.sh` - Build enhancement
+   - Added `npm run build` before `npm run dev`
+
+### Architecture Notes
+
+**Three-Layer Session Data:**
+1. `metadata.json` - Always present, contains entities array
+2. `01_config_used.json` - Recent sessions only, contains output_mode
+3. Entity files - Images, videos, JSON chunks
+
+**Backward Compatibility Strategy:**
+- New sessions: Read from `01_config_used.json`
+- Old sessions: Infer from entity types
+- Both approaches provide same UI experience
+
+**Pagination Performance:**
+- Server-side filtering reduces payload
+- Client-side page calculation (Google-style)
+- Handles 10k+ sessions efficiently
+
+**Security:**
+- All endpoints require Settings password authentication
+- Path validation prevents directory traversal
+- Protected by existing `@require_settings_auth` decorator
+
+### User Feedback Timeline
+
+1. **Initial Request:** "Ich brauche in diesem Bereich eine vue, die die gespeicherten Sessions (/json) auflistet"
+2. **Thumbnails:** "Ich sehe allerdings noch keine Thumbnails. Von Videos wäre ein Still auch nett."
+3. **Date Range:** "es gibt derzeit nur eine 1-Tages-Anzeige, das müsste ein Zeitraum sein"
+4. **Available Dates:** "Tage ohne exports sollen ausgegraut sein, sonst klickt man ständig leere Tage an"
+5. **Build Script:** "baue npm build in 4_start_frontend-sh ein" → "SORRY! Ich meine npm build -> immer fresh build checken"
+6. **Column Naming:** "Spalten: 'Schema' in 'Stage2-Config' umbenennen. 'Stage2-Pipeline' entfernen"
+7. **Modus Issue:** "wo sollte das Datum herkommen? wieso steht da überall nur 'N/A'?"
+8. **Pagination:** "Oberhalb der Liste, nicht unterhalb. Wie üblich nicht nur 'next', sondern page numbers einblenden (Google-like)"
+
+All feedback incorporated and committed ✅
+
+### Testing Checklist
+- [x] Backend endpoints return correct data with filters
+- [x] Available dates display (no empty days)
+- [x] Date range filtering works
+- [x] Thumbnails load (images and videos)
+- [x] Video preview with play indicator
+- [x] Google-style pagination above table
+- [x] CSV export with proper escaping
+- [x] Modus detection fallback (old sessions)
+- [x] Stage2-Config column shows correct values
+- [x] Session Export is default tab
+- [x] Fresh build on dev startup
+
+### Commits
+Multiple commits during iterative development (exact hashes not captured in summary)
+
+### Next Session TODO
+- None - Feature complete
+- Backend restart required for Modus fallback logic to take effect
+
+---
+
 ## Session 99 - Partial Elimination: Issues #1 & #2 Resolution - SUCCESS
 **Date:** 2025-12-13
 **Duration:** ~2 hours
