@@ -24,9 +24,12 @@
         </button>
         -->
 
+        <!-- DEPRECATED 2025-12-20: Remove button (replaced by 🗑️ in MediaInputBox header) -->
+        <!--
         <button class="remove-btn" @click.stop="removeImage" title="Bild entfernen">
           ✕
         </button>
+        -->
       </div>
 
       <!-- Upload Prompt -->
