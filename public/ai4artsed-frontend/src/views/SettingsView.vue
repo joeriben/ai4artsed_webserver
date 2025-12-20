@@ -4,18 +4,23 @@
       <h1>Settings</h1>
       <div class="tabs">
         <button
-          :class="['tab-btn', { active: activeTab === 'config' }]"
-          @click="activeTab = 'config'"
-        >
-          Configuration
-        </button>
-        <button
           :class="['tab-btn', { active: activeTab === 'export' }]"
           @click="activeTab = 'export'"
         >
           Session Export
         </button>
+        <button
+          :class="['tab-btn', { active: activeTab === 'config' }]"
+          @click="activeTab = 'config'"
+        >
+          Configuration
+        </button>
       </div>
+    </div>
+
+    <!-- Session Export Tab -->
+    <div v-if="activeTab === 'export'">
+      <SessionExportView />
     </div>
 
     <!-- Configuration Tab -->
@@ -264,11 +269,6 @@
       </div>
       </div>
     </div>
-
-    <!-- Session Export Tab -->
-    <div v-if="activeTab === 'export'">
-      <SessionExportView />
-    </div>
   </div>
 </template>
 
@@ -276,7 +276,7 @@
 import SessionExportView from '../components/SessionExportView.vue'
 import { ref, computed, onMounted } from 'vue'
 
-const activeTab = ref('config')
+const activeTab = ref('export')
 const loading = ref(true)
 const error = ref(null)
 const settings = ref({})
