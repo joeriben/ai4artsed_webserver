@@ -66,7 +66,10 @@ def create_app():
     
     # Configure session
     app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-    app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+    # Production (PORT=17801) uses HTTPS via Cloudflare → Secure cookies required
+    # Development (PORT=17802) uses HTTP → Secure=False
+    is_production = os.environ.get('PORT') == '17801'
+    app.config['SESSION_COOKIE_SECURE'] = is_production
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_PATH'] = '/'
