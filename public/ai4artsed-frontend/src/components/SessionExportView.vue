@@ -149,9 +149,11 @@
               <span v-if="sortField === 'user_id'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
             </th>
             <th @click="sortBy('config_name')" class="sortable">
-              Config
+              Schema
               <span v-if="sortField === 'config_name'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
             </th>
+            <th>Stage2 Pipeline</th>
+            <th>Modus</th>
             <th>Safety Level</th>
             <th>Stage</th>
             <th>Entities</th>
@@ -177,6 +179,8 @@
             <td>{{ formatTimestamp(session.timestamp) }}</td>
             <td>{{ session.user_id }}</td>
             <td><span class="config-badge">{{ session.config_name }}</span></td>
+            <td><span class="pipeline-badge">{{ session.stage2_pipeline || 'N/A' }}</span></td>
+            <td><span class="mode-badge">{{ session.output_mode || 'N/A' }}</span></td>
             <td><span class="safety-badge" :class="`safety-${session.safety_level}`">{{ session.safety_level }}</span></td>
             <td>{{ session.stage }} / {{ session.step }}</td>
             <td>{{ session.entity_count }}</td>
@@ -519,7 +523,9 @@ function exportFilteredSessions() {
       'Session ID',
       'Timestamp',
       'User ID',
-      'Config Name',
+      'Schema Name',
+      'Stage2 Pipeline',
+      'Output Mode',
       'Safety Level',
       'Execution Mode',
       'Stage',
@@ -534,6 +540,8 @@ function exportFilteredSessions() {
       formatTimestamp(session.timestamp),
       session.user_id,
       session.config_name,
+      session.stage2_pipeline || 'N/A',
+      session.output_mode || 'N/A',
       session.safety_level,
       session.execution_mode,
       session.stage,
@@ -872,6 +880,24 @@ onMounted(() => {
   border-radius: 3px;
   font-size: 12px;
   font-family: monospace;
+}
+
+.pipeline-badge {
+  background: #fff3cd;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: monospace;
+  color: #856404;
+}
+
+.mode-badge {
+  background: #d1ecf1;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0c5460;
 }
 
 .safety-badge {

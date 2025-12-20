@@ -685,6 +685,43 @@ def get_sessions():
                 except:
                     continue
 
+                # Read config_used.json for pipeline and output info
+                config_used_file = session_dir / "01_config_used.json"
+                stage2_pipeline = None
+                output_mode = None
+                has_input_image = False
+
+                if config_used_file.exists():
+                    try:
+                        with open(config_used_file) as f:
+                            config_used = json.load(f)
+                            stage2_pipeline = config_used.get('pipeline')
+                            output_type = config_used.get('media_preferences', {}).get('default_output', 'unknown')
+
+                            # Check if there's an input image
+                            for entity in metadata.get('entities', []):
+                                if entity.get('type') == 'input_image':
+                                    has_input_image = True
+                                    break
+
+                            # Determine output mode
+                            if output_type == 'image':
+                                if has_input_image:
+                                    output_mode = 'image+text2image'
+                                else:
+                                    output_mode = 'text2image'
+                            elif output_type == 'video':
+                                if has_input_image:
+                                    output_mode = 'image+text2video'
+                                else:
+                                    output_mode = 'text2video'
+                            elif output_type == 'audio':
+                                output_mode = 'text2audio'
+                            else:
+                                output_mode = output_type
+                    except:
+                        pass
+
                 # Apply date range filter
                 session_date = timestamp_dt.date()
                 if date_from:
@@ -743,6 +780,8 @@ def get_sessions():
                     'run_id': metadata.get('run_id'),
                     'timestamp': timestamp_str,
                     'config_name': metadata.get('config_name'),
+                    'stage2_pipeline': stage2_pipeline,
+                    'output_mode': output_mode,
                     'execution_mode': metadata.get('execution_mode'),
                     'safety_level': metadata.get('safety_level'),
                     'user_id': metadata.get('user_id'),
