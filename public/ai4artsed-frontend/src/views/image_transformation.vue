@@ -795,16 +795,17 @@ watch(contextPrompt, (newVal) => {
 
 .input-context-section {
   display: flex;
-  gap: clamp(0.75rem, 2vw, 1.5rem);
+  gap: clamp(1rem, 3vw, 2rem);
   width: 100%;
-  max-width: 1000px;
+  justify-content: center;
+  flex-wrap: wrap;
   align-items: stretch;
 }
 
 .input-bubble,
 .context-bubble {
-  flex: 1;
-  min-width: 0;
+  flex: 0 1 480px;
+  width: 480px;
 }
 
 @media (max-width: 768px) {
