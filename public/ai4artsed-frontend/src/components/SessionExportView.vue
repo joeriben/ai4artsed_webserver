@@ -134,6 +134,50 @@
       <p>Error: {{ error }}</p>
     </div>
 
+    <!-- Pagination (Top) -->
+    <div v-if="!loading && !error && sessions.length > 0" class="pagination-top">
+      <div class="pagination">
+        <button
+          @click="goToPage(currentPage - 1)"
+          :disabled="currentPage <= 1"
+          class="page-btn"
+        >
+          ‹ Previous
+        </button>
+
+        <div class="page-numbers">
+          <button
+            v-for="page in visiblePages"
+            :key="page"
+            @click="page !== '...' && goToPage(page)"
+            :class="['page-number-btn', { active: page === currentPage, dots: page === '...' }]"
+            :disabled="page === '...'"
+          >
+            {{ page }}
+          </button>
+        </div>
+
+        <button
+          @click="goToPage(currentPage + 1)"
+          :disabled="currentPage >= totalPages"
+          class="page-btn"
+        >
+          Next ›
+        </button>
+
+        <select v-model.number="perPage" @change="applyFilters" class="per-page-select">
+          <option :value="25">25 per page</option>
+          <option :value="50">50 per page</option>
+          <option :value="100">100 per page</option>
+          <option :value="250">250 per page</option>
+        </select>
+
+        <span class="page-info">
+          {{ stats.total }} total sessions
+        </span>
+      </div>
+    </div>
+
     <!-- Sessions Table -->
     <div v-if="!loading && !error && sessions.length > 0" class="table-container">
       <table class="sessions-table">
@@ -192,35 +236,6 @@
         </tbody>
       </table>
 
-      <!-- Pagination -->
-      <div class="pagination">
-        <button
-          @click="goToPage(currentPage - 1)"
-          :disabled="currentPage <= 1"
-          class="page-btn"
-        >
-          Previous
-        </button>
-
-        <span class="page-info">
-          Page {{ currentPage }} of {{ totalPages }} ({{ stats.total }} total)
-        </span>
-
-        <button
-          @click="goToPage(currentPage + 1)"
-          :disabled="currentPage >= totalPages"
-          class="page-btn"
-        >
-          Next
-        </button>
-
-        <select v-model.number="perPage" @change="applyFilters" class="per-page-select">
-          <option :value="25">25 per page</option>
-          <option :value="50">50 per page</option>
-          <option :value="100">100 per page</option>
-          <option :value="250">250 per page</option>
-        </select>
-      </div>
     </div>
 
     <!-- No Data -->
@@ -341,6 +356,43 @@ const selectedSession = ref(null)
 const loadingDetail = ref(false)
 
 let searchTimeout = null
+
+const visiblePages = computed(() => {
+  const pages = []
+  const total = totalPages.value
+  const current = currentPage.value
+
+  if (total <= 7) {
+    // Show all pages if 7 or fewer
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+  } else {
+    // Always show first page
+    pages.push(1)
+
+    if (current > 3) {
+      pages.push('...')
+    }
+
+    // Show pages around current
+    const start = Math.max(2, current - 1)
+    const end = Math.min(total - 1, current + 1)
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i)
+    }
+
+    if (current < total - 2) {
+      pages.push('...')
+    }
+
+    // Always show last page
+    pages.push(total)
+  }
+
+  return pages
+})
 
 async function loadAvailableDates() {
   try {
@@ -955,22 +1007,31 @@ onMounted(() => {
 }
 
 /* Pagination */
+.pagination-top {
+  background: #fff;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+}
+
 .pagination {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  gap: 15px;
   padding: 15px;
   background: #f8f9fa;
-  border-top: 1px solid #ddd;
+  flex-wrap: wrap;
 }
 
 .page-btn {
-  padding: 6px 12px;
+  padding: 8px 16px;
   background: #fff;
   border: 1px solid #ccc;
   cursor: pointer;
   font-size: 13px;
   color: #000;
+  border-radius: 4px;
+  font-weight: 500;
 }
 
 .page-btn:disabled {
@@ -979,12 +1040,51 @@ onMounted(() => {
 }
 
 .page-btn:not(:disabled):hover {
+  background: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.page-number-btn {
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  font-size: 13px;
+  color: #000;
+  border-radius: 4px;
+  min-width: 36px;
+  text-align: center;
+}
+
+.page-number-btn:hover:not(.active):not(.dots) {
   background: #e0e0e0;
+}
+
+.page-number-btn.active {
+  background: #007bff;
+  color: #fff;
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+.page-number-btn.dots {
+  border: none;
+  background: transparent;
+  cursor: default;
+  color: #666;
 }
 
 .page-info {
   font-size: 13px;
-  color: #333;
+  color: #666;
+  white-space: nowrap;
 }
 
 .per-page-select {
@@ -993,6 +1093,7 @@ onMounted(() => {
   font-size: 13px;
   background: #fff;
   color: #000;
+  border-radius: 4px;
 }
 
 /* Modal */
