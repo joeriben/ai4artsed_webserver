@@ -580,11 +580,70 @@ async function downloadSessionAsPDF(runId) {
 
     const data = await response.json()
 
+    // Helper function to load media as data URL
+    const loadMediaAsDataURL = async (url, isVideo = false) => {
+      try {
+        if (isVideo) {
+          // Create video element and extract first frame
+          return new Promise((resolve, reject) => {
+            const video = document.createElement('video')
+            video.crossOrigin = 'anonymous'
+            video.src = url
+            video.muted = true
+
+            video.addEventListener('loadeddata', () => {
+              // Seek to 0.1 seconds to avoid blank frame
+              video.currentTime = 0.1
+            })
+
+            video.addEventListener('seeked', () => {
+              try {
+                const canvas = document.createElement('canvas')
+                canvas.width = video.videoWidth
+                canvas.height = video.videoHeight
+                const ctx = canvas.getContext('2d')
+                ctx.drawImage(video, 0, 0)
+                const dataURL = canvas.toDataURL('image/jpeg', 0.8)
+                resolve(dataURL)
+              } catch (e) {
+                reject(e)
+              }
+            })
+
+            video.addEventListener('error', () => reject(new Error('Video load failed')))
+          })
+        } else {
+          // Load image
+          return new Promise((resolve, reject) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => {
+              const canvas = document.createElement('canvas')
+              canvas.width = img.width
+              canvas.height = img.height
+              const ctx = canvas.getContext('2d')
+              ctx.drawImage(img, 0, 0)
+              const dataURL = canvas.toDataURL('image/jpeg', 0.8)
+              resolve(dataURL)
+            }
+            img.onerror = () => reject(new Error('Image load failed'))
+            img.src = url
+          })
+        }
+      } catch (e) {
+        console.error('Failed to load media:', e)
+        return null
+      }
+    }
+
     // Create PDF
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 20
     const contentWidth = pageWidth - 2 * margin
+    const maxImageWidth = contentWidth
+    const maxImageHeight = 100 // Max height for images in PDF
     let yPos = 20
 
     // Title
@@ -621,7 +680,7 @@ async function downloadSessionAsPDF(runId) {
     ]
 
     basicInfo.forEach(line => {
-      if (yPos > 270) {
+      if (yPos > pageHeight - 30) {
         doc.addPage()
         yPos = 20
       }
@@ -629,13 +688,13 @@ async function downloadSessionAsPDF(runId) {
       yPos += 6
     })
 
-    yPos += 5
+    yPos += 10
 
-    // Entities Section
+    // Entities Section with Media
     if (data.entities && data.entities.length > 0) {
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
-      if (yPos > 260) {
+      if (yPos > pageHeight - 30) {
         doc.addPage()
         yPos = 20
       }
@@ -645,8 +704,11 @@ async function downloadSessionAsPDF(runId) {
       doc.setFontSize(9)
       doc.setFont('helvetica', 'normal')
 
-      data.entities.forEach((entity, index) => {
-        if (yPos > 270) {
+      for (let index = 0; index < data.entities.length; index++) {
+        const entity = data.entities[index]
+
+        // Check if we need a new page for entity header
+        if (yPos > pageHeight - 40) {
           doc.addPage()
           yPos = 20
         }
@@ -665,12 +727,108 @@ async function downloadSessionAsPDF(runId) {
           yPos += 5
         }
 
+        // Handle media (images and videos)
+        if (entity.image_url) {
+          try {
+            const dataURL = await loadMediaAsDataURL(entity.image_url, false)
+            if (dataURL) {
+              // Check if image will fit on current page
+              if (yPos + maxImageHeight > pageHeight - 30) {
+                doc.addPage()
+                yPos = 20
+              }
+
+              // Calculate scaled dimensions (wait for image to load)
+              await new Promise((resolve) => {
+                const img = new Image()
+                img.onload = () => {
+                  const aspectRatio = img.width / img.height
+                  let imgWidth = maxImageWidth
+                  let imgHeight = imgWidth / aspectRatio
+
+                  if (imgHeight > maxImageHeight) {
+                    imgHeight = maxImageHeight
+                    imgWidth = imgHeight * aspectRatio
+                  }
+
+                  doc.addImage(dataURL, 'JPEG', margin + 5, yPos, imgWidth, imgHeight)
+                  yPos += imgHeight + 5
+                  resolve()
+                }
+                img.onerror = () => {
+                  doc.text('[Image dimensions unavailable]', margin + 5, yPos)
+                  yPos += 5
+                  resolve()
+                }
+                img.src = dataURL
+              })
+            } else {
+              doc.text('[Image could not be loaded]', margin + 5, yPos)
+              yPos += 5
+            }
+          } catch (e) {
+            doc.text(`[Image error: ${e.message}]`, margin + 5, yPos)
+            yPos += 5
+          }
+        } else if (entity.video_url) {
+          try {
+            const dataURL = await loadMediaAsDataURL(entity.video_url, true)
+            if (dataURL) {
+              // Check if video frame will fit on current page
+              if (yPos + maxImageHeight > pageHeight - 30) {
+                doc.addPage()
+                yPos = 20
+              }
+
+              // Calculate scaled dimensions (wait for image to load)
+              await new Promise((resolve) => {
+                const img = new Image()
+                img.onload = () => {
+                  const aspectRatio = img.width / img.height
+                  let imgWidth = maxImageWidth
+                  let imgHeight = imgWidth / aspectRatio
+
+                  if (imgHeight > maxImageHeight) {
+                    imgHeight = maxImageHeight
+                    imgWidth = imgHeight * aspectRatio
+                  }
+
+                  doc.setFont('helvetica', 'italic')
+                  doc.text('[Video frame]', margin + 5, yPos)
+                  yPos += 5
+                  doc.setFont('helvetica', 'normal')
+
+                  doc.addImage(dataURL, 'JPEG', margin + 5, yPos, imgWidth, imgHeight)
+                  yPos += imgHeight + 5
+                  resolve()
+                }
+                img.onerror = () => {
+                  doc.text('[Video frame dimensions unavailable]', margin + 5, yPos)
+                  yPos += 5
+                  resolve()
+                }
+                img.src = dataURL
+              })
+            } else {
+              doc.text('[Video frame could not be extracted]', margin + 5, yPos)
+              yPos += 5
+            }
+          } catch (e) {
+            doc.text(`[Video error: ${e.message}]`, margin + 5, yPos)
+            yPos += 5
+          }
+        }
+
         // Content preview (if text content exists)
         if (entity.content && typeof entity.content === 'string') {
-          const contentPreview = entity.content.substring(0, 200) + (entity.content.length > 200 ? '...' : '')
+          if (yPos > pageHeight - 30) {
+            doc.addPage()
+            yPos = 20
+          }
+          const contentPreview = entity.content.substring(0, 300) + (entity.content.length > 300 ? '...' : '')
           const lines = doc.splitTextToSize(`Content: ${contentPreview}`, contentWidth - 5)
           lines.forEach(line => {
-            if (yPos > 270) {
+            if (yPos > pageHeight - 30) {
               doc.addPage()
               yPos = 20
             }
@@ -679,11 +837,11 @@ async function downloadSessionAsPDF(runId) {
           })
         }
 
-        yPos += 3
-      })
+        yPos += 5
+      }
     }
 
-    // Footer on last page
+    // Footer on all pages
     const pageCount = doc.internal.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i)
@@ -692,7 +850,7 @@ async function downloadSessionAsPDF(runId) {
       doc.text(
         `Generated by AI4ArtsEd DevServer - Page ${i} of ${pageCount}`,
         pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
+        pageHeight - 10,
         { align: 'center' }
       )
     }
