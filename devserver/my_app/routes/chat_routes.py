@@ -132,6 +132,39 @@ def get_openrouter_credentials():
     return api_url, ""
 
 
+def get_user_setting(key: str, default=None):
+    """
+    Load setting from user_settings.json with fallback to default.
+
+    This allows runtime configuration via the Settings UI to override
+    hardcoded values from config.py.
+
+    Args:
+        key: Setting key (e.g., "CHAT_HELPER_MODEL")
+        default: Default value if setting not found
+
+    Returns:
+        Setting value from user_settings.json or default
+    """
+    try:
+        settings_file = Path(__file__).parent.parent.parent / "user_settings.json"
+        if settings_file.exists():
+            with open(settings_file, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+                value = settings.get(key)
+                if value is not None:
+                    logger.debug(f"Loaded {key}={value} from user_settings.json")
+                    return value
+                else:
+                    logger.debug(f"{key} not found in user_settings.json, using default")
+        else:
+            logger.debug(f"user_settings.json not found, using config.py default for {key}")
+    except Exception as e:
+        logger.warning(f"Failed to load user setting {key}: {e}")
+
+    return default
+
+
 def _split_system_and_messages(messages: list):
     """Separate system messages from user/assistant messages."""
     system_parts = []
@@ -237,8 +270,14 @@ def _call_openrouter_chat(messages: list, model: str, temperature: float, max_to
 
 
 def call_chat_helper(messages: list, temperature: float = 0.7, max_tokens: int = 500):
-    """Call the configured chat helper model based on provider prefix."""
-    model_string = CHAT_HELPER_MODEL
+    """
+    Call the configured chat helper model based on provider prefix.
+
+    Model is loaded from user_settings.json with fallback to CHAT_HELPER_MODEL from config.py.
+    This allows runtime configuration via Settings UI.
+    """
+    model_string = get_user_setting("CHAT_HELPER_MODEL", default=CHAT_HELPER_MODEL)
+    logger.info(f"[CHAT] Using model: {model_string}")
 
     if model_string.startswith("bedrock/"):
         model = model_string[len("bedrock/"):]
