@@ -24,7 +24,6 @@ SETTINGS_FILE = Path(__file__).parent.parent.parent / "user_settings.json"
 OPENROUTER_KEY_FILE = Path(__file__).parent.parent.parent / "openrouter.key"
 ANTHROPIC_KEY_FILE = Path(__file__).parent.parent.parent / "anthropic.key"
 OPENAI_KEY_FILE = Path(__file__).parent.parent.parent / "openai.key"
-MISTRAL_KEY_FILE = Path(__file__).parent.parent.parent / "mistral.key"
 
 # Path to settings password file (stores password hash)
 SETTINGS_PASSWORD_FILE = Path(__file__).parent.parent.parent / "settings_password.key"
@@ -62,13 +61,12 @@ def initialize_password():
 initialize_password()
 
 
-# Hardware Matrix - 2D Fill-Helper for UI (VRAM × Provider)
-# Preset configurations to help users quickly fill model fields
-# Structure: HARDWARE_MATRIX[vram_tier][provider_name]
+# Hardware Matrix - 2D Fill-Helper for UI (VRAM × DSGVO)
+# This is NOT configuration - just preset values to help users fill the form
 HARDWARE_MATRIX = {
     "vram_96": {
-        "none": {
-            "label": "96 GB - Local only",
+        "dsgvo_local": {
+            "label": "96 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -82,8 +80,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "bedrock": {
-            "label": "96 GB - AWS Bedrock EU",
+        "dsgvo_cloud": {
+            "label": "96 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -97,61 +95,16 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "mistral": {
-            "label": "96 GB - Mistral AI",
+        "non_dsgvo": {
+            "label": "96 GB VRAM (non-DSGVO, OpenRouter)",
             "models": {
-                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-                "STAGE3_MODEL": "mistral/mistral-small-latest",
-                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
-                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "mistral",
-            "DSGVO_CONFORMITY": True
-        },
-        "anthropic": {
-            "label": "96 GB - Anthropic Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "anthropic",
-            "DSGVO_CONFORMITY": False
-        },
-        "openai": {
-            "label": "96 GB - OpenAI Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
-                "STAGE3_MODEL": "openai/gpt-4o-mini",
-                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "openai",
-            "DSGVO_CONFORMITY": False
-        },
-        "openrouter": {
-            "label": "96 GB - OpenRouter",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -159,8 +112,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_32": {
-        "none": {
-            "label": "32 GB - Local only",
+        "dsgvo_local": {
+            "label": "32 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -174,8 +127,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "bedrock": {
-            "label": "32 GB - AWS Bedrock EU",
+        "dsgvo_cloud": {
+            "label": "32 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -189,61 +142,16 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "mistral": {
-            "label": "32 GB - Mistral AI",
+        "non_dsgvo": {
+            "label": "32 GB VRAM (non-DSGVO, OpenRouter)",
             "models": {
-                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-                "STAGE3_MODEL": "mistral/mistral-small-latest",
-                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
-                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "mistral",
-            "DSGVO_CONFORMITY": True
-        },
-        "anthropic": {
-            "label": "32 GB - Anthropic Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "anthropic",
-            "DSGVO_CONFORMITY": False
-        },
-        "openai": {
-            "label": "32 GB - OpenAI Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
-                "STAGE3_MODEL": "openai/gpt-4o-mini",
-                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "openai",
-            "DSGVO_CONFORMITY": False
-        },
-        "openrouter": {
-            "label": "32 GB - OpenRouter",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -251,8 +159,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_24": {
-        "none": {
-            "label": "24 GB - Local only",
+        "dsgvo_local": {
+            "label": "24 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/mistral-nemo",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -266,8 +174,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "bedrock": {
-            "label": "24 GB - AWS Bedrock EU",
+        "dsgvo_cloud": {
+            "label": "24 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -281,61 +189,16 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "mistral": {
-            "label": "24 GB - Mistral AI",
+        "non_dsgvo": {
+            "label": "24 GB VRAM (non-DSGVO, OpenRouter)",
             "models": {
-                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-                "STAGE3_MODEL": "mistral/mistral-small-latest",
-                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
-                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "mistral",
-            "DSGVO_CONFORMITY": True
-        },
-        "anthropic": {
-            "label": "24 GB - Anthropic Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "anthropic",
-            "DSGVO_CONFORMITY": False
-        },
-        "openai": {
-            "label": "24 GB - OpenAI Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
-                "STAGE3_MODEL": "openai/gpt-4o-mini",
-                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "openai",
-            "DSGVO_CONFORMITY": False
-        },
-        "openrouter": {
-            "label": "24 GB - OpenRouter",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -343,8 +206,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_16": {
-        "none": {
-            "label": "16 GB - Local only",
+        "dsgvo_local": {
+            "label": "16 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/gemma:9b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -358,8 +221,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "bedrock": {
-            "label": "16 GB - AWS Bedrock EU",
+        "dsgvo_cloud": {
+            "label": "16 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -373,61 +236,16 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "mistral": {
-            "label": "16 GB - Mistral AI",
+        "non_dsgvo": {
+            "label": "16 GB VRAM (non-DSGVO, OpenRouter)",
             "models": {
-                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-                "STAGE3_MODEL": "mistral/mistral-small-latest",
-                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
-                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "mistral",
-            "DSGVO_CONFORMITY": True
-        },
-        "anthropic": {
-            "label": "16 GB - Anthropic Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "anthropic",
-            "DSGVO_CONFORMITY": False
-        },
-        "openai": {
-            "label": "16 GB - OpenAI Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
-                "STAGE3_MODEL": "openai/gpt-4o-mini",
-                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
-            },
-            "EXTERNAL_LLM_PROVIDER": "openai",
-            "DSGVO_CONFORMITY": False
-        },
-        "openrouter": {
-            "label": "16 GB - OpenRouter",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -435,8 +253,8 @@ HARDWARE_MATRIX = {
         }
     },
     "vram_8": {
-        "none": {
-            "label": "8 GB - Local only",
+        "dsgvo_local": {
+            "label": "8 GB VRAM (DSGVO, local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/gemma:2b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
@@ -450,8 +268,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "bedrock": {
-            "label": "8 GB - AWS Bedrock EU",
+        "dsgvo_cloud": {
+            "label": "8 GB VRAM (DSGVO, AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
@@ -465,61 +283,16 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "mistral": {
-            "label": "8 GB - Mistral AI",
+        "non_dsgvo": {
+            "label": "8 GB VRAM (non-DSGVO, OpenRouter)",
             "models": {
-                "STAGE1_TEXT_MODEL": "mistral/mistral-small-latest",
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-                "STAGE3_MODEL": "mistral/mistral-small-latest",
-                "STAGE4_LEGACY_MODEL": "mistral/mistral-small-latest",
-                "CHAT_HELPER_MODEL": "mistral/mistral-small-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
-            },
-            "EXTERNAL_LLM_PROVIDER": "mistral",
-            "DSGVO_CONFORMITY": True
-        },
-        "anthropic": {
-            "label": "8 GB - Anthropic Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-sonnet-4-5-20250929",
-                "STAGE3_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5-20251001",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
-            },
-            "EXTERNAL_LLM_PROVIDER": "anthropic",
-            "DSGVO_CONFORMITY": False
-        },
-        "openai": {
-            "label": "8 GB - OpenAI Direct",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o",
-                "STAGE3_MODEL": "openai/gpt-4o-mini",
-                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
-            },
-            "EXTERNAL_LLM_PROVIDER": "openai",
-            "DSGVO_CONFORMITY": False
-        },
-        "openrouter": {
-            "label": "8 GB - OpenRouter",
-            "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3.5-sonnet-20241022",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3.5-haiku-20241022",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
@@ -695,13 +468,6 @@ def save_settings():
                 f.write(openai_key.strip())
             logger.info("[SETTINGS] OpenAI API Key updated")
 
-        mistral_key = data.pop('MISTRAL_API_KEY', None)
-        if mistral_key:
-            MISTRAL_KEY_FILE.parent.mkdir(exist_ok=True)
-            with open(MISTRAL_KEY_FILE, 'w') as f:
-                f.write(mistral_key.strip())
-            logger.info("[SETTINGS] Mistral API Key updated")
-
         # Write all other settings to user_settings.json
         SETTINGS_FILE.parent.mkdir(exist_ok=True)
         with open(SETTINGS_FILE, 'w') as f:
@@ -800,33 +566,6 @@ def get_openai_key():
         return jsonify({"error": str(e)}), 500
 
 
-@settings_bp.route('/mistral-key', methods=['GET'])
-@require_settings_auth
-def get_mistral_key():
-    """Get masked Mistral API Key for display"""
-    try:
-        if not MISTRAL_KEY_FILE.exists():
-            return jsonify({"exists": False}), 200
-
-        with open(MISTRAL_KEY_FILE) as f:
-            key = f.read().strip()
-
-        # Return masked version (show only first 7 and last 4 chars)
-        if len(key) > 11:
-            masked = f"{key[:7]}...{key[-4:]}"
-        else:
-            masked = "***"
-
-        return jsonify({
-            "exists": True,
-            "masked": masked
-        }), 200
-
-    except Exception as e:
-        logger.error(f"[SETTINGS] Error reading Mistral key: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
 @settings_bp.route('/aws-credentials', methods=['POST'])
 @require_settings_auth
 def upload_aws_credentials():
@@ -907,4 +646,331 @@ echo "   Access Key: ${{AWS_ACCESS_KEY_ID:0:8}}..."
 
     except Exception as e:
         logger.error(f"[SETTINGS] Error uploading AWS credentials: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/sessions/available-dates', methods=['GET'])
+@require_settings_auth
+def get_available_dates():
+    """Get list of dates that have sessions with counts"""
+    try:
+        exports_path = Path(__file__).parent.parent.parent.parent / "exports" / "json"
+
+        if not exports_path.exists():
+            return jsonify({"dates": []}), 200
+
+        # Collect dates with session counts
+        date_counts = {}
+
+        for session_dir in exports_path.iterdir():
+            if not session_dir.is_dir():
+                continue
+
+            metadata_file = session_dir / "metadata.json"
+            if not metadata_file.exists():
+                continue
+
+            try:
+                with open(metadata_file) as f:
+                    metadata = json.load(f)
+
+                timestamp_str = metadata.get('timestamp', '')
+                timestamp_dt = datetime.fromisoformat(timestamp_str)
+                date_str = timestamp_dt.date().isoformat()
+
+                date_counts[date_str] = date_counts.get(date_str, 0) + 1
+            except:
+                continue
+
+        # Convert to sorted list
+        available_dates = [
+            {"date": date_str, "count": count}
+            for date_str, count in sorted(date_counts.items(), reverse=True)
+        ]
+
+        return jsonify({"dates": available_dates}), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error getting available dates: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/sessions', methods=['GET'])
+@require_settings_auth
+def get_sessions():
+    """
+    Get list of all sessions from /exports/json with pagination and filtering
+
+    Query parameters:
+    - page: Page number (default: 1)
+    - per_page: Items per page (default: 50, max: 500)
+    - date_from: Filter by start date (YYYY-MM-DD)
+    - date_to: Filter by end date (YYYY-MM-DD)
+    - user_id: Filter by user ID
+    - config_name: Filter by config name
+    - safety_level: Filter by safety level
+    - search: Search in run_id
+    - sort: Sort field (timestamp, user_id, config_name, default: timestamp)
+    - order: Sort order (asc, desc, default: desc)
+    """
+    try:
+        # Get query parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 50, type=int), 500)
+        date_from = request.args.get('date_from', None)
+        date_to = request.args.get('date_to', None)
+        user_filter = request.args.get('user_id', None)
+        config_filter = request.args.get('config_name', None)
+        safety_filter = request.args.get('safety_level', None)
+        search_filter = request.args.get('search', None)
+        sort_field = request.args.get('sort', 'timestamp')
+        sort_order = request.args.get('order', 'desc')
+
+        # Path to exports/json
+        exports_path = Path(__file__).parent.parent.parent.parent / "exports" / "json"
+
+        if not exports_path.exists():
+            return jsonify({
+                "sessions": [],
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": 0
+            }), 200
+
+        # Collect all sessions
+        all_sessions = []
+
+        for session_dir in exports_path.iterdir():
+            if not session_dir.is_dir():
+                continue
+
+            metadata_file = session_dir / "metadata.json"
+            if not metadata_file.exists():
+                continue
+
+            try:
+                with open(metadata_file) as f:
+                    metadata = json.load(f)
+
+                # Parse timestamp
+                timestamp_str = metadata.get('timestamp', '')
+                try:
+                    timestamp_dt = datetime.fromisoformat(timestamp_str)
+                except:
+                    continue
+
+                # Read config_used.json for pipeline and output info
+                config_used_file = session_dir / "01_config_used.json"
+                stage2_pipeline = None
+                output_mode = None
+                has_input_image = False
+
+                # Check for input image in entities
+                for entity in metadata.get('entities', []):
+                    if entity.get('type') == 'input_image':
+                        has_input_image = True
+                        break
+
+                if config_used_file.exists():
+                    try:
+                        with open(config_used_file) as f:
+                            config_used = json.load(f)
+                            stage2_pipeline = config_used.get('pipeline')
+                            output_type = config_used.get('media_preferences', {}).get('default_output', 'unknown')
+
+                            # Determine output mode
+                            if output_type == 'image':
+                                if has_input_image:
+                                    output_mode = 'image+text2image'
+                                else:
+                                    output_mode = 'text2image'
+                            elif output_type == 'video':
+                                if has_input_image:
+                                    output_mode = 'image+text2video'
+                                else:
+                                    output_mode = 'text2video'
+                            elif output_type == 'audio':
+                                output_mode = 'text2audio'
+                            else:
+                                output_mode = output_type
+                    except:
+                        pass
+
+                # Fallback: Infer output mode from entity types (for old sessions without config_used.json)
+                if output_mode is None:
+                    for entity in metadata.get('entities', []):
+                        entity_type = entity.get('type', '')
+                        if entity_type == 'output_image':
+                            output_mode = 'image+text2image' if has_input_image else 'text2image'
+                            break
+                        elif entity_type == 'output_video':
+                            output_mode = 'image+text2video' if has_input_image else 'text2video'
+                            break
+                        elif entity_type == 'output_audio':
+                            output_mode = 'text2audio'
+                            break
+
+                # Apply date range filter
+                session_date = timestamp_dt.date()
+                if date_from:
+                    try:
+                        from_date = datetime.fromisoformat(date_from).date()
+                        if session_date < from_date:
+                            continue
+                    except:
+                        pass
+
+                if date_to:
+                    try:
+                        to_date = datetime.fromisoformat(date_to).date()
+                        if session_date > to_date:
+                            continue
+                    except:
+                        pass
+
+                # Apply user filter
+                if user_filter and metadata.get('user_id') != user_filter:
+                    continue
+
+                # Apply config filter
+                if config_filter and metadata.get('config_name') != config_filter:
+                    continue
+
+                # Apply safety level filter
+                if safety_filter and metadata.get('safety_level') != safety_filter:
+                    continue
+
+                # Apply search filter
+                if search_filter and search_filter.lower() not in metadata.get('run_id', '').lower():
+                    continue
+
+                # Count media files and find first media for thumbnail
+                media_count = 0
+                thumbnail_path = None
+                thumbnail_type = None
+                for entity in metadata.get('entities', []):
+                    entity_type = entity.get('type', '')
+                    if entity_type.startswith('output_'):
+                        media_count += 1
+                        # Find first media (image or video) for thumbnail
+                        if thumbnail_path is None:
+                            filename = entity.get('filename')
+                            if filename:
+                                if entity_type == 'output_image':
+                                    thumbnail_path = f"/exports/json/{session_dir.name}/{filename}"
+                                    thumbnail_type = 'image'
+                                elif entity_type == 'output_video':
+                                    thumbnail_path = f"/exports/json/{session_dir.name}/{filename}"
+                                    thumbnail_type = 'video'
+
+                # Build session summary
+                session_summary = {
+                    'run_id': metadata.get('run_id'),
+                    'timestamp': timestamp_str,
+                    'config_name': metadata.get('config_name'),
+                    'stage2_pipeline': stage2_pipeline,
+                    'output_mode': output_mode,
+                    'execution_mode': metadata.get('execution_mode'),
+                    'safety_level': metadata.get('safety_level'),
+                    'user_id': metadata.get('user_id'),
+                    'stage': metadata.get('current_state', {}).get('stage'),
+                    'step': metadata.get('current_state', {}).get('step'),
+                    'entity_count': len(metadata.get('entities', [])),
+                    'media_count': media_count,
+                    'session_dir': str(session_dir.name),
+                    'thumbnail': thumbnail_path,
+                    'thumbnail_type': thumbnail_type
+                }
+
+                all_sessions.append(session_summary)
+
+            except Exception as e:
+                logger.error(f"[SETTINGS] Error reading metadata from {session_dir.name}: {e}")
+                continue
+
+        # Sort sessions
+        reverse = (sort_order == 'desc')
+        if sort_field in ['timestamp', 'user_id', 'config_name', 'safety_level']:
+            all_sessions.sort(key=lambda x: x.get(sort_field, ''), reverse=reverse)
+
+        # Pagination
+        total = len(all_sessions)
+        total_pages = (total + per_page - 1) // per_page
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_sessions = all_sessions[start:end]
+
+        # Collect unique values for filters
+        unique_users = sorted(set(s['user_id'] for s in all_sessions if s.get('user_id')))
+        unique_configs = sorted(set(s['config_name'] for s in all_sessions if s.get('config_name')))
+        unique_safety_levels = sorted(set(s['safety_level'] for s in all_sessions if s.get('safety_level')))
+
+        return jsonify({
+            "sessions": paginated_sessions,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "filters": {
+                "users": unique_users,
+                "configs": unique_configs,
+                "safety_levels": unique_safety_levels
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error getting sessions: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/sessions/<run_id>', methods=['GET'])
+@require_settings_auth
+def get_session_detail(run_id):
+    """Get detailed information for a specific session"""
+    try:
+        exports_path = Path(__file__).parent.parent.parent.parent / "exports" / "json"
+        session_dir = exports_path / run_id
+
+        if not session_dir.exists():
+            return jsonify({"error": "Session not found"}), 404
+
+        metadata_file = session_dir / "metadata.json"
+        if not metadata_file.exists():
+            return jsonify({"error": "Metadata not found"}), 404
+
+        with open(metadata_file) as f:
+            metadata = json.load(f)
+
+        # Read all entity files
+        entities_with_content = []
+        for entity in metadata.get('entities', []):
+            entity_copy = entity.copy()
+            filename = entity.get('filename')
+            if filename:
+                file_path = session_dir / filename
+                if file_path.exists():
+                    # For images, provide URL path
+                    if file_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
+                        entity_copy['image_url'] = f"/exports/json/{run_id}/{filename}"
+                        entity_copy['media_type'] = 'image'
+                    # For videos, provide URL path
+                    elif file_path.suffix.lower() in ['.mp4', '.webm', '.mov']:
+                        entity_copy['video_url'] = f"/exports/json/{run_id}/{filename}"
+                        entity_copy['media_type'] = 'video'
+                    # For text files, read content
+                    elif file_path.suffix in ['.txt', '.json']:
+                        try:
+                            with open(file_path) as f:
+                                entity_copy['content'] = f.read()
+                        except:
+                            entity_copy['content'] = None
+            entities_with_content.append(entity_copy)
+
+        metadata['entities'] = entities_with_content
+
+        return jsonify(metadata), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error getting session detail: {e}")
         return jsonify({"error": str(e)}), 500

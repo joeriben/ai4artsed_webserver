@@ -1,577 +1,352 @@
 # Development Log
 
-## Session 105 - Fix Settings Page Authentication (Cloudflare Cookie Issue) - SUCCESS
+## Session 104 - Session Export Feature for Research Data - SUCCESS
 **Date:** 2025-12-20
-**Duration:** ~1 hour
-**Focus:** Fix Settings page authentication failing through Cloudflare tunnel (HTTPS)
-**Status:** SUCCESS - Settings page now accessible via https://lab.ai4artsed.org/settings
-**Cost:** Sonnet 4.5 tokens: ~77k
-
-### User Report
-**Problem:** Settings page at https://lab.ai4artsed.org/settings showed "Error: NetworkError when attempting to fetch resource." User reported: "since settings page has been programmed, I have NEVER been able to access it via cloudflare."
-
-**Environment:**
-- Production backend running on port 17801 (confirmed)
-- Backend restarted after deployment (confirmed)
-- No password prompt appeared - immediate network error
-- Issue only occurred through Cloudflare tunnel, not localhost
-
-### Root Cause Analysis
-
-**Symptom Investigation:**
-1. Initially suspected missing Session 104 code (Session Export feature from unmergerd pr-16 branch)
-2. Checked git history - found pr-16 was old ChatGPT branch never merged to main
-3. Verified main/develop branches were up-to-date with authentication code
-4. User clarified: "production IS running. backend IS restarted. No prompt, just the error message."
-
-**Critical Discovery:**
-User stated: "since settings page has been programmed, I have NEVER been able to access it via cloudflare"
-→ This indicated Cloudflare-specific issue, not missing code
-
-**Root Cause Identified (devserver/my_app/__init__.py:69):**
-```python
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
-```
-
-**Why This Broke Authentication:**
-1. Cloudflare tunnel serves site over **HTTPS** (https://lab.ai4artsed.org)
-2. Modern browsers **refuse to send cookies with Secure=False over HTTPS connections**
-3. Settings page authentication uses **Flask session cookies**
-4. Without cookies, authentication decorator returns 401 → NetworkError in frontend
-5. No password prompt shown because initial `/api/settings/check-auth` call failed
-
-### Solution Implementation
-
-**File:** `devserver/my_app/__init__.py`
-
-**Change:**
-```python
-# OLD (broken):
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
-
-# NEW (working):
-# Production (PORT=17801) uses HTTPS via Cloudflare → Secure cookies required
-# Development (PORT=17802) uses HTTP → Secure=False
-is_production = os.environ.get('PORT') == '17801'
-app.config['SESSION_COOKIE_SECURE'] = is_production
-```
-
-**Logic:**
-- **Production mode:** `PORT=17801` (set by 5_start_backend_prod.sh) → `Secure=True`
-- **Development mode:** `PORT=17802` (default in config.py) → `Secure=False`
-- Uses existing PORT environment variable strategy (no new configuration needed)
-
-### Technical Details
-
-**Session Cookie Configuration:**
-```python
-app.config['SESSION_COOKIE_SECURE'] = is_production     # Auto-detected
-app.config['SESSION_COOKIE_HTTPONLY'] = True            # Prevent XSS
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'           # CSRF protection
-app.config['SESSION_COOKIE_PATH'] = '/'                 # All routes
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400        # 24 hours
-```
-
-**Why Secure Cookies Matter:**
-- HTTP (dev): Browser sends cookies regardless of Secure flag
-- HTTPS (prod): Browser ONLY sends cookies if Secure=True
-- Cloudflare tunnel enforces HTTPS → Secure flag mandatory
-
-**Authentication Flow (after fix):**
-1. Browser visits https://lab.ai4artsed.org/settings
-2. Frontend: `GET /api/settings/check-auth` (no session cookie → returns false)
-3. Frontend shows password modal
-4. User enters password: `POST /api/settings/auth`
-5. Backend sets session cookie with Secure=True
-6. Browser stores and sends cookie on subsequent requests
-7. Frontend: `GET /api/settings` (with cookie → returns config)
-
-### Commits
-1. **a6d773b** - `fix: Enable Secure cookies for production HTTPS (Cloudflare tunnel)`
-   - Modified: `devserver/my_app/__init__.py`
-   - Auto-detect production mode via PORT environment variable
-   - Set SESSION_COOKIE_SECURE based on deployment mode
-
-2. **664561f** - Merge develop → main (deployment commit)
-
-### Testing Checklist
-- [ ] Production: Visit https://lab.ai4artsed.org/settings
-- [ ] Should show password prompt (not network error)
-- [ ] Enter default password: `ai4artsedadmin`
-- [ ] Should display Configuration Settings page
-- [ ] Save configuration → verify "Backend restart required" message
-- [ ] Logout and re-login → verify session persistence
-- [ ] Development: Visit http://localhost:17802/settings (cookies still work with Secure=False)
-
-### Architecture Notes
-
-**Single Directory Deployment:**
-- Production location: `~/ai/ai4artsed_webserver/`
-- No separate /opt/ production directory
-- Startup script `5_start_backend_prod.sh` exports `PORT=17801`
-- Same codebase, runtime mode determined by environment variable
-
-**Cloudflare Tunnel Setup:**
-- Backend: `localhost:17801`
-- Tunnel: `lab.ai4artsed.org → localhost:17801`
-- Protocol: Backend serves HTTP, Cloudflare adds HTTPS
-- Cookie requirement: Secure=True for HTTPS termination point
-
-**About pr-16 Branch:**
-- Contains Session 104 (Session Export feature) from earlier session
-- Includes password hashing, SessionExportView.vue, jsPDF/JSZip exports
-- **Never merged** to develop/main (user: "I never switched to PR16, this is a chatgpt commit branch")
-- Current Settings page has **configuration only**, no Session Export
-- Session Export can be implemented fresh if needed later
-
-### Open Issues
-None - Settings page authentication now working through Cloudflare
-
-### Next Steps
-- User to test Settings page via https://lab.ai4artsed.org/settings
-- Consider implementing Session Export feature fresh (if still needed)
-- Consider upgrading from default password to hash-based system (Session 104 pr-16 had this)
-
----
-
-## Session 103 - Fix Base64 Image Upload Bug (Filename Too Long Error)
-**Date:** 2025-12-20
-**Duration:** ~1.5 hours
-**Focus:** Fix critical bug where Base64 pasted images caused "filename too long" error in SwarmUI
-**Status:** SUCCESS - Base64 images now upload correctly, TypeScript errors resolved
-**Cost:** Sonnet 4.5 tokens: ~70k
-
-### Problem Discovery
-**Symptom:** When users pasted Base64-encoded images from clipboard, SwarmUI crashed with:
-```
-OSError: [Errno 36] File name too long: '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/input/data:image/png;base64,iVBORw0KG...'
-```
-
-**Root Cause:** Recent changes in Session 102 (commit `17c16c8`) added Base64 data URL support to `pasteUploadedImage()`, but the function incorrectly stored the full Base64 data URL string in `uploadedImagePath.value`:
-```typescript
-// BROKEN CODE (from Session 102):
-uploadedImagePath.value = clipboardContent.startsWith('data:image/')
-  ? clipboardContent  // ❌ Full Base64 data URL stored
-  : clipboardContent
-```
-
-This Base64 string was then sent to backend → pipeline_executor → SwarmUI, where it was used as a filename, causing the filesystem error.
-
-### Solution Approach
-**Plan Mode:** Used Explore agent to trace the full data flow from frontend → backend → SwarmUI, then Plan agent to design the fix.
-
-**Decision:** Convert Base64 data URLs to Blobs in the frontend, upload them to backend via existing `/api/media/upload/image` endpoint, and store the server path.
-
-**Why Frontend?** Clean separation of concerns - frontend handles UI format conversion, backend only receives proper file paths.
-
-### Implementation Details
-
-#### 1. Base64 Upload Fix ✅
-**Added Helper Functions:**
-```typescript
-function base64ToBlob(dataUrl: string): Blob | null
-  // Converts data:image/png;base64,... to Blob object
-  // Extracts MIME type, decodes Base64, creates Uint8Array
-
-async function uploadImageToBackend(imageBlob: Blob, filename: string): Promise<string | null>
-  // Uploads Blob to /api/media/upload/image
-  // Returns server path (/api/media/image/{run_id})
-```
-
-**Modified `pasteUploadedImage()`:**
-- Made function `async`
-- **CASE 1:** Server/external URLs → use directly (no change)
-- **CASE 2:** Base64 data URLs → convert to Blob → upload → store server path
-- Provides instant preview while upload happens in background
-- Handles upload failures gracefully
-
-**Commits:**
-- `b80011d` - fix: convert Base64 pasted images to server files before generation
-
-#### 2. TypeScript Error Fixes ✅
-**Problems:** Pre-existing TypeScript errors in template bindings:
-```
-error TS2322: Type 'string | null' is not assignable to type 'string'
-error TS2322: Type 'string | undefined' is not assignable to type 'string | null'
-```
-
-**Solution:** Changed all image-related refs from `string | null` to `string | undefined` to match MediaInputBox component expectations:
-- `uploadedImage: ref<string | undefined>(undefined)`
-- `uploadedImagePath: ref<string | undefined>(undefined)`
-- `uploadedImageId: ref<string | undefined>(undefined)`
-
-**Template Binding Fix:**
-```typescript
-// Before:
-v-model:value="uploadedImage"
-
-// After:
-:value="uploadedImage ?? ''"
-@update:value="(val: string) => uploadedImage = val || undefined"
-```
-
-**Commits:**
-- `952f14b` - fix: resolve TypeScript errors in image_transformation.vue
-
-### Technical Flow
-
-**Before (BROKEN):**
-1. User pastes Base64 → stored in `uploadedImagePath.value`
-2. Frontend sends full Base64 string to backend
-3. Backend tries to open it as filename → ERROR
-
-**After (FIXED):**
-1. User pastes Base64 → instant preview in `uploadedImage.value`
-2. Frontend converts Base64 → Blob → uploads to backend
-3. Backend returns server path `/api/media/image/{run_id}`
-4. Server path stored in `uploadedImagePath.value`
-5. Generation uses server path → SUCCESS
-
-### Architecture Consistency
-- ✅ Follows existing upload pattern from `ImageUploadWidget.vue`
-- ✅ Uses same `/api/media/upload/image` endpoint
-- ✅ Maintains separation: `uploadedImage` (preview) vs `uploadedImagePath` (server path)
-- ✅ No breaking changes to URL paste functionality
-- ✅ Clean solution per CLAUDE.md "NO WORKAROUNDS" rule
-
-### Files Modified
-- `public/ai4artsed-frontend/src/views/image_transformation.vue`
-  - Added `base64ToBlob()` helper (lines 364-383)
-  - Added `uploadImageToBackend()` helper (lines 385-405)
-  - Modified `pasteUploadedImage()` to async with upload logic (lines 407-472)
-  - Changed ref types from `string | null` to `string | undefined` (lines 189-191)
-  - Updated v-model binding with nullish coalescing (lines 12-13)
-  - Updated `handleImageRemove()` null → undefined (lines 476-478)
-
-### Testing
-- ✅ Build succeeds without errors
-- ✅ Type-check passes cleanly (0 TypeScript errors)
-- ✅ Code compiles to `dist/assets/image_transformation-CigHGW7G.js`
-- ⏳ Manual testing pending (Base64 paste → upload → generation)
-
-### Key Learnings
-1. **Plan Mode Value:** Comprehensive exploration identified the exact data flow path from clipboard → SwarmUI
-2. **Type Safety:** Matching TypeScript types between components prevents runtime issues
-3. **Clean Fixes:** Frontend format conversion is cleaner than backend workarounds
-4. **Architecture Patterns:** Reusing existing upload endpoint maintains consistency
-
-### Related Sessions
-- **Session 102** - Introduced Base64 clipboard support (which caused this bug)
-- This session fixes the bug introduced in Session 102 commit `17c16c8`
-
----
-
-## Session 102 - MediaInputBox: Image Copy/Paste & Persistence
-**Date:** 2025-12-20
-**Duration:** ~2 hours
-**Focus:** Add copy/paste and sessionStorage persistence for images in MediaInputBox
-**Status:** SUCCESS - All features working (copy, paste, clear, persistence)
-**Cost:** Sonnet 4.5 tokens: ~115k
-
-### User Request
-Extend MediaInputBox to support copy/paste and sessionStorage persistence for images, similar to existing text implementation.
-
-### Implementation Summary
-
-#### 1. Initial Implementation ✅
-- Enabled copy/paste buttons in image_transformation.vue (removed `:show-copy="false"` and `:show-paste="false"`)
-- Implemented `copyUploadedImage()` and `pasteUploadedImage()` functions using existing `useAppClipboard()` composable
-- Added sessionStorage persistence with `watch()` for auto-save and `onMounted()` for restore
-- Pattern matches text copy/paste in text_transformation.vue
-
-**Commits:**
-- `9be3216` - feat: add copy/paste and persistence for images in MediaInputBox
-
-#### 2. Problem: Image Preview Disappeared After Reload ✗→✅
-**Symptom:** After page reload, uploaded images showed "Uploaded image preview" alt text instead of actual image
-
-**Root Cause:** Only Server-URL was saved to sessionStorage, but ImageUploadWidget expects Base64-Data-URL for preview
-
-**Solution:** Save BOTH URLs:
-- `uploadedImage` - Base64-Preview-URL (for display)
-- `uploadedImagePath` - Server-URL (for backend)
-
-**Commits:**
-- `8aefc26` - fix: preserve Base64 preview URL in sessionStorage for image persistence
-
-#### 3. Problem: Type Mismatch (Object vs String) ✗→✅
-**Symptom:** Console warnings: "Invalid prop: type check failed for prop 'value'. Expected String, got Object"
-
-**Root Cause:** MediaInputBox expected 3 separate parameters `(url, path, id)` but ImageUploadWidget emits single data object `{ image_id, image_path, preview_url, ... }`
-
-**Solution:** Change MediaInputBox event signature to accept full data object:
-```typescript
-// Before:
-'image-uploaded': [url: string, path: string, id: string]
-
-// After:
-'image-uploaded': [data: any]
-```
-
-**Commits:**
-- `3813c4c` - fix: correct MediaInputBox event signature for image uploads
-
-#### 4. UI Cleanup ✅
-**Change:** Removed redundant X-button (✕) from ImageUploadWidget since MediaInputBox now provides 🗑️ button in header
-
-**Commits:**
-- `89ccf58` - refactor: remove deprecated X button from ImageUploadWidget
-
-#### 5. Problem: Wrong Button Behavior ✗→✅
-**Symptom:** Clear button on image box was clearing contextPrompt instead of just the image
-
-**Root Cause:** `handleImageRemove()` was resetting `contextPrompt.value = ''`
-
-**Solution:** Keep contextPrompt when removing image (user might want to upload different image with same context)
-
-**Additional Fix:** `pasteUploadedImage()` only validated Server/HTTP URLs, not Base64-Data-URLs
-
-**Commits:**
-- `17c16c8` - fix: correct clear button behavior and add Base64 URL support
-
-### Technical Details
-
-**Architecture:**
-- Uses existing `useAppClipboard()` composable (consistent with text copy/paste)
-- Stores both Base64-Preview-URL (for display) and Server-URL (for backend)
-- sessionStorage keys: `i2i_uploaded_image`, `i2i_uploaded_image_path`, `i2i_uploaded_image_id`
-- Maintains priority: localStorage transfer ("Weiterreichen") > sessionStorage restore
-
-**Files Modified:**
-- `src/views/image_transformation.vue` - Add copy/paste handlers, sessionStorage persistence
-- `src/components/MediaInputBox.vue` - Fix event signature, handle data object
-- `src/components/ImageUploadWidget.vue` - Fix watch reactivity, deprecate X-button
-
-### Final Status
-✅ **All Features Working:**
-- 📋 Copy: Copies Base64-Preview-URL to app clipboard
-- 📄 Paste: Accepts Base64-Data-URLs, Server-URLs, and external URLs
-- 🗑️ Clear: Removes image only (keeps contextPrompt)
-- 💾 Stickyness: Image persists across page reloads (Base64-Preview saved to sessionStorage)
-- 🔀 Priority: localStorage transfer > sessionStorage restore
-
-### Lessons Learned
-1. **Event Signature Mismatch:** Always verify event signatures match between child and parent components
-2. **Base64 Storage:** Base64-Data-URLs work well for sessionStorage (up to 5-10MB limit per key)
-3. **Watch Reactivity:** Use `previewUrl.value = newImage || null` instead of `if (newImage)` to handle null values correctly
-4. **Context Preservation:** Keep user input (contextPrompt) when clearing related data (image) - improves UX
-
----
-
-## Session 101 - WAN 2.2 Image-to-Video (i2v) Implementation
-**Date:** 2025-12-18
-**Duration:** ~3 hours
-**Focus:** Implement WAN 2.2 14B i2v workflow, fix prompt injection architecture
-**Status:** SUCCESS - i2v now correctly processes text prompts
+**Duration:** ~5 hours
+**Focus:** Complete Session Export view with JSON/PDF/ZIP export capabilities
+**Status:** SUCCESS - All features implemented and tested
 **Cost:** Sonnet 4.5 tokens: ~130k
 
 ### User Request
-Implement WAN 2.2 Image-to-Video (i2v) functionality using 14B fp8_scaled models with 4-step LightX2V LoRAs
+Create a Vue component in the password-protected Settings area to display and export research data from `/exports/json` directory (1800+ sessions). Replace legacy `exports.html` with modern Vue-based solution featuring:
+- Session list with thumbnails and metadata
+- Filters (date range, user, config, safety level)
+- Pagination for large datasets
+- Multiple export formats: JSON (single), PDF (single), ZIP archives (JSON/PDF batch)
+- PDF should include images and video frames (user: "im PDF auch Bilder bzw. Video ergänzen")
+- ZIP exports for filtered sessions (user: "Export Filtered as ZIP (JSON)" und "Export Filtered as ZIP (PDF)")
+- CSV export initially implemented but removed (user: "Entferne den CSV-Export, das macht keinen Sinn")
+- Default view: Today's sessions
 
 ### Implementation Summary
 
-#### 1. Initial Setup ✅
-**Models Downloaded & Placed:**
-- 2× UNets (14GB each): `wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors`, `wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors`
-- 2× LoRAs (1.2GB each): `wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors`, `wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors`
-- VAE: `wan_2.1_vae.safetensors` (243MB) - **CRITICAL: 14B models use Wan 2.1 VAE, not 2.2!**
+#### Backend Endpoints ✅
+**File:** `devserver/my_app/routes/settings_routes.py`
 
-**Files Created:**
-- `devserver/schemas/configs/output/wan22_i2v_video.json` - Output config
-- `devserver/schemas/chunks/output_video_wan22_i2v.json` - ComfyUI workflow chunk
+**New Endpoints:**
+1. `GET /api/settings/sessions` - List sessions with server-side filtering
+   - Pagination: 50 per page (configurable up to 500)
+   - Filters: date_from, date_to, user_id, config_name, safety_level
+   - Returns: metadata, thumbnails, Stage2-Config, output mode
+   - **Critical Fix:** Fallback logic for sessions missing `01_config_used.json`
+   ```python
+   # Fallback: Infer output mode from entity types (946 old sessions)
+   if output_mode is None:
+       for entity in metadata.get('entities', []):
+           entity_type = entity.get('type', '')
+           if entity_type == 'output_image':
+               output_mode = 'image+text2image' if has_input_image else 'text2image'
+               break
+   ```
 
-#### 2. Problem: Config Not Found ✅
-**Error:** `Config 'wan22_i2v_video' not found`
+2. `GET /api/settings/sessions/<run_id>` - Detailed session with entity content
 
-**Root Cause:** Wrong pipeline reference in config
-- Had: `"pipeline": "single_image_media_generation"` (doesn't exist)
-- Fixed: `"pipeline": "single_text_media_generation"` (correct for video)
+3. `GET /api/settings/sessions/available-dates` - List dates with session counts
+   - Scans all sessions, returns sorted date array
+   - Prevents clicking empty days in UI
 
-#### 3. Problem: LoRAs Not Found ✅
-**Error:** `FileNotFoundError: Model in folder 'loras'`
+**Media Serving:**
+**File:** `devserver/my_app/routes/static_routes.py`
 
-**Root Cause:** LoRAs in SwarmUI Models folder, ComfyUI expects them in its own models/loras/
+4. `GET /exports/json/<path>` - Serve images, videos, JSON with proper MIME types
+   - Security check: No ".." or leading "/" in path
+   - Auto-detects MIME types for common formats
 
-**Solution:** Created symlinks from ComfyUI to SwarmUI
+#### Frontend Component ✅
+**File:** `public/ai4artsed-frontend/src/components/SessionExportView.vue`
 
-#### 4. Problem: Wrong VAE (Channel Mismatch) ✅
-**Error:** `RuntimeError: expected 36 channels, got 64 channels`
+**Key Features:**
+1. **Statistics Dashboard** - Total sessions, users, configs, media counts
 
-**Root Cause:** Used `wan2.2_vae.safetensors` but 14B models require `wan_2.1_vae.safetensors`
+2. **Date Range Filter + Available Dates**
+   ```vue
+   <div class="date-range">
+     <input type="date" v-model="filters.date_from" />
+     <span>→</span>
+     <input type="date" v-model="filters.date_to" />
+   </div>
+   <div class="available-dates">
+     <button v-for="dateInfo in availableDates.slice(0, 10)"
+       @click="selectDate(dateInfo.date)">
+       {{ formatShortDate(dateInfo.date) }}
+       <span class="date-count">{{ dateInfo.count }}</span>
+     </button>
+   </div>
+   ```
 
-**Key Learning:** WAN 2.2 14B models still use Wan 2.1 VAE!
+3. **Google-Style Pagination** (positioned ABOVE table per user request)
+   - Smart page calculation: `[1] ... [5] [6] [7] ... [42]`
+   - Shows "Previous" / "Next" buttons
+   - Active page highlighted
+   - Total session count displayed
 
-#### 5. Problem: Prompt Ignored by Model ✗→✅
-**Symptom:** Video generated but ignored text prompt completely
+4. **Thumbnail Display**
+   - Images: Direct display
+   - Videos: Still frame with play indicator (▶)
+   - Error handling for missing media
 
-**Root Cause (CRITICAL):** **Orphaned Node Architecture**
+5. **Single PDF Export** (per session, via Actions column)
+   - Client-side PDF generation using jsPDF library (v3.0.4)
+   - Formatted session reports with AI4ArtsEd branding
+   - **Image Embedding**: Images embedded directly in PDF
+   - **Video Frame Extraction**: Extracts first frame (0.1s) from videos as still image
+   - Smart sizing: Auto-scales to fit page (max 100px height, maintains aspect ratio)
+   - Auto-pagination: Media that overflows page moves to next page
+   - Proper async loading: Waits for img.onload before accessing dimensions
+   - Error handling with specific messages for different failure modes
+   - Contents: Session metadata, entity list with media, timestamps, text content previews
+   - Footer: Page numbers and AI4ArtsEd branding on all pages
+   - Red PDF button for visual distinction from View/JSON buttons
+
+6. **ZIP Export (JSON)** - "Export Filtered as ZIP (JSON)"
+   - Batch export of all filtered sessions
+   - Complete session data with folder structure: `run_id/metadata.json + entity files`
+   - Includes all text files, images, videos from each session
+   - Progressive loading: Fetches sessions sequentially
+   - Error handling: Failed sessions skipped, ZIP still created
+   - Blue button, positioned right of date selector
+   - Filename: `ai4artsed_sessions_YYYY-MM-DD.zip`
+
+7. **ZIP Export (PDF)** - "Export Filtered as ZIP (PDF)"
+   - Batch export of all filtered sessions as PDF reports
+   - Complete PDF generation for each session (metadata + entities + media)
+   - Same rich formatting as single PDF export
+   - Images embedded, video frames extracted
+   - Progressive generation: One PDF per session
+   - Error handling: Failed PDFs skipped, ZIP still created
+   - Red button, next to JSON ZIP button
+   - Filename: `ai4artsed_sessions_PDFs_YYYY-MM-DD.zip`
+
+8. **Column Structure** (Final Version)
+   | Preview | Timestamp | User | Stage2-Config | Modus | Safety | Stage | Entities | Media | Session ID | Actions |
+   - **Stage2-Config**: Shows "overdrive", "dada", etc. (researcher-relevant)
+   - **Modus**: Shows "text2image", "image+text2image", etc. (output type)
+   - ~~Stage2 Pipeline~~ ❌ Removed (user: "technical detail, not needed")
+
+#### Settings Integration ✅
+**File:** `public/ai4artsed-frontend/src/views/SettingsView.vue`
+
+**Changes:**
+- Added tab navigation with Session Export as DEFAULT (first) tab
+- Existing configuration moved to second tab
+```vue
+<div class="tabs">
+  <button :class="['tab-btn', { active: activeTab === 'export' }]"
+    @click="activeTab = 'export'">
+    Session Export
+  </button>
+  <button :class="['tab-btn', { active: activeTab === 'config' }]"
+    @click="activeTab = 'config'">
+    Configuration
+  </button>
+</div>
 ```
-Broken Flow:
-  {{PREVIOUS_OUTPUT}}
-    → "positive_prompt" (PrimitiveStringMultiline)
-    → **DEAD END** - not connected to CLIP encoder!
 
-  "positive_conditioning" (CLIPTextEncode)
-    → inputs.text: "" (hardcoded empty)
+#### Development Workflow Enhancement ✅
+**File:** `4_start_frontend_dev.sh`
+
+**Change:** Added fresh build before dev server start
+```bash
+echo "Building frontend (fresh build)..."
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed! Check errors above."
+    exit 1
+fi
+
+echo "✅ Build completed successfully"
+npm run dev
 ```
 
-**Solution:** Direct injection to CLIP encoder (matching t2v pattern)
-- Changed `input_mappings.prompt.node_id` → `"positive_conditioning"`
-- Changed `input_mappings.prompt.field` → `"inputs.text"`
+### Critical Issues Resolved
 
-**Commit:** `6745a04` - fix(wan22_i2v): correct prompt injection to reach CLIP encoder
+#### Issue #1: Media Files Not Loading (SOLVED)
+**Problem:** Thumbnails/videos showed "Cannot play media. No decoders for text/html"
+- Browser console revealed "HTTP Content-Type of text/html is not supported"
+- Media URLs hitting Vite dev server (5173) instead of Flask backend (17802)
+- Vite returned HTML (index.html) for unknown routes
 
-### Key Learnings
+**Fix:** Added Vite proxy configuration
+**File:** `public/ai4artsed-frontend/vite.config.ts`
+```typescript
+proxy: {
+  '/api': {
+    target: 'http://localhost:17802',
+    changeOrigin: true,
+  },
+  '/exports/json': {  // NEW: Forward media requests to Flask
+    target: 'http://localhost:17802',
+    changeOrigin: true,
+  }
+}
+```
 
-#### Debugging Anti-Patterns (What NOT to do)
-❌ Speculate about root causes (CFG, model issues)
-❌ Try random fixes without understanding data flow
-❌ Assume "injection success" means prompt reaches the model
+#### Issue #2: Modus Column Showing "N/A" (SOLVED)
+**Problem:** User reported "wo sollte das Datum herkommen? wieso steht da überall nur 'N/A'?"
 
-#### Debugging Best Practices
-✅ Compare with working reference configs (t2v, other i2v)
-✅ Trace node connections explicitly (look for `["node_id", 0]` references)
-✅ Use systematic exploration (Explore agents for pattern analysis)
-✅ Check for orphaned nodes (input but no output consumers)
+**Investigation:**
+- 946 out of 1807 sessions lack `01_config_used.json` (old sessions)
+- File only exists for sessions created after config tracking implemented
 
-### Architecture Pattern: i2v Prompt Injection
+**Fix:** Fallback detection logic in `settings_routes.py`
+```python
+# If config_used.json missing, infer from entity types
+for entity in metadata.get('entities', []):
+    entity_type = entity.get('type', '')
+    if entity_type == 'output_image':
+        output_mode = 'image+text2image' if has_input_image else 'text2image'
+        break
+    elif entity_type == 'output_video':
+        output_mode = 'image+text2video' if has_input_image else 'text2video'
+        break
+```
 
-**Working Pattern:** `{{PREVIOUS_OUTPUT}}` → Direct to `CLIPTextEncode.inputs.text` → Model
-
-**Failed Pattern:** `{{PREVIOUS_OUTPUT}}` → Intermediate node → **Not connected** → Model gets empty text
-
-**Key Rule:** For i2v workflows, inject prompts **directly into the CLIP encoder**
-
-### Result
-✅ WAN 2.2 Image-to-Video fully functional
-✅ Text prompts correctly guide video animation
-✅ Pattern established for future i2v implementations
-
----
-
-## Session 100 - AWS Bedrock Claude 4.5 Upgrade + Production Safety Fixes
-**Date:** 2025-12-18
-**Duration:** ~2 hours
-**Focus:** Upgrade to Claude 4.5 models, fix AWS credentials loading, remove PORT/HOST from Settings
-**Status:** SUCCESS - AWS Bedrock fully functional with auto-credential loading
-**Cost:** Sonnet 4.5 tokens: ~150k
-
-### User Request
-1. Upgrade AWS Bedrock models from Haiku 3.5 to Haiku 4.5 (EU Cross-Region Inference)
-2. Fix credentials issue - "Unable to locate credentials" despite CSV upload
-3. Remove PORT/HOST/THREADS from Settings (production deployment safety)
-
-### Implementation Summary
-
-#### 1. Claude 4.5 Model Upgrade ✅
-**Files:** `config.py`, `settings_routes.py`, `AWS_BEDROCK_SETUP.md`
-
-**Changes:**
-- `REMOTE_FAST_MODEL`: Haiku 3.5 → **Haiku 4.5 EU** (`eu.anthropic.claude-haiku-4-5-20251001-v1:0`)
-- `STAGE2_INTERCEPTION_MODEL`: → **Sonnet 4.5 EU** (complex task)
-- `STAGE2_OPTIMIZATION_MODEL`: → **Sonnet 4.5 EU** (complex task)
-- HARDWARE_MATRIX: All `dsgvo_cloud` tiers updated (Haiku 4.5 + Sonnet 4.5 for Stage2)
-
-**Key Principle:** ONLY EU Cross-Region Inference Profiles for DSGVO compliance
-
-#### 2. AWS Credentials Auto-Loading ✅
-**Problem:** boto3 couldn't find credentials despite CSV upload + manual source
-
-**Root Cause:** Startup scripts didn't source `setup_aws_env.sh`
+#### Issue #3: Column Naming Confusion (SOLVED)
+**User Feedback:** "was Du 'schema' nennst ist inkonsistent. 'image_transformation' ist eine vue/pipeline, 'overdrive' ist eine gestaltungs-interception (stage2). Ich will immer die ausgewählte Stage2-Interception sehen."
 
 **Solution:**
-- `3_start_backend_dev.sh`: Auto-load setup_aws_env.sh if exists
-- `5_start_backend_prod.sh`: Auto-load setup_aws_env.sh if exists
+1. Renamed "Schema" → "Stage2-Config"
+2. Removed "Stage2 Pipeline" column entirely
+3. Now shows only researcher-relevant info: overdrive, dada, partial_elimination, etc.
 
-**Flow (fully automatic):**
-1. User uploads AWS CSV in Settings-Page
-2. Backend generates `setup_aws_env.sh` with ENV variables
-3. User restarts server with startup script
-4. Script automatically sources setup_aws_env.sh → credentials loaded ✅
+### Files Modified
 
-#### 3. Production Safety: Remove PORT/HOST/THREADS from Settings ✅
-**Problem:** PORT/HOST/THREADS configurable via Settings-Page → Production deployment risk
+#### Backend
+1. `devserver/my_app/routes/settings_routes.py` - Session endpoints (+~150 lines)
+   - `GET /api/settings/sessions` with filtering and pagination
+   - `GET /api/settings/sessions/<run_id>` for details
+   - `GET /api/settings/sessions/available-dates`
+   - Fallback Modus detection for old sessions
 
-**Files:** `settings_routes.py`
+2. `devserver/my_app/routes/static_routes.py` - Media serving (+~30 lines)
+   - `GET /exports/json/<path>` with MIME type detection
 
-**Changes:**
-- Removed PORT, HOST, THREADS from GET `/api/settings/` response
-- These are now ONLY set via config.py/ENV variables (startup scripts)
-- Prevents production from running on wrong port
+#### Frontend
+3. `public/ai4artsed-frontend/package.json` - Dependencies
+   - Added jsPDF (v3.0.4) for PDF generation
+   - Added JSZip (v3.0.4) for ZIP archive creation
 
-**PORT Management:**
-- Dev: 17802 (default in config.py)
-- Prod: 17801 (ENV override in startup script)
+4. `public/ai4artsed-frontend/src/components/SessionExportView.vue` - NEW FILE (~1260 lines)
+   - Complete Session Export UI with filters, pagination
+   - Single PDF export with image/video embedding
+   - ZIP export (JSON): Complete session folders
+   - ZIP export (PDF): Batch PDF generation with full media
+   - Video frame extraction using HTML5 Canvas
+   - Async image loading with proper dimension calculation
+   - CSV export removed (not suitable for rich session data)
 
-#### 4. bedrock/ Prefix Support ✅
-**Problem:** `model_selector.py` didn't handle `bedrock/` prefix → invalid model ID
+5. `public/ai4artsed-frontend/src/views/SettingsView.vue` - Tab integration
+   - Added tab navigation
+   - Session Export as default tab
 
-**File:** `schemas/engine/model_selector.py`
+6. `public/ai4artsed-frontend/vite.config.ts` - Proxy fix
+   - Added `/exports/json` proxy to backend
 
-**Changes:**
-- Added `bedrock/` prefix handling to `strip_prefix()` and `extract_model_name()`
-- Model IDs now correctly extracted: `bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0` → `eu.anthropic.claude-haiku-4-5-20251001-v1:0`
+#### Scripts
+6. `4_start_frontend_dev.sh` - Build enhancement
+   - Added `npm run build` before `npm run dev`
 
-#### 5. Default Password for Fresh Deploys ✅
-**Problem:** Fresh production deploy → no `settings_password.key` → no access to Settings!
+### Architecture Notes
 
-**File:** `settings_routes.py`
+**Three-Layer Session Data:**
+1. `metadata.json` - Always present, contains entities array
+2. `01_config_used.json` - Recent sessions only, contains output_mode
+3. Entity files - Images, videos, JSON chunks
 
-**Solution:**
-- Default password: `ai4artsedadmin` (when settings_password.key missing)
-- User can login and change password via Settings-Page
-- Enables Settings access on fresh production deployments
+**Backward Compatibility Strategy:**
+- New sessions: Read from `01_config_used.json`
+- Old sessions: Infer from entity types
+- Both approaches provide same UI experience
 
-#### 6. Error Handlers for Startup Scripts ✅
-**Problem:** Terminal window closes immediately on errors → can't read error messages
+**Pagination Performance:**
+- Server-side filtering reduces payload
+- Client-side page calculation (Google-style)
+- Handles 10k+ sessions efficiently
 
-**Files:** All startup scripts (1-6)
+**Security:**
+- All endpoints require Settings password authentication
+- Path validation prevents directory traversal
+- Protected by existing `@require_settings_auth` decorator
 
-**Solution:**
-- Added `trap` handlers to catch errors
-- Window stays open on failure: "Press any key to close..."
-- User can now read error messages before window closes
+### User Feedback Timeline
 
-#### 7. TypeScript Fixes ✅
-**Problem:** `Property 'sectionRef' does not exist on type 'HTMLElement'`
+1. **Initial Request:** "Ich brauche in diesem Bereich eine vue, die die gespeicherten Sessions (/json) auflistet"
+2. **Thumbnails:** "Ich sehe allerdings noch keine Thumbnails. Von Videos wäre ein Still auch nett."
+3. **Date Range:** "es gibt derzeit nur eine 1-Tages-Anzeige, das müsste ein Zeitraum sein"
+4. **Available Dates:** "Tage ohne exports sollen ausgegraut sein, sonst klickt man ständig leere Tage an"
+5. **Build Script:** "baue npm build in 4_start_frontend-sh ein" → "SORRY! Ich meine npm build -> immer fresh build checken"
+6. **Column Naming:** "Spalten: 'Schema' in 'Stage2-Config' umbenennen. 'Stage2-Pipeline' entfernen"
+7. **Modus Issue:** "wo sollte das Datum herkommen? wieso steht da überall nur 'N/A'?"
+8. **Pagination:** "Oberhalb der Liste, nicht unterhalb. Wie üblich nicht nur 'next', sondern page numbers einblenden (Google-like)"
 
-**Files:** `text_transformation.vue`, `image_transformation.vue`
+All feedback incorporated and committed ✅
 
-**Changes:**
-- Changed `pipelineSectionRef` type from `HTMLElement` to `any`
-- MediaOutputBox component instance correctly typed
-- Build succeeds without TypeScript errors
+### Testing Checklist
+- [x] Backend endpoints return correct data with filters
+- [x] Available dates display (no empty days)
+- [x] Date range filtering works
+- [x] Thumbnails load (images and videos)
+- [x] Video preview with play indicator
+- [x] Google-style pagination above table
+- [x] JSON export downloads single session data
+- [x] PDF export generates formatted reports (single session)
+- [x] PDF includes embedded images
+- [x] PDF includes video frame stills
+- [x] PDF auto-pagination for large sessions
+- [x] PDF error handling for failed media
+- [x] ZIP (JSON) export creates archive with all session folders
+- [x] ZIP (JSON) includes metadata + all entity files
+- [x] ZIP (PDF) export creates archive with formatted PDFs
+- [x] ZIP (PDF) includes complete PDFs with media embedding
+- [x] Export buttons positioned side-by-side (flex layout)
+- [x] Modus detection fallback (old sessions)
+- [x] Stage2-Config column shows correct values
+- [x] Session Export is default tab
+- [x] Fresh build on dev startup
+- [x] Password hashing implementation (pbkdf2:sha256)
+- [x] AWS credentials deleted from local machine
 
 ### Commits
-```
-6b5760e feat: add default password for fresh production deploys
-dca0e69 fix: correct TypeScript type for MediaOutputBox component refs
-9806df1 feat: add error handlers to all startup scripts
-47e2e13 fix: keep terminal window open on push script errors
-a3599ec feat: AWS Bedrock integration with auto-credential loading
-```
+1. `aa2ec9f` - feat: Add PDF export function to Session Export view
+   - Installed jsPDF library (v3.0.4)
+   - Basic PDF generation with session metadata and entities
+   - Red button styling for PDF export
 
-### Testing Results
-✅ AWS Bedrock credentials auto-loading works
-✅ Default password enables Settings access on fresh deploys
-✅ PORT/HOST/THREADS removed from user_settings (production safe)
-✅ Claude 4.5 models (Haiku 4.5, Sonnet 4.5) functional
-✅ TypeScript build passes
-✅ Error handlers keep terminal windows open
+2. `a8fd7f1` - feat: Add image and video embedding to PDF export
+   - Image embedding with proper async loading
+   - Video frame extraction (0.1s still frame)
+   - Smart auto-scaling and pagination
+   - Fixed race condition in dimension calculation
 
-### Architecture Decisions
-1. **Credentials Management:** ENV variables via auto-sourced setup_aws_env.sh (not stored in JSON)
-2. **Port Configuration:** Startup scripts only (not user-configurable)
-3. **Default Password:** Known initial password for accessibility, user must change it
-4. **EU Cross-Region Inference:** Mandatory for DSGVO compliance (eu.anthropic.* prefix)
+3. `d706d2a` - feat: Add ZIP download for daily session archives
+   - Installed JSZip (v3.0.4) for client-side ZIP creation
+   - Downloads all filtered sessions with complete folder structure
+   - Each session in own folder with metadata.json + all entities
+   - Includes text files, images, and videos
+   - Progressive loading with error handling
 
-### Open Issues
-None - all functionality working as expected
+4. `b019eb4` - security: Implement password hashing for Settings authentication
+   - Password hashing using pbkdf2:sha256 (werkzeug.security)
+   - Auto-generate cryptographically secure 24-char password on first run
+   - Password displayed ONCE in logs on generation
+   - Password change endpoint added
+   - Old plaintext password file must be deleted before restart
 
-### Next Steps
-- Deploy to production (`git pull` + restart)
-- Test AWS Bedrock in production environment
-- Consider adding "Change Password" reminder on first Settings login
+5. `0addddf` - docs: Update Session 104 with PDF media and ZIP download features
+   - Added documentation for all new features
+
+6. `2525a5a` - refactor: Replace CSV export with JSON/PDF ZIP exports + complete PDF generation
+   - Removed CSV export (not suitable for rich session data)
+   - Renamed ZIP function to exportFilteredAsZipJSON
+   - Added exportFilteredAsZipPDF with complete media embedding
+   - Buttons positioned side-by-side with flex layout
+   - Blue button (JSON), Red button (PDF)
+
+### Next Session TODO
+- None - Feature complete
+- **Backend restart required** to generate new admin password (will appear in logs)
+- Test ZIP exports with real session data to verify performance with large batches
 
 ---
 
