@@ -6,40 +6,33 @@
       <!-- Section 1: Image Upload + Context (Side by Side) -->
       <section class="input-context-section">
         <!-- Image Upload Bubble (LEFT) -->
-        <div class="input-bubble bubble-card" :class="{ filled: uploadedImage }">
-          <div class="bubble-header">
-            <span class="bubble-icon">💡</span>
-            <span class="bubble-label">Dein Bild</span>
-            <div class="bubble-actions">
-              <button @click="clearImage" class="action-btn" title="Löschen">🗑️</button>
-            </div>
-          </div>
-          <ImageUploadWidget
-            :initial-image="uploadedImage"
-            @image-uploaded="handleImageUpload"
-            @image-removed="handleImageRemove"
-          />
-        </div>
+        <MediaInputBox
+          icon="💡"
+          label="Dein Bild"
+          v-model:value="uploadedImage"
+          input-type="image"
+          :initial-image="uploadedImage"
+          @image-uploaded="handleImageUpload"
+          @image-removed="handleImageRemove"
+          @copy="copyUploadedImage"
+          @paste="pasteUploadedImage"
+          @clear="clearImage"
+        />
 
         <!-- Context Bubble (RIGHT) -->
-        <div class="context-bubble bubble-card" :class="{ filled: contextPrompt, required: !contextPrompt }">
-          <div class="bubble-header">
-            <span class="bubble-icon">📋</span>
-            <span class="bubble-label">Sage was Du an dem Bild verändern möchtest</span>
-            <div class="bubble-actions">
-              <button @click="copyContextPrompt" class="action-btn" title="Kopieren">📋</button>
-              <button @click="pasteContextPrompt" class="action-btn" title="Einfügen">📄</button>
-              <button @click="clearContextPrompt" class="action-btn" title="Löschen">🗑️</button>
-            </div>
-          </div>
-          <textarea
-            v-model="contextPrompt"
-            @input="handleContextPromptEdit"
-            placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
-            class="bubble-textarea"
-            rows="6"
-          ></textarea>
-        </div>
+        <MediaInputBox
+          icon="📋"
+          label="Sage was Du an dem Bild verändern möchtest"
+          placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
+          v-model:value="contextPrompt"
+          input-type="text"
+          :rows="6"
+          :is-filled="!!contextPrompt"
+          :is-required="!contextPrompt"
+          @copy="copyContextPrompt"
+          @paste="pasteContextPrompt"
+          @clear="clearContextPrompt"
+        />
       </section>
 
       <!-- Section 3: Category Selection (Horizontal Row) - Always visible after context -->
@@ -181,6 +174,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
+import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 
@@ -336,6 +330,8 @@ const canStartGeneration = computed(() => {
 
 function handleImageUpload(data: any) {
   console.log('[Image Upload] Success:', data)
+  console.log('[Image Upload] Preview URL type:', typeof data.preview_url)
+  console.log('[Image Upload] Preview URL length:', data.preview_url?.length)
   uploadedImage.value = data.preview_url
   uploadedImagePath.value = data.image_path
   uploadedImageId.value = data.image_id
@@ -344,7 +340,135 @@ function handleImageUpload(data: any) {
 
 function clearImage() {
   handleImageRemove()
+  sessionStorage.removeItem('i2i_uploaded_image')
+  sessionStorage.removeItem('i2i_uploaded_image_path')
+  sessionStorage.removeItem('i2i_uploaded_image_id')
   console.log('[I2I] Image cleared via action button')
+}
+
+// ============================================================================
+// Image Clipboard Actions
+// ============================================================================
+
+function copyUploadedImage() {
+  if (!uploadedImage.value) {
+    console.warn('[I2I] No image to copy')
+    return
+  }
+
+  // Copy image URL to clipboard (like text)
+  copyToClipboard(uploadedImage.value)
+  console.log('[I2I] Image URL copied to app clipboard:', uploadedImage.value)
+}
+
+function base64ToBlob(dataUrl: string): Blob | null {
+  try {
+    const [header, base64Content] = dataUrl.split(',')
+    if (!header || !base64Content) return null
+
+    const mimeMatch = header.match(/data:(.*?);/)
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/png'
+
+    const binaryString = atob(base64Content)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+
+    return new Blob([bytes], { type: mimeType })
+  } catch (error) {
+    console.error('[I2I] Failed to convert Base64 to Blob:', error)
+    return null
+  }
+}
+
+async function uploadImageToBackend(imageBlob: Blob, filename: string = 'pasted-image.png'): Promise<string | null> {
+  try {
+    const formData = new FormData()
+    formData.append('file', imageBlob, filename)
+
+    const response = await axios.post('/api/media/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+
+    if (response.data.success) {
+      console.log('[I2I] Image uploaded successfully:', response.data.image_path)
+      return response.data.image_path
+    } else {
+      console.error('[I2I] Upload failed:', response.data.error)
+      return null
+    }
+  } catch (error: any) {
+    console.error('[I2I] Upload error:', error)
+    return null
+  }
+}
+
+async function pasteUploadedImage() {
+  const clipboardContent = pasteFromClipboard()
+
+  if (!clipboardContent) {
+    console.warn('[I2I] Clipboard is empty')
+    return
+  }
+
+  // Check if clipboard contains a valid image URL (Base64 Data-URL, Server-URL, or external URL)
+  const isImageUrl = clipboardContent.startsWith('data:image/') ||
+                     clipboardContent.startsWith('/api/media/image/') ||
+                     clipboardContent.startsWith('http://') ||
+                     clipboardContent.startsWith('https://')
+
+  if (!isImageUrl) {
+    console.warn('[I2I] Clipboard does not contain a valid image URL:', clipboardContent.substring(0, 100))
+    return
+  }
+
+  // CASE 1: Server URL or external URL - use directly
+  if (!clipboardContent.startsWith('data:image/')) {
+    uploadedImage.value = clipboardContent
+    uploadedImagePath.value = clipboardContent
+
+    const runIdMatch = clipboardContent.match(/\/api\/media\/image\/(.+)$/)
+    uploadedImageId.value = runIdMatch ? runIdMatch[1] : `pasted_${Date.now()}`
+    executionPhase.value = 'image_uploaded'
+
+    console.log('[I2I] Image pasted from URL:', clipboardContent.substring(0, 100))
+    return
+  }
+
+  // CASE 2: Base64 Data URL - convert and upload
+  console.log('[I2I] Detected Base64 data URL, uploading to backend...')
+
+  // Set preview immediately for instant feedback
+  uploadedImage.value = clipboardContent
+  executionPhase.value = 'image_uploaded'
+
+  // Convert Base64 to Blob
+  const imageBlob = base64ToBlob(clipboardContent)
+  if (!imageBlob) {
+    console.error('[I2I] Failed to convert Base64 to Blob')
+    uploadedImagePath.value = clipboardContent // Fallback (will fail on generation)
+    return
+  }
+
+  // Generate filename from timestamp
+  const timestamp = Date.now()
+  const filename = `pasted-image-${timestamp}.png`
+
+  // Upload to backend
+  const serverPath = await uploadImageToBackend(imageBlob, filename)
+
+  if (serverPath) {
+    // Success: Update with server path
+    uploadedImagePath.value = serverPath
+    uploadedImageId.value = `pasted_${timestamp}`
+    console.log('[I2I] Base64 image uploaded successfully:', serverPath)
+  } else {
+    // Failure: Keep Base64 (will fail on generation, but at least preview works)
+    console.error('[I2I] Failed to upload Base64 image to backend')
+    uploadedImagePath.value = clipboardContent
+    uploadedImageId.value = `pasted_failed_${timestamp}`
+  }
 }
 
 function handleImageRemove() {
@@ -352,7 +476,7 @@ function handleImageRemove() {
   uploadedImage.value = null
   uploadedImagePath.value = null
   uploadedImageId.value = null
-  contextPrompt.value = ''
+  // NOTE: Keep contextPrompt - user might want to upload different image with same context
   selectedCategory.value = null
   selectedConfig.value = null
   hoveredConfigId.value = null
@@ -361,11 +485,12 @@ function handleImageRemove() {
   isPipelineExecuting.value = false
 }
 
-function handleContextPromptEdit() {
-  console.log('[Context] Edited:', contextPrompt.value.length, 'chars')
+// Watch contextPrompt changes and update phase
+watch(contextPrompt, (newValue) => {
+  console.log('[Context] Edited:', newValue.length, 'chars')
 
   // Update phase based on context prompt presence
-  if (contextPrompt.value.trim() && uploadedImage.value) {
+  if (newValue.trim() && uploadedImage.value) {
     if (executionPhase.value === 'image_uploaded') {
       executionPhase.value = 'ready_for_media'
     }
@@ -374,7 +499,7 @@ function handleContextPromptEdit() {
       executionPhase.value = 'image_uploaded'
     }
   }
-}
+})
 
 // ============================================================================
 // MODEL SELECTION (copied from text_transformation.vue)
@@ -749,11 +874,58 @@ onMounted(async () => {
   // Clean up old format (backward compatibility)
   localStorage.removeItem('i2i_transfer_image')
   localStorage.removeItem('i2i_transfer_timestamp')
+
+  // Check for sessionStorage persistence (normal reload)
+  const savedImage = sessionStorage.getItem('i2i_uploaded_image')
+  const savedImagePath = sessionStorage.getItem('i2i_uploaded_image_path')
+  const savedImageId = sessionStorage.getItem('i2i_uploaded_image_id')
+
+  if (savedImage && !transferDataStr) {  // Only if NOT from transfer
+    console.log('[I2I] Restoring image from sessionStorage')
+    console.log('[I2I] Preview URL:', savedImage.substring(0, 50) + '...')
+    console.log('[I2I] Server Path:', savedImagePath)
+
+    uploadedImage.value = savedImage
+    uploadedImagePath.value = savedImagePath || savedImage
+    uploadedImageId.value = savedImageId || `restored_${Date.now()}`
+    executionPhase.value = 'image_uploaded'
+
+    console.log('[I2I] Image restored successfully')
+  }
 })
 
 // Watch for changes and persist to sessionStorage
 watch(contextPrompt, (newVal) => {
   sessionStorage.setItem('i2i_context_prompt', newVal)
+})
+
+// ============================================================================
+// Image Persistence - sessionStorage
+// ============================================================================
+
+watch(uploadedImage, (newVal) => {
+  if (newVal) {
+    sessionStorage.setItem('i2i_uploaded_image', newVal)
+    console.log('[I2I] Saved image preview to sessionStorage')
+  } else {
+    sessionStorage.removeItem('i2i_uploaded_image')
+  }
+})
+
+watch(uploadedImagePath, (newVal) => {
+  if (newVal) {
+    sessionStorage.setItem('i2i_uploaded_image_path', newVal)
+  } else {
+    sessionStorage.removeItem('i2i_uploaded_image_path')
+  }
+})
+
+watch(uploadedImageId, (newVal) => {
+  if (newVal) {
+    sessionStorage.setItem('i2i_uploaded_image_id', newVal)
+  } else {
+    sessionStorage.removeItem('i2i_uploaded_image_id')
+  }
 })
 </script>
 

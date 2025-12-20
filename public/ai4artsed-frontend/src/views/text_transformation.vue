@@ -7,43 +7,33 @@
         <!-- Section 1: Input + Context (Side by Side) -->
         <section class="input-context-section">
           <!-- Input Bubble -->
-          <div class="input-bubble bubble-card" :class="{ filled: inputText }">
-            <div class="bubble-header">
-              <span class="bubble-icon">💡</span>
-              <span class="bubble-label">Deine Idee: Worum soll es gehen?</span>
-              <div class="bubble-actions">
-                <button @click="copyInputText" class="action-btn" title="Kopieren">📋</button>
-                <button @click="pasteInputText" class="action-btn" title="Einfügen">📄</button>
-                <button @click="clearInputText" class="action-btn" title="Löschen">🗑️</button>
-              </div>
-            </div>
-            <textarea
-              v-model="inputText"
-              placeholder="Ein Fest in meiner Straße: ..."
-              class="bubble-textarea"
-              rows="6"
-            ></textarea>
-          </div>
+          <MediaInputBox
+            icon="💡"
+            label="Deine Idee: Worum soll es gehen?"
+            placeholder="Ein Fest in meiner Straße: ..."
+            v-model:value="inputText"
+            input-type="text"
+            :rows="6"
+            :is-filled="!!inputText"
+            @copy="copyInputText"
+            @paste="pasteInputText"
+            @clear="clearInputText"
+          />
 
           <!-- Context Bubble -->
-          <div class="context-bubble bubble-card" :class="{ filled: contextPrompt, required: !contextPrompt }">
-            <div class="bubble-header">
-              <span class="bubble-icon">📋</span>
-              <span class="bubble-label">Bestimme Regeln, Material, Besonderheiten</span>
-              <div class="bubble-actions">
-                <button @click="copyContextPrompt" class="action-btn" title="Kopieren">📋</button>
-                <button @click="pasteContextPrompt" class="action-btn" title="Einfügen">📄</button>
-                <button @click="clearContextPrompt" class="action-btn" title="Löschen">🗑️</button>
-              </div>
-            </div>
-            <textarea
-              v-model="contextPrompt"
-              @input="handleContextPromptEdit"
-              placeholder="Beschreibe alles so, wie es die Vögel auf den Bäumen wahrnehmen!"
-              class="bubble-textarea"
-              rows="6"
-            ></textarea>
-          </div>
+          <MediaInputBox
+            icon="📋"
+            label="Bestimme Regeln, Material, Besonderheiten"
+            placeholder="Beschreibe alles so, wie es die Vögel auf den Bäumen wahrnehmen!"
+            v-model:value="contextPrompt"
+            input-type="text"
+            :rows="6"
+            :is-filled="!!contextPrompt"
+            :is-required="!contextPrompt"
+            @copy="copyContextPrompt"
+            @paste="pasteContextPrompt"
+            @clear="clearContextPrompt"
+          />
         </section>
 
         <!-- START BUTTON #1: Trigger Interception (Between Context and Interception) -->
@@ -62,29 +52,21 @@
 
         <!-- Section 3: Interception Preview (filled after Start #1) -->
         <section class="interception-section">
-          <div class="interception-preview bubble-card" :class="{ empty: !interceptionResult, loading: isInterceptionLoading }">
-            <div class="bubble-header">
-              <span class="bubble-icon">→</span>
-              <span class="bubble-label">Idee + Regeln = Prompt</span>
-              <div class="bubble-actions">
-                <button @click="copyInterceptionResult" class="action-btn" title="Kopieren">📋</button>
-                <button @click="pasteInterceptionResult" class="action-btn" title="Einfügen">📄</button>
-                <button @click="clearInterceptionResult" class="action-btn" title="Löschen">🗑️</button>
-              </div>
-            </div>
-            <div v-if="isInterceptionLoading" class="preview-loading">
-              <div class="spinner-large"></div>
-              <p class="loading-text">Die KI kombiniert jetzt deine Idee mit den Regeln und erstellt einen kreativen Prompt, der zu deinem gewählten Kunststil passt.</p>
-            </div>
-            <textarea
-              v-else
-              ref="interceptionTextareaRef"
-              v-model="interceptionResult"
-              placeholder="Prompt erscheint nach Start-Klick (oder eigenen Text eingeben)"
-              class="bubble-textarea auto-resize-textarea"
-              rows="5"
-            ></textarea>
-          </div>
+          <MediaInputBox
+            icon="→"
+            label="Idee + Regeln = Prompt"
+            placeholder="Prompt erscheint nach Start-Klick (oder eigenen Text eingeben)"
+            v-model:value="interceptionResult"
+            input-type="text"
+            :rows="5"
+            resize-type="auto"
+            :is-empty="!interceptionResult"
+            :is-loading="isInterceptionLoading"
+            loading-message="Die KI kombiniert jetzt deine Idee mit den Regeln und erstellt einen kreativen Prompt, der zu deinem gewählten Kunststil passt."
+            @copy="copyInterceptionResult"
+            @paste="pasteInterceptionResult"
+            @clear="clearInterceptionResult"
+          />
         </section>
 
         <!-- Section 2: Category Selection (Horizontal Row) - Always visible -->
@@ -173,29 +155,21 @@
 
         <!-- Section 4: Optimized Prompt Preview (Always shown after model selection) -->
         <section v-if="selectedConfig" class="optimization-section">
-          <div class="optimization-preview bubble-card" :class="{ empty: !optimizedPrompt, loading: isOptimizationLoading }">
-            <div class="bubble-header">
-              <span class="bubble-icon">✨</span>
-              <span class="bubble-label">Modell-Optimierter Prompt</span>
-              <div class="bubble-actions">
-                <button @click="copyOptimizedPrompt" class="action-btn" title="Kopieren">📋</button>
-                <button @click="pasteOptimizedPrompt" class="action-btn" title="Einfügen">📄</button>
-                <button @click="clearOptimizedPrompt" class="action-btn" title="Löschen">🗑️</button>
-              </div>
-            </div>
-            <div v-if="isOptimizationLoading" class="preview-loading">
-              <div class="spinner-large"></div>
-              <p class="loading-text">Der Prompt wird jetzt für das gewählte Modell angepasst. Jedes Modell versteht Beschreibungen etwas anders – die KI optimiert den Text für die beste Ausgabe.</p>
-            </div>
-            <textarea
-              v-else
-              ref="optimizationTextareaRef"
-              v-model="optimizedPrompt"
-              :placeholder="optimizedPrompt ? '' : 'Der optimierte Prompt erscheint nach Modellauswahl.'"
-              class="bubble-textarea auto-resize-textarea"
-              rows="5"
-            ></textarea>
-          </div>
+          <MediaInputBox
+            icon="✨"
+            label="Modell-Optimierter Prompt"
+            :placeholder="optimizedPrompt ? '' : 'Der optimierte Prompt erscheint nach Modellauswahl.'"
+            v-model:value="optimizedPrompt"
+            input-type="text"
+            :rows="5"
+            resize-type="auto"
+            :is-empty="!optimizedPrompt"
+            :is-loading="isOptimizationLoading"
+            loading-message="Der Prompt wird jetzt für das gewählte Modell angepasst. Jedes Modell versteht Beschreibungen etwas anders – die KI optimiert den Text für die beste Ausgabe."
+            @copy="copyOptimizedPrompt"
+            @paste="pasteOptimizedPrompt"
+            @clear="clearOptimizedPrompt"
+          />
         </section>
 
         <!-- Code Output (p5.js) - appears right after optimization -->
@@ -289,6 +263,7 @@ import { useUserPreferencesStore } from '@/stores/userPreferences'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
+import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
 import { getModelAvailability, type ModelAvailability } from '@/services/api'
 
@@ -377,8 +352,6 @@ const estimatedDurationSeconds = ref<string>('30')  // Stores duration from back
 const mainContainerRef = ref<HTMLElement | null>(null)
 const startButtonRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
-const interceptionTextareaRef = ref<HTMLTextAreaElement | null>(null)
-const optimizationTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const categorySectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
@@ -1368,17 +1341,6 @@ function extractInsights(analysisText: string): string[] {
   )
 }
 
-function handleContextPromptEdit() {
-  pipelineStore.updateMetaPrompt(contextPrompt.value)
-  console.log('[Youth Flow] Context prompt edited:', contextPrompt.value.substring(0, 50) + '...')
-}
-
-function autoResizeTextarea(textarea: HTMLTextAreaElement | null) {
-  if (!textarea) return
-  textarea.style.height = 'auto'
-  // Add 4px buffer to prevent text cutoff
-  textarea.style.height = (textarea.scrollHeight + 4) + 'px'
-}
 
 // Watch metaPrompt changes and sync to local state
 watch(() => pipelineStore.metaPrompt, (newMetaPrompt) => {
@@ -1388,20 +1350,17 @@ watch(() => pipelineStore.metaPrompt, (newMetaPrompt) => {
   }
 })
 
-// Auto-resize textareas when content changes
-watch(interceptionResult, async (newValue) => {
-  await nextTick()
-  autoResizeTextarea(interceptionTextareaRef.value)
+// Watch contextPrompt changes and update store
+watch(contextPrompt, (newValue) => {
+  pipelineStore.updateMetaPrompt(newValue)
+  console.log('[Youth Flow] Context prompt edited:', newValue.substring(0, 50) + '...')
+})
 
-  // Auto-advance phase when manual text is entered
+// Auto-advance phase when manual text is entered
+watch(interceptionResult, (newValue) => {
   if (newValue.trim().length > 0 && executionPhase.value === 'initial') {
     executionPhase.value = 'interception_done'
   }
-})
-
-watch(optimizedPrompt, async () => {
-  await nextTick()
-  autoResizeTextarea(optimizationTextareaRef.value)
 })
 </script>
 
@@ -1542,80 +1501,7 @@ watch(optimizedPrompt, async () => {
   line-height: 1.5;
 }
 
-.input-bubble,
-.context-bubble {
-  flex: 0 1 480px;
-  width: 480px;
-}
-
-.bubble-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.bubble-icon {
-  font-size: clamp(1.25rem, 3vw, 1.5rem);
-  flex-shrink: 0;
-}
-
-.bubble-label {
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.bubble-actions {
-  display: flex;
-  gap: 0.25rem;
-  margin-left: auto;
-}
-
-.action-btn {
-  background: transparent;
-  border: none;
-  font-size: 0.9rem;
-  opacity: 0.4;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  padding: 0.25rem;
-}
-
-.action-btn:hover {
-  opacity: 0.8;
-}
-
-.bubble-textarea {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  padding: clamp(0.5rem, 1.5vw, 0.75rem);
-  resize: vertical;
-  font-family: inherit;
-  line-height: 1.4;
-}
-
-.bubble-textarea:focus {
-  outline: none;
-  border-color: rgba(102, 126, 234, 0.8);
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.bubble-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.auto-resize-textarea {
-  overflow-y: auto;
-  min-height: clamp(80px, 10vh, 100px);
-  max-height: clamp(150px, 20vh, 250px);
-  resize: none;
-  padding: clamp(0.75rem, 2vw, 1rem) clamp(0.75rem, 2vw, 1rem);
-}
+/* Input-bubble styles moved to MediaInputBox component */
 
 /* Expanded textarea (inline editing) - unused, kept for potential future use */
 .expanded-textarea {

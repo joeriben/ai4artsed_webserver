@@ -85,12 +85,13 @@ DEFAULT_LANGUAGE = "de"  # "de" or "en"
 # Provider Prefix Format & DSGVO Compliance:
 #   - "local/model-name" → Ollama (local inference, DSGVO-compliant ✓)
 #   - "bedrock/model-name" → AWS Bedrock with Anthropic (EU region, DSGVO-compliant ✓)
-#   - "anthropic/model-name" → Anthropic API direct (EU region, DSGVO-compliant ✓)
+#   - "mistral/model-name" → Mistral AI API direct (EU-based, DSGVO-compliant ✓)
+#   - "anthropic/model-name" → Anthropic API direct (NOT DSGVO-compliant ✗)
 #   - "openai/model-name" → OpenAI API direct (US-based, NOT DSGVO-compliant ✗)
 #   - "openrouter/provider/model-name" → OpenRouter aggregator (US proxy, NOT DSGVO-compliant ✗)
 #
 # IMPORTANT: OpenRouter routes through US servers even for EU models!
-# For DSGVO compliance with cloud AI, use AWS Bedrock (bedrock/) or direct Anthropic (anthropic/).
+# For DSGVO compliance with cloud AI, use AWS Bedrock (bedrock/) or Mistral AI (mistral/).
 #
 # Base Models:
 LOCAL_DEFAULT_MODEL = "gpt-OSS:20b"                          # Default local text model
@@ -261,7 +262,7 @@ OLLAMA_API_BASE_URL = os.environ.get("OLLAMA_API_BASE_URL", "http://localhost:11
 LMSTUDIO_API_BASE_URL = os.environ.get("LMSTUDIO_API_BASE_URL", "http://localhost:1234")
 
 # External LLM Provider for cloud-based models
-# Options: "none", "openrouter", "anthropic", "openai"
+# Options: "none", "openrouter", "anthropic", "openai", "mistral"
 EXTERNAL_LLM_PROVIDER = os.environ.get("EXTERNAL_LLM_PROVIDER", "none")
 
 # DSGVO Conformity - determines if cloud services are allowed

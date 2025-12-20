@@ -10,7 +10,7 @@
     "prompt_injection": {
       "target_title": "CLIP Text Encode (Positive)",
       "fallback_node_id": "positive_conditioning",
-      "fallback_field": "inputs.text"
+      "fallback_field": "text"
     }
   },
 
@@ -193,8 +193,8 @@
 
   "input_mappings": {
     "prompt": {
-      "node_id": "positive_prompt",
-      "field": "inputs.value",
+      "node_id": "positive_conditioning",
+      "field": "inputs.text",
       "source": "{{PREVIOUS_OUTPUT}}",
       "description": "Video animation prompt"
     },

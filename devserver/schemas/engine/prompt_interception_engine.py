@@ -109,6 +109,10 @@ class PromptInterceptionEngine:
                 output_text, model_used = await self._call_openai(
                     full_prompt, real_model_name, request.debug
                 )
+            elif request.model.startswith("mistral/"):
+                output_text, model_used = await self._call_mistral(
+                    full_prompt, real_model_name, request.debug
+                )
             elif request.model.startswith("openrouter/") or real_model_name in self.openrouter_models:
                 output_text, model_used = await self._call_openrouter(
                     full_prompt, real_model_name, request.debug
@@ -323,6 +327,52 @@ class PromptInterceptionEngine:
             logger.error(f"OpenAI API call failed: {e}")
             raise e
 
+    async def _call_mistral(self, prompt: str, model: str, debug: bool) -> Tuple[str, str]:
+        """Mistral AI API Call (direct, EU-based, DSGVO-compliant)"""
+        try:
+            logger.info(f"[BACKEND] ☁️  Mistral Request: {model}")
+
+            api_url, api_key = self._get_api_credentials("mistral")
+
+            if not api_key:
+                raise Exception("Mistral API Key not configured")
+
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+
+            messages = [
+                {"role": "user", "content": prompt}
+            ]
+
+            # IMPORTANT: Remove 'mistral/' prefix before sending to API
+            # Config uses "mistral/model-name" but API expects just "model-name"
+            api_model = model.replace("mistral/", "") if model.startswith("mistral/") else model
+
+            payload = {
+                "model": api_model,
+                "messages": messages,
+                "temperature": 0.7
+            }
+
+            response = requests.post(api_url, headers=headers, data=json.dumps(payload))
+            if response.status_code == 200:
+                result = response.json()
+                output_text = result["choices"][0]["message"]["content"]
+                logger.info(f"[BACKEND] ✅ Mistral Success: {model} ({len(output_text)} chars)")
+
+                if debug:
+                    self._log_debug("Mistral", model, prompt, output_text)
+
+                return output_text, model
+            else:
+                raise Exception(f"API Error: {response.status_code}\n{response.text}")
+
+        except Exception as e:
+            logger.error(f"Mistral API call failed: {e}")
+            raise e
+
     async def _call_aws_bedrock(self, prompt: str, model: str, debug: bool) -> Tuple[str, str]:
         """AWS Bedrock API Call for Anthropic Claude (EU region: eu-central-1)
 
@@ -415,6 +465,12 @@ class PromptInterceptionEngine:
                 "key_file": "openai.key",
                 "env_var": "OPENAI_API_KEY",
                 "key_prefix": "sk-"
+            },
+            "mistral": {
+                "url": "https://api.mistral.ai/v1/chat/completions",
+                "key_file": "mistral.key",
+                "env_var": "MISTRAL_API_KEY",
+                "key_prefix": ""
             }
         }
 

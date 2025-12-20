@@ -56,6 +56,7 @@ class BackendType(Enum):
     OPENROUTER = "openrouter"
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
+    MISTRAL = "mistral"
     AWS_BEDROCK = "bedrock"
     COMFYUI = "comfyui"
 
@@ -104,7 +105,7 @@ class BackendRouter:
             actual_backend = self._detect_backend_from_model(request.model, request.backend_type)
 
             # Schema-Pipelines: All LLM providers via Prompt Interception Engine
-            if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER, BackendType.ANTHROPIC, BackendType.OPENAI, BackendType.AWS_BEDROCK]:
+            if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER, BackendType.ANTHROPIC, BackendType.OPENAI, BackendType.MISTRAL, BackendType.AWS_BEDROCK]:
                 # Create modified request with detected backend for proper routing
                 modified_request = BackendRequest(
                     backend_type=actual_backend,
@@ -141,6 +142,7 @@ class BackendRouter:
         - bedrock/model-name → AWS_BEDROCK (Anthropic via AWS Bedrock, EU region)
         - anthropic/model-name → ANTHROPIC (direct API)
         - openai/model-name → OPENAI (direct API)
+        - mistral/model-name → MISTRAL (direct API, EU-based)
         - openrouter/provider/model-name → OPENROUTER (aggregator API)
 
         Args:
@@ -152,7 +154,7 @@ class BackendRouter:
         """
         # Empty model or prefix-only → use fallback
         # This is important for Proxy-Chunks (output_image) which have empty model
-        if not model or model in ["local/", "bedrock/", "openrouter/", "anthropic/", "openai/", ""]:
+        if not model or model in ["local/", "bedrock/", "openrouter/", "anthropic/", "openai/", "mistral/", ""]:
             logger.debug(f"[BACKEND-DETECT] Model '{model}' empty or prefix-only → {fallback_backend.value} (fallback)")
             return fallback_backend
 
@@ -166,6 +168,9 @@ class BackendRouter:
         elif model.startswith("openai/"):
             logger.debug(f"[BACKEND-DETECT] Model '{model}' → OPENAI (direct API)")
             return BackendType.OPENAI
+        elif model.startswith("mistral/"):
+            logger.debug(f"[BACKEND-DETECT] Model '{model}' → MISTRAL (EU-based direct API)")
+            return BackendType.MISTRAL
         elif model.startswith("openrouter/"):
             logger.debug(f"[BACKEND-DETECT] Model '{model}' → OPENROUTER (aggregator)")
             return BackendType.OPENROUTER

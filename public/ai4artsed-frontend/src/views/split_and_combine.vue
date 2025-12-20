@@ -5,42 +5,32 @@
       <!-- Input Section: Element 1 + Element 2 (Side by Side) -->
       <section class="input-context-section">
         <!-- Element 1 Bubble -->
-        <div class="input-bubble bubble-card" :class="{ filled: prompt1 }">
-          <div class="bubble-header">
-            <span class="bubble-icon">🅰️</span>
-            <span class="bubble-label">Element 1</span>
-            <div class="bubble-actions">
-              <button @click="copyElement1" class="action-btn" title="Kopieren">📋</button>
-              <button @click="pasteElement1" class="action-btn" title="Einfügen">📄</button>
-              <button @click="clearElement1" class="action-btn" title="Löschen">🗑️</button>
-            </div>
-          </div>
-          <textarea
-            v-model="prompt1"
-            placeholder="z.B. ein Meteorit im Weltall"
-            class="bubble-textarea"
-            rows="6"
-          ></textarea>
-        </div>
+        <MediaInputBox
+          icon="🅰️"
+          label="Element 1"
+          placeholder="z.B. ein Meteorit im Weltall"
+          v-model:value="prompt1"
+          input-type="text"
+          :rows="6"
+          :is-filled="!!prompt1"
+          @copy="copyElement1"
+          @paste="pasteElement1"
+          @clear="clearElement1"
+        />
 
         <!-- Element 2 Bubble -->
-        <div class="context-bubble bubble-card" :class="{ filled: prompt2 }">
-          <div class="bubble-header">
-            <span class="bubble-icon">🅱️</span>
-            <span class="bubble-label">Element 2</span>
-            <div class="bubble-actions">
-              <button @click="copyElement2" class="action-btn" title="Kopieren">📋</button>
-              <button @click="pasteElement2" class="action-btn" title="Einfügen">📄</button>
-              <button @click="clearElement2" class="action-btn" title="Löschen">🗑️</button>
-            </div>
-          </div>
-          <textarea
-            v-model="prompt2"
-            placeholder="z.B. ein Silberlöffel in der Besteckschublade"
-            class="bubble-textarea"
-            rows="6"
-          ></textarea>
-        </div>
+        <MediaInputBox
+          icon="🅱️"
+          label="Element 2"
+          placeholder="z.B. ein Silberlöffel in der Besteckschublade"
+          v-model:value="prompt2"
+          input-type="text"
+          :rows="6"
+          :is-filled="!!prompt2"
+          @copy="copyElement2"
+          @paste="pasteElement2"
+          @clear="clearElement2"
+        />
       </section>
 
       <!-- Combination Type Dropdown -->
@@ -151,6 +141,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 
 // ============================================================================

@@ -1,5 +1,319 @@
 # Development Log
 
+## Session 102 - MediaInputBox: Image Copy/Paste & Persistence
+**Date:** 2025-12-20
+**Duration:** ~2 hours
+**Focus:** Add copy/paste and sessionStorage persistence for images in MediaInputBox
+**Status:** SUCCESS - All features working (copy, paste, clear, persistence)
+**Cost:** Sonnet 4.5 tokens: ~115k
+
+### User Request
+Extend MediaInputBox to support copy/paste and sessionStorage persistence for images, similar to existing text implementation.
+
+### Implementation Summary
+
+#### 1. Initial Implementation ✅
+- Enabled copy/paste buttons in image_transformation.vue (removed `:show-copy="false"` and `:show-paste="false"`)
+- Implemented `copyUploadedImage()` and `pasteUploadedImage()` functions using existing `useAppClipboard()` composable
+- Added sessionStorage persistence with `watch()` for auto-save and `onMounted()` for restore
+- Pattern matches text copy/paste in text_transformation.vue
+
+**Commits:**
+- `9be3216` - feat: add copy/paste and persistence for images in MediaInputBox
+
+#### 2. Problem: Image Preview Disappeared After Reload ✗→✅
+**Symptom:** After page reload, uploaded images showed "Uploaded image preview" alt text instead of actual image
+
+**Root Cause:** Only Server-URL was saved to sessionStorage, but ImageUploadWidget expects Base64-Data-URL for preview
+
+**Solution:** Save BOTH URLs:
+- `uploadedImage` - Base64-Preview-URL (for display)
+- `uploadedImagePath` - Server-URL (for backend)
+
+**Commits:**
+- `8aefc26` - fix: preserve Base64 preview URL in sessionStorage for image persistence
+
+#### 3. Problem: Type Mismatch (Object vs String) ✗→✅
+**Symptom:** Console warnings: "Invalid prop: type check failed for prop 'value'. Expected String, got Object"
+
+**Root Cause:** MediaInputBox expected 3 separate parameters `(url, path, id)` but ImageUploadWidget emits single data object `{ image_id, image_path, preview_url, ... }`
+
+**Solution:** Change MediaInputBox event signature to accept full data object:
+```typescript
+// Before:
+'image-uploaded': [url: string, path: string, id: string]
+
+// After:
+'image-uploaded': [data: any]
+```
+
+**Commits:**
+- `3813c4c` - fix: correct MediaInputBox event signature for image uploads
+
+#### 4. UI Cleanup ✅
+**Change:** Removed redundant X-button (✕) from ImageUploadWidget since MediaInputBox now provides 🗑️ button in header
+
+**Commits:**
+- `89ccf58` - refactor: remove deprecated X button from ImageUploadWidget
+
+#### 5. Problem: Wrong Button Behavior ✗→✅
+**Symptom:** Clear button on image box was clearing contextPrompt instead of just the image
+
+**Root Cause:** `handleImageRemove()` was resetting `contextPrompt.value = ''`
+
+**Solution:** Keep contextPrompt when removing image (user might want to upload different image with same context)
+
+**Additional Fix:** `pasteUploadedImage()` only validated Server/HTTP URLs, not Base64-Data-URLs
+
+**Commits:**
+- `17c16c8` - fix: correct clear button behavior and add Base64 URL support
+
+### Technical Details
+
+**Architecture:**
+- Uses existing `useAppClipboard()` composable (consistent with text copy/paste)
+- Stores both Base64-Preview-URL (for display) and Server-URL (for backend)
+- sessionStorage keys: `i2i_uploaded_image`, `i2i_uploaded_image_path`, `i2i_uploaded_image_id`
+- Maintains priority: localStorage transfer ("Weiterreichen") > sessionStorage restore
+
+**Files Modified:**
+- `src/views/image_transformation.vue` - Add copy/paste handlers, sessionStorage persistence
+- `src/components/MediaInputBox.vue` - Fix event signature, handle data object
+- `src/components/ImageUploadWidget.vue` - Fix watch reactivity, deprecate X-button
+
+### Final Status
+✅ **All Features Working:**
+- 📋 Copy: Copies Base64-Preview-URL to app clipboard
+- 📄 Paste: Accepts Base64-Data-URLs, Server-URLs, and external URLs
+- 🗑️ Clear: Removes image only (keeps contextPrompt)
+- 💾 Stickyness: Image persists across page reloads (Base64-Preview saved to sessionStorage)
+- 🔀 Priority: localStorage transfer > sessionStorage restore
+
+### Lessons Learned
+1. **Event Signature Mismatch:** Always verify event signatures match between child and parent components
+2. **Base64 Storage:** Base64-Data-URLs work well for sessionStorage (up to 5-10MB limit per key)
+3. **Watch Reactivity:** Use `previewUrl.value = newImage || null` instead of `if (newImage)` to handle null values correctly
+4. **Context Preservation:** Keep user input (contextPrompt) when clearing related data (image) - improves UX
+
+---
+
+## Session 101 - WAN 2.2 Image-to-Video (i2v) Implementation
+**Date:** 2025-12-18
+**Duration:** ~3 hours
+**Focus:** Implement WAN 2.2 14B i2v workflow, fix prompt injection architecture
+**Status:** SUCCESS - i2v now correctly processes text prompts
+**Cost:** Sonnet 4.5 tokens: ~130k
+
+### User Request
+Implement WAN 2.2 Image-to-Video (i2v) functionality using 14B fp8_scaled models with 4-step LightX2V LoRAs
+
+### Implementation Summary
+
+#### 1. Initial Setup ✅
+**Models Downloaded & Placed:**
+- 2× UNets (14GB each): `wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors`, `wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors`
+- 2× LoRAs (1.2GB each): `wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors`, `wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors`
+- VAE: `wan_2.1_vae.safetensors` (243MB) - **CRITICAL: 14B models use Wan 2.1 VAE, not 2.2!**
+
+**Files Created:**
+- `devserver/schemas/configs/output/wan22_i2v_video.json` - Output config
+- `devserver/schemas/chunks/output_video_wan22_i2v.json` - ComfyUI workflow chunk
+
+#### 2. Problem: Config Not Found ✅
+**Error:** `Config 'wan22_i2v_video' not found`
+
+**Root Cause:** Wrong pipeline reference in config
+- Had: `"pipeline": "single_image_media_generation"` (doesn't exist)
+- Fixed: `"pipeline": "single_text_media_generation"` (correct for video)
+
+#### 3. Problem: LoRAs Not Found ✅
+**Error:** `FileNotFoundError: Model in folder 'loras'`
+
+**Root Cause:** LoRAs in SwarmUI Models folder, ComfyUI expects them in its own models/loras/
+
+**Solution:** Created symlinks from ComfyUI to SwarmUI
+
+#### 4. Problem: Wrong VAE (Channel Mismatch) ✅
+**Error:** `RuntimeError: expected 36 channels, got 64 channels`
+
+**Root Cause:** Used `wan2.2_vae.safetensors` but 14B models require `wan_2.1_vae.safetensors`
+
+**Key Learning:** WAN 2.2 14B models still use Wan 2.1 VAE!
+
+#### 5. Problem: Prompt Ignored by Model ✗→✅
+**Symptom:** Video generated but ignored text prompt completely
+
+**Root Cause (CRITICAL):** **Orphaned Node Architecture**
+```
+Broken Flow:
+  {{PREVIOUS_OUTPUT}}
+    → "positive_prompt" (PrimitiveStringMultiline)
+    → **DEAD END** - not connected to CLIP encoder!
+
+  "positive_conditioning" (CLIPTextEncode)
+    → inputs.text: "" (hardcoded empty)
+```
+
+**Solution:** Direct injection to CLIP encoder (matching t2v pattern)
+- Changed `input_mappings.prompt.node_id` → `"positive_conditioning"`
+- Changed `input_mappings.prompt.field` → `"inputs.text"`
+
+**Commit:** `6745a04` - fix(wan22_i2v): correct prompt injection to reach CLIP encoder
+
+### Key Learnings
+
+#### Debugging Anti-Patterns (What NOT to do)
+❌ Speculate about root causes (CFG, model issues)
+❌ Try random fixes without understanding data flow
+❌ Assume "injection success" means prompt reaches the model
+
+#### Debugging Best Practices
+✅ Compare with working reference configs (t2v, other i2v)
+✅ Trace node connections explicitly (look for `["node_id", 0]` references)
+✅ Use systematic exploration (Explore agents for pattern analysis)
+✅ Check for orphaned nodes (input but no output consumers)
+
+### Architecture Pattern: i2v Prompt Injection
+
+**Working Pattern:** `{{PREVIOUS_OUTPUT}}` → Direct to `CLIPTextEncode.inputs.text` → Model
+
+**Failed Pattern:** `{{PREVIOUS_OUTPUT}}` → Intermediate node → **Not connected** → Model gets empty text
+
+**Key Rule:** For i2v workflows, inject prompts **directly into the CLIP encoder**
+
+### Result
+✅ WAN 2.2 Image-to-Video fully functional
+✅ Text prompts correctly guide video animation
+✅ Pattern established for future i2v implementations
+
+---
+
+## Session 100 - AWS Bedrock Claude 4.5 Upgrade + Production Safety Fixes
+**Date:** 2025-12-18
+**Duration:** ~2 hours
+**Focus:** Upgrade to Claude 4.5 models, fix AWS credentials loading, remove PORT/HOST from Settings
+**Status:** SUCCESS - AWS Bedrock fully functional with auto-credential loading
+**Cost:** Sonnet 4.5 tokens: ~150k
+
+### User Request
+1. Upgrade AWS Bedrock models from Haiku 3.5 to Haiku 4.5 (EU Cross-Region Inference)
+2. Fix credentials issue - "Unable to locate credentials" despite CSV upload
+3. Remove PORT/HOST/THREADS from Settings (production deployment safety)
+
+### Implementation Summary
+
+#### 1. Claude 4.5 Model Upgrade ✅
+**Files:** `config.py`, `settings_routes.py`, `AWS_BEDROCK_SETUP.md`
+
+**Changes:**
+- `REMOTE_FAST_MODEL`: Haiku 3.5 → **Haiku 4.5 EU** (`eu.anthropic.claude-haiku-4-5-20251001-v1:0`)
+- `STAGE2_INTERCEPTION_MODEL`: → **Sonnet 4.5 EU** (complex task)
+- `STAGE2_OPTIMIZATION_MODEL`: → **Sonnet 4.5 EU** (complex task)
+- HARDWARE_MATRIX: All `dsgvo_cloud` tiers updated (Haiku 4.5 + Sonnet 4.5 for Stage2)
+
+**Key Principle:** ONLY EU Cross-Region Inference Profiles for DSGVO compliance
+
+#### 2. AWS Credentials Auto-Loading ✅
+**Problem:** boto3 couldn't find credentials despite CSV upload + manual source
+
+**Root Cause:** Startup scripts didn't source `setup_aws_env.sh`
+
+**Solution:**
+- `3_start_backend_dev.sh`: Auto-load setup_aws_env.sh if exists
+- `5_start_backend_prod.sh`: Auto-load setup_aws_env.sh if exists
+
+**Flow (fully automatic):**
+1. User uploads AWS CSV in Settings-Page
+2. Backend generates `setup_aws_env.sh` with ENV variables
+3. User restarts server with startup script
+4. Script automatically sources setup_aws_env.sh → credentials loaded ✅
+
+#### 3. Production Safety: Remove PORT/HOST/THREADS from Settings ✅
+**Problem:** PORT/HOST/THREADS configurable via Settings-Page → Production deployment risk
+
+**Files:** `settings_routes.py`
+
+**Changes:**
+- Removed PORT, HOST, THREADS from GET `/api/settings/` response
+- These are now ONLY set via config.py/ENV variables (startup scripts)
+- Prevents production from running on wrong port
+
+**PORT Management:**
+- Dev: 17802 (default in config.py)
+- Prod: 17801 (ENV override in startup script)
+
+#### 4. bedrock/ Prefix Support ✅
+**Problem:** `model_selector.py` didn't handle `bedrock/` prefix → invalid model ID
+
+**File:** `schemas/engine/model_selector.py`
+
+**Changes:**
+- Added `bedrock/` prefix handling to `strip_prefix()` and `extract_model_name()`
+- Model IDs now correctly extracted: `bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0` → `eu.anthropic.claude-haiku-4-5-20251001-v1:0`
+
+#### 5. Default Password for Fresh Deploys ✅
+**Problem:** Fresh production deploy → no `settings_password.key` → no access to Settings!
+
+**File:** `settings_routes.py`
+
+**Solution:**
+- Default password: `ai4artsedadmin` (when settings_password.key missing)
+- User can login and change password via Settings-Page
+- Enables Settings access on fresh production deployments
+
+#### 6. Error Handlers for Startup Scripts ✅
+**Problem:** Terminal window closes immediately on errors → can't read error messages
+
+**Files:** All startup scripts (1-6)
+
+**Solution:**
+- Added `trap` handlers to catch errors
+- Window stays open on failure: "Press any key to close..."
+- User can now read error messages before window closes
+
+#### 7. TypeScript Fixes ✅
+**Problem:** `Property 'sectionRef' does not exist on type 'HTMLElement'`
+
+**Files:** `text_transformation.vue`, `image_transformation.vue`
+
+**Changes:**
+- Changed `pipelineSectionRef` type from `HTMLElement` to `any`
+- MediaOutputBox component instance correctly typed
+- Build succeeds without TypeScript errors
+
+### Commits
+```
+6b5760e feat: add default password for fresh production deploys
+dca0e69 fix: correct TypeScript type for MediaOutputBox component refs
+9806df1 feat: add error handlers to all startup scripts
+47e2e13 fix: keep terminal window open on push script errors
+a3599ec feat: AWS Bedrock integration with auto-credential loading
+```
+
+### Testing Results
+✅ AWS Bedrock credentials auto-loading works
+✅ Default password enables Settings access on fresh deploys
+✅ PORT/HOST/THREADS removed from user_settings (production safe)
+✅ Claude 4.5 models (Haiku 4.5, Sonnet 4.5) functional
+✅ TypeScript build passes
+✅ Error handlers keep terminal windows open
+
+### Architecture Decisions
+1. **Credentials Management:** ENV variables via auto-sourced setup_aws_env.sh (not stored in JSON)
+2. **Port Configuration:** Startup scripts only (not user-configurable)
+3. **Default Password:** Known initial password for accessibility, user must change it
+4. **EU Cross-Region Inference:** Mandatory for DSGVO compliance (eu.anthropic.* prefix)
+
+### Open Issues
+None - all functionality working as expected
+
+### Next Steps
+- Deploy to production (`git pull` + restart)
+- Test AWS Bedrock in production environment
+- Consider adding "Change Password" reminder on first Settings login
+
+---
+
 ## Session 99 - Partial Elimination: Issues #1 & #2 Resolution - SUCCESS
 **Date:** 2025-12-13
 **Duration:** ~2 hours

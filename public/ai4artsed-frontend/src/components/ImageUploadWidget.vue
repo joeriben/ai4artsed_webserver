@@ -24,9 +24,12 @@
         </button>
         -->
 
+        <!-- DEPRECATED 2025-12-20: Remove button (replaced by 🗑️ in MediaInputBox header) -->
+        <!--
         <button class="remove-btn" @click.stop="removeImage" title="Bild entfernen">
           ✕
         </button>
+        -->
       </div>
 
       <!-- Upload Prompt -->
@@ -258,10 +261,9 @@ async function handleMaskSave(blob: Blob) {
 
 // Watch for initial image prop changes
 watch(() => props.initialImage, (newImage) => {
-  if (newImage) {
-    console.log('[ImageUploadWidget] Loading initial image:', newImage)
-    previewUrl.value = newImage
-  }
+  console.log('[ImageUploadWidget] Initial image changed:', newImage)
+  // Always sync previewUrl with initialImage (including null/empty)
+  previewUrl.value = newImage || null
 }, { immediate: true })
 
 // Load initial image on mount (if provided)
