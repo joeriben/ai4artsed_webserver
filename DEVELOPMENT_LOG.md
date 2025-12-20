@@ -1,5 +1,102 @@
 # Development Log
 
+## Session 102 - MediaInputBox: Image Copy/Paste & Persistence
+**Date:** 2025-12-20
+**Duration:** ~2 hours
+**Focus:** Add copy/paste and sessionStorage persistence for images in MediaInputBox
+**Status:** SUCCESS - All features working (copy, paste, clear, persistence)
+**Cost:** Sonnet 4.5 tokens: ~115k
+
+### User Request
+Extend MediaInputBox to support copy/paste and sessionStorage persistence for images, similar to existing text implementation.
+
+### Implementation Summary
+
+#### 1. Initial Implementation ✅
+- Enabled copy/paste buttons in image_transformation.vue (removed `:show-copy="false"` and `:show-paste="false"`)
+- Implemented `copyUploadedImage()` and `pasteUploadedImage()` functions using existing `useAppClipboard()` composable
+- Added sessionStorage persistence with `watch()` for auto-save and `onMounted()` for restore
+- Pattern matches text copy/paste in text_transformation.vue
+
+**Commits:**
+- `9be3216` - feat: add copy/paste and persistence for images in MediaInputBox
+
+#### 2. Problem: Image Preview Disappeared After Reload ✗→✅
+**Symptom:** After page reload, uploaded images showed "Uploaded image preview" alt text instead of actual image
+
+**Root Cause:** Only Server-URL was saved to sessionStorage, but ImageUploadWidget expects Base64-Data-URL for preview
+
+**Solution:** Save BOTH URLs:
+- `uploadedImage` - Base64-Preview-URL (for display)
+- `uploadedImagePath` - Server-URL (for backend)
+
+**Commits:**
+- `8aefc26` - fix: preserve Base64 preview URL in sessionStorage for image persistence
+
+#### 3. Problem: Type Mismatch (Object vs String) ✗→✅
+**Symptom:** Console warnings: "Invalid prop: type check failed for prop 'value'. Expected String, got Object"
+
+**Root Cause:** MediaInputBox expected 3 separate parameters `(url, path, id)` but ImageUploadWidget emits single data object `{ image_id, image_path, preview_url, ... }`
+
+**Solution:** Change MediaInputBox event signature to accept full data object:
+```typescript
+// Before:
+'image-uploaded': [url: string, path: string, id: string]
+
+// After:
+'image-uploaded': [data: any]
+```
+
+**Commits:**
+- `3813c4c` - fix: correct MediaInputBox event signature for image uploads
+
+#### 4. UI Cleanup ✅
+**Change:** Removed redundant X-button (✕) from ImageUploadWidget since MediaInputBox now provides 🗑️ button in header
+
+**Commits:**
+- `89ccf58` - refactor: remove deprecated X button from ImageUploadWidget
+
+#### 5. Problem: Wrong Button Behavior ✗→✅
+**Symptom:** Clear button on image box was clearing contextPrompt instead of just the image
+
+**Root Cause:** `handleImageRemove()` was resetting `contextPrompt.value = ''`
+
+**Solution:** Keep contextPrompt when removing image (user might want to upload different image with same context)
+
+**Additional Fix:** `pasteUploadedImage()` only validated Server/HTTP URLs, not Base64-Data-URLs
+
+**Commits:**
+- `17c16c8` - fix: correct clear button behavior and add Base64 URL support
+
+### Technical Details
+
+**Architecture:**
+- Uses existing `useAppClipboard()` composable (consistent with text copy/paste)
+- Stores both Base64-Preview-URL (for display) and Server-URL (for backend)
+- sessionStorage keys: `i2i_uploaded_image`, `i2i_uploaded_image_path`, `i2i_uploaded_image_id`
+- Maintains priority: localStorage transfer ("Weiterreichen") > sessionStorage restore
+
+**Files Modified:**
+- `src/views/image_transformation.vue` - Add copy/paste handlers, sessionStorage persistence
+- `src/components/MediaInputBox.vue` - Fix event signature, handle data object
+- `src/components/ImageUploadWidget.vue` - Fix watch reactivity, deprecate X-button
+
+### Final Status
+✅ **All Features Working:**
+- 📋 Copy: Copies Base64-Preview-URL to app clipboard
+- 📄 Paste: Accepts Base64-Data-URLs, Server-URLs, and external URLs
+- 🗑️ Clear: Removes image only (keeps contextPrompt)
+- 💾 Stickyness: Image persists across page reloads (Base64-Preview saved to sessionStorage)
+- 🔀 Priority: localStorage transfer > sessionStorage restore
+
+### Lessons Learned
+1. **Event Signature Mismatch:** Always verify event signatures match between child and parent components
+2. **Base64 Storage:** Base64-Data-URLs work well for sessionStorage (up to 5-10MB limit per key)
+3. **Watch Reactivity:** Use `previewUrl.value = newImage || null` instead of `if (newImage)` to handle null values correctly
+4. **Context Preservation:** Keep user input (contextPrompt) when clearing related data (image) - improves UX
+
+---
+
 ## Session 101 - WAN 2.2 Image-to-Video (i2v) Implementation
 **Date:** 2025-12-18
 **Duration:** ~3 hours
