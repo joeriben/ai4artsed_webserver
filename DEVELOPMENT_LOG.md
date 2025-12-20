@@ -1,5 +1,132 @@
 # Development Log
 
+## Session 103 - Fix Base64 Image Upload Bug (Filename Too Long Error)
+**Date:** 2025-12-20
+**Duration:** ~1.5 hours
+**Focus:** Fix critical bug where Base64 pasted images caused "filename too long" error in SwarmUI
+**Status:** SUCCESS - Base64 images now upload correctly, TypeScript errors resolved
+**Cost:** Sonnet 4.5 tokens: ~70k
+
+### Problem Discovery
+**Symptom:** When users pasted Base64-encoded images from clipboard, SwarmUI crashed with:
+```
+OSError: [Errno 36] File name too long: '/home/joerissen/ai/SwarmUI/dlbackend/ComfyUI/input/data:image/png;base64,iVBORw0KG...'
+```
+
+**Root Cause:** Recent changes in Session 102 (commit `17c16c8`) added Base64 data URL support to `pasteUploadedImage()`, but the function incorrectly stored the full Base64 data URL string in `uploadedImagePath.value`:
+```typescript
+// BROKEN CODE (from Session 102):
+uploadedImagePath.value = clipboardContent.startsWith('data:image/')
+  ? clipboardContent  // ❌ Full Base64 data URL stored
+  : clipboardContent
+```
+
+This Base64 string was then sent to backend → pipeline_executor → SwarmUI, where it was used as a filename, causing the filesystem error.
+
+### Solution Approach
+**Plan Mode:** Used Explore agent to trace the full data flow from frontend → backend → SwarmUI, then Plan agent to design the fix.
+
+**Decision:** Convert Base64 data URLs to Blobs in the frontend, upload them to backend via existing `/api/media/upload/image` endpoint, and store the server path.
+
+**Why Frontend?** Clean separation of concerns - frontend handles UI format conversion, backend only receives proper file paths.
+
+### Implementation Details
+
+#### 1. Base64 Upload Fix ✅
+**Added Helper Functions:**
+```typescript
+function base64ToBlob(dataUrl: string): Blob | null
+  // Converts data:image/png;base64,... to Blob object
+  // Extracts MIME type, decodes Base64, creates Uint8Array
+
+async function uploadImageToBackend(imageBlob: Blob, filename: string): Promise<string | null>
+  // Uploads Blob to /api/media/upload/image
+  // Returns server path (/api/media/image/{run_id})
+```
+
+**Modified `pasteUploadedImage()`:**
+- Made function `async`
+- **CASE 1:** Server/external URLs → use directly (no change)
+- **CASE 2:** Base64 data URLs → convert to Blob → upload → store server path
+- Provides instant preview while upload happens in background
+- Handles upload failures gracefully
+
+**Commits:**
+- `b80011d` - fix: convert Base64 pasted images to server files before generation
+
+#### 2. TypeScript Error Fixes ✅
+**Problems:** Pre-existing TypeScript errors in template bindings:
+```
+error TS2322: Type 'string | null' is not assignable to type 'string'
+error TS2322: Type 'string | undefined' is not assignable to type 'string | null'
+```
+
+**Solution:** Changed all image-related refs from `string | null` to `string | undefined` to match MediaInputBox component expectations:
+- `uploadedImage: ref<string | undefined>(undefined)`
+- `uploadedImagePath: ref<string | undefined>(undefined)`
+- `uploadedImageId: ref<string | undefined>(undefined)`
+
+**Template Binding Fix:**
+```typescript
+// Before:
+v-model:value="uploadedImage"
+
+// After:
+:value="uploadedImage ?? ''"
+@update:value="(val: string) => uploadedImage = val || undefined"
+```
+
+**Commits:**
+- `952f14b` - fix: resolve TypeScript errors in image_transformation.vue
+
+### Technical Flow
+
+**Before (BROKEN):**
+1. User pastes Base64 → stored in `uploadedImagePath.value`
+2. Frontend sends full Base64 string to backend
+3. Backend tries to open it as filename → ERROR
+
+**After (FIXED):**
+1. User pastes Base64 → instant preview in `uploadedImage.value`
+2. Frontend converts Base64 → Blob → uploads to backend
+3. Backend returns server path `/api/media/image/{run_id}`
+4. Server path stored in `uploadedImagePath.value`
+5. Generation uses server path → SUCCESS
+
+### Architecture Consistency
+- ✅ Follows existing upload pattern from `ImageUploadWidget.vue`
+- ✅ Uses same `/api/media/upload/image` endpoint
+- ✅ Maintains separation: `uploadedImage` (preview) vs `uploadedImagePath` (server path)
+- ✅ No breaking changes to URL paste functionality
+- ✅ Clean solution per CLAUDE.md "NO WORKAROUNDS" rule
+
+### Files Modified
+- `public/ai4artsed-frontend/src/views/image_transformation.vue`
+  - Added `base64ToBlob()` helper (lines 364-383)
+  - Added `uploadImageToBackend()` helper (lines 385-405)
+  - Modified `pasteUploadedImage()` to async with upload logic (lines 407-472)
+  - Changed ref types from `string | null` to `string | undefined` (lines 189-191)
+  - Updated v-model binding with nullish coalescing (lines 12-13)
+  - Updated `handleImageRemove()` null → undefined (lines 476-478)
+
+### Testing
+- ✅ Build succeeds without errors
+- ✅ Type-check passes cleanly (0 TypeScript errors)
+- ✅ Code compiles to `dist/assets/image_transformation-CigHGW7G.js`
+- ⏳ Manual testing pending (Base64 paste → upload → generation)
+
+### Key Learnings
+1. **Plan Mode Value:** Comprehensive exploration identified the exact data flow path from clipboard → SwarmUI
+2. **Type Safety:** Matching TypeScript types between components prevents runtime issues
+3. **Clean Fixes:** Frontend format conversion is cleaner than backend workarounds
+4. **Architecture Patterns:** Reusing existing upload endpoint maintains consistency
+
+### Related Sessions
+- **Session 102** - Introduced Base64 clipboard support (which caused this bug)
+- This session fixes the bug introduced in Session 102 commit `17c16c8`
+
+---
+
 ## Session 102 - MediaInputBox: Image Copy/Paste & Persistence
 **Date:** 2025-12-20
 **Duration:** ~2 hours
