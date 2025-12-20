@@ -9,7 +9,8 @@
         <MediaInputBox
           icon="💡"
           label="Dein Bild"
-          v-model:value="uploadedImage"
+          :value="uploadedImage ?? ''"
+          @update:value="(val: string) => uploadedImage = val || undefined"
           input-type="image"
           :initial-image="uploadedImage"
           @image-uploaded="handleImageUpload"
@@ -186,9 +187,9 @@ import { useAppClipboard } from '@/composables/useAppClipboard'
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 // Image upload
-const uploadedImage = ref<string | null>(null)  // Base64 preview URL
-const uploadedImagePath = ref<string | null>(null)  // Server path
-const uploadedImageId = ref<string | null>(null)
+const uploadedImage = ref<string | undefined>(undefined)  // Base64 preview URL or server URL
+const uploadedImagePath = ref<string | undefined>(undefined)  // Server path for backend
+const uploadedImageId = ref<string | undefined>(undefined)  // Run ID or pasted timestamp
 
 // Form inputs
 const contextPrompt = ref('')
@@ -473,9 +474,9 @@ async function pasteUploadedImage() {
 
 function handleImageRemove() {
   console.log('[Image Upload] Removed')
-  uploadedImage.value = null
-  uploadedImagePath.value = null
-  uploadedImageId.value = null
+  uploadedImage.value = undefined
+  uploadedImagePath.value = undefined
+  uploadedImageId.value = undefined
   // NOTE: Keep contextPrompt - user might want to upload different image with same context
   selectedCategory.value = null
   selectedConfig.value = null
