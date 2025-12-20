@@ -32,6 +32,9 @@
           <button @click="exportFilteredSessions" class="export-csv-btn" :disabled="loading || sessions.length === 0">
             Export Filtered to CSV
           </button>
+          <button @click="downloadDayAsZip" class="export-zip-btn" :disabled="loading || sessions.length === 0">
+            Download Day as ZIP
+          </button>
         </div>
 
         <div class="filter-group">
@@ -318,6 +321,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { jsPDF } from 'jspdf'
+import JSZip from 'jszip'
 
 const loading = ref(false)
 const error = ref(null)
@@ -921,6 +925,98 @@ function exportFilteredSessions() {
   }
 }
 
+async function downloadDayAsZip() {
+  if (sessions.value.length === 0) {
+    error.value = 'No sessions to download'
+    return
+  }
+
+  try {
+    loading.value = true
+    error.value = null
+
+    const zip = new JSZip()
+    const dateStr = filters.value.date_from || new Date().toISOString().split('T')[0]
+    const zipFolder = zip.folder(`ai4artsed_sessions_${dateStr}`)
+
+    // Fetch all session details
+    for (const session of sessions.value) {
+      try {
+        const response = await fetch(`/api/settings/sessions/${session.run_id}`, {
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          console.error(`Failed to fetch session ${session.run_id}`)
+          continue
+        }
+
+        const sessionData = await response.json()
+        const sessionFolder = zipFolder.folder(session.run_id)
+
+        // Add metadata.json
+        sessionFolder.file('metadata.json', JSON.stringify(sessionData, null, 2))
+
+        // Add all entity files
+        if (sessionData.entities && sessionData.entities.length > 0) {
+          for (const entity of sessionData.entities) {
+            try {
+              // Add text content
+              if (entity.content && typeof entity.content === 'string') {
+                sessionFolder.file(entity.filename, entity.content)
+              }
+
+              // Download and add images
+              if (entity.image_url) {
+                try {
+                  const imgResponse = await fetch(entity.image_url)
+                  if (imgResponse.ok) {
+                    const imgBlob = await imgResponse.blob()
+                    sessionFolder.file(entity.filename, imgBlob)
+                  }
+                } catch (e) {
+                  console.error(`Failed to fetch image ${entity.filename}:`, e)
+                }
+              }
+
+              // Download and add videos
+              if (entity.video_url) {
+                try {
+                  const vidResponse = await fetch(entity.video_url)
+                  if (vidResponse.ok) {
+                    const vidBlob = await vidResponse.blob()
+                    sessionFolder.file(entity.filename, vidBlob)
+                  }
+                } catch (e) {
+                  console.error(`Failed to fetch video ${entity.filename}:`, e)
+                }
+              }
+            } catch (e) {
+              console.error(`Failed to process entity ${entity.filename}:`, e)
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`Failed to process session ${session.run_id}:`, e)
+      }
+    }
+
+    // Generate and download ZIP
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const url = URL.createObjectURL(zipBlob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ai4artsed_sessions_${dateStr}.zip`
+    a.click()
+    URL.revokeObjectURL(url)
+
+  } catch (e) {
+    error.value = `ZIP creation failed: ${e.message}`
+  } finally {
+    loading.value = false
+  }
+}
+
 function formatTimestamp(timestamp) {
   try {
     const dt = new Date(timestamp)
@@ -1144,6 +1240,26 @@ onMounted(() => {
 }
 
 .export-csv-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-zip-btn {
+  padding: 6px 12px;
+  background: #007bff;
+  color: #fff;
+  border: 1px solid #0056b3;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.export-zip-btn:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.export-zip-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
