@@ -1,1 +1,2 @@
 - Obey the i18n rules and principles AT ALL TIMES.
+- **MANDATORY**: Consult `/docs` architecture documentation (ARCHITECTURE PART 01-20.md) and use `devserver-architecture-expert` agent BEFORE making code changes or architectural decisions.
