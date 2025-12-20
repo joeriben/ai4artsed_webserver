@@ -258,10 +258,9 @@ async function handleMaskSave(blob: Blob) {
 
 // Watch for initial image prop changes
 watch(() => props.initialImage, (newImage) => {
-  if (newImage) {
-    console.log('[ImageUploadWidget] Loading initial image:', newImage)
-    previewUrl.value = newImage
-  }
+  console.log('[ImageUploadWidget] Initial image changed:', newImage)
+  // Always sync previewUrl with initialImage (including null/empty)
+  previewUrl.value = newImage || null
 }, { immediate: true })
 
 // Load initial image on mount (if provided)

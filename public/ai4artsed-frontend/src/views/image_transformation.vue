@@ -339,6 +339,7 @@ function handleImageUpload(data: any) {
 function clearImage() {
   handleImageRemove()
   sessionStorage.removeItem('i2i_uploaded_image')
+  sessionStorage.removeItem('i2i_uploaded_image_path')
   sessionStorage.removeItem('i2i_uploaded_image_id')
   console.log('[I2I] Image cleared via action button')
 }
@@ -799,13 +800,16 @@ onMounted(async () => {
 
   // Check for sessionStorage persistence (normal reload)
   const savedImage = sessionStorage.getItem('i2i_uploaded_image')
+  const savedImagePath = sessionStorage.getItem('i2i_uploaded_image_path')
   const savedImageId = sessionStorage.getItem('i2i_uploaded_image_id')
 
   if (savedImage && !transferDataStr) {  // Only if NOT from transfer
-    console.log('[I2I] Restoring image from sessionStorage:', savedImage)
+    console.log('[I2I] Restoring image from sessionStorage')
+    console.log('[I2I] Preview URL:', savedImage.substring(0, 50) + '...')
+    console.log('[I2I] Server Path:', savedImagePath)
 
     uploadedImage.value = savedImage
-    uploadedImagePath.value = savedImage
+    uploadedImagePath.value = savedImagePath || savedImage
     uploadedImageId.value = savedImageId || `restored_${Date.now()}`
     executionPhase.value = 'image_uploaded'
 
@@ -825,9 +829,17 @@ watch(contextPrompt, (newVal) => {
 watch(uploadedImage, (newVal) => {
   if (newVal) {
     sessionStorage.setItem('i2i_uploaded_image', newVal)
-    console.log('[I2I] Saved image URL to sessionStorage:', newVal)
+    console.log('[I2I] Saved image preview to sessionStorage')
   } else {
     sessionStorage.removeItem('i2i_uploaded_image')
+  }
+})
+
+watch(uploadedImagePath, (newVal) => {
+  if (newVal) {
+    sessionStorage.setItem('i2i_uploaded_image_path', newVal)
+  } else {
+    sessionStorage.removeItem('i2i_uploaded_image_path')
   }
 })
 
