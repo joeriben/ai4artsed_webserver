@@ -165,6 +165,38 @@ def get_user_setting(key: str, default=None):
     return default
 
 
+def get_mistral_credentials():
+    """Get Mistral API credentials (pattern from prompt_interception_engine.py)"""
+    api_url = "https://api.mistral.ai/v1/chat/completions"
+
+    # 1. Try Environment Variable
+    api_key = os.environ.get("MISTRAL_API_KEY", "")
+    if api_key:
+        logger.debug("Mistral API Key from environment variable")
+        return api_url, api_key
+
+    # 2. Try Key-File (devserver/mistral.key)
+    try:
+        key_file = Path(__file__).parent.parent.parent / "mistral.key"
+        if key_file.exists():
+            lines = key_file.read_text().strip().split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#') and not line.startswith('//'):
+                    api_key = line
+                    logger.info(f"Mistral API Key loaded from {key_file}")
+                    return api_url, api_key
+            logger.error(f"No valid API key found in {key_file}")
+        else:
+            logger.warning(f"Mistral key file not found: {key_file}")
+    except Exception as e:
+        logger.warning(f"Failed to read mistral.key: {e}")
+
+    # 3. No key found
+    logger.error("Mistral API Key not found! Set MISTRAL_API_KEY environment variable or create devserver/mistral.key file")
+    return api_url, ""
+
+
 def _split_system_and_messages(messages: list):
     """Separate system messages from user/assistant messages."""
     system_parts = []
@@ -232,6 +264,77 @@ def _call_bedrock_chat(messages: list, model: str, temperature: float, max_token
         raise
 
 
+def _call_mistral_chat(messages: list, model: str, temperature: float, max_tokens: int):
+    """Call Mistral AI API directly (EU-based, DSGVO-compliant)"""
+    try:
+        api_url, api_key = get_mistral_credentials()
+
+        if not api_key:
+            raise Exception("Mistral API Key not configured")
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+
+        response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+
+        if response.status_code == 200:
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+            logger.info(f"[CHAT] Mistral Success: {len(content)} chars")
+            return content
+        else:
+            error_msg = f"API Error: {response.status_code}\n{response.text}"
+            logger.error(f"[CHAT] Mistral Error: {error_msg}")
+            raise Exception(error_msg)
+
+    except Exception as e:
+        logger.error(f"[CHAT] Mistral call failed: {e}", exc_info=True)
+        raise
+
+
+def _call_ollama_chat(messages: list, model: str, temperature: float, max_tokens: int):
+    """Call Ollama (local) API for chat helper"""
+    try:
+        # Get Ollama URL from user_settings.json or use default
+        ollama_url = get_user_setting("OLLAMA_API_BASE_URL", default="http://localhost:11434")
+        api_url = f"{ollama_url}/api/chat"
+
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": False,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens
+            }
+        }
+
+        response = requests.post(api_url, json=payload, timeout=120)
+
+        if response.status_code == 200:
+            result = response.json()
+            content = result["message"]["content"]
+            logger.info(f"[CHAT] Ollama Success: {len(content)} chars")
+            return content
+        else:
+            error_msg = f"API Error: {response.status_code}\n{response.text}"
+            logger.error(f"[CHAT] Ollama Error: {error_msg}")
+            raise Exception(error_msg)
+
+    except Exception as e:
+        logger.error(f"[CHAT] Ollama call failed: {e}", exc_info=True)
+        raise
+
+
 def _call_openrouter_chat(messages: list, model: str, temperature: float, max_tokens: int):
     """Call OpenRouter API for chat helper."""
     try:
@@ -284,18 +387,35 @@ def call_chat_helper(messages: list, temperature: float = 0.7, max_tokens: int =
         logger.info(f"[CHAT] Calling Bedrock with model: {model}")
         return _call_bedrock_chat(messages, model, temperature, max_tokens)
 
-    # Default: OpenRouter-compatible providers
-    if model_string.startswith("anthropic/"):
+    elif model_string.startswith("mistral/"):
+        model = model_string[len("mistral/"):]
+        logger.info(f"[CHAT] Calling Mistral with model: {model}")
+        return _call_mistral_chat(messages, model, temperature, max_tokens)
+
+    # OpenRouter-compatible providers
+    elif model_string.startswith("anthropic/"):
         model = model_string[len("anthropic/"):]
+        logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
+        return _call_openrouter_chat(messages, model, temperature, max_tokens)
+
     elif model_string.startswith("openai/"):
         model = model_string[len("openai/"):]
+        logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
+        return _call_openrouter_chat(messages, model, temperature, max_tokens)
+
     elif model_string.startswith("openrouter/"):
         model = model_string[len("openrouter/"):]
-    else:
-        model = model_string
+        logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
+        return _call_openrouter_chat(messages, model, temperature, max_tokens)
 
-    logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
-    return _call_openrouter_chat(messages, model, temperature, max_tokens)
+    elif model_string.startswith("local/"):
+        model = model_string[len("local/"):]
+        logger.info(f"[CHAT] Calling Ollama with model: {model}")
+        return _call_ollama_chat(messages, model, temperature, max_tokens)
+
+    else:
+        # Unknown prefix
+        raise Exception(f"Unknown model prefix in '{model_string}'. Supported: local/, bedrock/, mistral/, anthropic/, openai/, openrouter/")
 
 
 def load_session_context(run_id: str) -> dict:
