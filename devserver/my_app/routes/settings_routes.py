@@ -691,18 +691,18 @@ def get_sessions():
                 output_mode = None
                 has_input_image = False
 
+                # Check for input image in entities
+                for entity in metadata.get('entities', []):
+                    if entity.get('type') == 'input_image':
+                        has_input_image = True
+                        break
+
                 if config_used_file.exists():
                     try:
                         with open(config_used_file) as f:
                             config_used = json.load(f)
                             stage2_pipeline = config_used.get('pipeline')
                             output_type = config_used.get('media_preferences', {}).get('default_output', 'unknown')
-
-                            # Check if there's an input image
-                            for entity in metadata.get('entities', []):
-                                if entity.get('type') == 'input_image':
-                                    has_input_image = True
-                                    break
 
                             # Determine output mode
                             if output_type == 'image':
@@ -721,6 +721,20 @@ def get_sessions():
                                 output_mode = output_type
                     except:
                         pass
+
+                # Fallback: Infer output mode from entity types (for old sessions without config_used.json)
+                if output_mode is None:
+                    for entity in metadata.get('entities', []):
+                        entity_type = entity.get('type', '')
+                        if entity_type == 'output_image':
+                            output_mode = 'image+text2image' if has_input_image else 'text2image'
+                            break
+                        elif entity_type == 'output_video':
+                            output_mode = 'image+text2video' if has_input_image else 'text2video'
+                            break
+                        elif entity_type == 'output_audio':
+                            output_mode = 'text2audio'
+                            break
 
                 # Apply date range filter
                 session_date = timestamp_dt.date()

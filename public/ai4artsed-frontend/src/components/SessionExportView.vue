@@ -149,10 +149,9 @@
               <span v-if="sortField === 'user_id'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
             </th>
             <th @click="sortBy('config_name')" class="sortable">
-              Schema
+              Stage2-Config
               <span v-if="sortField === 'config_name'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
             </th>
-            <th>Stage2 Pipeline</th>
             <th>Modus</th>
             <th>Safety Level</th>
             <th>Stage</th>
@@ -179,7 +178,6 @@
             <td>{{ formatTimestamp(session.timestamp) }}</td>
             <td>{{ session.user_id }}</td>
             <td><span class="config-badge">{{ session.config_name }}</span></td>
-            <td><span class="pipeline-badge">{{ session.stage2_pipeline || 'N/A' }}</span></td>
             <td><span class="mode-badge">{{ session.output_mode || 'N/A' }}</span></td>
             <td><span class="safety-badge" :class="`safety-${session.safety_level}`">{{ session.safety_level }}</span></td>
             <td>{{ session.stage }} / {{ session.step }}</td>
@@ -523,8 +521,7 @@ function exportFilteredSessions() {
       'Session ID',
       'Timestamp',
       'User ID',
-      'Schema Name',
-      'Stage2 Pipeline',
+      'Stage2-Config',
       'Output Mode',
       'Safety Level',
       'Execution Mode',
@@ -540,7 +537,6 @@ function exportFilteredSessions() {
       formatTimestamp(session.timestamp),
       session.user_id,
       session.config_name,
-      session.stage2_pipeline || 'N/A',
       session.output_mode || 'N/A',
       session.safety_level,
       session.execution_mode,
