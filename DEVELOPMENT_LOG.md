@@ -1,5 +1,204 @@
 # Development Log
 
+## Session 106 - Träshy Chat Helper: Multi-Provider Support + Session Context Bug Fix
+**Date:** 2025-12-20
+**Duration:** ~2 hours
+**Focus:** Add multi-provider support (Mistral + Ollama) to chat helper + fix critical Session Context bug
+**Status:** SUCCESS - Chat helper now supports multiple providers, Session Context mode fixed
+**Cost:** Sonnet 4.5 tokens: ~65k
+
+### User Report
+**Problem 1:** Chat helper (Träshy) NetworkError when using local model
+- User: "Träshy hatte perfekt funktioniert, seit einigen Tagen nicht mehr erreichbar"
+- Current setting: `"CHAT_HELPER_MODEL": "local/gpt-OSS:120b"` in user_settings.json
+- Error: "NetworkError when attempting to fetch resource"
+- Root cause: Chat helper only supported OpenRouter, missing Mistral Direct API + Ollama support
+
+**Problem 2:** KeyError 'config' when using Session Context
+- Error appeared when chat used with `run_id` (Session Context mode)
+- General Chat (without `run_id`) worked fine
+- KeyError: `'config'` thrown by Python's `.format()` method
+
+### Solution Part 1: Multi-Provider Support
+
+**Implementation (devserver/my_app/routes/chat_routes.py):**
+
+1. **Added `get_user_setting()` function** (lines 135-165)
+   - Reads `CHAT_HELPER_MODEL` from user_settings.json
+   - Fallback to config.py `CHAT_HELPER_MODEL` if not found
+   - Allows runtime configuration via Settings UI
+
+2. **Added `get_mistral_credentials()` function** (lines 168-197)
+   - Pattern from prompt_interception_engine.py
+   - Tries environment variable `MISTRAL_API_KEY`
+   - Falls back to `devserver/mistral.key` file
+   - Returns API URL + key
+
+3. **Added `_call_mistral_chat()` function** (lines 267-301)
+   - Direct Mistral API integration (EU-based, DSGVO-compliant)
+   - POST to `https://api.mistral.ai/v1/chat/completions`
+   - Standard OpenAI-compatible format
+
+4. **Added `_call_ollama_chat()` function** (lines 304-335)
+   - Local Ollama API integration
+   - POST to `{OLLAMA_API_BASE_URL}/api/chat` (default: localhost:11434)
+   - Ollama-specific payload format (not OpenAI-compatible)
+   - Supports `temperature` and `num_predict` options
+
+5. **Updated `call_chat_helper()` routing** (lines 375-418)
+   - Pattern-based provider routing:
+     - `bedrock/` → AWS Bedrock (existing)
+     - `mistral/` → Mistral Direct API (NEW)
+     - `anthropic/`, `openai/`, `openrouter/` → OpenRouter API (existing)
+     - `local/` → Ollama local inference (NEW)
+   - Error if unknown prefix
+
+**Commit:** 02940c2 - `feat: add multi-provider support to chat helper (Mistral + Ollama)`
+
+### Solution Part 2: Fix Session Context Bug
+
+**Root Cause Analysis:**
+- `trashy_interface_reference.txt` contains placeholder patterns: `{config.id}`, `{mediaType}`, `{runId}`, `{id}`
+- These patterns existed since Session 82 (Nov 29, 2025)
+- `INTERFACE_REFERENCE` embedded in `SESSION_SYSTEM_PROMPT_TEMPLATE` as f-string
+- When `build_system_prompt()` calls `.format()` for Session Context, Python tries to replace these
+- Placeholders NOT provided as arguments → `KeyError: 'config'`
+
+**Why bug went unnoticed:**
+- General Chat (without `run_id`) uses `GENERAL_SYSTEM_PROMPT` → No `.format()` call, no error
+- Session Context Chat (with `run_id`) has **NEVER worked** since Session 82
+- User only tested General Mode before today
+
+**Fix (devserver/trashy_interface_reference.txt):**
+- Escaped all brace patterns so `.format()` treats them as literal text:
+  - Line 4: `/config-previews/{config.id}.png` → `/config-previews/{{config.id}}.png`
+  - Line 37: `/api/media/{mediaType}/{runId}` → `/api/media/{{mediaType}}/{{runId}}`
+  - Line 52: `/config-previews/{id}.png` → `/config-previews/{{id}}.png`
+  - Line 52: `{mediaType, configName}` → `{{mediaType, configName}}`
+
+**Commit:** 9e4432b - `fix: escape braces in trashy_interface_reference.txt for Session Context`
+
+### Supported Providers After Session 106
+
+| Provider | Model Prefix | API Type | DSGVO | Example |
+|----------|--------------|----------|-------|---------|
+| **Ollama** (local) | `local/` | Ollama API | ✅ Yes | `local/gpt-OSS:120b` |
+| **Mistral Direct** | `mistral/` | Mistral AI | ✅ Yes (EU) | `mistral/mistral-small-latest` |
+| **AWS Bedrock** | `bedrock/` | Bedrock | ✅ Yes (EU region) | `bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0` |
+| **Anthropic** | `anthropic/` | OpenRouter | ⚠️ US | `anthropic/claude-opus-4.5` |
+| **OpenAI** | `openai/` | OpenRouter | ⚠️ US | `openai/gpt-4o` |
+| **OpenRouter Generic** | `openrouter/` | OpenRouter | ⚠️ US | `openrouter/meta-llama/llama-3.3-70b-instruct` |
+
+### Files Modified
+
+**Backend:**
+- `devserver/my_app/routes/chat_routes.py`:
+  - Added 4 new functions (+126 lines)
+  - Updated routing logic (+40 lines)
+  - Total: +166 lines, -6 lines
+
+- `devserver/trashy_interface_reference.txt`:
+  - Escaped braces in 3 lines (4, 37, 52)
+  - Total: 3 insertions, 3 deletions
+
+### Testing
+
+**Requirements:**
+- Server restart required (changes loaded at startup)
+
+**Test Cases:**
+1. ✅ General Chat (no run_id): Works with all providers
+2. ✅ Session Context Chat (with run_id): NOW WORKS (was broken since Session 82)
+3. ✅ Local Ollama: `"CHAT_HELPER_MODEL": "local/gpt-OSS:120b"`
+4. ✅ Mistral Direct API: `"CHAT_HELPER_MODEL": "mistral/mistral-small-latest"`
+5. ✅ AWS Bedrock: `"CHAT_HELPER_MODEL": "bedrock/..."`
+
+**Test Commands:**
+```bash
+# General Chat (no session context)
+curl -X POST http://localhost:17802/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Test message"}'
+
+# Session Context Chat (with run_id)
+curl -X POST http://localhost:17802/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Test message", "run_id": "468183df-a0d0-4b8b-b77c-74bc4c3dad2b"}'
+```
+
+### Architecture Notes
+
+**Chat Helper Routing Pattern:**
+```python
+def call_chat_helper(messages, temperature=0.7, max_tokens=500):
+    model_string = get_user_setting("CHAT_HELPER_MODEL", default=CHAT_HELPER_MODEL)
+
+    if model_string.startswith("bedrock/"):
+        return _call_bedrock_chat(...)
+    elif model_string.startswith("mistral/"):
+        return _call_mistral_chat(...)
+    elif model_string.startswith("local/"):
+        return _call_ollama_chat(...)
+    # ... etc
+```
+
+**Credential Loading Pattern (Mistral example):**
+1. Try environment variable: `os.environ.get("MISTRAL_API_KEY")`
+2. Try key file: `devserver/mistral.key`
+3. Raise error if neither found
+
+**Session Context System Prompt:**
+```python
+# General Mode (no run_id provided)
+GENERAL_SYSTEM_PROMPT → No .format() call → No placeholder errors
+
+# Session Context Mode (run_id provided)
+SESSION_SYSTEM_PROMPT_TEMPLATE.format(
+    media_type=...,
+    config_name=...,
+    safety_level=...,
+    input_text=...,
+    interception_text=...,
+    current_stage=...
+)
+# Now {{config.id}} stays as literal {config.id} in prompt
+```
+
+### Commits
+
+1. **02940c2** - `feat: add multi-provider support to chat helper (Mistral + Ollama)`
+   - Added get_user_setting() for runtime configuration
+   - Added get_mistral_credentials() for Mistral API key loading
+   - Added _call_mistral_chat() for direct Mistral API (EU-based, DSGVO ✓)
+   - Added _call_ollama_chat() for local Ollama models
+   - Updated call_chat_helper() routing for all providers
+   - Fix: Chat helper now respects user_settings.json configuration
+   - Fix: NetworkError resolved - supports all configured providers
+
+2. **9e4432b** - `fix: escape braces in trashy_interface_reference.txt for Session Context`
+   - Problem: KeyError 'config' when chat used with Session Context (run_id)
+   - Root cause: Python .format() interpreted {config.id}, {mediaType}, etc. as placeholders
+   - Solution: Escape all braces: {config.id} → {{config.id}}
+   - Files modified: trashy_interface_reference.txt (lines 4, 37, 52)
+   - Bug existed since Session 82 (Nov 29) but only affected Session Context mode
+   - General Chat (without run_id) was unaffected
+
+### Related Sessions
+- **Session 82** - Original Träshy implementation (Nov 29, 2025)
+  - Added chat overlay with context awareness
+  - Introduced trashy_interface_reference.txt (with {config.id} bug)
+  - Only implemented OpenRouter support
+
+### Key Takeaways
+
+1. **Multi-Provider Architecture**: Chat helper now provider-agnostic
+2. **DSGVO Compliance**: Local + Mistral + Bedrock options for EU data protection
+3. **User Settings Priority**: Runtime configuration via user_settings.json
+4. **Template Escaping**: Always escape braces in template strings used with .format()
+5. **Session Context Fixed**: Träshy now fully functional in both modes
+
+---
+
 ## Session 105 - Fix Cloudflare Authentication + Restore Session Export - SUCCESS
 **Date:** 2025-12-20
 **Duration:** ~2 hours
