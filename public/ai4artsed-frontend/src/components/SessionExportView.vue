@@ -29,21 +29,21 @@
     <div class="filters-container" v-if="!loading && !error">
       <div class="filter-row">
         <div class="filter-group">
-          <button @click="exportFilteredSessions" class="export-csv-btn" :disabled="loading || sessions.length === 0">
-            Export Filtered to CSV
-          </button>
-          <button @click="downloadDayAsZip" class="export-zip-btn" :disabled="loading || sessions.length === 0">
-            Download Day as ZIP
-          </button>
-        </div>
-
-        <div class="filter-group">
           <label>Date Range</label>
           <div class="date-range">
             <input type="date" v-model="filters.date_from" @change="applyFilters" placeholder="From" />
             <span class="date-separator">→</span>
             <input type="date" v-model="filters.date_to" @change="applyFilters" placeholder="To" />
           </div>
+        </div>
+
+        <div class="filter-group export-buttons-group">
+          <button @click="exportFilteredAsZipJSON" class="export-zip-json-btn" :disabled="loading || sessions.length === 0">
+            Export Filtered as ZIP (JSON)
+          </button>
+          <button @click="exportFilteredAsZipPDF" class="export-zip-pdf-btn" :disabled="loading || sessions.length === 0">
+            Export Filtered as ZIP (PDF)
+          </button>
         </div>
 
         <div class="filter-group available-dates-group">
@@ -866,66 +866,7 @@ async function downloadSessionAsPDF(runId) {
   }
 }
 
-function exportFilteredSessions() {
-  try {
-    // Create CSV header
-    const headers = [
-      'Session ID',
-      'Timestamp',
-      'User ID',
-      'Stage2-Config',
-      'Output Mode',
-      'Safety Level',
-      'Execution Mode',
-      'Stage',
-      'Step',
-      'Entity Count',
-      'Media Count'
-    ]
-
-    // Create CSV rows
-    const rows = sessions.value.map(session => [
-      session.run_id,
-      formatTimestamp(session.timestamp),
-      session.user_id,
-      session.config_name,
-      session.output_mode || 'N/A',
-      session.safety_level,
-      session.execution_mode,
-      session.stage,
-      session.step,
-      session.entity_count,
-      session.media_count
-    ])
-
-    // Combine header and rows
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => {
-        // Escape quotes and wrap in quotes if contains comma or quote
-        const cellStr = String(cell || '')
-        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-          return `"${cellStr.replace(/"/g, '""')}"`
-        }
-        return cellStr
-      }).join(','))
-    ].join('\n')
-
-    // Create and download blob
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    const timestamp = new Date().toISOString().split('T')[0]
-    a.download = `ai4artsed_sessions_${timestamp}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  } catch (e) {
-    error.value = e.message
-  }
-}
-
-async function downloadDayAsZip() {
+async function exportFilteredAsZipJSON() {
   if (sessions.value.length === 0) {
     error.value = 'No sessions to download'
     return
@@ -1012,6 +953,304 @@ async function downloadDayAsZip() {
 
   } catch (e) {
     error.value = `ZIP creation failed: ${e.message}`
+  } finally {
+    loading.value = false
+  }
+}
+
+async function exportFilteredAsZipPDF() {
+  if (sessions.value.length === 0) {
+    error.value = 'No sessions to download'
+    return
+  }
+
+  try {
+    loading.value = true
+    error.value = null
+
+    const zip = new JSZip()
+    const dateStr = filters.value.date_from || new Date().toISOString().split('T')[0]
+
+    // Helper to load media (same as in downloadSessionAsPDF)
+    const loadMediaAsDataURL = async (url, isVideo = false) => {
+      try {
+        if (isVideo) {
+          return new Promise((resolve, reject) => {
+            const video = document.createElement('video')
+            video.crossOrigin = 'anonymous'
+            video.src = url
+            video.muted = true
+            video.addEventListener('loadeddata', () => { video.currentTime = 0.1 })
+            video.addEventListener('seeked', () => {
+              try {
+                const canvas = document.createElement('canvas')
+                canvas.width = video.videoWidth
+                canvas.height = video.videoHeight
+                const ctx = canvas.getContext('2d')
+                ctx.drawImage(video, 0, 0)
+                resolve(canvas.toDataURL('image/jpeg', 0.8))
+              } catch (e) { reject(e) }
+            })
+            video.addEventListener('error', () => reject(new Error('Video load failed')))
+          })
+        } else {
+          return new Promise((resolve, reject) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => {
+              const canvas = document.createElement('canvas')
+              canvas.width = img.width
+              canvas.height = img.height
+              const ctx = canvas.getContext('2d')
+              ctx.drawImage(img, 0, 0)
+              resolve(canvas.toDataURL('image/jpeg', 0.8))
+            }
+            img.onerror = () => reject(new Error('Image load failed'))
+            img.src = url
+          })
+        }
+      } catch (e) {
+        console.error('Failed to load media:', e)
+        return null
+      }
+    }
+
+    // Generate PDF for each session
+    for (const session of sessions.value) {
+      try {
+        const response = await fetch(`/api/settings/sessions/${session.run_id}`, {
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          console.error(`Failed to fetch session ${session.run_id}`)
+          continue
+        }
+
+        const data = await response.json()
+
+        const doc = new jsPDF()
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+        const margin = 20
+        const contentWidth = pageWidth - 2 * margin
+        const maxImageHeight = 100
+        let yPos = 20
+
+        // Title
+        doc.setFontSize(18)
+        doc.setFont('helvetica', 'bold')
+        doc.text('AI4ArtsEd Session Report', margin, yPos)
+        yPos += 15
+
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Session ID: ${session.run_id}`, margin, yPos)
+        yPos += 10
+
+        // Basic Info
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Basic Information', margin, yPos)
+        yPos += 8
+
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'normal')
+        const basicInfo = [
+          `Timestamp: ${formatTimestamp(data.timestamp)}`,
+          `User ID: ${data.user_id}`,
+          `Stage2-Config: ${data.config_name}`,
+          `Output Mode: ${data.output_mode || 'N/A'}`,
+          `Safety Level: ${data.safety_level}`,
+          `Execution Mode: ${data.execution_mode}`,
+          `Stage: ${data.current_state?.stage || 'N/A'}`,
+          `Step: ${data.current_state?.step || 'N/A'}`,
+          `Entity Count: ${data.entities?.length || 0}`,
+          `Media Count: ${data.media_count || 0}`
+        ]
+
+        basicInfo.forEach(line => {
+          if (yPos > pageHeight - 30) {
+            doc.addPage()
+            yPos = 20
+          }
+          doc.text(line, margin, yPos)
+          yPos += 6
+        })
+
+        yPos += 10
+
+        // Entities Section with Media
+        if (data.entities && data.entities.length > 0) {
+          doc.setFontSize(14)
+          doc.setFont('helvetica', 'bold')
+          if (yPos > pageHeight - 30) {
+            doc.addPage()
+            yPos = 20
+          }
+          doc.text('Entities', margin, yPos)
+          yPos += 8
+
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'normal')
+
+          for (let index = 0; index < data.entities.length; index++) {
+            const entity = data.entities[index]
+
+            if (yPos > pageHeight - 40) {
+              doc.addPage()
+              yPos = 20
+            }
+
+            doc.setFont('helvetica', 'bold')
+            doc.text(`${index + 1}. ${entity.type}`, margin, yPos)
+            yPos += 5
+
+            doc.setFont('helvetica', 'normal')
+            doc.text(`Filename: ${entity.filename}`, margin + 5, yPos)
+            yPos += 5
+
+            if (entity.timestamp) {
+              doc.text(`Time: ${formatTime(entity.timestamp)}`, margin + 5, yPos)
+              yPos += 5
+            }
+
+            // Handle media (images and videos)
+            if (entity.image_url) {
+              try {
+                const dataURL = await loadMediaAsDataURL(entity.image_url, false)
+                if (dataURL) {
+                  if (yPos + maxImageHeight > pageHeight - 30) {
+                    doc.addPage()
+                    yPos = 20
+                  }
+                  await new Promise((resolve) => {
+                    const img = new Image()
+                    img.onload = () => {
+                      const aspectRatio = img.width / img.height
+                      let imgWidth = contentWidth
+                      let imgHeight = imgWidth / aspectRatio
+                      if (imgHeight > maxImageHeight) {
+                        imgHeight = maxImageHeight
+                        imgWidth = imgHeight * aspectRatio
+                      }
+                      doc.addImage(dataURL, 'JPEG', margin + 5, yPos, imgWidth, imgHeight)
+                      yPos += imgHeight + 5
+                      resolve()
+                    }
+                    img.onerror = () => {
+                      doc.text('[Image dimensions unavailable]', margin + 5, yPos)
+                      yPos += 5
+                      resolve()
+                    }
+                    img.src = dataURL
+                  })
+                } else {
+                  doc.text('[Image could not be loaded]', margin + 5, yPos)
+                  yPos += 5
+                }
+              } catch (e) {
+                doc.text(`[Image error: ${e.message}]`, margin + 5, yPos)
+                yPos += 5
+              }
+            } else if (entity.video_url) {
+              try {
+                const dataURL = await loadMediaAsDataURL(entity.video_url, true)
+                if (dataURL) {
+                  if (yPos + maxImageHeight > pageHeight - 30) {
+                    doc.addPage()
+                    yPos = 20
+                  }
+                  await new Promise((resolve) => {
+                    const img = new Image()
+                    img.onload = () => {
+                      const aspectRatio = img.width / img.height
+                      let imgWidth = contentWidth
+                      let imgHeight = imgWidth / aspectRatio
+                      if (imgHeight > maxImageHeight) {
+                        imgHeight = maxImageHeight
+                        imgWidth = imgHeight * aspectRatio
+                      }
+                      doc.setFont('helvetica', 'italic')
+                      doc.text('[Video frame]', margin + 5, yPos)
+                      yPos += 5
+                      doc.setFont('helvetica', 'normal')
+                      doc.addImage(dataURL, 'JPEG', margin + 5, yPos, imgWidth, imgHeight)
+                      yPos += imgHeight + 5
+                      resolve()
+                    }
+                    img.onerror = () => {
+                      doc.text('[Video frame dimensions unavailable]', margin + 5, yPos)
+                      yPos += 5
+                      resolve()
+                    }
+                    img.src = dataURL
+                  })
+                } else {
+                  doc.text('[Video frame could not be extracted]', margin + 5, yPos)
+                  yPos += 5
+                }
+              } catch (e) {
+                doc.text(`[Video error: ${e.message}]`, margin + 5, yPos)
+                yPos += 5
+              }
+            }
+
+            // Content preview
+            if (entity.content && typeof entity.content === 'string') {
+              if (yPos > pageHeight - 30) {
+                doc.addPage()
+                yPos = 20
+              }
+              const contentPreview = entity.content.substring(0, 300) + (entity.content.length > 300 ? '...' : '')
+              const lines = doc.splitTextToSize(`Content: ${contentPreview}`, contentWidth - 5)
+              lines.forEach(line => {
+                if (yPos > pageHeight - 30) {
+                  doc.addPage()
+                  yPos = 20
+                }
+                doc.text(line, margin + 5, yPos)
+                yPos += 4
+              })
+            }
+
+            yPos += 5
+          }
+        }
+
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages()
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i)
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'italic')
+          doc.text(
+            `Generated by AI4ArtsEd DevServer - Page ${i} of ${pageCount}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          )
+        }
+
+        const pdfBlob = doc.output('blob')
+        zip.file(`${session.run_id}.pdf`, pdfBlob)
+
+      } catch (e) {
+        console.error(`Failed to generate PDF for session ${session.run_id}:`, e)
+      }
+    }
+
+    // Generate and download ZIP
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const url = URL.createObjectURL(zipBlob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ai4artsed_sessions_PDFs_${dateStr}.zip`
+    a.click()
+    URL.revokeObjectURL(url)
+
+  } catch (e) {
+    error.value = `PDF ZIP creation failed: ${e.message}`
   } finally {
     loading.value = false
   }
@@ -1225,41 +1464,42 @@ onMounted(() => {
   background: #888;
 }
 
-.export-csv-btn {
+.export-buttons-group {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+}
+
+.export-zip-json-btn,
+.export-zip-pdf-btn {
   padding: 6px 12px;
-  background: #28a745;
   color: #fff;
-  border: 1px solid #1e7e34;
+  border: none;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
+  border-radius: 4px;
 }
 
-.export-csv-btn:hover:not(:disabled) {
-  background: #218838;
-}
-
-.export-csv-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.export-zip-btn {
-  padding: 6px 12px;
+.export-zip-json-btn {
   background: #007bff;
-  color: #fff;
-  border: 1px solid #0056b3;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  margin-left: 8px;
 }
 
-.export-zip-btn:hover:not(:disabled) {
+.export-zip-json-btn:hover:not(:disabled) {
   background: #0056b3;
 }
 
-.export-zip-btn:disabled {
+.export-zip-pdf-btn {
+  background: #dc3545;
+}
+
+.export-zip-pdf-btn:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.export-zip-json-btn:disabled,
+.export-zip-pdf-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
