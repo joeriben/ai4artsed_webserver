@@ -132,35 +132,76 @@ def get_openrouter_credentials():
     return api_url, ""
 
 
-def call_openrouter_chat(messages: list, temperature: float = 0.7, max_tokens: int = 500):
-    """
-    Call OpenRouter API for chat (pattern from prompt_interception_engine.py)
+def _split_system_and_messages(messages: list):
+    """Separate system messages from user/assistant messages."""
+    system_parts = []
+    chat_messages = []
 
-    Args:
-        messages: List of message dicts with 'role' and 'content'
-        temperature: Temperature for generation
-        max_tokens: Max tokens to generate
-
-    Returns:
-        Response content string
-    """
-    try:
-        # Get model from config
-        model_string = CHAT_HELPER_MODEL  # e.g., "anthropic/claude-3-5-haiku-20241022"
-
-        # Extract model name (remove provider prefix if present)
-        # NOTE: This function currently only supports OpenRouter, but model can have any prefix
-        if model_string.startswith("anthropic/"):
-            model = model_string[len("anthropic/"):]
-        elif model_string.startswith("openai/"):
-            model = model_string[len("openai/"):]
-        elif model_string.startswith("openrouter/"):
-            model = model_string[len("openrouter/"):]
+    for msg in messages:
+        role = msg.get("role")
+        content = msg.get("content", "")
+        if role == "system":
+            system_parts.append(content)
         else:
-            model = model_string
+            chat_messages.append({"role": role, "content": content})
 
-        logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
+    system_prompt = "\n\n".join(system_parts)
+    return system_prompt, chat_messages
 
+
+def _call_bedrock_chat(messages: list, model: str, temperature: float, max_tokens: int):
+    """Call AWS Bedrock Anthropic models for chat helper."""
+    try:
+        import json
+        import boto3
+
+        system_prompt, chat_messages = _split_system_and_messages(messages)
+
+        # Convert to Anthropic Messages API format
+        anthropic_messages = [
+            {
+                "role": msg["role"],
+                "content": [{"type": "text", "text": msg["content"]}]
+            }
+            for msg in chat_messages
+        ]
+
+        payload = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "messages": anthropic_messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature
+        }
+
+        if system_prompt:
+            payload["system"] = system_prompt
+
+        bedrock = boto3.client(
+            service_name="bedrock-runtime",
+            region_name="eu-central-1"
+        )
+
+        response = bedrock.invoke_model(
+            modelId=model,
+            body=json.dumps(payload)
+        )
+
+        response_body = json.loads(response['body'].read())
+        content_blocks = response_body.get('content', [])
+        if not content_blocks:
+            raise Exception("Empty response from Bedrock")
+
+        content = "".join(block.get('text', '') for block in content_blocks)
+        logger.info(f"[CHAT] Bedrock Success: {len(content)} chars")
+        return content
+    except Exception as e:
+        logger.error(f"[CHAT] Bedrock call failed: {e}", exc_info=True)
+        raise
+
+
+def _call_openrouter_chat(messages: list, model: str, temperature: float, max_tokens: int):
+    """Call OpenRouter API for chat helper."""
+    try:
         api_url, api_key = get_openrouter_credentials()
 
         if not api_key:
@@ -193,6 +234,29 @@ def call_openrouter_chat(messages: list, temperature: float = 0.7, max_tokens: i
     except Exception as e:
         logger.error(f"[CHAT] OpenRouter call failed: {e}", exc_info=True)
         raise
+
+
+def call_chat_helper(messages: list, temperature: float = 0.7, max_tokens: int = 500):
+    """Call the configured chat helper model based on provider prefix."""
+    model_string = CHAT_HELPER_MODEL
+
+    if model_string.startswith("bedrock/"):
+        model = model_string[len("bedrock/"):]
+        logger.info(f"[CHAT] Calling Bedrock with model: {model}")
+        return _call_bedrock_chat(messages, model, temperature, max_tokens)
+
+    # Default: OpenRouter-compatible providers
+    if model_string.startswith("anthropic/"):
+        model = model_string[len("anthropic/"):]
+    elif model_string.startswith("openai/"):
+        model = model_string[len("openai/"):]
+    elif model_string.startswith("openrouter/"):
+        model = model_string[len("openrouter/"):]
+    else:
+        model = model_string
+
+    logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
+    return _call_openrouter_chat(messages, model, temperature, max_tokens)
 
 
 def load_session_context(run_id: str) -> dict:
@@ -366,10 +430,10 @@ def chat():
         # Add current user message
         messages.append({"role": "user", "content": user_message})
 
-        # Call OpenRouter API
-        logger.info(f"Calling OpenRouter with {len(messages)} messages (context_used={context_used})")
+        # Call configured chat helper model
+        logger.info(f"Calling chat helper with {len(messages)} messages (context_used={context_used})")
 
-        assistant_reply = call_openrouter_chat(
+        assistant_reply = call_chat_helper(
             messages=messages,
             temperature=0.7,
             max_tokens=500  # Keep responses concise
