@@ -369,21 +369,24 @@ function pasteUploadedImage() {
     return
   }
 
-  // Check if clipboard contains a valid image URL
-  const isImageUrl = clipboardContent.startsWith('/api/media/image/') ||
+  // Check if clipboard contains a valid image URL (Base64 Data-URL, Server-URL, or external URL)
+  const isImageUrl = clipboardContent.startsWith('data:image/') ||
+                     clipboardContent.startsWith('/api/media/image/') ||
                      clipboardContent.startsWith('http://') ||
                      clipboardContent.startsWith('https://')
 
   if (!isImageUrl) {
-    console.warn('[I2I] Clipboard does not contain a valid image URL:', clipboardContent)
+    console.warn('[I2I] Clipboard does not contain a valid image URL:', clipboardContent.substring(0, 100))
     return
   }
 
   // Set as uploaded image (trigger handleImageUpload-like behavior)
   uploadedImage.value = clipboardContent
-  uploadedImagePath.value = clipboardContent
+  uploadedImagePath.value = clipboardContent.startsWith('data:image/')
+    ? clipboardContent  // For Base64, use same as uploadedImage
+    : clipboardContent  // For Server-URL, use as-is
 
-  // Extract run_id if it's an API URL
+  // Extract run_id if it's an API URL, otherwise generate pasted ID
   const runIdMatch = clipboardContent.match(/\/api\/media\/image\/(.+)$/)
   uploadedImageId.value = runIdMatch ? runIdMatch[1] : `pasted_${Date.now()}`
 
@@ -391,8 +394,9 @@ function pasteUploadedImage() {
   executionPhase.value = 'image_uploaded'
 
   console.log('[I2I] Image pasted from clipboard:', {
-    url: clipboardContent,
-    id: uploadedImageId.value
+    url: clipboardContent.substring(0, 100) + '...',
+    id: uploadedImageId.value,
+    type: clipboardContent.startsWith('data:image/') ? 'Base64' : 'URL'
   })
 }
 
@@ -401,7 +405,7 @@ function handleImageRemove() {
   uploadedImage.value = null
   uploadedImagePath.value = null
   uploadedImageId.value = null
-  contextPrompt.value = ''
+  // NOTE: Keep contextPrompt - user might want to upload different image with same context
   selectedCategory.value = null
   selectedConfig.value = null
   hoveredConfigId.value = null
