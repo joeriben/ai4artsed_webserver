@@ -34,6 +34,10 @@ export default defineConfig({
         target: 'http://localhost:17802',
         changeOrigin: true,
       },
+      '/exports/json': {
+        target: 'http://localhost:17802',
+        changeOrigin: true,
+      },
       '/pipeline_configs_with_properties': {
         target: 'http://localhost:17802',
         changeOrigin: true,
