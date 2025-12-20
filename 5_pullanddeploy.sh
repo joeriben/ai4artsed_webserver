@@ -34,15 +34,25 @@ git pull origin main
 echo "✅ Code updated successfully"
 echo ""
 
-# Step 5: Build frontend and restart backend
+# Step 5: Build frontend
 echo "🔨 Step 5a: Building frontend..."
 cd "$SCRIPT_DIR/public/ai4artsed-frontend"
+npm run install
 npm run build
 echo "✅ Frontend built successfully"
 echo ""
 
-echo "🚀 Step 5b: Restarting production backend..."
-echo "Now manually restart the backend from the _production folder using 5_start_backend_prod.sh"
+# Step 6: Restart backend
+read -p "Restart Backend? (y/N): " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Aborted by user"
+    echo "In order to use the new deployment, manually restart the backend from the _production folder using 5_start_backend_prod.sh"
+    exit 1
+fi
+
+./5_start_backend_prod.sh
+
 echo ""
 echo "✅ Deployment completed!"
 echo ""
