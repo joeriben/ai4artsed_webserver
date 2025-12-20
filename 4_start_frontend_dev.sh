@@ -37,6 +37,17 @@ fi
 cd "$FRONTEND_DIR"
 
 echo ""
+echo "Building frontend (fresh build)..."
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed! Check errors above."
+    exit 1
+fi
+
+echo ""
+echo "✅ Build completed successfully"
+echo ""
 echo "Starting Vite dev server on http://localhost:${VITE_PORT}"
 echo "Backend API proxy: http://localhost:${BACKEND_DEV_PORT} (dev backend)"
 echo "Working directory: $FRONTEND_DIR"
