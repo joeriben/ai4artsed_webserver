@@ -92,7 +92,7 @@ const emit = defineEmits<{
   'copy': []
   'paste': []
   'clear': []
-  'image-uploaded': [url: string, path: string, id: string]
+  'image-uploaded': [data: any]  // Changed: Accept full data object from ImageUploadWidget
   'image-removed': []
 }>()
 
@@ -118,9 +118,10 @@ function handleInput(event: Event) {
   emit('update:value', target.value)
 }
 
-function handleImageUpload(url: string, path: string, id: string) {
-  emit('image-uploaded', url, path, id)
-  emit('update:value', url)  // Update v-model with image URL
+function handleImageUpload(data: any) {
+  // ImageUploadWidget emits full data object with preview_url, image_path, image_id
+  emit('image-uploaded', data)
+  emit('update:value', data.preview_url)  // Update v-model with preview URL
 }
 
 function autoResizeTextarea() {

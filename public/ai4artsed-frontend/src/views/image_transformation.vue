@@ -330,6 +330,8 @@ const canStartGeneration = computed(() => {
 
 function handleImageUpload(data: any) {
   console.log('[Image Upload] Success:', data)
+  console.log('[Image Upload] Preview URL type:', typeof data.preview_url)
+  console.log('[Image Upload] Preview URL length:', data.preview_url?.length)
   uploadedImage.value = data.preview_url
   uploadedImagePath.value = data.image_path
   uploadedImageId.value = data.image_id
