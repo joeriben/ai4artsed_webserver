@@ -659,11 +659,18 @@ def get_sessions():
                 if search_filter and search_filter.lower() not in metadata.get('run_id', '').lower():
                     continue
 
-                # Count media files
+                # Count media files and find first image for thumbnail
                 media_count = 0
+                thumbnail_path = None
                 for entity in metadata.get('entities', []):
-                    if entity.get('type', '').startswith('output_'):
+                    entity_type = entity.get('type', '')
+                    if entity_type.startswith('output_'):
                         media_count += 1
+                        # Find first image for thumbnail
+                        if thumbnail_path is None and entity_type == 'output_image':
+                            filename = entity.get('filename')
+                            if filename:
+                                thumbnail_path = f"/exports/json/{session_dir.name}/{filename}"
 
                 # Build session summary
                 session_summary = {
@@ -677,7 +684,8 @@ def get_sessions():
                     'step': metadata.get('current_state', {}).get('step'),
                     'entity_count': len(metadata.get('entities', [])),
                     'media_count': media_count,
-                    'session_dir': str(session_dir.name)
+                    'session_dir': str(session_dir.name),
+                    'thumbnail': thumbnail_path
                 }
 
                 all_sessions.append(session_summary)
@@ -747,8 +755,11 @@ def get_session_detail(run_id):
             if filename:
                 file_path = session_dir / filename
                 if file_path.exists():
-                    # Only read text files, not binary (images, etc.)
-                    if file_path.suffix in ['.txt', '.json']:
+                    # For images, provide URL path
+                    if file_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
+                        entity_copy['image_url'] = f"/exports/json/{run_id}/{filename}"
+                    # For text files, read content
+                    elif file_path.suffix in ['.txt', '.json']:
                         try:
                             with open(file_path) as f:
                                 entity_copy['content'] = f.read()

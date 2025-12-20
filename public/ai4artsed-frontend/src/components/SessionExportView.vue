@@ -100,6 +100,7 @@
       <table class="sessions-table">
         <thead>
           <tr>
+            <th>Preview</th>
             <th @click="sortBy('timestamp')" class="sortable">
               Timestamp
               <span v-if="sortField === 'timestamp'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
@@ -122,6 +123,14 @@
         </thead>
         <tbody>
           <tr v-for="session in sessions" :key="session.run_id">
+            <td>
+              <div v-if="session.thumbnail" class="thumbnail-container">
+                <img :src="session.thumbnail" class="thumbnail" @error="handleImageError" />
+              </div>
+              <div v-else class="no-thumbnail">
+                <span>No Image</span>
+              </div>
+            </td>
             <td>{{ formatTimestamp(session.timestamp) }}</td>
             <td>{{ session.user_id }}</td>
             <td><span class="config-badge">{{ session.config_name }}</span></td>
@@ -225,7 +234,10 @@
                   <span class="entity-filename">{{ entity.filename }}</span>
                   <span class="entity-time">{{ formatTime(entity.timestamp) }}</span>
                 </div>
-                <div v-if="entity.content" class="entity-content">
+                <div v-if="entity.image_url" class="entity-image">
+                  <img :src="entity.image_url" :alt="entity.filename" class="detail-image" />
+                </div>
+                <div v-else-if="entity.content" class="entity-content">
                   <pre>{{ entity.content }}</pre>
                 </div>
               </div>
@@ -482,6 +494,11 @@ function formatTime(timestamp) {
   } catch {
     return timestamp
   }
+}
+
+function handleImageError(event) {
+  // Hide broken image icon
+  event.target.style.display = 'none'
 }
 
 onMounted(() => {
@@ -929,5 +946,53 @@ onMounted(() => {
   white-space: pre-wrap;
   word-wrap: break-word;
   color: #333;
+}
+
+.entity-image {
+  padding: 12px;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  text-align: center;
+}
+
+.detail-image {
+  max-width: 100%;
+  max-height: 600px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Thumbnails */
+.thumbnail-container {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumbnail {
+  max-width: 60px;
+  max-height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.no-thumbnail {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.no-thumbnail span {
+  font-size: 10px;
+  color: #999;
+  text-align: center;
 }
 </style>
