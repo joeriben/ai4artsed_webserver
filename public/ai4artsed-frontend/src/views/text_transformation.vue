@@ -177,11 +177,10 @@
           <div class="code-display">
             <div class="code-header">
               <h3>Generated Code</h3>
-              <button @click="copyOutputCode" class="action-btn" title="Kopieren">📋</button>
+              <button @click="runCode" class="action-btn run-btn" title="Code ausführen">▶️</button>
             </div>
             <textarea
-              :value="outputCode"
-              readonly
+              v-model="editedCode"
               class="code-textarea"
               rows="15"
             ></textarea>
@@ -189,6 +188,7 @@
           <div class="code-preview">
             <h3>Live Preview</h3>
             <iframe
+              :key="iframeKey"
               :srcdoc="getP5jsIframeContent()"
               class="p5js-iframe"
               sandbox="allow-scripts"
@@ -343,6 +343,8 @@ const isPipelineExecuting = ref(false)
 const outputImage = ref<string | null>(null)
 const outputMediaType = ref<string>('image') // Media type: image, video, audio, music, 3d, code
 const outputCode = ref<string | null>(null) // For code output (p5.js, etc.)
+const editedCode = ref<string>('') // Editable code (user can modify)
+const iframeKey = ref<number>(0) // Force iframe re-render
 const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
@@ -727,6 +729,13 @@ watch(interceptionResult, (newVal) => {
   sessionStorage.setItem('t2i_interception_result', newVal)
 })
 
+// Initialize editedCode when outputCode changes
+watch(outputCode, (newCode) => {
+  if (newCode) {
+    editedCode.value = newCode
+  }
+})
+
 // ============================================================================
 // Textbox Actions (Copy/Paste/Delete)
 // ============================================================================
@@ -794,13 +803,14 @@ function clearOptimizedPrompt() {
   console.log('[T2I] Optimized prompt cleared')
 }
 
-function copyOutputCode() {
-  if (!outputCode.value) {
-    console.warn('[T2I] No output code to copy')
+function runCode() {
+  if (!editedCode.value) {
+    console.warn('[T2I] No code to run')
     return
   }
-  copyToClipboard(outputCode.value)
-  console.log('[T2I] Output code copied to app clipboard')
+  // Force iframe re-render by incrementing key
+  iframeKey.value++
+  console.log('[T2I] Running code, iframe key:', iframeKey.value)
 }
 
 // ============================================================================
@@ -1110,7 +1120,8 @@ async function executePipeline() {
 
 // Generate iframe content for p5.js code display
 function getP5jsIframeContent(): string {
-  if (!outputCode.value) return ''
+  const codeToRender = editedCode.value || outputCode.value
+  if (!codeToRender) return ''
 
   return `<!DOCTYPE html>
 <html>
@@ -1133,7 +1144,7 @@ function getP5jsIframeContent(): string {
 <body>
     <script>
         try {
-            ${outputCode.value}
+            ${codeToRender}
         } catch (error) {
             document.body.innerHTML = '<div style="color: red; padding: 20px; font-family: monospace;">Error: ' + error.message + '<\/div>';
             console.error('p5.js error:', error);
@@ -2421,6 +2432,17 @@ watch(interceptionResult, (newValue) => {
   font-size: 0.9rem;
   line-height: 1.5;
   resize: vertical;
+}
+
+/* Run button styling */
+.run-btn {
+  background: #28a745 !important;
+  transition: all 0.2s ease;
+}
+
+.run-btn:hover {
+  background: #218838 !important;
+  transform: scale(1.05);
 }
 
 .p5js-iframe {
