@@ -16,7 +16,7 @@ USAGE:
 """
 import json
 import logging
-from flask import Blueprint, Response, request, current_app
+from flask import Blueprint, Response, request, current_app, stream_with_context
 from my_app.services.ollama_service import ollama_service
 from schemas.engine.prompt_interception_engine import PromptInterceptionEngine
 
@@ -91,6 +91,7 @@ def stream_stage1_translation(run_id: str):
                     'accumulated': accumulated,
                     'chunk_count': chunk_count
                 })
+                yield ''  # Force flush to bypass Waitress buffering
 
             logger.info(f"[TEXT_STREAM] Stage 1 translation complete: {len(accumulated)} chars, {chunk_count} chunks")
 
@@ -112,7 +113,7 @@ def stream_stage1_translation(run_id: str):
                 'stage': 'stage1'
             })
 
-    response = Response(generate(), mimetype='text/event-stream')
+    response = Response(stream_with_context(generate()), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
     # CRITICAL: Add CORS headers for EventSource from localhost:5173
@@ -184,6 +185,7 @@ def stream_stage2_interception(run_id: str):
                         'accumulated': accumulated,
                         'chunk_count': chunk_count
                     })
+                    yield ''  # Force flush to bypass Waitress buffering
 
             elif model.startswith("local/") or not any(model.startswith(p) for p in ["mistral/", "openai/", "anthropic/", "bedrock/", "openrouter/"]):
                 # Ollama streaming (local models)
@@ -222,6 +224,7 @@ def stream_stage2_interception(run_id: str):
                                     'accumulated': accumulated,
                                     'chunk_count': chunk_count
                                 })
+                                yield ''  # Force flush to bypass Waitress buffering
 
                             if done:
                                 break
@@ -254,7 +257,7 @@ def stream_stage2_interception(run_id: str):
                 'stage': 'stage2'
             })
 
-    response = Response(generate(), mimetype='text/event-stream')
+    response = Response(stream_with_context(generate()), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
     # CRITICAL: Add CORS headers for EventSource from localhost:5173
@@ -316,6 +319,7 @@ def stream_stage3_safety(run_id: str):
                     'accumulated': accumulated,
                     'chunk_count': chunk_count
                 })
+                yield ''  # Force flush to bypass Waitress buffering
 
             logger.info(f"[TEXT_STREAM] Stage 3 safety check complete: {len(accumulated)} chars")
 
@@ -338,7 +342,7 @@ def stream_stage3_safety(run_id: str):
                 'stage': 'stage3'
             })
 
-    response = Response(generate(), mimetype='text/event-stream')
+    response = Response(stream_with_context(generate()), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
     # CRITICAL: Add CORS headers for EventSource from localhost:5173
@@ -426,6 +430,7 @@ def stream_stage4_output(run_id: str):
                                 'accumulated': accumulated,
                                 'chunk_count': chunk_count
                             })
+                            yield ''  # Force flush to bypass Waitress buffering
 
                         if done:
                             break
@@ -450,7 +455,7 @@ def stream_stage4_output(run_id: str):
                 'stage': 'stage4'
             })
 
-    response = Response(generate(), mimetype='text/event-stream')
+    response = Response(stream_with_context(generate()), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
     # CRITICAL: Add CORS headers for EventSource from localhost:5173
