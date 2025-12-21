@@ -1,5 +1,125 @@
 # Development Log
 
+## Session 109 - SSE Text Streaming: Waitress Optimization & Typewriter Effect
+**Date:** 2025-12-22
+**Duration:** ~2 hours
+**Focus:** Fix SSE streaming buffering to enable character-by-character typewriter effect
+**Status:** SUCCESS - Streaming works, typewriter visible
+**Cost:** Sonnet 4.5 tokens: ~160k
+
+### User Request
+Fix SSE text streaming from previous session (chunks buffered, appearing all at once):
+- Backend sends 256 chunks ✅ (verified with curl)
+- Frontend receives all at once ❌ (buffering somewhere)
+- Goal: Typewriter effect for kids during 30s+ Stage 2 waits
+- **Constraint:** Keep Waitress (don't replace server for minor UX feature)
+
+### Root Causes Found & Fixed
+
+**1. Flask Not Flushing (Backend)**
+- Waitress buffers responses <8KB by default
+- Solution: `stream_with_context()` + `yield ''` after each chunk
+- Result: curl test shows progressive chunks ✅
+
+**2. Runtime Config Not Loaded (Backend)**
+- `from config import X` reads at import-time (before user_settings.json loaded)
+- Stage 2 used 20b instead of configured 120b
+- Solution: `import config; config.X` reads at runtime
+- Result: user_settings.json honored ✅
+
+**3. CORS Conflicts (Backend)**
+- Manual headers conflicted with Flask-CORS global config
+- Solution: Remove manual headers, Flask-CORS handles everything
+- Result: Direct localhost:17802 connection works ✅
+
+**4. Vite Proxy Buffering (Frontend)**
+- Vite dev proxy buffers SSE despite headers
+- Solution: Dev = direct localhost:17802, Prod = relative URL via Nginx
+- Result: No buffering in either environment ✅
+
+**5. Spinner Covering Text (Frontend)**
+- `isInterceptionLoading=true` during entire stream → text hidden under spinner
+- Solution: Emit 'stream-started' on first chunk → hide spinner immediately
+- Result: Typewriter effect visible ✅
+
+**6. Buffer Skipped on Complete (Frontend)**
+- 'complete' event immediately set `final_text` (ignored chunkBuffer)
+- Solution: Wait for buffer to empty before showing final_text
+- Result: Animation plays completely ✅
+
+### Implementation
+
+**Backend (text_stream_routes.py):**
+```python
+from flask import stream_with_context
+import config  # Runtime access
+
+model = request.args.get('model', config.STAGE2_INTERCEPTION_MODEL)
+
+def generate():
+    for chunk in ...:
+        yield generate_sse_event('chunk', {...})
+        yield ''  # Force flush
+
+return Response(stream_with_context(generate()), ...)
+```
+
+**Frontend (text_transformation.vue):**
+```javascript
+const isDev = import.meta.env.DEV
+const url = isDev
+  ? `http://localhost:17802/api/text_stream/stage2/${runId}`  // Dev
+  : `/api/text_stream/stage2/${runId}`  // Prod (Nginx)
+
+@stream-started="handleStreamStarted"  // Hide spinner on first chunk
+```
+
+**Frontend (MediaInputBox.vue):**
+```javascript
+emit('stream-started')  // On first chunk
+// Wait for buffer empty before emitting 'stream-complete'
+```
+
+### Architectural Decisions
+
+**Decision: Keep Waitress, No Migration**
+- Gunicorn doesn't solve WebSockets (would need ASGI)
+- ComfyUI uses polling, not streaming (no benefit)
+- Flask explicit flushing sufficient
+- Waitress stable for everything else
+- See: docs/DEVELOPMENT_DECISIONS.md DD-109
+
+**Decision: Dev vs Prod URL Strategy**
+- Dev: Direct localhost:17802 (bypasses Vite buffering)
+- Prod: Relative URL via Nginx (no buffering in production)
+- Cloudflare not affected (only sees HTTPS to domain)
+
+### Commits
+- `7427e81` WIP: Add SSE infrastructure (previous session)
+- `21bf2ac` fix: Flask explicit flushing
+- `5b0da9d` fix: Remove CORS conflicts
+- `fc94044` fix: Use config.py defaults
+- `369b2f2` fix: Runtime config for user_settings.json
+- `f5c50eb` fix: Buffer completion logic
+- `c08bc96` fix: Hide spinner on first chunk
+- `e09374f` feat: Auto-scroll (needs refinement)
+- `9f08f38` fix: Environment-aware URLs
+
+### Testing Results
+✅ curl: Chunks arrive progressively
+✅ Browser: 232+ individual chunk events logged
+✅ Typewriter: Text appears character-by-character
+✅ Model: 120b from user_settings.json used correctly
+✅ Spinner: Hides immediately on first chunk
+⚠️ Auto-scroll: Implemented but needs refinement (user will fix later)
+
+### Files Modified
+- `devserver/my_app/routes/text_stream_routes.py` - Flushing + runtime config
+- `public/ai4artsed-frontend/src/components/MediaInputBox.vue` - Stream events + buffer logic
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Environment URLs + spinner control
+
+---
+
 ## Session 108 - Frontend: Editable p5.js Code Box with Run Button
 **Date:** 2025-12-21
 **Duration:** ~2 hours

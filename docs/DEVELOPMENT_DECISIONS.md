@@ -29,6 +29,110 @@
 
 ---
 
+## Session 109 - 2025-12-22
+
+### Decision: SSE Streaming with Waitress (No Server Migration)
+
+**Context:** SSE text streaming infrastructure implemented in previous session but buffering prevented typewriter effect. Handover document recommended replacing Waitress with Gunicorn.
+
+**User Constraint:** "Not justified to replace a working server for one small animation feature."
+
+**Analysis:**
+1. **Gunicorn benefits:** Only helps SSE, NOT WebSockets (would need ASGI for WebSockets)
+2. **ComfyUI:** Uses HTTP polling (2s intervals), not streaming - Gunicorn wouldn't help
+3. **ASGI migration:** Would require rewriting 50+ routes with async/await (~2-3 weeks effort)
+4. **Waitress status:** Stable, works for all other endpoints, simple configuration
+
+**Decision:** Keep Waitress, optimize Flask code instead
+
+**Solution Implemented:**
+```python
+# Flask explicit flushing forces Waitress to send chunks immediately
+from flask import stream_with_context
+
+def generate():
+    yield generate_sse_event('chunk', {...})
+    yield ''  # Force flush
+
+return Response(stream_with_context(generate()), ...)
+```
+
+**Why This Works:**
+- `stream_with_context()` maintains request context during streaming
+- Empty `yield ''` forces Waitress to flush buffer immediately
+- Verified with curl: Chunks arrive progressively (not batched)
+- No server replacement needed
+
+**Trade-offs:**
+- ✅ Minimal code change (10 lines)
+- ✅ Waitress remains stable for all other endpoints
+- ✅ Easy to rollback if issues arise
+- ❌ Slightly more verbose code (extra yield per chunk)
+
+**Alternative Considered (Rejected):**
+- **Gunicorn + gevent:** Would solve SSE buffering but doesn't provide broader benefits (ComfyUI still uses polling)
+- **ASGI (Uvicorn + Quart/FastAPI):** Massive migration effort for minimal UX improvement
+
+**Future Path:**
+If ComfyUI WebSocket integration is implemented (real-time progress for Stage 4 image generation), use **Flask-SocketIO + eventlet** which works with Waitress (no ASGI needed).
+
+---
+
+### Decision: Dev vs Prod Streaming URLs
+
+**Problem:** Vite dev proxy buffers SSE despite backend fixes. Direct localhost:17802 connection works but fails in production (port 17801).
+
+**Solution:** Environment-aware URL strategy
+```javascript
+const isDev = import.meta.env.DEV
+const url = isDev
+  ? `http://localhost:17802/api/text_stream/...`  // Dev: Direct backend
+  : `/api/text_stream/...`  // Prod: Relative URL via Nginx
+```
+
+**Rationale:**
+- **Dev mode:** Vite proxy buffers SSE → use direct backend connection
+- **Prod mode:** Nginx doesn't buffer SSE → use relative URL
+- **Cloudflare:** Only sees HTTPS requests to domain → not affected by localhost URLs
+
+**Trade-offs:**
+- ✅ Works in both environments
+- ✅ No CORS issues in prod (relative URL = same origin)
+- ✅ No Vite buffering in dev (bypasses proxy)
+- ⚠️ Dev requires backend on specific port (17802)
+
+---
+
+### Decision: Runtime Config Loading for user_settings.json
+
+**Problem:** Backend routes imported config at module load time (before user_settings.json loaded)
+```python
+# WRONG: Import-time binding
+from config import STAGE2_INTERCEPTION_MODEL  # Reads before user_settings loaded
+model = request.args.get('model', STAGE2_INTERCEPTION_MODEL)  # Uses old value
+```
+
+**Root Cause:**
+- `_load_user_settings()` runs in `create_app()` and uses `setattr(config, key, value)`
+- But route modules import before app creation
+- Import-time binding captures old value from config.py
+
+**Solution:** Import module, access attribute at runtime
+```python
+# RIGHT: Runtime binding
+import config  # Import module reference
+model = request.args.get('model', config.STAGE2_INTERCEPTION_MODEL)  # Reads current value
+```
+
+**Impact:**
+- Stage 2 now correctly uses 120b from user_settings.json (not hardcoded 20b)
+- All user configuration honored at runtime
+
+**Files Affected:**
+- `text_stream_routes.py` (Stage 2, Stage 4)
+
+---
+
 ## Session 108 - 2025-12-21
 
 ### Decision: Minimal Editable Code Box (No Syntax Highlighting)
