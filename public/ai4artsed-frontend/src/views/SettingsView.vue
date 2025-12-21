@@ -5,7 +5,7 @@
   <!-- Settings Content (only show if authenticated) -->
   <div v-if="authenticated" class="settings-container">
     <div class="settings-header">
-      <h1>Settings</h1>
+      <h1>Administration</h1>
       <div class="tabs">
         <button
           :class="['tab-btn', { active: activeTab === 'export' }]"
@@ -76,7 +76,7 @@
 
       <!-- General Settings -->
       <div class="section">
-        <h2>General Settings</h2>
+        <h2>General Configuration</h2>
         <table class="config-table">
           <tbody>
             <tr>
@@ -127,7 +127,7 @@
 
       <!-- Server Settings -->
       <div class="section">
-        <h2>Server Settings</h2>
+        <h2>Server Configuration</h2>
         <table class="config-table">
           <tbody>
             <tr>
