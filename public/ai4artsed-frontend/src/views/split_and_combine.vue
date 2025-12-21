@@ -550,8 +550,7 @@ async function downloadMedia(idx: number) {
   background: rgba(102, 126, 234, 0.1);
 }
 
-.input-bubble,
-.context-bubble {
+.input-context-section :deep(.media-input-box) {
   flex: 0 1 480px;
   width: 100%;
   max-width: 480px;
@@ -986,5 +985,14 @@ async function downloadMedia(idx: number) {
   .context-bubble {
     max-width: 100%;
   }
+}
+</style>
+
+<style>
+/* GLOBAL unscoped - force MediaInputBox width */
+.direct-view .input-context-section .media-input-box {
+  flex: 0 1 480px !important;
+  width: 100% !important;
+  max-width: 480px !important;
 }
 </style>

@@ -1440,6 +1440,12 @@ watch(interceptionResult, (newValue) => {
   flex-wrap: wrap;
 }
 
+.input-context-section :deep(.media-input-box) {
+  flex: 0 1 480px;
+  width: 100%;
+  max-width: 480px;
+}
+
 .bubble-card {
   background: rgba(20, 20, 20, 0.9);
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -1895,6 +1901,12 @@ watch(interceptionResult, (newValue) => {
   width: 100%;
   display: flex;
   justify-content: center;
+}
+
+.interception-section :deep(.media-input-box),
+.optimization-section :deep(.media-input-box) {
+  width: 100%;
+  max-width: 1000px;
 }
 
 .interception-preview {
@@ -2612,4 +2624,20 @@ watch(interceptionResult, (newValue) => {
 }
 
 /* Output box, action toolbar, and analysis styles moved to MediaOutputBox.vue component */
+</style>
+
+<style>
+/* GLOBAL unscoped - force MediaInputBox width in single-column sections */
+.text-transformation-view .interception-section .media-input-box,
+.text-transformation-view .optimization-section .media-input-box {
+  width: 100% !important;
+  max-width: 1000px !important;
+}
+
+/* Force INPUT boxes (side-by-side) to have proper width */
+.text-transformation-view .input-context-section .media-input-box {
+  flex: 0 1 480px !important;
+  width: 100% !important;
+  max-width: 480px !important;
+}
 </style>

@@ -968,16 +968,16 @@ watch(uploadedImageId, (newVal) => {
 
 .input-context-section {
   display: flex;
-  gap: clamp(0.75rem, 2vw, 1.5rem);
+  gap: clamp(1rem, 3vw, 2rem);
   width: 100%;
-  max-width: 1000px;
-  align-items: stretch;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.input-bubble,
-.context-bubble {
-  flex: 1;
-  min-width: 0;
+.input-context-section :deep(.media-input-box) {
+  flex: 0 1 480px;
+  width: 100%;
+  max-width: 480px;
 }
 
 @media (max-width: 768px) {
@@ -1586,4 +1586,13 @@ watch(uploadedImageId, (newVal) => {
 }
 
 /* Action toolbar and analysis styles moved to MediaOutputBox.vue component */
+</style>
+
+<style>
+/* GLOBAL unscoped - force MediaInputBox width */
+.image-transformation-view .input-context-section .media-input-box {
+  flex: 0 1 480px !important;
+  width: 100% !important;
+  max-width: 480px !important;
+}
 </style>

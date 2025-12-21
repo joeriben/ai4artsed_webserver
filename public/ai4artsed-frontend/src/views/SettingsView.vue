@@ -394,7 +394,7 @@ async function loadSettings() {
     error.value = null
 
     // Load current settings and matrix
-    const response = await fetch('/api/settings', {
+    const response = await fetch('/api/settings/', {  // Trailing slash to match Flask route
       credentials: 'include'
     })
     if (!response.ok) {
