@@ -1,5 +1,128 @@
 # Development Log
 
+## Session 107 - Frontend: Fix MediaInputBox Width with Global Unscoped Styles
+**Date:** 2025-12-21
+**Duration:** ~2 hours
+**Focus:** Fix MediaInputBox shrink-wrapping issue across all transformation views
+**Status:** SUCCESS - All MediaInputBox components now have correct widths
+**Cost:** Sonnet 4.5 tokens: ~87k
+
+### User Report
+**Problem:** MediaInputBox components appearing too narrow in all transformation views
+- User reviewing PR #17 (align img2img input widths with text view)
+- OUTPUT boxes ("Idee + Regeln = Prompt", "Modell-Optimierter Prompt") appearing very narrow
+- Brief flash of correct width (1000px) followed by shrink-wrapping
+- User on wrong port (17801 = backend) instead of dev server (5173 = Vite)
+
+### Root Cause Analysis
+
+**Vue Scoped Style Conflict:**
+1. Parent views (text_transformation.vue, etc.) have `<style scoped>` with `data-v-fa3ab3ea` attributes
+2. MediaInputBox.vue component has `<style scoped>` with different `data-v-xxxxx` attributes
+3. CSS selector `.interception-section[data-v-fa3ab3ea] .media-input-box` doesn't match MediaInputBox element
+4. MediaInputBox has NO explicit width property → shrink-wraps to content
+
+**Failed Attempts:**
+1. `:deep()` pseudo-element - compiled correctly but didn't penetrate scoped boundaries
+2. Nested selectors - same scoping issue
+3. Multiple build/restart cycles - issue was scoping, not caching
+
+**Critical Discovery:**
+User saw wide box for 0.1 seconds before it became narrow → CSS WAS applying initially, then Vue reactivity/layout recalculation overrode it
+
+### Solution: Global Unscoped Style Blocks
+
+**Implementation:**
+Added `<style>` blocks (NOT `<style scoped>`) at end of each transformation view with high-specificity selectors and `!important`:
+
+**text_transformation.vue (lines 2631-2645):**
+```css
+<style>
+/* GLOBAL unscoped - force MediaInputBox width in single-column sections */
+.text-transformation-view .interception-section .media-input-box,
+.text-transformation-view .optimization-section .media-input-box {
+  width: 100% !important;
+  max-width: 1000px !important;
+}
+
+/* Force INPUT boxes (side-by-side) to have proper width */
+.text-transformation-view .input-context-section .media-input-box {
+  flex: 0 1 480px !important;
+  width: 100% !important;
+  max-width: 480px !important;
+}
+</style>
+```
+
+**image_transformation.vue (lines 1591-1598):**
+```css
+<style>
+/* GLOBAL unscoped - force MediaInputBox width */
+.image-transformation-view .input-context-section .media-input-box {
+  flex: 0 1 480px !important;
+  width: 100% !important;
+  max-width: 480px !important;
+}
+</style>
+```
+
+**split_and_combine.vue (lines 991-998):**
+```css
+<style>
+/* GLOBAL unscoped - force MediaInputBox width */
+.direct-view .input-context-section .media-input-box {
+  flex: 0 1 480px !important;
+  width: 100% !important;
+  max-width: 480px !important;
+}
+</style>
+```
+
+### Technical Details
+
+**Why Global Unscoped Works:**
+1. No data attributes added → selector matches any element with class
+2. High specificity (3 classes) → overrides component styles
+3. `!important` → ensures precedence over inline/dynamic styles
+4. View-specific class prefix → prevents cross-view pollution
+
+**Width Strategy:**
+- **INPUT boxes** (side-by-side): `flex: 0 1 480px; max-width: 480px` - two boxes at 480px each
+- **OUTPUT boxes** (single-column): `max-width: 1000px` - wider for better readability
+
+### Testing & Verification
+
+**Debug Process:**
+1. Added `border: 5px solid red !important; background: yellow !important;` test styles
+2. Discovered user on port 17801 (backend) instead of 5173 (Vite dev server)
+3. User switched to localhost:5173 → test styles visible immediately
+4. Removed test styles → verified proper widths without visual pollution
+
+**Final Result:**
+✅ text_transformation: INPUT (480px) + OUTPUT (1000px)
+✅ image_transformation: INPUT (480px)
+✅ split_and_combine: INPUT (480px)
+✅ All views working on dev server (5173)
+
+### Files Modified
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Added global styles for 3 sections
+- `public/ai4artsed-frontend/src/views/image_transformation.vue` - Added global styles for input section
+- `public/ai4artsed-frontend/src/views/split_and_combine.vue` - Added global styles for input section
+
+### Lessons Learned
+1. **Vue Scoping is Strict:** `:deep()` doesn't always work across component boundaries
+2. **Global Styles Have Purpose:** Sometimes unscoped styles are the correct solution
+3. **High Specificity + !important:** Necessary evil for cross-component styling
+4. **Port Confusion:** Always verify dev server port (5173) vs backend port (17801)
+5. **Visual Debug:** Bright test colors (red/yellow) quickly confirm CSS application
+
+### Next Steps
+- For production (port 17801): Run `npm run build` and deploy `/dist`
+- Consider refactoring MediaInputBox to accept width props instead of global CSS
+- Document this pattern in architecture docs for future reference
+
+---
+
 ## Session 106 - Träshy Chat Helper: Multi-Provider Support + Session Context Bug Fix
 **Date:** 2025-12-20
 **Duration:** ~2 hours
