@@ -195,11 +195,29 @@ function startStreaming() {
     console.log('[MediaInputBox] Stream complete:', data.char_count, 'chars')
     isStreamComplete.value = true
 
-    // Immediately display final text (skip buffer)
-    streamedValue.value = data.final_text
-    emit('update:value', streamedValue.value)
-    emit('stream-complete', data)
-    closeStream()
+    // Close EventSource but keep buffer processor running until empty
+    if (eventSource.value) {
+      eventSource.value.close()
+      eventSource.value = null
+    }
+
+    // Store final text for safety check, but let buffer display naturally
+    const finalText = data.final_text
+
+    // Check buffer completion periodically until empty
+    const checkBufferComplete = setInterval(() => {
+      if (chunkBuffer.value.length === 0) {
+        // Buffer is empty - verify we have complete text
+        if (streamedValue.value !== finalText) {
+          console.log('[MediaInputBox] Buffer finished but text incomplete, using final_text')
+          streamedValue.value = finalText
+          emit('update:value', streamedValue.value)
+        }
+        emit('stream-complete', data)
+        stopBufferProcessor()
+        clearInterval(checkBufferComplete)
+      }
+    }, 50)  // Check every 50ms
   })
 
   eventSource.value.addEventListener('error', (event) => {
