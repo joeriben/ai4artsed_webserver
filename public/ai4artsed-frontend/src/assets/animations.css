@@ -1,0 +1,106 @@
+/* ============================================================================
+   Shared Animations for AI4ArtsEd
+   Extracted from text_transformation.vue for reusability
+   ============================================================================ */
+
+/* Neon pulse effect (section titles) */
+@keyframes neon-pulse {
+  0%, 100% {
+    -webkit-text-stroke: 2px #FFB300;
+    text-stroke: 2px #FFB300;
+    text-shadow: 0 0 10px rgba(255, 179, 0, 0.6),
+                 0 0 20px rgba(255, 179, 0, 0.4),
+                 0 0 30px rgba(255, 179, 0, 0.2);
+  }
+  50% {
+    -webkit-text-stroke: 2px #FF8F00;
+    text-stroke: 2px #FF8F00;
+    text-shadow: 0 0 15px rgba(255, 143, 0, 0.8),
+                 0 0 30px rgba(255, 143, 0, 0.5),
+                 0 0 45px rgba(255, 143, 0, 0.3);
+  }
+}
+
+/* Required field pulse (context bubble) */
+@keyframes pulse-required {
+  0%, 100% {
+    border-color: rgba(255, 193, 7, 0.6);
+  }
+  50% {
+    border-color: rgba(255, 193, 7, 0.9);
+  }
+}
+
+/* Loading spinner rotation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Start button arrow animations */
+@keyframes arrow-pulse-left {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes arrow-pulse-right {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+}
+
+/* Safety stamp appear animation */
+@keyframes stamp-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Stage bubble glow pulse */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--stage-color);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--stage-color);
+  }
+}
+
+/* Slide down transition */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide up transition */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
