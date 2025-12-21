@@ -251,6 +251,11 @@ function startBufferProcessor() {
       const chars = chunkBuffer.value.splice(0, Math.min(3, chunkBuffer.value.length))
       streamedValue.value += chars.join('')
       emit('update:value', streamedValue.value)
+
+      // Auto-scroll textarea to bottom during streaming
+      if (textareaRef.value) {
+        textareaRef.value.scrollTop = textareaRef.value.scrollHeight
+      }
     }
   }, 30)
 }
