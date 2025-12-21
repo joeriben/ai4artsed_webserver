@@ -644,9 +644,15 @@ const streamingUrl = computed(() => {
   }
 
   const runId = `run_${Date.now()}_${Math.random().toString(36).substring(7)}`
-  // TEMPORARY TEST: Direct backend connection bypassing Vite proxy
-  const url = `http://localhost:17802/api/text_stream/stage2/${runId}`
-  console.log('[DEBUG] Generated streaming URL (direct backend):', url)
+
+  // Dev: Direct backend (bypasses Vite proxy buffering)
+  // Prod: Use relative URL (Nginx handles proxy without buffering)
+  const isDev = import.meta.env.DEV
+  const url = isDev
+    ? `http://localhost:17802/api/text_stream/stage2/${runId}`  // Dev: Direct to port 17802
+    : `/api/text_stream/stage2/${runId}`  // Prod: Relative URL via Nginx
+
+  console.log('[DEBUG] Generated streaming URL:', isDev ? '(dev - direct)' : '(prod - nginx)', url)
   return url
 })
 
