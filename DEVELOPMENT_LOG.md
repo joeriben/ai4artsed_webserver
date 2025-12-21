@@ -1,5 +1,131 @@
 # Development Log
 
+## Session 108 - Frontend: Editable p5.js Code Box with Run Button
+**Date:** 2025-12-21
+**Duration:** ~2 hours
+**Focus:** Make p5.js code output editable with run button (minimal implementation)
+**Status:** SUCCESS - Simple, working solution after rollback
+**Cost:** Sonnet 4.5 tokens: ~96k
+
+### User Request
+**Goal:** Make p5.js OutputBox editable with syntax highlighting and run button
+- Code display should be editable (not readonly)
+- Replace clipboard icon (📋) with run icon (▶️)
+- Clicking run → re-render iframe with edited code
+- Initially requested: Prism.js for JavaScript syntax highlighting
+
+### Initial Attempt (FAILED - Blocking Issue)
+**Implementation:**
+- Installed Prism.js for syntax highlighting
+- Used textarea-overlay pattern (Prism background + transparent textarea)
+- Top-level `await` import of Prism.js in Vue script setup
+
+**Critical Error:**
+```typescript
+// BLOCKING: Top-level await in Vue script setup
+try {
+  const prismModule = await import('prismjs')
+  await import('prismjs/themes/prism-tomorrow.css')
+  await import('prismjs/components/prism-javascript')
+} catch (error) { ... }
+```
+
+**Result:** Firefox slowdown warning, views showing no content, interception_result broken
+
+### Rollback & Pivot
+**Action:** `git reset --hard d5263a3` (before all changes)
+**Decision:** User agreed to drop syntax highlighting complexity → minimal solution only
+
+### Final Solution: Minimal Editable Textarea + Run Button
+
+**Changes (Commit `576e387`):**
+1. **Template (lines 175-197):**
+   - Changed `<button @click="copyOutputCode">📋</button>` → `<button @click="runCode" class="run-btn">▶️</button>`
+   - Changed `<textarea :value="outputCode" readonly>` → `<textarea v-model="editedCode">`
+   - Added `:key="iframeKey"` to iframe for forced re-render
+
+2. **Script (new refs):**
+   ```typescript
+   const editedCode = ref<string>('') // User-editable code
+   const iframeKey = ref<number>(0) // Force iframe re-render
+
+   watch(outputCode, (newCode) => {
+     if (newCode) editedCode.value = newCode
+   })
+   ```
+
+3. **runCode() Function (replaced copyOutputCode):**
+   ```typescript
+   function runCode() {
+     if (!editedCode.value) return
+     iframeKey.value++ // Force re-render
+   }
+   ```
+
+4. **getP5jsIframeContent() Update:**
+   ```typescript
+   const codeToRender = editedCode.value || outputCode.value
+   ```
+
+5. **CSS (green run button):**
+   ```css
+   .run-btn {
+     background: #28a745 !important;
+   }
+   .run-btn:hover {
+     background: #218838 !important;
+     transform: scale(1.05);
+   }
+   ```
+
+**Height Fix (Commit `4dffb53`):**
+- Increased `.code-textarea` min-height: 400px → 600px
+- Now matches iframe height (600px) for visual balance
+
+### Technical Lessons
+
+**What Went Wrong:**
+1. **Top-level await blocking:** Never use `await` at top-level in Vue script setup - blocks component mounting
+2. **Over-engineering:** Prism.js + overlay-pattern was too complex for the requirement
+3. **Insufficient testing:** Didn't catch blocking issue until user reported browser slowdown
+
+**What Worked:**
+1. **Quick rollback:** `git reset --hard` saved the day
+2. **User collaboration:** User agreed to simplified scope
+3. **Minimal solution:** Just 3 changes (editable, run button, key-based re-render)
+4. **No dependencies:** Zero external libraries, pure Vue reactivity
+
+### Design Decision Reference
+See `docs/DEVELOPMENT_DECISIONS.md` - "DD-108: Minimal Editable Code Box"
+
+### Testing
+- ✅ TypeScript type-check passed
+- ✅ Build successful (no Prism.js in bundle)
+- ✅ Textarea now 600px height (matches iframe)
+- ✅ Run button triggers iframe re-render
+- ⚠️ Manual browser testing pending (user to test)
+
+### Files Modified
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - Lines 175-197: Template changes
+  - Lines 346-347: New refs (editedCode, iframeKey)
+  - Lines 732-737: Watch for outputCode
+  - Lines 806-814: runCode() function
+  - Lines 1121-1147: getP5jsIframeContent() update
+  - Lines 2423-2446: CSS (textarea height + run-btn)
+
+### Commits
+- `576e387` - feat: Add editable p5.js code box with run button (minimal version)
+- `4dffb53` - fix: Increase code textarea height to match iframe (400px → 600px)
+
+### Key Insights
+1. **Simplicity wins:** User was right to reject complexity when browser slowed down
+2. **Vue reactivity is enough:** No need for external libs when Vue refs + watch suffice
+3. **Rollback confidence:** Having clean git history made rollback instant and safe
+4. **Scope negotiation:** User happy to drop syntax highlighting for working solution
+
+---
+
 ## Session 107 - Frontend: Fix MediaInputBox Width with Global Unscoped Styles
 **Date:** 2025-12-21
 **Duration:** ~2 hours

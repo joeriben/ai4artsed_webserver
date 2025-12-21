@@ -29,6 +29,57 @@
 
 ---
 
+## Session 108 - 2025-12-21
+
+### Decision: Minimal Editable Code Box (No Syntax Highlighting)
+
+**Context:** User requested editable p5.js code output with syntax highlighting (Prism.js) and run button. Initial implementation with Prism.js caused critical blocking issue.
+
+**Problem with Initial Approach:**
+```typescript
+// BLOCKING: Top-level await in Vue script setup
+try {
+  const prismModule = await import('prismjs')
+  await import('prismjs/themes/prism-tomorrow.css')
+  await import('prismjs/components/prism-javascript')
+} catch (error) { ... }
+```
+**Result:** Browser slowdown (Firefox warning), views showing no content, interception_result broken.
+
+**Rollback & Decision:**
+- `git reset --hard d5263a3` to restore working state
+- User agreed to drop syntax highlighting complexity
+- **Decision:** Implement minimal solution without external dependencies
+
+**Final Implementation:**
+1. **Editable textarea** - Remove `readonly`, use `v-model="editedCode"`
+2. **Run button (▶️)** - Replace clipboard icon, trigger iframe re-render
+3. **Vue reactivity** - `watch(outputCode)` to initialize `editedCode`
+4. **Key-based re-render** - Increment `iframeKey` to force iframe reload
+
+**Trade-offs:**
+- ❌ No syntax highlighting (Prism.js dropped)
+- ❌ No complex overlay pattern
+- ✅ Zero external dependencies
+- ✅ Simple, maintainable code
+- ✅ Fast, non-blocking component load
+- ✅ User can still edit and run code
+
+**Technical Lesson:**
+**Never use top-level `await` in Vue script setup** - it blocks component mounting and breaks reactivity. If async imports are needed, use `onMounted()` hook instead.
+
+**Alternative Considered (Not Implemented):**
+Moving Prism import to `onMounted()` would fix blocking issue, but user preferred simplicity over syntax highlighting.
+
+**Files Modified:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+
+**Commits:**
+- `576e387` - feat: Add editable p5.js code box with run button (minimal version)
+- `4dffb53` - fix: Increase code textarea height to match iframe (400px → 600px)
+
+---
+
 ## Session 96 - 2025-12-11
 
 ### Decision: Internal App Clipboard for Copy/Paste Buttons
