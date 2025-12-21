@@ -142,10 +142,11 @@ def stream_stage2_interception(run_id: str):
     """
     # IMPORTANT: Extract all request data BEFORE the generator
     # (request context not available inside generator)
+    from config import STAGE2_INTERCEPTION_MODEL
     prompt = request.args.get('prompt', '')
     context = request.args.get('context', '')
     style_prompt = request.args.get('style_prompt', '')
-    model = request.args.get('model', 'local/gpt-OSS:20b')  # Default model
+    model = request.args.get('model', STAGE2_INTERCEPTION_MODEL)  # Default from config.py
 
     def generate():
         try:
@@ -364,8 +365,9 @@ def stream_stage4_output(run_id: str):
         SSE stream response
     """
     # Extract request data before generator
+    from config import STAGE4_LEGACY_MODEL
     prompt = request.args.get('prompt', '')
-    model = request.args.get('model', 'local/gpt-OSS:20b')  # Default model
+    model = request.args.get('model', STAGE4_LEGACY_MODEL)  # Default from config.py
 
     def generate():
         try:
