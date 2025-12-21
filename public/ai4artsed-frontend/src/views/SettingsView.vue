@@ -55,7 +55,7 @@
             <tr>
               <td class="label-cell">Cloud Provider</td>
               <td class="value-cell">
-                <select v-model="selectedProvider">
+                <select v-model="settings.EXTERNAL_LLM_PROVIDER">
                   <option value="none">None (Local only)</option>
                   <option value="bedrock">AWS Bedrock (EU region, DSGVO ✓)</option>
                   <option value="mistral">Mistral AI (EU-based, DSGVO ✓)</option>
@@ -119,33 +119,6 @@
                   <span>DSGVO-compliant configuration</span>
                 </label>
                 <span class="help-text">Enforces DSGVO-compliant models (local or AWS Bedrock EU)</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Server Settings -->
-      <div class="section">
-        <h2>Server Configuration</h2>
-        <table class="config-table">
-          <tbody>
-            <tr>
-              <td class="label-cell">Host</td>
-              <td class="value-cell">
-                <input type="text" v-model="settings.HOST" class="text-input" />
-              </td>
-            </tr>
-            <tr>
-              <td class="label-cell">Port</td>
-              <td class="value-cell">
-                <input type="number" v-model.number="settings.PORT" class="text-input" />
-              </td>
-            </tr>
-            <tr>
-              <td class="label-cell">Threads</td>
-              <td class="value-cell">
-                <input type="number" v-model.number="settings.THREADS" class="text-input" />
               </td>
             </tr>
           </tbody>
@@ -356,7 +329,6 @@ const error = ref(null)
 const settings = ref({})
 const matrix = ref({})
 const selectedVramTier = ref('vram_24')
-const selectedProvider = ref('mistral')
 const openrouterKey = ref('')
 const openrouterKeyMasked = ref('')
 const anthropicKey = ref('')
@@ -467,14 +439,14 @@ async function loadSettings() {
 }
 
 function fillFromPreset() {
-  if (!matrix.value[selectedVramTier.value] || !matrix.value[selectedVramTier.value][selectedProvider.value]) {
+  if (!matrix.value[selectedVramTier.value] || !matrix.value[selectedVramTier.value][settings.value.EXTERNAL_LLM_PROVIDER]) {
     saveMessage.value = 'Preset not found'
     saveSuccess.value = false
     setTimeout(() => { saveMessage.value = '' }, 3000)
     return
   }
 
-  const preset = matrix.value[selectedVramTier.value][selectedProvider.value]
+  const preset = matrix.value[selectedVramTier.value][settings.value.EXTERNAL_LLM_PROVIDER]
   const presetModels = preset.models
 
   // Fill model fields from preset
@@ -484,10 +456,7 @@ function fillFromPreset() {
     }
   })
 
-  // Fill EXTERNAL_LLM_PROVIDER and DSGVO_CONFORMITY from preset
-  if (preset.EXTERNAL_LLM_PROVIDER !== undefined) {
-    settings.value.EXTERNAL_LLM_PROVIDER = preset.EXTERNAL_LLM_PROVIDER
-  }
+  // Fill DSGVO_CONFORMITY from preset (EXTERNAL_LLM_PROVIDER already set via dropdown)
   if (preset.DSGVO_CONFORMITY !== undefined) {
     settings.value.DSGVO_CONFORMITY = preset.DSGVO_CONFORMITY
   }
