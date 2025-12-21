@@ -319,13 +319,22 @@
       <!-- Save Button -->
       <div class="button-row">
         <button @click="saveSettings" class="save-btn">Save Configuration</button>
+        <button @click="restartBackend" class="restart-btn" :disabled="restartInProgress">
+          {{ restartInProgress ? 'Restarting...' : 'Restart Backend' }}
+        </button>
         <span v-if="saveMessage" :class="{'save-message': true, 'error-message': !saveSuccess}">
           {{ saveMessage }}
+        </span>
+        <span v-if="restartMessage" :class="{'save-message': true, 'error-message': !restartSuccess}">
+          {{ restartMessage }}
         </span>
       </div>
 
       <div class="info-note">
-        Note: Backend restart required after saving changes.
+        <span v-if="detectedContext">
+          Detected: <strong>{{ detectedContext }}</strong> mode
+          (will use {{ detectedContext === 'development' ? '3_start_backend_dev.sh' : '5_start_backend_prod.sh' }})
+        </span>
       </div>
       </div>
     </div>
@@ -359,6 +368,10 @@ const mistralKeyMasked = ref('')
 const awsCredentialsConfigured = ref(false)
 const saveMessage = ref('')
 const saveSuccess = ref(true)
+const restartInProgress = ref(false)
+const restartMessage = ref('')
+const restartSuccess = ref(true)
+const detectedContext = ref('')
 
 const modelLabels = {
   'STAGE1_TEXT_MODEL': 'Stage 1 - Text Model',
@@ -615,6 +628,43 @@ async function saveSettings() {
   }
 }
 
+async function restartBackend() {
+  try {
+    restartInProgress.value = true
+    restartMessage.value = 'Initiating restart...'
+    restartSuccess.value = true
+
+    const response = await fetch('/api/settings/restart-backend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+    restartMessage.value = '✓ ' + data.message
+    restartSuccess.value = true
+    detectedContext.value = data.script.includes('dev') ? 'development' : 'production'
+
+    // Keep message visible for 3 seconds
+    setTimeout(() => {
+      restartMessage.value = ''
+      restartInProgress.value = false
+    }, 3000)
+
+  } catch (e) {
+    restartMessage.value = 'Error: ' + e.message
+    restartSuccess.value = false
+    restartInProgress.value = false
+    setTimeout(() => {
+      restartMessage.value = ''
+    }, 5000)
+  }
+}
+
 async function checkAuth() {
   try {
     const response = await fetch('/api/settings/check-auth', {
@@ -841,6 +891,27 @@ onMounted(() => {
 
 .save-btn:hover {
   background: #888;
+}
+
+.restart-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: 1px solid #3a7bc8;
+  padding: 8px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 10px;
+}
+
+.restart-btn:hover:not(:disabled) {
+  background: #3a7bc8;
+}
+
+.restart-btn:disabled {
+  background: #999;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .save-message {
