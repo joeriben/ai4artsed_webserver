@@ -66,6 +66,7 @@
             :enable-streaming="true"
             :stream-url="streamingUrl"
             :stream-params="streamingParams"
+            @stream-started="handleStreamStarted"
             @stream-complete="handleStreamComplete"
             @stream-error="handleStreamError"
             @copy="copyInterceptionResult"
@@ -974,10 +975,14 @@ async function runOptimization() {
 }
 
 // Streaming event handlers
+function handleStreamStarted() {
+  console.log('[Stream] First chunk received, hiding spinner')
+  isInterceptionLoading.value = false  // Hide spinner, show typewriter effect
+}
+
 function handleStreamComplete(data: any) {
   console.log('[Stream] Complete:', data)
   executionPhase.value = 'interception_done'
-  isInterceptionLoading.value = false
 
   // Scroll to category section (existing behavior)
   nextTick().then(() => {

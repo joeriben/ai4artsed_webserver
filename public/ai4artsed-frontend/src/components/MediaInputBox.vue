@@ -55,6 +55,7 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const eventSource = ref<EventSource | null>(null)
 const streamedValue = ref('')
 const isStreamComplete = ref(false)
+const isFirstChunkReceived = ref(false)
 const chunkBuffer = ref<string[]>([])
 let bufferInterval: number | null = null
 
@@ -105,6 +106,7 @@ const emit = defineEmits<{
   'clear': []
   'image-uploaded': [data: any]  // Changed: Accept full data object from ImageUploadWidget
   'image-removed': []
+  'stream-started': []  // Emitted on first chunk (to hide loading spinner)
   'stream-complete': [data: any]
   'stream-error': [error: string]
 }>()
@@ -166,6 +168,7 @@ function startStreaming() {
   // Reset state
   streamedValue.value = ''
   isStreamComplete.value = false
+  isFirstChunkReceived.value = false
   chunkBuffer.value = []
 
   // Build URL with query parameters
@@ -186,6 +189,13 @@ function startStreaming() {
   eventSource.value.addEventListener('chunk', (event) => {
     const data = JSON.parse(event.data)
     console.log('[MediaInputBox] Chunk received:', data.chunk_count, 'text:', data.text_chunk)
+
+    // Emit stream-started on first chunk (so parent can hide loading spinner)
+    if (!isFirstChunkReceived.value) {
+      isFirstChunkReceived.value = true
+      emit('stream-started')
+    }
+
     // Add chunk to buffer for smooth display
     chunkBuffer.value.push(...data.text_chunk.split(''))
   })
