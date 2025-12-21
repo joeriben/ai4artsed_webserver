@@ -2422,7 +2422,7 @@ watch(interceptionResult, (newValue) => {
 
 .code-textarea {
   width: 100%;
-  min-height: 400px;
+  min-height: 600px;
   padding: 1rem;
   background: #1e1e1e;
   color: #d4d4d4;
