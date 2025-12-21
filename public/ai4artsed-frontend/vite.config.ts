@@ -30,6 +30,22 @@ export default defineConfig({
     proxy: {
       // Dev frontend proxies to dev backend (17802)
       // Production uses 17801
+      '/api/text_stream': {
+        target: 'http://localhost:17802',
+        changeOrigin: true,
+        // CRITICAL: Disable buffering for SSE streams
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            // Set headers to prevent buffering
+            proxyReq.setHeader('X-Accel-Buffering', 'no')
+          })
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            // Disable all buffering for SSE
+            proxyRes.headers['x-accel-buffering'] = 'no'
+            proxyRes.headers['cache-control'] = 'no-cache'
+          })
+        }
+      },
       '/api': {
         target: 'http://localhost:17802',
         changeOrigin: true,

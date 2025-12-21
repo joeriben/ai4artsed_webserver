@@ -63,6 +63,11 @@
             :is-empty="!interceptionResult"
             :is-loading="isInterceptionLoading"
             loading-message="Die KI kombiniert jetzt deine Idee mit den Regeln und erstellt einen kreativen Prompt, der zu deinem gewählten Kunststil passt."
+            :enable-streaming="true"
+            :stream-url="streamingUrl"
+            :stream-params="streamingParams"
+            @stream-complete="handleStreamComplete"
+            @stream-error="handleStreamError"
             @copy="copyInterceptionResult"
             @paste="pasteInterceptionResult"
             @clear="clearInterceptionResult"
@@ -627,6 +632,34 @@ const areModelBubblesEnabled = computed(() => {
   return interceptionResult.value.trim().length > 0
 })
 
+// Streaming computed properties
+const streamingUrl = computed(() => {
+  const isLoading = isInterceptionLoading.value
+  console.log('[DEBUG] streamingUrl computed, isInterceptionLoading:', isLoading)
+
+  if (!isLoading) {
+    console.log('[DEBUG] Not loading, returning undefined')
+    return undefined
+  }
+
+  const runId = `run_${Date.now()}_${Math.random().toString(36).substring(7)}`
+  // Use Vite proxy - streaming works but arrives buffered (acceptable compromise)
+  const url = `/api/text_stream/stage2/${runId}`
+  console.log('[DEBUG] Generated streaming URL (via Vite proxy):', url)
+  return url
+})
+
+const streamingParams = computed(() => {
+  const params = {
+    prompt: inputText.value,
+    context: contextPrompt.value || '',
+    style_prompt: pipelineStore.metaPrompt || ''
+    // NO model parameter - backend uses config.py (STAGE2_INTERCEPTION_MODEL)
+  }
+  console.log('[DEBUG] streamingParams computed:', params)
+  return params
+})
+
 // ============================================================================
 // Route handling & Store
 // ============================================================================
@@ -872,40 +905,24 @@ async function selectConfig(configId: string) {
 }
 
 async function runInterception() {
+  // STREAMING MODE: Just set loading state
+  // MediaInputBox will automatically connect to streaming endpoint
+  // when streamingUrl becomes active (computed property)
+
+  console.log('[Streaming] Starting interception with streaming mode')
+  console.log('[DEBUG] Before - isInterceptionLoading:', isInterceptionLoading.value)
+  console.log('[DEBUG] Input text:', inputText.value?.substring(0, 50), '...')
+  console.log('[DEBUG] Context prompt:', contextPrompt.value?.substring(0, 50), '...')
+  console.log('[DEBUG] Meta prompt:', pipelineStore.metaPrompt?.substring(0, 50), '...')
+
+  interceptionResult.value = '' // Clear previous result
   isInterceptionLoading.value = true
 
-  try {
-    // Call 1: Interception WITHOUT output_config
-    const response = await axios.post('/api/schema/pipeline/stage2', {
-      schema: pipelineStore.selectedConfig?.id || 'overdrive',
-      input_text: inputText.value,
-      context_prompt: contextPrompt.value || undefined,
-      user_language: 'de',
-      safety_level: 'youth'
-      // NO output_config - this is pure interception
-      // NO execution_mode - models come from config.py
-    })
+  console.log('[DEBUG] After - isInterceptionLoading:', isInterceptionLoading.value)
+  console.log('[DEBUG] This should trigger streamingUrl computed property')
 
-    if (response.data.success) {
-      // Use interception_result if available (2-phase), otherwise stage2_result (backward compat)
-      interceptionResult.value = response.data.interception_result || response.data.stage2_result || ''
-      executionPhase.value = 'interception_done'
-      console.log('[2-Phase] Interception complete:', interceptionResult.value.substring(0, 60))
-
-      // Scroll1: Show category bubbles at bottom of viewport
-      await nextTick()
-      scrollDownOnly(categorySectionRef.value, 'end')
-    } else {
-      alert(`Fehler: ${response.data.error}`)
-    }
-  } catch (error: any) {
-    console.error('[2-Phase] Interception error:', error)
-    // Show backend's detailed error message if available, otherwise generic Axios error
-    const errorMessage = error.response?.data?.error || error.message
-    alert(`Fehler: ${errorMessage}`)
-  } finally {
-    isInterceptionLoading.value = false
-  }
+  // Note: isInterceptionLoading will be set to false by handleStreamComplete()
+  // or handleStreamError() when streaming finishes
 }
 
 async function runOptimization() {
@@ -954,6 +971,24 @@ async function runOptimization() {
   } finally {
     isOptimizationLoading.value = false
   }
+}
+
+// Streaming event handlers
+function handleStreamComplete(data: any) {
+  console.log('[Stream] Complete:', data)
+  executionPhase.value = 'interception_done'
+  isInterceptionLoading.value = false
+
+  // Scroll to category section (existing behavior)
+  nextTick().then(() => {
+    scrollDownOnly(categorySectionRef.value, 'end')
+  })
+}
+
+function handleStreamError(error: string) {
+  console.error('[Stream] Error:', error)
+  isInterceptionLoading.value = false
+  alert('Streaming-Fehler. Bitte erneut versuchen.')
 }
 
 async function startGeneration() {

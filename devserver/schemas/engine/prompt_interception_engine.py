@@ -373,6 +373,99 @@ class PromptInterceptionEngine:
             logger.error(f"Mistral API call failed: {e}")
             raise e
 
+    def _call_mistral_stream(self, prompt: str, model: str, debug: bool):
+        """
+        Mistral AI API Call with streaming support (EU-based, DSGVO-compliant)
+        Yields text chunks as they arrive from the API
+
+        NOTE: This is a synchronous generator (not async) because it uses
+        requests.post() with stream=True, not aiohttp.
+
+        Args:
+            prompt: The full prompt to send
+            model: Model name (with or without 'mistral/' prefix)
+            debug: Enable debug logging
+
+        Yields:
+            Text chunks as they arrive from the API
+
+        Raises:
+            Exception: If API call fails
+        """
+        try:
+            logger.info(f"[BACKEND] ☁️  Mistral Streaming Request: {model}")
+
+            api_url, api_key = self._get_api_credentials("mistral")
+
+            if not api_key:
+                raise Exception("Mistral API Key not configured")
+
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+
+            messages = [
+                {"role": "user", "content": prompt}
+            ]
+
+            # Remove 'mistral/' prefix before sending to API
+            api_model = model.replace("mistral/", "") if model.startswith("mistral/") else model
+
+            payload = {
+                "model": api_model,
+                "messages": messages,
+                "temperature": 0.7,
+                "stream": True  # Enable streaming
+            }
+
+            response = requests.post(
+                api_url,
+                headers=headers,
+                data=json.dumps(payload),
+                stream=True,  # Enable response streaming
+                timeout=90
+            )
+            response.raise_for_status()
+
+            # Track accumulated text for debug logging
+            accumulated_text = ""
+
+            # Iterate over SSE stream (newline-delimited, data: prefix)
+            for line in response.iter_lines():
+                if line:
+                    line_str = line.decode('utf-8')
+
+                    # Mistral uses SSE format: "data: {...}"
+                    if line_str.startswith("data: "):
+                        data_str = line_str[6:]  # Remove "data: " prefix
+
+                        # Check for stream end marker
+                        if data_str.strip() == "[DONE]":
+                            logger.info(f"[BACKEND] ✅ Mistral Streaming Complete: {model} ({len(accumulated_text)} chars)")
+                            break
+
+                        try:
+                            data = json.loads(data_str)
+                            delta = data.get("choices", [{}])[0].get("delta", {})
+
+                            # Extract content from delta
+                            if "content" in delta:
+                                chunk = delta["content"]
+                                accumulated_text += chunk
+                                yield chunk
+
+                        except json.JSONDecodeError as e:
+                            logger.warning(f"Failed to decode Mistral streaming response: {e}")
+                            continue
+
+            if debug:
+                self._log_debug("Mistral (Stream)", model, prompt, accumulated_text)
+
+        except Exception as e:
+            logger.error(f"Mistral streaming API call failed: {e}")
+            raise e
+
     async def _call_aws_bedrock(self, prompt: str, model: str, debug: bool) -> Tuple[str, str]:
         """AWS Bedrock API Call for Anthropic Claude (EU region: eu-central-1)
 
