@@ -3613,3 +3613,141 @@ Completed full integration of Google Gemini 3 Pro Image generation as the third 
 
 ---
 
+## Session 107 - Settings Page HTTPS Fix + Service Worker Removal
+**Date:** 2024-12-21
+**Duration:** ~3 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Fix Settings page inaccessibility via Cloudflare HTTPS + eliminate aggressive caching
+
+### Problem Statement
+Settings page (Configuration + Session Export tabs) accessible locally (http://localhost:17802) but failed via Cloudflare tunnel (https://lab.ai4artsed.org):
+- **Configuration Tab:** NetworkError - "Blocked loading mixed active content"
+- **"Save Configuration" button:** NetworkError
+- **Root cause initially misdiagnosed:** Suspected cookie/session issues, but was actually Flask trailing slash redirect problem
+- **Additional problem discovered:** Service Worker aggressively caching old app version
+
+### Root Cause Analysis
+
+#### Issue 1: Flask Trailing Slash Redirect with HTTP Protocol
+**Network Analysis revealed:**
+```
+XHR GET  https://lab.ai4artsed.org/api/settings      → Mixed Block
+         ↓ 301 redirect to http://lab.ai4artsed.org/api/settings/
+         ↓ Browser blocks (Mixed Content Error)
+
+XHR POST https://lab.ai4artsed.org/api/settings      → Mixed Block
+         ↓ 301 redirect to http://lab.ai4artsed.org/api/settings/
+         ↓ Browser blocks (Mixed Content Error)
+```
+
+**Why this happened:**
+1. Frontend: `fetch('/api/settings')` (no trailing slash)
+2. Flask route: `@settings_bp.route('/', ...)` = `/api/settings/` (WITH trailing slash)
+3. Flask auto-redirects: `301 Moved Permanently → /api/settings/`
+4. Flask uses `request.scheme` (= 'http') to generate redirect URL
+5. Cloudflare terminates HTTPS, forwards HTTP to Flask
+6. Flask doesn't know original request was HTTPS
+7. Redirect URL: `http://lab.ai4artsed.org/api/settings/` (HTTP!)
+8. Browser blocks HTTP redirect from HTTPS page
+
+**Why only Settings endpoint affected:**
+- `/api/settings/check-auth` ✓ (has path component, no redirect)
+- `/api/settings/sessions` ✓ (has path component, no redirect)
+- `/api/settings` ✗ (no trailing slash, triggers redirect)
+- All other pages worked because their API calls didn't trigger redirects
+
+#### Issue 2: Service Worker Caching Old Version
+- Service Worker registered for `lab.ai4artsed.org` cached ancient "Qselect" page
+- Required hard reload every time to see header menu
+- Even after fixes, browser loaded old JavaScript (without trailing slash fix)
+- Prevented all fixes from taking effect until Service Worker was unregistered
+
+### Solution Implemented
+
+#### Fix 1: Frontend Trailing Slash (Simple, No Backend Changes)
+**File:** `public/ai4artsed-frontend/src/views/SettingsView.vue`
+
+**Changes:**
+- Line 397: `fetch('/api/settings')` → `fetch('/api/settings/')` (GET - load config)
+- Line 540: `fetch('/api/settings')` → `fetch('/api/settings/')` (POST - save config)
+
+**Why this works:**
+- Frontend URL now matches Flask route exactly (`/api/settings/`)
+- No redirect triggered
+- No HTTP/HTTPS protocol mismatch
+- No Mixed Content error
+
+**Alternative considered but rejected:**
+- ProxyFix middleware (would fix redirects system-wide)
+- User decision: "muss NICHTS am System verändert werden"
+- Frontend-only fix is simpler and safer
+
+#### Fix 2: Remove Service Worker
+**Steps:**
+1. DevTools → Application → Service Workers
+2. Unregister service worker for `lab.ai4artsed.org`
+3. Storage → Clear site data
+4. Close browser completely
+5. Reopen and test
+
+**Result:** Fresh version loaded, no more ancient cached pages
+
+#### Fix 3: UI Rename "Settings" → "Administration"
+**File:** `public/ai4artsed-frontend/src/views/SettingsView.vue`
+
+**Changes:**
+- H1: "Settings" → "Administration"
+- H2: "General Settings" → "General Configuration"
+- H2: "Server Settings" → "Server Configuration"
+
+**Reason:** Better reflects administrative nature of page (not just settings)
+
+### Security Discussion
+
+**Question:** Should `/exports/json/<path>` media endpoint be password-protected?
+
+**Decision:** NO - Security through obscurity is sufficient
+- Session IDs are UUIDs (cryptographically random, unguessable)
+- No directory listing
+- Only authenticated users see session list (with media URLs)
+- Adding auth would require `crossorigin="use-credentials"` on all `<img>`/`<video>` tags
+- Potential CORS/performance issues not worth it
+
+### Files Modified
+- `public/ai4artsed-frontend/src/views/SettingsView.vue` - Trailing slash + UI rename
+- Frontend rebuilt: `npm run build`
+
+### Testing
+**Local Development (17802):** ✓ Works
+**Production via Cloudflare (17801):** ✓ Works after deployment
+- Configuration Tab loads
+- "Save Configuration" button works
+- Session Export Tab works
+- No Mixed Content errors
+
+### Key Learnings
+1. **Mixed Content errors are tricky:** Initial diagnosis (cookies/sessions) was wrong
+2. **Network Tab is essential:** Shows exact redirect behavior and protocols
+3. **Service Workers cache aggressively:** Can prevent fixes from taking effect
+4. **Flask trailing slash behavior:** Auto-redirects without slash, uses `request.scheme`
+5. **Cloudflare HTTPS → HTTP forwarding:** Backend doesn't know original protocol
+6. **Simple frontend fix > complex backend middleware:** When both work, prefer simpler
+
+### Architecture Principles Applied
+- ✅ NO WORKAROUNDS - Fixed actual issue (URL mismatch), not symptoms
+- ✅ MINIMAL CHANGES - Frontend-only fix, no backend modifications needed
+- ✅ ROOT CAUSE ANALYSIS - Investigated deeply before implementing solution
+- ✅ USER CONSULTATION - Asked "muss NICHTS am System verändert werden?" before planning
+
+### Commits
+- `c5e78a7` - fix: add trailing slash to /api/settings API call (GET)
+- `b0650cd` - fix: add trailing slash to POST /api/settings (save configuration)
+- `8a2f3c8` - refactor: rename "Settings" to "Administration" in UI
+
+### Notes
+- ProxyFix middleware documented as alternative if similar issues arise with other endpoints
+- Service Worker was leftover from old PWA implementation (disabled in vite.config.ts)
+- Session 107 demonstrates importance of thorough diagnosis before implementation
+
+---
+
