@@ -537,7 +537,7 @@ async function saveSettings() {
       payload.MISTRAL_API_KEY = mistralKey.value
     }
 
-    const response = await fetch('/api/settings', {
+    const response = await fetch('/api/settings/', {  // Trailing slash to match Flask route
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
