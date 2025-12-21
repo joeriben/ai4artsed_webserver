@@ -116,9 +116,7 @@ def stream_stage1_translation(run_id: str):
     response = Response(stream_with_context(generate()), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
-    # CRITICAL: Add CORS headers for EventSource from localhost:5173
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    # CORS handled by Flask-CORS globally (see my_app/__init__.py)
     return response
 
 
@@ -260,9 +258,7 @@ def stream_stage2_interception(run_id: str):
     response = Response(stream_with_context(generate()), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
-    # CRITICAL: Add CORS headers for EventSource from localhost:5173
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    # CORS handled by Flask-CORS globally (see my_app/__init__.py)
     return response
 
 
@@ -345,9 +341,7 @@ def stream_stage3_safety(run_id: str):
     response = Response(stream_with_context(generate()), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
-    # CRITICAL: Add CORS headers for EventSource from localhost:5173
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    # CORS handled by Flask-CORS globally (see my_app/__init__.py)
     return response
 
 
@@ -458,7 +452,5 @@ def stream_stage4_output(run_id: str):
     response = Response(stream_with_context(generate()), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
-    # CRITICAL: Add CORS headers for EventSource from localhost:5173
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    # CORS handled by Flask-CORS globally (see my_app/__init__.py)
     return response

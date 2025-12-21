@@ -643,9 +643,9 @@ const streamingUrl = computed(() => {
   }
 
   const runId = `run_${Date.now()}_${Math.random().toString(36).substring(7)}`
-  // Use Vite proxy - streaming works but arrives buffered (acceptable compromise)
-  const url = `/api/text_stream/stage2/${runId}`
-  console.log('[DEBUG] Generated streaming URL (via Vite proxy):', url)
+  // TEMPORARY TEST: Direct backend connection bypassing Vite proxy
+  const url = `http://localhost:17802/api/text_stream/stage2/${runId}`
+  console.log('[DEBUG] Generated streaming URL (direct backend):', url)
   return url
 })
 

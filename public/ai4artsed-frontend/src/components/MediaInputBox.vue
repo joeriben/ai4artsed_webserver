@@ -185,6 +185,7 @@ function startStreaming() {
 
   eventSource.value.addEventListener('chunk', (event) => {
     const data = JSON.parse(event.data)
+    console.log('[MediaInputBox] Chunk received:', data.chunk_count, 'text:', data.text_chunk)
     // Add chunk to buffer for smooth display
     chunkBuffer.value.push(...data.text_chunk.split(''))
   })
