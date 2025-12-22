@@ -842,6 +842,44 @@ def execute_stage2():
         }), 500
 
 
+@schema_bp.route('/pipeline/optimize/meta/<output_config>', methods=['GET'])
+def get_optimization_meta(output_config: str):
+    """
+    Get optimization metadata for streaming
+
+    Returns optimization_instruction and estimated_duration_seconds
+    for the specified output config (used by frontend before streaming)
+
+    Response:
+    {
+        "success": true,
+        "optimization_instruction": "...",
+        "estimated_duration_seconds": "30"
+    }
+    """
+    try:
+        logger.info(f"[OPTIMIZE-META] Getting metadata for '{output_config}'")
+
+        # Load optimization_instruction
+        optimization_instruction = _load_optimization_instruction(output_config)
+
+        # Load estimated_duration_seconds
+        estimated_duration = _load_estimated_duration(output_config)
+
+        return jsonify({
+            'success': True,
+            'optimization_instruction': optimization_instruction or '',
+            'estimated_duration_seconds': estimated_duration
+        })
+
+    except Exception as e:
+        logger.error(f"[OPTIMIZE-META] Error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @schema_bp.route('/pipeline/optimize', methods=['POST'])
 def optimize_prompt():
     """

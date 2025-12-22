@@ -173,11 +173,11 @@
             :is-loading="isOptimizationLoading"
             loading-message="Der Prompt wird jetzt für das gewählte Modell angepasst. Jedes Modell versteht Beschreibungen etwas anders – die KI optimiert den Text für die beste Ausgabe."
             :enable-streaming="true"
-            :stream-url="streamingUrl"
-            :stream-params="streamingParams"
-            @stream-started="handleStreamStarted"
-            @stream-complete="handleStreamComplete"
-            @stream-error="handleStreamError"
+            :stream-url="optimizationStreamingUrl"
+            :stream-params="optimizationStreamingParams"
+            @stream-started="handleOptimizationStreamStarted"
+            @stream-complete="handleOptimizationStreamComplete"
+            @stream-error="handleOptimizationStreamError"
             @copy="copyOptimizedPrompt"
             @paste="pasteOptimizedPrompt"
             @clear="clearOptimizedPrompt"
@@ -341,6 +341,7 @@ const isInterceptionLoading = ref(false)
 const optimizedPrompt = ref('')
 const isOptimizationLoading = ref(false)
 const hasOptimization = ref(false)  // Track if optimization was applied
+const optimizationInstruction = ref('')  // Loaded from backend before streaming
 
 // Model availability (Session 91+)
 const modelAvailability = ref<ModelAvailability>({})
@@ -673,6 +674,39 @@ const streamingParams = computed(() => {
   return params
 })
 
+// Streaming computed properties (Optimization)
+const optimizationStreamingUrl = computed(() => {
+  const isLoading = isOptimizationLoading.value
+  console.log('[DEBUG] optimizationStreamingUrl computed, isOptimizationLoading:', isLoading)
+
+  if (!isLoading) {
+    console.log('[DEBUG] Not loading, returning undefined')
+    return undefined
+  }
+
+  const runId = `run_${Date.now()}_${Math.random().toString(36).substring(7)}`
+
+  // Dev: Direct backend (bypasses Vite proxy buffering)
+  // Prod: Use relative URL (Nginx handles proxy without buffering)
+  const isDev = import.meta.env.DEV
+  const url = isDev
+    ? `http://localhost:17802/api/text_stream/optimize/${runId}`  // Dev: Direct to port 17802
+    : `/api/text_stream/optimize/${runId}`  // Prod: Relative URL via Nginx
+
+  console.log('[DEBUG] Generated optimization streaming URL:', isDev ? '(dev - direct)' : '(prod - nginx)', url)
+  return url
+})
+
+const optimizationStreamingParams = computed(() => {
+  const params = {
+    input_text: interceptionResult.value,
+    optimization_instruction: optimizationInstruction.value,
+    output_config: selectedConfig.value || ''
+  }
+  console.log('[DEBUG] optimizationStreamingParams computed:', params)
+  return params
+})
+
 // ============================================================================
 // Route handling & Store
 // ============================================================================
@@ -939,49 +973,36 @@ async function runInterception() {
 }
 
 async function runOptimization() {
-  isOptimizationLoading.value = true
-
   try {
-    // Call 2 ONLY: Optimization with optimization_instruction from output chunk
-    // Uses NEW /optimize endpoint - NO Call 1, NO config.context
-    const response = await axios.post('/api/schema/pipeline/optimize', {
-      input_text: interceptionResult.value,  // Text from interception_result box
-      output_config: selectedConfig.value    // Selected model
-      // NO schema, NO context_prompt - only optimization!
-    })
+    console.log('[Streaming] Starting optimization with streaming mode')
+    console.log('[DEBUG] Before - isOptimizationLoading:', isOptimizationLoading.value)
+    console.log('[DEBUG] Input text:', interceptionResult.value?.substring(0, 50), '...')
+    console.log('[DEBUG] Selected config:', selectedConfig.value)
 
-    if (response.data.success) {
-      optimizedPrompt.value = response.data.optimized_prompt || ''
-      hasOptimization.value = response.data.optimization_applied || false
-      estimatedDurationSeconds.value = response.data.estimated_duration_seconds || '30'  // Extract duration (30s fallback)
-      console.log('[Optimize] Estimated duration:', estimatedDurationSeconds.value)
-      executionPhase.value = 'optimization_done'
-      console.log('[Optimize] Complete:', optimizedPrompt.value.substring(0, 60), '| Applied:', hasOptimization.value)
+    // STEP 1: Load metadata first (optimization_instruction + duration)
+    const metaResponse = await axios.get(
+      `/api/schema/pipeline/optimize/meta/${selectedConfig.value}`
+    )
+    optimizationInstruction.value = metaResponse.data.optimization_instruction || ''
+    estimatedDurationSeconds.value = metaResponse.data.estimated_duration_seconds || '30'
 
-      // Extract and display code if optimization result is JavaScript (content-based detection)
-      if (optimizedPrompt.value && (
-          optimizedPrompt.value.includes('```javascript') ||
-          optimizedPrompt.value.includes('function setup(') ||
-          optimizedPrompt.value.includes('function draw(')
-      )) {
-        // Clean markdown wrappers
-        let code = optimizedPrompt.value
-        code = code.replace(/```javascript\n?/g, '')
-                   .replace(/```js\n?/g, '')
-                   .replace(/```\n?/g, '')
-                   .trim()
-        outputCode.value = code
-        outputMediaType.value = 'code'
-        console.log('[Stage2-Code] Code detected and displayed, length:', code.length)
-      }
-    } else {
-      alert(`Fehler: ${response.data.error}`)
-    }
+    console.log('[Optimize] Loaded optimization_instruction:', optimizationInstruction.value.substring(0, 100))
+    console.log('[Optimize] Estimated duration:', estimatedDurationSeconds.value)
+
+    // STEP 2: Start streaming (clear previous result and set loading state)
+    optimizedPrompt.value = ''  // Clear previous result
+    isOptimizationLoading.value = true
+
+    console.log('[DEBUG] After - isOptimizationLoading:', isOptimizationLoading.value)
+    console.log('[DEBUG] This should trigger optimizationStreamingUrl computed property')
+
+    // Note: isOptimizationLoading will be set to false by handleOptimizationStreamComplete()
+    // or handleOptimizationStreamError() when streaming finishes
+
   } catch (error: any) {
-    console.error('[Optimize] Error:', error)
+    console.error('[Optimize] Error loading metadata:', error)
     const errorMessage = error.response?.data?.error || error.message
-    alert(`Fehler: ${errorMessage}`)
-  } finally {
+    alert(`Fehler beim Laden der Optimization-Metadaten: ${errorMessage}`)
     isOptimizationLoading.value = false
   }
 }
@@ -1006,6 +1027,43 @@ function handleStreamError(error: string) {
   console.error('[Stream] Error:', error)
   isInterceptionLoading.value = false
   alert('Streaming-Fehler. Bitte erneut versuchen.')
+}
+
+// Streaming event handlers (Optimization)
+function handleOptimizationStreamStarted() {
+  console.log('[Optimization Stream] First chunk received, hiding spinner')
+  isOptimizationLoading.value = false  // Hide spinner, show typewriter effect
+}
+
+function handleOptimizationStreamComplete(data: any) {
+  console.log('[Optimization Stream] Complete:', data)
+  hasOptimization.value = true
+  executionPhase.value = 'optimization_done'
+
+  // Extract and display code if optimization result is JavaScript (content-based detection)
+  if (optimizedPrompt.value && (
+      optimizedPrompt.value.includes('```javascript') ||
+      optimizedPrompt.value.includes('function setup(') ||
+      optimizedPrompt.value.includes('function draw(')
+  )) {
+    // Clean markdown wrappers
+    let code = optimizedPrompt.value
+    code = code.replace(/```javascript\n?/g, '')
+               .replace(/```js\n?/g, '')
+               .replace(/```\n?/g, '')
+               .trim()
+    outputCode.value = code
+    outputMediaType.value = 'code'
+    console.log('[Stage2-Code] Code detected and displayed, length:', code.length)
+  }
+
+  console.log('[Optimize] Complete:', optimizedPrompt.value.substring(0, 60), '| Applied:', hasOptimization.value)
+}
+
+function handleOptimizationStreamError(error: string) {
+  console.error('[Optimization Stream] Error:', error)
+  isOptimizationLoading.value = false
+  alert('Optimization-Streaming-Fehler. Bitte erneut versuchen.')
 }
 
 async function startGeneration() {
