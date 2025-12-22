@@ -29,6 +29,67 @@
 
 ---
 
+## Session 110 - 2025-12-22
+
+### Decision: text_transformation.vue Refactoring - Stop After Phase 1
+
+**Context:** File was 2665 lines (26k tokens) with 48% being inline CSS (1285 lines). Maintenance nightmare. Planned 4-phase incremental refactoring.
+
+**Completed:**
+- ✅ **Phase 1: Style Extraction** (48% reduction)
+  - Created `/src/assets/animations.css` (2.1K) - Shared @keyframes
+  - Created `/src/views/text_transformation.css` (26K) - Component styles
+  - Updated Vue component to import external CSS
+  - Result: 2665 → 1396 lines (48% reduction)
+  - Risk: MINIMAL (pure CSS move, zero logic changes)
+  - Verification: TypeScript passed, user confirmed "Funktioniert"
+
+**Skipped (Intentionally):**
+- ❌ **Phase 2: Component Extraction** (StartButton, CodeEditor)
+  - Would reduce by ~10% but involves state management, v-model bindings
+  - Risk: LOW-MEDIUM
+- ❌ **Phase 3: Selector Extraction** (CategorySelector, ModelSelector)
+  - Would reduce by ~15% but complex state, hover logic, metadata loading
+  - Risk: MEDIUM-HIGH
+- ❌ **Phase 4: Script Optimization** (composables, watchers)
+  - Would reduce by ~5% but micro-optimizations
+  - Risk: MEDIUM
+
+**Decision:** Stop after Phase 1
+
+**Rationale:**
+- **Risk/Benefit Analysis:** Phase 1 achieved 48% reduction with MINIMAL risk
+- **Diminishing Returns:** Phase 2-4 would add only ~30% more reduction but MEDIUM-HIGH risk
+- **Current State:** File is now maintainable (1396 lines), functional, TypeScript passes
+- **Fail-Safety First:** User explicitly chose safety over further optimization
+- **User Decision:** "Lassen wir" (Let's leave it at Phase 1)
+
+**Trade-offs:**
+- ✅ **Achieved:** Massive maintainability improvement (48% reduction)
+- ✅ **Preserved:** Zero breaking changes, fully functional
+- ✅ **Avoided:** Risk of introducing bugs through component extraction
+- ❌ **Missed:** Could have reached 60-70% reduction if Phase 2-4 completed
+- ❌ **Missed:** Component reusability (StartButton could be used elsewhere)
+
+**Impact:**
+- **Files Modified:**
+  - `src/views/text_transformation.vue` (2665 → 1396 lines)
+  - `src/assets/animations.css` (new, 2.1K)
+  - `src/views/text_transformation.css` (new, 26K)
+- **Commit:** `1ebdba8` - "refactor(text-transformation): Extract inline styles to external CSS files (Phase 1)"
+- **Technical Debt:** File still contains ~1100 lines of logic that COULD be extracted, but SHOULD NOT be due to risk
+
+**Lessons Learned:**
+1. **Safety First:** 48% improvement with zero risk is better than 70% with potential bugs
+2. **Incremental Wins:** Don't chase perfection, achieve "good enough"
+3. **Risk Assessment:** Component extraction involves state complexity that CSS doesn't have
+4. **User Validation:** "Funktioniert" is the ultimate success metric
+
+**Future Considerations:**
+If text_transformation.vue grows significantly in the future (e.g., new media types), revisit Phase 2-4. For now, the file is maintainable and not worth the risk.
+
+---
+
 ## Session 109 - 2025-12-22
 
 ### Decision: SSE Streaming with Waitress (No Server Migration)
