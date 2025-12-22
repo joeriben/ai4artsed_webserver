@@ -456,3 +456,154 @@ def stream_stage4_output(run_id: str):
     response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
     # CORS handled by Flask-CORS globally (see my_app/__init__.py)
     return response
+
+
+@text_stream_bp.route('/api/text_stream/optimize/<run_id>')
+def stream_optimization(run_id: str):
+    """
+    Stream prompt optimization (model-specific transformation)
+
+    Query params:
+        input_text: Text to optimize (required)
+        optimization_instruction: Optimization rules from output chunk (required)
+        output_config: Output config ID (for metadata, required)
+        model: Model to use (optional, default: from config)
+
+    SSE Events:
+        - connected: Initial connection established
+        - chunk: Text chunk with accumulated text
+        - complete: Final text with completion status
+        - error: Error message
+
+    Returns:
+        SSE stream response
+    """
+    # IMPORTANT: Extract all request data BEFORE the generator
+    # (request context not available inside generator)
+    import config  # Import module, not attribute (for runtime access to user_settings.json)
+    input_text = request.args.get('input_text', '')
+    optimization_instruction = request.args.get('optimization_instruction', '')
+    output_config = request.args.get('output_config', '')
+    model = request.args.get('model', config.STAGE2_INTERCEPTION_MODEL)  # Reads user_settings.json override
+
+    def generate():
+        try:
+            if not input_text:
+                yield generate_sse_event('error', {'message': 'Missing required parameter: input_text'})
+                return
+
+            if not optimization_instruction:
+                yield generate_sse_event('error', {'message': 'Missing required parameter: optimization_instruction'})
+                return
+
+            # Send initial connection event
+            yield generate_sse_event('connected', {
+                'stage': 'optimize',
+                'run_id': run_id,
+                'status': 'streaming',
+                'model': model,
+                'output_config': output_config
+            })
+
+            logger.info(f"[TEXT_STREAM] Optimization stream started for run {run_id} with model {model}")
+
+            # Build full prompt for optimization
+            # Uses same structure as execute_optimization() function
+            engine = PromptInterceptionEngine()
+            style_prompt = "Transform the INPUT according to the rules provided by the CONTEXT. Preserve structural aspects of the INPUT and follow all instructions in the CONTEXT precisely."
+            full_prompt = engine.build_full_prompt(input_text, optimization_instruction, style_prompt)
+
+            accumulated = ""
+            chunk_count = 0
+
+            # Route to appropriate streaming method based on model prefix
+            if model.startswith("mistral/"):
+                # Mistral streaming
+                real_model = engine.extract_model_name(model)
+                for chunk in engine._call_mistral_stream(full_prompt, real_model, debug=False):
+                    accumulated += chunk
+                    chunk_count += 1
+
+                    yield generate_sse_event('chunk', {
+                        'text_chunk': chunk,
+                        'accumulated': accumulated,
+                        'chunk_count': chunk_count
+                    })
+                    yield ''  # Force flush to bypass Waitress buffering
+
+            elif model.startswith("local/") or not any(model.startswith(p) for p in ["mistral/", "openai/", "anthropic/", "bedrock/", "openrouter/"]):
+                # Ollama streaming (local models)
+                from config import OLLAMA_API_BASE_URL
+                import requests
+
+                real_model = engine.extract_model_name(model)
+
+                payload = {
+                    "model": real_model,
+                    "prompt": full_prompt,
+                    "stream": True
+                }
+
+                response = requests.post(
+                    f"{OLLAMA_API_BASE_URL}/api/generate",
+                    json=payload,
+                    stream=True,
+                    timeout=90
+                )
+                response.raise_for_status()
+
+                for line in response.iter_lines():
+                    if line:
+                        try:
+                            data = json.loads(line.decode('utf-8'))
+                            text_chunk = data.get("response", "")
+                            done = data.get("done", False)
+
+                            if text_chunk:
+                                accumulated += text_chunk
+                                chunk_count += 1
+
+                                yield generate_sse_event('chunk', {
+                                    'text_chunk': text_chunk,
+                                    'accumulated': accumulated,
+                                    'chunk_count': chunk_count
+                                })
+                                yield ''  # Force flush to bypass Waitress buffering
+
+                            if done:
+                                break
+                        except json.JSONDecodeError:
+                            continue
+
+            else:
+                # Unsupported model for streaming (fallback to error)
+                yield generate_sse_event('error', {
+                    'message': f'Streaming not yet supported for model: {model}',
+                    'fallback': 'batch'
+                })
+                return
+
+            logger.info(f"[TEXT_STREAM] Optimization complete: {len(accumulated)} chars, {chunk_count} chunks")
+
+            # Send completion event
+            yield generate_sse_event('complete', {
+                'final_text': accumulated,
+                'status': 'completed',
+                'char_count': len(accumulated),
+                'chunk_count': chunk_count,
+                'model_used': model,
+                'output_config': output_config
+            })
+
+        except Exception as e:
+            logger.error(f"[TEXT_STREAM] Optimization streaming error: {e}")
+            yield generate_sse_event('error', {
+                'message': str(e),
+                'stage': 'optimize'
+            })
+
+    response = Response(stream_with_context(generate()), mimetype='text/event-stream')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
+    # CORS handled by Flask-CORS globally (see my_app/__init__.py)
+    return response
