@@ -75,7 +75,7 @@ class PromptInterceptionEngine:
         """Baut vollständigen Prompt im Custom Node Format"""
 
         # Global formatting rules (applied to ALL LLM calls, placed at end for lower attention priority)
-        FORMATTING_RULES = "RULES: NO meta-remarks, NO headlines, NO titles, NO commentaries, NO **formatting**, NO bulletpoints, NO arguing, NO justification."
+        FORMATTING_RULES = "RULES: ALWAYS reply in the language of the input! NO meta-remarks, NO headlines, NO titles, NO commentaries, NO **formatting**, NO bulletpoints, NO arguing, NO justification."
 
         return (
             f"Task:\n{style_prompt.strip()}\n\n"
