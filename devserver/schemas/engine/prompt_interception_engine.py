@@ -73,10 +73,15 @@ class PromptInterceptionEngine:
     
     def build_full_prompt(self, input_prompt: str, input_context: str = "", style_prompt: str = "") -> str:
         """Baut vollständigen Prompt im Custom Node Format"""
+
+        # Global formatting rules (applied to ALL LLM calls, placed at end for lower attention priority)
+        FORMATTING_RULES = "RULES: NO meta-remarks, NO headlines, NO titles, NO commentaries, NO **formatting**, NO bulletpoints, NO arguing, NO justification."
+
         return (
             f"Task:\n{style_prompt.strip()}\n\n"
             f"Context:\n{input_context.strip()}\n"
-            f"Prompt:\n{input_prompt.strip()}"
+            f"Prompt:\n{input_prompt.strip()}\n\n"
+            f"{FORMATTING_RULES}"
         )
     
     async def process_request(self, request: PromptInterceptionRequest) -> PromptInterceptionResponse:
