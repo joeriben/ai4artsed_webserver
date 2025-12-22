@@ -44,12 +44,20 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, computed, watch, nextTick, onMounted } from 'vue'
+import { defineProps, defineEmits, ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 
 // Template refs for parent access (like MediaOutputBox sectionRef)
 const inputBoxRef = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+
+// Streaming state
+const eventSource = ref<EventSource | null>(null)
+const streamedValue = ref('')
+const isStreamComplete = ref(false)
+const isFirstChunkReceived = ref(false)
+const chunkBuffer = ref<string[]>([])
+let bufferInterval: number | null = null
 
 interface Props {
   icon: string
@@ -69,6 +77,10 @@ interface Props {
   showPaste?: boolean
   showClear?: boolean
   initialImage?: string
+  // Streaming props
+  enableStreaming?: boolean
+  streamUrl?: string
+  streamParams?: Record<string, string>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -94,6 +106,9 @@ const emit = defineEmits<{
   'clear': []
   'image-uploaded': [data: any]  // Changed: Accept full data object from ImageUploadWidget
   'image-removed': []
+  'stream-started': []  // Emitted on first chunk (to hide loading spinner)
+  'stream-complete': [data: any]
+  'stream-error': [error: string]
 }>()
 
 // Expose refs for parent access (like MediaOutputBox)
@@ -138,11 +153,156 @@ watch(() => props.value, async () => {
   }
 })
 
+// Streaming functions
+function startStreaming() {
+  console.log('[DEBUG MediaInputBox] startStreaming() called, streamUrl:', props.streamUrl, 'streamParams:', props.streamParams)
+
+  if (!props.streamUrl) {
+    console.log('[DEBUG MediaInputBox] No streamUrl, returning early')
+    return
+  }
+
+  // Close any existing stream first
+  closeStream()
+
+  // Reset state
+  streamedValue.value = ''
+  isStreamComplete.value = false
+  isFirstChunkReceived.value = false
+  chunkBuffer.value = []
+
+  // Build URL with query parameters
+  const params = new URLSearchParams(props.streamParams || {})
+  const url = `${props.streamUrl}?${params.toString()}`
+
+  console.log('[MediaInputBox] Starting stream:', url)
+
+  eventSource.value = new EventSource(url)
+
+  // Start buffer processor for smooth character-by-character display
+  startBufferProcessor()
+
+  eventSource.value.addEventListener('connected', (event) => {
+    console.log('[MediaInputBox] Stream connected:', JSON.parse(event.data))
+  })
+
+  eventSource.value.addEventListener('chunk', (event) => {
+    const data = JSON.parse(event.data)
+    console.log('[MediaInputBox] Chunk received:', data.chunk_count, 'text:', data.text_chunk)
+
+    // Emit stream-started on first chunk (so parent can hide loading spinner)
+    if (!isFirstChunkReceived.value) {
+      isFirstChunkReceived.value = true
+      emit('stream-started')
+    }
+
+    // Add chunk to buffer for smooth display
+    chunkBuffer.value.push(...data.text_chunk.split(''))
+  })
+
+  eventSource.value.addEventListener('complete', (event) => {
+    const data = JSON.parse(event.data)
+    console.log('[MediaInputBox] Stream complete:', data.char_count, 'chars')
+    isStreamComplete.value = true
+
+    // Close EventSource but keep buffer processor running until empty
+    if (eventSource.value) {
+      eventSource.value.close()
+      eventSource.value = null
+    }
+
+    // Store final text for safety check, but let buffer display naturally
+    const finalText = data.final_text
+
+    // Check buffer completion periodically until empty
+    const checkBufferComplete = setInterval(() => {
+      if (chunkBuffer.value.length === 0) {
+        // Buffer is empty - verify we have complete text
+        if (streamedValue.value !== finalText) {
+          console.log('[MediaInputBox] Buffer finished but text incomplete, using final_text')
+          streamedValue.value = finalText
+          emit('update:value', streamedValue.value)
+        }
+        emit('stream-complete', data)
+        stopBufferProcessor()
+        clearInterval(checkBufferComplete)
+      }
+    }, 50)  // Check every 50ms
+  })
+
+  eventSource.value.addEventListener('error', (event) => {
+    // Ignore error if stream already completed successfully
+    if (isStreamComplete.value) {
+      console.log('[MediaInputBox] Ignoring error after successful completion')
+      return
+    }
+
+    console.error('[MediaInputBox] Stream error:', event)
+    emit('stream-error', 'Stream connection failed')
+    closeStream()
+  })
+}
+
+function startBufferProcessor() {
+  // Process buffer every 30ms for smooth character-by-character effect
+  bufferInterval = window.setInterval(() => {
+    if (chunkBuffer.value.length > 0) {
+      // Take 1-3 characters at a time for smoother appearance
+      const chars = chunkBuffer.value.splice(0, Math.min(3, chunkBuffer.value.length))
+      streamedValue.value += chars.join('')
+      emit('update:value', streamedValue.value)
+
+      // Auto-scroll textarea to bottom during streaming
+      if (textareaRef.value) {
+        textareaRef.value.scrollTop = textareaRef.value.scrollHeight
+      }
+    }
+  }, 30)
+}
+
+function stopBufferProcessor() {
+  if (bufferInterval) {
+    clearInterval(bufferInterval)
+    bufferInterval = null
+  }
+}
+
+function closeStream() {
+  if (eventSource.value) {
+    eventSource.value.close()
+    eventSource.value = null
+  }
+  stopBufferProcessor()
+
+  // Clear any remaining buffer
+  if (chunkBuffer.value.length > 0 && !isStreamComplete.value) {
+    streamedValue.value += chunkBuffer.value.join('')
+    emit('update:value', streamedValue.value)
+    chunkBuffer.value = []
+  }
+}
+
+// Watch for streaming activation (only when URL changes)
+watch(() => props.streamUrl, (newUrl, oldUrl) => {
+  console.log('[DEBUG MediaInputBox] Watch triggered - enableStreaming:', props.enableStreaming, 'newUrl:', newUrl, 'oldUrl:', oldUrl)
+
+  if (props.enableStreaming && newUrl && newUrl !== oldUrl) {
+    console.log('[MediaInputBox] Stream URL changed, starting new stream')
+    startStreaming()
+  } else {
+    console.log('[DEBUG MediaInputBox] NOT starting stream - conditions not met')
+  }
+})
+
 // Lifecycle
 onMounted(() => {
   if (props.inputType === 'text' && props.resizeType === 'auto') {
     autoResizeTextarea()
   }
+})
+
+onUnmounted(() => {
+  closeStream()
 })
 </script>
 

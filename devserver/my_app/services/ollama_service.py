@@ -308,15 +308,15 @@ class OllamaService:
     def validate_and_translate_prompt(self, prompt: str) -> Dict[str, Any]:
         """
         Validate and translate a prompt with caching
-        
+
         Args:
             prompt: Original prompt text
-            
+
         Returns:
             Dictionary with 'success', 'translated_prompt', and optional 'error'
         """
         cache_key = prompt.strip().lower()
-        
+
         # Check cache first
         if cache_key in PROMPT_CACHE:
             return {
@@ -324,10 +324,10 @@ class OllamaService:
                 "translated_prompt": PROMPT_CACHE[cache_key]["translated"],
                 "cached": True
             }
-        
+
         # Check if this is an image analysis prompt (already in English)
         is_image_analysis = prompt.strip().startswith("Material and medial properties:")
-        
+
         # Check if translation is disabled
         if NO_TRANSLATE:
             # Skip translation entirely when NO_TRANSLATE is True
@@ -342,24 +342,133 @@ class OllamaService:
             translated_prompt = self.translate_text(prompt)
             if not translated_prompt:
                 return {"success": False, "error": "Übersetzungs-Service fehlgeschlagen."}
-        
+
         # Check safety for ALL prompts
         safety_result = self.check_safety(translated_prompt)
         if not safety_result["is_safe"]:
             return {"success": False, "error": safety_result.get("reason", "Prompt rejected for safety reasons.")}
-        
+
         # Cache the result
         PROMPT_CACHE[cache_key] = {
             "translated": translated_prompt,
             "is_safe": True
         }
         logger.info(f"Cached new prompt: {cache_key[:50]}...")
-        
+
         return {
             "success": True,
             "translated_prompt": translated_prompt,
             "cached": False
         }
+
+    # ===== STREAMING METHODS (for text streaming feature) =====
+
+    def _make_streaming_request(self, endpoint: str, payload: Dict[str, Any]):
+        """
+        Make streaming request to Ollama API
+        Yields text chunks as they arrive from the API
+
+        Args:
+            endpoint: API endpoint path (e.g., "api/generate")
+            payload: Request payload (Ollama format)
+
+        Yields:
+            Text chunks as they arrive from the API
+
+        Raises:
+            requests.exceptions.RequestException: If request fails
+        """
+        try:
+            # Enable streaming in payload
+            payload["stream"] = True
+
+            logger.info(f"Starting streaming request to {self.provider} at {self.base_url}/{endpoint}")
+
+            response = requests.post(
+                f"{self.base_url}/{endpoint}",
+                json=payload,
+                timeout=self.timeout,
+                stream=True  # Enable response streaming
+            )
+            response.raise_for_status()
+
+            # Iterate over response lines (newline-delimited JSON)
+            for line in response.iter_lines():
+                if line:
+                    try:
+                        data = json.loads(line.decode('utf-8'))
+                        text_chunk = data.get("response", "")
+                        done = data.get("done", False)
+
+                        if text_chunk:
+                            yield text_chunk
+
+                        if done:
+                            logger.info("Streaming completed successfully")
+                            break
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to decode streaming response line: {e}")
+                        continue
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Streaming request failed: {e}")
+            raise
+
+    def translate_text_stream(self, text: str):
+        """
+        Stream translation of text to English using Ollama
+        Yields text chunks as they are generated
+
+        Args:
+            text: Text to translate
+
+        Yields:
+            Text chunks as they are generated
+
+        Raises:
+            Exception: If streaming fails
+        """
+        prompt = TRANSLATION_PROMPT.format(text=text)
+
+        payload = {
+            "model": TRANSLATION_MODEL,
+            "prompt": prompt,
+            "keep_alive": "0s"
+        }
+
+        logger.info(f"Starting translation stream for text: {text[:50]}...")
+        yield from self._make_streaming_request("api/generate", payload)
+
+    def check_safety_gpt_oss_stream(self, text: str, keep_alive: str = "10m"):
+        """
+        Stream safety check using GPT-OSS-20b with §86a StGB compliance
+        Yields text chunks as they are generated
+
+        Note: Safety checks typically return short responses (SAFE/BLOCKED),
+        so streaming may not provide significant UX benefit. This method is
+        provided for consistency with other streaming methods.
+
+        Args:
+            text: Text to check (German or English)
+            keep_alive: How long to keep model in VRAM (default: 10m)
+
+        Yields:
+            Text chunks as they are generated
+
+        Raises:
+            Exception: If streaming fails
+        """
+        prompt = f"Check this text for safety under §86a StGB:\n\n{text}"
+
+        payload = {
+            "model": GPT_OSS_MODEL,
+            "prompt": prompt,
+            "system": GPT_OSS_SAFETY_SYSTEM_PROMPT,
+            "keep_alive": keep_alive
+        }
+
+        logger.info(f"Starting safety check stream for text: {text[:50]}...")
+        yield from self._make_streaming_request("api/generate", payload)
 
 
 # Create a singleton instance

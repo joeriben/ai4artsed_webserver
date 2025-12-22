@@ -29,6 +29,222 @@
 
 ---
 
+## Session 110 - 2025-12-22
+
+### Decision: text_transformation.vue Refactoring - Stop After Phase 1
+
+**Context:** File was 2665 lines (26k tokens) with 48% being inline CSS (1285 lines). Maintenance nightmare. Planned 4-phase incremental refactoring.
+
+**Completed:**
+- ✅ **Phase 1: Style Extraction** (48% reduction)
+  - Created `/src/assets/animations.css` (2.1K) - Shared @keyframes
+  - Created `/src/views/text_transformation.css` (26K) - Component styles
+  - Updated Vue component to import external CSS
+  - Result: 2665 → 1396 lines (48% reduction)
+  - Risk: MINIMAL (pure CSS move, zero logic changes)
+  - Verification: TypeScript passed, user confirmed "Funktioniert"
+
+**Skipped (Intentionally):**
+- ❌ **Phase 2: Component Extraction** (StartButton, CodeEditor)
+  - Would reduce by ~10% but involves state management, v-model bindings
+  - Risk: LOW-MEDIUM
+- ❌ **Phase 3: Selector Extraction** (CategorySelector, ModelSelector)
+  - Would reduce by ~15% but complex state, hover logic, metadata loading
+  - Risk: MEDIUM-HIGH
+- ❌ **Phase 4: Script Optimization** (composables, watchers)
+  - Would reduce by ~5% but micro-optimizations
+  - Risk: MEDIUM
+
+**Decision:** Stop after Phase 1
+
+**Rationale:**
+- **Risk/Benefit Analysis:** Phase 1 achieved 48% reduction with MINIMAL risk
+- **Diminishing Returns:** Phase 2-4 would add only ~30% more reduction but MEDIUM-HIGH risk
+- **Current State:** File is now maintainable (1396 lines), functional, TypeScript passes
+- **Fail-Safety First:** User explicitly chose safety over further optimization
+- **User Decision:** "Lassen wir" (Let's leave it at Phase 1)
+
+**Trade-offs:**
+- ✅ **Achieved:** Massive maintainability improvement (48% reduction)
+- ✅ **Preserved:** Zero breaking changes, fully functional
+- ✅ **Avoided:** Risk of introducing bugs through component extraction
+- ❌ **Missed:** Could have reached 60-70% reduction if Phase 2-4 completed
+- ❌ **Missed:** Component reusability (StartButton could be used elsewhere)
+
+**Impact:**
+- **Files Modified:**
+  - `src/views/text_transformation.vue` (2665 → 1396 lines)
+  - `src/assets/animations.css` (new, 2.1K)
+  - `src/views/text_transformation.css` (new, 26K)
+- **Commit:** `1ebdba8` - "refactor(text-transformation): Extract inline styles to external CSS files (Phase 1)"
+- **Technical Debt:** File still contains ~1100 lines of logic that COULD be extracted, but SHOULD NOT be due to risk
+
+**Lessons Learned:**
+1. **Safety First:** 48% improvement with zero risk is better than 70% with potential bugs
+2. **Incremental Wins:** Don't chase perfection, achieve "good enough"
+3. **Risk Assessment:** Component extraction involves state complexity that CSS doesn't have
+4. **User Validation:** "Funktioniert" is the ultimate success metric
+
+**Future Considerations:**
+If text_transformation.vue grows significantly in the future (e.g., new media types), revisit Phase 2-4. For now, the file is maintainable and not worth the risk.
+
+---
+
+## Session 109 - 2025-12-22
+
+### Decision: SSE Streaming with Waitress (No Server Migration)
+
+**Context:** SSE text streaming infrastructure implemented in previous session but buffering prevented typewriter effect. Handover document recommended replacing Waitress with Gunicorn.
+
+**User Constraint:** "Not justified to replace a working server for one small animation feature."
+
+**Analysis:**
+1. **Gunicorn benefits:** Only helps SSE, NOT WebSockets (would need ASGI for WebSockets)
+2. **ComfyUI:** Uses HTTP polling (2s intervals), not streaming - Gunicorn wouldn't help
+3. **ASGI migration:** Would require rewriting 50+ routes with async/await (~2-3 weeks effort)
+4. **Waitress status:** Stable, works for all other endpoints, simple configuration
+
+**Decision:** Keep Waitress, optimize Flask code instead
+
+**Solution Implemented:**
+```python
+# Flask explicit flushing forces Waitress to send chunks immediately
+from flask import stream_with_context
+
+def generate():
+    yield generate_sse_event('chunk', {...})
+    yield ''  # Force flush
+
+return Response(stream_with_context(generate()), ...)
+```
+
+**Why This Works:**
+- `stream_with_context()` maintains request context during streaming
+- Empty `yield ''` forces Waitress to flush buffer immediately
+- Verified with curl: Chunks arrive progressively (not batched)
+- No server replacement needed
+
+**Trade-offs:**
+- ✅ Minimal code change (10 lines)
+- ✅ Waitress remains stable for all other endpoints
+- ✅ Easy to rollback if issues arise
+- ❌ Slightly more verbose code (extra yield per chunk)
+
+**Alternative Considered (Rejected):**
+- **Gunicorn + gevent:** Would solve SSE buffering but doesn't provide broader benefits (ComfyUI still uses polling)
+- **ASGI (Uvicorn + Quart/FastAPI):** Massive migration effort for minimal UX improvement
+
+**Future Path:**
+If ComfyUI WebSocket integration is implemented (real-time progress for Stage 4 image generation), use **Flask-SocketIO + eventlet** which works with Waitress (no ASGI needed).
+
+---
+
+### Decision: Dev vs Prod Streaming URLs
+
+**Problem:** Vite dev proxy buffers SSE despite backend fixes. Direct localhost:17802 connection works but fails in production (port 17801).
+
+**Solution:** Environment-aware URL strategy
+```javascript
+const isDev = import.meta.env.DEV
+const url = isDev
+  ? `http://localhost:17802/api/text_stream/...`  // Dev: Direct backend
+  : `/api/text_stream/...`  // Prod: Relative URL via Nginx
+```
+
+**Rationale:**
+- **Dev mode:** Vite proxy buffers SSE → use direct backend connection
+- **Prod mode:** Nginx doesn't buffer SSE → use relative URL
+- **Cloudflare:** Only sees HTTPS requests to domain → not affected by localhost URLs
+
+**Trade-offs:**
+- ✅ Works in both environments
+- ✅ No CORS issues in prod (relative URL = same origin)
+- ✅ No Vite buffering in dev (bypasses proxy)
+- ⚠️ Dev requires backend on specific port (17802)
+
+---
+
+### Decision: Runtime Config Loading for user_settings.json
+
+**Problem:** Backend routes imported config at module load time (before user_settings.json loaded)
+```python
+# WRONG: Import-time binding
+from config import STAGE2_INTERCEPTION_MODEL  # Reads before user_settings loaded
+model = request.args.get('model', STAGE2_INTERCEPTION_MODEL)  # Uses old value
+```
+
+**Root Cause:**
+- `_load_user_settings()` runs in `create_app()` and uses `setattr(config, key, value)`
+- But route modules import before app creation
+- Import-time binding captures old value from config.py
+
+**Solution:** Import module, access attribute at runtime
+```python
+# RIGHT: Runtime binding
+import config  # Import module reference
+model = request.args.get('model', config.STAGE2_INTERCEPTION_MODEL)  # Reads current value
+```
+
+**Impact:**
+- Stage 2 now correctly uses 120b from user_settings.json (not hardcoded 20b)
+- All user configuration honored at runtime
+
+**Files Affected:**
+- `text_stream_routes.py` (Stage 2, Stage 4)
+
+---
+
+## Session 108 - 2025-12-21
+
+### Decision: Minimal Editable Code Box (No Syntax Highlighting)
+
+**Context:** User requested editable p5.js code output with syntax highlighting (Prism.js) and run button. Initial implementation with Prism.js caused critical blocking issue.
+
+**Problem with Initial Approach:**
+```typescript
+// BLOCKING: Top-level await in Vue script setup
+try {
+  const prismModule = await import('prismjs')
+  await import('prismjs/themes/prism-tomorrow.css')
+  await import('prismjs/components/prism-javascript')
+} catch (error) { ... }
+```
+**Result:** Browser slowdown (Firefox warning), views showing no content, interception_result broken.
+
+**Rollback & Decision:**
+- `git reset --hard d5263a3` to restore working state
+- User agreed to drop syntax highlighting complexity
+- **Decision:** Implement minimal solution without external dependencies
+
+**Final Implementation:**
+1. **Editable textarea** - Remove `readonly`, use `v-model="editedCode"`
+2. **Run button (▶️)** - Replace clipboard icon, trigger iframe re-render
+3. **Vue reactivity** - `watch(outputCode)` to initialize `editedCode`
+4. **Key-based re-render** - Increment `iframeKey` to force iframe reload
+
+**Trade-offs:**
+- ❌ No syntax highlighting (Prism.js dropped)
+- ❌ No complex overlay pattern
+- ✅ Zero external dependencies
+- ✅ Simple, maintainable code
+- ✅ Fast, non-blocking component load
+- ✅ User can still edit and run code
+
+**Technical Lesson:**
+**Never use top-level `await` in Vue script setup** - it blocks component mounting and breaks reactivity. If async imports are needed, use `onMounted()` hook instead.
+
+**Alternative Considered (Not Implemented):**
+Moving Prism import to `onMounted()` would fix blocking issue, but user preferred simplicity over syntax highlighting.
+
+**Files Modified:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+
+**Commits:**
+- `576e387` - feat: Add editable p5.js code box with run button (minimal version)
+- `4dffb53` - fix: Increase code textarea height to match iframe (400px → 600px)
+
+---
+
 ## Session 96 - 2025-12-11
 
 ### Decision: Internal App Clipboard for Copy/Paste Buttons

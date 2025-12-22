@@ -12,6 +12,10 @@ import secrets
 import string
 from werkzeug.security import generate_password_hash, check_password_hash
 import config
+import os
+import subprocess
+import sys
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +28,7 @@ SETTINGS_FILE = Path(__file__).parent.parent.parent / "user_settings.json"
 OPENROUTER_KEY_FILE = Path(__file__).parent.parent.parent / "openrouter.key"
 ANTHROPIC_KEY_FILE = Path(__file__).parent.parent.parent / "anthropic.key"
 OPENAI_KEY_FILE = Path(__file__).parent.parent.parent / "openai.key"
+MISTRAL_KEY_FILE = Path(__file__).parent.parent.parent / "mistral.key"
 
 # Path to settings password file (stores password hash)
 SETTINGS_PASSWORD_FILE = Path(__file__).parent.parent.parent / "settings_password.key"
@@ -65,8 +70,8 @@ initialize_password()
 # This is NOT configuration - just preset values to help users fill the form
 HARDWARE_MATRIX = {
     "vram_96": {
-        "dsgvo_local": {
-            "label": "96 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "96 GB VRAM (Local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -80,8 +85,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "96 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "96 GB VRAM (AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -95,8 +100,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "96 GB VRAM (non-DSGVO, OpenRouter)",
+        "openrouter": {
+            "label": "96 GB VRAM (OpenRouter)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -108,12 +113,57 @@ HARDWARE_MATRIX = {
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
+            "DSGVO_CONFORMITY": False
+        },
+        "mistral": {
+            "label": "96 GB VRAM (Mistral AI EU)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-large-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "96 GB VRAM (Anthropic Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-3-5-sonnet-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "96 GB VRAM (OpenAI Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
         }
     },
     "vram_32": {
-        "dsgvo_local": {
-            "label": "32 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "32 GB VRAM (Local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -127,8 +177,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "32 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "32 GB VRAM (AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -142,8 +192,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "32 GB VRAM (non-DSGVO, OpenRouter)",
+        "openrouter": {
+            "label": "32 GB VRAM (OpenRouter)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
@@ -156,11 +206,56 @@ HARDWARE_MATRIX = {
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
+        },
+        "mistral": {
+            "label": "32 GB VRAM (Mistral AI EU)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-large-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "32 GB VRAM (Anthropic Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-3-5-sonnet-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "32 GB VRAM (OpenAI Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
         }
     },
     "vram_24": {
-        "dsgvo_local": {
-            "label": "24 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "24 GB VRAM (Local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/mistral-nemo",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -174,8 +269,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "24 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "24 GB VRAM (AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -189,8 +284,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "24 GB VRAM (non-DSGVO, OpenRouter)",
+        "openrouter": {
+            "label": "24 GB VRAM (OpenRouter)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -203,11 +298,56 @@ HARDWARE_MATRIX = {
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
+        },
+        "mistral": {
+            "label": "24 GB VRAM (Mistral AI EU)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-large-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "24 GB VRAM (Anthropic Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-3-5-sonnet-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "24 GB VRAM (OpenAI Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
         }
     },
     "vram_16": {
-        "dsgvo_local": {
-            "label": "16 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "16 GB VRAM (Local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/gemma:9b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -221,8 +361,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "16 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "16 GB VRAM (AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -236,8 +376,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "16 GB VRAM (non-DSGVO, OpenRouter)",
+        "openrouter": {
+            "label": "16 GB VRAM (OpenRouter)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
@@ -250,11 +390,56 @@ HARDWARE_MATRIX = {
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
+        },
+        "mistral": {
+            "label": "16 GB VRAM (Mistral AI EU)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-large-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "16 GB VRAM (Anthropic Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-3-5-sonnet-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "16 GB VRAM (OpenAI Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
         }
     },
     "vram_8": {
-        "dsgvo_local": {
-            "label": "8 GB VRAM (DSGVO, local only)",
+        "none": {
+            "label": "8 GB VRAM (Local only)",
             "models": {
                 "STAGE1_TEXT_MODEL": "local/gemma:2b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
@@ -268,8 +453,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
         },
-        "dsgvo_cloud": {
-            "label": "8 GB VRAM (DSGVO, AWS Bedrock EU)",
+        "bedrock": {
+            "label": "8 GB VRAM (AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
@@ -283,8 +468,8 @@ HARDWARE_MATRIX = {
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
         },
-        "non_dsgvo": {
-            "label": "8 GB VRAM (non-DSGVO, OpenRouter)",
+        "openrouter": {
+            "label": "8 GB VRAM (OpenRouter)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
@@ -296,6 +481,51 @@ HARDWARE_MATRIX = {
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
+            "DSGVO_CONFORMITY": False
+        },
+        "mistral": {
+            "label": "8 GB VRAM (Mistral AI EU)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-large-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "8 GB VRAM (Anthropic Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-3-5-sonnet-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "8 GB VRAM (OpenAI Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
         }
     }
@@ -468,6 +698,13 @@ def save_settings():
                 f.write(openai_key.strip())
             logger.info("[SETTINGS] OpenAI API Key updated")
 
+        mistral_key = data.pop('MISTRAL_API_KEY', None)
+        if mistral_key:
+            MISTRAL_KEY_FILE.parent.mkdir(exist_ok=True)
+            with open(MISTRAL_KEY_FILE, 'w') as f:
+                f.write(mistral_key.strip())
+            logger.info("[SETTINGS] Mistral API Key updated")
+
         # Write all other settings to user_settings.json
         SETTINGS_FILE.parent.mkdir(exist_ok=True)
         with open(SETTINGS_FILE, 'w') as f:
@@ -563,6 +800,33 @@ def get_openai_key():
 
     except Exception as e:
         logger.error(f"[SETTINGS] Error reading OpenAI key: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/mistral-key', methods=['GET'])
+@require_settings_auth
+def get_mistral_key():
+    """Get masked Mistral API Key for display"""
+    try:
+        if not MISTRAL_KEY_FILE.exists():
+            return jsonify({"exists": False}), 200
+
+        with open(MISTRAL_KEY_FILE) as f:
+            key = f.read().strip()
+
+        # Return masked version (show only first 7 and last 4 chars)
+        if len(key) > 11:
+            masked = f"{key[:7]}...{key[-4:]}"
+        else:
+            masked = "***"
+
+        return jsonify({
+            "exists": True,
+            "masked": masked
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error reading Mistral key: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -973,4 +1237,90 @@ def get_session_detail(run_id):
 
     except Exception as e:
         logger.error(f"[SETTINGS] Error getting session detail: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/restart-backend', methods=['POST'])
+@require_settings_auth
+def restart_backend():
+    """Restart backend server using appropriate start script based on context"""
+    try:
+        # Get current directory to determine context (development vs production)
+        current_dir = Path(__file__).resolve().parent.parent.parent.parent
+        current_path_str = str(current_dir)
+
+        # Determine which script to use
+        if "develop" in current_path_str.lower():
+            script_name = "3_start_backend_dev.sh"
+            context = "development"
+        elif "production" in current_path_str.lower():
+            script_name = "5_start_backend_prod.sh"
+            context = "production"
+        else:
+            return jsonify({
+                "error": "Cannot determine context (development/production) from path",
+                "path": current_path_str
+            }), 400
+
+        script_path = current_dir / script_name
+
+        # Verify script exists
+        if not script_path.exists():
+            return jsonify({
+                "error": f"Start script not found: {script_name}",
+                "path": str(script_path)
+            }), 404
+
+        logger.info(f"[SETTINGS] Backend restart requested ({context})")
+        logger.info(f"[SETTINGS] Will execute: {script_path}")
+
+        # Function to execute restart after delay (allows response to be sent)
+        def delayed_restart():
+            import time
+            time.sleep(1)  # Wait 1 second for response to be sent
+            try:
+                logger.info(f"[SETTINGS] Executing restart script: {script_path}")
+
+                # Try to open in a new terminal window for visibility
+                terminal_commands = [
+                    ['gnome-terminal', '--', 'bash', str(script_path)],
+                    ['xterm', '-e', 'bash', str(script_path)],
+                    ['konsole', '-e', 'bash', str(script_path)],
+                ]
+
+                terminal_opened = False
+                for cmd in terminal_commands:
+                    try:
+                        subprocess.Popen(cmd, cwd=str(current_dir))
+                        terminal_opened = True
+                        logger.info(f"[SETTINGS] Opened restart script in terminal: {cmd[0]}")
+                        break
+                    except FileNotFoundError:
+                        continue
+
+                # Fallback: Execute directly if no terminal found
+                if not terminal_opened:
+                    logger.warning("[SETTINGS] No terminal emulator found, executing directly")
+                    subprocess.Popen(
+                        ['bash', str(script_path)],
+                        cwd=str(current_dir),
+                        start_new_session=True
+                    )
+
+            except Exception as e:
+                logger.error(f"[SETTINGS] Error executing restart script: {e}")
+
+        # Start restart in background thread
+        restart_thread = threading.Thread(target=delayed_restart, daemon=True)
+        restart_thread.start()
+
+        return jsonify({
+            "success": True,
+            "message": f"Backend restart initiated ({context})",
+            "script": script_name,
+            "note": "Backend will restart in 1 second. Please wait for reconnection."
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error in restart_backend: {e}")
         return jsonify({"error": str(e)}), 500

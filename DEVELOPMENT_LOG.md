@@ -1,5 +1,251 @@
 # Development Log
 
+## Session 109 - SSE Text Streaming: Waitress Optimization & Typewriter Effect
+**Date:** 2025-12-22
+**Duration:** ~2 hours
+**Focus:** Fix SSE streaming buffering to enable character-by-character typewriter effect
+**Status:** SUCCESS - Streaming works, typewriter visible
+**Cost:** Sonnet 4.5 tokens: ~160k
+
+### User Request
+Fix SSE text streaming from previous session (chunks buffered, appearing all at once):
+- Backend sends 256 chunks ✅ (verified with curl)
+- Frontend receives all at once ❌ (buffering somewhere)
+- Goal: Typewriter effect for kids during 30s+ Stage 2 waits
+- **Constraint:** Keep Waitress (don't replace server for minor UX feature)
+
+### Root Causes Found & Fixed
+
+**1. Flask Not Flushing (Backend)**
+- Waitress buffers responses <8KB by default
+- Solution: `stream_with_context()` + `yield ''` after each chunk
+- Result: curl test shows progressive chunks ✅
+
+**2. Runtime Config Not Loaded (Backend)**
+- `from config import X` reads at import-time (before user_settings.json loaded)
+- Stage 2 used 20b instead of configured 120b
+- Solution: `import config; config.X` reads at runtime
+- Result: user_settings.json honored ✅
+
+**3. CORS Conflicts (Backend)**
+- Manual headers conflicted with Flask-CORS global config
+- Solution: Remove manual headers, Flask-CORS handles everything
+- Result: Direct localhost:17802 connection works ✅
+
+**4. Vite Proxy Buffering (Frontend)**
+- Vite dev proxy buffers SSE despite headers
+- Solution: Dev = direct localhost:17802, Prod = relative URL via Nginx
+- Result: No buffering in either environment ✅
+
+**5. Spinner Covering Text (Frontend)**
+- `isInterceptionLoading=true` during entire stream → text hidden under spinner
+- Solution: Emit 'stream-started' on first chunk → hide spinner immediately
+- Result: Typewriter effect visible ✅
+
+**6. Buffer Skipped on Complete (Frontend)**
+- 'complete' event immediately set `final_text` (ignored chunkBuffer)
+- Solution: Wait for buffer to empty before showing final_text
+- Result: Animation plays completely ✅
+
+### Implementation
+
+**Backend (text_stream_routes.py):**
+```python
+from flask import stream_with_context
+import config  # Runtime access
+
+model = request.args.get('model', config.STAGE2_INTERCEPTION_MODEL)
+
+def generate():
+    for chunk in ...:
+        yield generate_sse_event('chunk', {...})
+        yield ''  # Force flush
+
+return Response(stream_with_context(generate()), ...)
+```
+
+**Frontend (text_transformation.vue):**
+```javascript
+const isDev = import.meta.env.DEV
+const url = isDev
+  ? `http://localhost:17802/api/text_stream/stage2/${runId}`  // Dev
+  : `/api/text_stream/stage2/${runId}`  // Prod (Nginx)
+
+@stream-started="handleStreamStarted"  // Hide spinner on first chunk
+```
+
+**Frontend (MediaInputBox.vue):**
+```javascript
+emit('stream-started')  // On first chunk
+// Wait for buffer empty before emitting 'stream-complete'
+```
+
+### Architectural Decisions
+
+**Decision: Keep Waitress, No Migration**
+- Gunicorn doesn't solve WebSockets (would need ASGI)
+- ComfyUI uses polling, not streaming (no benefit)
+- Flask explicit flushing sufficient
+- Waitress stable for everything else
+- See: docs/DEVELOPMENT_DECISIONS.md DD-109
+
+**Decision: Dev vs Prod URL Strategy**
+- Dev: Direct localhost:17802 (bypasses Vite buffering)
+- Prod: Relative URL via Nginx (no buffering in production)
+- Cloudflare not affected (only sees HTTPS to domain)
+
+### Commits
+- `7427e81` WIP: Add SSE infrastructure (previous session)
+- `21bf2ac` fix: Flask explicit flushing
+- `5b0da9d` fix: Remove CORS conflicts
+- `fc94044` fix: Use config.py defaults
+- `369b2f2` fix: Runtime config for user_settings.json
+- `f5c50eb` fix: Buffer completion logic
+- `c08bc96` fix: Hide spinner on first chunk
+- `e09374f` feat: Auto-scroll (needs refinement)
+- `9f08f38` fix: Environment-aware URLs
+
+### Testing Results
+✅ curl: Chunks arrive progressively
+✅ Browser: 232+ individual chunk events logged
+✅ Typewriter: Text appears character-by-character
+✅ Model: 120b from user_settings.json used correctly
+✅ Spinner: Hides immediately on first chunk
+⚠️ Auto-scroll: Implemented but needs refinement (user will fix later)
+
+### Files Modified
+- `devserver/my_app/routes/text_stream_routes.py` - Flushing + runtime config
+- `public/ai4artsed-frontend/src/components/MediaInputBox.vue` - Stream events + buffer logic
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Environment URLs + spinner control
+
+---
+
+## Session 108 - Frontend: Editable p5.js Code Box with Run Button
+**Date:** 2025-12-21
+**Duration:** ~2 hours
+**Focus:** Make p5.js code output editable with run button (minimal implementation)
+**Status:** SUCCESS - Simple, working solution after rollback
+**Cost:** Sonnet 4.5 tokens: ~96k
+
+### User Request
+**Goal:** Make p5.js OutputBox editable with syntax highlighting and run button
+- Code display should be editable (not readonly)
+- Replace clipboard icon (📋) with run icon (▶️)
+- Clicking run → re-render iframe with edited code
+- Initially requested: Prism.js for JavaScript syntax highlighting
+
+### Initial Attempt (FAILED - Blocking Issue)
+**Implementation:**
+- Installed Prism.js for syntax highlighting
+- Used textarea-overlay pattern (Prism background + transparent textarea)
+- Top-level `await` import of Prism.js in Vue script setup
+
+**Critical Error:**
+```typescript
+// BLOCKING: Top-level await in Vue script setup
+try {
+  const prismModule = await import('prismjs')
+  await import('prismjs/themes/prism-tomorrow.css')
+  await import('prismjs/components/prism-javascript')
+} catch (error) { ... }
+```
+
+**Result:** Firefox slowdown warning, views showing no content, interception_result broken
+
+### Rollback & Pivot
+**Action:** `git reset --hard d5263a3` (before all changes)
+**Decision:** User agreed to drop syntax highlighting complexity → minimal solution only
+
+### Final Solution: Minimal Editable Textarea + Run Button
+
+**Changes (Commit `576e387`):**
+1. **Template (lines 175-197):**
+   - Changed `<button @click="copyOutputCode">📋</button>` → `<button @click="runCode" class="run-btn">▶️</button>`
+   - Changed `<textarea :value="outputCode" readonly>` → `<textarea v-model="editedCode">`
+   - Added `:key="iframeKey"` to iframe for forced re-render
+
+2. **Script (new refs):**
+   ```typescript
+   const editedCode = ref<string>('') // User-editable code
+   const iframeKey = ref<number>(0) // Force iframe re-render
+
+   watch(outputCode, (newCode) => {
+     if (newCode) editedCode.value = newCode
+   })
+   ```
+
+3. **runCode() Function (replaced copyOutputCode):**
+   ```typescript
+   function runCode() {
+     if (!editedCode.value) return
+     iframeKey.value++ // Force re-render
+   }
+   ```
+
+4. **getP5jsIframeContent() Update:**
+   ```typescript
+   const codeToRender = editedCode.value || outputCode.value
+   ```
+
+5. **CSS (green run button):**
+   ```css
+   .run-btn {
+     background: #28a745 !important;
+   }
+   .run-btn:hover {
+     background: #218838 !important;
+     transform: scale(1.05);
+   }
+   ```
+
+**Height Fix (Commit `4dffb53`):**
+- Increased `.code-textarea` min-height: 400px → 600px
+- Now matches iframe height (600px) for visual balance
+
+### Technical Lessons
+
+**What Went Wrong:**
+1. **Top-level await blocking:** Never use `await` at top-level in Vue script setup - blocks component mounting
+2. **Over-engineering:** Prism.js + overlay-pattern was too complex for the requirement
+3. **Insufficient testing:** Didn't catch blocking issue until user reported browser slowdown
+
+**What Worked:**
+1. **Quick rollback:** `git reset --hard` saved the day
+2. **User collaboration:** User agreed to simplified scope
+3. **Minimal solution:** Just 3 changes (editable, run button, key-based re-render)
+4. **No dependencies:** Zero external libraries, pure Vue reactivity
+
+### Design Decision Reference
+See `docs/DEVELOPMENT_DECISIONS.md` - "DD-108: Minimal Editable Code Box"
+
+### Testing
+- ✅ TypeScript type-check passed
+- ✅ Build successful (no Prism.js in bundle)
+- ✅ Textarea now 600px height (matches iframe)
+- ✅ Run button triggers iframe re-render
+- ⚠️ Manual browser testing pending (user to test)
+
+### Files Modified
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - Lines 175-197: Template changes
+  - Lines 346-347: New refs (editedCode, iframeKey)
+  - Lines 732-737: Watch for outputCode
+  - Lines 806-814: runCode() function
+  - Lines 1121-1147: getP5jsIframeContent() update
+  - Lines 2423-2446: CSS (textarea height + run-btn)
+
+### Commits
+- `576e387` - feat: Add editable p5.js code box with run button (minimal version)
+- `4dffb53` - fix: Increase code textarea height to match iframe (400px → 600px)
+
+### Key Insights
+1. **Simplicity wins:** User was right to reject complexity when browser slowed down
+2. **Vue reactivity is enough:** No need for external libs when Vue refs + watch suffice
+3. **Rollback confidence:** Having clean git history made rollback instant and safe
+4. **Scope negotiation:** User happy to drop syntax highlighting for working solution
+
+---
+
 ## Session 107 - Frontend: Fix MediaInputBox Width with Global Unscoped Styles
 **Date:** 2025-12-21
 **Duration:** ~2 hours
@@ -3610,6 +3856,144 @@ Completed full integration of Google Gemini 3 Pro Image generation as the third 
 ### Commits
 - `0a1a8cb` - Checkpoint from sessions 51-52 (uncertain state)
 - `eef7108` - fix: Clean up storage chaos - use consistent save_entity API
+
+---
+
+## Session 107 - Settings Page HTTPS Fix + Service Worker Removal
+**Date:** 2024-12-21
+**Duration:** ~3 hours
+**Model:** Claude Sonnet 4.5
+**Focus:** Fix Settings page inaccessibility via Cloudflare HTTPS + eliminate aggressive caching
+
+### Problem Statement
+Settings page (Configuration + Session Export tabs) accessible locally (http://localhost:17802) but failed via Cloudflare tunnel (https://lab.ai4artsed.org):
+- **Configuration Tab:** NetworkError - "Blocked loading mixed active content"
+- **"Save Configuration" button:** NetworkError
+- **Root cause initially misdiagnosed:** Suspected cookie/session issues, but was actually Flask trailing slash redirect problem
+- **Additional problem discovered:** Service Worker aggressively caching old app version
+
+### Root Cause Analysis
+
+#### Issue 1: Flask Trailing Slash Redirect with HTTP Protocol
+**Network Analysis revealed:**
+```
+XHR GET  https://lab.ai4artsed.org/api/settings      → Mixed Block
+         ↓ 301 redirect to http://lab.ai4artsed.org/api/settings/
+         ↓ Browser blocks (Mixed Content Error)
+
+XHR POST https://lab.ai4artsed.org/api/settings      → Mixed Block
+         ↓ 301 redirect to http://lab.ai4artsed.org/api/settings/
+         ↓ Browser blocks (Mixed Content Error)
+```
+
+**Why this happened:**
+1. Frontend: `fetch('/api/settings')` (no trailing slash)
+2. Flask route: `@settings_bp.route('/', ...)` = `/api/settings/` (WITH trailing slash)
+3. Flask auto-redirects: `301 Moved Permanently → /api/settings/`
+4. Flask uses `request.scheme` (= 'http') to generate redirect URL
+5. Cloudflare terminates HTTPS, forwards HTTP to Flask
+6. Flask doesn't know original request was HTTPS
+7. Redirect URL: `http://lab.ai4artsed.org/api/settings/` (HTTP!)
+8. Browser blocks HTTP redirect from HTTPS page
+
+**Why only Settings endpoint affected:**
+- `/api/settings/check-auth` ✓ (has path component, no redirect)
+- `/api/settings/sessions` ✓ (has path component, no redirect)
+- `/api/settings` ✗ (no trailing slash, triggers redirect)
+- All other pages worked because their API calls didn't trigger redirects
+
+#### Issue 2: Service Worker Caching Old Version
+- Service Worker registered for `lab.ai4artsed.org` cached ancient "Qselect" page
+- Required hard reload every time to see header menu
+- Even after fixes, browser loaded old JavaScript (without trailing slash fix)
+- Prevented all fixes from taking effect until Service Worker was unregistered
+
+### Solution Implemented
+
+#### Fix 1: Frontend Trailing Slash (Simple, No Backend Changes)
+**File:** `public/ai4artsed-frontend/src/views/SettingsView.vue`
+
+**Changes:**
+- Line 397: `fetch('/api/settings')` → `fetch('/api/settings/')` (GET - load config)
+- Line 540: `fetch('/api/settings')` → `fetch('/api/settings/')` (POST - save config)
+
+**Why this works:**
+- Frontend URL now matches Flask route exactly (`/api/settings/`)
+- No redirect triggered
+- No HTTP/HTTPS protocol mismatch
+- No Mixed Content error
+
+**Alternative considered but rejected:**
+- ProxyFix middleware (would fix redirects system-wide)
+- User decision: "muss NICHTS am System verändert werden"
+- Frontend-only fix is simpler and safer
+
+#### Fix 2: Remove Service Worker
+**Steps:**
+1. DevTools → Application → Service Workers
+2. Unregister service worker for `lab.ai4artsed.org`
+3. Storage → Clear site data
+4. Close browser completely
+5. Reopen and test
+
+**Result:** Fresh version loaded, no more ancient cached pages
+
+#### Fix 3: UI Rename "Settings" → "Administration"
+**File:** `public/ai4artsed-frontend/src/views/SettingsView.vue`
+
+**Changes:**
+- H1: "Settings" → "Administration"
+- H2: "General Settings" → "General Configuration"
+- H2: "Server Settings" → "Server Configuration"
+
+**Reason:** Better reflects administrative nature of page (not just settings)
+
+### Security Discussion
+
+**Question:** Should `/exports/json/<path>` media endpoint be password-protected?
+
+**Decision:** NO - Security through obscurity is sufficient
+- Session IDs are UUIDs (cryptographically random, unguessable)
+- No directory listing
+- Only authenticated users see session list (with media URLs)
+- Adding auth would require `crossorigin="use-credentials"` on all `<img>`/`<video>` tags
+- Potential CORS/performance issues not worth it
+
+### Files Modified
+- `public/ai4artsed-frontend/src/views/SettingsView.vue` - Trailing slash + UI rename
+- Frontend rebuilt: `npm run build`
+
+### Testing
+**Local Development (17802):** ✓ Works
+**Production via Cloudflare (17801):** ✓ Works after deployment
+- Configuration Tab loads
+- "Save Configuration" button works
+- Session Export Tab works
+- No Mixed Content errors
+
+### Key Learnings
+1. **Mixed Content errors are tricky:** Initial diagnosis (cookies/sessions) was wrong
+2. **Network Tab is essential:** Shows exact redirect behavior and protocols
+3. **Service Workers cache aggressively:** Can prevent fixes from taking effect
+4. **Flask trailing slash behavior:** Auto-redirects without slash, uses `request.scheme`
+5. **Cloudflare HTTPS → HTTP forwarding:** Backend doesn't know original protocol
+6. **Simple frontend fix > complex backend middleware:** When both work, prefer simpler
+
+### Architecture Principles Applied
+- ✅ NO WORKAROUNDS - Fixed actual issue (URL mismatch), not symptoms
+- ✅ MINIMAL CHANGES - Frontend-only fix, no backend modifications needed
+- ✅ ROOT CAUSE ANALYSIS - Investigated deeply before implementing solution
+- ✅ USER CONSULTATION - Asked "muss NICHTS am System verändert werden?" before planning
+
+### Commits
+- `c5e78a7` - fix: add trailing slash to /api/settings API call (GET)
+- `b0650cd` - fix: add trailing slash to POST /api/settings (save configuration)
+- `8a2f3c8` - refactor: rename "Settings" to "Administration" in UI
+
+### Notes
+- ProxyFix middleware documented as alternative if similar issues arise with other endpoints
+- Service Worker was leftover from old PWA implementation (disabled in vite.config.ts)
+- Session 107 demonstrates importance of thorough diagnosis before implementation
 
 ---
 

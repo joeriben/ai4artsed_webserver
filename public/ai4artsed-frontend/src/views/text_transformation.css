@@ -1,0 +1,1181 @@
+/* ============================================================================
+   text_transformation.vue Styles
+   Extracted from inline <style scoped> for maintainability
+   ============================================================================ */
+
+/* ============================================================================
+   Root Container
+   ============================================================================ */
+
+.text-transformation-view {
+  min-height: 100%;
+  background: #0a0a0a;
+  color: #ffffff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ============================================================================
+   Phase 2a: Vertical Flow
+   ============================================================================ */
+
+.phase-2a {
+  max-width: clamp(320px, 90vw, 1100px);
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2rem);
+  padding-top: clamp(1rem, 3vw, 2rem); /* Reduced - App.vue header is smaller now */
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1rem, 3vh, 2rem);
+}
+
+/* Section Titles */
+.section-title {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 1rem 0;
+  color: transparent;
+  -webkit-text-stroke: 2px #FFB300;
+  text-stroke: 2px #FFB300;
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6),
+               0 0 20px rgba(255, 179, 0, 0.4),
+               0 0 30px rgba(255, 179, 0, 0.2);
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================================================
+   Section 1: Input + Context (Side by Side)
+   ============================================================================ */
+
+.input-context-section {
+  display: flex;
+  gap: clamp(1rem, 3vw, 2rem);
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.input-context-section .media-input-box {
+  flex: 0 1 480px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.bubble-card {
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: clamp(12px, 2vw, 20px);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  transition: all 0.3s ease;
+}
+
+.bubble-card.filled {
+  border-color: rgba(102, 126, 234, 0.6);
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.bubble-card.required {
+  border-color: rgba(255, 193, 7, 0.6);
+  background: rgba(255, 193, 7, 0.05);
+  animation: pulse-required 2s ease-in-out infinite;
+}
+
+/* Expanded state for inline editing */
+.bubble-card.expanded {
+  min-height: clamp(200px, 30vh, 300px);
+  z-index: 100;
+  border-color: rgba(102, 126, 234, 0.8);
+  background: rgba(102, 126, 234, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Info bubble for no-optimization message */
+.info-bubble {
+  padding: 1rem 1.5rem;
+  margin: 1rem 0;
+  background: rgba(102, 126, 234, 0.1);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.info-bubble .bubble-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.info-bubble p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Input-bubble styles moved to MediaInputBox component */
+
+/* Expanded textarea (inline editing) - unused, kept for potential future use */
+.expanded-textarea {
+  width: 100%;
+  min-height: clamp(120px, 20vh, 180px);
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(102, 126, 234, 0.6);
+  border-radius: 8px;
+  color: white;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  padding: clamp(0.75rem, 2vw, 1rem);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: all 0.2s ease;
+}
+
+.expanded-textarea:focus {
+  outline: none;
+  border-color: rgba(102, 126, 234, 0.9);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.expanded-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Context Preview Area */
+.preview-area {
+  min-height: clamp(60px, 10vh, 80px);
+  cursor: pointer;
+  padding: clamp(0.5rem, 1.5vw, 0.75rem);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  transition: background 0.2s ease;
+  margin-bottom: 0.75rem;
+}
+
+.preview-area:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.preview-area.large {
+  min-height: clamp(80px, 12vh, 100px);
+}
+
+.preview-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.placeholder-text {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ============================================================================
+   Section 2: Category Bubbles (Horizontal Row)
+   ============================================================================ */
+
+.category-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.category-bubbles-row {
+  display: flex;
+  flex-direction: row;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.category-bubble {
+  width: clamp(70px, 12vw, 90px);
+  height: clamp(70px, 12vw, 90px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(30, 30, 30, 0.9);
+  border: 3px solid var(--bubble-color, rgba(255, 255, 255, 0.3));
+  border-radius: 50%;
+
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.category-bubble:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 20px var(--bubble-color);
+  border-width: 4px;
+}
+
+.category-bubble.selected {
+  transform: scale(1.15);
+  background: var(--bubble-color);
+  box-shadow: 0 0 30px var(--bubble-color),
+              0 0 60px var(--bubble-color);
+  border-color: #ffffff;
+}
+
+.category-bubble:focus-visible {
+  outline: 3px solid rgba(102, 126, 234, 0.8);
+  outline-offset: 4px;
+}
+
+.category-bubble:active {
+  transform: scale(0.95);
+}
+
+.category-bubble.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(1);
+}
+
+.bubble-emoji-small {
+  font-size: clamp(2rem, 4.5vw, 2.5rem);
+  line-height: 1;
+  transition: filter 0.3s ease;
+}
+
+.category-bubble.selected .bubble-emoji-small {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+/* ============================================================================
+   Section 3: Config Bubbles (Horizontal Row Below Categories)
+   ============================================================================ */
+
+.config-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.config-bubbles-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.config-bubbles-row {
+  display: inline-flex;
+  flex-direction: row;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  justify-content: center;
+  flex-wrap: wrap;
+  /* Configs centered below selected category */
+  max-width: fit-content;
+}
+
+.config-bubble {
+  position: relative;
+  z-index: 1;
+  width: clamp(80px, 12vw, 100px);
+  height: clamp(80px, 12vw, 100px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(30, 30, 30, 0.9);
+  border: 3px solid var(--bubble-color, rgba(255, 255, 255, 0.3));
+  border-radius: 50%;
+
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.config-bubble:hover:not(.disabled):not(.loading),
+.config-bubble.hovered {
+  transform: scale(2.0);
+  background: rgba(20, 20, 20, 0.9);
+  box-shadow: 0 0 30px var(--bubble-color);
+  z-index: 100;
+}
+
+.config-bubble.selected {
+  transform: scale(1.1);
+  background: var(--bubble-color);
+  box-shadow: 0 0 30px var(--bubble-color);
+  border-color: #ffffff;
+}
+
+.config-bubble.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.config-bubble.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.8);
+}
+
+.bubble-emoji-medium {
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  line-height: 1;
+}
+
+.bubble-logo {
+  width: clamp(72px, 11vw, 92px);
+  height: clamp(72px, 11vw, 92px);
+  object-fit: contain;
+}
+
+.config-bubble.light-bg {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.config-bubble.light-bg.selected {
+  background: var(--bubble-color);
+}
+
+/* ============================================================================
+   Hover info overlay - Mathematical precision for circular constraint
+   ============================================================================
+
+   DESIGN CONSTRAINTS:
+   - Base bubble: 80-100px diameter (clamp(80px, 12vw, 100px))
+   - Hover scale: 2.0x → Final diameter: 160-200px
+   - Usable area after 15% padding: 136-170px diameter
+
+   TYPOGRAPHY CALCULATION:
+   - Based on 200px max diameter (worst case)
+   - Usable width: 170px (after padding)
+   - Font size calculation: 170px ÷ expected characters
+     * Model name (~25 chars): 170 ÷ 25 = 6.8px → 0.5rem base
+     * Labels (8 chars): 170 ÷ 30 (with stars) = 5.6px → 0.45rem
+     * Stars (★ = 1.2x width): Account in layout, not font size
+
+   APPROACH:
+   - Use rem units (relative to root font, typically 16px)
+   - Scale with container using percentage-based spacing
+   - Fixed ratios ensure consistency across bubble sizes
+   ============================================================================ */
+
+.bubble-hover-info {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18%; /* Slightly more padding for visual breathing room */
+  color: white;
+  z-index: 10;
+  pointer-events: none;
+  gap: 0.3rem; /* Increased spacing between header and star rows */
+}
+
+.hover-info-name {
+  /*
+   * Model name (longest: "Stable Diffusion 3.5 Large" = 30 chars)
+   * Target: 2-3 lines max within 64% of diameter
+   * Calculation: (200px × 0.64) ÷ 30 chars ÷ 1.3 line-height = ~3.3px/char → 0.55rem
+   */
+  font-size: 0.5rem; /* 8px at 16px root */
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  margin-bottom: 0;
+  letter-spacing: -0.01em; /* Tighter spacing for long names */
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 100%;
+  word-wrap: break-word;
+  hyphens: manual;
+}
+
+.hover-info-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* No gap between Qual and Speed rows */
+  width: 100%;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.18rem; /* Halved gap between label and stars */
+  width: 100%;
+  line-height: 1; /* Eliminate extra vertical spacing */
+  margin: 0;
+  padding: 0;
+}
+
+.meta-label {
+  /*
+   * Labels: "Quality" (7 chars), "Speed" (5 chars)
+   * Target: Left-aligned, ~35% of row width
+   * Font calculation: Smaller than value, but readable
+   */
+  font-size: 0.45rem; /* 7.2px at 16px root */
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 400;
+  text-align: left;
+  flex-shrink: 0;
+  flex-basis: 35%;
+  letter-spacing: -0.01em;
+}
+
+.meta-value {
+  /*
+   * Star values: Larger for emphasis (most important orientation)
+   * Filled stars: gold, unfilled stars: light gray
+   */
+  font-size: 0.65rem; /* Increased from 0.5rem for better visibility */
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  flex-basis: 60%;
+  letter-spacing: 0.02em;
+}
+
+.stars-filled {
+  color: #FFD700;
+}
+
+.stars-unfilled {
+  color: rgba(150, 150, 150, 0.5);
+}
+
+.meta-value.duration-only {
+  /*
+   * Duration: "⏱ 12-20 sec" (~12 chars including icon)
+   * Target: Centered, full width, unified smaller font
+   */
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.45rem;
+  flex-basis: auto;
+  margin-top: 0.25rem;
+  line-height: 1;
+}
+
+/* Hide logo/emoji when hovering */
+.config-bubble.hovered .bubble-logo,
+.config-bubble.hovered .bubble-emoji-medium {
+  opacity: 0;
+  display: none;
+}
+
+.loading-indicator {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+}
+
+.spinner {
+  width: clamp(20px, 3vw, 28px);
+  height: clamp(20px, 3vw, 28px);
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================================================
+   Section 3 & 3.5: Interception + Optimization Preview
+   ============================================================================ */
+
+.interception-section,
+.optimization-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.interception-section .media-input-box,
+.optimization-section .media-input-box {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.interception-preview {
+  width: 100%;
+  max-width: 1000px;
+  max-height: clamp(200px, 30vh, 350px);
+  overflow-y: auto;
+  background: rgba(76, 175, 80, 0.15);
+  border: 3px solid #4a8f4d;
+  box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
+  transition: all 0.3s ease;
+}
+
+.optimization-preview {
+  width: 100%;
+  max-width: 1000px;
+  max-height: clamp(200px, 30vh, 350px);
+  overflow-y: auto;
+  background: rgba(255, 152, 0, 0.15);
+  border: 3px solid #FF9800;
+  box-shadow: 0 0 30px rgba(255, 152, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.interception-preview.empty,
+.optimization-preview.empty {
+  background: rgba(20, 20, 20, 0.5);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  box-shadow: none;
+}
+
+.interception-preview.loading,
+.optimization-preview.loading {
+  background: rgba(20, 20, 20, 0.7);
+  border: 2px solid rgba(79, 172, 254, 0.4);
+  box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+}
+
+.interception-preview .bubble-label,
+.optimization-preview .bubble-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.interception-preview.empty .bubble-label,
+.interception-preview.loading .bubble-label,
+.optimization-preview.empty .bubble-label,
+.optimization-preview.loading .bubble-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.interception-preview .bubble-textarea,
+.optimization-preview .bubble-textarea {
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+}
+
+.interception-preview.empty .bubble-textarea,
+.optimization-preview.empty .bubble-textarea {
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  min-height: 120px;
+}
+
+.spinner-large {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #4facfe;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  margin: 0;
+}
+
+/* ============================================================================
+   Start Button Container
+   ============================================================================ */
+
+.start-button-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 3vw, 2rem);
+  flex-wrap: wrap;
+}
+
+/* ============================================================================
+   Start Button
+   ============================================================================ */
+
+.start-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  padding: clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.5rem);
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-weight: 700;
+  background: #000000;
+  color: #FFB300;
+  border: 3px solid #FFB300;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(255, 179, 0, 0.4),
+              0 4px 15px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6);
+  transition: all 0.3s ease;
+}
+
+.button-arrows {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+}
+
+.button-arrows-left {
+  animation: arrow-pulse-left 1.5s ease-in-out infinite;
+}
+
+.button-arrows-right {
+  animation: arrow-pulse-right 1.5s ease-in-out infinite;
+}
+
+.button-text {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+}
+
+.start-button:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 0 30px rgba(255, 179, 0, 0.6),
+              0 6px 25px rgba(0, 0, 0, 0.6);
+  border-color: #FF8F00;
+}
+
+.start-button:active {
+  transform: scale(0.98);
+}
+
+.start-button.disabled,
+.start-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.8);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.start-button.disabled .button-arrows,
+.start-button:disabled .button-arrows {
+  animation: none;
+  opacity: 0.3;
+}
+
+/* Safety Approved Stamp */
+.safety-stamp {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stamp-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
+  background: rgba(76, 175, 80, 0.15);
+  border: 2px solid #4CAF50;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.stamp-icon {
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  color: #4CAF50;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.stamp-text {
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+  font-weight: 700;
+  color: #4CAF50;
+  text-align: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================================
+   Phase 2b: Horizontal Pipeline
+   ============================================================================ */
+
+.phase-2b {
+  width: 100%;
+  max-width: clamp(800px, 90vw, 1200px);
+  padding: clamp(2rem, 5vh, 3rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(2rem, 4vh, 3rem);
+}
+
+.pipeline-title {
+  text-align: center;
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  color: #ffffff;
+  margin: 0;
+}
+
+.pipeline-stages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 2vw, 2rem);
+  flex-wrap: wrap;
+}
+
+.stage-container {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1vw, 1rem);
+}
+
+.stage-bubble {
+  position: relative;
+  width: clamp(70px, 12vw, 90px);
+  height: clamp(70px, 12vw, 90px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  background: rgba(30, 30, 30, 0.9);
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+
+  transition: all 0.4s ease;
+}
+
+.stage-bubble.waiting {
+  opacity: 0.5;
+}
+
+.stage-bubble.processing {
+  border-color: var(--stage-color);
+  box-shadow: 0 0 20px var(--stage-color);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.stage-bubble.completed {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+}
+
+.stage-emoji {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  line-height: 1;
+}
+
+.stage-label {
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: clamp(8px, 1.5vw, 12px);
+  right: clamp(8px, 1.5vw, 12px);
+  width: clamp(20px, 3vw, 28px);
+  height: clamp(20px, 3vw, 28px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+}
+
+.status-spinner {
+  width: clamp(16px, 2.5vw, 20px);
+  height: clamp(16px, 2.5vw, 20px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--stage-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.status-check {
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.stage-arrow {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Output Frame (Always visible) */
+.output-frame {
+  width: 100%;
+  max-width: 1000px;
+  margin: clamp(1rem, 3vh, 2rem) auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 3vh, 2rem);
+  background: rgba(30, 30, 30, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: clamp(12px, 2vw, 20px);
+  transition: all 0.3s ease;
+}
+
+.output-frame.empty {
+  min-height: clamp(320px, 40vh, 450px);  /* Only for empty state */
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(20, 20, 20, 0.5);
+}
+
+.output-frame.generating {
+  min-height: clamp(320px, 40vh, 450px);  /* Only for animation */
+  border: 2px solid rgba(76, 175, 80, 0.6);
+  background: rgba(30, 30, 30, 0.9);
+  box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
+}
+
+/* Output Placeholder */
+.output-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  opacity: 0.4;
+}
+
+.placeholder-icon {
+  font-size: clamp(3rem, 8vw, 5rem);
+  opacity: 0.5;
+}
+
+.placeholder-text {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  margin: 0;
+}
+
+/* Generation Animation Container */
+.generation-animation-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Final Output */
+.final-output {
+  width: 100%;
+  text-align: center;
+}
+
+.final-output h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+  color: #4CAF50;
+}
+
+.output-image {
+  max-width: 100%;
+  max-height: clamp(300px, 40vh, 500px);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.output-image:hover {
+  transform: scale(1.02);
+}
+
+/* Video Output */
+.output-video {
+  width: 100%;
+  max-height: 500px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Audio Output */
+.output-audio {
+  width: 100%;
+  max-height: 500px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Code Output in Stage 2 (after optimization) */
+.code-output-stage2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+  padding: 2rem;
+  margin: 2rem 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Code Output (p5.js) */
+.code-output-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+  padding: 1rem;
+}
+
+.code-display,
+.code-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.code-display h3,
+.code-preview h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.code-textarea {
+  width: 100%;
+  min-height: 600px;
+  padding: 1rem;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border: 1px solid #3e3e3e;
+  border-radius: 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* Run button styling */
+.run-btn {
+  background: #28a745 !important;
+  transition: all 0.2s ease;
+}
+
+.run-btn:hover {
+  background: #218838 !important;
+  transform: scale(1.05);
+}
+
+.p5js-iframe {
+  width: 100%;
+  height: 600px;
+  border: 1px solid #3e3e3e;
+  border-radius: 8px;
+  background: white;
+}
+
+/* 3D Model Output */
+.model-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 3rem;
+}
+
+.model-icon {
+  font-size: 5rem;
+  opacity: 0.8;
+}
+
+.download-button {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.download-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.model-hint {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Unknown Media Fallback */
+.unknown-media {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem;
+}
+
+/* Fullscreen Modal */
+.fullscreen-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fullscreen-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.close-fullscreen {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  width: 4rem;
+  height: 4rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid white;
+  color: white;
+  font-size: 2.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-fullscreen:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+/* ============================================================================
+   Transitions
+   ============================================================================ */
+
+/* Slide Down */
+.slide-down-enter-active {
+  animation: slideDown 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Slide Up */
+.slide-up-enter-active {
+  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fade */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Phase Transition */
+.phase-transition-leave-active {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.phase-transition-enter-active {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+}
+
+.phase-transition-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(-20px);
+}
+
+.phase-transition-enter-from {
+  opacity: 0;
+  transform: scale(0.95) translateY(20px);
+}
+
+/* Modal Fade */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+/* ============================================================================
+   Responsive: Mobile Adjustments
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .input-context-section {
+    flex-direction: column;
+  }
+
+  .pipeline-stages {
+    flex-direction: column;
+  }
+
+  .stage-arrow {
+    transform: rotate(90deg);
+  }
+}
+
+/* iPad 1024×768 Optimization */
+@media (min-width: 1024px) and (max-height: 768px) {
+  .phase-2a {
+    padding: 1.5rem;
+    gap: 1.25rem;
+  }
+}
+
+/* Output box, action toolbar, and analysis styles moved to MediaOutputBox.vue component */

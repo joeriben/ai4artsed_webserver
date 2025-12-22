@@ -5,7 +5,7 @@
   <!-- Settings Content (only show if authenticated) -->
   <div v-if="authenticated" class="settings-container">
     <div class="settings-header">
-      <h1>Settings</h1>
+      <h1>Administration</h1>
       <div class="tabs">
         <button
           :class="['tab-btn', { active: activeTab === 'export' }]"
@@ -55,7 +55,7 @@
             <tr>
               <td class="label-cell">Cloud Provider</td>
               <td class="value-cell">
-                <select v-model="selectedProvider">
+                <select v-model="settings.EXTERNAL_LLM_PROVIDER">
                   <option value="none">None (Local only)</option>
                   <option value="bedrock">AWS Bedrock (EU region, DSGVO ✓)</option>
                   <option value="mistral">Mistral AI (EU-based, DSGVO ✓)</option>
@@ -76,7 +76,7 @@
 
       <!-- General Settings -->
       <div class="section">
-        <h2>General Settings</h2>
+        <h2>General Configuration</h2>
         <table class="config-table">
           <tbody>
             <tr>
@@ -119,33 +119,6 @@
                   <span>DSGVO-compliant configuration</span>
                 </label>
                 <span class="help-text">Enforces DSGVO-compliant models (local or AWS Bedrock EU)</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Server Settings -->
-      <div class="section">
-        <h2>Server Settings</h2>
-        <table class="config-table">
-          <tbody>
-            <tr>
-              <td class="label-cell">Host</td>
-              <td class="value-cell">
-                <input type="text" v-model="settings.HOST" class="text-input" />
-              </td>
-            </tr>
-            <tr>
-              <td class="label-cell">Port</td>
-              <td class="value-cell">
-                <input type="number" v-model.number="settings.PORT" class="text-input" />
-              </td>
-            </tr>
-            <tr>
-              <td class="label-cell">Threads</td>
-              <td class="value-cell">
-                <input type="number" v-model.number="settings.THREADS" class="text-input" />
               </td>
             </tr>
           </tbody>
@@ -319,13 +292,22 @@
       <!-- Save Button -->
       <div class="button-row">
         <button @click="saveSettings" class="save-btn">Save Configuration</button>
+        <button @click="restartBackend" class="restart-btn" :disabled="restartInProgress">
+          {{ restartInProgress ? 'Restarting...' : 'Restart Backend' }}
+        </button>
         <span v-if="saveMessage" :class="{'save-message': true, 'error-message': !saveSuccess}">
           {{ saveMessage }}
+        </span>
+        <span v-if="restartMessage" :class="{'save-message': true, 'error-message': !restartSuccess}">
+          {{ restartMessage }}
         </span>
       </div>
 
       <div class="info-note">
-        Note: Backend restart required after saving changes.
+        <span v-if="detectedContext">
+          Detected: <strong>{{ detectedContext }}</strong> mode
+          (will use {{ detectedContext === 'development' ? '3_start_backend_dev.sh' : '5_start_backend_prod.sh' }})
+        </span>
       </div>
       </div>
     </div>
@@ -347,7 +329,6 @@ const error = ref(null)
 const settings = ref({})
 const matrix = ref({})
 const selectedVramTier = ref('vram_24')
-const selectedProvider = ref('mistral')
 const openrouterKey = ref('')
 const openrouterKeyMasked = ref('')
 const anthropicKey = ref('')
@@ -359,6 +340,10 @@ const mistralKeyMasked = ref('')
 const awsCredentialsConfigured = ref(false)
 const saveMessage = ref('')
 const saveSuccess = ref(true)
+const restartInProgress = ref(false)
+const restartMessage = ref('')
+const restartSuccess = ref(true)
+const detectedContext = ref('')
 
 const modelLabels = {
   'STAGE1_TEXT_MODEL': 'Stage 1 - Text Model',
@@ -454,14 +439,14 @@ async function loadSettings() {
 }
 
 function fillFromPreset() {
-  if (!matrix.value[selectedVramTier.value] || !matrix.value[selectedVramTier.value][selectedProvider.value]) {
+  if (!matrix.value[selectedVramTier.value] || !matrix.value[selectedVramTier.value][settings.value.EXTERNAL_LLM_PROVIDER]) {
     saveMessage.value = 'Preset not found'
     saveSuccess.value = false
     setTimeout(() => { saveMessage.value = '' }, 3000)
     return
   }
 
-  const preset = matrix.value[selectedVramTier.value][selectedProvider.value]
+  const preset = matrix.value[selectedVramTier.value][settings.value.EXTERNAL_LLM_PROVIDER]
   const presetModels = preset.models
 
   // Fill model fields from preset
@@ -471,10 +456,7 @@ function fillFromPreset() {
     }
   })
 
-  // Fill EXTERNAL_LLM_PROVIDER and DSGVO_CONFORMITY from preset
-  if (preset.EXTERNAL_LLM_PROVIDER !== undefined) {
-    settings.value.EXTERNAL_LLM_PROVIDER = preset.EXTERNAL_LLM_PROVIDER
-  }
+  // Fill DSGVO_CONFORMITY from preset (EXTERNAL_LLM_PROVIDER already set via dropdown)
   if (preset.DSGVO_CONFORMITY !== undefined) {
     settings.value.DSGVO_CONFORMITY = preset.DSGVO_CONFORMITY
   }
@@ -612,6 +594,43 @@ async function saveSettings() {
   } catch (e) {
     saveMessage.value = 'Error: ' + e.message
     saveSuccess.value = false
+  }
+}
+
+async function restartBackend() {
+  try {
+    restartInProgress.value = true
+    restartMessage.value = 'Initiating restart...'
+    restartSuccess.value = true
+
+    const response = await fetch('/api/settings/restart-backend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+    restartMessage.value = '✓ ' + data.message
+    restartSuccess.value = true
+    detectedContext.value = data.script.includes('dev') ? 'development' : 'production'
+
+    // Keep message visible for 3 seconds
+    setTimeout(() => {
+      restartMessage.value = ''
+      restartInProgress.value = false
+    }, 3000)
+
+  } catch (e) {
+    restartMessage.value = 'Error: ' + e.message
+    restartSuccess.value = false
+    restartInProgress.value = false
+    setTimeout(() => {
+      restartMessage.value = ''
+    }, 5000)
   }
 }
 
@@ -841,6 +860,27 @@ onMounted(() => {
 
 .save-btn:hover {
   background: #888;
+}
+
+.restart-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: 1px solid #3a7bc8;
+  padding: 8px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 10px;
+}
+
+.restart-btn:hover:not(:disabled) {
+  background: #3a7bc8;
+}
+
+.restart-btn:disabled {
+  background: #999;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .save-message {

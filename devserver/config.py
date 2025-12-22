@@ -277,6 +277,8 @@ SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)
 # Feature Flags
 ENABLE_VALIDATION_PIPELINE = True
 ENABLE_AUTO_EXPORT = True
+ENABLE_TEXT_STREAMING = True  # Enable character-by-character text streaming (typewriter effect)
+TEXT_STREAM_SPEED_MS = 30  # Milliseconds per character in frontend typewriter display (~33 chars/sec)
 NO_TRANSLATE = False  # Set to True to skip translation of prompts
 LOOP_GENERATION = 1
 LOOP_COMFYUI = 1
