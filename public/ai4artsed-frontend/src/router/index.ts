@@ -46,6 +46,12 @@ const router = createRouter({
       component: () => import('../views/image_transformation.vue'),
     },
     {
+      path: '/image-image-transformation',
+      name: 'image-image-transformation',
+      // Dual image-to-X pipeline (image + image)
+      component: () => import('../views/image_pair_transformation.vue'),
+    },
+    {
       path: '/direct',
       name: 'direct',
       // Phase 2: direct pipeline (surrealization) visualization
