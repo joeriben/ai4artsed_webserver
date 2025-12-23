@@ -492,10 +492,6 @@ def stream_optimization(run_id: str):
                 yield generate_sse_event('error', {'message': 'Missing required parameter: input_text'})
                 return
 
-            if not optimization_instruction:
-                yield generate_sse_event('error', {'message': 'Missing required parameter: optimization_instruction'})
-                return
-
             # Send initial connection event
             yield generate_sse_event('connected', {
                 'stage': 'optimize',
@@ -504,6 +500,22 @@ def stream_optimization(run_id: str):
                 'model': model,
                 'output_config': output_config
             })
+
+            # If no optimization_instruction, just return input unchanged (no LLM call needed)
+            if not optimization_instruction or optimization_instruction.strip() == '':
+                logger.info(f"[TEXT_STREAM] No optimization needed for {run_id}, returning input unchanged")
+
+                # Send complete event immediately with unchanged input
+                yield generate_sse_event('complete', {
+                    'final_text': input_text,
+                    'status': 'completed',
+                    'char_count': len(input_text),
+                    'chunk_count': 0,
+                    'model_used': model,
+                    'output_config': output_config,
+                    'optimization_applied': False
+                })
+                return
 
             logger.info(f"[TEXT_STREAM] Optimization stream started for run {run_id} with model {model}")
 

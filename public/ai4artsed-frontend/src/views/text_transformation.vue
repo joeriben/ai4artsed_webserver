@@ -979,17 +979,29 @@ async function runOptimization() {
     console.log('[DEBUG] Input text:', interceptionResult.value?.substring(0, 50), '...')
     console.log('[DEBUG] Selected config:', selectedConfig.value)
 
-    // STEP 1: Load metadata first (optimization_instruction + duration)
+    // STEP 1: Load metadata first (optimization_instruction only)
     const metaResponse = await axios.get(
       `/api/schema/pipeline/optimize/meta/${selectedConfig.value}`
     )
     optimizationInstruction.value = metaResponse.data.optimization_instruction || ''
-    estimatedDurationSeconds.value = metaResponse.data.estimated_duration_seconds || '30'
 
     console.log('[Optimize] Loaded optimization_instruction:', optimizationInstruction.value.substring(0, 100))
+
+    // Check if optimization is actually needed FIRST
+    if (!optimizationInstruction.value || optimizationInstruction.value.trim() === '') {
+      console.log('[Optimize] No optimization instruction found, skipping optimization phase')
+      optimizedPrompt.value = interceptionResult.value  // Use interception result directly
+      hasOptimization.value = false
+      executionPhase.value = 'optimization_done'
+      return  // Exit early - don't set duration, don't trigger streaming!
+    }
+
+    // Only set duration if we're actually going to optimize
+    estimatedDurationSeconds.value = metaResponse.data.estimated_duration_seconds || '30'
     console.log('[Optimize] Estimated duration:', estimatedDurationSeconds.value)
 
     // STEP 2: Start streaming (clear previous result and set loading state)
+    // (Only reached if optimization_instruction is NOT empty)
     optimizedPrompt.value = ''  // Clear previous result
     isOptimizationLoading.value = true
 
