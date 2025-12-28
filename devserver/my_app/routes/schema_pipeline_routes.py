@@ -2,7 +2,7 @@
 Schema Pipeline Routes - API für Schema-basierte Pipeline-Execution
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response, stream_with_context
 from pathlib import Path
 import logging
 import asyncio
@@ -65,6 +65,19 @@ _output_config_defaults = None
 # Tracks last prompt and seed for iterative image correction
 _last_prompt = None
 _last_seed = None
+
+def generate_sse_event(event_type: str, data: dict) -> str:
+    """
+    Generate Server-Sent Events (SSE) formatted message
+
+    Args:
+        event_type: Event type (e.g., 'connected', 'chunk', 'complete', 'blocked', 'error')
+        data: Event data dictionary
+
+    Returns:
+        SSE-formatted string
+    """
+    return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
 
 def init_schema_engine():
     """Schema-Engine initialisieren"""
@@ -1262,7 +1275,175 @@ def execute_stage3_4():
 
 
 
-@schema_bp.route('/pipeline/execute', methods=['POST'])
+def execute_pipeline_streaming(data: dict):
+    """
+    Execute pipeline with SSE streaming
+    Architecture: DevServer = Smart Orchestrator | Frontend = Dumb Display
+
+    Stages:
+        Stage 1: Safety Check (ALWAYS FIRST, synchronous ~8s)
+        Stage 2: Interception (streaming, character-by-character)
+    """
+    import time
+    import os
+    import requests
+    from config import OLLAMA_API_BASE_URL, STAGE2_INTERCEPTION_MODEL
+
+    # Extract parameters
+    schema_name = data.get('schema', 'overdrive')
+    input_text = data.get('input_text', '')
+    context_prompt = data.get('context_prompt', '')
+    safety_level = data.get('safety_level', 'youth')
+    execution_mode = data.get('execution_mode', 'eco')
+
+    # Generate run ID
+    run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+
+    logger.info(f"[UNIFIED-STREAMING] Starting orchestrated pipeline for run {run_id}")
+    logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}")
+
+    try:
+        # Initialize schema engine
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        # Send initial connection event
+        yield generate_sse_event('connected', {
+            'run_id': run_id,
+            'schema': schema_name,
+            'stages': 2
+        })
+        yield ''  # Force flush
+
+        # ====================================================================
+        # STAGE 1: SAFETY CHECK (ALWAYS FIRST, synchronous)
+        # ====================================================================
+        yield generate_sse_event('stage_start', {
+            'stage': 1,
+            'name': 'Sicherheitsprüfung',
+            'description': '§86a StGB Check'
+        })
+        yield ''
+
+        logger.info(f"[UNIFIED-STREAMING] Stage 1: Running safety check")
+
+        stage1_start = time.time()
+        is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+            input_text,
+            safety_level,
+            execution_mode,
+            pipeline_executor
+        ))
+        stage1_time = (time.time() - stage1_start) * 1000  # ms
+
+        if not is_safe:
+            # BLOCKED by Stage 1 - DevServer decides to abort
+            logger.warning(f"[UNIFIED-STREAMING] Stage 1 BLOCKED for run {run_id}")
+            yield generate_sse_event('blocked', {
+                'stage': 1,
+                'reason': error_message,
+                'message': error_message,
+                'run_id': run_id
+            })
+            yield ''
+            return  # STOP - no Stage 2
+
+        logger.info(f"[UNIFIED-STREAMING] Stage 1 PASSED for run {run_id}")
+        yield generate_sse_event('stage_complete', {
+            'stage': 1,
+            'text': checked_text,
+            'duration_ms': stage1_time
+        })
+        yield ''
+
+        # ====================================================================
+        # STAGE 2: INTERCEPTION (Character-by-Character Streaming)
+        # ====================================================================
+        yield generate_sse_event('stage_start', {
+            'stage': 2,
+            'name': 'KI kombiniert deine Idee',
+            'description': 'Prompt Interception'
+        })
+        yield ''
+
+        logger.info(f"[UNIFIED-STREAMING] Stage 2: Starting Interception streaming")
+
+        # Build full prompt
+        engine = PromptInterceptionEngine()
+
+        # Get meta-prompt from pipeline config or use user-edited context
+        config = pipeline_executor.config_loader.get_config(schema_name)
+        style_prompt = context_prompt if context_prompt else (config.context if config else '')
+
+        full_prompt = engine.build_full_prompt(checked_text, '', style_prompt)
+
+        # Determine model
+        model = STAGE2_INTERCEPTION_MODEL
+        real_model = engine.extract_model_name(model)
+
+        # Stream from Ollama
+        accumulated = ""
+        chunk_count = 0
+
+        payload = {
+            "model": real_model,
+            "prompt": full_prompt,
+            "stream": True
+        }
+
+        response = requests.post(
+            f"{OLLAMA_API_BASE_URL}/api/generate",
+            json=payload,
+            stream=True,
+            timeout=90
+        )
+        response.raise_for_status()
+
+        for line in response.iter_lines():
+            if line:
+                try:
+                    data_obj = json.loads(line.decode('utf-8'))
+                    text_chunk = data_obj.get("response", "")
+                    done = data_obj.get("done", False)
+
+                    if text_chunk:
+                        accumulated += text_chunk
+                        chunk_count += 1
+
+                        yield generate_sse_event('chunk', {
+                            'stage': 2,
+                            'text_chunk': text_chunk,
+                            'accumulated': accumulated,
+                            'chunk_count': chunk_count
+                        })
+                        yield ''  # Force flush
+
+                    if done:
+                        break
+                except json.JSONDecodeError:
+                    continue
+
+        logger.info(f"[UNIFIED-STREAMING] Stage 2 complete: {len(accumulated)} chars")
+
+        # Send completion event
+        yield generate_sse_event('complete', {
+            'stage': 2,
+            'final_text': accumulated,
+            'char_count': len(accumulated),
+            'chunk_count': chunk_count,
+            'run_id': run_id
+        })
+        yield ''
+
+    except Exception as e:
+        logger.error(f"[UNIFIED-STREAMING] Error in run {run_id}: {e}")
+        yield generate_sse_event('error', {
+            'message': str(e),
+            'run_id': run_id
+        })
+        yield ''
+
+@schema_bp.route('/pipeline/execute', methods=['POST', 'GET'])
 def execute_pipeline():
     """Schema-Pipeline ausführen mit 4-Stage Orchestration"""
     # Phase 4: Declare global state at function start
@@ -1270,13 +1451,38 @@ def execute_pipeline():
     import random
 
     try:
-        # Request-Validation
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                'status': 'error',
-                'error': 'JSON-Request erwartet'
-            }), 400
+        # Request-Validation: Support both POST (JSON) and GET (query params for EventSource)
+        if request.method == 'GET':
+            # EventSource uses GET with query params
+            data = {
+                'schema': request.args.get('schema'),
+                'input_text': request.args.get('input_text'),
+                'context_prompt': request.args.get('context_prompt', ''),
+                'safety_level': request.args.get('safety_level', 'youth'),
+                'execution_mode': request.args.get('execution_mode', 'eco'),
+                'enable_streaming': request.args.get('enable_streaming') == 'true'
+            }
+        else:
+            # POST with JSON body
+            data = request.get_json()
+            if not data:
+                return jsonify({
+                    'status': 'error',
+                    'error': 'JSON-Request erwartet'
+                }), 400
+
+        # Check if streaming mode is requested
+        enable_streaming = data.get('enable_streaming', False)
+        if enable_streaming:
+            logger.info("[UNIFIED-STREAMING] Streaming mode requested")
+            return Response(
+                stream_with_context(execute_pipeline_streaming(data)),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'X-Accel-Buffering': 'no'
+                }
+            )
 
         schema_name = data.get('schema')
         input_text = data.get('input_text')

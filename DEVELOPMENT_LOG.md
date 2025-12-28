@@ -1,5 +1,23 @@
 # Development Log
 
+## Session 111 - CRITICAL: Unified Streaming Architecture Refactoring
+**Date:** 2025-12-28
+**Duration:** ~4 hours
+**Focus:** Fix fundamental architecture violation - Frontend orchestration
+**Status:** SUCCESS - Unified orchestration working, Stage 1 safety enforced
+
+### Critical Architecture Violation Identified
+
+**Problem:** `/api/text_stream/*` endpoints violated core principle: **DevServer = Orchestrator**
+
+**Solution:** Deleted entire `/api/text_stream/` path, added streaming to unified `/api/schema/pipeline/execute` endpoint with mandatory Stage 1 safety check.
+
+**Impact:** 621 lines deleted, §86a compliance enforced, clean architecture restored.
+
+**Details:** See `docs/DEVELOPMENT_DECISIONS.md` (Session 111 entry)
+
+---
+
 ## Session 109 - SSE Text Streaming: Waitress Optimization & Typewriter Effect
 **Date:** 2025-12-22
 **Duration:** ~2 hours

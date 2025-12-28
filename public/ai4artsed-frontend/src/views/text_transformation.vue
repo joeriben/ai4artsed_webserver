@@ -643,67 +643,71 @@ const areModelBubblesEnabled = computed(() => {
 // Streaming computed properties
 const streamingUrl = computed(() => {
   const isLoading = isInterceptionLoading.value
-  console.log('[DEBUG] streamingUrl computed, isInterceptionLoading:', isLoading)
+  console.log('[UNIFIED-STREAMING] streamingUrl computed, isInterceptionLoading:', isLoading)
 
   if (!isLoading) {
-    console.log('[DEBUG] Not loading, returning undefined')
+    console.log('[UNIFIED-STREAMING] Not loading, returning undefined')
     return undefined
   }
 
-  const runId = `run_${Date.now()}_${Math.random().toString(36).substring(7)}`
-
-  // Dev: Direct backend (bypasses Vite proxy buffering)
-  // Prod: Use relative URL (Nginx handles proxy without buffering)
+  // UNIFIED ENDPOINT - DevServer orchestrates ALL stages
   const isDev = import.meta.env.DEV
   const url = isDev
-    ? `http://localhost:17802/api/text_stream/stage2/${runId}`  // Dev: Direct to port 17802
-    : `/api/text_stream/stage2/${runId}`  // Prod: Relative URL via Nginx
+    ? 'http://localhost:17802/api/schema/pipeline/execute'  // Dev: Direct to port 17802
+    : '/api/schema/pipeline/execute'  // Prod: Relative URL via Nginx
 
-  console.log('[DEBUG] Generated streaming URL:', isDev ? '(dev - direct)' : '(prod - nginx)', url)
+  console.log('[UNIFIED-STREAMING] Base URL:', url, isDev ? '(dev - direct)' : '(prod - nginx)')
   return url
 })
 
 const streamingParams = computed(() => {
+  // UNIFIED ORCHESTRATED STREAMING: All parameters for /api/schema/pipeline/execute
   const params = {
-    prompt: inputText.value,
-    context: contextPrompt.value || '',
-    style_prompt: pipelineStore.metaPrompt || ''
-    // NO model parameter - backend uses config.py (STAGE2_INTERCEPTION_MODEL)
+    schema: pipelineStore.selectedConfig?.id || 'overdrive',
+    input_text: inputText.value,
+    context_prompt: contextPrompt.value || '',
+    safety_level: 'youth',
+    execution_mode: 'eco',
+    enable_streaming: true  // KEY: Request SSE streaming
   }
-  console.log('[DEBUG] streamingParams computed:', params)
+  console.log('[UNIFIED-STREAMING] streamingParams:', params)
   return params
 })
 
 // Streaming computed properties (Optimization)
+// ARCHITECTURAL PRINCIPLE: Optimization = Interception with different input
+// Both use SAME unified endpoint, just different parameters
 const optimizationStreamingUrl = computed(() => {
   const isLoading = isOptimizationLoading.value
-  console.log('[DEBUG] optimizationStreamingUrl computed, isOptimizationLoading:', isLoading)
+  console.log('[UNIFIED-STREAMING] optimizationStreamingUrl computed, isOptimizationLoading:', isLoading)
 
   if (!isLoading) {
-    console.log('[DEBUG] Not loading, returning undefined')
+    console.log('[UNIFIED-STREAMING] Not loading, returning undefined')
     return undefined
   }
 
-  const runId = `run_${Date.now()}_${Math.random().toString(36).substring(7)}`
-
-  // Dev: Direct backend (bypasses Vite proxy buffering)
-  // Prod: Use relative URL (Nginx handles proxy without buffering)
+  // SAME UNIFIED ENDPOINT as Interception
   const isDev = import.meta.env.DEV
   const url = isDev
-    ? `http://localhost:17802/api/text_stream/optimize/${runId}`  // Dev: Direct to port 17802
-    : `/api/text_stream/optimize/${runId}`  // Prod: Relative URL via Nginx
+    ? 'http://localhost:17802/api/schema/pipeline/execute'
+    : '/api/schema/pipeline/execute'
 
-  console.log('[DEBUG] Generated optimization streaming URL:', isDev ? '(dev - direct)' : '(prod - nginx)', url)
+  console.log('[UNIFIED-STREAMING] Optimization Base URL:', url, isDev ? '(dev - direct)' : '(prod - nginx)')
   return url
 })
 
 const optimizationStreamingParams = computed(() => {
+  // UNIFIED ORCHESTRATED STREAMING
+  // Optimization = Text transformation with optimization_instruction as context
   const params = {
-    input_text: interceptionResult.value,
-    optimization_instruction: optimizationInstruction.value,
-    output_config: selectedConfig.value || ''
+    schema: pipelineStore.selectedConfig?.id || 'overdrive',
+    input_text: interceptionResult.value,  // Use interception result as input
+    context_prompt: optimizationInstruction.value || '',  // Use optimization instruction as context
+    safety_level: 'youth',
+    execution_mode: 'eco',
+    enable_streaming: true
   }
-  console.log('[DEBUG] optimizationStreamingParams computed:', params)
+  console.log('[UNIFIED-STREAMING] optimizationStreamingParams:', params)
   return params
 })
 

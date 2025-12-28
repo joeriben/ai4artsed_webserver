@@ -127,7 +127,6 @@ def create_app():
     from my_app.routes.pipeline_routes import pipeline_bp  # NEW: LivePipelineRecorder API
     from my_app.routes.chat_routes import chat_bp  # Session 82: Chat overlay helper
     from my_app.routes.settings_routes import settings_bp  # Settings configuration API
-    from my_app.routes.text_stream_routes import text_stream_bp  # Text streaming for typewriter effect
 
     # Register API blueprints FIRST (before static catch-all)
     app.register_blueprint(config_bp)
@@ -141,7 +140,6 @@ def create_app():
     app.register_blueprint(execution_bp)  # Pipeline run history API: /api/runs/*
     app.register_blueprint(pipeline_bp)  # NEW: LivePipelineRecorder API: /api/pipeline/*
     app.register_blueprint(chat_bp)  # Session 82: Chat overlay helper: /api/chat/*
-    app.register_blueprint(text_stream_bp)  # Text streaming: /api/text_stream/*
 
     # Register static blueprint LAST (catch-all for SPA routing)
     app.register_blueprint(static_bp)

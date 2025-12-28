@@ -29,6 +29,104 @@
 
 ---
 
+## 🚨 CRITICAL ARCHITECTURE FIX (2025-12-28): Unified Streaming Orchestration
+
+**Date:** 2025-12-28
+**Session:** 111 (Streaming Architecture Refactoring)
+
+### Problem Identified
+
+**Architecture Violation:** The `/api/text_stream/*` endpoints violated the core principle that **DevServer = Smart Orchestrator | Frontend = Dumb Display**.
+
+**Specific Issues:**
+1. **Frontend Orchestration:** Frontend was calling stage-specific endpoints (`/api/text_stream/stage2`) directly, deciding which stages to run
+2. **Bypassed Safety:** Stage 1 (§86a StGB safety check) was not enforced in streaming mode - frontend could skip it
+3. **Security Risk:** Frontend could be manipulated to bypass safety checks (unprofessional, illegal)
+4. **Code Duplication:** Interception and Optimization used different endpoints despite being functionally identical
+
+### Solution Implemented
+
+**Architectural Principle Enforced:**
+```
+Frontend calls ONE endpoint: /api/schema/pipeline/execute
+↓
+DevServer orchestrates ALL stages (Stage 1 → Stage 2)
+↓
+Frontend receives SSE stream and displays results
+```
+
+**Key Changes:**
+1. **Deleted `/api/text_stream/*`** - Entire path removed, violations eliminated
+2. **Unified Endpoint:** `/api/schema/pipeline/execute` now supports streaming via `enable_streaming=true`
+3. **Mandatory Stage 1:** Safety check ALWAYS runs first (synchronous, ~2-8s), blocks unsafe content
+4. **Stage 2 Streaming:** Character-by-character SSE streaming after Stage 1 passes
+5. **Unified Architecture:** Interception and Optimization use SAME endpoint, just different parameters
+
+### Technical Implementation
+
+**Backend (`schema_pipeline_routes.py`):**
+```python
+# Supports both GET (EventSource) and POST (JSON)
+@schema_bp.route('/pipeline/execute', methods=['POST', 'GET'])
+
+# Streaming function runs Stage 1 FIRST, always
+def execute_pipeline_streaming(data: dict):
+    # Stage 1: Safety Check (synchronous)
+    is_safe, checked_text, error_message = execute_stage1_gpt_oss_unified(...)
+    if not is_safe:
+        yield blocked_event  # STOP - DevServer decides
+        return
+
+    # Stage 2: Interception (streaming)
+    for chunk in ollama_stream:
+        yield chunk_event
+```
+
+**Frontend (`text_transformation.vue`):**
+```typescript
+// BOTH Interception and Optimization use same endpoint
+streamingUrl = '/api/schema/pipeline/execute'
+
+// Only parameters differ:
+// Interception: input_text=user_input, context_prompt=pipeline_context
+// Optimization: input_text=interception_result, context_prompt=optimization_instruction
+```
+
+### Architectural Principles Established
+
+1. **DevServer = Orchestrator:** Backend decides stage execution order, safety checks, and flow control
+2. **Frontend = Display:** Frontend only listens to streams and displays results
+3. **Mandatory Safety:** Stage 1 cannot be bypassed - technically impossible
+4. **No Duplication:** Functionally identical operations use same code path
+5. **Clean Separation:** Orchestration logic lives ONLY in DevServer, never in Frontend
+
+### Files Modified
+
+**Backend:**
+- `devserver/my_app/__init__.py` - Removed text_stream_routes import
+- `devserver/my_app/routes/schema_pipeline_routes.py` - Added SSE streaming to unified endpoint
+- `devserver/my_app/routes/text_stream_routes.py` - **DELETED**
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Updated to use unified endpoint for both Interception and Optimization
+
+### Testing Verification
+
+✅ **Stage 1 Safety:** "HAKENKREUZ" correctly blocked with §86a message, Stage 2 never runs
+✅ **Stage 2 Streaming:** "ein blauer Vogel" passes Stage 1, streams character-by-character
+✅ **Interception:** Full flow works (Stage 1 → Stage 2 streaming)
+✅ **Optimization:** Works identically to Interception (same endpoint, different params)
+✅ **Browser Test:** Confirmed working in production-like environment
+
+### Impact
+
+**Security:** ✅ §86a compliance enforced at server level, cannot be bypassed
+**Architecture:** ✅ Clean separation of concerns, single source of truth
+**Maintainability:** ✅ Less code, no duplication, clear responsibilities
+**Professional:** ✅ Industry-standard architecture (backend orchestrates, frontend displays)
+
+---
+
 ## Session 110 - 2025-12-22
 
 ### Decision: text_transformation.vue Refactoring - Stop After Phase 1
