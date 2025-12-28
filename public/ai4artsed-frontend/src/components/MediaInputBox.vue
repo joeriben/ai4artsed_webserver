@@ -80,7 +80,7 @@ interface Props {
   // Streaming props
   enableStreaming?: boolean
   streamUrl?: string
-  streamParams?: Record<string, string>
+  streamParams?: Record<string, string | boolean>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -171,8 +171,11 @@ function startStreaming() {
   isFirstChunkReceived.value = false
   chunkBuffer.value = []
 
-  // Build URL with query parameters
-  const params = new URLSearchParams(props.streamParams || {})
+  // Build URL with query parameters (convert boolean values to strings)
+  const paramsAsStrings = Object.fromEntries(
+    Object.entries(props.streamParams || {}).map(([k, v]) => [k, String(v)])
+  )
+  const params = new URLSearchParams(paramsAsStrings)
   const url = `${props.streamUrl}?${params.toString()}`
 
   console.log('[MediaInputBox] Starting stream:', url)
