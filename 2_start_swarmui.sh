@@ -43,4 +43,8 @@ echo "Press Ctrl+C to stop"
 echo ""
 
 source ./venv/bin/activate
+
+# Remove error trap - allow normal server exit without "Script failed" message
+trap - ERR
+
 ./launch-linux.sh

@@ -1500,6 +1500,11 @@ def execute_pipeline():
         # IMG2IMG support (Session 80)
         input_image = data.get('input_image')  # Optional: path to uploaded image for img2img
 
+        # MULTI-IMAGE support (Session 86+)
+        input_image1 = data.get('input_image1')  # Optional: path to first image for multi-image workflows
+        input_image2 = data.get('input_image2')  # Optional: path to second image for multi-image workflows
+        input_image3 = data.get('input_image3')  # Optional: path to third image for multi-image workflows
+
         # Stage 2 result support: use frontend-provided interception result
         interception_result = data.get('interception_result')  # Optional: frontend-provided Stage 2 output (if already executed)
         optimization_result = data.get('optimization_result')  # Optional: frontend-provided optimization output (code from Stage 2 optimization)
@@ -2125,6 +2130,9 @@ def execute_pipeline():
                             context_override=context_override,  # NEW: Pass custom parameters uniformly
                             seed_override=calculated_seed,  # Phase 4: Intelligent seed
                             input_image=input_image,  # Session 80: IMG2IMG support
+                            input_image1=input_image1,  # Session 86+: Multi-image support (image 1)
+                            input_image2=input_image2,  # Session 86+: Multi-image support (image 2, optional)
+                            input_image3=input_image3,  # Session 86+: Multi-image support (image 3, optional)
                             alpha_factor=alpha_factor  # Surrealizer: T5-CLIP fusion alpha (backwards compat)
                         ))
 

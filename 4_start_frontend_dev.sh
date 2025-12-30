@@ -54,4 +54,7 @@ echo "Working directory: $FRONTEND_DIR"
 echo "Press Ctrl+C to stop"
 echo ""
 
+# Remove error trap - allow normal server exit without "Script failed" message
+trap - ERR
+
 npm run dev

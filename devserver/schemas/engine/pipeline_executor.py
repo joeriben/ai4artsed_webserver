@@ -104,6 +104,9 @@ class PipelineExecutor:
         context_override: Optional[PipelineContext] = None,  # Multi-stage: Pre-populated context
         seed_override: Optional[int] = None,  # Phase 4: Intelligent seed for media generation
         input_image: Optional[str] = None,  # Session 80: IMG2IMG support - path to input image
+        input_image1: Optional[str] = None,  # Session 86+: Multi-image support - path to image 1
+        input_image2: Optional[str] = None,  # Session 86+: Multi-image support - path to image 2 (optional)
+        input_image3: Optional[str] = None,  # Session 86+: Multi-image support - path to image 3 (optional)
         alpha_factor: Optional[float] = None  # Surrealizer: T5-CLIP fusion alpha factor
     ) -> PipelineResult:
         """Execute complete pipeline with 4-Stage Pre-Interception System
@@ -167,6 +170,17 @@ class PipelineExecutor:
         if input_image is not None:
             context.custom_placeholders['input_image'] = input_image
             logger.info(f"[IMG2IMG] Added input_image to context: {input_image}")
+
+        # Session 86+: Add multi-image paths to context if provided
+        if input_image1 is not None:
+            context.custom_placeholders['input_image1'] = input_image1
+            logger.info(f"[MULTI-IMG] Added input_image1 to context: {input_image1}")
+        if input_image2 is not None:
+            context.custom_placeholders['input_image2'] = input_image2
+            logger.info(f"[MULTI-IMG] Added input_image2 to context: {input_image2}")
+        if input_image3 is not None:
+            context.custom_placeholders['input_image3'] = input_image3
+            logger.info(f"[MULTI-IMG] Added input_image3 to context: {input_image3}")
 
         # Surrealizer: Add alpha_factor to context if provided (T5-CLIP fusion)
         if alpha_factor is not None:
@@ -513,6 +527,14 @@ class PipelineExecutor:
             image_path = context.custom_placeholders['input_image']
             chunk_request['parameters']['input_image'] = image_path
             logger.info(f"[IMG2IMG] Injected input_image into chunk parameters: {image_path}")
+
+        # Session 86+: Add multi-image paths to parameters if present in context
+        for i in range(1, 4):
+            key = f'input_image{i}'
+            if key in context.custom_placeholders:
+                image_path = context.custom_placeholders[key]
+                chunk_request['parameters'][key] = image_path
+                logger.info(f"[MULTI-IMG] Injected {key} into chunk parameters: {image_path}")
 
         # Surrealizer: Add alpha_factor to parameters if present in context (T5-CLIP fusion)
         if 'alpha_factor' in context.custom_placeholders:

@@ -46,6 +46,12 @@ const router = createRouter({
       component: () => import('../views/image_transformation.vue'),
     },
     {
+      path: '/multi-image-transformation',
+      name: 'multi-image-transformation',
+      // Session 86+: Multi-image transformation (1-3 images → 1 image fusion)
+      component: () => import('../views/multi_image_transformation.vue'),
+    },
+    {
       path: '/direct',
       name: 'direct',
       // Phase 2: direct pipeline (surrealization) visualization

@@ -855,6 +855,60 @@ class BackendRouter:
                     import traceback
                     traceback.print_exc()
 
+            # Handle multi-image uploads (input_image1, input_image2, input_image3)
+            # Check if any multi-image mappings exist
+            multi_image_keys = ['input_image1', 'input_image2', 'input_image3']
+            has_multi_image = any(key in input_mappings for key in multi_image_keys)
+
+            if input_mappings and has_multi_image:
+                import aiohttp
+                from pathlib import Path
+
+                comfyui_url = "http://127.0.0.1:7821"  # SwarmUI integrated ComfyUI
+                upload_url = f"{comfyui_url}/upload/image"
+
+                for image_key in multi_image_keys:
+                    # Skip if mapping doesn't exist or parameter is empty
+                    if image_key not in input_mappings:
+                        continue
+                    if image_key not in parameters or not parameters[image_key]:
+                        logger.info(f"[LEGACY-WORKFLOW] {image_key} is empty (optional), skipping")
+                        continue
+
+                    image_mapping = input_mappings[image_key]
+                    source_path = _resolve_media_url_to_path(parameters[image_key])
+                    source_file = Path(source_path)
+
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            with open(source_path, 'rb') as f:
+                                form = aiohttp.FormData()
+                                form.add_field('image', f, filename=source_file.name, content_type='image/png')
+                                form.add_field('overwrite', 'true')
+
+                                async with session.post(upload_url, data=form) as response:
+                                    if response.status == 200:
+                                        result = await response.json()
+                                        uploaded_filename = result.get('name', source_file.name)
+                                        logger.info(f"[LEGACY-WORKFLOW] Uploaded {image_key} to ComfyUI: {uploaded_filename}")
+
+                                        # Inject filename into workflow
+                                        image_node_id = image_mapping.get('node_id')
+                                        image_field = image_mapping.get('field', 'inputs.image')
+                                        if image_node_id and image_node_id in workflow:
+                                            field_parts = image_field.split('.')
+                                            target = workflow[image_node_id]
+                                            for part in field_parts[:-1]:
+                                                target = target.setdefault(part, {})
+                                            target[field_parts[-1]] = uploaded_filename
+                                            logger.info(f"[LEGACY-WORKFLOW] Injected {image_key} into node {image_node_id}: {uploaded_filename}")
+                                    else:
+                                        logger.error(f"[LEGACY-WORKFLOW] Failed to upload {image_key}: HTTP {response.status}")
+                    except Exception as e:
+                        logger.error(f"[LEGACY-WORKFLOW] Error uploading {image_key}: {e}")
+                        import traceback
+                        traceback.print_exc()
+
             # Execute via service (submit → poll → download)
             # Legacy service handles prompt injection via title-based search
             service = get_legacy_workflow_service()

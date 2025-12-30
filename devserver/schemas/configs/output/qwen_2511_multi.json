@@ -1,13 +1,13 @@
 {
-  "name": "qwen_img2img",
-  "pipeline": "single_text_media_generation",
-  "display_name": "QWEN 2511 Image Edit (4-step Lightning)",
-  "description": "Ultra-fast image transformation with QWEN 2511 Image Edit Lightning (4 steps, improved character consistency)",
+  "name": "qwen_2511_multi",
+  "pipeline": "multi_image_transformation",
+  "display_name": "QWEN 2511 Multi-Image Fusion",
+  "description": "Combine up to 3 images with AI-guided fusion (multi-person, style transfer, compositing)",
   "category": "image",
   "media_type": "image",
 
   "parameters": {
-    "OUTPUT_CHUNK": "output_image_qwen_img2img",
+    "OUTPUT_CHUNK": "output_image_qwen_2511_multi",
     "steps": 4,
     "cfg": 1,
     "sampler_name": "euler",
@@ -49,6 +49,8 @@
 
   "capabilities": {
     "img2img": true,
+    "multi_image": true,
+    "max_images": 3,
     "text2img": false,
     "inpainting": false,
     "outpainting": false,
@@ -56,8 +58,8 @@
   },
 
   "requirements": {
-    "gpu_vram_mb": 10000,
-    "estimated_duration_seconds": "5-10",
+    "gpu_vram_mb": 12000,
+    "estimated_duration_seconds": "8-15",
     "requires_models": [
       "qwen_image_edit_2511_fp8mixed.safetensors",
       "qwen_2.5_vl_7b_fp8_scaled.safetensors",
@@ -67,20 +69,26 @@
   },
 
   "ui_config": {
-    "icon": "✨",
-    "color": "#FF6B6B",
-    "badge": "Lightning",
-    "recommended_for": ["fast_edits", "text_guided_transformation", "object_manipulation"],
-    "best_for": "Quick image transformations with text instructions (add/remove/modify objects)"
+    "icon": "🎨",
+    "color": "#9B59B6",
+    "badge": "Multi",
+    "recommended_for": [
+      "multi_person_fusion",
+      "style_transfer",
+      "object_compositing",
+      "reference_editing"
+    ],
+    "best_for": "Combine multiple images: merge portraits, transfer styles, composite objects, or use reference images for precise editing"
   },
 
   "meta": {
     "stage": "output",
     "version": "1.0",
-    "created": "2025-11-30",
-    "last_updated": "2025-11-30",
+    "created": "2025-12-28",
+    "last_updated": "2025-12-28",
     "model_type": "qwen_image_edit_2511",
     "lightning_optimized": true,
+    "multi_image_support": true,
     "dsgvo_compliant": true,
     "local_only": true
   }

@@ -226,6 +226,16 @@ const messages = {
         title: 'Unterstützung',
         content: 'Bei Fragen:'
       }
+    },
+    multiImage: {
+      image1Label: 'Hauptbild',
+      image2Label: 'Zusatzbild 1 (optional)',
+      image3Label: 'Zusatzbild 2 (optional)',
+      contextLabel: 'Sage was Du mit den Bildern machen möchtest',
+      contextPlaceholder: 'z.B. Kombiniere diese Personen in einem Gruppenfoto... Übertrage den Stil von Bild 2 auf Bild 1...',
+      modeTitle: 'Mehrere Bilder → Bild',
+      selectConfig: 'Wähle dein Modell:',
+      generating: 'Bilder werden fusioniert...'
     }
   },
   en: {
@@ -453,6 +463,16 @@ const messages = {
         title: 'Support',
         content: 'For questions:'
       }
+    },
+    multiImage: {
+      image1Label: 'Main Image',
+      image2Label: 'Additional Image 1 (optional)',
+      image3Label: 'Additional Image 2 (optional)',
+      contextLabel: 'Describe what you want to do with the images',
+      contextPlaceholder: 'e.g. Combine these people into one group photo... Transfer the style from image 2 to image 1...',
+      modeTitle: 'Multiple Images → Image',
+      selectConfig: 'Choose your model:',
+      generating: 'Images are being fused...'
     }
   }
 }

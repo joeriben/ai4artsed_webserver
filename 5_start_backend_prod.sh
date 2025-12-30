@@ -55,4 +55,7 @@ export PORT=17801
 # Enable browser caching for production (configs/models cached for 5min)
 export DISABLE_API_CACHE=false
 
+# Remove error trap - allow normal server exit without "Script failed" message
+trap - ERR
+
 python3 server.py
