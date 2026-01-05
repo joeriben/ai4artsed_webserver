@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 
 // Template refs for parent access (like MediaOutputBox sectionRef)

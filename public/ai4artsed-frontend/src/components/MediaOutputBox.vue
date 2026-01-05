@@ -162,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref } from 'vue'
+import { ref } from 'vue'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 
 // Template ref for autoscroll functionality
