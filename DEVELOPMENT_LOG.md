@@ -1,5 +1,68 @@
 # Development Log
 
+## Session 114 - Revert Single-Image QWEN to Stable Pre-2511 Models
+**Date:** 2026-01-05
+**Duration:** ~30 minutes
+**Focus:** Fix img2img behavior by reverting to stable QWEN models
+**Status:** SUCCESS - Single-image working again, multi-image unchanged
+
+### Problem Identified
+
+**QWEN 2511 Models Causing Strange Behavior in Single-Image Transformation**
+- The new 2511 models (introduced in Session ~85) behaved strangely for single-image transformations
+- Multi-image transformation (1-3 images) worked well with 2511 models
+- User reported: "25-11 reagiert sehr merkwürdig" for img2img
+
+### Solution Implemented
+
+**Selective Revert: Single-Image Only**
+- **Changed**: `image_transformation` pipeline (single image) → reverted to pre-2511 models
+- **Kept**: `multi_image_transformation` pipeline (1-3 images) → keeps 2511 models
+
+### Files Modified (2)
+
+1. **`devserver/schemas/chunks/output_image_qwen_img2img.json`**
+   - UNET: `qwen_image_edit_2511_fp8mixed.safetensors` → `qwen_image_edit_fp8_e4m3fn.safetensors`
+   - LoRA: `Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors` → `Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors`
+   - Updated meta.model_files to match
+
+2. **`devserver/schemas/configs/output/qwen_img2img.json`**
+   - Updated `requires_models` array with old model filenames
+   - Updated `display_name`: "QWEN 2511" → "QWEN"
+   - Updated `meta.model_type`: "qwen_image_edit_2511" → "qwen_image_edit"
+   - Updated `meta.last_updated` to 2026-01-05
+
+### Files NOT Modified (Intentional)
+
+- `devserver/schemas/chunks/output_image_qwen_2511_multi.json` - Kept 2511 models
+- `devserver/schemas/configs/output/qwen_2511_multi.json` - Kept 2511 models
+
+### Technical Details
+
+**Pipeline Architecture:**
+- `image_transformation` (Stage 2): Direct pipeline, single image → uses `output_image_qwen_img2img` chunk
+- `multi_image_transformation` (Stage 2): Direct pipeline, 1-3 images → uses `output_image_qwen_2511_multi` chunk
+- Both pipelines skip Stage 2 interception (`skip_stage2: true`)
+
+**Model History:**
+- Pre-2511: Used `qwen_image_edit_fp8_e4m3fn.safetensors` + `Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors`
+- Session ~85 (commit 32b7e7d): Upgraded to 2511 models for both single and multi-image
+- Session 114: Reverted single-image only (multi-image introduced with 2511, no old version exists)
+
+### Testing
+
+User confirmed: "funktioniert!" ✅
+
+### Commit
+
+```
+fix(img2img): Revert single-image QWEN to stable pre-2511 models
+
+Commit: c20e257d67725dd20d9c1097dd8eab14852fc699
+```
+
+---
+
 ## Session 113 - CRITICAL: Fix Model Configs and Backend Routing Bug
 **Date:** 2026-01-05
 **Duration:** ~2 hours
