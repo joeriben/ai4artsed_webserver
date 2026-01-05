@@ -29,4 +29,36 @@ export default defineConfigWithVueTs(
     ...pluginPlaywright.configs['flat/recommended'],
     files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}'],
   },
+
+  // Vue 3 Compiler Macros Configuration
+  // Prevents common mistake: importing defineProps/defineEmits in <script setup>
+  {
+    name: 'app/vue-compiler-macros',
+    files: ['**/*.vue'],
+    languageOptions: {
+      globals: {
+        // Vue 3 compiler macros - auto-available in <script setup>
+        defineProps: 'readonly',
+        defineEmits: 'readonly',
+        defineExpose: 'readonly',
+        defineOptions: 'readonly',
+        defineSlots: 'readonly',
+        withDefaults: 'readonly',
+      },
+    },
+    rules: {
+      // Enforce correct usage of compiler macros
+      'vue/define-macros-order': ['error', {
+        order: ['defineOptions', 'defineProps', 'defineEmits', 'defineSlots'],
+      }],
+      // Prevent accidental imports of compiler macros
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: 'vue',
+          importNames: ['defineProps', 'defineEmits', 'defineExpose', 'defineOptions', 'defineSlots', 'withDefaults'],
+          message: 'These are Vue 3 compiler macros and should not be imported. They are auto-available in <script setup>.',
+        }],
+      }],
+    },
+  },
 )
