@@ -125,6 +125,7 @@
       "inputs": {
         "upscale_method": "lanczos",
         "megapixels": 1,
+        "resolution_steps": 1,
         "image": ["78", 0]
       },
       "class_type": "ImageScaleToTotalPixels",
@@ -192,6 +193,12 @@
       "field": "inputs.megapixels",
       "default": 2.5,
       "description": "Input image scaling (2.5 = ~1600x1600)"
+    },
+    "resolution_steps": {
+      "node_id": "93",
+      "field": "inputs.resolution_steps",
+      "default": 1,
+      "description": "Resolution step increment for scaling"
     }
   },
 
