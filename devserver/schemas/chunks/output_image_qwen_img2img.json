@@ -37,7 +37,7 @@
     },
     "37": {
       "inputs": {
-        "unet_name": "qwen_image_edit_2511_fp8mixed.safetensors",
+        "unet_name": "qwen_image_edit_fp8_e4m3fn.safetensors",
         "weight_dtype": "default"
       },
       "class_type": "UNETLoader",
@@ -140,13 +140,13 @@
     },
     "89": {
       "inputs": {
-        "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+        "lora_name": "Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors",
         "strength_model": 1,
         "model": ["37", 0]
       },
       "class_type": "LoraLoaderModelOnly",
       "_meta": {
-        "title": "LoraLoaderModelOnly (2511 Lightning 4-step)"
+        "title": "LoraLoaderModelOnly (Lightning 4-step)"
       }
     },
     "93": {
@@ -234,10 +234,10 @@
     "requires_gpu": true,
     "gpu_vram_mb": 10000,
     "model_files": {
-      "diffusion_model": "qwen_image_edit_2511_fp8mixed.safetensors",
+      "diffusion_model": "qwen_image_edit_fp8_e4m3fn.safetensors",
       "clip": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
       "vae": "qwen_image_vae.safetensors",
-      "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
+      "lora": "Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors"
     },
     "recommended_resolution": "1 megapixel (~1024x1024)",
     "supported_resolutions": [

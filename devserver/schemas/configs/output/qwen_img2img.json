@@ -1,8 +1,8 @@
 {
   "name": "qwen_img2img",
   "pipeline": "single_text_media_generation",
-  "display_name": "QWEN 2511 Image Edit (4-step Lightning)",
-  "description": "Ultra-fast image transformation with QWEN 2511 Image Edit Lightning (4 steps, improved character consistency)",
+  "display_name": "QWEN Image Edit (4-step Lightning)",
+  "description": "Ultra-fast image transformation with QWEN Image Edit Lightning (4 steps)",
   "category": "image",
   "media_type": "image",
 
@@ -59,10 +59,10 @@
     "gpu_vram_mb": 10000,
     "estimated_duration_seconds": "5-10",
     "requires_models": [
-      "qwen_image_edit_2511_fp8mixed.safetensors",
+      "qwen_image_edit_fp8_e4m3fn.safetensors",
       "qwen_2.5_vl_7b_fp8_scaled.safetensors",
       "qwen_image_vae.safetensors",
-      "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
+      "Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors"
     ]
   },
 
@@ -78,8 +78,8 @@
     "stage": "output",
     "version": "1.0",
     "created": "2025-11-30",
-    "last_updated": "2025-11-30",
-    "model_type": "qwen_image_edit_2511",
+    "last_updated": "2026-01-05",
+    "model_type": "qwen_image_edit",
     "lightning_optimized": true,
     "dsgvo_compliant": true,
     "local_only": true
