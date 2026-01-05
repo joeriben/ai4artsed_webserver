@@ -72,13 +72,7 @@ media_storage/            # Unified media storage output
 
 # -------------------------------------
 # Archives
-/home/joerissen/ai/ai4artsed_development/docs/analysis
-/home/joerissen/ai/ai4artsed_development/docs/archive
-/home/joerissen/ai/ai4artsed_development/docs/experiments
-/home/joerissen/ai/ai4artsed_development/docs/reference
-/home/joerissen/ai/ai4artsed_development/docs/sessions
-/home/joerissen/ai/ai4artsed_development/docs/terminal-savings
-/home/joerissen/ai/ai4artsed_development/docs/tmp
+/home/joerissen/ai/ai4artsed_development/docs
 /home/joerissen/ai/ai4artsed_development/devserver/archive
 /home/joerissen/ai/ai4artsed_development/archive
 devserver/pipeline_runs/  # LivePipelineRecorder output

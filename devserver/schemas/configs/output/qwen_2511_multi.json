@@ -1,6 +1,6 @@
 {
   "name": "qwen_2511_multi",
-  "pipeline": "multi_image_transformation",
+  "pipeline": "single_text_media_generation",
   "display_name": "QWEN 2511 Multi-Image Fusion",
   "description": "Combine up to 3 images with AI-guided fusion (multi-person, style transfer, compositing)",
   "category": "image",

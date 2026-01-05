@@ -50,6 +50,67 @@ def _resolve_media_url_to_path(url_or_path: str) -> str:
     return url_or_path
 
 
+def _adapt_workflow_for_multi_image(workflow: Dict[str, Any], parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Dynamically adapt workflow based on number of provided images.
+    Removes unused LoadImage and Scale nodes when fewer than 3 images are provided.
+
+    Args:
+        workflow: Complete ComfyUI workflow dictionary
+        parameters: Request parameters containing input_image1/2/3
+
+    Returns:
+        Modified workflow with unused nodes removed
+    """
+    # Detect which images are provided
+    has_image1 = 'input_image1' in parameters and parameters['input_image1']
+    has_image2 = 'input_image2' in parameters and parameters['input_image2']
+    has_image3 = 'input_image3' in parameters and parameters['input_image3']
+
+    logger.info(f"[MULTI-IMAGE-ADAPT] Images provided: image1={has_image1}, image2={has_image2}, image3={has_image3}")
+
+    # Remove unused LoadImage and Scale nodes
+    removed_nodes = []
+
+    if not has_image2:
+        if '120' in workflow:
+            del workflow['120']  # LoadImage 2
+            removed_nodes.append('120 (LoadImage 2)')
+        if '122' in workflow:
+            del workflow['122']  # Scale 2
+            removed_nodes.append('122 (Scale 2)')
+
+    if not has_image3:
+        if '121' in workflow:
+            del workflow['121']  # LoadImage 3
+            removed_nodes.append('121 (LoadImage 3)')
+        if '123' in workflow:
+            del workflow['123']  # Scale 3
+            removed_nodes.append('123 (Scale 3)')
+
+    if removed_nodes:
+        logger.info(f"[MULTI-IMAGE-ADAPT] Removed unused nodes: {', '.join(removed_nodes)}")
+
+    # Update TextEncodeQwenImageEditPlus nodes - remove unused image inputs
+    for node_id in ['115:110', '115:111']:
+        if node_id in workflow:
+            inputs = workflow[node_id].get('inputs', {})
+            removed_inputs = []
+
+            if not has_image2 and 'image2' in inputs:
+                del inputs['image2']
+                removed_inputs.append('image2')
+
+            if not has_image3 and 'image3' in inputs:
+                del inputs['image3']
+                removed_inputs.append('image3')
+
+            if removed_inputs:
+                logger.info(f"[MULTI-IMAGE-ADAPT] Node {node_id}: Removed inputs {', '.join(removed_inputs)}")
+
+    return workflow
+
+
 class BackendType(Enum):
     """Backend-Typen"""
     OLLAMA = "ollama"
@@ -908,6 +969,10 @@ class BackendRouter:
                         logger.error(f"[LEGACY-WORKFLOW] Error uploading {image_key}: {e}")
                         import traceback
                         traceback.print_exc()
+
+            # Adapt workflow dynamically for multi-image (remove unused nodes)
+            if has_multi_image:
+                workflow = _adapt_workflow_for_multi_image(workflow, parameters)
 
             # Execute via service (submit → poll → download)
             # Legacy service handles prompt injection via title-based search

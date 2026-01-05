@@ -228,9 +228,9 @@ const messages = {
       }
     },
     multiImage: {
-      image1Label: 'Hauptbild',
-      image2Label: 'Zusatzbild 1 (optional)',
-      image3Label: 'Zusatzbild 2 (optional)',
+      image1Label: 'Bild 1',
+      image2Label: 'Bild 2 (optional)',
+      image3Label: 'Bild 3 (optional)',
       contextLabel: 'Sage was Du mit den Bildern machen möchtest',
       contextPlaceholder: 'z.B. Kombiniere diese Personen in einem Gruppenfoto... Übertrage den Stil von Bild 2 auf Bild 1...',
       modeTitle: 'Mehrere Bilder → Bild',
@@ -465,9 +465,9 @@ const messages = {
       }
     },
     multiImage: {
-      image1Label: 'Main Image',
-      image2Label: 'Additional Image 1 (optional)',
-      image3Label: 'Additional Image 2 (optional)',
+      image1Label: 'Image 1',
+      image2Label: 'Image 2 (optional)',
+      image3Label: 'Image 3 (optional)',
       contextLabel: 'Describe what you want to do with the images',
       contextPlaceholder: 'e.g. Combine these people into one group photo... Transfer the style from image 2 to image 1...',
       modeTitle: 'Multiple Images → Image',

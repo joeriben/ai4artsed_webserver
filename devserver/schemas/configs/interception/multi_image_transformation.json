@@ -1,0 +1,33 @@
+{
+  "pipeline": "multi_image_transformation",
+  "instruction_type": "multi_image_transformation",
+  "name": {
+    "en": "Multi-Image Transformation",
+    "de": "Mehrfach-Bild-Transformation"
+  },
+  "description": {
+    "en": "Fuse multiple images with AI guidance",
+    "de": "Fusioniere mehrere Bilder mit KI-Führung"
+  },
+  "category": {
+    "de": "System",
+    "en": "System"
+  },
+  "properties": [],
+  "context": {},
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 512
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"],
+    "output_config": "qwen_2511_multi"
+  },
+  "meta": {
+    "stage": "interception",
+    "skip_stage2": true,
+    "hidden": true
+  }
+}
