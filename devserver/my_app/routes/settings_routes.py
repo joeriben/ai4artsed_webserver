@@ -73,13 +73,13 @@ HARDWARE_MATRIX = {
         "none": {
             "label": "96 GB VRAM (Local only)",
             "models": {
-                "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_TEXT_MODEL": "local/gpt-OSS:120b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_OPTIMIZATION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE3_MODEL": "local/llama3.2-vision:90b",
-                "STAGE4_LEGACY_MODEL": "local/llama3.2-vision:90b",
-                "CHAT_HELPER_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "local/gpt-OSS:120b",
+                "STAGE2_OPTIMIZATION_MODEL": "local/gpt-OSS:120b",
+                "STAGE3_MODEL": "local/gpt-OSS:20b",
+                "STAGE4_LEGACY_MODEL": "local/gpt-OSS:120b",
+                "CHAT_HELPER_MODEL": "local/gpt-OSS:120b",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
@@ -165,13 +165,13 @@ HARDWARE_MATRIX = {
         "none": {
             "label": "32 GB VRAM (Local only)",
             "models": {
-                "STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_TEXT_MODEL": "local/gpt-OSS:120b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_OPTIMIZATION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE3_MODEL": "local/llama3.2-vision:90b",
-                "STAGE4_LEGACY_MODEL": "local/llama3.2-vision:90b",
-                "CHAT_HELPER_MODEL": "local/llama3.2-vision:90b",
+                "STAGE2_INTERCEPTION_MODEL": "local/gpt-OSS:120b",
+                "STAGE2_OPTIMIZATION_MODEL": "local/gpt-OSS:120b",
+                "STAGE3_MODEL": "local/gpt-OSS:20b",
+                "STAGE4_LEGACY_MODEL": "local/gpt-OSS:120b",
+                "CHAT_HELPER_MODEL": "local/gpt-OSS:120b",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "none",

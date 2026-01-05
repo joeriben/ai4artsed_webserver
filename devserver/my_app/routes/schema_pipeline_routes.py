@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from schemas.engine.pipeline_executor import PipelineExecutor
-from schemas.engine.prompt_interception_engine import PromptInterceptionEngine
+from schemas.engine.prompt_interception_engine import PromptInterceptionEngine, PromptInterceptionRequest
 from schemas.engine.config_loader import config_loader
 from schemas.engine.stage_orchestrator import (
     execute_stage1_translation,
@@ -1381,47 +1381,36 @@ def execute_pipeline_streaming(data: dict):
         model = STAGE2_INTERCEPTION_MODEL
         real_model = engine.extract_model_name(model)
 
-        # Stream from Ollama
+        # Backend-Routing: Route to correct backend based on model prefix
         accumulated = ""
         chunk_count = 0
 
-        payload = {
-            "model": real_model,
-            "prompt": full_prompt,
-            "stream": True
-        }
-
-        response = requests.post(
-            f"{OLLAMA_API_BASE_URL}/api/generate",
-            json=payload,
-            stream=True,
-            timeout=90
+        # Use Prompt Interception Engine (which has correct backend routing)
+        logger.info(f"[UNIFIED-STREAMING] Using Prompt Interception Engine for model: {model}")
+        pi_request = PromptInterceptionRequest(
+            input_prompt=checked_text,
+            input_context='',
+            style_prompt=style_prompt,
+            model=model,
+            debug=False,
+            unload_model=False
         )
-        response.raise_for_status()
+        pi_response = asyncio.run(engine.process_request(pi_request))
 
-        for line in response.iter_lines():
-            if line:
-                try:
-                    data_obj = json.loads(line.decode('utf-8'))
-                    text_chunk = data_obj.get("response", "")
-                    done = data_obj.get("done", False)
+        if pi_response.success:
+            accumulated = pi_response.output_str
+            chunk_count = 1
 
-                    if text_chunk:
-                        accumulated += text_chunk
-                        chunk_count += 1
-
-                        yield generate_sse_event('chunk', {
-                            'stage': 2,
-                            'text_chunk': text_chunk,
-                            'accumulated': accumulated,
-                            'chunk_count': chunk_count
-                        })
-                        yield ''  # Force flush
-
-                    if done:
-                        break
-                except json.JSONDecodeError:
-                    continue
+            # Stream the complete response as one chunk (non-streaming backends)
+            yield generate_sse_event('chunk', {
+                'stage': 2,
+                'text_chunk': accumulated,
+                'accumulated': accumulated,
+                'chunk_count': chunk_count
+            })
+            yield ''
+        else:
+            raise Exception(f"Interception failed: {pi_response.error}")
 
         logger.info(f"[UNIFIED-STREAMING] Stage 2 complete: {len(accumulated)} chars")
 
