@@ -378,6 +378,7 @@ class OllamaService:
         Raises:
             requests.exceptions.RequestException: If request fails
         """
+        response = None
         try:
             # Enable streaming in payload
             payload["stream"] = True
@@ -410,9 +411,21 @@ class OllamaService:
                         logger.warning(f"Failed to decode streaming response line: {e}")
                         continue
 
+        except GeneratorExit:
+            logger.info(f"Client disconnected from Ollama stream: {endpoint}")
+            raise  # Propagate to caller for proper cleanup
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Streaming request failed: {e}")
             raise
+
+        finally:
+            if response is not None:
+                try:
+                    response.close()
+                    logger.debug(f"Ollama connection closed for {endpoint}")
+                except Exception as e:
+                    logger.warning(f"Failed to close Ollama connection: {e}")
 
     def translate_text_stream(self, text: str):
         """

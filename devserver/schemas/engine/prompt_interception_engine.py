@@ -397,6 +397,7 @@ class PromptInterceptionEngine:
         Raises:
             Exception: If API call fails
         """
+        response = None
         try:
             logger.info(f"[BACKEND] ☁️  Mistral Streaming Request: {model}")
 
@@ -467,9 +468,21 @@ class PromptInterceptionEngine:
             if debug:
                 self._log_debug("Mistral (Stream)", model, prompt, accumulated_text)
 
+        except GeneratorExit:
+            logger.info(f"[BACKEND] Client disconnected from Mistral stream: {model}")
+            raise  # Propagate to caller for proper cleanup
+
         except Exception as e:
             logger.error(f"Mistral streaming API call failed: {e}")
             raise e
+
+        finally:
+            if response is not None:
+                try:
+                    response.close()
+                    logger.debug(f"[BACKEND] Mistral connection closed: {model}")
+                except Exception as e:
+                    logger.warning(f"[BACKEND] Failed to close Mistral connection: {e}")
 
     async def _call_aws_bedrock(self, prompt: str, model: str, debug: bool) -> Tuple[str, str]:
         """AWS Bedrock API Call for Anthropic Claude (EU region: eu-central-1)

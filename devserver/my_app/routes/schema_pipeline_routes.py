@@ -1424,6 +1424,10 @@ def execute_pipeline_streaming(data: dict):
         })
         yield ''
 
+    except GeneratorExit:
+        logger.info(f"[UNIFIED-STREAMING] Client disconnected from stream: {run_id}")
+        # Generator cleanup - no re-raise needed
+
     except Exception as e:
         logger.error(f"[UNIFIED-STREAMING] Error in run {run_id}: {e}")
         yield generate_sse_event('error', {
@@ -1431,6 +1435,9 @@ def execute_pipeline_streaming(data: dict):
             'run_id': run_id
         })
         yield ''
+
+    finally:
+        logger.info(f"[UNIFIED-STREAMING] Cleanup complete for run: {run_id}")
 
 @schema_bp.route('/pipeline/execute', methods=['POST', 'GET'])
 def execute_pipeline():

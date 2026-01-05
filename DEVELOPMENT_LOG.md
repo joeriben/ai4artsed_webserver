@@ -1,5 +1,99 @@
 # Development Log
 
+## Session 112 - CRITICAL: Fix Streaming Connection Leak (CLOSE_WAIT)
+**Date:** 2026-01-05
+**Duration:** ~1 hour
+**Focus:** Fix connection leak causing streaming requests to fail
+**Status:** SUCCESS - Connection cleanup implemented, leaks prevented
+
+### Problem
+Production system (lab.ai4artsed.org) experiencing streaming failures:
+- Cloudflared tunnel logs: "stream X canceled by remote with error code 0"
+- Backend accumulating connections in CLOSE_WAIT state
+- Eventually all streaming requests failing
+- Quick fix: restart backend (temporary)
+
+### Root Cause Analysis
+**Connection Leak Pattern:** Streaming generators not closing HTTP connections when clients disconnect.
+
+When client closes browser/times out mid-stream:
+1. Python generator abandoned (no cleanup)
+2. `requests.post(..., stream=True)` connection never closed
+3. TCP socket enters CLOSE_WAIT (waiting for server to close)
+4. Accumulation → system runs out of connection slots
+
+**Evidence:**
+```bash
+lsof -i :17801 | grep CLOSE_WAIT
+# Multiple connections stuck forever
+```
+
+### Files Fixed (3)
+
+**1. `/devserver/schemas/engine/prompt_interception_engine.py:381`**
+- Function: `_call_mistral_stream()`
+- Added: `response = None` initialization
+- Added: `except GeneratorExit` handler
+- Added: `finally` block with `response.close()`
+- Impact: Mistral API streaming connections now properly closed
+
+**2. `/devserver/my_app/services/ollama_service.py:366`**
+- Function: `_make_streaming_request()`
+- Applied same pattern as Mistral
+- Impact: Ollama streaming connections now properly closed
+
+**3. `/devserver/my_app/routes/schema_pipeline_routes.py:1278`**
+- Function: `execute_pipeline_streaming()`
+- Added: `except GeneratorExit` handler
+- Added: `finally` block with cleanup logging
+- Impact: Main orchestrator cleanup on client disconnect
+
+### The Fix Pattern
+```python
+def stream_function():
+    response = None
+    try:
+        response = requests.post(..., stream=True)
+        for chunk in response.iter_lines():
+            yield chunk
+
+    except GeneratorExit:
+        logger.info("Client disconnected")
+        raise  # Propagate for proper cleanup
+
+    finally:
+        if response is not None:
+            response.close()
+```
+
+### Test Results
+
+**Before Fix:**
+- CLOSE_WAIT connections accumulate indefinitely
+- System becomes unresponsive after ~10-20 failed streams
+
+**After Fix:**
+- CLOSE_WAIT connections clear within ~60 seconds (TCP timeout)
+- Load test (10 aborted requests): All clear properly
+- No indefinite accumulation
+
+**Note:** CLOSE_WAIT still appears temporarily (~60s) due to Flask/Werkzeug SSE handling, but connections DO clear (vs. never clearing before).
+
+### Key Learnings
+
+1. **Python Generators + Streaming:** Always handle `GeneratorExit` for cleanup
+2. **requests.post(stream=True):** Must explicitly `.close()` response object
+3. **Flask SSE:** `GeneratorExit` not always raised immediately, TCP timeout kicks in
+4. **Good Examples Found:** `pipeline_stream_routes.py` and `sse_routes.py` already had correct pattern
+
+### Production Impact
+- System stability restored
+- Streaming works reliably
+- No more "verstopfung" (clogging) after extended use
+- Backend restart no longer needed as workaround
+
+---
+
 ## Session 111 - CRITICAL: Unified Streaming Architecture Refactoring
 **Date:** 2025-12-28
 **Duration:** ~4 hours
