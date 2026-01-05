@@ -1,5 +1,157 @@
 # Development Log
 
+## Session 113 - CRITICAL: Fix Model Configs and Backend Routing Bug
+**Date:** 2026-01-05
+**Duration:** ~2 hours
+**Focus:** Fix broken 96GB/32GB configs, backend routing, and update model paths
+**Status:** SUCCESS - All critical bugs fixed, 50+ model paths updated
+
+### Problems Identified
+
+**1. Broken 96GB/32GB "Local Only" Configurations**
+- CRITICAL: All text models using `local/llama3.2-vision:90b` (a vision model!)
+- Should use `local/gpt-OSS:120b` for text tasks, `local/gpt-OSS:20b` for Stage 3
+- Only STAGE1_VISION_MODEL and IMAGE_ANALYSIS_MODEL should use vision model
+- Impact: Poor performance, inappropriate model selection
+
+**2. Backend Routing Bug in Unified Streaming (Stage 2)**
+- Root cause: Session 111 regression (commit e8562cc "Unified streaming orchestration")
+- Code hardcoded Ollama endpoint (`localhost:11434`) for ALL models
+- Mistral/Anthropic/OpenRouter models sent to Ollama → 404 errors
+- Impact: Complete streaming failure for non-local models
+
+**3. Deprecated OpenRouter Model Paths (50+ instances)**
+- Old format: `openrouter/anthropic/claude-3-5-haiku`
+- New format: `anthropic/claude-haiku-4.5`
+- Affected: settings_routes.py, model_selector.py, helper scripts
+
+### Solutions Implemented
+
+**Fix 1: 96GB/32GB Local-Only Configs** (`settings_routes.py`)
+```python
+# Before (BROKEN - vision model for all tasks)
+"STAGE1_TEXT_MODEL": "local/llama3.2-vision:90b"
+"STAGE2_INTERCEPTION_MODEL": "local/llama3.2-vision:90b"
+# ... all text models using vision model!
+
+# After (FIXED - proper text models)
+"STAGE1_TEXT_MODEL": "local/gpt-OSS:120b"
+"STAGE2_INTERCEPTION_MODEL": "local/gpt-OSS:120b"
+"STAGE3_MODEL": "local/gpt-OSS:20b"  # Smaller for translation/safety
+"STAGE1_VISION_MODEL": "local/llama3.2-vision:90b"  # Vision only
+```
+
+**Fix 2: Backend Routing** (`schema_pipeline_routes.py:1384-1413`)
+```python
+# Before (BROKEN - always Ollama)
+response = requests.post(
+    f"{OLLAMA_API_BASE_URL}/api/generate",  # Hardcoded!
+    ...
+)
+
+# After (FIXED - uses Prompt Interception Engine)
+pi_response = asyncio.run(engine.process_request(pi_request))
+# Engine has proper backend routing:
+# - mistral/ → Mistral API
+# - anthropic/ → Anthropic API
+# - local/ → Ollama
+# - openrouter/ → OpenRouter
+```
+
+**Fix 3: Model Path Updates** (50+ instances)
+- `openrouter/anthropic/claude-3-5-haiku` → `anthropic/claude-haiku-4.5`
+- `openrouter/anthropic/claude-3-5-sonnet` → `anthropic/claude-sonnet-4.5`
+- `openrouter/anthropic/claude-3-haiku` → `anthropic/claude-haiku-4.5`
+
+### Files Modified (6)
+
+1. **`devserver/my_app/routes/settings_routes.py`**
+   - Fixed 96GB/32GB local configs (12 model fields)
+   - Updated 40+ OpenRouter paths across all VRAM tiers
+   - Impact: Proper model selection for all hardware tiers
+
+2. **`devserver/my_app/routes/schema_pipeline_routes.py`**
+   - Fixed backend routing bug (Stage 2 streaming)
+   - Added `PromptInterceptionRequest` import
+   - Replaced hardcoded Ollama with engine routing
+   - Impact: Streaming works for all backend types
+
+3. **`devserver/schemas/engine/model_selector.py`**
+   - Updated 4 model path instances
+   - Task categories, fallbacks, metadata
+   - Impact: Correct model resolution
+
+4. **`fix_hardware_matrix.py`** (helper script)
+   - Updated 6 template instances
+   - Impact: Generates correct configs
+
+5. **`generate_hardware_matrix.py`** (helper script)
+   - Updated 2 constant definitions
+   - Impact: Generates correct configs
+
+6. **`docs/sessions/HANDOVER_QWEN_MULTIIMAGE_HEADER_LORA_FIX.md`**
+   - Added session documentation
+
+### Technical Details
+
+**Why Backend Routing Failed:**
+Session 111's "unified streaming orchestration" bypassed the Prompt Interception Engine and sent all models directly to Ollama. The Prompt Interception Engine already has correct backend routing logic (`_detect_backend_from_model()` in `backend_router.py`).
+
+**Solution Pattern:**
+```python
+# Route to correct backend based on model prefix
+if model.startswith("anthropic/"):
+    # Use Anthropic API
+elif model.startswith("mistral/"):
+    # Use Mistral API
+elif model.startswith("local/"):
+    # Use Ollama
+else:
+    # Use Prompt Interception Engine (has all routing logic)
+```
+
+### Commits Created (3)
+
+1. **`7585833`** - `fix(config): Fix 96GB/32GB local configs and backend routing`
+   - Critical bug fixes
+   - 2 files changed, 39 insertions(+), 50 deletions(-)
+
+2. **`6eec19d`** - `fix(models): Update all OpenRouter model paths to Claude 4.5`
+   - 50+ model path updates
+   - 4 files changed, 46 insertions(+), 46 deletions(-)
+
+3. **`b06cdef`** - `docs: Add handover documentation for QWEN multi-image fix`
+   - Session documentation
+   - 1 file changed, 245 insertions(+)
+
+### Impact
+
+**Before:**
+- ❌ 96GB/32GB local configs broken (vision model for text tasks)
+- ❌ Streaming fails for all non-Ollama models (404 errors)
+- ⚠️ 50+ deprecated model paths
+
+**After:**
+- ✅ All local configs use appropriate models
+- ✅ Backend routing works for all model types
+- ✅ All model paths updated to Claude 4.5 format
+- ✅ System stable and production-ready
+
+### Lessons Learned
+
+1. **Always use existing routing infrastructure** - Don't bypass Prompt Interception Engine
+2. **Vision models ≠ Text models** - llama3.2-vision:90b should only be for vision tasks
+3. **Test all backend types** - Ollama, Anthropic, Mistral, OpenRouter all need testing
+4. **Model path formats change** - Keep configs updated with latest provider formats
+
+### Next Steps
+
+- [ ] Monitor production for stability
+- [ ] Update user_settings.json if users have cached old configs
+- [ ] Consider adding backend routing tests to prevent future regressions
+
+---
+
 ## Session 112 - CRITICAL: Fix Streaming Connection Leak (CLOSE_WAIT)
 **Date:** 2026-01-05
 **Duration:** ~1 hour
