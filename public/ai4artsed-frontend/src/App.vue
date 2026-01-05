@@ -4,6 +4,7 @@
     <header class="app-header">
       <div class="header-content">
         <div class="header-left">
+          <span class="app-title">AI4ARTSED - AI LAB</span>
         </div>
 
         <div class="header-center">
@@ -24,7 +25,6 @@
         </div>
 
         <div class="header-right">
-          <span class="app-title">AI4ARTSED - AI LAB</span>
           <nav class="header-nav-links">
             <button @click="openAbout" class="nav-link" :title="$t('nav.about')">ⓘ</button>
             <button @click="openDatenschutz" class="nav-link" :title="$t('nav.privacy')">🔒</button>
@@ -238,7 +238,6 @@ html, body {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
 }
 
 /* Navigation Links */
@@ -246,8 +245,6 @@ html, body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding-left: 1rem;
-  border-left: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .nav-link {
