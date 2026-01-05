@@ -9,8 +9,8 @@ BEDROCK_HAIKU = "bedrock/eu.anthropic.claude-3-5-haiku-20241022-v2:0"
 BEDROCK_SONNET = "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 # OpenRouter models (short names)
-OR_HAIKU = "openrouter/anthropic/claude-3-5-haiku"
-OR_SONNET = "openrouter/anthropic/claude-3-5-sonnet"
+OR_HAIKU = "anthropic/claude-haiku-4.5"
+OR_SONNET = "anthropic/claude-sonnet-4.5"
 
 # Template for each VRAM size
 VRAM_CONFIGS = {

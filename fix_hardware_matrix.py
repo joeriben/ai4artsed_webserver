@@ -40,13 +40,13 @@ NEW_MATRIX = {
         "non_dsgvo": {
             "label": "96 GB VRAM (OpenRouter aggregator)",
             "models": {
-                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4.5",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-3-5-sonnet",
-                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE3_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-3-5-haiku",
-                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-3-5-haiku",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4.5",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-haiku-4.5",
+                "STAGE3_MODEL": "anthropic/claude-haiku-4.5",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4.5",
+                "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4.5",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",

@@ -55,8 +55,8 @@ OPENROUTER_TO_OLLAMA_MAP = {v: k for k, v in OLLAMA_TO_OPENROUTER_MAP.items()}
 # Add reverse mappings for common OpenRouter models
 OPENROUTER_TO_OLLAMA_MAP.update({
     "google/gemma-2-27b-it": "gemma2:27b",
-    "anthropic/claude-3.5-haiku": "mistral-nemo",  # Fallback for Claude
-    "anthropic/claude-3-haiku": "mistral-nemo",
+    "anthropic/claude-haiku-4.5": "mistral-nemo",  # Fallback for Claude
+    "anthropic/claude-haiku-4.5": "mistral-nemo",
     "mistralai/mistral-nemo": "mistral-nemo",
 })
 
@@ -104,7 +104,7 @@ class ModelSelector:
             # === LANGUAGE & TRANSLATION ===
             "translation": {
                 "eco": "local/qwen2.5-translator",
-                "fast": "openrouter/anthropic/claude-3.5-haiku",
+                "fast": "openrouter/anthropic/claude-haiku-4.5",
                 "description": "Language translation, multilingual tasks"
             },
             
@@ -136,7 +136,7 @@ class ModelSelector:
         
         Args:
             base_model: Template model OR task category
-                       Concrete: "gemma2:9b", "openrouter/anthropic/claude-3.5-haiku"
+                       Concrete: "gemma2:9b", "openrouter/anthropic/claude-haiku-4.5"
                        Task-based: "task:standard", "task:advanced", "task:translation", etc.
             execution_mode: "eco" (local/Ollama) or "fast" (cloud/OpenRouter)
             
@@ -376,8 +376,8 @@ class ModelSelector:
         Transferred from prompt_interception_engine
         """
         return {
-            "anthropic/claude-3.5-haiku": {"price": "$0.80/$4.00", "tag": "multilingual"},
-            "anthropic/claude-3-haiku": {"price": "$0.80/$4.00", "tag": "multilingual"},
+            "anthropic/claude-haiku-4.5": {"price": "$0.80/$4.00", "tag": "multilingual"},
+            "anthropic/claude-haiku-4.5": {"price": "$0.80/$4.00", "tag": "multilingual"},
             "deepseek/deepseek-chat-v3-0324": {"price": "$0.27/$1.10", "tag": "rule-oriented"},
             "deepseek/deepseek-r1-0528": {"price": "$0.50/$2.15", "tag": "reasoning"},
             "google/gemini-2.5-flash": {"price": "$0.20/$2.50", "tag": "multilingual"},
@@ -424,7 +424,7 @@ class ModelSelector:
         
         # Preferred fallbacks in order
         fallbacks = [
-            "anthropic/claude-3.5-haiku",
+            "anthropic/claude-haiku-4.5",
             "meta-llama/llama-3.2-1b-instruct",
             "mistralai/ministral-8b"
         ]
@@ -438,7 +438,7 @@ class ModelSelector:
         # Ultimate fallback
         if debug:
             logger.warning(f"[FALLBACK] Using ultimate OpenRouter fallback: claude-3-haiku")
-        return "anthropic/claude-3-haiku"
+        return "anthropic/claude-haiku-4.5"
     
     def find_ollama_fallback(self, failed_model: str, debug: bool = False) -> Optional[str]:
         """
