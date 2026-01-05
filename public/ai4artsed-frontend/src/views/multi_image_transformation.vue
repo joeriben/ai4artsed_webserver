@@ -47,8 +47,8 @@
       <section class="context-section-full">
         <MediaInputBox
           icon="📋"
-          label="Sage was Du mit den Bildern machen möchtest"
-          placeholder="z.B. Kombiniere diese Personen... Übertrage den Stil von Bild 2 auf Bild 1..."
+          :label="$t('multiImage.contextLabel')"
+          :placeholder="$t('multiImage.contextPlaceholder')"
           v-model:value="contextPrompt"
           input-type="text"
           :rows="6"
@@ -69,8 +69,8 @@
         <!-- Context Bubble (RIGHT) -->
         <MediaInputBox
           icon="📋"
-          label="Sage was Du an dem Bild verändern möchtest"
-          placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
+          :label="$t('multiImage.contextLabel')"
+          :placeholder="$t('multiImage.contextPlaceholder')"
           v-model:value="contextPrompt"
           input-type="text"
           :rows="6"
