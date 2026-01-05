@@ -17,6 +17,9 @@
             <router-link to="/image-transformation" class="mode-button" active-class="active">
               <span class="mode-icon">🖼️</span>
             </router-link>
+            <router-link to="/multi-image-transformation" class="mode-button" active-class="active">
+              <span class="mode-icon">🎨</span>
+            </router-link>
           </div>
         </div>
 
