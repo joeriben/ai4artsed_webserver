@@ -41,24 +41,24 @@ def generate_strong_password(length=24):
 
 
 def initialize_password():
-    """Initialize password on first run - generate strong random password and store hash"""
+    """Initialize password - use fixed password for all instances (dev/prod/ports)"""
+    # FIXED PASSWORD: Same for all instances (17801, 17802, all domains)
+    # Solves password manager confusion between dev/prod/ports
+    FIXED_PASSWORD = "mkjdU4dz8H3!F"
+
     if not SETTINGS_PASSWORD_FILE.exists():
-        # Generate strong random password
-        password = generate_strong_password(24)
-        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        # Generate hash from fixed password
+        password_hash = generate_password_hash(FIXED_PASSWORD, method='pbkdf2:sha256')
 
         # Store hash
         SETTINGS_PASSWORD_FILE.write_text(password_hash)
         SETTINGS_PASSWORD_FILE.chmod(0o600)  # Restrict to owner only
 
-        # Log password ONCE so admin can save it
-        logger.warning("=" * 80)
-        logger.warning("[SETTINGS] NEW ADMIN PASSWORD GENERATED - SAVE THIS NOW!")
-        logger.warning(f"[SETTINGS] Password: {password}")
-        logger.warning("[SETTINGS] This password will NOT be shown again!")
-        logger.warning("=" * 80)
+        # Log confirmation (not the password itself for security)
+        logger.info("[SETTINGS] Settings password initialized with fixed password")
+        logger.info("[SETTINGS] Password is centrally managed (same for all instances)")
 
-        return password
+        return FIXED_PASSWORD
     return None
 
 
