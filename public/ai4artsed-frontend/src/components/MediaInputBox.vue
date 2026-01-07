@@ -10,9 +10,21 @@
       <span class="bubble-icon">{{ icon }}</span>
       <span class="bubble-label">{{ label }}</span>
       <div v-if="showActions" class="bubble-actions">
-        <button v-if="showCopy" @click="$emit('copy')" class="action-btn" title="Kopieren">📋</button>
-        <button v-if="showPaste" @click="$emit('paste')" class="action-btn" title="Einfügen">📄</button>
-        <button v-if="showClear" @click="$emit('clear')" class="action-btn" title="Löschen">🗑️</button>
+        <button v-if="showCopy" @click="$emit('copy')" class="action-btn" title="Kopieren">
+          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+            <path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/>
+          </svg>
+        </button>
+        <button v-if="showPaste" @click="$emit('paste')" class="action-btn" title="Einfügen">
+          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h167q11-35 43-57.5t70-22.5q40 0 71.5 22.5T594-840h166q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560h-80v120H280v-120h-80v560Zm280-560q17 0 28.5-11.5T520-800q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800q0 17 11.5 28.5T480-760Z"/>
+          </svg>
+        </button>
+        <button v-if="showClear" @click="$emit('clear')" class="action-btn" title="Löschen">
+          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+            <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -377,10 +389,19 @@ onUnmounted(() => {
   cursor: pointer;
   transition: opacity 0.2s;
   padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .action-btn:hover {
   opacity: 0.8;
+}
+
+.action-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* Textarea */

@@ -13,13 +13,25 @@
               <span class="mode-icon">🫵</span>
             </router-link>
             <router-link to="/text-transformation" class="mode-button" active-class="active">
-              <span class="mode-icon">📝</span>
+              <span class="mode-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+                  <path d="M160-200v-80h528l-42-42 56-56 138 138-138 138-56-56 42-42H160Zm116-200 164-440h80l164 440h-76l-38-112H392l-40 112h-76Zm138-176h132l-64-182h-4l-64 182Z"/>
+                </svg>
+              </span>
             </router-link>
             <router-link to="/image-transformation" class="mode-button" active-class="active">
-              <span class="mode-icon">🖼️</span>
+              <span class="mode-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+                  <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"/>
+                </svg>
+              </span>
             </router-link>
             <router-link to="/multi-image-transformation" class="mode-button" active-class="active">
-              <span class="mode-icon">🎨</span>
+              <span class="mode-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+                  <path d="M120-840h320v320H120v-320Zm80 80v160-160Zm320-80h320v320H520v-320Zm80 80v160-160ZM120-440h320v320H120v-320Zm80 80v160-160Zm440-80h80v120h120v80H720v120h-80v-120H520v-80h120v-120Zm-40-320v160h160v-160H600Zm-400 0v160h160v-160H200Zm0 400v160h160v-160H200Z"/>
+                </svg>
+              </span>
             </router-link>
           </div>
         </div>
@@ -219,6 +231,14 @@ html, body {
 
 .mode-icon {
   font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mode-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .header-right {
