@@ -423,6 +423,7 @@ defineExpose({
   background: rgba(30, 30, 30, 0.9);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.3s ease;
   padding: 0;
