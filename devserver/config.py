@@ -438,7 +438,7 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 
 # Request Timeouts (in seconds)
-OLLAMA_TIMEOUT = 90
+OLLAMA_TIMEOUT = 300  # 5 minutes for heavy models (gpt-OSS:120b needs 100-262s)
 COMFYUI_TIMEOUT = 480  # 8 minutes for data-rich workflows
 POLLING_TIMEOUT = 15
 MEDIA_DOWNLOAD_TIMEOUT = 30
