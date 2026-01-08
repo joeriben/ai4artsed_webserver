@@ -1,5 +1,153 @@
 # Development Log
 
+## Session 115 - Complete Icon System Migration to Material Design
+**Date:** 2026-01-08
+**Duration:** ~3 hours
+**Focus:** Replace all emoji icons with Google Material Design SVGs
+**Status:** SUCCESS - Complete icon system overhaul, CSS collision fix
+
+### Problem Identified
+
+**Emoji Icons Throughout UI**
+- Emoji icons (💡📋🖼️✨ etc.) used inconsistently across the entire frontend
+- Visually dominant and distracting from content
+- Inconsistent rendering across browsers/OS
+- Limited customization options (size, color transitions)
+- Three categories needed replacement:
+  1. Property quadrant selection icons (PropertyBubble)
+  2. MediaInputBox header icons (lightbulb, clipboard, etc.)
+  3. Image icons within MediaBoxes (upload prompts, category bubbles)
+
+**Config Bubbles Rendering as Ellipses**
+- Config bubbles displayed as flattened ellipses instead of circles
+- Required hard reload to display correctly
+- Reacted incorrectly to browser window resizing
+
+### Solution Implemented
+
+**Phase 1: Property Icons & Config Management**
+- Replaced 8 property quadrant icons with Material Design SVGs:
+  * technical_imaging: photo_camera_24dp
+  * arts: museum_24dp
+  * attitudes: sentiment_content_24dp (NEW property)
+  * critical_analysis: diversity_2_24dp
+  * semantics: comic_bubble_24dp
+  * research: smart_toy_24dp
+  * aesthetics: wand_stars_24dp
+  * freestyle: stylus_note_24dp
+- Fixed icon filename convention (underscores, not hyphens)
+- Updated PropertyBubble.vue with conditional SVG rendering
+- Assigned unique colors for new properties:
+  * attitudes: #FF6F00 (Orange - emotional, warm)
+  * critical_analysis: #4CAF50 (Green - growth, critical thinking)
+  * research: #00BCD4 (Cyan - scientific, analytical)
+  * freestyle: #FFC107 (Amber - creative, individual)
+
+**Config Renaming & Preview Image Mapping:**
+- Renamed 5 interception configs for clarity:
+  * expressionism → forceful
+  * displaced_world → mad_world
+  * de-biaser → one_world
+  * relational_inquiry → sensitive
+  * stable-diffusion_3.5_tellastory → tellastory
+- Fixed broken preview image associations in /public/config-previews/
+
+**Phase 2: MediaInputBox Header Icons**
+- Added conditional SVG rendering for 6 icon types:
+  * 💡 → emoji_objects_24dp (Lightbulb/Idea)
+  * 📋 → format_list_numbered_24dp (Clipboard/List)
+  * ➡️/→ → line_end_arrow_notch_24dp (Arrow/Forward)
+  * ✨ → robot_2_24dp (Stars/AI Optimization)
+  * 🖼️/📷 → imagesmode_24dp (Image)
+  * ➕ → add_photo_alternate_24dp (Plus/Optional)
+- Supports both emoji and string icon names ('lightbulb', 'clipboard', etc.)
+- Added responsive SVG sizing with clamp() for .bubble-icon
+
+**Phase 3: Image Icons Inside MediaBoxes**
+- ImageUploadWidget: Replaced 🖼️ with imagesmode SVG in upload prompt
+- multi_image_transformation category bubbles:
+  * image: 🖼️ → imagesmode SVG
+  * video: 🎬 → video_camera_back SVG
+  * sound: 🔊 → sound_detection_loud_sound SVG
+- Added responsive SVG sizing for .upload-icon (64px) and .bubble-emoji-small (32px)
+
+**Phase 4: CSS Collision Fix**
+- Identified CSS class name collision: both PropertyCanvas and ConfigTile used `.config-bubble`
+- PropertyCanvas: `width: 18%` (responsive) + `aspect-ratio: 1/1`
+- ConfigTile: `width/height: 240px` (fixed pixels)
+- Renamed `.config-bubble` → `.property-config-bubble` in PropertyCanvas.vue
+- Eliminated CSS specificity conflicts between components
+
+### Files Modified
+
+**Icon Assets (14 new files):**
+- Property icons: photo_camera, museum, sentiment_content, diversity_2, comic_bubble, smart_toy, wand_stars, stylus_note
+- MediaBox icons: emoji_objects, format_list_numbered, line_end_arrow_notch, robot_2, imagesmode, add_photo_alternate
+
+**Components (4 modified):**
+1. PropertyBubble.vue - Conditional SVG rendering for 8 properties
+2. PropertyCanvas.vue - Color mapping + CSS class rename fix
+3. MediaInputBox.vue - Header icon SVG rendering + CSS sizing
+4. ImageUploadWidget.vue - Upload prompt icon replacement
+5. multi_image_transformation.vue - Category bubble icons
+
+**Configs (8 modified/renamed):**
+- forceful.json, mad_world.json, one_world.json, sensitive.json - Updated categories and colors
+- tellastory.json - Updated category to freestyle
+- Preview images remapped for all renamed configs
+
+### Technical Details
+
+**Icon Implementation Pattern:**
+```vue
+<svg v-if="icon === '💡' || icon === 'lightbulb'" xmlns="..." height="24" viewBox="..." fill="currentColor">
+  <path d="..."/>
+</svg>
+```
+
+**Color Psychology Assignments:**
+- Orange (#FF6F00): Emotional warmth (attitudes)
+- Green (#4CAF50): Growth, critical thinking
+- Cyan (#00BCD4): Scientific, analytical (research)
+- Amber (#FFC107): Creative freedom (freestyle)
+
+**CSS Fix Pattern:**
+```css
+.property-config-bubble { /* Renamed from .config-bubble */
+  width: 18%;
+  aspect-ratio: 1 / 1;
+}
+```
+
+### Design Impact
+
+**Visual Hierarchy Improvement:**
+- Icons are now significantly clearer and less visually dominant
+- Gives the "trashy UI aesthetic" more breathing room
+- Material Design consistency throughout the application
+- Better visual balance between icons and content
+
+**Technical Benefits:**
+- Sharp, scalable icons at all sizes
+- currentColor integration for theme consistency
+- No browser/OS rendering inconsistencies
+- Easier maintenance with standard Material Design library
+
+### Git Commits (4)
+
+1. **337f069** - Property icons + config preview images + unique colors
+2. **ecad50d** - MediaInputBox header icons (💡📋➡️✨🖼️➕)
+3. **4821ae7** - Image icons inside MediaBoxes (upload + category bubbles)
+4. **c00ece5** - i18n placeholders + CSS collision fix
+
+### Next Steps
+
+- Monitor icon rendering across different devices/browsers
+- Consider adding icon transitions/hover effects
+- Evaluate need for additional Material Design icons in other components
+
+---
+
 ## Session 114 - Revert Single-Image QWEN to Stable Pre-2511 Models
 **Date:** 2026-01-05
 **Duration:** ~30 minutes

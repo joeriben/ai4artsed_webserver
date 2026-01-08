@@ -29,6 +29,107 @@
 
 ---
 
+## 🎨 DESIGN DECISION (2026-01-08): Material Design Icon Migration
+
+**Date:** 2026-01-08
+**Session:** 115 (Complete Icon System Migration)
+
+### Decision
+
+Replace all emoji icons throughout the frontend with Google Material Design SVG icons.
+
+### Context
+
+**Previous State:**
+- Emoji icons (💡📋🖼️✨🖌️📷 etc.) used throughout the UI
+- Inconsistent rendering across browsers and operating systems
+- Visually dominant and distracting from core content
+- Limited customization options (size, color, transitions)
+
+**User Feedback:**
+> "Die neuen Icons sind erheblich klarer und ästhetisch weniger dominant. Das gibt unserem träshigen Träshi auch etwas mehr ästhetischen Raum."
+
+### Reasoning
+
+**Visual Hierarchy:**
+- Emoji icons were competing for attention with the actual content
+- Material Design icons provide clearer, more subtle visual cues
+- Allows the "trashy aesthetic" UI design to breathe without icon clutter
+- Better balance between functionality and aesthetic space
+
+**Technical Benefits:**
+- Sharp, scalable rendering at all sizes
+- `currentColor` integration for theme consistency
+- No cross-browser rendering inconsistencies
+- Standardized Material Design library (maintenance)
+- Easier customization (size, color, transitions)
+
+**Pedagogical Alignment:**
+- Cleaner interface supports focus on creative process
+- Less visual noise = better learning environment
+- Icons serve UI function without dominating student attention
+
+### Implementation
+
+**Icon Categories Replaced:**
+
+1. **Property Quadrant Icons (8):**
+   - technical_imaging, arts, attitudes, critical_analysis, semantics, research, aesthetics, freestyle
+   - Pattern: Conditional SVG rendering with `v-if`/`v-else-if` chains
+
+2. **MediaInputBox Header Icons (6):**
+   - Lightbulb (💡), Clipboard (📋), Arrow (➡️), Robot (✨), Image (🖼️), Plus (➕)
+   - Supports both emoji and string names for flexibility
+
+3. **Image Upload Icons (4):**
+   - Upload prompts, category bubbles (image/video/sound)
+   - Responsive sizing: 32px-64px depending on context
+
+**Technical Pattern:**
+```vue
+<svg v-if="icon === '💡' || icon === 'lightbulb'"
+     xmlns="http://www.w3.org/2000/svg"
+     height="24" viewBox="0 -960 960 960"
+     fill="currentColor">
+  <path d="...Google Material Design path data..."/>
+</svg>
+```
+
+**Color Strategy:**
+- All SVGs use `fill="currentColor"` for theme integration
+- Property colors based on color psychology:
+  * Orange #FF6F00: Emotional warmth (attitudes)
+  * Green #4CAF50: Growth, critical thinking (critical_analysis)
+  * Cyan #00BCD4: Scientific, analytical (research)
+  * Amber #FFC107: Creative freedom (freestyle)
+
+### Files Affected
+
+**Icon Assets (14 new):** `public/ai4artsed-frontend/src/assets/icons/*.svg`
+**Components (5):** PropertyBubble, PropertyCanvas, MediaInputBox, ImageUploadWidget, multi_image_transformation
+
+### Commits
+
+- 337f069: Property icons + config preview images + unique colors
+- ecad50d: MediaInputBox header icons
+- 4821ae7: Image icons inside MediaBoxes
+- c00ece5: i18n placeholders + CSS collision fix
+
+### Alternative Considered
+
+**Keep Emoji Icons:**
+- Rejected: Cross-platform inconsistencies
+- Rejected: Limited customization
+- Rejected: Visual dominance conflicts with pedagogical goals
+
+### Future Implications
+
+- Standardized on Material Design library for all future icon additions
+- Easier to maintain consistent visual language
+- Prepared for potential theming/dark mode in future
+
+---
+
 ## 🚨 CRITICAL ARCHITECTURE FIX (2025-12-28): Unified Streaming Orchestration
 
 **Date:** 2025-12-28
