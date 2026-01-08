@@ -99,7 +99,18 @@
             @keydown.enter="!category.disabled && selectCategory(category.id)"
             @keydown.space.prevent="!category.disabled && selectCategory(category.id)"
           >
-            <div class="bubble-emoji-small">{{ category.emoji }}</div>
+            <div class="bubble-emoji-small">
+              <svg v-if="category.id === 'image'" height="32" viewBox="0 -960 960 960" width="32" fill="currentColor">
+                <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Zm140-360q25 0 42.5-17.5T400-620q0-25-17.5-42.5T340-680q-25 0-42.5 17.5T280-620q0 25 17.5 42.5T340-560Z"/>
+              </svg>
+              <svg v-else-if="category.id === 'video'" height="32" viewBox="0 -960 960 960" width="32" fill="currentColor">
+                <path d="M200-320h400L462-500l-92 120-62-80-108 140Zm-40 200q-33 0-56.5-23.5T80-200v-560q0-33 23.5-56.5T160-840h560l-80 80H160v560h560v-240l80-80v320q0 33-23.5 56.5T720-120H160Zm560-360v-120H600v-80h120v-120h80v120h120v80H800v120h-80ZM440-440Z"/>
+              </svg>
+              <svg v-else-if="category.id === 'sound'" height="32" viewBox="0 -960 960 960" width="32" fill="currentColor">
+                <path d="M560-131v-82q90-26 145-100t55-168q0-94-55-168T560-749v-82q124 28 202 125.5T840-481q0 127-78 224.5T560-131ZM120-360v-240h160l200-200v640L280-360H120Zm440 40v-322q47 22 73.5 66t26.5 96q0 51-26.5 94.5T560-320ZM400-606l-86 86H200v80h114l86 86v-252ZM300-480Z"/>
+              </svg>
+              <span v-else>{{ category.emoji }}</span>
+            </div>
           </div>
         </div>
       </section>
@@ -1261,6 +1272,14 @@ watch(uploadedImagePath3, (newVal) => {
   font-size: clamp(2rem, 4.5vw, 2.5rem);
   line-height: 1;
   transition: filter 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bubble-emoji-small svg {
+  width: 32px;
+  height: 32px;
 }
 
 .category-bubble.selected .bubble-emoji-small {
