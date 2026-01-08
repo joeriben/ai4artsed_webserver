@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify, Response, stream_with_context
 from pathlib import Path
 import logging
 import asyncio
+import threading
 import json
 import uuid
 
@@ -57,6 +58,12 @@ schema_compat_bp = Blueprint('schema_compat', __name__)
 
 # Global Pipeline-Executor (wird bei App-Start initialisiert)
 pipeline_executor = None
+
+# Ollama Request Queue - Prevent concurrent overload of 120b model
+# Use threading.Semaphore because asyncio.run() runs in separate event loops
+OLLAMA_MAX_CONCURRENT = 3
+ollama_queue_semaphore = threading.Semaphore(OLLAMA_MAX_CONCURRENT)
+logger.info(f"[OLLAMA-QUEUE] Initialized with max concurrent requests: {OLLAMA_MAX_CONCURRENT}")
 
 # Cache for output_config_defaults.json
 _output_config_defaults = None
@@ -737,12 +744,19 @@ def execute_stage2():
         logger.info(f"[STAGE2-ENDPOINT] Stage 1: Safety Check")
 
         stage1_start = time.time()
-        is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
-            input_text,
-            safety_level,
-            execution_mode,
-            pipeline_executor
-        ))
+        
+        # OLLAMA QUEUE: Wrap Stage 1 execution
+        logger.info(f"[OLLAMA-QUEUE] Stage 2 Endpoint: Waiting for queue slot...")
+        with ollama_queue_semaphore:
+            logger.info(f"[OLLAMA-QUEUE] Stage 2 Endpoint: Acquired slot, executing Stage 1")
+            is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+                input_text,
+                safety_level,
+                execution_mode,
+                pipeline_executor
+            ))
+        logger.info(f"[OLLAMA-QUEUE] Stage 2 Endpoint: Released slot")
+
         stage1_time = (time.time() - stage1_start) * 1000  # ms
 
         if not is_safe:
@@ -1328,12 +1342,19 @@ def execute_pipeline_streaming(data: dict):
         logger.info(f"[UNIFIED-STREAMING] Stage 1: Running safety check")
 
         stage1_start = time.time()
-        is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
-            input_text,
-            safety_level,
-            execution_mode,
-            pipeline_executor
-        ))
+        
+        # OLLAMA QUEUE: Wrap Stage 1 execution
+        logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Waiting for queue slot...")
+        with ollama_queue_semaphore:
+            logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Acquired slot, executing Stage 1")
+            is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+                input_text,
+                safety_level,
+                execution_mode,
+                pipeline_executor
+            ))
+        logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Released slot")
+
         stage1_time = (time.time() - stage1_start) * 1000  # ms
 
         if not is_safe:
@@ -1674,12 +1695,18 @@ def execute_pipeline():
                 logger.info(f"[RECORDER] Saved input entity")
 
                 # Stage 1: GPT-OSS Safety Check (No Translation)
-                is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
-                    input_text,
-                    safety_level,
-                    execution_mode,
-                    pipeline_executor
-                ))
+                # OLLAMA QUEUE: Wrap Stage 1 execution
+                logger.info(f"[OLLAMA-QUEUE] Unified Pipeline: Waiting for queue slot...")
+                with ollama_queue_semaphore:
+                    logger.info(f"[OLLAMA-QUEUE] Unified Pipeline: Acquired slot, executing Stage 1")
+                    is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+                        input_text,
+                        safety_level,
+                        execution_mode,
+                        pipeline_executor
+                    ))
+                logger.info(f"[OLLAMA-QUEUE] Unified Pipeline: Released slot")
+
                 current_input = checked_text
 
                 if not is_safe:

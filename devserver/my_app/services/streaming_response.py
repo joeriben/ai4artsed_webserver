@@ -50,12 +50,13 @@ def create_streaming_response(workflow_execution_func, *args, **kwargs) -> Respo
                 message_count += 1
                 
                 # Send progress update
-                yield f"data: {json.dumps({
+                progress_data = {
                     'status': 'processing',
                     'message': f'Workflow läuft... ({int(elapsed)}s)',
                     'elapsed': elapsed,
                     'keepAlive': message_count
-                })}\n\n"
+                }
+                yield f"data: {json.dumps(progress_data)}\n\n"
                 
                 # Wait 30 seconds before next keep-alive
                 for _ in range(30):
@@ -65,22 +66,25 @@ def create_streaming_response(workflow_execution_func, *args, **kwargs) -> Respo
             
             # Send final result
             if result['error']:
-                yield f"data: {json.dumps({
+                error_data = {
                     'status': 'error',
                     'error': result['error']
-                })}\n\n"
+                }
+                yield f"data: {json.dumps(error_data)}\n\n"
             else:
-                yield f"data: {json.dumps({
+                success_data = {
                     'status': 'completed',
                     'result': result['data']
-                })}\n\n"
+                }
+                yield f"data: {json.dumps(success_data)}\n\n"
                 
         except Exception as e:
             logger.error(f"Streaming response error: {e}")
-            yield f"data: {json.dumps({
+            except_data = {
                 'status': 'error',
                 'error': str(e)
-            })}\n\n"
+            }
+            yield f"data: {json.dumps(except_data)}\n\n"
     
     return Response(
         generate(),
