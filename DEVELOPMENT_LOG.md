@@ -50,9 +50,21 @@ Under load (e.g. 10 parallel requests), Ollama (120b model) gets overloaded.
   ```
 - All requests queued and processed sequentially without timeout errors.
 
+### Fix 3: User Feedback (Queue Visualization)
+1. **Backend (SSE):**
+   - Updated `execute_pipeline_streaming` to yield `queue_status` events while waiting in queue.
+   - Frequency: Every 1 second.
+   - Payload: `{'status': 'waiting', 'message': 'Warte auf freien Slot... (Xs)'}`.
+
+2. **Frontend (MediaInputBox.vue):**
+   - Added listener for `queue_status` event.
+   - Visual Feedback:
+     - Spinner turns **RED** (`.spinner-large.queued`) when status is 'waiting'.
+     - Loading text pulses red and shows queue message.
+     - Automatically resets to normal (blue) when slot is acquired.
+
 ### Next Steps
 - Monitor production after deployment.
-- Consider adding SSE keep-alive updates for users waiting in queue (Phase 2).
 
 ---
 

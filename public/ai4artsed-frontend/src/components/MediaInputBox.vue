@@ -57,8 +57,10 @@
 
     <!-- Loading Overlay -->
     <div v-if="isLoading" class="preview-loading">
-      <div class="spinner-large"></div>
-      <p class="loading-text">{{ loadingMessage }}</p>
+      <div class="spinner-large" :class="{ queued: queueStatus === 'waiting' }"></div>
+      <p class="loading-text" :class="{ queued: queueStatus === 'waiting' }">
+        {{ queueStatus === 'waiting' ? queueMessage : loadingMessage }}
+      </p>
     </div>
 
     <!-- Content: Text Input -->
@@ -97,6 +99,10 @@ const isStreamComplete = ref(false)
 const isFirstChunkReceived = ref(false)
 const chunkBuffer = ref<string[]>([])
 let bufferInterval: number | null = null
+
+// Queue state
+const queueStatus = ref<'idle' | 'waiting' | 'acquired'>('idle')
+const queueMessage = ref('')
 
 interface Props {
   icon: string
@@ -209,6 +215,8 @@ function startStreaming() {
   isStreamComplete.value = false
   isFirstChunkReceived.value = false
   chunkBuffer.value = []
+  queueStatus.value = 'idle'
+  queueMessage.value = ''
 
   // Build URL with query parameters (convert boolean values to strings)
   const paramsAsStrings = Object.fromEntries(
@@ -223,6 +231,24 @@ function startStreaming() {
 
   // Start buffer processor for smooth character-by-character display
   startBufferProcessor()
+
+  // Handle Queue Status
+  eventSource.value.addEventListener('queue_status', (event) => {
+    const data = JSON.parse(event.data)
+    console.log('[MediaInputBox] Queue status:', data.status)
+    
+    if (data.status === 'waiting') {
+      queueStatus.value = 'waiting'
+      queueMessage.value = data.message
+    } else if (data.status === 'acquired') {
+      queueStatus.value = 'acquired'
+      queueMessage.value = data.message
+      // Short delay before switching back to loading text if needed
+      setTimeout(() => {
+        if (queueStatus.value === 'acquired') queueStatus.value = 'idle'
+      }, 2000)
+    }
+  })
 
   eventSource.value.addEventListener('connected', (event) => {
     console.log('[MediaInputBox] Stream connected:', JSON.parse(event.data))
@@ -507,5 +533,23 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   text-align: center;
+}
+
+/* Queue Feedback Styling */
+.spinner-large.queued {
+  border-top-color: #ff4757;
+  border-color: rgba(255, 71, 87, 0.2);
+  animation: spin 1.5s linear infinite;
+}
+
+.loading-text.queued {
+  color: #ff4757;
+  font-weight: 500;
+  animation: pulse-text 2s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 </style>
