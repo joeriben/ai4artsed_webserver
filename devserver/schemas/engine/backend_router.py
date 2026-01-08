@@ -770,9 +770,7 @@ class BackendRouter:
     async def _process_legacy_workflow(self, chunk: Dict[str, Any], prompt: str, parameters: Dict[str, Any]) -> BackendResponse:
         """Process legacy workflow: Complete workflow passthrough with title-based prompt injection
 
-        TODO (2026 Refactoring): This logic should move into the pipeline itself.
-        Currently in backend_router due to historical architecture where execute-route
-        handles all special functions. Future: pipelines own their logic.
+        Now supports routing via SwarmUI Proxy (Port 7801) based on config settings.
 
         Args:
             chunk: Legacy workflow chunk with complete ComfyUI workflow
@@ -784,6 +782,10 @@ class BackendRouter:
         """
         try:
             from my_app.services.legacy_workflow_service import get_legacy_workflow_service
+            
+            # Ensure correct service initialization
+            service = get_legacy_workflow_service()
+            logger.info(f"[LEGACY-WORKFLOW] Using service base URL: {service.base_url}")
 
             chunk_name = chunk.get('name', 'unknown')
             media_type = chunk.get('media_type', 'image')

@@ -21,16 +21,38 @@ logger = logging.getLogger(__name__)
 class LegacyWorkflowService:
     """Service for executing legacy ComfyUI workflows"""
 
-    def __init__(self, comfyui_base_url: str = "http://127.0.0.1:7821"):
+    def __init__(self, comfyui_base_url: Optional[str] = None):
         """
         Initialize Legacy Workflow Service
 
         Args:
-            comfyui_base_url: Direct ComfyUI API URL (default: Port 7821)
+            comfyui_base_url: Optional override. If None, determined by config.
         """
-        self.base_url = comfyui_base_url
+        if comfyui_base_url:
+            self.base_url = comfyui_base_url
+        else:
+            # Load configuration
+            try:
+                from config import USE_SWARMUI_ORCHESTRATION, ALLOW_DIRECT_COMFYUI, SWARMUI_API_PORT, COMFYUI_PORT
+                
+                if USE_SWARMUI_ORCHESTRATION:
+                    # Use SwarmUI Proxy
+                    self.base_url = f"http://127.0.0.1:{SWARMUI_API_PORT}/ComfyBackendDirect"
+                    logger.info(f"[LEGACY-SERVICE] Using SwarmUI Orchestration via {self.base_url}")
+                elif ALLOW_DIRECT_COMFYUI:
+                    # Use Direct ComfyUI (Legacy/Emergency)
+                    self.base_url = f"http://127.0.0.1:{COMFYUI_PORT}"
+                    logger.warning(f"[LEGACY-SERVICE] ⚠️ Using DIRECT ComfyUI access (Port {COMFYUI_PORT}) - Deprecated!")
+                else:
+                    # Default to SwarmUI if configuration is ambiguous but direct access not explicitly allowed
+                    self.base_url = f"http://127.0.0.1:{SWARMUI_API_PORT}/ComfyBackendDirect"
+                    logger.warning(f"[LEGACY-SERVICE] Configuration ambiguous, defaulting to SwarmUI Proxy: {self.base_url}")
+            except ImportError:
+                 # Fallback for tests or missing config
+                self.base_url = "http://127.0.0.1:7821"
+                logger.warning(f"[LEGACY-SERVICE] Config not found, using default: {self.base_url}")
+
         self.timeout = aiohttp.ClientTimeout(total=300)  # 5 min for long workflows
-        logger.info(f"[LEGACY-SERVICE] Initialized for {comfyui_base_url}")
 
     async def execute_workflow(
         self,

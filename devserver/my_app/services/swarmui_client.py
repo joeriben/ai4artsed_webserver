@@ -24,7 +24,7 @@ class SwarmUIClient:
     It returns image paths directly - no need to poll history endpoints.
     """
 
-    def __init__(self, base_url: str = None):
+    def __init__(self, base_url: Optional[str] = None):
         """
         Initialize SwarmUI client
 
@@ -184,6 +184,14 @@ class SwarmUIClient:
                 url = image_path
             else:
                 url = f"{self.base_url}/{image_path}"
+
+            async with aiohttp.ClientSession() as session:
+                # Add headers to mimic browser/SwarmUI request if needed
+                headers = {}
+                
+                # If downloading from View path, SwarmUI might need specific handling
+                if "View/" in url or "view?" in url:
+                    pass 
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(
@@ -382,12 +390,68 @@ class SwarmUIClient:
 
         return video_files
 
+    async def get_generated_images(self, history_entry: Dict[str, Any]) -> List[str]:
+        """
+        Extract generated image files from history entry (for workflows)
+
+        Args:
+            history_entry: History dict for a completed prompt
+
+        Returns:
+            List of image file paths (for SwarmUI/ComfyUI viewing)
+        """
+        image_files = []
+
+        try:
+            outputs = history_entry.get("outputs", {})
+            for node_id, node_output in outputs.items():
+                if "images" in node_output:
+                    for image in node_output["images"]:
+                        filename = image.get("filename")
+                        if filename:
+                            # Construct View URL path
+                            subfolder = image.get("subfolder", "")
+                            img_type = image.get("type", "output")
+                            
+                            # SwarmUI-compatible view path
+                            path = f"View?filename={filename}&type={img_type}"
+                            if subfolder:
+                                path += f"&subfolder={subfolder}"
+                            
+                            image_files.append(path)
+        except Exception as e:
+            logger.error(f"[SWARMUI-WORKFLOW] Error extracting images: {e}")
+
+        return image_files
+    
+    async def get_image(self, filename: str, subfolder: str = "", type_name: str = "output") -> Optional[bytes]:
+        """
+        Download a specific image via the /ComfyBackendDirect/view endpoint.
+        Used for legacy workflow compatibility.
+        """
+        try:
+            url = f"{self.base_url}/ComfyBackendDirect/view?filename={filename}&type={type_name}"
+            if subfolder:
+                url += f"&subfolder={subfolder}"
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status == 200:
+                        data = await response.read()
+                        return data
+                    else:
+                        logger.error(f"[SWARMUI] Failed to download image {filename}: {response.status}")
+                        return None
+        except Exception as e:
+            logger.error(f"[SWARMUI] Error downloading image {filename}: {e}")
+            return None
+
 
 # Singleton instance
 _client = None
 
 
-def get_swarmui_client(base_url: str = None) -> SwarmUIClient:
+def get_swarmui_client(base_url: Optional[str] = None) -> SwarmUIClient:
     """
     Get SwarmUI client singleton
 
