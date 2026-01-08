@@ -85,8 +85,8 @@
         />
       </section>
 
-      <!-- Section 3: Category Selection (Horizontal Row) - Always visible after context -->
-      <section v-if="canSelectMedia" class="category-section" ref="categorySectionRef">
+      <!-- Section 3: Category Selection (Horizontal Row) - Hidden: Only one category available -->
+      <section v-if="canSelectMedia" class="category-section" ref="categorySectionRef" style="display:none">
         <div class="category-bubbles-row">
           <div
             v-for="category in availableCategories"
@@ -118,8 +118,8 @@
         </div>
       </section>
 
-      <!-- Section 3.5: Model Selection (appears BELOW category, filtered by selected category) -->
-      <section v-if="selectedCategory" class="config-section">
+      <!-- Section 3.5: Model Selection (Hidden: Only one model available) -->
+      <section v-if="selectedCategory" class="config-section" style="display:none">
         <h2 class="section-title">wähle ein Modell aus</h2>
         <div class="config-bubbles-container">
           <div class="config-bubbles-row">
@@ -259,8 +259,8 @@ const uploadedImageId3 = ref<string | undefined>(undefined)
 
 // Form inputs
 const contextPrompt = ref('')
-const selectedCategory = ref<string | null>(null)
-const selectedConfig = ref<string | null>(null)  // User selects model from bubbles
+const selectedCategory = ref<string | null>('image')  // Default: image (only option for multi-image)
+const selectedConfig = ref<string | null>('qwen_2511_multi')  // Default: qwen (only multi-image model)
 const hoveredConfigId = ref<string | null>(null)  // For hover cards
 
 // Phase 4: Seed management
