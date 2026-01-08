@@ -26,8 +26,8 @@
           :initial-image="uploadedImage2"
           @image-uploaded="handleImage2Upload"
           @image-removed="handleImage2Remove"
-          @copy="() => copyToClipboard(uploadedImage2 || '')"
-          @paste="() => {}"
+          @copy="copyImage2"
+          @paste="pasteImage2"
         />
         <MediaInputBox
           icon="➕"
@@ -38,8 +38,8 @@
           :initial-image="uploadedImage3"
           @image-uploaded="handleImage3Upload"
           @image-removed="handleImage3Remove"
-          @copy="() => copyToClipboard(uploadedImage3 || '')"
-          @paste="() => {}"
+          @copy="copyImage3"
+          @paste="pasteImage3"
         />
       </section>
 
@@ -54,6 +54,9 @@
           :rows="6"
           :is-filled="!!contextPrompt"
           :is-required="!contextPrompt"
+          @copy="copyContextPrompt"
+          @paste="pasteContextPrompt"
+          @clear="clearContextPrompt"
         />
       </section>
 
@@ -536,6 +539,130 @@ async function pasteUploadedImage() {
     console.error('[I2I] Failed to upload Base64 image to backend')
     uploadedImagePath1.value = clipboardContent
     uploadedImageId1.value = `pasted_failed_${timestamp}`
+  }
+}
+
+// ============================================================================
+// Image 2 Clipboard Actions
+// ============================================================================
+
+function copyImage2() {
+  if (!uploadedImage2.value) {
+    console.warn('[Multi-I2I] No image 2 to copy')
+    return
+  }
+  copyToClipboard(uploadedImage2.value)
+  console.log('[Multi-I2I] Image 2 URL copied to app clipboard:', uploadedImage2.value)
+}
+
+async function pasteImage2() {
+  const clipboardContent = pasteFromClipboard()
+
+  if (!clipboardContent) {
+    console.warn('[Multi-I2I] Clipboard is empty')
+    return
+  }
+
+  const isImageUrl = clipboardContent.startsWith('data:image/') ||
+                     clipboardContent.startsWith('/api/media/image/') ||
+                     clipboardContent.startsWith('http://') ||
+                     clipboardContent.startsWith('https://')
+
+  if (!isImageUrl) {
+    console.warn('[Multi-I2I] Clipboard does not contain a valid image URL')
+    return
+  }
+
+  // CASE 1: Server URL or external URL - use directly
+  if (!clipboardContent.startsWith('data:image/')) {
+    uploadedImage2.value = clipboardContent
+    uploadedImagePath2.value = clipboardContent
+    console.log('[Multi-I2I] Image 2 pasted from URL')
+    return
+  }
+
+  // CASE 2: Base64 Data URL - convert and upload
+  uploadedImage2.value = clipboardContent
+  const imageBlob = base64ToBlob(clipboardContent)
+
+  if (!imageBlob) {
+    console.error('[Multi-I2I] Failed to convert Base64 to Blob')
+    uploadedImagePath2.value = clipboardContent
+    return
+  }
+
+  const timestamp = Date.now()
+  const filename = `pasted-image2-${timestamp}.png`
+  const serverPath = await uploadImageToBackend(imageBlob, filename)
+
+  if (serverPath) {
+    uploadedImagePath2.value = serverPath
+    console.log('[Multi-I2I] Image 2 Base64 uploaded successfully:', serverPath)
+  } else {
+    console.error('[Multi-I2I] Failed to upload Image 2 Base64 to backend')
+    uploadedImagePath2.value = clipboardContent
+  }
+}
+
+// ============================================================================
+// Image 3 Clipboard Actions
+// ============================================================================
+
+function copyImage3() {
+  if (!uploadedImage3.value) {
+    console.warn('[Multi-I2I] No image 3 to copy')
+    return
+  }
+  copyToClipboard(uploadedImage3.value)
+  console.log('[Multi-I2I] Image 3 URL copied to app clipboard:', uploadedImage3.value)
+}
+
+async function pasteImage3() {
+  const clipboardContent = pasteFromClipboard()
+
+  if (!clipboardContent) {
+    console.warn('[Multi-I2I] Clipboard is empty')
+    return
+  }
+
+  const isImageUrl = clipboardContent.startsWith('data:image/') ||
+                     clipboardContent.startsWith('/api/media/image/') ||
+                     clipboardContent.startsWith('http://') ||
+                     clipboardContent.startsWith('https://')
+
+  if (!isImageUrl) {
+    console.warn('[Multi-I2I] Clipboard does not contain a valid image URL')
+    return
+  }
+
+  // CASE 1: Server URL or external URL - use directly
+  if (!clipboardContent.startsWith('data:image/')) {
+    uploadedImage3.value = clipboardContent
+    uploadedImagePath3.value = clipboardContent
+    console.log('[Multi-I2I] Image 3 pasted from URL')
+    return
+  }
+
+  // CASE 2: Base64 Data URL - convert and upload
+  uploadedImage3.value = clipboardContent
+  const imageBlob = base64ToBlob(clipboardContent)
+
+  if (!imageBlob) {
+    console.error('[Multi-I2I] Failed to convert Base64 to Blob')
+    uploadedImagePath3.value = clipboardContent
+    return
+  }
+
+  const timestamp = Date.now()
+  const filename = `pasted-image3-${timestamp}.png`
+  const serverPath = await uploadImageToBackend(imageBlob, filename)
+
+  if (serverPath) {
+    uploadedImagePath3.value = serverPath
+    console.log('[Multi-I2I] Image 3 Base64 uploaded successfully:', serverPath)
+  } else {
+    console.error('[Multi-I2I] Failed to upload Image 3 Base64 to backend')
+    uploadedImagePath3.value = clipboardContent
   }
 }
 
