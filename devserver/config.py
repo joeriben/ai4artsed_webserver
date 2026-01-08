@@ -272,6 +272,11 @@ COMFYUI_PREFIX = "comfyui"
 COMFYUI_PORT = "7821"  # SwarmUI integrated ComfyUI (RTX 5090 compatible)
 SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)
 
+# SwarmUI Orchestration Configuration
+# "Single Front Door" Architecture (Port 7801 for everything)
+USE_SWARMUI_ORCHESTRATION = True  # Default: Route all workflows via SwarmUI
+ALLOW_DIRECT_COMFYUI = False      # Emergency only: Allow direct access to Port 7821
+
 
 
 # Feature Flags
