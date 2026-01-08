@@ -27,6 +27,79 @@
 
 ---
 
+## Session 116 (2026-01-08): Failsafe Transition - Legacy Workflows via SwarmUI Proxy
+
+**Date:** 2026-01-08
+**Duration:** ~60 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** d7a1545
+
+### Objective
+
+Implement "Failsafe Transition" architecture where all legacy workflows (Surrealizer, etc.) are routed through SwarmUI's `/ComfyBackendDirect` proxy instead of connecting directly to ComfyUI (Port 7821). This ensures centralized orchestration while maintaining compatibility.
+
+### Work Completed
+
+#### 1. Configuration & Architecture ✅
+
+**File:** `devserver/config.py`
+- Added `USE_SWARMUI_ORCHESTRATION = True` (Default)
+- Added `ALLOW_DIRECT_COMFYUI = False` (Emergency fallback)
+- Confirmed `SWARMUI_API_PORT = 7801`
+
+**Concept:** "Single Front Door"
+- All requests go to Port 7801 (SwarmUI)
+- Legacy workflows use `/ComfyBackendDirect/*` to reach underlying ComfyUI
+- Direct access to Port 7821 is deprecated/blocked by default
+
+#### 2. Service Refactoring ✅
+
+**LegacyWorkflowService (`legacy_workflow_service.py`):**
+- Updated `__init__` to determine base URL dynamically from config
+- If `USE_SWARMUI_ORCHESTRATION`: Base URL = `http://127.0.0.1:7801/ComfyBackendDirect`
+- If `ALLOW_DIRECT_COMFYUI`: Base URL = `http://127.0.0.1:7821` (Legacy)
+- No other logic changes needed (transparent proxying)
+
+**SwarmUIClient (`swarmui_client.py`):**
+- Added `get_image()` method to fetch specific images via `/ComfyBackendDirect/view`
+- Added `get_generated_images()` to parse legacy history format
+- Updated constructor to use config-defined ports
+
+#### 3. Backend Router Integration ✅
+
+**BackendRouter (`backend_router.py`):**
+- Updated `_process_comfyui_legacy` to use `swarmui_client` for submission
+- Updated `_process_legacy_workflow` to use refactored `LegacyWorkflowService`
+- Added `_resolve_media_url_to_path` for image uploads (img2img) via SwarmUI proxy
+
+#### 4. Verification ✅
+
+**Script:** `devserver/verify_transition.py`
+- Verified Config loaded correctly (USE_SWARMUI_ORCHESTRATION=True)
+- Verified SwarmUI Client initialized on Port 7801
+- Verified Legacy Service initialized with `/ComfyBackendDirect` URL
+- Verified Backend Router import
+
+### Files Modified
+
+```
+ devserver/config.py                                |  7 +++++
+ devserver/my_app/services/legacy_workflow_service.py | 26 +++++++++++++++++-
+ devserver/my_app/services/swarmui_client.py        | 45 +++++++++++++++++++++++++++++++
+ devserver/schemas/engine/backend_router.py         | 12 ++++++++
+ 4 files changed, 90 insertions(+), 1 deletion(-)
+```
+
+### Impact
+
+- **Reliability:** SwarmUI manages the ComfyUI process
+- **Simplicity:** Only one port (7801) needed for all operations
+- **Compatibility:** Old workflows run without modification
+- **Safety:** Emergency fallback available via config change
+
+---
+
 ## Session 99 (2025-12-15): MediaOutputBox Component - Template Refactoring
 
 **Date:** 2025-12-15

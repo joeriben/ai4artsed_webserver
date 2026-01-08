@@ -29,6 +29,58 @@
 
 ---
 
+## 🎯 Active Decision: Failsafe Transition - SwarmUI Single Front Door (2026-01-08, Session 116)
+
+**Status:** ✅ IMPLEMENTED
+**Context:** Centralizing all traffic through SwarmUI (Port 7801) while preserving legacy workflow compatibility
+**Date:** 2026-01-08
+
+### The Decision: Route Legacy Workflows via SwarmUI Proxy
+
+**Problem:**
+- Legacy workflows (Surrealizer, etc.) were hardcoded to access ComfyUI directly on Port 7821.
+- This bypassed SwarmUI's orchestration, queue management, and user history.
+- "Split brain" architecture where some requests went to 7801 and others to 7821.
+
+**Solution:**
+- **Single Front Door:** All DevServer traffic goes to **Port 7801** (SwarmUI).
+- **Proxy Pattern:** Legacy workflows use SwarmUI's `/ComfyBackendDirect/*` endpoints to reach the managed ComfyUI instance.
+- **Config Flag:** `USE_SWARMUI_ORCHESTRATION = True` (default).
+- **Emergency Fallback:** `ALLOW_DIRECT_COMFYUI` flag allows reverting to Port 7821 if SwarmUI is down.
+
+### Architecture
+
+**Before (Split):**
+```
+DevServer
+├── New Pipelines ───> SwarmUI (7801) ───> ComfyUI (Internal)
+└── Legacy Workflows ──> ComfyUI (7821)
+```
+
+**After (Unified):**
+```
+DevServer
+├── New Pipelines ───> SwarmUI (7801) ───> ComfyUI (Internal)
+└── Legacy Workflows ──> SwarmUI (7801) ──> /ComfyBackendDirect/ ──> ComfyUI (Internal)
+```
+
+### Benefits
+
+1. **Centralized Management:** SwarmUI controls the queue for ALL generations (legacy and new).
+2. **Simplified Networking:** Only one port (7801) needs to be exposed/managed.
+3. **Compatibility:** Legacy workflows run without modification (transparent proxying).
+4. **Resilience:** If SwarmUI is running, ComfyUI is accessible.
+
+### Implementation Details
+
+**Files Modified:**
+- `config.py`: Added feature flags.
+- `legacy_workflow_service.py`: Dynamic base URL selection.
+- `swarmui_client.py`: Added support for legacy image retrieval methods via proxy.
+- `backend_router.py`: Updated routing logic for legacy chunks.
+
+---
+
 ## 🎨 DESIGN DECISION (2026-01-08): Material Design Icon Migration
 
 **Date:** 2026-01-08
