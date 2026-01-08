@@ -95,7 +95,9 @@ const categoryColorMap: Record<string, string> = {
   semantics: '#2196F3',   // 💬
   aesthetics: '#9C27B0',  // 🪄
   arts: '#E91E63',        // 🖌️
-  heritage: '#4CAF50',    // 🌍
+  critical_analysis: '#4CAF50',    // 🌍
+  research: '#00BCD4',    // 🔬 (Cyan - wissenschaftlich, analytisch)
+  attitudes: '#FF6F00',   // 💭 (Orange - emotional, Haltungen)
   freestyle: '#FFC107',   // 🫵
   technical_imaging: '#607D8B',  // 📸
 }

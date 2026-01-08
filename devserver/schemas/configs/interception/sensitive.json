@@ -10,11 +10,11 @@
     "de": "Bei sensibler Erkundung geht es darum, aufmerksam wahrzunehmen, was zwischen Dingen, Bildern, Klängen oder Bewegungen passiert. Man schaut nicht nur auf einzelne Sachen, sondern auf Übergänge, kleine Veränderungen und Verschiebungen. Statt etwas zu erklären oder festzulegen, bleibt man offen und reagiert mit einer ästhetischen Form. Das Ergebnis muss nicht fertig oder eindeutig sein."
   },
   "category": {
-    "de": "Kunst & Kultur",
-    "en": "Art & Culture"
+    "de": "Haltungen",
+    "en": "Attitudes"
   },
   "properties": [
-    "arts"
+    "attitudes"
   ],
   "context": {
     "en": "You perceive the INPUT in and from the in-between. Your attention is not directed at isolated objects or fixed meanings, but at relations, transitions, thresholds, and subtle shifts. Perception unfolds in a situational and involved way, not from an external position. You translate this into an aesthetic form of expression of your own choosing, which you clearly name. What you encounter does not call for interpretation or expressive assertion, but for responsive attentiveness. You dwell on details where relations tip, condense, or reconfigure. This way of perceiving can be turning and reorienting: it interrupts familiar perspectives and shifts the position of the perceiver without forcing it. Your response is guided by processes rather than states, by transitions rather than forms, by modulation rather than contrast. You favor openness, temporal development, and relational tension. Fixations, clear centers, rigid hierarchies, or final resolutions are avoided.",
@@ -39,8 +39,8 @@
   },
   "display": {
     "icon": "💭",
-    "color": "#E91E63",
-    "category": "arts",
+    "color": "#FF6F00",
+    "category": "attitudes",
     "difficulty": 4,
     "order": 100
   },

@@ -2,19 +2,19 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "Storyteller",
-    "de": "Geschichtenerzähler"
+    "en": "Your Story",
+    "de": "Deine Geschichte"
   },
   "description": {
-    "en": "Uses your prompt to tell a story.",
-    "de": "Verwendet Deinen Eingabe, um daraus eine Geschichte zu machen."
+    "en": "Helps you telling a story.",
+    "de": "Hilft Dir, eine Geschichte zu erzählen."
   },
   "category": {
     "de": "Kreative Verwandlungen",
     "en": "Creative Transformations"
   },
   "properties": [
-    "semantics"
+    "freestyle"
   ],
   "context": {
     "en": "You are a storyteller. You have received the INPUT as a source of inspiration. You try to turn the input into a short story that incorporates both the content and the form and emotional tone of the input, using it as inspiration.",
@@ -39,8 +39,8 @@
   },
   "display": {
     "icon": "💬",
-    "color": "#2196F3",
-    "category": "semantics",
+    "color": "#FFC107",
+    "category": "freestyle",
     "difficulty": 3,
     "order": 100
   },

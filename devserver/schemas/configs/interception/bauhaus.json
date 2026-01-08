@@ -2,7 +2,7 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "Bauhaus",
+    "en": "rationa",
     "de": "Bauhaus"
   },
   "description": {
@@ -10,8 +10,8 @@
     "de": "Reduziert alles auf geometrische Grundformen und Primärfarben. Konzentriert sich auf Funktion und klare Struktur, ohne Dekoration."
   },
   "category": {
-    "de": "Kunst & Kultur",
-    "en": "Art & Culture"
+    "de": "Kunstgeschichte",
+    "en": "Art History"
   },
   "properties": [
     "arts"

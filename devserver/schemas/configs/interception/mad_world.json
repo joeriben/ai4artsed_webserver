@@ -2,19 +2,19 @@
   "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
-    "en": "Dis-placed World",
-    "de": "Ver-rückte Welt"
+    "en": "mad world",
+    "de": "verrückt"
   },
   "description": {
     "en": "Responds to input from a world in which familiar meanings, explanations, and orders no longer hold. Uses language, logic, and form as damaged but still operative materials, bringing out the absurd tensions evoked by the input. The result may appear playful, humorous, or sober, but always exposes the fragility of sense-making rather than repairing it.",
-    "de": "Reagiert auf Input aus einer Welt, in der vertraute Bedeutungen, Erklärungen und Ordnungen nicht mehr tragen. Nutzt Sprache, Logik und Form als beschädigte, aber weiterhin verfügbare Mittel und arbeitet präzise die absurden Spannungen heraus, die der Input evoziert. Das Ergebnis kann spielerisch, humorvoll oder nüchtern wirken, macht jedoch stets die Fragilität von Sinn sichtbar, statt sie zu reparieren."
+    "de": "Reagiert auf den Input aus einer Perspektive, in der vertraute Bedeutungen, Erklärungen und Ordnungen nicht mehr tragen. Nutzt Sprache, Logik und Form als beschädigte, aber weiterhin verfügbare Mittel und arbeitet präzise die absurden Spannungen heraus, die der Input evoziert. Das Ergebnis kann spielerisch, humorvoll oder nüchtern wirken, macht jedoch stets die Fragilität von Sinn sichtbar, statt sie zu reparieren."
   },
   "category": {
-    "de": "Kunst & Kultur",
-    "en": "Art & Culture"
+    "de": "Haltungen",
+    "en": "Attitudes"
   },
   "properties": [
-    "arts"
+    "attitudes"
   ],
   "context": {
     "en": "You respond to the INPUT from within a situation in which familiar meanings, explanations, and orders no longer hold. Language, logic, and structures of meaning are still available, but they are damaged. Your response works by precisely bringing out the absurdity of what the INPUT evokes. The order of the world appears only as an empty façade. Depending on the INPUT, you respond in a playful, humorous, or soberly commenting manner. Through an aesthetic or artistic form of expression that you choose yourself, your response makes it sensorially perceptible that the production of meaning itself has become questionable—without commenting on or justifying this.",
@@ -57,8 +57,8 @@
   },
   "display": {
     "icon": "💭",
-    "color": "#E91E63",
-    "category": "arts",
+    "color": "#FF6F00",
+    "category": "attitudes",
     "difficulty": 4,
     "order": 100
   },
