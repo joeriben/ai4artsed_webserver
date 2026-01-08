@@ -9,8 +9,8 @@
           <!-- Input Bubble -->
           <MediaInputBox
             icon="💡"
-            label="Deine Idee: Worum soll es gehen?"
-            placeholder="Ein Fest in meiner Straße: ..."
+            :label="$t('textTransform.inputLabel')"
+            :placeholder="$t('textTransform.inputPlaceholder')"
             v-model:value="inputText"
             input-type="text"
             :rows="6"
@@ -23,8 +23,8 @@
           <!-- Context Bubble -->
           <MediaInputBox
             icon="📋"
-            label="Bestimme Regeln, Material, Besonderheiten"
-            placeholder="Beschreibe alles so, wie es die Vögel auf den Bäumen wahrnehmen!"
+            :label="$t('textTransform.contextLabel')"
+            :placeholder="$t('textTransform.contextPlaceholder')"
             v-model:value="contextPrompt"
             input-type="text"
             :rows="6"
@@ -54,8 +54,8 @@
         <section class="interception-section">
           <MediaInputBox
             icon="→"
-            label="Idee + Regeln = Prompt"
-            placeholder="Prompt erscheint nach Start-Klick (oder eigenen Text eingeben)"
+            :label="$t('textTransform.resultLabel')"
+            :placeholder="$t('textTransform.resultPlaceholder')"
             v-model:value="interceptionResult"
             input-type="text"
             :rows="5"
@@ -177,8 +177,8 @@
         <section v-if="selectedConfig" class="optimization-section">
           <MediaInputBox
             icon="✨"
-            label="Modell-Optimierter Prompt"
-            :placeholder="optimizedPrompt ? '' : 'Der optimierte Prompt erscheint nach Modellauswahl.'"
+            :label="$t('textTransform.optimizedLabel')"
+            :placeholder="optimizedPrompt ? '' : $t('textTransform.optimizedPlaceholder')"
             v-model:value="optimizedPrompt"
             input-type="text"
             :rows="5"

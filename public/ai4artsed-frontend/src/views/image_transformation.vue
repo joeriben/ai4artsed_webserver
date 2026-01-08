@@ -8,7 +8,7 @@
         <!-- Image Upload Bubble (LEFT) -->
         <MediaInputBox
           icon="💡"
-          label="Dein Bild"
+          :label="$t('imageTransform.imageLabel')"
           :value="uploadedImage ?? ''"
           @update:value="(val: string) => uploadedImage = val || undefined"
           input-type="image"
@@ -23,8 +23,8 @@
         <!-- Context Bubble (RIGHT) -->
         <MediaInputBox
           icon="📋"
-          label="Sage was Du an dem Bild verändern möchtest"
-          placeholder="Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu..."
+          :label="$t('imageTransform.contextLabel')"
+          :placeholder="$t('imageTransform.contextPlaceholder')"
           v-model:value="contextPrompt"
           input-type="text"
           :rows="6"

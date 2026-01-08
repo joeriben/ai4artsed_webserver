@@ -236,6 +236,21 @@ const messages = {
       modeTitle: 'Mehrere Bilder → Bild',
       selectConfig: 'Wähle dein Modell:',
       generating: 'Bilder werden fusioniert...'
+    },
+    imageTransform: {
+      imageLabel: 'Dein Bild',
+      contextLabel: 'Sage was Du an dem Bild verändern möchtest',
+      contextPlaceholder: 'z.B. Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu...'
+    },
+    textTransform: {
+      inputLabel: 'Deine Idee: Worum soll es gehen?',
+      inputPlaceholder: 'z.B. Ein Fest in meiner Straße: ...',
+      contextLabel: 'Bestimme Regeln, Material, Besonderheiten',
+      contextPlaceholder: 'z.B. Beschreibe alles so, wie es die Vögel auf den Bäumen wahrnehmen!',
+      resultLabel: 'Idee + Regeln = Prompt',
+      resultPlaceholder: 'Prompt erscheint nach Start-Klick (oder eigenen Text eingeben)',
+      optimizedLabel: 'Modell-Optimierter Prompt',
+      optimizedPlaceholder: 'Der optimierte Prompt erscheint nach Modellauswahl.'
     }
   },
   en: {
@@ -473,6 +488,21 @@ const messages = {
       modeTitle: 'Multiple Images → Image',
       selectConfig: 'Choose your model:',
       generating: 'Images are being fused...'
+    },
+    imageTransform: {
+      imageLabel: 'Your Image',
+      contextLabel: 'Describe what you want to change in the image',
+      contextPlaceholder: 'e.g. Transform it into an oil painting... Make it more colorful... Add a sunset...'
+    },
+    textTransform: {
+      inputLabel: 'Your Idea: What should this be about?',
+      inputPlaceholder: 'e.g. A festival in my street: ...',
+      contextLabel: 'Define rules, materials, special features',
+      contextPlaceholder: 'e.g. Describe everything as the birds in the trees perceive it!',
+      resultLabel: 'Idea + Rules = Prompt',
+      resultPlaceholder: 'Prompt will appear after clicking start (or enter your own text)',
+      optimizedLabel: 'Model-Optimized Prompt',
+      optimizedPlaceholder: 'The optimized prompt will appear after model selection.'
     }
   }
 }

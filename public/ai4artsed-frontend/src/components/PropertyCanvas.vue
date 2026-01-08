@@ -22,7 +22,7 @@
         <div
           v-for="(config, index) in visibleConfigs"
           :key="config.id"
-          class="config-bubble"
+          class="property-config-bubble"
           :style="getConfigStyle(config, index)"
           @click="selectConfiguration(config)"
           @touchstart.prevent="selectConfiguration(config)"
@@ -323,7 +323,7 @@ onMounted(() => {
 }
 
 /* Configuration Bubbles */
-.config-bubble {
+.property-config-bubble {
   position: absolute;
   width: 18%;
   aspect-ratio: 1 / 1;
@@ -333,7 +333,7 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-.config-bubble:hover {
+.property-config-bubble:hover {
   transform: translate(-50%, -50%) scale(1.1);
   z-index: 10;
 }
