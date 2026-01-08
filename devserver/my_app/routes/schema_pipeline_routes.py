@@ -1343,17 +1343,54 @@ def execute_pipeline_streaming(data: dict):
 
         stage1_start = time.time()
         
-        # OLLAMA QUEUE: Wrap Stage 1 execution
-        logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Waiting for queue slot...")
-        with ollama_queue_semaphore:
-            logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Acquired slot, executing Stage 1")
+        # OLLAMA QUEUE: Wrap Stage 1 execution with feedback loop
+        logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Entering queue...")
+        
+        queue_start = time.time()
+        acquired = False
+        
+        # Send initial waiting event
+        yield generate_sse_event('queue_status', {
+            'status': 'waiting',
+            'message': 'Warte auf freien Slot in der Verarbeitung...',
+            'run_id': run_id,
+            'wait_time_ms': 0
+        })
+        yield ''
+        
+        while not acquired:
+            acquired = ollama_queue_semaphore.acquire(blocking=False)
+            if not acquired:
+                wait_ms = int((time.time() - queue_start) * 1000)
+                time.sleep(1)
+                yield generate_sse_event('queue_status', {
+                    'status': 'waiting',
+                    'message': f'Warte auf freien Slot... ({int(wait_ms/1000)}s)',
+                    'run_id': run_id,
+                    'wait_time_ms': wait_ms
+                })
+                yield ''
+        
+        try:
+            logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Acquired slot after {(time.time() - queue_start):.2f}s")
+            
+            # Send acquired event
+            yield generate_sse_event('queue_status', {
+                'status': 'acquired',
+                'message': 'Verarbeitung gestartet',
+                'run_id': run_id
+            })
+            yield ''
+            
             is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
                 input_text,
                 safety_level,
                 execution_mode,
                 pipeline_executor
             ))
-        logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Released slot")
+        finally:
+            ollama_queue_semaphore.release()
+            logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Released slot")
 
         stage1_time = (time.time() - stage1_start) * 1000  # ms
 
