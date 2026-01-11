@@ -323,3 +323,132 @@ LLM_SERVICES = {
 
 ---
 
+### SwarmUI/ComfyUI Auto-Recovery
+
+**Added:** Session 113 (2026-01-11)
+
+**Problem:** DevServer crashed when SwarmUI/ComfyUI backend was not running, displaying connection errors to users.
+
+**Solution:** Automatic lifecycle management via SwarmUI Manager service.
+
+#### Architecture
+
+**Service:** `devserver/my_app/services/swarmui_manager.py`
+**Pattern:** Singleton with lazy initialization (on-demand)
+
+**Key Features:**
+1. **Automatic Detection:** Health checks on ports 7801 (SwarmUI REST API) and 7821 (ComfyUI backend)
+2. **On-Demand Startup:** Only starts SwarmUI when actually needed (lazy initialization)
+3. **Crash Recovery:** Handles both startup scenarios AND runtime crashes
+4. **Race-Condition Safe:** asyncio.Lock with double-check pattern prevents duplicate startups
+5. **Configurable:** Environment variables for timeout, polling interval, enable/disable
+
+#### Integration Points
+
+**BackendRouter** (`backend_router.py`):
+- Constructor: Initializes SwarmUI Manager singleton (line 150)
+- Text2Image: Auto-start before generation (line 550)
+- Workflow Submission: Auto-start before workflow (line 684)
+- Image Upload (single): Auto-start before upload (line 893)
+- Image Upload (multi): Auto-start before batch upload (line 941)
+
+**LegacyWorkflowService** (`legacy_workflow_service.py`):
+- Workflow Execution: Auto-start before submission (line 95)
+
+#### Configuration
+
+**File:** `devserver/config.py`
+
+```python
+SWARMUI_AUTO_START = os.environ.get("SWARMUI_AUTO_START", "true").lower() == "true"
+SWARMUI_STARTUP_TIMEOUT = int(os.environ.get("SWARMUI_STARTUP_TIMEOUT", "120"))  # seconds
+SWARMUI_HEALTH_CHECK_INTERVAL = float(os.environ.get("SWARMUI_HEALTH_CHECK_INTERVAL", "2.0"))  # seconds
+```
+
+**Environment Overrides:**
+```bash
+export SWARMUI_AUTO_START=false          # Disable for testing
+export SWARMUI_STARTUP_TIMEOUT=180       # Increase timeout
+export SWARMUI_HEALTH_CHECK_INTERVAL=1.0 # Poll more frequently
+```
+
+#### Startup Behavior
+
+**Typical Sequence:**
+1. User triggers image generation (e.g., sd35_large config)
+2. BackendRouter calls `swarmui_manager.ensure_swarmui_available()`
+3. Manager detects SwarmUI is not running (health check fails)
+4. Manager executes `2_start_swarmui.sh` via subprocess
+5. Manager polls health endpoints every 2 seconds
+6. After ~45 seconds: SwarmUI is ready
+7. Image generation proceeds normally
+
+**Startup Time:** 30-60 seconds (depends on hardware)
+**User Experience:** Frontend shows "processing" spinner during auto-start
+
+#### Browser Tab Prevention
+
+**Problem:** SwarmUI opens browser tab on startup, hiding the frontend.
+
+**Solution:** Command-line override in startup script:
+```bash
+./launch-linux.sh --launch_mode none
+```
+
+**Why This Works:**
+- SwarmUI supports `--launch_mode` command-line argument (Program.cs)
+- Overrides `LaunchMode: web` setting in SwarmUI's Settings.fds
+- Works on ANY SwarmUI installation (no settings file modification needed)
+- Portable solution for third-party installations
+
+#### Benefits
+
+1. **Independence:** DevServer starts without requiring SwarmUI to be running
+2. **Resilience:** Automatic recovery from SwarmUI crashes during operation
+3. **User Experience:** No manual intervention needed, no hidden browser tabs
+4. **Performance:** Lazy initialization - only starts when media generation requested
+5. **Safety:** Race-condition proof via double-check locking pattern
+6. **Flexibility:** Configurable timeout and polling intervals
+7. **Portability:** Works with any SwarmUI installation
+
+#### Error Handling
+
+**Script Not Found:**
+```
+[SWARMUI-MANAGER] Startup script not found: /path/to/2_start_swarmui.sh
+[SWARMUI-MANAGER] Please start SwarmUI manually
+```
+
+**Timeout (120s):**
+```
+[SWARMUI-MANAGER] Timeout after 120s
+[SWARMUI-MANAGER] Check SwarmUI logs for startup issues
+```
+
+**Auto-Start Disabled:**
+```
+[SWARMUI-MANAGER] Auto-start disabled, SwarmUI not available
+```
+
+#### Design Rationale
+
+**Why Lazy (On-Demand) vs. Eager (Startup)?**
+- ✅ Faster DevServer startup (no 60s SwarmUI wait)
+- ✅ Handles runtime crashes (not just startup)
+- ✅ Only loads when needed (user might not use media generation)
+- ✅ Better separation of concerns
+
+**Why Not Check at DevServer Startup?**
+- User might not need media generation in this session
+- SwarmUI could crash during operation (eager check doesn't help)
+- Adds unnecessary 60-second delay to every DevServer restart
+- Lazy approach handles all scenarios with better UX
+
+#### Documentation
+
+**Detailed Architecture:** See `ARCHITECTURE PART 07 - Engine-Modules.md` Section 12
+**Development Log:** Session 113 (2026-01-11)
+**Commit:** `bbe04d8` - feat(swarmui): Add auto-recovery with SwarmUI Manager service
+
+---
+

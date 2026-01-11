@@ -686,6 +686,267 @@ target_lang = get_random_language(exclude=['de'])
 
 ---
 
+## 12. Services & Lifecycle Management
+
+### SwarmUI Manager (swarmui_manager.py)
+
+**Location:** `devserver/my_app/services/swarmui_manager.py`
+
+**Purpose:** Automatic lifecycle management for SwarmUI backend
+
+**Pattern:** Singleton with lazy initialization (on-demand)
+
+**Core Responsibility:** Ensure SwarmUI is available when needed, auto-start if not running
+
+#### Architecture Overview
+
+```python
+class SwarmUIManager:
+    """Manages SwarmUI lifecycle: startup, health checks, auto-recovery
+
+    Design Pattern: Singleton with lazy initialization
+    Thread Safety: asyncio.Lock for concurrent startup attempts
+    """
+
+    def __init__(self):
+        # Ports
+        self.swarmui_port = 7801  # REST API
+        self.comfyui_port = 7821  # ComfyUI backend
+
+        # Concurrency control
+        self._startup_lock = asyncio.Lock()
+        self._is_starting = False
+
+        # Configuration (from config.py)
+        self._auto_start_enabled = SWARMUI_AUTO_START
+        self._startup_timeout = SWARMUI_STARTUP_TIMEOUT
+        self._health_check_interval = SWARMUI_HEALTH_CHECK_INTERVAL
+```
+
+#### Key Methods
+
+**1. ensure_swarmui_available() → bool**
+- Main entry point for all services needing SwarmUI
+- Guarantees SwarmUI is running (auto-starts if needed)
+- Returns True if available, False if auto-start disabled/failed
+
+**Flow:**
+1. Quick health check (no lock needed)
+2. If healthy → return True immediately
+3. If unhealthy → Acquire lock (prevent race conditions)
+4. Double-check after lock (another thread might have started)
+5. Start SwarmUI if still needed
+6. Wait for ready state
+
+**2. is_healthy() → bool**
+- Checks BOTH ports (7801 + 7821)
+- Reuses health_check() from swarmui_client and comfyui_client
+- Returns True only if both are responsive
+
+**3. _start_swarmui() → bool**
+- Executes `2_start_swarmui.sh` via subprocess.Popen
+- Runs in background (non-blocking, detached process)
+- Waits for ready state via polling
+- Returns True if startup successful within timeout
+
+**4. _wait_for_ready() → bool**
+- Polls health endpoints every 2 seconds
+- Timeout: 120 seconds (configurable)
+- Logs progress and warnings
+- Returns True if ready, False on timeout
+
+#### Concurrency Safety (Critical)
+
+**Problem:** Multiple concurrent requests could trigger simultaneous SwarmUI startup attempts.
+
+**Solution: Double-Check Locking Pattern**
+```python
+async def ensure_swarmui_available(self) -> bool:
+    # 1. Quick check (no lock)
+    if await self.is_healthy():
+        return True
+
+    # 2. Acquire lock
+    async with self._startup_lock:
+        # 3. Double-check after lock
+        if await self.is_healthy():
+            logger.info("[SWARMUI-MANAGER] Another thread started SwarmUI")
+            return True
+
+        # 4. Only ONE thread proceeds with startup
+        return await self._start_swarmui()
+```
+
+**Why This Works:**
+- First healthy check avoids lock overhead when already running
+- Lock prevents concurrent startup attempts
+- Second check avoids duplicate starts if another thread just finished
+- Only one thread ever executes _start_swarmui()
+
+#### Integration Points
+
+**1. LegacyWorkflowService** (`legacy_workflow_service.py:95`)
+```python
+# Step 2.5: Ensure SwarmUI is available
+logger.info("[LEGACY-SERVICE] Ensuring SwarmUI is available...")
+if not await self.swarmui_manager.ensure_swarmui_available():
+    raise Exception("Failed to start SwarmUI - cannot submit workflow")
+```
+
+**2. BackendRouter** (`backend_router.py`)
+```python
+# Constructor (line 150)
+def __init__(self):
+    self.backends: Dict[BackendType, Any] = {}
+    self._initialized = False
+    from my_app.services.swarmui_manager import get_swarmui_manager
+    self.swarmui_manager = get_swarmui_manager()
+
+# Before SwarmUI Text2Image (line 550)
+if not await self.swarmui_manager.ensure_swarmui_available():
+    return BackendResponse(success=False, error="SwarmUI not available")
+
+# Before SwarmUI Workflow (line 684)
+if not await self.swarmui_manager.ensure_swarmui_available():
+    return BackendResponse(success=False, error="SwarmUI not available")
+
+# Before image upload - single (line 893)
+if not await self.swarmui_manager.ensure_swarmui_available():
+    logger.error("[LEGACY-WORKFLOW] SwarmUI not available, upload will fail")
+
+# Before image upload - multi (line 941)
+await self.swarmui_manager.ensure_swarmui_available()
+```
+
+#### Configuration
+
+**Location:** `devserver/config.py`
+
+```python
+# SWARMUI AUTO-RECOVERY CONFIGURATION
+SWARMUI_AUTO_START = os.environ.get("SWARMUI_AUTO_START", "true").lower() == "true"
+SWARMUI_STARTUP_TIMEOUT = int(os.environ.get("SWARMUI_STARTUP_TIMEOUT", "120"))  # seconds
+SWARMUI_HEALTH_CHECK_INTERVAL = float(os.environ.get("SWARMUI_HEALTH_CHECK_INTERVAL", "2.0"))  # seconds
+```
+
+**Environment Variable Overrides:**
+```bash
+export SWARMUI_AUTO_START=false          # Disable auto-start (for testing)
+export SWARMUI_STARTUP_TIMEOUT=180       # Increase timeout to 3 minutes
+export SWARMUI_HEALTH_CHECK_INTERVAL=1.0 # Poll every 1 second
+```
+
+#### Startup Script Enhancement
+
+**File:** `2_start_swarmui.sh`
+
+**Key Addition:**
+```bash
+# Start SwarmUI without opening browser (--launch_mode none)
+./launch-linux.sh --launch_mode none
+```
+
+**Why Command-Line Argument:**
+- Overrides `LaunchMode: web` in SwarmUI's `Settings.fds`
+- Works on ANY SwarmUI installation (no settings file modification)
+- Prevents browser tab from opening and hiding the frontend
+- Portable solution for third-party installations
+
+**SwarmUI's Implementation:**
+```csharp
+// src/Core/Program.cs
+LaunchMode = GetCommandLineFlag("launch_mode", ServerSettings.LaunchMode);
+```
+
+#### Benefits
+
+1. **Independence:** DevServer starts without requiring SwarmUI to be running
+2. **Crash Recovery:** Automatic recovery from SwarmUI runtime crashes
+3. **User Experience:** No manual intervention needed, frontend stays visible
+4. **Performance:** Lazy initialization - only starts when actually needed
+5. **Safety:** Race-condition proof with double-check locking
+6. **Flexibility:** Configurable via environment variables
+7. **Portability:** Works with any SwarmUI installation
+
+#### Error Handling
+
+**Scenario 1: Script Not Found**
+```python
+if not script_path.exists():
+    logger.error(f"[SWARMUI-MANAGER] Startup script not found: {script_path}")
+    logger.error("[SWARMUI-MANAGER] Please start SwarmUI manually")
+    return False
+```
+
+**Scenario 2: Startup Timeout (120s)**
+```python
+if elapsed > self._startup_timeout:
+    logger.error(f"[SWARMUI-MANAGER] Timeout after {self._startup_timeout}s")
+    logger.error("[SWARMUI-MANAGER] Check SwarmUI logs for startup issues")
+    return False
+```
+
+**Scenario 3: Auto-Start Disabled**
+```python
+if not self._auto_start_enabled:
+    logger.warning("[SWARMUI-MANAGER] Auto-start disabled, SwarmUI not available")
+    return False
+```
+
+#### Logging & Monitoring
+
+**Startup Sequence:**
+```
+[SWARMUI-TEXT2IMAGE] Ensuring SwarmUI is available...
+[SWARMUI-MANAGER] SwarmUI not available, starting...
+[SWARMUI-MANAGER] Starting SwarmUI via: /path/to/2_start_swarmui.sh
+[SWARMUI-MANAGER] SwarmUI process started (PID: 12345)
+[SWARMUI-MANAGER] Waiting for SwarmUI (timeout: 120s)...
+[SWARMUI-MANAGER] Still waiting... (15.2s elapsed)
+[SWARMUI-MANAGER] ✓ SwarmUI ready! (took 45.2s)
+```
+
+**Health Check Logs (Debug Level):**
+```
+[SWARMUI-MANAGER] Already healthy
+[SWARMUI-MANAGER] Health check: SwarmUI=True, ComfyUI=True
+[SWARMUI-MANAGER] Health check failed: Cannot connect to host
+```
+
+#### Design Decisions
+
+**Why Lazy (On-Demand) vs. Eager (Startup)?**
+- ✅ Faster DevServer startup (no 60s wait)
+- ✅ Handles runtime crashes (not just startup)
+- ✅ Only loads when needed (user might not use media generation)
+- ✅ Better separation of concerns
+
+**Why Singleton Pattern?**
+- ✅ Single source of truth for SwarmUI state
+- ✅ Prevents duplicate managers with conflicting locks
+- ✅ Shared across all services needing SwarmUI
+
+**Why Double-Check Locking?**
+- ✅ Avoids lock overhead when already running (common case)
+- ✅ Prevents race conditions (only ONE startup attempt)
+- ✅ Industry-standard concurrency pattern
+
+#### Testing Considerations
+
+**Manual Test Cases:**
+1. **Cold Start:** Stop SwarmUI, trigger image generation → Auto-starts
+2. **Runtime Crash:** Generate image, kill SwarmUI, generate again → Auto-recovery
+3. **Concurrent Requests:** Stop SwarmUI, send 5 requests → Only ONE startup
+4. **Disabled Auto-Start:** Set `SWARMUI_AUTO_START=false` → Graceful error
+5. **Timeout:** Block port 7821, trigger generation → Timeout after 120s
+
+**Expected Metrics:**
+- Startup time: 30-60 seconds (depends on hardware)
+- Health check overhead: <10ms per check
+- Lock contention: Minimal (only during startup window)
+
+---
+
 ## Summary: Complete Engine Module List
 
 ### Core Execution
@@ -707,11 +968,14 @@ target_lang = get_random_language(exclude=['de'])
 ### Orchestration & Safety
 11. ✅ **stage_orchestrator.py** - 4-stage helpers & safety filtering
 
-**Total: 11 modules** (10 active, 1 deprecated)
+### Services & Lifecycle
+12. ✅ **swarmui_manager.py** - SwarmUI auto-recovery & lifecycle management
+
+**Total: 12 modules** (11 active, 1 deprecated)
 
 ---
 
-## 11. Dependencies & Requirements
+## 13. Dependencies & Requirements
 
 ### Required Python Packages
 

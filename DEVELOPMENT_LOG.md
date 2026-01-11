@@ -1,5 +1,112 @@
 # Development Log
 
+## Session 113 - SwarmUI Auto-Recovery System
+**Date:** 2026-01-11
+**Duration:** ~2 hours
+**Focus:** Automatic SwarmUI lifecycle management
+**Status:** SUCCESS - Full auto-recovery implemented
+
+### Problem
+DevServer crashed when SwarmUI was not running:
+```
+ClientConnectorError: Cannot connect to host 127.0.0.1:7821
+```
+**User Requirement:** DevServer should automatically detect and start SwarmUI when needed.
+
+### Solution: SwarmUI Manager Service
+Created new singleton service `swarmui_manager.py` for lifecycle management:
+
+**Architecture Pattern:** Lazy Recovery (On-Demand)
+- SwarmUI starts **only when needed** (not at DevServer startup)
+- Handles both startup scenarios AND runtime crashes
+- Faster DevServer startup
+- Race-condition safe with `asyncio.Lock`
+
+### Implementation
+
+#### 1. SwarmUI Manager Service (`devserver/my_app/services/swarmui_manager.py`)
+**Core Methods:**
+- `ensure_swarmui_available()` - Main entry point, guarantees SwarmUI is running
+- `is_healthy()` - Checks both ports (7801 REST API + 7821 ComfyUI backend)
+- `_start_swarmui()` - Executes `2_start_swarmui.sh` via subprocess.Popen
+- `_wait_for_ready()` - Polls health endpoints until ready or timeout (120s)
+
+**Concurrency Safety:**
+- `asyncio.Lock` prevents multiple threads from starting SwarmUI simultaneously
+- Double-check pattern after acquiring lock
+
+#### 2. Integration Points (5 locations)
+**LegacyWorkflowService** (`legacy_workflow_service.py:95`):
+- `ensure_swarmui_available()` before workflow submission
+
+**BackendRouter** (`backend_router.py`):
+- Line 150: Manager initialization in constructor
+- Line 550: Before SwarmUI Text2Image generation
+- Line 684: Before SwarmUI workflow submission
+- Line 893: Before single image upload
+- Line 941: Before multi-image upload
+
+#### 3. Configuration (`config.py`)
+```python
+SWARMUI_AUTO_START = os.environ.get("SWARMUI_AUTO_START", "true").lower() == "true"
+SWARMUI_STARTUP_TIMEOUT = int(os.environ.get("SWARMUI_STARTUP_TIMEOUT", "120"))  # seconds
+SWARMUI_HEALTH_CHECK_INTERVAL = float(os.environ.get("SWARMUI_HEALTH_CHECK_INTERVAL", "2.0"))  # seconds
+```
+
+#### 4. Browser Tab Prevention
+**Problem:** SwarmUI opened browser tab on startup, hiding the frontend.
+
+**Solution:** Command-line override in `2_start_swarmui.sh`:
+```bash
+./launch-linux.sh --launch_mode none
+```
+
+**Why This Works:**
+- SwarmUI supports `--launch_mode` command-line argument
+- Overrides `LaunchMode: web` setting in `Settings.fds`
+- Works on ANY SwarmUI installation (no settings file modification needed)
+
+### Expected Behavior
+**Before:**
+```
+[ERROR] Cannot connect to host 127.0.0.1:7821
+[ERROR] Workflow execution failed
+```
+
+**After:**
+```
+[SWARMUI-TEXT2IMAGE] Ensuring SwarmUI is available...
+[SWARMUI-MANAGER] SwarmUI not available, starting...
+[SWARMUI-MANAGER] Starting SwarmUI via: /path/to/2_start_swarmui.sh
+[SWARMUI-MANAGER] SwarmUI process started (PID: 12345)
+[SWARMUI-MANAGER] Waiting for SwarmUI (timeout: 120s)...
+[SWARMUI-MANAGER] ✓ SwarmUI ready! (took 45.2s)
+[SWARMUI] ✓ Generated 1 image(s)
+```
+
+### Benefits
+- ✅ DevServer starts independently of SwarmUI
+- ✅ Automatic crash recovery at runtime
+- ✅ No manual intervention needed
+- ✅ Frontend stays in focus (no SwarmUI UI popup)
+- ✅ Works with any SwarmUI installation
+- ✅ Configurable via environment variables
+
+### Files Changed
+- ✨ `devserver/my_app/services/swarmui_manager.py` (NEW - 247 lines)
+- 📝 `devserver/config.py` (+7 lines - Auto-recovery configuration)
+- 🔧 `devserver/my_app/services/legacy_workflow_service.py` (+9 lines - Manager integration)
+- 🔧 `devserver/schemas/engine/backend_router.py` (+41 lines - Manager integration)
+- 🚀 `2_start_swarmui.sh` (+3 lines - `--launch_mode none`)
+
+**Commit:** `bbe04d8` - feat(swarmui): Add auto-recovery with SwarmUI Manager service
+
+### Architecture Updates
+- Updated ARCHITECTURE PART 07 - Engine-Modules.md (SwarmUI Manager)
+- Updated ARCHITECTURE PART 08 - Backend-Routing.md (Auto-recovery integration)
+
+---
+
 ## Session 112 - CRITICAL: Fix Streaming Connection Leak (CLOSE_WAIT) & Queue Implementation
 **Date:** 2026-01-08
 **Duration:** ~2 hours
