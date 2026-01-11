@@ -52,6 +52,6 @@ echo ""
 # PORT is set in config.py (17802), no override needed
 
 # Remove error trap - allow normal server exit without "Script failed" message
-trap - ERR
+
 
 python3 server.py
