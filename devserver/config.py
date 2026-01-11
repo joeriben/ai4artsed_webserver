@@ -517,6 +517,18 @@ FIXED_WORKFLOW = "model/ai4artsed_Stable-Diffusion-3.5_2507152202.json"  # Only 
 SYSTEM_WORKFLOW_FOLDERS = ["aesthetics", "semantics", "arts"]
 
 # ============================================================================
+# LORA CONFIGURATION (Temporary - will be replaced by dynamic source)
+# ============================================================================
+# Format: List of dicts with 'name' and 'strength'
+# 'name' = filename without path (file must be in SwarmUI/Models/loras/)
+# Set to empty list [] to disable LoRA injection
+#
+LORA_TRIGGERS = [
+    {"name": "SD3.5-Large-Anime-LoRA.safetensors", "strength": 1.0},
+    {"name": "bejo_face.safetensors", "strength": 1.0},
+]
+
+# ============================================================================
 # USER SETTINGS
 # ============================================================================
 # User settings can be overridden via devserver/user_settings.json

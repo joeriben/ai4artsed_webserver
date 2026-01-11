@@ -1,5 +1,82 @@
 # Development Log
 
+## Session 114 - LoRA Injection for Stage 4 Workflows
+**Date:** 2026-01-11
+**Duration:** ~2 hours
+**Focus:** Dynamic LoRA injection into ComfyUI workflows
+**Status:** SUCCESS - LoRA injection working
+
+### Goal
+Enable LoRA models (e.g., face LoRAs, style LoRAs) to be automatically injected into Stage 4 image generation workflows.
+
+### Background
+Previous Cline session attempted "Dual-Parse" architecture (parsing `<lora:name:strength>` tags from prompts) but failed due to architectural issues. This session took a simpler approach: implement the injection mechanism first, decide WHERE the LoRA list comes from later.
+
+### Solution: Workflow-Based LoRA Injection
+
+**Key Insight:** Separate the injection mechanism from the data source.
+1. Define LoRA list in `config.py` (temporary hardcoded)
+2. Inject LoRALoader nodes into workflow at runtime
+3. Later: connect to Stage2-Configs (Meta-Prompt + optimal LoRAs)
+
+### Implementation
+
+#### 1. Config (`config.py`)
+```python
+LORA_TRIGGERS = [
+    {"name": "SD3.5-Large-Anime-LoRA.safetensors", "strength": 1.0},
+    {"name": "bejo_face.safetensors", "strength": 1.0},
+]
+```
+
+#### 2. Injection Logic (`backend_router.py`)
+New method `_inject_lora_nodes()`:
+- Finds CheckpointLoaderSimple node (model source)
+- Finds model consumers (KSampler)
+- Inserts LoRALoader nodes in chain: Checkpoint → LoRA1 → LoRA2 → KSampler
+- Updates node connections automatically
+
+#### 3. Routing Change
+When `LORA_TRIGGERS` is configured, images use workflow mode instead of simple SwarmUI API:
+```python
+if LORA_TRIGGERS:
+    return await self._process_workflow_chunk(...)
+else:
+    return await self._process_image_chunk_simple(...)
+```
+
+### Log Output (Success)
+```
+[LORA] Using workflow mode for image generation (LoRAs configured)
+[LORA] Injected LoraLoader node 12: SD3.5-Large-Anime-LoRA.safetensors
+[LORA] Injected LoraLoader node 13: bejo_face.safetensors
+[LORA] Updated node 8 to receive model from LoRA chain
+```
+
+### Test Results
+- ✅ Face LoRA (bejo_face) visible in output - works WITHOUT trigger word
+- ✅ Multiple LoRAs chain correctly
+- ✅ Workflow submission successful
+- ⚠️ Style LoRA may need trigger word in prompt for visible effect
+
+### Next Steps
+**Connect to Stage2-Configs:** Each interception config (Meta-Prompt) can define optimal LoRAs:
+```json
+{
+  "name": "jugendsprache",
+  "context_prompt": "...",
+  "loras": [
+    {"name": "anime_style.safetensors", "strength": 0.8}
+  ]
+}
+```
+
+### Files Changed
+- 📝 `devserver/config.py` (+10 lines - LORA_TRIGGERS config)
+- 🔧 `devserver/schemas/engine/backend_router.py` (+80 lines - injection logic)
+
+---
+
 ## Session 113 - SwarmUI Auto-Recovery System
 **Date:** 2026-01-11
 **Duration:** ~2 hours

@@ -10,7 +10,7 @@ from pathlib import Path
 import json
 
 from my_app.services.pipeline_recorder import load_recorder
-from config import JSON_STORAGE_DIR, COMFYUI_BASE_PATH
+from config import JSON_STORAGE_DIR, COMFYUI_BASE_PATH, LORA_TRIGGERS
 
 logger = logging.getLogger(__name__)
 
@@ -479,8 +479,13 @@ class BackendRouter:
 
             # 3. Then route based on media type (standard mode)
             if media_type == 'image':
-                # Use SwarmUI's simple Text2Image API
-                return await self._process_image_chunk_simple(chunk_name, text_prompt, parameters, chunk)
+                # Use workflow mode if LoRAs are configured, otherwise simple API
+                if LORA_TRIGGERS:
+                    logger.info(f"[LORA] Using workflow mode for image generation (LoRAs configured)")
+                    return await self._process_workflow_chunk(chunk_name, text_prompt, parameters, chunk)
+                else:
+                    # Use SwarmUI's simple Text2Image API
+                    return await self._process_image_chunk_simple(chunk_name, text_prompt, parameters, chunk)
             else:
                 # For audio/video: use custom workflow submission
                 return await self._process_workflow_chunk(chunk_name, text_prompt, parameters, chunk)
@@ -636,6 +641,10 @@ class BackendRouter:
 
             media_type = chunk.get('media_type', 'unknown')
             logger.info(f"[WORKFLOW-CHUNK] Processing {media_type} chunk: {chunk_name}")
+
+            # 1.5. Inject LoRA nodes if configured
+            if LORA_TRIGGERS:
+                workflow = self._inject_lora_nodes(workflow, LORA_TRIGGERS)
 
             # 2. Detect mapping format and apply input mappings
             input_mappings = chunk.get('input_mappings', {})
@@ -1545,6 +1554,82 @@ class BackendRouter:
         except Exception as e:
             logger.error(f"Error loading Output-Chunk '{chunk_name}': {e}")
             return None
+
+    def _inject_lora_nodes(self, workflow: Dict, loras: list) -> Dict:
+        """
+        Inject LoraLoader nodes into workflow.
+        Chains: Checkpoint -> LoRA1 -> LoRA2 -> ... -> KSampler
+
+        Args:
+            workflow: ComfyUI workflow dict
+            loras: List of dicts with 'name' and 'strength' keys
+
+        Returns:
+            Modified workflow with LoRA nodes injected
+        """
+        import copy
+        workflow = copy.deepcopy(workflow)
+
+        # 1. Find CheckpointLoader node (source of model)
+        checkpoint_node_id = None
+        for node_id, node in workflow.items():
+            if isinstance(node, dict) and node.get('class_type') == 'CheckpointLoaderSimple':
+                checkpoint_node_id = node_id
+                break
+
+        if not checkpoint_node_id:
+            logger.warning("[LORA] No CheckpointLoaderSimple found, skipping injection")
+            return workflow
+
+        # 2. Find nodes that consume model from checkpoint
+        # and find CLIP source (for SD3.5: DualCLIPLoader)
+        clip_source = None
+        model_consumers = []
+        for node_id, node in workflow.items():
+            if isinstance(node, dict) and 'inputs' in node:
+                inputs = node['inputs']
+                # Check if this node takes model from checkpoint
+                if inputs.get('model') == [checkpoint_node_id, 0]:
+                    model_consumers.append(node_id)
+                # Find CLIP source (DualCLIPLoader for SD3.5)
+                if node.get('class_type') == 'DualCLIPLoader':
+                    clip_source = [node_id, 0]
+
+        if not model_consumers:
+            logger.warning("[LORA] No model consumers found, skipping injection")
+            return workflow
+
+        # 3. Insert LoraLoader nodes (chained)
+        # Find next available node ID
+        existing_ids = [int(k) for k in workflow.keys() if k.isdigit()]
+        next_id = max(existing_ids) + 1 if existing_ids else 100
+
+        prev_model_source = [checkpoint_node_id, 0]
+        prev_clip_source = clip_source or [checkpoint_node_id, 1]
+
+        for i, lora in enumerate(loras):
+            lora_node_id = str(next_id + i)
+            workflow[lora_node_id] = {
+                "inputs": {
+                    "lora_name": lora["name"],
+                    "strength_model": lora.get("strength", 1.0),
+                    "strength_clip": lora.get("strength", 1.0),
+                    "model": prev_model_source,
+                    "clip": prev_clip_source
+                },
+                "class_type": "LoraLoader",
+                "_meta": {"title": f"LoRA: {lora['name']}"}
+            }
+            prev_model_source = [lora_node_id, 0]
+            prev_clip_source = [lora_node_id, 1]
+            logger.info(f"[LORA] Injected LoraLoader node {lora_node_id}: {lora['name']}")
+
+        # 4. Update model consumers to use last LoRA output
+        for consumer_id in model_consumers:
+            workflow[consumer_id]['inputs']['model'] = prev_model_source
+            logger.info(f"[LORA] Updated node {consumer_id} to receive model from LoRA chain")
+
+        return workflow
 
     def _apply_input_mappings(self, workflow: Dict, mappings: Dict[str, Any], input_data: Dict[str, Any]) -> Tuple[Dict, Optional[int]]:
         """Apply input_mappings to workflow - inject prompts and parameters

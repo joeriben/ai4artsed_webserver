@@ -452,3 +452,99 @@ export SWARMUI_HEALTH_CHECK_INTERVAL=1.0 # Poll more frequently
 
 ---
 
+### LoRA Injection for Image Generation
+
+**Added:** Session 114 (2026-01-11)
+
+**Purpose:** Automatically inject LoRA (Low-Rank Adaptation) models into ComfyUI workflows for personalized image generation (e.g., face LoRAs, style LoRAs).
+
+#### Architecture
+
+**Location:** `devserver/schemas/engine/backend_router.py`
+**Method:** `_inject_lora_nodes(workflow, loras)`
+
+**Key Features:**
+1. **Dynamic Injection:** LoRA nodes inserted at runtime, no workflow template changes needed
+2. **Chaining:** Multiple LoRAs chain in sequence: Checkpoint → LoRA1 → LoRA2 → KSampler
+3. **Auto-Connection:** Finds CheckpointLoader and model consumers, updates connections automatically
+4. **SD3.5 Support:** Handles DualCLIPLoader for SD3.5 workflows
+
+#### Data Flow
+
+```
+Stage 4 Request
+     ↓
+_process_output_chunk()
+     ↓
+if LORA_TRIGGERS:  → Use workflow mode (not simple API)
+     ↓
+_process_workflow_chunk()
+     ↓
+workflow = chunk.get('workflow')
+     ↓
+if LORA_TRIGGERS:
+    workflow = _inject_lora_nodes(workflow, LORA_TRIGGERS)
+     ↓
+Submit to SwarmUI/ComfyUI
+```
+
+#### Configuration
+
+**Current:** Temporary hardcoded in `config.py`
+
+```python
+LORA_TRIGGERS = [
+    {"name": "SD3.5-Large-Anime-LoRA.safetensors", "strength": 1.0},
+    {"name": "bejo_face.safetensors", "strength": 1.0},
+]
+```
+
+**Future:** Connected to Stage2-Configs (Meta-Prompt + optimal LoRAs):
+```json
+{
+  "name": "jugendsprache",
+  "context_prompt": "...",
+  "loras": [
+    {"name": "anime_style.safetensors", "strength": 0.8}
+  ]
+}
+```
+
+#### Workflow Modification
+
+**Before Injection:**
+```
+Node 5 (CheckpointLoaderSimple) → Node 8 (KSampler)
+```
+
+**After Injection:**
+```
+Node 5 (CheckpointLoaderSimple)
+     ↓
+Node 12 (LoraLoader: anime_style)
+     ↓
+Node 13 (LoraLoader: bejo_face)
+     ↓
+Node 8 (KSampler)
+```
+
+#### Routing Behavior
+
+When `LORA_TRIGGERS` is configured:
+- Images use **workflow mode** (not SwarmUI Text2Image API)
+- Enables full ComfyUI node manipulation
+- Slightly slower but supports advanced features
+
+```python
+if LORA_TRIGGERS:
+    return await self._process_workflow_chunk(...)
+else:
+    return await self._process_image_chunk_simple(...)
+```
+
+#### Documentation
+
+**Development Log:** Session 114 (2026-01-11)
+
+---
+
