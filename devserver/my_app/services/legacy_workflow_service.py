@@ -54,6 +54,10 @@ class LegacyWorkflowService:
 
         self.timeout = aiohttp.ClientTimeout(total=300)  # 5 min for long workflows
 
+        # Initialize SwarmUI Manager for auto-recovery
+        from my_app.services.swarmui_manager import get_swarmui_manager
+        self.swarmui_manager = get_swarmui_manager()
+
     async def execute_workflow(
         self,
         workflow: Dict[str, Any],
@@ -87,6 +91,11 @@ class LegacyWorkflowService:
             workflow, injection_success = self._inject_prompt(workflow, prompt, chunk_config)
             if not injection_success:
                 logger.warning("[LEGACY-SERVICE] Prompt injection failed, continuing anyway")
+
+            # Step 2.5: Ensure SwarmUI is available
+            logger.info("[LEGACY-SERVICE] Ensuring SwarmUI is available...")
+            if not await self.swarmui_manager.ensure_swarmui_available():
+                raise Exception("Failed to start SwarmUI - cannot submit workflow")
 
             # Step 3: Submit workflow
             prompt_id = await self._submit_workflow(workflow)

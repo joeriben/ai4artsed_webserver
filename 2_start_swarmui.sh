@@ -47,4 +47,5 @@ source ./venv/bin/activate
 # Remove error trap - allow normal server exit without "Script failed" message
 trap - ERR
 
-./launch-linux.sh
+# Start SwarmUI without opening browser (--launch_mode none)
+./launch-linux.sh --launch_mode none

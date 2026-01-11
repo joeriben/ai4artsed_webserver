@@ -140,10 +140,14 @@ class BackendResponse:
 
 class BackendRouter:
     """Router für verschiedene KI-Backends"""
-    
+
     def __init__(self):
         self.backends: Dict[BackendType, Any] = {}
         self._initialized = False
+
+        # Initialize SwarmUI Manager for auto-recovery
+        from my_app.services.swarmui_manager import get_swarmui_manager
+        self.swarmui_manager = get_swarmui_manager()
     
     def initialize(self, ollama_service=None, workflow_logic_service=None, comfyui_service=None):
         """Router mit Legacy-Services initialisieren"""
@@ -541,14 +545,24 @@ class BackendRouter:
             else:
                 seed = int(seed)
 
-            # 3. Get SwarmUI client
+            # 3. Ensure SwarmUI is available
+            logger.info("[SWARMUI-TEXT2IMAGE] Ensuring SwarmUI is available...")
+            if not await self.swarmui_manager.ensure_swarmui_available():
+                logger.error("[SWARMUI-TEXT2IMAGE] Failed to start SwarmUI")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="SwarmUI server not available (failed to auto-start)"
+                )
+
+            # 4. Get SwarmUI client
             from my_app.services.swarmui_client import get_swarmui_client
 
             client = get_swarmui_client()
             is_healthy = await client.health_check()
 
             if not is_healthy:
-                logger.warning("SwarmUI server not reachable")
+                logger.warning("SwarmUI server not reachable after auto-start")
                 return BackendResponse(
                     success=False,
                     content="",
@@ -665,13 +679,23 @@ class BackendRouter:
             if str(devserver_path) not in sys.path:
                 sys.path.insert(0, str(devserver_path))
 
+            # 3.5. Ensure SwarmUI is available
+            logger.info("[SWARMUI-WORKFLOW] Ensuring SwarmUI is available...")
+            if not await self.swarmui_manager.ensure_swarmui_available():
+                logger.error("[SWARMUI-WORKFLOW] Failed to start SwarmUI")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="SwarmUI server not available (failed to auto-start)"
+                )
+
             from my_app.services.swarmui_client import get_swarmui_client
 
             client = get_swarmui_client()
             is_healthy = await client.health_check()
 
             if not is_healthy:
-                logger.warning("SwarmUI server not reachable")
+                logger.warning("SwarmUI server not reachable after auto-start")
                 return BackendResponse(
                     success=False,
                     content="",
@@ -884,6 +908,11 @@ class BackendRouter:
                 source_path = _resolve_media_url_to_path(parameters['input_image'])
                 source_file = Path(source_path)
 
+                # Ensure SwarmUI is available before upload
+                logger.info("[LEGACY-WORKFLOW] Ensuring SwarmUI available for image upload...")
+                if not await self.swarmui_manager.ensure_swarmui_available():
+                    logger.error("[LEGACY-WORKFLOW] SwarmUI not available, image upload will fail")
+
                 # Upload image via ComfyUI API
                 comfyui_url = "http://127.0.0.1:7821"  # SwarmUI integrated ComfyUI
                 upload_url = f"{comfyui_url}/upload/image"
@@ -926,6 +955,10 @@ class BackendRouter:
             if input_mappings and has_multi_image:
                 import aiohttp
                 from pathlib import Path
+
+                # Ensure SwarmUI is available before multi-image upload
+                logger.info("[LEGACY-WORKFLOW] Ensuring SwarmUI available for multi-image upload...")
+                await self.swarmui_manager.ensure_swarmui_available()
 
                 comfyui_url = "http://127.0.0.1:7821"  # SwarmUI integrated ComfyUI
                 upload_url = f"{comfyui_url}/upload/image"

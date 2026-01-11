@@ -277,6 +277,13 @@ SWARMUI_API_PORT = "7801"  # SwarmUI REST API (proper image generation endpoint)
 USE_SWARMUI_ORCHESTRATION = True  # Default: Route all workflows via SwarmUI
 ALLOW_DIRECT_COMFYUI = False      # Emergency only: Allow direct access to Port 7821
 
+# ============================================================================
+# SWARMUI AUTO-RECOVERY CONFIGURATION
+# ============================================================================
+# Controls automatic startup of SwarmUI when needed
+SWARMUI_AUTO_START = os.environ.get("SWARMUI_AUTO_START", "true").lower() == "true"
+SWARMUI_STARTUP_TIMEOUT = int(os.environ.get("SWARMUI_STARTUP_TIMEOUT", "120"))  # seconds
+SWARMUI_HEALTH_CHECK_INTERVAL = float(os.environ.get("SWARMUI_HEALTH_CHECK_INTERVAL", "2.0"))  # seconds
 
 
 # Feature Flags
