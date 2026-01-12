@@ -525,7 +525,7 @@ SYSTEM_WORKFLOW_FOLDERS = ["aesthetics", "semantics", "arts"]
 #
 LORA_TRIGGERS = [
     {"name": "SD3.5-Large-Anime-LoRA.safetensors", "strength": 1.0},
-    {"name": "bejo_face.safetensors", "strength": 1.0},
+    {"name": "bejo_face.safetensors", "strength": 0.4},
 ]
 
 # ============================================================================
