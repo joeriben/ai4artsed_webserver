@@ -8,15 +8,26 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 import logging
 
+from config import (
+    KOHYA_DIR,
+    LORA_OUTPUT_DIR,
+    TRAINING_DATASET_DIR,
+    TRAINING_LOG_DIR,
+    SWARMUI_BASE_PATH,
+    SD35_LARGE_MODEL_PATH,
+    CLIP_L_PATH,
+    CLIP_G_PATH,
+    T5XXL_PATH
+)
+
 # Logger Setup
 logger = logging.getLogger(__name__)
 
-# Constants
-KOHYA_DIR = Path("/home/joerissen/ai/kohya_ss_new")
+# Derived paths
 KOHYA_VENV = KOHYA_DIR / "venv"
-DATASET_BASE_DIR = KOHYA_DIR / "dataset"
-OUTPUT_DIR = Path("/home/joerissen/ai/SwarmUI/Models/loras") # Direct output to ComfyUI/SwarmUI
-LOG_DIR = KOHYA_DIR / "logs"
+DATASET_BASE_DIR = TRAINING_DATASET_DIR
+OUTPUT_DIR = LORA_OUTPUT_DIR
+LOG_DIR = TRAINING_LOG_DIR
 
 # Ensure directories exist
 DATASET_BASE_DIR.mkdir(parents=True, exist_ok=True)
@@ -139,10 +150,10 @@ class TrainingService:
         vram = self.get_gpu_vram()
         optim_params = self.calculate_training_params(vram)
 
-        # 4. Create Config
+        # 4. Create Config (prefix is determined by the model-specific method)
         config = self._generate_sd35_config(
             project_dir=project_dir,
-            image_dir=image_dir, 
+            image_dir=image_dir,
             output_name=safe_name,
             params=optim_params
         )
@@ -163,9 +174,11 @@ class TrainingService:
 
     def _generate_sd35_config(self, project_dir: Path, image_dir: Path, output_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """Generates TOML config for SD 3.5 Large with dynamic hardware params"""
+        # SD3.5 Large LoRAs get "sd35_" prefix automatically
+        prefixed_name = f"sd35_{output_name}"
         return {
             "model_arguments": {
-                "pretrained_model_name_or_path": "/home/joerissen/ai/SwarmUI/Models/Stable-Diffusion/OfficialStableDiffusion/sd3.5_large.safetensors",
+                "pretrained_model_name_or_path": str(SD35_LARGE_MODEL_PATH),
                 "vae": "" # Built-in VAE
             },
             "dataset_arguments": {
@@ -178,7 +191,7 @@ class TrainingService:
             },
             "training_arguments": {
                 "output_dir": str(OUTPUT_DIR),
-                "output_name": output_name,
+                "output_name": prefixed_name,
                 "save_precision": "bf16",
                 "mixed_precision": "bf16",
                 "max_train_epochs": 10,
@@ -222,16 +235,12 @@ class TrainingService:
 
         # Construct Command
         # We execute via 'bash -c' to source the venv correctly
-        # Explicitly pass Text Encoders as CLI args
-        clip_l = "/home/joerissen/ai/SwarmUI/Models/clip/clip_l.safetensors"
-        clip_g = "/home/joerissen/ai/SwarmUI/Models/clip/clip_g.safetensors"
-        t5xxl = "/home/joerissen/ai/SwarmUI/Models/clip/t5xxl_fp16.safetensors"
-        
+        # Explicitly pass Text Encoders as CLI args (paths from config.py)
         cmd = [
             "/bin/bash", "-c",
             f"source {KOHYA_VENV}/bin/activate && "
             f"python {KOHYA_DIR}/sd-scripts/sd3_train_network.py --config_file {config_path} "
-            f"--clip_l={clip_l} --clip_g={clip_g} --t5xxl={t5xxl}"
+            f"--clip_l={CLIP_L_PATH} --clip_g={CLIP_G_PATH} --t5xxl={T5XXL_PATH}"
         ]
 
         def run_proc():

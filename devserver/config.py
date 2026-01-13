@@ -466,6 +466,20 @@ _AI_TOOLS_BASE = _SERVER_BASE.parent  # ai4artsed_development parent = ai/
 SWARMUI_BASE_PATH = os.environ.get("SWARMUI_PATH", str(_AI_TOOLS_BASE / "SwarmUI"))
 COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", str(_AI_TOOLS_BASE / "SwarmUI" / "dlbackend" / "ComfyUI"))
 
+# LoRA Training Paths (Kohya SS)
+KOHYA_DIR = Path(os.environ.get("KOHYA_DIR", str(_AI_TOOLS_BASE / "kohya_ss_new")))
+LORA_OUTPUT_DIR = Path(os.environ.get("LORA_OUTPUT_DIR", str(_AI_TOOLS_BASE / "SwarmUI" / "Models" / "loras")))
+TRAINING_DATASET_DIR = KOHYA_DIR / "dataset"
+TRAINING_LOG_DIR = KOHYA_DIR / "logs"
+# Note: Output prefix (e.g. "sd35_") is determined by the model-specific config generator in training_service.py
+
+# Model paths for training (relative to SWARMUI_BASE_PATH)
+_SWARMUI_PATH = Path(SWARMUI_BASE_PATH)
+SD35_LARGE_MODEL_PATH = _SWARMUI_PATH / "Models" / "Stable-Diffusion" / "OfficialStableDiffusion" / "sd3.5_large.safetensors"
+CLIP_L_PATH = _SWARMUI_PATH / "Models" / "clip" / "clip_l.safetensors"
+CLIP_G_PATH = _SWARMUI_PATH / "Models" / "clip" / "clip_g.safetensors"
+T5XXL_PATH = _SWARMUI_PATH / "Models" / "clip" / "t5xxl_fp16.safetensors"
+
 # Default Negative Terms Configuration
 DEFAULT_NEGATIVE_TERMS = "blurry, bad quality, worst quality, low quality, low resolution, extra limbs, extra fingers, distorted, deformed, jpeg artifacts, watermark"
 
