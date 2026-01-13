@@ -2,9 +2,71 @@
   <div class="training-container">
     <h1>LoRA Training Studio</h1>
     <p class="description">
-      Train custom Styles for Stable Diffusion 3.5 Large. 
+      Train custom Styles for Stable Diffusion 3.5 Large.
       Optimized for NVIDIA RTX 6000 Ada (96GB).
     </p>
+
+    <!-- VRAM Confirmation Dialog -->
+    <div v-if="showVramDialog" class="vram-dialog-overlay">
+      <div class="vram-dialog">
+        <h2>GPU VRAM Check</h2>
+
+        <div v-if="vramLoading" class="vram-loading">
+          Checking VRAM...
+        </div>
+
+        <div v-else-if="vramInfo" class="vram-info">
+          <div class="vram-bar">
+            <div
+              class="vram-used"
+              :style="{ width: vramInfo.usage_percent + '%' }"
+              :class="{ 'vram-critical': !vramInfo.can_train }"
+            ></div>
+          </div>
+          <div class="vram-stats">
+            <span>{{ vramInfo.used_gb }} GB / {{ vramInfo.total_gb }} GB used</span>
+            <span class="vram-free">{{ vramInfo.free_gb }} GB free</span>
+          </div>
+
+          <div v-if="!vramInfo.can_train" class="vram-warning">
+            Not enough free VRAM for training (need {{ vramInfo.min_required_gb }} GB).
+            <br>
+            <strong>Clear VRAM to continue?</strong>
+          </div>
+
+          <div v-else class="vram-ok">
+            Enough VRAM available for training.
+          </div>
+
+          <div v-if="vramClearing" class="vram-clearing">
+            Clearing VRAM...
+          </div>
+
+          <div v-if="vramClearResult" class="vram-clear-result">
+            <div v-if="vramClearResult.comfyui">ComfyUI: {{ vramClearResult.comfyui }}</div>
+            <div v-if="vramClearResult.ollama">Ollama: {{ vramClearResult.ollama }}</div>
+            <div v-if="vramClearResult.new_free_gb">New free: {{ vramClearResult.new_free_gb }} GB</div>
+          </div>
+        </div>
+
+        <div class="vram-dialog-buttons">
+          <button v-if="!vramInfo?.can_train && !vramClearing" class="clear-btn" @click="clearVram">
+            Clear ComfyUI + Ollama VRAM
+          </button>
+          <button
+            v-if="vramInfo?.can_train || vramClearResult"
+            class="proceed-btn"
+            @click="proceedWithTraining"
+            :disabled="vramClearing"
+          >
+            Start Training
+          </button>
+          <button class="cancel-btn" @click="cancelVramDialog" :disabled="vramClearing">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div class="grid-layout">
       <!-- Config Column -->
@@ -17,9 +79,9 @@
         <small>The word you will use in prompts to activate this style.</small>
 
         <label>Training Images (10-50 recommended)</label>
-        <div 
-          class="drop-zone" 
-          @dragover.prevent 
+        <div
+          class="drop-zone"
+          @dragover.prevent
           @drop.prevent="handleDrop"
           @click="loadFileSelect"
           :class="{ 'has-files': images.length > 0 }"
@@ -34,18 +96,18 @@
         </div>
 
         <div class="action-buttons">
-          <button 
-            class="start-btn" 
-            @click="startTraining" 
+          <button
+            class="start-btn"
+            @click="checkVramAndStart"
             :disabled="is_training || !canStart"
             :class="{ 'is-loading': is_training }"
           >
             {{ is_training ? 'Training in Progress...' : 'Start Training' }}
           </button>
-          
-          <button 
-            v-if="is_training" 
-            class="stop-btn" 
+
+          <button
+            v-if="is_training"
+            class="stop-btn"
             @click="stopTraining"
           >
             Stop
@@ -53,12 +115,12 @@
         </div>
 
         <!-- GDPR Delete Logic -->
-        <button 
-          v-if="!is_training && project_name && !images.length" 
-          class="delete-btn" 
+        <button
+          v-if="!is_training && project_name && !images.length"
+          class="delete-btn"
           @click="deleteProject"
         >
-          🗑️ Delete Project Files (GDPR)
+          Delete Project Files (GDPR)
         </button>
       </div>
 
@@ -80,22 +142,55 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import axios from 'axios';
 
 const project_name = ref('');
 const trigger_word = ref('');
 const images = ref<File[]>([]);
 const logs = ref<string[]>([]);
 const is_training = ref(false);
+const upload_progress = ref(0);
 const logContainer = ref<HTMLElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 let eventSource: EventSource | null = null;
 let userHasScrolledUp = false;
+
+// VRAM Dialog State
+interface VramInfo {
+  total_gb: number;
+  used_gb: number;
+  free_gb: number;
+  usage_percent: number;
+  can_train: boolean;
+  min_required_gb: number;
+  recommendation: string | null;
+}
+
+interface VramClearResult {
+  comfyui?: string;
+  ollama?: string;
+  new_free_gb?: number;
+  new_used_gb?: number;
+  errors?: string[];
+}
+
+const showVramDialog = ref(false);
+const vramLoading = ref(false);
+const vramClearing = ref(false);
+const vramInfo = ref<VramInfo | null>(null);
+const vramClearResult = ref<VramClearResult | null>(null);
 
 const canStart = computed(() => {
   return project_name.value.length > 3 && images.value.length >= 5;
 });
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:17802';
+
+// Axios instance with long timeout for file uploads (5 minutes)
+const uploadClient = axios.create({
+  baseURL: API_BASE,
+  timeout: 300000, // 5 minutes for large file uploads over WiFi
+});
 
 onMounted(() => {
   checkStatus();
@@ -128,6 +223,83 @@ const addFiles = (fileList: File[]) => {
   images.value = [...images.value, ...imageFiles];
 };
 
+// ============================================================================
+// VRAM MANAGEMENT
+// ============================================================================
+
+const checkVramAndStart = async () => {
+  if (!canStart.value) return;
+
+  // Reset dialog state
+  vramInfo.value = null;
+  vramClearResult.value = null;
+  vramLoading.value = true;
+  showVramDialog.value = true;
+
+  try {
+    const response = await uploadClient.get('/api/training/check-vram');
+    vramInfo.value = response.data;
+  } catch (e: any) {
+    console.error("Failed to check VRAM:", e);
+    // Proceed anyway if VRAM check fails
+    vramInfo.value = {
+      total_gb: 0,
+      used_gb: 0,
+      free_gb: 99,
+      usage_percent: 0,
+      can_train: true,
+      min_required_gb: 20,
+      recommendation: null
+    };
+  } finally {
+    vramLoading.value = false;
+  }
+};
+
+const clearVram = async () => {
+  vramClearing.value = true;
+  vramClearResult.value = null;
+
+  try {
+    const response = await uploadClient.post('/api/training/clear-vram', {
+      unload_comfyui: true,
+      unload_ollama: true
+    });
+
+    if (response.data.success) {
+      vramClearResult.value = response.data.results;
+
+      // Update vramInfo with new free GB
+      if (vramInfo.value && vramClearResult.value?.new_free_gb) {
+        vramInfo.value.free_gb = vramClearResult.value.new_free_gb;
+        vramInfo.value.used_gb = vramClearResult.value.new_used_gb || vramInfo.value.used_gb;
+        vramInfo.value.usage_percent = Math.round((vramInfo.value.used_gb / vramInfo.value.total_gb) * 100);
+        vramInfo.value.can_train = vramInfo.value.free_gb >= vramInfo.value.min_required_gb;
+      }
+    }
+  } catch (e: any) {
+    console.error("Failed to clear VRAM:", e);
+    vramClearResult.value = {
+      errors: [e.message || 'Failed to clear VRAM']
+    };
+  } finally {
+    vramClearing.value = false;
+  }
+};
+
+const proceedWithTraining = () => {
+  showVramDialog.value = false;
+  startTraining();
+};
+
+const cancelVramDialog = () => {
+  showVramDialog.value = false;
+};
+
+// ============================================================================
+// STATUS CHECK
+// ============================================================================
+
 const checkStatus = async () => {
   try {
     const res = await fetch(`${API_BASE}/api/training/status`);
@@ -153,23 +325,40 @@ const startTraining = async () => {
   });
 
   is_training.value = true;
+  upload_progress.value = 0;
   logs.value = ["Initiating upload..."];
 
   try {
-    const res = await fetch(`${API_BASE}/api/training/start`, {
-      method: 'POST',
-      body: formData
+    // Use axios with progress tracking and long timeout for WiFi reliability
+    const response = await uploadClient.post('/api/training/start', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          upload_progress.value = percent;
+          // Update log with progress
+          const lastLog = logs.value[logs.value.length - 1];
+          if (lastLog?.startsWith('Upload:')) {
+            logs.value[logs.value.length - 1] = `Upload: ${percent}%`;
+          } else {
+            logs.value.push(`Upload: ${percent}%`);
+          }
+        }
+      }
     });
-    
-    if (!res.ok) {
-      throw new Error((await res.json()).message);
+
+    if (response.status !== 200) {
+      throw new Error(response.data?.message || 'Upload failed');
     }
-    
+
     logs.value.push("Upload complete. Starting Kohya process...");
     connectSSE();
-    
+
   } catch (e: any) {
-    logs.value.push(`Error: ${e.message}`);
+    const errorMsg = e.response?.data?.message || e.message || 'Unknown error';
+    logs.value.push(`Error: ${errorMsg}`);
     is_training.value = false;
   }
 };
@@ -432,5 +621,157 @@ input {
 .log-placeholder {
   color: #666;
   font-style: italic;
+}
+
+/* VRAM Dialog Styles */
+.vram-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.vram-dialog {
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.vram-dialog h2 {
+  margin: 0 0 1.5rem 0;
+  color: #00ffff;
+}
+
+.vram-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+}
+
+.vram-bar {
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.vram-used {
+  height: 100%;
+  background: linear-gradient(90deg, #00ff88, #00ffff);
+  transition: width 0.5s ease;
+}
+
+.vram-used.vram-critical {
+  background: linear-gradient(90deg, #ff4444, #ff8800);
+}
+
+.vram-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 1rem;
+}
+
+.vram-free {
+  color: #00ff88;
+}
+
+.vram-warning {
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid #ff4444;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  color: #ff8888;
+}
+
+.vram-ok {
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid #00ff88;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  color: #00ff88;
+}
+
+.vram-clearing {
+  text-align: center;
+  padding: 1rem;
+  color: #ffaa00;
+}
+
+.vram-clear-result {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.vram-dialog-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.vram-dialog-buttons button {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.clear-btn {
+  background: #ff8800;
+  color: black;
+}
+
+.clear-btn:hover {
+  background: #ffaa00;
+}
+
+.proceed-btn {
+  background: #00ffff;
+  color: black;
+}
+
+.proceed-btn:hover {
+  background: #00ff88;
+}
+
+.proceed-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #888;
+}
+
+.cancel-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  color: #fff;
+}
+
+.cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

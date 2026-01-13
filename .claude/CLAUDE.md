@@ -80,3 +80,4 @@ Frontend visualisiert, was die Pipeline strukturiert.
    - Architecture documentation exists in `/docs` (ARCHITECTURE PART 01-20.md, dev logs, design decisions)
    - ALWAYS use `devserver-architecture-expert` agent for questions about the system
    - Read relevant documentation BEFORE making architectural decisions or code changes
+6. **VUE TYPE CHECK**: When programming Vue pages, ALWAYS run `npm run type-check` and fix any type errors before considering the task complete
