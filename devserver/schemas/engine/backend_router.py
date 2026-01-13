@@ -479,9 +479,10 @@ class BackendRouter:
 
             # 3. Then route based on media type (standard mode)
             if media_type == 'image':
-                # Use workflow mode if LoRAs are configured, otherwise simple API
-                if LORA_TRIGGERS:
-                    logger.info(f"[LORA] Using workflow mode for image generation (LoRAs configured)")
+                # Use workflow mode if LoRAs are configured (config-specific or global)
+                loras = parameters.get('loras', LORA_TRIGGERS)
+                if loras:
+                    logger.info(f"[LORA] Using workflow mode for image generation ({len(loras)} LoRAs)")
                     return await self._process_workflow_chunk(chunk_name, text_prompt, parameters, chunk)
                 else:
                     # Use SwarmUI's simple Text2Image API
@@ -642,9 +643,11 @@ class BackendRouter:
             media_type = chunk.get('media_type', 'unknown')
             logger.info(f"[WORKFLOW-CHUNK] Processing {media_type} chunk: {chunk_name}")
 
-            # 1.5. Inject LoRA nodes if configured
-            if LORA_TRIGGERS:
-                workflow = self._inject_lora_nodes(workflow, LORA_TRIGGERS)
+            # 1.5. Inject LoRA nodes (Session 116: config-specific or global fallback)
+            loras = parameters.get('loras', LORA_TRIGGERS)
+            if loras:
+                logger.info(f"[LORA] Injecting {len(loras)} LoRA(s): {[l['name'] for l in loras]}")
+                workflow = self._inject_lora_nodes(workflow, loras)
 
             # 2. Detect mapping format and apply input mappings
             input_mappings = chunk.get('input_mappings', {})

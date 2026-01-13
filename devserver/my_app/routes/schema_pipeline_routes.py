@@ -371,6 +371,14 @@ async def execute_stage2_interception(
         config_override=config
     )
 
+    # Extract LoRAs from interception config (Session 116: Config-based LoRA injection)
+    config_loras = config.meta.get('loras', []) if hasattr(config, 'meta') and config.meta else []
+    if config_loras:
+        logger.info(f"[STAGE2-LORA] Extracted {len(config_loras)} LoRA(s) from config '{schema_name}': {[l['name'] for l in config_loras]}")
+        if not result.metadata:
+            result.metadata = {}
+        result.metadata['loras'] = config_loras
+
     if result.success:
         logger.info(f"[STAGE2-INTERCEPTION] Completed: '{result.final_output[:100]}...'")
     else:
@@ -1805,17 +1813,24 @@ def execute_pipeline():
                 stage2_output = optimization_result if optimization_result else interception_result
                 logger.info(f"[4-STAGE] Stage 2: Using frontend-provided {'optimization_result (code)' if optimization_result else 'interception_result'} (already executed)")
 
+                # Session 116: Extract LoRAs from config even when frontend provides result
+                config_loras = execution_config.meta.get('loras', []) if hasattr(execution_config, 'meta') and execution_config.meta else []
+                if config_loras:
+                    logger.info(f"[STAGE2-LORA] Extracted {len(config_loras)} LoRA(s) from config '{schema_name}': {[l['name'] for l in config_loras]}")
+
                 # Create mock result object to maintain interface compatibility
                 class MockResult:
-                    def __init__(self, output):
+                    def __init__(self, output, loras=None):
                         self.success = True
                         self.final_output = output
                         self.error = None
                         self.steps = []
                         self.metadata = {'frontend_provided': True, 'has_optimization': bool(optimization_result)}
+                        if loras:
+                            self.metadata['loras'] = loras
                         self.execution_time = 0
 
-                result = MockResult(stage2_output)
+                result = MockResult(stage2_output, loras=config_loras)
             else:
                 # Check if pipeline has skip_stage2 flag (graceful check)
                 pipeline_def = pipeline_executor.config_loader.get_pipeline(config.pipeline_name)
@@ -1825,17 +1840,24 @@ def execute_pipeline():
                     logger.info(f"[4-STAGE] Stage 2: SKIPPED (pipeline '{config.pipeline_name}' has skip_stage2=true)")
                     logger.info(f"[4-STAGE] Stage 2: Passing Stage 1 output directly to Stage 3")
 
+                    # Session 116: Extract LoRAs even when Stage 2 is skipped
+                    config_loras = execution_config.meta.get('loras', []) if hasattr(execution_config, 'meta') and execution_config.meta else []
+                    if config_loras:
+                        logger.info(f"[STAGE2-LORA] Extracted {len(config_loras)} LoRA(s) from config '{schema_name}': {[l['name'] for l in config_loras]}")
+
                     # Create mock result - Stage 1 output passed through unchanged
                     class MockResult:
-                        def __init__(self, output):
+                        def __init__(self, output, loras=None):
                             self.success = True
                             self.final_output = output
                             self.error = None
                             self.steps = []
                             self.metadata = {'stage2_skipped': True, 'pipeline': config.pipeline_name}
+                            if loras:
+                                self.metadata['loras'] = loras
                             self.execution_time = 0
 
-                    result = MockResult(current_input)
+                    result = MockResult(current_input, loras=config_loras)
                 else:
                     logger.info(f"[4-STAGE] Stage 2: Executing interception pipeline for '{schema_name}'")
 
@@ -2169,6 +2191,16 @@ def execute_pipeline():
                     logger.info(f"[RECORDER] Saved model_used: {output_config_name}")
 
                     try:
+                        # Session 116: Pass config-specific LoRAs to Stage 4
+                        from config import LORA_TRIGGERS
+                        config_loras = result.metadata.get('loras', []) if result.metadata else []
+                        if config_loras:
+                            custom_params['loras'] = config_loras
+                            logger.info(f"[LORA] Using config-specific LoRAs: {[l['name'] for l in config_loras]}")
+                        elif LORA_TRIGGERS:
+                            custom_params['loras'] = LORA_TRIGGERS
+                            logger.debug(f"[LORA] Using global LORA_TRIGGERS ({len(LORA_TRIGGERS)} LoRAs)")
+
                         # Create context with custom placeholders if we have any custom parameters
                         # This ensures strict parallelization across all legacy workflows
                         from schemas.engine.pipeline_executor import PipelineContext

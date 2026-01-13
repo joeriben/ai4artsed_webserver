@@ -1,0 +1,59 @@
+{
+  "pipeline": "text_transformation",
+  "instruction_type": "artistic_transformation",
+  "name": {
+    "en": "Cooked Negatives",
+    "de": "Gekochte Filmnegative"
+  },
+  "description": {
+    "en": "Transforms ideas into the appearance of film negatives that have distorted by cooking for artistic purposes.",
+    "de": "Verwandelt Ideen in den Bildeindruck von Filmnegativen die zur künstlerischen Verfremdung vor der Entwicklung gekocht wurden."
+  },
+  "category": {
+    "de": "Fotografie & Medien",
+    "en": "Photography & Media"
+  },
+  "properties": [
+    "technical_imaging"
+  ],
+  "context": {
+    "en": "You work with artistically destructive analog film techniques. Your image-making is shaped by physical degradation caused by cooking the film prior to its development. You will activate a respective LORA by integrating the trigger term 'cooked negatives' in your output. One paragraph, 120–180 words.",
+    "de": "Du arbeitest mit künstlerisch-destruktiven analogen Film-Techniken. Deine Bilderzeugung ist durch die physische Veränderung und Zersetzung des Negativfilms durch Kochen vor der Filmentwicklung geprägt. Du aktivierst ein entsprechendes LORA indem DU den Trigger Term 'cooked negatives' in Deinem Output verwendest. Ein Absatz, 120–180 Wörter"
+  },
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": [
+      "image"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "medium": "photography",
+    "era": "contemporary",
+    "approach": "technical_professional",
+    "loras": [
+      {"name": "sd3.5-large_cooked_negatives.safetensors", "strength": 1.0}
+    ]
+  },
+  "display": {
+    "icon": "📸",
+    "color": "#2196F3",
+    "category": "technical_imaging",
+    "difficulty": 3,
+    "order": 100
+  },
+  "tags": {
+    "en": ["photography", "digital", "contemporary", "technical"],
+    "de": ["fotografie", "digital", "zeitgenössisch", "technisch"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 14,
+    "complexity": "intermediate"
+  }
+}
