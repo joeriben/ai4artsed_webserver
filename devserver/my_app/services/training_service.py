@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 KOHYA_DIR = Path("/home/joerissen/ai/kohya_ss_new")
 KOHYA_VENV = KOHYA_DIR / "venv"
 DATASET_BASE_DIR = KOHYA_DIR / "dataset"
-OUTPUT_DIR = Path("/home/joerissen/ai/SwarmUI/Models/Lora") # Direct output to ComfyUI
+OUTPUT_DIR = Path("/home/joerissen/ai/SwarmUI/Models/loras") # Direct output to ComfyUI/SwarmUI
 LOG_DIR = KOHYA_DIR / "logs"
 
 # Ensure directories exist
