@@ -81,6 +81,90 @@ DevServer
 
 ---
 
+## 🎓 DESIGN DECISION (2026-01-13): LoRA Training Studio Path Configuration
+
+**Date:** 2026-01-13
+**Session:** 115
+
+### Decision
+
+All LoRA training paths must be configured in `config.py` using environment variables with relative fallbacks. No hardcoded absolute paths or usernames in repository code.
+
+### Context
+
+**Problem:**
+- Initial training_service.py had hardcoded paths like `/home/joerissen/ai/kohya_ss_new`
+- Usernames in git repo = non-portable, security issue
+- Different developers/deployments have different directory structures
+
+### Solution
+
+**Path Configuration Pattern:**
+```python
+# config.py
+_AI_TOOLS_BASE = _SERVER_BASE.parent  # Derived from project location
+
+KOHYA_DIR = Path(os.environ.get("KOHYA_DIR", str(_AI_TOOLS_BASE / "kohya_ss_new")))
+LORA_OUTPUT_DIR = Path(os.environ.get("LORA_OUTPUT_DIR", str(_AI_TOOLS_BASE / "SwarmUI/Models/loras")))
+```
+
+**Model-Specific Prefixes:**
+- NOT a global config variable
+- Determined by model-specific config generator method
+- `_generate_sd35_config()` → adds `"sd35_"` prefix automatically
+- Future: `_generate_flux_config()` → adds `"flux_"` prefix
+
+### Affected Files
+- `devserver/config.py` - Path variables added
+- `devserver/my_app/services/training_service.py` - Imports from config
+
+---
+
+## 🧠 DESIGN DECISION (2026-01-13): VRAM Management for Training
+
+**Date:** 2026-01-13
+**Session:** 115
+
+### Decision
+
+Training operations must check available VRAM before starting and offer to clear GPU memory by unloading ComfyUI and Ollama models.
+
+### Context
+
+**Problem:**
+- SD3.5 Large LoRA training requires ~50GB VRAM
+- ComfyUI models (loaded for image generation) occupy 20-40GB
+- Ollama LLMs occupy 10-25GB
+- Training fails with OOM if models are loaded
+
+### Solution
+
+**Pre-Training VRAM Check:**
+1. `GET /api/training/check-vram` - Returns total/used/free VRAM
+2. If `free_gb < 50`: Show warning dialog with "Clear VRAM" option
+3. `POST /api/training/clear-vram` - Unloads:
+   - ComfyUI: `POST http://127.0.0.1:7821/free`
+   - Ollama: `POST /api/generate` with `keep_alive: 0`
+
+**UI Flow:**
+```
+Click "Start Training"
+       ↓
+VRAM Check Dialog appears
+       ↓
+[Enough VRAM?] ──Yes──> "Start Training" button
+       ↓ No
+"Clear ComfyUI + Ollama VRAM" button
+       ↓
+VRAM freed, now shows "Start Training"
+```
+
+### Affected Files
+- `devserver/my_app/routes/training_routes.py` - New endpoints
+- `public/ai4artsed-frontend/src/views/TrainingView.vue` - VRAM dialog UI
+
+---
+
 ## 🎨 DESIGN DECISION (2026-01-08): Material Design Icon Migration
 
 **Date:** 2026-01-08

@@ -548,3 +548,109 @@ else:
 
 ---
 
+### LoRA Training Studio
+
+**Added:** Session 115 (2026-01-13)
+
+**Purpose:** Train custom LoRA models (styles, faces) directly from the DevServer UI using Kohya SS.
+
+#### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      LoRA Training Studio                        │
+├─────────────────────────────────────────────────────────────────┤
+│  Frontend (TrainingView.vue)                                     │
+│  ├── Project Name + Trigger Word input                          │
+│  ├── Image Upload (drag & drop, axios with 5min timeout)        │
+│  ├── VRAM Check Dialog (before training)                        │
+│  └── Real-time Log Viewer (SSE stream)                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Backend Routes (training_routes.py)                             │
+│  ├── POST /api/training/start      → Start training             │
+│  ├── POST /api/training/stop       → Stop training              │
+│  ├── GET  /api/training/status     → Current status             │
+│  ├── GET  /api/training/events     → SSE log stream             │
+│  ├── POST /api/training/delete     → GDPR file deletion         │
+│  ├── GET  /api/training/check-vram → GPU memory status          │
+│  └── POST /api/training/clear-vram → Unload ComfyUI/Ollama      │
+├─────────────────────────────────────────────────────────────────┤
+│  Training Service (training_service.py)                          │
+│  ├── VRAM detection (nvidia-smi)                                │
+│  ├── Auto-config based on available VRAM                        │
+│  ├── TOML config generation                                     │
+│  └── Kohya SS subprocess management                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Path Configuration (config.py)
+
+All training paths are configurable via environment variables:
+
+| Variable | Default (relative to _AI_TOOLS_BASE) | Purpose |
+|----------|--------------------------------------|---------|
+| `KOHYA_DIR` | `./kohya_ss_new` | Kohya SS installation |
+| `LORA_OUTPUT_DIR` | `./SwarmUI/Models/loras` | Output directory |
+| `TRAINING_DATASET_DIR` | `$KOHYA_DIR/dataset` | Training images |
+| `TRAINING_LOG_DIR` | `$KOHYA_DIR/logs` | Training logs |
+
+Model paths (SD3.5 Large):
+- `SD35_LARGE_MODEL_PATH` → `./SwarmUI/Models/Stable-Diffusion/OfficialStableDiffusion/sd3.5_large.safetensors`
+- `CLIP_L_PATH`, `CLIP_G_PATH`, `T5XXL_PATH` → `./SwarmUI/Models/clip/`
+
+#### Output Naming Convention
+
+Each model-specific config generator adds its own prefix:
+
+| Model | Method | Output Prefix | Example |
+|-------|--------|---------------|---------|
+| SD3.5 Large | `_generate_sd35_config()` | `sd35_` | `sd35_projectname.safetensors` |
+| (Future) Flux | `_generate_flux_config()` | `flux_` | `flux_projectname.safetensors` |
+
+#### VRAM Management
+
+**Problem:** Training SD3.5 Large requires ~50GB VRAM. If ComfyUI/Ollama models are loaded, training fails with OOM.
+
+**Solution:** Pre-training VRAM check with clearing option:
+
+1. `GET /api/training/check-vram` returns:
+   ```json
+   {
+     "total_gb": 95.0,
+     "used_gb": 44.0,
+     "free_gb": 51.0,
+     "can_train": true,
+     "min_required_gb": 50
+   }
+   ```
+
+2. If `can_train: false`, user can click "Clear VRAM":
+   - `POST /api/training/clear-vram` unloads:
+     - ComfyUI: `POST http://127.0.0.1:7821/free`
+     - Ollama: `POST /api/generate` with `keep_alive: 0`
+
+#### WiFi Upload Reliability
+
+**Problem:** Training uploads (10-50 images) failed over WiFi due to browser timeout.
+
+**Solution:** Replace `fetch()` with `axios` using 5-minute timeout and progress tracking:
+
+```typescript
+const uploadClient = axios.create({
+  baseURL: API_BASE,
+  timeout: 300000, // 5 minutes
+});
+
+// With progress callback
+onUploadProgress: (progressEvent) => {
+  const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+  // Update UI
+}
+```
+
+#### Documentation
+
+**Development Log:** Session 115 (2026-01-13)
+
+---
+
