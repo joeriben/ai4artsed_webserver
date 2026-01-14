@@ -124,27 +124,41 @@ class TrainingService:
         if self._training_status["is_training"]:
             raise Exception("Training already in progress")
 
-        # 1. Setup Directories
+        # 1. Parse trigger words (comma-separated)
+        # First trigger = primary (folder name), rest = additional tags
+        triggers = [t.strip() for t in trigger_word.split(',') if t.strip()]
+        primary_trigger = triggers[0] if triggers else "lora"
+        all_tags = ", ".join(triggers) if triggers else ""
+
+        logger.info(f"Triggers: primary='{primary_trigger}', all_tags='{all_tags}'")
+
+        # 2. Setup Directories
         # Sanitation: simple alphanumeric only for folder safety
         safe_name = "".join([c for c in project_name if c.isalnum() or c in ('-', '_')])
         project_dir = DATASET_BASE_DIR / safe_name
         image_dir = project_dir / "images"
-        
-        # 10_ prefix means 10 repeats per image (standard for LoRA)
-        # We append the trigger word to the folder name so Kohya uses it as a tag
-        # Format: <repeats>_<trigger_word>
-        img_folder_name = f"40_{trigger_word}" if trigger_word else "40_lora"
+
+        # 40_ prefix means 40 repeats per image (standard for LoRA)
+        # Primary trigger in folder name for DreamBooth compatibility
+        img_folder_name = f"40_{primary_trigger}"
         final_image_dir = image_dir / img_folder_name
-        
+
         if project_dir.exists():
             shutil.rmtree(project_dir)
         final_image_dir.mkdir(parents=True, exist_ok=True)
 
-        # 2. Save Images
+        # 3. Save Images + Create Caption Files
         for img in images:
+            # Save image
             file_path = final_image_dir / img.filename
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(img.file, buffer)
+
+            # Create caption file with all triggers (if multiple provided)
+            if len(triggers) > 1:
+                caption_path = final_image_dir / f"{Path(img.filename).stem}.txt"
+                with open(caption_path, "w") as f:
+                    f.write(all_tags)
 
         # 3. Detect Hardware & Optimize Config
         vram = self.get_gpu_vram()

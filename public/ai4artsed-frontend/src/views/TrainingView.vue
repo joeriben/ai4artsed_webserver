@@ -74,9 +74,9 @@
         <label>Project Name</label>
         <input v-model="project_name" placeholder="e.g. yoruba_heritage" :disabled="is_training" />
 
-        <label>Trigger Word</label>
-        <input v-model="trigger_word" placeholder="e.g. yoruba style" :disabled="is_training" />
-        <small>The word you will use in prompts to activate this style.</small>
+        <label>Trigger Words</label>
+        <input v-model="trigger_word" placeholder="e.g. bj, portrait, man" :disabled="is_training" />
+        <small>Comma-separated tags. First = primary trigger, rest = additional tags per image.</small>
 
         <label>Training Images (10-50 recommended)</label>
         <div
