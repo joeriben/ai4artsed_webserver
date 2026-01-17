@@ -2294,6 +2294,7 @@ def legacy_workflow():
         prompt1 = data.get('prompt1')  # For split_and_combine
         prompt2 = data.get('prompt2')  # For split_and_combine
         combination_type = data.get('combination_type')  # For split_and_combine
+        encoder_type = data.get('encoder_type')  # For partial_elimination: 'triple', 'clip_g', 't5xxl'
         # Partial elimination dimension parameters (calculated by frontend)
         inner_start = data.get('inner_start')
         inner_num = data.get('inner_num')
@@ -2375,6 +2376,8 @@ def legacy_workflow():
             custom_params['outer_2_start'] = outer_2_start
         if outer_2_num is not None:
             custom_params['outer_2_num'] = outer_2_num
+        if encoder_type is not None:
+            custom_params['encoder_type'] = encoder_type
 
         from schemas.engine.pipeline_executor import PipelineContext
         context_override = None

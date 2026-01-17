@@ -26,6 +26,7 @@ export interface ConfigMetadata {
   media_preferences?: {
     default_output?: string
   }
+  loras?: Array<{ name: string; strength: number }>
 }
 
 export type PropertyPair = [string, string]

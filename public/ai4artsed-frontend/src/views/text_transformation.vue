@@ -73,6 +73,36 @@
             @paste="pasteInterceptionResult"
             @clear="clearInterceptionResult"
           />
+          <!-- LoRA Badge (Session 116) - shows when interception config has LoRAs -->
+          <transition name="fade">
+            <div v-if="configLoras.length > 0" class="lora-stamp config-lora" @click="loraExpanded = !loraExpanded">
+              <div class="stamp-inner lora-inner">
+                <div class="stamp-icon lora-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <ellipse cx="12" cy="12" rx="6" ry="7" fill="#22c55e"/>
+                    <ellipse cx="14" cy="13" rx="3" ry="4" fill="#16a34a"/>
+                    <ellipse cx="15" cy="14" rx="1.5" ry="2.5" fill="#eab308"/>
+                    <circle cx="9" cy="7" r="4" fill="#22c55e"/>
+                    <path d="M5 7 Q4 8 5 9 Q6 8.5 6 7.5 Q6 7 5 7" fill="#f97316"/>
+                    <circle cx="8" cy="6.5" r="0.8" fill="#1e1e1e"/>
+                    <ellipse cx="6.5" cy="8.5" rx="1" ry="0.8" fill="#f97316"/>
+                    <path d="M14 18 Q16 20 15 22 Q14 21 13 22 Q12 20 14 18" fill="#16a34a"/>
+                    <rect x="2" y="17" width="20" height="1.5" rx="0.75" fill="#a16207"/>
+                    <path d="M10 17 L9 18.5 M10 17 L10.5 18.5 M11 17 L11 18.5" stroke="#f97316" stroke-width="0.8" fill="none"/>
+                    <path d="M14 17 L13.5 18.5 M14 17 L14.5 18.5 M15 17 L15 18.5" stroke="#f97316" stroke-width="0.8" fill="none"/>
+                  </svg>
+                </div>
+                <div class="stamp-text">
+                  {{ configLoras.length }} LoRA{{ configLoras.length > 1 ? 's' : '' }}
+                </div>
+              </div>
+              <div v-if="loraExpanded" class="lora-details">
+                <div v-for="lora in configLoras" :key="lora.name" class="lora-item">
+                  {{ formatLoraName(lora.name) }} <span class="lora-strength">{{ lora.strength }}</span>
+                </div>
+              </div>
+            </div>
+          </transition>
         </section>
 
         <!-- Section 2: Category Selection (Horizontal Row) - Always visible -->
@@ -244,6 +274,38 @@
               </div>
             </div>
           </transition>
+
+          <!-- LoRA Badge (Session 116) -->
+          <transition name="fade">
+            <div v-if="activeLoras.length > 0" class="lora-stamp" @click="loraExpanded = !loraExpanded">
+              <div class="stamp-inner lora-inner">
+                <div class="stamp-icon lora-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <ellipse cx="12" cy="12" rx="6" ry="7" fill="#22c55e"/>
+                    <ellipse cx="14" cy="13" rx="3" ry="4" fill="#16a34a"/>
+                    <ellipse cx="15" cy="14" rx="1.5" ry="2.5" fill="#eab308"/>
+                    <circle cx="9" cy="7" r="4" fill="#22c55e"/>
+                    <path d="M5 7 Q4 8 5 9 Q6 8.5 6 7.5 Q6 7 5 7" fill="#f97316"/>
+                    <circle cx="8" cy="6.5" r="0.8" fill="#1e1e1e"/>
+                    <ellipse cx="6.5" cy="8.5" rx="1" ry="0.8" fill="#f97316"/>
+                    <path d="M14 18 Q16 20 15 22 Q14 21 13 22 Q12 20 14 18" fill="#16a34a"/>
+                    <rect x="2" y="17" width="20" height="1.5" rx="0.75" fill="#a16207"/>
+                    <path d="M10 17 L9 18.5 M10 17 L10.5 18.5 M11 17 L11 18.5" stroke="#f97316" stroke-width="0.8" fill="none"/>
+                    <path d="M14 17 L13.5 18.5 M14 17 L14.5 18.5 M15 17 L15 18.5" stroke="#f97316" stroke-width="0.8" fill="none"/>
+                  </svg>
+                </div>
+                <div class="stamp-text">
+                  {{ activeLoras.length }} LoRA{{ activeLoras.length > 1 ? 's' : '' }}
+                </div>
+              </div>
+              <!-- Expandable Liste -->
+              <div v-if="loraExpanded" class="lora-details">
+                <div v-for="lora in activeLoras" :key="lora.name" class="lora-item">
+                  {{ formatLoraName(lora.name) }} <span class="lora-strength">{{ lora.strength }}</span>
+                </div>
+              </div>
+            </div>
+          </transition>
         </div>
 
         <!-- OUTPUT BOX (Template Component) -->
@@ -391,6 +453,8 @@ const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
 const generationProgress = ref(0)
 const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
+const activeLoras = ref<Array<{name: string, strength: number}>>([])
+const loraExpanded = ref(false)
 
 // Refs for DOM elements and scrolling
 const mainContainerRef = ref<HTMLElement | null>(null)
@@ -699,6 +763,11 @@ const streamingParams = computed(() => {
   return params
 })
 
+// Session 116: LoRAs from interception config (shown early, before generation)
+const configLoras = computed(() => {
+  return pipelineStore.selectedConfig?.loras || []
+})
+
 // Streaming computed properties (Optimization)
 // LAB ARCHITECTURE: Optimization uses dedicated /optimize endpoint (no Stage 1)
 // This is an atomic service - input is already safe interception result
@@ -947,6 +1016,16 @@ function scrollToBottomOnly() {
   })
 }
 
+// Session 116: Format LoRA filename for display
+function formatLoraName(filename: string): string {
+  // "sd3.5-large_cooked_negatives.safetensors" → "Cooked Negatives"
+  return filename
+    .replace(/\.safetensors$/, '')
+    .replace(/^sd3\.5-large_/, '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
 async function selectCategory(categoryId: string) {
   selectedCategory.value = categoryId
   selectedConfig.value = null
@@ -1139,6 +1218,8 @@ async function executePipeline() {
   outputMediaType.value = 'image'  // Reset to default media type
   showSafetyApprovedStamp.value = false  // Reset safety stamp
   generationProgress.value = 0  // Reset progress
+  activeLoras.value = []  // Session 116: Reset LoRAs
+  loraExpanded.value = false
 
   // Phase 4: Intelligent seed logic
   const currentPromptToUse = optimizedPrompt.value || interceptionResult.value || inputText.value
@@ -1229,6 +1310,11 @@ async function executePipeline() {
     if (response.data.status === 'success') {
       // Complete progress
       generationProgress.value = 100
+
+      // Session 116: Extract LoRAs from response
+      if (response.data.loras) {
+        activeLoras.value = response.data.loras
+      }
 
       // Get run_id and media_type from response
       const runId = response.data.media_output?.run_id || response.data.run_id
