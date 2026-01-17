@@ -2,7 +2,7 @@
   "name": "output_image_flux2",
   "type": "output_chunk",
   "backend_type": "comfyui",
-  "media_type": "image_workflow",
+  "media_type": "image",
   "description": "Flux 2 Dev - High quality image generation with dual CLIP encoding (Mistral 3 + CLIP-G)",
 
   "workflow": {

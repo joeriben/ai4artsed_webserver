@@ -746,7 +746,7 @@ class BackendRouter:
             import os
             import glob
 
-            if media_type in ['image', 'image_workflow']:
+            if media_type == 'image':
                 output_dir = f'{COMFYUI_BASE_PATH}/output'
                 file_extension = 'png'
             elif media_type == 'audio':

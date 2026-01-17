@@ -175,7 +175,7 @@ elif output_value and len(output_value) > 100:
     recorder.save_entity(...)
 ```
 
-### Architectural Note: media_type Consistency
+### Architectural Note: media_type Consistency ✅ RESOLVED
 
 **User feedback:** The distinction between `media_type: "image"` and `media_type: "image_workflow"` is **ontologically unjustified**.
 
@@ -183,7 +183,9 @@ elif output_value and len(output_value) > 100:
 - The only valid distinction: image vs video vs audio
 - Internal workflow differences should be transparent
 
-**Future cleanup:** Eliminate `image_workflow` type, unify all image models under `media_type: "image"`.
+**Resolved (2026-01-17):** Eliminated `image_workflow` type - all image models now use `media_type: "image"`.
+- Changed `output_image_qwen.json` and `output_image_flux2.json`
+- Simplified `backend_router.py` line 749
 
 ### Files Modified
 

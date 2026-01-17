@@ -33,12 +33,12 @@
 - `schema_pipeline_routes.py`: `load_recorder` import, filesystem_path + base64 handling
 - `text_transformation.vue`: Pass `run_id` to /generation
 
-### Remaining Architectural Work (Future)
+### Architectural Cleanup ✅ COMPLETE (2026-01-17)
 
-**Low Priority:** Eliminate artificial `image_workflow` vs `image` distinction
-- All image models should use `media_type: "image"`
-- Internal workflow differences should be transparent
-- See DEVELOPMENT_DECISIONS.md for rationale
+**Completed:** Eliminated `image_workflow` type - all image models now use `media_type: "image"`
+- Changed `output_image_qwen.json`: `image_workflow` → `image`
+- Changed `output_image_flux2.json`: `image_workflow` → `image`
+- Simplified `backend_router.py` line 749
 
 ---
 
