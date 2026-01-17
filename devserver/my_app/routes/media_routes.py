@@ -325,13 +325,13 @@ def get_mask(image_uuid: str):
 
 @media_bp.route('/image/<run_id>', methods=['GET'])
 @media_bp.route('/image/<run_id>/<int:index>', methods=['GET'])
-def get_image(run_id: str, index: int = -1):
+def get_image(run_id: str, index: int = 0):
     """
     Serve image from local storage by run_id (optionally by index for multi-output).
 
     Args:
         run_id: UUID of the pipeline run
-        index: Image index (default -1 = LATEST image)
+        index: Image index (default 0 for backward compatibility)
 
     Returns:
         Image file or 404 error
@@ -348,10 +348,8 @@ def get_image(run_id: str, index: int = -1):
         if not image_entities:
             return jsonify({"error": f"No images found for run {run_id}"}), 404
 
-        # Default to LATEST image (-1), validate other indices
-        if index == -1:
-            index = len(image_entities) - 1  # Latest image
-        elif index < 0 or index >= len(image_entities):
+        # Validate index
+        if index < 0 or index >= len(image_entities):
             return jsonify({"error": f"Invalid index {index}. Available: 0-{len(image_entities)-1}"}), 404
 
         # Get requested image entity
