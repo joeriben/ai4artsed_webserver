@@ -479,13 +479,20 @@ class BackendRouter:
 
             # 3. Then route based on media type (standard mode)
             if media_type == 'image':
-                # Use workflow mode if LoRAs are configured (config-specific or global)
-                loras = parameters.get('loras', LORA_TRIGGERS)
-                if loras:
-                    logger.info(f"[LORA] Using workflow mode for image generation ({len(loras)} LoRAs)")
+                # Check if chunk requires workflow mode (custom nodes like Qwen VL, Mistral CLIP)
+                requires_workflow = chunk.get('requires_workflow', False)
+                # Check if LoRAs are configured (config-specific or global)
+                has_loras = bool(parameters.get('loras', LORA_TRIGGERS))
+
+                if requires_workflow:
+                    logger.info(f"[ROUTER] Using workflow API for '{chunk_name}' (requires_workflow=true)")
+                    return await self._process_workflow_chunk(chunk_name, text_prompt, parameters, chunk)
+                elif has_loras:
+                    logger.info(f"[ROUTER] Using workflow API for '{chunk_name}' (LoRA injection)")
                     return await self._process_workflow_chunk(chunk_name, text_prompt, parameters, chunk)
                 else:
-                    # Use SwarmUI's simple Text2Image API
+                    # Use SwarmUI's simple Text2Image API (SD3.5 native support)
+                    logger.info(f"[ROUTER] Using simple API for '{chunk_name}'")
                     return await self._process_image_chunk_simple(chunk_name, text_prompt, parameters, chunk)
             else:
                 # For audio/video: use custom workflow submission
