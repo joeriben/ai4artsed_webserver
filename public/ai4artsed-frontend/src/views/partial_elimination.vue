@@ -15,6 +15,10 @@
             <strong>{{ t('partialElimination.purposeTitle') }}</strong>
             <p>{{ t('partialElimination.purposeText') }}</p>
           </div>
+          <div class="info-tech">
+            <strong>{{ t('partialElimination.techTitle') }}</strong>
+            <p class="tech-text">{{ t('partialElimination.techText') }}</p>
+          </div>
         </div>
       </div>
 
@@ -32,20 +36,39 @@
           @clear="clearInputText"
         />
 
-        <!-- Elimination Mode Dropdown -->
-        <div class="section-card">
-          <div class="card-header">
-            <span class="card-icon">🎛️</span>
-            <span class="card-label">{{ t('partialElimination.modeLabel') }}</span>
+        <!-- Mode and Encoder Selection (Side by Side) -->
+        <div class="dual-selector-row">
+          <!-- Elimination Mode Dropdown -->
+          <div class="section-card">
+            <div class="card-header">
+              <span class="card-icon">🎛️</span>
+              <span class="card-label">{{ t('partialElimination.modeLabel') }}</span>
+            </div>
+            <div class="dropdown-container">
+              <select v-model="eliminationMode" class="mode-select">
+                <option value="average">Average (Durchschnitt)</option>
+                <option value="random">Random (Zufall)</option>
+                <option value="invert">Invert (Umkehrung)</option>
+                <option value="zero_out">Zero Out (Nullsetzen)</option>
+              </select>
+              <div class="mode-description">{{ modeDescription }}</div>
+            </div>
           </div>
-          <div class="dropdown-container">
-            <select v-model="eliminationMode" class="mode-select">
-              <option value="average">Average (Durchschnitt)</option>
-              <option value="random">Random (Zufall)</option>
-              <option value="invert">Invert (Umkehrung)</option>
-              <option value="zero_out">Zero Out (Nullsetzen)</option>
-            </select>
-            <div class="mode-description">{{ modeDescription }}</div>
+
+          <!-- Encoder Type Selector -->
+          <div class="section-card">
+            <div class="card-header">
+              <span class="card-icon">🧠</span>
+              <span class="card-label">{{ t('partialElimination.encoderLabel') }}</span>
+            </div>
+            <div class="dropdown-container">
+              <select v-model="encoderType" class="mode-select" @change="onEncoderChange">
+                <option value="triple">TripleCLIP (CLIP-L + CLIP-G + T5)</option>
+                <option value="clip_g">Nur CLIP-G (1280 Dim.)</option>
+                <option value="t5xxl">Nur T5-XXL (4096 Dim.)</option>
+              </select>
+              <div class="mode-description">{{ encoderDescription }}</div>
+            </div>
           </div>
         </div>
 
@@ -61,27 +84,27 @@
             <div class="dimension-bar">
               <div class="dimension-fill"
                    :style="{
-                     left: (dimensionStart / 4096 * 100) + '%',
-                     width: ((dimensionEnd - dimensionStart) / 4096 * 100) + '%'
+                     left: (dimensionStart / maxDimensions * 100) + '%',
+                     width: ((dimensionEnd - dimensionStart) / maxDimensions * 100) + '%'
                    }">
               </div>
             </div>
             <div class="dimension-labels">
               <span>0</span>
-              <span>1024</span>
-              <span>2048</span>
-              <span>3072</span>
-              <span>4096</span>
+              <span>{{ Math.round(maxDimensions / 4) }}</span>
+              <span>{{ Math.round(maxDimensions / 2) }}</span>
+              <span>{{ Math.round(maxDimensions * 3 / 4) }}</span>
+              <span>{{ maxDimensions }}</span>
             </div>
           </div>
 
           <!-- Dual Handle Slider -->
           <div class="dual-slider-container">
-            <input type="range" min="0" max="4096" step="64"
+            <input type="range" min="0" :max="maxDimensions" step="64"
                    v-model.number="dimensionStart"
                    class="slider-track slider-start"
                    @input="clampStart" />
-            <input type="range" min="0" max="4096" step="64"
+            <input type="range" min="0" :max="maxDimensions" step="64"
                    v-model.number="dimensionEnd"
                    class="slider-track slider-end"
                    @input="clampEnd" />
@@ -233,6 +256,20 @@ const { t } = useI18n()
 // Info box state
 const infoExpanded = ref(false)
 
+// Encoder type selector
+const encoderType = ref<'triple' | 'clip_g' | 't5xxl'>('triple')
+const previousEncoder = ref<'triple' | 'clip_g' | 't5xxl'>('triple')
+
+// Max dimensions per encoder type
+const maxDimensions = computed(() => {
+  switch (encoderType.value) {
+    case 'clip_g': return 1280
+    case 't5xxl': return 4096
+    case 'triple': return 4096  // T5 dominates in triple
+    default: return 4096
+  }
+})
+
 // Dual-handle slider for dimension range
 const dimensionStart = ref(0)
 const dimensionEnd = ref(2048)
@@ -269,6 +306,15 @@ const modeDescription = computed(() => {
   return descriptions[eliminationMode.value] || ''
 })
 
+const encoderDescription = computed(() => {
+  const descriptions: Record<string, string> = {
+    triple: 'Kombiniert alle drei Encoder für beste Bildqualität',
+    clip_g: 'OpenCLIP ViT-bigG - visuell-semantische Einbettung (1280 Dim.)',
+    t5xxl: 'T5-XXL - reine Sprachmodell-Einbettung (4096 Dim.)'
+  }
+  return descriptions[encoderType.value] || ''
+})
+
 // Computed for dimension range
 const innerDimensions = computed(() => dimensionEnd.value - dimensionStart.value)
 
@@ -286,8 +332,19 @@ function clampEnd() {
   if (dimensionEnd.value <= dimensionStart.value + 64) {
     dimensionEnd.value = dimensionStart.value + 64
   }
-  if (dimensionEnd.value > 4096) {
-    dimensionEnd.value = 4096
+  if (dimensionEnd.value > maxDimensions.value) {
+    dimensionEnd.value = maxDimensions.value
+  }
+}
+
+// Reset dimensions when encoder changes
+function onEncoderChange() {
+  const max = maxDimensions.value
+  if (dimensionEnd.value > max) {
+    dimensionEnd.value = max
+  }
+  if (dimensionStart.value >= dimensionEnd.value - 64) {
+    dimensionStart.value = Math.max(0, dimensionEnd.value - 64)
   }
 }
 
@@ -322,10 +379,11 @@ async function executeWorkflow() {
     // Intelligent seed logic
     const promptChanged = inputText.value !== previousPrompt.value
     const modeChanged = eliminationMode.value !== previousMode.value
+    const encoderChanged = encoderType.value !== previousEncoder.value
     const rangeChanged = dimensionStart.value !== previousStart.value ||
                          dimensionEnd.value !== previousEnd.value
 
-    if (promptChanged || modeChanged || rangeChanged) {
+    if (promptChanged || modeChanged || encoderChanged || rangeChanged) {
       // Parameter changed → Keep same seed (user wants to see parameter variation)
       if (currentSeed.value === null) {
         // First run → Use default seed
@@ -337,6 +395,7 @@ async function executeWorkflow() {
       // Update tracking variables
       previousPrompt.value = inputText.value
       previousMode.value = eliminationMode.value
+      previousEncoder.value = encoderType.value
       previousStart.value = dimensionStart.value
       previousEnd.value = dimensionEnd.value
     } else {
@@ -353,14 +412,15 @@ async function executeWorkflow() {
       safety_level: 'open',
       mode: eliminationMode.value,
       seed: currentSeed.value,
+      encoder_type: encoderType.value,
       // Inner elimination: [start, end)
       inner_start: dimensionStart.value,
       inner_num: dimensionEnd.value - dimensionStart.value,
-      // Outer elimination: [0, start) + [end, 4096)
+      // Outer elimination: [0, start) + [end, maxDimensions)
       outer_1_start: 0,
       outer_1_num: dimensionStart.value,
       outer_2_start: dimensionEnd.value,
-      outer_2_num: 4096 - dimensionEnd.value
+      outer_2_num: maxDimensions.value - dimensionEnd.value
     })
 
     if (response.data.status === 'success') {
@@ -654,6 +714,29 @@ async function downloadMedia(idx: number) {
   margin: 0;
 }
 
+.info-tech {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.15);
+  border-radius: 8px;
+  border-left: 3px solid rgba(102, 126, 234, 0.6);
+}
+
+.info-tech strong {
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.info-tech .tech-text {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  user-select: all;
+}
+
 /* ============================================================================
    Sections
    ============================================================================ */
@@ -663,6 +746,17 @@ async function downloadMedia(idx: number) {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.dual-selector-row {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.dual-selector-row .section-card {
+  flex: 1;
+  min-width: 0;
 }
 
 .section-card {

@@ -2,6 +2,26 @@
   <div class="direct-view">
     <!-- Main Content -->
     <div class="main-container">
+      <!-- Info Box -->
+      <div class="info-box" :class="{ 'expanded': infoExpanded }">
+        <div class="info-header" @click="infoExpanded = !infoExpanded">
+          <span class="info-icon">ℹ️</span>
+          <span class="info-title">{{ t('surrealizer.infoTitle') }}</span>
+          <span class="info-toggle">{{ infoExpanded ? '▲' : '▼' }}</span>
+        </div>
+        <div v-if="infoExpanded" class="info-content">
+          <p>{{ t('surrealizer.infoDescription') }}</p>
+          <div class="info-purpose">
+            <strong>{{ t('surrealizer.purposeTitle') }}</strong>
+            <p>{{ t('surrealizer.purposeText') }}</p>
+          </div>
+          <div class="info-tech">
+            <strong>{{ t('surrealizer.techTitle') }}</strong>
+            <p class="tech-text">{{ t('surrealizer.techText') }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Input Section -->
       <section class="input-section">
         <MediaInputBox
@@ -92,11 +112,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+
+// ============================================================================
+// i18n
+// ============================================================================
+
+const { t } = useI18n()
 
 // ============================================================================
 // Types
@@ -117,6 +144,9 @@ interface WorkflowOutput {
 // ============================================================================
 // STATE
 // ============================================================================
+
+// Info box expansion state
+const infoExpanded = ref(false)
 
 // Global clipboard
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
@@ -899,5 +929,87 @@ function extractInsights(analysisText: string): string[] {
   .page-title {
     font-size: 1.2rem;
   }
+}
+
+/* ============================================================================
+   Info Box
+   ============================================================================ */
+
+.info-box {
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  gap: 0.75rem;
+}
+
+.info-header:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.info-icon {
+  font-size: 1.25rem;
+}
+
+.info-title {
+  flex: 1;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.info-toggle {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.info-content {
+  padding: 0 1.5rem 1.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+.info-purpose {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.info-purpose strong {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.info-purpose p {
+  margin: 0;
+}
+
+.info-tech {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.15);
+  border-radius: 8px;
+  border-left: 3px solid rgba(102, 126, 234, 0.6);
+}
+
+.info-tech strong {
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.info-tech .tech-text {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  user-select: all;
 }
 </style>

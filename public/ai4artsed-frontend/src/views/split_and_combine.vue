@@ -15,6 +15,10 @@
             <strong>{{ t('splitCombine.purposeTitle') }}</strong>
             <p>{{ t('splitCombine.purposeText') }}</p>
           </div>
+          <div class="info-tech">
+            <strong>{{ t('splitCombine.techTitle') }}</strong>
+            <p class="tech-text">{{ t('splitCombine.techText') }}</p>
+          </div>
         </div>
       </div>
 
@@ -609,6 +613,29 @@ async function downloadMedia(idx: number) {
 
 .info-purpose p {
   margin: 0;
+}
+
+.info-tech {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.15);
+  border-radius: 8px;
+  border-left: 3px solid rgba(102, 126, 234, 0.6);
+}
+
+.info-tech strong {
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.info-tech .tech-text {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  user-select: all;
 }
 
 /* ============================================================================

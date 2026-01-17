@@ -153,13 +153,13 @@
     },
     "39": {
       "inputs": {
-        "clip_name": "clip_g.safetensors",
-        "type": "sd3",
-        "device": "default"
+        "clip_name1": "clip_l.safetensors",
+        "clip_name2": "clip_g.safetensors",
+        "clip_name3": "t5xxl_enconly.safetensors"
       },
-      "class_type": "CLIPLoader",
+      "class_type": "TripleCLIPLoader",
       "_meta": {
-        "title": "Models without CLIP need this"
+        "title": "TripleCLIPLoader (clip_l + clip_g + t5xxl)"
       }
     },
     "42": {
@@ -320,7 +320,7 @@
     },
     "54": {
       "inputs": {
-        "value": 5.5
+        "value": 5.0
       },
       "class_type": "PrimitiveFloat",
       "_meta": {
@@ -329,7 +329,7 @@
     },
     "55": {
       "inputs": {
-        "value": 25
+        "value": 30
       },
       "class_type": "PrimitiveInt",
       "_meta": {

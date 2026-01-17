@@ -855,6 +855,12 @@ class BackendRouter:
                 if generated_seed:
                     logger.info(f"[LEGACY-WORKFLOW] Generated seed: {generated_seed}")
 
+            # Handle encoder_type for partial elimination workflow
+            encoder_type = parameters.get('encoder_type')
+            if encoder_type and encoder_type != 'triple':
+                workflow = self._apply_encoder_type(workflow, encoder_type)
+                logger.info(f"[LEGACY-WORKFLOW] Applied encoder_type: {encoder_type}")
+
             # Legacy: Apply seed randomization from input_mappings (DEPRECATED - handled by _apply_input_mappings above)
             # Keeping this block for backwards compatibility, but it should no longer execute
             if False and input_mappings and 'seed' in input_mappings:
@@ -1638,6 +1644,56 @@ class BackendRouter:
         for consumer_id in model_consumers:
             workflow[consumer_id]['inputs']['model'] = prev_model_source
             logger.info(f"[LORA] Updated node {consumer_id} to receive model from LoRA chain")
+
+        return workflow
+
+    def _apply_encoder_type(self, workflow: Dict, encoder_type: str) -> Dict:
+        """Apply encoder_type to workflow - swap CLIPLoader configuration
+
+        Args:
+            workflow: The ComfyUI workflow dict
+            encoder_type: One of 'triple', 'clip_g', 't5xxl'
+
+        Returns:
+            Modified workflow dict
+        """
+        # Find the CLIPLoader node (typically node 39 in partial_elimination)
+        clip_loader_node_id = None
+        for node_id, node in workflow.items():
+            class_type = node.get('class_type', '')
+            if class_type in ['TripleCLIPLoader', 'DualCLIPLoader', 'CLIPLoader']:
+                clip_loader_node_id = node_id
+                break
+
+        if not clip_loader_node_id:
+            logger.warning(f"[ENCODER-TYPE] No CLIPLoader found in workflow, skipping encoder_type application")
+            return workflow
+
+        logger.info(f"[ENCODER-TYPE] Found CLIPLoader at node {clip_loader_node_id}, applying encoder_type={encoder_type}")
+
+        if encoder_type == 'clip_g':
+            # Single CLIP-G encoder (1280 dimensions)
+            workflow[clip_loader_node_id] = {
+                "inputs": {
+                    "clip_name": "clip_g.safetensors",
+                    "type": "sd3",
+                    "device": "default"
+                },
+                "class_type": "CLIPLoader",
+                "_meta": {"title": "CLIPLoader (CLIP-G only)"}
+            }
+        elif encoder_type == 't5xxl':
+            # Single T5-XXL encoder (4096 dimensions)
+            workflow[clip_loader_node_id] = {
+                "inputs": {
+                    "clip_name": "t5xxl_enconly.safetensors",
+                    "type": "sd3",
+                    "device": "default"
+                },
+                "class_type": "CLIPLoader",
+                "_meta": {"title": "CLIPLoader (T5-XXL only)"}
+            }
+        # 'triple' case is handled by the default workflow (no modification needed)
 
         return workflow
 

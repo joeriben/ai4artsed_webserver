@@ -268,13 +268,18 @@ const messages = {
       infoTitle: 'Split & Combine - Semantische Vektorfusion',
       infoDescription: 'Dieser Workflow fusioniert zwei Prompts auf der Ebene semantischer Vektoren. Das Ergebnis ist keine einfache Mischung, sondern eine tiefere mathematische Verbindung der Bedeutungsräume.',
       purposeTitle: 'Pädagogischer Zweck',
-      purposeText: 'Erkunde, wie KI-Modelle Bedeutung als Zahlenräume repräsentieren. Was passiert, wenn wir verschiedene Konzepte mathematisch verschmelzen?'
+      purposeText: 'Erkunde, wie KI-Modelle Bedeutung als Zahlenräume repräsentieren. Was passiert, wenn wir verschiedene Konzepte mathematisch verschmelzen?',
+      techTitle: 'Technische Details',
+      techText: 'Modell: SD3.5 Large | Encoder: DualCLIP (CLIP-G + T5-XXL)'
     },
     partialElimination: {
       infoTitle: 'Partial Elimination - Vektor-Dekonstruktion',
       infoDescription: 'Dieser Workflow manipuliert gezielt Teile des semantischen Vektors. Durch das Eliminieren bestimmter Dimensionen können wir beobachten, welche Aspekte der Bedeutung verloren gehen.',
       purposeTitle: 'Pädagogischer Zweck',
       purposeText: 'Verstehe, wie Bedeutung in verschiedenen Dimensionen des Vektorraums kodiert ist. Was bleibt übrig, wenn wir Teile "ausschalten"?',
+      techTitle: 'Technische Details',
+      techText: 'Modell: SD3.5 Large | Encoder: TripleCLIP (CLIP-L + CLIP-G + T5-XXL)',
+      encoderLabel: 'Text-Encoder',
       modeLabel: 'Eliminationsmodus',
       dimensionRange: 'Dimensions-Bereich',
       selected: 'Ausgewählt',
@@ -290,7 +295,9 @@ const messages = {
       infoTitle: 'Surrealizer - Dual-Encoder Fusion',
       infoDescription: 'Dieser Workflow nutzt zwei verschiedene Text-Encoder (CLIP und T5) und verschmilzt ihre Outputs. Jeder Encoder "versteht" Text anders - CLIP durch Bild-Text-Paare, T5 durch reine Sprachmodellierung.',
       purposeTitle: 'Pädagogischer Zweck',
-      purposeText: 'Erkunde die verschiedenen "Weltbilder" unterschiedlicher KI-Architekturen. Wie verändert sich die visuelle Interpretation je nach Encoder-Gewichtung?'
+      purposeText: 'Erkunde die verschiedenen "Weltbilder" unterschiedlicher KI-Architekturen. Wie verändert sich die visuelle Interpretation je nach Encoder-Gewichtung?',
+      techTitle: 'Technische Details',
+      techText: 'Modell: SD3.5 Large | Encoder: Separate CLIP-L + T5-XXL (für Dual-Fusion)'
     }
   },
   en: {
@@ -560,13 +567,18 @@ const messages = {
       infoTitle: 'Split & Combine - Semantic Vector Fusion',
       infoDescription: 'This workflow fuses two prompts at the semantic vector level. The result is not a simple blend, but a deeper mathematical connection of meaning spaces.',
       purposeTitle: 'Pedagogical Purpose',
-      purposeText: 'Explore how AI models represent meaning as numerical spaces. What happens when we mathematically merge different concepts?'
+      purposeText: 'Explore how AI models represent meaning as numerical spaces. What happens when we mathematically merge different concepts?',
+      techTitle: 'Technical Details',
+      techText: 'Model: SD3.5 Large | Encoder: DualCLIP (CLIP-G + T5-XXL)'
     },
     partialElimination: {
       infoTitle: 'Partial Elimination - Vector Deconstruction',
       infoDescription: 'This workflow specifically manipulates parts of the semantic vector. By eliminating certain dimensions, we can observe which aspects of meaning are lost.',
       purposeTitle: 'Pedagogical Purpose',
       purposeText: 'Understand how meaning is encoded across different dimensions of the vector space. What remains when we "switch off" parts?',
+      techTitle: 'Technical Details',
+      techText: 'Model: SD3.5 Large | Encoder: TripleCLIP (CLIP-L + CLIP-G + T5-XXL)',
+      encoderLabel: 'Text Encoder',
       modeLabel: 'Elimination Mode',
       dimensionRange: 'Dimension Range',
       selected: 'Selected',
@@ -582,7 +594,9 @@ const messages = {
       infoTitle: 'Surrealizer - Dual-Encoder Fusion',
       infoDescription: 'This workflow uses two different text encoders (CLIP and T5) and fuses their outputs. Each encoder "understands" text differently - CLIP through image-text pairs, T5 through pure language modeling.',
       purposeTitle: 'Pedagogical Purpose',
-      purposeText: 'Explore the different "worldviews" of different AI architectures. How does the visual interpretation change depending on encoder weighting?'
+      purposeText: 'Explore the different "worldviews" of different AI architectures. How does the visual interpretation change depending on encoder weighting?',
+      techTitle: 'Technical Details',
+      techText: 'Model: SD3.5 Large | Encoder: Separate CLIP-L + T5-XXL (for dual fusion)'
     }
   }
 }
