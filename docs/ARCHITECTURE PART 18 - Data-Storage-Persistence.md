@@ -2,8 +2,8 @@
 
 **Part 18: Data Storage & Persistence**
 
-> **Last Updated:** 2025-11-09
-> **Status:** Current as of v2.0.0-alpha.1 (Sessions 21-22, 27, 29, 37, 39)
+> **Last Updated:** 2026-01-17
+> **Status:** Current as of v2.0.0-alpha.1 (Sessions 21-22, 27, 29, 37, 39, 2026-01-17 Lab Export Fix)
 
 ---
 
@@ -393,9 +393,37 @@ See **ARCHITECTURE PART 11 (API-Routes)** for complete API documentation:
 
 ## Unified run_id Architecture
 
-### Critical: Single ID Across All Systems (Session 29+)
+### Critical: Single ID Across All Systems (Session 29+, Enhanced 2026-01-17)
 
-**v2.0.0-alpha.1 Implementation:**
+**Lab Architecture Extension (2026-01-17):**
+
+In the Lab paradigm, atomic endpoints (`/interception`, `/generation`) are called separately by the frontend. The `run_id` must be passed from the first endpoint to subsequent endpoints to maintain a unified export folder.
+
+```
+Frontend (text_transformation.vue)
+       │
+       ▼
+POST /interception ────────────────────────────┐
+       │                                       │
+       │  Backend: get_recorder(run_id=new)    │
+       │  Saves: input, safety, interception   │
+       │                                       │
+       ▼                                       │
+Response: { run_id: "run_xxx_abc", ... }       │
+       │                                       │
+       │  Frontend stores currentRunId         │
+       │                                       │
+       ▼                                       │
+POST /generation { run_id: "run_xxx_abc" } ────┘
+       │
+       │  Backend: load_recorder(run_id)
+       │  Saves: optimized_prompt, output_image
+       │
+       ▼
+All entities in ONE folder: exports/json/run_xxx_abc/
+```
+
+**v2.0.0-alpha.1 Implementation (Werkraum style):**
 ```python
 # schema_pipeline_routes.py (Session 37+)
 
@@ -424,6 +452,25 @@ recorder = get_recorder(
 )
 ```
 
+**Lab Architecture Implementation (2026-01-17):**
+```python
+# /interception endpoint
+recorder = get_recorder(run_id=run_id, ...)
+recorder.save_entity('input', input_text)
+recorder.save_entity('safety', safety_result)
+recorder.save_entity('interception', interception_result)
+# Return run_id to frontend
+
+# /generation endpoint
+if run_id:
+    recorder = load_recorder(run_id)  # Load EXISTING recorder
+else:
+    recorder = get_recorder(run_id=new_run_id, ...)  # New recorder
+
+# Save output entities to SAME folder
+recorder.save_entity('output_image', image_data, metadata={...})
+```
+
 ### Data Flow (v2.0.0-alpha.1)
 
 ```
@@ -442,6 +489,44 @@ recorder = get_recorder(
 4. Finalize
    ├─→ tracker.finalize() → exports/pipeline_runs/exec_*.json
    └─→ recorder → exports/json/{run_id}/      # PRIMARY storage location
+```
+
+### Multi-Backend Image Saving (2026-01-17)
+
+Different backends return outputs in different formats. The `/generation` endpoint handles all:
+
+| Backend | Return Format | Handling |
+|---------|--------------|----------|
+| SwarmUI (SD3.5) | `swarmui_generated` + `image_paths` | Download via SwarmUI API |
+| ComfyUI Workflow (QWEN, FLUX2) | `workflow_generated` + `filesystem_path` | Read from local filesystem |
+| OpenRouter (Gemini) | Base64 inline or URL | Decode base64 / fetch URL |
+| OpenAI (GPT-Image) | Base64 data URI | Strip prefix, decode base64 |
+
+```python
+# /generation endpoint - unified output handling
+if output_value == 'swarmui_generated':
+    # Download via SwarmUI API (existing code)
+    ...
+elif output_value == 'workflow_generated':
+    # Check filesystem_path first (QWEN, FLUX2)
+    filesystem_path = output_result.metadata.get('filesystem_path')
+    if filesystem_path and os.path.exists(filesystem_path):
+        with open(filesystem_path, 'rb') as f:
+            file_data = f.read()
+        recorder.save_entity(f'output_{media_type}', file_data, ...)
+    elif media_files:
+        # Legacy: binary data in metadata
+        ...
+elif is_url(output_value):
+    # Download from URL (OpenRouter)
+    response = requests.get(output_value)
+    recorder.save_entity(f'output_{media_type}', response.content, ...)
+elif is_base64(output_value):
+    # Decode base64 (OpenAI, some OpenRouter)
+    if output_value.startswith('data:'):
+        output_value = output_value.split(',', 1)[1]
+    file_data = base64.b64decode(output_value)
+    recorder.save_entity(f'output_{media_type}', file_data, ...)
 ```
 
 ---
@@ -538,5 +623,11 @@ Project Root
 - MediaStorage functionality fully migrated to LivePipelineRecorder (Session 37)
 - Unified run_id architecture proven stable (Session 29+)
 - stage4_only feature operational (Session 39)
+
+**2026-01-17 Lab Architecture Enhancement:**
+- `run_id` now passed from `/interception` → frontend → `/generation`
+- `load_recorder()` function loads existing Recorder from run_id
+- Multi-backend image saving: filesystem_path, base64, URL all handled
+- All image models (SD3.5, QWEN, FLUX2, Gemini, GPT-Image) export correctly
 
 ---

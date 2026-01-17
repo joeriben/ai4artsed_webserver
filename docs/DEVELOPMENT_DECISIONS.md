@@ -29,6 +29,180 @@
 
 ---
 
+## 🏛️ ARCHITECTURAL PARADIGM: Werkraum → Lab Transition (2026-01-16)
+
+**Status:** ✅ DOCUMENTED (ongoing evolution)
+**Context:** Historical transition from workflow-centric to frontend-centric architecture
+
+### The Two Paradigms
+
+| Aspect | Werkraum (Workflow) | Lab (OO/Dezentriert) |
+|--------|---------------------|----------------------|
+| **Orchestrator** | Server | Frontend/User |
+| **Data Flow** | Linear, predetermined | Flexible, user-controlled |
+| **Server Role** | "Smart Orchestrator" | "Service Provider" |
+| **Client Role** | "Dumb Display" | "Intelligent Composer" |
+| **Endpoints** | Unified (server decides stages) | Atomic (client composes services) |
+
+### Historical Context
+
+**Werkraum Era (ComfyUI Workflows):**
+- Unidirectional pipeline: Input → Stage 1 → Stage 2 → Stage 3 → Stage 4 → Output
+- Server controlled the entire flow
+- Frontend was a simple display layer
+- Endpoint: `/api/schema/pipeline/execute` handled everything
+
+**Lab Era (Current):**
+- Flexible interaction: User can edit any text at any point
+- Parallel LLM runs possible
+- Every output is editable input for next step
+- Frontend orchestrates which services to call
+
+### Architectural Implication: Atomic Backend Services
+
+In the Lab paradigm, the backend provides **atomic services** that the frontend composes:
+
+| Endpoint | Stage | Purpose | Safety |
+|----------|-------|---------|--------|
+| `/api/schema/pipeline/interception` | 1+2 | User input → Interception | Auto (Stage 1) |
+| `/api/schema/pipeline/optimize` | 3a | Model-specific format (clip_g tokens) | No |
+| `/api/schema/pipeline/translate` | 3b | German → English translation | No |
+| `/api/schema/pipeline/safety` | - | Reusable safety check (for custom flows) | - |
+| `/api/schema/pipeline/generation` | 3c+4 | Pre-output safety + Media generation | Auto (Stage 3) |
+| `/api/schema/pipeline/legacy` | 1+4 | Direct ComfyUI workflow | Auto (Stage 1) |
+
+**Key Principles:**
+1. **Safety is Server responsibility** - Endpoints with user-facing input auto-run safety
+   - `/interception` → Stage 1 (Input Safety)
+   - `/generation` → Stage 3 (Pre-Output Safety)
+   - `/legacy` → Stage 1 (Input Safety)
+2. **Atomic services** - Frontend composes the flow, backend executes steps
+3. **No skip flags** - Instead of `skip_stage2: true`, just use `/legacy` endpoint
+
+### Example Flows
+
+**text_transformation.vue (Standard Flow):**
+```
+User Input → /interception (Stage 1+2) → User selects model
+           → /optimize + /translate (parallel) → /generation (Stage 4)
+```
+
+**surrealizer.vue (Legacy Flow):**
+```
+User Input → /legacy (Stage 1 + ComfyUI workflow)
+```
+
+### Historical Context: Optimization Fix (2026-01-16)
+
+**Bug:** Stage 3 optimization streaming called `/execute`, which always ran Stage 1—redundant.
+
+**Wrong Fix (Werkraum thinking):** Add `skip_stage1` parameter.
+
+**Correct Fix (Lab thinking):** Create `/optimize` endpoint that by design has no Stage 1.
+
+### Coexistence Strategy
+
+Both paradigms coexist in the current codebase:
+
+- **Werkraum patterns** remain for backward compatibility and simpler flows
+- **Lab patterns** enable advanced interactive features
+- **Migration path:** Gradually decompose unified endpoints into atomic services as needed
+
+### Files Affected
+
+- `schema_pipeline_routes.py`: Both `/execute` (Werkraum) and `/optimize` (Lab) endpoints
+- `text_transformation.vue`: Uses Lab pattern (calls atomic services)
+- `surrealizer.vue`: Uses Werkraum pattern (single unified call)
+
+---
+
+## 🎯 Active Decision: Unified Export - run_id Across Lab Endpoints (2026-01-17)
+
+**Status:** ✅ IMPLEMENTED
+**Context:** Export function was broken - entities split across multiple folders
+**Commit:** `7f07197` - `fix(export): Unified run_id and fix image saving for all backends`
+
+### The Problem
+
+In the Lab architecture, `/interception` and `/generation` are **atomic endpoints** called by the frontend. Each endpoint was generating its own `run_id`, resulting in:
+
+- `/interception` → `run_1234_abc/` (input, safety, interception)
+- `/generation` → `run_5678_xyz/` (output_image)
+
+**Result:** Export function BROKEN - entities scattered across folders.
+
+### The Solution
+
+**Frontend passes run_id from /interception to /generation:**
+
+```
+Frontend (text_transformation.vue)
+├── POST /interception → receives run_id in response
+├── Stores run_id (currentRunId ref)
+└── POST /generation { run_id: currentRunId } → uses SAME folder
+```
+
+**Backend changes:**
+1. `/interception` initializes Recorder, saves input/safety/interception, returns `run_id`
+2. `/generation` accepts optional `run_id`, loads existing Recorder via `load_recorder()`
+3. All output entities saved to SAME run folder
+
+### Additional Fix: Multi-Backend Image Saving
+
+**Bug:** Only SD3.5 (`swarmui_generated`) saved images. QWEN, FLUX2, Gemini, GPT-Image failed.
+
+**Root Cause:** Different backends return different output formats:
+- `swarmui_generated`: Binary data via SwarmUI API
+- `workflow_generated`: `filesystem_path` (QWEN, FLUX2)
+- URL outputs: HTTP URLs (Gemini via OpenRouter)
+- Base64 outputs: Inline base64 data (OpenAI)
+
+**Fix in `/generation` endpoint:**
+```python
+elif output_value == 'workflow_generated':
+    # Check filesystem_path first (QWEN, FLUX2)
+    filesystem_path = output_result.metadata.get('filesystem_path')
+    if filesystem_path and os.path.exists(filesystem_path):
+        with open(filesystem_path, 'rb') as f:
+            file_data = f.read()
+        recorder.save_entity(...)
+    elif media_files:  # Fallback: Legacy binary data
+        ...
+
+# Base64 handling for OpenAI-style outputs
+elif output_value and len(output_value) > 100:
+    file_data = base64.b64decode(output_value)
+    recorder.save_entity(...)
+```
+
+### Architectural Note: media_type Consistency
+
+**User feedback:** The distinction between `media_type: "image"` and `media_type: "image_workflow"` is **ontologically unjustified**.
+
+- SD3.5, QWEN, FLUX2 are ALL image models
+- The only valid distinction: image vs video vs audio
+- Internal workflow differences should be transparent
+
+**Future cleanup:** Eliminate `image_workflow` type, unify all image models under `media_type: "image"`.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `schema_pipeline_routes.py` | Added `load_recorder` import, recorder init in `/interception`, run_id acceptance in `/generation`, filesystem_path + base64 handling |
+| `text_transformation.vue` | Added `currentRunId` ref, pass run_id to /generation |
+
+### Test Results
+
+- ✅ SD3.5: Works (unchanged)
+- ✅ QWEN: Images saved from `filesystem_path`
+- ✅ FLUX2: Images saved from `filesystem_path`
+- ✅ Gemini 3 Pro: Images saved from base64
+- ✅ GPT-Image: Images saved from base64/URL
+- ✅ All entities in ONE unified folder
+
+---
+
 ## 🎯 Active Decision: Failsafe Transition - SwarmUI Single Front Door (2026-01-08, Session 116)
 
 **Status:** ✅ IMPLEMENTED

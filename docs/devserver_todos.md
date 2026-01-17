@@ -1,6 +1,44 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2025-12-13 (Session 98: Two Open Issues)
+**Last Updated:** 2026-01-17 (Unified Export Fix)
 **Context:** Current priorities and active TODOs
+
+---
+
+## ✅ COMPLETED (2026-01-17): Unified Export Across Lab Endpoints
+
+**Status:** ✅ **COMPLETE** - All backends tested and working
+**Commit:** `7f07197`
+
+### What Was Fixed
+
+**Problem:** Export function BROKEN - entities scattered across multiple folders
+- `/interception` created `run_xxx/` with input, safety, interception
+- `/generation` created `run_yyy/` with output_image
+- Result: Incomplete exports, no unified research data
+
+**Solution:** Frontend passes `run_id` from `/interception` to `/generation`
+- Backend loads existing Recorder via `load_recorder()`
+- All entities saved to ONE unified folder
+
+### Additional Fixes
+
+**Multi-Backend Image Saving:**
+- ❌ Before: Only SD3.5 (`swarmui_generated`) saved images
+- ✅ After: ALL backends work:
+  - SD3.5: Unchanged (via SwarmUI API)
+  - QWEN/FLUX2: Read from `filesystem_path`
+  - Gemini/GPT-Image: Decode from base64
+
+**Files Modified:**
+- `schema_pipeline_routes.py`: `load_recorder` import, filesystem_path + base64 handling
+- `text_transformation.vue`: Pass `run_id` to /generation
+
+### Remaining Architectural Work (Future)
+
+**Low Priority:** Eliminate artificial `image_workflow` vs `image` distinction
+- All image models should use `media_type: "image"`
+- Internal workflow differences should be transparent
+- See DEVELOPMENT_DECISIONS.md for rationale
 
 ---
 
