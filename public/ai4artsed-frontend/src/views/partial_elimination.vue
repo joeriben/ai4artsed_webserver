@@ -229,13 +229,11 @@ async function executeWorkflow() {
       console.log('[Seed Logic] No changes → New random seed:', currentSeed.value)
     }
 
-    // Call 4-stage pipeline with partial_elimination workflow execution
-    const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: 'partial_elimination',
-      input_text: inputText.value,
-      safety_level: 'open',
+    // Lab Architecture: /legacy = Stage 1 (Safety) + Direct ComfyUI workflow
+    const response = await axios.post('/api/schema/pipeline/legacy', {
+      prompt: inputText.value,
       output_config: 'partial_elimination_legacy',
-      user_language: 'de',
+      safety_level: 'open',
       mode: eliminationMode.value,
       seed: currentSeed.value
     })

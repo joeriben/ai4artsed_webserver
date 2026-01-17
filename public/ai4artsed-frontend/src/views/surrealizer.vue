@@ -222,19 +222,14 @@ async function executeWorkflow() {
       console.log('[Seed Logic] No changes → New random seed:', currentSeed.value)
     }
 
-    // Call 4-stage pipeline with surrealizer workflow execution
-    // Stage 1: Translation
-    // Skip Stage 2 (no interception for surrealizer)
-    // Stage 3: Safety check
-    // Stage 4: Legacy workflow execution
-    const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: 'surrealizer', // Surrealizer config for legacy surrealization workflow
-      input_text: inputText.value,
-      safety_level: 'open', // Surrealizer uses open safety level
-      output_config: 'surrealization_legacy',  // Hardcoded for dedicated Surrealizer
-      user_language: 'de',
-      alpha_factor: mappedAlpha.value,  // Inject alpha factor
-      seed: currentSeed.value  // Inject seed for reproducibility
+    // Lab Architecture: /legacy = Stage 1 (Safety) + Direct ComfyUI workflow
+    // No Stage 2/3 needed - legacy workflows handle prompt directly
+    const response = await axios.post('/api/schema/pipeline/legacy', {
+      prompt: inputText.value,
+      output_config: 'surrealization_legacy',
+      safety_level: 'open',
+      alpha_factor: mappedAlpha.value,
+      seed: currentSeed.value
     })
 
     if (response.data.status === 'success') {

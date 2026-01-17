@@ -314,6 +314,7 @@ class LegacyWorkflowService:
             outputs dict if completed, None otherwise
         """
         start_time = asyncio.get_event_loop().time()
+        logger.info(f"[LEGACY-POLL] Starting poll for {prompt_id} (timeout={timeout}s)")
 
         while True:
             elapsed = asyncio.get_event_loop().time() - start_time
@@ -339,15 +340,25 @@ class LegacyWorkflowService:
                         history = await response.json()
 
                         if prompt_id not in history:
+                            logger.debug(f"[LEGACY-POLL] prompt_id not in history yet, keys: {list(history.keys())[:5]}")
                             await asyncio.sleep(poll_interval)
                             continue
 
                         session_data = history[prompt_id]
                         outputs = session_data.get("outputs", {})
+                        status = session_data.get("status", {})
+
+                        # Debug: Log what we got
+                        logger.info(f"[LEGACY-POLL] Status: {status.get('status_str', 'unknown')}, outputs: {list(outputs.keys()) if outputs else 'empty'}")
 
                         if outputs:
                             logger.info(f"[LEGACY-POLL] ✓ Completed after {elapsed:.1f}s")
                             return outputs
+
+                        # Check if workflow failed
+                        if status.get("status_str") == "error":
+                            logger.error(f"[LEGACY-POLL] Workflow failed: {status}")
+                            return None
 
                         await asyncio.sleep(poll_interval)
 

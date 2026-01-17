@@ -250,16 +250,14 @@ async function executeWorkflow() {
       console.log('[Seed Logic] No changes → New random seed:', currentSeed.value)
     }
 
-    // Call 4-stage pipeline with split_and_combine workflow execution
-    const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: 'split_and_combine',
-      input_text: combinedPrompt,  // For "Original" output (combined prompt)
-      prompt1: prompt1.value,  // For Element 1 output
-      prompt2: prompt2.value,  // For Element 2 output
-      safety_level: 'off',
+    // Lab Architecture: /legacy = Stage 1 (Safety) + Direct ComfyUI workflow
+    const response = await axios.post('/api/schema/pipeline/legacy', {
+      prompt: combinedPrompt,
+      prompt1: prompt1.value,
+      prompt2: prompt2.value,
       output_config: 'split_and_combine_legacy',
-      combination_type: combinationType.value,  // 'linear' or 'spherical'
-      user_language: 'de',
+      safety_level: 'off',
+      combination_type: combinationType.value,
       seed: currentSeed.value
     })
 

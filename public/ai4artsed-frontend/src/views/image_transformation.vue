@@ -599,14 +599,11 @@ async function startGeneration() {
   previousOptimizedPrompt.value = contextPrompt.value
 
   try {
-    const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: 'image_transformation',
-      input_image: uploadedImagePath.value,
-      input_text: contextPrompt.value,
-      context_prompt: contextPrompt.value,
+    // Lab Architecture: /generation for img2img transformation
+    const response = await axios.post('/api/schema/pipeline/generation', {
+      prompt: contextPrompt.value,
       output_config: selectedConfig.value,
-      user_language: 'de',
-      safety_level: 'youth',
+      input_image: uploadedImagePath.value,
       seed: currentSeed.value
     })
 
