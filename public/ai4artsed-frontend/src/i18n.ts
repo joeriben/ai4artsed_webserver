@@ -260,10 +260,6 @@ const messages = {
         limitationDuration: 'Training dauert 1-3 Stunden',
         limitationBlocking: 'Blockiert die Bildgenerierung während des Trainings',
         limitationConfig: 'Begrenzte Konfigurationsmöglichkeiten',
-        recommendation: 'Für professionelles Training empfehlen wir:',
-        fluxgymTitle: 'FluxGym (empfohlen)',
-        fluxgymDesc: 'Einfache Web-Oberfläche für LoRA-Training',
-        fluxgymLink: 'Anleitung ansehen',
         showMore: 'Mehr erfahren',
         showLess: 'Weniger anzeigen'
       }
@@ -528,10 +524,6 @@ const messages = {
         limitationDuration: 'Training takes 1-3 hours',
         limitationBlocking: 'Blocks image generation during training',
         limitationConfig: 'Limited configuration options',
-        recommendation: 'For professional training we recommend:',
-        fluxgymTitle: 'FluxGym (recommended)',
-        fluxgymDesc: 'Simple web interface for LoRA training',
-        fluxgymLink: 'View guide',
         showMore: 'Learn more',
         showLess: 'Show less'
       }

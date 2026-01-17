@@ -26,19 +26,6 @@
           </ul>
         </div>
 
-        <div class="recommendation">
-          <p>{{ t('training.info.recommendation') }}</p>
-          <div class="fluxgym-box">
-            <div class="fluxgym-header">
-              <span class="fluxgym-icon">🚀</span>
-              <strong>{{ t('training.info.fluxgymTitle') }}</strong>
-            </div>
-            <p>{{ t('training.info.fluxgymDesc') }}</p>
-            <a href="https://github.com/cocktailpeanut/fluxgym" target="_blank" class="fluxgym-link">
-              → {{ t('training.info.fluxgymLink') }}
-            </a>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -904,55 +891,5 @@ input {
 
 .limitations li {
   margin-bottom: 0.4rem;
-}
-
-.recommendation {
-  margin-top: 1.2rem;
-}
-
-.recommendation > p {
-  margin-bottom: 0.8rem;
-  color: #aaa;
-}
-
-.fluxgym-box {
-  background: rgba(0, 255, 136, 0.08);
-  border: 1px solid rgba(0, 255, 136, 0.2);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.fluxgym-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.fluxgym-header strong {
-  color: #00ff88;
-}
-
-.fluxgym-icon {
-  font-size: 1.1rem;
-}
-
-.fluxgym-box p {
-  margin: 0.5rem 0;
-  font-size: 0.9rem;
-}
-
-.fluxgym-link {
-  display: inline-block;
-  margin-top: 0.5rem;
-  color: #00ffff;
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: all 0.2s;
-}
-
-.fluxgym-link:hover {
-  color: #00ff88;
-  text-decoration: underline;
 }
 </style>
