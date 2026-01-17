@@ -2375,6 +2375,17 @@ def legacy_workflow():
             media_files = output_result.metadata.get('media_files', [])
             outputs_metadata = output_result.metadata.get('outputs_metadata', [])
             media_type = output_result.metadata.get('media_type', 'image')
+            workflow_json = output_result.metadata.get('workflow_json', {})
+
+            # Extract SaveImage node titles for image labeling
+            saveimage_titles = {}
+            workflow_dict = workflow_json.get('workflow', workflow_json)
+            for node_id, node_data in workflow_dict.items():
+                if isinstance(node_data, dict) and node_data.get('class_type') == 'SaveImage':
+                    title = node_data.get('_meta', {}).get('title', f'SaveImage_{node_id}')
+                    saveimage_titles[node_id] = title
+            if saveimage_titles:
+                logger.info(f"[LEGACY-ENDPOINT] Extracted {len(saveimage_titles)} SaveImage titles: {list(saveimage_titles.values())}")
 
             if media_files:
                 logger.info(f"[LEGACY-ENDPOINT] Saving {len(media_files)} media file(s)")
@@ -2387,6 +2398,10 @@ def legacy_workflow():
                     original_filename = file_meta.get('filename', '')
                     file_format = original_filename.split('.')[-1] if '.' in original_filename else 'png'
 
+                    # Get node_id and lookup title
+                    node_id = file_meta.get('node_id', 'unknown')
+                    node_title = saveimage_titles.get(str(node_id), f'unknown_{node_id}')
+
                     saved_filename = recorder.save_entity(
                         entity_type=entity_type,
                         content=file_data,
@@ -2394,12 +2409,48 @@ def legacy_workflow():
                             'config': output_config,
                             'seed': result_seed,
                             'format': file_format,
-                            'node_id': file_meta.get('node_id', 'unknown'),
+                            'node_id': node_id,
+                            'node_title': node_title,
                             'file_index': idx,
                             'total_files': len(media_files)
                         }
                     )
-                    logger.info(f"[LEGACY-ENDPOINT] Saved: {saved_filename}")
+                    logger.info(f"[LEGACY-ENDPOINT] Saved: {saved_filename} (title: {node_title})")
+
+                # Create composite image if multiple outputs
+                if len(media_files) > 1:
+                    try:
+                        logger.info(f"[LEGACY-ENDPOINT] Creating composite from {len(media_files)} images...")
+
+                        # Use node_titles as labels (in order of outputs_metadata)
+                        labels = []
+                        for idx, file_meta in enumerate(outputs_metadata):
+                            node_id = file_meta.get('node_id', 'unknown')
+                            title = saveimage_titles.get(str(node_id), f'Image {idx+1}')
+                            labels.append(title)
+
+                        # Create composite
+                        composite_data = recorder.create_composite_image(
+                            image_data_list=media_files,
+                            labels=labels,
+                            workflow_title=output_config.replace('_', ' ').title()
+                        )
+
+                        # Save composite as new entity
+                        composite_filename = recorder.save_entity(
+                            entity_type='output_image_composite',
+                            content=composite_data,
+                            metadata={
+                                'config': output_config,
+                                'format': 'png',
+                                'composite': True,
+                                'seed': result_seed
+                            }
+                        )
+                        logger.info(f"[LEGACY-ENDPOINT] Composite created: {composite_filename}")
+
+                    except Exception as e:
+                        logger.warning(f"[LEGACY-ENDPOINT] Composite failed: {e}")
 
         duration_ms = (time.time() - start_time) * 1000
         logger.info(f"[LEGACY-ENDPOINT] Success in {duration_ms:.0f}ms")
