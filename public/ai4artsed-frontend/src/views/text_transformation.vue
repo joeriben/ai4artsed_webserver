@@ -364,6 +364,7 @@ const availabilityLoading = ref(true)
 // Phase 4: Seed management for iterative correction
 const previousOptimizedPrompt = ref('')  // Track previous prompt for comparison
 const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
+const currentRunId = ref<string | null>(null)  // Run ID from interception (for unified export)
 
 // Execution phase tracking
 // 'initial' -> 'interception_done' -> 'optimization_done' -> 'generation_done'
@@ -664,13 +665,13 @@ const streamingUrl = computed(() => {
     return undefined
   }
 
-  // UNIFIED ENDPOINT - DevServer orchestrates ALL stages
+  // INTERCEPTION ENDPOINT - Stage 1 (Safety) + Stage 2 (Interception)
   const isDev = import.meta.env.DEV
   const url = isDev
-    ? 'http://localhost:17802/api/schema/pipeline/execute'  // Dev: Direct to port 17802
-    : '/api/schema/pipeline/execute'  // Prod: Relative URL via Nginx
+    ? 'http://localhost:17802/api/schema/pipeline/interception'  // Dev: Direct to port 17802
+    : '/api/schema/pipeline/interception'  // Prod: Relative URL via Nginx
 
-  console.log('[UNIFIED-STREAMING] Base URL:', url, isDev ? '(dev - direct)' : '(prod - nginx)')
+  console.log('[INTERCEPTION-STREAMING] Base URL:', url, isDev ? '(dev - direct)' : '(prod - nginx)')
   return url
 })
 
@@ -689,39 +690,37 @@ const streamingParams = computed(() => {
 })
 
 // Streaming computed properties (Optimization)
-// ARCHITECTURAL PRINCIPLE: Optimization = Interception with different input
-// Both use SAME unified endpoint, just different parameters
+// LAB ARCHITECTURE: Optimization uses dedicated /optimize endpoint (no Stage 1)
+// This is an atomic service - input is already safe interception result
 const optimizationStreamingUrl = computed(() => {
   const isLoading = isOptimizationLoading.value
-  console.log('[UNIFIED-STREAMING] optimizationStreamingUrl computed, isOptimizationLoading:', isLoading)
+  console.log('[OPTIMIZATION-STREAMING] optimizationStreamingUrl computed, isOptimizationLoading:', isLoading)
 
   if (!isLoading) {
-    console.log('[UNIFIED-STREAMING] Not loading, returning undefined')
+    console.log('[OPTIMIZATION-STREAMING] Not loading, returning undefined')
     return undefined
   }
 
-  // SAME UNIFIED ENDPOINT as Interception
+  // DEDICATED OPTIMIZE ENDPOINT - no Stage 1 safety check (input is already safe)
   const isDev = import.meta.env.DEV
   const url = isDev
-    ? 'http://localhost:17802/api/schema/pipeline/execute'
-    : '/api/schema/pipeline/execute'
+    ? 'http://localhost:17802/api/schema/pipeline/optimize'
+    : '/api/schema/pipeline/optimize'
 
-  console.log('[UNIFIED-STREAMING] Optimization Base URL:', url, isDev ? '(dev - direct)' : '(prod - nginx)')
+  console.log('[OPTIMIZATION-STREAMING] URL:', url, isDev ? '(dev - direct)' : '(prod - nginx)')
   return url
 })
 
 const optimizationStreamingParams = computed(() => {
-  // UNIFIED ORCHESTRATED STREAMING
-  // Optimization = Text transformation with optimization_instruction as context
+  // LAB ARCHITECTURE: Optimization uses /optimize endpoint
+  // Input is already safe interception result, context is optimization instruction
   const params = {
     schema: pipelineStore.selectedConfig?.id || 'overdrive',
-    input_text: interceptionResult.value,  // Use interception result as input
-    context_prompt: optimizationInstruction.value || '',  // Use optimization instruction as context
-    safety_level: 'youth',
-    execution_mode: 'eco',
+    input_text: interceptionResult.value,  // Already safe interception result
+    context_prompt: optimizationInstruction.value || '',  // Model-specific optimization instruction
     enable_streaming: true
   }
-  console.log('[UNIFIED-STREAMING] optimizationStreamingParams:', params)
+  console.log('[OPTIMIZATION-STREAMING] params:', params)
   return params
 })
 
@@ -1047,6 +1046,12 @@ function handleStreamComplete(data: any) {
   console.log('[Stream] Complete:', data)
   executionPhase.value = 'interception_done'
 
+  // Save run_id for unified export (used by /generation)
+  if (data.run_id) {
+    currentRunId.value = data.run_id
+    console.log('[Stream] Saved run_id for export:', data.run_id)
+  }
+
   // Scroll to category section (existing behavior)
   nextTick().then(() => {
     scrollDownOnly(categorySectionRef.value, 'end')
@@ -1185,17 +1190,15 @@ async function executePipeline() {
   }, updateInterval)
 
   try {
-    const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: pipelineStore.selectedConfig?.id || 'overdrive',
-      input_text: currentPromptToUse,
-      interception_result: interceptionResult.value,  // Raw interception result (scene description)
-      optimization_result: optimizedPrompt.value,     // Optimized result (code or model-specific prompt)
-      context_prompt: contextPrompt.value || undefined,
-      user_language: 'de',
-      safety_level: 'youth',
+    // Lab Architecture: /generation expects already-processed prompt
+    // Use optimizedPrompt if available (model-specific), else interceptionResult
+    const finalPrompt = optimizedPrompt.value || interceptionResult.value || inputText.value
+
+    const response = await axios.post('/api/schema/pipeline/generation', {
+      prompt: finalPrompt,
       output_config: selectedConfig.value,
-      seed: currentSeed.value  // Phase 4: Send seed to backend
-      // NO execution_mode - models come from config.py
+      seed: currentSeed.value,
+      run_id: currentRunId.value  // Unified export: use run_id from interception
     })
 
     clearInterval(progressInterval)

@@ -45,7 +45,7 @@ class NoOpTracker:
         return noop
 
 # Live Pipeline Recorder - Single source of truth (Session 37 Migration Complete)
-from my_app.services.pipeline_recorder import get_recorder
+from my_app.services.pipeline_recorder import get_recorder, load_recorder
 
 logger = logging.getLogger(__name__)
 
@@ -1324,6 +1324,18 @@ def execute_pipeline_streaming(data: dict):
     logger.info(f"[UNIFIED-STREAMING] Starting orchestrated pipeline for run {run_id}")
     logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}")
 
+    # Initialize recorder for export functionality
+    from config import JSON_STORAGE_DIR
+    recorder = get_recorder(
+        run_id=run_id,
+        config_name=schema_name,
+        execution_mode=execution_mode,
+        safety_level=safety_level,
+        base_path=JSON_STORAGE_DIR
+    )
+    # Save input immediately
+    recorder.save_entity('input', input_text)
+
     try:
         # Initialize schema engine
         if pipeline_executor is None:
@@ -1422,6 +1434,13 @@ def execute_pipeline_streaming(data: dict):
         })
         yield ''
 
+        # Save safety result to recorder
+        recorder.save_entity('safety', json.dumps({
+            'passed': True,
+            'level': safety_level,
+            'duration_ms': stage1_time
+        }, indent=2))
+
         # ====================================================================
         # STAGE 2: INTERCEPTION (Character-by-Character Streaming)
         # ====================================================================
@@ -1480,6 +1499,9 @@ def execute_pipeline_streaming(data: dict):
 
         logger.info(f"[UNIFIED-STREAMING] Stage 2 complete: {len(accumulated)} chars")
 
+        # Save interception result to recorder
+        recorder.save_entity('interception', accumulated)
+
         # Send completion event
         yield generate_sse_event('complete', {
             'stage': 2,
@@ -1505,9 +1527,888 @@ def execute_pipeline_streaming(data: dict):
     finally:
         logger.info(f"[UNIFIED-STREAMING] Cleanup complete for run: {run_id}")
 
-@schema_bp.route('/pipeline/execute', methods=['POST', 'GET'])
-def execute_pipeline():
-    """Schema-Pipeline ausführen mit 4-Stage Orchestration"""
+
+# ============================================================================
+# OPTIMIZATION STREAMING (Stage 2 only, no Safety Check)
+# Lab Paradigm: Frontend-orchestrated, atomic service
+# ============================================================================
+
+def execute_optimization_streaming(data: dict):
+    """
+    Execute optimization with SSE streaming - Stage 3 ONLY.
+
+    Lab Architecture: This is an atomic service that the frontend calls
+    when the input is already safe (e.g., interception result from Stage 2).
+    No Stage 1 safety check - by design.
+
+    Use Case: Frontend has interception_result (Stage 2 output), user selected a model,
+    now Stage 3 optimization transforms it for that specific model's format requirements.
+    """
+    import time
+    import os
+    from config import STAGE2_INTERCEPTION_MODEL
+
+    # Extract parameters
+    schema_name = data.get('schema', 'overdrive')
+    input_text = data.get('input_text', '')  # Already safe interception result
+    context_prompt = data.get('context_prompt', '')  # Optimization instruction
+
+    # Generate run ID
+    run_id = f"opt_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+
+    logger.info(f"[OPTIMIZATION-STREAMING] Starting for run {run_id}")
+    logger.info(f"[OPTIMIZATION-STREAMING] Schema: {schema_name}, Input length: {len(input_text)}")
+
+    try:
+        # Initialize schema engine
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        # Send initial connection event
+        yield generate_sse_event('connected', {
+            'run_id': run_id,
+            'schema': schema_name,
+            'stages': 1  # Only Stage 3 (optimization)
+        })
+        yield ''
+
+        # ====================================================================
+        # STAGE 3: OPTIMIZATION (no Stage 1 - input is already safe from Stage 2)
+        # ====================================================================
+        yield generate_sse_event('stage_start', {
+            'stage': 3,
+            'name': 'Prompt Optimization',
+            'description': 'Model-specific transformation'
+        })
+        yield ''
+
+        logger.info(f"[OPTIMIZATION-STREAMING] Stage 3: Starting optimization")
+
+        # Build full prompt
+        engine = PromptInterceptionEngine()
+
+        # Use context_prompt as the optimization instruction
+        style_prompt = context_prompt
+
+        # Determine model
+        model = STAGE2_INTERCEPTION_MODEL
+
+        # Use Prompt Interception Engine for the transformation
+        logger.info(f"[OPTIMIZATION-STREAMING] Using model: {model}")
+        pi_request = PromptInterceptionRequest(
+            input_prompt=input_text,
+            input_context='',
+            style_prompt=style_prompt,
+            model=model,
+            debug=False,
+            unload_model=False
+        )
+        pi_response = asyncio.run(engine.process_request(pi_request))
+
+        if pi_response.success:
+            accumulated = pi_response.output_str
+            chunk_count = 1
+
+            # Stream the complete response
+            yield generate_sse_event('chunk', {
+                'stage': 3,
+                'text_chunk': accumulated,
+                'accumulated': accumulated,
+                'chunk_count': chunk_count
+            })
+            yield ''
+        else:
+            raise Exception(f"Optimization failed: {pi_response.error}")
+
+        logger.info(f"[OPTIMIZATION-STREAMING] Stage 3 complete: {len(accumulated)} chars")
+
+        # Send completion event
+        yield generate_sse_event('complete', {
+            'stage': 3,
+            'final_text': accumulated,
+            'char_count': len(accumulated),
+            'chunk_count': 1,
+            'run_id': run_id
+        })
+        yield ''
+
+    except GeneratorExit:
+        logger.info(f"[OPTIMIZATION-STREAMING] Client disconnected: {run_id}")
+
+    except Exception as e:
+        logger.error(f"[OPTIMIZATION-STREAMING] Error in run {run_id}: {e}")
+        yield generate_sse_event('error', {
+            'message': str(e),
+            'run_id': run_id
+        })
+        yield ''
+
+    finally:
+        logger.info(f"[OPTIMIZATION-STREAMING] Cleanup complete for run: {run_id}")
+
+
+@schema_bp.route('/pipeline/optimize', methods=['POST', 'GET'])
+def optimize_pipeline():
+    """
+    Optimization endpoint - Stage 3 only, no Stage 1 safety check.
+
+    Lab Architecture: Atomic service for frontend-orchestrated workflows.
+    Called when input is already safe (Stage 2 interception result).
+    Transforms interception output to model-specific format (e.g., visual tokens for SD3.5).
+    """
+    try:
+        # Request-Validation: Support both POST (JSON) and GET (query params for EventSource)
+        if request.method == 'GET':
+            data = {
+                'schema': request.args.get('schema'),
+                'input_text': request.args.get('input_text'),
+                'context_prompt': request.args.get('context_prompt', ''),
+                'enable_streaming': request.args.get('enable_streaming') == 'true'
+            }
+        else:
+            data = request.get_json()
+            if not data:
+                return jsonify({
+                    'status': 'error',
+                    'error': 'JSON-Request erwartet'
+                }), 400
+
+        # Streaming mode (primary use case)
+        enable_streaming = data.get('enable_streaming', False)
+        if enable_streaming:
+            logger.info("[OPTIMIZATION-STREAMING] Streaming mode requested")
+            return Response(
+                stream_with_context(execute_optimization_streaming(data)),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'X-Accel-Buffering': 'no'
+                }
+            )
+
+        # Non-streaming fallback (synchronous)
+        schema_name = data.get('schema', 'overdrive')
+        input_text = data.get('input_text', '')
+        context_prompt = data.get('context_prompt', '')
+
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        engine = PromptInterceptionEngine()
+        from config import STAGE2_INTERCEPTION_MODEL
+
+        pi_request = PromptInterceptionRequest(
+            input_prompt=input_text,
+            input_context='',
+            style_prompt=context_prompt,
+            model=STAGE2_INTERCEPTION_MODEL,
+            debug=False,
+            unload_model=False
+        )
+        pi_response = asyncio.run(engine.process_request(pi_request))
+
+        if pi_response.success:
+            return jsonify({
+                'status': 'success',
+                'result': pi_response.output_str
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'error': pi_response.error
+            }), 500
+
+    except Exception as e:
+        logger.error(f"[OPTIMIZATION] Error: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+
+@schema_bp.route('/pipeline/safety', methods=['POST'])
+def safety_check():
+    """
+    Safety check endpoint - atomic service for §86a and content safety.
+
+    Lab Architecture: Reusable safety check for Stage 1 (user input) and Stage 3 (pre-output).
+
+    Request Body:
+    {
+        "text": "Text to check",
+        "safety_level": "kids" | "youth" | "open",
+        "check_type": "input" | "output"  # input=Stage1 (§86a), output=Stage3 (content)
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
+
+        text = data.get('text', '')
+        safety_level = data.get('safety_level', 'youth')
+        check_type = data.get('check_type', 'input')  # 'input' or 'output'
+
+        if not text:
+            return jsonify({'status': 'error', 'error': 'text ist erforderlich'}), 400
+
+        logger.info(f"[SAFETY-ENDPOINT] Check type: {check_type}, level: {safety_level}")
+
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        if check_type == 'input':
+            # Stage 1 style: §86a check on user input
+            is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+                text,
+                safety_level,
+                'eco',  # execution_mode
+                pipeline_executor
+            ))
+
+            return jsonify({
+                'status': 'success',
+                'safe': is_safe,
+                'checked_text': checked_text,
+                'error_message': error_message
+            })
+
+        else:  # check_type == 'output'
+            # Stage 3 style: Pre-output content safety (without translation)
+            from schemas.engine.stage_orchestrator import fast_filter_check
+
+            has_terms, found_terms = fast_filter_check(text, safety_level)
+
+            if not has_terms:
+                # Fast path: No problematic terms
+                return jsonify({
+                    'status': 'success',
+                    'safe': True,
+                    'method': 'fast_filter',
+                    'found_terms': []
+                })
+
+            # Slow path: LLM context verification
+            safety_check_config = f'pre_output/safety_check_{safety_level}'
+            result = asyncio.run(pipeline_executor.execute_pipeline(
+                safety_check_config,
+                text,
+                execution_mode='eco'
+            ))
+
+            if result.success:
+                # Parse LLM response for SAFE/UNSAFE
+                output = result.final_output.upper()
+                is_safe = 'SAFE' in output and 'UNSAFE' not in output
+
+                return jsonify({
+                    'status': 'success',
+                    'safe': is_safe,
+                    'method': 'llm_context_check',
+                    'found_terms': found_terms,
+                    'llm_response': result.final_output
+                })
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'error': result.error
+                }), 500
+
+    except Exception as e:
+        logger.error(f"[SAFETY-ENDPOINT] Error: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@schema_bp.route('/pipeline/translate', methods=['POST'])
+def translate_text():
+    """
+    Translation endpoint - atomic service for German→English translation.
+
+    Lab Architecture: Translates interception result to English for media generation.
+    Used in Stage 3 before passing prompt to image/video/audio models.
+
+    Request Body:
+    {
+        "text": "German text to translate",
+        "target_language": "en"  # Currently only 'en' supported
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
+
+        text = data.get('text', '')
+        target_language = data.get('target_language', 'en')
+
+        if not text:
+            return jsonify({'status': 'error', 'error': 'text ist erforderlich'}), 400
+
+        if target_language != 'en':
+            return jsonify({'status': 'error', 'error': 'Nur target_language=en wird unterstützt'}), 400
+
+        logger.info(f"[TRANSLATE-ENDPOINT] Translating {len(text)} chars to {target_language}")
+
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        # Use the existing translation pipeline
+        import time
+        start_time = time.time()
+
+        result = asyncio.run(pipeline_executor.execute_pipeline(
+            'pre_output/translation_en',
+            text,
+            execution_mode='eco'
+        ))
+
+        duration_ms = (time.time() - start_time) * 1000
+
+        if result.success:
+            translated = result.final_output
+            logger.info(f"[TRANSLATE-ENDPOINT] Success in {duration_ms:.0f}ms: {translated[:100]}...")
+
+            return jsonify({
+                'status': 'success',
+                'translated_text': translated,
+                'source_language': 'de',
+                'target_language': target_language,
+                'duration_ms': duration_ms
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'error': result.error or 'Translation failed'
+            }), 500
+
+    except Exception as e:
+        logger.error(f"[TRANSLATE-ENDPOINT] Error: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@schema_bp.route('/pipeline/generation', methods=['POST'])
+def generation_endpoint():
+    """
+    Generation endpoint - Stage 3 Safety (auto) + Stage 4 Media Generation.
+
+    Lab Architecture: Atomic service for media generation.
+    Automatically runs Pre-Output Safety check before generation.
+
+    Request Body:
+    {
+        "prompt": "The final prompt for generation",
+        "output_config": "sd35_large",  # Which model/backend to use
+        "seed": 123456,                 # Optional: specific seed
+        "safety_level": "youth",        # Optional: kids, youth, open
+        "alpha_factor": 0,              # Optional: for Surrealizer
+        "input_image": "/path/to/img",  # Optional: for img2img
+    }
+    """
+    import time
+    import uuid
+
+    start_time = time.time()
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
+
+        prompt = data.get('prompt', '')
+        output_config = data.get('output_config')
+        seed = data.get('seed')
+        safety_level = data.get('safety_level', 'youth')
+        alpha_factor = data.get('alpha_factor')
+        input_image = data.get('input_image')
+        input_image1 = data.get('input_image1')
+        input_image2 = data.get('input_image2')
+        input_image3 = data.get('input_image3')
+        provided_run_id = data.get('run_id')  # Unified export: use run_id from interception
+
+        if not prompt or not output_config:
+            return jsonify({'status': 'error', 'error': 'prompt und output_config sind erforderlich'}), 400
+
+        logger.info(f"[GENERATION-ENDPOINT] Starting for config '{output_config}'")
+        logger.info(f"[GENERATION-ENDPOINT] Prompt (first 100 chars): {prompt[:100]}...")
+
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        # Use provided run_id (from interception) or generate new one
+        if provided_run_id:
+            run_id = provided_run_id
+            logger.info(f"[GENERATION-ENDPOINT] Using existing run_id: {run_id}")
+        else:
+            run_id = f"gen_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+            logger.info(f"[GENERATION-ENDPOINT] Generated new run_id: {run_id}")
+
+        # Determine media type from output config
+        if 'code' in output_config.lower() or 'p5js' in output_config.lower():
+            media_type = 'code'
+        elif 'video' in output_config.lower():
+            media_type = 'video'
+        elif 'audio' in output_config.lower() or 'music' in output_config.lower() or 'ace' in output_config.lower():
+            media_type = 'audio'
+        else:
+            media_type = 'image'
+
+        # ====================================================================
+        # STAGE 3: PRE-OUTPUT SAFETY (Server responsibility, always runs)
+        # ====================================================================
+        logger.info(f"[GENERATION-ENDPOINT] Stage 3: Pre-Output Safety (level: {safety_level})")
+
+        from schemas.engine.stage_orchestrator import fast_filter_check
+
+        # Fast filter first (list check)
+        has_terms, found_terms = fast_filter_check(prompt, safety_level)
+
+        if has_terms:
+            # Slow path: LLM context verification
+            logger.info(f"[GENERATION-ENDPOINT] Found terms {found_terms[:3]}... → LLM check")
+
+            safety_check_config = f'pre_output/safety_check_{safety_level}'
+            safety_result = asyncio.run(pipeline_executor.execute_pipeline(
+                safety_check_config,
+                prompt,
+                execution_mode='eco'
+            ))
+
+            if safety_result.success:
+                output = safety_result.final_output.upper()
+                is_safe = 'SAFE' in output and 'UNSAFE' not in output
+
+                if not is_safe:
+                    logger.warning(f"[GENERATION-ENDPOINT] Stage 3 BLOCKED")
+                    return jsonify({
+                        'status': 'blocked',
+                        'stage': 3,
+                        'reason': 'Content blocked by pre-output safety check',
+                        'found_terms': found_terms
+                    }), 403
+            else:
+                logger.error(f"[GENERATION-ENDPOINT] Safety check failed: {safety_result.error}")
+                # On error, fail safe - block the generation
+                return jsonify({
+                    'status': 'error',
+                    'error': 'Safety check failed'
+                }), 500
+
+        logger.info(f"[GENERATION-ENDPOINT] Stage 3 PASSED")
+
+        # Initialize or load recorder for media storage
+        from config import JSON_STORAGE_DIR
+
+        if provided_run_id:
+            # Load existing recorder from interception
+            recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+            if recorder:
+                logger.info(f"[GENERATION-ENDPOINT] Loaded existing recorder for {run_id}")
+            else:
+                logger.warning(f"[GENERATION-ENDPOINT] Could not load recorder for {run_id}, creating new")
+                recorder = get_recorder(
+                    run_id=run_id,
+                    config_name=output_config,
+                    execution_mode='eco',
+                    safety_level=safety_level,
+                    base_path=JSON_STORAGE_DIR
+                )
+        else:
+            # Create new recorder for standalone generation
+            recorder = get_recorder(
+                run_id=run_id,
+                config_name=output_config,
+                execution_mode='eco',
+                safety_level=safety_level,
+                base_path=JSON_STORAGE_DIR
+            )
+
+        # Save optimized prompt to recorder
+        recorder.save_entity('optimized_prompt', prompt)
+
+        # Seed logic: use provided seed or generate random
+        import random
+        if seed is None:
+            seed = random.randint(0, 2147483647)
+            logger.info(f"[GENERATION-ENDPOINT] Generated random seed: {seed}")
+        else:
+            logger.info(f"[GENERATION-ENDPOINT] Using provided seed: {seed}")
+
+        # Build custom params for legacy workflows
+        custom_params = {}
+        if alpha_factor is not None:
+            custom_params['alpha_factor'] = alpha_factor
+
+        # Create context override if we have custom params
+        from schemas.engine.pipeline_executor import PipelineContext
+        context_override = None
+        if custom_params:
+            context_override = PipelineContext(input_text=prompt, user_input=prompt)
+            context_override.custom_placeholders = custom_params
+
+        # Execute the generation pipeline
+        output_result = asyncio.run(pipeline_executor.execute_pipeline(
+            config_name=output_config,
+            input_text=prompt,
+            user_input=prompt,
+            execution_mode='eco',
+            context_override=context_override,
+            seed_override=seed,
+            input_image=input_image,
+            input_image1=input_image1,
+            input_image2=input_image2,
+            input_image3=input_image3,
+            alpha_factor=alpha_factor
+        ))
+
+        if not output_result.success:
+            return jsonify({
+                'status': 'error',
+                'error': output_result.error or 'Generation failed'
+            }), 500
+
+        # Process output based on type
+        output_value = output_result.final_output
+        result_seed = output_result.metadata.get('seed', seed)
+
+        # Handle different output types
+        if media_type == 'code':
+            # Code output (P5.js etc.)
+            if output_value and len(output_value) > 0:
+                saved_filename = recorder.save_entity(
+                    entity_type='p5',
+                    content=output_value.encode('utf-8'),
+                    metadata={'config': output_config, 'seed': result_seed, 'format': 'js'}
+                )
+                media_output = {
+                    'media_type': 'code',
+                    'url': f'/api/media/p5/{run_id}',
+                    'code': output_value,
+                    'run_id': run_id,
+                    'seed': result_seed
+                }
+            else:
+                return jsonify({'status': 'error', 'error': 'Code generation failed'}), 500
+
+        elif output_value == 'swarmui_generated':
+            # SwarmUI generation
+            image_paths = output_result.metadata.get('image_paths', [])
+            saved_filename = asyncio.run(recorder.download_and_save_from_swarmui(
+                image_paths=image_paths,
+                media_type=media_type,
+                config=output_config,
+                seed=result_seed
+            ))
+            media_output = {
+                'media_type': media_type,
+                'url': f'/api/media/{media_type}/{run_id}',
+                'run_id': run_id,
+                'seed': result_seed
+            }
+
+        elif output_value == 'workflow_generated':
+            # ComfyUI workflow - check filesystem_path first, then media_files
+            filesystem_path = output_result.metadata.get('filesystem_path')
+            media_files = output_result.metadata.get('media_files', [])
+
+            if filesystem_path:
+                # New workflow system: read file directly from filesystem
+                import os
+                if os.path.exists(filesystem_path):
+                    with open(filesystem_path, 'rb') as f:
+                        file_data = f.read()
+                    file_format = filesystem_path.split('.')[-1] if '.' in filesystem_path else 'png'
+                    saved_filename = recorder.save_entity(
+                        entity_type=f'output_{media_type}',
+                        content=file_data,
+                        metadata={
+                            'config': output_config,
+                            'seed': result_seed,
+                            'format': file_format,
+                            'source_path': filesystem_path
+                        }
+                    )
+                    logger.info(f"[GENERATION-ENDPOINT] Saved from filesystem: {saved_filename}")
+                else:
+                    logger.error(f"[GENERATION-ENDPOINT] File not found: {filesystem_path}")
+            elif media_files:
+                # Legacy: binary data in metadata
+                outputs_metadata = output_result.metadata.get('outputs_metadata', [])
+                logger.info(f"[GENERATION-ENDPOINT] Saving {len(media_files)} legacy media file(s)")
+                for idx, file_data in enumerate(media_files):
+                    file_meta = outputs_metadata[idx] if idx < len(outputs_metadata) else {}
+                    entity_type = f'output_{media_type}'
+
+                    original_filename = file_meta.get('filename', '')
+                    file_format = original_filename.split('.')[-1] if '.' in original_filename else 'png'
+
+                    saved_filename = recorder.save_entity(
+                        entity_type=entity_type,
+                        content=file_data,
+                        metadata={
+                            'config': output_config,
+                            'seed': result_seed,
+                            'format': file_format,
+                            'node_id': file_meta.get('node_id', 'unknown'),
+                            'file_index': idx,
+                            'total_files': len(media_files)
+                        }
+                    )
+                    logger.info(f"[GENERATION-ENDPOINT] Saved legacy: {saved_filename}")
+
+            media_output = {
+                'media_type': media_type,
+                'url': f'/api/media/{media_type}/{run_id}',
+                'run_id': run_id,
+                'seed': result_seed
+            }
+
+        else:
+            # Direct output (OpenAI, Gemini, etc.)
+            if output_value and output_value.startswith(('http://', 'https://')):
+                # URL output - download and save
+                logger.info(f"[GENERATION-ENDPOINT] Downloading from URL: {output_value[:100]}...")
+                saved_filename = asyncio.run(recorder.download_and_save_from_url(
+                    url=output_value,
+                    media_type=media_type,
+                    config=output_config,
+                    seed=result_seed
+                ))
+                logger.info(f"[GENERATION-ENDPOINT] Saved from URL: {saved_filename}")
+            elif output_value and len(output_value) > 100:
+                # Likely base64 data - decode and save
+                import base64
+                try:
+                    # Remove data URL prefix if present
+                    if output_value.startswith('data:'):
+                        output_value = output_value.split(',', 1)[1]
+                    file_data = base64.b64decode(output_value)
+                    file_format = 'png'  # Default for images
+                    saved_filename = recorder.save_entity(
+                        entity_type=f'output_{media_type}',
+                        content=file_data,
+                        metadata={
+                            'config': output_config,
+                            'seed': result_seed,
+                            'format': file_format,
+                            'source': 'base64'
+                        }
+                    )
+                    logger.info(f"[GENERATION-ENDPOINT] Saved from base64: {saved_filename}")
+                except Exception as e:
+                    logger.error(f"[GENERATION-ENDPOINT] Failed to decode base64: {e}")
+            else:
+                logger.warning(f"[GENERATION-ENDPOINT] Unknown output format: {output_value[:100] if output_value else 'None'}...")
+
+            media_output = {
+                'media_type': media_type,
+                'url': f'/api/media/{media_type}/{run_id}',
+                'run_id': run_id,
+                'seed': result_seed
+            }
+
+        duration_ms = (time.time() - start_time) * 1000
+        logger.info(f"[GENERATION-ENDPOINT] Success in {duration_ms:.0f}ms")
+
+        return jsonify({
+            'status': 'success',
+            'media_output': media_output,
+            'run_id': run_id,
+            'duration_ms': duration_ms
+        })
+
+    except Exception as e:
+        logger.error(f"[GENERATION-ENDPOINT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@schema_bp.route('/pipeline/legacy', methods=['POST'])
+def legacy_workflow():
+    """
+    Legacy workflow endpoint - Direct ComfyUI workflow execution WITH Stage 1 Safety.
+
+    Lab Architecture: For workflows that bypass interception/optimization.
+    Used by Surrealizer, Split&Combine, Partial Elimination, etc.
+
+    Flow: Stage 1 (Safety) → ComfyUI Workflow (no Stage 2/3)
+
+    Request Body:
+    {
+        "prompt": "User input (will be injected into workflow)",
+        "output_config": "surrealization_legacy",
+        "seed": 123456,
+        "alpha_factor": 0,  # Surrealizer-specific
+        "safety_level": "youth"  # kids, youth, or open
+    }
+    """
+    import time
+    import uuid
+
+    start_time = time.time()
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
+
+        prompt = data.get('prompt', '')
+        output_config = data.get('output_config')
+        seed = data.get('seed')
+        alpha_factor = data.get('alpha_factor')
+        safety_level = data.get('safety_level', 'youth')
+
+        # Additional workflow-specific parameters
+        mode = data.get('mode')  # For partial_elimination
+        prompt1 = data.get('prompt1')  # For split_and_combine
+        prompt2 = data.get('prompt2')  # For split_and_combine
+        combination_type = data.get('combination_type')  # For split_and_combine
+
+        if not prompt or not output_config:
+            return jsonify({'status': 'error', 'error': 'prompt und output_config sind erforderlich'}), 400
+
+        logger.info(f"[LEGACY-ENDPOINT] Starting for config '{output_config}'")
+
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        # ====================================================================
+        # STAGE 1: SAFETY CHECK (Server responsibility, always runs)
+        # ====================================================================
+        logger.info(f"[LEGACY-ENDPOINT] Stage 1: Safety check (level: {safety_level})")
+
+        is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+            prompt,
+            safety_level,
+            'eco',
+            pipeline_executor
+        ))
+
+        if not is_safe:
+            logger.warning(f"[LEGACY-ENDPOINT] Stage 1 BLOCKED: {error_message}")
+            return jsonify({
+                'status': 'blocked',
+                'stage': 1,
+                'reason': error_message
+            }), 403
+
+        logger.info(f"[LEGACY-ENDPOINT] Stage 1 PASSED")
+
+        # Generate run_id
+        run_id = f"leg_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
+        # Initialize recorder
+        from config import JSON_STORAGE_DIR
+        recorder = get_recorder(
+            run_id=run_id,
+            config_name=output_config,
+            execution_mode='eco',
+            safety_level=safety_level,
+            base_path=JSON_STORAGE_DIR
+        )
+
+        # Seed logic
+        import random
+        if seed is None:
+            seed = random.randint(0, 2147483647)
+
+        # Build custom params for workflow injection
+        custom_params = {}
+        if alpha_factor is not None:
+            custom_params['alpha_factor'] = alpha_factor
+        if mode is not None:
+            custom_params['mode'] = mode
+        if prompt1 is not None:
+            custom_params['prompt1'] = prompt1
+        if prompt2 is not None:
+            custom_params['prompt2'] = prompt2
+        if combination_type is not None:
+            custom_params['combination_type'] = combination_type
+
+        from schemas.engine.pipeline_executor import PipelineContext
+        context_override = None
+        if custom_params:
+            context_override = PipelineContext(input_text=prompt, user_input=prompt)
+            context_override.custom_placeholders = custom_params
+            logger.info(f"[LEGACY-ENDPOINT] Custom params: {list(custom_params.keys())}")
+
+        # Execute legacy workflow directly
+        output_result = asyncio.run(pipeline_executor.execute_pipeline(
+            config_name=output_config,
+            input_text=prompt,
+            user_input=prompt,
+            execution_mode='eco',
+            context_override=context_override,
+            seed_override=seed,
+            alpha_factor=alpha_factor
+        ))
+
+        if not output_result.success:
+            return jsonify({
+                'status': 'error',
+                'error': output_result.error or 'Legacy workflow failed'
+            }), 500
+
+        # Handle legacy workflow output
+        output_value = output_result.final_output
+        result_seed = output_result.metadata.get('seed', seed)
+
+        if output_value == 'workflow_generated':
+            # Legacy workflows return binary data directly in metadata
+            media_files = output_result.metadata.get('media_files', [])
+            outputs_metadata = output_result.metadata.get('outputs_metadata', [])
+            media_type = output_result.metadata.get('media_type', 'image')
+
+            if media_files:
+                logger.info(f"[LEGACY-ENDPOINT] Saving {len(media_files)} media file(s)")
+                for idx, file_data in enumerate(media_files):
+                    # Get metadata for this file if available
+                    file_meta = outputs_metadata[idx] if idx < len(outputs_metadata) else {}
+                    entity_type = f'output_{media_type}'
+
+                    # Determine format from filename or default
+                    original_filename = file_meta.get('filename', '')
+                    file_format = original_filename.split('.')[-1] if '.' in original_filename else 'png'
+
+                    saved_filename = recorder.save_entity(
+                        entity_type=entity_type,
+                        content=file_data,
+                        metadata={
+                            'config': output_config,
+                            'seed': result_seed,
+                            'format': file_format,
+                            'node_id': file_meta.get('node_id', 'unknown'),
+                            'file_index': idx,
+                            'total_files': len(media_files)
+                        }
+                    )
+                    logger.info(f"[LEGACY-ENDPOINT] Saved: {saved_filename}")
+
+        duration_ms = (time.time() - start_time) * 1000
+        logger.info(f"[LEGACY-ENDPOINT] Success in {duration_ms:.0f}ms")
+
+        return jsonify({
+            'status': 'success',
+            'media_output': {
+                'media_type': 'image',
+                'url': f'/api/media/image/{run_id}',
+                'run_id': run_id,
+                'seed': result_seed
+            },
+            'run_id': run_id,
+            'duration_ms': duration_ms
+        })
+
+    except Exception as e:
+        logger.error(f"[LEGACY-ENDPOINT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@schema_bp.route('/pipeline/interception', methods=['POST', 'GET'])
+def interception_pipeline():
+    """Stage 1 (Safety) + Stage 2 (Interception) - Lab Architecture atomic service"""
     # Phase 4: Declare global state at function start
     global _last_prompt, _last_seed
     import random
