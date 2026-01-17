@@ -1,7 +1,7 @@
 # Handover: Export & Session Architecture Refactoring
 
 **Date:** 2026-01-17
-**Status:** IN PROGRESS - Implementation pending
+**Status:** IMPLEMENTED - Testing needed
 
 ---
 
@@ -26,7 +26,31 @@
 
 ---
 
-## Was noch zu tun ist (APPROVED, NOT IMPLEMENTED)
+## Was implementiert wurde (2026-01-17 Session 2)
+
+### Commits:
+- `1fabb11` - Revert "fix: Return LATEST image by default" (index=-1 fix)
+- `521f96e` - feat(export): Each generation creates new run with complete context
+
+### Änderungen:
+
+1. **`pipeline_recorder.py`**:
+   - `__init__`: Date-based folder structure (`exports/json/YYYY-MM-DD/run_xxx/`)
+   - `load_recorder()`: Searches across date folders for existing runs
+
+2. **`schema_pipeline_routes.py`**:
+   - `/generation` ALWAYS creates new `run_id` (removed `provided_run_id` logic)
+   - Accepts context: `input_text`, `interception_result`, `interception_config`, `device_id`
+   - Saves all entities (input, interception, optimized_prompt) upfront
+
+3. **`text_transformation.vue`**:
+   - `getDeviceId()`: LocalStorage-based UUID for workshop tracking
+   - `lastInterceptionConfig`: Tracks which interception config was used
+   - `/generation` call sends all context data
+
+---
+
+## Was noch zu testen ist
 
 ### Task 1: Option A - Jede Generation = Neuer Run
 
