@@ -276,9 +276,9 @@
             </div>
           </transition>
 
-          <!-- LoRA Badge (Session 116) -->
+          <!-- LoRA Badge (Session 116) - shows configLoras before generation, activeLoras after -->
           <transition name="fade">
-            <div v-if="activeLoras.length > 0" class="lora-stamp" @click="loraExpanded = !loraExpanded">
+            <div v-if="stage4Loras.length > 0" class="lora-stamp" @click="loraExpanded = !loraExpanded">
               <div class="stamp-inner lora-inner">
                 <div class="stamp-icon lora-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
@@ -296,12 +296,12 @@
                   </svg>
                 </div>
                 <div class="stamp-text">
-                  {{ activeLoras.length }} LoRA{{ activeLoras.length > 1 ? 's' : '' }}
+                  {{ stage4Loras.length }} LoRA{{ stage4Loras.length > 1 ? 's' : '' }}
                 </div>
               </div>
               <!-- Expandable Liste -->
               <div v-if="loraExpanded" class="lora-details">
-                <div v-for="lora in activeLoras" :key="lora.name" class="lora-item">
+                <div v-for="lora in stage4Loras" :key="lora.name" class="lora-item">
                   {{ formatLoraName(lora.name) }} <span class="lora-strength">{{ lora.strength }}</span>
                 </div>
               </div>
@@ -767,6 +767,16 @@ const streamingParams = computed(() => {
 // Session 116: LoRAs from interception config (shown early, before generation)
 const configLoras = computed(() => {
   return pipelineStore.selectedConfig?.loras || []
+})
+
+// Session 116: LoRAs for Stage 4 badge (uses activeLoras if available, falls back to configLoras)
+const stage4Loras = computed(() => {
+  // After generation: use activeLoras (confirmed from backend)
+  if (activeLoras.value.length > 0) {
+    return activeLoras.value
+  }
+  // Before generation: use configLoras (from Phase 1 selection)
+  return configLoras.value
 })
 
 // Streaming computed properties (Optimization)
@@ -1298,7 +1308,7 @@ async function executePipeline() {
       // Context from interception (backend saves all to one folder)
       input_text: inputText.value,
       interception_result: interceptionResult.value,
-      interception_config: lastInterceptionConfig.value,
+      interception_config: lastInterceptionConfig.value || pipelineStore.selectedConfig?.id,
       device_id: getDeviceId()  // Workshop tracking
     })
 

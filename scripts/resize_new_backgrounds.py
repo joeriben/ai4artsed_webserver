@@ -64,11 +64,8 @@ def main():
 
     # Define images to process
     images_to_process = [
-        ("overdrive_new.png", "overdrive.png", "Overdrive"),
-        ("jugendsprache_new.jpg", "jugendsprache.png", "Jugendsprache"),
-        ("yorubaheritage_new.jpg", "yorubaheritage.png", "Yoruba Heritage"),
-        ("renaissance_new.png", "renaissance.png", "Renaissance"),
-        ("piglatin_new.jpg", "piglatin.png", "Pig Latin"),
+        ("partial_elimination_new.png", "partial_elimination.png", "Partial Elimination (Corrected)"),
+        ("split_and_combine_new.png", "split_and_combine.png", "Split and Combine (Corrected)"),
     ]
 
     processed_count = 0

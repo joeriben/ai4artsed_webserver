@@ -490,25 +490,35 @@ Submit to SwarmUI/ComfyUI
 
 #### Configuration
 
-**Current:** Temporary hardcoded in `config.py`
+**Current:** Connected to Interception Configs (implemented Session 116)
 
-```python
-LORA_TRIGGERS = [
-    {"name": "SD3.5-Large-Anime-LoRA.safetensors", "strength": 1.0},
-    {"name": "bejo_face.safetensors", "strength": 1.0},
-]
-```
-
-**Future:** Connected to Stage2-Configs (Meta-Prompt + optimal LoRAs):
+Each interception config can define LoRAs in its `meta` section:
 ```json
 {
-  "name": "jugendsprache",
-  "context_prompt": "...",
-  "loras": [
-    {"name": "anime_style.safetensors", "strength": 0.8}
-  ]
+  "name": "cooked_negatives",
+  "meta": {
+    "loras": [
+      {"name": "sd3.5-large_cooked_negatives.safetensors", "strength": 0.6}
+    ]
+  }
 }
 ```
+
+The `/generation` endpoint extracts LoRAs from the selected interception config and passes them to Stage 4.
+
+#### LoRA Strength Tuning (Session 117)
+
+**Critical Finding:** LoRA strength dramatically affects prompt adherence.
+
+| Strength | Effect | Prompt Adherence |
+|----------|--------|------------------|
+| 0.8-1.0 | Style dominates completely | ❌ Prompt ignored |
+| 0.5-0.7 | **Sweet spot** - visible style | ✅ Prompt preserved |
+| 0.3-0.5 | Style barely visible | ✅ Full prompt adherence |
+
+**Recommendation:** Start with 0.6 and adjust per-LoRA. Strong style LoRAs (like Cooked Negatives) may need lower values (0.5-0.6), while subtle LoRAs can use higher values (0.7-0.8).
+
+**Per-Config Calibration Required:** Each interception config should test its LoRA strength individually, as LoRA intensity varies significantly between models.
 
 #### Workflow Modification
 

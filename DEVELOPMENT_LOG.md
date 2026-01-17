@@ -1,5 +1,45 @@
 # Development Log
 
+## Session 117 - LoRA Strength Tuning for Interception Configs
+**Date:** 2026-01-17
+**Duration:** ~30 minutes
+**Focus:** Finding optimal LoRA strength for prompt/style balance
+**Status:** SUCCESS - Strength calibrated
+
+### Problem
+LoRA injection was working (since Session 114/116), but at strength 1.0 the LoRA effect completely overrode the user's prompt content. Generated images showed only the LoRA style (e.g., film artifacts for Cooked Negatives) with no relevance to the actual prompt.
+
+### Investigation
+Compared generations with "Cooked Negatives" interception config:
+- **Strength 1.0:** Full film artifact effect, but prompt completely ignored
+- **Strength 0.5:** Effect barely visible
+- **Strength 0.6:** Good balance - film artifacts visible AND prompt content preserved
+
+### Solution
+Adjusted LoRA strength in interception config:
+```json
+{
+  "meta": {
+    "loras": [
+      {"name": "sd3.5-large_cooked_negatives.safetensors", "strength": 0.6}
+    ]
+  }
+}
+```
+
+### Key Insight
+**LoRA Strength Trade-off:**
+- High strength (0.8-1.0): Style dominates, prompt ignored
+- Low strength (0.3-0.5): Style barely visible
+- Sweet spot (0.5-0.7): Balance between style and prompt adherence
+
+This varies per LoRA - some are stronger than others. Each interception config should test and calibrate its LoRA strength individually.
+
+### Files Changed
+- 📝 `devserver/schemas/configs/interception/cooked_negatives.json` (strength: 1.0 → 0.6)
+
+---
+
 ## Session 114 - LoRA Injection for Stage 4 Workflows
 **Date:** 2026-01-11
 **Duration:** ~2 hours

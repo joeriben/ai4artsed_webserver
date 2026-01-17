@@ -2057,11 +2057,14 @@ def generation_endpoint():
 
         # Session 116 Port: Extract LoRAs from interception config
         # Note: interception configs are stored by stem only (e.g. "cooked_negatives", not "interception/cooked_negatives")
+        logger.info(f"[GENERATION-LORA] interception_config value: '{interception_config}'")
         if interception_config:
             try:
                 interception_cfg = pipeline_executor.config_loader.get_config(interception_config)
+                logger.info(f"[GENERATION-LORA] Config loaded: {interception_cfg is not None}, has meta: {hasattr(interception_cfg, 'meta') and interception_cfg.meta is not None if interception_cfg else False}")
                 if interception_cfg and hasattr(interception_cfg, 'meta') and interception_cfg.meta:
                     config_loras = interception_cfg.meta.get('loras', [])
+                    logger.info(f"[GENERATION-LORA] meta.loras: {config_loras}")
                     if config_loras:
                         custom_params['loras'] = config_loras
                         logger.info(f"[GENERATION-LORA] Extracted {len(config_loras)} LoRA(s) from '{interception_config}': {[l['name'] for l in config_loras]}")

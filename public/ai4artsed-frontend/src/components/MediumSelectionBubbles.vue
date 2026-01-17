@@ -115,7 +115,7 @@ function selectConfig(config: any) {
   top: 10%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 2vw, 1.5rem);
   font-weight: 600;
   color: #333;
   text-align: center;
@@ -136,6 +136,7 @@ function selectConfig(config: any) {
   cursor: pointer;
   transition: all 0.3s ease;
   pointer-events: all;
+  font-size: clamp(0.5rem, 1.2vw + 0.3vh, 1.2rem);
 }
 
 .config-bubble:hover {
@@ -184,13 +185,13 @@ function selectConfig(config: any) {
   right: 5%;
   background: rgba(0, 0, 0, 0.85);
   color: white;
-  font-size: 14px;
+  font-size: 1em;
   font-weight: 600;
   text-align: center;
-  padding: 8px 6px;
+  padding: 0.5em 0.4em;
   border-radius: 0;
   line-height: 1.3;
-  max-height: 45px;
+  max-height: 30%;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -204,15 +205,15 @@ function selectConfig(config: any) {
   position: absolute;
   top: 10%;
   right: 10%;
-  width: 2rem;
-  height: 2rem;
+  width: 2em;
+  height: 2em;
   background: #2196F3;
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.2em;
   font-weight: bold;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   animation: pop-in 0.3s ease;
