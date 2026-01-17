@@ -16,6 +16,7 @@
           @image-removed="handleImage1Remove"
           @copy="copyUploadedImage"
           @paste="pasteUploadedImage"
+          @clear="clearImage1"
         />
         <MediaInputBox
           icon="➕"
@@ -28,6 +29,7 @@
           @image-removed="handleImage2Remove"
           @copy="copyImage2"
           @paste="pasteImage2"
+          @clear="clearImage2"
         />
         <MediaInputBox
           icon="➕"
@@ -40,6 +42,7 @@
           @image-removed="handleImage3Remove"
           @copy="copyImage3"
           @paste="pasteImage3"
+          @clear="clearImage3"
         />
       </section>
 
@@ -387,34 +390,66 @@ function handleImage1Upload(data: any) {
   console.log('[Image 1 Upload] Success:', data)
   uploadedImage1.value = data.preview_url
   uploadedImagePath1.value = data.image_path
+  uploadedImageId1.value = data.image_id
   executionPhase.value = 'image_uploaded'
 }
 
 function handleImage1Remove() {
   uploadedImage1.value = undefined
   uploadedImagePath1.value = undefined
+  uploadedImageId1.value = undefined
 }
 
 function handleImage2Upload(data: any) {
   console.log('[Image 2 Upload] Success:', data)
   uploadedImage2.value = data.preview_url
   uploadedImagePath2.value = data.image_path
+  uploadedImageId2.value = data.image_id
 }
 
 function handleImage2Remove() {
   uploadedImage2.value = undefined
   uploadedImagePath2.value = undefined
+  uploadedImageId2.value = undefined
 }
 
 function handleImage3Upload(data: any) {
   console.log('[Image 3 Upload] Success:', data)
   uploadedImage3.value = data.preview_url
   uploadedImagePath3.value = data.image_path
+  uploadedImageId3.value = data.image_id
 }
 
 function handleImage3Remove() {
   uploadedImage3.value = undefined
   uploadedImagePath3.value = undefined
+  uploadedImageId3.value = undefined
+}
+
+// ============================================================================
+// IMAGE CLEAR ACTIONS (removes + clears sessionStorage)
+// ============================================================================
+
+function clearImage1() {
+  handleImage1Remove()
+  sessionStorage.removeItem('multi_i2i_image1')
+  sessionStorage.removeItem('multi_i2i_path1')
+  sessionStorage.removeItem('multi_i2i_id1')
+  console.log('[MultiImage] Image 1 cleared via action button')
+}
+
+function clearImage2() {
+  handleImage2Remove()
+  sessionStorage.removeItem('multi_i2i_image2')
+  sessionStorage.removeItem('multi_i2i_path2')
+  console.log('[MultiImage] Image 2 cleared via action button')
+}
+
+function clearImage3() {
+  handleImage3Remove()
+  sessionStorage.removeItem('multi_i2i_image3')
+  sessionStorage.removeItem('multi_i2i_path3')
+  console.log('[MultiImage] Image 3 cleared via action button')
 }
 
 // ============================================================================
@@ -782,16 +817,13 @@ async function startGeneration() {
   previousOptimizedPrompt.value = contextPrompt.value
 
   try {
-    const response = await axios.post('/api/schema/pipeline/execute', {
-      schema: 'multi_image_transformation',
+    // Lab Architecture: /generation for multi-image fusion
+    const response = await axios.post('/api/schema/pipeline/generation', {
+      prompt: contextPrompt.value,
+      output_config: selectedConfig.value,
       input_image1: uploadedImagePath1.value,
       input_image2: uploadedImagePath2.value || null,
       input_image3: uploadedImagePath3.value || null,
-      input_text: contextPrompt.value,
-      context_prompt: contextPrompt.value,
-      output_config: selectedConfig.value,
-      user_language: 'de',
-      safety_level: 'youth',
       seed: currentSeed.value
     })
 
