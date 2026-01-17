@@ -83,7 +83,7 @@
     },
     "7": {
       "inputs": {
-        "text": "text, watermark",
+        "text": "",
         "clip": [
           "39",
           0
@@ -180,7 +180,7 @@
     },
     "43": {
       "inputs": {
-        "text": "text, watermark",
+        "text": "",
         "clip": [
           "39",
           0
@@ -407,9 +407,18 @@
     },
     "73": {
       "inputs": {
-        "seed": 123456789,
-        "steps": 25,
-        "cfg": 5.5,
+        "seed": [
+          "53",
+          0
+        ],
+        "steps": [
+          "55",
+          0
+        ],
+        "cfg": [
+          "54",
+          0
+        ],
         "sampler_name": "euler",
         "scheduler": "normal",
         "denoise": 1,
@@ -418,7 +427,7 @@
           0
         ],
         "positive": [
-          "77",
+          "84",
           0
         ],
         "negative": [
@@ -437,8 +446,8 @@
     },
     "77": {
       "inputs": {
-        "start_dimension": 2048,
-        "num_dimensions": 2048,
+        "start_dimension": 0,
+        "num_dimensions": 0,
         "fill_value": 0,
         "mode": "average",
         "output_info": true,
@@ -449,7 +458,24 @@
       },
       "class_type": "ai4artsed_vector_dimension_eliminator",
       "_meta": {
-        "title": "AI4ArtsEd Vector Dimension Eliminator"
+        "title": "Outer Eliminator 1 (0 to start)"
+      }
+    },
+    "84": {
+      "inputs": {
+        "start_dimension": 2048,
+        "num_dimensions": 2048,
+        "fill_value": 0,
+        "mode": "average",
+        "output_info": false,
+        "conditioning": [
+          "77",
+          0
+        ]
+      },
+      "class_type": "ai4artsed_vector_dimension_eliminator",
+      "_meta": {
+        "title": "Outer Eliminator 2 (end to 4096)"
       }
     },
     "79": {
@@ -470,7 +496,7 @@
     },
     "80": {
       "inputs": {
-        "text": "text, watermark",
+        "text": "",
         "clip": [
           "39",
           0
@@ -514,6 +540,11 @@
         "node_id": "77",
         "field": "inputs.mode",
         "default": "average"
+      },
+      {
+        "node_id": "84",
+        "field": "inputs.mode",
+        "default": "average"
       }
     ],
     "seed": {
@@ -521,6 +552,36 @@
       "field": "inputs.value",
       "default": "random",
       "description": "Random seed for KSampler (shared via PrimitiveInt node)"
+    },
+    "inner_start": {
+      "node_id": "49",
+      "field": "inputs.start_dimension",
+      "default": 0
+    },
+    "inner_num": {
+      "node_id": "49",
+      "field": "inputs.num_dimensions",
+      "default": 2048
+    },
+    "outer_1_start": {
+      "node_id": "77",
+      "field": "inputs.start_dimension",
+      "default": 0
+    },
+    "outer_1_num": {
+      "node_id": "77",
+      "field": "inputs.num_dimensions",
+      "default": 0
+    },
+    "outer_2_start": {
+      "node_id": "84",
+      "field": "inputs.start_dimension",
+      "default": 2048
+    },
+    "outer_2_num": {
+      "node_id": "84",
+      "field": "inputs.num_dimensions",
+      "default": 2048
     }
   },
   "output_labels": [
@@ -533,16 +594,16 @@
     },
     {
       "index": 1,
-      "label": "Erste H\u00e4lfte eliminiert",
-      "description": "Vektordimensionen 0-2047 manipuliert",
-      "semantic_role": "variant_a",
+      "label": "Innerer Bereich eliminiert",
+      "description": "Ausgewählter Bereich manipuliert",
+      "semantic_role": "inner_eliminated",
       "node_id": "45"
     },
     {
       "index": 2,
-      "label": "Zweite H\u00e4lfte eliminiert",
-      "description": "Vektordimensionen 2048-4095 manipuliert",
-      "semantic_role": "variant_b",
+      "label": "Äußerer Bereich eliminiert",
+      "description": "Bereiche außerhalb der Auswahl manipuliert",
+      "semantic_role": "outer_eliminated",
       "node_id": "69"
     }
   ],

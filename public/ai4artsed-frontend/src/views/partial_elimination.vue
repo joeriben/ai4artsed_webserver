@@ -346,14 +346,21 @@ async function executeWorkflow() {
     }
 
     // Lab Architecture: /legacy = Stage 1 (Safety) + Direct ComfyUI workflow
+    // Frontend calculates all 6 dimension parameters directly
     const response = await axios.post('/api/schema/pipeline/legacy', {
       prompt: inputText.value,
       output_config: 'partial_elimination_legacy',
       safety_level: 'open',
       mode: eliminationMode.value,
       seed: currentSeed.value,
-      start_dimension: dimensionStart.value,
-      end_dimension: dimensionEnd.value
+      // Inner elimination: [start, end)
+      inner_start: dimensionStart.value,
+      inner_num: dimensionEnd.value - dimensionStart.value,
+      // Outer elimination: [0, start) + [end, 4096)
+      outer_1_start: 0,
+      outer_1_num: dimensionStart.value,
+      outer_2_start: dimensionEnd.value,
+      outer_2_num: 4096 - dimensionEnd.value
     })
 
     if (response.data.status === 'success') {

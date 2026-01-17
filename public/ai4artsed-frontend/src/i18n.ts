@@ -263,6 +263,34 @@ const messages = {
         showMore: 'Mehr erfahren',
         showLess: 'Weniger anzeigen'
       }
+    },
+    splitCombine: {
+      infoTitle: 'Split & Combine - Semantische Vektorfusion',
+      infoDescription: 'Dieser Workflow fusioniert zwei Prompts auf der Ebene semantischer Vektoren. Das Ergebnis ist keine einfache Mischung, sondern eine tiefere mathematische Verbindung der Bedeutungsräume.',
+      purposeTitle: 'Pädagogischer Zweck',
+      purposeText: 'Erkunde, wie KI-Modelle Bedeutung als Zahlenräume repräsentieren. Was passiert, wenn wir verschiedene Konzepte mathematisch verschmelzen?'
+    },
+    partialElimination: {
+      infoTitle: 'Partial Elimination - Vektor-Dekonstruktion',
+      infoDescription: 'Dieser Workflow manipuliert gezielt Teile des semantischen Vektors. Durch das Eliminieren bestimmter Dimensionen können wir beobachten, welche Aspekte der Bedeutung verloren gehen.',
+      purposeTitle: 'Pädagogischer Zweck',
+      purposeText: 'Verstehe, wie Bedeutung in verschiedenen Dimensionen des Vektorraums kodiert ist. Was bleibt übrig, wenn wir Teile "ausschalten"?',
+      modeLabel: 'Eliminationsmodus',
+      dimensionRange: 'Dimensions-Bereich',
+      selected: 'Ausgewählt',
+      dimensions: 'Dimensionen',
+      emptyTitle: 'Warte auf Generierung...',
+      emptySubtitle: 'Die Ergebnisse erscheinen hier',
+      referenceLabel: 'Referenzbild',
+      referenceDesc: 'Unmanipulierte Ausgabe (Original)',
+      innerLabel: 'Innerer Bereich eliminiert',
+      outerLabel: 'Äußerer Bereich eliminiert'
+    },
+    surrealizer: {
+      infoTitle: 'Surrealizer - Dual-Encoder Fusion',
+      infoDescription: 'Dieser Workflow nutzt zwei verschiedene Text-Encoder (CLIP und T5) und verschmilzt ihre Outputs. Jeder Encoder "versteht" Text anders - CLIP durch Bild-Text-Paare, T5 durch reine Sprachmodellierung.',
+      purposeTitle: 'Pädagogischer Zweck',
+      purposeText: 'Erkunde die verschiedenen "Weltbilder" unterschiedlicher KI-Architekturen. Wie verändert sich die visuelle Interpretation je nach Encoder-Gewichtung?'
     }
   },
   en: {
@@ -527,6 +555,34 @@ const messages = {
         showMore: 'Learn more',
         showLess: 'Show less'
       }
+    },
+    splitCombine: {
+      infoTitle: 'Split & Combine - Semantic Vector Fusion',
+      infoDescription: 'This workflow fuses two prompts at the semantic vector level. The result is not a simple blend, but a deeper mathematical connection of meaning spaces.',
+      purposeTitle: 'Pedagogical Purpose',
+      purposeText: 'Explore how AI models represent meaning as numerical spaces. What happens when we mathematically merge different concepts?'
+    },
+    partialElimination: {
+      infoTitle: 'Partial Elimination - Vector Deconstruction',
+      infoDescription: 'This workflow specifically manipulates parts of the semantic vector. By eliminating certain dimensions, we can observe which aspects of meaning are lost.',
+      purposeTitle: 'Pedagogical Purpose',
+      purposeText: 'Understand how meaning is encoded across different dimensions of the vector space. What remains when we "switch off" parts?',
+      modeLabel: 'Elimination Mode',
+      dimensionRange: 'Dimension Range',
+      selected: 'Selected',
+      dimensions: 'Dimensions',
+      emptyTitle: 'Waiting for generation...',
+      emptySubtitle: 'Results will appear here',
+      referenceLabel: 'Reference Image',
+      referenceDesc: 'Unmanipulated output (original)',
+      innerLabel: 'Inner range eliminated',
+      outerLabel: 'Outer range eliminated'
+    },
+    surrealizer: {
+      infoTitle: 'Surrealizer - Dual-Encoder Fusion',
+      infoDescription: 'This workflow uses two different text encoders (CLIP and T5) and fuses their outputs. Each encoder "understands" text differently - CLIP through image-text pairs, T5 through pure language modeling.',
+      purposeTitle: 'Pedagogical Purpose',
+      purposeText: 'Explore the different "worldviews" of different AI architectures. How does the visual interpretation change depending on encoder weighting?'
     }
   }
 }

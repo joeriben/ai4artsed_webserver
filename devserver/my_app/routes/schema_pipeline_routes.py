@@ -2055,6 +2055,19 @@ def generation_endpoint():
         if alpha_factor is not None:
             custom_params['alpha_factor'] = alpha_factor
 
+        # Session 116 Port: Extract LoRAs from interception config
+        if interception_config:
+            try:
+                cfg_name = f'interception/{interception_config}' if '/' not in interception_config else interception_config
+                interception_cfg = pipeline_executor.config_loader.get_config(cfg_name)
+                if interception_cfg and hasattr(interception_cfg, 'meta') and interception_cfg.meta:
+                    config_loras = interception_cfg.meta.get('loras', [])
+                    if config_loras:
+                        custom_params['loras'] = config_loras
+                        logger.info(f"[GENERATION-LORA] Extracted {len(config_loras)} LoRA(s) from '{interception_config}': {[l['name'] for l in config_loras]}")
+            except Exception as e:
+                logger.warning(f"[GENERATION-LORA] Could not load config '{interception_config}': {e}")
+
         # Create context override if we have custom params
         from schemas.engine.pipeline_executor import PipelineContext
         context_override = None
@@ -2230,7 +2243,8 @@ def generation_endpoint():
             'status': 'success',
             'media_output': media_output,
             'run_id': run_id,
-            'duration_ms': duration_ms
+            'duration_ms': duration_ms,
+            'loras': custom_params.get('loras', [])
         })
 
     except Exception as e:
@@ -2280,6 +2294,13 @@ def legacy_workflow():
         prompt1 = data.get('prompt1')  # For split_and_combine
         prompt2 = data.get('prompt2')  # For split_and_combine
         combination_type = data.get('combination_type')  # For split_and_combine
+        # Partial elimination dimension parameters (calculated by frontend)
+        inner_start = data.get('inner_start')
+        inner_num = data.get('inner_num')
+        outer_1_start = data.get('outer_1_start')
+        outer_1_num = data.get('outer_1_num')
+        outer_2_start = data.get('outer_2_start')
+        outer_2_num = data.get('outer_2_num')
 
         if not prompt or not output_config:
             return jsonify({'status': 'error', 'error': 'prompt und output_config sind erforderlich'}), 400
@@ -2341,6 +2362,19 @@ def legacy_workflow():
             custom_params['prompt2'] = prompt2
         if combination_type is not None:
             custom_params['combination_type'] = combination_type
+        # Partial elimination dimension parameters
+        if inner_start is not None:
+            custom_params['inner_start'] = inner_start
+        if inner_num is not None:
+            custom_params['inner_num'] = inner_num
+        if outer_1_start is not None:
+            custom_params['outer_1_start'] = outer_1_start
+        if outer_1_num is not None:
+            custom_params['outer_1_num'] = outer_1_num
+        if outer_2_start is not None:
+            custom_params['outer_2_start'] = outer_2_start
+        if outer_2_num is not None:
+            custom_params['outer_2_num'] = outer_2_num
 
         from schemas.engine.pipeline_executor import PipelineContext
         context_override = None
@@ -2549,7 +2583,8 @@ def interception_pipeline():
         # This ensures strict parallelization across all legacy workflows
         custom_params = {}
         logger.info(f"[EXTRACT-DEBUG] Request data keys: {list(data.keys())}")
-        for param_name in ['prompt1', 'prompt2', 'combination_type', 'mode', 'alpha_factor']:
+        for param_name in ['prompt1', 'prompt2', 'combination_type', 'mode', 'alpha_factor',
+                           'inner_start', 'inner_num', 'outer_1_start', 'outer_1_num', 'outer_2_start', 'outer_2_num']:
             if param_name in data:
                 value = data.get(param_name)
                 logger.info(f"[EXTRACT-DEBUG] Extracted {param_name} = {repr(value)}")
@@ -4249,6 +4284,11 @@ def pipeline_configs_with_properties():
                 # Add media preferences
                 if "media_preferences" in config_data:
                     metadata["media_preferences"] = config_data["media_preferences"]
+
+                # Session 116: Add LoRA info from meta for frontend display
+                meta = config_data.get("meta", {})
+                if meta.get("loras"):
+                    metadata["loras"] = meta["loras"]
 
                 # Add owner info
                 metadata["owner"] = owner
