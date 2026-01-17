@@ -2056,10 +2056,10 @@ def generation_endpoint():
             custom_params['alpha_factor'] = alpha_factor
 
         # Session 116 Port: Extract LoRAs from interception config
+        # Note: interception configs are stored by stem only (e.g. "cooked_negatives", not "interception/cooked_negatives")
         if interception_config:
             try:
-                cfg_name = f'interception/{interception_config}' if '/' not in interception_config else interception_config
-                interception_cfg = pipeline_executor.config_loader.get_config(cfg_name)
+                interception_cfg = pipeline_executor.config_loader.get_config(interception_config)
                 if interception_cfg and hasattr(interception_cfg, 'meta') and interception_cfg.meta:
                     config_loras = interception_cfg.meta.get('loras', [])
                     if config_loras:
