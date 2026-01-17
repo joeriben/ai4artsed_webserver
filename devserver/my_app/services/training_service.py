@@ -4,9 +4,18 @@ import subprocess
 import threading
 import time
 import toml
+import gc
+import requests
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 import logging
+
+# Optional torch import for VRAM management
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
 
 from config import (
     KOHYA_DIR,
@@ -17,7 +26,8 @@ from config import (
     SD35_LARGE_MODEL_PATH,
     CLIP_L_PATH,
     CLIP_G_PATH,
-    T5XXL_PATH
+    T5XXL_PATH,
+    OLLAMA_API_BASE_URL
 )
 
 # Logger Setup
@@ -72,6 +82,162 @@ class TrainingService:
             logger.error(f"Failed to detect VRAM: {e}")
             return 24 # Fallback assumption (Consumer High-End)
 
+    def _get_vram_status(self) -> Dict[str, Any]:
+        """
+        Query nvidia-smi for detailed VRAM status.
+        Returns dict with total_gb, used_gb, free_gb, usage_percent.
+        """
+        try:
+            result = subprocess.check_output(
+                ["nvidia-smi", "--query-gpu=memory.total,memory.used,memory.free",
+                 "--format=csv,noheader,nounits"],
+                encoding="utf-8"
+            )
+
+            lines = result.strip().split('\n')
+            if not lines:
+                return {"error": "No GPU detected", "total_gb": 0, "used_gb": 0, "free_gb": 0, "usage_percent": 0}
+
+            # Parse first GPU
+            parts = lines[0].strip().split(', ')
+            total_mib = int(parts[0])
+            used_mib = int(parts[1])
+            free_mib = int(parts[2])
+
+            total_gb = round(total_mib / 1024, 1)
+            used_gb = round(used_mib / 1024, 1)
+            free_gb = round(free_mib / 1024, 1)
+            usage_percent = round((used_mib / total_mib) * 100, 1) if total_mib > 0 else 0
+
+            return {
+                "total_gb": total_gb,
+                "used_gb": used_gb,
+                "free_gb": free_gb,
+                "usage_percent": usage_percent
+            }
+        except Exception as e:
+            logger.error(f"Failed to get VRAM status: {e}")
+            return {"error": str(e), "total_gb": 0, "used_gb": 0, "free_gb": 0, "usage_percent": 0}
+
+    def clear_vram_thoroughly(self) -> Dict[str, Any]:
+        """
+        Thoroughly clears VRAM by:
+        1. Python garbage collection
+        2. torch.cuda.empty_cache() + synchronize
+        3. Unload ComfyUI models via /free endpoint
+        4. Unload Ollama models via keep_alive=0
+        5. Wait and do final cleanup pass
+
+        Returns dict with cleanup results and before/after VRAM stats.
+        """
+        results = {
+            "before": self._get_vram_status(),
+            "actions": [],
+            "errors": [],
+            "after": None
+        }
+
+        # Step 1: Python garbage collection
+        try:
+            gc.collect()
+            results["actions"].append("gc.collect() completed")
+        except Exception as e:
+            results["errors"].append(f"gc.collect failed: {e}")
+
+        # Step 2: PyTorch CUDA cleanup
+        if TORCH_AVAILABLE:
+            try:
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                    results["actions"].append("torch.cuda.empty_cache() + synchronize() completed")
+            except Exception as e:
+                results["errors"].append(f"torch CUDA cleanup failed: {e}")
+        else:
+            results["actions"].append("torch not available, skipping CUDA cleanup")
+
+        # Step 3: Unload ComfyUI models
+        try:
+            response = requests.post(
+                "http://127.0.0.1:7821/free",
+                json={"unload_models": True},
+                timeout=30
+            )
+            if response.status_code == 200:
+                results["actions"].append("ComfyUI models unloaded")
+            else:
+                results["actions"].append(f"ComfyUI returned status {response.status_code}")
+        except requests.exceptions.ConnectionError:
+            results["actions"].append("ComfyUI not running (OK)")
+        except Exception as e:
+            results["errors"].append(f"ComfyUI unload failed: {e}")
+
+        # Step 4: Unload Ollama models
+        try:
+            # Get list of loaded models
+            loaded_response = requests.get(
+                f"{OLLAMA_API_BASE_URL}/api/ps",
+                timeout=10
+            )
+
+            if loaded_response.status_code == 200:
+                loaded_data = loaded_response.json()
+                models = loaded_data.get("models", [])
+
+                if not models:
+                    results["actions"].append("Ollama: no models loaded")
+                else:
+                    unloaded = []
+                    for model_info in models:
+                        model_name = model_info.get("name", "")
+                        if model_name:
+                            try:
+                                requests.post(
+                                    f"{OLLAMA_API_BASE_URL}/api/generate",
+                                    json={
+                                        "model": model_name,
+                                        "prompt": "",
+                                        "keep_alive": 0,
+                                        "stream": False
+                                    },
+                                    timeout=30
+                                )
+                                unloaded.append(model_name)
+                            except Exception:
+                                pass
+
+                    if unloaded:
+                        results["actions"].append(f"Ollama unloaded: {', '.join(unloaded)}")
+                    else:
+                        results["actions"].append("Ollama: no models to unload")
+        except requests.exceptions.ConnectionError:
+            results["actions"].append("Ollama not running (OK)")
+        except Exception as e:
+            results["errors"].append(f"Ollama unload failed: {e}")
+
+        # Step 5: Wait for VRAM to actually free
+        time.sleep(3)
+
+        # Step 6: Final cleanup pass
+        try:
+            gc.collect()
+            if TORCH_AVAILABLE and torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            results["actions"].append("Final cleanup pass completed")
+        except Exception as e:
+            results["errors"].append(f"Final cleanup failed: {e}")
+
+        # Get final VRAM status
+        results["after"] = self._get_vram_status()
+
+        # Calculate freed memory
+        if results["before"].get("used_gb") and results["after"].get("used_gb"):
+            freed_gb = results["before"]["used_gb"] - results["after"]["used_gb"]
+            results["freed_gb"] = round(freed_gb, 1)
+            logger.info(f"VRAM cleanup freed {freed_gb:.1f} GB")
+
+        return results
+
     def calculate_training_params(self, vram_gb: int) -> Dict[str, Any]:
         """
         Determines optimal training parameters based on VRAM.
@@ -89,7 +255,13 @@ class TrainingService:
             "workers": 4
         }
 
-        if vram_gb >= 80: # A100 80G, H100, or Multi-GPU setups acting as one
+        if vram_gb >= 90: # RTX 6000 Ada 96GB (or A100 80G+, H100, etc.)
+            params.update({
+                "batch_size": 8,
+                "gradient_checkpointing": False, # Max speed with abundant VRAM
+                "workers": 16
+            })
+        elif vram_gb >= 80: # A100 80G, H100, or Multi-GPU setups acting as one
             params.update({
                 "batch_size": 8,
                 "gradient_checkpointing": False, # Max speed
@@ -210,13 +382,16 @@ class TrainingService:
                 "mixed_precision": "bf16",
                 "max_train_epochs": 10,
                 "save_every_n_epochs": 2,
-                "learning_rate": 4e-4, 
+                "learning_rate": 4e-4,
                 "lr_scheduler": "cosine",
                 "optimizer_type": "AdamW8bit",
                 "gradient_checkpointing": params["gradient_checkpointing"],
-                "gradient_accumulation_steps": 1, 
+                "gradient_accumulation_steps": 1,
                 "cache_latents": True,
                 "cache_latents_to_disk": params["cache_latents_to_disk"],
+                # Text encoder output caching for memory efficiency
+                "cache_text_encoder_outputs": True,
+                "cache_text_encoder_outputs_to_disk": True,
                 "logging_dir": str(LOG_DIR),
                 "bf16": True,
                 "persistent_data_loader_workers": params["persistent_workers"],
@@ -233,18 +408,65 @@ class TrainingService:
             }
         }
 
-    def start_training_process(self, project_name: str):
-        """Starts the training subprocess."""
+    def start_training_process(self, project_name: str, auto_clear_vram: bool = True, min_free_gb: float = 50.0):
+        """
+        Starts the training subprocess.
+
+        Args:
+            project_name: Name of the project to train
+            auto_clear_vram: If True, automatically clears VRAM before training
+            min_free_gb: Minimum free VRAM in GB required to start training
+
+        Returns:
+            True if training started, False if already training
+
+        Raises:
+            FileNotFoundError: If config not found
+            RuntimeError: If insufficient VRAM after clearing
+        """
         if self._training_status["is_training"]:
             return False
 
         safe_name = "".join([c for c in project_name if c.isalnum() or c in ('-', '_')])
         config_path = DATASET_BASE_DIR / safe_name / "train_config.toml"
-        
+
         if not config_path.exists():
             raise FileNotFoundError(f"Config not found for project {safe_name}")
 
         self._reset_status(safe_name)
+
+        # Auto-clear VRAM if enabled
+        if auto_clear_vram:
+            self._append_log("Checking VRAM status...")
+            vram_status = self._get_vram_status()
+
+            if vram_status.get("free_gb", 0) < min_free_gb:
+                self._append_log(f"Free VRAM: {vram_status.get('free_gb', 0):.1f} GB (need {min_free_gb:.1f} GB)")
+                self._append_log("Clearing VRAM... (unloading ComfyUI, Ollama)")
+
+                cleanup_result = self.clear_vram_thoroughly()
+
+                for action in cleanup_result.get("actions", []):
+                    self._append_log(f"  • {action}")
+
+                if cleanup_result.get("freed_gb"):
+                    self._append_log(f"Freed {cleanup_result['freed_gb']:.1f} GB VRAM")
+
+                # Check if we have enough now
+                final_status = cleanup_result.get("after", {})
+                if final_status.get("free_gb", 0) < min_free_gb:
+                    error_msg = (
+                        f"Insufficient VRAM after cleanup: {final_status.get('free_gb', 0):.1f} GB free "
+                        f"(need {min_free_gb:.1f} GB). Close other GPU applications and try again."
+                    )
+                    self._append_log(f"ERROR: {error_msg}")
+                    self._training_status["error"] = error_msg
+                    raise RuntimeError(error_msg)
+
+                self._append_log(f"VRAM ready: {final_status.get('free_gb', 0):.1f} GB free")
+            else:
+                self._append_log(f"VRAM OK: {vram_status.get('free_gb', 0):.1f} GB free")
+
         self._training_status["is_training"] = True
 
         # Construct Command
@@ -274,10 +496,10 @@ class TrainingService:
                         self._append_log(line)
                         if "steps:" in line.lower():
                             pass
-                    
+
                     self._current_process.stdout.close()
                 return_code = self._current_process.wait()
-                
+
                 if return_code == 0:
                     self._append_log("TRAINING SUCCESSFUL! LoRA saved to ComfyUI.")
                 else:
@@ -288,14 +510,27 @@ class TrainingService:
                 self._append_log(f"CRITICAL ERROR: {str(e)}")
                 self._training_status["error"] = str(e)
             finally:
+                # Post-training cleanup
+                self._post_training_cleanup()
                 self._training_status["is_training"] = False
                 self._current_process = None
 
         # Run in separate thread to not block API
         t = threading.Thread(target=run_proc, daemon=True)
         t.start()
-        
+
         return True
+
+    def _post_training_cleanup(self):
+        """Clean up VRAM after training completes."""
+        try:
+            self._append_log("Running post-training cleanup...")
+            gc.collect()
+            if TORCH_AVAILABLE and torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            self._append_log("Cleanup complete.")
+        except Exception as e:
+            logger.error(f"Post-training cleanup failed: {e}")
 
     def stop_training(self):
         if self._current_process:
@@ -321,8 +556,22 @@ class TrainingService:
                 return False
         return True # Already deleted or didn't exist
 
-    def get_status(self):
-        return self._training_status
+    def get_status(self, include_vram: bool = True):
+        """
+        Get current training status.
+
+        Args:
+            include_vram: If True, includes current VRAM metrics
+
+        Returns:
+            Dict with training status and optionally VRAM info
+        """
+        status = self._training_status.copy()
+
+        if include_vram:
+            status["vram"] = self._get_vram_status()
+
+        return status
 
     def _reset_status(self, project_name):
         self._training_status = {

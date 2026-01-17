@@ -6,6 +6,42 @@
       Optimized for NVIDIA RTX 6000 Ada (96GB).
     </p>
 
+    <!-- Training Info Box -->
+    <div class="training-info-box" :class="{ 'expanded': infoExpanded }">
+      <div class="info-header" @click="toggleInfo">
+        <span class="info-icon">ℹ️</span>
+        <span class="info-title">{{ t('training.info.title') }}</span>
+        <span class="info-toggle">{{ infoExpanded ? t('training.info.showLess') : t('training.info.showMore') }}</span>
+      </div>
+
+      <div v-if="infoExpanded" class="info-content">
+        <p>{{ t('training.info.description') }}</p>
+
+        <div class="limitations">
+          <strong>{{ t('training.info.limitations') }}:</strong>
+          <ul>
+            <li>{{ t('training.info.limitationDuration') }}</li>
+            <li>{{ t('training.info.limitationBlocking') }}</li>
+            <li>{{ t('training.info.limitationConfig') }}</li>
+          </ul>
+        </div>
+
+        <div class="recommendation">
+          <p>{{ t('training.info.recommendation') }}</p>
+          <div class="fluxgym-box">
+            <div class="fluxgym-header">
+              <span class="fluxgym-icon">🚀</span>
+              <strong>{{ t('training.info.fluxgymTitle') }}</strong>
+            </div>
+            <p>{{ t('training.info.fluxgymDesc') }}</p>
+            <a href="/docs/LORA_TRAINING_EXTERNAL.md" target="_blank" class="fluxgym-link">
+              → {{ t('training.info.fluxgymLink') }}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- VRAM Confirmation Dialog -->
     <div v-if="showVramDialog" class="vram-dialog-overlay">
       <div class="vram-dialog">
@@ -142,7 +178,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import axios from 'axios';
+
+const { t } = useI18n();
 
 const project_name = ref('');
 const trigger_word = ref('');
@@ -179,6 +218,16 @@ const vramLoading = ref(false);
 const vramClearing = ref(false);
 const vramInfo = ref<VramInfo | null>(null);
 const vramClearResult = ref<VramClearResult | null>(null);
+
+// Info box state - collapsed after first visit
+const infoExpanded = ref(!localStorage.getItem('training_info_seen'));
+
+const toggleInfo = () => {
+  infoExpanded.value = !infoExpanded.value;
+  if (!infoExpanded.value) {
+    localStorage.setItem('training_info_seen', 'true');
+  }
+};
 
 const canStart = computed(() => {
   return project_name.value.length > 3 && images.value.length >= 5;
@@ -773,5 +822,137 @@ input {
 .cancel-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Training Info Box Styles */
+.training-info-box {
+  background: rgba(100, 100, 255, 0.08);
+  border: 1px solid rgba(100, 100, 255, 0.2);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.training-info-box.expanded {
+  background: rgba(100, 100, 255, 0.1);
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.info-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.info-icon {
+  font-size: 1.2rem;
+  margin-right: 0.8rem;
+}
+
+.info-title {
+  flex: 1;
+  font-weight: 600;
+  color: #aaccff;
+}
+
+.info-toggle {
+  font-size: 0.85rem;
+  color: #888;
+  transition: color 0.2s;
+}
+
+.info-header:hover .info-toggle {
+  color: #00ffff;
+}
+
+.info-content {
+  padding: 0 1.2rem 1.2rem 1.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.info-content p {
+  margin: 1rem 0;
+  color: #bbb;
+  line-height: 1.5;
+}
+
+.limitations {
+  margin: 1rem 0;
+}
+
+.limitations strong {
+  color: #ff9966;
+}
+
+.limitations ul {
+  margin: 0.5rem 0 0 1.5rem;
+  padding: 0;
+  color: #aaa;
+}
+
+.limitations li {
+  margin-bottom: 0.4rem;
+}
+
+.recommendation {
+  margin-top: 1.2rem;
+}
+
+.recommendation > p {
+  margin-bottom: 0.8rem;
+  color: #aaa;
+}
+
+.fluxgym-box {
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.fluxgym-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.fluxgym-header strong {
+  color: #00ff88;
+}
+
+.fluxgym-icon {
+  font-size: 1.1rem;
+}
+
+.fluxgym-box p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.fluxgym-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: #00ffff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.fluxgym-link:hover {
+  color: #00ff88;
+  text-decoration: underline;
 }
 </style>

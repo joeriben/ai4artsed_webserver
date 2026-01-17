@@ -251,6 +251,22 @@ const messages = {
       resultPlaceholder: 'Prompt erscheint nach Start-Klick (oder eigenen Text eingeben)',
       optimizedLabel: 'Modell-Optimierter Prompt',
       optimizedPlaceholder: 'Der optimierte Prompt erscheint nach Modellauswahl.'
+    },
+    training: {
+      info: {
+        title: 'Hinweis zum LoRA-Training',
+        description: 'Dieses eingebaute Training ist für schnelle Tests gedacht.',
+        limitations: 'Einschränkungen',
+        limitationDuration: 'Training dauert 1-3 Stunden',
+        limitationBlocking: 'Blockiert die Bildgenerierung während des Trainings',
+        limitationConfig: 'Begrenzte Konfigurationsmöglichkeiten',
+        recommendation: 'Für professionelles Training empfehlen wir:',
+        fluxgymTitle: 'FluxGym (empfohlen)',
+        fluxgymDesc: 'Einfache Web-Oberfläche für LoRA-Training',
+        fluxgymLink: 'Anleitung ansehen',
+        showMore: 'Mehr erfahren',
+        showLess: 'Weniger anzeigen'
+      }
     }
   },
   en: {
@@ -503,6 +519,22 @@ const messages = {
       resultPlaceholder: 'Prompt will appear after clicking start (or enter your own text)',
       optimizedLabel: 'Model-Optimized Prompt',
       optimizedPlaceholder: 'The optimized prompt will appear after model selection.'
+    },
+    training: {
+      info: {
+        title: 'About LoRA Training',
+        description: 'This built-in training is designed for quick tests.',
+        limitations: 'Limitations',
+        limitationDuration: 'Training takes 1-3 hours',
+        limitationBlocking: 'Blocks image generation during training',
+        limitationConfig: 'Limited configuration options',
+        recommendation: 'For professional training we recommend:',
+        fluxgymTitle: 'FluxGym (recommended)',
+        fluxgymDesc: 'Simple web interface for LoRA training',
+        fluxgymLink: 'View guide',
+        showMore: 'Learn more',
+        showLess: 'Show less'
+      }
     }
   }
 }
