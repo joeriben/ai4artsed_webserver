@@ -149,6 +149,10 @@ def lookup_output_config(media_type: str, execution_mode: str = 'eco') -> str:
 def _load_optimization_instruction(output_config_name: str):
     """Load optimization_instruction from output chunk meta."""
     try:
+        # Ensure pipeline_executor is initialized
+        if pipeline_executor is None:
+            init_schema_engine()
+
         logger.info(f"[LOAD-OPT] Loading optimization_instruction for config '{output_config_name}'")
 
         output_config_obj = pipeline_executor.config_loader.get_config(output_config_name)
@@ -192,6 +196,10 @@ def _load_estimated_duration(output_config_name: str) -> str:
         String value like "20-60", "5-15", "0", or "30" (fallback)
     """
     try:
+        # Ensure pipeline_executor is initialized
+        if pipeline_executor is None:
+            init_schema_engine()
+
         logger.info(f"[LOAD-DURATION] Loading estimated_duration_seconds for config '{output_config_name}'")
 
         output_config_obj = pipeline_executor.config_loader.get_config(output_config_name)
