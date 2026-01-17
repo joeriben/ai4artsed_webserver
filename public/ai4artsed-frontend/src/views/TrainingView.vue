@@ -34,7 +34,7 @@
               <strong>{{ t('training.info.fluxgymTitle') }}</strong>
             </div>
             <p>{{ t('training.info.fluxgymDesc') }}</p>
-            <a href="/docs/LORA_TRAINING_EXTERNAL.md" target="_blank" class="fluxgym-link">
+            <a href="https://github.com/cocktailpeanut/fluxgym" target="_blank" class="fluxgym-link">
               → {{ t('training.info.fluxgymLink') }}
             </a>
           </div>
