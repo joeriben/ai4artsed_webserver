@@ -2,6 +2,22 @@
   <div class="direct-view">
     <!-- Main Content -->
     <div class="main-container">
+      <!-- Info Box -->
+      <div class="info-box" :class="{ 'expanded': infoExpanded }">
+        <div class="info-header" @click="infoExpanded = !infoExpanded">
+          <span class="info-icon">ℹ️</span>
+          <span class="info-title">{{ t('splitCombine.infoTitle') }}</span>
+          <span class="info-toggle">{{ infoExpanded ? '▲' : '▼' }}</span>
+        </div>
+        <div v-if="infoExpanded" class="info-content">
+          <p>{{ t('splitCombine.infoDescription') }}</p>
+          <div class="info-purpose">
+            <strong>{{ t('splitCombine.purposeTitle') }}</strong>
+            <p>{{ t('splitCombine.purposeText') }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Input Section: Element 1 + Element 2 (Side by Side) -->
       <section class="input-context-section">
         <!-- Element 1 Bubble -->
@@ -98,16 +114,32 @@
                   <!-- Action Toolbar (vertical, right side) -->
                   <div class="action-toolbar">
                     <button class="action-btn" @click="saveMedia(idx)" disabled title="Merken (Coming Soon)">
-                      <span class="action-icon">⭐</span>
-                    </button>
-                    <button class="action-btn" @click="printImage(idx)" title="Drucken">
-                      <span class="action-icon">🖨️</span>
+                      <span class="action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                          <path d="M440-501Zm0 381L313-234q-72-65-123.5-116t-85-96q-33.5-45-49-87T40-621q0-94 63-156.5T260-840q52 0 99 22t81 62q34-40 81-62t99-22q81 0 136 45.5T831-680h-85q-18-40-53-60t-73-20q-51 0-88 27.5T463-660h-46q-31-45-70.5-72.5T260-760q-57 0-98.5 39.5T120-621q0 33 14 67t50 78.5q36 44.5 98 104T440-228q26-23 61-53t56-50l9 9 19.5 19.5L605-283l9 9q-22 20-56 49.5T498-172l-58 52Zm280-160v-120H600v-80h120v-120h80v120h120v80H800v120h-80Z"/>
+                        </svg>
+                      </span>
                     </button>
                     <button class="action-btn" @click="sendToI2I(idx)" title="Weiterreichen zu Bild-Transformation">
-                      <span class="action-icon">➡️</span>
+                      <span class="action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                          <path d="M480-480ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h320v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm40-160h480L570-480 450-320l-90-120-120 160Zm480-280v-167l-64 63-56-56 160-160 160 160-56 56-64-63v167h-80Z"/>
+                        </svg>
+                      </span>
                     </button>
                     <button class="action-btn" @click="downloadMedia(idx)" title="Herunterladen">
-                      <span class="action-icon">💾</span>
+                      <span class="action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                          <path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/>
+                        </svg>
+                      </span>
+                    </button>
+                    <button class="action-btn" @click="printImage(idx)" title="Drucken">
+                      <span class="action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                          <path d="M640-640v-120H320v120h-80v-200h480v200h-80Zm-480 80h640-640Zm560 100q17 0 28.5-11.5T760-500q0-17-11.5-28.5T720-540q-17 0-28.5 11.5T680-500q0 17 11.5 28.5T720-460Zm-80 260v-160H320v160h320Zm80 80H240v-160H80v-240q0-51 35-85.5t85-34.5h560q51 0 85.5 34.5T880-520v240H720v160Zm80-240v-160q0-17-11.5-28.5T760-560H200q-17 0-28.5 11.5T160-520v160h80v-80h480v80h80Z"/>
+                        </svg>
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -139,6 +171,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
@@ -164,6 +197,12 @@ const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 // Router for navigation
 const router = useRouter()
+
+// i18n
+const { t } = useI18n()
+
+// Info box state
+const infoExpanded = ref(false)
 
 const prompt1 = ref('')
 const prompt2 = ref('')
@@ -504,6 +543,72 @@ async function downloadMedia(idx: number) {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+}
+
+/* ============================================================================
+   Info Box
+   ============================================================================ */
+
+.info-box {
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  gap: 0.75rem;
+}
+
+.info-header:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.info-icon {
+  font-size: 1.25rem;
+}
+
+.info-title {
+  flex: 1;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.info-toggle {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+}
+
+.info-content {
+  padding: 0 1.5rem 1.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+.info-content p {
+  margin: 0 0 1rem 0;
+}
+
+.info-purpose {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.info-purpose strong {
+  color: rgba(255, 255, 255, 0.9);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.info-purpose p {
+  margin: 0;
 }
 
 /* ============================================================================

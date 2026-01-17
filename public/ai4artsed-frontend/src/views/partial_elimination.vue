@@ -2,6 +2,22 @@
   <div class="direct-view">
     <!-- Main Content -->
     <div class="main-container">
+      <!-- Info Box -->
+      <div class="info-box" :class="{ 'expanded': infoExpanded }">
+        <div class="info-header" @click="infoExpanded = !infoExpanded">
+          <span class="info-icon">ℹ️</span>
+          <span class="info-title">{{ t('partialElimination.infoTitle') }}</span>
+          <span class="info-toggle">{{ infoExpanded ? '▲' : '▼' }}</span>
+        </div>
+        <div v-if="infoExpanded" class="info-content">
+          <p>{{ t('partialElimination.infoDescription') }}</p>
+          <div class="info-purpose">
+            <strong>{{ t('partialElimination.purposeTitle') }}</strong>
+            <p>{{ t('partialElimination.purposeText') }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Input Section -->
       <section class="input-section">
         <MediaInputBox
@@ -20,7 +36,7 @@
         <div class="section-card">
           <div class="card-header">
             <span class="card-icon">🎛️</span>
-            <span class="card-label">Eliminationsmodus</span>
+            <span class="card-label">{{ t('partialElimination.modeLabel') }}</span>
           </div>
           <div class="dropdown-container">
             <select v-model="eliminationMode" class="mode-select">
@@ -30,6 +46,51 @@
               <option value="zero_out">Zero Out (Nullsetzen)</option>
             </select>
             <div class="mode-description">{{ modeDescription }}</div>
+          </div>
+        </div>
+
+        <!-- Dimension Range Selector -->
+        <div class="section-card">
+          <div class="card-header">
+            <span class="card-icon">📊</span>
+            <span class="card-label">{{ t('partialElimination.dimensionRange') }}</span>
+          </div>
+
+          <!-- Visual Dimension Bar -->
+          <div class="dimension-bar-container">
+            <div class="dimension-bar">
+              <div class="dimension-fill"
+                   :style="{
+                     left: (dimensionStart / 4096 * 100) + '%',
+                     width: ((dimensionEnd - dimensionStart) / 4096 * 100) + '%'
+                   }">
+              </div>
+            </div>
+            <div class="dimension-labels">
+              <span>0</span>
+              <span>1024</span>
+              <span>2048</span>
+              <span>3072</span>
+              <span>4096</span>
+            </div>
+          </div>
+
+          <!-- Dual Handle Slider -->
+          <div class="dual-slider-container">
+            <input type="range" min="0" max="4096" step="64"
+                   v-model.number="dimensionStart"
+                   class="slider-track slider-start"
+                   @input="clampStart" />
+            <input type="range" min="0" max="4096" step="64"
+                   v-model.number="dimensionEnd"
+                   class="slider-track slider-end"
+                   @input="clampEnd" />
+          </div>
+
+          <!-- Value Display -->
+          <div class="range-display">
+            <span>{{ t('partialElimination.selected') }}: <strong>{{ dimensionStart }} - {{ dimensionEnd }}</strong></span>
+            <span class="dim-count">({{ innerDimensions }} {{ t('partialElimination.dimensions') }})</span>
           </div>
         </div>
 
@@ -53,8 +114,8 @@
           <!-- State 1: Empty (before generation) -->
           <div v-if="!isExecuting && outputs.length === 0" class="empty-state">
             <div class="empty-icon">🖼️</div>
-            <p>Deine 3 Bildvarianten erscheinen hier</p>
-            <p class="empty-subtitle">Referenz · Erste Hälfte · Zweite Hälfte</p>
+            <p>{{ t('partialElimination.emptyTitle') }}</p>
+            <p class="empty-subtitle">{{ t('partialElimination.emptySubtitle') }}</p>
           </div>
 
           <!-- State 2: Generating (progress animation) -->
@@ -82,16 +143,32 @@
                   <!-- Action Toolbar (vertical, right side) -->
                   <div class="action-toolbar">
                     <button class="action-btn" @click="saveMedia(idx)" disabled title="Merken (Coming Soon)">
-                      <span class="action-icon">⭐</span>
-                    </button>
-                    <button class="action-btn" @click="printImage(idx)" title="Drucken">
-                      <span class="action-icon">🖨️</span>
+                      <span class="action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                          <path d="M440-501Zm0 381L313-234q-72-65-123.5-116t-85-96q-33.5-45-49-87T40-621q0-94 63-156.5T260-840q52 0 99 22t81 62q34-40 81-62t99-22q81 0 136 45.5T831-680h-85q-18-40-53-60t-73-20q-51 0-88 27.5T463-660h-46q-31-45-70.5-72.5T260-760q-57 0-98.5 39.5T120-621q0 33 14 67t50 78.5q36 44.5 98 104T440-228q26-23 61-53t56-50l9 9 19.5 19.5L605-283l9 9q-22 20-56 49.5T498-172l-58 52Zm280-160v-120H600v-80h120v-120h80v120h120v80H800v120h-80Z"/>
+                        </svg>
+                      </span>
                     </button>
                     <button class="action-btn" @click="sendToI2I(idx)" title="Weiterreichen zu Bild-Transformation">
-                      <span class="action-icon">➡️</span>
+                      <span class="action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                          <path d="M480-480ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h320v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm40-160h480L570-480 450-320l-90-120-120 160Zm480-280v-167l-64 63-56-56 160-160 160 160-56 56-64-63v167h-80Z"/>
+                        </svg>
+                      </span>
                     </button>
                     <button class="action-btn" @click="downloadMedia(idx)" title="Herunterladen">
-                      <span class="action-icon">💾</span>
+                      <span class="action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                          <path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/>
+                        </svg>
+                      </span>
+                    </button>
+                    <button class="action-btn" @click="printImage(idx)" title="Drucken">
+                      <span class="action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                          <path d="M640-640v-120H320v120h-80v-200h480v200h-80Zm-480 80h640-640Zm560 100q17 0 28.5-11.5T760-500q0-17-11.5-28.5T720-540q-17 0-28.5 11.5T680-500q0 17 11.5 28.5T720-460Zm-80 260v-160H320v160h320Zm80 80H240v-160H80v-240q0-51 35-85.5t85-34.5h560q51 0 85.5 34.5T880-520v240H720v160Zm80-240v-160q0-17-11.5-28.5T760-560H200q-17 0-28.5 11.5T160-520v160h80v-80h480v80h80Z"/>
+                        </svg>
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -123,6 +200,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
@@ -148,6 +226,18 @@ const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 // Router for navigation
 const router = useRouter()
+
+// i18n
+const { t } = useI18n()
+
+// Info box state
+const infoExpanded = ref(false)
+
+// Dual-handle slider for dimension range
+const dimensionStart = ref(0)
+const dimensionEnd = ref(2048)
+const previousStart = ref(0)
+const previousEnd = ref(2048)
 
 const inputText = ref('')
 const eliminationMode = ref('average')
@@ -178,6 +268,28 @@ const modeDescription = computed(() => {
   }
   return descriptions[eliminationMode.value] || ''
 })
+
+// Computed for dimension range
+const innerDimensions = computed(() => dimensionEnd.value - dimensionStart.value)
+
+// Clamping functions for valid range
+function clampStart() {
+  if (dimensionStart.value >= dimensionEnd.value - 64) {
+    dimensionStart.value = dimensionEnd.value - 64
+  }
+  if (dimensionStart.value < 0) {
+    dimensionStart.value = 0
+  }
+}
+
+function clampEnd() {
+  if (dimensionEnd.value <= dimensionStart.value + 64) {
+    dimensionEnd.value = dimensionStart.value + 64
+  }
+  if (dimensionEnd.value > 4096) {
+    dimensionEnd.value = 4096
+  }
+}
 
 // ============================================================================
 // Methods
@@ -210,21 +322,25 @@ async function executeWorkflow() {
     // Intelligent seed logic
     const promptChanged = inputText.value !== previousPrompt.value
     const modeChanged = eliminationMode.value !== previousMode.value
+    const rangeChanged = dimensionStart.value !== previousStart.value ||
+                         dimensionEnd.value !== previousEnd.value
 
-    if (promptChanged || modeChanged) {
-      // Prompt OR mode changed → Keep same seed (user wants to see parameter variation)
+    if (promptChanged || modeChanged || rangeChanged) {
+      // Parameter changed → Keep same seed (user wants to see parameter variation)
       if (currentSeed.value === null) {
         // First run → Use default seed
         currentSeed.value = 123456789
         console.log('[Seed Logic] First run → Default seed:', currentSeed.value)
       } else {
-        console.log('[Seed Logic] Prompt or mode changed → Keeping seed:', currentSeed.value)
+        console.log('[Seed Logic] Parameter changed → Keeping seed:', currentSeed.value)
       }
       // Update tracking variables
       previousPrompt.value = inputText.value
       previousMode.value = eliminationMode.value
+      previousStart.value = dimensionStart.value
+      previousEnd.value = dimensionEnd.value
     } else {
-      // Prompt AND mode unchanged → New random seed (user wants different variation)
+      // All parameters unchanged → New random seed (user wants different variation)
       currentSeed.value = Math.floor(Math.random() * 2147483647)
       console.log('[Seed Logic] No changes → New random seed:', currentSeed.value)
     }
@@ -235,7 +351,9 @@ async function executeWorkflow() {
       output_config: 'partial_elimination_legacy',
       safety_level: 'open',
       mode: eliminationMode.value,
-      seed: currentSeed.value
+      seed: currentSeed.value,
+      start_dimension: dimensionStart.value,
+      end_dimension: dimensionEnd.value
     })
 
     if (response.data.status === 'success') {
@@ -280,10 +398,13 @@ async function fetchAllOutputs(runId: string) {
       const imagesResponse = await axios.get(`/api/media/images/${runId}`)
 
       if (imagesResponse.data.images && imagesResponse.data.images.length > 0) {
+        // Dynamic labels based on selected dimension range
+        const start = dimensionStart.value
+        const end = dimensionEnd.value
         const labels = [
-          { label: 'Referenzbild', description: 'Unmanipulierte Ausgabe (Original)' },
-          { label: 'Erste Hälfte eliminiert', description: `Dimensionen 0-2047 (${eliminationMode.value})` },
-          { label: 'Zweite Hälfte eliminiert', description: `Dimensionen 2048-4095 (${eliminationMode.value})` }
+          { label: t('partialElimination.referenceLabel'), description: t('partialElimination.referenceDesc') },
+          { label: t('partialElimination.innerLabel'), description: `Dimensionen ${start}-${end} (${eliminationMode.value})` },
+          { label: t('partialElimination.outerLabel'), description: `Dimensionen 0-${start} + ${end}-4096 (${eliminationMode.value})` }
         ]
 
         // Add the 3 individual images
@@ -461,6 +582,72 @@ async function downloadMedia(idx: number) {
 }
 
 /* ============================================================================
+   Info Box
+   ============================================================================ */
+
+.info-box {
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  gap: 0.75rem;
+}
+
+.info-header:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.info-icon {
+  font-size: 1.25rem;
+}
+
+.info-title {
+  flex: 1;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.info-toggle {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+}
+
+.info-content {
+  padding: 0 1.5rem 1.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+.info-content p {
+  margin: 0 0 1rem 0;
+}
+
+.info-purpose {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.info-purpose strong {
+  color: rgba(255, 255, 255, 0.9);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.info-purpose p {
+  margin: 0;
+}
+
+/* ============================================================================
    Sections
    ============================================================================ */
 
@@ -572,6 +759,132 @@ async function downloadMedia(idx: number) {
   color: rgba(255, 255, 255, 0.6);
   font-style: italic;
   padding-left: 0.5rem;
+}
+
+/* ============================================================================
+   Dimension Range Selector
+   ============================================================================ */
+
+.dimension-bar-container {
+  margin-bottom: 1.5rem;
+}
+
+.dimension-bar {
+  height: 24px;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 12px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.dimension-fill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  transition: all 0.1s ease;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+.dimension-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.25rem 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.dual-slider-container {
+  position: relative;
+  height: 40px;
+  margin: 1rem 0;
+}
+
+.dual-slider-container input[type="range"] {
+  position: absolute;
+  width: 100%;
+  height: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.dual-slider-container .slider-start {
+  z-index: 1;
+}
+
+.dual-slider-container .slider-end {
+  z-index: 2;
+}
+
+.dual-slider-container input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  background: transparent;
+  border-radius: 4px;
+}
+
+.dual-slider-container input[type="range"]::-moz-range-track {
+  height: 8px;
+  background: transparent;
+  border-radius: 4px;
+}
+
+.dual-slider-container input[type="range"]::-webkit-slider-thumb {
+  pointer-events: all;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 3px solid white;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dual-slider-container input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.6);
+}
+
+.dual-slider-container input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+
+.dual-slider-container input[type="range"]::-moz-range-thumb {
+  pointer-events: all;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 3px solid white;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.range-display {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+}
+
+.range-display strong {
+  color: #667eea;
+  font-size: 1.1rem;
+}
+
+.dim-count {
+  display: block;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.25rem;
 }
 
 /* ============================================================================
