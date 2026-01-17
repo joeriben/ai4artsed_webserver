@@ -203,8 +203,8 @@
           </div>
         </section>
 
-        <!-- Section 4: Optimized Prompt Preview (Always shown after model selection) -->
-        <section v-if="selectedConfig" class="optimization-section">
+        <!-- Section 4: Optimized Prompt Preview (Always visible, disabled until model selected) -->
+        <section class="optimization-section">
           <MediaInputBox
             icon="✨"
             :label="$t('textTransform.optimizedLabel')"
@@ -215,6 +215,7 @@
             resize-type="auto"
             :is-empty="!optimizedPrompt"
             :is-loading="isOptimizationLoading"
+            :disabled="!selectedConfig"
             loading-message="Der Prompt wird jetzt für das gewählte Modell angepasst. Jedes Modell versteht Beschreibungen etwas anders – die KI optimiert den Text für die beste Ausgabe."
             :enable-streaming="true"
             :stream-url="optimizationStreamingUrl"

@@ -71,7 +71,8 @@
       @input="handleInput"
       :placeholder="placeholder"
       :rows="rows"
-      :class="['bubble-textarea', resizeClass]"
+      :disabled="disabled"
+      :class="['bubble-textarea', resizeClass, { disabled: disabled }]"
     ></textarea>
 
     <!-- Content: Image Input -->
@@ -122,6 +123,7 @@ interface Props {
   showPaste?: boolean
   showClear?: boolean
   initialImage?: string
+  disabled?: boolean
   // Streaming props
   enableStreaming?: boolean
   streamUrl?: string
@@ -141,7 +143,8 @@ const props = withDefaults(defineProps<Props>(), {
   showCopy: true,
   showPaste: true,
   showClear: true,
-  initialImage: undefined
+  initialImage: undefined,
+  disabled: false
 })
 
 const emit = defineEmits<{
@@ -486,6 +489,12 @@ onUnmounted(() => {
 
 .bubble-textarea::placeholder {
   color: rgba(255, 255, 255, 0.4);
+}
+
+.bubble-textarea.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: rgba(30, 30, 30, 0.6);
 }
 
 /* Resize Types */
