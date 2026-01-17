@@ -503,25 +503,26 @@
     "fallback_node": "26",
     "fallback_field": "inputs.value"
   },
-  "parameter_injection": [
-    {
-      "param_name": "mode",
-      "node_id": "49",
-      "field": "inputs.mode",
-      "default": "average"
-    },
-    {
-      "param_name": "mode",
-      "node_id": "77",
-      "field": "inputs.mode",
-      "default": "average"
-    },
-    {
-      "param_name": "seed",
-      "node_id": "3",
-      "field": "inputs.seed"
+  "input_mappings": {
+    "mode": [
+      {
+        "node_id": "49",
+        "field": "inputs.mode",
+        "default": "average"
+      },
+      {
+        "node_id": "77",
+        "field": "inputs.mode",
+        "default": "average"
+      }
+    ],
+    "seed": {
+      "node_id": "53",
+      "field": "inputs.value",
+      "default": "random",
+      "description": "Random seed for KSampler (shared via PrimitiveInt node)"
     }
-  ],
+  },
   "output_labels": [
     {
       "index": 0,

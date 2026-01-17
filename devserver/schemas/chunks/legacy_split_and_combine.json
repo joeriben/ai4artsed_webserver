@@ -498,7 +498,13 @@
         "node_id": "137",
         "field": "inputs.value"
       }
-    ]
+    ],
+    "seed": {
+      "node_id": "104",
+      "field": "inputs.value",
+      "default": "random",
+      "description": "Random seed for all KSamplers (shared via PrimitiveInt node)"
+    }
   },
   "estimated_duration_seconds": 60,
   "expected_outputs": 4
