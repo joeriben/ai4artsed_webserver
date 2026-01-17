@@ -1899,8 +1899,8 @@ def generation_endpoint():
     """
     Generation endpoint - Stage 3 Safety (auto) + Stage 4 Media Generation.
 
-    Lab Architecture: Atomic service for media generation.
-    Automatically runs Pre-Output Safety check before generation.
+    Lab Architecture: Each generation creates NEW run with complete context.
+    Frontend sends all data; backend stores complete session in one folder.
 
     Request Body:
     {
@@ -1910,6 +1910,12 @@ def generation_endpoint():
         "safety_level": "youth",        # Optional: kids, youth, open
         "alpha_factor": 0,              # Optional: for Surrealizer
         "input_image": "/path/to/img",  # Optional: for img2img
+
+        # Context from interception (frontend sends these):
+        "input_text": "Original user input",
+        "interception_result": "Transformed text from Stage 2",
+        "interception_config": "planetarizer",
+        "device_id": "a1b2c3d4-..."     # LocalStorage UUID for workshop tracking
     }
     """
     import time
@@ -1931,24 +1937,27 @@ def generation_endpoint():
         input_image1 = data.get('input_image1')
         input_image2 = data.get('input_image2')
         input_image3 = data.get('input_image3')
-        provided_run_id = data.get('run_id')  # Unified export: use run_id from interception
+
+        # Context data from frontend (NEW: each generation = new run)
+        input_text = data.get('input_text', '')
+        interception_result = data.get('interception_result', '')
+        interception_config = data.get('interception_config', '')
+        device_id = data.get('device_id', '')
 
         if not prompt or not output_config:
             return jsonify({'status': 'error', 'error': 'prompt und output_config sind erforderlich'}), 400
 
         logger.info(f"[GENERATION-ENDPOINT] Starting for config '{output_config}'")
         logger.info(f"[GENERATION-ENDPOINT] Prompt (first 100 chars): {prompt[:100]}...")
+        if device_id:
+            logger.info(f"[GENERATION-ENDPOINT] Device ID: {device_id}")
 
         if pipeline_executor is None:
             init_schema_engine()
 
-        # Use provided run_id (from interception) or generate new one
-        if provided_run_id:
-            run_id = provided_run_id
-            logger.info(f"[GENERATION-ENDPOINT] Using existing run_id: {run_id}")
-        else:
-            run_id = f"gen_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-            logger.info(f"[GENERATION-ENDPOINT] Generated new run_id: {run_id}")
+        # ALWAYS create new run_id (Option A: each generation = new run)
+        run_id = f"gen_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        logger.info(f"[GENERATION-ENDPOINT] New run_id: {run_id}")
 
         # Determine media type from output config
         if 'code' in output_config.lower() or 'p5js' in output_config.lower():
@@ -2003,34 +2012,34 @@ def generation_endpoint():
 
         logger.info(f"[GENERATION-ENDPOINT] Stage 3 PASSED")
 
-        # Initialize or load recorder for media storage
+        # Initialize NEW recorder for this generation (Option A: each generation = new run)
         from config import JSON_STORAGE_DIR
 
-        if provided_run_id:
-            # Load existing recorder from interception
-            recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
-            if recorder:
-                logger.info(f"[GENERATION-ENDPOINT] Loaded existing recorder for {run_id}")
-            else:
-                logger.warning(f"[GENERATION-ENDPOINT] Could not load recorder for {run_id}, creating new")
-                recorder = get_recorder(
-                    run_id=run_id,
-                    config_name=output_config,
-                    execution_mode='eco',
-                    safety_level=safety_level,
-                    base_path=JSON_STORAGE_DIR
-                )
-        else:
-            # Create new recorder for standalone generation
-            recorder = get_recorder(
-                run_id=run_id,
-                config_name=output_config,
-                execution_mode='eco',
-                safety_level=safety_level,
-                base_path=JSON_STORAGE_DIR
-            )
+        recorder = get_recorder(
+            run_id=run_id,
+            config_name=output_config,
+            execution_mode='eco',
+            safety_level=safety_level,
+            base_path=JSON_STORAGE_DIR
+        )
 
-        # Save optimized prompt to recorder
+        # Add device_id to metadata if provided
+        if device_id:
+            recorder.metadata['device_id'] = device_id
+            recorder._save_metadata()
+
+        # Save all context entities to this run folder:
+        # 1. Original user input (if provided)
+        if input_text:
+            recorder.save_entity('input', input_text)
+
+        # 2. Interception result (if provided)
+        if interception_result:
+            recorder.save_entity('interception', interception_result)
+            if interception_config:
+                recorder.metadata['interception_config'] = interception_config
+
+        # 3. Optimized/final prompt (always saved)
         recorder.save_entity('optimized_prompt', prompt)
 
         # Seed logic: use provided seed or generate random

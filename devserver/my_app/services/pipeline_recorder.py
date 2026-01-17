@@ -64,11 +64,14 @@ class LivePipelineRecorder:
         self.safety_level = safety_level
         self.user_id = user_id
 
-        # Setup folder structure
+        # Setup folder structure with date-based organization
         if base_path is None:
             base_path = Path.cwd()
         self.base_path = Path(base_path)
-        self.run_folder = self.base_path / run_id
+
+        # Date-based folder: exports/json/YYYY-MM-DD/run_xxx/
+        date_folder = datetime.now().strftime('%Y-%m-%d')
+        self.run_folder = self.base_path / date_folder / run_id
         self.run_folder.mkdir(parents=True, exist_ok=True)
 
         # Initialize state
@@ -888,6 +891,8 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
     """
     Load an existing recorder from disk.
 
+    Searches across date-based folders (YYYY-MM-DD/run_xxx/) for the run.
+
     Args:
         run_id: Run identifier to load
         base_path: Base directory for pipeline_runs/
@@ -901,9 +906,25 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
     if base_path is None:
         base_path = Path.cwd()
 
-    metadata_path = Path(base_path) / run_id / "metadata.json"
+    base_path = Path(base_path)
 
-    if not metadata_path.exists():
+    # Search for run_id across date folders (new structure: YYYY-MM-DD/run_xxx/)
+    # and also check direct path for backward compatibility
+    metadata_path = None
+
+    # First, check direct path (legacy/backward compat)
+    direct_path = base_path / run_id / "metadata.json"
+    if direct_path.exists():
+        metadata_path = direct_path
+    else:
+        # Search in date folders
+        for date_folder in sorted(base_path.glob('20??-??-??'), reverse=True):
+            candidate = date_folder / run_id / "metadata.json"
+            if candidate.exists():
+                metadata_path = candidate
+                break
+
+    if not metadata_path:
         logger.warning(f"[RECORDER] No metadata found for run {run_id}")
         return None
 
@@ -920,15 +941,26 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
         # Old format should have execution_mode, but provide fallback
         execution_mode = metadata.get("execution_mode", "eco")
 
-        # Recreate recorder from metadata
-        recorder = LivePipelineRecorder(
-            run_id=metadata["run_id"],
-            config_name=config_name,
-            execution_mode=execution_mode,
-            safety_level=safety_level,
-            user_id=metadata.get("user_id", "anonymous"),
-            base_path=base_path
-        )
+        # Get the actual run folder from the metadata path
+        actual_run_folder = metadata_path.parent
+
+        # Create recorder instance manually (bypass __init__'s folder creation)
+        recorder = object.__new__(LivePipelineRecorder)
+        recorder.run_id = metadata["run_id"]
+        recorder.config_name = config_name
+        recorder.execution_mode = execution_mode
+        recorder.safety_level = safety_level
+        recorder.user_id = metadata.get("user_id", "anonymous")
+        recorder.base_path = base_path
+        recorder.run_folder = actual_run_folder  # Use existing folder path
+        recorder.current_stage = 0
+        recorder.current_step = "initialized"
+        recorder.sequence_number = 0
+        recorder.expected_outputs = [
+            "input", "translation", "safety", "interception",
+            "safety_pre_output", "output_image"
+        ]
+        recorder.metadata = {}
 
         # Restore state (handle both old and new formats)
         # Ensure critical fields exist in metadata for backward compatibility

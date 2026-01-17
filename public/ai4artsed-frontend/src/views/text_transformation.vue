@@ -364,7 +364,17 @@ const availabilityLoading = ref(true)
 // Phase 4: Seed management for iterative correction
 const previousOptimizedPrompt = ref('')  // Track previous prompt for comparison
 const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
-const currentRunId = ref<string | null>(null)  // Run ID from interception (for unified export)
+const currentRunId = ref<string | null>(null)  // Run ID from interception (legacy, no longer used)
+const lastInterceptionConfig = ref<string | null>(null)  // Track which interception config was used
+
+// Device ID for workshop tracking (persisted in localStorage)
+function getDeviceId(): string {
+  const existingId = localStorage.getItem('device_id')
+  if (existingId) return existingId
+  const newId = crypto.randomUUID()
+  localStorage.setItem('device_id', newId)
+  return newId
+}
 
 // Execution phase tracking
 // 'initial' -> 'interception_done' -> 'optimization_done' -> 'generation_done'
@@ -1040,6 +1050,10 @@ async function runOptimization() {
 function handleStreamStarted() {
   console.log('[Stream] First chunk received, hiding spinner')
   isInterceptionLoading.value = false  // Hide spinner, show typewriter effect
+
+  // Track which interception config was used (for generation context)
+  lastInterceptionConfig.value = pipelineStore.selectedConfig?.id || 'overdrive'
+  console.log('[Stream] Saved interception config:', lastInterceptionConfig.value)
 }
 
 function handleStreamComplete(data: any) {
@@ -1194,11 +1208,16 @@ async function executePipeline() {
     // Use optimizedPrompt if available (model-specific), else interceptionResult
     const finalPrompt = optimizedPrompt.value || interceptionResult.value || inputText.value
 
+    // Option A: Each generation = new run with ALL context data
     const response = await axios.post('/api/schema/pipeline/generation', {
       prompt: finalPrompt,
       output_config: selectedConfig.value,
       seed: currentSeed.value,
-      run_id: currentRunId.value  // Unified export: use run_id from interception
+      // Context from interception (backend saves all to one folder)
+      input_text: inputText.value,
+      interception_result: interceptionResult.value,
+      interception_config: lastInterceptionConfig.value,
+      device_id: getDeviceId()  // Workshop tracking
     })
 
     clearInterval(progressInterval)
