@@ -37,7 +37,7 @@
     "era": "contemporary",
     "approach": "technical_professional",
     "loras": [
-      {"name": "sd3.5-large_cooked_negatives.safetensors", "strength": 0.6}
+      {"name": "sd3.5-large_cooked_negatives-000004.safetensors", "strength": 0.7}
     ]
   },
   "display": {
