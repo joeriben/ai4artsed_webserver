@@ -189,6 +189,7 @@ import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { getModelAvailability, type ModelAvailability } from '@/services/api'
 
 // ============================================================================
 // STATE
@@ -207,6 +208,10 @@ const contextPrompt = ref('')
 const selectedCategory = ref<string | null>(null)
 const selectedConfig = ref<string | null>(null)  // User selects model from bubbles
 const hoveredConfigId = ref<string | null>(null)  // For hover cards
+
+// Model availability (Session 91+)
+const modelAvailability = ref<ModelAvailability>({})
+const availabilityLoading = ref(true)
 
 // Phase 4: Seed management
 const previousOptimizedPrompt = ref('')
@@ -319,7 +324,20 @@ const configsByCategory: Record<string, ModelConfig[]> = {
 
 const configsForCategory = computed(() => {
   if (!selectedCategory.value) return []
-  return configsByCategory[selectedCategory.value] || []
+
+  const categoryConfigs = configsByCategory[selectedCategory.value] || []
+
+  // Filter out unavailable configs (Session 91+)
+  if (Object.keys(modelAvailability.value).length > 0) {
+    return categoryConfigs.filter(config => {
+      // STRICT MODE: Only show if explicitly marked as available
+      // If not in availability map or marked as false → HIDE
+      return modelAvailability.value[config.id] === true
+    })
+  }
+
+  // While loading, show all configs (avoid flicker)
+  return categoryConfigs
 })
 
 const canSelectMedia = computed(() => {
@@ -813,6 +831,21 @@ async function analyzeImage() {
 // ============================================================================
 
 onMounted(async () => {
+  // Fetch model availability (Session 91+)
+  try {
+    const result = await getModelAvailability()
+    if (result.status === 'success') {
+      modelAvailability.value = result.availability
+      console.log('[MODEL_AVAILABILITY] Loaded:', result.availability)
+    } else {
+      console.warn('[MODEL_AVAILABILITY] Check failed:', result.error)
+    }
+  } catch (error) {
+    console.error('[MODEL_AVAILABILITY] Error fetching:', error)
+  } finally {
+    availabilityLoading.value = false
+  }
+
   // UNIFIED PATTERN: Always restore ALL boxes from storage first
   const savedContext = sessionStorage.getItem('i2i_context_prompt')
   if (savedContext) {
