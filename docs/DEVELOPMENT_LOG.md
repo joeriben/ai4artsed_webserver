@@ -27,6 +27,511 @@
 
 ---
 
+## Session 124 (2026-01-18): LoRA Epoch/Strength Fine-Tuning
+
+**Date:** 2026-01-18
+**Duration:** ~45 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** c015937, f1d0f55, 09ffe7a
+
+### Objective
+
+Fine-tune the cooked_negatives LoRA training and runtime parameters based on test results. The initial training at epoch 6 with strength 1.0 caused overfitting and poor prompt adherence.
+
+### Work Completed
+
+#### 1. Training Parameter Tuning ✅
+
+**Problem:** LoRA at epoch 6 was too strong, causing:
+- Loss of prompt adherence
+- Overly stylized outputs that ignored user intent
+- Colors and compositions became too uniform
+
+**Solution:** Use epoch 4 checkpoint instead of epoch 6
+- Earlier epoch = lighter style application
+- Better balance between style and prompt
+
+#### 2. Runtime Strength Tuning ✅
+
+**Config:** `cooked_negatives.json`
+- Initial: `strength: 1.0` (too dominant)
+- Adjusted: `strength: 0.75` (still strong)
+- Final: `strength: 0.6` (balanced)
+
+**Trade-off documented:**
+- Higher strength → More style, less prompt adherence
+- Lower strength → More prompt adherence, lighter style
+
+#### 3. Documentation Updates ✅
+
+- Added strength tuning guidelines to ARCHITECTURE PART 23
+- Updated config example with recommended 0.6 strength
+- Documented epoch selection best practices
+
+### Files Modified
+
+```
+devserver/schemas/configs/interception/cooked_negatives.json
+docs/ARCHITECTURE PART 23 - LoRA-Training-Studio.md
+```
+
+### Impact
+
+- **Better Prompt Adherence:** LoRA style applies without overwhelming user intent
+- **Documented Guidelines:** Future LoRA training has clear starting parameters
+
+---
+
+## Session 123 (2026-01-17): Legacy Migration + LoRA Badges
+
+**Date:** 2026-01-17
+**Duration:** ~90 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** d0e85f6, 1c41dc9
+
+### Objective
+
+1. Migrate legacy workflows (Surrealizer, Split&Combine, Partial Elimination) to a clean `/legacy/` URL namespace
+2. Add visual LoRA badge indicators to interception config tiles
+
+### Work Completed
+
+#### 1. Legacy View Migration ✅
+
+**Router Changes:** `public/ai4artsed-frontend/src/router/index.ts`
+```typescript
+{
+  path: '/legacy',
+  children: [
+    { path: 'surrealizer', component: SurrealizerView },
+    { path: 'split-combine', component: SplitCombineView },
+    { path: 'partial-elimination', component: PartialEliminationView }
+  ]
+}
+```
+
+**Benefits:**
+- Clear separation between main pipeline and legacy workflows
+- Consistent URL structure
+- Easier maintenance and deprecation path
+
+#### 2. LoRA Badge Display ✅
+
+**Component:** `InterceptionConfigTile.vue`
+- Added conditional LoRA badge when config has `meta.loras` array
+- Badge shows LoRA icon with count
+- Hover displays LoRA names
+
+**Visual:**
+```
+┌─────────────────────┐
+│  Cooked Negatives   │
+│                     │
+│  [LoRA ×1]         │
+└─────────────────────┘
+```
+
+### Files Modified
+
+```
+public/ai4artsed-frontend/src/router/index.ts
+public/ai4artsed-frontend/src/components/InterceptionConfigTile.vue
+```
+
+### Impact
+
+- **Cleaner URL Structure:** Legacy features clearly namespaced
+- **Visual LoRA Indication:** Users see which configs use custom LoRAs
+
+---
+
+## Session 122 (2026-01-17): Unified Export + Partial Elimination UI
+
+**Date:** 2026-01-17
+**Duration:** ~120 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** 7f07197, 5c9e792, 5e4139e
+
+### Objective
+
+1. Fix export system to create unified run folders across all backends
+2. Enhance Partial Elimination UI with dual-handle slider and encoder selector
+
+### Work Completed
+
+#### 1. Unified Export System ✅
+
+**Problem:** Different backends saved images to inconsistent locations:
+- SD3.5 → `/runs/{run_id}/`
+- QWEN → `/runs/{run_id}/images/`
+- Gemini → `/tmp/gemini_outputs/`
+
+**Solution:** All backends now use unified run_id pattern
+- `EntityRecorder.save_entity()` called consistently
+- Complete research units: input + transformation + output
+- Single `/api/export/{run_id}` endpoint works for all
+
+#### 2. Partial Elimination Dual Slider ✅
+
+**Component:** `partial_elimination.vue`
+- Replaced single value slider with dual-handle range slider
+- Select start AND end dimension for elimination range
+- Visual representation of selected range
+
+#### 3. Encoder Selector ✅
+
+**Options:**
+- CLIP encoder only
+- T5 encoder only
+- Combined (default)
+
+**Impact:** Different encoders emphasize different prompt aspects
+
+### Files Modified
+
+```
+devserver/my_app/routes/schema_pipeline_routes.py (unified saving)
+public/ai4artsed-frontend/src/views/legacy/partial_elimination.vue
+```
+
+### Impact
+
+- **Export Works:** All generation types export correctly
+- **Better UX:** Range selection more intuitive than single value
+
+---
+
+## Session 121 (2026-01-13): VRAM Management + Config Paths
+
+**Date:** 2026-01-13
+**Duration:** ~90 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** f373530, ca31581, 22105e3, a81e7cf, a69d2cb
+
+### Objective
+
+1. Implement VRAM management for LoRA training (auto-unload SD3.5)
+2. Centralize all hardcoded paths in config.py
+3. Implement config-based LoRA injection for Stage 4
+
+### Work Completed
+
+#### 1. VRAM Management ✅
+
+**Problem:** LoRA training requires ~18GB VRAM, but SD3.5 uses ~12GB
+- Training fails with OOM if SD3.5 is loaded
+
+**Solution:** Automatic VRAM check before training
+```python
+if available_vram < TRAINING_VRAM_REQUIRED_GB:
+    await unload_swarmui_models()
+    await asyncio.sleep(5)  # Wait for VRAM to clear
+```
+
+#### 2. Config Path Centralization ✅
+
+**File:** `devserver/config.py`
+```python
+# Training paths
+LORA_OUTPUT_DIR = "/home/joerissen/ai/SwarmUI/Models/Lora"
+TRAINING_DATASET_DIR = "/home/joerissen/ai/ai4artsed_development/training_data"
+KOHYA_SS_DIR = "/home/joerissen/ai/kohya_ss"
+
+# VRAM settings
+TRAINING_VRAM_REQUIRED_GB = 18
+```
+
+#### 3. Config-Based LoRA Injection ✅
+
+**Schema Update:** Added `meta.loras` to interception configs
+```json
+{
+  "name": "cooked_negatives",
+  "meta": {
+    "loras": [{"name": "cooked_negatives.safetensors", "strength": 0.6}]
+  }
+}
+```
+
+**Injection:** `backend_router.py` reads config loras and injects into workflow
+
+### Files Modified
+
+```
+devserver/config.py
+devserver/my_app/services/training_service.py
+devserver/schemas/engine/backend_router.py
+devserver/schemas/configs/interception/cooked_negatives.json
+```
+
+### Impact
+
+- **Training Reliability:** VRAM always available for training
+- **Maintainability:** All paths in one place
+- **Feature:** LoRAs apply automatically per interception config
+
+---
+
+## Session 120 (2026-01-11): LoRA Injection + SwarmUI Auto-Recovery
+
+**Date:** 2026-01-11
+**Duration:** ~90 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** bbe04d8, e2d247b, a077a6e
+
+### Objective
+
+1. Implement SwarmUI auto-recovery (start on demand, recover from crashes)
+2. Implement LoRA injection into Stage 4 workflows
+
+### Work Completed
+
+#### 1. SwarmUI Manager Service ✅
+
+**File:** `devserver/my_app/services/swarmui_manager.py`
+
+**Pattern:** Lazy Recovery Singleton
+- SwarmUI starts only when needed (first image generation)
+- Health checks on both ports (7801 REST, 7821 ComfyUI)
+- Automatic restart on failure
+- No browser popup (uses `--launch_mode none`)
+
+```python
+async def ensure_swarmui_available(self) -> bool:
+    if await self.is_healthy():
+        return True
+    return await self._start_and_wait()
+```
+
+#### 2. LoRA Injection ✅
+
+**File:** `devserver/schemas/engine/backend_router.py`
+
+**Method:** `_inject_lora_nodes()`
+- Finds checkpoint node in workflow
+- Inserts LoRALoader node(s) between checkpoint and consumers
+- Chains multiple LoRAs if needed
+
+```
+Flow: Checkpoint → LoRA1 → LoRA2 → ... → KSampler
+```
+
+### Files Modified
+
+```
+devserver/my_app/services/swarmui_manager.py (NEW)
+devserver/schemas/engine/backend_router.py
+devserver/config.py
+2_start_swarmui.sh
+```
+
+### Impact
+
+- **Rock-Solid Stability:** No more "SwarmUI not running" errors
+- **Zero Manual Intervention:** System self-heals
+- **LoRA Support:** Custom styles automatically applied
+
+---
+
+## Session 119 (2026-01-09): LoRA Training Studio
+
+**Date:** 2026-01-09
+**Duration:** ~120 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** f21a56b
+
+### Objective
+
+Implement full LoRA training pipeline allowing users to train custom styles directly from the browser.
+
+### Work Completed
+
+#### 1. Backend Training Service ✅
+
+**File:** `devserver/my_app/services/training_service.py`
+
+**Features:**
+- Multi-image upload handling
+- Dataset preparation (images + caption files)
+- Kohya-ss script execution
+- Progress streaming via SSE
+
+#### 2. Training Routes ✅
+
+**File:** `devserver/my_app/routes/training_routes.py`
+
+**Endpoints:**
+- `POST /api/training/start` - Start new training job
+- `GET /api/training/progress/{job_id}` - SSE progress stream
+- `GET /api/training/status` - List all jobs
+
+#### 3. Frontend Component ✅
+
+**File:** `public/ai4artsed-frontend/src/views/LoraTrainingStudio.vue`
+
+**Features:**
+- Drag & drop image upload
+- Training parameter configuration
+- Real-time progress bar
+- Status messages
+
+### Files Modified
+
+```
+devserver/my_app/services/training_service.py (NEW)
+devserver/my_app/routes/training_routes.py (NEW)
+public/ai4artsed-frontend/src/views/LoraTrainingStudio.vue (NEW)
+public/ai4artsed-frontend/src/router/index.ts
+```
+
+### Impact
+
+- **New Feature:** Users can train custom LoRA styles
+- **Full Pipeline:** Browser → Training → Model file
+- **Integration:** Trained LoRAs immediately available in SwarmUI
+
+---
+
+## Session 118 (2026-01-08): SSE Queue Feedback
+
+**Date:** 2026-01-08
+**Duration:** ~60 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** 9399c16, 76308cb, 96ef55b
+
+### Objective
+
+Implement request queueing for Ollama to prevent overload and provide visual queue feedback.
+
+### Work Completed
+
+#### 1. Backend Request Queue ✅
+
+**File:** `devserver/my_app/services/ollama_service.py`
+
+**Implementation:**
+- Semaphore-based queue (max 3 concurrent requests)
+- FIFO ordering
+- Graceful degradation under load
+
+```python
+_request_semaphore = asyncio.Semaphore(3)
+
+async def _make_request(self, ...):
+    async with _request_semaphore:
+        # Only 3 requests at a time
+        return await self._send_request(...)
+```
+
+#### 2. SSE Queue Events ✅
+
+New SSE event types:
+- `queue_wait` - Request is waiting for slot
+- `queue_acquired` - Slot acquired, processing starts
+
+```json
+{"type": "queue_wait", "position": 2, "wait_time": 5.2}
+```
+
+#### 3. Frontend Queue Visualization ✅
+
+**Component:** Spinner turns red during queue wait
+- Normal: Green spinner "Processing..."
+- Queued: Red spinner "Waiting (5s)..."
+- Acquired: Returns to green
+
+### Files Modified
+
+```
+devserver/my_app/services/ollama_service.py
+public/ai4artsed-frontend/src/components/ProcessingSpinner.vue
+```
+
+### Impact
+
+- **Stability:** No more Ollama overload crashes
+- **UX:** Users see queue status, reduces frustration
+- **Fairness:** FIFO ordering for concurrent users
+
+---
+
+## Session 117 (2026-01-07): Material Design Icon Overhaul
+
+**Date:** 2026-01-07 to 2026-01-08
+**Duration:** ~180 minutes
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** fdc231d → 6f1c0b3 (14 commits)
+
+### Objective
+
+Replace all emoji icons with Material Design SVG icons for consistency, accessibility, and cross-platform rendering.
+
+### Work Completed
+
+#### 1. Property Quadrant Icons ✅
+
+Replaced emoji icons with themed Material Design SVGs:
+- 🎨 → `palette` (Aesthetics)
+- 📐 → `straighten` (Composition)
+- 💭 → `psychology` (Concept)
+- 🎭 → `theater_comedy` (Emotion)
+
+Each icon has unique color for quick identification.
+
+#### 2. MediaInputBox Icons ✅
+
+- 📷 → `photo_camera` (Image upload)
+- 🔊 → `volume_up` (Audio)
+- 🎬 → `movie` (Video)
+
+#### 3. Category Bubbles ✅
+
+- Image bubble: Camera icon
+- Video bubble: Film icon
+- Sound bubble: Speaker icon
+
+#### 4. Action Toolbar Icons ✅
+
+MediaOutputBox toolbar:
+- ⭐ → `bookmark` (Save)
+- 🖨️ → `print`
+- ➡️ → `send` (Forward)
+- 💾 → `download`
+- 🔍 → `analytics` (Analyze)
+
+#### 5. Header Tool Icons ✅
+
+- Home/Lab toggle icons
+- Settings, Documentation, Language icons
+- All using consistent Material Design set
+
+### Files Modified
+
+```
+public/ai4artsed-frontend/src/components/PropertyQuadrant.vue
+public/ai4artsed-frontend/src/components/MediaInputBox.vue
+public/ai4artsed-frontend/src/components/MediaOutputBox.vue
+public/ai4artsed-frontend/src/components/HeaderBar.vue
+public/ai4artsed-frontend/src/views/text_transformation.vue
+public/ai4artsed-frontend/src/views/image_transformation.vue
+```
+
+### Impact
+
+- **Visual Consistency:** All icons from same design system
+- **Accessibility:** SVGs scale cleanly, work with screen readers
+- **Cross-Platform:** No more emoji rendering differences between OS
+
+---
+
 ## Session 116 (2026-01-08): Failsafe Transition - Legacy Workflows via SwarmUI Proxy
 
 **Date:** 2026-01-08
