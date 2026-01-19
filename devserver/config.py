@@ -238,6 +238,31 @@ Decolonial & critical media studies"""
 
 # Note: Stage 4 (output generation) models are defined in output configs (SD3.5, FLUX, etc.)
 
+# ----------------------------------------------------------------------------
+# 6. WATERMARKING & CONTENT CREDENTIALS
+# ----------------------------------------------------------------------------
+# Invisible watermarks and C2PA Content Credentials for provenance tracking
+# Both features help identify AI-generated content and prevent misuse
+
+# Invisible Watermark (DWT-DCT method)
+# - Works immediately, no setup required
+# - Survives JPEG compression, noise, brightness changes
+# - Extract with: WatermarkService("AI4ArtsEd").extract_watermark(image_bytes)
+ENABLE_WATERMARK = True              # Embed invisible watermark in all generated images
+WATERMARK_TEXT = "AI4ArtsEd"         # Text to embed (max ~32 bytes recommended)
+
+# C2PA Content Credentials (cryptographically signed provenance)
+# NOTE: C2PA requires a proper certificate chain from a recognized CA.
+#       Self-signed certificates are NOT supported by the C2PA standard.
+#       For production, obtain certificates from a CA participating in the C2PA trust list.
+#       For testing, use certificates from c2pa-python test fixtures.
+#       See: https://opensource.contentauthenticity.org/docs/signing/test-certs/
+ENABLE_C2PA = False                  # Disabled by default - requires proper CA certificates
+C2PA_CERT_PATH = Path(__file__).parent / "certs" / "c2pa_cert.pem"   # Certificate file
+C2PA_KEY_PATH = Path(__file__).parent / "certs" / "c2pa_key.key"     # Private key (.key for gitignore)
+C2PA_GENERATOR_NAME = "AI4ArtsEd DevServer"  # Name in manifest (visible in verification)
+C2PA_TSA_URL = "http://timestamp.digicert.com"  # Timestamp Authority (set to None to disable)
+
 # ============================================================================
 # END OF MAIN CONFIGURATION
 # ============================================================================

@@ -116,6 +116,78 @@ Both paradigms coexist in the current codebase:
 
 ---
 
+## 🔐 Active Decision: Invisible Watermarking for AI-Generated Images (2026-01-20)
+
+**Status:** ✅ IMPLEMENTED (Watermark active, C2PA ready)
+**Context:** AI provenance tracking for educational transparency and content authenticity
+**Session:** 125
+
+### The Need
+
+As an educational platform generating AI images, we need:
+1. **Provenance tracking** - Identify AI-generated content from our platform
+2. **Transparency** - Support Content Credentials standard (C2PA)
+3. **Anti-misuse** - Discourage passing off AI art as human-created
+
+### Technology Choices
+
+| Technology | Purpose | Status |
+|------------|---------|--------|
+| **invisible-watermark** | DWT-DCT invisible watermark | ✅ Active |
+| **c2pa-python** | Cryptographic provenance manifest | ⏸️ Ready (needs CA cert) |
+
+### Why DWT-DCT Watermarking?
+
+- **Invisible**: Imperceptible to human eye
+- **Robust**: Survives JPEG compression, noise, brightness changes
+- **Fast**: ~300ms for 1080p images (suitable for real-time)
+- **Extractable**: Can verify without original image
+
+### Why C2PA (Disabled for Now)?
+
+C2PA is the industry standard (Adobe, Google, Microsoft, BBC) but:
+- **Requires CA certificates** - Self-signed explicitly prohibited
+- **Trust chain** - Only works with recognized Certificate Authorities
+- **Production readiness** - Infrastructure ready, needs proper certificates
+
+### Integration Point
+
+**Location:** `pipeline_recorder.py` → `_write_file()`
+
+```python
+# Automatic for all saved images:
+if is_image and apply_provenance:
+    content = self._apply_watermark(content)  # Before save
+    filepath.write_bytes(content)
+    self._apply_c2pa(filepath)                # After save
+```
+
+### Configuration
+
+```python
+# devserver/config.py
+ENABLE_WATERMARK = True          # Embed "AI4ArtsEd" in all images
+WATERMARK_TEXT = "AI4ArtsEd"     # Max ~32 bytes recommended
+ENABLE_C2PA = False              # Enable when CA cert obtained
+```
+
+### Files Affected
+
+- `my_app/services/watermark_service.py` (NEW)
+- `my_app/services/c2pa_service.py` (NEW)
+- `my_app/services/pipeline_recorder.py` (MODIFIED)
+- `devserver/config.py` (MODIFIED)
+- `requirements.txt` (MODIFIED)
+
+### Future: C2PA Production Setup
+
+1. Obtain certificate from C2PA-recognized CA
+2. Place in `devserver/certs/`
+3. Set `ENABLE_C2PA = True`
+4. Images will show "AI4ArtsEd DevServer" at verify.contentcredentials.org
+
+---
+
 ## 🎯 Active Decision: Unified Export - run_id Across Lab Endpoints (2026-01-17)
 
 **Status:** ✅ IMPLEMENTED

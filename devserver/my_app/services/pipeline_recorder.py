@@ -12,11 +12,16 @@ Migration Status (Session 37):
 - Added download capabilities from MediaStorage (add_media_from_comfyui, add_media_from_url)
 - Added utility methods (_detect_format_from_data, _get_image_dimensions)
 - Now has complete media handling - no longer depends on MediaStorage for downloads
+
+Session 118: Added watermark and C2PA Content Credentials integration
+- Invisible watermark embedding (DWT-DCT method)
+- C2PA manifest signing for provenance tracking
 """
 
 import json
 import logging
 import requests
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -24,6 +29,58 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
+
+# Lazy-loaded services for watermarking and C2PA
+_watermark_service = None
+_c2pa_service = None
+
+
+def _get_watermark_service():
+    """Get or initialize the watermark service (lazy loading)."""
+    global _watermark_service
+    if _watermark_service is None:
+        try:
+            from devserver import config
+            if config.ENABLE_WATERMARK:
+                from my_app.services.watermark_service import WatermarkService
+                _watermark_service = WatermarkService(config.WATERMARK_TEXT)
+                logger.info(f"[RECORDER] Watermark service initialized with text: '{config.WATERMARK_TEXT}'")
+            else:
+                logger.info("[RECORDER] Watermark disabled in config")
+        except ImportError as e:
+            logger.warning(f"[RECORDER] Watermark service unavailable: {e}")
+        except Exception as e:
+            logger.error(f"[RECORDER] Failed to initialize watermark service: {e}")
+    return _watermark_service
+
+
+def _get_c2pa_service():
+    """Get or initialize the C2PA service (lazy loading)."""
+    global _c2pa_service
+    if _c2pa_service is None:
+        try:
+            from devserver import config
+            if config.ENABLE_C2PA:
+                cert_path = Path(config.C2PA_CERT_PATH)
+                key_path = Path(config.C2PA_KEY_PATH)
+                if cert_path.exists() and key_path.exists():
+                    from my_app.services.c2pa_service import C2PAService
+                    _c2pa_service = C2PAService(
+                        cert_path=cert_path,
+                        key_path=key_path,
+                        generator_name=config.C2PA_GENERATOR_NAME,
+                        tsa_url=config.C2PA_TSA_URL
+                    )
+                    logger.info(f"[RECORDER] C2PA service initialized")
+                else:
+                    logger.warning(f"[RECORDER] C2PA certificates not found at {cert_path} or {key_path}")
+            else:
+                logger.info("[RECORDER] C2PA disabled in config")
+        except ImportError as e:
+            logger.warning(f"[RECORDER] C2PA service unavailable: {e}")
+        except Exception as e:
+            logger.error(f"[RECORDER] Failed to initialize C2PA service: {e}")
+    return _c2pa_service
 
 
 class LivePipelineRecorder:
@@ -770,18 +827,79 @@ class LivePipelineRecorder:
             traceback.print_exc()
             raise
 
-    def _write_file(self, filepath: Path, content: Union[str, bytes, dict]):
+    def _apply_watermark(self, image_bytes: bytes) -> bytes:
+        """
+        Apply invisible watermark to image bytes.
+
+        Args:
+            image_bytes: Raw image bytes
+
+        Returns:
+            Watermarked image bytes, or original if watermarking fails/disabled
+        """
+        watermark_service = _get_watermark_service()
+        if watermark_service is None:
+            return image_bytes
+
+        try:
+            watermarked = watermark_service.embed_watermark(image_bytes)
+            logger.debug("[RECORDER] Watermark embedded successfully")
+            return watermarked
+        except Exception as e:
+            logger.warning(f"[RECORDER] Watermark embedding failed, using original: {e}")
+            return image_bytes
+
+    def _apply_c2pa(self, filepath: Path) -> bool:
+        """
+        Apply C2PA Content Credentials to an image file.
+
+        Args:
+            filepath: Path to the image file
+
+        Returns:
+            True if signing succeeded, False otherwise
+        """
+        c2pa_service = _get_c2pa_service()
+        if c2pa_service is None:
+            return False
+
+        # Only sign image files
+        if filepath.suffix.lower() not in ['.png', '.jpg', '.jpeg', '.webp']:
+            return False
+
+        try:
+            c2pa_service.sign_image(filepath, filepath)  # In-place signing
+            logger.debug(f"[RECORDER] C2PA manifest signed: {filepath.name}")
+            return True
+        except Exception as e:
+            logger.warning(f"[RECORDER] C2PA signing failed for {filepath.name}: {e}")
+            return False
+
+    def _write_file(self, filepath: Path, content: Union[str, bytes, dict], apply_provenance: bool = True):
         """
         Write content to file with appropriate encoding.
 
         Args:
             filepath: Path to write to
             content: Content to write
+            apply_provenance: Whether to apply watermark/C2PA to images (default True)
         """
         try:
             if isinstance(content, bytes):
                 # Binary content (images)
+                # Check if this is an image that should have provenance applied
+                is_image = filepath.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp', '.gif']
+
+                if is_image and apply_provenance:
+                    # Apply watermark before saving
+                    content = self._apply_watermark(content)
+
                 filepath.write_bytes(content)
+
+                # Apply C2PA signing after saving (requires file on disk)
+                if is_image and apply_provenance:
+                    self._apply_c2pa(filepath)
+
             elif isinstance(content, dict):
                 # JSON content
                 filepath.write_text(json.dumps(content, indent=2, ensure_ascii=False))
