@@ -430,13 +430,19 @@ const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
 const currentRunId = ref<string | null>(null)  // Run ID from interception (legacy, no longer used)
 const lastInterceptionConfig = ref<string | null>(null)  // Track which interception config was used
 
-// Device ID for workshop tracking (persisted in localStorage)
+// Session ID for workshop tracking: device + day
 function getDeviceId(): string {
-  const existingId = localStorage.getItem('device_id')
-  if (existingId) return existingId
-  const newId = crypto.randomUUID()
-  localStorage.setItem('device_id', newId)
-  return newId
+  const today = new Date().toISOString().split('T')[0]  // "2026-01-19"
+
+  // Get or create persistent device identifier
+  let deviceId = localStorage.getItem('device_id')
+  if (!deviceId) {
+    // Simple random ID (works in all contexts, unlike crypto.randomUUID)
+    deviceId = Math.random().toString(36).substring(2, 10)
+    localStorage.setItem('device_id', deviceId)
+  }
+
+  return `${deviceId}_${today}`
 }
 
 // Execution phase tracking
