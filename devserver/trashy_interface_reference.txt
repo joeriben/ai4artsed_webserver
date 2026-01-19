@@ -1,52 +1,607 @@
-AI4ARTSED USER INTERFACE TECHNICAL REFERENCE FOR TRASHY BOT
+AI4ARTSED KNOWLEDGE BASE FOR TRASHY - COMPREHENSIVE USER GUIDE
+Last updated: 2026-01-19
 
-PHASE 1: PROPERTY QUADRANTS VIEW (CATEGORY SELECTION)
-Interface location is PropertyQuadrantsView.vue at route slash (root). Visual layout shows fixed fullscreen canvas (position fixed, inset 0) with dark background (#0a0a0a). At center viewport is square cluster-wrapper sized at min(70vw, 70vh) maintaining 1:1 aspect ratio. This cluster contains category bubbles arranged in circular formation. Six category bubbles exist, each representing one media/creative domain. Categories are: semantics (speech bubble emoji, blue #2196F3), aesthetics (magic wand emoji, purple #9C27B0), arts (paintbrush emoji, pink #E91E63), heritage (globe emoji, green #4CAF50), freestyle (pointing finger emoji, yellow #FFC107 - positioned at center), technical_imaging (camera emoji, gray #607D8B). The freestyle bubble occupies cluster center (50%, 50%). Other bubbles are distributed evenly on 35% radius circle starting at -45 degrees for X-formation pattern. User clicks/taps any category bubble to select it. Selection logic implements XOR across ALL categories - only ONE category can be active simultaneously. Selecting category A automatically deselects any previously selected category. Visual feedback: selected bubble scales to 1.15x, changes background to category color, displays white border, emits glow shadow. Unselected bubbles show 3px border in category color with 30% opacity, dark background. When category is selected, configuration bubbles (18% width, 1:1 aspect ratio, circular) appear around selected category at 17% distance. Number of config bubbles varies per category. Configs are positioned evenly distributed around parent category using trigonometric calculation starting at -90 degrees (top position). Each config bubble displays preview image background from /config-previews/{{config.id}}.png and text badge overlay at bottom showing localized config name. User clicks config bubble to proceed to Phase 2. Click triggers three operations: (1) emit selectConfig event with config.id, (2) clear pipelineExecution store state, (3) navigate to route /pipeline-execution/:configId. Selected configId is passed via Vue Router params. Config metadata includes: id (string), name (object with en/de keys), description (object with en/de keys), properties (array with single category string), pipeline (string - always text_transformation), icon (emoji string), color (hex string). Phase 2 receives this configId and loads full config plus meta-prompt via API.
+================================================================================
+SECTION 1: PLATFORM OVERVIEW
+================================================================================
 
-PHASE 2: TEXT TRANSFORMATION VIEW (GENERATION INTERFACE)
-Interface location is text_transformation.vue at route /pipeline-execution/:configId. Vertically scrolling single-column interface, max-width 1100px, centered. Page has fixed header with return button (left) labeled Phase 1 and title (center). Main content area uses flexbox column layout with responsive gap.
+AI4ArtsEd is a pedagogical-scientific experimentation platform for critical and creative engagement with generative AI in cultural education (ages 8-17). It is used in art-AI workshops with educators present.
 
-INPUT FIELDS (SIDE BY SIDE BUBBLES)
-Input bubble (left) has label Deine Idee: Worum soll es gehen with lightbulb icon. Textarea with 6 rows, bound to inputText ref (empty string initial value). Purpose: User describes creative concept/subject matter. This is primary user idea input. Always editable, no restrictions. When filled, bubble border changes from white low opacity to blue with blue background tint. Context bubble (right) has label Bestimme Regeln, Material, Besonderheiten with clipboard icon. Textarea with 6 rows, bound to contextPrompt ref. Purpose: Contains meta-prompt loaded from backend config context field in user language (German for Youth Flow). This defines creative constraints, style rules, material specifications. Always editable. When user edits, handleContextPromptEdit fires updating pipelineStore.metaPrompt. Initial value loaded via pipelineStore.loadMetaPromptForLanguage during onMounted. When empty, shows required animation (pulsing yellow border), when filled shows blue filled state.
+CORE CONCEPT: The Large Language Model (LLM) acts as a co-actor in the creative process, not just a tool. It processes input based on its training data and creates something new. This is fascinating but also problematic - we don't know exactly how or why the model makes certain decisions.
 
-START BUTTON ONE (INTERCEPTION TRIGGER)
-Positioned between context bubble and interception preview. Button displays triple arrow Start triple arrow with animated arrows. Enabled condition: inputText has content. Disabled state: opacity 0.3, grayscale filter, pointer-events none. Click action calls runInterception function triggering POST /api/schema/pipeline/stage2 with payload containing schema (configId), input_text, context_prompt, user_language (de), safety_level (youth). No output_config sent - this is pure interception call.
+KEY QUESTIONS WE EXPLORE:
+- How do different models react to different inputs?
+- What happens with detailed, nuanced descriptions instead of short prompts?
+- How can we learn to truly understand what we want?
+- How can we understand and change our image idea from many different perspectives?
 
-INTERCEPTION RESULT PREVIEW
-Label shows Idee plus Regeln equals Prompt with arrow icon. Displays after Start button one click. During loading (isInterceptionLoading equals true), shows large spinner (48px) with blue border-top and explanatory text: Die KI kombiniert jetzt deine Idee mit den Regeln und erstellt einen kreativen Prompt, der zu deinem gewaehlten Kunststil passt. After completion, displays textarea bound to interceptionResult ref containing API response field interception_result (Stage 2 output from pedagogical transformation). Fully editable after loading completes. Manual editing sets executionPhase to interception_done enabling model selection. Visual styling: Green-tinted background, green border 3px solid, green glow shadow.
+================================================================================
+SECTION 2: PLATFORM STRUCTURE
+================================================================================
 
-CATEGORY AND MODEL SELECTION
-Category row is always visible below interception preview. Displays horizontal row of category bubbles (circular, size clamp(70px,12vw,90px), emojis: picture frame image green, film video purple, speaker sound orange, cube 3d cyan disabled). Click behavior: selectCategory function sets selectedCategory ref and resets selectedConfig to null. Selected bubble scales 1.15x, background becomes category color, white border. Section title Waehle ein Medium aus appears only when executionPhase not equal initial. Model bubbles row appears directly under category row when category selected. Section title waehle ein KI-Modell aus. Bubbles disabled (areModelBubblesEnabled equals false) until interceptionResult contains text. Enabled state: When interceptionResult.value.trim().length greater than 0.
+START PAGE (SELECT VIEW)
+------------------------
+Location: Route "/" (root)
+Purpose: Users select RULES that will apply to their experiment.
 
-AVAILABLE MODELS BY CATEGORY
-Image category models: (1) sd35_large - label Stable Diffusion, blue #2196F3, has logo, (2) gpt_image_1 - label GPT Image, yellow #FFC107, has logo with lightBg true, (3) gemini_3_pro_image - label Gemini 3 Pro, blue #4285F4, (4) qwen - label Qwen, purple #9C27B0, has logo. Video category models: (1) ltx_video - label LTX Video, purple #9C27B0, lightning emoji, description Schnelle lokale Videogenerierung, (2) wan22_video - label Wan 2.2 Video, pink #E91E63, film emoji, description Hochwertige 720p Videogenerierung mit Wan 2.2 (5B). Sound category models: (1) acenet_t2instrumental - label ACE Instrumental, red #FF5722, music note emoji, description KI-Musikgenerierung fuer Instrumentalstuecke, (2) stableaudio_open - label Stable Audio, cyan #00BCD4, speaker emoji, description Open-Source Audio-Generierung (max 47s).
+CENTRAL ELEMENT: "Du bestimmst!" / "Your Call!"
+- This is in the CENTER of the page
+- It starts with an EMPTY rules box
+- Users can write their own rules from scratch here
 
-MODEL SELECTION ACTION
-Click triggers selectConfig function which ALWAYS runs optimization even if same model clicked again. Function calls runOptimization making POST /api/schema/pipeline/optimize with payload containing input_text (interceptionResult.value) and output_config (selectedConfig.value). During optimization, model bubble shows loading spinner overlay. Response sets optimizedPrompt ref and executionPhase equals optimization_done.
+SURROUNDING ELEMENTS: Pre-made rule suggestions
+- Everything around "Du bestimmst!" are INSPIRATIONS
+- Users can select one to use as a starting point
+- Or they can use these as examples to learn how rules work
 
-OPTIMIZED PROMPT PREVIEW
-Label shows Modell-Optimierter Prompt with sparkles icon. Appears when selectedConfig has value. During optimization loading, shows spinner with text: Der Prompt wird jetzt fuer das gewaehlte KI-Modell angepasst. Jedes Modell versteht Beschreibungen etwas anders - die KI optimiert den Text fuer die beste Ausgabe. After completion, displays textarea bound to optimizedPrompt ref containing API response field optimized_prompt. Fully editable after loading. Visual styling: Orange-tinted background, orange border 3px solid, orange glow shadow. Empty state: dashed border, no glow.
+The selected rules define:
+- Creative constraints
+- Style approaches
+- Material specifications
+- Perspective guidelines
 
-START BUTTON TWO (GENERATION TRIGGER)
-Positioned between optimized prompt and output frame. Same visual style as Start button one. Enabled condition: (executionPhase equals optimization_done OR executionPhase equals generation_done) AND optimizedPrompt.value truthy. Shows safety stamp animation (green checkmark Safety Approved) briefly when generation starts. Click action calls startGeneration then executePipeline.
+IMPORTANT: The selected rules are automatically applied to all three modes - users don't need to re-enter them.
 
-GENERATION PROCESS
-executePipeline function implements intelligent seed logic for iterative correction. Seed determination: (1) If optimizedPrompt unchanged from previousOptimizedPrompt, generate new random seed (user wants variation), (2) If prompt changed, keep current seed (user wants iteration), (3) First run uses default seed 123456789. Progress simulation: generationProgress ref increments randomly every 500ms to 85%, then holds until API response, completes at 100%. API generation call: POST /api/schema/pipeline/execute with payload containing schema (configId), input_text (currentPromptToUse which is optimizedPrompt or interceptionResult or inputText), interception_result (optimizedPrompt.value), context_prompt (contextPrompt.value), user_language (de), safety_level (youth), output_config (selectedConfig.value), seed (currentSeed.value).
+WHAT HAPPENS WITH THE RULES:
+- A text AI will process the user's idea (WHAT) together with the rules (HOW)
+- This creates an expanded, differentiated prompt
+- The result can be:
+  - Edited directly in the box
+  - Regenerated by clicking "Start" again
+  - Copied and pasted into the prompt box for further work
 
-OUTPUT FRAME
-Width 100%, max-width 1000px, centered. Three visual states: (1) EMPTY - min-height clamp(320px,40vh,450px), dashed border, placeholder text, (2) GENERATING - min-height clamp(320px,40vh,450px), solid green border, animated sprite (SpriteProgressAnimation component receiving generationProgress prop), (3) COMPLETE - no min-height (content determines size), displays media output. Output media types determined by response.data.media_output.media_type. IMAGE displays img tag with click handler for fullscreen modal. VIDEO displays video tag with controls. AUDIO/MUSIC displays audio tag with controls. 3D displays download button with .model file link. Media URL format: /api/media/{{mediaType}}/{{runId}} where runId from response.data.media_output.run_id.
+THREE MODES
+-----------
 
-FULLSCREEN IMAGE MODAL
-Teleported to body. Fixed position covering viewport (inset 0), black background with blur backdrop-filter. Image max-width 90vw, max-height 90vh, object-fit contain. Close button (times symbol) positioned top-right with white border circle. Click anywhere on modal closes it (sets fullscreenImage ref to null).
+IMPORTANT: The selected RULES apply in ALL THREE modes!
+The difference between modes is WHAT you input (text vs images).
 
-EXECUTION PHASE TRACKING
-executionPhase ref tracks workflow state: initial (page load) arrow interception_done (after Start button one or manual interception text entry) arrow optimization_done (after model selection) arrow generation_done (after successful media generation). Phase determines button enabled states and scroll behavior.
+1. TEXT MODE (text_transformation.vue, route /pipeline-execution/:configId)
+   Icon: "A" with arrow (translation symbol)
+   Input: TEXT (your idea)
+   How it works:
+   - User enters an IDEA as text (WAS/WHAT should be created)
+   - The text AI processes the idea together with the RULES
+   - Creates an expanded prompt
+   - User can observe, understand, and modify all intermediate steps
+   - User selects output medium (image, video, audio, music)
+   - User selects a generation model
+   - Media is generated
 
-AUTO-SCROLL BEHAVIOR
-Uses scrollDownOnly helper ensuring page only scrolls down, never up. Scroll triggers: (1) After interception - scroll to category section bottom, (2) After category selection - scroll to category section top, (3) After generation start - scroll to pipeline section after 150ms delay. All scrolls use smooth behavior.
+2. IMAGE MODE (image_transformation.vue, route /image-transformation/:configId)
+   Icon: Landscape/image symbol
+   Input: ONE IMAGE (replaces the text prompt)
+   How it works:
+   - User uploads ONE image - this REPLACES the text prompt
+   - User describes what should happen to it
+   - The RULES still apply to the transformation
+   - Vision model analyzes the uploaded image
+   - Model creates a new version based on description + rules
 
-USER EDITING CAPABILITIES
-All textarea fields (inputText, contextPrompt, interceptionResult, optimizedPrompt) are fully editable at any time after they contain content. User can modify any text and re-run generation with modified prompts. Platform provides suggestions but user has full control. Model selection can be changed at any time to try different models. User can go back to Phase 1 at any time using return button. Platform remembers settings and allows iteration. Seed logic supports both variation (new seed for same prompt) and iteration (same seed for modified prompt).
+3. MULTI-IMAGE MODE (multi_image.vue)
+   Icon: Grid with plus symbol
+   Input: UP TO THREE IMAGES (replace the text prompt together)
+   How it works:
+   - User uploads UP TO THREE images - these REPLACE the text prompt
+   - User describes how they should be combined
+   - The RULES still apply to the combination
+   - Vision-capable model (QWEN 2511) processes all images together
+   - Creates fusion based on description + rules
 
-SPECIAL TECHNICAL NOTES
-Model logos stored at /logos/ directory. Config preview images at /config-previews/{{id}}.png. Textarea auto-resize implemented via watch on interceptionResult and optimizedPrompt refs calling autoResizeTextarea which sets height to scrollHeight plus 4px buffer. Session registration occurs after successful generation via updateSession(runId, {{mediaType, configName}}) for chat overlay context.
+================================================================================
+SECTION 3: TEXT MODE - DETAILED WORKFLOW
+================================================================================
+
+STEP 1: INPUT FIELDS (Two side-by-side bubbles)
+
+LEFT BUBBLE - "Deine Idee" (Your Idea)
+- Label: "Deine Idee: Worum soll es gehen?" / "Your Idea: What should it be about?"
+- Purpose: User describes the SUBJECT MATTER - WHAT should be created
+- Always editable, no restrictions
+- When filled: border changes from white (low opacity) to blue with blue background
+
+RIGHT BUBBLE - "Regeln/Eigenschaften" (Rules/Properties)
+- Label: "Bestimme Regeln, Material, Besonderheiten" / "Define rules, materials, specifics"
+- Purpose: Contains the meta-prompt defining HOW it should be realized
+- Initially loaded from selected configuration in user's language
+- Always editable - user can modify or write completely new rules
+- IMPORTANT: The goal is for users to learn to formulate their OWN rules
+
+STEP 2: INTERCEPTION (Verarbeitung)
+
+What happens:
+- User clicks first START button (triple arrow)
+- LLM (Language Model) processes BOTH inputs together
+- Combines the IDEA with the RULES
+- Creates an expanded, differentiated prompt
+
+Result display:
+- Label: "Idee + Regeln = Prompt"
+- Shows the LLM's output in a green-tinted box
+- FULLY EDITABLE - user can modify everything
+- This is a SUGGESTION, not a final result
+
+WHY INTERCEPTION EXISTS:
+1. Awareness of rules and material - By explicitly formulating rules, users become aware of what decisions they're making
+2. Learning to understand prompts - Same basic idea can produce completely different results with different rules
+3. Critical exploration of AI - How do models react to detailed, expressive prompts? Where are their limits?
+
+STEP 3: MEDIA AND MODEL SELECTION
+
+The platform is MULTIMODAL - not just images, but also:
+- Images (various models)
+- Video (LTX Video, Wan 2.2)
+- Audio/Sound (Stable Audio)
+- Music/Instrumental (ACE Instrumental)
+
+AVAILABLE IMAGE MODELS:
+- Stable Diffusion 3.5 Large (sd35_large) - blue, local
+- GPT Image 1 (gpt_image_1) - yellow, OpenAI
+- Gemini 3 Pro Image (gemini_3_pro_image) - blue, Google
+- QWEN (qwen) - purple, vision-capable
+
+VIDEO MODELS:
+- LTX Video - fast local video generation
+- Wan 2.2 Video - high-quality 720p video (5B model)
+
+AUDIO MODELS:
+- ACE Instrumental - AI music generation for instrumentals
+- Stable Audio Open - open-source audio generation (max 47s)
+
+THE EXCITING PART: Users can try the SAME prompt with DIFFERENT models - within one medium or even across media. This teaches how differently models react to the same input.
+
+STEP 4: PROMPT OPTIMIZATION (depends on the model)
+
+Not all models need the same prompt style. Here's what happens:
+
+STABLE DIFFUSION 3.5:
+- NEEDS optimization
+- Prompt is converted to "classic" prompt style (keywords, weightings, tags)
+- This is a good opportunity to LEARN how traditional prompting works
+- Users can see how a natural description becomes a technical prompt
+
+GPT IMAGE, GEMINI, QWEN:
+- DON'T NEED optimization
+- These models have their own POWERFUL LANGUAGE MODULE built-in
+- They understand natural language directly
+- The interception result goes directly to the model
+
+VIDEO MODELS (LTX, Wan 2.2):
+- Receive optimization for SCENIC descriptions
+- Prompts are adapted for movement, timing, camera work
+
+AUDIO MODELS (ACE, Stable Audio):
+- Receive optimization for AUDITIVE descriptions
+- Prompts are adapted for sound, rhythm, musical structure
+
+P5.JS (Special case):
+- This generates CODE, not images
+- Optimization prepares the prompt for code generation
+- Output is a p5.js sketch that runs in the browser
+
+Display:
+- Label: "Modell-Optimierter Prompt"
+- Shows in orange-tinted box
+- FULLY EDITABLE - the optimized prompt is just a suggestion
+- Users can always modify it before generation
+
+STEP 5: TRANSLATION TO ENGLISH
+
+At the end, the prompt is translated to English (if not already).
+WHY? Because generative AI models usually only understand English really well.
+We want users to work in their own language - so the system handles translation.
+This step is currently not visible but happens in the background.
+
+STEP 6: GENERATION
+
+User clicks second START button to generate media.
+- Progress animation shows during generation
+- Duration: typically 20 seconds to 2 minutes depending on model
+- Result displays in output frame
+- Images can be clicked for fullscreen view
+- Videos/audio have playback controls
+
+================================================================================
+SECTION 4: CIRCULARITY CONCEPT
+================================================================================
+
+Even though the workflow LOOKS linear (top to bottom), the platform is designed to be CIRCULAR:
+
+- Go back at any time
+- Copy any text and paste it elsewhere
+- Load generated images into Image Mode or Multi-Image Mode
+- Continue processing and iterating
+- Experiment!
+
+EXAMPLE OF CIRCULAR WORKFLOW:
+You can transform a prompt with the "Cutifier" (Verniedlicher), copy the result back up to the input,
+then go back to the start page and apply a completely different rule like "De-Kitschifier" (Entkitscher),
+then do the same again with "Exaggerator" (Übertreiber), and so on.
+And in between, YOU can always change something yourself - add words, remove parts, refine ideas.
+This chain of transformations creates unique, layered results.
+
+The seed logic supports both:
+- VARIATION: Same prompt → new seed → different result
+- ITERATION: Modified prompt → same seed → refined result
+
+================================================================================
+SECTION 5: THE WAS/WIE PRINCIPLE (WHAT/HOW)
+================================================================================
+
+In text mode, users work with TWO SEPARATE inputs:
+- WAS (WHAT): The idea - what should be created
+- WIE (HOW): The rules - how should it be realized
+
+There are pre-made configurations as assistance, but the GOAL is for users to learn to formulate their OWN rules.
+
+EXAMPLE RULES:
+- "Beschreibe alles aus der Perspektive der Vögel auf den Bäumen" (Describe everything from the perspective of birds in the trees)
+- "Verwende nur Farben, die man in der Natur findet" (Use only colors found in nature)
+- "Stelle dir vor, du erklärst es jemandem, der noch nie ein Bild gesehen hat" (Imagine explaining it to someone who has never seen an image)
+
+================================================================================
+SECTION 6: EXPERIMENTAL WORKFLOWS
+================================================================================
+
+These approaches work at a deeper technical level and make the "black box" somewhat visible:
+
+SURREALIZER
+-----------
+Uses TWO DIFFERENT text encoders (CLIP and T5) and merges their results.
+- Each encoder "understands" text differently
+- Mixing them creates unexpected, often surreal results
+- Reveals how meaning is encoded differently by different systems
+
+SPLIT & COMBINE / PARTIAL ELIMINATION
+-------------------------------------
+Work directly at the mathematical level of semantic vectors.
+- What happens when we merge meaning spaces?
+- What happens when we remove parts of meaning?
+- These experiments make AI's internal representations somewhat visible
+
+================================================================================
+SECTION 7: LORA TRAINING STUDIO
+================================================================================
+
+Users can train their OWN styles using the LoRA Training Studio.
+
+How it works:
+- Upload example images (your own artwork or photos)
+- The system trains a LoRA (Low-Rank Adaptation) model
+- The trained style becomes available for image generation
+- Can be combined with any prompt
+
+This allows users to:
+- Create consistent personal styles
+- Understand how AI learns from examples
+- Explore transfer learning concepts
+
+================================================================================
+SECTION 8: SAFETY LEVELS
+================================================================================
+
+Three safety levels exist:
+- KIDS (Kinder): Most restricted, appropriate for ages 8-12
+- YOUTH (Jugend): Default level, appropriate for ages 12-17
+- OPEN (Erwachsene/Adults): Least restricted, for adult supervision contexts
+
+The safety level is set by the supervising educator, not by students.
+It determines what content can be generated.
+
+================================================================================
+SECTION 9: DATA AND PRIVACY
+================================================================================
+
+- Generated content is saved for research purposes (helps improve the platform)
+- Uploaded images are NOT permanently stored
+- No personal data is collected
+- The platform is used in supervised educational contexts
+
+================================================================================
+SECTION 10: FREQUENTLY ASKED QUESTIONS
+================================================================================
+
+Q: How long does generation take?
+A: Depends on model and complexity. Usually 20 seconds to 2 minutes. Progress is shown during generation.
+
+Q: Can I edit the AI's suggestions?
+A: YES! Everything is editable - the interception result, the optimized prompt, even the rules. The AI provides suggestions, but YOU have full control.
+
+Q: Why does my result look different each time?
+A: The seed changes for variation. If you want to iterate on the same result, modify the prompt but keep the seed.
+
+Q: What if I don't understand something?
+A: Ask me (Trashy) for help, or ask the course instructor who is present. It's completely okay not to know everything.
+
+Q: Can I use my own images?
+A: Yes, in Image Mode (one image) or Multi-Image Mode (up to three images). You can also use images you generated on the platform.
+
+================================================================================
+SECTION 11: INTERFACE ELEMENTS
+================================================================================
+
+HEADER ICONS (for mode recognition):
+- Dots pattern: Start page / Selection view
+- "A" with arrow: Text Mode
+- Landscape image: Image Mode
+- Grid with plus: Multi-Image Mode
+
+INPUT FIELD STATES:
+- Empty: White dashed border, pulsing yellow when required
+- Filled: Blue solid border with blue background tint
+
+BUTTONS:
+- START buttons: Triple arrow animation, green when enabled, gray when disabled
+- Return button: Top-left, returns to previous page or mode selection
+
+OUTPUT FRAME STATES:
+- Empty: Dashed border, placeholder text
+- Generating: Solid green border, animated progress sprite
+- Complete: Shows generated media (image, video, audio player)
+
+================================================================================
+SECTION 12: TIPS FOR USERS
+================================================================================
+
+FOR BETTER RESULTS:
+- Be specific in your descriptions
+- Try different rules for the same idea
+- Compare results across different models
+- Use the circularity - iterate and refine
+- Don't be afraid to experiment with experimental workflows
+
+FOR LEARNING:
+- Observe what the LLM does with your input
+- Compare your original idea with the expanded prompt
+- Try to understand WHY certain results happen
+- Formulate your own rules instead of only using presets
+
+REMEMBER:
+- This is an EXPERIMENTATION platform, not a production tool
+- There are no "wrong" results - every output teaches something
+- Ask questions! To me (Trashy) or to the instructor present.
+
+================================================================================
+SECTION 13: AVAILABLE PROPERTY CONFIGURATIONS
+================================================================================
+
+These are the pre-made configurations users can select on the start page.
+Each configuration defines rules (HOW) that transform the user's idea (WHAT).
+
+CATEGORIES:
+- Freestyle: User defines their own rules
+- Art History: Historical artistic movements
+- Creative Transformations: Linguistic and semantic experiments
+- Research/Experimental: Technical deep-dive workflows
+
+---
+
+FREESTYLE / USER-DEFINED
+------------------------
+
+"Du bestimmst!" / "Your Call!"
+- Purpose: User writes their own rules from scratch
+- Rules field starts EMPTY
+- Maximum creative freedom
+- Good for advanced users who want to experiment
+
+---
+
+ART HISTORY CONFIGURATIONS
+--------------------------
+
+"Bauhaus"
+- Reduces everything to geometric shapes and primary colors
+- Focuses on function and structure (Form follows function)
+- Industrial materials: steel, glass, concrete
+- Removes decoration and ornament
+
+"Renaissance"
+- Classical perspective and composition
+- Emphasis on proportion and harmony
+- Renaissance color palettes
+- Humanistic ideals
+
+"Confucian Literati" / "Konfuzianische Gelehrte"
+- East Asian scholarly aesthetic
+- Ink brush traditions
+- Philosophical depth
+- Contemplative compositions
+
+---
+
+CREATIVE TRANSFORMATIONS
+------------------------
+
+"Stille Post" / "Telephone"
+- Passes text through 8 random languages
+- Like the children's game "telephone"
+- Creates surprising meaning shifts
+- Reveals how translation changes concepts
+
+"Das Gegenteil" / "The Opposite"
+- Inverts the meaning of everything
+- What was bright becomes dark
+- Positive becomes negative
+- Reveals hidden assumptions in prompts
+
+"Hunky Dory Harmonizer"
+- Makes everything positive and harmonious
+- Removes conflict and tension
+- Creates idealized, peaceful versions
+- Shows how "positivity" changes meaning
+
+"Clichéfilter"
+- Detects and transforms visual clichés
+- Finds alternative visual solutions
+- Challenges default imagery
+- Promotes original thinking
+
+"Jugendsprache" / "Youth Language"
+- Transforms into contemporary youth slang
+- Current expressions and style
+- Shows how language changes meaning
+
+"Pig Latin" / "Schweinelatein"
+- Linguistic transformation game
+- Creates playful text modifications
+
+---
+
+PHOTOGRAPHY PERSPECTIVES
+------------------------
+
+"Analoge Fotografie 1870er" / "Analog Photography 1870s"
+- Early photography aesthetics
+- Long exposure limitations
+- Chemical processes
+- Historical techniques
+
+"Analoge Fotografie 1970er" / "Analog Photography 1970s"
+- Film photography aesthetics
+- Color film characteristics
+- Analog grain and texture
+
+"Digitale Fotografie" / "Digital Photography"
+- Modern digital aesthetics
+- Sharp focus, high dynamic range
+- Contemporary camera capabilities
+
+---
+
+TECHNICAL / ARTISTIC APPROACHES
+-------------------------------
+
+"Technische Zeichnung" / "Technical Drawing"
+- Engineering drawing style
+- Precise lines, measurements
+- Schematic representations
+- Blueprint aesthetics
+
+"P5.js Simplifier"
+- Creates p5.js code sketches
+- Generative art approach
+- Programmable visual output
+
+"Planetarizer"
+- Cosmic, planetary perspectives
+- Scale transformations
+- Astronomical viewpoints
+
+---
+
+EXPERIMENTAL RESEARCH WORKFLOWS
+-------------------------------
+
+These are advanced workflows that work at the technical level of AI systems:
+
+"Surrealizer" / "Surrealisierer"
+- Uses TWO text encoders (CLIP and T5) simultaneously
+- Merges their different "understandings" of text
+- Creates dreamlike, unexpected compositions
+- SKIPS normal interception - prompt goes directly to specialized workflow
+- Reveals how different AI systems encode meaning differently
+
+"Split and Combine" / "Teilen und Kombinieren"
+- Splits prompt into TWO semantic parts
+- Creates FOUR images:
+  1. Original scene with both elements
+  2. First element alone
+  3. Second element alone
+  4. Recombined in new way
+- Explores how concepts blend in neural networks
+- SKIPS normal interception - direct workflow
+
+"Partial Elimination" / "Partielle Elimination"
+- "Switches off" parts of AI's understanding
+- Creates THREE images:
+  1. Normal version
+  2. First half of semantic dimensions removed
+  3. Second half removed
+- Shows which features (objects, colors, moods) are stored where
+- Makes AI's internal representations visible
+- SKIPS normal interception - direct workflow
+
+NOTE ON EXPERIMENTAL WORKFLOWS:
+These skip the normal LLM interception step. The user's prompt goes directly
+to specialized ComfyUI workflows that manipulate vectors at the mathematical
+level. They are excellent for understanding HOW AI "thinks" about prompts.
+
+---
+
+MOOD/PERSPECTIVE CONFIGURATIONS
+-------------------------------
+
+"One World"
+- Global, interconnected perspective
+- Unity and diversity themes
+- Cross-cultural elements
+
+"Mad World"
+- Chaotic, surreal perspective
+- Unexpected combinations
+- Breaking normal rules
+
+"Sensibel" / "Sensitive"
+- Delicate, nuanced approach
+- Subtle details
+- Careful, considerate perspective
+
+"Kraftvoll" / "Forceful"
+- Strong, powerful approach
+- Bold statements
+- High impact visuals
+
+"Tell a Story" / "Erzähl eine Geschichte"
+- Narrative focus
+- Story elements
+- Sequential thinking
+
+---
+
+IMAGE/MULTI-IMAGE CONFIGURATIONS
+--------------------------------
+
+"Image Transformation"
+- For Image Mode (single image upload)
+- User describes transformation to apply
+- Vision model analyzes uploaded image
+
+"Multi-Image Transformation"
+- For Multi-Image Mode (up to 3 images)
+- User describes how images should combine
+- QWEN 2511 processes multiple images together
+
+================================================================================
+SECTION 14: TROUBLESHOOTING
+================================================================================
+
+COMMON ISSUES:
+
+"Generation takes very long"
+- Some models (especially video) need more time
+- Check the progress indicator
+- Wait for at least 2 minutes before assuming failure
+
+"Result doesn't match my idea"
+- Try being more specific in your description
+- Modify the rules to add constraints
+- Try a different model for comparison
+
+"I don't understand the interception result"
+- The LLM has combined your idea with the rules
+- Compare it with your original input
+- You can always edit it before generating
+
+"The model keeps making similar images"
+- Change the seed by clicking generate again (with same prompt)
+- Or modify the prompt slightly for intentional variation
+
+"My image upload doesn't work"
+- Check file format (PNG, JPG, WEBP supported)
+- File size should be reasonable
+- Try a different image
+
+================================================================================
+END OF KNOWLEDGE BASE
+================================================================================
