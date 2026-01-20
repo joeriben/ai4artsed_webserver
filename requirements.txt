@@ -39,14 +39,6 @@ python-docx==1.1.0   # DOCX (Word document) generation
 lxml==5.1.0          # XML processing and parsing
 
 # ============================================================================
-# Watermarking & Content Credentials
-# ============================================================================
-invisible-watermark>=0.4.0   # Invisible watermark embedding (DWT-DCT)
-opencv-python>=4.8.0         # Image processing (required by invisible-watermark)
-c2pa-python>=0.27.0          # C2PA Content Credentials signing
-cryptography>=41.0.0         # Certificate handling for C2PA
-
-# ============================================================================
 # Optional: Development/Testing
 # ============================================================================
 # Uncomment for development:
