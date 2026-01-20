@@ -55,6 +55,11 @@
                     <span class="step-badge">1</span>
                     <h3>{{ currentLanguage === 'de' ? 'Startseite: Regeln wählen' : 'Start Page: Choose Rules' }}</h3>
                   </div>
+                  <div class="step-icon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48" fill="#4CAF50">
+                      <path d="M120-510v-330h330v330H120Zm0 390v-330h330v330H120Zm390-390v-330h330v330H510Zm0 390v-330h330v330H510ZM180-570h210v-210H180v210Zm390 0h210v-210H570v210Zm0 390h210v-210H570v210Zm-390 0h210v-210H180v210Zm390-390Zm0 180Zm-180 0Zm0-180Z"/>
+                    </svg>
+                  </div>
                   <p>{{ currentLanguage === 'de'
                     ? 'Auf der Eingangsseite siehst du in der Mitte "Du bestimmst!" – das ist der Ausgangspunkt mit einer LEEREN Regel-Box. Alles drum herum sind Anregungen: vorgefertigte Regeln, die du als Inspiration nutzen oder direkt verwenden kannst. Die ausgewählten Regeln werden in alle drei Modi übernommen.'
                     : 'On the start page you see "Your Call!" in the center – this is the starting point with an EMPTY rules box. Everything around it are suggestions: pre-made rules you can use as inspiration or directly. The selected rules are applied to all three modes.' }}</p>
@@ -721,6 +726,13 @@ onUnmounted(() => {
   border-radius: 4px;
   font-size: 0.9rem;
   color: #4CAF50;
+}
+
+.step-icon-display {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+  margin-bottom: 0.5rem;
 }
 
 .example-box {
