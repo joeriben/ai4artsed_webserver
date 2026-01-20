@@ -42,6 +42,12 @@
                 <p>{{ currentLanguage === 'de'
                   ? 'Ein zentrales Konzept: Das Sprachmodell (LLM) ist hier nicht nur ein Werkzeug, sondern ein Co-Akteur im kreativen Prozess. Es verarbeitet deine Eingabe auf Basis seiner Trainingsdaten und erzeugt etwas Neues. Das ist faszinierend, aber auch nicht unproblematisch – denn wir wissen nicht genau, wie und warum das Modell bestimmte Entscheidungen trifft.'
                   : 'A central concept: The language model (LLM) is not just a tool here, but a co-actor in the creative process. It processes your input based on its training data and generates something new. This is fascinating, but also not unproblematic – because we don\'t know exactly how and why the model makes certain decisions.' }}</p>
+
+                <div class="disclaimer">
+                  <p>{{ currentLanguage === 'de'
+                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
+                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
+                </div>
               </section>
             </div>
 
@@ -200,6 +206,12 @@
                         : 'apply a completely different rule, e.g. "De-Kitschifier", and then the same again with "Exaggerator", and so on. And in between, YOU can always change something yourself.' }}</span>
                   </div>
                 </div>
+
+                <div class="disclaimer">
+                  <p>{{ currentLanguage === 'de'
+                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
+                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
+                </div>
               </section>
             </div>
 
@@ -285,6 +297,12 @@
                     ? 'Die Plattform entfaltet ihren vollen Wert durch reflektierende Begleitung. Sie ist ein Werkzeug für Lernprozesse, kein Selbstläufer. Die Fragen, die beim Experimentieren entstehen, sind oft wichtiger als die Bilder.'
                     : 'The platform unfolds its full value through reflective guidance. It is a tool for learning processes, not self-running. The questions that arise during experimentation are often more important than the images.' }}</p>
                 </div>
+
+                <div class="disclaimer">
+                  <p>{{ currentLanguage === 'de'
+                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
+                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
+                </div>
               </section>
             </div>
 
@@ -362,6 +380,11 @@
                   </div>
                 </div>
 
+                <div class="disclaimer">
+                  <p>{{ currentLanguage === 'de'
+                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
+                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
+                </div>
               </section>
             </div>
 
@@ -411,6 +434,12 @@
                     ? 'Für Fragen zur Nutzung in Bildungskontexten:'
                     : 'For questions about use in educational contexts:' }}</p>
                   <a href="mailto:vanessa.baumann@fau.de">vanessa.baumann@fau.de</a>
+                </div>
+
+                <div class="disclaimer">
+                  <p>{{ currentLanguage === 'de'
+                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
+                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
                 </div>
               </section>
             </div>
