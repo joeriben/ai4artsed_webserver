@@ -290,46 +290,79 @@
               <section class="experiments-section">
                 <h2>{{ currentLanguage === 'de' ? 'Experimentelle Workflows' : 'Experimental Workflows' }}</h2>
                 <p class="section-intro">{{ currentLanguage === 'de'
-                  ? 'Diese experimentellen Ansätze machen die "Black Box" sichtbar, indem sie direkt auf der technischen Ebene arbeiten.'
-                  : 'These experimental approaches make the "black box" visible by working directly at the technical level.' }}</p>
+                  ? 'Diese Experimente arbeiten auf der mathematischen Ebene der KI-Modelle. Sie zeigen, wie Sprache und Bedeutung in Vektoren übersetzt werden – und was passiert, wenn wir diese Vektoren manipulieren.'
+                  : 'These experiments work at the mathematical level of AI models. They show how language and meaning are translated into vectors – and what happens when we manipulate these vectors.' }}</p>
 
                 <div class="experiment-card surrealizer">
                   <h3>Surrealizer</h3>
-                  <p>{{ currentLanguage === 'de'
-                    ? 'Nutzt zwei verschiedene Text-Encoder (CLIP und T5) und verschmilzt ihre Ergebnisse mit einstellbarer Gewichtung.'
-                    : 'Uses two different text encoders (CLIP and T5) and merges their results with adjustable weighting.' }}</p>
-                  <div class="tech-detail">
-                    <strong>{{ currentLanguage === 'de' ? 'Technisch:' : 'Technical:' }}</strong>
+                  <div class="experiment-what">
+                    <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Bildgenerierungsmodelle wie Stable Diffusion verwenden Text-Encoder, um deinen Prompt zu "verstehen". SD3.5 hat zwei verschiedene Encoder: CLIP (trainiert auf Bild-Text-Paaren) und T5 (trainiert nur auf Text). Normalerweise werden beide kombiniert. Der Surrealizer lässt dich die Gewichtung verändern.'
+                      : 'Image generation models like Stable Diffusion use text encoders to "understand" your prompt. SD3.5 has two different encoders: CLIP (trained on image-text pairs) and T5 (trained only on text). Normally both are combined. The Surrealizer lets you change the weighting.' }}</p>
+                  </div>
+                  <div class="experiment-why">
+                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das interessant?' : 'Why is this interesting?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'CLIP "denkt" visuell – es assoziiert Worte mit Bildern, die es gesehen hat. T5 "denkt" sprachlich – es versteht grammatische und semantische Strukturen. Wenn du die Balance verschiebst, siehst du: Derselbe Text erzeugt völlig andere Bilder, je nachdem wie er "verstanden" wird.'
+                      : 'CLIP "thinks" visually – it associates words with images it has seen. T5 "thinks" linguistically – it understands grammatical and semantic structures. When you shift the balance, you see: The same text creates completely different images depending on how it\'s "understood".' }}</p>
+                  </div>
+                  <div class="experiment-example">
+                    <strong>{{ currentLanguage === 'de' ? 'Beispiel:' : 'Example:' }}</strong>
                     {{ currentLanguage === 'de'
-                      ? 'CLIP (Bilder+Text trainiert) vs. T5 (nur Text trainiert) "verstehen" denselben Prompt unterschiedlich. Die Mischung erzeugt unerwartete, oft surreale Ergebnisse.'
-                      : 'CLIP (trained on images+text) vs. T5 (trained on text only) "understand" the same prompt differently. The mixture creates unexpected, often surreal results.' }}
+                      ? '"Ein Vogel aus Glas" – CLIP-dominant zeigt eher einen gläsernen Vogel (visuell bekannt), T5-dominant interpretiert die Metapher freier und erzeugt abstraktere Ergebnisse.'
+                      : '"A bird made of glass" – CLIP-dominant shows more of a glass bird (visually known), T5-dominant interprets the metaphor more freely and creates more abstract results.' }}
                   </div>
                 </div>
 
                 <div class="experiment-card split-combine">
                   <h3>Split & Combine</h3>
-                  <p>{{ currentLanguage === 'de'
-                    ? 'Nimm zwei Konzepte, zerlege sie in ihre semantischen Vektoren, und kombiniere sie auf neue Weise.'
-                    : 'Take two concepts, break them into their semantic vectors, and combine them in new ways.' }}</p>
-                  <div class="tech-detail">
-                    <strong>{{ currentLanguage === 'de' ? 'Technisch:' : 'Technical:' }}</strong>
+                  <div class="experiment-what">
+                    <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Jeder Begriff wird vom Text-Encoder in einen hochdimensionalen Vektor übersetzt (ca. 2000 Dimensionen). Diese Vektoren kann man mathematisch addieren, subtrahieren oder mischen. Split & Combine nimmt zwei Konzepte und verschmilzt ihre Vektoren.'
+                      : 'Each concept is translated by the text encoder into a high-dimensional vector (about 2000 dimensions). These vectors can be mathematically added, subtracted, or mixed. Split & Combine takes two concepts and merges their vectors.' }}</p>
+                  </div>
+                  <div class="experiment-why">
+                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das interessant?' : 'Why is this interesting?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Das Ergebnis ist NICHT dasselbe wie "Katze und Architektur" als Prompt zu schreiben. Bei der Vektormischung entstehen Hybride auf einer tieferen Bedeutungsebene – oft mit überraschenden, unmöglichen Kombinationen, die sprachlich nicht beschreibbar wären.'
+                      : 'The result is NOT the same as writing "cat and architecture" as a prompt. Vector mixing creates hybrids at a deeper meaning level – often with surprising, impossible combinations that couldn\'t be described linguistically.' }}</p>
+                  </div>
+                  <div class="experiment-example">
+                    <strong>{{ currentLanguage === 'de' ? 'Beispiel:' : 'Example:' }}</strong>
                     {{ currentLanguage === 'de'
-                      ? 'Semantische Vektoren sind mathematische Repräsentationen von Bedeutung. Was passiert, wenn wir "Katze" + "Architektur" auf Vektorebene verschmelzen?'
-                      : 'Semantic vectors are mathematical representations of meaning. What happens when we merge "cat" + "architecture" at the vector level?' }}
+                      ? '"Ozean" + "Wüste" auf Vektorebene ergibt nicht "Strand" – sondern visuelle Hybride aus Wellen und Sand, die keine reale Entsprechung haben.'
+                      : '"Ocean" + "desert" at vector level doesn\'t yield "beach" – but visual hybrids of waves and sand that have no real-world equivalent.' }}
                   </div>
                 </div>
 
                 <div class="experiment-card partial-elimination">
                   <h3>Partial Elimination</h3>
-                  <p>{{ currentLanguage === 'de'
-                    ? 'Entferne gezielt Teile eines semantischen Vektors und beobachte, was übrig bleibt.'
-                    : 'Selectively remove parts of a semantic vector and observe what remains.' }}</p>
-                  <div class="tech-detail">
-                    <strong>{{ currentLanguage === 'de' ? 'Technisch:' : 'Technical:' }}</strong>
-                    {{ currentLanguage === 'de'
-                      ? 'Wenn du von "roter Apfel" die "Röte" entfernst – was bleibt? Diese Experimente zeigen, wie Bedeutung in KI-Modellen repräsentiert wird.'
-                      : 'If you remove "redness" from "red apple" – what remains? These experiments show how meaning is represented in AI models.' }}
+                  <div class="experiment-what">
+                    <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Du gibst einen Begriff ein und wählst Dimensionen des Vektors aus, die auf Null gesetzt werden. Der Rest wird zur Bildgenerierung verwendet. So kannst du "Teile der Bedeutung" entfernen und beobachten, was übrig bleibt.'
+                      : 'You enter a concept and select dimensions of the vector to set to zero. The rest is used for image generation. This way you can "remove parts of meaning" and observe what remains.' }}</p>
                   </div>
+                  <div class="experiment-why">
+                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das interessant?' : 'Why is this interesting?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Niemand weiß genau, was in welcher Dimension eines Vektors "gespeichert" ist. Durch systematisches Eliminieren kannst du entdecken: Welche Dimensionen sind für "Farbe" zuständig? Welche für "Form"? Die Ergebnisse sind oft überraschend und zeigen die Grenzen unseres Verständnisses.'
+                      : 'Nobody knows exactly what\'s "stored" in which dimension of a vector. By systematically eliminating, you can discover: Which dimensions are responsible for "color"? Which for "shape"? The results are often surprising and show the limits of our understanding.' }}</p>
+                  </div>
+                  <div class="experiment-example">
+                    <strong>{{ currentLanguage === 'de' ? 'Beispiel:' : 'Example:' }}</strong>
+                    {{ currentLanguage === 'de'
+                      ? 'Entferne Dimensionen 100-200 von "roter Apfel" – verliert er seine Röte? Seine Rundheit? Oder etwas ganz anderes? Das Experimentieren zeigt: Bedeutung ist nicht so organisiert, wie wir intuitiv annehmen.'
+                      : 'Remove dimensions 100-200 from "red apple" – does it lose its redness? Its roundness? Or something completely different? Experimenting shows: Meaning is not organized the way we intuitively assume.' }}
+                  </div>
+                </div>
+
+                <div class="experiment-note">
+                  <p>{{ currentLanguage === 'de'
+                    ? '⚠️ Diese Experimente sind bewusst technisch und abstrakt. Sie eignen sich für fortgeschrittene Nutzer:innen, die verstehen wollen, wie KI-Modelle "unter der Haube" funktionieren.'
+                    : '⚠️ These experiments are intentionally technical and abstract. They are suitable for advanced users who want to understand how AI models work "under the hood".' }}</p>
                 </div>
               </section>
             </div>
@@ -422,6 +455,12 @@
                   <p>{{ currentLanguage === 'de'
                     ? 'Frag Träshy direkt in der Anwendung, oder schreibe an: '
                     : 'Ask Träshy directly in the application, or write to: ' }}<a href="mailto:vanessa.baumann@fau.de">vanessa.baumann@fau.de</a></p>
+                </div>
+
+                <div class="disclaimer">
+                  <p>{{ currentLanguage === 'de'
+                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
+                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
                 </div>
               </section>
             </div>
@@ -1018,6 +1057,72 @@ onUnmounted(() => {
 
 .contact-box a:hover {
   text-decoration: underline;
+}
+
+/* Experiment Card Details */
+.experiment-what,
+.experiment-why {
+  margin-top: 0.75rem;
+}
+
+.experiment-what strong,
+.experiment-why strong {
+  display: block;
+  color: #4CAF50;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.experiment-what p,
+.experiment-why p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.experiment-example {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
+.experiment-example strong {
+  color: #81C784;
+  font-style: normal;
+  margin-right: 0.5rem;
+}
+
+.experiment-note {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 152, 0, 0.1);
+  border-radius: 8px;
+  border-left: 3px solid #FF9800;
+}
+
+.experiment-note p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+/* Disclaimer */
+.disclaimer {
+  margin-top: 2rem;
+  padding: 0.75rem;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.disclaimer p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
 }
 
 /* Modal Fade Transition */
