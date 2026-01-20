@@ -11,7 +11,7 @@ from my_app.services.watermark_service import WatermarkService
 
 # Find most recent generated image
 import glob
-images = sorted(glob.glob("exports/json/2026-*/*/*.png"), key=lambda x: Path(x).stat().st_mtime, reverse=True)
+images = sorted(glob.glob("exports/json/20*-*/*/*.png"), key=lambda x: Path(x).stat().st_mtime, reverse=True)
 
 if not images:
     print("Keine Bilder gefunden. Generiere erst ein Bild über die Weboberfläche.")
