@@ -243,8 +243,8 @@
                     <h3>{{ currentLanguage === 'de' ? 'Kritisches Erkunden' : 'Critical Exploration' }}</h3>
                   </div>
                   <p>{{ currentLanguage === 'de'
-                    ? 'Wie reagieren verschiedene Modelle? Wo liegen ihre Grenzen? Durch systematisches Experimentieren erforschst du die Fähigkeiten und Eigenheiten generativer KI – nicht um sie optimal zu nutzen, sondern um sie zu verstehen.'
-                    : 'How do different models react? Where are their limits? Through systematic experimentation, you explore the capabilities and peculiarities of generative AI – not to use it optimally, but to understand it.' }}</p>
+                    ? 'Wie reagieren verschiedene Modelle? Wo liegen ihre Grenzen? Durch systematisches Experimentieren erforschst du die Fähigkeiten und Eigenheiten generativer KI.'
+                    : 'How do different models react? Where are their limits? Through systematic experimentation, you explore the capabilities and peculiarities of generative AI.' }}</p>
                 </div>
 
                 <div class="principle-card">
@@ -359,11 +359,6 @@
                   </div>
                 </div>
 
-                <div class="experiment-note">
-                  <p>{{ currentLanguage === 'de'
-                    ? '⚠️ Diese Experimente sind bewusst technisch und abstrakt. Sie eignen sich für fortgeschrittene Nutzer:innen, die verstehen wollen, wie KI-Modelle "unter der Haube" funktionieren.'
-                    : '⚠️ These experiments are intentionally technical and abstract. They are suitable for advanced users who want to understand how AI models work "under the hood".' }}</p>
-                </div>
               </section>
             </div>
 
@@ -1095,20 +1090,6 @@ onUnmounted(() => {
   color: #81C784;
   font-style: normal;
   margin-right: 0.5rem;
-}
-
-.experiment-note {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: rgba(255, 152, 0, 0.1);
-  border-radius: 8px;
-  border-left: 3px solid #FF9800;
-}
-
-.experiment-note p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
 }
 
 /* Disclaimer */
