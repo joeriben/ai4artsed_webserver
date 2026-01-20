@@ -295,11 +295,6 @@
             </div>
           </div>
 
-          <!-- Footer with Funding -->
-          <div class="modal-footer">
-            <p class="funding-text">{{ currentLanguage === 'de' ? 'Gefördert vom' : 'Funded by' }}</p>
-            <img src="/logos/BMBFSFJ_logo.png" alt="BMBF" class="funding-logo-small" />
-          </div>
         </div>
       </div>
     </Transition>
@@ -703,30 +698,6 @@ onUnmounted(() => {
 
 .contact-section a:hover {
   text-decoration: underline;
-}
-
-/* Modal Footer */
-.modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1rem 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
-}
-
-.funding-text {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
-}
-
-.funding-logo-small {
-  height: 28px;
-  background: white;
-  padding: 4px 8px;
-  border-radius: 4px;
 }
 
 /* Modal Fade Transition */
