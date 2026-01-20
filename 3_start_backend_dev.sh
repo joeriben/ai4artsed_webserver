@@ -54,7 +54,7 @@ echo ""
 # Remove error trap - allow normal server exit without "Script failed" message
 trap - ERR
 
-# Activate virtual environment
-source "$SCRIPT_DIR/venv/bin/activate"
+# Add venv site-packages to Python path
+export PYTHONPATH="$SCRIPT_DIR/venv/lib/python3.13/site-packages:$PYTHONPATH"
 
 python3 server.py
