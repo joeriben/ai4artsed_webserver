@@ -27,6 +27,116 @@
 
 ---
 
+## Session 126 (2026-01-21): Documentation Marathon (Continued)
+
+**Date:** 2026-01-21
+**Duration:** ~3 hours (continued from previous session)
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** 401a750, e0c14ed, acb72ab, fb52b6e, 3a56894, 1fca7c5, 83707cc, bb30bfa, 3ecf649, 879f74f
+
+### Objective
+
+Continue the Documentation Marathon: fix DokumentationModal.vue (corrupted by previous session), complete TECHNICAL_WHITEPAPER.md with all improvements.
+
+### Work Completed
+
+#### 1. DokumentationModal.vue Recovery & Enhancement ✅
+
+**Problem:** A previous session had overwritten the expanded 5-tab version with an old 4-tab version containing "Träshy" branding and wrong logos.
+
+**Solution:** Rebuilt from scratch based on commit 91336ff (4 tabs, no Träshy):
+- Expanded to 6 tabs: Willkommen, Anleitung, Pädagogik, Experimente, Workshop, Fragen
+- Removed funding logo (BMBF) that appeared incorrectly
+- Added auto-generation disclaimer to all 6 tabs
+- Fixed WAS/WIE principle placement (moved to top of Anleitung)
+- Added screenshot for PropertyQuadrants view recognition
+- Removed apologetic language ("fortgeschrittene Nutzer")
+
+#### 2. TECHNICAL_WHITEPAPER.md v2.1 ✅
+
+**Corrections:**
+- Stage assignments: Optimization is Stage 3, NOT Stage 2
+- Three-Layer explanation: Structure (Pipeline) vs Content (Config) vs Abstraction (Chunks)
+- Fixed diagram to show correct stage labels
+- Fixed view names (PropertyQuadrantsView.vue)
+
+**Additions:**
+- Section 2: Pedagogical Foundation (6 Principles)
+- Section 11: Additional Features
+  - Watermarking (DWT-DCT, C2PA ready)
+  - SSE Text Streaming (typewriter effect)
+  - Export Functionality (JSON/PDF/ZIP)
+  - Icon System (Material Design migration)
+- Version history updated to 2.1
+- Auto-generation disclaimer
+
+### Files Modified
+
+```
+public/ai4artsed-frontend/src/components/DokumentationModal.vue
+public/ai4artsed-frontend/public/images/select-view-preview.png (new)
+docs/TECHNICAL_WHITEPAPER.md
+docs/00_MAIN_DOCUMENTATION_INDEX.md
+```
+
+### Impact
+
+- **User Documentation:** Complete 6-tab documentation modal with pedagogical explanations
+- **Technical Documentation:** Whitepaper now accurately reflects architecture and includes all features
+- **Consistency:** All docs have auto-generation disclaimers
+
+---
+
+## Session 125 (2026-01-19): Watermarking Integration (Reverted)
+
+**Date:** 2026-01-19
+**Duration:** ~2 hours
+**Status:** ⚠️ REVERTED
+**Branch:** develop
+**Commits:** 4284e2e, bf4f749, 8d77eb2, a1cd771, 0dd2cc9, 4f2feec (revert)
+
+### Objective
+
+Implement invisible watermarking for all AI-generated images to track provenance.
+
+### Work Attempted
+
+#### 1. Watermark Service Implementation
+
+- Created `WatermarkService` class with DWT-DCT embedding
+- Message: "AI4ArtsEd" embedded invisibly
+- Added to image generation pipeline
+
+#### 2. C2PA Infrastructure
+
+- Prepared Content Credentials integration
+- Added ARCHITECTURE PART 25 documentation
+
+### Why Reverted
+
+**Technical Issues:**
+- Python venv activation problems in startup scripts
+- PYTHONPATH conflicts between devserver and watermark service
+- Dependencies not properly isolated
+
+**Decision:** Reverted to maintain stability. Watermarking documented in whitepaper as "infrastructure prepared" for future implementation.
+
+### Files Affected (Reverted)
+
+```
+devserver/my_app/services/watermark_service.py (removed)
+docs/ARCHITECTURE PART 25 - Watermarking.md (kept for reference)
+```
+
+### Lessons Learned
+
+- Venv activation in bash scripts is fragile
+- Consider containerization for isolated dependencies
+- Feature flags should gate experimental features
+
+---
+
 ## Session 124 (2026-01-18): LoRA Epoch/Strength Fine-Tuning
 
 **Date:** 2026-01-18
