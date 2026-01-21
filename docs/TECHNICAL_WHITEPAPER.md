@@ -2,24 +2,26 @@
 
 **System Architecture and Implementation Guide**
 
-*Version 2.0 - January 2026*
+*Version 2.1 - January 2026*
 
 ---
 
 ## Table of Contents
 
 1. [System Overview](#1-system-overview)
-2. [Architecture](#2-architecture)
-3. [The 4-Stage Pipeline](#3-the-4-stage-pipeline)
-4. [Three-Layer Configuration System](#4-three-layer-configuration-system)
-5. [Frontend (Vue 3)](#5-frontend-vue-3)
-6. [Backend (Flask/DevServer)](#6-backend-flaskdevserver)
-7. [SwarmUI/ComfyUI Integration](#7-swarmuicomfyui-integration)
-8. [LLM Providers](#8-llm-providers)
-9. [LoRA Training Studio](#9-lora-training-studio)
-10. [API Reference](#10-api-reference)
-11. [Deployment](#11-deployment)
-12. [Development Guide](#12-development-guide)
+2. [Pedagogical Foundation](#2-pedagogical-foundation)
+3. [Architecture](#3-architecture)
+4. [The 4-Stage Pipeline](#4-the-4-stage-pipeline)
+5. [Three-Layer Configuration System](#5-three-layer-configuration-system)
+6. [Frontend (Vue 3)](#6-frontend-vue-3)
+7. [Backend (Flask/DevServer)](#7-backend-flaskdevserver)
+8. [SwarmUI/ComfyUI Integration](#8-swarmuicomfyui-integration)
+9. [LLM Providers](#9-llm-providers)
+10. [LoRA Training Studio](#10-lora-training-studio)
+11. [Additional Features](#11-additional-features)
+12. [API Reference](#12-api-reference)
+13. [Deployment](#13-deployment)
+14. [Development Guide](#14-development-guide)
 
 ---
 
@@ -69,7 +71,47 @@ AI4ArtsEd is a pedagogical experimentation platform for critical engagement with
 
 ---
 
-## 2. Architecture
+## 2. Pedagogical Foundation
+
+### The Problem
+
+Generative AI presents three challenges for education:
+
+1. **Black Box**: Users input text, receive output. The process is invisible.
+2. **Passivity**: AI becomes wish-fulfillment machine. Humans become commissioners, not creators.
+3. **Superficiality**: "Prompt engineering" reduces creativity to keyword optimization.
+
+### The 6 Principles
+
+AI4ArtsEd addresses these through six design principles:
+
+| # | Principle | Implementation |
+|---|-----------|----------------|
+| 1 | **WAS/WIE Separation** | Idea (WAS) and rules (WIE) are entered separately. This makes decisions visible. |
+| 2 | **LLM as Co-Actor** | The LLM is not a tool but a visible participant. Its contributions are shown, not hidden. |
+| 3 | **Critical Exploration** | Systematic experimentation to understand model capabilities and limits. |
+| 4 | **Visibility of Processing** | Every step is visible and editable. The "black box" is opened. |
+| 5 | **Circularity** | Results become inputs. Iteration, not linear production. |
+| 6 | **Pedagogical Guidance** | The platform supports learning processes through accompanying reflection. |
+
+### WAS/WIE in Practice
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  WAS (Idea)              │  WIE (Rules)                 │
+│  "A breakfast table"     │  "From a child's perspective"│
+│                          │  "In Bauhaus style"          │
+│                          │  "As technical drawing"      │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+              Same idea + different rules = different results
+```
+
+The separation makes creative decisions **explicit and learnable**.
+
+---
+
+## 3. Architecture
 
 ### Directory Structure
 
@@ -140,15 +182,15 @@ PipelineExecutor simply executes what it's told.
 
 ---
 
-## 3. The 4-Stage Pipeline
+## 4. The 4-Stage Pipeline
 
 ### Overview
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │   Stage 1   │───▶│   Stage 2   │───▶│   Stage 3   │───▶│   Stage 4   │
-│   Safety    │    │ Interception│    │  Translate  │    │ Generation  │
-│(orig. lang) │    │+ Optimization│   │  + Safety   │    │             │
+│   Safety    │    │ Interception│    │ Optimize +  │    │ Generation  │
+│(orig. lang) │    │ (Pädagogik) │    │Translate+Safe│   │             │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
@@ -208,7 +250,7 @@ PipelineExecutor simply executes what it's told.
 
 ---
 
-## 4. Three-Layer Configuration System
+## 5. Three-Layer Configuration System
 
 ### Overview
 
@@ -290,7 +332,7 @@ User-facing configurations with complete instruction content:
 
 ---
 
-## 5. Frontend (Vue 3)
+## 6. Frontend (Vue 3)
 
 ### Lab Paradigm
 
@@ -316,10 +358,13 @@ const generationResult = await fetch('/api/schema/pipeline/stage3-4', {
 
 | View | Route | Purpose |
 |------|-------|---------|
-| `SelectView.vue` | `/` | Rule selection (start page) |
+| `PropertyQuadrantsView.vue` | `/select` | Rule selection (start page) |
 | `text_transformation.vue` | `/text-transformation` | Text mode |
 | `image_transformation.vue` | `/image-transformation` | Image mode |
-| `multi_image.vue` | `/multi-image` | Multi-image mode |
+| `multi_image_transformation.vue` | `/multi-image-transformation` | Multi-image mode |
+| `surrealizer.vue` | `/surrealizer` | T5-CLIP interpolation |
+| `split_and_combine.vue` | `/split-and-combine` | Vector fusion |
+| `partial_elimination.vue` | `/partial-elimination` | Dimension elimination |
 | `TrainingView.vue` | `/training` | LoRA training |
 
 ### Naming Convention
@@ -331,7 +376,7 @@ Pipeline: text_transformation → Vue: text_transformation.vue
 
 ---
 
-## 6. Backend (Flask/DevServer)
+## 7. Backend (Flask/DevServer)
 
 ### Blueprint Structure
 
@@ -374,7 +419,7 @@ Safety NOT configurable by users. Set by educator.
 
 ---
 
-## 7. SwarmUI/ComfyUI Integration
+## 8. SwarmUI/ComfyUI Integration
 
 ### Architecture
 
@@ -427,7 +472,7 @@ class SwarmUIManager:
 
 ---
 
-## 8. LLM Providers
+## 9. LLM Providers
 
 ### Supported Providers
 
@@ -448,7 +493,7 @@ OPENROUTER_API_KEY = "..."  # From .key file
 
 ---
 
-## 9. LoRA Training Studio
+## 10. LoRA Training Studio
 
 ### Overview
 
@@ -488,7 +533,92 @@ Automatically injected during Stage 4.
 
 ---
 
-## 10. API Reference
+## 11. Additional Features
+
+### Watermarking & Content Credentials
+
+All generated images are automatically watermarked for AI provenance tracking.
+
+**Invisible Watermark**:
+```python
+# Embedding
+WatermarkService("AI4ArtsEd").embed_watermark(image_bytes)
+
+# Extraction
+result = WatermarkService("AI4ArtsEd").extract_watermark(image_bytes)
+# Returns: {"detected": True, "message": "AI4ArtsEd", "confidence": 0.95}
+```
+
+**Technical Implementation**:
+- **Method**: DWT-DCT (Discrete Wavelet Transform + Discrete Cosine Transform)
+- **Quality Impact**: None (imperceptible embedding)
+- **Robustness**: Survives JPEG compression, resizing, light edits
+- **C2PA Ready**: Content Credentials infrastructure prepared for future activation
+
+**Location**: `devserver/my_app/services/watermark_service.py`
+
+### SSE Text Streaming
+
+Stage 2 transformation results stream in real-time with a typewriter effect.
+
+**Implementation**:
+```typescript
+// Frontend uses EventSource
+const eventSource = new EventSource('/api/schema/pipeline/stage2/stream');
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'token') {
+    displayedText.value += data.content;  // Typewriter effect
+  }
+};
+```
+
+**Benefits**:
+- Visual feedback during LLM processing
+- Red spinner indicates queue position (request queueing active)
+- Progressive disclosure of transformation result
+
+### Export Functionality
+
+Session results exportable in multiple formats:
+
+| Format | Content | Use Case |
+|--------|---------|----------|
+| **JSON** | Complete session data | Programmatic access, backup |
+| **PDF** | Formatted report with images | Documentation, portfolios |
+| **ZIP** | All files bundled | Complete archive |
+
+**Export Location**: `/run_data/{run_id}/exports/`
+
+**API**:
+```
+GET /api/media/export/{run_id}?format=pdf
+GET /api/media/export/{run_id}?format=json
+GET /api/media/export/{run_id}?format=zip
+```
+
+### Icon System (Material Design)
+
+**Migration (Session 117)**: Emoji icons replaced with Material Design SVG icons.
+
+**Principles**:
+- Consistent visual language across all views
+- Scalable vector graphics (no pixelation)
+- Semantic naming (e.g., `mdi-image-filter-drama` for creative transformation)
+- Color theming via CSS variables
+
+**Component Location**: `src/components/icons/`
+
+**Usage**:
+```vue
+<template>
+  <MaterialIcon name="transform" size="24" class="text-primary" />
+</template>
+```
+
+---
+
+## 12. API Reference
 
 ### Pipeline Endpoints (Lab Atomic Services)
 
@@ -541,7 +671,7 @@ POST /api/chat
 
 ---
 
-## 11. Deployment
+## 13. Deployment
 
 ### Development
 
@@ -578,7 +708,7 @@ python run.py
 
 ---
 
-## 12. Development Guide
+## 14. Development Guide
 
 ### Adding a New Interception Config
 
@@ -639,7 +769,12 @@ npm run type-check  # MANDATORY before commits
 |---------|------|---------|
 | 1.0 | 2026-01-18 | Initial version |
 | 2.0 | 2026-01-20 | Complete rewrite: correct stage flow, Lab paradigm, Three-Layer system |
+| 2.1 | 2026-01-21 | Added Pedagogical Foundation (6 Principles), Section 11 (Additional Features), fixed Stage 3 description, updated diagrams |
 
 ---
 
 *This whitepaper reflects the architecture as of January 2026. For authoritative details, see `docs/ARCHITECTURE PART 01-24.md`.*
+
+---
+
+<sub>This documentation was automatically generated by Claude Code during the Documentation Marathon (Session 126, January 2026).</sub>
