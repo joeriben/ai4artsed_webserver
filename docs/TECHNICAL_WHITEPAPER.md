@@ -166,32 +166,32 @@ PipelineExecutor simply executes what it's told.
 
 **Configurable LLM**: `STAGE1_MODEL` in config.py
 
-### Stage 2: Interception + Optimization
+### Stage 2: Interception (Pedagogical Transformation)
 
 **Purpose**: Transform user idea according to selected rules
 
-**Two-Phase Execution** (Session 65+):
-
-**Phase 1: Interception** (Pedagogical Transformation)
 - Combines WAS (idea) with WIE (rules)
 - Uses `config.context` (the meta-prompt)
 - Model: `STAGE2_INTERCEPTION_MODEL`
 - Output: Transformed text in **original language**
 
-**Phase 2: Optimization** (Model-specific, if needed)
-- Adapts prompt for target generation model
-- Uses `output_config.optimization_instruction`
-- **When applied**: SD3.5 (needs keyword style), video, audio, p5.js
-- **When skipped**: GPT Image, Gemini, QWEN (have strong language models)
-
 **Result is visible and editable** before proceeding.
 
-### Stage 3: Translation + Pre-Output Safety
+### Stage 3: Optimization + Translation + Pre-Output Safety
 
 **Purpose**: Prepare prompt for generation
 
-1. **Translation**: German → English (generation models need English)
-2. **Pre-Output Safety**: Final safety check on translated prompt
+**Three-Phase Execution**:
+
+1. **Optimization** (Model-specific, if needed)
+   - Adapts prompt for target generation model
+   - Uses `output_config.optimization_instruction`
+   - **When applied**: SD3.5 (needs keyword style), video, audio, p5.js
+   - **When skipped**: GPT Image, Gemini, QWEN (have strong language models)
+
+2. **Translation**: German → English (generation models need English)
+
+3. **Pre-Output Safety**: Final safety check on translated prompt
 
 **Configurable LLM**: `STAGE3_OPTIMIZATION_MODEL` in config.py
 
@@ -212,16 +212,20 @@ PipelineExecutor simply executes what it's told.
 
 ### Overview
 
+Trennung von Struktur und Inhalt mit transparenter Ausführung:
+
 ```
 Layer 3: CONFIGS (34+ JSON files)
-    "What transformation to apply"
+    "Inhalt: Was soll transformiert werden"
     ↓ references
 Layer 2: PIPELINES (4 core definitions)
-    "How to orchestrate the transformation"
+    "Struktur: Wie wird orchestriert"
     ↓ uses
 Layer 1: CHUNKS (3 primitives)
-    "Atomic operations with templates"
+    "Abstraktion: Transparente atomare Operationen"
 ```
+
+**Prinzip**: Configs definieren den Inhalt (Regeln, Kontext), Pipelines definieren die Struktur (Ablauf), Chunks ermöglichen Transparenz in der Ausführung.
 
 ### Layer 1: Chunks
 
