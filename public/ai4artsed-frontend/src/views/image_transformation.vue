@@ -1040,6 +1040,7 @@ watch(() => favoritesStore.pendingRestoreData, (restoreData) => {
   justify-content: center;
   overflow-y: auto;
   overflow-x: hidden;
+  padding-bottom: 120px; /* Space for FooterGallery */
 }
 
 /* ============================================================================

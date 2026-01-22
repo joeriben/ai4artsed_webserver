@@ -1191,6 +1191,7 @@ watch(uploadedImagePath3, (newVal) => {
   justify-content: center;
   overflow-y: auto;
   overflow-x: hidden;
+  padding-bottom: 120px; /* Space for FooterGallery */
 }
 
 /* ============================================================================
