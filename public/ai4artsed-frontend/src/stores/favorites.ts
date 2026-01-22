@@ -62,6 +62,15 @@ export interface MediaOutput {
   metadata: Record<string, unknown>
 }
 
+/** Models used at each pipeline stage */
+export interface ModelsUsed {
+  stage1_safety?: string
+  stage2_interception?: string
+  stage3_translation?: string
+  stage3_safety?: string
+  stage4_output?: string
+}
+
 /** Response from GET /api/favorites/{run_id}/restore */
 export interface RestoreData {
   run_id: string
@@ -72,7 +81,10 @@ export interface RestoreData {
   expected_outputs: string[]
   user_id: string
   input_text?: string
+  context_prompt?: string  // Meta-Prompt/Regeln (user-editable!)
   transformed_text?: string
+  translation_en?: string  // English translation for media generation
+  models_used?: ModelsUsed  // LLM models used at each stage
   media_outputs: MediaOutput[]
   target_view: string
 }
@@ -100,6 +112,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   /** Favorites mode (global vs per_user) */
   const mode = ref<'global' | 'per_user'>('global')
+
+  /** Pending restore data (set by FooterGallery, consumed by views via watcher) */
+  const pendingRestoreData = ref<RestoreData | null>(null)
 
   // ============================================================================
   // COMPUTED
@@ -313,6 +328,18 @@ export const useFavoritesStore = defineStore('favorites', () => {
     error.value = null
   }
 
+  /**
+   * Set restore data for cross-component communication
+   *
+   * Used by FooterGallery to signal views to restore state.
+   * Views watch this and consume it immediately.
+   *
+   * @param data - Restore data or null to clear
+   */
+  function setRestoreData(data: RestoreData | null): void {
+    pendingRestoreData.value = data
+  }
+
   // ============================================================================
   // RETURN PUBLIC API
   // ============================================================================
@@ -324,6 +351,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     isGalleryExpanded,
     error,
     mode,
+    pendingRestoreData,
 
     // Computed
     totalFavorites,
@@ -342,6 +370,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     toggleGallery,
     expandGallery,
     collapseGallery,
-    clearError
+    clearError,
+    setRestoreData
   }
 })

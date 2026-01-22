@@ -861,51 +861,22 @@ onMounted(async () => {
     availabilityLoading.value = false
   }
 
-  // Check for restore_data from favorites gallery
-  const restoreDataStr = sessionStorage.getItem('restore_data')
-  if (restoreDataStr) {
-    try {
-      const restoreData = JSON.parse(restoreDataStr)
-      console.log('[T2I Restore] Processing restore data sequentially:', Object.keys(restoreData))
+  // Session persistence - restore previous input values
+  const savedInput = sessionStorage.getItem('t2i_input_text')
+  const savedContext = sessionStorage.getItem('t2i_context_prompt')
+  const savedInterception = sessionStorage.getItem('t2i_interception_result')
 
-      // Sequential copy/paste for each field
-      if (restoreData.input_text) {
-        copyToClipboard(restoreData.input_text)
-        inputText.value = pasteFromClipboard()
-        console.log('[T2I Restore] input_text → inputText')
-      }
-
-      if (restoreData.transformed_text) {
-        copyToClipboard(restoreData.transformed_text)
-        interceptionResult.value = pasteFromClipboard()
-        console.log('[T2I Restore] transformed_text → interceptionResult')
-      }
-
-      // Clear restore_data after processing
-      sessionStorage.removeItem('restore_data')
-      console.log('[T2I Restore] Complete')
-    } catch (error) {
-      console.error('[T2I Restore] Error:', error)
-      sessionStorage.removeItem('restore_data')
-    }
-  } else {
-    // Normal session persistence (only if NOT restoring from favorites)
-    const savedInput = sessionStorage.getItem('t2i_input_text')
-    const savedContext = sessionStorage.getItem('t2i_context_prompt')
-    const savedInterception = sessionStorage.getItem('t2i_interception_result')
-
-    if (savedInput) {
-      inputText.value = savedInput
-      console.log('[T2I] Restored input from sessionStorage')
-    }
-    if (savedContext) {
-      contextPrompt.value = savedContext
-      console.log('[T2I] Restored context from sessionStorage')
-    }
-    if (savedInterception) {
-      interceptionResult.value = savedInterception
-      console.log('[T2I] Restored interception from sessionStorage')
-    }
+  if (savedInput) {
+    inputText.value = savedInput
+    console.log('[T2I] Restored input from sessionStorage')
+  }
+  if (savedContext) {
+    contextPrompt.value = savedContext
+    console.log('[T2I] Restored context from sessionStorage')
+  }
+  if (savedInterception) {
+    interceptionResult.value = savedInterception
+    console.log('[T2I] Restored interception from sessionStorage')
   }
 
   // Check if we're coming from Phase1 with a configId
@@ -1348,13 +1319,15 @@ async function executePipeline() {
     // Use optimizedPrompt if available (model-specific), else interceptionResult
     const finalPrompt = optimizedPrompt.value || interceptionResult.value || inputText.value
 
-    // Option A: Each generation = new run with ALL context data
+    // Use SAME run_id from interception (one folder per process)
     const response = await axios.post('/api/schema/pipeline/generation', {
       prompt: finalPrompt,
       output_config: selectedConfig.value,
       seed: currentSeed.value,
-      // Context from interception (backend saves all to one folder)
+      run_id: currentRunId.value,  // CRITICAL: Reuse interception run_id!
+      // Context from interception (backend appends to same folder)
       input_text: inputText.value,
+      context_prompt: contextPrompt.value,  // Meta-Prompt/Regeln (user-editable!)
       interception_result: interceptionResult.value,
       interception_config: lastInterceptionConfig.value || pipelineStore.selectedConfig?.id,
       device_id: getDeviceId()  // Workshop tracking
@@ -1699,6 +1672,30 @@ watch(interceptionResult, (newValue) => {
     executionPhase.value = 'interception_done'
   }
 })
+
+// Restore from favorites (reactive, works even if already on page)
+watch(() => favoritesStore.pendingRestoreData, (restoreData) => {
+  if (!restoreData) return
+
+  console.log('[T2I Restore] Processing:', Object.keys(restoreData))
+
+  // Sequential copy/paste per JSON field
+  if (restoreData.input_text) {
+    copyToClipboard(restoreData.input_text)
+    inputText.value = pasteFromClipboard()
+  }
+  if (restoreData.context_prompt) {
+    copyToClipboard(restoreData.context_prompt)
+    contextPrompt.value = pasteFromClipboard()
+  }
+  if (restoreData.transformed_text) {
+    copyToClipboard(restoreData.transformed_text)
+    interceptionResult.value = pasteFromClipboard()
+  }
+
+  // Clear after processing
+  favoritesStore.setRestoreData(null)
+}, { immediate: true })
 </script>
 
 <style>

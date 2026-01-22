@@ -1333,7 +1333,7 @@ def execute_pipeline_streaming(data: dict):
     logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}")
 
     # Initialize recorder for export functionality
-    from config import JSON_STORAGE_DIR
+    from config import JSON_STORAGE_DIR, STAGE1_TEXT_MODEL, STAGE2_INTERCEPTION_MODEL
     recorder = get_recorder(
         run_id=run_id,
         config_name=schema_name,
@@ -1341,8 +1341,18 @@ def execute_pipeline_streaming(data: dict):
         safety_level=safety_level,
         base_path=JSON_STORAGE_DIR
     )
-    # Save input immediately
+
+    # Track LLM models used at each stage
+    recorder.metadata['models_used'] = {
+        'stage1_safety': STAGE1_TEXT_MODEL,
+        'stage2_interception': STAGE2_INTERCEPTION_MODEL
+    }
+    recorder._save_metadata()
+
+    # Save input and context_prompt immediately
     recorder.save_entity('input', input_text)
+    if context_prompt:
+        recorder.save_entity('context_prompt', context_prompt)
 
     try:
         # Initialize schema engine
@@ -1938,11 +1948,15 @@ def generation_endpoint():
         input_image2 = data.get('input_image2')
         input_image3 = data.get('input_image3')
 
-        # Context data from frontend (NEW: each generation = new run)
+        # Context data from frontend
         input_text = data.get('input_text', '')
+        context_prompt = data.get('context_prompt', '')  # Meta-Prompt/Regeln (user-editable!)
         interception_result = data.get('interception_result', '')
         interception_config = data.get('interception_config', '')
         device_id = data.get('device_id', '')
+
+        # UNIFIED RUN: Use run_id from interception if provided (one folder per process)
+        provided_run_id = data.get('run_id')
 
         if not prompt or not output_config:
             return jsonify({'status': 'error', 'error': 'prompt und output_config sind erforderlich'}), 400
@@ -1955,9 +1969,13 @@ def generation_endpoint():
         if pipeline_executor is None:
             init_schema_engine()
 
-        # ALWAYS create new run_id (Option A: each generation = new run)
-        run_id = f"gen_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-        logger.info(f"[GENERATION-ENDPOINT] New run_id: {run_id}")
+        # Use provided run_id (from interception) or create new one (backward compatibility)
+        if provided_run_id:
+            run_id = provided_run_id
+            logger.info(f"[GENERATION-ENDPOINT] Using existing run_id from interception: {run_id}")
+        else:
+            run_id = f"gen_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+            logger.info(f"[GENERATION-ENDPOINT] Created new run_id: {run_id}")
 
         # Determine media type from output config
         if 'code' in output_config.lower() or 'p5js' in output_config.lower():
@@ -1970,77 +1988,101 @@ def generation_endpoint():
             media_type = 'image'
 
         # ====================================================================
-        # STAGE 3: PRE-OUTPUT SAFETY (Server responsibility, always runs)
+        # STAGE 3: TRANSLATION + PRE-OUTPUT SAFETY
         # ====================================================================
-        logger.info(f"[GENERATION-ENDPOINT] Stage 3: Pre-Output Safety (level: {safety_level})")
+        # Use execute_stage3_safety which includes translation DE→EN
+        logger.info(f"[GENERATION-ENDPOINT] Stage 3: Translation + Safety (level: {safety_level})")
 
-        from schemas.engine.stage_orchestrator import fast_filter_check
+        from schemas.engine.stage_orchestrator import execute_stage3_safety
 
-        # Fast filter first (list check)
-        has_terms, found_terms = fast_filter_check(prompt, safety_level)
+        safety_result = asyncio.run(execute_stage3_safety(
+            prompt,
+            safety_level,
+            media_type,
+            'eco',
+            pipeline_executor
+        ))
 
-        if has_terms:
-            # Slow path: LLM context verification
-            logger.info(f"[GENERATION-ENDPOINT] Found terms {found_terms[:3]}... → LLM check")
+        if not safety_result['safe']:
+            logger.warning(f"[GENERATION-ENDPOINT] Stage 3 BLOCKED")
+            return jsonify({
+                'status': 'blocked',
+                'stage': 3,
+                'reason': safety_result.get('abort_reason', 'Content blocked by safety check'),
+                'found_terms': safety_result.get('found_terms', [])
+            }), 403
 
-            safety_check_config = f'pre_output/safety_check_{safety_level}'
-            safety_result = asyncio.run(pipeline_executor.execute_pipeline(
-                safety_check_config,
-                prompt,
-                execution_mode='eco'
-            ))
+        # Get translated prompt (English) for media generation
+        translated_prompt = safety_result.get('positive_prompt', prompt)
+        logger.info(f"[GENERATION-ENDPOINT] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
 
-            if safety_result.success:
-                output = safety_result.final_output.upper()
-                is_safe = 'SAFE' in output and 'UNSAFE' not in output
-
-                if not is_safe:
-                    logger.warning(f"[GENERATION-ENDPOINT] Stage 3 BLOCKED")
-                    return jsonify({
-                        'status': 'blocked',
-                        'stage': 3,
-                        'reason': 'Content blocked by pre-output safety check',
-                        'found_terms': found_terms
-                    }), 403
-            else:
-                logger.error(f"[GENERATION-ENDPOINT] Safety check failed: {safety_result.error}")
-                # On error, fail safe - block the generation
-                return jsonify({
-                    'status': 'error',
-                    'error': 'Safety check failed'
-                }), 500
-
-        logger.info(f"[GENERATION-ENDPOINT] Stage 3 PASSED")
-
-        # Initialize NEW recorder for this generation (Option A: each generation = new run)
+        # Initialize recorder - reuse existing from interception if available
         from config import JSON_STORAGE_DIR
 
-        recorder = get_recorder(
-            run_id=run_id,
-            config_name=output_config,
-            execution_mode='eco',
-            safety_level=safety_level,
-            base_path=JSON_STORAGE_DIR
-        )
+        if provided_run_id:
+            # Try to load existing recorder from interception
+            recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+            if recorder:
+                logger.info(f"[GENERATION-ENDPOINT] Loaded existing recorder for run: {run_id}")
+            else:
+                # Fallback: create new recorder with same run_id
+                logger.info(f"[GENERATION-ENDPOINT] Creating new recorder for existing run_id: {run_id}")
+                recorder = get_recorder(
+                    run_id=run_id,
+                    config_name=output_config,
+                    execution_mode='eco',
+                    safety_level=safety_level,
+                    base_path=JSON_STORAGE_DIR
+                )
+        else:
+            # No provided run_id - create fresh recorder
+            recorder = get_recorder(
+                run_id=run_id,
+                config_name=output_config,
+                execution_mode='eco',
+                safety_level=safety_level,
+                base_path=JSON_STORAGE_DIR
+            )
 
         # Add device_id to metadata if provided
         if device_id:
             recorder.metadata['device_id'] = device_id
-            recorder._save_metadata()
 
-        # Save all context entities to this run folder:
-        # 1. Original user input (if provided)
-        if input_text:
+        # Track LLM models used - add Stage 4 output model
+        from config import STAGE3_MODEL
+        if 'models_used' not in recorder.metadata:
+            recorder.metadata['models_used'] = {}
+        recorder.metadata['models_used']['stage3_safety'] = STAGE3_MODEL
+        recorder.metadata['models_used']['stage4_output'] = output_config
+        recorder._save_metadata()
+
+        # Helper: Check if entity type already exists in recorder
+        def entity_exists(entity_type: str) -> bool:
+            return any(e.get('type') == entity_type for e in recorder.metadata.get('entities', []))
+
+        # Save context entities - avoid duplicates when reusing interception run folder
+        # 1. Original user input (skip if already saved by interception)
+        if input_text and not entity_exists('input'):
             recorder.save_entity('input', input_text)
 
-        # 2. Interception result (if provided)
-        if interception_result:
-            recorder.save_entity('interception', interception_result)
-            if interception_config:
-                recorder.metadata['interception_config'] = interception_config
+        # 2. Context prompt / Meta-Prompt (user-editable pedagogical rules)
+        # Always save - may have been edited by user since interception
+        if context_prompt:
+            recorder.save_entity('context_prompt', context_prompt)
 
-        # 3. Optimized/final prompt (always saved)
+        # 3. Interception result (skip if already saved by interception)
+        if interception_result and not entity_exists('interception'):
+            recorder.save_entity('interception', interception_result)
+        if interception_config:
+            recorder.metadata['interception_config'] = interception_config
+
+        # 4. Optimized/final prompt (German, before translation)
         recorder.save_entity('optimized_prompt', prompt)
+
+        # 5. Translation (English, for media generation)
+        if translated_prompt and translated_prompt != prompt:
+            recorder.save_entity('translation_en', translated_prompt)
+            logger.info(f"[RECORDER] Saved translation_en entity")
 
         # Seed logic: use provided seed or generate random
         import random
@@ -2075,14 +2117,14 @@ def generation_endpoint():
         from schemas.engine.pipeline_executor import PipelineContext
         context_override = None
         if custom_params:
-            context_override = PipelineContext(input_text=prompt, user_input=prompt)
+            context_override = PipelineContext(input_text=translated_prompt, user_input=translated_prompt)
             context_override.custom_placeholders = custom_params
 
-        # Execute the generation pipeline
+        # Execute the generation pipeline with TRANSLATED prompt (English)
         output_result = asyncio.run(pipeline_executor.execute_pipeline(
             config_name=output_config,
-            input_text=prompt,
-            user_input=prompt,
+            input_text=translated_prompt,  # Use English translation!
+            user_input=translated_prompt,
             execution_mode='eco',
             context_override=context_override,
             seed_override=seed,
@@ -2641,7 +2683,12 @@ def interception_pipeline():
         # ====================================================================
         # LIVE PIPELINE RECORDER - Single source of truth (Session 37 Migration)
         # ====================================================================
-        from config import JSON_STORAGE_DIR
+        from config import (
+            JSON_STORAGE_DIR,
+            STAGE1_TEXT_MODEL,
+            STAGE2_INTERCEPTION_MODEL,
+            STAGE3_MODEL
+        )
         recorder = get_recorder(
             run_id=run_id,
             config_name=schema_name,
@@ -2652,6 +2699,15 @@ def interception_pipeline():
         )
         recorder.set_state(0, "pipeline_starting")
         logger.info(f"[RECORDER] Initialized LivePipelineRecorder for run {run_id}")
+
+        # Track LLM models used at each stage
+        recorder.metadata['models_used'] = {
+            'stage1_safety': STAGE1_TEXT_MODEL,
+            'stage2_interception': STAGE2_INTERCEPTION_MODEL,
+            'stage3_translation': STAGE3_MODEL
+            # stage4_output will be added when output config is determined
+        }
+        recorder._save_metadata()
 
         # ====================================================================
         # PHASE 2: USER-EDITED CONTEXT HANDLING
@@ -3183,6 +3239,11 @@ def interception_pipeline():
                     prompt_for_media = safety_result.get('positive_prompt', result.final_output)
                     logger.info(f"[4-STAGE] Using translated prompt from Stage 3 for media generation")
                     logger.info(f"[STAGE3-TRANSLATED] Prompt (first 200 chars): {prompt_for_media[:200]}...")
+
+                    # Save translation (English prompt for media generation)
+                    if prompt_for_media != result.final_output:
+                        recorder.save_entity('translation_en', prompt_for_media)
+                        logger.info(f"[RECORDER] Saved translation_en entity")
                 else:
                     # Stage 3 skipped - use Stage 2 output directly
                     prompt_for_media = result.final_output
@@ -3196,9 +3257,12 @@ def interception_pipeline():
                     tracker.set_stage(4)
                     recorder.set_state(4, "media_generation")
 
-                    # Save model name primitively to JSON folder
-                    recorder.save_entity('model_used', output_config_name)
-                    logger.info(f"[RECORDER] Saved model_used: {output_config_name}")
+                    # Track Stage 4 model in metadata
+                    if 'models_used' not in recorder.metadata:
+                        recorder.metadata['models_used'] = {}
+                    recorder.metadata['models_used']['stage4_output'] = output_config_name
+                    recorder._save_metadata()
+                    logger.info(f"[RECORDER] Updated models_used with stage4_output: {output_config_name}")
 
                     try:
                         # Session 116: Pass config-specific LoRAs to Stage 4

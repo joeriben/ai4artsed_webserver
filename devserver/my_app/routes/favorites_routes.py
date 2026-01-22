@@ -370,6 +370,14 @@ def get_restore_data(run_id: str):
                     restore_data['input_text'] = input_file.read_text(encoding='utf-8')
                 break
 
+        # Get context prompt (meta-prompt/rules - user-editable!)
+        for entity in entities:
+            if entity['type'] == 'context_prompt':
+                ctx_file = recorder.run_folder / entity['filename']
+                if ctx_file.exists():
+                    restore_data['context_prompt'] = ctx_file.read_text(encoding='utf-8')
+                break
+
         # Get transformed/intercepted text if available
         for entity in entities:
             if entity['type'] == 'interception':
@@ -377,6 +385,18 @@ def get_restore_data(run_id: str):
                 if output_file.exists():
                     restore_data['transformed_text'] = output_file.read_text(encoding='utf-8')
                 break
+
+        # Get English translation if available
+        for entity in entities:
+            if entity['type'] == 'translation_en':
+                trans_file = recorder.run_folder / entity['filename']
+                if trans_file.exists():
+                    restore_data['translation_en'] = trans_file.read_text(encoding='utf-8')
+                break
+
+        # Include models used at each stage
+        if 'models_used' in metadata:
+            restore_data['models_used'] = metadata['models_used']
 
         # Get media URLs
         media_outputs = []

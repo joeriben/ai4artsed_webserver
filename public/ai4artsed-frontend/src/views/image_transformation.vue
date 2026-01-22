@@ -634,7 +634,9 @@ async function startGeneration() {
       input_image: uploadedImagePath.value,
       seed: currentSeed.value,
       // Context for favorites restore (backend saves to run folder)
-      input_text: contextPrompt.value
+      // In I2I: input_text = context_prompt = user's transformation instruction
+      input_text: contextPrompt.value,
+      context_prompt: contextPrompt.value
     })
 
     if (response.data.status === 'success') {
@@ -877,37 +879,11 @@ onMounted(async () => {
     availabilityLoading.value = false
   }
 
-  // Check for restore_data from favorites gallery
-  const restoreDataStr = sessionStorage.getItem('restore_data')
-  if (restoreDataStr) {
-    try {
-      const restoreData = JSON.parse(restoreDataStr)
-      console.log('[I2I Restore] Processing restore data sequentially:', Object.keys(restoreData))
-
-      // Sequential copy/paste for each field
-      if (restoreData.input_text) {
-        copyToClipboard(restoreData.input_text)
-        contextPrompt.value = pasteFromClipboard()
-        console.log('[I2I Restore] input_text → contextPrompt')
-      }
-
-      // Note: I2I doesn't have interception result display
-      // Input images not persisted (privacy) - user must re-upload
-
-      // Clear restore_data after processing
-      sessionStorage.removeItem('restore_data')
-      console.log('[I2I Restore] Complete (image must be re-uploaded manually)')
-    } catch (error) {
-      console.error('[I2I Restore] Error:', error)
-      sessionStorage.removeItem('restore_data')
-    }
-  } else {
-    // Normal session persistence (only if NOT restoring from favorites)
-    const savedContext = sessionStorage.getItem('i2i_context_prompt')
-    if (savedContext) {
-      contextPrompt.value = savedContext
-      console.log('[I2I] Restored context from sessionStorage')
-    }
+  // Session persistence - restore previous context value
+  const savedContext = sessionStorage.getItem('i2i_context_prompt')
+  if (savedContext) {
+    contextPrompt.value = savedContext
+    console.log('[I2I] Restored context from sessionStorage')
   }
 
   // Check if coming from Phase1 with configId
@@ -1026,6 +1002,28 @@ watch(uploadedImageId, (newVal) => {
     sessionStorage.removeItem('i2i_uploaded_image_id')
   }
 })
+
+// Restore from favorites (reactive, works even if already on page)
+watch(() => favoritesStore.pendingRestoreData, (restoreData) => {
+  if (!restoreData) return
+
+  console.log('[I2I Restore] Processing:', Object.keys(restoreData))
+
+  // Sequential copy/paste per JSON field
+  // In I2I: context_prompt = input_text = transformation instruction
+  // Prefer context_prompt if available, fallback to input_text
+  const promptToRestore = restoreData.context_prompt || restoreData.input_text
+  if (promptToRestore) {
+    copyToClipboard(promptToRestore)
+    contextPrompt.value = pasteFromClipboard()
+  }
+
+  // Note: I2I doesn't have interception result display
+  // Input images not persisted (privacy) - user must re-upload
+
+  // Clear after processing
+  favoritesStore.setRestoreData(null)
+}, { immediate: true })
 </script>
 
 <style scoped>

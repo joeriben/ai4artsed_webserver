@@ -1,6 +1,61 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2026-01-17 (Unified Export Fix)
+**Last Updated:** 2026-01-23 (OpenRouter Prefix Fix)
 **Context:** Current priorities and active TODOs
+
+---
+
+## 🔧 REFACTORING: Provider Routing ohne Präfix-Parsing
+
+**Status:** 📋 **PLANNED** - Aktuelle Lösung funktioniert, aber fragil
+**Reported:** 2026-01-23
+**Priority:** MEDIUM (Verbesserung, kein Blocker)
+
+### Problem
+
+Die aktuelle Provider-Detection in `prompt_interception_engine.py` basiert auf Model-String-Präfixen:
+
+```python
+# Aktuell (fragil)
+if model.startswith("openrouter/"):
+    return call_openrouter(model.removeprefix("openrouter/"))
+elif model.startswith("anthropic/"):
+    return call_anthropic(model)
+```
+
+**Schwachstellen:**
+1. **Doppelte Wahrheit**: `EXTERNAL_LLM_PROVIDER` sagt "openrouter", aber Routing prüft Model-String
+2. **Leicht zu vergessen**: Commit 6eec19d entfernte versehentlich `openrouter/` Präfixe
+3. **Unübersichtlich**: `openrouter/anthropic/claude-sonnet-4.5` ist redundant
+
+### Saubere Lösung
+
+Routing basierend auf `EXTERNAL_LLM_PROVIDER` (Single Source of Truth):
+
+```python
+# Nachher (robust)
+provider = config.EXTERNAL_LLM_PROVIDER
+if provider == "openrouter":
+    return call_openrouter(model)  # model = "anthropic/claude-sonnet-4.5"
+elif provider == "anthropic":
+    return call_anthropic(model)   # model = "anthropic/claude-3-5-sonnet-latest"
+```
+
+### Vorteile
+
+- Model-Namen bleiben sauber (ohne `openrouter/` Präfix)
+- Provider-Einstellung bestimmt Routing
+- Weniger fehleranfällig bei Config-Änderungen
+- `HARDWARE_MATRIX` Presets brauchen keine redundanten Präfixe
+
+### Betroffene Dateien
+
+1. `devserver/schemas/engine/prompt_interception_engine.py` - Routing-Logik
+2. `devserver/my_app/routes/settings_routes.py` - HARDWARE_MATRIX (Präfixe entfernen)
+3. Ggf. weitere Provider-Detection in anderen Dateien
+
+### Aufwand
+
+~2-3 Stunden (inkl. Testing)
 
 ---
 

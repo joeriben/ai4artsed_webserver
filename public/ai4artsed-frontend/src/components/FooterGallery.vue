@@ -76,7 +76,7 @@
                 @click="handleContinue(favorite)"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
-                  <path d="M480-480ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h320v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm40-160h480L570-480 450-320l-90-120-120 160Zm480-280v-167l-64 63-56-56 160-160 160 160-56 56-64-63v167h-80Z"/>
+                  <path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/>
                 </svg>
               </button>
 
@@ -168,11 +168,11 @@ async function handleRestore(favorite: FavoriteItem) {
     return
   }
 
-  // Store full restore data - target view will process sequentially
-  sessionStorage.setItem('restore_data', JSON.stringify(restoreData))
-  console.log('[FooterGallery] Restore data stored:', Object.keys(restoreData))
+  // Set restore data in store (reactive - views watch this)
+  favoritesStore.setRestoreData(restoreData)
+  console.log('[FooterGallery] Restore data set in store:', Object.keys(restoreData))
 
-  // Navigate to target view
+  // Navigate to target view (watcher will process restore)
   const targetView = restoreData.target_view || 'text-transformation'
   router.push(`/${targetView}`)
 }
