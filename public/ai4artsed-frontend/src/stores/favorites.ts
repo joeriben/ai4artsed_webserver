@@ -1,0 +1,347 @@
+import { ref, computed } from 'vue'
+import { defineStore } from 'pinia'
+import axios from 'axios'
+
+/**
+ * Pinia Store for Footer Gallery Favorites
+ *
+ * Manages:
+ * - Favorites list (persisted on backend)
+ * - Gallery expand/collapse state
+ * - Favorite toggle actions
+ * - Restore data fetching for session restoration
+ *
+ * Session 127: Footer Gallery Implementation
+ */
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/** Favorite item from backend */
+export interface FavoriteItem {
+  run_id: string
+  added_at: string
+  thumbnail_url: string
+  media_type: 'image' | 'audio' | 'video' | 'music' | 'text' | '3d' | 'midi' | 'p5' | 'sonicpi'
+  user_id: string
+  user_note: string
+  // Enriched by backend
+  exists?: boolean
+  schema?: string
+  timestamp?: string
+  input_preview?: string
+}
+
+/** Response from GET /api/favorites */
+interface FavoritesResponse {
+  favorites: FavoriteItem[]
+  total: number
+  mode: 'global' | 'per_user'
+}
+
+/** Response from POST /api/favorites */
+interface AddFavoriteResponse {
+  success: boolean
+  favorite: FavoriteItem
+  total: number
+}
+
+/** Response from DELETE /api/favorites/{run_id} */
+interface RemoveFavoriteResponse {
+  success: boolean
+  run_id: string
+  total: number
+}
+
+/** Media output data for restore */
+export interface MediaOutput {
+  type: string
+  filename: string
+  url: string
+  metadata: Record<string, unknown>
+}
+
+/** Response from GET /api/favorites/{run_id}/restore */
+export interface RestoreData {
+  run_id: string
+  schema: string
+  execution_mode: string
+  timestamp: string
+  current_state: Record<string, unknown>
+  expected_outputs: string[]
+  user_id: string
+  input_text?: string
+  transformed_text?: string
+  media_outputs: MediaOutput[]
+  target_view: string
+}
+
+// ============================================================================
+// STORE DEFINITION
+// ============================================================================
+
+export const useFavoritesStore = defineStore('favorites', () => {
+  // ============================================================================
+  // STATE
+  // ============================================================================
+
+  /** List of favorite items */
+  const favorites = ref<FavoriteItem[]>([])
+
+  /** Loading state */
+  const isLoading = ref(false)
+
+  /** Gallery expand/collapse state */
+  const isGalleryExpanded = ref(false)
+
+  /** Error message (if any) */
+  const error = ref<string | null>(null)
+
+  /** Favorites mode (global vs per_user) */
+  const mode = ref<'global' | 'per_user'>('global')
+
+  // ============================================================================
+  // COMPUTED
+  // ============================================================================
+
+  /** Total number of favorites */
+  const totalFavorites = computed(() => favorites.value.length)
+
+  /** Check if a run is favorited */
+  const isFavorited = (runId: string): boolean => {
+    return favorites.value.some((f) => f.run_id === runId)
+  }
+
+  /** Get favorites filtered by media type */
+  const getFavoritesByType = (mediaType: string): FavoriteItem[] => {
+    return favorites.value.filter((f) => f.media_type === mediaType)
+  }
+
+  /** Get only image favorites (for continue/img2img feature) */
+  const imageFavorites = computed(() => {
+    return favorites.value.filter((f) => f.media_type === 'image')
+  })
+
+  // ============================================================================
+  // ACTIONS
+  // ============================================================================
+
+  /**
+   * Load all favorites from backend
+   */
+  async function loadFavorites(): Promise<void> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      console.log('[Favorites] Loading favorites from backend...')
+      const response = await axios.get<FavoritesResponse>('/api/favorites')
+
+      favorites.value = response.data.favorites
+      mode.value = response.data.mode
+
+      console.log(`[Favorites] Loaded ${response.data.total} favorites (mode: ${mode.value})`)
+    } catch (e) {
+      console.error('[Favorites] Failed to load favorites:', e)
+      error.value = e instanceof Error ? e.message : 'Failed to load favorites'
+      favorites.value = []
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Add a new favorite
+   *
+   * @param runId - Run ID to favorite
+   * @param mediaType - Type of media
+   * @param userId - Optional user ID (default: 'anonymous')
+   */
+  async function addFavorite(
+    runId: string,
+    mediaType: FavoriteItem['media_type'],
+    userId: string = 'anonymous'
+  ): Promise<boolean> {
+    error.value = null
+
+    // Optimistic update
+    const tempFavorite: FavoriteItem = {
+      run_id: runId,
+      added_at: new Date().toISOString(),
+      thumbnail_url: `/api/media/${mediaType}/${runId}${mediaType === 'image' ? '/0' : ''}`,
+      media_type: mediaType,
+      user_id: userId,
+      user_note: '',
+      exists: true
+    }
+
+    // Add to beginning (most recent first)
+    favorites.value.unshift(tempFavorite)
+
+    try {
+      console.log(`[Favorites] Adding favorite: ${runId} (${mediaType})`)
+      const response = await axios.post<AddFavoriteResponse>('/api/favorites', {
+        run_id: runId,
+        media_type: mediaType,
+        user_id: userId
+      })
+
+      // Update with server response
+      const index = favorites.value.findIndex((f) => f.run_id === runId)
+      if (index >= 0) {
+        favorites.value[index] = response.data.favorite
+      }
+
+      console.log(`[Favorites] Successfully added favorite: ${runId}`)
+      return true
+    } catch (e) {
+      // Rollback optimistic update
+      favorites.value = favorites.value.filter((f) => f.run_id !== runId)
+
+      if (axios.isAxiosError(e) && e.response?.status === 409) {
+        // Already exists - not an error
+        console.log(`[Favorites] Favorite already exists: ${runId}`)
+        // Reload to get current state
+        await loadFavorites()
+        return true
+      }
+
+      console.error(`[Favorites] Failed to add favorite: ${runId}`, e)
+      error.value = e instanceof Error ? e.message : 'Failed to add favorite'
+      return false
+    }
+  }
+
+  /**
+   * Remove a favorite
+   *
+   * @param runId - Run ID to remove from favorites
+   */
+  async function removeFavorite(runId: string): Promise<boolean> {
+    error.value = null
+
+    // Store for potential rollback
+    const removed = favorites.value.find((f) => f.run_id === runId)
+    const originalIndex = favorites.value.findIndex((f) => f.run_id === runId)
+
+    // Optimistic update
+    favorites.value = favorites.value.filter((f) => f.run_id !== runId)
+
+    try {
+      console.log(`[Favorites] Removing favorite: ${runId}`)
+      await axios.delete<RemoveFavoriteResponse>(`/api/favorites/${runId}`)
+
+      console.log(`[Favorites] Successfully removed favorite: ${runId}`)
+      return true
+    } catch (e) {
+      // Rollback optimistic update
+      if (removed && originalIndex >= 0) {
+        favorites.value.splice(originalIndex, 0, removed)
+      }
+
+      console.error(`[Favorites] Failed to remove favorite: ${runId}`, e)
+      error.value = e instanceof Error ? e.message : 'Failed to remove favorite'
+      return false
+    }
+  }
+
+  /**
+   * Toggle favorite status
+   *
+   * @param runId - Run ID to toggle
+   * @param mediaType - Type of media (required for adding)
+   * @param userId - Optional user ID
+   */
+  async function toggleFavorite(
+    runId: string,
+    mediaType: FavoriteItem['media_type'],
+    userId: string = 'anonymous'
+  ): Promise<boolean> {
+    if (isFavorited(runId)) {
+      return removeFavorite(runId)
+    } else {
+      return addFavorite(runId, mediaType, userId)
+    }
+  }
+
+  /**
+   * Get restore data for a favorite
+   *
+   * Returns complete session data for restoring UI state
+   *
+   * @param runId - Run ID to get restore data for
+   */
+  async function getRestoreData(runId: string): Promise<RestoreData | null> {
+    try {
+      console.log(`[Favorites] Getting restore data for: ${runId}`)
+      const response = await axios.get<RestoreData>(`/api/favorites/${runId}/restore`)
+      return response.data
+    } catch (e) {
+      console.error(`[Favorites] Failed to get restore data: ${runId}`, e)
+      error.value = e instanceof Error ? e.message : 'Failed to get restore data'
+      return null
+    }
+  }
+
+  /**
+   * Toggle gallery expanded state
+   */
+  function toggleGallery(): void {
+    isGalleryExpanded.value = !isGalleryExpanded.value
+    console.log(`[Favorites] Gallery ${isGalleryExpanded.value ? 'expanded' : 'collapsed'}`)
+  }
+
+  /**
+   * Expand gallery
+   */
+  function expandGallery(): void {
+    isGalleryExpanded.value = true
+  }
+
+  /**
+   * Collapse gallery
+   */
+  function collapseGallery(): void {
+    isGalleryExpanded.value = false
+  }
+
+  /**
+   * Clear error
+   */
+  function clearError(): void {
+    error.value = null
+  }
+
+  // ============================================================================
+  // RETURN PUBLIC API
+  // ============================================================================
+
+  return {
+    // State
+    favorites,
+    isLoading,
+    isGalleryExpanded,
+    error,
+    mode,
+
+    // Computed
+    totalFavorites,
+    imageFavorites,
+
+    // Getters (functions)
+    isFavorited,
+    getFavoritesByType,
+
+    // Actions
+    loadFavorites,
+    addFavorite,
+    removeFavorite,
+    toggleFavorite,
+    getRestoreData,
+    toggleGallery,
+    expandGallery,
+    collapseGallery,
+    clearError
+  }
+})

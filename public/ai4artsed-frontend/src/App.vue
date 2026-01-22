@@ -76,6 +76,7 @@
     </div>
 
     <ChatOverlay />
+    <FooterGallery />
 
     <!-- Permanent BMBFSFJ Funding Logo -->
     <div class="funding-logo-fixed">
@@ -108,6 +109,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ChatOverlay from './components/ChatOverlay.vue'
+import FooterGallery from './components/FooterGallery.vue'
 import AboutModal from './components/AboutModal.vue'
 import DokumentationModal from './components/DokumentationModal.vue'
 import ImpressumModal from './components/ImpressumModal.vue'

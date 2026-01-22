@@ -319,6 +319,8 @@
           :is-analyzing="isAnalyzing"
           :show-analysis="showAnalysis"
           :analysis-data="imageAnalysis"
+          :run-id="currentRunId"
+          :is-favorited="isFavorited"
           forward-button-title="Weiterreichen zu Bild-Transformation"
           @save="saveMedia"
           @print="printImage"
@@ -327,6 +329,7 @@
           @analyze="analyzeImage"
           @image-click="showImageFullscreen"
           @close-analysis="showAnalysis = false"
+          @toggle-favorite="toggleFavorite"
         />
 
       </div>
@@ -349,6 +352,7 @@ import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
+import { useFavoritesStore } from '@/stores/favorites'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
@@ -363,6 +367,9 @@ import './text_transformation.css'
 // Language support
 const userPreferences = useUserPreferencesStore()
 const currentLanguage = computed(() => userPreferences.language)
+
+// Favorites support (Session 127)
+const favoritesStore = useFavoritesStore()
 
 // ============================================================================
 // Session Management (Session 82: Chat Overlay Context)
@@ -736,6 +743,12 @@ const areModelBubblesEnabled = computed(() => {
   return interceptionResult.value.trim().length > 0
 })
 
+// Check if current output is favorited (Session 127)
+const isFavorited = computed(() => {
+  if (!currentRunId.value) return false
+  return favoritesStore.isFavorited(currentRunId.value)
+})
+
 // Streaming computed properties
 const streamingUrl = computed(() => {
   const isLoading = isInterceptionLoading.value
@@ -848,22 +861,51 @@ onMounted(async () => {
     availabilityLoading.value = false
   }
 
-  // UNIFIED PATTERN: Always restore ALL boxes from storage first
-  const savedInput = sessionStorage.getItem('t2i_input_text')
-  const savedContext = sessionStorage.getItem('t2i_context_prompt')
-  const savedInterception = sessionStorage.getItem('t2i_interception_result')
+  // Check for restore_data from favorites gallery
+  const restoreDataStr = sessionStorage.getItem('restore_data')
+  if (restoreDataStr) {
+    try {
+      const restoreData = JSON.parse(restoreDataStr)
+      console.log('[T2I Restore] Processing restore data sequentially:', Object.keys(restoreData))
 
-  if (savedInput) {
-    inputText.value = savedInput
-    console.log('[T2I] Restored input from sessionStorage')
-  }
-  if (savedContext) {
-    contextPrompt.value = savedContext
-    console.log('[T2I] Restored context from sessionStorage')
-  }
-  if (savedInterception) {
-    interceptionResult.value = savedInterception
-    console.log('[T2I] Restored interception from sessionStorage')
+      // Sequential copy/paste for each field
+      if (restoreData.input_text) {
+        copyToClipboard(restoreData.input_text)
+        inputText.value = pasteFromClipboard()
+        console.log('[T2I Restore] input_text → inputText')
+      }
+
+      if (restoreData.transformed_text) {
+        copyToClipboard(restoreData.transformed_text)
+        interceptionResult.value = pasteFromClipboard()
+        console.log('[T2I Restore] transformed_text → interceptionResult')
+      }
+
+      // Clear restore_data after processing
+      sessionStorage.removeItem('restore_data')
+      console.log('[T2I Restore] Complete')
+    } catch (error) {
+      console.error('[T2I Restore] Error:', error)
+      sessionStorage.removeItem('restore_data')
+    }
+  } else {
+    // Normal session persistence (only if NOT restoring from favorites)
+    const savedInput = sessionStorage.getItem('t2i_input_text')
+    const savedContext = sessionStorage.getItem('t2i_context_prompt')
+    const savedInterception = sessionStorage.getItem('t2i_interception_result')
+
+    if (savedInput) {
+      inputText.value = savedInput
+      console.log('[T2I] Restored input from sessionStorage')
+    }
+    if (savedContext) {
+      contextPrompt.value = savedContext
+      console.log('[T2I] Restored context from sessionStorage')
+    }
+    if (savedInterception) {
+      interceptionResult.value = savedInterception
+      console.log('[T2I] Restored interception from sessionStorage')
+    }
   }
 
   // Check if we're coming from Phase1 with a configId
@@ -1342,6 +1384,9 @@ async function executePipeline() {
       console.log('[CODE-DEBUG] Has code?:', !!response.data.media_output?.code)
 
       if (runId) {
+        // Store run_id for favorites (Session 127)
+        currentRunId.value = runId
+
         // Dynamic URL based on media type: /api/media/{type}/{run_id}
         outputMediaType.value = mediaType
         outputImage.value = `/api/media/${mediaType}/${runId}`
@@ -1435,6 +1480,18 @@ function saveMedia() {
   // TODO: Implement save/bookmark feature for all media types
   console.log('[Media Actions] Save media (not yet implemented):', outputMediaType.value)
   alert('Merken-Funktion kommt bald!')
+}
+
+async function toggleFavorite() {
+  if (!currentRunId.value) {
+    console.warn('[Media Actions] No current run_id to favorite')
+    return
+  }
+
+  // Convert outputMediaType to the correct type for favorites
+  const mediaType = outputMediaType.value as 'image' | 'video' | 'audio' | 'music'
+  await favoritesStore.toggleFavorite(currentRunId.value, mediaType)
+  console.log('[Media Actions] Favorite toggled for run_id:', currentRunId.value)
 }
 
 function printImage() {

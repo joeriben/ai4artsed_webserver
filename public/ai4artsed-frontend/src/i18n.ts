@@ -135,6 +135,14 @@ const messages = {
       retry: 'Erneut versuchen',
       cancel: 'Abbrechen'
     },
+    gallery: {
+      title: 'Meine Favoriten',
+      empty: 'Noch keine Favoriten',
+      favorite: 'Zu Favoriten',
+      unfavorite: 'Aus Favoriten entfernen',
+      continue: 'Weiterentwickeln',
+      restore: 'Wiederherstellen'
+    },
     settings: {
       authRequired: 'Authentifizierung erforderlich',
       authPrompt: 'Bitte geben Sie das Passwort ein, um auf die Einstellungen zuzugreifen:',
@@ -433,6 +441,14 @@ const messages = {
       error: 'Error',
       retry: 'Retry',
       cancel: 'Cancel'
+    },
+    gallery: {
+      title: 'My Favorites',
+      empty: 'No favorites yet',
+      favorite: 'Add to favorites',
+      unfavorite: 'Remove from favorites',
+      continue: 'Continue editing',
+      restore: 'Restore session'
     },
     settings: {
       authRequired: 'Authentication Required',

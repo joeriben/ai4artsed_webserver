@@ -155,6 +155,8 @@
         :is-analyzing="isAnalyzing"
         :show-analysis="showAnalysis"
         :analysis-data="imageAnalysis"
+        :run-id="currentRunId"
+        :is-favorited="isFavorited"
         forward-button-title="Erneut Transformieren"
         @save="saveMedia"
         @print="printImage"
@@ -163,6 +165,7 @@
         @analyze="analyzeImage"
         @image-click="showImageFullscreen"
         @close-analysis="showAnalysis = false"
+        @toggle-favorite="toggleFavorite"
       />
 
     </div>
@@ -188,6 +191,7 @@ import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
+import { useFavoritesStore } from '@/stores/favorites'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import { getModelAvailability, type ModelAvailability } from '@/services/api'
 
@@ -352,6 +356,12 @@ const canStartGeneration = computed(() => {
     selectedConfig.value &&
     !isPipelineExecuting.value
   )
+})
+
+// Check if current output is favorited
+const isFavorited = computed(() => {
+  if (!currentRunId.value) return false
+  return favoritesStore.isFavorited(currentRunId.value)
 })
 
 // ============================================================================
@@ -622,7 +632,9 @@ async function startGeneration() {
       prompt: contextPrompt.value,
       output_config: selectedConfig.value,
       input_image: uploadedImagePath.value,
-      seed: currentSeed.value
+      seed: currentSeed.value,
+      // Context for favorites restore (backend saves to run folder)
+      input_text: contextPrompt.value
     })
 
     if (response.data.status === 'success') {
@@ -637,6 +649,9 @@ async function startGeneration() {
       console.log('[Generation] Success, run_id:', runId, 'media_type:', mediaType)
 
       if (runId) {
+        // Store run_id for favorites
+        currentRunId.value = runId
+
         // Dynamic URL based on media type: /api/media/{type}/{run_id}
         outputMediaType.value = mediaType
         outputImage.value = `/api/media/${mediaType}/${runId}`
@@ -695,6 +710,10 @@ function scrollDownOnly(element: HTMLElement | null, block: ScrollLogicalPositio
 
 const route = useRoute()
 const pipelineStore = usePipelineExecutionStore()
+const favoritesStore = useFavoritesStore()
+
+// Current run tracking for favorites
+const currentRunId = ref<string | null>(null)
 
 // ============================================================================
 // Textbox Actions (Copy/Paste/Delete)
@@ -722,6 +741,18 @@ function clearContextPrompt() {
 
 function saveMedia() {
   alert('Speichern-Funktion kommt bald!')
+}
+
+async function toggleFavorite() {
+  if (!currentRunId.value) {
+    console.warn('[I2I] No current run_id to favorite')
+    return
+  }
+
+  // Convert outputMediaType to the correct type for favorites
+  const mediaType = outputMediaType.value as 'image' | 'video' | 'audio' | 'music'
+  await favoritesStore.toggleFavorite(currentRunId.value, mediaType)
+  console.log('[I2I] Favorite toggled for run_id:', currentRunId.value)
 }
 
 function printImage() {
@@ -846,11 +877,37 @@ onMounted(async () => {
     availabilityLoading.value = false
   }
 
-  // UNIFIED PATTERN: Always restore ALL boxes from storage first
-  const savedContext = sessionStorage.getItem('i2i_context_prompt')
-  if (savedContext) {
-    contextPrompt.value = savedContext
-    console.log('[I2I] Restored context from sessionStorage')
+  // Check for restore_data from favorites gallery
+  const restoreDataStr = sessionStorage.getItem('restore_data')
+  if (restoreDataStr) {
+    try {
+      const restoreData = JSON.parse(restoreDataStr)
+      console.log('[I2I Restore] Processing restore data sequentially:', Object.keys(restoreData))
+
+      // Sequential copy/paste for each field
+      if (restoreData.input_text) {
+        copyToClipboard(restoreData.input_text)
+        contextPrompt.value = pasteFromClipboard()
+        console.log('[I2I Restore] input_text → contextPrompt')
+      }
+
+      // Note: I2I doesn't have interception result display
+      // Input images not persisted (privacy) - user must re-upload
+
+      // Clear restore_data after processing
+      sessionStorage.removeItem('restore_data')
+      console.log('[I2I Restore] Complete (image must be re-uploaded manually)')
+    } catch (error) {
+      console.error('[I2I Restore] Error:', error)
+      sessionStorage.removeItem('restore_data')
+    }
+  } else {
+    // Normal session persistence (only if NOT restoring from favorites)
+    const savedContext = sessionStorage.getItem('i2i_context_prompt')
+    if (savedContext) {
+      contextPrompt.value = savedContext
+      console.log('[I2I] Restored context from sessionStorage')
+    }
   }
 
   // Check if coming from Phase1 with configId
