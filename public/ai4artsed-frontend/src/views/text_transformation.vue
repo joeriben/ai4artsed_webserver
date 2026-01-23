@@ -434,7 +434,7 @@ const availabilityLoading = ref(true)
 // Phase 4: Seed management for iterative correction
 const previousOptimizedPrompt = ref('')  // Track previous prompt for comparison
 const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
-const currentRunId = ref<string | null>(null)  // Run ID from interception (legacy, no longer used)
+const currentRunId = ref<string | null>(null)  // Run ID from interception (prompting_process_xxx)
 const lastInterceptionConfig = ref<string | null>(null)  // Track which interception config was used
 
 // Session 129: Device ID for folder structure (json/date/device_id/run_xxx/)
@@ -1335,12 +1335,13 @@ async function executePipeline() {
     console.log('[GENERATION-DEBUG] SELECTED finalPrompt:', finalPrompt?.substring(0, 100) + '...')
     console.log('[GENERATION-DEBUG] currentSeed:', currentSeed.value)
 
-    // Session 129: Each generation = new run (clean architecture for favorites)
-    // Backend creates new run_id for each generation
+    // Session 129: Pass run_id from interception (prompting_process_xxx)
+    // Backend renames folder to run_xxx on generation
     const response = await axios.post('/api/schema/pipeline/generation', {
       prompt: finalPrompt,
       output_config: selectedConfig.value,
       seed: currentSeed.value,
+      run_id: currentRunId.value,  // prompting_process_xxx -> renamed to run_xxx
       // Context from interception (stored for research data export)
       input_text: inputText.value,
       context_prompt: contextPrompt.value,  // Meta-Prompt/Regeln (user-editable!)

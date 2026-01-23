@@ -1327,8 +1327,8 @@ def execute_pipeline_streaming(data: dict):
     execution_mode = data.get('execution_mode', 'eco')
     device_id = data.get('device_id')  # Session 129: For folder structure
 
-    # Generate run ID
-    run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+    # Generate run ID - prompting_process_ until generation completes
+    run_id = f"prompting_process_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
 
     logger.info(f"[UNIFIED-STREAMING] Starting orchestrated pipeline for run {run_id}")
     logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}, Device: {device_id}")
@@ -1351,10 +1351,10 @@ def execute_pipeline_streaming(data: dict):
     }
     recorder._save_metadata()
 
-    # Save input and context_prompt immediately
-    recorder.save_entity('input', input_text)
+    # Session 129: Save to prompting_process/ subfolder (research data)
+    recorder.save_to_prompting_process('input', input_text)
     if context_prompt:
-        recorder.save_entity('context_prompt', context_prompt)
+        recorder.save_to_prompting_process('context_prompt', context_prompt)
 
     try:
         # Initialize schema engine
@@ -1454,8 +1454,8 @@ def execute_pipeline_streaming(data: dict):
         })
         yield ''
 
-        # Save safety result to recorder
-        recorder.save_entity('safety', json.dumps({
+        # Save safety result to prompting_process subfolder
+        recorder.save_to_prompting_process('safety', json.dumps({
             'passed': True,
             'level': safety_level,
             'duration_ms': stage1_time
@@ -1519,8 +1519,8 @@ def execute_pipeline_streaming(data: dict):
 
         logger.info(f"[UNIFIED-STREAMING] Stage 2 complete: {len(accumulated)} chars")
 
-        # Save interception result to recorder
-        recorder.save_entity('interception', accumulated)
+        # Save interception result to prompting_process subfolder
+        recorder.save_to_prompting_process('interception', accumulated)
 
         # Send completion event
         yield generate_sse_event('complete', {
@@ -1957,6 +1957,7 @@ def generation_endpoint():
         interception_config = data.get('interception_config', '')
         # Session 129: device_id for folder structure - generate unique ID if not provided
         device_id = data.get('device_id') or f"api_{uuid.uuid4().hex[:12]}"
+        provided_run_id = data.get('run_id')  # prompting_process_xxx from Interception
 
         if not prompt or not output_config:
             return jsonify({'status': 'error', 'error': 'prompt und output_config sind erforderlich'}), 400
@@ -1965,13 +1966,46 @@ def generation_endpoint():
         logger.info(f"[GENERATION-ENDPOINT] Prompt (first 100 chars): {prompt[:100]}...")
         if device_id:
             logger.info(f"[GENERATION-ENDPOINT] Device ID: {device_id}")
+        if provided_run_id:
+            logger.info(f"[GENERATION-ENDPOINT] Provided run_id: {provided_run_id}")
 
         if pipeline_executor is None:
             init_schema_engine()
 
-        # Session 129: Always create new run_id (each generation = one image = clean favorites)
-        run_id = f"gen_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-        logger.info(f"[GENERATION-ENDPOINT] Created run_id: {run_id} for device: {device_id}")
+        # Session 129: Rename prompting_process_ folder to run_ on generation
+        from config import JSON_STORAGE_DIR
+        recorder = None
+
+        if provided_run_id and provided_run_id.startswith('prompting_process_'):
+            # Load existing recorder from interception
+            recorder = load_recorder(provided_run_id, base_path=JSON_STORAGE_DIR)
+            if recorder:
+                # Rename folder: prompting_process_xxx -> run_xxx
+                new_run_id = provided_run_id.replace('prompting_process_', 'run_')
+                old_folder = recorder.run_folder
+                new_folder = old_folder.parent / new_run_id
+
+                try:
+                    old_folder.rename(new_folder)
+                    recorder.run_folder = new_folder
+                    recorder.run_id = new_run_id
+                    recorder.metadata['run_id'] = new_run_id
+                    recorder._save_metadata()
+                    run_id = new_run_id
+                    logger.info(f"[GENERATION-ENDPOINT] Renamed folder: {provided_run_id} -> {new_run_id}")
+                except Exception as e:
+                    logger.error(f"[GENERATION-ENDPOINT] Failed to rename folder: {e}")
+                    # Fallback: create new folder
+                    run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+                    recorder = None
+            else:
+                logger.warning(f"[GENERATION-ENDPOINT] Could not load recorder for {provided_run_id}")
+                run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        else:
+            # No interception before (e.g., I2I) - create new run folder
+            run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
+        logger.info(f"[GENERATION-ENDPOINT] Using run_id: {run_id}")
 
         # Determine media type from output config
         if 'code' in output_config.lower() or 'p5js' in output_config.lower():
@@ -2012,18 +2046,16 @@ def generation_endpoint():
         translated_prompt = safety_result.get('positive_prompt', prompt)
         logger.info(f"[GENERATION-ENDPOINT] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
 
-        # Session 129: Initialize recorder with device_id for folder structure
-        # Structure: json/YYYY-MM-DD/device_id/run_xxx/
-        from config import JSON_STORAGE_DIR
-
-        recorder = get_recorder(
-            run_id=run_id,
-            config_name=output_config,
-            execution_mode='eco',
-            safety_level=safety_level,
-            device_id=device_id,
-            base_path=JSON_STORAGE_DIR
-        )
+        # Session 129: Create recorder if not already loaded from prompting_process
+        if recorder is None:
+            recorder = get_recorder(
+                run_id=run_id,
+                config_name=output_config,
+                execution_mode='eco',
+                safety_level=safety_level,
+                device_id=device_id,
+                base_path=JSON_STORAGE_DIR
+            )
 
         # Track LLM models used - add Stage 4 output model
         from config import STAGE3_MODEL
@@ -2033,22 +2065,19 @@ def generation_endpoint():
         recorder.metadata['models_used']['stage4_output'] = output_config
         recorder._save_metadata()
 
-        # Helper: Check if entity type already exists in recorder
-        def entity_exists(entity_type: str) -> bool:
-            return any(e.get('type') == entity_type for e in recorder.metadata.get('entities', []))
+        # Session 129: Save FINAL versions to main folder (for favorites/restore)
+        # Prompting iterations are in prompting_process/ subfolder (research data)
 
-        # Save context entities - avoid duplicates when reusing interception run folder
-        # 1. Original user input (skip if already saved by interception)
-        if input_text and not entity_exists('input'):
+        # 1. Final input text
+        if input_text:
             recorder.save_entity('input', input_text)
 
-        # 2. Context prompt / Meta-Prompt (user-editable pedagogical rules)
-        # Always save - may have been edited by user since interception
+        # 2. Final context prompt / Meta-Prompt
         if context_prompt:
             recorder.save_entity('context_prompt', context_prompt)
 
-        # 3. Interception result (skip if already saved by interception)
-        if interception_result and not entity_exists('interception'):
+        # 3. Final interception result
+        if interception_result:
             recorder.save_entity('interception', interception_result)
         if interception_config:
             recorder.metadata['interception_config'] = interception_config
@@ -2370,7 +2399,7 @@ def legacy_workflow():
         logger.info(f"[LEGACY-ENDPOINT] Stage 1 PASSED")
 
         # Generate run_id
-        run_id = f"leg_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
 
         # Initialize recorder
         from config import JSON_STORAGE_DIR

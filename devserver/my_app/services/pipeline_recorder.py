@@ -81,6 +81,10 @@ class LivePipelineRecorder:
         self.run_folder = self.base_path / date_folder / self.device_id / run_id
         self.run_folder.mkdir(parents=True, exist_ok=True)
 
+        # Session 129: prompting_process subfolder for research data
+        self.prompting_folder = self.run_folder / "prompting_process"
+        self.prompting_sequence = 0  # Separate counter for prompting iterations
+
         # Initialize state
         self.current_stage = 0
         self.current_step = "initialized"
@@ -208,6 +212,63 @@ class LivePipelineRecorder:
         self._save_metadata()
 
         logger.info(f"[RECORDER] Saved entity {self.sequence_number}: {entity_type} -> {filename}")
+        return filename
+
+    def save_to_prompting_process(
+        self,
+        entity_type: str,
+        content: Union[str, bytes, dict],
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """
+        Save entity to prompting_process/ subfolder (for research data).
+
+        Used during interception to capture all prompt iterations.
+        These are preserved when folder is renamed to run_xxx.
+
+        Args:
+            entity_type: Type of entity (e.g., "input", "interception")
+            content: Entity content
+            metadata: Optional metadata
+
+        Returns:
+            Filename of saved entity
+        """
+        # Create subfolder if needed
+        self.prompting_folder.mkdir(parents=True, exist_ok=True)
+
+        self.prompting_sequence += 1
+
+        # Determine extension
+        if isinstance(content, bytes):
+            ext = "bin"
+        elif isinstance(content, dict):
+            ext = "json"
+        else:
+            ext = "txt"
+
+        # Create numbered filename (3 digits for many iterations)
+        filename = f"{self.prompting_sequence:03d}_{entity_type}.{ext}"
+        filepath = self.prompting_folder / filename
+
+        # Write file
+        self._write_file(filepath, content)
+
+        # Track in metadata
+        if 'prompting_process' not in self.metadata:
+            self.metadata['prompting_process'] = []
+
+        self.metadata['prompting_process'].append({
+            "sequence": self.prompting_sequence,
+            "type": entity_type,
+            "filename": f"prompting_process/{filename}",
+            "timestamp": datetime.now().isoformat(),
+            "metadata": metadata or {}
+        })
+
+        self._save_metadata()
+
+        logger.info(f"[RECORDER] Saved to prompting_process: {filename}")
         return filename
 
     def save_error(
@@ -979,9 +1040,12 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
         recorder.device_id = metadata.get("device_id", "anonymous")
         recorder.base_path = base_path
         recorder.run_folder = actual_run_folder  # Use existing folder path
+        recorder.prompting_folder = actual_run_folder / "prompting_process"  # Session 129
         recorder.current_stage = 0
         recorder.current_step = "initialized"
         recorder.sequence_number = 0
+        # Session 129: Restore prompting_sequence from existing data
+        recorder.prompting_sequence = len(metadata.get("prompting_process", []))
         recorder.expected_outputs = [
             "input", "translation", "safety", "interception",
             "safety_pre_output", "output_image"
