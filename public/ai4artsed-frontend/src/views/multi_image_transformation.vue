@@ -270,6 +270,18 @@ const hoveredConfigId = ref<string | null>(null)  // For hover cards
 const previousOptimizedPrompt = ref('')
 const currentSeed = ref<number | null>(null)
 
+// Session 129: Device ID for folder structure (json/date/device_id/run_xxx/)
+// Combines permanent browser ID + date = valid until end of day
+function getDeviceId(): string {
+  let browserId = localStorage.getItem('browser_id')
+  if (!browserId) {
+    browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
+    localStorage.setItem('browser_id', browserId)
+  }
+  const today = new Date().toISOString().split('T')[0]
+  return `${browserId}_${today}`
+}
+
 // Execution
 const executionPhase = ref<'initial' | 'image_uploaded' | 'ready_for_media' | 'generation_done'>('initial')
 const isPipelineExecuting = ref(false)
@@ -824,7 +836,8 @@ async function startGeneration() {
       input_image1: uploadedImagePath1.value,
       input_image2: uploadedImagePath2.value || null,
       input_image3: uploadedImagePath3.value || null,
-      seed: currentSeed.value
+      seed: currentSeed.value,
+      device_id: getDeviceId()  // Session 129: Folder structure
     })
 
     if (response.data.status === 'success') {

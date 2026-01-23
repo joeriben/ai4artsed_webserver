@@ -221,6 +221,18 @@ const availabilityLoading = ref(true)
 const previousOptimizedPrompt = ref('')
 const currentSeed = ref<number | null>(null)
 
+// Session 129: Device ID for folder structure (json/date/device_id/run_xxx/)
+// Combines permanent browser ID + date = valid until end of day
+function getDeviceId(): string {
+  let browserId = localStorage.getItem('browser_id')
+  if (!browserId) {
+    browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
+    localStorage.setItem('browser_id', browserId)
+  }
+  const today = new Date().toISOString().split('T')[0]
+  return `${browserId}_${today}`
+}
+
 // Execution
 const executionPhase = ref<'initial' | 'image_uploaded' | 'ready_for_media' | 'generation_done'>('initial')
 const isPipelineExecuting = ref(false)
@@ -636,7 +648,8 @@ async function startGeneration() {
       // Context for favorites restore (backend saves to run folder)
       // In I2I: input_text = context_prompt = user's transformation instruction
       input_text: contextPrompt.value,
-      context_prompt: contextPrompt.value
+      context_prompt: contextPrompt.value,
+      device_id: getDeviceId()  // Session 129: Folder structure
     })
 
     if (response.data.status === 'success') {

@@ -45,6 +45,7 @@ class LivePipelineRecorder:
         execution_mode: str,
         safety_level: str,
         user_id: str = 'anonymous',
+        device_id: Optional[str] = None,
         base_path: Optional[Path] = None
     ):
         """
@@ -56,22 +57,28 @@ class LivePipelineRecorder:
             execution_mode: Execution mode (e.g., "eco", "fast")
             safety_level: Safety level (e.g., "kids", "teens")
             user_id: User identifier
+            device_id: Device/browser identifier for folder structure (auto-generated if None)
             base_path: Base directory for pipeline_runs/ (defaults to current dir)
         """
+        import uuid as uuid_module
+
         self.run_id = run_id
         self.config_name = config_name
         self.execution_mode = execution_mode
         self.safety_level = safety_level
         self.user_id = user_id
+        # Session 129: Generate unique device_id if not provided
+        self.device_id = device_id or f"dev_{uuid_module.uuid4().hex[:12]}"
 
         # Setup folder structure with date-based organization
         if base_path is None:
             base_path = Path.cwd()
         self.base_path = Path(base_path)
 
-        # Date-based folder: exports/json/YYYY-MM-DD/run_xxx/
+        # Session 129: Date + Device based folder structure
+        # exports/json/YYYY-MM-DD/device_id/run_xxx/
         date_folder = datetime.now().strftime('%Y-%m-%d')
-        self.run_folder = self.base_path / date_folder / run_id
+        self.run_folder = self.base_path / date_folder / device_id / run_id
         self.run_folder.mkdir(parents=True, exist_ok=True)
 
         # Initialize state
@@ -97,6 +104,7 @@ class LivePipelineRecorder:
             "execution_mode": execution_mode,
             "safety_level": safety_level,
             "user_id": user_id,
+            "device_id": device_id,
             "expected_outputs": self.expected_outputs,
             "current_state": {
                 "stage": self.current_stage,
@@ -853,6 +861,7 @@ def get_recorder(
     execution_mode: Optional[str] = None,
     safety_level: Optional[str] = None,
     user_id: str = 'anonymous',
+    device_id: Optional[str] = None,
     base_path: Optional[Path] = None
 ) -> LivePipelineRecorder:
     """
@@ -864,6 +873,7 @@ def get_recorder(
         execution_mode: Execution mode (required for new recorders)
         safety_level: Safety level (required for new recorders)
         user_id: User identifier
+        device_id: Device/browser identifier for folder structure (auto-generated if None)
         base_path: Base directory for pipeline_runs/
 
     Returns:
@@ -881,6 +891,7 @@ def get_recorder(
         execution_mode=execution_mode,
         safety_level=safety_level,
         user_id=user_id,
+        device_id=device_id,  # Will auto-generate if None
         base_path=base_path
     )
     _active_recorders[run_id] = recorder
@@ -891,7 +902,10 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
     """
     Load an existing recorder from disk.
 
-    Searches across date-based folders (YYYY-MM-DD/run_xxx/) for the run.
+    Searches across date-based folders with device_id subfolders:
+    - New format: YYYY-MM-DD/device_id/run_xxx/
+    - Legacy format: YYYY-MM-DD/run_xxx/ (backward compat)
+    - Direct path: run_xxx/ (oldest format)
 
     Args:
         run_id: Run identifier to load
@@ -908,20 +922,31 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
 
     base_path = Path(base_path)
 
-    # Search for run_id across date folders (new structure: YYYY-MM-DD/run_xxx/)
-    # and also check direct path for backward compatibility
+    # Search for run_id across folders (multiple formats for backward compat)
     metadata_path = None
 
-    # First, check direct path (legacy/backward compat)
+    # First, check direct path (oldest legacy format)
     direct_path = base_path / run_id / "metadata.json"
     if direct_path.exists():
         metadata_path = direct_path
     else:
         # Search in date folders
         for date_folder in sorted(base_path.glob('20??-??-??'), reverse=True):
-            candidate = date_folder / run_id / "metadata.json"
-            if candidate.exists():
-                metadata_path = candidate
+            # Session 129: New format - check device_id subfolders first
+            # Structure: YYYY-MM-DD/device_id/run_xxx/
+            for device_folder in date_folder.iterdir():
+                if device_folder.is_dir():
+                    candidate = device_folder / run_id / "metadata.json"
+                    if candidate.exists():
+                        metadata_path = candidate
+                        break
+            if metadata_path:
+                break
+
+            # Legacy format: YYYY-MM-DD/run_xxx/ (no device_id folder)
+            legacy_candidate = date_folder / run_id / "metadata.json"
+            if legacy_candidate.exists():
+                metadata_path = legacy_candidate
                 break
 
     if not metadata_path:
@@ -951,6 +976,7 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
         recorder.execution_mode = execution_mode
         recorder.safety_level = safety_level
         recorder.user_id = metadata.get("user_id", "anonymous")
+        recorder.device_id = metadata.get("device_id", "anonymous")
         recorder.base_path = base_path
         recorder.run_folder = actual_run_folder  # Use existing folder path
         recorder.current_stage = 0

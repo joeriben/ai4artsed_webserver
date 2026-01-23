@@ -1953,10 +1953,8 @@ def generation_endpoint():
         context_prompt = data.get('context_prompt', '')  # Meta-Prompt/Regeln (user-editable!)
         interception_result = data.get('interception_result', '')
         interception_config = data.get('interception_config', '')
-        device_id = data.get('device_id', '')
-
-        # UNIFIED RUN: Use run_id from interception if provided (one folder per process)
-        provided_run_id = data.get('run_id')
+        # Session 129: device_id for folder structure - generate unique ID if not provided
+        device_id = data.get('device_id') or f"api_{uuid.uuid4().hex[:12]}"
 
         if not prompt or not output_config:
             return jsonify({'status': 'error', 'error': 'prompt und output_config sind erforderlich'}), 400
@@ -1969,13 +1967,9 @@ def generation_endpoint():
         if pipeline_executor is None:
             init_schema_engine()
 
-        # Use provided run_id (from interception) or create new one (backward compatibility)
-        if provided_run_id:
-            run_id = provided_run_id
-            logger.info(f"[GENERATION-ENDPOINT] Using existing run_id from interception: {run_id}")
-        else:
-            run_id = f"gen_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-            logger.info(f"[GENERATION-ENDPOINT] Created new run_id: {run_id}")
+        # Session 129: Always create new run_id (each generation = one image = clean favorites)
+        run_id = f"gen_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        logger.info(f"[GENERATION-ENDPOINT] Created run_id: {run_id} for device: {device_id}")
 
         # Determine media type from output config
         if 'code' in output_config.lower() or 'p5js' in output_config.lower():
@@ -2016,37 +2010,18 @@ def generation_endpoint():
         translated_prompt = safety_result.get('positive_prompt', prompt)
         logger.info(f"[GENERATION-ENDPOINT] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
 
-        # Initialize recorder - reuse existing from interception if available
+        # Session 129: Initialize recorder with device_id for folder structure
+        # Structure: json/YYYY-MM-DD/device_id/run_xxx/
         from config import JSON_STORAGE_DIR
 
-        if provided_run_id:
-            # Try to load existing recorder from interception
-            recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
-            if recorder:
-                logger.info(f"[GENERATION-ENDPOINT] Loaded existing recorder for run: {run_id}")
-            else:
-                # Fallback: create new recorder with same run_id
-                logger.info(f"[GENERATION-ENDPOINT] Creating new recorder for existing run_id: {run_id}")
-                recorder = get_recorder(
-                    run_id=run_id,
-                    config_name=output_config,
-                    execution_mode='eco',
-                    safety_level=safety_level,
-                    base_path=JSON_STORAGE_DIR
-                )
-        else:
-            # No provided run_id - create fresh recorder
-            recorder = get_recorder(
-                run_id=run_id,
-                config_name=output_config,
-                execution_mode='eco',
-                safety_level=safety_level,
-                base_path=JSON_STORAGE_DIR
-            )
-
-        # Add device_id to metadata if provided
-        if device_id:
-            recorder.metadata['device_id'] = device_id
+        recorder = get_recorder(
+            run_id=run_id,
+            config_name=output_config,
+            execution_mode='eco',
+            safety_level=safety_level,
+            device_id=device_id,
+            base_path=JSON_STORAGE_DIR
+        )
 
         # Track LLM models used - add Stage 4 output model
         from config import STAGE3_MODEL

@@ -437,19 +437,18 @@ const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
 const currentRunId = ref<string | null>(null)  // Run ID from interception (legacy, no longer used)
 const lastInterceptionConfig = ref<string | null>(null)  // Track which interception config was used
 
-// Session ID for workshop tracking: device + day
+// Session 129: Device ID for folder structure (json/date/device_id/run_xxx/)
+// Combines permanent browser ID + date = valid until end of day
 function getDeviceId(): string {
-  const today = new Date().toISOString().split('T')[0]  // "2026-01-19"
-
-  // Get or create persistent device identifier
-  let deviceId = localStorage.getItem('device_id')
-  if (!deviceId) {
-    // Simple random ID (works in all contexts, unlike crypto.randomUUID)
-    deviceId = Math.random().toString(36).substring(2, 10)
-    localStorage.setItem('device_id', deviceId)
+  // Get or create persistent browser identifier
+  let browserId = localStorage.getItem('browser_id')
+  if (!browserId) {
+    browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
+    localStorage.setItem('browser_id', browserId)
   }
-
-  return `${deviceId}_${today}`
+  // Combine with date for daily uniqueness
+  const today = new Date().toISOString().split('T')[0]  // "2026-01-23"
+  return `${browserId}_${today}`
 }
 
 // Execution phase tracking
@@ -1335,18 +1334,18 @@ async function executePipeline() {
     console.log('[GENERATION-DEBUG] SELECTED finalPrompt:', finalPrompt?.substring(0, 100) + '...')
     console.log('[GENERATION-DEBUG] currentSeed:', currentSeed.value)
 
-    // Use SAME run_id from interception (one folder per process)
+    // Session 129: Each generation = new run (clean architecture for favorites)
+    // Backend creates new run_id for each generation
     const response = await axios.post('/api/schema/pipeline/generation', {
       prompt: finalPrompt,
       output_config: selectedConfig.value,
       seed: currentSeed.value,
-      run_id: currentRunId.value,  // CRITICAL: Reuse interception run_id!
-      // Context from interception (backend appends to same folder)
+      // Context from interception (stored for research data export)
       input_text: inputText.value,
       context_prompt: contextPrompt.value,  // Meta-Prompt/Regeln (user-editable!)
       interception_result: interceptionResult.value,
       interception_config: lastInterceptionConfig.value || pipelineStore.selectedConfig?.id,
-      device_id: getDeviceId()  // Workshop tracking
+      device_id: getDeviceId()  // Workshop tracking + folder structure
     })
 
     clearInterval(progressInterval)
