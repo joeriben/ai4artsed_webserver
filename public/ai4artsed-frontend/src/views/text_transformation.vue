@@ -931,8 +931,16 @@ watch(inputText, (newVal) => {
   sessionStorage.setItem('t2i_input_text', newVal)
 })
 
-watch(contextPrompt, (newVal) => {
+watch(contextPrompt, (newVal, oldVal) => {
   sessionStorage.setItem('t2i_context_prompt', newVal)
+
+  // If user edits context, invalidate cached optimization
+  // (optimization depends on context rules)
+  if (oldVal !== '' && newVal !== oldVal && optimizedPrompt.value) {
+    console.log('[T2I] User edited contextPrompt, clearing cached optimizedPrompt')
+    optimizedPrompt.value = ''
+    hasOptimization.value = false
+  }
 })
 
 watch(interceptionResult, (newVal) => {
@@ -1667,9 +1675,20 @@ watch(contextPrompt, (newValue) => {
 })
 
 // Auto-advance phase when manual text is entered
-watch(interceptionResult, (newValue) => {
+// Also clear optimizedPrompt when user manually edits interceptionResult
+watch(interceptionResult, (newValue, oldValue) => {
   if (newValue.trim().length > 0 && executionPhase.value === 'initial') {
     executionPhase.value = 'interception_done'
+  }
+
+  // If user manually edits (not during streaming), invalidate cached optimizedPrompt
+  // so that generation uses the fresh edited value
+  if (!isInterceptionLoading.value && oldValue !== '' && newValue !== oldValue) {
+    if (optimizedPrompt.value) {
+      console.log('[T2I] User edited interceptionResult, clearing cached optimizedPrompt')
+      optimizedPrompt.value = ''
+      hasOptimization.value = false
+    }
   }
 })
 
