@@ -1327,8 +1327,8 @@ def execute_pipeline_streaming(data: dict):
     execution_mode = data.get('execution_mode', 'eco')
     device_id = data.get('device_id')  # Session 129: For folder structure
 
-    # Generate run ID - prompting_process_ until generation completes
-    run_id = f"prompting_process_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+    # Session 130: Simplified - always use run_xxx from the start
+    run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
 
     logger.info(f"[UNIFIED-STREAMING] Starting orchestrated pipeline for run {run_id}")
     logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}, Device: {device_id}")
@@ -1917,7 +1917,7 @@ def log_prompt_change():
 
     Request Body:
     {
-        "run_id": "prompting_process_xxx or run_xxx",
+        "run_id": "run_xxx",
         "entity_type": "input" | "interception" | "optimized_prompt" | "media_prompt",
         "content": "The changed text content",
         "device_id": "browser_id_date"  // For folder lookup
@@ -2029,32 +2029,15 @@ def generation_endpoint():
         if pipeline_executor is None:
             init_schema_engine()
 
-        # Session 129: Rename prompting_process_ folder to run_ on generation
+        # Session 130: Simplified - folders are always run_xxx from the start
         from config import JSON_STORAGE_DIR
         recorder = None
 
-        if provided_run_id and provided_run_id.startswith('prompting_process_'):
-            # Load existing recorder from interception
+        if provided_run_id and provided_run_id.startswith('run_'):
+            # Load existing recorder from interception (already run_xxx)
             recorder = load_recorder(provided_run_id, base_path=JSON_STORAGE_DIR)
             if recorder:
-                # Rename folder: prompting_process_xxx -> run_xxx
-                new_run_id = provided_run_id.replace('prompting_process_', 'run_')
-                old_folder = recorder.run_folder
-                new_folder = old_folder.parent / new_run_id
-
-                try:
-                    old_folder.rename(new_folder)
-                    recorder.run_folder = new_folder
-                    recorder.run_id = new_run_id
-                    recorder.metadata['run_id'] = new_run_id
-                    recorder._save_metadata()
-                    run_id = new_run_id
-                    logger.info(f"[GENERATION-ENDPOINT] Renamed folder: {provided_run_id} -> {new_run_id}")
-                except Exception as e:
-                    logger.error(f"[GENERATION-ENDPOINT] Failed to rename folder: {e}")
-                    # Fallback: create new folder
-                    run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-                    recorder = None
+                run_id = provided_run_id
             else:
                 logger.warning(f"[GENERATION-ENDPOINT] Could not load recorder for {provided_run_id}")
                 run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
