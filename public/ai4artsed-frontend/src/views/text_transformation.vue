@@ -18,6 +18,7 @@
             @copy="copyInputText"
             @paste="pasteInputText"
             @clear="clearInputText"
+            @blur="(val: string) => logPromptChange('input', val)"
           />
 
           <!-- Context Bubble -->
@@ -33,6 +34,7 @@
             @copy="copyContextPrompt"
             @paste="pasteContextPrompt"
             @clear="clearContextPrompt"
+            @blur="(val: string) => logPromptChange('context_prompt', val)"
           />
         </section>
 
@@ -72,6 +74,7 @@
             @copy="copyInterceptionResult"
             @paste="pasteInterceptionResult"
             @clear="clearInterceptionResult"
+            @blur="(val: string) => logPromptChange('interception', val)"
           />
           <!-- LoRA Badge (Session 116) - shows when interception config has LoRAs -->
           <transition name="fade">
@@ -226,6 +229,7 @@
             @copy="copyOptimizedPrompt"
             @paste="pasteOptimizedPrompt"
             @clear="clearOptimizedPrompt"
+            @blur="(val: string) => logPromptChange('optimized_prompt', val)"
           />
         </section>
 
@@ -1496,6 +1500,41 @@ function printImage() {
     printWindow.onload = () => {
       printWindow.print()
     }
+  }
+}
+
+// Session 130: Log prompt changes to prompting_process/ folder
+// Called on blur of any text input box
+async function logPromptChange(entityType: string, content: string) {
+  if (!currentRunId.value) {
+    console.log('[LOG-PROMPT] No current run_id, skipping')
+    return
+  }
+
+  if (!content || content.trim() === '') {
+    console.log('[LOG-PROMPT] Empty content, skipping')
+    return
+  }
+
+  try {
+    const response = await fetch('/api/schema/pipeline/log-prompt-change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        run_id: currentRunId.value,
+        entity_type: entityType,
+        content: content,
+        device_id: getDeviceId()
+      })
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log(`[LOG-PROMPT] Saved ${entityType} change:`, data.filename)
+    }
+  } catch (error) {
+    console.warn('[LOG-PROMPT] Failed to log change:', error)
+    // Don't show error to user - this is background logging
   }
 }
 

@@ -1906,6 +1906,63 @@ def translate_text():
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
+@schema_bp.route('/pipeline/log-prompt-change', methods=['POST'])
+def log_prompt_change():
+    """
+    Session 130: Log prompt changes to prompting_process/ folder.
+
+    Called by frontend when user modifies text in any input box and then
+    performs another action (blur event). Records ALL prompt iterations
+    for research purposes.
+
+    Request Body:
+    {
+        "run_id": "prompting_process_xxx or run_xxx",
+        "entity_type": "input" | "interception" | "optimized_prompt" | "media_prompt",
+        "content": "The changed text content",
+        "device_id": "browser_id_date"  // For folder lookup
+    }
+    """
+    from config import JSON_STORAGE_DIR
+    from my_app.services.pipeline_recorder import load_recorder
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'JSON body required'}), 400
+
+        run_id = data.get('run_id')
+        entity_type = data.get('entity_type')
+        content = data.get('content', '')
+
+        if not run_id:
+            return jsonify({'error': 'run_id required'}), 400
+        if not entity_type:
+            return jsonify({'error': 'entity_type required'}), 400
+
+        # Load existing recorder
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            logger.warning(f"[LOG-PROMPT] No recorder found for {run_id}, skipping")
+            return jsonify({'status': 'skipped', 'reason': 'no_recorder'}), 200
+
+        # Save to prompting_process/ subfolder
+        filename = recorder.save_to_prompting_process(entity_type, content)
+
+        logger.info(f"[LOG-PROMPT] Saved {entity_type} change to {filename}")
+        return jsonify({
+            'status': 'ok',
+            'filename': filename,
+            'run_id': run_id
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[LOG-PROMPT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @schema_bp.route('/pipeline/generation', methods=['POST'])
 def generation_endpoint():
     """
