@@ -26,29 +26,37 @@ logger = logging.getLogger(__name__)
 media_bp = Blueprint('media', __name__, url_prefix='/api/media')
 
 
-def _find_entity_by_type(entities: list, media_type: str) -> dict:
+def _find_entity_by_type(entities: list, media_type: str, latest: bool = True) -> dict:
     """
     Find entity in entities array by media type.
 
     Args:
         entities: List of entity records from metadata
         media_type: Type to search for ('image', 'audio', 'video')
+        latest: If True (default), return the LATEST (last) entity. If False, return first.
 
     Returns:
         Entity dict or None
     """
+    found = []
+
     # Search for output_TYPE entities (e.g., output_image, output_audio)
     for entity in entities:
         entity_type = entity.get('type', '')
         if entity_type == f'output_{media_type}':
-            return entity
+            found.append(entity)
 
     # Fallback: Search for just the type (legacy compatibility)
-    for entity in entities:
-        if entity.get('type') == media_type:
-            return entity
+    if not found:
+        for entity in entities:
+            if entity.get('type') == media_type:
+                found.append(entity)
 
-    return None
+    if not found:
+        return None
+
+    # Return latest (last) or first based on parameter
+    return found[-1] if latest else found[0]
 
 
 def _find_entities_by_type(entities: list, media_type: str) -> list:
@@ -70,8 +78,9 @@ def _find_entities_by_type(entities: list, media_type: str) -> list:
         if entity_type == f'output_{media_type}':
             results.append(entity)
 
-    # Sort by file_index if available (maintains order from workflow)
-    results.sort(key=lambda e: e.get('metadata', {}).get('file_index', 0))
+    # Sort by sequence number (ensures chronological order)
+    # Fallback to file_index for legacy workflows
+    results.sort(key=lambda e: e.get('sequence', e.get('metadata', {}).get('file_index', 0)))
 
     return results
 
@@ -325,13 +334,14 @@ def get_mask(image_uuid: str):
 
 @media_bp.route('/image/<run_id>', methods=['GET'])
 @media_bp.route('/image/<run_id>/<int:index>', methods=['GET'])
-def get_image(run_id: str, index: int = 0):
+def get_image(run_id: str, index: int = -1):
     """
     Serve image from local storage by run_id (optionally by index for multi-output).
 
     Args:
         run_id: UUID of the pipeline run
-        index: Image index (default 0 for backward compatibility)
+        index: Image index. Default -1 returns the LATEST (most recent) image.
+               Use explicit index (0, 1, 2...) for specific images.
 
     Returns:
         Image file or 404 error
@@ -348,12 +358,17 @@ def get_image(run_id: str, index: int = 0):
         if not image_entities:
             return jsonify({"error": f"No images found for run {run_id}"}), 404
 
+        # Handle negative index (Python-style: -1 = last element)
+        if index < 0:
+            index = len(image_entities) + index  # -1 becomes len-1 (last)
+
         # Validate index
         if index < 0 or index >= len(image_entities):
             return jsonify({"error": f"Invalid index {index}. Available: 0-{len(image_entities)-1}"}), 404
 
         # Get requested image entity
         image_entity = image_entities[index]
+        logger.info(f"[MEDIA] Serving image {index} of {len(image_entities)} for run {run_id}")
 
         # Get file path
         filename = image_entity['filename']

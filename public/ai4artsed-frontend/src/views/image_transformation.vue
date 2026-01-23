@@ -644,19 +644,21 @@ async function startGeneration() {
       clearInterval(progressInterval)
       generationProgress.value = 100
 
-      // Get run_id and media_type from response
+      // Get run_id, media_type and index from response
       const runId = response.data.media_output?.run_id || response.data.run_id
       const mediaType = response.data.media_output?.media_type || 'image'
+      const mediaIndex = response.data.media_output?.index ?? 0  // Explicit index from backend
 
-      console.log('[Generation] Success, run_id:', runId, 'media_type:', mediaType)
+      console.log('[Generation] Success, run_id:', runId, 'media_type:', mediaType, 'index:', mediaIndex)
 
       if (runId) {
         // Store run_id for favorites
         currentRunId.value = runId
 
-        // Dynamic URL based on media type: /api/media/{type}/{run_id}
+        // Use explicit index from backend for correct image addressing
+        // Each image has unique URL: /api/media/{type}/{run_id}/{index}
         outputMediaType.value = mediaType
-        outputImage.value = `/api/media/${mediaType}/${runId}`
+        outputImage.value = `/api/media/${mediaType}/${runId}/${mediaIndex}`
         executionPhase.value = 'generation_done'
         showSafetyApprovedStamp.value = true
 

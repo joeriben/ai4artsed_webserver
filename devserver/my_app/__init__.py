@@ -129,6 +129,7 @@ def create_app():
     from my_app.routes.settings_routes import settings_bp  # Settings configuration API
     from my_app.routes.training_routes import training_bp # Session 99: LoRA Training
     from my_app.routes.favorites_routes import favorites_bp  # Session 127: Footer Gallery Favorites
+    from my_app.routes.canvas_routes import canvas_bp  # Session 129: Canvas Workflow Builder
 
     # Register API blueprints FIRST (before static catch-all)
     app.register_blueprint(config_bp)
@@ -144,6 +145,7 @@ def create_app():
     app.register_blueprint(chat_bp)  # Session 82: Chat overlay helper: /api/chat/*
     app.register_blueprint(training_bp) # Session 99: LoRA Training
     app.register_blueprint(favorites_bp)  # Session 127: Footer Gallery Favorites
+    app.register_blueprint(canvas_bp)  # Session 129: Canvas Workflow Builder: /api/canvas/*
 
     # Register static blueprint LAST (catch-all for SPA routing)
     app.register_blueprint(static_bp)

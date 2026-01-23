@@ -2143,7 +2143,9 @@ def generation_endpoint():
 
         # Process output based on type
         output_value = output_result.final_output
-        result_seed = output_result.metadata.get('seed', seed)
+        # Fix: .get() returns None if key exists with None value, so use 'or' for fallback
+        result_seed = output_result.metadata.get('seed') or seed
+        logger.info(f"[GENERATION-ENDPOINT] Seed debug: metadata.seed={output_result.metadata.get('seed')}, provided_seed={seed}, result_seed={result_seed}")
 
         # Handle different output types
         if media_type == 'code':
@@ -2173,10 +2175,14 @@ def generation_endpoint():
                 config=output_config,
                 seed=result_seed
             ))
+            # Calculate index of just-saved media (for explicit URL addressing)
+            media_entities = [e for e in recorder.metadata.get('entities', []) if e.get('type') == f'output_{media_type}']
+            media_index = len(media_entities) - 1 if media_entities else 0
             media_output = {
                 'media_type': media_type,
-                'url': f'/api/media/{media_type}/{run_id}',
+                'url': f'/api/media/{media_type}/{run_id}/{media_index}',
                 'run_id': run_id,
+                'index': media_index,
                 'seed': result_seed
             }
 
@@ -2230,10 +2236,14 @@ def generation_endpoint():
                     )
                     logger.info(f"[GENERATION-ENDPOINT] Saved legacy: {saved_filename}")
 
+            # Calculate index of just-saved media (for explicit URL addressing)
+            media_entities = [e for e in recorder.metadata.get('entities', []) if e.get('type') == f'output_{media_type}']
+            media_index = len(media_entities) - 1 if media_entities else 0
             media_output = {
                 'media_type': media_type,
-                'url': f'/api/media/{media_type}/{run_id}',
+                'url': f'/api/media/{media_type}/{run_id}/{media_index}',
                 'run_id': run_id,
+                'index': media_index,
                 'seed': result_seed
             }
 
@@ -2274,10 +2284,14 @@ def generation_endpoint():
             else:
                 logger.warning(f"[GENERATION-ENDPOINT] Unknown output format: {output_value[:100] if output_value else 'None'}...")
 
+            # Calculate index of just-saved media (for explicit URL addressing)
+            media_entities = [e for e in recorder.metadata.get('entities', []) if e.get('type') == f'output_{media_type}']
+            media_index = len(media_entities) - 1 if media_entities else 0
             media_output = {
                 'media_type': media_type,
-                'url': f'/api/media/{media_type}/{run_id}',
+                'url': f'/api/media/{media_type}/{run_id}/{media_index}',
                 'run_id': run_id,
+                'index': media_index,
                 'seed': result_seed
             }
 
@@ -2450,7 +2464,8 @@ def legacy_workflow():
 
         # Handle legacy workflow output
         output_value = output_result.final_output
-        result_seed = output_result.metadata.get('seed', seed)
+        # Fix: .get() returns None if key exists with None value, so use 'or' for fallback
+        result_seed = output_result.metadata.get('seed') or seed
 
         if output_value == 'workflow_generated':
             # Legacy workflows return binary data directly in metadata

@@ -1327,6 +1327,14 @@ async function executePipeline() {
     // Use optimizedPrompt if available (model-specific), else interceptionResult
     const finalPrompt = optimizedPrompt.value || interceptionResult.value || inputText.value
 
+    // DEBUG: Log what prompt is being sent
+    console.log('[GENERATION-DEBUG] === PROMPT SELECTION ===')
+    console.log('[GENERATION-DEBUG] optimizedPrompt.value:', optimizedPrompt.value?.substring(0, 100) + '...')
+    console.log('[GENERATION-DEBUG] interceptionResult.value:', interceptionResult.value?.substring(0, 100) + '...')
+    console.log('[GENERATION-DEBUG] inputText.value:', inputText.value?.substring(0, 100) + '...')
+    console.log('[GENERATION-DEBUG] SELECTED finalPrompt:', finalPrompt?.substring(0, 100) + '...')
+    console.log('[GENERATION-DEBUG] currentSeed:', currentSeed.value)
+
     // Use SAME run_id from interception (one folder per process)
     const response = await axios.post('/api/schema/pipeline/generation', {
       prompt: finalPrompt,
@@ -1356,21 +1364,24 @@ async function executePipeline() {
         activeLoras.value = response.data.loras
       }
 
-      // Get run_id and media_type from response
+      // Get run_id, media_type and index from response
       const runId = response.data.media_output?.run_id || response.data.run_id
       const mediaType = response.data.media_output?.media_type || 'image'
+      const mediaIndex = response.data.media_output?.index ?? 0  // Explicit index from backend
 
       console.log('[CODE-DEBUG] runId:', runId)
       console.log('[CODE-DEBUG] mediaType:', mediaType)
+      console.log('[CODE-DEBUG] mediaIndex:', mediaIndex)
       console.log('[CODE-DEBUG] Has code?:', !!response.data.media_output?.code)
 
       if (runId) {
         // Store run_id for favorites (Session 127)
         currentRunId.value = runId
 
-        // Dynamic URL based on media type: /api/media/{type}/{run_id}
+        // Use explicit index from backend for correct image addressing
+        // Each image has unique URL: /api/media/{type}/{run_id}/{index}
         outputMediaType.value = mediaType
-        outputImage.value = `/api/media/${mediaType}/${runId}`
+        outputImage.value = `/api/media/${mediaType}/${runId}/${mediaIndex}`
         executionPhase.value = 'generation_done'
 
         // Session 82: Register session for chat overlay context
@@ -1689,6 +1700,9 @@ watch(interceptionResult, (newValue, oldValue) => {
       optimizedPrompt.value = ''
       hasOptimization.value = false
     }
+    // Reset prompt comparison baseline so next generation recognizes the change
+    previousOptimizedPrompt.value = ''
+    console.log('[T2I] User edited interceptionResult, reset prompt baseline')
   }
 })
 
