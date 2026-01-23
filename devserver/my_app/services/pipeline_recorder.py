@@ -360,20 +360,6 @@ class LivePipelineRecorder:
                 return self.final_folder / entity["filename"]
         return None
 
-    def get_file_path(self, filename: str) -> Path:
-        """
-        Get filesystem path for a filename in the final/ folder.
-
-        Session 130: Helper method for routes that have filename from entity.
-
-        Args:
-            filename: Filename from entity metadata
-
-        Returns:
-            Full path to file in final/ folder
-        """
-        return self.final_folder / filename
-
     def save_prompt_id(self, prompt_id: str, media_type: str = 'image'):
         """
         Save ComfyUI prompt_id to metadata for SSE streaming.

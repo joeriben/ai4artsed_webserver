@@ -372,7 +372,7 @@ def get_image(run_id: str, index: int = -1):
 
         # Get file path
         filename = image_entity['filename']
-        file_path = recorder.get_file_path(filename)
+        file_path = recorder.final_folder / filename
         if not file_path.exists():
             return jsonify({"error": f"Image file not found: {filename}"}), 404
 
@@ -446,7 +446,7 @@ def get_images(run_id: str):
         images = []
         for idx, entity in enumerate(image_entities):
             filename = entity['filename']
-            file_path = recorder.get_file_path(filename)
+            file_path = recorder.final_folder / filename
 
             if not file_path.exists():
                 logger.warning(f"Image file not found: {filename}")
@@ -507,7 +507,7 @@ def get_audio(run_id: str):
 
         # Get file path
         filename = audio_entity['filename']
-        file_path = recorder.get_file_path(filename)
+        file_path = recorder.final_folder / filename
         if not file_path.exists():
             return jsonify({"error": f"Audio file not found: {filename}"}), 404
 
@@ -563,7 +563,7 @@ def get_music(run_id: str):
 
         # Get file path
         filename = music_entity['filename']
-        file_path = recorder.get_file_path(filename)
+        file_path = recorder.final_folder / filename
         if not file_path.exists():
             return jsonify({"error": f"Music file not found: {filename}"}), 404
 
@@ -616,7 +616,7 @@ def get_video(run_id: str):
 
         # Get file path
         filename = video_entity['filename']
-        file_path = recorder.get_file_path(filename)
+        file_path = recorder.final_folder / filename
         if not file_path.exists():
             return jsonify({"error": f"Video file not found: {filename}"}), 404
 
@@ -669,7 +669,7 @@ def get_3d(run_id: str):
 
         # Get file path
         filename = model_entity['filename']
-        file_path = recorder.get_file_path(filename)
+        file_path = recorder.final_folder / filename
         if not file_path.exists():
             return jsonify({"error": f"3D model file not found: {filename}"}), 404
 
@@ -725,7 +725,7 @@ def get_midi(run_id: str):
 
         # Get file path
         filename = midi_entity['filename']
-        file_path = recorder.get_file_path(filename)
+        file_path = recorder.final_folder / filename
         if not file_path.exists():
             return jsonify({"error": f"MIDI file not found: {filename}"}), 404
 
@@ -776,7 +776,7 @@ def get_sonicpi(run_id: str):
 
         # Get file path
         filename = sonicpi_entity['filename']
-        file_path = recorder.get_file_path(filename)
+        file_path = recorder.final_folder / filename
         if not file_path.exists():
             return jsonify({"error": f"Sonic Pi file not found: {filename}"}), 404
 
@@ -827,7 +827,7 @@ def get_p5(run_id: str):
 
         # Get file path
         filename = p5_entity['filename']
-        file_path = recorder.get_file_path(filename)
+        file_path = recorder.final_folder / filename
         if not file_path.exists():
             return jsonify({"error": f"p5.js file not found: {filename}"}), 404
 
@@ -887,7 +887,7 @@ def get_media_info(run_id: str):
             if entity_type.startswith('output_'):
                 entity_meta = entity.get('metadata', {})
                 # Get file size from disk
-                file_path = recorder.get_file_path(entity['filename'])
+                file_path = recorder.final_folder / entity['filename']
                 file_size = file_path.stat().st_size if file_path.exists() else 0
 
                 media_info['outputs'].append({
@@ -941,11 +941,11 @@ def get_run_metadata(run_id: str):
         # Add text content from entities if available
         for entity in result['entities']:
             if entity['type'] == 'input':
-                input_file = recorder.get_file_path(entity['filename'])
+                input_file = recorder.final_folder / entity['filename']
                 if input_file.exists():
                     result['input_text'] = input_file.read_text(encoding='utf-8')
             elif entity['type'] == 'interception':
-                output_file = recorder.get_file_path(entity['filename'])
+                output_file = recorder.final_folder / entity['filename']
                 if output_file.exists():
                     result['transformed_text'] = output_file.read_text(encoding='utf-8')
 

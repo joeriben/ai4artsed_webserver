@@ -41,8 +41,8 @@ def _resolve_media_url_to_path(url_or_path: str) -> str:
             if recorder:
                 image_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'image')
                 if image_entity:
-                    # Session 130: Use get_file_path() for final/ subfolder
-                    resolved_path = str(recorder.get_file_path(image_entity['filename']))
+                    # Session 130: Files are in final/ subfolder
+                    resolved_path = str(recorder.final_folder / image_entity['filename'])
                     logger.info(f"[URL-RESOLVE] {url_or_path} → {resolved_path}")
                     return resolved_path
         except Exception as e:
