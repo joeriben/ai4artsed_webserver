@@ -1311,3 +1311,127 @@ function showImageFullscreen(imageUrl) {
 
 ---
 
+
+#### FooterGallery Component
+
+**Status:** ✅ Implemented (Session 127-128, 2026-01-22/23)
+**Location:** `/public/ai4artsed-frontend/src/components/FooterGallery.vue`
+
+**Purpose:** Persistent favorites bar at bottom of viewport for quick access to bookmarked generations across all views.
+
+**Features:**
+
+1. **Fixed Footer Position**
+   - Always visible at bottom of viewport
+   - Expandable thumbnail gallery
+   - Persists across page navigation
+
+2. **Actions per Favorite**
+   - ↩️ Restore - Reload exact session state
+   - 📋 Copy (Weiterentwickeln) - Copy image URL for I2I
+   - ❌ Remove - Delete from favorites
+
+3. **Reactive Store-Based Restore**
+   - Uses Pinia store (`favorites.ts`) instead of sessionStorage
+   - Watcher pattern for cross-component communication
+   - No timing issues with page navigation
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      App.vue                             │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │                 router-view                      │    │
+│  │  (text_transformation, image_transformation)     │    │
+│  └─────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │               FooterGallery.vue                  │    │
+│  │  [thumb] [thumb] [thumb]  [↩️] [📋] [❌]          │    │
+│  └─────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Store Integration:**
+
+```typescript
+// favorites.ts (Pinia Store)
+export interface FavoriteItem {
+  run_id: string
+  media_type: 'image' | 'video' | 'audio' | 'music'
+  thumbnail_url: string
+  created_at: string
+}
+
+export interface RestoreData {
+  run_id: string
+  input_text?: string
+  context_prompt?: string
+  transformed_text?: string
+  translation_en?: string
+  models_used?: ModelsUsed
+  media_outputs: MediaOutput[]
+  target_view: string
+}
+
+// State
+const favorites = ref<FavoriteItem[]>([])
+const pendingRestoreData = ref<RestoreData | null>(null)
+
+// Actions
+function setRestoreData(data: RestoreData | null) {
+  pendingRestoreData.value = data
+}
+```
+
+**Restore Pattern:**
+
+```typescript
+// FooterGallery.vue - triggers restore
+async function handleRestore(favorite: FavoriteItem) {
+  const restoreData = await favoritesStore.getRestoreData(favorite.run_id)
+  favoritesStore.setRestoreData(restoreData)
+  router.push(`/${restoreData.target_view}`)
+}
+
+// text_transformation.vue - consumes restore
+watch(() => favoritesStore.pendingRestoreData, (data) => {
+  if (!data) return
+  inputText.value = data.input_text || ''
+  contextPrompt.value = data.context_prompt || ''
+  interceptionResult.value = data.transformed_text || ''
+  favoritesStore.setRestoreData(null) // Clear after consuming
+}, { immediate: true })
+```
+
+**CSS Considerations:**
+
+All transformation views add `padding-bottom: 120px` to ensure content isn't hidden behind the fixed footer:
+
+```css
+.text-transformation-view,
+.image-transformation-view {
+  padding-bottom: 120px; /* Space for FooterGallery */
+}
+```
+
+**Integration:**
+
+```vue
+<!-- App.vue -->
+<template>
+  <div id="app">
+    <AppHeader />
+    <router-view />
+    <FooterGallery />  <!-- Fixed at bottom, always visible -->
+  </div>
+</template>
+```
+
+**Related Files:**
+- `src/stores/favorites.ts` - Pinia store for favorites state
+- `devserver/my_app/routes/favorites_routes.py` - REST API endpoints
+- `src/views/text_transformation.vue` - Restore watcher implementation
+- `src/views/image_transformation.vue` - Restore watcher implementation
+
+---

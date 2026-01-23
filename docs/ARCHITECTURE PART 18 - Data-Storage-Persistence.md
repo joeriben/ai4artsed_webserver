@@ -631,3 +631,167 @@ Project Root
 - All image models (SD3.5, QWEN, FLUX2, Gemini, GPT-Image) export correctly
 
 ---
+
+## Session 127-128: Enhanced Research Data Export (2026-01-22/23)
+
+### Complete Entity Set
+
+The unified run folder now contains ALL data needed for research analysis:
+
+```
+exports/json/YYYY-MM-DD/{run_id}/
+├── 01_input.txt              # Original user input (German)
+├── 02_context_prompt.txt     # Meta-prompt/pedagogical rules (user-editable!)
+├── 03_safety.txt             # Stage 1 safety result
+├── 04_interception.txt       # Transformed text (German)
+├── 05_translation_en.txt     # English translation for media generation (NEW!)
+├── 06_optimized_prompt.txt   # Final prompt
+├── 07_output_image.png       # Generated media
+└── metadata.json             # Includes models_used (NEW!)
+```
+
+### Model Tracking (metadata.json)
+
+New `models_used` field tracks which LLM was used at each pipeline stage:
+
+```json
+{
+  "run_id": "run_1769122471728_362ba8",
+  "config_name": "mad_world",
+  "execution_mode": "eco",
+  "safety_level": "youth",
+  "models_used": {
+    "stage1_safety": "local/gpt-OSS:20b",
+    "stage2_interception": "local/gpt-OSS:20b",
+    "stage3_translation": "local/gpt-OSS:20b",
+    "stage4_output": "sd35_large"
+  },
+  "entities": [...]
+}
+```
+
+This enables:
+- **Reproducibility:** Know exact model versions used
+- **Research Analysis:** Compare outputs across different models
+- **Debugging:** Identify which stage/model caused issues
+
+### Translation Entity
+
+The `translation_en.txt` entity captures the Stage 3 translation output:
+- Input: German transformed text from Stage 2
+- Output: English prompt sent to media generation models
+- Purpose: Research can analyze translation quality and its impact on outputs
+
+### Unified Run Architecture (Fixed)
+
+**Before Session 127:**
+```
+run_123/        ← Interception endpoint creates
+gen_456/        ← Generation endpoint creates SEPARATE folder!
+```
+
+**After Session 127:**
+```
+run_123/        ← SINGLE folder for entire session
+```
+
+**Implementation:**
+1. Frontend stores `run_id` from interception response
+2. Frontend passes `run_id` to generation endpoint
+3. Backend uses `load_recorder(run_id)` to append to existing folder
+
+---
+
+## Favorites System (Session 127-128)
+
+### Purpose
+
+Persistent bookmarking of generated outputs for:
+- Session restore (reload exact input state)
+- Cross-view transfer (T2I → I2I)
+- Research data collection
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    FooterGallery.vue                     │
+│  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐                        │
+│  │thumb│ │thumb│ │thumb│ │thumb│  [← Restore] [→ I2I]   │
+│  └─────┘ └─────┘ └─────┘ └─────┘                        │
+└─────────────────────────────────────────────────────────┘
+                           ▲
+                           │ watches pendingRestoreData
+                           │
+┌──────────────────────────┴──────────────────────────────┐
+│                    Pinia Store (favorites.ts)            │
+│  - favorites: FavoriteItem[]                            │
+│  - pendingRestoreData: RestoreData | null               │
+│  - setRestoreData(data)                                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/favorites` | GET | List all favorites |
+| `/api/favorites` | POST | Add favorite `{ run_id, media_type }` |
+| `/api/favorites/<run_id>` | DELETE | Remove favorite |
+| `/api/favorites/<run_id>/restore` | GET | Get complete restore data |
+
+### Restore Data Structure
+
+```typescript
+interface RestoreData {
+  run_id: string
+  schema: string
+  execution_mode: string
+  timestamp: string
+  input_text?: string           // Original input
+  context_prompt?: string       // Meta-prompt/rules
+  transformed_text?: string     // Interception result
+  translation_en?: string       // English translation
+  models_used?: ModelsUsed      // LLM models per stage
+  media_outputs: MediaOutput[]  // Generated media URLs
+  target_view: string           // 'text-transformation' | 'image-transformation'
+}
+```
+
+### Store-Based Restore Pattern
+
+**Why not sessionStorage?**
+- Timing issues with `onMounted` hooks
+- Data lost on page refresh
+- Complex serialization/parsing
+
+**Store-based solution:**
+```typescript
+// FooterGallery.vue - sets data
+favoritesStore.setRestoreData(restoreData)
+router.push('/text-transformation')
+
+// text_transformation.vue - watches and consumes
+watch(() => favoritesStore.pendingRestoreData, (data) => {
+  if (!data) return
+  inputText.value = data.input_text
+  contextPrompt.value = data.context_prompt
+  interceptionResult.value = data.transformed_text
+  favoritesStore.setRestoreData(null) // Clear after consuming
+}, { immediate: true })
+```
+
+**Benefits:**
+- Reactive: Works even if already on target page
+- Immediate: `{ immediate: true }` processes on mount
+- Clean: No manual cleanup needed
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `src/components/FooterGallery.vue` | Fixed footer with thumbnail gallery |
+| `src/stores/favorites.ts` | Pinia store for state management |
+| `devserver/my_app/routes/favorites_routes.py` | REST API endpoints |
+
+---

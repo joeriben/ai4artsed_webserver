@@ -161,7 +161,25 @@ const messages = {
       privacy: 'Datenschutz',
       docs: 'Dokumentation',
       language: 'Sprache wechseln',
-      settings: 'Einstellungen'
+      settings: 'Einstellungen',
+      canvas: 'Canvas Workflow'
+    },
+    canvas: {
+      title: 'Canvas Workflow',
+      newWorkflow: 'Neuer Workflow',
+      importWorkflow: 'Importieren',
+      exportWorkflow: 'Exportieren',
+      execute: 'Ausführen',
+      ready: 'Bereit',
+      errors: 'Fehler',
+      discardWorkflow: 'Aktuellen Workflow verwerfen?',
+      importError: 'Fehler beim Importieren der Datei',
+      selectTransformation: 'Transformation wählen',
+      selectOutput: 'Ausgabe-Modell wählen',
+      search: 'Suchen...',
+      noResults: 'Keine Ergebnisse gefunden',
+      dragHint: 'Klicke oder ziehe Module auf die Arbeitsfläche',
+      editNameHint: '(doppelklicken zum Bearbeiten)'
     },
     about: {
       title: 'Über AI4ArtsEd',
@@ -468,7 +486,25 @@ const messages = {
       privacy: 'Privacy',
       docs: 'Documentation',
       language: 'Switch language',
-      settings: 'Settings'
+      settings: 'Settings',
+      canvas: 'Canvas Workflow'
+    },
+    canvas: {
+      title: 'Canvas Workflow',
+      newWorkflow: 'New Workflow',
+      importWorkflow: 'Import',
+      exportWorkflow: 'Export',
+      execute: 'Execute',
+      ready: 'Ready',
+      errors: 'errors',
+      discardWorkflow: 'Discard current workflow?',
+      importError: 'Failed to import file',
+      selectTransformation: 'Select Transformation',
+      selectOutput: 'Select Output Model',
+      search: 'Search...',
+      noResults: 'No results found',
+      dragHint: 'Click or drag modules onto the canvas',
+      editNameHint: '(double-click to edit)'
     },
     about: {
       title: 'About AI4ArtsEd',

@@ -90,6 +90,12 @@ const router = createRouter({
       name: 'training',
       component: () => import('../views/TrainingView.vue'),
     },
+    {
+      path: '/canvas',
+      name: 'canvas-workflow',
+      // Session 129: Canvas workflow builder for parallel fan-out workflows
+      component: () => import('../views/canvas_workflow.vue'),
+    },
   ],
 })
 

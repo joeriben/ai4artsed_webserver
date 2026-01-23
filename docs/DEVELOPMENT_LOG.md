@@ -6197,3 +6197,105 @@ Enables pre-populating custom_placeholders for multi-stage workflows.
 - Image-to-image vector fusion workflows
 
 ---
+
+## Session 127-128: Favorites FooterGallery + Unified Run Architecture (2026-01-22/23)
+
+### Overview
+
+Implemented persistent favorites system with FooterGallery and fixed critical data export issues for research data integrity.
+
+### Features Implemented
+
+**1. FooterGallery Component**
+- Fixed footer bar with expandable thumbnail gallery
+- Persists across page navigation
+- Actions: Restore session, Continue (copy to I2I), Remove
+- Reactive store-based restore (replaces problematic sessionStorage)
+
+**2. Unified Run Architecture**
+- Single folder per user session (no more `run_xxx` + `gen_xxx` fragmentation)
+- Frontend passes `run_id` from interception to generation
+- Backend uses `load_recorder()` to append to existing folder
+
+**3. Complete Research Data Export**
+```
+run_123/
+├── 01_input.txt           # Original user input (German)
+├── 02_context_prompt.txt  # Meta-prompt/pedagogical rules
+├── 03_safety.txt          # Stage 1 safety result
+├── 04_interception.txt    # Transformed text (German)
+├── 05_translation_en.txt  # English translation (NEW!)
+├── 06_optimized_prompt.txt
+├── 07_output_image.png
+└── metadata.json          # Includes models_used (NEW!)
+```
+
+**4. Model Tracking**
+- `models_used` object in metadata.json
+- Records which LLM was used at each pipeline stage
+- Enables reproducibility for research
+
+### Critical Bug Fixes
+
+**Bug 1: Generation Endpoint Missing Translation**
+- **Problem:** `/pipeline/generation` only did safety check, NO translation
+- **Impact:** German text was sent directly to SD3.5
+- **Fix:** Changed from `fast_filter_check` to `execute_stage3_safety` (includes translation)
+
+**Bug 2: Data Fragmentation**
+- **Problem:** Interception created `run_xxx/`, Generation created separate `gen_xxx/`
+- **Impact:** Research data split across folders, duplicates, hard to analyze
+- **Fix:** Frontend passes `run_id`, backend reuses same folder
+
+**Bug 3: sessionStorage Timing Issues**
+- **Problem:** Restore from favorites failed due to onMounted timing
+- **Fix:** Pinia store with watcher (`{ immediate: true }`) - reactive, no timing issues
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/components/FooterGallery.vue` | Favorites footer gallery |
+| `src/stores/favorites.ts` | Pinia store for favorites |
+| `devserver/my_app/routes/favorites_routes.py` | REST API endpoints |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `schema_pipeline_routes.py` | Unified run, translation, model tracking |
+| `text_transformation.vue` | Pass run_id, restore watcher |
+| `image_transformation.vue` | Pass run_id, restore watcher |
+| `App.vue` | FooterGallery integration |
+| `text_transformation.css` | Padding for footer |
+
+### API Endpoints
+
+```
+GET  /api/favorites              # List all
+POST /api/favorites              # Add { run_id, media_type }
+DELETE /api/favorites/<run_id>   # Remove
+GET  /api/favorites/<run_id>/restore  # Get restore data
+```
+
+### Commits
+
+- `74c1ce3` - Pre-restore-fix checkpoint (safety commit)
+- `d7c139a` - feat(research-data): Unified run architecture + complete data export
+- `80ad856` - fix(ui): Add padding-bottom for FooterGallery overlap
+
+### Testing
+
+1. T2I: Generate → Favorite → Navigate away → Restore → All fields restored ✓
+2. I2I: Generate → Favorite → Restore → Context prompt restored ✓
+3. Data Export: Single folder with all entities + models_used ✓
+4. Translation: German input → English output for SD3.5 ✓
+
+### Session Metrics
+
+**Duration:** ~4 hours
+**Files Modified:** 8
+**Files Created:** 3
+**Commits:** 3
+
+---

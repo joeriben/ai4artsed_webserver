@@ -2834,3 +2834,163 @@ The `direct_workflow.json` config was deactivated (`.deactivated` suffix) during
 - **Educational:** Shows convention-based routing is simpler than explicit registry
 - **Template:** Use for displaced_world, relational_inquiry, other new workflows
 
+
+
+---
+
+## Session 127-128: Favorites & FooterGallery + Unified Run Architecture (2026-01-22/23)
+
+### Decision: Persistent Favorites with Complete Research Data Export
+
+**Context:**
+- Research project needs complete, traceable data for each generation session
+- Users want to bookmark and restore previous generations
+- Data was fragmented across multiple folders (interception vs generation)
+
+**Problem:**
+1. **Data Fragmentation:** Interception created `run_xxx/` folder, Generation created separate `gen_xxx/` folder
+2. **Missing Data:** Context prompt, translation, and model info were not being saved
+3. **No Persistence:** Generated outputs disappeared after page navigation
+
+### Architecture Decision: Unified Run + Complete Data Export
+
+**Single Folder per Session:**
+```
+BEFORE (fragmented):
+run_123/        ← Interception endpoint
+├── input.txt
+├── safety.txt
+└── interception.txt
+
+gen_456/        ← Generation endpoint (SEPARATE!)
+├── input.txt   ← DUPLICATE
+└── output.png
+
+AFTER (unified):
+run_123/        ← ONE folder for entire session
+├── 01_input.txt           # Original user input (German)
+├── 02_context_prompt.txt  # Meta-prompt/pedagogical rules
+├── 03_safety.txt          # Stage 1 safety result
+├── 04_interception.txt    # Transformed text (German)
+├── 05_translation_en.txt  # English translation (NEW!)
+├── 06_optimized_prompt.txt
+├── 07_output_image.png
+└── metadata.json          # Includes models_used (NEW!)
+```
+
+**Implementation Pattern:**
+```
+Frontend                          Backend
+─────────                         ─────────
+Interception Start
+    │
+    ├──► POST /pipeline/interception
+    │         │
+    │         ├── Creates run_id
+    │         ├── Saves input, context_prompt, safety, interception
+    │         └── Returns run_id in SSE stream
+    │
+    ◄── run_id stored in currentRunId.value
+    │
+Generation Start
+    │
+    ├──► POST /pipeline/generation
+    │    { run_id: currentRunId.value, ... }
+    │         │
+    │         ├── load_recorder(run_id) ← Reuses existing folder!
+    │         ├── Saves translation_en, optimized_prompt, output
+    │         └── Returns same run_id
+    │
+    ◄── Media displayed, run_id for favorites
+```
+
+**Model Tracking (metadata.json):**
+```json
+{
+  "models_used": {
+    "stage1_safety": "local/gpt-OSS:20b",
+    "stage2_interception": "local/gpt-OSS:20b",
+    "stage3_translation": "local/gpt-OSS:20b",
+    "stage4_output": "sd35_large"
+  }
+}
+```
+
+### FooterGallery Component
+
+**Architecture:**
+- Fixed footer bar with expandable thumbnail gallery
+- Pinia store (`favorites.ts`) for state management
+- Store-based restore (reactive) instead of sessionStorage (timing issues)
+
+**Store Pattern (Cross-Component Communication):**
+```typescript
+// favorites.ts
+const pendingRestoreData = ref<RestoreData | null>(null)
+
+// FooterGallery.vue - sets data
+favoritesStore.setRestoreData(restoreData)
+router.push('/text-transformation')
+
+// text_transformation.vue - watches and consumes
+watch(() => favoritesStore.pendingRestoreData, (data) => {
+  if (!data) return
+  inputText.value = data.input_text
+  // ... restore other fields
+  favoritesStore.setRestoreData(null) // Clear after consuming
+}, { immediate: true })
+```
+
+**Benefits:**
+- Reactive: Works even if already on target page
+- No timing issues: Watcher fires immediately when data is set
+- Clean: No sessionStorage serialization/parsing
+
+### Files Created/Modified
+
+**New Files:**
+- `src/components/FooterGallery.vue` - Footer gallery component
+- `src/stores/favorites.ts` - Pinia store for favorites
+- `devserver/my_app/routes/favorites_routes.py` - REST API endpoints
+
+**Modified Files:**
+- `schema_pipeline_routes.py` - Unified run architecture, translation saving, model tracking
+- `text_transformation.vue` - Pass run_id to generation, restore watcher
+- `image_transformation.vue` - Pass run_id to generation, restore watcher
+- `App.vue` - FooterGallery integration
+
+### API Endpoints
+
+```
+GET  /api/favorites              # List all favorites
+POST /api/favorites              # Add favorite { run_id, media_type }
+DELETE /api/favorites/<run_id>   # Remove favorite
+GET  /api/favorites/<run_id>/restore  # Get complete restore data
+```
+
+### Critical Bug Fix
+
+**Generation Endpoint Missing Translation:**
+The `/pipeline/generation` endpoint was only doing safety check, NOT translation. German text was being sent directly to SD3.5.
+
+**Fix:** Changed from `fast_filter_check` to `execute_stage3_safety` which includes translation:
+```python
+# BEFORE (broken):
+has_terms, found_terms = fast_filter_check(prompt, safety_level)
+# prompt still German → sent to SD3.5
+
+# AFTER (fixed):
+safety_result = asyncio.run(execute_stage3_safety(
+    prompt, safety_level, media_type, 'eco', pipeline_executor
+))
+translated_prompt = safety_result.get('positive_prompt', prompt)
+# translated_prompt is English → sent to SD3.5
+```
+
+### Why This Matters for Research
+
+1. **Complete Data:** Every field from every stage is preserved
+2. **Traceable:** Model versions recorded for reproducibility
+3. **No Duplicates:** Single source of truth per session
+4. **Restorable:** Users can reload exact session state
+5. **Exportable:** Clean folder structure for data analysis
