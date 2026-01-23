@@ -100,8 +100,8 @@ def get_file_by_name(run_id: str, filename: str):
         if not recorder:
             return jsonify({'error': f'Run {run_id} not found'}), 404
 
-        # Construct file path directly from filename
-        file_path = recorder.run_folder / filename
+        # Session 130: Use get_file_path() for final/ subfolder
+        file_path = recorder.get_file_path(filename)
         if not file_path.exists():
             return jsonify({'error': f'File {filename} not found in run {run_id}'}), 404
 

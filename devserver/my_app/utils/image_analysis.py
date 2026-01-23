@@ -140,8 +140,8 @@ def analyze_image_from_run(
     if not image_entity:
         raise FileNotFoundError(f"No image found in run {run_id}")
 
-    # Get image path
-    image_path = recorder.run_folder / image_entity['filename']
+    # Session 130: Use get_file_path() for final/ subfolder
+    image_path = recorder.get_file_path(image_entity['filename'])
 
     if not image_path.exists():
         raise FileNotFoundError(f"Image file not found: {image_path}")

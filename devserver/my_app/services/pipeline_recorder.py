@@ -191,14 +191,11 @@ class LivePipelineRecorder:
         else:
             ext = "txt"
 
-        # Session 129: Use letters (A, B, C...) for main folder to distinguish from
-        # prompting_process/ which uses numbers (001, 002...)
-        if self.sequence_number <= 26:
-            prefix = chr(ord('A') + self.sequence_number - 1)  # 1->A, 2->B, 3->C...
-        else:
-            prefix = f"Z{self.sequence_number - 26}"  # Fallback for >26 files
-        filename = f"{prefix}_{entity_type}.{ext}"
-        filepath = self.run_folder / filename
+        # Session 130: Number prefix (01_, 02_) in final/ subfolder
+        # final/ contains the definitive outputs for favorites/restore
+        # prompting_process/ contains all iterations (001_, 002_...)
+        filename = f"{self.sequence_number:02d}_{entity_type}.{ext}"
+        filepath = self.final_folder / filename
 
         # Write file
         self._write_file(filepath, content)
@@ -359,8 +356,23 @@ class LivePipelineRecorder:
         """
         for entity in self.metadata["entities"]:
             if entity["type"] == entity_type:
-                return self.run_folder / entity["filename"]
+                # Session 130: Entities are now stored in final/ subfolder
+                return self.final_folder / entity["filename"]
         return None
+
+    def get_file_path(self, filename: str) -> Path:
+        """
+        Get filesystem path for a filename in the final/ folder.
+
+        Session 130: Helper method for routes that have filename from entity.
+
+        Args:
+            filename: Filename from entity metadata
+
+        Returns:
+            Full path to file in final/ folder
+        """
+        return self.final_folder / filename
 
     def save_prompt_id(self, prompt_id: str, media_type: str = 'image'):
         """
@@ -1049,7 +1061,9 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
         recorder.device_id = metadata.get("device_id", "anonymous")
         recorder.base_path = base_path
         recorder.run_folder = actual_run_folder  # Use existing folder path
-        recorder.prompting_folder = actual_run_folder / "prompting_process"  # Session 129
+        # Session 130: Restore subfolder paths
+        recorder.final_folder = actual_run_folder / "final"
+        recorder.prompting_folder = actual_run_folder / "prompting_process"
         recorder.current_stage = 0
         recorder.current_step = "initialized"
         recorder.sequence_number = 0

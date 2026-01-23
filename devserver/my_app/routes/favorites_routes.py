@@ -133,7 +133,7 @@ def get_favorites():
                 # Get input text if available
                 for entity in recorder.metadata.get('entities', []):
                     if entity['type'] == 'input':
-                        input_file = recorder.run_folder / entity['filename']
+                        input_file = recorder.get_file_path(entity['filename'])
                         if input_file.exists():
                             text = input_file.read_text(encoding='utf-8')
                             # Truncate for preview
@@ -365,7 +365,7 @@ def get_restore_data(run_id: str):
         # Get input text
         for entity in entities:
             if entity['type'] == 'input':
-                input_file = recorder.run_folder / entity['filename']
+                input_file = recorder.get_file_path(entity['filename'])
                 if input_file.exists():
                     restore_data['input_text'] = input_file.read_text(encoding='utf-8')
                 break
@@ -373,7 +373,7 @@ def get_restore_data(run_id: str):
         # Get context prompt (meta-prompt/rules - user-editable!)
         for entity in entities:
             if entity['type'] == 'context_prompt':
-                ctx_file = recorder.run_folder / entity['filename']
+                ctx_file = recorder.get_file_path(entity['filename'])
                 if ctx_file.exists():
                     restore_data['context_prompt'] = ctx_file.read_text(encoding='utf-8')
                 break
@@ -381,7 +381,7 @@ def get_restore_data(run_id: str):
         # Get transformed/intercepted text if available
         for entity in entities:
             if entity['type'] == 'interception':
-                output_file = recorder.run_folder / entity['filename']
+                output_file = recorder.get_file_path(entity['filename'])
                 if output_file.exists():
                     restore_data['transformed_text'] = output_file.read_text(encoding='utf-8')
                 break
@@ -389,7 +389,7 @@ def get_restore_data(run_id: str):
         # Get English translation if available
         for entity in entities:
             if entity['type'] == 'translation_en':
-                trans_file = recorder.run_folder / entity['filename']
+                trans_file = recorder.get_file_path(entity['filename'])
                 if trans_file.exists():
                     restore_data['translation_en'] = trans_file.read_text(encoding='utf-8')
                 break
