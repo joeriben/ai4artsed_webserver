@@ -187,8 +187,13 @@ class LivePipelineRecorder:
         else:
             ext = "txt"
 
-        # Create numbered filename
-        filename = f"{self.sequence_number:02d}_{entity_type}.{ext}"
+        # Session 129: Use letters (A, B, C...) for main folder to distinguish from
+        # prompting_process/ which uses numbers (001, 002...)
+        if self.sequence_number <= 26:
+            prefix = chr(ord('A') + self.sequence_number - 1)  # 1->A, 2->B, 3->C...
+        else:
+            prefix = f"Z{self.sequence_number - 26}"  # Fallback for >26 files
+        filename = f"{prefix}_{entity_type}.{ext}"
         filepath = self.run_folder / filename
 
         # Write file
