@@ -831,7 +831,9 @@ const optimizationStreamingParams = computed(() => {
     schema: pipelineStore.selectedConfig?.id || 'overdrive',
     input_text: interceptionResult.value,  // Already safe interception result
     context_prompt: optimizationInstruction.value || '',  // Model-specific optimization instruction
-    enable_streaming: true
+    enable_streaming: true,
+    run_id: currentRunId.value || '',  // Session 130: For persistence
+    device_id: getDeviceId()
   }
   console.log('[OPTIMIZATION-STREAMING] params:', params)
   return params

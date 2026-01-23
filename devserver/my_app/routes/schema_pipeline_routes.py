@@ -1572,12 +1572,22 @@ def execute_optimization_streaming(data: dict):
     schema_name = data.get('schema', 'overdrive')
     input_text = data.get('input_text', '')  # Already safe interception result
     context_prompt = data.get('context_prompt', '')  # Optimization instruction
+    run_id_param = data.get('run_id')  # Session 130: From interception for persistence
+    device_id = data.get('device_id')
 
-    # Generate run ID
-    run_id = f"opt_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+    # Generate run ID for logging (use param if available)
+    run_id = run_id_param or f"opt_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
 
     logger.info(f"[OPTIMIZATION-STREAMING] Starting for run {run_id}")
     logger.info(f"[OPTIMIZATION-STREAMING] Schema: {schema_name}, Input length: {len(input_text)}")
+
+    # Session 130: Load recorder at START (same pattern as interception)
+    recorder = None
+    if run_id_param and run_id_param.startswith('run_'):
+        from config import JSON_STORAGE_DIR
+        recorder = load_recorder(run_id_param, base_path=JSON_STORAGE_DIR)
+        if recorder:
+            logger.info(f"[OPTIMIZATION-STREAMING] Loaded recorder for {run_id_param}")
 
     try:
         # Initialize schema engine
@@ -1642,6 +1652,11 @@ def execute_optimization_streaming(data: dict):
 
         logger.info(f"[OPTIMIZATION-STREAMING] Stage 3 complete: {len(accumulated)} chars")
 
+        # Session 130: Save optimized_prompt immediately after LLM generation
+        if recorder:
+            recorder.save_to_prompting_process('optimized_prompt', accumulated)
+            logger.info(f"[OPTIMIZATION-STREAMING] Saved optimized_prompt to {run_id_param}")
+
         # Send completion event
         yield generate_sse_event('complete', {
             'stage': 3,
@@ -1683,7 +1698,9 @@ def optimize_pipeline():
                 'schema': request.args.get('schema'),
                 'input_text': request.args.get('input_text'),
                 'context_prompt': request.args.get('context_prompt', ''),
-                'enable_streaming': request.args.get('enable_streaming') == 'true'
+                'enable_streaming': request.args.get('enable_streaming') == 'true',
+                'run_id': request.args.get('run_id'),  # Session 130: For persistence
+                'device_id': request.args.get('device_id')
             }
         else:
             data = request.get_json()
