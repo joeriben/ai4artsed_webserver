@@ -205,6 +205,62 @@ elif output_value and len(output_value) > 100:
 
 ---
 
+## 🎯 Active Decision: 1 Run = 1 Media Output (2026-01-23, Session 130)
+
+**Status:** ✅ IMPLEMENTED
+**Context:** Multiple generations were writing to the same folder, confusing favorites system
+**Commits:** `bed0c2c`, `8d07c33`
+
+### The Principle
+
+Each run folder should contain exactly ONE media product (image/video/audio). This ensures:
+- Favorites system works correctly (clear 1:1 mapping)
+- Research data is clean (each generation has its own context)
+- Export function produces coherent artifacts
+
+### The Logic
+
+```
+Interception (Start1)     → run_001/ created (no output yet)
+Generate (FIRST)          → run_001/ continues → saves output_image
+Generate (SECOND)         → run_002/ NEW (run_001 already has output_*)
+Generate (THIRD)          → run_003/ NEW
+```
+
+**Check in generation endpoint:**
+```python
+has_output = any(
+    e.get('type', '').startswith('output_')
+    for e in existing_recorder.metadata.get('entities', [])
+)
+if has_output:
+    run_id = new_run_id()  # Create NEW folder
+else:
+    run_id = provided_run_id  # Continue existing folder
+```
+
+### Immediate Prompt Persistence
+
+Prompts are now saved immediately after LLM generation (not only on user action):
+- Interception result: saved immediately after Stage 2 LLM
+- Optimized prompt: saved immediately after optimization LLM
+
+This enables research tracking of what the LLM produced vs what the user edited.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `schema_pipeline_routes.py` | has_output check in generation, immediate save in optimization |
+| `text_transformation.vue` | Pass run_id/device_id to optimization endpoint |
+
+### TODO
+
+- [ ] Stop logging changes after generation (currentRunHasOutput flag not working)
+- [ ] Sticky UI: restore prompts/image when switching modes
+
+---
+
 ## 🎯 Active Decision: Failsafe Transition - SwarmUI Single Front Door (2026-01-08, Session 116)
 
 **Status:** ✅ IMPLEMENTED

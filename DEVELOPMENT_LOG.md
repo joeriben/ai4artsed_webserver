@@ -1,5 +1,74 @@
 # Development Log
 
+## Session 130 - Research Data Architecture: 1 Run = 1 Media Output
+**Date:** 2026-01-23
+**Duration:** ~3 hours
+**Focus:** Clean folder structure for research data, immediate prompt persistence
+**Status:** PARTIAL - Core features working, sticky UI TODO
+
+### Goals
+1. Implement "1 Run = 1 Media Output" principle
+2. Save prompts immediately after LLM generation (not only on user action)
+3. Stop logging changes after media generation (run is complete)
+
+### Key Principle: 1 Run = 1 Media Output
+Each run folder should contain exactly ONE media product. This prevents:
+- Favorites system confusion (multiple images in same folder)
+- Research data mixing (different generation contexts in same folder)
+
+**Folder Logic:**
+```
+Interception (Start1)     → run_001/ created
+Generate (FIRST)          → run_001/ continues (no output yet)
+Generate (SECOND)         → run_002/ NEW (run_001 has output_*)
+Generate (THIRD)          → run_003/ NEW
+```
+
+### Implementation
+
+**1. Generation Endpoint - Output Check (`schema_pipeline_routes.py:2038-2066`)**
+```python
+has_output = any(
+    e.get('type', '').startswith('output_')
+    for e in existing_recorder.metadata.get('entities', [])
+)
+if has_output:
+    run_id = new_run_id()  # NEW folder
+else:
+    run_id = provided_run_id  # CONTINUE existing
+```
+
+**2. Immediate Prompt Persistence (`schema_pipeline_routes.py:1584-1660`)**
+- Optimization streaming now loads recorder at START (same pattern as interception)
+- Saves `optimized_prompt` immediately after LLM generation
+- Frontend passes `run_id` and `device_id` to optimization endpoint
+
+**3. Stop Logging After Generation (TODO - not working yet)**
+- Added `currentRunHasOutput` flag in frontend
+- Set to `true` after successful generation
+- `logPromptChange()` should skip if flag is true
+- Reset on new interception
+
+### Files Changed
+- 📝 `devserver/my_app/routes/schema_pipeline_routes.py`
+  - Generation endpoint: has_output check for new folder
+  - Optimization streaming: recorder at start, immediate save
+  - Optimize endpoint: run_id/device_id parameters
+- 📝 `public/ai4artsed-frontend/src/views/text_transformation.vue`
+  - `optimizationStreamingParams`: added run_id, device_id
+  - `currentRunHasOutput` flag (TODO: not working)
+  - `logPromptChange()`: skip if run has output
+
+### TODO
+- [ ] Fix `currentRunHasOutput` flag not preventing logging after generation
+- [ ] Implement "sticky" UI: restore prompts/image when switching modes
+
+### Commits
+- `bed0c2c` feat(session-130): 1 Run = 1 Media Output
+- `8d07c33` feat(session-130): Save optimized_prompt immediately after LLM generation
+
+---
+
 ## Session 117 - LoRA Strength Tuning for Interception Configs
 **Date:** 2026-01-17
 **Duration:** ~30 minutes

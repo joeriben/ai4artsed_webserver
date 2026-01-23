@@ -439,6 +439,7 @@ const availabilityLoading = ref(true)
 const previousOptimizedPrompt = ref('')  // Track previous prompt for comparison
 const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
 const currentRunId = ref<string | null>(null)  // Run ID from interception (prompting_process_xxx)
+const currentRunHasOutput = ref(false)  // Session 130: True after media generation (stops logging)
 const lastInterceptionConfig = ref<string | null>(null)  // Track which interception config was used
 
 // Session 129: Device ID for folder structure (json/date/device_id/run_xxx/)
@@ -1114,6 +1115,8 @@ async function runInterception() {
 
   interceptionResult.value = '' // Clear previous result
   isInterceptionLoading.value = true
+  // Session 130: Reset output flag (new interception = new run)
+  currentRunHasOutput.value = false
 
   console.log('[DEBUG] After - isInterceptionLoading:', isInterceptionLoading.value)
   console.log('[DEBUG] This should trigger streamingUrl computed property')
@@ -1384,6 +1387,8 @@ async function executePipeline() {
       if (runId) {
         // Store run_id for favorites (Session 127)
         currentRunId.value = runId
+        // Session 130: Mark run as complete (stops further logging to this folder)
+        currentRunHasOutput.value = true
 
         // Use explicit index from backend for correct image addressing
         // Each image has unique URL: /api/media/{type}/{run_id}/{index}
@@ -1510,6 +1515,12 @@ function printImage() {
 async function logPromptChange(entityType: string, content: string) {
   if (!currentRunId.value) {
     console.log('[LOG-PROMPT] No current run_id, skipping')
+    return
+  }
+
+  // Session 130: Don't log changes after media generation (run is complete)
+  if (currentRunHasOutput.value) {
+    console.log('[LOG-PROMPT] Run already has output, skipping (start new interception for new run)')
     return
   }
 
