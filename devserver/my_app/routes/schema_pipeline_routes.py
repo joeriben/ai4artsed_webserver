@@ -1325,12 +1325,13 @@ def execute_pipeline_streaming(data: dict):
     context_prompt = data.get('context_prompt', '')
     safety_level = data.get('safety_level', 'youth')
     execution_mode = data.get('execution_mode', 'eco')
+    device_id = data.get('device_id')  # Session 129: For folder structure
 
     # Generate run ID
     run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
 
     logger.info(f"[UNIFIED-STREAMING] Starting orchestrated pipeline for run {run_id}")
-    logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}")
+    logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}, Device: {device_id}")
 
     # Initialize recorder for export functionality
     from config import JSON_STORAGE_DIR, STAGE1_TEXT_MODEL, STAGE2_INTERCEPTION_MODEL
@@ -1339,6 +1340,7 @@ def execute_pipeline_streaming(data: dict):
         config_name=schema_name,
         execution_mode=execution_mode,
         safety_level=safety_level,
+        device_id=device_id,  # Session 129
         base_path=JSON_STORAGE_DIR
     )
 

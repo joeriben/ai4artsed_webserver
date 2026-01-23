@@ -776,7 +776,8 @@ const streamingParams = computed(() => {
     context_prompt: contextPrompt.value || '',
     safety_level: 'youth',
     execution_mode: 'eco',
-    enable_streaming: true  // KEY: Request SSE streaming
+    enable_streaming: true,  // KEY: Request SSE streaming
+    device_id: getDeviceId()  // Session 129: Folder structure
   }
   console.log('[UNIFIED-STREAMING] streamingParams:', params)
   return params
