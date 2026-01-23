@@ -29,6 +29,60 @@
 
 ---
 
+## 🤖 LLM SELECTION: Model-Specific Prompting Strategy (2026-01-23)
+
+**Status:** ✅ DECIDED
+**Session:** 132
+**Full Analysis:** See `docs/LLM_SELECTION_AND_PROMPTING.md`
+
+### Decision
+
+Use **llama4:scout** as primary local model with **model-specific prompt variants** for CLIP optimization.
+
+### Context: SD3.5 Triple CLIP Optimization
+
+The prompt optimization task requires:
+- Multilingual I/O (German, Bulgarian, Yoruba, etc.)
+- Scene-to-2D transformation (narrative → frozen visual frame)
+- Domain knowledge (photography, visual arts)
+- Cultural neutrality (no artist names, no art-historical terms)
+- Complex instruction following
+
+### Model Evaluation Results
+
+| Model | Multilingual | Low-Resource (Yoruba) | Recommendation |
+|-------|--------------|----------------------|----------------|
+| **llama4:scout** | 200 languages | ✅ 10x more data | ✅ Primary |
+| Mistral Large 3 | 40+ languages | ⚠️ No data | EU-languages only |
+| gpt-OSS:120b | Good | ⚠️ No data | Fallback |
+| Qwen3-next | 119 languages | ❌ "unoptimized" | Not recommended |
+
+### Key Finding: Prompt Format Sensitivity
+
+Different models need different prompt styles:
+
+| Model Family | Preferred Style |
+|--------------|-----------------|
+| Claude/OpenAI | Structured `===` sections, detailed rules |
+| Llama 4 | Flat, example-heavy, short rules |
+| Mistral | Minimal, precise, no nesting |
+
+### Implementation
+
+1. **Primary model:** llama4:scout (67GB, fits in 96GB VRAM)
+2. **Prompt variants:** `default`, `llama`, `mistral` for each optimization chunk
+3. **Dynamic selection:** Based on configured model name
+
+### Affected Files
+
+- `devserver/schemas/chunks/optimize_clip_prompt.json` (+ variants)
+- `devserver/schemas/chunks/optimize_t5_prompt.json` (+ variants)
+- `devserver/schemas/chunks/output_image_sd35_large.json`
+- `devserver/config.py`
+- `docs/LLM_SELECTION_AND_PROMPTING.md` (full analysis)
+
+---
+
 ## 🏛️ ARCHITECTURAL PARADIGM: Werkraum → Lab Transition (2026-01-16)
 
 **Status:** ✅ DOCUMENTED (ongoing evolution)
