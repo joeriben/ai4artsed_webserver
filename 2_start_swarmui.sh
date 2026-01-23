@@ -42,6 +42,35 @@ echo "Activating venv and starting SwarmUI..."
 echo "Press Ctrl+C to stop"
 echo ""
 
+# === Output Cleanup ===
+# DevServer exportiert nach /export, daher sind SwarmUI/ComfyUI Outputs redundant
+echo "========================================"
+echo "Cleaning up redundant output folders..."
+echo "========================================"
+
+# SwarmUI Output
+if [ -d "./Output" ] && [ "$(ls -A ./Output 2>/dev/null)" ]; then
+    count_swarm=$(find ./Output -type f 2>/dev/null | wc -l)
+    echo "SwarmUI Output: $count_swarm files"
+    rm -rf ./Output/*
+    echo "  -> Deleted"
+else
+    echo "SwarmUI Output: empty"
+fi
+
+# ComfyUI Output
+if [ -d "./dlbackend/ComfyUI/output" ] && [ "$(ls -A ./dlbackend/ComfyUI/output 2>/dev/null)" ]; then
+    count_comfy=$(find ./dlbackend/ComfyUI/output -type f 2>/dev/null | wc -l)
+    echo "ComfyUI Output: $count_comfy files"
+    rm -rf ./dlbackend/ComfyUI/output/*
+    echo "  -> Deleted"
+else
+    echo "ComfyUI Output: empty"
+fi
+
+echo "========================================"
+echo ""
+
 source ./venv/bin/activate
 
 # Remove error trap - allow normal server exit without "Script failed" message
