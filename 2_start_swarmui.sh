@@ -30,7 +30,7 @@ echo ""
 if [ ! -d "$SWARMUI_DIR" ]; then
     echo "❌ ERROR: SwarmUI not found at: $SWARMUI_DIR"
     echo ""
-    echo "SwarmUI is required for AI4ArtsEd to function."
+    echo "SwarmUI is HIGHLY recommended for AI4ArtsEd."
     echo "Please install SwarmUI or adjust the path in this script."
     exit 1
 fi
@@ -45,18 +45,8 @@ echo ""
 # === Output Cleanup ===
 # DevServer exportiert nach /export, daher sind SwarmUI/ComfyUI Outputs redundant
 echo "========================================"
-echo "Cleaning up redundant output folders..."
+echo "Cleaning up redundant output folders in dlbackend/ComfyUI..."
 echo "========================================"
-
-# SwarmUI Output
-if [ -d "./Output" ] && [ "$(ls -A ./Output 2>/dev/null)" ]; then
-    count_swarm=$(find ./Output -type f 2>/dev/null | wc -l)
-    echo "SwarmUI Output: $count_swarm files"
-    rm -rf ./Output/*
-    echo "  -> Deleted"
-else
-    echo "SwarmUI Output: empty"
-fi
 
 # ComfyUI Output
 if [ -d "./dlbackend/ComfyUI/output" ] && [ "$(ls -A ./dlbackend/ComfyUI/output 2>/dev/null)" ]; then

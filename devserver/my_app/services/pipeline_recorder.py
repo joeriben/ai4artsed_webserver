@@ -81,7 +81,11 @@ class LivePipelineRecorder:
         self.run_folder = self.base_path / date_folder / self.device_id / run_id
         self.run_folder.mkdir(parents=True, exist_ok=True)
 
-        # Session 129: prompting_process subfolder for research data
+        # Session 129: Clean folder structure
+        # final/ - for final outputs (favorites/restore)
+        self.final_folder = self.run_folder / "final"
+        self.final_folder.mkdir(parents=True, exist_ok=True)
+        # prompting_process/ - for research data (all iterations)
         self.prompting_folder = self.run_folder / "prompting_process"
         self.prompting_sequence = 0  # Separate counter for prompting iterations
 
