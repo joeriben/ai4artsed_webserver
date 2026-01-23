@@ -12,7 +12,7 @@ const canvasStore = useCanvasStore()
 
 // Config selector modal state
 const showConfigSelector = ref(false)
-const configSelectorType = ref<'interception' | 'generation'>('interception')
+const configSelectorType = ref<'interception' | 'generation' | 'translation'>('interception')
 const configSelectorNodeId = ref<string | null>(null)
 
 // Workflow name editing
@@ -31,8 +31,8 @@ onMounted(async () => {
 function handleAddNodeAt(type: StageType, x: number, y: number) {
   const node = canvasStore.addNode(type, x, y)
 
-  // If it's an interception or generation node, open config selector
-  if (type === 'interception' || type === 'generation') {
+  // If it's an interception, generation, or translation node, open config selector
+  if (type === 'interception' || type === 'generation' || type === 'translation') {
     openConfigSelector(node.id, type)
   }
 }
@@ -44,7 +44,7 @@ function handleAddNodeFromPalette(type: StageType) {
   handleAddNodeAt(type, x, y)
 }
 
-function openConfigSelector(nodeId: string, type: 'interception' | 'generation') {
+function openConfigSelector(nodeId: string, type: 'interception' | 'generation' | 'translation') {
   configSelectorNodeId.value = nodeId
   configSelectorType.value = type
   showConfigSelector.value = true
@@ -54,7 +54,7 @@ function handleSelectConfig(nodeId: string) {
   const node = canvasStore.nodes.find(n => n.id === nodeId)
   if (!node) return
 
-  if (node.type === 'interception' || node.type === 'generation') {
+  if (node.type === 'interception' || node.type === 'generation' || node.type === 'translation') {
     openConfigSelector(nodeId, node.type)
   }
 }

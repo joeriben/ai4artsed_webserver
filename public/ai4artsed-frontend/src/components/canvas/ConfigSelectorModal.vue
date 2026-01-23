@@ -7,7 +7,7 @@ const { locale } = useI18n()
 
 const props = defineProps<{
   visible: boolean
-  type: 'interception' | 'generation'
+  type: 'interception' | 'generation' | 'translation'
   interceptionConfigs: InterceptionConfigSummary[]
   outputConfigs: OutputConfigSummary[]
   currentConfigId?: string
@@ -21,7 +21,12 @@ const emit = defineEmits<{
 const searchQuery = ref('')
 
 const filteredConfigs = computed(() => {
-  const configs = props.type === 'interception' ? props.interceptionConfigs : props.outputConfigs
+  // For interception and translation, use interception configs (LLM models)
+  // For generation, use output configs
+  const configs = props.type === 'generation'
+    ? props.outputConfigs
+    : props.interceptionConfigs
+
   if (!searchQuery.value) return configs
 
   const query = searchQuery.value.toLowerCase()
@@ -34,7 +39,10 @@ const filteredConfigs = computed(() => {
 
 const title = computed(() => {
   if (props.type === 'interception') {
-    return locale.value === 'de' ? 'Transformation wählen' : 'Select Transformation'
+    return locale.value === 'de' ? 'LLM & Interception wählen' : 'Select LLM & Interception'
+  }
+  if (props.type === 'translation') {
+    return locale.value === 'de' ? 'Übersetzungs-LLM wählen' : 'Select Translation LLM'
   }
   return locale.value === 'de' ? 'Ausgabe-Modell wählen' : 'Select Output Model'
 })

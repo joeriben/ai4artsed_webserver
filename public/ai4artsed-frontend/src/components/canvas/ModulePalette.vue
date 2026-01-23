@@ -3,18 +3,27 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NODE_TYPE_DEFINITIONS, type StageType, type NodeTypeDefinition } from '@/types/canvas'
 
-const { t, locale } = useI18n()
+const { locale } = useI18n()
+
+// Icon URL helper
+function getIconUrl(iconPath: string): string {
+  return new URL(`../../assets/icons/${iconPath}`, import.meta.url).href
+}
 
 const emit = defineEmits<{
   'add-node': [type: StageType]
 }>()
 
-// Group node types by category
+/**
+ * Group node types by category
+ *
+ * NOTE: Safety is NOT shown here - DevServer handles it automatically
+ */
 const categories = computed(() => [
   {
     id: 'core',
     label: locale.value === 'de' ? 'Kernmodule' : 'Core Modules',
-    types: ['input', 'safety', 'output'] as StageType[]
+    types: ['input', 'collector'] as StageType[]
   },
   {
     id: 'process',
@@ -63,7 +72,13 @@ function onDragStart(e: DragEvent, type: StageType) {
           @dragstart="onDragStart($event, type)"
           @click="emit('add-node', type)"
         >
-          <span class="module-icon">{{ getNodeDef(type)?.icon }}</span>
+          <img
+            v-if="getNodeDef(type)?.icon?.endsWith('.svg')"
+            :src="getIconUrl(getNodeDef(type)!.icon)"
+            :alt="type"
+            class="module-icon-svg"
+          />
+          <span v-else class="module-icon">{{ getNodeDef(type)?.icon }}</span>
           <span class="module-label">{{ getNodeDef(type) ? getLabel(getNodeDef(type)!) : type }}</span>
         </button>
       </div>
@@ -141,6 +156,12 @@ h4 {
 
 .module-icon {
   font-size: 1rem;
+}
+
+.module-icon-svg {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1); /* Make SVG white */
 }
 
 .module-label {

@@ -6,6 +6,11 @@ import { getNodeTypeDefinition } from '@/types/canvas'
 
 const { locale } = useI18n()
 
+// Icon URL helper
+function getIconUrl(iconPath: string): string {
+  return new URL(`../../assets/icons/${iconPath}`, import.meta.url).href
+}
+
 const props = defineProps<{
   node: CanvasNode
   selected: boolean
@@ -23,6 +28,13 @@ const emit = defineEmits<{
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
 const nodeColor = computed(() => nodeTypeDef.value?.color || '#666')
 const nodeIcon = computed(() => nodeTypeDef.value?.icon || '📦')
+const nodeIconUrl = computed(() => {
+  const icon = nodeTypeDef.value?.icon
+  if (icon && icon.endsWith('.svg')) {
+    return getIconUrl(icon)
+  }
+  return null
+})
 const nodeLabel = computed(() => {
   const def = nodeTypeDef.value
   if (!def) return props.node.type
@@ -39,12 +51,26 @@ const hasOutputConnector = computed(() => {
   return def && def.outputsTo.length > 0
 })
 
+/**
+ * Nodes that need config selection:
+ * - interception: LLM model + optional interception config
+ * - generation: output config (sd35_large, qwen, etc.)
+ * - translation: LLM model + optional prompt
+ */
 const needsConfig = computed(() => {
-  return props.node.type === 'interception' || props.node.type === 'generation'
+  return props.node.type === 'interception' ||
+         props.node.type === 'generation' ||
+         props.node.type === 'translation'
 })
 
 const displayConfigName = computed(() => {
   if (props.configName) return props.configName
+
+  // For interception/translation: show LLM model if selected
+  if ((props.node.type === 'interception' || props.node.type === 'translation') && props.node.llmModel) {
+    return props.node.llmModel
+  }
+
   if (props.node.configId) return props.node.configId
   return locale.value === 'de' ? 'Auswählen...' : 'Select...'
 })
@@ -70,7 +96,13 @@ const displayConfigName = computed(() => {
 
     <!-- Node header -->
     <div class="module-header">
-      <span class="module-icon">{{ nodeIcon }}</span>
+      <img
+        v-if="nodeIconUrl"
+        :src="nodeIconUrl"
+        :alt="nodeLabel"
+        class="module-icon-svg"
+      />
+      <span v-else class="module-icon">{{ nodeIcon }}</span>
       <span class="module-label">{{ nodeLabel }}</span>
       <button
         v-if="canDelete"
@@ -144,6 +176,12 @@ const displayConfigName = computed(() => {
 
 .module-icon {
   font-size: 1rem;
+}
+
+.module-icon-svg {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1); /* Make SVG white */
 }
 
 .module-label {

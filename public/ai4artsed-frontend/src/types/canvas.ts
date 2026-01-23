@@ -11,8 +11,15 @@
 // NODE TYPES
 // ============================================================================
 
-/** Available stage/node types in the canvas */
-export type StageType = 'input' | 'safety' | 'interception' | 'translation' | 'generation' | 'output'
+/**
+ * Available stage/node types in the canvas
+ *
+ * NOTE: Safety is NOT a user-visible node!
+ * - Stage 1 Safety: Automatic in /pipeline/interception
+ * - Stage 3 Safety: Automatic per output-config
+ * DevServer handles all safety transparently.
+ */
+export type StageType = 'input' | 'interception' | 'translation' | 'generation' | 'collector'
 
 /** Node type definition for the palette */
 export interface NodeTypeDefinition {
@@ -32,75 +39,87 @@ export interface NodeTypeDefinition {
   outputsTo: StageType[]
 }
 
-/** Predefined node types for the canvas */
+/**
+ * Predefined node types for the canvas
+ *
+ * Module Types:
+ * - Input: Text input source
+ * - Interception: LLM selection (primary!) + interception config (optional override)
+ * - Translation: Translation prompt + LLM selection
+ * - Generation: Output configs (sd35, qwen, flux2, etc.)
+ * - Collector: Fan-in collector for parallel outputs (Media Collector)
+ *
+ * IMPORTANT: Safety is NOT a node!
+ * DevServer handles Stage 1 + Stage 3 safety automatically.
+ */
 export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'input',
     type: 'input',
     label: { en: 'Input', de: 'Eingabe' },
-    description: { en: 'Text or image input source', de: 'Text- oder Bild-Eingabequelle' },
+    description: { en: 'Text input source', de: 'Text-Eingabequelle' },
     color: '#3b82f6', // blue
-    icon: '📝',
+    icon: 'edit_square_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
     mandatory: true,
     acceptsFrom: [],
-    outputsTo: ['safety']
-  },
-  {
-    id: 'safety',
-    type: 'safety',
-    label: { en: 'Safety Check', de: 'Sicherheitsprüfung' },
-    description: { en: 'Mandatory safety validation (Stage 1)', de: 'Verpflichtende Sicherheitsprüfung (Stufe 1)' },
-    color: '#ef4444', // red
-    icon: '🛡️',
-    allowMultiple: false,
-    mandatory: true,
-    acceptsFrom: ['input'],
-    outputsTo: ['interception', 'translation']
+    outputsTo: ['interception', 'translation'] // Direct to interception (safety is automatic)
   },
   {
     id: 'interception',
     type: 'interception',
-    label: { en: 'Interception', de: 'Transformation' },
-    description: { en: 'Pedagogical prompt transformation (Stage 2)', de: 'Pädagogische Prompt-Transformation (Stufe 2)' },
+    label: { en: 'Interception', de: 'Interception' },
+    description: {
+      en: 'Pedagogical transformation with LLM selection',
+      de: 'Pädagogische Transformation mit LLM-Auswahl'
+    },
     color: '#8b5cf6', // purple
-    icon: '🎭',
+    icon: 'cognition_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['safety', 'interception'],
+    acceptsFrom: ['input', 'interception'],
     outputsTo: ['interception', 'translation', 'generation']
   },
   {
     id: 'translation',
     type: 'translation',
     label: { en: 'Translation', de: 'Übersetzung' },
-    description: { en: 'Optional language translation (Stage 3)', de: 'Optionale Sprachübersetzung (Stufe 3)' },
+    description: {
+      en: 'Language translation with custom prompt + LLM',
+      de: 'Sprachübersetzung mit eigenem Prompt + LLM'
+    },
     color: '#f59e0b', // amber
-    icon: '🌐',
-    allowMultiple: false,
+    icon: 'language_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['safety', 'interception'],
+    acceptsFrom: ['input', 'interception'],
     outputsTo: ['generation']
   },
   {
     id: 'generation',
     type: 'generation',
     label: { en: 'Generation', de: 'Generierung' },
-    description: { en: 'Media generation output (Stage 4)', de: 'Mediengenerierung (Stufe 4)' },
+    description: {
+      en: 'Media generation (image, audio, video)',
+      de: 'Mediengenerierung (Bild, Audio, Video)'
+    },
     color: '#10b981', // emerald
-    icon: '🎨',
+    icon: 'brush_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: true,
     acceptsFrom: ['interception', 'translation'],
-    outputsTo: ['output']
+    outputsTo: ['collector']
   },
   {
-    id: 'output',
-    type: 'output',
-    label: { en: 'Output', de: 'Ausgabe' },
-    description: { en: 'Final output collection', de: 'Endausgabe-Sammlung' },
+    id: 'collector',
+    type: 'collector',
+    label: { en: 'Media Collector', de: 'Medien-Sammler' },
+    description: {
+      en: 'Collects outputs from parallel generation nodes',
+      de: 'Sammelt Ausgaben von parallelen Generierungsknoten'
+    },
     color: '#06b6d4', // cyan
-    icon: '📤',
+    icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
     mandatory: true,
     acceptsFrom: ['generation'],
@@ -128,6 +147,12 @@ export interface CanvasNode {
   config: Record<string, unknown>
   /** Whether this node is locked (cannot be deleted) */
   locked?: boolean
+
+  // LLM Configuration (for interception/translation nodes)
+  /** Selected LLM model ID (e.g., 'gpt-4o-mini', 'claude-3-haiku') */
+  llmModel?: string
+  /** Custom translation prompt (for translation nodes) */
+  translationPrompt?: string
 }
 
 // ============================================================================
@@ -276,6 +301,9 @@ export function generateNodeId(type: StageType): string {
 
 /**
  * Create a default canvas workflow
+ *
+ * Default structure: Input → (user adds interception/generation) → Collector
+ * Safety is handled automatically by DevServer.
  */
 export function createDefaultWorkflow(): CanvasWorkflow {
   const inputNode: CanvasNode = {
@@ -287,18 +315,9 @@ export function createDefaultWorkflow(): CanvasWorkflow {
     locked: true
   }
 
-  const safetyNode: CanvasNode = {
-    id: generateNodeId('safety'),
-    type: 'safety',
-    x: 300,
-    y: 200,
-    config: {},
-    locked: true
-  }
-
-  const outputNode: CanvasNode = {
-    id: generateNodeId('output'),
-    type: 'output',
+  const collectorNode: CanvasNode = {
+    id: generateNodeId('collector'),
+    type: 'collector',
     x: 900,
     y: 200,
     config: {},
@@ -309,10 +328,8 @@ export function createDefaultWorkflow(): CanvasWorkflow {
     id: `workflow_${Date.now()}`,
     name: 'New Workflow',
     type: 'canvas_workflow',
-    nodes: [inputNode, safetyNode, outputNode],
-    connections: [
-      { sourceId: inputNode.id, targetId: safetyNode.id }
-    ],
+    nodes: [inputNode, collectorNode],
+    connections: [],
     automation: {
       seedControl: 'global',
       loraInjection: true

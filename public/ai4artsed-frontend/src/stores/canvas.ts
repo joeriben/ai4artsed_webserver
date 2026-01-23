@@ -82,35 +82,43 @@ export const useCanvasStore = defineStore('canvas', () => {
   /** Whether a connection is being created */
   const isConnecting = computed(() => connectingFromId.value !== null)
 
-  /** Check if workflow is valid (has required nodes and connections) */
+  /**
+   * Check if workflow is valid (has required nodes and connections)
+   *
+   * NOTE: Safety is NOT checked here - DevServer handles it automatically
+   */
   const isWorkflowValid = computed(() => {
     const hasInput = workflow.value.nodes.some(n => n.type === 'input')
-    const hasSafety = workflow.value.nodes.some(n => n.type === 'safety')
     const hasGeneration = workflow.value.nodes.some(n => n.type === 'generation')
-    const hasOutput = workflow.value.nodes.some(n => n.type === 'output')
+    const hasCollector = workflow.value.nodes.some(n => n.type === 'collector')
 
     // Check all generation nodes have configs selected
     const generationNodes = workflow.value.nodes.filter(n => n.type === 'generation')
     const allGenerationConfigured = generationNodes.every(n => n.configId)
 
-    return hasInput && hasSafety && hasGeneration && hasOutput && allGenerationConfigured
+    // Check all interception nodes have either configId OR llmModel
+    const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
+    const allInterceptionConfigured = interceptionNodes.every(n => n.configId || n.llmModel)
+
+    return hasInput && hasGeneration && hasCollector && allGenerationConfigured && allInterceptionConfigured
   })
 
-  /** Get validation errors */
+  /**
+   * Get validation errors
+   *
+   * NOTE: Safety is NOT validated here - DevServer handles it automatically
+   */
   const validationErrors = computed(() => {
     const errors: string[] = []
 
     if (!workflow.value.nodes.some(n => n.type === 'input')) {
       errors.push('Missing input node')
     }
-    if (!workflow.value.nodes.some(n => n.type === 'safety')) {
-      errors.push('Missing safety node')
-    }
     if (!workflow.value.nodes.some(n => n.type === 'generation')) {
       errors.push('Missing generation node')
     }
-    if (!workflow.value.nodes.some(n => n.type === 'output')) {
-      errors.push('Missing output node')
+    if (!workflow.value.nodes.some(n => n.type === 'collector')) {
+      errors.push('Missing media collector node')
     }
 
     const generationNodes = workflow.value.nodes.filter(n => n.type === 'generation')
@@ -122,8 +130,8 @@ export const useCanvasStore = defineStore('canvas', () => {
 
     const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
     interceptionNodes.forEach(n => {
-      if (!n.configId) {
-        errors.push(`Interception node missing config`)
+      if (!n.configId && !n.llmModel) {
+        errors.push(`Interception node needs LLM or config selection`)
       }
     })
 
