@@ -2029,15 +2029,31 @@ def generation_endpoint():
         if pipeline_executor is None:
             init_schema_engine()
 
-        # Session 130: Simplified - folders are always run_xxx from the start
+        # Session 130: 1 Run = 1 Media Output
+        # - First generation continues interception folder
+        # - Subsequent generations create NEW folder
         from config import JSON_STORAGE_DIR
         recorder = None
 
         if provided_run_id and provided_run_id.startswith('run_'):
-            # Load existing recorder from interception (already run_xxx)
-            recorder = load_recorder(provided_run_id, base_path=JSON_STORAGE_DIR)
-            if recorder:
-                run_id = provided_run_id
+            existing_recorder = load_recorder(provided_run_id, base_path=JSON_STORAGE_DIR)
+
+            if existing_recorder:
+                # Check if run already has media output
+                has_output = any(
+                    e.get('type', '').startswith('output_')
+                    for e in existing_recorder.metadata.get('entities', [])
+                )
+
+                if has_output:
+                    # Already generated → NEW folder (data saved later at lines 2142+)
+                    run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+                    logger.info(f"[GENERATION-ENDPOINT] Previous run has output, creating new: {run_id}")
+                else:
+                    # No output yet → CONTINUE existing folder
+                    run_id = provided_run_id
+                    recorder = existing_recorder
+                    logger.info(f"[GENERATION-ENDPOINT] Continuing existing run: {run_id}")
             else:
                 logger.warning(f"[GENERATION-ENDPOINT] Could not load recorder for {provided_run_id}")
                 run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
