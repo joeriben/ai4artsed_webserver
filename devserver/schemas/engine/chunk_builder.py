@@ -11,6 +11,34 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def get_model_family(model_name: str) -> str:
+    """
+    Determine model family from model name for prompt variant selection.
+
+    Args:
+        model_name: Full model identifier (e.g., "local/llama4:scout", "bedrock/eu.anthropic.claude-sonnet-4-5")
+
+    Returns:
+        "llama" | "mistral" | "default"
+    """
+    if not model_name:
+        return "default"
+
+    model_lower = model_name.lower()
+
+    # Llama family detection
+    if any(x in model_lower for x in ["llama", "meta-llama"]):
+        return "llama"
+
+    # Mistral family detection
+    if any(x in model_lower for x in ["mistral", "mixtral", "ministral", "magistral"]):
+        return "mistral"
+
+    # Default (Claude, OpenAI, Qwen, DeepSeek, etc.)
+    return "default"
+
+
 @dataclass
 class ChunkTemplate:
     """Template für einen Verarbeitungs-Chunk"""
@@ -93,11 +121,59 @@ class ChunkBuilder:
             logger.error(f"Fehler beim Parsen von {template_file}: {e}")
             return None
 
+    def _get_template_with_variant(self, chunk_name: str, model_name: str = None) -> Optional[ChunkTemplate]:
+        """
+        Get template with model-specific variant if available.
+
+        Tries to load model-family-specific variant first (e.g., optimize_clip_prompt_llama),
+        falls back to default template if variant not found.
+
+        Args:
+            chunk_name: Base chunk name (e.g., "optimize_clip_prompt")
+            model_name: Model identifier for variant selection (e.g., "local/llama4:scout")
+
+        Returns:
+            ChunkTemplate for the appropriate variant, or None if not found
+        """
+        # Get base template first (needed for model auto-detection)
+        base_template = self.templates.get(chunk_name)
+
+        # Determine model name: explicit override > template's model field (resolved)
+        effective_model = model_name
+        if not effective_model and base_template:
+            # Auto-detect from template's model field
+            template_model = base_template.model
+            if template_model:
+                # Resolve config variable if needed (e.g., "STAGE2_OPTIMIZATION_MODEL" -> "local/llama4:scout")
+                import config
+                if hasattr(config, template_model):
+                    effective_model = getattr(config, template_model)
+                    logger.debug(f"[CHUNK-VARIANT] Auto-detected model from config.{template_model} -> {effective_model}")
+                else:
+                    effective_model = template_model
+
+        # Determine model family
+        model_family = get_model_family(effective_model) if effective_model else "default"
+
+        # Try model-specific variant first (only for non-default families)
+        if model_family != "default":
+            variant_name = f"{chunk_name}_{model_family}"
+            variant_template = self.templates.get(variant_name)
+            if variant_template:
+                logger.info(f"[CHUNK-VARIANT] Using {model_family} variant: '{variant_name}'")
+                return variant_template
+            else:
+                logger.debug(f"[CHUNK-VARIANT] No {model_family} variant found for '{chunk_name}', using default")
+
+        # Fall back to default template
+        return base_template
+
     def build_chunk(self,
                     chunk_name: str,
                     resolved_config: Any,  # ResolvedConfig from config_loader
                     context: Dict[str, Any],
-                    pipeline: Any = None) -> Dict[str, Any]:
+                    pipeline: Any = None,
+                    model_override: str = None) -> Dict[str, Any]:
         """
         Chunk mit Template und resolved config erstellen
 
@@ -106,8 +182,10 @@ class ChunkBuilder:
             resolved_config: ResolvedConfig object from config_loader
             context: Execution context (input_text, previous_output, etc.)
             pipeline: Pipeline object (for accessing instruction_type)
+            model_override: Optional model name for variant selection
         """
-        template = self.templates.get(chunk_name)
+        # Model-specific variant selection
+        template = self._get_template_with_variant(chunk_name, model_override)
         if not template:
             raise ValueError(f"Template '{chunk_name}' nicht gefunden")
 
