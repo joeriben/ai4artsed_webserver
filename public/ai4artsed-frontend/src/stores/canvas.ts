@@ -7,7 +7,7 @@ import type {
   StageType,
   NodeExecutionState,
   WorkflowExecutionState,
-  InterceptionConfigSummary,
+  LLMModelSummary,
   OutputConfigSummary
 } from '@/types/canvas'
 import {
@@ -45,8 +45,8 @@ export const useCanvasStore = defineStore('canvas', () => {
   /** Current mouse position (for connection preview) */
   const mousePosition = ref({ x: 0, y: 0 })
 
-  /** Available interception configs */
-  const interceptionConfigs = ref<InterceptionConfigSummary[]>([])
+  /** Available LLM models for interception/translation nodes */
+  const llmModels = ref<LLMModelSummary[]>([])
 
   /** Available output/generation configs */
   const outputConfigs = ref<OutputConfigSummary[]>([])
@@ -96,11 +96,16 @@ export const useCanvasStore = defineStore('canvas', () => {
     const generationNodes = workflow.value.nodes.filter(n => n.type === 'generation')
     const allGenerationConfigured = generationNodes.every(n => n.configId)
 
-    // Check all interception nodes have either configId OR llmModel
+    // Check all interception nodes have LLM selected
     const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
-    const allInterceptionConfigured = interceptionNodes.every(n => n.configId || n.llmModel)
+    const allInterceptionConfigured = interceptionNodes.every(n => n.llmModel)
 
-    return hasInput && hasGeneration && hasCollector && allGenerationConfigured && allInterceptionConfigured
+    // Check all translation nodes have LLM selected
+    const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
+    const allTranslationConfigured = translationNodes.every(n => n.llmModel)
+
+    return hasInput && hasGeneration && hasCollector &&
+           allGenerationConfigured && allInterceptionConfigured && allTranslationConfigured
   })
 
   /**
@@ -130,8 +135,15 @@ export const useCanvasStore = defineStore('canvas', () => {
 
     const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
     interceptionNodes.forEach(n => {
-      if (!n.configId && !n.llmModel) {
-        errors.push(`Interception node needs LLM or config selection`)
+      if (!n.llmModel) {
+        errors.push(`Interception node needs LLM selection`)
+      }
+    })
+
+    const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
+    translationNodes.forEach(n => {
+      if (!n.llmModel) {
+        errors.push(`Translation node needs LLM selection`)
       }
     })
 
@@ -358,23 +370,23 @@ export const useCanvasStore = defineStore('canvas', () => {
   // ============================================================================
 
   /**
-   * Load available interception configs from backend
+   * Load available LLM models from backend
    */
-  async function loadInterceptionConfigs() {
+  async function loadLLMModels() {
     isLoading.value = true
     error.value = null
 
     try {
-      const response = await fetch('/api/canvas/interception-configs')
+      const response = await fetch('/api/canvas/llm-models')
       if (!response.ok) {
-        throw new Error(`Failed to load interception configs: ${response.statusText}`)
+        throw new Error(`Failed to load LLM models: ${response.statusText}`)
       }
       const data = await response.json()
-      interceptionConfigs.value = data.configs || []
-      console.log(`[Canvas] Loaded ${interceptionConfigs.value.length} interception configs`)
+      llmModels.value = data.models || []
+      console.log(`[Canvas] Loaded ${llmModels.value.length} LLM models`)
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to load configs'
-      console.error('[Canvas] Error loading interception configs:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to load LLM models'
+      console.error('[Canvas] Error loading LLM models:', err)
     } finally {
       isLoading.value = false
     }
@@ -408,7 +420,7 @@ export const useCanvasStore = defineStore('canvas', () => {
    */
   async function loadAllConfigs() {
     await Promise.all([
-      loadInterceptionConfigs(),
+      loadLLMModels(),
       loadOutputConfigs()
     ])
   }
@@ -474,7 +486,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     selectedNode,
     connectingFromId: computed(() => connectingFromId.value),
     mousePosition: computed(() => mousePosition.value),
-    interceptionConfigs: computed(() => interceptionConfigs.value),
+    llmModels: computed(() => llmModels.value),
     outputConfigs: computed(() => outputConfigs.value),
     isLoading: computed(() => isLoading.value),
     error: computed(() => error.value),
@@ -508,7 +520,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     updateWorkflowMeta,
 
     // Config loading
-    loadInterceptionConfigs,
+    loadLLMModels,
     loadOutputConfigs,
     loadAllConfigs,
 

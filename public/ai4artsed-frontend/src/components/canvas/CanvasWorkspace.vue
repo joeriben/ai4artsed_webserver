@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StageModule from './StageModule.vue'
 import ConnectionLine from './ConnectionLine.vue'
-import type { CanvasNode, CanvasConnection, StageType } from '@/types/canvas'
+import type { CanvasNode, CanvasConnection, StageType, LLMModelSummary } from '@/types/canvas'
 
 const { locale } = useI18n()
 
@@ -13,6 +13,7 @@ const props = defineProps<{
   selectedNodeId: string | null
   connectingFromId: string | null
   mousePosition: { x: number; y: number }
+  llmModels: LLMModelSummary[]
 }>()
 
 const emit = defineEmits<{
@@ -27,6 +28,9 @@ const emit = defineEmits<{
   'update-mouse-position': [x: number, y: number]
   'add-node-at': [type: StageType, x: number, y: number]
   'select-config': [nodeId: string]
+  'update-node-llm': [nodeId: string, llmModel: string]
+  'update-node-context-prompt': [nodeId: string, prompt: string]
+  'update-node-translation-prompt': [nodeId: string, prompt: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -211,11 +215,15 @@ onUnmounted(() => {
       :key="node.id"
       :node="node"
       :selected="node.id === selectedNodeId"
+      :llm-models="llmModels"
       @mousedown="startNodeDrag(node.id, $event)"
       @start-connect="emit('start-connection', node.id)"
       @end-connect="emit('complete-connection', node.id)"
       @delete="emit('delete-node', node.id)"
       @select-config="emit('select-config', node.id)"
+      @update-llm="emit('update-node-llm', node.id, $event)"
+      @update-context-prompt="emit('update-node-context-prompt', node.id, $event)"
+      @update-translation-prompt="emit('update-node-translation-prompt', node.id, $event)"
     />
 
     <!-- Empty state -->

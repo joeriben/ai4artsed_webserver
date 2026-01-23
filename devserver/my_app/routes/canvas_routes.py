@@ -101,40 +101,66 @@ def _load_config_summaries(config_type: str) -> list:
     return summaries
 
 
-@canvas_bp.route('/api/canvas/interception-configs', methods=['GET'])
-def get_interception_configs():
+@canvas_bp.route('/api/canvas/llm-models', methods=['GET'])
+def get_llm_models():
     """
-    Get list of available interception/transformation configs
+    Get list of available LLM models for interception/translation nodes
 
     Returns:
         {
-            "configs": [
+            "models": [
                 {
-                    "id": "bauhaus",
-                    "name": {"en": "Bauhaus", "de": "Bauhaus"},
-                    "description": {...},
-                    "icon": "🎭",
-                    "color": "#8b5cf6",
-                    "category": "Art History"
+                    "id": "gpt-4o-mini",
+                    "name": "GPT-4o Mini",
+                    "provider": "openai",
+                    "description": "Fast and efficient model",
+                    "isDefault": true
                 },
                 ...
             ]
         }
     """
-    try:
-        configs = _load_config_summaries('interception')
-        return jsonify({
-            'status': 'success',
-            'configs': configs,
-            'count': len(configs)
-        })
-    except Exception as e:
-        logger.error(f"Error loading interception configs: {e}")
-        return jsonify({
-            'status': 'error',
-            'error': str(e),
-            'configs': []
-        }), 500
+    # TODO: Load from config or detect available models dynamically
+    # For now, return a static list of commonly used models
+    models = [
+        {
+            "id": "gpt-4o-mini",
+            "name": "GPT-4o Mini",
+            "provider": "openai",
+            "description": "Fast, efficient, good for most tasks",
+            "isDefault": True
+        },
+        {
+            "id": "gpt-4o",
+            "name": "GPT-4o",
+            "provider": "openai",
+            "description": "Most capable OpenAI model"
+        },
+        {
+            "id": "claude-3-5-sonnet",
+            "name": "Claude 3.5 Sonnet",
+            "provider": "anthropic",
+            "description": "Balanced performance and speed"
+        },
+        {
+            "id": "claude-3-5-haiku",
+            "name": "Claude 3.5 Haiku",
+            "provider": "anthropic",
+            "description": "Fast and cost-effective"
+        },
+        {
+            "id": "gemini-2.0-flash",
+            "name": "Gemini 2.0 Flash",
+            "provider": "google",
+            "description": "Google's fast multimodal model"
+        }
+    ]
+
+    return jsonify({
+        'status': 'success',
+        'models': models,
+        'count': len(models)
+    })
 
 
 @canvas_bp.route('/api/canvas/output-configs', methods=['GET'])

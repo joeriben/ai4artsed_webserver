@@ -10,9 +10,8 @@ import type { StageType } from '@/types/canvas'
 const { t, locale } = useI18n()
 const canvasStore = useCanvasStore()
 
-// Config selector modal state
+// Config selector modal state (only for generation nodes now)
 const showConfigSelector = ref(false)
-const configSelectorType = ref<'interception' | 'generation' | 'translation'>('interception')
 const configSelectorNodeId = ref<string | null>(null)
 
 // Workflow name editing
@@ -31,10 +30,11 @@ onMounted(async () => {
 function handleAddNodeAt(type: StageType, x: number, y: number) {
   const node = canvasStore.addNode(type, x, y)
 
-  // If it's an interception, generation, or translation node, open config selector
-  if (type === 'interception' || type === 'generation' || type === 'translation') {
-    openConfigSelector(node.id, type)
+  // Only generation nodes need config selector modal
+  if (type === 'generation') {
+    openConfigSelector(node.id)
   }
+  // Interception and translation nodes have inline LLM selection
 }
 
 function handleAddNodeFromPalette(type: StageType) {
@@ -44,9 +44,8 @@ function handleAddNodeFromPalette(type: StageType) {
   handleAddNodeAt(type, x, y)
 }
 
-function openConfigSelector(nodeId: string, type: 'interception' | 'generation' | 'translation') {
+function openConfigSelector(nodeId: string) {
   configSelectorNodeId.value = nodeId
-  configSelectorType.value = type
   showConfigSelector.value = true
 }
 
@@ -54,8 +53,9 @@ function handleSelectConfig(nodeId: string) {
   const node = canvasStore.nodes.find(n => n.id === nodeId)
   if (!node) return
 
-  if (node.type === 'interception' || node.type === 'generation' || node.type === 'translation') {
-    openConfigSelector(nodeId, node.type)
+  // Only generation nodes use the config selector modal
+  if (node.type === 'generation') {
+    openConfigSelector(nodeId)
   }
 }
 
@@ -63,6 +63,19 @@ function handleConfigSelected(configId: string) {
   if (configSelectorNodeId.value) {
     canvasStore.updateNodeConfig(configSelectorNodeId.value, configId)
   }
+}
+
+// Handlers for inline node editing (interception/translation)
+function handleUpdateNodeLLM(nodeId: string, llmModel: string) {
+  canvasStore.updateNode(nodeId, { llmModel })
+}
+
+function handleUpdateNodeContextPrompt(nodeId: string, prompt: string) {
+  canvasStore.updateNode(nodeId, { contextPrompt: prompt })
+}
+
+function handleUpdateNodeTranslationPrompt(nodeId: string, prompt: string) {
+  canvasStore.updateNode(nodeId, { translationPrompt: prompt })
 }
 
 function startEditingName() {
@@ -230,6 +243,7 @@ const currentConfigId = computed(() => {
           :selected-node-id="canvasStore.selectedNodeId"
           :connecting-from-id="canvasStore.connectingFromId"
           :mouse-position="canvasStore.mousePosition"
+          :llm-models="canvasStore.llmModels"
           @select-node="canvasStore.selectNode"
           @update-node-position="canvasStore.updateNodePosition"
           @delete-node="canvasStore.deleteNode"
@@ -241,15 +255,16 @@ const currentConfigId = computed(() => {
           @update-mouse-position="canvasStore.updateMousePosition"
           @add-node-at="handleAddNodeAt"
           @select-config="handleSelectConfig"
+          @update-node-llm="handleUpdateNodeLLM"
+          @update-node-context-prompt="handleUpdateNodeContextPrompt"
+          @update-node-translation-prompt="handleUpdateNodeTranslationPrompt"
         />
       </div>
     </div>
 
-    <!-- Config selector modal -->
+    <!-- Config selector modal (only for generation nodes) -->
     <ConfigSelectorModal
       :visible="showConfigSelector"
-      :type="configSelectorType"
-      :interception-configs="canvasStore.interceptionConfigs"
       :output-configs="canvasStore.outputConfigs"
       :current-config-id="currentConfigId"
       @close="showConfigSelector = false"

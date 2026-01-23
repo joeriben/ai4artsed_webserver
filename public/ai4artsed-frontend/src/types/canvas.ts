@@ -141,17 +141,23 @@ export interface CanvasNode {
   x: number
   /** Y position on canvas */
   y: number
-  /** Selected config ID (e.g., 'bauhaus' for interception, 'sd35_large' for generation) */
-  configId?: string
   /** Node-specific configuration overrides */
   config: Record<string, unknown>
   /** Whether this node is locked (cannot be deleted) */
   locked?: boolean
 
-  // LLM Configuration (for interception/translation nodes)
+  // === Generation node config ===
+  /** Selected output config ID for generation nodes (e.g., 'sd35_large', 'flux2_schnell') */
+  configId?: string
+
+  // === Interception node config ===
   /** Selected LLM model ID (e.g., 'gpt-4o-mini', 'claude-3-haiku') */
   llmModel?: string
-  /** Custom translation prompt (for translation nodes) */
+  /** Context/system prompt for the LLM (pedagogical transformation instructions) */
+  contextPrompt?: string
+
+  // === Translation node config ===
+  /** Translation prompt/instructions */
   translationPrompt?: string
 }
 
@@ -250,14 +256,18 @@ export interface WorkflowExecutionState {
 // CONFIG SELECTION
 // ============================================================================
 
-/** Interception config summary (for palette selection) */
-export interface InterceptionConfigSummary {
+/** Available LLM model for interception/translation nodes */
+export interface LLMModelSummary {
+  /** Model ID (e.g., 'gpt-4o-mini', 'claude-3-haiku') */
   id: string
-  name: { en: string; de: string }
-  description: { en: string; de: string }
-  icon: string
-  color: string
-  category: string
+  /** Display name */
+  name: string
+  /** Provider (openai, anthropic, google, local) */
+  provider: string
+  /** Model capabilities/description */
+  description?: string
+  /** Whether this is the default/recommended model */
+  isDefault?: boolean
 }
 
 /** Output/generation config summary (for palette selection) */

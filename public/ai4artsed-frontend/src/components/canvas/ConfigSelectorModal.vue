@@ -1,14 +1,21 @@
 <script setup lang="ts">
+/**
+ * Config Selector Modal - For Generation Nodes Only
+ *
+ * Displays available output configs (sd35_large, flux2, qwen, etc.)
+ * for selection on generation nodes.
+ *
+ * Note: Interception and Translation nodes use inline LLM selection,
+ * not this modal.
+ */
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { InterceptionConfigSummary, OutputConfigSummary } from '@/types/canvas'
+import type { OutputConfigSummary } from '@/types/canvas'
 
 const { locale } = useI18n()
 
 const props = defineProps<{
   visible: boolean
-  type: 'interception' | 'generation' | 'translation'
-  interceptionConfigs: InterceptionConfigSummary[]
   outputConfigs: OutputConfigSummary[]
   currentConfigId?: string
 }>()
@@ -21,16 +28,10 @@ const emit = defineEmits<{
 const searchQuery = ref('')
 
 const filteredConfigs = computed(() => {
-  // For interception and translation, use interception configs (LLM models)
-  // For generation, use output configs
-  const configs = props.type === 'generation'
-    ? props.outputConfigs
-    : props.interceptionConfigs
-
-  if (!searchQuery.value) return configs
+  if (!searchQuery.value) return props.outputConfigs
 
   const query = searchQuery.value.toLowerCase()
-  return configs.filter(c => {
+  return props.outputConfigs.filter(c => {
     const name = locale.value === 'de' ? c.name.de : c.name.en
     const desc = locale.value === 'de' ? c.description.de : c.description.en
     return name.toLowerCase().includes(query) || desc.toLowerCase().includes(query)
@@ -38,20 +39,14 @@ const filteredConfigs = computed(() => {
 })
 
 const title = computed(() => {
-  if (props.type === 'interception') {
-    return locale.value === 'de' ? 'LLM & Interception wählen' : 'Select LLM & Interception'
-  }
-  if (props.type === 'translation') {
-    return locale.value === 'de' ? 'Übersetzungs-LLM wählen' : 'Select Translation LLM'
-  }
   return locale.value === 'de' ? 'Ausgabe-Modell wählen' : 'Select Output Model'
 })
 
-function getName(config: InterceptionConfigSummary | OutputConfigSummary): string {
+function getName(config: OutputConfigSummary): string {
   return locale.value === 'de' ? config.name.de : config.name.en
 }
 
-function getDescription(config: InterceptionConfigSummary | OutputConfigSummary): string {
+function getDescription(config: OutputConfigSummary): string {
   return locale.value === 'de' ? config.description.de : config.description.en
 }
 
