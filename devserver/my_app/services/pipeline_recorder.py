@@ -1047,8 +1047,9 @@ def load_recorder(run_id: str, base_path: Optional[Path] = None) -> Optional[Liv
         recorder.device_id = metadata.get("device_id", "anonymous")
         recorder.base_path = base_path
         recorder.run_folder = actual_run_folder  # Use existing folder path
-        # Session 130: Restore subfolder paths
+        # Session 130: Restore subfolder paths and ensure they exist
         recorder.final_folder = actual_run_folder / "final"
+        recorder.final_folder.mkdir(parents=True, exist_ok=True)
         recorder.prompting_folder = actual_run_folder / "prompting_process"
         recorder.current_stage = 0
         recorder.current_step = "initialized"
