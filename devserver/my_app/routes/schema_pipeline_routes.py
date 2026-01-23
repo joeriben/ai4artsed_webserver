@@ -2594,7 +2594,8 @@ def interception_pipeline():
                 'context_prompt': request.args.get('context_prompt', ''),
                 'safety_level': request.args.get('safety_level', 'youth'),
                 'execution_mode': request.args.get('execution_mode', 'eco'),
-                'enable_streaming': request.args.get('enable_streaming') == 'true'
+                'enable_streaming': request.args.get('enable_streaming') == 'true',
+                'device_id': request.args.get('device_id')  # Session 130: Fix missing device_id
             }
         else:
             # POST with JSON body
