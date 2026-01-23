@@ -78,7 +78,7 @@ class LivePipelineRecorder:
         # Session 129: Date + Device based folder structure
         # exports/json/YYYY-MM-DD/device_id/run_xxx/
         date_folder = datetime.now().strftime('%Y-%m-%d')
-        self.run_folder = self.base_path / date_folder / device_id / run_id
+        self.run_folder = self.base_path / date_folder / self.device_id / run_id
         self.run_folder.mkdir(parents=True, exist_ok=True)
 
         # Initialize state
