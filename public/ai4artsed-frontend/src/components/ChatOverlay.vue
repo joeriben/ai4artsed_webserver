@@ -111,8 +111,12 @@ const draftContextString = computed(() => {
   return pageContextStore.formatForLLM(route.path)
 })
 
+// Chat window dimensions
+const CHAT_HEIGHT = 520
+const CHAT_MIN_MARGIN = 10 // Minimum margin from viewport edges
+
 // Dynamic positioning based on focusHint
-// When expanded, use top positioning so chat opens downward
+// When expanded, clamp position to keep chat within viewport
 const overlayPositionStyle = computed(() => {
   const hint = pageContextStore.currentFocusHint
   const style: Record<string, string> = {}
@@ -122,9 +126,19 @@ const overlayPositionStyle = computed(() => {
   style.left = 'auto'
 
   if (isExpanded.value) {
-    // When expanded: use TOP positioning so chat extends downward
-    // hint.y is percentage from top, so we use it directly
-    style.top = `${hint.y}%`
+    // Calculate clamped Y position to keep chat within viewport
+    const viewportHeight = window.innerHeight
+    const chatHeight = Math.min(CHAT_HEIGHT, viewportHeight - 120) // matches max-height in CSS
+
+    // Convert hint.y (percentage) to pixels
+    const requestedTop = (hint.y / 100) * viewportHeight
+
+    // Clamp: don't go above viewport, don't extend below viewport
+    const minTop = CHAT_MIN_MARGIN
+    const maxTop = viewportHeight - chatHeight - CHAT_MIN_MARGIN
+    const clampedTop = Math.max(minTop, Math.min(maxTop, requestedTop))
+
+    style.top = `${clampedTop}px`
     style.bottom = 'auto'
   } else {
     // When collapsed (icon): use BOTTOM positioning
