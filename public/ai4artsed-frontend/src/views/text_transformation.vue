@@ -210,7 +210,7 @@
         </section>
 
         <!-- Section 4: Optimized Prompt Preview (Always visible, disabled until model selected) -->
-        <section class="optimization-section">
+        <section class="optimization-section" ref="optimizationSectionRef">
           <MediaInputBox
             icon="✨"
             :label="$t('textTransform.optimizedLabel')"
@@ -232,6 +232,7 @@
             @copy="copyOptimizedPrompt"
             @paste="pasteOptimizedPrompt"
             @clear="clearOptimizedPrompt"
+            @focus="focusedField = 'optimization'"
             @blur="(val: string) => logPromptChange('optimized_prompt', val)"
           />
         </section>
@@ -487,6 +488,7 @@ const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
 const categorySectionRef = ref<HTMLElement | null>(null)
 const inputSectionRef = ref<HTMLElement | null>(null)
 const interceptionSectionRef = ref<HTMLElement | null>(null)
+const optimizationSectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // Page Context for Träshy (Session 133)
@@ -515,6 +517,10 @@ watch([focusedField, executionPhase, isPipelineExecuting, outputImage, selectedC
     }
     if (focusedField.value === 'interception') {
       trashyY.value = getElementY(interceptionSectionRef.value)
+      return
+    }
+    if (focusedField.value === 'optimization') {
+      trashyY.value = getElementY(optimizationSectionRef.value)
       return
     }
 
