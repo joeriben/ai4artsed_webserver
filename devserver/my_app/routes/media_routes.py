@@ -593,7 +593,8 @@ def get_music(run_id: str):
 
 
 @media_bp.route('/video/<run_id>', methods=['GET'])
-def get_video(run_id: str):
+@media_bp.route('/video/<run_id>/<int:index>', methods=['GET'])
+def get_video(run_id: str, index: int = 0):
     """
     Serve video from local storage by run_id
 

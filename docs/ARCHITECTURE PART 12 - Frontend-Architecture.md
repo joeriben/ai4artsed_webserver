@@ -1438,28 +1438,46 @@ All transformation views add `padding-bottom: 120px` to ensure content isn't hid
 
 #### ChatOverlay Component (Träshy)
 
-**Status:** ✅ Implemented (Session 82, enhanced Session 133)
+**Status:** ✅ Implemented (Session 82 → 133 → 136)
 **Location:** `/public/ai4artsed-frontend/src/components/ChatOverlay.vue`
 
-**Purpose:** Floating chat assistant ("Träshy") providing contextual help and guidance for AI4ArtsEd workflows.
+**Purpose:** Living, context-aware chat assistant ("Träshy") providing contextual help and guidance for AI4ArtsEd workflows.
+
+**Pädagogisches Konzept (Session 136):**
+
+Träshy ist nicht nur ein Chat-Button, sondern ein **aktiver Begleiter**:
+- **Präsenz**: Immer sichtbar, sanft animiert ("Ich bin da")
+- **Aufmerksamkeit**: Folgt dem Fokus des Users ("Ich sehe was du tust")
+- **Lebendigkeit**: Atmet und schwebt ("Ich bin kein totes UI-Element")
+- **Kontext**: Weiß was auf der Page passiert ("Ich verstehe deinen Workflow")
 
 **Features:**
 
-1. **Floating Icon + Expandable Chat Window**
-   - Collapsed: Trashy icon button (bottom-left)
+1. **Living Icon + Expandable Chat Window**
+   - Collapsed: Animated Trashy icon (right side, follows focus)
    - Expanded: 380x520px chat window with message history
+   - Idle animation: Subtle floating + breathing effect
+   - Movement: Organic cubic-bezier with overshoot
 
 2. **Session-Aware Context** (Session 82)
    - Uses `run_id` from `useCurrentSession` composable
    - Loads chat history from backend when session exists
-   - Context indicator (💡) shows when context is active
 
-3. **Page-Aware Context** (Session 133)
-   - Uses Vue provide/inject pattern with `PAGE_CONTEXT_KEY`
+3. **Page-Aware Context** (Session 133 → 136)
+   - Uses Pinia store (`pageContextStore`) for cross-component communication
    - Knows current view type, form fields, workflow nodes
    - Prepends context to first message if no run_id session exists
 
-**Architecture (Session 133):**
+4. **Focus Tracking** (Session 136)
+   - MediaInputBox emits `@focus` events
+   - Views track `focusedField`: 'input' | 'context' | 'interception' | 'optimization'
+   - Träshy Y-position follows focused element dynamically
+
+5. **Viewport Clamping** (Session 136)
+   - Chat window never extends beyond viewport edges
+   - Position calculated and clamped on every update
+
+**Architecture (Session 136 - Pinia Store):**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -1469,9 +1487,9 @@ All transformation views add `padding-bottom: 120px` to ensure content isn't hid
 │  │                                                        │  │
 │  │   text_transformation.vue ───┐                         │  │
 │  │   canvas_workflow.vue ───────┤                         │  │
-│  │   image_transformation.vue ──┤─── provide(PAGE_CONTEXT_KEY)
+│  │   image_transformation.vue ──┼─── watch() ──► pageContextStore
 │  │   direct.vue ────────────────┤                         │  │
-│  │   surrealizer.vue ───────────┤                         │  │
+│  │   surrealizer.vue ───────────┤     (Pinia)             │  │
 │  │   multi_image_transformation ┤                         │  │
 │  │   partial_elimination.vue ───┤                         │  │
 │  │   split_and_combine.vue ─────┘                         │  │
@@ -1479,11 +1497,17 @@ All transformation views add `padding-bottom: 120px` to ensure content isn't hid
 │  └───────────────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │                   ChatOverlay.vue                      │  │
-│  │            inject(PAGE_CONTEXT_KEY) ◄──────────────────│──┘
-│  │            formatPageContextForLLM() ──► API request   │
+│  │            usePageContextStore() ◄─────────────────────│  │
+│  │            - formatForLLM() ──► API request            │  │
+│  │            - currentFocusHint ──► dynamic positioning  │  │
 │  └───────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Why Pinia instead of provide/inject?**
+- ChatOverlay is a **sibling** of router-view in App.vue
+- Vue's provide/inject only works parent→child, not sibling→sibling
+- Pinia store enables cross-component communication
 
 **Context Priority:**
 
@@ -1491,8 +1515,8 @@ All transformation views add `padding-bottom: 120px` to ensure content isn't hid
    - Backend loads full session files (prompts, metadata)
    - Chat history persisted per run
 
-2. **Draft Page Context (provide/inject)** - If no session
-   - Current view type
+2. **Draft Page Context (Pinia store)** - If no session
+   - Current view type + focused field
    - Form field values (inputText, contextPrompt, etc.)
    - Canvas workflow nodes
    - Selected configs
@@ -1500,40 +1524,57 @@ All transformation views add `padding-bottom: 120px` to ensure content isn't hid
 3. **Route-only Fallback** - Minimal
    - Just `[Kontext: Aktive Seite = /path]`
 
-**Composable: usePageContext.ts**
+**Store: pageContextStore (src/stores/pageContext.ts)**
 
 ```typescript
-// Type definitions
-export interface PageContent {
-  inputText?: string
-  contextPrompt?: string
-  interceptionResult?: string
-  selectedCategory?: string | null
-  selectedConfig?: string | null
-  uploadedImage?: string | null
-  workflowName?: string
-  workflowNodes?: Array<{ id: string; type: string; configId?: string }>
-  selectedNodeId?: string | null
-}
+export const usePageContextStore = defineStore('pageContext', () => {
+  const activeViewType = ref<string>('')
+  const pageContent = ref<PageContent>({})
+  const focusHint = ref<FocusHint>(DEFAULT_FOCUS_HINT)
 
-export interface PageContext {
-  activeViewType: string
-  pageContent: PageContent
-}
+  function setPageContext(ctx: PageContext) { ... }
+  function formatForLLM(routePath: string): string { ... }
 
-// Injection key
-export const PAGE_CONTEXT_KEY: InjectionKey<ComputedRef<PageContext>> = Symbol('pageContext')
-
-// Formatting function
-export function formatPageContextForLLM(context: PageContext | null, routePath: string): string
+  return { activeViewType, pageContent, focusHint, currentFocusHint, setPageContext, formatForLLM }
+})
 ```
 
-**View Implementation Pattern:**
+**FocusHint Interface:**
+
+```typescript
+export interface FocusHint {
+  x: number  // Horizontal position (percentage)
+  y: number  // Vertical position (percentage)
+  anchor: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+}
+```
+
+**View Implementation Pattern (Session 136):**
 
 ```typescript
 // In each view (e.g., text_transformation.vue)
-import { provide, computed } from 'vue'
-import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
+import { watch, onUnmounted } from 'vue'
+import { usePageContextStore } from '@/stores/pageContext'
+
+const pageContextStore = usePageContextStore()
+const focusedField = ref<'input' | 'context' | 'interception' | 'optimization' | null>(null)
+
+// Helper: Get element Y position as viewport percentage
+function getElementY(el: HTMLElement | null): number {
+  if (!el) return 50
+  const rect = el.getBoundingClientRect()
+  return (rect.top + rect.height / 2) / window.innerHeight * 100
+}
+
+// Update store when context or focus changes
+watch([focusedField, executionPhase, ...], () => {
+  nextTick(() => {
+    if (focusedField.value === 'input') {
+      trashyY.value = getElementY(inputSectionRef.value)
+    }
+    // ...
+  })
+})
 
 const pageContext = computed<PageContext>(() => ({
   activeViewType: 'text_transformation',

@@ -1,5 +1,78 @@
 # Development Log
 
+## Session 136 - Träshy UX Enhancement: Living Assistant Interface
+**Date:** 2026-01-25
+**Focus:** Transform Träshy from static icon to living, context-aware assistant
+**Status:** COMPLETED
+
+### Pädagogisches Konzept
+
+Träshy ist nicht nur ein Chat-Button, sondern ein **aktiver Begleiter** im kreativen Prozess:
+- **Präsenz**: Immer sichtbar, aber nicht störend
+- **Aufmerksamkeit**: Folgt dem Fokus des Users (welches Feld aktiv ist)
+- **Lebendigkeit**: Sanfte Animationen signalisieren "Ich bin da und bereit zu helfen"
+- **Kontext-Bewusstsein**: Weiß was der User gerade tut (Page Context + Focus Tracking)
+
+### Features implementiert
+
+#### 1. Dynamische Positionierung (Y-Achse)
+- Träshy folgt dem fokussierten Eingabefeld
+- Position berechnet aus `element.getBoundingClientRect()`
+- Viewport-Clamping: Bleibt immer sichtbar (nie über oberen/unteren Rand)
+
+#### 2. Focus-Tracking
+- `@focus` Events in MediaInputBox
+- `focusedField` State: 'input' | 'context' | 'interception' | 'optimization'
+- Sofortige Reaktion auf Feldwechsel
+
+#### 3. Pinia Store statt provide/inject
+- Problem: ChatOverlay ist Sibling von router-view, nicht Child
+- Lösung: `pageContextStore` für komponentenübergreifende Kommunikation
+- Views schreiben via `watch()`, ChatOverlay liest
+
+#### 4. Lebendige Animationen
+- **Idle-Schweben**: `trashy-idle` (4s) - translate + rotate
+- **Atmen**: `trashy-breathe` (3s) - subtle scale pulse
+- **Bewegung**: cubic-bezier mit Überschwingen für organisches Gefühl
+- Hover pausiert Animation (präzises Klicken)
+
+#### 5. Chat-Fenster Verbesserungen
+- Öffnet nach links/unten statt nach oben
+- Viewport-Clamping beim Öffnen
+- Auto-Focus auf Input nach Antwort
+
+### Technische Änderungen
+
+| Datei | Änderung |
+|-------|----------|
+| `src/stores/pageContext.ts` | **NEU** - Pinia Store für Page Context |
+| `src/composables/usePageContext.ts` | FocusHint Interface hinzugefügt |
+| `src/components/ChatOverlay.vue` | Dynamische Positionierung + Animationen |
+| `src/components/MediaInputBox.vue` | @focus Event hinzugefügt |
+| `src/views/text_transformation.vue` | Focus-Tracking + Element-Refs |
+| `src/assets/base.css` | CSS Custom Properties für Layout |
+
+### CSS Custom Properties (base.css)
+```css
+--footer-collapsed-height: 36px;
+--funding-logo-width: 126px;
+--layout-gap-small: 8px;
+```
+
+### Commits
+- `8bb0f96` fix(ui): Remove lightbulb context indicator
+- `7f34bfd` feat(ui): Floating Träshy - smooth position transitions
+- `a1169c0` fix(ui): Use Pinia store instead of provide/inject
+- `1a11637` feat(ui): Dynamic positioning based on element positions
+- `54be78d` feat(ui): Träshy follows focused field
+- `ed67488` feat(ui): Träshy follows optimization section
+- `78c9725` fix(ui): Top positioning when expanded
+- `000d8f0` fix(ui): Clamp position to stay within viewport
+- `1de7d4e` refactor(css): CSS custom properties for layout
+- `bc65f2c` feat(ui): Idle animation - living assistant
+
+---
+
 ## Session 135 - Prompt Optimization META-Instruction Fix
 **Date:** 2026-01-24
 **Focus:** Fix prompt_optimization breaking on certain models

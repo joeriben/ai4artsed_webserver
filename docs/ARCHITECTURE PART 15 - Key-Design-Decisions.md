@@ -226,3 +226,97 @@ scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start')
 
 ---
 
+### 8. Träshy: Living Assistant Interface Design ✅
+
+**Decision:** Transform the chat assistant (Träshy) from a static button into an active, context-aware companion that follows the user's focus and appears "alive"
+
+**Problem:**
+- Static chat icon in corner feels disconnected from workflow
+- User has no sense of assistant's awareness or availability
+- Standard chatbot UI lacks pedagogical warmth
+- Fixed position can obstruct content or become invisible on scroll
+
+**Solution: Three-Layer Context Awareness**
+
+1. **Page Context (Pinia Store)**
+   - Views report their state: `activeViewType`, `pageContent`, `focusHint`
+   - ChatOverlay reads store to understand current context
+   - Context prepended to first message (before run_id session exists)
+
+2. **Focus Tracking**
+   - MediaInputBox emits `@focus` events
+   - View tracks `focusedField`: 'input' | 'context' | 'interception' | 'optimization'
+   - Träshy Y-position follows focused element via `getBoundingClientRect()`
+
+3. **Living Animation**
+   - `trashy-idle`: Subtle floating (translate + rotate, 4s cycle)
+   - `trashy-breathe`: Gentle scale pulse (1.0 → 1.03, 3s cycle)
+   - Movement: cubic-bezier with overshoot for organic feel
+   - Asynchronous cycles (3s + 4s) create non-repetitive motion
+
+**Pädagogisches Konzept:**
+
+| Eigenschaft | Umsetzung | Pädagogischer Effekt |
+|-------------|-----------|---------------------|
+| **Präsenz** | Immer sichtbar, sanft animiert | "Ich bin da wenn du mich brauchst" |
+| **Aufmerksamkeit** | Folgt dem Fokus | "Ich sehe was du tust" |
+| **Lebendigkeit** | Atmen, Schweben | "Ich bin kein totes UI-Element" |
+| **Kontext** | Weiß was auf der Page passiert | "Ich verstehe deinen Workflow" |
+| **Nicht-Aufdringlichkeit** | Hover pausiert Animation | "Ich störe nicht, du hast Kontrolle" |
+
+**Technical Implementation:**
+
+```typescript
+// pageContextStore.ts - Cross-component communication
+export const usePageContextStore = defineStore('pageContext', () => {
+  const activeViewType = ref<string>('')
+  const pageContent = ref<PageContent>({})
+  const focusHint = ref<FocusHint>(DEFAULT_FOCUS_HINT)
+
+  function setPageContext(ctx: PageContext) { ... }
+  function formatForLLM(routePath: string): string { ... }
+})
+
+// View: Report context and track focus
+watch(pageContext, (ctx) => {
+  pageContextStore.setPageContext(ctx)
+}, { immediate: true, deep: true })
+
+// ChatOverlay: Calculate clamped position
+const clampedTop = Math.max(MARGIN, Math.min(maxTop, requestedTop))
+```
+
+```css
+/* Idle animation - creates "living" feel */
+@keyframes trashy-idle {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(2px, -3px) rotate(1deg); }
+  50% { transform: translate(-1px, -5px) rotate(-0.5deg); }
+  75% { transform: translate(-2px, -2px) rotate(0.5deg); }
+}
+
+/* Movement with organic overshoot */
+transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+```
+
+**Rationale:**
+
+1. **Pedagogical Warmth:** Educational tools benefit from "human" touches. A living assistant feels more approachable than a static button.
+
+2. **Context Awareness:** By tracking focus, Träshy demonstrates attention to the user's current task, making help feel more relevant.
+
+3. **Non-Intrusive Presence:** Animations are subtle (2-5px movement). Hover pauses animation for precise clicking. Viewport clamping prevents obstruction.
+
+4. **Technical Elegance:** Pinia store solves Vue's provide/inject limitation (only works parent→child, not sibling→sibling).
+
+**Files:**
+- `src/stores/pageContext.ts` - Pinia store
+- `src/components/ChatOverlay.vue` - Positioning + animations
+- `src/components/MediaInputBox.vue` - Focus events
+- `src/views/*.vue` - Focus tracking
+
+**Session:** Session 136 (2026-01-25)
+**Commits:** `7f34bfd` through `bc65f2c`
+
+---
+
