@@ -1,5 +1,5 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2026-01-23 (OpenRouter Prefix Fix)
+**Last Updated:** 2026-01-24 (Session 135: prompt_optimization Fix)
 **Context:** Current priorities and active TODOs
 
 ---
@@ -233,31 +233,39 @@ const configsByCategory = {
 
 ---
 
-## 🐛 URGENT BUG (2025-11-26)
+## ✅ FIXED BUG (Session 135 - 2026-01-24)
 
-### Prompt Optimization Uses Wrong Input
-**Status:** 🔴 **BUG REPORTED** - Needs investigation
+### Prompt Optimization META-Instruction
+**Status:** ✅ **FIXED** - Session 135
 **Priority:** HIGH
-**Reported:** 2025-11-26
+**Reported:** 2025-11-26 | **Fixed:** 2026-01-24
 
 **Problem:**
-"Prompt optimierung" scheint den "Context" zu verwenden, statt den Optimierungsprompt aus den Chunks.
+Die `prompt_optimization` META-Instruction in `instruction_selector.py` hatte hardcodierte kulturelle Mappings ("qiyun shengdong → dynamic brushstrokes") und ein image-spezifisches Output-Format.
 
-**Expected Behavior:**
-- Optimization should use the optimization prompt from chunks (e.g., `optimize_t5_prompt.json`, `optimize_clip_prompt.json`)
+**Root Cause:**
+Die META-Instruction versuchte, kreative Interception-Outputs in fixierte Bildanweisungen zu hardcodieren. Die eigentlichen Regeln stehen bereits in den Output-Chunk `optimization_instruction` Feldern.
 
-**Actual Behavior:**
-- Optimization appears to use the user's context prompt instead
+**Fix:**
+Vereinfachte `prompt_optimization` zu einer simplen "Wende Context-Regeln an" Instruction:
+```python
+"prompt_optimization": {
+    "description": "Apply media-specific optimization rules from Context",
+    "default": """Transform the Input according to the rules in Context.
 
-**Investigation Needed:**
-- Check Stage 2 optimization flow in `schema_pipeline_routes.py`
-- Verify which prompt is passed to optimization chunks
-- Check if context is being incorrectly substituted
+The Context contains media-specific transformation rules.
+Apply these rules precisely to the Input.
+Preserve the language of the Input.
 
-**Files to Check:**
-- `devserver/my_app/routes/schema_pipeline_routes.py` (Stage 2 optimization logic)
-- `devserver/schemas/chunks/optimize_*.json` (optimization chunks)
-- Frontend: `text_transformation.vue` (how context is sent)
+Output ONLY the transformed result.
+NO meta-commentary, NO headers, NO formatting."""
+}
+```
+
+**Files Changed:**
+- `devserver/schemas/engine/instruction_selector.py` (Zeilen 27-37)
+
+**See:** `docs/HANDOVER_2026-01-24_Session134_OptimizationProblem.md` für Details
 
 ---
 

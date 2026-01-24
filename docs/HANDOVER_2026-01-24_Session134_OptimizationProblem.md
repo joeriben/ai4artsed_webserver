@@ -1,98 +1,59 @@
-# Handover: Prompt Optimization Instruction - UNGELÖST
+# Handover: Prompt Optimization Instruction - GELÖST
 
 **Datum:** 2026-01-24
-**Status:** OFFEN - Nächste Session muss das lösen
+**Status:** GELÖST (Session 135)
 
 ---
 
-## Das Problem
+## Das Problem (war)
 
-Die `prompt_optimization` Instruction in `schemas/engine/instruction_selector.py` funktioniert nicht richtig.
-
-### Beispiel-Fehler (Literati)
-
-**Interception-Output (gut):**
-```
-Qiyun shengdong, die Geist-Resonanz und Lebensbewegung... Kiefern, Bambus, Pflaumen
-und Orchideen folgen den strengen Konventionen des Mustard Seed Garden Manual...
-```
-
-**Optimization-Output (schlecht):**
-```
-moral landscape, small human figures, kiefern, bambus, pflaumen, orchideen,
-konfuzianische ordnung, algorithmische pinselstriche, iterative algorithmen...
-```
-
-**Fehler:**
-- Mischung Deutsch/Englisch (Übersetzung kommt erst DANACH in Stage 3!)
-- Abstrakte Konzepte die nicht visualisierbar sind (konfuzianische ordnung, algorithmische pinselstriche)
-- Keine echte Übersetzung kultureller Konzepte in visuelle Rendering-Anweisungen
+Die `prompt_optimization` Instruction in `schemas/engine/instruction_selector.py` hatte:
+- Hardcodierte kulturelle Mappings ("qiyun shengdong → dynamic brushstrokes")
+- Ein image-spezifisches Output-Format (`[CLIP: ...] || [T5: ...]`)
+- Diese Beispiele waren **falsch**, weil sie kreative Interception-Outputs in fixierte Bildanweisungen hardcodieren wollten
 
 ---
 
-## Die Kernkomplexität
+## Die Lösung
 
-Es gibt **verschiedene Interception-Typen** mit unterschiedlichen Optimization-Anforderungen:
+**Erkenntnis:** Die Output-Chunks (z.B. `output_image_sd35_large.json`, `output_video_ltx.json`) enthalten bereits sehr detaillierte, media-spezifische `optimization_instruction` in ihrem `meta` Feld. Diese werden als `Context` an das LLM übergeben.
 
-| Typ | Beispiele | Was Optimization leisten muss |
-|-----|-----------|------------------------------|
-| **Kulturell** | Literati, Renaissance, Bauhaus | Kulturelle Konzepte → visuelle Äquivalente |
-| **Logisch** | Im Gegenteil, Entkitscher | Logische Transformation → bildliche Umsetzung |
-| **Dekonstruktiv** | Surrealizer, Split&Combine | Dekonstruktion → kompositorische Anweisungen |
-| **Ästhetisch** | Analog Photography 1870s/1970s | Ästhetische Parameter → technische Bildparameter |
-| **Technisch** | Technical Drawing, P5JS | Technische Specs → Rendering-Specs |
-
-**Eine generische Instruction kann das nicht leisten.**
-
----
-
-## Anforderungen an Optimization
-
-1. **Eingabesprache beibehalten** - Übersetzung zu Englisch erfolgt in Stage 3
-2. **Kulturelle Spezifität erhalten** - nicht generisieren
-3. **Konzepte in Visuelles übersetzen:**
-   - "qiyun shengdong" → dynamische Pinselstriche, Bewegungsgefühl
-   - "Guo Xis Drei Fernen" → hoher Horizont, geschichtete Tiefe, atmosphärische Perspektive
-   - "sfumato" → weiche Kanten, rauchige Übergänge
-4. **Dual-Encoder-Format** für SD3.5/FLUX:
-   - CLIP-G: Kurze Keywords
-   - T5-XXL: Natürliche Beschreibung
-
----
-
-## Aktuelle Instruction (unzureichend)
+**Fix:** Die `prompt_optimization` META-Instruction wurde vereinfacht zu:
 
 ```python
 "prompt_optimization": {
-    "default": """Translate the Input into visual instructions for image generation.
-    TASK: Convert cultural and artistic concepts into HOW THEY LOOK.
-    ...
-    OUTPUT FORMAT (in input language):
-    [CLIP: visual keywords, 25 words max] || [T5: descriptive sentence]
-    """
+    "description": "Apply media-specific optimization rules from Context",
+    "default": """Transform the Input according to the rules in Context.
+
+The Context contains media-specific transformation rules.
+Apply these rules precisely to the Input.
+Preserve the language of the Input.
+
+Output ONLY the transformed result.
+NO meta-commentary, NO headers, NO formatting."""
 }
 ```
 
-Zu generisch, keine Beispiele für verschiedene Interception-Typen.
+**Warum das funktioniert:**
+1. Die media-spezifischen Regeln stehen bereits in den Output-Chunks
+2. Die META-Instruction muss nur sagen: "Folge den Context-Regeln"
+3. Keine hardcodierten Beispiele = keine falschen Annahmen über kreative Outputs
+4. Explizite Anweisung zur Spracherhaltung
 
 ---
 
-## Mögliche Lösungsansätze
+## Geänderte Datei
 
-1. **Typ-spezifische Optimization-Instructions**
-   - Neue Instruction-Types: `optimization_cultural`, `optimization_logical`, etc.
-   - Configs definieren welchen Optimization-Typ sie brauchen
-
-2. **Config-Level Optimization-Prompts**
-   - Jede Interception-Config hat eigenen Optimization-Prompt im JSON
-   - Mehr Aufwand, aber präziser
-
-3. **Zwei-Schritt-Prozess**
-   - Schritt 1: Analyse der visualisierbaren Elemente
-   - Schritt 2: Formatierung für CLIP/T5
+`devserver/schemas/engine/instruction_selector.py` - Zeilen 27-37
 
 ---
 
-## Datei
+## Verifizierung (TODO)
 
-`devserver/schemas/engine/instruction_selector.py` - Zeile 27-47 (prompt_optimization)
+1. DevServer starten
+2. Interception ausführen (z.B. Literati)
+3. Optimization für SD3.5 Large triggern
+4. Prüfen:
+   - Output in Eingabesprache
+   - Keine Sprach-Mischung
+   - SD3.5-Format aus chunk `optimization_instruction` befolgt

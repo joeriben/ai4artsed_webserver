@@ -25,23 +25,15 @@ Use the specific vocabulary and techniques defined in Context."""
     },
 
     "prompt_optimization": {
-        "description": "Translate cultural/artistic concepts into visual rendering instructions",
-        "default": """Translate the Input into visual instructions for image generation.
+        "description": "Apply media-specific optimization rules from Context",
+        "default": """Transform the Input according to the rules in Context.
 
-TASK: Convert cultural and artistic concepts into HOW THEY LOOK.
+The Context contains media-specific transformation rules.
+Apply these rules precisely to the Input.
+Preserve the language of the Input.
 
-Examples:
-- "qiyun shengdong" → dynamic brushstrokes, sense of movement, living energy in lines
-- "Three Distances" → high horizon, layered depth planes, atmospheric perspective
-- "konfuzianische Ordnung" → ordered composition, hierarchical figure placement
-- "sfumato" → soft blurred edges, smoky transitions, no hard outlines
-
-Keep the cultural SPECIFICITY - translate the concept, don't genericize it.
-
-OUTPUT FORMAT (in input language):
-[CLIP: visual keywords, 25 words max] || [T5: descriptive sentence capturing the style]
-
-Output ONLY the formatted line."""
+Output ONLY the transformed result.
+NO meta-commentary, NO headers, NO formatting."""
     },
 
     "passthrough": {
