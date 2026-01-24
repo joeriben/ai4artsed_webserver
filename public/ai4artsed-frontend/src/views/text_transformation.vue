@@ -5,7 +5,7 @@
     <div class="phase-2a" ref="mainContainerRef">
 
         <!-- Section 1: Input + Context (Side by Side) -->
-        <section class="input-context-section">
+        <section class="input-context-section" ref="inputSectionRef">
           <!-- Input Bubble -->
           <MediaInputBox
             icon="💡"
@@ -53,7 +53,7 @@
         </div>
 
         <!-- Section 3: Interception Preview (filled after Start #1) -->
-        <section class="interception-section">
+        <section class="interception-section" ref="interceptionSectionRef">
           <MediaInputBox
             icon="→"
             :label="$t('textTransform.resultLabel')"
@@ -481,6 +481,8 @@ const mainContainerRef = ref<HTMLElement | null>(null)
 const startButtonRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
 const categorySectionRef = ref<HTMLElement | null>(null)
+const inputSectionRef = ref<HTMLElement | null>(null)
+const interceptionSectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // Page Context for Träshy (Session 133)
@@ -488,22 +490,46 @@ const categorySectionRef = ref<HTMLElement | null>(null)
 // ============================================================================
 const pageContextStore = usePageContextStore()
 
+// Helper: Get element's vertical center as viewport percentage
+function getElementY(el: HTMLElement | null): number {
+  if (!el) return 50
+  const rect = el.getBoundingClientRect()
+  const centerY = rect.top + rect.height / 2
+  return Math.max(10, Math.min(90, (centerY / window.innerHeight) * 100))
+}
+
+// Track current Träshy Y position (updated on phase changes)
+const trashyY = ref(50)
+
+// Update Träshy position when phase changes
+watch([executionPhase, isPipelineExecuting, outputImage, selectedCategory], () => {
+  nextTick(() => {
+    if (isPipelineExecuting.value || outputImage.value) {
+      // During/after generation: near output
+      trashyY.value = pipelineSectionRef.value?.sectionRef
+        ? getElementY(pipelineSectionRef.value.sectionRef)
+        : 85
+    } else if (executionPhase.value !== 'initial' && selectedCategory.value) {
+      // Category selected: near category section
+      trashyY.value = getElementY(categorySectionRef.value)
+    } else if (executionPhase.value !== 'initial') {
+      // After interception: near interception result
+      trashyY.value = getElementY(interceptionSectionRef.value)
+    } else {
+      // Initial: near input section
+      trashyY.value = getElementY(inputSectionRef.value)
+    }
+  })
+}, { immediate: true })
+
 // Determine Träshy position based on current workflow phase
 const trashyFocusHint = computed<FocusHint>(() => {
-  // During generation: move to bottom-right near output
-  if (isPipelineExecuting.value || outputImage.value) {
-    return { x: 95, y: 85, anchor: 'bottom-right' }
+  // Initial phase: left side near input
+  if (executionPhase.value === 'initial') {
+    return { x: 2, y: trashyY.value, anchor: 'bottom-left' }
   }
-  // After interception, during category/config selection: move right
-  if (executionPhase.value !== 'initial' && selectedCategory.value) {
-    return { x: 95, y: 70, anchor: 'bottom-right' }
-  }
-  // After interception but before category selection: center-right
-  if (executionPhase.value !== 'initial') {
-    return { x: 95, y: 50, anchor: 'bottom-right' }
-  }
-  // Initial phase: default bottom-left
-  return { x: 2, y: 95, anchor: 'bottom-left' }
+  // All other phases: right side at calculated Y
+  return { x: 95, y: trashyY.value, anchor: 'bottom-right' }
 })
 
 const pageContext = computed<PageContext>(() => ({
