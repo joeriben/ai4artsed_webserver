@@ -35,10 +35,21 @@ from .model_selector import model_selector
 
 @dataclass
 class PromptInterceptionRequest:
-    """Request für Prompt Interception Engine"""
+    """Request für Prompt Interception Engine
+
+    Fields (Session 134 fix):
+    - input_prompt: The user's input text to transform
+    - input_context: Additional context (usually empty)
+    - style_prompt: Style-specific rules from config.context (WHAT style)
+    - task_instruction: Meta-instruction from instruction_selector (HOW to transform)
+    - model: Which LLM to use
+    - debug: Enable debug output
+    - unload_model: Unload model after request
+    """
     input_prompt: str
     input_context: str = ""
     style_prompt: str = ""
+    task_instruction: str = ""  # NEW: Meta-instruction for HOW to transform
     model: str = "local/gemma2:9b"
     debug: bool = False
     unload_model: bool = False
@@ -71,27 +82,43 @@ class PromptInterceptionEngine:
         """Extract model name using centralized selector"""
         return self.model_selector.extract_model_name(full_model_string)
     
-    def build_full_prompt(self, input_prompt: str, input_context: str = "", style_prompt: str = "") -> str:
-        """Baut vollständigen Prompt im Custom Node Format"""
+    def build_full_prompt(self, input_prompt: str, input_context: str = "",
+                          style_prompt: str = "", task_instruction: str = "") -> str:
+        """Baut vollständigen Prompt nach ComfyUI Prompt Interception Pattern
 
-        # Global formatting rules (applied to ALL LLM calls, placed at end for lower attention priority)
-        FORMATTING_RULES = "RULES: ALWAYS reply in the language of the input! NO meta-remarks, NO headlines, NO titles, NO commentaries, NO **formatting**, NO bulletpoints, NO arguing, NO justification."
+        Architecture (Session 134):
+        - Instruction: HOW to transform + formatting rules
+        - Input: User prompt to transform
+        - Context: Style-specific rules (from config.context)
+        """
 
-        return (
-            f"Task:\n{style_prompt.strip()}\n\n"
-            f"Context:\n{input_context.strip()}\n"
-            f"Prompt:\n{input_prompt.strip()}\n\n"
-            f"{FORMATTING_RULES}"
-        )
+        # Formatting rules are part of the instruction
+        FORMATTING_RULES = "ALWAYS reply in the language of the input. NO meta-remarks, NO headlines, NO titles, NO commentaries, NO **formatting**, NO bulletpoints."
+
+        if task_instruction:
+            # New architecture: Instruction contains task + rules
+            full_instruction = f"{task_instruction.strip()}\n\n{FORMATTING_RULES}"
+            return (
+                f"Instruction:\n{full_instruction}\n\n"
+                f"Input:\n{input_prompt.strip()}\n\n"
+                f"Context:\n{style_prompt.strip()}"
+            )
+        else:
+            # Legacy fallback
+            return (
+                f"Instruction:\n{style_prompt.strip()}\n\n{FORMATTING_RULES}\n\n"
+                f"Input:\n{input_prompt.strip()}"
+            )
     
     async def process_request(self, request: PromptInterceptionRequest) -> PromptInterceptionResponse:
         """Hauptmethode - Request verarbeiten"""
         try:
-            # Full-Prompt erstellen
+            # Full-Prompt erstellen (Session 134: now includes task_instruction)
             full_prompt = self.build_full_prompt(
                 request.input_prompt,
-                request.input_context, 
-                request.style_prompt
+                request.input_context,
+                request.style_prompt,
+                request.task_instruction  # NEW: Meta-instruction for transformation
             )
             
             # Modellnamen extrahieren

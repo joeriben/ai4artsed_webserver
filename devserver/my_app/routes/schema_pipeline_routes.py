@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from schemas.engine.pipeline_executor import PipelineExecutor
 from schemas.engine.prompt_interception_engine import PromptInterceptionEngine, PromptInterceptionRequest
 from schemas.engine.config_loader import config_loader
+from schemas.engine.instruction_selector import get_instruction
 from schemas.engine.stage_orchestrator import (
     execute_stage1_translation,
     execute_stage1_safety,
@@ -311,11 +312,14 @@ async def execute_optimization(
     # Initialize PromptInterceptionEngine
     interception_engine = PromptInterceptionEngine()
 
-    # Create request with 3-part Prompt Interception structure
+    # Session 134 FIX: Correct field assignment
+    # - task_instruction: HOW to transform (meta-instruction)
+    # - style_prompt: WHAT rules to follow (style-specific)
     request = PromptInterceptionRequest(
-        input_prompt=input_text,                      # INPUT_TEXT (Prompt)
-        input_context=optimization_instruction,       # CONTEXT (USER_RULES)
-        style_prompt="Transform the INPUT according to the rules provided by the CONTEXT. Preserve structural aspects of the INPUT and follow all instructions in the CONTEXT precisely.",  # TASK_INSTRUCTION
+        input_prompt=input_text,
+        input_context='',
+        style_prompt=optimization_instruction,  # Style-specific rules
+        task_instruction=get_instruction("prompt_optimization"),  # Meta-instruction
         model=STAGE2_INTERCEPTION_MODEL,
         debug=False
     )
@@ -1476,11 +1480,15 @@ def execute_pipeline_streaming(data: dict):
         # Build full prompt
         engine = PromptInterceptionEngine()
 
-        # Get meta-prompt from pipeline config or use user-edited context
+        # Get config and style context
         config = pipeline_executor.config_loader.get_config(schema_name)
         style_prompt = context_prompt if context_prompt else (config.context if config else '')
 
-        full_prompt = engine.build_full_prompt(checked_text, '', style_prompt)
+        # Session 134 FIX: Get meta-instruction based on config's instruction_type
+        # This tells the model HOW to transform, while style_prompt tells WHAT style
+        instruction_type = config.instruction_type if config and hasattr(config, 'instruction_type') else 'transformation'
+        task_instruction = get_instruction(instruction_type)
+        logger.info(f"[UNIFIED-STREAMING] Using instruction_type: {instruction_type}")
 
         # Determine model
         model = STAGE2_INTERCEPTION_MODEL
@@ -1496,6 +1504,7 @@ def execute_pipeline_streaming(data: dict):
             input_prompt=checked_text,
             input_context='',
             style_prompt=style_prompt,
+            task_instruction=task_instruction,  # Session 134: Meta-instruction
             model=model,
             debug=False,
             unload_model=False
@@ -1617,8 +1626,11 @@ def execute_optimization_streaming(data: dict):
         # Build full prompt
         engine = PromptInterceptionEngine()
 
-        # Use context_prompt as the optimization instruction
+        # Use context_prompt as the optimization rules (style-specific)
         style_prompt = context_prompt
+
+        # Session 134 FIX: Use prompt_optimization instruction for this stage
+        task_instruction = get_instruction("prompt_optimization")
 
         # Determine model
         model = STAGE2_INTERCEPTION_MODEL
@@ -1629,6 +1641,7 @@ def execute_optimization_streaming(data: dict):
             input_prompt=input_text,
             input_context='',
             style_prompt=style_prompt,
+            task_instruction=task_instruction,  # Session 134: Meta-instruction
             model=model,
             debug=False,
             unload_model=False
@@ -1734,10 +1747,14 @@ def optimize_pipeline():
         engine = PromptInterceptionEngine()
         from config import STAGE2_INTERCEPTION_MODEL
 
+        # Session 134 FIX: Use prompt_optimization instruction
+        task_instruction = get_instruction("prompt_optimization")
+
         pi_request = PromptInterceptionRequest(
             input_prompt=input_text,
             input_context='',
             style_prompt=context_prompt,
+            task_instruction=task_instruction,  # Session 134: Meta-instruction
             model=STAGE2_INTERCEPTION_MODEL,
             debug=False,
             unload_model=False
@@ -3889,30 +3906,36 @@ def interception_pipeline():
 # NOTE: Status endpoint is in pipeline_routes.py, not here
 # Use /api/pipeline/{run_id}/status (not /api/schema/pipeline/{run_id}/status)
 
-@schema_bp.route('/pipeline/test', methods=['POST'])  
+@schema_bp.route('/pipeline/test', methods=['POST'])
 def test_pipeline():
     """Test-Endpoint für direkte Prompt-Interception"""
     try:
         data = request.get_json()
         if not data:
             return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
-        
+
         input_prompt = data.get('input_prompt')
         style_prompt = data.get('style_prompt', '')
         input_context = data.get('input_context', '')
         model = data.get('model', 'local/gemma2:9b')
-        
+
         if not input_prompt:
             return jsonify({'status': 'error', 'error': 'Parameter "input_prompt" erforderlich'}), 400
-        
+
+        # Session 134 FIX: Support task_instruction in test endpoint
+        # Allow override via request, default to artistic_transformation
+        instruction_type = data.get('instruction_type', 'transformation')
+        task_instruction = data.get('task_instruction', get_instruction(instruction_type))
+
         # Direkte Prompt-Interception (für Tests)
         from schemas.engine.prompt_interception_engine import PromptInterceptionRequest
         engine = PromptInterceptionEngine()
-        
+
         request_obj = PromptInterceptionRequest(
             input_prompt=input_prompt,
             input_context=input_context,
             style_prompt=style_prompt,
+            task_instruction=task_instruction,  # Session 134: Meta-instruction
             model=model,
             debug=data.get('debug', False)
         )

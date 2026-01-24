@@ -66,21 +66,97 @@ def initialize_password():
 initialize_password()
 
 
+def detect_gpu_vram() -> dict:
+    """
+    Detect GPU VRAM using nvidia-smi
+
+    Returns:
+        dict with:
+        - vram_mb: Total VRAM in MB (int)
+        - vram_gb: Total VRAM in GB (int, rounded)
+        - vram_tier: Matching tier key (vram_96, vram_32, etc.)
+        - gpu_name: GPU model name
+        - detected: True if GPU was detected
+    """
+    try:
+        # Query GPU memory and name
+        result = subprocess.run(
+            ['nvidia-smi', '--query-gpu=memory.total,name', '--format=csv,noheader,nounits'],
+            capture_output=True, text=True, timeout=5
+        )
+
+        if result.returncode != 0:
+            logger.warning("[SETTINGS] nvidia-smi failed, GPU detection unavailable")
+            return {"detected": False, "error": "nvidia-smi not available"}
+
+        # Parse output (format: "memory_mb, gpu_name")
+        line = result.stdout.strip().split('\n')[0]  # First GPU
+        parts = line.split(', ')
+        vram_mb = int(parts[0].strip())
+        gpu_name = parts[1].strip() if len(parts) > 1 else "Unknown GPU"
+
+        vram_gb = round(vram_mb / 1024)
+
+        # Map to tier (find closest tier that fits)
+        tier_thresholds = [
+            (80, "vram_96"),   # 80+ GB → 96 tier (qwen2.5vl:72b single model)
+            (40, "vram_48"),   # 40-79 GB → 48 tier (qwen2.5vl:72b single model)
+            (28, "vram_32"),   # 28-39 GB → 32 tier (qwen3:32b + vision:11b)
+            (20, "vram_24"),   # 20-27 GB → 24 tier (gpt-OSS:20b + vision:11b)
+            (12, "vram_16"),   # 12-19 GB → 16 tier (mistral-nemo + vision:11b)
+            (0, "vram_8"),     # 0-11 GB → 8 tier
+        ]
+
+        vram_tier = "vram_8"  # Default
+        for threshold, tier in tier_thresholds:
+            if vram_gb >= threshold:
+                vram_tier = tier
+                break
+
+        logger.info(f"[SETTINGS] GPU detected: {gpu_name} with {vram_gb}GB VRAM → {vram_tier}")
+
+        return {
+            "detected": True,
+            "vram_mb": vram_mb,
+            "vram_gb": vram_gb,
+            "vram_tier": vram_tier,
+            "gpu_name": gpu_name
+        }
+
+    except subprocess.TimeoutExpired:
+        logger.warning("[SETTINGS] nvidia-smi timed out")
+        return {"detected": False, "error": "nvidia-smi timeout"}
+    except Exception as e:
+        logger.warning(f"[SETTINGS] GPU detection failed: {e}")
+        return {"detected": False, "error": str(e)}
+
+
 # Hardware Matrix - 2D Fill-Helper for UI (VRAM × DSGVO)
 # This is NOT configuration - just preset values to help users fill the form
 HARDWARE_MATRIX = {
+    # ===========================================
+    # MODEL SELECTION RATIONALE (Session 133/134 Evaluation 2026-01-24):
+    # - qwen2.5vl:72b (~40GB Q4): Best universal model - 29+ languages, multilingual vision, 10/10 interception
+    # - qwen3:32b (~20GB Q4): 119 languages - best for translation tasks
+    # - gpt-OSS:20b (~12GB): Fast, best role-taking for interception, but weak multilingual (<30% C-Eval)
+    # - mistral-nemo (~8GB): 100+ languages via Tekken tokenizer, lightweight
+    # - llama3.2-vision:90b (~55GB): Best vision but ONLY English for image tasks!
+    # - llama3.2-vision:11b (~8GB): Lightweight vision, ONLY English for image tasks
+    # ===========================================
     "vram_96": {
         "none": {
             "label": "96 GB VRAM (Local only)",
             "models": {
-                "STAGE1_TEXT_MODEL": "local/gpt-OSS:120b",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "local/gpt-OSS:120b",
-                "STAGE2_OPTIMIZATION_MODEL": "local/gpt-OSS:120b",
-                "STAGE3_MODEL": "local/gpt-OSS:20b",
-                "STAGE4_LEGACY_MODEL": "local/gpt-OSS:120b",
-                "CHAT_HELPER_MODEL": "local/gpt-OSS:120b",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                # Single-model strategy: qwen2.5vl:72b handles everything
+                # 29+ languages (incl. German), multilingual vision, no model switching
+                "STAGE1_TEXT_MODEL": "local/qwen2.5vl:72b",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_INTERCEPTION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_OPTIMIZATION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE3_MODEL": "local/qwen2.5vl:72b",
+                "STAGE4_LEGACY_MODEL": "local/qwen2.5vl:72b",
+                "CHAT_HELPER_MODEL": "local/qwen2.5vl:72b",
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
@@ -89,13 +165,13 @@ HARDWARE_MATRIX = {
             "label": "96 GB VRAM (AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
                 "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
                 "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
                 "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
@@ -104,13 +180,13 @@ HARDWARE_MATRIX = {
             "label": "96 GB VRAM (OpenRouter)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
                 "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
                 "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
@@ -119,13 +195,13 @@ HARDWARE_MATRIX = {
             "label": "96 GB VRAM (Mistral AI EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
                 "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
                 "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
                 "STAGE3_MODEL": "mistral/mistral-large-latest",
                 "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
                 "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
             },
             "EXTERNAL_LLM_PROVIDER": "mistral",
             "DSGVO_CONFORMITY": True
@@ -134,13 +210,13 @@ HARDWARE_MATRIX = {
             "label": "96 GB VRAM (Anthropic Direct API)",
             "models": {
                 "STAGE1_TEXT_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
                 "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-3-5-sonnet-latest",
                 "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
             },
             "EXTERNAL_LLM_PROVIDER": "anthropic",
             "DSGVO_CONFORMITY": False
@@ -149,30 +225,133 @@ HARDWARE_MATRIX = {
             "label": "96 GB VRAM (OpenAI Direct API)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
                 "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
                 "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
                 "STAGE3_MODEL": "openai/gpt-4o-mini",
                 "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
                 "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
             },
             "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
         }
     },
+    # ===========================================
+    # 48 GB VRAM - qwen2.5vl:72b (~40GB Q4) still fits as single model
+    # ===========================================
+    "vram_48": {
+        "none": {
+            "label": "48 GB VRAM (Local only)",
+            "models": {
+                # Single-model strategy: qwen2.5vl:72b handles everything
+                "STAGE1_TEXT_MODEL": "local/qwen2.5vl:72b",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_INTERCEPTION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_OPTIMIZATION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE3_MODEL": "local/qwen2.5vl:72b",
+                "STAGE4_LEGACY_MODEL": "local/qwen2.5vl:72b",
+                "CHAT_HELPER_MODEL": "local/qwen2.5vl:72b",
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "none",
+            "DSGVO_CONFORMITY": True
+        },
+        "bedrock": {
+            "label": "48 GB VRAM (AWS Bedrock EU)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "bedrock",
+            "DSGVO_CONFORMITY": True
+        },
+        "openrouter": {
+            "label": "48 GB VRAM (OpenRouter)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
+                "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openrouter",
+            "DSGVO_CONFORMITY": False
+        },
+        "mistral": {
+            "label": "48 GB VRAM (Mistral AI EU)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
+                "STAGE3_MODEL": "mistral/mistral-large-latest",
+                "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
+                "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "mistral",
+            "DSGVO_CONFORMITY": True
+        },
+        "anthropic": {
+            "label": "48 GB VRAM (Anthropic Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-3-5-sonnet-latest",
+                "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": False
+        },
+        "openai": {
+            "label": "48 GB VRAM (OpenAI Direct API)",
+            "models": {
+                "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
+                "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
+                "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
+                "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
+                "STAGE3_MODEL": "openai/gpt-4o-mini",
+                "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
+                "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+            },
+            "EXTERNAL_LLM_PROVIDER": "openai",
+            "DSGVO_CONFORMITY": False
+        }
+    },
+    # ===========================================
+    # 32 GB VRAM - qwen3:32b (~20GB Q4) for text, llama3.2-vision:11b for vision
+    # NOTE: llama3.2-vision:90b (~55GB) does NOT fit in 32GB!
+    # qwen3:32b has 119 languages - best for translation
+    # ===========================================
     "vram_32": {
         "none": {
             "label": "32 GB VRAM (Local only)",
             "models": {
-                "STAGE1_TEXT_MODEL": "local/gpt-OSS:120b",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
-                "STAGE2_INTERCEPTION_MODEL": "local/gpt-OSS:120b",
-                "STAGE2_OPTIMIZATION_MODEL": "local/gpt-OSS:120b",
-                "STAGE3_MODEL": "local/gpt-OSS:20b",
-                "STAGE4_LEGACY_MODEL": "local/gpt-OSS:120b",
-                "CHAT_HELPER_MODEL": "local/gpt-OSS:120b",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                # qwen3:32b (~20GB Q4) - 119 languages for translation + interception
+                # Vision: llama3.2-vision:11b (~8GB) - English only but fits!
+                "STAGE1_TEXT_MODEL": "local/qwen3:32b",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+                "STAGE2_INTERCEPTION_MODEL": "local/qwen3:32b",
+                "STAGE2_OPTIMIZATION_MODEL": "local/qwen3:32b",
+                "STAGE3_MODEL": "local/qwen3:32b",
+                "STAGE4_LEGACY_MODEL": "local/qwen3:32b",
+                "CHAT_HELPER_MODEL": "local/qwen3:32b",
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
@@ -181,13 +360,13 @@ HARDWARE_MATRIX = {
             "label": "32 GB VRAM (AWS Bedrock EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
                 "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
                 "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
                 "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
@@ -196,13 +375,13 @@ HARDWARE_MATRIX = {
             "label": "32 GB VRAM (OpenRouter)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
                 "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
                 "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
@@ -211,13 +390,13 @@ HARDWARE_MATRIX = {
             "label": "32 GB VRAM (Mistral AI EU)",
             "models": {
                 "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
                 "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
                 "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
                 "STAGE3_MODEL": "mistral/mistral-large-latest",
                 "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
                 "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "mistral",
             "DSGVO_CONFORMITY": True
@@ -226,13 +405,13 @@ HARDWARE_MATRIX = {
             "label": "32 GB VRAM (Anthropic Direct API)",
             "models": {
                 "STAGE1_TEXT_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
                 "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-3-5-sonnet-latest",
                 "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "anthropic",
             "DSGVO_CONFORMITY": False
@@ -241,29 +420,37 @@ HARDWARE_MATRIX = {
             "label": "32 GB VRAM (OpenAI Direct API)",
             "models": {
                 "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-                "STAGE1_VISION_MODEL": "local/llama3.2-vision:90b",
+                "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
                 "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
                 "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
                 "STAGE3_MODEL": "openai/gpt-4o-mini",
                 "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
                 "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:90b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
         }
     },
+    # ===========================================
+    # 24 GB VRAM - gpt-OSS:20b (~12GB) for text, llama3.2-vision:11b (~8GB) for vision
+    # gpt-OSS:20b: Fast, best role-taking, but weak multilingual
+    # Alternative: mistral-nemo (~8GB) has 100+ languages but weaker interception
+    # ===========================================
     "vram_24": {
         "none": {
             "label": "24 GB VRAM (Local only)",
             "models": {
-                "STAGE1_TEXT_MODEL": "local/mistral-nemo",
+                # gpt-OSS:20b (~12GB): Best interception (10/10), fast (~8s)
+                # Trade-off: Weak multilingual (<30% C-Eval) - translation may be less accurate
+                # Alternative: Use mistral-nemo for better translation (100+ languages)
+                "STAGE1_TEXT_MODEL": "local/gpt-OSS:20b",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "local/mistral-nemo",
-                "STAGE2_OPTIMIZATION_MODEL": "local/mistral-nemo",
-                "STAGE3_MODEL": "local/mistral-nemo",
-                "STAGE4_LEGACY_MODEL": "local/mistral-nemo",
-                "CHAT_HELPER_MODEL": "local/mistral-nemo",
+                "STAGE2_INTERCEPTION_MODEL": "local/gpt-OSS:20b",
+                "STAGE2_OPTIMIZATION_MODEL": "local/gpt-OSS:20b",
+                "STAGE3_MODEL": "local/gpt-OSS:20b",
+                "STAGE4_LEGACY_MODEL": "local/gpt-OSS:20b",
+                "CHAT_HELPER_MODEL": "local/gpt-OSS:20b",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
@@ -345,17 +532,25 @@ HARDWARE_MATRIX = {
             "DSGVO_CONFORMITY": False
         }
     },
+    # ===========================================
+    # 16 GB VRAM - mistral-nemo (~8GB) for text, llama3.2-vision:11b (~8GB) for vision
+    # WARNING: Tight fit! Model switching needed, limited headroom for KV cache
+    # mistral-nemo has 100+ languages via Tekken tokenizer - good for translation
+    # ===========================================
     "vram_16": {
         "none": {
             "label": "16 GB VRAM (Local only)",
             "models": {
-                "STAGE1_TEXT_MODEL": "local/gemma:9b",
+                # mistral-nemo (~8GB): 100+ languages, lightweight
+                # Trade-off: Weaker interception (9.3/10) than gpt-OSS:20b
+                # Vision: llama3.2-vision:11b - requires model swap (tight VRAM)
+                "STAGE1_TEXT_MODEL": "local/mistral-nemo",
                 "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-                "STAGE2_INTERCEPTION_MODEL": "local/gemma:9b",
-                "STAGE2_OPTIMIZATION_MODEL": "local/gemma:9b",
-                "STAGE3_MODEL": "local/gemma:9b",
-                "STAGE4_LEGACY_MODEL": "local/gemma:9b",
-                "CHAT_HELPER_MODEL": "local/gemma:9b",
+                "STAGE2_INTERCEPTION_MODEL": "local/mistral-nemo",
+                "STAGE2_OPTIMIZATION_MODEL": "local/mistral-nemo",
+                "STAGE3_MODEL": "local/mistral-nemo",
+                "STAGE4_LEGACY_MODEL": "local/mistral-nemo",
+                "CHAT_HELPER_MODEL": "local/mistral-nemo",
                 "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
@@ -586,6 +781,26 @@ def check_auth():
     """Check if currently authenticated"""
     authenticated = session.get('settings_authenticated', False)
     return jsonify({"authenticated": authenticated}), 200
+
+
+@settings_bp.route('/gpu-info', methods=['GET'])
+def get_gpu_info():
+    """
+    Detect GPU and return VRAM information for auto-selection
+
+    No authentication required - just hardware info
+
+    Returns:
+        {
+            "detected": true,
+            "vram_mb": 97887,
+            "vram_gb": 96,
+            "vram_tier": "vram_96",
+            "gpu_name": "NVIDIA RTX 5090"
+        }
+    """
+    gpu_info = detect_gpu_vram()
+    return jsonify(gpu_info), 200
 
 
 @settings_bp.route('/change-password', methods=['POST'])
