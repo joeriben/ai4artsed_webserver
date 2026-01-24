@@ -78,7 +78,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     allowMultiple: true,
     mandatory: false,
     acceptsFrom: ['input', 'interception'],
-    outputsTo: ['interception', 'translation', 'generation']
+    outputsTo: ['interception', 'translation', 'generation', 'collector']
   },
   {
     id: 'translation',
@@ -93,7 +93,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     allowMultiple: true,
     mandatory: false,
     acceptsFrom: ['input', 'interception'],
-    outputsTo: ['generation']
+    outputsTo: ['generation', 'collector']
   },
   {
     id: 'generation',
@@ -115,14 +115,14 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     type: 'collector',
     label: { en: 'Media Collector', de: 'Medien-Sammler' },
     description: {
-      en: 'Collects outputs from parallel generation nodes',
-      de: 'Sammelt Ausgaben von parallelen Generierungsknoten'
+      en: 'Collects outputs (media + text) from nodes',
+      de: 'Sammelt Ausgaben (Medien + Text) von Knoten'
     },
     color: '#06b6d4', // cyan
     icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
     mandatory: true,
-    acceptsFrom: ['generation'],
+    acceptsFrom: ['generation', 'interception', 'translation'],
     outputsTo: []
   }
 ]
