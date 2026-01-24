@@ -6,7 +6,7 @@ import CanvasWorkspace from '@/components/canvas/CanvasWorkspace.vue'
 import ModulePalette from '@/components/canvas/ModulePalette.vue'
 import ConfigSelectorModal from '@/components/canvas/ConfigSelectorModal.vue'
 import type { StageType } from '@/types/canvas'
-import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
+import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
 
 const { t, locale } = useI18n()
 const canvasStore = useCanvasStore()
@@ -147,6 +147,15 @@ const currentConfigId = computed(() => {
 })
 
 // Page Context for Träshy (Session 133)
+// Canvas: Träshy stays bottom-left to avoid interfering with workspace
+const trashyFocusHint = computed<FocusHint>(() => {
+  // If palette is visible, move up slightly
+  if (showPalette.value) {
+    return { x: 2, y: 70, anchor: 'bottom-left' }
+  }
+  return { x: 2, y: 95, anchor: 'bottom-left' }
+})
+
 const pageContext = computed<PageContext>(() => ({
   activeViewType: 'canvas_workflow',
   pageContent: {
@@ -159,7 +168,8 @@ const pageContext = computed<PageContext>(() => ({
     })),
     selectedNodeId: canvasStore.selectedNodeId,
     connectionCount: canvasStore.connections.length
-  }
+  },
+  focusHint: trashyFocusHint.value
 }))
 provide(PAGE_CONTEXT_KEY, pageContext)
 </script>

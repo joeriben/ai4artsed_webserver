@@ -39,6 +39,26 @@ export interface PageContent {
 }
 
 /**
+ * Position hint for Träshy floating assistant
+ * Tells Träshy where to position itself based on current focus
+ */
+export interface FocusHint {
+  /** Horizontal position as percentage of viewport (0-100) */
+  x: number
+  /** Vertical position as percentage of viewport (0-100) */
+  y: number
+  /** Which corner of Träshy should anchor to this position */
+  anchor: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+}
+
+/** Default position: bottom-left corner */
+export const DEFAULT_FOCUS_HINT: FocusHint = {
+  x: 2,
+  y: 95,
+  anchor: 'bottom-left'
+}
+
+/**
  * Complete page context structure
  */
 export interface PageContext {
@@ -47,6 +67,9 @@ export interface PageContext {
 
   /** Page-specific content */
   pageContent: PageContent
+
+  /** Position hint for Träshy - where should the assistant float to? */
+  focusHint?: FocusHint
 }
 
 /**

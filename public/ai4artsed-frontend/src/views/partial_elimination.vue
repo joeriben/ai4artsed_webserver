@@ -228,7 +228,7 @@ import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
-import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
+import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
 // Types
@@ -290,11 +290,21 @@ const previousMode = ref('average')
 const currentSeed = ref<number | null>(null)
 
 // Page Context for Träshy (Session 133)
+const trashyFocusHint = computed<FocusHint>(() => {
+  // During/after execution: bottom-right
+  if (isExecuting.value || outputs.value.length > 0) {
+    return { x: 95, y: 85, anchor: 'bottom-right' }
+  }
+  // Default: bottom-left
+  return { x: 2, y: 95, anchor: 'bottom-left' }
+})
+
 const pageContext = computed<PageContext>(() => ({
   activeViewType: 'partial_elimination',
   pageContent: {
     inputText: inputText.value
-  }
+  },
+  focusHint: trashyFocusHint.value
 }))
 provide(PAGE_CONTEXT_KEY, pageContext)
 

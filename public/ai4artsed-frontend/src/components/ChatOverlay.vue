@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-overlay">
+  <div class="chat-overlay" :style="overlayPositionStyle">
     <!-- Collapsed State: Floating Icon Button -->
     <button
       v-if="!isExpanded"
@@ -77,7 +77,7 @@ import { ref, computed, nextTick, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useCurrentSession } from '../composables/useCurrentSession'
-import { PAGE_CONTEXT_KEY, formatPageContextForLLM } from '../composables/usePageContext'
+import { PAGE_CONTEXT_KEY, formatPageContextForLLM, DEFAULT_FOCUS_HINT } from '../composables/usePageContext'
 import trashyIcon from '../assets/trashy-icon.png'
 
 interface Message {
@@ -111,6 +111,44 @@ const draftContextString = computed(() => {
     return formatPageContextForLLM(null, route.path)
   }
   return formatPageContextForLLM(pageContext.value, route.path)
+})
+
+// Dynamic positioning based on focusHint
+const overlayPositionStyle = computed(() => {
+  const hint = pageContext?.value?.focusHint || DEFAULT_FOCUS_HINT
+
+  // Calculate position based on anchor type
+  const style: Record<string, string> = {}
+
+  switch (hint.anchor) {
+    case 'top-left':
+      style.left = `${hint.x}%`
+      style.top = `${hint.y}%`
+      style.bottom = 'auto'
+      style.right = 'auto'
+      break
+    case 'top-right':
+      style.right = `${100 - hint.x}%`
+      style.top = `${hint.y}%`
+      style.bottom = 'auto'
+      style.left = 'auto'
+      break
+    case 'bottom-right':
+      style.right = `${100 - hint.x}%`
+      style.bottom = `${100 - hint.y}%`
+      style.top = 'auto'
+      style.left = 'auto'
+      break
+    case 'bottom-left':
+    default:
+      style.left = `${hint.x}%`
+      style.bottom = `${100 - hint.y}%`
+      style.top = 'auto'
+      style.right = 'auto'
+      break
+  }
+
+  return style
 })
 
 // Computed
@@ -267,9 +305,9 @@ watch(
 <style scoped>
 .chat-overlay {
   position: fixed;
-  bottom: 1rem;
-  left: 1rem;
   z-index: 10000;
+  /* Smooth floating animation */
+  transition: left 0.5s ease-out, right 0.5s ease-out, top 0.5s ease-out, bottom 0.5s ease-out;
 }
 
 /* Collapsed State */
@@ -542,16 +580,11 @@ watch(
   transform: none;
 }
 
-/* Mobile Responsiveness (Future) */
+/* Mobile Responsiveness */
 @media (max-width: 768px) {
   .chat-window {
     width: calc(100vw - 2rem);
     height: 60vh;
-  }
-
-  .chat-overlay {
-    left: 1rem;
-    right: 1rem;
   }
 }
 </style>

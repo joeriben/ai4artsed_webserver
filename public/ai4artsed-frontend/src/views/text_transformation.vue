@@ -362,7 +362,7 @@ import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
-import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
+import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
 import { getModelAvailability, type ModelAvailability } from '@/services/api'
 
 // Import styles (Phase 1 refactoring: extracted from inline <style scoped>)
@@ -484,6 +484,25 @@ const categorySectionRef = ref<HTMLElement | null>(null)
 // ============================================================================
 // Page Context for Träshy (Session 133)
 // ============================================================================
+
+// Determine Träshy position based on current workflow phase
+const trashyFocusHint = computed<FocusHint>(() => {
+  // During generation: move to bottom-right near output
+  if (isPipelineExecuting.value || outputImage.value) {
+    return { x: 95, y: 85, anchor: 'bottom-right' }
+  }
+  // After interception, during category/config selection: move right
+  if (executionPhase.value !== 'initial' && selectedCategory.value) {
+    return { x: 95, y: 70, anchor: 'bottom-right' }
+  }
+  // After interception but before category selection: center-right
+  if (executionPhase.value !== 'initial') {
+    return { x: 95, y: 50, anchor: 'bottom-right' }
+  }
+  // Initial phase: default bottom-left
+  return { x: 2, y: 95, anchor: 'bottom-left' }
+})
+
 const pageContext = computed<PageContext>(() => ({
   activeViewType: 'text_transformation',
   pageContent: {
@@ -493,7 +512,8 @@ const pageContext = computed<PageContext>(() => ({
     optimizedPrompt: optimizedPrompt.value,
     selectedCategory: selectedCategory.value,
     selectedConfig: selectedConfig.value
-  }
+  },
+  focusHint: trashyFocusHint.value
 }))
 provide(PAGE_CONTEXT_KEY, pageContext)
 

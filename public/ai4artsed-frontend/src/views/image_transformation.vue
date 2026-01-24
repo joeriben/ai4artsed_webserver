@@ -194,7 +194,7 @@ import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useFavoritesStore } from '@/stores/favorites'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import { getModelAvailability, type ModelAvailability } from '@/services/api'
-import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
+import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
 // STATE
@@ -262,6 +262,23 @@ const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
 // ============================================================================
 // Page Context for Träshy (Session 133)
 // ============================================================================
+const trashyFocusHint = computed<FocusHint>(() => {
+  // During/after generation: bottom-right near output
+  if (isPipelineExecuting.value || outputImage.value) {
+    return { x: 95, y: 85, anchor: 'bottom-right' }
+  }
+  // After image upload, during selection: move right
+  if (uploadedImage.value && selectedCategory.value) {
+    return { x: 95, y: 70, anchor: 'bottom-right' }
+  }
+  // Image uploaded but no category yet: center-right
+  if (uploadedImage.value) {
+    return { x: 95, y: 50, anchor: 'bottom-right' }
+  }
+  // Initial: bottom-left
+  return { x: 2, y: 95, anchor: 'bottom-left' }
+})
+
 const pageContext = computed<PageContext>(() => ({
   activeViewType: 'image_transformation',
   pageContent: {
@@ -269,7 +286,8 @@ const pageContext = computed<PageContext>(() => ({
     contextPrompt: contextPrompt.value,
     selectedCategory: selectedCategory.value,
     selectedConfig: selectedConfig.value
-  }
+  },
+  focusHint: trashyFocusHint.value
 }))
 provide(PAGE_CONTEXT_KEY, pageContext)
 

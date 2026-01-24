@@ -241,7 +241,7 @@ import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
-import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
+import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
 // STATE
@@ -319,6 +319,19 @@ const imageCount = computed(() => {
   return count
 })
 
+const trashyFocusHint = computed<FocusHint>(() => {
+  // During/after generation: bottom-right
+  if (isPipelineExecuting.value || outputImage.value) {
+    return { x: 95, y: 85, anchor: 'bottom-right' }
+  }
+  // Images uploaded: move right
+  if (imageCount.value > 0) {
+    return { x: 95, y: 60, anchor: 'bottom-right' }
+  }
+  // Default: bottom-left
+  return { x: 2, y: 95, anchor: 'bottom-left' }
+})
+
 const pageContext = computed<PageContext>(() => ({
   activeViewType: 'multi_image_transformation',
   pageContent: {
@@ -326,7 +339,8 @@ const pageContext = computed<PageContext>(() => ({
     contextPrompt: contextPrompt.value,
     selectedCategory: selectedCategory.value,
     selectedConfig: selectedConfig.value
-  }
+  },
+  focusHint: trashyFocusHint.value
 }))
 provide(PAGE_CONTEXT_KEY, pageContext)
 

@@ -164,7 +164,7 @@ import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
-import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
+import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
 // Types
@@ -217,12 +217,22 @@ const imageAnalysis = ref<{
 const showAnalysis = ref(false)
 
 // Page Context for Träshy (Session 133)
+const trashyFocusHint = computed<FocusHint>(() => {
+  // During/after execution: bottom-right
+  if (isExecuting.value || primaryOutput.value) {
+    return { x: 95, y: 85, anchor: 'bottom-right' }
+  }
+  // Default: bottom-left
+  return { x: 2, y: 95, anchor: 'bottom-left' }
+})
+
 const pageContext = computed<PageContext>(() => ({
   activeViewType: 'direct',
   pageContent: {
     inputText: inputText.value,
     selectedConfig: selectedOutputConfig.value
-  }
+  },
+  focusHint: trashyFocusHint.value
 }))
 provide(PAGE_CONTEXT_KEY, pageContext)
 
