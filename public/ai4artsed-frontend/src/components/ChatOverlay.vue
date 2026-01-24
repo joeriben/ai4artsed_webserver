@@ -17,9 +17,6 @@
         <span class="chat-title">Träshy</span>
         <img :src="trashyIcon" alt="Träshy" class="header-trashy-icon" />
         <div class="header-right">
-          <span v-if="hasContext" class="context-indicator" title="Session-Kontext aktiv">
-            💡
-          </span>
           <button class="close-button" @click="collapse" title="Schließen">×</button>
         </div>
       </div>
@@ -101,7 +98,7 @@ const messagesContainer = ref<HTMLElement | null>(null)
 const inputTextarea = ref<HTMLTextAreaElement | null>(null)
 
 // Session context
-const { currentSession, hasActiveSession } = useCurrentSession()
+const { currentSession } = useCurrentSession()
 
 // Page context (Session 133: Träshy knows about current page state)
 const pageContext = inject(PAGE_CONTEXT_KEY, null)
@@ -117,9 +114,6 @@ const draftContextString = computed(() => {
 })
 
 // Computed
-// Has context if either: session context (run_id) OR draft context (page provided)
-const hasContext = computed(() => hasActiveSession() || (pageContext?.value?.pageContent !== undefined))
-
 const canSend = computed(() => {
   return inputMessage.value.trim().length > 0 && !isLoading.value
 })
@@ -353,10 +347,6 @@ watch(
   flex-shrink: 0;
 }
 
-.context-indicator {
-  font-size: 1.2rem;
-  cursor: help;
-}
 
 .close-button {
   background: none;
