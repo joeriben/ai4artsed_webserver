@@ -196,14 +196,12 @@ onMounted(() => {
 .footer-gallery {
   position: fixed;
   bottom: 0;
-  left: 130px; /* Platz für Träshy Icon (100px + margins) */
+  left: 0;
   right: 0;
   z-index: 950;
   background: rgba(10, 10, 10, 0.98);
   backdrop-filter: blur(12px);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-left-radius: 12px;
   transition: transform 0.3s ease;
 }
 
@@ -465,7 +463,7 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .footer-gallery {
-    left: 100px; /* Kleinerer Abstand auf Mobile (kleineres Träshy Icon) */
+    left: 0;
   }
 
   .gallery-content {

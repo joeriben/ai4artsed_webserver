@@ -341,15 +341,15 @@ html, body {
   overflow: auto;
 }
 
-/* Permanent Funding Logo - Fixed Bottom Right */
+/* Permanent Funding Logo - Fixed Bottom Right, above collapsed favorites bar */
 .funding-logo-fixed {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  bottom: 44px; /* Above collapsed favorites bar (~36px + small gap) */
+  right: 1rem;
   z-index: 900;
   background: white;
-  padding: 0.75rem;
-  border-radius: 8px;
+  padding: 0.5rem;
+  border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -365,7 +365,7 @@ html, body {
 }
 
 .funding-logo-fixed img {
-  width: 180px;
+  width: 126px; /* 180px * 0.7 = 30% smaller */
   height: auto;
   display: block;
 }
@@ -413,13 +413,13 @@ html, body {
   }
 
   .funding-logo-fixed {
-    bottom: 1rem;
-    right: 1rem;
-    padding: 0.5rem;
+    bottom: 40px; /* Above collapsed favorites bar on mobile */
+    right: 0.75rem;
+    padding: 0.4rem;
   }
 
   .funding-logo-fixed img {
-    width: 140px;
+    width: 98px; /* 140px * 0.7 */
   }
 }
 </style>
