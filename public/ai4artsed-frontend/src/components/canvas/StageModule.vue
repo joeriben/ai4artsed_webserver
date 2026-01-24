@@ -144,8 +144,23 @@ function onPromptTextChange(event: Event) {
     <!-- Node body -->
     <div class="module-body">
 
+      <!-- INPUT NODE: Prompt text input (FIRST to ensure it matches) -->
+      <template v-if="node.type === 'input'">
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Prompt' : 'Prompt' }}</label>
+          <textarea
+            class="prompt-textarea"
+            :value="node.promptText || ''"
+            :placeholder="locale === 'de' ? 'Dein Prompt...' : 'Your prompt...'"
+            rows="4"
+            @input="onPromptTextChange"
+            @mousedown.stop
+          />
+        </div>
+      </template>
+
       <!-- INTERCEPTION NODE: LLM dropdown + Context prompt -->
-      <template v-if="isInterception">
+      <template v-else-if="isInterception">
         <div class="field-group">
           <label class="field-label">LLM</label>
           <select
@@ -220,21 +235,6 @@ function onPromptTextChange(event: Event) {
           {{ displayConfigName }}
           <span class="config-arrow">▼</span>
         </button>
-      </template>
-
-      <!-- INPUT NODE: Prompt text input -->
-      <template v-else-if="isInput">
-        <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Prompt' : 'Prompt' }}</label>
-          <textarea
-            class="prompt-textarea"
-            :value="node.promptText || ''"
-            :placeholder="locale === 'de' ? 'Dein Prompt...' : 'Your prompt...'"
-            rows="4"
-            @input="onPromptTextChange"
-            @mousedown.stop
-          />
-        </div>
       </template>
 
       <!-- Other node types (collector) -->

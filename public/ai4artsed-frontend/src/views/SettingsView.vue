@@ -50,6 +50,12 @@
                   <option value="vram_16">16 GB</option>
                   <option value="vram_8">8 GB</option>
                 </select>
+                <span v-if="gpuInfo.detected" class="help-text gpu-detected">
+                  ✓ Auto-detected: {{ gpuInfo.gpu_name }} ({{ gpuInfo.vram_gb }} GB)
+                </span>
+                <span v-else-if="gpuInfo.error" class="help-text gpu-error">
+                  ⚠ GPU detection failed
+                </span>
               </td>
             </tr>
             <tr>
@@ -329,6 +335,7 @@ const error = ref(null)
 const settings = ref({})
 const matrix = ref({})
 const selectedVramTier = ref('vram_24')
+const gpuInfo = ref({ detected: false, error: null })
 const openrouterKey = ref('')
 const openrouterKeyMasked = ref('')
 const anthropicKey = ref('')
@@ -435,6 +442,25 @@ async function loadSettings() {
     error.value = e.message
   } finally {
     loading.value = false
+  }
+}
+
+async function detectGpu() {
+  try {
+    const response = await fetch('/api/settings/gpu-info')
+    if (response.ok) {
+      const data = await response.json()
+      gpuInfo.value = data
+
+      if (data.detected && data.vram_tier) {
+        // Auto-select the detected VRAM tier
+        selectedVramTier.value = data.vram_tier
+        console.log(`[Settings] GPU detected: ${data.gpu_name} (${data.vram_gb} GB) → ${data.vram_tier}`)
+      }
+    }
+  } catch (e) {
+    console.warn('[Settings] GPU detection failed:', e)
+    gpuInfo.value = { detected: false, error: e.message }
   }
 }
 
@@ -666,6 +692,8 @@ function onAuthenticated() {
 
 onMounted(() => {
   checkAuth()
+  // Detect GPU immediately (no auth required)
+  detectGpu()
 })
 </script>
 
@@ -943,5 +971,14 @@ onMounted(() => {
 
 .info-box li {
   margin: 4px 0;
+}
+
+.gpu-detected {
+  color: #2e7d32 !important;
+  font-weight: 500;
+}
+
+.gpu-error {
+  color: #f57c00 !important;
 }
 </style>
