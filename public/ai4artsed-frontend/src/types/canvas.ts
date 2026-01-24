@@ -159,6 +159,10 @@ export interface CanvasNode {
   // === Translation node config ===
   /** Translation prompt/instructions */
   translationPrompt?: string
+
+  // === Input node config ===
+  /** User's prompt text (input node) */
+  promptText?: string
 }
 
 // ============================================================================

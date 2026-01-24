@@ -78,6 +78,10 @@ function handleUpdateNodeTranslationPrompt(nodeId: string, prompt: string) {
   canvasStore.updateNode(nodeId, { translationPrompt: prompt })
 }
 
+function handleUpdateNodePromptText(nodeId: string, text: string) {
+  canvasStore.updateNode(nodeId, { promptText: text })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -258,6 +262,7 @@ const currentConfigId = computed(() => {
           @update-node-llm="handleUpdateNodeLLM"
           @update-node-context-prompt="handleUpdateNodeContextPrompt"
           @update-node-translation-prompt="handleUpdateNodeTranslationPrompt"
+          @update-node-prompt-text="handleUpdateNodePromptText"
         />
       </div>
     </div>

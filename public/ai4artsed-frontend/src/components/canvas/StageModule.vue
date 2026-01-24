@@ -27,6 +27,7 @@ const emit = defineEmits<{
   'update-llm': [llmModel: string]
   'update-context-prompt': [prompt: string]
   'update-translation-prompt': [prompt: string]
+  'update-prompt-text': [text: string]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -56,6 +57,7 @@ const hasOutputConnector = computed(() => {
 })
 
 // Node type checks
+const isInput = computed(() => props.node.type === 'input')
 const isInterception = computed(() => props.node.type === 'interception')
 const isTranslation = computed(() => props.node.type === 'translation')
 const isGeneration = computed(() => props.node.type === 'generation')
@@ -89,6 +91,11 @@ function onTranslationPromptChange(event: Event) {
   const textarea = event.target as HTMLTextAreaElement
   emit('update-translation-prompt', textarea.value)
 }
+
+function onPromptTextChange(event: Event) {
+  const textarea = event.target as HTMLTextAreaElement
+  emit('update-prompt-text', textarea.value)
+}
 </script>
 
 <template>
@@ -97,7 +104,7 @@ function onTranslationPromptChange(event: Event) {
     :class="{
       selected,
       'needs-config': !isConfigured,
-      'wide-module': needsLLM
+      'wide-module': needsLLM || isInput
     }"
     :style="{
       left: `${node.x}px`,
@@ -215,7 +222,22 @@ function onTranslationPromptChange(event: Event) {
         </button>
       </template>
 
-      <!-- Other node types (input, collector) -->
+      <!-- INPUT NODE: Prompt text input -->
+      <template v-else-if="isInput">
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Prompt' : 'Prompt' }}</label>
+          <textarea
+            class="prompt-textarea"
+            :value="node.promptText || ''"
+            :placeholder="locale === 'de' ? 'Dein Prompt...' : 'Your prompt...'"
+            rows="4"
+            @input="onPromptTextChange"
+            @mousedown.stop
+          />
+        </div>
+      </template>
+
+      <!-- Other node types (collector) -->
       <template v-else>
         <span class="module-type-info">{{ node.type }}</span>
       </template>

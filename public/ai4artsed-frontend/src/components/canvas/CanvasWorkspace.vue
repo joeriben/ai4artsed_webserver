@@ -31,6 +31,7 @@ const emit = defineEmits<{
   'update-node-llm': [nodeId: string, llmModel: string]
   'update-node-context-prompt': [nodeId: string, prompt: string]
   'update-node-translation-prompt': [nodeId: string, prompt: string]
+  'update-node-prompt-text': [nodeId: string, text: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -224,6 +225,7 @@ onUnmounted(() => {
       @update-llm="emit('update-node-llm', node.id, $event)"
       @update-context-prompt="emit('update-node-context-prompt', node.id, $event)"
       @update-translation-prompt="emit('update-node-translation-prompt', node.id, $event)"
+      @update-prompt-text="emit('update-node-prompt-text', node.id, $event)"
     />
 
     <!-- Empty state -->
