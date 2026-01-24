@@ -1435,3 +1435,161 @@ All transformation views add `padding-bottom: 120px` to ensure content isn't hid
 - `src/views/image_transformation.vue` - Restore watcher implementation
 
 ---
+
+#### ChatOverlay Component (Träshy)
+
+**Status:** ✅ Implemented (Session 82, enhanced Session 133)
+**Location:** `/public/ai4artsed-frontend/src/components/ChatOverlay.vue`
+
+**Purpose:** Floating chat assistant ("Träshy") providing contextual help and guidance for AI4ArtsEd workflows.
+
+**Features:**
+
+1. **Floating Icon + Expandable Chat Window**
+   - Collapsed: Trashy icon button (bottom-left)
+   - Expanded: 380x520px chat window with message history
+
+2. **Session-Aware Context** (Session 82)
+   - Uses `run_id` from `useCurrentSession` composable
+   - Loads chat history from backend when session exists
+   - Context indicator (💡) shows when context is active
+
+3. **Page-Aware Context** (Session 133)
+   - Uses Vue provide/inject pattern with `PAGE_CONTEXT_KEY`
+   - Knows current view type, form fields, workflow nodes
+   - Prepends context to first message if no run_id session exists
+
+**Architecture (Session 133):**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         App.vue                              │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │                     router-view                        │  │
+│  │                                                        │  │
+│  │   text_transformation.vue ───┐                         │  │
+│  │   canvas_workflow.vue ───────┤                         │  │
+│  │   image_transformation.vue ──┤─── provide(PAGE_CONTEXT_KEY)
+│  │   direct.vue ────────────────┤                         │  │
+│  │   surrealizer.vue ───────────┤                         │  │
+│  │   multi_image_transformation ┤                         │  │
+│  │   partial_elimination.vue ───┤                         │  │
+│  │   split_and_combine.vue ─────┘                         │  │
+│  │                                                        │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │                   ChatOverlay.vue                      │  │
+│  │            inject(PAGE_CONTEXT_KEY) ◄──────────────────│──┘
+│  │            formatPageContextForLLM() ──► API request   │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Context Priority:**
+
+1. **Session Context (run_id)** - Highest priority
+   - Backend loads full session files (prompts, metadata)
+   - Chat history persisted per run
+
+2. **Draft Page Context (provide/inject)** - If no session
+   - Current view type
+   - Form field values (inputText, contextPrompt, etc.)
+   - Canvas workflow nodes
+   - Selected configs
+
+3. **Route-only Fallback** - Minimal
+   - Just `[Kontext: Aktive Seite = /path]`
+
+**Composable: usePageContext.ts**
+
+```typescript
+// Type definitions
+export interface PageContent {
+  inputText?: string
+  contextPrompt?: string
+  interceptionResult?: string
+  selectedCategory?: string | null
+  selectedConfig?: string | null
+  uploadedImage?: string | null
+  workflowName?: string
+  workflowNodes?: Array<{ id: string; type: string; configId?: string }>
+  selectedNodeId?: string | null
+}
+
+export interface PageContext {
+  activeViewType: string
+  pageContent: PageContent
+}
+
+// Injection key
+export const PAGE_CONTEXT_KEY: InjectionKey<ComputedRef<PageContext>> = Symbol('pageContext')
+
+// Formatting function
+export function formatPageContextForLLM(context: PageContext | null, routePath: string): string
+```
+
+**View Implementation Pattern:**
+
+```typescript
+// In each view (e.g., text_transformation.vue)
+import { provide, computed } from 'vue'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
+
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'text_transformation',
+  pageContent: {
+    inputText: inputText.value,
+    contextPrompt: contextPrompt.value,
+    interceptionResult: interceptionResult.value,
+    selectedCategory: selectedCategory.value,
+    selectedConfig: selectedConfig.value
+  }
+}))
+
+provide(PAGE_CONTEXT_KEY, pageContext)
+```
+
+**ChatOverlay Message Prepending:**
+
+```typescript
+// In ChatOverlay.vue
+const pageContext = inject(PAGE_CONTEXT_KEY, null)
+const route = useRoute()
+
+const draftContextString = computed(() => {
+  return formatPageContextForLLM(pageContext?.value || null, route.path)
+})
+
+async function sendMessage() {
+  let messageForBackend = userMessage
+
+  // Only prepend context if no run_id session exists
+  if (!currentSession.value.runId && draftContextString.value) {
+    messageForBackend = `${draftContextString.value}\n\n${userMessage}`
+  }
+
+  // UI shows original message, backend receives context-prepended
+  messages.value.push({ role: 'user', content: userMessage })
+  await axios.post('/api/chat', { message: messageForBackend, ... })
+}
+```
+
+**Views with Page Context:**
+
+| View | Context Provided |
+|------|------------------|
+| `text_transformation.vue` | inputText, contextPrompt, interceptionResult, selectedCategory, selectedConfig |
+| `canvas_workflow.vue` | workflowName, workflowNodes, selectedNodeId, connectionCount |
+| `image_transformation.vue` | inputText, contextPrompt, uploadedImage, selectedConfig |
+| `direct.vue` | inputText, selectedConfig |
+| `surrealizer.vue` | inputText, contextPrompt, uploadedImage, selectedConfig |
+| `multi_image_transformation.vue` | inputText, contextPrompt, uploadedImages, selectedConfig |
+| `partial_elimination.vue` | inputText, uploadedImage, selectedConfig |
+| `split_and_combine.vue` | inputText, uploadedImages, selectedConfig |
+
+**Related Files:**
+- `src/composables/usePageContext.ts` - Type definitions and formatting
+- `src/composables/useCurrentSession.ts` - Run ID session management
+- `devserver/my_app/routes/chat_routes.py` - Backend chat API
+
+---

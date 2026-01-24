@@ -1,5 +1,116 @@
 # Development Log
 
+## Session 135 - Prompt Optimization META-Instruction Fix
+**Date:** 2026-01-24
+**Focus:** Fix prompt_optimization breaking on certain models
+**Status:** COMPLETED
+
+### Problem
+The `prompt_optimization` chunk was failing with certain LLM models because the META-instruction was too complex and model-specific variations weren't working consistently.
+
+### Solution
+Simplified the META-instruction in `prompt_optimization` to be more universal and less dependent on model-specific quirks.
+
+### Files Changed
+- `devserver/my_app/config/chunks/prompt_optimization.json` - Simplified META-instruction
+
+### Commits
+- `1261c4a` fix(session-135): Simplify prompt_optimization META-instruction
+
+---
+
+## Session 134 - GPU Auto-Detection & Analog Photography Fixes
+**Date:** 2026-01-24
+**Focus:** Settings UI improvements, config fixes, instruction injection architecture
+**Status:** COMPLETED
+
+### Features
+1. **GPU Auto-Detection in Settings UI** - Automatically detects available GPUs
+2. **Analog Photography Config Fixes** - Fixed typos in interception configs
+3. **Model Evaluation Criteria** - Documented proper evaluation methodology
+4. **Instruction Injection Architecture** - Refactored HARDWARE_MATRIX handling
+
+### Files Changed
+- `public/ai4artsed-frontend/src/views/SettingsView.vue` - GPU auto-detection
+- `devserver/my_app/config/interception_configs/*.json` - Typo fixes
+- `docs/HANDOVER_ModelEvaluation_Criteria.md` - Evaluation methodology
+
+### Commits
+- `cea6685` feat(session-134): Add GPU auto-detection to Settings UI
+- `12a59bf` fix(session-134): Analog photography config typos + evaluation criteria
+- `e50bcc7` fix(session-134): Instruction injection architecture + HARDWARE_MATRIX
+
+---
+
+## Session 133 - Träshy Page Context & Canvas Node Improvements
+**Date:** 2026-01-24
+**Focus:** Chat assistant context awareness, Canvas workflow enhancements
+**Status:** COMPLETED
+
+### Major Features
+
+#### 1. Träshy Page Context (provide/inject Pattern)
+Träshy (chat assistant) now knows the current page state even before pipeline execution:
+- **Composable**: `usePageContext.ts` with `PageContext` interface and `formatPageContextForLLM()` helper
+- **Injection Key**: `PAGE_CONTEXT_KEY` for type-safe provide/inject
+- **8 Views Updated**: All major views now provide their page context
+
+**Implementation Pattern:**
+```typescript
+// In views (e.g., text_transformation.vue)
+const pageContext = computed(() => ({
+  activeViewType: 'text_transformation',
+  pageContent: {
+    inputText: inputText.value,
+    contextPrompt: contextPrompt.value,
+    selectedCategory: selectedCategory.value,
+    selectedConfig: selectedConfig.value
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
+
+// In ChatOverlay.vue
+const pageContext = inject(PAGE_CONTEXT_KEY, null)
+const draftContextString = computed(() => formatPageContextForLLM(pageContext?.value, route.path))
+```
+
+**Priority Logic:**
+1. Session context (run_id files) - highest priority
+2. Draft page context (from provide/inject) - if no session
+3. Route-only fallback - minimal context
+
+#### 2. Canvas Workflow Improvements
+- **Collector Node** - Now accepts text from LLM nodes
+- **Input Node** - Now accepts prompt text input
+- **LLM Endpoint** - Curated model selection for canvas nodes
+
+#### 3. Additional Fixes
+- **Ollama Models Dropdown** - `/api/settings/ollama-models` endpoint + `<datalist>` in SettingsView
+- **Model Name Trimming** - `.strip()` in chat_routes.py prevents whitespace issues
+- **Log String Cleanup** - "STAGE1-GPT-OSS" → "STAGE1-SAFETY", "gpt-oss:" → "llm:"
+
+### Files Changed
+- 📝 `src/composables/usePageContext.ts` - **NEW** - Type definitions & formatting
+- 📝 `src/components/ChatOverlay.vue` - inject() + context-prepending
+- 📝 `src/views/text_transformation.vue` - provide(PAGE_CONTEXT_KEY)
+- 📝 `src/views/image_transformation.vue` - provide(PAGE_CONTEXT_KEY)
+- 📝 `src/views/canvas_workflow.vue` - provide(PAGE_CONTEXT_KEY)
+- 📝 `src/views/direct.vue` - provide(PAGE_CONTEXT_KEY)
+- 📝 `src/views/surrealizer.vue` - provide(PAGE_CONTEXT_KEY)
+- 📝 `src/views/multi_image_transformation.vue` - provide(PAGE_CONTEXT_KEY)
+- 📝 `src/views/partial_elimination.vue` - provide(PAGE_CONTEXT_KEY)
+- 📝 `src/views/split_and_combine.vue` - provide(PAGE_CONTEXT_KEY)
+- 📝 `devserver/my_app/routes/settings_routes.py` - Ollama models endpoint
+- 📝 `devserver/my_app/routes/chat_routes.py` - Model name trimming
+
+### Commits
+- `833428b` forgotten commits (includes all page context changes)
+- `5221b36` feat(session-133): Collector accepts text from LLM nodes
+- `26e1f4a` feat(session-133): Input node accepts prompt text
+- `9bda8e5` fix(session-133): LLM endpoint with curated model selection
+
+---
+
 ## Session 130 - Research Data Architecture: 1 Run = 1 Media Output
 **Date:** 2026-01-23
 **Duration:** ~3 hours
