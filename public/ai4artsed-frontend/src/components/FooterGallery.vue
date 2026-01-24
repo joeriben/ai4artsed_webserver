@@ -213,7 +213,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
+  height: var(--footer-collapsed-height);
+  padding: 0 1rem;
   cursor: pointer;
   transition: background 0.2s ease;
 }

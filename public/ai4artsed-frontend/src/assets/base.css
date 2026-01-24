@@ -34,6 +34,13 @@
   --color-text: var(--vt-c-text-light-1);
 
   --section-gap: 160px;
+
+  /* Layout dimensions - shared across components */
+  --footer-collapsed-height: 36px;
+  --footer-collapsed-height-mobile: 32px;
+  --funding-logo-width: 126px;
+  --funding-logo-width-mobile: 98px;
+  --layout-gap-small: 8px;
 }
 
 @media (prefers-color-scheme: dark) {

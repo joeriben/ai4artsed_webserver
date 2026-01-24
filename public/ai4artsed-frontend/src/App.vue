@@ -344,7 +344,7 @@ html, body {
 /* Permanent Funding Logo - Fixed Bottom Right, above collapsed favorites bar */
 .funding-logo-fixed {
   position: fixed;
-  bottom: 44px; /* Above collapsed favorites bar (~36px + small gap) */
+  bottom: calc(var(--footer-collapsed-height) + var(--layout-gap-small));
   right: 1rem;
   z-index: 900;
   background: white;
@@ -365,7 +365,7 @@ html, body {
 }
 
 .funding-logo-fixed img {
-  width: 126px; /* 180px * 0.7 = 30% smaller */
+  width: var(--funding-logo-width);
   height: auto;
   display: block;
 }
@@ -413,13 +413,13 @@ html, body {
   }
 
   .funding-logo-fixed {
-    bottom: 40px; /* Above collapsed favorites bar on mobile */
+    bottom: calc(var(--footer-collapsed-height-mobile) + var(--layout-gap-small));
     right: 0.75rem;
     padding: 0.4rem;
   }
 
   .funding-logo-fixed img {
-    width: 98px; /* 140px * 0.7 */
+    width: var(--funding-logo-width-mobile);
   }
 }
 </style>
