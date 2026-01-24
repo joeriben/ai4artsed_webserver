@@ -270,6 +270,8 @@ async function sendMessage() {
     scrollToBottom()
   } finally {
     isLoading.value = false
+    // Re-focus input after response
+    await nextTick()
     inputTextarea.value?.focus()
   }
 }
@@ -338,6 +340,7 @@ watch(
 .chat-window {
   width: 380px;
   height: 520px;
+  max-height: calc(100vh - 120px); /* Stay within viewport */
   background: #1a1a1a;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -345,6 +348,10 @@ watch(
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #333;
+  /* Position: extends downward and leftward from icon */
+  position: absolute;
+  top: 0;
+  right: 100px; /* Left of the icon */
 }
 
 /* Header */
