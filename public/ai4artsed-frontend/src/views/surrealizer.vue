@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, provide } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -118,7 +118,8 @@ import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
-import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
+import { usePageContextStore } from '@/stores/pageContext'
+import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
 // i18n
@@ -179,6 +180,8 @@ const imageAnalysis = ref<{
 const showAnalysis = ref(false)
 
 // Page Context for Träshy (Session 133)
+const pageContextStore = usePageContextStore()
+
 const trashyFocusHint = computed<FocusHint>(() => {
   // During/after execution: bottom-right
   if (isExecuting.value || primaryOutput.value) {
@@ -195,7 +198,14 @@ const pageContext = computed<PageContext>(() => ({
   },
   focusHint: trashyFocusHint.value
 }))
-provide(PAGE_CONTEXT_KEY, pageContext)
+
+watch(pageContext, (ctx) => {
+  pageContextStore.setPageContext(ctx)
+}, { immediate: true, deep: true })
+
+onUnmounted(() => {
+  pageContextStore.clearContext()
+})
 
 // ============================================================================
 // Computed

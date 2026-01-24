@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, provide } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCanvasStore } from '@/stores/canvas'
 import CanvasWorkspace from '@/components/canvas/CanvasWorkspace.vue'
 import ModulePalette from '@/components/canvas/ModulePalette.vue'
 import ConfigSelectorModal from '@/components/canvas/ConfigSelectorModal.vue'
 import type { StageType } from '@/types/canvas'
-import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
+import { usePageContextStore } from '@/stores/pageContext'
+import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 const { t, locale } = useI18n()
 const canvasStore = useCanvasStore()
@@ -148,6 +149,8 @@ const currentConfigId = computed(() => {
 
 // Page Context for Träshy (Session 133)
 // Canvas: Träshy stays bottom-left to avoid interfering with workspace
+const pageContextStore = usePageContextStore()
+
 const trashyFocusHint = computed<FocusHint>(() => {
   // If palette is visible, move up slightly
   if (showPalette.value) {
@@ -171,7 +174,14 @@ const pageContext = computed<PageContext>(() => ({
   },
   focusHint: trashyFocusHint.value
 }))
-provide(PAGE_CONTEXT_KEY, pageContext)
+
+watch(pageContext, (ctx) => {
+  pageContextStore.setPageContext(ctx)
+}, { immediate: true, deep: true })
+
+onUnmounted(() => {
+  pageContextStore.clearContext()
+})
 </script>
 
 <template>

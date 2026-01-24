@@ -352,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watch, provide } from 'vue'
+import { ref, computed, nextTick, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
@@ -362,7 +362,8 @@ import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
-import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
+import { usePageContextStore } from '@/stores/pageContext'
+import type { PageContext, FocusHint } from '@/composables/usePageContext'
 import { getModelAvailability, type ModelAvailability } from '@/services/api'
 
 // Import styles (Phase 1 refactoring: extracted from inline <style scoped>)
@@ -483,7 +484,9 @@ const categorySectionRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // Page Context for Träshy (Session 133)
+// Using Pinia store instead of provide/inject for cross-component communication
 // ============================================================================
+const pageContextStore = usePageContextStore()
 
 // Determine Träshy position based on current workflow phase
 const trashyFocusHint = computed<FocusHint>(() => {
@@ -515,7 +518,16 @@ const pageContext = computed<PageContext>(() => ({
   },
   focusHint: trashyFocusHint.value
 }))
-provide(PAGE_CONTEXT_KEY, pageContext)
+
+// Update store whenever context changes
+watch(pageContext, (ctx) => {
+  pageContextStore.setPageContext(ctx)
+}, { immediate: true, deep: true })
+
+// Clear context when leaving the view
+onUnmounted(() => {
+  pageContextStore.clearContext()
+})
 
 // ============================================================================
 // Data

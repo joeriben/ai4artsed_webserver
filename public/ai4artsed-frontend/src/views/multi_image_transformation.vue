@@ -233,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, provide } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
@@ -241,7 +241,8 @@ import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
-import { PAGE_CONTEXT_KEY, type PageContext, type FocusHint } from '@/composables/usePageContext'
+import { usePageContextStore } from '@/stores/pageContext'
+import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
 // STATE
@@ -311,6 +312,8 @@ const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
 // ============================================================================
 // Page Context for Träshy (Session 133)
 // ============================================================================
+const pageContextStore = usePageContextStore()
+
 const imageCount = computed(() => {
   let count = 0
   if (uploadedImage1.value) count++
@@ -342,7 +345,14 @@ const pageContext = computed<PageContext>(() => ({
   },
   focusHint: trashyFocusHint.value
 }))
-provide(PAGE_CONTEXT_KEY, pageContext)
+
+watch(pageContext, (ctx) => {
+  pageContextStore.setPageContext(ctx)
+}, { immediate: true, deep: true })
+
+onUnmounted(() => {
+  pageContextStore.clearContext()
+})
 
 // ============================================================================
 // CONFIGURATION

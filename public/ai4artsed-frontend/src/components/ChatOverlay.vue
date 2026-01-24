@@ -73,11 +73,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, inject } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useCurrentSession } from '../composables/useCurrentSession'
-import { PAGE_CONTEXT_KEY, formatPageContextForLLM, DEFAULT_FOCUS_HINT } from '../composables/usePageContext'
+import { usePageContextStore } from '../stores/pageContext'
+import { DEFAULT_FOCUS_HINT } from '../composables/usePageContext'
 import trashyIcon from '../assets/trashy-icon.png'
 
 interface Message {
@@ -101,21 +102,18 @@ const inputTextarea = ref<HTMLTextAreaElement | null>(null)
 const { currentSession } = useCurrentSession()
 
 // Page context (Session 133: Träshy knows about current page state)
-const pageContext = inject(PAGE_CONTEXT_KEY, null)
+// Using Pinia store instead of inject (works across component tree siblings)
+const pageContextStore = usePageContextStore()
 const route = useRoute()
 
 // Build draft context string for LLM
 const draftContextString = computed(() => {
-  if (!pageContext?.value) {
-    // Fallback: just route info
-    return formatPageContextForLLM(null, route.path)
-  }
-  return formatPageContextForLLM(pageContext.value, route.path)
+  return pageContextStore.formatForLLM(route.path)
 })
 
 // Dynamic positioning based on focusHint
 const overlayPositionStyle = computed(() => {
-  const hint = pageContext?.value?.focusHint || DEFAULT_FOCUS_HINT
+  const hint = pageContextStore.currentFocusHint
 
   // Calculate position based on anchor type
   const style: Record<string, string> = {}
