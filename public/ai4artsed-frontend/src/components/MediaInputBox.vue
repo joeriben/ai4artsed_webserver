@@ -69,6 +69,7 @@
       ref="textareaRef"
       :value="value"
       @input="handleInput"
+      @focus="handleFocus"
       @blur="handleBlur"
       :placeholder="placeholder"
       :rows="rows"
@@ -153,6 +154,7 @@ const emit = defineEmits<{
   'copy': []
   'paste': []
   'clear': []
+  'focus': []  // Session 133: Emit when textarea gains focus (for Träshy positioning)
   'blur': [value: string]  // Session 130: Emit when textarea loses focus
   'image-uploaded': [data: any]  // Changed: Accept full data object from ImageUploadWidget
   'image-removed': []
@@ -181,6 +183,11 @@ const resizeClass = computed(() => {
 function handleInput(event: Event) {
   const target = event.target as HTMLTextAreaElement
   emit('update:value', target.value)
+}
+
+// Session 133: Emit focus event for Träshy positioning
+function handleFocus() {
+  emit('focus')
 }
 
 // Session 130: Emit blur event for prompt logging

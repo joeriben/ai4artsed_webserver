@@ -18,6 +18,7 @@
             @copy="copyInputText"
             @paste="pasteInputText"
             @clear="clearInputText"
+            @focus="focusedField = 'input'"
             @blur="(val: string) => logPromptChange('input', val)"
           />
 
@@ -34,6 +35,7 @@
             @copy="copyContextPrompt"
             @paste="pasteContextPrompt"
             @clear="clearContextPrompt"
+            @focus="focusedField = 'context'"
             @blur="(val: string) => logPromptChange('context_prompt', val)"
           />
         </section>
@@ -74,6 +76,7 @@
             @copy="copyInterceptionResult"
             @paste="pasteInterceptionResult"
             @clear="clearInterceptionResult"
+            @focus="focusedField = 'interception'"
             @blur="(val: string) => logPromptChange('interception', val)"
           />
           <!-- LoRA Badge (Session 116) - shows when interception config has LoRAs -->
@@ -424,6 +427,7 @@ const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 // Form state
 const inputText = ref('')
 const contextPrompt = ref('')
+const focusedField = ref<'input' | 'context' | 'interception' | 'optimization' | null>(null)
 const selectedCategory = ref<string | null>(null)
 const selectedConfig = ref<string | null>(null)
 const interceptionResult = ref('')
@@ -498,12 +502,23 @@ function getElementY(el: HTMLElement | null): number {
   return Math.max(10, Math.min(90, (centerY / window.innerHeight) * 100))
 }
 
-// Track current Träshy Y position (updated on phase changes)
+// Track current Träshy Y position (updated on focus/phase changes)
 const trashyY = ref(50)
 
-// Update Träshy position when phase changes
-watch([executionPhase, isPipelineExecuting, outputImage, selectedCategory], () => {
+// Update Träshy position when focus or phase changes
+watch([focusedField, executionPhase, isPipelineExecuting, outputImage, selectedCategory], () => {
   nextTick(() => {
+    // Priority 1: Follow focused field
+    if (focusedField.value === 'input' || focusedField.value === 'context') {
+      trashyY.value = getElementY(inputSectionRef.value)
+      return
+    }
+    if (focusedField.value === 'interception') {
+      trashyY.value = getElementY(interceptionSectionRef.value)
+      return
+    }
+
+    // Priority 2: Follow workflow phase
     if (isPipelineExecuting.value || outputImage.value) {
       // During/after generation: near output
       trashyY.value = pipelineSectionRef.value?.sectionRef
@@ -522,14 +537,18 @@ watch([executionPhase, isPipelineExecuting, outputImage, selectedCategory], () =
   })
 }, { immediate: true })
 
-// Determine Träshy position based on current workflow phase
+// Determine Träshy position based on focus and workflow phase
 const trashyFocusHint = computed<FocusHint>(() => {
-  // Initial phase: left side near input
-  if (executionPhase.value === 'initial') {
+  // If focused on input/context fields: left side
+  if (focusedField.value === 'input' || focusedField.value === 'context') {
     return { x: 2, y: trashyY.value, anchor: 'bottom-left' }
   }
-  // All other phases: right side at calculated Y
-  return { x: 95, y: trashyY.value, anchor: 'bottom-right' }
+  // If focused on interception or later phases: right side
+  if (focusedField.value === 'interception' || executionPhase.value !== 'initial') {
+    return { x: 95, y: trashyY.value, anchor: 'bottom-right' }
+  }
+  // Default (initial phase, no focus): left side
+  return { x: 2, y: trashyY.value, anchor: 'bottom-left' }
 })
 
 const pageContext = computed<PageContext>(() => ({
