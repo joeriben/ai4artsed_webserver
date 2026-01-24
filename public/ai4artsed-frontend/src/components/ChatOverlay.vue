@@ -306,8 +306,11 @@ watch(
 .chat-overlay {
   position: fixed;
   z-index: 10000;
-  /* Smooth floating animation */
-  transition: left 0.5s ease-out, right 0.5s ease-out, top 0.5s ease-out, bottom 0.5s ease-out;
+  /* Smooth movement with slight overshoot for organic feel */
+  transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+              right 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+              top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+              bottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Collapsed State */
@@ -321,12 +324,30 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
   padding: 0;
+  /* Gentle idle floating animation */
+  animation: trashy-idle 4s ease-in-out infinite;
 }
 
 .chat-toggle-icon:hover {
   transform: scale(1.1);
+  animation-play-state: paused;
+}
+
+/* Idle floating animation - subtle movement */
+@keyframes trashy-idle {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(2px, -3px) rotate(1deg);
+  }
+  50% {
+    transform: translate(-1px, -5px) rotate(-0.5deg);
+  }
+  75% {
+    transform: translate(-2px, -2px) rotate(0.5deg);
+  }
 }
 
 .chat-icon-img {
@@ -334,6 +355,17 @@ watch(
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  /* Subtle breathing effect */
+  animation: trashy-breathe 3s ease-in-out infinite;
+}
+
+@keyframes trashy-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
 }
 
 /* Expanded State: Chat Window */
