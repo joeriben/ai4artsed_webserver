@@ -153,6 +153,9 @@ def get_user_setting(key: str, default=None):
                 settings = json.load(f)
                 value = settings.get(key)
                 if value is not None:
+                    # Strip whitespace from string values (Session 133: prevent trailing space issues)
+                    if isinstance(value, str):
+                        value = value.strip()
                     logger.debug(f"Loaded {key}={value} from user_settings.json")
                     return value
                 else:
@@ -591,6 +594,8 @@ def chat():
 
         # Call configured chat helper model
         logger.info(f"Calling chat helper with {len(messages)} messages (context_used={context_used})")
+        # Session 133 DEBUG: Log user message to see if draft context is prepended
+        logger.info(f"[CHAT-DEBUG] User message preview: {user_message[:200]}..." if len(user_message) > 200 else f"[CHAT-DEBUG] User message: {user_message}")
 
         assistant_reply = call_chat_helper(
             messages=messages,

@@ -184,7 +184,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
@@ -194,6 +194,7 @@ import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useFavoritesStore } from '@/stores/favorites'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import { getModelAvailability, type ModelAvailability } from '@/services/api'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
 
 // ============================================================================
 // STATE
@@ -257,6 +258,20 @@ const showAnalysis = ref(false)
 const mainContainerRef = ref<HTMLElement | null>(null)
 const categorySectionRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
+
+// ============================================================================
+// Page Context for Träshy (Session 133)
+// ============================================================================
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'image_transformation',
+  pageContent: {
+    uploadedImage: uploadedImage.value ? '[Bild hochgeladen]' : null,
+    contextPrompt: contextPrompt.value,
+    selectedCategory: selectedCategory.value,
+    selectedConfig: selectedConfig.value
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
 
 // ============================================================================
 // CONFIGURATION

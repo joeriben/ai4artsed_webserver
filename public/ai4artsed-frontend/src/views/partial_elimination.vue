@@ -221,13 +221,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
 
 // ============================================================================
 // Types
@@ -287,6 +288,15 @@ const generationProgress = ref(0)
 const previousPrompt = ref('')
 const previousMode = ref('average')
 const currentSeed = ref<number | null>(null)
+
+// Page Context for Träshy (Session 133)
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'partial_elimination',
+  pageContent: {
+    inputText: inputText.value
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
 
 // ============================================================================
 // Computed

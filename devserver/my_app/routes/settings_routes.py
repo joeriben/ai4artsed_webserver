@@ -14,6 +14,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import config
 import os
 import subprocess
+import requests
 import sys
 import threading
 
@@ -1539,3 +1540,84 @@ def restart_backend():
     except Exception as e:
         logger.error(f"[SETTINGS] Error in restart_backend: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route('/ollama-models', methods=['GET'])
+def get_ollama_models():
+    """
+    Get list of available Ollama models for dropdown selection.
+
+    No authentication required - just model list.
+    Returns models with 'local/' prefix for direct use in settings.
+
+    Response:
+    {
+        "success": true,
+        "models": [
+            {"id": "local/qwen3-vl:32b", "name": "qwen3-vl:32b", "size": "20 GB"},
+            {"id": "local/qwen2.5vl:72b", "name": "qwen2.5vl:72b", "size": "48 GB"},
+            ...
+        ]
+    }
+    """
+    try:
+        # Get Ollama URL from config or user settings
+        ollama_url = config.OLLAMA_API_BASE_URL
+
+        # Call Ollama API to list models
+        response = requests.get(f"{ollama_url}/api/tags", timeout=5)
+
+        if response.status_code != 200:
+            logger.warning(f"[SETTINGS] Ollama API returned {response.status_code}")
+            return jsonify({
+                "success": False,
+                "error": f"Ollama API error: {response.status_code}",
+                "models": []
+            }), 200
+
+        data = response.json()
+        ollama_models = data.get('models', [])
+
+        # Format models for frontend dropdown
+        models = []
+        for model in ollama_models:
+            name = model.get('name', '')
+            size_bytes = model.get('size', 0)
+
+            # Convert size to human-readable format
+            size_gb = size_bytes / (1024 ** 3)
+            if size_gb >= 1:
+                size_str = f"{size_gb:.0f} GB"
+            else:
+                size_mb = size_bytes / (1024 ** 2)
+                size_str = f"{size_mb:.0f} MB"
+
+            models.append({
+                'id': f'local/{name}',
+                'name': name,
+                'size': size_str
+            })
+
+        # Sort by name
+        models.sort(key=lambda x: x['name'])
+
+        logger.info(f"[SETTINGS] Found {len(models)} Ollama models")
+        return jsonify({
+            "success": True,
+            "models": models
+        }), 200
+
+    except requests.exceptions.ConnectionError:
+        logger.warning("[SETTINGS] Cannot connect to Ollama")
+        return jsonify({
+            "success": False,
+            "error": "Ollama not running",
+            "models": []
+        }), 200
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error getting Ollama models: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "models": []
+        }), 200

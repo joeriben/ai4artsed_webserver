@@ -90,6 +90,21 @@ class PromptInterceptionEngine:
         - Instruction: HOW to transform + formatting rules
         - Input: User prompt to transform
         - Context: Style-specific rules (from config.context)
+
+        TODO [ARCHITECTURE VIOLATION]: This method should be REMOVED.
+        PromptInterceptionEngine should be a pure backend proxy, not build prompts.
+
+        Problem:
+        - This uses format: Instruction → Input → Context
+        - ChunkBuilder (manipulate.json) uses: Task → Context → Important → Prompt
+        - Two different formats for the same operation = inconsistency
+
+        Correct Architecture:
+        - ChunkBuilder builds prompt using manipulate.json template
+        - BackendRouter.route() calls this engine
+        - This engine should only receive pre-built prompt_text + model
+
+        See: docs/ARCHITECTURE_VIOLATION_PromptInterceptionEngine.md
         """
 
         # Formatting rules are part of the instruction

@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -118,6 +118,7 @@ import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
 
 // ============================================================================
 // i18n
@@ -176,6 +177,15 @@ const imageAnalysis = ref<{
   success: boolean
 } | null>(null)
 const showAnalysis = ref(false)
+
+// Page Context for Träshy (Session 133)
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'surrealizer',
+  pageContent: {
+    inputText: inputText.value
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
 
 // ============================================================================
 // Computed

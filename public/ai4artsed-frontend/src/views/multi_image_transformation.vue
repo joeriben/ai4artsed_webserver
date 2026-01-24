@@ -233,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
@@ -241,6 +241,7 @@ import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
 
 // ============================================================================
 // STATE
@@ -306,6 +307,28 @@ const showAnalysis = ref(false)
 const mainContainerRef = ref<HTMLElement | null>(null)
 const categorySectionRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
+
+// ============================================================================
+// Page Context for Träshy (Session 133)
+// ============================================================================
+const imageCount = computed(() => {
+  let count = 0
+  if (uploadedImage1.value) count++
+  if (uploadedImage2.value) count++
+  if (uploadedImage3.value) count++
+  return count
+})
+
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'multi_image_transformation',
+  pageContent: {
+    uploadedImage: imageCount.value > 0 ? `[${imageCount.value} Bild(er) hochgeladen]` : null,
+    contextPrompt: contextPrompt.value,
+    selectedCategory: selectedCategory.value,
+    selectedConfig: selectedConfig.value
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
 
 // ============================================================================
 // CONFIGURATION

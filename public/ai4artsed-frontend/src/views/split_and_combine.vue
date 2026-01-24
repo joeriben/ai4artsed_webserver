@@ -173,13 +173,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
 
 // ============================================================================
 // Types
@@ -221,6 +222,15 @@ const previousPrompt1 = ref('')
 const previousPrompt2 = ref('')
 const previousType = ref('linear')
 const currentSeed = ref<number | null>(null)
+
+// Page Context for Träshy (Session 133)
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'split_and_combine',
+  pageContent: {
+    inputText: `Prompt 1: ${prompt1.value}\nPrompt 2: ${prompt2.value}`
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
 
 // ============================================================================
 // Computed

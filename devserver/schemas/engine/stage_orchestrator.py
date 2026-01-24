@@ -362,7 +362,7 @@ async def execute_stage1_gpt_oss_unified(
     gpt_oss_time = time.time() - gpt_oss_start
 
     if not result.success:
-        logger.warning(f"[STAGE1-GPT-OSS] GPT-OSS failed: {result.error}, continuing (fail-open)")
+        logger.warning(f"[STAGE1-SAFETY] GPT-OSS failed: {result.error}, continuing (fail-open)")
         return (True, text, None)  # Fail-open
 
     response = result.final_output.strip()
@@ -394,7 +394,7 @@ async def execute_stage1_gpt_oss_unified(
             return (False, text, error_message)
 
         # All checks passed
-        logger.info(f"[STAGE1-GPT-OSS] PASSED (gpt-oss: {gpt_oss_time:.1f}s, post-filter: {post_filter_time*1000:.1f}ms)")
+        logger.info(f"[STAGE1-SAFETY] PASSED (llm: {gpt_oss_time:.1f}s, post-filter: {post_filter_time*1000:.1f}ms)")
         return (True, checked_text, None)
 
     elif response.startswith("BLOCKED:"):
@@ -418,7 +418,7 @@ async def execute_stage1_gpt_oss_unified(
                 f"Wir schützen dich und andere vor gefährlichen Inhalten."
             )
 
-            logger.warning(f"[STAGE1-GPT-OSS] BLOCKED by §86a: {symbol} (gpt-oss: {gpt_oss_time:.1f}s)")
+            logger.warning(f"[STAGE1-SAFETY] BLOCKED by §86a: {symbol} (llm: {gpt_oss_time:.1f}s)")
             return (False, text, error_message)
 
         elif "Kids-Filter" in blocked_parts:
@@ -437,7 +437,7 @@ async def execute_stage1_gpt_oss_unified(
                 f"Wir schützen dich vor Inhalten, die Angst machen oder ungeeignet für dein Alter sind."
             )
 
-            logger.warning(f"[STAGE1-GPT-OSS] BLOCKED by Kids-Filter: {found_terms} (gpt-oss: {gpt_oss_time:.1f}s)")
+            logger.warning(f"[STAGE1-SAFETY] BLOCKED by Kids-Filter: {found_terms} (llm: {gpt_oss_time:.1f}s)")
             return (False, text, error_message)
 
         elif "Youth-Filter" in blocked_parts:
@@ -455,7 +455,7 @@ async def execute_stage1_gpt_oss_unified(
                 f"Dein Prompt enthält explizite Begriffe, die für Jugendliche ungeeignet sind."
             )
 
-            logger.warning(f"[STAGE1-GPT-OSS] BLOCKED by Youth-Filter: {found_terms} (gpt-oss: {gpt_oss_time:.1f}s)")
+            logger.warning(f"[STAGE1-SAFETY] BLOCKED by Youth-Filter: {found_terms} (llm: {gpt_oss_time:.1f}s)")
             return (False, text, error_message)
 
         else:
@@ -466,12 +466,12 @@ async def execute_stage1_gpt_oss_unified(
                 f"{blocked_parts}"
             )
 
-            logger.warning(f"[STAGE1-GPT-OSS] BLOCKED (unknown type): {blocked_parts[:50]} (gpt-oss: {gpt_oss_time:.1f}s)")
+            logger.warning(f"[STAGE1-SAFETY] BLOCKED (unknown type): {blocked_parts[:50]} (llm: {gpt_oss_time:.1f}s)")
             return (False, text, error_message)
 
     else:
         # Unexpected format - log and fail-open
-        logger.warning(f"[STAGE1-GPT-OSS] Unexpected format: {response[:100]}, continuing (fail-open)")
+        logger.warning(f"[STAGE1-SAFETY] Unexpected format: {response[:100]}, continuing (fail-open)")
         return (True, text, None)
 
 async def execute_stage3_safety(

@@ -135,13 +135,26 @@
       <div class="section">
         <h2>Model Configuration</h2>
         <p class="help">Model identifiers with provider prefix: local/, bedrock/, anthropic/, openai/, openrouter/</p>
+        <p v-if="ollamaModels.length > 0" class="help" style="color: #4CAF50;">
+          {{ ollamaModels.length }} Ollama models available (type or select from dropdown)
+        </p>
 
         <table class="config-table">
           <tbody>
             <tr v-for="(label, key) in modelLabels" :key="key">
               <td class="label-cell">{{ label }}</td>
               <td class="value-cell">
-                <input type="text" v-model="settings[key]" class="text-input" />
+                <input
+                  type="text"
+                  v-model="settings[key]"
+                  class="text-input"
+                  :list="'ollama-models-' + key"
+                />
+                <datalist :id="'ollama-models-' + key">
+                  <option v-for="model in ollamaModels" :key="model.id" :value="model.id">
+                    {{ model.name }} ({{ model.size }})
+                  </option>
+                </datalist>
               </td>
             </tr>
           </tbody>
@@ -351,6 +364,7 @@ const restartInProgress = ref(false)
 const restartMessage = ref('')
 const restartSuccess = ref(true)
 const detectedContext = ref('')
+const ollamaModels = ref([])  // Session 133: Ollama model dropdown
 
 const modelLabels = {
   'STAGE1_TEXT_MODEL': 'Stage 1 - Text Model',
@@ -379,6 +393,22 @@ const cloudModelsDetected = computed(() => {
 const hasCloudModels = computed(() => {
   return cloudModelsDetected.value.length > 0
 })
+
+// Session 133: Load available Ollama models for dropdown
+async function loadOllamaModels() {
+  try {
+    const response = await fetch('/api/settings/ollama-models')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success && data.models) {
+        ollamaModels.value = data.models
+        console.log(`[Settings] Loaded ${data.models.length} Ollama models`)
+      }
+    }
+  } catch (e) {
+    console.warn('[Settings] Could not load Ollama models:', e)
+  }
+}
 
 async function loadSettings() {
   try {
@@ -688,6 +718,8 @@ function onAuthenticated() {
   showAuthModal.value = false
   // Load settings after authentication
   loadSettings()
+  // Session 133: Load Ollama models for dropdown (no auth required)
+  loadOllamaModels()
 }
 
 onMounted(() => {

@@ -352,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
@@ -362,6 +362,7 @@ import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
 import { getModelAvailability, type ModelAvailability } from '@/services/api'
 
 // Import styles (Phase 1 refactoring: extracted from inline <style scoped>)
@@ -479,6 +480,22 @@ const mainContainerRef = ref<HTMLElement | null>(null)
 const startButtonRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
 const categorySectionRef = ref<HTMLElement | null>(null)
+
+// ============================================================================
+// Page Context for Träshy (Session 133)
+// ============================================================================
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'text_transformation',
+  pageContent: {
+    inputText: inputText.value,
+    contextPrompt: contextPrompt.value,
+    interceptionResult: interceptionResult.value,
+    optimizedPrompt: optimizedPrompt.value,
+    selectedCategory: selectedCategory.value,
+    selectedConfig: selectedConfig.value
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
 
 // ============================================================================
 // Data

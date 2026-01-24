@@ -302,7 +302,10 @@ async def execute_optimization(
     logger.info(f"[OPTIMIZATION] Input text: '{input_text[:200]}...'")
     logger.info(f"[OPTIMIZATION] Using manipulate chunk with optimization_instruction as CONTEXT")
 
-    # Use the manipulate chunk through prompt_interception_engine
+    # TODO [ARCHITECTURE VIOLATION]: This bypasses ChunkBuilder pipeline.
+    # Should use: ChunkBuilder.build_chunk("manipulate", config, input_text)
+    # Then: BackendRouter.route(chunk)
+    # See: docs/ARCHITECTURE_VIOLATION_PromptInterceptionEngine.md
     from schemas.engine.prompt_interception_engine import (
         PromptInterceptionEngine,
         PromptInterceptionRequest
@@ -1477,7 +1480,8 @@ def execute_pipeline_streaming(data: dict):
 
         logger.info(f"[UNIFIED-STREAMING] Stage 2: Starting Interception streaming")
 
-        # Build full prompt
+        # TODO [ARCHITECTURE VIOLATION]: Direct Engine instantiation bypasses ChunkBuilder
+        # See: docs/ARCHITECTURE_VIOLATION_PromptInterceptionEngine.md
         engine = PromptInterceptionEngine()
 
         # Get config and style context
@@ -1623,7 +1627,8 @@ def execute_optimization_streaming(data: dict):
 
         logger.info(f"[OPTIMIZATION-STREAMING] Stage 3: Starting optimization")
 
-        # Build full prompt
+        # TODO [ARCHITECTURE VIOLATION]: Direct Engine instantiation bypasses ChunkBuilder
+        # See: docs/ARCHITECTURE_VIOLATION_PromptInterceptionEngine.md
         engine = PromptInterceptionEngine()
 
         # Use context_prompt as the optimization rules (style-specific)
@@ -1744,6 +1749,8 @@ def optimize_pipeline():
         if pipeline_executor is None:
             init_schema_engine()
 
+        # TODO [ARCHITECTURE VIOLATION]: Direct Engine instantiation bypasses ChunkBuilder
+        # See: docs/ARCHITECTURE_VIOLATION_PromptInterceptionEngine.md
         engine = PromptInterceptionEngine()
         from config import STAGE2_INTERCEPTION_MODEL
 
@@ -3927,7 +3934,8 @@ def test_pipeline():
         instruction_type = data.get('instruction_type', 'transformation')
         task_instruction = data.get('task_instruction', get_instruction(instruction_type))
 
-        # Direkte Prompt-Interception (für Tests)
+        # TODO [ARCHITECTURE VIOLATION]: Direct Engine instantiation bypasses ChunkBuilder
+        # See: docs/ARCHITECTURE_VIOLATION_PromptInterceptionEngine.md
         from schemas.engine.prompt_interception_engine import PromptInterceptionRequest
         engine = PromptInterceptionEngine()
 

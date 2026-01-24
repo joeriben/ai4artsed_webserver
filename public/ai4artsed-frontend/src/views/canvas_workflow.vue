@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, provide } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCanvasStore } from '@/stores/canvas'
 import CanvasWorkspace from '@/components/canvas/CanvasWorkspace.vue'
 import ModulePalette from '@/components/canvas/ModulePalette.vue'
 import ConfigSelectorModal from '@/components/canvas/ConfigSelectorModal.vue'
 import type { StageType } from '@/types/canvas'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
 
 const { t, locale } = useI18n()
 const canvasStore = useCanvasStore()
@@ -144,6 +145,23 @@ const currentConfigId = computed(() => {
   const node = canvasStore.nodes.find(n => n.id === configSelectorNodeId.value)
   return node?.configId
 })
+
+// Page Context for Träshy (Session 133)
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'canvas_workflow',
+  pageContent: {
+    workflowName: canvasStore.workflow.name,
+    workflowNodes: canvasStore.nodes.map(n => ({
+      id: n.id,
+      type: n.type,
+      configId: n.configId,
+      llmModel: n.llmModel
+    })),
+    selectedNodeId: canvasStore.selectedNodeId,
+    connectionCount: canvasStore.connections.length
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
 </script>
 
 <template>

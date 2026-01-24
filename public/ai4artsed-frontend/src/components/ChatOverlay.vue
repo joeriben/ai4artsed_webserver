@@ -76,9 +76,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, inject } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useCurrentSession } from '../composables/useCurrentSession'
+import { PAGE_CONTEXT_KEY, formatPageContextForLLM } from '../composables/usePageContext'
 import trashyIcon from '../assets/trashy-icon.png'
 
 interface Message {
@@ -101,8 +103,22 @@ const inputTextarea = ref<HTMLTextAreaElement | null>(null)
 // Session context
 const { currentSession, hasActiveSession } = useCurrentSession()
 
+// Page context (Session 133: Träshy knows about current page state)
+const pageContext = inject(PAGE_CONTEXT_KEY, null)
+const route = useRoute()
+
+// Build draft context string for LLM
+const draftContextString = computed(() => {
+  if (!pageContext?.value) {
+    // Fallback: just route info
+    return formatPageContextForLLM(null, route.path)
+  }
+  return formatPageContextForLLM(pageContext.value, route.path)
+})
+
 // Computed
-const hasContext = computed(() => hasActiveSession())
+// Has context if either: session context (run_id) OR draft context (page provided)
+const hasContext = computed(() => hasActiveSession() || (pageContext?.value?.pageContent !== undefined))
 
 const canSend = computed(() => {
   return inputMessage.value.trim().length > 0 && !isLoading.value
@@ -161,7 +177,15 @@ async function sendMessage() {
   const userMessage = inputMessage.value.trim()
   inputMessage.value = ''
 
-  // Add user message to UI
+  // Build full message with draft context (only if no run_id session)
+  // Session context (from run_id files) takes priority over draft context
+  let messageForBackend = userMessage
+  if (!currentSession.value.runId && draftContextString.value) {
+    messageForBackend = `${draftContextString.value}\n\n${userMessage}`
+    console.log('[ChatOverlay] Prepending draft context to message')
+  }
+
+  // Add user message to UI (show original message, not context-prefixed)
   messages.value.push({
     id: messageIdCounter++,
     role: 'user',
@@ -183,7 +207,7 @@ async function sendMessage() {
     }))
 
     const response = await axios.post('/api/chat', {
-      message: userMessage,
+      message: messageForBackend,  // Send with context prepended
       run_id: currentSession.value.runId || undefined,
       history: historyForBackend
     })

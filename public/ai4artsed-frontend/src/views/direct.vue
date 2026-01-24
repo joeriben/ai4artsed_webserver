@@ -158,12 +158,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { PAGE_CONTEXT_KEY, type PageContext } from '@/composables/usePageContext'
 
 // ============================================================================
 // Types
@@ -214,6 +215,16 @@ const imageAnalysis = ref<{
   success: boolean
 } | null>(null)
 const showAnalysis = ref(false)
+
+// Page Context for Träshy (Session 133)
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'direct',
+  pageContent: {
+    inputText: inputText.value,
+    selectedConfig: selectedOutputConfig.value
+  }
+}))
+provide(PAGE_CONTEXT_KEY, pageContext)
 
 // Available output configs (legacy workflows)
 const availableConfigs: OutputConfig[] = [
