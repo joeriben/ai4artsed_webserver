@@ -348,10 +348,10 @@ watch(
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #333;
-  /* Position: extends downward and leftward from icon */
+  /* Position: top-right corner aligns with icon's top-right */
   position: absolute;
   top: 0;
-  right: 100px; /* Left of the icon */
+  right: 0;
 }
 
 /* Header */
