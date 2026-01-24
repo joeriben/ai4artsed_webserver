@@ -279,11 +279,244 @@ def save_workflow():
 @canvas_bp.route('/api/canvas/execute', methods=['POST'])
 def execute_workflow():
     """
-    Execute a canvas workflow
+    Execute a canvas workflow - Phase 2/3 Implementation
 
-    TODO: Implement in Phase 3
+    Session 133: Basic execution for LLM nodes (interception, translation)
+
+    Request Body:
+    {
+        "nodes": [...],       # CanvasNode[]
+        "connections": [...], # CanvasConnection[]
+        "workflow": {...}     # Full workflow metadata (optional)
+    }
+
+    Returns:
+    {
+        "status": "success",
+        "results": {
+            "<nodeId>": {
+                "type": "input|interception|translation|generation|collector",
+                "output": "...",  # Text output for LLM nodes
+                "error": null     # Or error message if failed
+            },
+            ...
+        },
+        "collectorOutput": [...],  # All outputs collected at collector node
+        "executionOrder": [...]    # Node IDs in execution order
+    }
     """
-    return jsonify({
-        'status': 'error',
-        'message': 'Workflow execution not yet implemented'
-    }), 501
+    from schemas.engine.prompt_interception_engine import PromptInterceptionEngine, PromptInterceptionRequest
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'JSON request expected'}), 400
+
+        nodes = data.get('nodes', [])
+        connections = data.get('connections', [])
+
+        if not nodes:
+            return jsonify({'status': 'error', 'error': 'No nodes provided'}), 400
+
+        logger.info(f"[Canvas Execute] Starting execution with {len(nodes)} nodes, {len(connections)} connections")
+
+        # Build node lookup and adjacency
+        node_map = {n['id']: n for n in nodes}
+        # incoming[nodeId] = list of source node IDs
+        incoming = {n['id']: [] for n in nodes}
+        # outgoing[nodeId] = list of target node IDs
+        outgoing = {n['id']: [] for n in nodes}
+
+        for conn in connections:
+            source_id = conn.get('sourceId')
+            target_id = conn.get('targetId')
+            if source_id and target_id:
+                incoming[target_id].append(source_id)
+                outgoing[source_id].append(target_id)
+
+        # Topological sort (Kahn's algorithm)
+        in_degree = {nid: len(incoming[nid]) for nid in node_map}
+        queue = [nid for nid, deg in in_degree.items() if deg == 0]
+        execution_order = []
+
+        while queue:
+            nid = queue.pop(0)
+            execution_order.append(nid)
+            for target in outgoing[nid]:
+                in_degree[target] -= 1
+                if in_degree[target] == 0:
+                    queue.append(target)
+
+        if len(execution_order) != len(nodes):
+            return jsonify({'status': 'error', 'error': 'Cycle detected in workflow'}), 400
+
+        logger.info(f"[Canvas Execute] Execution order: {execution_order}")
+
+        # Execute nodes in order
+        results = {}
+        engine = PromptInterceptionEngine()
+
+        for node_id in execution_order:
+            node = node_map[node_id]
+            node_type = node.get('type')
+
+            logger.info(f"[Canvas Execute] Processing node {node_id} (type: {node_type})")
+
+            try:
+                if node_type == 'input':
+                    # Input node: just pass through the prompt text
+                    prompt_text = node.get('promptText', '')
+                    results[node_id] = {
+                        'type': 'input',
+                        'output': prompt_text,
+                        'error': None
+                    }
+                    logger.info(f"[Canvas Execute] Input node: '{prompt_text[:50]}...'")
+
+                elif node_type == 'interception':
+                    # Interception node: transform text with LLM
+                    # Get input from connected source node
+                    source_ids = incoming[node_id]
+                    input_text = ''
+                    for src_id in source_ids:
+                        if src_id in results and results[src_id].get('output'):
+                            input_text = results[src_id]['output']
+                            break
+
+                    llm_model = node.get('llmModel', 'local/mistral-nemo')
+                    context_prompt = node.get('contextPrompt', '')
+
+                    if not input_text:
+                        results[node_id] = {
+                            'type': 'interception',
+                            'output': '',
+                            'error': 'No input text from source node'
+                        }
+                    else:
+                        # Call LLM
+                        req = PromptInterceptionRequest(
+                            input_prompt=input_text,
+                            style_prompt=context_prompt,
+                            model=llm_model,
+                            debug=True
+                        )
+                        response = engine.process(req)
+
+                        results[node_id] = {
+                            'type': 'interception',
+                            'output': response.output_str if response.success else '',
+                            'error': response.error if not response.success else None,
+                            'model': response.model_used
+                        }
+                        logger.info(f"[Canvas Execute] Interception result: '{response.output_str[:50]}...' (model: {response.model_used})")
+
+                elif node_type == 'translation':
+                    # Translation node: translate with LLM
+                    source_ids = incoming[node_id]
+                    input_text = ''
+                    for src_id in source_ids:
+                        if src_id in results and results[src_id].get('output'):
+                            input_text = results[src_id]['output']
+                            break
+
+                    llm_model = node.get('llmModel', 'local/mistral-nemo')
+                    translation_prompt = node.get('translationPrompt', 'Translate to English:')
+
+                    if not input_text:
+                        results[node_id] = {
+                            'type': 'translation',
+                            'output': '',
+                            'error': 'No input text from source node'
+                        }
+                    else:
+                        # Call LLM with translation prompt
+                        req = PromptInterceptionRequest(
+                            input_prompt=input_text,
+                            style_prompt=translation_prompt,
+                            model=llm_model,
+                            debug=True
+                        )
+                        response = engine.process(req)
+
+                        results[node_id] = {
+                            'type': 'translation',
+                            'output': response.output_str if response.success else '',
+                            'error': response.error if not response.success else None,
+                            'model': response.model_used
+                        }
+                        logger.info(f"[Canvas Execute] Translation result: '{response.output_str[:50]}...'")
+
+                elif node_type == 'generation':
+                    # Generation node: TODO - call media generation
+                    source_ids = incoming[node_id]
+                    input_text = ''
+                    for src_id in source_ids:
+                        if src_id in results and results[src_id].get('output'):
+                            input_text = results[src_id]['output']
+                            break
+
+                    results[node_id] = {
+                        'type': 'generation',
+                        'output': f'[Generation placeholder - would generate with: {input_text[:100]}...]',
+                        'error': None,
+                        'configId': node.get('configId')
+                    }
+                    logger.info(f"[Canvas Execute] Generation node (placeholder): configId={node.get('configId')}")
+
+                elif node_type == 'collector':
+                    # Collector node: gather all inputs
+                    source_ids = incoming[node_id]
+                    collected = []
+                    for src_id in source_ids:
+                        if src_id in results:
+                            collected.append({
+                                'nodeId': src_id,
+                                'nodeType': results[src_id].get('type'),
+                                'output': results[src_id].get('output'),
+                                'error': results[src_id].get('error')
+                            })
+
+                    results[node_id] = {
+                        'type': 'collector',
+                        'output': collected,
+                        'error': None
+                    }
+                    logger.info(f"[Canvas Execute] Collector gathered {len(collected)} outputs")
+
+                else:
+                    results[node_id] = {
+                        'type': node_type,
+                        'output': None,
+                        'error': f'Unknown node type: {node_type}'
+                    }
+
+            except Exception as e:
+                logger.error(f"[Canvas Execute] Error processing node {node_id}: {e}")
+                results[node_id] = {
+                    'type': node_type,
+                    'output': None,
+                    'error': str(e)
+                }
+
+        # Find collector output
+        collector_output = []
+        for node in nodes:
+            if node.get('type') == 'collector' and node['id'] in results:
+                collector_output = results[node['id']].get('output', [])
+                break
+
+        logger.info(f"[Canvas Execute] Execution complete. Collector has {len(collector_output)} items.")
+
+        return jsonify({
+            'status': 'success',
+            'results': results,
+            'collectorOutput': collector_output,
+            'executionOrder': execution_order
+        })
+
+    except Exception as e:
+        logger.error(f"[Canvas Execute] Fatal error: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500

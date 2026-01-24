@@ -7,6 +7,14 @@ import type { CanvasNode, CanvasConnection, StageType, LLMModelSummary } from '@
 
 const { locale } = useI18n()
 
+/** Collector output item from execution */
+interface CollectorOutputItem {
+  nodeId: string
+  nodeType: string
+  output: unknown
+  error: string | null
+}
+
 const props = defineProps<{
   nodes: CanvasNode[]
   connections: CanvasConnection[]
@@ -14,6 +22,15 @@ const props = defineProps<{
   connectingFromId: string | null
   mousePosition: { x: number; y: number }
   llmModels: LLMModelSummary[]
+  /** Execution results per node (nodeId -> result) */
+  executionResults?: Record<string, {
+    type: string
+    output: unknown
+    error: string | null
+    model?: string
+  }>
+  /** Collector output for collector nodes */
+  collectorOutput?: CollectorOutputItem[]
 }>()
 
 const emit = defineEmits<{
@@ -217,6 +234,8 @@ onUnmounted(() => {
       :node="node"
       :selected="node.id === selectedNodeId"
       :llm-models="llmModels"
+      :execution-result="executionResults?.[node.id]"
+      :collector-output="node.type === 'collector' ? collectorOutput : undefined"
       @mousedown="startNodeDrag(node.id, $event)"
       @start-connect="emit('start-connection', node.id)"
       @end-connect="emit('complete-connection', node.id)"

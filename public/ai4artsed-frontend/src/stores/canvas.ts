@@ -63,6 +63,22 @@ export const useCanvasStore = defineStore('canvas', () => {
   /** Whether we're in execution mode (read-only canvas) */
   const isExecuting = ref(false)
 
+  /** Execution results from backend (nodeId -> result) */
+  const executionResults = ref<Record<string, {
+    type: string
+    output: unknown
+    error: string | null
+    model?: string
+  }>>({})
+
+  /** Collector output (aggregated from all connected nodes) */
+  const collectorOutput = ref<Array<{
+    nodeId: string
+    nodeType: string
+    output: unknown
+    error: string | null
+  }>>([])
+
   // ============================================================================
   // COMPUTED
   // ============================================================================
@@ -431,6 +447,7 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   /**
    * Start workflow execution
+   * Session 133: Calls /api/canvas/execute backend endpoint
    */
   async function executeWorkflow() {
     if (!isWorkflowValid.value) {
@@ -440,6 +457,10 @@ export const useCanvasStore = defineStore('canvas', () => {
     }
 
     isExecuting.value = true
+    error.value = null
+    executionResults.value = {}
+    collectorOutput.value = []
+
     executionState.value = {
       workflowId: workflow.value.id,
       status: 'running',
@@ -450,7 +471,52 @@ export const useCanvasStore = defineStore('canvas', () => {
     }
 
     console.log('[Canvas] Starting workflow execution...')
-    // TODO: Implement actual execution in Phase 3
+
+    try {
+      const response = await fetch('/api/canvas/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nodes: workflow.value.nodes,
+          connections: workflow.value.connections,
+          workflow: {
+            id: workflow.value.id,
+            name: workflow.value.name
+          }
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.status === 'success') {
+        executionResults.value = data.results || {}
+        collectorOutput.value = data.collectorOutput || []
+
+        if (executionState.value) {
+          executionState.value.status = 'completed'
+          executionState.value.endTime = Date.now()
+        }
+
+        console.log('[Canvas] Execution completed:', data.executionOrder)
+        console.log('[Canvas] Collector output:', collectorOutput.value)
+      } else {
+        error.value = data.error || 'Execution failed'
+        if (executionState.value) {
+          executionState.value.status = 'failed'
+          executionState.value.endTime = Date.now()
+        }
+        console.error('[Canvas] Execution error:', data.error)
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Network error'
+      if (executionState.value) {
+        executionState.value.status = 'failed'
+        executionState.value.endTime = Date.now()
+      }
+      console.error('[Canvas] Execution fetch error:', err)
+    } finally {
+      isExecuting.value = false
+    }
   }
 
   /**
@@ -492,6 +558,8 @@ export const useCanvasStore = defineStore('canvas', () => {
     error: computed(() => error.value),
     executionState: computed(() => executionState.value),
     isExecuting: computed(() => isExecuting.value),
+    executionResults: computed(() => executionResults.value),
+    collectorOutput: computed(() => collectorOutput.value),
 
     // Computed
     isConnecting,

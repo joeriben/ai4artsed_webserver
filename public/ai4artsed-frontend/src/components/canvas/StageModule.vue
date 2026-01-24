@@ -11,11 +11,28 @@ function getIconUrl(iconPath: string): string {
   return new URL(`../../assets/icons/${iconPath}`, import.meta.url).href
 }
 
+/** Collector output item from execution */
+interface CollectorOutputItem {
+  nodeId: string
+  nodeType: string
+  output: unknown
+  error: string | null
+}
+
 const props = defineProps<{
   node: CanvasNode
   selected: boolean
   configName?: string
   llmModels?: LLMModelSummary[]
+  /** Execution results for this node (from store) */
+  executionResult?: {
+    type: string
+    output: unknown
+    error: string | null
+    model?: string
+  }
+  /** Collector output (only for collector nodes) */
+  collectorOutput?: CollectorOutputItem[]
 }>()
 
 const emit = defineEmits<{
@@ -61,7 +78,9 @@ const isInput = computed(() => props.node.type === 'input')
 const isInterception = computed(() => props.node.type === 'interception')
 const isTranslation = computed(() => props.node.type === 'translation')
 const isGeneration = computed(() => props.node.type === 'generation')
+const isCollector = computed(() => props.node.type === 'collector')
 const needsLLM = computed(() => isInterception.value || isTranslation.value)
+const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 
 // Check if node is properly configured
 const isConfigured = computed(() => {
@@ -104,7 +123,7 @@ function onPromptTextChange(event: Event) {
     :class="{
       selected,
       'needs-config': !isConfigured,
-      'wide-module': needsLLM || isInput
+      'wide-module': needsLLM || isInput || hasCollectorOutput
     }"
     :style="{
       left: `${node.x}px`,
@@ -237,7 +256,40 @@ function onPromptTextChange(event: Event) {
         </button>
       </template>
 
-      <!-- Other node types (collector) -->
+      <!-- COLLECTOR NODE: Display collected outputs -->
+      <template v-else-if="node.type === 'collector'">
+        <div v-if="collectorOutput && collectorOutput.length > 0" class="collector-results">
+          <div
+            v-for="(item, idx) in collectorOutput"
+            :key="idx"
+            class="collector-item"
+            :class="{ 'has-error': item.error }"
+          >
+            <div class="collector-item-header">
+              <span class="item-type">{{ item.nodeType }}</span>
+              <span v-if="item.error" class="item-error-badge">!</span>
+            </div>
+            <div class="collector-item-content">
+              <template v-if="item.error">
+                <span class="error-text">{{ item.error }}</span>
+              </template>
+              <template v-else-if="typeof item.output === 'string'">
+                {{ item.output.slice(0, 200) }}{{ item.output.length > 200 ? '...' : '' }}
+              </template>
+              <template v-else>
+                {{ JSON.stringify(item.output).slice(0, 100) }}...
+              </template>
+            </div>
+          </div>
+        </div>
+        <div v-else class="collector-empty">
+          <span class="module-type-info">
+            {{ locale === 'de' ? 'Warte auf Ausführung...' : 'Waiting for execution...' }}
+          </span>
+        </div>
+      </template>
+
+      <!-- Other node types -->
       <template v-else>
         <span class="module-type-info">{{ node.type }}</span>
       </template>
@@ -451,5 +503,68 @@ function onPromptTextChange(event: Event) {
 
 .connector:hover {
   background: var(--node-color);
+}
+
+/* Collector node styles */
+.collector-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.collector-item {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.collector-item.has-error {
+  border-color: #ef4444;
+}
+
+.collector-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.item-type {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.item-error-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: bold;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collector-item-content {
+  font-size: 0.6875rem;
+  color: #e2e8f0;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.error-text {
+  color: #ef4444;
+}
+
+.collector-empty {
+  text-align: center;
+  padding: 0.5rem;
 }
 </style>
