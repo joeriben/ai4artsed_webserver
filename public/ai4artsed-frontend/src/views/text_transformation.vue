@@ -537,18 +537,9 @@ watch([focusedField, executionPhase, isPipelineExecuting, outputImage, selectedC
   })
 }, { immediate: true })
 
-// Determine Träshy position based on focus and workflow phase
+// Determine Träshy position - always right side, Y follows focus/phase
 const trashyFocusHint = computed<FocusHint>(() => {
-  // If focused on input/context fields: left side
-  if (focusedField.value === 'input' || focusedField.value === 'context') {
-    return { x: 2, y: trashyY.value, anchor: 'bottom-left' }
-  }
-  // If focused on interception or later phases: right side
-  if (focusedField.value === 'interception' || executionPhase.value !== 'initial') {
-    return { x: 95, y: trashyY.value, anchor: 'bottom-right' }
-  }
-  // Default (initial phase, no focus): left side
-  return { x: 2, y: trashyY.value, anchor: 'bottom-left' }
+  return { x: 95, y: trashyY.value, anchor: 'bottom-right' }
 })
 
 const pageContext = computed<PageContext>(() => ({
