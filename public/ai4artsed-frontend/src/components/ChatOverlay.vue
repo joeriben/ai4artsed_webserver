@@ -114,6 +114,7 @@ const draftContextString = computed(() => {
 // Chat window dimensions
 const CHAT_HEIGHT = 520
 const CHAT_MIN_MARGIN = 10 // Minimum margin from viewport edges
+const TRASHY_RIGHT_OFFSET = 20 // Fixed distance from right edge (pixels)
 
 // Dynamic positioning based on focusHint
 // When expanded, clamp position to keep chat within viewport
@@ -121,8 +122,8 @@ const overlayPositionStyle = computed(() => {
   const hint = pageContextStore.currentFocusHint
   const style: Record<string, string> = {}
 
-  // Always position from right side
-  style.right = `${100 - hint.x}%`
+  // Fixed position from right edge (not percentage-based)
+  style.right = `${TRASHY_RIGHT_OFFSET}px`
   style.left = 'auto'
 
   if (isExpanded.value) {
