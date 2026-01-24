@@ -112,38 +112,24 @@ const draftContextString = computed(() => {
 })
 
 // Dynamic positioning based on focusHint
+// When expanded, use top positioning so chat opens downward
 const overlayPositionStyle = computed(() => {
   const hint = pageContextStore.currentFocusHint
-
-  // Calculate position based on anchor type
   const style: Record<string, string> = {}
 
-  switch (hint.anchor) {
-    case 'top-left':
-      style.left = `${hint.x}%`
-      style.top = `${hint.y}%`
-      style.bottom = 'auto'
-      style.right = 'auto'
-      break
-    case 'top-right':
-      style.right = `${100 - hint.x}%`
-      style.top = `${hint.y}%`
-      style.bottom = 'auto'
-      style.left = 'auto'
-      break
-    case 'bottom-right':
-      style.right = `${100 - hint.x}%`
-      style.bottom = `${100 - hint.y}%`
-      style.top = 'auto'
-      style.left = 'auto'
-      break
-    case 'bottom-left':
-    default:
-      style.left = `${hint.x}%`
-      style.bottom = `${100 - hint.y}%`
-      style.top = 'auto'
-      style.right = 'auto'
-      break
+  // Always position from right side
+  style.right = `${100 - hint.x}%`
+  style.left = 'auto'
+
+  if (isExpanded.value) {
+    // When expanded: use TOP positioning so chat extends downward
+    // hint.y is percentage from top, so we use it directly
+    style.top = `${hint.y}%`
+    style.bottom = 'auto'
+  } else {
+    // When collapsed (icon): use BOTTOM positioning
+    style.bottom = `${100 - hint.y}%`
+    style.top = 'auto'
   }
 
   return style
@@ -348,10 +334,6 @@ watch(
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #333;
-  /* Position: top-right corner aligns with icon's top-right */
-  position: absolute;
-  top: 0;
-  right: 0;
 }
 
 /* Header */
