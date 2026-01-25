@@ -46,12 +46,16 @@ const emit = defineEmits<{
   'update-translation-prompt': [prompt: string]
   'update-prompt-text': [text: string]
   'update-size': [width: number, height: number]
-  'update-evaluation-prompt': [prompt: string]
-  'update-output-type': [outputType: 'commentary' | 'score' | 'binary' | 'all']
   'update-display-title': [title: string]
   'update-display-mode': [mode: 'popup' | 'inline' | 'toast']
+  // Session 134 Refactored: Unified evaluation events
+  'update-evaluation-type': [type: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom']
+  'update-evaluation-prompt': [prompt: string]
+  'update-output-type': [outputType: 'commentary' | 'score' | 'all']
+  'update-enable-branching': [enabled: boolean]
+  'update-branch-condition': [condition: 'binary' | 'threshold']
   'update-threshold-value': [threshold: number]
-  'update-fork-labels': [trueLabel: string, falseLabel: string]
+  'update-branch-labels': [trueLabel: string, falseLabel: string]
   'start-connect-labeled': [label: string]
 }>()
 
@@ -88,19 +92,12 @@ const isTranslation = computed(() => props.node.type === 'translation')
 const isGeneration = computed(() => props.node.type === 'generation')
 const isCollector = computed(() => props.node.type === 'collector')
 const isDisplay = computed(() => props.node.type === 'display')
-const isBinaryFork = computed(() => props.node.type === 'binary_fork')
-const isThresholdFork = computed(() => props.node.type === 'threshold_fork')
-const isFork = computed(() => isBinaryFork.value || isThresholdFork.value)
-// Session 134: Evaluation node types
-const isEvaluation = computed(() => [
-  'fairness_evaluation',
-  'creativity_evaluation',
-  'equity_evaluation',
-  'quality_evaluation',
-  'custom_evaluation'
-].includes(props.node.type))
+// Session 134 Refactored: Unified evaluation node
+const isEvaluation = computed(() => props.node.type === 'evaluation')
 const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
+// Evaluation branching
+const hasBranching = computed(() => isEvaluation.value && props.node.enableBranching === true)
 
 // Check if node is properly configured
 const isConfigured = computed(() => {
@@ -136,7 +133,17 @@ function onPromptTextChange(event: Event) {
   emit('update-prompt-text', textarea.value)
 }
 
-// Session 134: Evaluation node handlers
+// Session 134 Refactored: Unified evaluation node handlers
+function onEvaluationTypeChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  const newType = select.value as 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom'
+  emit('update-evaluation-type', newType)
+
+  // Auto-fill prompt based on type
+  const prompt = getEvaluationPromptTemplate(newType)
+  emit('update-evaluation-prompt', prompt)
+}
+
 function onEvaluationPromptChange(event: Event) {
   const textarea = event.target as HTMLTextAreaElement
   emit('update-evaluation-prompt', textarea.value)
@@ -144,36 +151,46 @@ function onEvaluationPromptChange(event: Event) {
 
 function onOutputTypeChange(event: Event) {
   const select = event.target as HTMLSelectElement
-  emit('update-output-type', select.value as 'commentary' | 'score' | 'binary' | 'all')
+  emit('update-output-type', select.value as 'commentary' | 'score' | 'all')
 }
 
-function getEvaluationPlaceholder(nodeType: string): string {
-  const placeholders: Record<string, { en: string; de: string }> = {
-    fairness_evaluation: {
-      en: 'Check for stereotypes, bias, and fair representation...',
-      de: 'Prüfung auf Stereotype, Vorurteile und faire Repräsentation...'
+function onEnableBranchingChange(event: Event) {
+  const checkbox = event.target as HTMLInputElement
+  emit('update-enable-branching', checkbox.checked)
+}
+
+function onBranchConditionChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-branch-condition', select.value as 'binary' | 'threshold')
+}
+
+function getEvaluationPromptTemplate(evalType: string): string {
+  const templates: Record<string, { en: string; de: string }> = {
+    fairness: {
+      en: 'Check for stereotypes, bias, and fair representation. Evaluate whether this content reinforces harmful stereotypes or promotes diverse, equitable representation.',
+      de: 'Prüfe auf Stereotype, Vorurteile und faire Repräsentation. Bewerte, ob dieser Inhalt schädliche Stereotype verstärkt oder vielfältige, gerechte Darstellung fördert.'
     },
-    creativity_evaluation: {
-      en: 'Evaluate originality. Avoid stock photo aesthetics...',
-      de: 'Bewerte Originalität. Vermeide Stock-Foto-Ästhetik...'
+    creativity: {
+      en: 'Evaluate originality and creative quality. Check if the content shows genuine creativity or resembles generic stock imagery/text.',
+      de: 'Bewerte Originalität und kreative Qualität. Prüfe, ob der Inhalt echte Kreativität zeigt oder generischen Stock-Bildern/-Texten ähnelt.'
     },
-    equity_evaluation: {
-      en: 'Evaluate cultural sensitivity and representational equity...',
-      de: 'Bewerte kulturelle Sensibilität und Repräsentations-Equity...'
+    equity: {
+      en: 'Evaluate cultural sensitivity and representational equity. Check for respectful portrayal of diverse cultures and communities.',
+      de: 'Bewerte kulturelle Sensibilität und Repräsentations-Equity. Prüfe auf respektvolle Darstellung verschiedener Kulturen und Gemeinschaften.'
     },
-    quality_evaluation: {
-      en: 'Evaluate technical quality, composition, and clarity...',
-      de: 'Bewerte technische Qualität, Komposition und Klarheit...'
+    quality: {
+      en: 'Evaluate technical quality, composition, and clarity. Check for coherence, visual/textual quality, and overall execution.',
+      de: 'Bewerte technische Qualität, Komposition und Klarheit. Prüfe auf Kohärenz, visuelle/textuelle Qualität und Gesamtumsetzung.'
     },
-    custom_evaluation: {
+    custom: {
       en: 'Define your own evaluation criteria...',
       de: 'Definiere deine eigenen Bewertungskriterien...'
     }
   }
 
-  const placeholder = placeholders[nodeType]
-  if (!placeholder) return locale.value === 'de' ? 'Bewertungskriterien...' : 'Evaluation criteria...'
-  return locale.value === 'de' ? placeholder.de : placeholder.en
+  const template = templates[evalType]
+  if (!template) return locale.value === 'de' ? 'Bewertungskriterien...' : 'Evaluation criteria...'
+  return locale.value === 'de' ? template.de : template.en
 }
 
 // Session 134: Display node handlers
@@ -187,7 +204,6 @@ function onDisplayModeChange(event: Event) {
   emit('update-display-mode', select.value as 'popup' | 'inline' | 'toast')
 }
 
-// Session 134: Fork node handlers
 function onThresholdChange(event: Event) {
   const input = event.target as HTMLInputElement
   emit('update-threshold-value', parseFloat(input.value) || 0)
@@ -195,12 +211,12 @@ function onThresholdChange(event: Event) {
 
 function onTrueLabelChange(event: Event) {
   const input = event.target as HTMLInputElement
-  emit('update-fork-labels', input.value, props.node.falseLabel || 'False')
+  emit('update-branch-labels', input.value, props.node.falseLabel || (locale.value === 'de' ? 'Falsch' : 'False'))
 }
 
 function onFalseLabelChange(event: Event) {
   const input = event.target as HTMLInputElement
-  emit('update-fork-labels', props.node.trueLabel || 'True', input.value)
+  emit('update-branch-labels', props.node.trueLabel || (locale.value === 'de' ? 'Wahr' : 'True'), input.value)
 }
 
 // Resize handling (for Collector nodes)
@@ -469,8 +485,26 @@ const nodeHeight = computed(() => {
         </div>
       </template>
 
-      <!-- EVALUATION NODES: LLM dropdown + Evaluation prompt + Output type -->
+      <!-- EVALUATION NODE: Unified evaluation with optional branching -->
       <template v-else-if="isEvaluation">
+        <!-- Evaluation Type -->
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Bewertungstyp' : 'Evaluation Type' }}</label>
+          <select
+            class="llm-select"
+            :value="node.evaluationType || 'custom'"
+            @change="onEvaluationTypeChange"
+            @mousedown.stop
+          >
+            <option value="fairness">{{ locale === 'de' ? 'Fairness' : 'Fairness' }}</option>
+            <option value="creativity">{{ locale === 'de' ? 'Kreativität' : 'Creativity' }}</option>
+            <option value="equity">{{ locale === 'de' ? 'Equity' : 'Equity' }}</option>
+            <option value="quality">{{ locale === 'de' ? 'Qualität' : 'Quality' }}</option>
+            <option value="custom">{{ locale === 'de' ? 'Eigene' : 'Custom' }}</option>
+          </select>
+        </div>
+
+        <!-- LLM Selection -->
         <div class="field-group">
           <label class="field-label">LLM</label>
           <select
@@ -489,31 +523,102 @@ const nodeHeight = computed(() => {
             </option>
           </select>
         </div>
+
+        <!-- Evaluation Criteria -->
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Bewertungs-Kriterien' : 'Evaluation Criteria' }}</label>
+          <label class="field-label">{{ locale === 'de' ? 'Bewertungskriterien' : 'Evaluation Criteria' }}</label>
           <textarea
             class="prompt-textarea"
-            :value="node.evaluationPrompt || ''"
-            :placeholder="getEvaluationPlaceholder(node.type)"
+            :value="node.evaluationPrompt || getEvaluationPromptTemplate(node.evaluationType || 'custom')"
             rows="3"
             @input="onEvaluationPromptChange"
             @mousedown.stop
           />
         </div>
+
+        <!-- Output Type (score optional) -->
         <div class="field-group">
           <label class="field-label">{{ locale === 'de' ? 'Ausgabe-Typ' : 'Output Type' }}</label>
           <select
             class="llm-select"
-            :value="node.outputType || 'all'"
+            :value="node.outputType || 'commentary'"
             @change="onOutputTypeChange"
             @mousedown.stop
           >
-            <option value="commentary">{{ locale === 'de' ? 'Kommentar' : 'Commentary' }}</option>
-            <option value="score">{{ locale === 'de' ? 'Punktzahl' : 'Score' }}</option>
-            <option value="binary">{{ locale === 'de' ? 'Pass/Fail' : 'Binary' }}</option>
+            <option value="commentary">{{ locale === 'de' ? 'Kommentar + Binary' : 'Commentary + Binary' }}</option>
+            <option value="score">{{ locale === 'de' ? 'Kommentar + Score + Binary' : 'Commentary + Score + Binary' }}</option>
             <option value="all">{{ locale === 'de' ? 'Alle' : 'All' }}</option>
           </select>
         </div>
+
+        <!-- Enable Branching Checkbox -->
+        <div class="field-group">
+          <label class="field-checkbox">
+            <input
+              type="checkbox"
+              :checked="node.enableBranching || false"
+              @change="onEnableBranchingChange"
+              @mousedown.stop
+            />
+            <span>{{ locale === 'de' ? 'Verzweigung aktivieren' : 'Enable Branching' }}</span>
+          </label>
+        </div>
+
+        <!-- Conditional Branching UI -->
+        <template v-if="node.enableBranching">
+          <div class="branching-section">
+            <div class="field-group">
+              <label class="field-label">{{ locale === 'de' ? 'Verzweigungsbedingung' : 'Branch Condition' }}</label>
+              <select
+                class="llm-select"
+                :value="node.branchCondition || 'binary'"
+                @change="onBranchConditionChange"
+                @mousedown.stop
+              >
+                <option value="binary">{{ locale === 'de' ? 'Binary (Pass/Fail)' : 'Binary (Pass/Fail)' }}</option>
+                <option value="threshold">{{ locale === 'de' ? 'Schwellwert (Score)' : 'Threshold (Score)' }}</option>
+              </select>
+            </div>
+
+            <div v-if="node.branchCondition === 'threshold'" class="field-group">
+              <label class="field-label">{{ locale === 'de' ? 'Schwellwert (0-10)' : 'Threshold (0-10)' }}</label>
+              <input
+                type="number"
+                min="0"
+                max="10"
+                step="0.1"
+                class="llm-select"
+                :value="node.thresholdValue || 5"
+                @input="onThresholdChange"
+                @mousedown.stop
+              />
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">{{ locale === 'de' ? 'Label "Pass/True"' : 'True Path Label' }}</label>
+              <input
+                type="text"
+                class="llm-select"
+                :value="node.trueLabel || (locale === 'de' ? 'Bestanden' : 'Approved')"
+                :placeholder="locale === 'de' ? 'z.B. Bestanden' : 'e.g. Approved'"
+                @input="onTrueLabelChange"
+                @mousedown.stop
+              />
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">{{ locale === 'de' ? 'Label "Fail/False"' : 'False Path Label' }}</label>
+              <input
+                type="text"
+                class="llm-select"
+                :value="node.falseLabel || (locale === 'de' ? 'Revision nötig' : 'Needs Revision')"
+                :placeholder="locale === 'de' ? 'z.B. Revision nötig' : 'e.g. Needs Revision'"
+                @input="onFalseLabelChange"
+                @mousedown.stop
+              />
+            </div>
+          </div>
+        </template>
       </template>
 
       <!-- DISPLAY NODE: Title + Display mode -->
@@ -549,52 +654,6 @@ const nodeHeight = computed(() => {
         </div>
       </template>
 
-      <!-- FORK NODES: Binary/Threshold branching -->
-      <template v-else-if="isFork">
-        <div v-if="isThresholdFork" class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Schwellwert (0-10)' : 'Threshold (0-10)' }}</label>
-          <input
-            type="number"
-            min="0"
-            max="10"
-            step="0.1"
-            class="llm-select"
-            :value="node.thresholdValue || 5"
-            @input="onThresholdChange"
-            @mousedown.stop
-          />
-        </div>
-        <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? '"Wahr"-Pfad-Label' : 'True Path Label' }}</label>
-          <input
-            type="text"
-            class="llm-select"
-            :value="node.trueLabel || (locale === 'de' ? 'Wahr' : 'True')"
-            :placeholder="locale === 'de' ? 'z.B. Bestanden' : 'e.g. Approved'"
-            @input="onTrueLabelChange"
-            @mousedown.stop
-          />
-        </div>
-        <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? '"Falsch"-Pfad-Label' : 'False Path Label' }}</label>
-          <input
-            type="text"
-            class="llm-select"
-            :value="node.falseLabel || (locale === 'de' ? 'Falsch' : 'False')"
-            :placeholder="locale === 'de' ? 'z.B. Revision nötig' : 'e.g. Needs Revision'"
-            @input="onFalseLabelChange"
-            @mousedown.stop
-          />
-        </div>
-        <div class="fork-info">
-          <span class="module-type-info">
-            {{ isThresholdFork
-              ? (locale === 'de' ? 'Verzweigt basierend auf Punktzahl' : 'Branches based on score')
-              : (locale === 'de' ? 'Verzweigt basierend auf wahr/falsch' : 'Branches based on true/false') }}
-          </span>
-        </div>
-      </template>
-
       <!-- Other node types -->
       <template v-else>
         <span class="module-type-info">{{ node.type }}</span>
@@ -603,26 +662,26 @@ const nodeHeight = computed(() => {
 
     <!-- Output connector (standard single output) -->
     <div
-      v-if="hasOutputConnector && !isFork"
+      v-if="hasOutputConnector && !hasBranching"
       class="connector output"
       @mousedown.stop="emit('start-connect')"
     />
 
-    <!-- Fork output connectors (multiple labeled outputs) -->
-    <div v-if="isFork" class="fork-outputs">
+    <!-- Branching output connectors (evaluation node with branching enabled) -->
+    <div v-if="hasBranching" class="fork-outputs">
       <div
         class="connector output output-true"
         @mousedown.stop="emit('start-connect-labeled', 'true')"
-        :title="node.trueLabel || (locale === 'de' ? 'Wahr' : 'True')"
+        :title="node.trueLabel || (locale === 'de' ? 'Bestanden' : 'Approved')"
       >
-        <span class="connector-label">{{ node.trueLabel || (locale === 'de' ? 'W' : 'T') }}</span>
+        <span class="connector-label">{{ (node.trueLabel || (locale === 'de' ? 'Bestanden' : 'Approved')).substring(0, 1) }}</span>
       </div>
       <div
         class="connector output output-false"
         @mousedown.stop="emit('start-connect-labeled', 'false')"
-        :title="node.falseLabel || (locale === 'de' ? 'Falsch' : 'False')"
+        :title="node.falseLabel || (locale === 'de' ? 'Revision' : 'Revision')"
       >
-        <span class="connector-label">{{ node.falseLabel || (locale === 'de' ? 'F' : 'F') }}</span>
+        <span class="connector-label">{{ (node.falseLabel || (locale === 'de' ? 'Revision' : 'Revision')).substring(0, 1) }}</span>
       </div>
     </div>
 
@@ -1011,7 +1070,34 @@ const nodeHeight = computed(() => {
   font-style: italic;
 }
 
-/* Fork node styles */
+/* Session 134 Refactored: Unified evaluation node styles */
+.field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  user-select: none;
+}
+
+.field-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.branching-section {
+  padding: 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid #ef4444;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Fork node styles (for branching evaluation) */
 .fork-info {
   padding: 0.5rem;
   background: rgba(239, 68, 68, 0.1);

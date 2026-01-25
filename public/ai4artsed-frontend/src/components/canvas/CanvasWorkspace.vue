@@ -50,12 +50,16 @@ const emit = defineEmits<{
   'update-node-translation-prompt': [nodeId: string, prompt: string]
   'update-node-prompt-text': [nodeId: string, text: string]
   'update-node-size': [nodeId: string, width: number, height: number]
-  'update-node-evaluation-prompt': [nodeId: string, prompt: string]
-  'update-node-output-type': [nodeId: string, outputType: 'commentary' | 'score' | 'binary' | 'all']
   'update-node-display-title': [nodeId: string, title: string]
   'update-node-display-mode': [nodeId: string, mode: 'popup' | 'inline' | 'toast']
+  // Session 134 Refactored: Unified evaluation events
+  'update-node-evaluation-type': [nodeId: string, type: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom']
+  'update-node-evaluation-prompt': [nodeId: string, prompt: string]
+  'update-node-output-type': [nodeId: string, outputType: 'commentary' | 'score' | 'all']
+  'update-node-enable-branching': [nodeId: string, enabled: boolean]
+  'update-node-branch-condition': [nodeId: string, condition: 'binary' | 'threshold']
   'update-node-threshold-value': [nodeId: string, threshold: number]
-  'update-node-fork-labels': [nodeId: string, trueLabel: string, falseLabel: string]
+  'update-node-branch-labels': [nodeId: string, trueLabel: string, falseLabel: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -254,12 +258,15 @@ onUnmounted(() => {
       @update-translation-prompt="emit('update-node-translation-prompt', node.id, $event)"
       @update-prompt-text="emit('update-node-prompt-text', node.id, $event)"
       @update-size="(width, height) => emit('update-node-size', node.id, width, height)"
-      @update-evaluation-prompt="emit('update-node-evaluation-prompt', node.id, $event)"
-      @update-output-type="emit('update-node-output-type', node.id, $event)"
       @update-display-title="emit('update-node-display-title', node.id, $event)"
       @update-display-mode="emit('update-node-display-mode', node.id, $event)"
+      @update-evaluation-type="emit('update-node-evaluation-type', node.id, $event)"
+      @update-evaluation-prompt="emit('update-node-evaluation-prompt', node.id, $event)"
+      @update-output-type="emit('update-node-output-type', node.id, $event)"
+      @update-enable-branching="emit('update-node-enable-branching', node.id, $event)"
+      @update-branch-condition="emit('update-node-branch-condition', node.id, $event)"
       @update-threshold-value="emit('update-node-threshold-value', node.id, $event)"
-      @update-fork-labels="(trueLabel, falseLabel) => emit('update-node-fork-labels', node.id, trueLabel, falseLabel)"
+      @update-branch-labels="(trueLabel, falseLabel) => emit('update-node-branch-labels', node.id, trueLabel, falseLabel)"
     />
 
     <!-- Empty state -->

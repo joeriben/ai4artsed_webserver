@@ -27,15 +27,8 @@ export type StageType =
   | 'translation'
   | 'generation'
   | 'collector'
-  // Evaluation nodes (LLM-based judgment)
-  | 'fairness_evaluation'
-  | 'creativity_evaluation'
-  | 'equity_evaluation'
-  | 'quality_evaluation'
-  | 'custom_evaluation'
-  // Fork nodes (conditional branching)
-  | 'binary_fork'
-  | 'threshold_fork'
+  // Session 134 Refactored: Unified evaluation node with optional branching
+  | 'evaluation'
   // Display node (visualization)
   | 'display'
   // Loop controller (feedback loops)
@@ -142,84 +135,24 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
     mandatory: true,
-    acceptsFrom: ['generation', 'interception', 'translation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation', 'binary_fork', 'threshold_fork'],
+    acceptsFrom: ['generation', 'interception', 'translation', 'display', 'evaluation'],
     outputsTo: []
   },
-  // Session 134: Evaluation Nodes
+  // Session 134 Refactored: Unified Evaluation Node (replaces 5 eval nodes + 2 fork nodes)
   {
-    id: 'fairness_evaluation',
-    type: 'fairness_evaluation',
-    label: { en: 'Fairness Check', de: 'Fairness-Check' },
+    id: 'evaluation',
+    type: 'evaluation',
+    label: { en: 'Evaluation', de: 'Bewertung' },
     description: {
-      en: 'Evaluate for bias, stereotypes, and representation',
-      de: 'Prüfung auf Vorurteile, Stereotype und Repräsentation'
+      en: 'LLM-based evaluation with optional branching',
+      de: 'LLM-basierte Bewertung mit optionaler Verzweigung'
     },
     color: '#f59e0b', // amber
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
-    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
-  },
-  {
-    id: 'creativity_evaluation',
-    type: 'creativity_evaluation',
-    label: { en: 'Creativity Check', de: 'Kreativitäts-Check' },
-    description: {
-      en: 'Evaluate originality and creative quality',
-      de: 'Bewertung von Originalität und kreativer Qualität'
-    },
-    color: '#f59e0b', // amber
-    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
-    allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
-    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
-  },
-  {
-    id: 'equity_evaluation',
-    type: 'equity_evaluation',
-    label: { en: 'Equity Check', de: 'Equity-Check' },
-    description: {
-      en: 'Evaluate cultural sensitivity and representational equity',
-      de: 'Bewertung kultureller Sensibilität und Repräsentations-Equity'
-    },
-    color: '#f59e0b', // amber
-    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
-    allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
-    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
-  },
-  {
-    id: 'quality_evaluation',
-    type: 'quality_evaluation',
-    label: { en: 'Quality Check', de: 'Qualitäts-Check' },
-    description: {
-      en: 'Evaluate technical quality and composition',
-      de: 'Bewertung technischer Qualität und Komposition'
-    },
-    color: '#f59e0b', // amber
-    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
-    allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
-    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
-  },
-  {
-    id: 'custom_evaluation',
-    type: 'custom_evaluation',
-    label: { en: 'Custom Evaluation', de: 'Eigene Bewertung' },
-    description: {
-      en: 'Custom evaluation with user-defined criteria',
-      de: 'Eigene Bewertung mit benutzerdefinierten Kriterien'
-    },
-    color: '#f59e0b', // amber
-    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
-    allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
-    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
+    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'evaluation'],
+    outputsTo: ['interception', 'translation', 'generation', 'display', 'evaluation', 'collector', 'loop_controller']
   },
   // Session 134: Display Node
   {
@@ -234,39 +167,8 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'info_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation', 'display'],
-    outputsTo: ['collector', 'binary_fork', 'threshold_fork', 'loop_controller']
-  },
-  // Session 134: Fork Nodes (Phase 3)
-  {
-    id: 'binary_fork',
-    type: 'binary_fork',
-    label: { en: 'Binary Fork', de: 'Binäre Verzweigung' },
-    description: {
-      en: 'Branch based on true/false (evaluation result)',
-      de: 'Verzweigung basierend auf wahr/falsch (Bewertungsergebnis)'
-    },
-    color: '#ef4444', // red
-    icon: 'filter_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
-    allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
-    outputsTo: ['interception', 'translation', 'generation', 'collector', 'loop_controller', 'display']
-  },
-  {
-    id: 'threshold_fork',
-    type: 'threshold_fork',
-    label: { en: 'Threshold Fork', de: 'Schwellwert-Verzweigung' },
-    description: {
-      en: 'Branch based on score threshold',
-      de: 'Verzweigung basierend auf Punktzahl-Schwellwert'
-    },
-    color: '#ef4444', // red
-    icon: 'filter_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
-    allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
-    outputsTo: ['interception', 'translation', 'generation', 'collector', 'loop_controller', 'display']
+    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'evaluation', 'display'],
+    outputsTo: ['collector', 'evaluation', 'loop_controller']
   }
 ]
 
@@ -313,22 +215,22 @@ export interface CanvasNode {
   /** Custom height (optional, for resizable nodes like Collector) */
   height?: number
 
-  // === Session 134: Evaluation node config ===
+  // === Session 134 Refactored: Unified Evaluation node config ===
+  /** Evaluation type (pre-fills prompt template) */
+  evaluationType?: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom'
   /** Evaluation prompt/criteria description */
   evaluationPrompt?: string
-  /** Output type for evaluation results */
-  outputType?: 'commentary' | 'score' | 'binary' | 'all'
-  /** Score range for numeric evaluations */
-  scoreRange?: { min: number; max: number }
-
-  // === Fork node config ===
-  /** Condition type for fork nodes */
-  condition?: 'binary' | 'threshold' | 'category'
-  /** Threshold value for threshold_fork */
+  /** Output type for evaluation results (controls if score is requested) */
+  outputType?: 'commentary' | 'score' | 'all'
+  /** Enable branching (fork) based on evaluation result */
+  enableBranching?: boolean
+  /** Branch condition type (only if enableBranching = true) */
+  branchCondition?: 'binary' | 'threshold'
+  /** Threshold value for threshold branching (0-10) */
   thresholdValue?: number
-  /** Label for "true" path */
+  /** Label for "true/pass" path */
   trueLabel?: string
-  /** Label for "false" path */
+  /** Label for "false/fail" path */
   falseLabel?: string
 
   // === Loop controller config ===

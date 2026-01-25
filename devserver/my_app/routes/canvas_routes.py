@@ -526,7 +526,7 @@ def execute_workflow():
                             'configId': config_id
                         }
 
-                elif node_type in ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation']:
+                elif node_type == 'evaluation':
                     # Session 134: Evaluation nodes - LLM-based judgment
                     source_ids = incoming[node_id]
                     input_text = ''

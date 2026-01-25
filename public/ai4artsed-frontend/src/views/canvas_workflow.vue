@@ -88,15 +88,6 @@ function handleUpdateNodeSize(nodeId: string, width: number, height: number) {
   canvasStore.updateNode(nodeId, { width, height })
 }
 
-// Session 134: Evaluation node handlers
-function handleUpdateNodeEvaluationPrompt(nodeId: string, prompt: string) {
-  canvasStore.updateNode(nodeId, { evaluationPrompt: prompt })
-}
-
-function handleUpdateNodeOutputType(nodeId: string, outputType: 'commentary' | 'score' | 'binary' | 'all') {
-  canvasStore.updateNode(nodeId, { outputType })
-}
-
 // Session 134: Display node handlers
 function handleUpdateNodeDisplayTitle(nodeId: string, title: string) {
   canvasStore.updateNode(nodeId, { title })
@@ -106,12 +97,32 @@ function handleUpdateNodeDisplayMode(nodeId: string, mode: 'popup' | 'inline' | 
   canvasStore.updateNode(nodeId, { displayMode: mode })
 }
 
-// Session 134: Fork node handlers
+// Session 134 Refactored: Unified evaluation node handlers
+function handleUpdateNodeEvaluationType(nodeId: string, type: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom') {
+  canvasStore.updateNode(nodeId, { evaluationType: type })
+}
+
+function handleUpdateNodeEvaluationPrompt(nodeId: string, prompt: string) {
+  canvasStore.updateNode(nodeId, { evaluationPrompt: prompt })
+}
+
+function handleUpdateNodeOutputType(nodeId: string, outputType: 'commentary' | 'score' | 'all') {
+  canvasStore.updateNode(nodeId, { outputType })
+}
+
+function handleUpdateNodeEnableBranching(nodeId: string, enabled: boolean) {
+  canvasStore.updateNode(nodeId, { enableBranching: enabled })
+}
+
+function handleUpdateNodeBranchCondition(nodeId: string, condition: 'binary' | 'threshold') {
+  canvasStore.updateNode(nodeId, { branchCondition: condition })
+}
+
 function handleUpdateNodeThresholdValue(nodeId: string, threshold: number) {
   canvasStore.updateNode(nodeId, { thresholdValue: threshold })
 }
 
-function handleUpdateNodeForkLabels(nodeId: string, trueLabel: string, falseLabel: string) {
+function handleUpdateNodeBranchLabels(nodeId: string, trueLabel: string, falseLabel: string) {
   canvasStore.updateNode(nodeId, { trueLabel, falseLabel })
 }
 
@@ -335,12 +346,15 @@ onUnmounted(() => {
           @update-node-translation-prompt="handleUpdateNodeTranslationPrompt"
           @update-node-prompt-text="handleUpdateNodePromptText"
           @update-node-size="handleUpdateNodeSize"
-          @update-node-evaluation-prompt="handleUpdateNodeEvaluationPrompt"
-          @update-node-output-type="handleUpdateNodeOutputType"
           @update-node-display-title="handleUpdateNodeDisplayTitle"
           @update-node-display-mode="handleUpdateNodeDisplayMode"
+          @update-node-evaluation-type="handleUpdateNodeEvaluationType"
+          @update-node-evaluation-prompt="handleUpdateNodeEvaluationPrompt"
+          @update-node-output-type="handleUpdateNodeOutputType"
+          @update-node-enable-branching="handleUpdateNodeEnableBranching"
+          @update-node-branch-condition="handleUpdateNodeBranchCondition"
           @update-node-threshold-value="handleUpdateNodeThresholdValue"
-          @update-node-fork-labels="handleUpdateNodeForkLabels"
+          @update-node-branch-labels="handleUpdateNodeBranchLabels"
         />
       </div>
     </div>
