@@ -345,6 +345,55 @@ export const useCanvasStore = defineStore('canvas', () => {
   }
 
   /**
+   * Complete a connection to a feedback input (always uses 'feedback' label)
+   */
+  function completeConnectionFeedback(targetId: string): boolean {
+    if (!connectingFromId.value) return false
+    if (connectingFromId.value === targetId) {
+      cancelConnection()
+      return false
+    }
+
+    const sourceNode = workflow.value.nodes.find(n => n.id === connectingFromId.value)
+    const targetNode = workflow.value.nodes.find(n => n.id === targetId)
+
+    if (!sourceNode || !targetNode) {
+      cancelConnection()
+      return false
+    }
+
+    // Feedback input only valid for interception/translation nodes
+    if (!['interception', 'translation'].includes(targetNode.type)) {
+      console.warn(`[Canvas] Feedback input only valid for interception/translation nodes`)
+      cancelConnection()
+      return false
+    }
+
+    // Check if feedback connection already exists
+    const exists = workflow.value.connections.some(
+      c => c.sourceId === connectingFromId.value && c.targetId === targetId && c.label === 'feedback'
+    )
+
+    if (exists) {
+      console.warn(`[Canvas] Feedback connection already exists`)
+      cancelConnection()
+      return false
+    }
+
+    // Add the feedback connection
+    const newConnection: CanvasConnection = {
+      sourceId: connectingFromId.value,
+      targetId,
+      label: 'feedback'
+    }
+    console.log(`[Canvas] Added feedback connection: ${connectingFromId.value} -> ${targetId}`)
+    workflow.value.connections.push(newConnection)
+
+    cancelConnection()
+    return true
+  }
+
+  /**
    * Delete a connection
    */
   function deleteConnection(sourceId: string, targetId: string) {
@@ -603,6 +652,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     startConnection,
     cancelConnection,
     completeConnection,
+    completeConnectionFeedback,
     deleteConnection,
     updateMousePosition,
 

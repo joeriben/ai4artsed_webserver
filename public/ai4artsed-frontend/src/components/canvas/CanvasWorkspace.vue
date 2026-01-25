@@ -42,6 +42,7 @@ const emit = defineEmits<{
   'start-connection': [nodeId: string, label?: string]
   'cancel-connection': []
   'complete-connection': [targetId: string]
+  'complete-connection-feedback': [targetId: string]
   'update-mouse-position': [x: number, y: number]
   'add-node-at': [type: StageType, x: number, y: number]
   'select-config': [nodeId: string]
@@ -60,10 +61,6 @@ const emit = defineEmits<{
   'update-node-branch-condition': [nodeId: string, condition: 'binary' | 'threshold']
   'update-node-threshold-value': [nodeId: string, threshold: number]
   'update-node-branch-labels': [nodeId: string, trueLabel: string, falseLabel: string]
-  // Session 134 Phase 4: Loop Controller events
-  'update-node-max-iterations': [nodeId: string, maxIterations: number]
-  'update-node-feedback-target': [nodeId: string, feedbackTargetId: string]
-  'update-node-termination-condition': [nodeId: string, condition: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -99,12 +96,27 @@ function getNodeInputCenter(nodeId: string): { x: number; y: number } {
 }
 
 /**
+ * Get center point of a node's feedback input connector (right side, bottom)
+ */
+function getNodeFeedbackInputCenter(nodeId: string): { x: number; y: number } {
+  const node = props.nodes.find(n => n.id === nodeId)
+  if (!node) return { x: 0, y: 0 }
+  return {
+    x: node.x + NODE_WIDTH + 7, // Right edge + connector offset
+    y: node.y + NODE_HEIGHT - 15 // Bottom area
+  }
+}
+
+/**
  * Connection paths for rendering
  */
 const connectionPaths = computed(() => {
   return props.connections.map(conn => {
     const source = getNodeOutputCenter(conn.sourceId)
-    const target = getNodeInputCenter(conn.targetId)
+    // Use feedback input position for connections with label 'feedback'
+    const target = conn.label === 'feedback'
+      ? getNodeFeedbackInputCenter(conn.targetId)
+      : getNodeInputCenter(conn.targetId)
     return {
       ...conn,
       x1: source.x,
@@ -247,7 +259,6 @@ onUnmounted(() => {
       v-for="node in nodes"
       :key="node.id"
       :node="node"
-      :nodes="nodes"
       :selected="node.id === selectedNodeId"
       :llm-models="llmModels"
       :execution-result="executionResults?.[node.id]"
@@ -256,6 +267,7 @@ onUnmounted(() => {
       @start-connect="emit('start-connection', node.id)"
       @start-connect-labeled="(label) => emit('start-connection', node.id, label)"
       @end-connect="emit('complete-connection', node.id)"
+      @end-connect-feedback="emit('complete-connection-feedback', node.id)"
       @delete="emit('delete-node', node.id)"
       @select-config="emit('select-config', node.id)"
       @update-llm="emit('update-node-llm', node.id, $event)"
@@ -272,9 +284,6 @@ onUnmounted(() => {
       @update-branch-condition="emit('update-node-branch-condition', node.id, $event)"
       @update-threshold-value="emit('update-node-threshold-value', node.id, $event)"
       @update-branch-labels="(trueLabel, falseLabel) => emit('update-node-branch-labels', node.id, trueLabel, falseLabel)"
-      @update-node-max-iterations="(nodeId, maxIterations) => emit('update-node-max-iterations', nodeId, maxIterations)"
-      @update-node-feedback-target="(nodeId, feedbackTargetId) => emit('update-node-feedback-target', nodeId, feedbackTargetId)"
-      @update-node-termination-condition="(nodeId, condition) => emit('update-node-termination-condition', nodeId, condition)"
     />
 
     <!-- Empty state -->

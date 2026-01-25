@@ -33,14 +33,13 @@ const props = defineProps<{
   }
   /** Collector output (only for collector nodes) */
   collectorOutput?: CollectorOutputItem[]
-  /** All nodes in workflow (for loop controller feedback target selection) */
-  nodes?: CanvasNode[]
 }>()
 
 const emit = defineEmits<{
   'mousedown': [e: MouseEvent]
   'start-connect': []
   'end-connect': []
+  'end-connect-feedback': []
   'delete': []
   'select-config': []
   'update-llm': [llmModel: string]
@@ -59,10 +58,6 @@ const emit = defineEmits<{
   'update-threshold-value': [threshold: number]
   'update-branch-labels': [trueLabel: string, falseLabel: string]
   'start-connect-labeled': [label: string]
-  // Session 134 Phase 4: Loop Controller events
-  'update-node-max-iterations': [nodeId: string, maxIterations: number]
-  'update-node-feedback-target': [nodeId: string, feedbackTargetId: string]
-  'update-node-termination-condition': [nodeId: string, condition: string]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -100,19 +95,12 @@ const isCollector = computed(() => props.node.type === 'collector')
 const isDisplay = computed(() => props.node.type === 'display')
 // Session 134 Refactored: Unified evaluation node
 const isEvaluation = computed(() => props.node.type === 'evaluation')
-// Session 134 Phase 4: Loop Controller
-const isLoopController = computed(() => props.node.type === 'loop_controller')
 const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 // Evaluation branching
 const hasBranching = computed(() => isEvaluation.value && props.node.enableBranching === true)
-// Loop Controller: Available feedback targets (interception/translation nodes, excluding self)
-const availableFeedbackTargets = computed(() => {
-  if (!props.nodes) return []
-  return props.nodes.filter((n: CanvasNode) =>
-    ['interception', 'translation'].includes(n.type) && n.id !== props.node.id
-  )
-})
+// Feedback input for Interception/Translation (enables feedback loops)
+const hasFeedbackInput = computed(() => isInterception.value || isTranslation.value)
 
 // Check if node is properly configured
 const isConfigured = computed(() => {
@@ -309,12 +297,22 @@ const nodeHeight = computed(() => {
     }"
     @mousedown.stop="emit('mousedown', $event)"
   >
-    <!-- Input connector -->
+    <!-- Input connector (normal) -->
     <div
       v-if="hasInputConnector"
       class="connector input"
       @mouseup.stop="emit('end-connect')"
     />
+
+    <!-- Feedback input connector (for Interception/Translation nodes) -->
+    <div
+      v-if="hasFeedbackInput"
+      class="connector feedback-input"
+      @mouseup.stop="emit('end-connect-feedback')"
+      :title="locale === 'de' ? 'Feedback-Eingang' : 'Feedback Input'"
+    >
+      <span class="feedback-label">FB</span>
+    </div>
 
     <!-- Node header -->
     <div class="module-header">
@@ -504,7 +502,7 @@ const nodeHeight = computed(() => {
               <template v-else-if="typeof item.output === 'string'">
                 {{ item.output.slice(0, 200) }}{{ item.output.length > 200 ? '...' : '' }}
               </template>
-              <template v-else>
+              <template v-else-if="item.output != null">
                 {{ JSON.stringify(item.output).slice(0, 100) }}...
               </template>
             </div>
@@ -674,68 +672,16 @@ const nodeHeight = computed(() => {
               {{ (executionResult.output as any).media_type }}: {{ (executionResult.output as any).url }}
             </div>
           </template>
-          <template v-else>
+          <template v-else-if="executionResult.output != null">
             <div class="preview-text">
               {{ JSON.stringify(executionResult.output).slice(0, 100) }}...
             </div>
           </template>
         </div>
-        <div v-else class="preview-empty">
+        <div v-else-if="!executionResult" class="preview-empty">
           <span class="module-type-info">
             {{ locale === 'de' ? 'Vorschau (nach Ausführung)' : 'Preview (after execution)' }}
           </span>
-        </div>
-      </template>
-
-      <!-- Session 134 Phase 4: Loop Controller Configuration -->
-      <template v-else-if="isLoopController">
-        <div class="node-config">
-          <!-- Max Iterations -->
-          <label class="field-label">
-            {{ locale === 'de' ? 'Max. Iterationen' : 'Max Iterations' }}
-          </label>
-          <input
-            type="number"
-            v-model.number="node.maxIterations"
-            min="1"
-            max="10"
-            :placeholder="locale === 'de' ? 'Standard: 3' : 'Default: 3'"
-            @input="emit('update-node-max-iterations', node.id, node.maxIterations || 3)"
-            class="field-input"
-          />
-
-          <!-- Feedback Target -->
-          <label class="field-label">
-            {{ locale === 'de' ? 'Feedback an' : 'Feedback to' }}
-          </label>
-          <select
-            v-model="node.feedbackTargetId"
-            @change="emit('update-node-feedback-target', node.id, node.feedbackTargetId || '')"
-            class="field-select"
-          >
-            <option value="">{{ locale === 'de' ? 'Zielnode auswählen' : 'Select target node' }}</option>
-            <option
-              v-for="target in availableFeedbackTargets"
-              :key="target.id"
-              :value="target.id"
-            >
-              {{ target.type }} ({{ target.id }})
-            </option>
-          </select>
-
-          <!-- Termination Condition -->
-          <label class="field-label">
-            {{ locale === 'de' ? 'Beenden wenn' : 'Terminate when' }}
-          </label>
-          <select
-            v-model="node.terminationCondition"
-            @change="emit('update-node-termination-condition', node.id, node.terminationCondition || 'both')"
-            class="field-select"
-          >
-            <option value="both">{{ locale === 'de' ? 'Beides' : 'Both' }}</option>
-            <option value="max_iterations">{{ locale === 'de' ? 'Max. Iterationen' : 'Max iterations' }}</option>
-            <option value="evaluation_passed">{{ locale === 'de' ? 'Bewertung bestanden' : 'Evaluation passed' }}</option>
-          </select>
         </div>
       </template>
 
@@ -986,6 +932,33 @@ const nodeHeight = computed(() => {
 
 .connector:hover {
   background: var(--node-color);
+}
+
+/* Feedback input connector (for loops) */
+.connector.feedback-input {
+  right: -7px;
+  bottom: 8px;
+  top: auto;
+  transform: none;
+  border-color: #f97316; /* Orange to distinguish from normal connectors */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.connector.feedback-input:hover {
+  background: #f97316;
+}
+
+.feedback-label {
+  font-size: 8px;
+  font-weight: bold;
+  color: #f97316;
+  pointer-events: none;
+}
+
+.connector.feedback-input:hover .feedback-label {
+  color: white;
 }
 
 /* Collector node styles */

@@ -31,8 +31,6 @@ export type StageType =
   | 'evaluation'
   // Display node (visualization)
   | 'display'
-  // Loop controller (feedback loops)
-  | 'loop_controller'
 
 /** Node type definition for the palette */
 export interface NodeTypeDefinition {
@@ -152,7 +150,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     allowMultiple: true,
     mandatory: false,
     acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'evaluation'],
-    outputsTo: ['interception', 'translation', 'generation', 'display', 'evaluation', 'collector', 'loop_controller']
+    outputsTo: ['interception', 'translation', 'generation', 'display', 'evaluation', 'collector']
   },
   // Session 134: Display Node
   {
@@ -168,23 +166,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     allowMultiple: true,
     mandatory: false,
     acceptsFrom: ['input', 'interception', 'translation', 'generation', 'evaluation', 'display'],
-    outputsTo: ['collector', 'evaluation', 'loop_controller', 'interception', 'translation', 'generation', 'display']
-  },
-  // Session 134 Phase 4: Loop Controller
-  {
-    id: 'loop_controller',
-    type: 'loop_controller',
-    label: { en: 'Loop Controller', de: 'Schleifensteuerung' },
-    description: {
-      en: 'Control feedback loops with iteration limits',
-      de: 'Steuert Rückkopplungsschleifen mit Iterationslimits'
-    },
-    color: '#6366f1', // indigo
-    icon: 'sync_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
-    allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['evaluation'], // Only from commented path
-    outputsTo: ['interception', 'translation', 'collector', 'display']
+    outputsTo: ['collector', 'evaluation', 'interception', 'translation', 'generation', 'display']
   }
 ]
 
@@ -249,15 +231,9 @@ export interface CanvasNode {
   /** Label for "false/fail" path */
   falseLabel?: string
 
-  // === Loop controller config ===
-  /** Maximum iterations for feedback loops */
-  maxIterations?: number
-  /** Current iteration counter (managed by execution engine) */
-  currentIteration?: number
-  /** Node ID to feed back into */
-  feedbackTargetId?: string
-  /** Termination condition */
-  terminationCondition?: 'max_iterations' | 'evaluation_passed' | 'both'
+  // === Feedback config (for Interception/Translation nodes) ===
+  /** Maximum feedback iterations (default: 3) */
+  maxFeedbackIterations?: number
 
   // === Display node config ===
   /** Display mode for visualization */
