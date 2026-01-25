@@ -97,6 +97,15 @@ function handleUpdateNodeOutputType(nodeId: string, outputType: 'commentary' | '
   canvasStore.updateNode(nodeId, { outputType })
 }
 
+// Session 134: Display node handlers
+function handleUpdateNodeDisplayTitle(nodeId: string, title: string) {
+  canvasStore.updateNode(nodeId, { title })
+}
+
+function handleUpdateNodeDisplayMode(nodeId: string, mode: 'popup' | 'inline' | 'toast') {
+  canvasStore.updateNode(nodeId, { displayMode: mode })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -319,6 +328,8 @@ onUnmounted(() => {
           @update-node-size="handleUpdateNodeSize"
           @update-node-evaluation-prompt="handleUpdateNodeEvaluationPrompt"
           @update-node-output-type="handleUpdateNodeOutputType"
+          @update-node-display-title="handleUpdateNodeDisplayTitle"
+          @update-node-display-mode="handleUpdateNodeDisplayMode"
         />
       </div>
     </div>

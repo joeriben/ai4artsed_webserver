@@ -629,6 +629,39 @@ def execute_workflow():
                                 'model': response.model_used
                             }
 
+                elif node_type == 'display':
+                    # Session 134: Display node - pass-through with display data
+                    source_ids = incoming[node_id]
+                    input_data = None
+                    for src_id in source_ids:
+                        if src_id in results and results[src_id].get('output'):
+                            input_data = results[src_id]['output']
+                            break
+
+                    display_title = node.get('title', 'Display')
+                    display_mode = node.get('displayMode', 'inline')
+
+                    if input_data is not None:
+                        # Pass through the input data unchanged
+                        results[node_id] = {
+                            'type': 'display',
+                            'output': input_data,  # Pass-through
+                            'error': None,
+                            'displayData': {
+                                'title': display_title,
+                                'mode': display_mode,
+                                'content': input_data,
+                                'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S')
+                            }
+                        }
+                        logger.info(f"[Canvas Execute] Display node: title='{display_title}', mode='{display_mode}'")
+                    else:
+                        results[node_id] = {
+                            'type': 'display',
+                            'output': None,
+                            'error': 'No input from source node'
+                        }
+
                 elif node_type == 'collector':
                     # Collector node: gather all inputs
                     source_ids = incoming[node_id]

@@ -48,6 +48,8 @@ const emit = defineEmits<{
   'update-size': [width: number, height: number]
   'update-evaluation-prompt': [prompt: string]
   'update-output-type': [outputType: 'commentary' | 'score' | 'binary' | 'all']
+  'update-display-title': [title: string]
+  'update-display-mode': [mode: 'popup' | 'inline' | 'toast']
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -82,6 +84,7 @@ const isInterception = computed(() => props.node.type === 'interception')
 const isTranslation = computed(() => props.node.type === 'translation')
 const isGeneration = computed(() => props.node.type === 'generation')
 const isCollector = computed(() => props.node.type === 'collector')
+const isDisplay = computed(() => props.node.type === 'display')
 // Session 134: Evaluation node types
 const isEvaluation = computed(() => [
   'fairness_evaluation',
@@ -165,6 +168,17 @@ function getEvaluationPlaceholder(nodeType: string): string {
   const placeholder = placeholders[nodeType]
   if (!placeholder) return locale.value === 'de' ? 'Bewertungskriterien...' : 'Evaluation criteria...'
   return locale.value === 'de' ? placeholder.de : placeholder.en
+}
+
+// Session 134: Display node handlers
+function onDisplayTitleChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  emit('update-display-title', input.value)
+}
+
+function onDisplayModeChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-display-mode', select.value as 'popup' | 'inline' | 'toast')
 }
 
 // Resize handling (for Collector nodes)
@@ -477,6 +491,39 @@ const nodeHeight = computed(() => {
             <option value="binary">{{ locale === 'de' ? 'Pass/Fail' : 'Binary' }}</option>
             <option value="all">{{ locale === 'de' ? 'Alle' : 'All' }}</option>
           </select>
+        </div>
+      </template>
+
+      <!-- DISPLAY NODE: Title + Display mode -->
+      <template v-else-if="isDisplay">
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Titel' : 'Title' }}</label>
+          <input
+            type="text"
+            class="llm-select"
+            :value="node.title || ''"
+            :placeholder="locale === 'de' ? 'Anzeige-Titel...' : 'Display title...'"
+            @input="onDisplayTitleChange"
+            @mousedown.stop
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Anzeige-Modus' : 'Display Mode' }}</label>
+          <select
+            class="llm-select"
+            :value="node.displayMode || 'inline'"
+            @change="onDisplayModeChange"
+            @mousedown.stop
+          >
+            <option value="inline">{{ locale === 'de' ? 'Inline' : 'Inline' }}</option>
+            <option value="toast">{{ locale === 'de' ? 'Toast-Nachricht' : 'Toast' }}</option>
+            <option value="popup">{{ locale === 'de' ? 'Popup' : 'Popup' }}</option>
+          </select>
+        </div>
+        <div class="display-info">
+          <span class="module-type-info">
+            {{ locale === 'de' ? 'Zeigt Ergebnisse an (nicht-blockierend)' : 'Shows results (non-blocking)' }}
+          </span>
         </div>
       </template>
 
@@ -862,5 +909,19 @@ const nodeHeight = computed(() => {
   line-height: 1.4;
   margin: 0;
   white-space: pre-wrap;
+}
+
+/* Display node info */
+.display-info {
+  padding: 0.5rem;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.display-info .module-type-info {
+  font-size: 0.625rem;
+  color: #10b981;
+  font-style: italic;
 }
 </style>

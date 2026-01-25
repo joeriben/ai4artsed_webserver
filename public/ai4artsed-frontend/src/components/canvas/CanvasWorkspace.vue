@@ -52,6 +52,8 @@ const emit = defineEmits<{
   'update-node-size': [nodeId: string, width: number, height: number]
   'update-node-evaluation-prompt': [nodeId: string, prompt: string]
   'update-node-output-type': [nodeId: string, outputType: 'commentary' | 'score' | 'binary' | 'all']
+  'update-node-display-title': [nodeId: string, title: string]
+  'update-node-display-mode': [nodeId: string, mode: 'popup' | 'inline' | 'toast']
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -251,6 +253,8 @@ onUnmounted(() => {
       @update-size="(width, height) => emit('update-node-size', node.id, width, height)"
       @update-evaluation-prompt="emit('update-node-evaluation-prompt', node.id, $event)"
       @update-output-type="emit('update-node-output-type', node.id, $event)"
+      @update-display-title="emit('update-node-display-title', node.id, $event)"
+      @update-display-mode="emit('update-node-display-mode', node.id, $event)"
     />
 
     <!-- Empty state -->

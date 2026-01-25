@@ -220,6 +220,22 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     mandatory: false,
     acceptsFrom: ['interception', 'translation', 'generation'],
     outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
+  },
+  // Session 134: Display Node
+  {
+    id: 'display',
+    type: 'display',
+    label: { en: 'Display', de: 'Anzeige' },
+    description: {
+      en: 'Visualize results (non-blocking pass-through)',
+      de: 'Ergebnisse visualisieren (nicht-blockierend)'
+    },
+    color: '#10b981', // green
+    icon: 'info_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation', 'interception', 'translation'],
+    outputsTo: ['collector', 'binary_fork', 'threshold_fork', 'loop_controller']
   }
 ]
 
