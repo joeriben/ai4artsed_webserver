@@ -76,7 +76,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     allowMultiple: false,
     mandatory: true,
     acceptsFrom: [],
-    outputsTo: ['interception', 'translation'] // Direct to interception (safety is automatic)
+    outputsTo: ['interception', 'translation', 'evaluation', 'display'] // Can connect to processing, evaluation, or display
   },
   {
     id: 'interception',
@@ -90,8 +90,8 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'cognition_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['input', 'interception'],
-    outputsTo: ['interception', 'translation', 'generation', 'collector']
+    acceptsFrom: ['input', 'interception', 'evaluation'],
+    outputsTo: ['interception', 'translation', 'generation', 'evaluation', 'display', 'collector']
   },
   {
     id: 'translation',
@@ -105,8 +105,8 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'language_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['input', 'interception'],
-    outputsTo: ['generation', 'collector']
+    acceptsFrom: ['input', 'interception', 'evaluation'],
+    outputsTo: ['generation', 'evaluation', 'display', 'collector']
   },
   {
     id: 'generation',
@@ -120,8 +120,8 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'brush_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: true,
-    acceptsFrom: ['interception', 'translation'],
-    outputsTo: ['collector']
+    acceptsFrom: ['interception', 'translation', 'evaluation'],
+    outputsTo: ['evaluation', 'display', 'collector']
   },
   {
     id: 'collector',
