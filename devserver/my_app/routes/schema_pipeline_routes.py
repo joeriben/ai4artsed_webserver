@@ -2122,13 +2122,13 @@ def generation_endpoint():
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
-async def execute_generation_stage4(
+async def execute_stage4_generation_only(
     prompt: str,
     output_config: str,
     safety_level: str,
+    run_id: str,
     seed: int = None,
     recorder = None,
-    run_id: str = None,
     device_id: str = None,
     input_text: str = '',
     context_prompt: str = '',
@@ -2138,23 +2138,25 @@ async def execute_generation_stage4(
     input_image1: str = None,
     input_image2: str = None,
     input_image3: str = None,
-    alpha_factor = None,
-    skip_stage3: bool = False,
-    **kwargs
-):
+    alpha_factor = None
+) -> dict:
     """
-    Execute Stage 3 (Safety+Translation) + Stage 4 (Generation).
+    Stage 4 ONLY: Media generation.
 
-    Reusable helper for both /pipeline/generation and Canvas workflows.
-    Session 133: Extracted from generation_endpoint to avoid code duplication.
+    Expects an already-translated, already-safety-checked prompt.
+    Does NOT call Stage 3 - pure generation only.
+
+    Session 136: Extracted from execute_generation_stage4 for clean separation.
+    Canvas workflows call this directly. Lab workflows use execute_generation_stage4
+    which handles Stage 3 before calling this function.
 
     Args:
-        prompt: Input prompt for generation (German or English)
+        prompt: Ready-to-use prompt (already translated to English if needed)
         output_config: Config ID (e.g., 'sd35_large')
-        safety_level: 'kids', 'youth', 'open', or 'off'
+        safety_level: 'kids', 'youth', 'open', or 'off' (for metadata only)
+        run_id: Run identifier (required)
         seed: Optional seed (generates random if None)
         recorder: Optional LivePipelineRecorder instance (creates new if None)
-        run_id: Optional run_id (creates new if None)
         device_id: Optional device_id for folder structure
         input_text: Original user input (for recorder)
         context_prompt: Meta-prompt used (for recorder)
@@ -2163,7 +2165,6 @@ async def execute_generation_stage4(
         input_image: Path to input image for img2img
         input_image1/2/3: Paths for multi-image workflows
         alpha_factor: Alpha factor for Surrealizer
-        **kwargs: Additional params
 
     Returns:
         {
@@ -2176,8 +2177,7 @@ async def execute_generation_stage4(
                 'seed': 123456
             },
             'run_id': str,
-            'error': Optional[str],
-            'blocked': Optional[bool]  # True if safety check failed
+            'error': Optional[str]
         }
     """
     import time
@@ -2187,10 +2187,6 @@ async def execute_generation_stage4(
         # Initialize schema engine if needed
         if pipeline_executor is None:
             init_schema_engine()
-
-        # Generate run_id if not provided
-        if run_id is None:
-            run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
 
         # Generate device_id if not provided
         if device_id is None:
@@ -2205,38 +2201,6 @@ async def execute_generation_stage4(
             media_type = 'audio'
         else:
             media_type = 'image'
-
-        # ====================================================================
-        # STAGE 3: TRANSLATION + PRE-OUTPUT SAFETY
-        # ====================================================================
-        if skip_translation:
-            # Canvas workflows: text already translated, skip Stage 3 entirely
-            translated_prompt = prompt
-            logger.info(f"[GENERATION-HELPER] Stage 3 SKIPPED (Canvas mode): {translated_prompt[:100]}...")
-        else:
-            logger.info(f"[GENERATION-HELPER] Stage 3: Translation + Safety (level: {safety_level})")
-
-            safety_result = await execute_stage3_safety(
-                prompt,
-                safety_level,
-                media_type,
-                'eco',
-                pipeline_executor
-            )
-
-            if not safety_result['safe']:
-                logger.warning(f"[GENERATION-HELPER] Stage 3 BLOCKED")
-                return {
-                    'success': False,
-                    'blocked': True,
-                    'error': safety_result.get('abort_reason', 'Content blocked by safety check'),
-                    'found_terms': safety_result.get('found_terms', []),
-                    'run_id': run_id
-                }
-
-            # Get translated prompt (English) for media generation
-            translated_prompt = safety_result.get('positive_prompt', prompt)
-            logger.info(f"[GENERATION-HELPER] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
 
         # Create recorder if not provided
         from config import JSON_STORAGE_DIR, STAGE3_MODEL
@@ -2253,7 +2217,6 @@ async def execute_generation_stage4(
         # Track LLM models used
         if 'models_used' not in recorder.metadata:
             recorder.metadata['models_used'] = {}
-        recorder.metadata['models_used']['stage3_safety'] = STAGE3_MODEL
         recorder.metadata['models_used']['stage4_output'] = output_config
         recorder._save_metadata()
 
@@ -2267,19 +2230,15 @@ async def execute_generation_stage4(
         if interception_config:
             recorder.metadata['interception_config'] = interception_config
 
-        # Save optimized/final prompt (German, before translation)
-        recorder.save_entity('optimized_prompt', prompt)
-
-        # Save translation (English, for media generation)
-        if translated_prompt and translated_prompt != prompt:
-            recorder.save_entity('translation_en', translated_prompt)
+        # Save the prompt being used for generation
+        recorder.save_entity('generation_prompt', prompt)
 
         # Generate seed if not provided
         if seed is None:
             seed = random.randint(0, 2147483647)
-            logger.info(f"[GENERATION-HELPER] Generated random seed: {seed}")
+            logger.info(f"[STAGE4-GEN] Generated random seed: {seed}")
         else:
-            logger.info(f"[GENERATION-HELPER] Using provided seed: {seed}")
+            logger.info(f"[STAGE4-GEN] Using provided seed: {seed}")
 
         # Build custom params
         custom_params = {}
@@ -2294,22 +2253,24 @@ async def execute_generation_stage4(
                     config_loras = interception_cfg.meta.get('loras', [])
                     if config_loras:
                         custom_params['loras'] = config_loras
-                        logger.info(f"[GENERATION-HELPER] Extracted {len(config_loras)} LoRA(s) from '{interception_config}'")
+                        logger.info(f"[STAGE4-GEN] Extracted {len(config_loras)} LoRA(s) from '{interception_config}'")
             except Exception as e:
-                logger.warning(f"[GENERATION-HELPER] Could not load config '{interception_config}': {e}")
+                logger.warning(f"[STAGE4-GEN] Could not load config '{interception_config}': {e}")
 
         # Create context override if we have custom params
         from schemas.engine.pipeline_executor import PipelineContext
         context_override = None
         if custom_params:
-            context_override = PipelineContext(input_text=translated_prompt, user_input=translated_prompt)
+            context_override = PipelineContext(input_text=prompt, user_input=prompt)
             context_override.custom_placeholders = custom_params
 
-        # Execute the generation pipeline with TRANSLATED prompt (English)
+        logger.info(f"[STAGE4-GEN] Executing generation with config '{output_config}', prompt: {prompt[:100]}...")
+
+        # Execute the generation pipeline
         output_result = await pipeline_executor.execute_pipeline(
             config_name=output_config,
-            input_text=translated_prompt,
-            user_input=translated_prompt,
+            input_text=prompt,
+            user_input=prompt,
             execution_mode='eco',
             context_override=context_override,
             seed_override=seed,
@@ -2395,7 +2356,7 @@ async def execute_generation_stage4(
                             'source_path': filesystem_path
                         }
                     )
-                    logger.info(f"[GENERATION-HELPER] Saved from filesystem: {saved_filename}")
+                    logger.info(f"[STAGE4-GEN] Saved from filesystem: {saved_filename}")
             elif media_files:
                 # Legacy: binary data in metadata
                 outputs_metadata = output_result.metadata.get('outputs_metadata', [])
@@ -2456,7 +2417,7 @@ async def execute_generation_stage4(
                         }
                     )
                 except Exception as e:
-                    logger.error(f"[GENERATION-HELPER] Failed to decode base64: {e}")
+                    logger.error(f"[STAGE4-GEN] Failed to decode base64: {e}")
 
             media_entities = [e for e in recorder.metadata.get('entities', []) if e.get('type') == f'output_{media_type}']
             media_index = len(media_entities) - 1 if media_entities else 0
@@ -2468,7 +2429,7 @@ async def execute_generation_stage4(
                 'seed': result_seed
             }
 
-        logger.info(f"[GENERATION-HELPER] Success: {media_output['url']}")
+        logger.info(f"[STAGE4-GEN] Success: {media_output['url']}")
 
         return {
             'success': True,
@@ -2478,7 +2439,185 @@ async def execute_generation_stage4(
         }
 
     except Exception as e:
-        logger.error(f"[GENERATION-HELPER] Error: {e}")
+        logger.error(f"[STAGE4-GEN] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'success': False,
+            'error': str(e),
+            'run_id': run_id if run_id else 'unknown'
+        }
+
+
+async def execute_generation_stage4(
+    prompt: str,
+    output_config: str,
+    safety_level: str,
+    seed: int = None,
+    recorder = None,
+    run_id: str = None,
+    device_id: str = None,
+    input_text: str = '',
+    context_prompt: str = '',
+    interception_result: str = '',
+    interception_config: str = '',
+    input_image: str = None,
+    input_image1: str = None,
+    input_image2: str = None,
+    input_image3: str = None,
+    alpha_factor = None,
+    skip_stage3: bool = False,
+    **kwargs
+):
+    """
+    Execute Stage 3 (Safety+Translation) + Stage 4 (Generation).
+
+    Legacy function for Lab workflows - orchestrates Stage 3 before calling
+    execute_stage4_generation_only().
+
+    Session 136: Refactored to use execute_stage4_generation_only() internally.
+    Canvas workflows should call execute_stage4_generation_only() directly.
+
+    Args:
+        prompt: Input prompt for generation (German or English)
+        output_config: Config ID (e.g., 'sd35_large')
+        safety_level: 'kids', 'youth', 'open', or 'off'
+        seed: Optional seed (generates random if None)
+        recorder: Optional LivePipelineRecorder instance (creates new if None)
+        run_id: Optional run_id (creates new if None)
+        device_id: Optional device_id for folder structure
+        input_text: Original user input (for recorder)
+        context_prompt: Meta-prompt used (for recorder)
+        interception_result: Interception output (for recorder)
+        interception_config: Interception config ID (for LoRA extraction)
+        input_image: Path to input image for img2img
+        input_image1/2/3: Paths for multi-image workflows
+        alpha_factor: Alpha factor for Surrealizer
+        skip_stage3: If True, skip Stage 3 (translation+safety) - prompt is already ready
+        **kwargs: Additional params
+
+    Returns:
+        {
+            'success': bool,
+            'media_output': {
+                'media_type': 'image',
+                'url': '/api/media/image/run_xxx/0',
+                'run_id': 'run_xxx',
+                'index': 0,
+                'seed': 123456
+            },
+            'run_id': str,
+            'error': Optional[str],
+            'blocked': Optional[bool]  # True if safety check failed
+        }
+    """
+    import time
+
+    try:
+        # Initialize schema engine if needed
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        # Generate run_id if not provided
+        if run_id is None:
+            run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
+        # Generate device_id if not provided
+        if device_id is None:
+            device_id = f"api_{uuid.uuid4().hex[:12]}"
+
+        # Determine media type from output config
+        if 'code' in output_config.lower() or 'p5js' in output_config.lower():
+            media_type = 'code'
+        elif 'video' in output_config.lower():
+            media_type = 'video'
+        elif 'audio' in output_config.lower() or 'music' in output_config.lower() or 'ace' in output_config.lower():
+            media_type = 'audio'
+        else:
+            media_type = 'image'
+
+        # ====================================================================
+        # STAGE 3: TRANSLATION + PRE-OUTPUT SAFETY
+        # ====================================================================
+        if skip_stage3:
+            # Prompt is already translated/ready - skip Stage 3
+            translated_prompt = prompt
+            logger.info(f"[STAGE3+4] Stage 3 SKIPPED (skip_stage3=True): {translated_prompt[:100]}...")
+        else:
+            logger.info(f"[STAGE3+4] Stage 3: Translation + Safety (level: {safety_level})")
+
+            safety_result = await execute_stage3_safety(
+                prompt,
+                safety_level,
+                media_type,
+                'eco',
+                pipeline_executor
+            )
+
+            if not safety_result['safe']:
+                logger.warning(f"[STAGE3+4] Stage 3 BLOCKED")
+                return {
+                    'success': False,
+                    'blocked': True,
+                    'error': safety_result.get('abort_reason', 'Content blocked by safety check'),
+                    'found_terms': safety_result.get('found_terms', []),
+                    'run_id': run_id
+                }
+
+            # Get translated prompt (English) for media generation
+            translated_prompt = safety_result.get('positive_prompt', prompt)
+            logger.info(f"[STAGE3+4] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
+
+        # Save original prompt for metadata (before translation)
+        from config import JSON_STORAGE_DIR, STAGE3_MODEL
+        if recorder is None:
+            recorder = get_recorder(
+                run_id=run_id,
+                config_name=output_config,
+                execution_mode='eco',
+                safety_level=safety_level,
+                device_id=device_id,
+                base_path=JSON_STORAGE_DIR
+            )
+
+        # Track Stage 3 model usage
+        if 'models_used' not in recorder.metadata:
+            recorder.metadata['models_used'] = {}
+        if not skip_stage3:
+            recorder.metadata['models_used']['stage3_safety'] = STAGE3_MODEL
+        recorder._save_metadata()
+
+        # Save optimized/final prompt (German, before translation)
+        recorder.save_entity('optimized_prompt', prompt)
+
+        # Save translation (English, for media generation)
+        if translated_prompt and translated_prompt != prompt:
+            recorder.save_entity('translation_en', translated_prompt)
+
+        # ====================================================================
+        # STAGE 4: GENERATION (via clean function)
+        # ====================================================================
+        return await execute_stage4_generation_only(
+            prompt=translated_prompt,
+            output_config=output_config,
+            safety_level=safety_level,
+            run_id=run_id,
+            seed=seed,
+            recorder=recorder,
+            device_id=device_id,
+            input_text=input_text,
+            context_prompt=context_prompt,
+            interception_result=interception_result,
+            interception_config=interception_config,
+            input_image=input_image,
+            input_image1=input_image1,
+            input_image2=input_image2,
+            input_image3=input_image3,
+            alpha_factor=alpha_factor
+        )
+
+    except Exception as e:
+        logger.error(f"[STAGE3+4] Error: {e}")
         import traceback
         traceback.print_exc()
         return {

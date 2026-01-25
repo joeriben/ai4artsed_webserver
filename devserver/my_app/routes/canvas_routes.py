@@ -409,7 +409,9 @@ def execute_workflow():
                 return output, 'text', None
 
             elif node_type == 'generation':
-                from my_app.routes.schema_pipeline_routes import execute_generation_stage4
+                # Session 136: Use execute_stage4_generation_only directly
+                # Canvas handles translation via Translation node, so we skip Stage 3 entirely
+                from my_app.routes.schema_pipeline_routes import execute_stage4_generation_only
                 from config import DEFAULT_SAFETY_LEVEL
 
                 config_id = node.get('configId')
@@ -422,17 +424,13 @@ def execute_workflow():
                     return None, 'image', None
 
                 try:
-                    gen_result = asyncio.run(execute_generation_stage4(
+                    # Call Stage 4 only - prompt is already translated by Canvas Translation node
+                    gen_result = asyncio.run(execute_stage4_generation_only(
                         prompt=input_data,
                         output_config=config_id,
                         safety_level=DEFAULT_SAFETY_LEVEL,
                         run_id=canvas_run_id,
-                        device_id=None,
-                        input_text='',
-                        context_prompt='',
-                        interception_result='',
-                        interception_config='',
-                        skip_translation=True  # Canvas already handles translation via Translation node
+                        device_id=None
                     ))
                     if gen_result['success']:
                         output = gen_result['media_output']
