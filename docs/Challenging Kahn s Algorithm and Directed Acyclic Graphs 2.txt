@@ -1,0 +1,72 @@
+---                                                                                                                             
+ Architecture Analysis: Race Conditions & Linearization                                                                          
+                                                                                                                                 
+ Current Execution Engine (canvas_routes.py:281-827)                                                                             
+                                                                                                                                 
+ Execution Model:                                                                                                                
+ - Kahn's Algorithm: Topological sort for dependency resolution                                                                  
+ - Sequential Execution: One node at a time (lines 376-805)                                                                      
+ - Request Isolation: Each HTTP request has isolated state (thread-safe)                                                         
+                                                                                                                                 
+ Key Finding: NO Race Conditions Currently Possible                                                                              
+                                                                                                                                 
+ Why Thread-Safe:                                                                                                                
+ 1. Each request creates fresh local state:                                                                                      
+   - node_map, incoming, outgoing, execution_order, results                                                                      
+   - active_connections (Phase 3b addition)                                                                                      
+ 2. No global mutable state                                                                                                      
+ 3. Flask request isolation prevents cross-request pollution                                                                     
+                                                                                                                                 
+ Synchronization:                                                                                                                
+ - Uses asyncio.run() per LLM call (anti-pattern, but functional)                                                                
+ - Blocks until each node completes before next executes                                                                         
+ - No true async/await (creates new event loop each time)                                                                        
+                                                                                                                                 
+ Problem: Kahn's Algorithm Rejects Cycles                                                                                        
+                                                                                                                                 
+ Current Behavior (lines 367-368):                                                                                               
+ if len(execution_order) != len(nodes):                                                                                          
+     return jsonify({'status': 'error', 'error': 'Cycle detected in workflow'}), 400                                             
+                                                                                                                                 
+ Why This Breaks Loop Controller:                                                                                                
+ - Loop Controller → Interception edge creates cycle                                                                             
+ - Kahn's algorithm designed for acyclic graphs (DAGs)                                                                           
+ - Feedback loops are pedagogically essential, but architecturally cycles                                                        
+                                                                                                                                 
+ Solution: Linearization Strategy                                                                                                
+                                                                                                                                 
+ Concept: Keep topological sort for initial DAG, add re-queueing for loops                                                       
+                                                                                                                                 
+ Approach:                                                                                                                       
+ 1. Run Kahn's algorithm on DAG (ignore loop feedback edges)                                                                     
+ 2. Convert execution_order to mutable queue                                                                                     
+ 3. When Loop Controller executes:                                                                                               
+   - Check iteration count                                                                                                       
+   - Check termination condition                                                                                                 
+   - If continue → re-queue feedback target node                                                                                 
+   - If terminate → mark loop as exited                                                                                          
+ 4. Track loop_counters = {loop_id: iteration_count} per request                                                                 
+                                                                                                                                 
+ Safety:                                                                                                                         
+ - Hard limit: max 10-20 iterations (configurable)                                                                               
+ - Termination conditions: max_iterations | evaluation_passed | both                                                             
+ - No infinite loops possible (enforced counter check)                                                                           
+                                                                                                                                 
+ ---                                                                                                                             
+ Loop Controller Node Specification                                                                                              
+                                                                                                                                 
+ Purpose                                                                                                                         
+                                                                                                                                 
+ Control feedback loops with iteration limits for iterative improvement workflows.                                               
+                                                                                                                                 
+ Node Properties (Frontend - types/canvas.ts)                                                                                    
+                                                                                                                                 
+ export interface CanvasNode {                                                                                                   
+   // ... existing properties ...                                                                                                
+                                                                                                                                 
+   // Loop Controller specific                                                                                                   
+   maxIterations?: number          // Default: 3, Range: 1-10                                                                    
+   feedbackTargetId?: string       // Node ID to re-queue (dropdown selection)                                                   
+   terminationCondition?: 'max_iterations' | 'evaluation_passed' | 'both'                                                        
+ }                                                                                                                               
+                                                                                    
