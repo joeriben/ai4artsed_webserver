@@ -448,7 +448,8 @@ def execute_workflow():
                         logger.info(f"[Canvas Execute] Translation result: '{response.output_str[:50] if response.output_str else 'empty'}'")
 
                 elif node_type == 'generation':
-                    # Generation node: TODO - call media generation
+                    # Generation node: call actual media generation
+                    # Session 133: Integrated with execute_generation_stage4 helper
                     source_ids = incoming[node_id]
                     input_text = ''
                     for src_id in source_ids:
@@ -456,13 +457,74 @@ def execute_workflow():
                             input_text = results[src_id]['output']
                             break
 
-                    results[node_id] = {
-                        'type': 'generation',
-                        'output': f'[Generation placeholder - would generate with: {input_text[:100]}...]',
-                        'error': None,
-                        'configId': node.get('configId')
-                    }
-                    logger.info(f"[Canvas Execute] Generation node (placeholder): configId={node.get('configId')}")
+                    config_id = node.get('configId')
+
+                    # Validate
+                    if not config_id:
+                        results[node_id] = {
+                            'type': 'generation',
+                            'output': None,
+                            'error': 'No output config selected'
+                        }
+                        continue
+
+                    if not input_text:
+                        results[node_id] = {
+                            'type': 'generation',
+                            'output': None,
+                            'error': 'No input text from source node'
+                        }
+                        continue
+
+                    # Import helper and config
+                    from my_app.routes.schema_pipeline_routes import execute_generation_stage4
+                    from config import DEFAULT_SAFETY_LEVEL
+                    import uuid
+                    import time
+
+                    # Create shared run_id for all generations in this Canvas workflow
+                    if 'canvas_run_id' not in locals():
+                        canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
+                    try:
+                        # Call generation helper
+                        gen_result = asyncio.run(execute_generation_stage4(
+                            prompt=input_text,
+                            output_config=config_id,
+                            safety_level=DEFAULT_SAFETY_LEVEL,
+                            run_id=canvas_run_id,
+                            device_id=None,  # Auto-generated
+                            input_text='',  # No original user input in Canvas context
+                            context_prompt='',
+                            interception_result='',
+                            interception_config=''
+                        ))
+
+                        if gen_result['success']:
+                            results[node_id] = {
+                                'type': 'generation',
+                                'output': gen_result['media_output'],
+                                'error': None,
+                                'configId': config_id
+                            }
+                            logger.info(f"[Canvas Execute] Generation success: {gen_result['media_output']['url']}")
+                        else:
+                            results[node_id] = {
+                                'type': 'generation',
+                                'output': None,
+                                'error': gen_result.get('error', 'Generation failed'),
+                                'configId': config_id
+                            }
+                            logger.error(f"[Canvas Execute] Generation error: {gen_result.get('error')}")
+
+                    except Exception as e:
+                        logger.error(f"[Canvas Execute] Generation exception: {e}")
+                        results[node_id] = {
+                            'type': 'generation',
+                            'output': None,
+                            'error': str(e),
+                            'configId': config_id
+                        }
 
                 elif node_type == 'collector':
                     # Collector node: gather all inputs
