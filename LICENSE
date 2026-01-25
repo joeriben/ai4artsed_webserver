@@ -1,49 +1,38 @@
-LICENSE (EUPL-1.2)
-------------------
+SOURCE-AVAILABLE NON-COMMERCIAL LICENSE
 
-European Union Public Licence v. 1.2
+Copyright (c) 2024-2026 Benjamin Jörissen
+Friedrich-Alexander-Universität Erlangen-Nürnberg
 
-This European Union Public Licence (the "EUPL") applies to the software component known as "AI4ArtsEd ComfyUI Extensions" (the "Work").
+All Rights Reserved.
 
-The Work is licensed under the EUPL v1.2. You may obtain a copy of the full licence text at:
-https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to view
+and study the Software for educational and research purposes only, subject to
+the following conditions:
 
-By using, modifying, or distributing this Work, you accept the terms and conditions of the EUPL v1.2.
+RESTRICTIONS:
+1. The Software may NOT be used for commercial purposes without explicit
+   written permission from the copyright holder.
+2. The Software may NOT be redistributed, sublicensed, sold, or otherwise
+   transferred to third parties.
+3. Modified versions may NOT be distributed or used outside of personal
+   educational/research contexts.
+4. The Software may NOT be used to provide any kind of service to third parties
+   (including but not limited to SaaS, hosting, or API services) without
+   explicit written permission.
 
-This Work is provided "as is" without warranty of any kind, either express or implied. The licensor is not liable for any damages resulting from its use.
+PERMITTED USE:
+- Viewing and studying the source code
+- Educational and non-commercial research purposes
+- Personal experimentation and learning
 
-Original work copyright:
-(c) 2025 AI4ArtsEd Research Group / Prof. Dr. Benjamin Jörissen, Friedrich-Alexander-Universität Erlangen-Nürnberg
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
-Compatibility:
-The EUPL v1.2 is compatible with the GNU General Public License (GPL) v2, v3, and AGPL, the Mozilla Public License (MPL), and several other open-source licenses. You may relicense under a compatible license if necessary.
-
----
-
-Lizenz (deutsche Zusammenfassung, nicht rechtsverbindlich)
------------------------------------------------------------
-
-Diese Software steht unter der **European Union Public Licence (EUPL), Version 1.2**.
-
-Sie dürfen diese Software verwenden, studieren, ändern und weitergeben. Wenn Sie Änderungen vornehmen und diese weiterverbreiten, müssen Sie den Quellcode offenlegen und ebenfalls unter einer kompatiblen Lizenz bereitstellen.
-
-Diese Lizenz gewährleistet, dass Software ein Gemeingut bleibt ("digital commons") und unterstützt insbesondere gemeinwohlorientierte, kulturelle und bildungsbezogene Softwareentwicklung.
-
-Original work copyright:
-(c) 2025 AI4ArtsEd Research Group / Prof. Dr. Benjamin Jörissen, Friedrich-Alexander-Universität Erlangen-Nürnberg
-
-Bitte beachten Sie: Die rechtsverbindliche Version der Lizenz ist in mehreren Sprachen online verfügbar unter:
-https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
-
----
-
-README.md (Lizenzabschnitt)
-----------------------------
-
-## License
-
-This repository is licensed under the **European Union Public License (EUPL) v1.2**.
-
-The EUPL ensures that this software remains part of the cultural and educational commons. It guarantees your freedom to use, study, modify, and share the code, while requiring openness for derivative works.
-
-Full license text: [EUPL v1.2](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
+For licensing inquiries and commercial use permissions, contact:
+benjamin.joerissen@fau.de
