@@ -2009,24 +2009,10 @@ def generation_endpoint():
     """
     Generation endpoint - Stage 3 Safety (auto) + Stage 4 Media Generation.
 
+    Session 133: Refactored to use execute_generation_stage4() helper.
     Lab Architecture: Each generation creates NEW run with complete context.
-    Frontend sends all data; backend stores complete session in one folder.
 
-    Request Body:
-    {
-        "prompt": "The final prompt for generation",
-        "output_config": "sd35_large",  # Which model/backend to use
-        "seed": 123456,                 # Optional: specific seed
-        "safety_level": "youth",        # Optional: kids, youth, open
-        "alpha_factor": 0,              # Optional: for Surrealizer
-        "input_image": "/path/to/img",  # Optional: for img2img
-
-        # Context from interception (frontend sends these):
-        "input_text": "Original user input",
-        "interception_result": "Transformed text from Stage 2",
-        "interception_config": "planetarizer",
-        "device_id": "a1b2c3d4-..."     # LocalStorage UUID for workshop tracking
-    }
+    Request Body: See execute_generation_stage4() docstring for parameters.
     """
     import time
     import uuid
@@ -2038,6 +2024,7 @@ def generation_endpoint():
         if not data:
             return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
 
+        # Extract parameters
         prompt = data.get('prompt', '')
         output_config = data.get('output_config')
         seed = data.get('seed')
@@ -2047,62 +2034,166 @@ def generation_endpoint():
         input_image1 = data.get('input_image1')
         input_image2 = data.get('input_image2')
         input_image3 = data.get('input_image3')
-
-        # Context data from frontend
         input_text = data.get('input_text', '')
-        context_prompt = data.get('context_prompt', '')  # Meta-Prompt/Regeln (user-editable!)
+        context_prompt = data.get('context_prompt', '')
         interception_result = data.get('interception_result', '')
         interception_config = data.get('interception_config', '')
-        # Session 129: device_id for folder structure - generate unique ID if not provided
         device_id = data.get('device_id') or f"api_{uuid.uuid4().hex[:12]}"
-        provided_run_id = data.get('run_id')  # prompting_process_xxx from Interception
+        provided_run_id = data.get('run_id')
 
         if not prompt or not output_config:
             return jsonify({'status': 'error', 'error': 'prompt und output_config sind erforderlich'}), 400
 
         logger.info(f"[GENERATION-ENDPOINT] Starting for config '{output_config}'")
         logger.info(f"[GENERATION-ENDPOINT] Prompt (first 100 chars): {prompt[:100]}...")
-        if device_id:
-            logger.info(f"[GENERATION-ENDPOINT] Device ID: {device_id}")
-        if provided_run_id:
-            logger.info(f"[GENERATION-ENDPOINT] Provided run_id: {provided_run_id}")
 
         if pipeline_executor is None:
             init_schema_engine()
 
-        # Session 130: 1 Run = 1 Media Output
-        # - First generation continues interception folder
-        # - Subsequent generations create NEW folder
+        # Session 130: Handle run_id continuity (1 Run = 1 Media Output)
         from config import JSON_STORAGE_DIR
         recorder = None
+        run_id = None
 
         if provided_run_id and provided_run_id.startswith('run_'):
             existing_recorder = load_recorder(provided_run_id, base_path=JSON_STORAGE_DIR)
-
             if existing_recorder:
-                # Check if run already has media output
                 has_output = any(
                     e.get('type', '').startswith('output_')
                     for e in existing_recorder.metadata.get('entities', [])
                 )
-
                 if has_output:
-                    # Already generated → NEW folder (data saved later at lines 2142+)
                     run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
                     logger.info(f"[GENERATION-ENDPOINT] Previous run has output, creating new: {run_id}")
                 else:
-                    # No output yet → CONTINUE existing folder
                     run_id = provided_run_id
                     recorder = existing_recorder
                     logger.info(f"[GENERATION-ENDPOINT] Continuing existing run: {run_id}")
-            else:
-                logger.warning(f"[GENERATION-ENDPOINT] Could not load recorder for {provided_run_id}")
-                run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-        else:
-            # No interception before (e.g., I2I) - create new run folder
+
+        # Call helper function for generation
+        result = asyncio.run(execute_generation_stage4(
+            prompt=prompt,
+            output_config=output_config,
+            safety_level=safety_level,
+            seed=seed,
+            recorder=recorder,
+            run_id=run_id,
+            device_id=device_id,
+            input_text=input_text,
+            context_prompt=context_prompt,
+            interception_result=interception_result,
+            interception_config=interception_config,
+            input_image=input_image,
+            input_image1=input_image1,
+            input_image2=input_image2,
+            input_image3=input_image3,
+            alpha_factor=alpha_factor
+        ))
+
+        # Handle result
+        if not result['success']:
+            if result.get('blocked'):
+                return jsonify({
+                    'status': 'blocked',
+                    'stage': 3,
+                    'reason': result['error'],
+                    'found_terms': result.get('found_terms', [])
+                }), 403
+            return jsonify({
+                'status': 'error',
+                'error': result['error']
+            }), 500
+
+        duration_ms = (time.time() - start_time) * 1000
+        logger.info(f"[GENERATION-ENDPOINT] Success in {duration_ms:.0f}ms")
+
+        return jsonify({
+            'status': 'success',
+            'media_output': result['media_output'],
+            'run_id': result['run_id'],
+            'duration_ms': duration_ms,
+            'loras': result.get('loras', [])
+        })
+
+    except Exception as e:
+        logger.error(f"[GENERATION-ENDPOINT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+async def execute_generation_stage4(
+    prompt: str,
+    output_config: str,
+    safety_level: str,
+    seed: int = None,
+    recorder = None,
+    run_id: str = None,
+    device_id: str = None,
+    input_text: str = '',
+    context_prompt: str = '',
+    interception_result: str = '',
+    interception_config: str = '',
+    input_image: str = None,
+    input_image1: str = None,
+    input_image2: str = None,
+    input_image3: str = None,
+    alpha_factor = None,
+    **kwargs
+):
+    """
+    Execute Stage 3 (Safety+Translation) + Stage 4 (Generation).
+
+    Reusable helper for both /pipeline/generation and Canvas workflows.
+    Session 133: Extracted from generation_endpoint to avoid code duplication.
+
+    Args:
+        prompt: Input prompt for generation (German or English)
+        output_config: Config ID (e.g., 'sd35_large')
+        safety_level: 'kids', 'youth', 'open', or 'off'
+        seed: Optional seed (generates random if None)
+        recorder: Optional LivePipelineRecorder instance (creates new if None)
+        run_id: Optional run_id (creates new if None)
+        device_id: Optional device_id for folder structure
+        input_text: Original user input (for recorder)
+        context_prompt: Meta-prompt used (for recorder)
+        interception_result: Interception output (for recorder)
+        interception_config: Interception config ID (for LoRA extraction)
+        input_image: Path to input image for img2img
+        input_image1/2/3: Paths for multi-image workflows
+        alpha_factor: Alpha factor for Surrealizer
+        **kwargs: Additional params
+
+    Returns:
+        {
+            'success': bool,
+            'media_output': {
+                'media_type': 'image',
+                'url': '/api/media/image/run_xxx/0',
+                'run_id': 'run_xxx',
+                'index': 0,
+                'seed': 123456
+            },
+            'run_id': str,
+            'error': Optional[str],
+            'blocked': Optional[bool]  # True if safety check failed
+        }
+    """
+    import time
+    import random
+
+    try:
+        # Initialize schema engine if needed
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        # Generate run_id if not provided
+        if run_id is None:
             run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
 
-        logger.info(f"[GENERATION-ENDPOINT] Using run_id: {run_id}")
+        # Generate device_id if not provided
+        if device_id is None:
+            device_id = f"api_{uuid.uuid4().hex[:12]}"
 
         # Determine media type from output config
         if 'code' in output_config.lower() or 'p5js' in output_config.lower():
@@ -2117,33 +2208,32 @@ def generation_endpoint():
         # ====================================================================
         # STAGE 3: TRANSLATION + PRE-OUTPUT SAFETY
         # ====================================================================
-        # Use execute_stage3_safety which includes translation DE→EN
-        logger.info(f"[GENERATION-ENDPOINT] Stage 3: Translation + Safety (level: {safety_level})")
+        logger.info(f"[GENERATION-HELPER] Stage 3: Translation + Safety (level: {safety_level})")
 
-        from schemas.engine.stage_orchestrator import execute_stage3_safety
-
-        safety_result = asyncio.run(execute_stage3_safety(
+        safety_result = await execute_stage3_safety(
             prompt,
             safety_level,
             media_type,
             'eco',
             pipeline_executor
-        ))
+        )
 
         if not safety_result['safe']:
-            logger.warning(f"[GENERATION-ENDPOINT] Stage 3 BLOCKED")
-            return jsonify({
-                'status': 'blocked',
-                'stage': 3,
-                'reason': safety_result.get('abort_reason', 'Content blocked by safety check'),
-                'found_terms': safety_result.get('found_terms', [])
-            }), 403
+            logger.warning(f"[GENERATION-HELPER] Stage 3 BLOCKED")
+            return {
+                'success': False,
+                'blocked': True,
+                'error': safety_result.get('abort_reason', 'Content blocked by safety check'),
+                'found_terms': safety_result.get('found_terms', []),
+                'run_id': run_id
+            }
 
         # Get translated prompt (English) for media generation
         translated_prompt = safety_result.get('positive_prompt', prompt)
-        logger.info(f"[GENERATION-ENDPOINT] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
+        logger.info(f"[GENERATION-HELPER] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
 
-        # Session 129: Create recorder if not already loaded from prompting_process
+        # Create recorder if not provided
+        from config import JSON_STORAGE_DIR, STAGE3_MODEL
         if recorder is None:
             recorder = get_recorder(
                 run_id=run_id,
@@ -2154,67 +2244,53 @@ def generation_endpoint():
                 base_path=JSON_STORAGE_DIR
             )
 
-        # Track LLM models used - add Stage 4 output model
-        from config import STAGE3_MODEL
+        # Track LLM models used
         if 'models_used' not in recorder.metadata:
             recorder.metadata['models_used'] = {}
         recorder.metadata['models_used']['stage3_safety'] = STAGE3_MODEL
         recorder.metadata['models_used']['stage4_output'] = output_config
         recorder._save_metadata()
 
-        # Session 129: Save FINAL versions to main folder (for favorites/restore)
-        # Prompting iterations are in prompting_process/ subfolder (research data)
-
-        # 1. Final input text
+        # Save context entities
         if input_text:
             recorder.save_entity('input', input_text)
-
-        # 2. Final context prompt / Meta-Prompt
         if context_prompt:
             recorder.save_entity('context_prompt', context_prompt)
-
-        # 3. Final interception result
         if interception_result:
             recorder.save_entity('interception', interception_result)
         if interception_config:
             recorder.metadata['interception_config'] = interception_config
 
-        # 4. Optimized/final prompt (German, before translation)
+        # Save optimized/final prompt (German, before translation)
         recorder.save_entity('optimized_prompt', prompt)
 
-        # 5. Translation (English, for media generation)
+        # Save translation (English, for media generation)
         if translated_prompt and translated_prompt != prompt:
             recorder.save_entity('translation_en', translated_prompt)
-            logger.info(f"[RECORDER] Saved translation_en entity")
 
-        # Seed logic: use provided seed or generate random
-        import random
+        # Generate seed if not provided
         if seed is None:
             seed = random.randint(0, 2147483647)
-            logger.info(f"[GENERATION-ENDPOINT] Generated random seed: {seed}")
+            logger.info(f"[GENERATION-HELPER] Generated random seed: {seed}")
         else:
-            logger.info(f"[GENERATION-ENDPOINT] Using provided seed: {seed}")
+            logger.info(f"[GENERATION-HELPER] Using provided seed: {seed}")
 
-        # Build custom params for legacy workflows
+        # Build custom params
         custom_params = {}
         if alpha_factor is not None:
             custom_params['alpha_factor'] = alpha_factor
 
-        # Session 116 Port: Extract LoRAs from interception config
-        # Note: interception configs are stored by stem only (e.g. "cooked_negatives", not "interception/cooked_negatives")
-        logger.info(f"[GENERATION-LORA] interception_config value: '{interception_config}'")
+        # Extract LoRAs from interception config
         if interception_config:
             try:
                 interception_cfg = pipeline_executor.config_loader.get_config(interception_config)
-                logger.info(f"[GENERATION-LORA] Config loaded: {interception_cfg is not None}, has meta: {hasattr(interception_cfg, 'meta') and interception_cfg.meta is not None if interception_cfg else False}")
                 if interception_cfg and hasattr(interception_cfg, 'meta') and interception_cfg.meta:
                     config_loras = interception_cfg.meta.get('loras', [])
-                    logger.info(f"[GENERATION-LORA] meta.loras: {config_loras}")
                     if config_loras:
                         custom_params['loras'] = config_loras
-                        logger.info(f"[GENERATION-LORA] Extracted {len(config_loras)} LoRA(s) from '{interception_config}': {[l['name'] for l in config_loras]}")
+                        logger.info(f"[GENERATION-HELPER] Extracted {len(config_loras)} LoRA(s) from '{interception_config}'")
             except Exception as e:
-                logger.warning(f"[GENERATION-LORA] Could not load config '{interception_config}': {e}")
+                logger.warning(f"[GENERATION-HELPER] Could not load config '{interception_config}': {e}")
 
         # Create context override if we have custom params
         from schemas.engine.pipeline_executor import PipelineContext
@@ -2224,9 +2300,9 @@ def generation_endpoint():
             context_override.custom_placeholders = custom_params
 
         # Execute the generation pipeline with TRANSLATED prompt (English)
-        output_result = asyncio.run(pipeline_executor.execute_pipeline(
+        output_result = await pipeline_executor.execute_pipeline(
             config_name=output_config,
-            input_text=translated_prompt,  # Use English translation!
+            input_text=translated_prompt,
             user_input=translated_prompt,
             execution_mode='eco',
             context_override=context_override,
@@ -2236,19 +2312,18 @@ def generation_endpoint():
             input_image2=input_image2,
             input_image3=input_image3,
             alpha_factor=alpha_factor
-        ))
+        )
 
         if not output_result.success:
-            return jsonify({
-                'status': 'error',
-                'error': output_result.error or 'Generation failed'
-            }), 500
+            return {
+                'success': False,
+                'error': output_result.error or 'Generation failed',
+                'run_id': run_id
+            }
 
         # Process output based on type
         output_value = output_result.final_output
-        # Fix: .get() returns None if key exists with None value, so use 'or' for fallback
         result_seed = output_result.metadata.get('seed') or seed
-        logger.info(f"[GENERATION-ENDPOINT] Seed debug: metadata.seed={output_result.metadata.get('seed')}, provided_seed={seed}, result_seed={result_seed}")
 
         # Handle different output types
         if media_type == 'code':
@@ -2267,18 +2342,21 @@ def generation_endpoint():
                     'seed': result_seed
                 }
             else:
-                return jsonify({'status': 'error', 'error': 'Code generation failed'}), 500
+                return {
+                    'success': False,
+                    'error': 'Code generation failed',
+                    'run_id': run_id
+                }
 
         elif output_value == 'swarmui_generated':
             # SwarmUI generation
             image_paths = output_result.metadata.get('image_paths', [])
-            saved_filename = asyncio.run(recorder.download_and_save_from_swarmui(
+            saved_filename = await recorder.download_and_save_from_swarmui(
                 image_paths=image_paths,
                 media_type=media_type,
                 config=output_config,
                 seed=result_seed
-            ))
-            # Calculate index of just-saved media (for explicit URL addressing)
+            )
             media_entities = [e for e in recorder.metadata.get('entities', []) if e.get('type') == f'output_{media_type}']
             media_index = len(media_entities) - 1 if media_entities else 0
             media_output = {
@@ -2290,7 +2368,7 @@ def generation_endpoint():
             }
 
         elif output_value == 'workflow_generated':
-            # ComfyUI workflow - check filesystem_path first, then media_files
+            # ComfyUI workflow
             filesystem_path = output_result.metadata.get('filesystem_path')
             media_files = output_result.metadata.get('media_files', [])
 
@@ -2311,20 +2389,15 @@ def generation_endpoint():
                             'source_path': filesystem_path
                         }
                     )
-                    logger.info(f"[GENERATION-ENDPOINT] Saved from filesystem: {saved_filename}")
-                else:
-                    logger.error(f"[GENERATION-ENDPOINT] File not found: {filesystem_path}")
+                    logger.info(f"[GENERATION-HELPER] Saved from filesystem: {saved_filename}")
             elif media_files:
                 # Legacy: binary data in metadata
                 outputs_metadata = output_result.metadata.get('outputs_metadata', [])
-                logger.info(f"[GENERATION-ENDPOINT] Saving {len(media_files)} legacy media file(s)")
                 for idx, file_data in enumerate(media_files):
                     file_meta = outputs_metadata[idx] if idx < len(outputs_metadata) else {}
                     entity_type = f'output_{media_type}'
-
                     original_filename = file_meta.get('filename', '')
                     file_format = original_filename.split('.')[-1] if '.' in original_filename else 'png'
-
                     saved_filename = recorder.save_entity(
                         entity_type=entity_type,
                         content=file_data,
@@ -2337,9 +2410,7 @@ def generation_endpoint():
                             'total_files': len(media_files)
                         }
                     )
-                    logger.info(f"[GENERATION-ENDPOINT] Saved legacy: {saved_filename}")
 
-            # Calculate index of just-saved media (for explicit URL addressing)
             media_entities = [e for e in recorder.metadata.get('entities', []) if e.get('type') == f'output_{media_type}']
             media_index = len(media_entities) - 1 if media_entities else 0
             media_output = {
@@ -2354,23 +2425,20 @@ def generation_endpoint():
             # Direct output (OpenAI, Gemini, etc.)
             if output_value and output_value.startswith(('http://', 'https://')):
                 # URL output - download and save
-                logger.info(f"[GENERATION-ENDPOINT] Downloading from URL: {output_value[:100]}...")
-                saved_filename = asyncio.run(recorder.download_and_save_from_url(
+                saved_filename = await recorder.download_and_save_from_url(
                     url=output_value,
                     media_type=media_type,
                     config=output_config,
                     seed=result_seed
-                ))
-                logger.info(f"[GENERATION-ENDPOINT] Saved from URL: {saved_filename}")
+                )
             elif output_value and len(output_value) > 100:
                 # Likely base64 data - decode and save
                 import base64
                 try:
-                    # Remove data URL prefix if present
                     if output_value.startswith('data:'):
                         output_value = output_value.split(',', 1)[1]
                     file_data = base64.b64decode(output_value)
-                    file_format = 'png'  # Default for images
+                    file_format = 'png'
                     saved_filename = recorder.save_entity(
                         entity_type=f'output_{media_type}',
                         content=file_data,
@@ -2381,13 +2449,9 @@ def generation_endpoint():
                             'source': 'base64'
                         }
                     )
-                    logger.info(f"[GENERATION-ENDPOINT] Saved from base64: {saved_filename}")
                 except Exception as e:
-                    logger.error(f"[GENERATION-ENDPOINT] Failed to decode base64: {e}")
-            else:
-                logger.warning(f"[GENERATION-ENDPOINT] Unknown output format: {output_value[:100] if output_value else 'None'}...")
+                    logger.error(f"[GENERATION-HELPER] Failed to decode base64: {e}")
 
-            # Calculate index of just-saved media (for explicit URL addressing)
             media_entities = [e for e in recorder.metadata.get('entities', []) if e.get('type') == f'output_{media_type}']
             media_index = len(media_entities) - 1 if media_entities else 0
             media_output = {
@@ -2398,22 +2462,24 @@ def generation_endpoint():
                 'seed': result_seed
             }
 
-        duration_ms = (time.time() - start_time) * 1000
-        logger.info(f"[GENERATION-ENDPOINT] Success in {duration_ms:.0f}ms")
+        logger.info(f"[GENERATION-HELPER] Success: {media_output['url']}")
 
-        return jsonify({
-            'status': 'success',
+        return {
+            'success': True,
             'media_output': media_output,
             'run_id': run_id,
-            'duration_ms': duration_ms,
             'loras': custom_params.get('loras', [])
-        })
+        }
 
     except Exception as e:
-        logger.error(f"[GENERATION-ENDPOINT] Error: {e}")
+        logger.error(f"[GENERATION-HELPER] Error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return {
+            'success': False,
+            'error': str(e),
+            'run_id': run_id if run_id else 'unknown'
+        }
 
 
 @schema_bp.route('/pipeline/legacy', methods=['POST'])
