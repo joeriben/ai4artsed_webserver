@@ -2139,6 +2139,7 @@ async def execute_generation_stage4(
     input_image2: str = None,
     input_image3: str = None,
     alpha_factor = None,
+    skip_stage3: bool = False,
     **kwargs
 ):
     """
@@ -2208,29 +2209,34 @@ async def execute_generation_stage4(
         # ====================================================================
         # STAGE 3: TRANSLATION + PRE-OUTPUT SAFETY
         # ====================================================================
-        logger.info(f"[GENERATION-HELPER] Stage 3: Translation + Safety (level: {safety_level})")
+        if skip_translation:
+            # Canvas workflows: text already translated, skip Stage 3 entirely
+            translated_prompt = prompt
+            logger.info(f"[GENERATION-HELPER] Stage 3 SKIPPED (Canvas mode): {translated_prompt[:100]}...")
+        else:
+            logger.info(f"[GENERATION-HELPER] Stage 3: Translation + Safety (level: {safety_level})")
 
-        safety_result = await execute_stage3_safety(
-            prompt,
-            safety_level,
-            media_type,
-            'eco',
-            pipeline_executor
-        )
+            safety_result = await execute_stage3_safety(
+                prompt,
+                safety_level,
+                media_type,
+                'eco',
+                pipeline_executor
+            )
 
-        if not safety_result['safe']:
-            logger.warning(f"[GENERATION-HELPER] Stage 3 BLOCKED")
-            return {
-                'success': False,
-                'blocked': True,
-                'error': safety_result.get('abort_reason', 'Content blocked by safety check'),
-                'found_terms': safety_result.get('found_terms', []),
-                'run_id': run_id
-            }
+            if not safety_result['safe']:
+                logger.warning(f"[GENERATION-HELPER] Stage 3 BLOCKED")
+                return {
+                    'success': False,
+                    'blocked': True,
+                    'error': safety_result.get('abort_reason', 'Content blocked by safety check'),
+                    'found_terms': safety_result.get('found_terms', []),
+                    'run_id': run_id
+                }
 
-        # Get translated prompt (English) for media generation
-        translated_prompt = safety_result.get('positive_prompt', prompt)
-        logger.info(f"[GENERATION-HELPER] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
+            # Get translated prompt (English) for media generation
+            translated_prompt = safety_result.get('positive_prompt', prompt)
+            logger.info(f"[GENERATION-HELPER] Stage 3 PASSED, translated: {translated_prompt[:100]}...")
 
         # Create recorder if not provided
         from config import JSON_STORAGE_DIR, STAGE3_MODEL
