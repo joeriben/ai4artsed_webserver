@@ -1,9 +1,9 @@
 # Development Log
 
 ## Session 134 - Canvas Decision & Evaluation Nodes (Unified Architecture)
-**Date:** 2026-01-25
-**Focus:** Implement evaluation nodes with 3-output branching logic for Canvas workflows
-**Status:** COMPLETED (Phase 1-3a), Phase 3b pending (Conditional Execution)
+**Date:** 2026-01-25 → 2026-01-26
+**Focus:** Implement evaluation nodes with 3-output branching logic + Tracer-Pattern execution
+**Status:** COMPLETED (Phase 1-4) - Reflexiv agierendes Frontend für genAI
 
 ### Pädagogisches Konzept: Evaluation als bewusste Entscheidung
 
@@ -126,26 +126,45 @@ metadata = {
 
 ### Technical Debt & Next Steps
 
-**Phase 3b: Conditional Execution (NOT IMPLEMENTED)**
-- Currently: All 3 outputs execute connected nodes
-- Goal: Only active path (P or C) executes, Commentary always active
-- Requires: Connection label tracking, active path marking, conditional node execution
+**Phase 3b: Conditional Execution (IMPLEMENTED)**
+- Connection labels track active path ('passthrough', 'commented', 'commentary', 'feedback')
+- Tracer filters connections based on `active_path` metadata
+- Only active path executes downstream (commentary always active)
 
-**Phase 4: Loop Controller (PLANNED)**
-- Feedback loops with max iterations
-- Commented path → Loop Controller → back to Interception
-- Prevents infinite loops (max 3 iterations default)
+**Phase 4: Feedback Loops (IMPLEMENTED - Tracer Pattern)**
+
+*Ursprünglicher Plan (verworfen):*
+- Loop Controller Node + Kahn's Algorithm
+- "Scheinlösung" - über-engineered
+
+*Implementierte Lösung:*
+- **Tracer Pattern**: Simples rekursives Graph-Tracing
+- Feedback-Input-Connector an Interception/Translation Nodes
+- Feedback-Connections mit Label `'feedback'`
+- Safety-Limit: MAX_TOTAL_EXECUTIONS = 50
+- Kein separater Loop Controller Node nötig
+
+*Design Decision:*
+> "Wir haben hier keine unkontrollierte Schleifen-Situation im Graph, sondern nichts anderes als eine Loop-End-Konstellation."
+
+Das System ist ein **reflexiv agierendes Frontend für genAI**:
+```
+Input → Interception → Evaluation → [Score < 5?]
+                            ↓ feedback     ↓ pass
+                       Interception    Collector
+```
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `public/.../types/canvas.ts` | Unified evaluation type, 3-output structure, connection rules |
-| `public/.../StageModule.vue` | Evaluation UI, 3 connectors, Preview inline display, Collector display |
-| `public/.../CanvasWorkspace.vue` | Event forwarding for evaluation/preview |
+| `public/.../types/canvas.ts` | Unified evaluation type, 3-output structure, connection labels, maxFeedbackIterations |
+| `public/.../stores/canvas.ts` | Connection label handling, feedback completion functions |
+| `public/.../StageModule.vue` | Evaluation UI, 3 connectors, Feedback-Input connector, Preview inline display |
+| `public/.../CanvasWorkspace.vue` | Feedback connection handling, event forwarding |
 | `public/.../canvas_workflow.vue` | Handler functions for evaluation config |
 | `public/.../ModulePalette.vue` | Removed 7 nodes → 1 evaluation node |
-| `devserver/.../canvas_routes.py` | Evaluation execution with 3 text outputs, binary logic |
+| `devserver/.../canvas_routes.py` | **Complete rewrite**: Tracer pattern statt Kahn's Algorithm |
 
 ### Commits
 
@@ -159,6 +178,11 @@ metadata = {
 8. `feat(session-134): 3 separate TEXT outputs for Evaluation nodes` - 3-output architecture
 9. `fix(session-134): Improve binary evaluation logic` - Score threshold fallback
 10. `refactor(session-134): Display → Preview with inline content display` - Preview node
+11. `fix(session-134): Score-based override for binary evaluation` - Score fallback
+12. `refactor(session-134): Simplify evaluation to score-only logic` - Clean score logic
+13. `feat(session-134): Phase 3b - Conditional execution for evaluation nodes` - Path filtering
+14. `feat(session-134): Phase 4 - Loop Controller with feedback iterations` - Tracer pattern
+15. `fix(session-134): TypeScript errors in Phase 4 Loop Controller` - Type fixes
 
 ### Testing Results
 
@@ -169,10 +193,13 @@ metadata = {
 - 3 output connectors (P, C, →)
 - Preview shows inline content
 - Collector displays evaluation results with metadata
+- Conditional execution (only active path executes)
+- Feedback loops (Evaluation → Interception)
+- Safety limit prevents infinite loops
 
-⚠️ **Known Issues:**
-- Binary logic had fallback bug (fixed: Score 2/10 now correctly fails)
-- Conditional execution not implemented (all paths execute)
+⚠️ **Known Issues (fixed):**
+- Binary logic fallback bug → Score-based override
+- Conditional execution → Tracer pattern with path filtering
 
 ### Architecture Documentation
 

@@ -129,6 +129,94 @@ falseLabel: string
 
 ---
 
+## 🔄 CANVAS EXECUTION: Tracer-Pattern vs. Kahn's Algorithm (2026-01-26)
+
+**Status:** ✅ DECIDED & IMPLEMENTED
+**Session:** 134 (Phase 4)
+
+### Decision
+
+Use **simple Tracer-Pattern** (recursive graph traversal) instead of **Kahn's Algorithm** (topological sorting) for Canvas workflow execution.
+
+### Context: The Loop Problem
+
+**Original Plan (rejected):**
+- Kahn's Algorithm for topological sorting
+- Separate "Loop Controller" Node type
+- Complex re-queueing mechanism for feedback loops
+
+**Problem:** Kahn's Algorithm is designed for DAGs (Directed Acyclic Graphs) and rejects cycles by design. Feedback loops (Evaluation → Interception) create intentional cycles.
+
+### User Critique
+
+> "Die versuchte Lösung gegen der Kahn-Bedingung/Loop ist eine Scheinlösung."
+> "Wir haben hier keine unkontrollierte Schleifen-Situation im Graph, sondern nichts anderes als eine Loop-End-Konstellation."
+
+The Loop Controller approach was over-engineered - the system doesn't need general cycle handling, just controlled feedback loops.
+
+### Implemented Solution: Tracer-Pattern
+
+```python
+def trace(node_id, input_data, data_type):
+    # 1. Execute current node
+    output_data, output_type, metadata = execute_node(node, input_data, data_type)
+
+    # 2. At Evaluation: filter connections based on score
+    if node_type == 'evaluation' and metadata:
+        active_path = metadata['active_path']  # 'passthrough' or 'commented'
+        # Only follow connections whose label matches active_path
+
+    # 3. For each active connection: recursive trace()
+    for conn in active_connections:
+        trace(conn['target'], output_data, output_type)
+```
+
+**Safety:** `MAX_TOTAL_EXECUTIONS = 50` prevents infinite loops.
+
+### Why This Works
+
+The Canvas system is NOT a general graph executor, but a **pedagogical workflow**:
+- Input is always the start
+- Collector is always the end
+- Between: directed flow with controlled loops
+- The "Loop-End-Konstellation" is a feature, not a bug
+
+### Result: Reflexively Acting Frontend
+
+A **world-unique reflexively acting frontend for genAI**:
+
+```
+Input → Interception → Evaluation → [Score < 5?]
+                            ↓ feedback     ↓ pass
+                       Interception    Generation → Collector
+```
+
+The system can:
+1. Evaluate outputs (Evaluation node with LLM)
+2. Provide feedback on failure (Commented output)
+3. Send feedback back to Interception (Feedback connection)
+4. Iterate until Score >= 5
+
+### Affected Files
+
+- `devserver/my_app/routes/canvas_routes.py` - Complete rewrite: `trace()` function replaces Kahn's algorithm
+- `public/.../types/canvas.ts` - `maxFeedbackIterations` property
+- `public/.../StageModule.vue` - Feedback-Input connector for Interception/Translation
+
+### Trade-offs
+
+**Chosen:**
+- Simple recursive traversal
+- Safety limit (50 executions)
+- Feedback connections with explicit label
+
+**Rejected:**
+- Kahn's Algorithm (rejects cycles)
+- Loop Controller node (over-engineered)
+- Modified Kahn's with loop-edge exclusion (still complex)
+
+---
+
 ## 🤖 LLM SELECTION: Model-Specific Prompting Strategy (2026-01-23)
 
 **Status:** ✅ DECIDED
@@ -3204,3 +3292,172 @@ translated_prompt = safety_result.get('positive_prompt', prompt)
 3. **No Duplicates:** Single source of truth per session
 4. **Restorable:** Users can reload exact session state
 5. **Exportable:** Clean folder structure for data analysis
+
+---
+
+## 🎨 STAGE2 INTERCEPTION PROMPT REVISION: Prinzipien statt Checklisten (2026-01-25)
+
+**Status:** ✅ DECIDED & IMPLEMENTED
+**Session:** 136+
+**Affected Configs:** `overdrive`, `one_world`, `planetarizer`, `hunkydoryharmonizer`
+
+### Problem
+
+Die bestehenden Stage2 Prompts hatten verschiedene Probleme:
+- **overdrive:** Zu kurz (2 Sätze), keine Methodik
+- **one_world/planetarizer:** Produzierten Klischee-Bilder trotz expliziter Verbote
+- **hunkydoryharmonizer:** Filter-Rhetorik ("Ensure...", "Avoid...") statt Transformations-Rhetorik
+
+### Revisionsstrategie
+
+**Kernprinzip:** Prinzipien statt Checklisten
+
+Anstatt detaillierte nummerierte Regeln zu geben, formulieren die neuen Prompts:
+1. Eine **klare Rolle/Perspektive** für das LLM
+2. Die **Kernaufgabe** als Transformation (nicht als Filter)
+3. **Offene Handlungsspielräume** für das LLM als Co-Akteur
+4. Ein **Zielbild** (nicht eine Checkliste von Verboten)
+
+**Warum dieser Ansatz besser ist:**
+- Gibt dem LLM mehr Interpretationsspielraum (WAS/WIE-Prinzip)
+- Vermeidet mechanische Abarbeitung von Checklisten
+- Ermöglicht kreativere, kontextspezifischere Transformationen
+- Kürzer = weniger Widersprüche und Verwirrung
+
+### Versionshistorie
+
+#### overdrive.json
+
+**Status Quo (vor Revision):**
+```
+DE: Deine Gabe ist es, den Inhalt der Eingabe maßlos zu übertreiben. DU BIST DER OVERDRIVE, der alles bis zur grotesken Grenze und darüber hinaus bis zur Verzerrung verstärkt. Übertreibe in jeder Hinsicht, geh über die Stränge, gib an, mach alles groß!
+```
+
+**Version 1 (verworfen - zu komplex):**
+- Gitarren-Metapher, 5 nummerierte Dimensionen (SKALA, INTENSITÄT, KONTRAST, DICHTE, EMOTION)
+- Problem: Zu mechanisch, Metapher irreführend
+
+**Version 2 (implementiert):**
+```
+DE: Du bist der OVERDRIVE. Deine Haltung ist der totale Exzess. Du akzeptierst kein Maß und keine Mitte.
+
+Deine Aufgabe:
+1. Analysiere den Input und identifiziere sein radikalstes Potenzial. Was ist der Kern, der explodieren kann?
+2. Entwickle eine Strategie der maximalen Steigerung, die spezifisch aus diesem Input hervorgeht.
+3. Treibe diese Eigenschaft über jeden Kipp-Punkt hinaus bis zur 'Resonanzkatastrophe'.
+
+Ob du dies durch schiere Masse, monströse Größe, blendende Intensität, emotionale Hysterie oder physikalische Unmöglichkeit erreichst, entscheidest DU allein basierend auf dem, was der Input anbietet. Ziel ist ein Bild jenseits des Plausiblen. Sei nicht subtil. Sei absolut.
+
+EN: You are the OVERDRIVE. Your stance is total excess. You accept no measure and no middle ground.
+
+Your task:
+1. Analyze the input and identify its most radical potential. What is the core that can explode?
+2. Develop a strategy of maximum amplification that emerges specifically from this input.
+3. Drive this quality beyond every tipping point to the point of 'resonance catastrophe'.
+
+Whether you achieve this through sheer mass, monstrous size, blinding intensity, emotional hysteria, or physical impossibility is YOUR decision alone, based on what the input offers. The goal is an image beyond the plausible. Don't be subtle. Be absolute.
+```
+
+---
+
+#### one_world.json
+
+**Status Quo (vor Revision):**
+```
+DE: Antworte in der Sprache des Inputs. Der Input wird in eine bildgenerierende KI eingegeben, die erhebliche Biases aufweist... Du orientierst Dich an postkolonialem und dekolonialem Denken etwa im Sinne von Frantz Fanon, Homi Bhabha, Gayatri Spivak, Walter Mignolo.
+```
+- Problem: Produzierte trotzdem Klischee-Bilder
+- Zu abstrakt, keine konkrete Handlungsanweisung
+
+**Version 1 (verworfen - zu checklisten-artig):**
+- "Radikale Spezifität & Globale Modernitäten" mit 4 nummerierten Punkten
+- Konkrete Ortsbeispiele (Bogota, Nairobi, Seoul)
+- Problem: Wieder eine Checkliste
+
+**Version 2 (implementiert):**
+```
+DE: Antworte in der Sprache des Inputs. Du agierst als Korrektiv gegen die visuelle "Werksseinstellung" von Bild-KIs, die unmarkierte Orte und Personen oft generisch westlich darstellen.
+
+Deine Aufgabe ist es, diese Standardisierung aufzubrechen, indem du den Input an einen *spezifischen* Ort der Welt oder in einen *konkreten* kulturellen Kontext verpflanzt, der NICHT dem westlichen Standard entspricht.
+Du wählst diesen Kontext selbstständig und passend zum Thema des Inputs.
+Vermeide dabei den "touristischen Blick" oder Armuts-Stereotypen. Konstruiere stattdessen eine moderne, alltägliche oder hybride Realität, die so selbstverständlich wirkt, dass sie das "Westliche" dezentriert, ohne es bloß durch ein exotisches Klischee zu ersetzen. Mache den Ort und die kulturellen Codes konkret und benenne sie.
+
+EN: Respond in the language of the input. You act as a corrective against the visual "default setting" of image AIs, which often render unmarked places and people as generically Western.
+
+Your task is to break this standardization by transplanting the input to a *specific* place in the world or into a *concrete* cultural context that does NOT conform to the Western standard.
+You choose this context independently and appropriately to the theme of the input.
+Avoid the "tourist gaze" or poverty stereotypes. Instead, construct a modern, everyday, or hybrid reality that feels so natural that it decenters the "Western" without merely replacing it with an exotic cliché. Make the place and cultural codes concrete and name them.
+```
+
+---
+
+#### planetarizer.json
+
+**Status Quo (vor Revision):**
+```
+DE: Antworte in der Sprache des Inputs. Der Input wird in eine bildgenerierende KI eingegeben, die einen starken Bias zugunsten kapitalistischer, nicht nachhaltigen Konsumkultur aufweist... Du orientierst Dich an anthropozän-kritischem Denken... futurability.
+```
+- Problem: Produzierte Klischee-Bilder, zu abstrakt
+
+**Version 1 (verworfen - zu checklisten-artig):**
+- "Das Ende der Isolation / The Critical Zone" mit 4 nummerierten Punkten
+- Problem: Wieder eine Checkliste
+
+**Version 2 (implementiert):**
+```
+DE: Antworte in der Sprache des Inputs. Du nimmst die Perspektive des "Planetarischen Denkens" ein. Bild-KIs tendieren dazu, Objekte isoliert und idealisiert darzustellen.
+
+Deine Aufgabe ist es, den Input so umzuschreiben, dass er nicht mehr isoliert steht, sondern tief in seine ökologischen und materiellen Zusammenhänge verstrickt ist.
+Zeige die Abhängigkeiten, die Konsequenzen oder die Koexistenz von Mensch, Technik und Natur. Entscheide selbst, wie diese Verflechtung sichtbar wird: Sei es durch Wettereinflüsse, biologische Interaktion, Spuren der Nutzung, der Energieversorgung oder des Abfalls.
+Ziel ist keine Dystopie, sondern ein "situierter Realismus", der die Trennung zwischen Vordergrund-Objekt und Umwelt-Hintergrund aufhebt.
+
+EN: Respond in the language of the input. You adopt the perspective of "Planetary Thinking". Image AIs tend to depict objects in isolation and idealized form.
+
+Your task is to rewrite the input so that it no longer stands isolated, but is deeply entangled in its ecological and material contexts.
+Show the dependencies, consequences, or coexistence of humans, technology, and nature. Decide yourself how this entanglement becomes visible: whether through weather influences, biological interaction, traces of use, energy supply, or waste.
+The goal is not dystopia, but a "situated realism" that dissolves the separation between foreground object and environment background.
+```
+
+---
+
+#### hunkydoryharmonizer.json
+
+**Status Quo (vor Revision):**
+```
+DE: Stelle sicher, dass das generierte Bild angemessen, emotional sicher und ästhetisch ansprechend für Kinder ist. Vermeide alle Elemente... Füge diese Moderation stillschweigend ein...
+```
+- Problem: Filter-Rhetorik ("Ensure", "Avoid", "Insert moderation silently")
+- Klingt nach Zensur, nicht nach Transformation
+
+**Version 1 (verworfen - immer noch zu checklisten-artig):**
+- "Illustrator für imaginative Kinder- und Jugendliteratur" mit 4 Transformationsregeln
+- Konkrete Beispiele, Altersangabe
+- Problem: Immer noch Regelwerk statt Perspektive
+
+**Version 2 (implementiert):**
+```
+DE: Du bist ein Erzähler des "Sanften Magischen Realismus". Du betrachtest jeden Input durch eine Linse, die das Bedrohliche in das Geheimnisvolle und das Harte in das Wunderbare verwandelt.
+
+Deine Aufgabe: Schreibe den Input so um, dass er für ein kindliches Gemüt emotional sicher, aber visuell faszinierend ist.
+Finde in jedem noch so düsteren Input den Funken für ein positives, fantasievolles Abenteuer oder eine friedliche Naturbetrachtung. Du zensierst nicht einfach weg, sondern du *deutest um*: Konflikte werden zu Rätseln, Dunkelheit wird zu Geborgenheit. Nutze deine Kreativität, um eine Ästhetik der Wärme und des Staunens zu erzeugen, die den Kern des User-Wunsches bewahrt, aber dessen emotionale Wirkung heilt.
+
+EN: You are a narrator of "Gentle Magical Realism". You view every input through a lens that transforms the threatening into the mysterious and the harsh into the wondrous.
+
+Your task: Rewrite the input so that it is emotionally safe for a child's mind, yet visually fascinating.
+Find in even the darkest input the spark for a positive, imaginative adventure or a peaceful nature contemplation. You don't simply censor away, but you *reinterpret*: conflicts become riddles, darkness becomes shelter. Use your creativity to create an aesthetic of warmth and wonder that preserves the core of the user's wish but heals its emotional impact.
+```
+
+### Dateien
+
+- `devserver/schemas/configs/interception/overdrive.json`
+- `devserver/schemas/configs/interception/one_world.json`
+- `devserver/schemas/configs/interception/planetarizer.json`
+- `devserver/schemas/configs/interception/hunkydoryharmonizer.json`
+
+### Verifikation
+
+Nach Implementierung:
+1. Testen mit Standard-Inputs in Workshops
+2. Vergleichen: Produzieren die neuen Prompts weniger Klischees?
+3. Feedback von Workshopleitern sammeln
+
