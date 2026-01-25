@@ -84,6 +84,10 @@ function handleUpdateNodePromptText(nodeId: string, text: string) {
   canvasStore.updateNode(nodeId, { promptText: text })
 }
 
+function handleUpdateNodeSize(nodeId: string, width: number, height: number) {
+  canvasStore.updateNode(nodeId, { width, height })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -303,6 +307,7 @@ onUnmounted(() => {
           @update-node-context-prompt="handleUpdateNodeContextPrompt"
           @update-node-translation-prompt="handleUpdateNodeTranslationPrompt"
           @update-node-prompt-text="handleUpdateNodePromptText"
+          @update-node-size="handleUpdateNodeSize"
         />
       </div>
     </div>

@@ -101,14 +101,18 @@ export const useCanvasStore = defineStore('canvas', () => {
   /**
    * Check if workflow is valid (has required nodes and connections)
    *
+   * Session 133: Generation is now optional for text-only workflows
+   * Valid workflows:
+   * - Input → Interception/Translation → Collector (text only)
+   * - Input → Interception → Generation → Collector (with media)
+   *
    * NOTE: Safety is NOT checked here - DevServer handles it automatically
    */
   const isWorkflowValid = computed(() => {
     const hasInput = workflow.value.nodes.some(n => n.type === 'input')
-    const hasGeneration = workflow.value.nodes.some(n => n.type === 'generation')
     const hasCollector = workflow.value.nodes.some(n => n.type === 'collector')
 
-    // Check all generation nodes have configs selected
+    // Check all generation nodes have configs selected (if any exist)
     const generationNodes = workflow.value.nodes.filter(n => n.type === 'generation')
     const allGenerationConfigured = generationNodes.every(n => n.configId)
 
@@ -120,13 +124,19 @@ export const useCanvasStore = defineStore('canvas', () => {
     const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
     const allTranslationConfigured = translationNodes.every(n => n.llmModel)
 
-    return hasInput && hasGeneration && hasCollector &&
+    // Need at least one processing node (interception, translation, or generation)
+    const hasProcessingNode = interceptionNodes.length > 0 ||
+                              translationNodes.length > 0 ||
+                              generationNodes.length > 0
+
+    return hasInput && hasCollector && hasProcessingNode &&
            allGenerationConfigured && allInterceptionConfigured && allTranslationConfigured
   })
 
   /**
    * Get validation errors
    *
+   * Session 133: Generation is now optional for text-only workflows
    * NOTE: Safety is NOT validated here - DevServer handles it automatically
    */
   const validationErrors = computed(() => {
@@ -135,28 +145,30 @@ export const useCanvasStore = defineStore('canvas', () => {
     if (!workflow.value.nodes.some(n => n.type === 'input')) {
       errors.push('Missing input node')
     }
-    if (!workflow.value.nodes.some(n => n.type === 'generation')) {
-      errors.push('Missing generation node')
-    }
     if (!workflow.value.nodes.some(n => n.type === 'collector')) {
-      errors.push('Missing media collector node')
+      errors.push('Missing collector node')
     }
 
+    const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
+    const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
     const generationNodes = workflow.value.nodes.filter(n => n.type === 'generation')
+
+    // Need at least one processing node
+    if (interceptionNodes.length === 0 && translationNodes.length === 0 && generationNodes.length === 0) {
+      errors.push('Need at least one processing node (Interception, Translation, or Generation)')
+    }
+
     generationNodes.forEach(n => {
       if (!n.configId) {
         errors.push(`Generation node missing output config`)
       }
     })
 
-    const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
     interceptionNodes.forEach(n => {
       if (!n.llmModel) {
         errors.push(`Interception node needs LLM selection`)
       }
     })
-
-    const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
     translationNodes.forEach(n => {
       if (!n.llmModel) {
         errors.push(`Translation node needs LLM selection`)

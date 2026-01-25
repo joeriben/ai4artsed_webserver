@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { CanvasNode, LLMModelSummary } from '@/types/canvas'
 import { getNodeTypeDefinition } from '@/types/canvas'
@@ -45,6 +45,7 @@ const emit = defineEmits<{
   'update-context-prompt': [prompt: string]
   'update-translation-prompt': [prompt: string]
   'update-prompt-text': [text: string]
+  'update-size': [width: number, height: number]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -115,6 +116,62 @@ function onPromptTextChange(event: Event) {
   const textarea = event.target as HTMLTextAreaElement
   emit('update-prompt-text', textarea.value)
 }
+
+// Resize handling (for Collector nodes)
+const isResizing = ref(false)
+const resizeStartSize = ref({ width: 0, height: 0 })
+const resizeStartPos = ref({ x: 0, y: 0 })
+const currentResizeSize = ref({ width: 0, height: 0 })
+
+function startResize(event: MouseEvent) {
+  event.stopPropagation()
+  event.preventDefault()
+
+  isResizing.value = true
+  resizeStartPos.value = { x: event.clientX, y: event.clientY }
+  resizeStartSize.value = {
+    width: props.node.width || 280,
+    height: props.node.height || 200
+  }
+  currentResizeSize.value = { ...resizeStartSize.value }
+
+  // Add global mouse event listeners
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+}
+
+function handleResize(event: MouseEvent) {
+  if (!isResizing.value) return
+
+  const deltaX = event.clientX - resizeStartPos.value.x
+  const deltaY = event.clientY - resizeStartPos.value.y
+
+  currentResizeSize.value.width = Math.max(180, resizeStartSize.value.width + deltaX)
+  currentResizeSize.value.height = Math.max(100, resizeStartSize.value.height + deltaY)
+}
+
+function stopResize() {
+  if (isResizing.value) {
+    // Emit final size on mouseup
+    emit('update-size', currentResizeSize.value.width, currentResizeSize.value.height)
+  }
+
+  isResizing.value = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+}
+
+// Computed dimensions (use custom size if set, or live resize size, otherwise auto)
+const nodeWidth = computed(() => {
+  if (isResizing.value) return `${currentResizeSize.value.width}px`
+  if (props.node.width) return `${props.node.width}px`
+  return undefined
+})
+const nodeHeight = computed(() => {
+  if (isResizing.value) return `${currentResizeSize.value.height}px`
+  if (props.node.height) return `${props.node.height}px`
+  return undefined
+})
 </script>
 
 <template>
@@ -123,12 +180,15 @@ function onPromptTextChange(event: Event) {
     :class="{
       selected,
       'needs-config': !isConfigured,
-      'wide-module': needsLLM || isInput || hasCollectorOutput
+      'wide-module': needsLLM || isInput || hasCollectorOutput,
+      'resizable': isCollector
     }"
     :style="{
       left: `${node.x}px`,
       top: `${node.y}px`,
-      '--node-color': nodeColor
+      '--node-color': nodeColor,
+      width: nodeWidth,
+      height: nodeHeight
     }"
     @mousedown.stop="emit('mousedown', $event)"
   >
@@ -315,6 +375,14 @@ function onPromptTextChange(event: Event) {
       v-if="hasOutputConnector"
       class="connector output"
       @mousedown.stop="emit('start-connect')"
+    />
+
+    <!-- Resize handle (only for collector nodes) -->
+    <div
+      v-if="isCollector"
+      class="resize-handle"
+      @mousedown.stop="startResize"
+      :title="locale === 'de' ? 'Größe ändern' : 'Resize'"
     />
   </div>
 </template>
@@ -525,7 +593,7 @@ function onPromptTextChange(event: Event) {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 200px;
+  /* Auto-resize: no max-height constraint */
   overflow-y: auto;
 }
 
@@ -600,5 +668,29 @@ function onPromptTextChange(event: Event) {
   font-size: 0.625rem;
   color: #64748b;
   margin-top: 0.25rem;
+}
+
+/* Resize handle */
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--node-color) 50%);
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  z-index: 3;
+}
+
+.resize-handle:hover {
+  opacity: 1;
+}
+
+.stage-module.resizable {
+  /* Allow custom dimensions */
+  width: auto;
+  height: auto;
 }
 </style>

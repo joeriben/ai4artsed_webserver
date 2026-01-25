@@ -49,6 +49,7 @@ const emit = defineEmits<{
   'update-node-context-prompt': [nodeId: string, prompt: string]
   'update-node-translation-prompt': [nodeId: string, prompt: string]
   'update-node-prompt-text': [nodeId: string, text: string]
+  'update-node-size': [nodeId: string, width: number, height: number]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -245,6 +246,7 @@ onUnmounted(() => {
       @update-context-prompt="emit('update-node-context-prompt', node.id, $event)"
       @update-translation-prompt="emit('update-node-translation-prompt', node.id, $event)"
       @update-prompt-text="emit('update-node-prompt-text', node.id, $event)"
+      @update-size="(width, height) => emit('update-node-size', node.id, width, height)"
     />
 
     <!-- Empty state -->

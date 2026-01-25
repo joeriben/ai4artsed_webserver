@@ -163,6 +163,12 @@ export interface CanvasNode {
   // === Input node config ===
   /** User's prompt text (input node) */
   promptText?: string
+
+  // === Display properties ===
+  /** Custom width (optional, for resizable nodes like Collector) */
+  width?: number
+  /** Custom height (optional, for resizable nodes like Collector) */
+  height?: number
 }
 
 // ============================================================================
