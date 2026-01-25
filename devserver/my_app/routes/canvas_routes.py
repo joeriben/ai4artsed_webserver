@@ -581,6 +581,12 @@ def execute_workflow():
                         response = asyncio.run(engine.process_request(req))
 
                         if response.success:
+                            # DEBUG: Log raw LLM response
+                            logger.info(f"[Canvas Execute] Evaluation {node_id} RAW RESPONSE:")
+                            logger.info(f"  output_str: {response.output_str[:200]}")
+                            logger.info(f"  output_binary: {response.output_binary}")
+                            logger.info(f"  output_float: {response.output_float}")
+
                             # Parse evaluation output
                             commentary = ''
                             score = None
@@ -596,21 +602,32 @@ def execute_workflow():
                             # Extract score (use output_float if available)
                             if response.output_float is not None:
                                 score = float(response.output_float)
+                                logger.info(f"[Canvas Execute] Evaluation {node_id}: Extracted score from output_float: {score}")
                             elif 'SCORE:' in response.output_str:
                                 try:
                                     score_match = response.output_str.split('SCORE:')[1].split('\n')[0].strip()
                                     score = float(score_match)
+                                    logger.info(f"[Canvas Execute] Evaluation {node_id}: Extracted score from text: {score}")
                                 except (ValueError, IndexError):
                                     pass
 
                             # Extract binary (use output_binary if available)
                             if response.output_binary is not None:
-                                binary_result = response.output_binary
+                                # OVERRIDE: If we have a score, use score-based decision instead of LLM's binary
+                                # This ensures consistency: score 2/10 should NOT pass
+                                if score is not None and score < 5.0:
+                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: LLM returned binary={response.output_binary} but score={score} < 5.0 → OVERRIDING to False")
+                                    binary_result = False
+                                else:
+                                    binary_result = response.output_binary
+                                    logger.info(f"[Canvas Execute] Evaluation {node_id}: Using output_binary: {binary_result}")
                             elif 'BINARY:' in response.output_str.upper():
                                 # Case-insensitive search
                                 binary_start = response.output_str.upper().index('BINARY:')
                                 binary_line = response.output_str[binary_start:].split('\n')[0]
                                 binary_match = binary_line.split(':')[1].strip().lower()
+                                logger.info(f"[Canvas Execute] Evaluation {node_id}: Parsed binary from text: '{binary_match}'")
+
                                 # Accept multiple variations of "true" and "false"
                                 binary_result = binary_match in ['true', 'yes', '1', 'pass', 'passed', 'bestanden', 'ja']
                                 if not binary_result:
@@ -621,6 +638,11 @@ def execute_workflow():
                                     else:
                                         logger.warning(f"[Canvas Execute] Evaluation {node_id}: Unclear binary value '{binary_match}', treating as False")
                                         binary_result = False
+
+                                # OVERRIDE: If we have a score, ensure consistency
+                                if score is not None and score < 5.0 and binary_result:
+                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: Text binary={binary_result} but score={score} < 5.0 → OVERRIDING to False")
+                                    binary_result = False
                             else:
                                 # Fallback: If no binary found, use score as indicator
                                 if score is not None:
