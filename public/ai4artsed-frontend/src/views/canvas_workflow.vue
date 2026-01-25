@@ -106,6 +106,15 @@ function handleUpdateNodeDisplayMode(nodeId: string, mode: 'popup' | 'inline' | 
   canvasStore.updateNode(nodeId, { displayMode: mode })
 }
 
+// Session 134: Fork node handlers
+function handleUpdateNodeThresholdValue(nodeId: string, threshold: number) {
+  canvasStore.updateNode(nodeId, { thresholdValue: threshold })
+}
+
+function handleUpdateNodeForkLabels(nodeId: string, trueLabel: string, falseLabel: string) {
+  canvasStore.updateNode(nodeId, { trueLabel, falseLabel })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -330,6 +339,8 @@ onUnmounted(() => {
           @update-node-output-type="handleUpdateNodeOutputType"
           @update-node-display-title="handleUpdateNodeDisplayTitle"
           @update-node-display-mode="handleUpdateNodeDisplayMode"
+          @update-node-threshold-value="handleUpdateNodeThresholdValue"
+          @update-node-fork-labels="handleUpdateNodeForkLabels"
         />
       </div>
     </div>

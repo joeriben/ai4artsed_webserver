@@ -50,6 +50,9 @@ const emit = defineEmits<{
   'update-output-type': [outputType: 'commentary' | 'score' | 'binary' | 'all']
   'update-display-title': [title: string]
   'update-display-mode': [mode: 'popup' | 'inline' | 'toast']
+  'update-threshold-value': [threshold: number]
+  'update-fork-labels': [trueLabel: string, falseLabel: string]
+  'start-connect-labeled': [label: string]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -85,6 +88,9 @@ const isTranslation = computed(() => props.node.type === 'translation')
 const isGeneration = computed(() => props.node.type === 'generation')
 const isCollector = computed(() => props.node.type === 'collector')
 const isDisplay = computed(() => props.node.type === 'display')
+const isBinaryFork = computed(() => props.node.type === 'binary_fork')
+const isThresholdFork = computed(() => props.node.type === 'threshold_fork')
+const isFork = computed(() => isBinaryFork.value || isThresholdFork.value)
 // Session 134: Evaluation node types
 const isEvaluation = computed(() => [
   'fairness_evaluation',
@@ -179,6 +185,22 @@ function onDisplayTitleChange(event: Event) {
 function onDisplayModeChange(event: Event) {
   const select = event.target as HTMLSelectElement
   emit('update-display-mode', select.value as 'popup' | 'inline' | 'toast')
+}
+
+// Session 134: Fork node handlers
+function onThresholdChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  emit('update-threshold-value', parseFloat(input.value) || 0)
+}
+
+function onTrueLabelChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  emit('update-fork-labels', input.value, props.node.falseLabel || 'False')
+}
+
+function onFalseLabelChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  emit('update-fork-labels', props.node.trueLabel || 'True', input.value)
 }
 
 // Resize handling (for Collector nodes)
@@ -527,18 +549,82 @@ const nodeHeight = computed(() => {
         </div>
       </template>
 
+      <!-- FORK NODES: Binary/Threshold branching -->
+      <template v-else-if="isFork">
+        <div v-if="isThresholdFork" class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Schwellwert (0-10)' : 'Threshold (0-10)' }}</label>
+          <input
+            type="number"
+            min="0"
+            max="10"
+            step="0.1"
+            class="llm-select"
+            :value="node.thresholdValue || 5"
+            @input="onThresholdChange"
+            @mousedown.stop
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? '"Wahr"-Pfad-Label' : 'True Path Label' }}</label>
+          <input
+            type="text"
+            class="llm-select"
+            :value="node.trueLabel || (locale === 'de' ? 'Wahr' : 'True')"
+            :placeholder="locale === 'de' ? 'z.B. Bestanden' : 'e.g. Approved'"
+            @input="onTrueLabelChange"
+            @mousedown.stop
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? '"Falsch"-Pfad-Label' : 'False Path Label' }}</label>
+          <input
+            type="text"
+            class="llm-select"
+            :value="node.falseLabel || (locale === 'de' ? 'Falsch' : 'False')"
+            :placeholder="locale === 'de' ? 'z.B. Revision nötig' : 'e.g. Needs Revision'"
+            @input="onFalseLabelChange"
+            @mousedown.stop
+          />
+        </div>
+        <div class="fork-info">
+          <span class="module-type-info">
+            {{ isThresholdFork
+              ? (locale === 'de' ? 'Verzweigt basierend auf Punktzahl' : 'Branches based on score')
+              : (locale === 'de' ? 'Verzweigt basierend auf wahr/falsch' : 'Branches based on true/false') }}
+          </span>
+        </div>
+      </template>
+
       <!-- Other node types -->
       <template v-else>
         <span class="module-type-info">{{ node.type }}</span>
       </template>
     </div>
 
-    <!-- Output connector -->
+    <!-- Output connector (standard single output) -->
     <div
-      v-if="hasOutputConnector"
+      v-if="hasOutputConnector && !isFork"
       class="connector output"
       @mousedown.stop="emit('start-connect')"
     />
+
+    <!-- Fork output connectors (multiple labeled outputs) -->
+    <div v-if="isFork" class="fork-outputs">
+      <div
+        class="connector output output-true"
+        @mousedown.stop="emit('start-connect-labeled', 'true')"
+        :title="node.trueLabel || (locale === 'de' ? 'Wahr' : 'True')"
+      >
+        <span class="connector-label">{{ node.trueLabel || (locale === 'de' ? 'W' : 'T') }}</span>
+      </div>
+      <div
+        class="connector output output-false"
+        @mousedown.stop="emit('start-connect-labeled', 'false')"
+        :title="node.falseLabel || (locale === 'de' ? 'Falsch' : 'False')"
+      >
+        <span class="connector-label">{{ node.falseLabel || (locale === 'de' ? 'F' : 'F') }}</span>
+      </div>
+    </div>
 
     <!-- Resize handle (only for collector nodes) -->
     <div
@@ -923,5 +1009,64 @@ const nodeHeight = computed(() => {
   font-size: 0.625rem;
   color: #10b981;
   font-style: italic;
+}
+
+/* Fork node styles */
+.fork-info {
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.fork-info .module-type-info {
+  font-size: 0.625rem;
+  color: #ef4444;
+  font-style: italic;
+}
+
+.fork-outputs {
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  z-index: 2;
+}
+
+.fork-outputs .connector {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  background: var(--node-color);
+  border: 2px solid #1e293b;
+  border-radius: 50%;
+  cursor: crosshair;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fork-outputs .connector-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: white;
+  user-select: none;
+  pointer-events: none;
+}
+
+.fork-outputs .output-true {
+  background: #10b981;
+}
+
+.fork-outputs .output-false {
+  background: #ef4444;
+}
+
+.fork-outputs .connector:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
 </style>

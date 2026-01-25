@@ -39,7 +39,7 @@ const emit = defineEmits<{
   'delete-node': [id: string]
   'add-connection': [sourceId: string, targetId: string]
   'delete-connection': [sourceId: string, targetId: string]
-  'start-connection': [nodeId: string]
+  'start-connection': [nodeId: string, label?: string]
   'cancel-connection': []
   'complete-connection': [targetId: string]
   'update-mouse-position': [x: number, y: number]
@@ -54,6 +54,8 @@ const emit = defineEmits<{
   'update-node-output-type': [nodeId: string, outputType: 'commentary' | 'score' | 'binary' | 'all']
   'update-node-display-title': [nodeId: string, title: string]
   'update-node-display-mode': [nodeId: string, mode: 'popup' | 'inline' | 'toast']
+  'update-node-threshold-value': [nodeId: string, threshold: number]
+  'update-node-fork-labels': [nodeId: string, trueLabel: string, falseLabel: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -243,6 +245,7 @@ onUnmounted(() => {
       :collector-output="node.type === 'collector' ? collectorOutput : undefined"
       @mousedown="startNodeDrag(node.id, $event)"
       @start-connect="emit('start-connection', node.id)"
+      @start-connect-labeled="(label) => emit('start-connection', node.id, label)"
       @end-connect="emit('complete-connection', node.id)"
       @delete="emit('delete-node', node.id)"
       @select-config="emit('select-config', node.id)"
@@ -255,6 +258,8 @@ onUnmounted(() => {
       @update-output-type="emit('update-node-output-type', node.id, $event)"
       @update-display-title="emit('update-node-display-title', node.id, $event)"
       @update-display-mode="emit('update-node-display-mode', node.id, $event)"
+      @update-threshold-value="emit('update-node-threshold-value', node.id, $event)"
+      @update-fork-labels="(trueLabel, falseLabel) => emit('update-node-fork-labels', node.id, trueLabel, falseLabel)"
     />
 
     <!-- Empty state -->

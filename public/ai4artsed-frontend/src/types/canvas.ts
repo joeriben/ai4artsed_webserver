@@ -236,6 +236,37 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     mandatory: false,
     acceptsFrom: ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation', 'interception', 'translation'],
     outputsTo: ['collector', 'binary_fork', 'threshold_fork', 'loop_controller']
+  },
+  // Session 134: Fork Nodes (Phase 3)
+  {
+    id: 'binary_fork',
+    type: 'binary_fork',
+    label: { en: 'Binary Fork', de: 'Binäre Verzweigung' },
+    description: {
+      en: 'Branch based on true/false (evaluation result)',
+      de: 'Verzweigung basierend auf wahr/falsch (Bewertungsergebnis)'
+    },
+    color: '#ef4444', // red
+    icon: 'filter_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
+    outputsTo: ['interception', 'translation', 'generation', 'collector', 'loop_controller', 'display']
+  },
+  {
+    id: 'threshold_fork',
+    type: 'threshold_fork',
+    label: { en: 'Threshold Fork', de: 'Schwellwert-Verzweigung' },
+    description: {
+      en: 'Branch based on score threshold',
+      de: 'Verzweigung basierend auf Punktzahl-Schwellwert'
+    },
+    color: '#ef4444', // red
+    icon: 'filter_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
+    outputsTo: ['interception', 'translation', 'generation', 'collector', 'loop_controller', 'display']
   }
 ]
 
