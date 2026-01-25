@@ -562,14 +562,14 @@ def execute_workflow():
                         }
                     else:
                         # Build evaluation instruction
-                        # Session 134: ALWAYS request binary+commentary (for fork nodes), optionally request score
+                        # Session 134: Request COMMENTARY + SCORE (binary is calculated from score)
                         evaluation_instruction = f"{evaluation_prompt}\n\n"
                         evaluation_instruction += "Provide your evaluation in the following format:\n\n"
                         evaluation_instruction += "COMMENTARY: [Your detailed evaluation and feedback]\n"
                         if output_type in ['score', 'all']:
-                            evaluation_instruction += "SCORE: [0-10 numeric score]\n"
-                        evaluation_instruction += "BINARY: [Answer ONLY 'true' or 'false' - does this content pass the evaluation criteria?]\n"
-                        evaluation_instruction += "\nIMPORTANT: You MUST provide a BINARY response. If the content has any issues or scores below 5, answer 'false'."
+                            evaluation_instruction += "SCORE: [Numeric score from 0 to 10 only]\n"
+                        evaluation_instruction += "\nIMPORTANT: The SCORE must be a number between 0 and 10. Do NOT use numbers from the input text."
+                        evaluation_instruction += "\nNote: Scores below 5 will be treated as FAILED, scores 5 and above as PASSED."
 
                         # Call LLM
                         req = PromptInterceptionRequest(
@@ -590,69 +590,48 @@ def execute_workflow():
                             # Parse evaluation output
                             commentary = ''
                             score = None
-                            binary_result = None
 
-                            # Extract commentary
+                            # Extract commentary (full text if no marker, otherwise text after COMMENTARY:)
                             if 'COMMENTARY:' in response.output_str:
-                                commentary_match = response.output_str.split('COMMENTARY:')[1].split('\n')[0].strip()
-                                commentary = commentary_match or response.output_str
+                                commentary_parts = response.output_str.split('COMMENTARY:')[1]
+                                # Get everything up to next marker (SCORE:) or end of string
+                                if 'SCORE:' in commentary_parts:
+                                    commentary = commentary_parts.split('SCORE:')[0].strip()
+                                else:
+                                    commentary = commentary_parts.strip()
                             else:
                                 commentary = response.output_str
 
-                            # Extract score (use output_float if available)
+                            # Extract score with validation
                             if response.output_float is not None:
                                 score = float(response.output_float)
                                 logger.info(f"[Canvas Execute] Evaluation {node_id}: Extracted score from output_float: {score}")
                             elif 'SCORE:' in response.output_str:
                                 try:
                                     score_match = response.output_str.split('SCORE:')[1].split('\n')[0].strip()
-                                    score = float(score_match)
-                                    logger.info(f"[Canvas Execute] Evaluation {node_id}: Extracted score from text: {score}")
+                                    # Extract first number from score_match (handles "8/10" → 8)
+                                    import re
+                                    score_numbers = re.findall(r'\d+\.?\d*', score_match)
+                                    if score_numbers:
+                                        score = float(score_numbers[0])
+                                        logger.info(f"[Canvas Execute] Evaluation {node_id}: Extracted score from text: {score}")
                                 except (ValueError, IndexError):
                                     pass
 
-                            # Extract binary (use output_binary if available)
-                            if response.output_binary is not None:
-                                # OVERRIDE: If we have a score, use score-based decision instead of LLM's binary
-                                # This ensures consistency: score 2/10 should NOT pass
-                                if score is not None and score < 5.0:
-                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: LLM returned binary={response.output_binary} but score={score} < 5.0 → OVERRIDING to False")
-                                    binary_result = False
-                                else:
-                                    binary_result = response.output_binary
-                                    logger.info(f"[Canvas Execute] Evaluation {node_id}: Using output_binary: {binary_result}")
-                            elif 'BINARY:' in response.output_str.upper():
-                                # Case-insensitive search
-                                binary_start = response.output_str.upper().index('BINARY:')
-                                binary_line = response.output_str[binary_start:].split('\n')[0]
-                                binary_match = binary_line.split(':')[1].strip().lower()
-                                logger.info(f"[Canvas Execute] Evaluation {node_id}: Parsed binary from text: '{binary_match}'")
+                            # VALIDATE score range (0-10)
+                            if score is not None:
+                                if score < 0 or score > 10:
+                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: Invalid score {score} (must be 0-10), treating as None")
+                                    score = None
 
-                                # Accept multiple variations of "true" and "false"
-                                binary_result = binary_match in ['true', 'yes', '1', 'pass', 'passed', 'bestanden', 'ja']
-                                if not binary_result:
-                                    # Explicitly check for false variations
-                                    is_false = any(word in binary_match for word in ['false', 'no', '0', 'fail', 'nein', 'nicht'])
-                                    if is_false:
-                                        binary_result = False
-                                    else:
-                                        logger.warning(f"[Canvas Execute] Evaluation {node_id}: Unclear binary value '{binary_match}', treating as False")
-                                        binary_result = False
-
-                                # OVERRIDE: If we have a score, ensure consistency
-                                if score is not None and score < 5.0 and binary_result:
-                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: Text binary={binary_result} but score={score} < 5.0 → OVERRIDING to False")
-                                    binary_result = False
+                            # Calculate binary from score (simple and consistent)
+                            if score is not None:
+                                binary_result = score >= 5.0
+                                logger.info(f"[Canvas Execute] Evaluation {node_id}: Score {score} → binary={binary_result}")
                             else:
-                                # Fallback: If no binary found, use score as indicator
-                                if score is not None:
-                                    # Score < 5 → fail, >= 5 → pass
-                                    binary_result = score >= 5.0
-                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: No binary result found, using score {score} → binary={binary_result}")
-                                else:
-                                    # No binary, no score → default to False (safer, triggers feedback)
-                                    binary_result = False
-                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: No binary or score found, defaulting to False (fail)")
+                                # No valid score → default to False (safer, triggers feedback)
+                                binary_result = False
+                                logger.warning(f"[Canvas Execute] Evaluation {node_id}: No valid score, defaulting to binary=False (fail)")
 
                             # Session 134 Refactored: 3 separate TEXT outputs
                             # 1. Passthrough: original input (active if binary=true)
