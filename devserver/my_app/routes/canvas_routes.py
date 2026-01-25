@@ -11,6 +11,7 @@ Provides:
 - /api/canvas/workflows - Save/load workflow definitions (future)
 """
 import logging
+import asyncio
 from pathlib import Path
 from flask import Blueprint, jsonify, request
 import json
@@ -400,7 +401,7 @@ def execute_workflow():
                             model=llm_model,
                             debug=True
                         )
-                        response = engine.process(req)
+                        response = asyncio.run(engine.process_request(req))
 
                         results[node_id] = {
                             'type': 'interception',
@@ -408,7 +409,7 @@ def execute_workflow():
                             'error': response.error if not response.success else None,
                             'model': response.model_used
                         }
-                        logger.info(f"[Canvas Execute] Interception result: '{response.output_str[:50]}...' (model: {response.model_used})")
+                        logger.info(f"[Canvas Execute] Interception result: '{response.output_str[:50] if response.output_str else 'empty'}' (model: {response.model_used})")
 
                 elif node_type == 'translation':
                     # Translation node: translate with LLM
@@ -436,7 +437,7 @@ def execute_workflow():
                             model=llm_model,
                             debug=True
                         )
-                        response = engine.process(req)
+                        response = asyncio.run(engine.process_request(req))
 
                         results[node_id] = {
                             'type': 'translation',
@@ -444,7 +445,7 @@ def execute_workflow():
                             'error': response.error if not response.success else None,
                             'model': response.model_used
                         }
-                        logger.info(f"[Canvas Execute] Translation result: '{response.output_str[:50]}...'")
+                        logger.info(f"[Canvas Execute] Translation result: '{response.output_str[:50] if response.output_str else 'empty'}'")
 
                 elif node_type == 'generation':
                     # Generation node: TODO - call media generation
