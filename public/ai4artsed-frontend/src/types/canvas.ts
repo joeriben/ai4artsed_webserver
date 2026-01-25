@@ -142,7 +142,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
     mandatory: true,
-    acceptsFrom: ['generation', 'interception', 'translation'],
+    acceptsFrom: ['generation', 'interception', 'translation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation', 'binary_fork', 'threshold_fork'],
     outputsTo: []
   },
   // Session 134: Evaluation Nodes
@@ -158,7 +158,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['interception', 'translation', 'generation'],
+    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
     outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
   },
   {
@@ -173,7 +173,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['interception', 'translation', 'generation'],
+    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
     outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
   },
   {
@@ -188,7 +188,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['interception', 'translation', 'generation'],
+    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
     outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
   },
   {
@@ -203,7 +203,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['interception', 'translation', 'generation'],
+    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
     outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
   },
   {
@@ -218,7 +218,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['interception', 'translation', 'generation'],
+    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'],
     outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
   },
   // Session 134: Display Node
@@ -234,7 +234,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'info_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation', 'interception', 'translation'],
+    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation', 'display'],
     outputsTo: ['collector', 'binary_fork', 'threshold_fork', 'loop_controller']
   },
   // Session 134: Fork Nodes (Phase 3)

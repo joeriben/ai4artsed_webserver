@@ -558,13 +558,12 @@ def execute_workflow():
                         }
                     else:
                         # Build evaluation instruction
+                        # Session 134: ALWAYS request binary+commentary (for fork nodes), optionally request score
                         evaluation_instruction = f"{evaluation_prompt}\n\nProvide your evaluation in the following format:\n"
-                        if output_type in ['commentary', 'all']:
-                            evaluation_instruction += "COMMENTARY: [Your detailed evaluation and feedback]\n"
+                        evaluation_instruction += "COMMENTARY: [Your detailed evaluation and feedback]\n"
+                        evaluation_instruction += "BINARY: [true/false - does this pass the evaluation criteria?]\n"
                         if output_type in ['score', 'all']:
                             evaluation_instruction += "SCORE: [0-10]\n"
-                        if output_type in ['binary', 'all']:
-                            evaluation_instruction += "BINARY: [true/false]\n"
 
                         # Call LLM
                         req = PromptInterceptionRequest(
@@ -604,9 +603,14 @@ def execute_workflow():
                             elif 'BINARY:' in response.output_str:
                                 binary_match = response.output_str.split('BINARY:')[1].split('\n')[0].strip().lower()
                                 evaluation_result['binary'] = binary_match in ['true', 'yes', '1', 'pass']
+                            else:
+                                # Fallback: If no binary found, default to True (pass)
+                                # This ensures fork nodes always have a binary value to work with
+                                evaluation_result['binary'] = True
+                                logger.warning(f"[Canvas Execute] Evaluation {node_id}: No binary result found, defaulting to True")
 
                             # If no structured output, use full response as commentary
-                            if not evaluation_result['commentary'] and not evaluation_result['score'] and evaluation_result['binary'] is None:
+                            if not evaluation_result['commentary'] and not evaluation_result['score']:
                                 evaluation_result['commentary'] = response.output_str
 
                             results[node_id] = {
