@@ -88,6 +88,15 @@ function handleUpdateNodeSize(nodeId: string, width: number, height: number) {
   canvasStore.updateNode(nodeId, { width, height })
 }
 
+// Session 134: Evaluation node handlers
+function handleUpdateNodeEvaluationPrompt(nodeId: string, prompt: string) {
+  canvasStore.updateNode(nodeId, { evaluationPrompt: prompt })
+}
+
+function handleUpdateNodeOutputType(nodeId: string, outputType: 'commentary' | 'score' | 'binary' | 'all') {
+  canvasStore.updateNode(nodeId, { outputType })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -308,6 +317,8 @@ onUnmounted(() => {
           @update-node-translation-prompt="handleUpdateNodeTranslationPrompt"
           @update-node-prompt-text="handleUpdateNodePromptText"
           @update-node-size="handleUpdateNodeSize"
+          @update-node-evaluation-prompt="handleUpdateNodeEvaluationPrompt"
+          @update-node-output-type="handleUpdateNodeOutputType"
         />
       </div>
     </div>

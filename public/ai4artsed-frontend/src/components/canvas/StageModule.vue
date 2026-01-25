@@ -46,6 +46,8 @@ const emit = defineEmits<{
   'update-translation-prompt': [prompt: string]
   'update-prompt-text': [text: string]
   'update-size': [width: number, height: number]
+  'update-evaluation-prompt': [prompt: string]
+  'update-output-type': [outputType: 'commentary' | 'score' | 'binary' | 'all']
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -80,7 +82,15 @@ const isInterception = computed(() => props.node.type === 'interception')
 const isTranslation = computed(() => props.node.type === 'translation')
 const isGeneration = computed(() => props.node.type === 'generation')
 const isCollector = computed(() => props.node.type === 'collector')
-const needsLLM = computed(() => isInterception.value || isTranslation.value)
+// Session 134: Evaluation node types
+const isEvaluation = computed(() => [
+  'fairness_evaluation',
+  'creativity_evaluation',
+  'equity_evaluation',
+  'quality_evaluation',
+  'custom_evaluation'
+].includes(props.node.type))
+const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 
 // Check if node is properly configured
@@ -115,6 +125,46 @@ function onTranslationPromptChange(event: Event) {
 function onPromptTextChange(event: Event) {
   const textarea = event.target as HTMLTextAreaElement
   emit('update-prompt-text', textarea.value)
+}
+
+// Session 134: Evaluation node handlers
+function onEvaluationPromptChange(event: Event) {
+  const textarea = event.target as HTMLTextAreaElement
+  emit('update-evaluation-prompt', textarea.value)
+}
+
+function onOutputTypeChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-output-type', select.value as 'commentary' | 'score' | 'binary' | 'all')
+}
+
+function getEvaluationPlaceholder(nodeType: string): string {
+  const placeholders: Record<string, { en: string; de: string }> = {
+    fairness_evaluation: {
+      en: 'Check for stereotypes, bias, and fair representation...',
+      de: 'Prüfung auf Stereotype, Vorurteile und faire Repräsentation...'
+    },
+    creativity_evaluation: {
+      en: 'Evaluate originality. Avoid stock photo aesthetics...',
+      de: 'Bewerte Originalität. Vermeide Stock-Foto-Ästhetik...'
+    },
+    equity_evaluation: {
+      en: 'Evaluate cultural sensitivity and representational equity...',
+      de: 'Bewerte kulturelle Sensibilität und Repräsentations-Equity...'
+    },
+    quality_evaluation: {
+      en: 'Evaluate technical quality, composition, and clarity...',
+      de: 'Bewerte technische Qualität, Komposition und Klarheit...'
+    },
+    custom_evaluation: {
+      en: 'Define your own evaluation criteria...',
+      de: 'Definiere deine eigenen Bewertungskriterien...'
+    }
+  }
+
+  const placeholder = placeholders[nodeType]
+  if (!placeholder) return locale.value === 'de' ? 'Bewertungskriterien...' : 'Evaluation criteria...'
+  return locale.value === 'de' ? placeholder.de : placeholder.en
 }
 
 // Resize handling (for Collector nodes)
@@ -180,7 +230,7 @@ const nodeHeight = computed(() => {
     :class="{
       selected,
       'needs-config': !isConfigured,
-      'wide-module': needsLLM || isInput || hasCollectorOutput,
+      'wide-module': needsLLM || isInput || hasCollectorOutput || isEvaluation,
       'resizable': isCollector
     }"
     :style="{
@@ -333,6 +383,25 @@ const nodeHeight = computed(() => {
               <template v-if="item.error">
                 <span class="error-text">{{ item.error }}</span>
               </template>
+              <!-- Session 134: Evaluation output display -->
+              <template v-else-if="item.nodeType === 'evaluation' && typeof item.output === 'object' && item.output !== null">
+                <div class="evaluation-result">
+                  <div v-if="(item.output as any).score !== null && (item.output as any).score !== undefined" class="eval-score">
+                    <span class="eval-label">{{ locale === 'de' ? 'Punktzahl' : 'Score' }}:</span>
+                    <span class="eval-value">{{ (item.output as any).score }}/10</span>
+                  </div>
+                  <div v-if="(item.output as any).binary !== null && (item.output as any).binary !== undefined" class="eval-binary">
+                    <span class="eval-label">{{ locale === 'de' ? 'Ergebnis' : 'Result' }}:</span>
+                    <span class="eval-value" :class="{ 'pass': (item.output as any).binary, 'fail': !(item.output as any).binary }">
+                      {{ (item.output as any).binary ? (locale === 'de' ? 'Bestanden' : 'Pass') : (locale === 'de' ? 'Nicht bestanden' : 'Fail') }}
+                    </span>
+                  </div>
+                  <div v-if="(item.output as any).commentary" class="eval-commentary">
+                    <span class="eval-label">{{ locale === 'de' ? 'Kommentar' : 'Commentary' }}:</span>
+                    <p class="eval-text">{{ (item.output as any).commentary }}</p>
+                  </div>
+                </div>
+              </template>
               <template v-else-if="typeof item.output === 'object' && item.output !== null && (item.output as any).url">
                 <!-- Generation output: show image/media -->
                 <img
@@ -361,6 +430,53 @@ const nodeHeight = computed(() => {
           <span class="module-type-info">
             {{ locale === 'de' ? 'Warte auf Ausführung...' : 'Waiting for execution...' }}
           </span>
+        </div>
+      </template>
+
+      <!-- EVALUATION NODES: LLM dropdown + Evaluation prompt + Output type -->
+      <template v-else-if="isEvaluation">
+        <div class="field-group">
+          <label class="field-label">LLM</label>
+          <select
+            class="llm-select"
+            :value="node.llmModel || ''"
+            @change="onLLMChange"
+            @mousedown.stop
+          >
+            <option value="" disabled>{{ locale === 'de' ? 'LLM wählen...' : 'Select LLM...' }}</option>
+            <option
+              v-for="model in llmModels"
+              :key="model.id"
+              :value="model.id"
+            >
+              {{ model.name }}
+            </option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Bewertungs-Kriterien' : 'Evaluation Criteria' }}</label>
+          <textarea
+            class="prompt-textarea"
+            :value="node.evaluationPrompt || ''"
+            :placeholder="getEvaluationPlaceholder(node.type)"
+            rows="3"
+            @input="onEvaluationPromptChange"
+            @mousedown.stop
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Ausgabe-Typ' : 'Output Type' }}</label>
+          <select
+            class="llm-select"
+            :value="node.outputType || 'all'"
+            @change="onOutputTypeChange"
+            @mousedown.stop
+          >
+            <option value="commentary">{{ locale === 'de' ? 'Kommentar' : 'Commentary' }}</option>
+            <option value="score">{{ locale === 'de' ? 'Punktzahl' : 'Score' }}</option>
+            <option value="binary">{{ locale === 'de' ? 'Pass/Fail' : 'Binary' }}</option>
+            <option value="all">{{ locale === 'de' ? 'Alle' : 'All' }}</option>
+          </select>
         </div>
       </template>
 
@@ -692,5 +808,59 @@ const nodeHeight = computed(() => {
   /* Allow custom dimensions */
   width: auto;
   height: auto;
+}
+
+/* Session 134: Evaluation result display */
+.evaluation-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid #f59e0b;
+}
+
+.eval-score,
+.eval-binary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.eval-label {
+  font-weight: 600;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.625rem;
+}
+
+.eval-value {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.eval-value.pass {
+  color: #10b981;
+}
+
+.eval-value.fail {
+  color: #ef4444;
+}
+
+.eval-commentary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.eval-text {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin: 0;
+  white-space: pre-wrap;
 }
 </style>

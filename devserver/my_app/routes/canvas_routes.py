@@ -526,6 +526,109 @@ def execute_workflow():
                             'configId': config_id
                         }
 
+                elif node_type in ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation']:
+                    # Session 134: Evaluation nodes - LLM-based judgment
+                    source_ids = incoming[node_id]
+                    input_text = ''
+                    for src_id in source_ids:
+                        if src_id in results and results[src_id].get('output'):
+                            output = results[src_id]['output']
+                            # Handle text or media inputs
+                            if isinstance(output, str):
+                                input_text = output
+                            elif isinstance(output, dict) and output.get('url'):
+                                # For media, describe what we're evaluating
+                                input_text = f"[Evaluating generated media: {output.get('media_type', 'image')} at {output.get('url')}]"
+                            break
+
+                    llm_model = node.get('llmModel', 'local/mistral-nemo')
+                    evaluation_prompt = node.get('evaluationPrompt', '')
+                    output_type = node.get('outputType', 'all')
+
+                    if not input_text:
+                        results[node_id] = {
+                            'type': 'evaluation',
+                            'output': {
+                                'commentary': '',
+                                'score': None,
+                                'binary': None,
+                                'error': 'No input from source node'
+                            },
+                            'error': 'No input from source node'
+                        }
+                    else:
+                        # Build evaluation instruction
+                        evaluation_instruction = f"{evaluation_prompt}\n\nProvide your evaluation in the following format:\n"
+                        if output_type in ['commentary', 'all']:
+                            evaluation_instruction += "COMMENTARY: [Your detailed evaluation and feedback]\n"
+                        if output_type in ['score', 'all']:
+                            evaluation_instruction += "SCORE: [0-10]\n"
+                        if output_type in ['binary', 'all']:
+                            evaluation_instruction += "BINARY: [true/false]\n"
+
+                        # Call LLM
+                        req = PromptInterceptionRequest(
+                            input_prompt=input_text,
+                            style_prompt=evaluation_instruction,
+                            model=llm_model,
+                            debug=True
+                        )
+                        response = asyncio.run(engine.process_request(req))
+
+                        if response.success:
+                            # Parse evaluation output
+                            evaluation_result = {
+                                'commentary': '',
+                                'score': None,
+                                'binary': None
+                            }
+
+                            # Extract commentary
+                            if 'COMMENTARY:' in response.output_str:
+                                commentary_match = response.output_str.split('COMMENTARY:')[1].split('\n')[0].strip()
+                                evaluation_result['commentary'] = commentary_match or response.output_str
+
+                            # Extract score (use output_float if available)
+                            if response.output_float is not None:
+                                evaluation_result['score'] = float(response.output_float)
+                            elif 'SCORE:' in response.output_str:
+                                try:
+                                    score_match = response.output_str.split('SCORE:')[1].split('\n')[0].strip()
+                                    evaluation_result['score'] = float(score_match)
+                                except (ValueError, IndexError):
+                                    pass
+
+                            # Extract binary (use output_binary if available)
+                            if response.output_binary is not None:
+                                evaluation_result['binary'] = response.output_binary
+                            elif 'BINARY:' in response.output_str:
+                                binary_match = response.output_str.split('BINARY:')[1].split('\n')[0].strip().lower()
+                                evaluation_result['binary'] = binary_match in ['true', 'yes', '1', 'pass']
+
+                            # If no structured output, use full response as commentary
+                            if not evaluation_result['commentary'] and not evaluation_result['score'] and evaluation_result['binary'] is None:
+                                evaluation_result['commentary'] = response.output_str
+
+                            results[node_id] = {
+                                'type': 'evaluation',
+                                'output': evaluation_result,
+                                'error': None,
+                                'model': response.model_used,
+                                'evaluationType': node_type
+                            }
+                            logger.info(f"[Canvas Execute] Evaluation result: score={evaluation_result.get('score')}, binary={evaluation_result.get('binary')}")
+                        else:
+                            results[node_id] = {
+                                'type': 'evaluation',
+                                'output': {
+                                    'commentary': '',
+                                    'score': None,
+                                    'binary': None
+                                },
+                                'error': response.error,
+                                'model': response.model_used
+                            }
+
                 elif node_type == 'collector':
                     # Collector node: gather all inputs
                     source_ids = incoming[node_id]

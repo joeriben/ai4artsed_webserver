@@ -18,8 +18,28 @@
  * - Stage 1 Safety: Automatic in /pipeline/interception
  * - Stage 3 Safety: Automatic per output-config
  * DevServer handles all safety transparently.
+ *
+ * Session 134: Added evaluation/fork/display/loop nodes for decision logic
  */
-export type StageType = 'input' | 'interception' | 'translation' | 'generation' | 'collector'
+export type StageType =
+  | 'input'
+  | 'interception'
+  | 'translation'
+  | 'generation'
+  | 'collector'
+  // Evaluation nodes (LLM-based judgment)
+  | 'fairness_evaluation'
+  | 'creativity_evaluation'
+  | 'equity_evaluation'
+  | 'quality_evaluation'
+  | 'custom_evaluation'
+  // Fork nodes (conditional branching)
+  | 'binary_fork'
+  | 'threshold_fork'
+  // Display node (visualization)
+  | 'display'
+  // Loop controller (feedback loops)
+  | 'loop_controller'
 
 /** Node type definition for the palette */
 export interface NodeTypeDefinition {
@@ -124,6 +144,82 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     mandatory: true,
     acceptsFrom: ['generation', 'interception', 'translation'],
     outputsTo: []
+  },
+  // Session 134: Evaluation Nodes
+  {
+    id: 'fairness_evaluation',
+    type: 'fairness_evaluation',
+    label: { en: 'Fairness Check', de: 'Fairness-Check' },
+    description: {
+      en: 'Evaluate for bias, stereotypes, and representation',
+      de: 'Prüfung auf Vorurteile, Stereotype und Repräsentation'
+    },
+    color: '#f59e0b', // amber
+    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['interception', 'translation', 'generation'],
+    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
+  },
+  {
+    id: 'creativity_evaluation',
+    type: 'creativity_evaluation',
+    label: { en: 'Creativity Check', de: 'Kreativitäts-Check' },
+    description: {
+      en: 'Evaluate originality and creative quality',
+      de: 'Bewertung von Originalität und kreativer Qualität'
+    },
+    color: '#f59e0b', // amber
+    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['interception', 'translation', 'generation'],
+    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
+  },
+  {
+    id: 'equity_evaluation',
+    type: 'equity_evaluation',
+    label: { en: 'Equity Check', de: 'Equity-Check' },
+    description: {
+      en: 'Evaluate cultural sensitivity and representational equity',
+      de: 'Bewertung kultureller Sensibilität und Repräsentations-Equity'
+    },
+    color: '#f59e0b', // amber
+    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['interception', 'translation', 'generation'],
+    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
+  },
+  {
+    id: 'quality_evaluation',
+    type: 'quality_evaluation',
+    label: { en: 'Quality Check', de: 'Qualitäts-Check' },
+    description: {
+      en: 'Evaluate technical quality and composition',
+      de: 'Bewertung technischer Qualität und Komposition'
+    },
+    color: '#f59e0b', // amber
+    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['interception', 'translation', 'generation'],
+    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
+  },
+  {
+    id: 'custom_evaluation',
+    type: 'custom_evaluation',
+    label: { en: 'Custom Evaluation', de: 'Eigene Bewertung' },
+    description: {
+      en: 'Custom evaluation with user-defined criteria',
+      de: 'Eigene Bewertung mit benutzerdefinierten Kriterien'
+    },
+    color: '#f59e0b', // amber
+    icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['interception', 'translation', 'generation'],
+    outputsTo: ['display', 'binary_fork', 'threshold_fork', 'collector', 'loop_controller']
   }
 ]
 
@@ -169,6 +265,40 @@ export interface CanvasNode {
   width?: number
   /** Custom height (optional, for resizable nodes like Collector) */
   height?: number
+
+  // === Session 134: Evaluation node config ===
+  /** Evaluation prompt/criteria description */
+  evaluationPrompt?: string
+  /** Output type for evaluation results */
+  outputType?: 'commentary' | 'score' | 'binary' | 'all'
+  /** Score range for numeric evaluations */
+  scoreRange?: { min: number; max: number }
+
+  // === Fork node config ===
+  /** Condition type for fork nodes */
+  condition?: 'binary' | 'threshold' | 'category'
+  /** Threshold value for threshold_fork */
+  thresholdValue?: number
+  /** Label for "true" path */
+  trueLabel?: string
+  /** Label for "false" path */
+  falseLabel?: string
+
+  // === Loop controller config ===
+  /** Maximum iterations for feedback loops */
+  maxIterations?: number
+  /** Current iteration counter (managed by execution engine) */
+  currentIteration?: number
+  /** Node ID to feed back into */
+  feedbackTargetId?: string
+  /** Termination condition */
+  terminationCondition?: 'max_iterations' | 'evaluation_passed' | 'both'
+
+  // === Display node config ===
+  /** Display mode for visualization */
+  displayMode?: 'popup' | 'inline' | 'toast'
+  /** Display title */
+  title?: string
 }
 
 // ============================================================================
@@ -181,6 +311,10 @@ export interface CanvasConnection {
   sourceId: string
   /** Target node ID */
   targetId: string
+  /** Session 134: Label for fork branches (e.g., 'true', 'false', 'approved', 'rejected') */
+  label?: string
+  /** Session 134: Active state for conditional execution (managed by execution engine) */
+  active?: boolean
 }
 
 // ============================================================================
