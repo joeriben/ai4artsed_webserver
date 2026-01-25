@@ -126,6 +126,19 @@ function handleUpdateNodeBranchLabels(nodeId: string, trueLabel: string, falseLa
   canvasStore.updateNode(nodeId, { trueLabel, falseLabel })
 }
 
+// Session 134 Phase 4: Loop Controller handlers
+function handleUpdateNodeMaxIterations(nodeId: string, maxIterations: number) {
+  canvasStore.updateNode(nodeId, { maxIterations })
+}
+
+function handleUpdateNodeFeedbackTarget(nodeId: string, feedbackTargetId: string) {
+  canvasStore.updateNode(nodeId, { feedbackTargetId })
+}
+
+function handleUpdateNodeTerminationCondition(nodeId: string, condition: string) {
+  canvasStore.updateNode(nodeId, { terminationCondition: condition as 'max_iterations' | 'evaluation_passed' | 'both' })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -355,6 +368,9 @@ onUnmounted(() => {
           @update-node-branch-condition="handleUpdateNodeBranchCondition"
           @update-node-threshold-value="handleUpdateNodeThresholdValue"
           @update-node-branch-labels="handleUpdateNodeBranchLabels"
+          @update-node-max-iterations="handleUpdateNodeMaxIterations"
+          @update-node-feedback-target="handleUpdateNodeFeedbackTarget"
+          @update-node-termination-condition="handleUpdateNodeTerminationCondition"
         />
       </div>
     </div>

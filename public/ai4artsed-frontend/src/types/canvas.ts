@@ -169,6 +169,22 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     mandatory: false,
     acceptsFrom: ['input', 'interception', 'translation', 'generation', 'evaluation', 'display'],
     outputsTo: ['collector', 'evaluation', 'loop_controller', 'interception', 'translation', 'generation', 'display']
+  },
+  // Session 134 Phase 4: Loop Controller
+  {
+    id: 'loop_controller',
+    type: 'loop_controller',
+    label: { en: 'Loop Controller', de: 'Schleifensteuerung' },
+    description: {
+      en: 'Control feedback loops with iteration limits',
+      de: 'Steuert Rückkopplungsschleifen mit Iterationslimits'
+    },
+    color: '#6366f1', // indigo
+    icon: 'sync_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['evaluation'], // Only from commented path
+    outputsTo: ['interception', 'translation', 'collector', 'display']
   }
 ]
 

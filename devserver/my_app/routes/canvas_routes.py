@@ -351,8 +351,21 @@ def execute_workflow():
                     active_connections.add((source_id, target_id))
                     logger.debug(f"[Canvas Execute] Connection {source_id} -> {target_id} ({conn_label or 'unlabeled'}): active by default")
 
-        # Topological sort (Kahn's algorithm)
-        in_degree = {nid: len(incoming[nid]) for nid in node_map}
+        # Session 134 Phase 4: Modified topological sort for loop support
+        # 1. Build DAG excluding loop feedback edges (connections FROM loop_controller)
+        loop_controller_ids = [n['id'] for n in nodes if n.get('type') == 'loop_controller']
+
+        # Build in_degree excluding loop feedback edges
+        in_degree = {}
+        for nid in node_map:
+            count = 0
+            for src_id in incoming[nid]:
+                # Skip edges from loop controllers (these create cycles)
+                if src_id not in loop_controller_ids:
+                    count += 1
+            in_degree[nid] = count
+
+        # Standard Kahn's algorithm on DAG (without loop edges)
         queue = [nid for nid, deg in in_degree.items() if deg == 0]
         execution_order = []
 
@@ -360,20 +373,31 @@ def execute_workflow():
             nid = queue.pop(0)
             execution_order.append(nid)
             for target in outgoing[nid]:
-                in_degree[target] -= 1
-                if in_degree[target] == 0:
-                    queue.append(target)
+                # Only decrement if source is not a loop controller
+                if nid not in loop_controller_ids:
+                    in_degree[target] -= 1
+                    if in_degree[target] == 0:
+                        queue.append(target)
 
+        # Cycle check (should always pass now since we excluded loop edges)
         if len(execution_order) != len(nodes):
-            return jsonify({'status': 'error', 'error': 'Cycle detected in workflow'}), 400
+            return jsonify({'status': 'error', 'error': 'Cycle detected in non-loop workflow'}), 400
 
-        logger.info(f"[Canvas Execute] Execution order: {execution_order}")
+        logger.info(f"[Canvas Execute] Initial execution order: {execution_order}")
+
+        # Convert to mutable queue for re-queueing during loops
+        execution_queue = list(execution_order)
 
         # Execute nodes in order
         results = {}
         engine = PromptInterceptionEngine()
 
-        for node_id in execution_order:
+        # Session 134 Phase 4: Loop iteration tracking
+        loop_counters = {}  # {loop_controller_id: iteration_count}
+        HARD_LOOP_LIMIT = 20  # Absolute max across all loops in workflow
+
+        while execution_queue:
+            node_id = execution_queue.pop(0)
             node = node_map[node_id]
             node_type = node.get('type')
 
@@ -751,6 +775,121 @@ def execute_workflow():
                             'type': 'display',
                             'output': None,
                             'error': 'No input from source node'
+                        }
+
+                elif node_type == 'loop_controller':
+                    # Session 134 Phase 4: Loop Controller - feedback loops with iteration limits
+                    # Get input from source (should be evaluation's commented path)
+                    source_ids = incoming[node_id]
+                    input_text = ''
+                    prev_eval_binary = None
+
+                    for src_id in source_ids:
+                        if src_id in results:
+                            result = results[src_id]
+                            if result.get('type') == 'evaluation':
+                                # Get commented output (has FEEDBACK)
+                                input_text = result.get('outputs', {}).get('commented', '')
+                                prev_eval_binary = result.get('metadata', {}).get('binary')
+                            else:
+                                input_text = result.get('output', '')
+                            break
+
+                    # Check hard loop limit FIRST (prevent runaway loops)
+                    total_iterations = sum(loop_counters.values())
+                    if total_iterations >= HARD_LOOP_LIMIT:
+                        logger.error(f"[Canvas Execute] Hard loop limit ({HARD_LOOP_LIMIT}) exceeded")
+                        results[node_id] = {
+                            'type': 'loop_controller',
+                            'output': input_text,
+                            'error': f'Exceeded hard loop limit ({HARD_LOOP_LIMIT} total iterations)',
+                            'metadata': {
+                                'iteration': loop_counters.get(node_id, 0),
+                                'maxIterations': node.get('maxIterations', 3),
+                                'shouldContinue': False,
+                                'terminationReason': 'Hard limit exceeded'
+                            }
+                        }
+                        continue
+
+                    # Initialize/increment iteration counter
+                    if node_id not in loop_counters:
+                        loop_counters[node_id] = 0
+                    loop_counters[node_id] += 1
+
+                    # Get config
+                    max_iterations = node.get('maxIterations', 3)
+                    feedback_target_id = node.get('feedbackTargetId')
+                    termination_condition = node.get('terminationCondition', 'both')
+
+                    # Validate configuration
+                    if not feedback_target_id:
+                        results[node_id] = {
+                            'type': 'loop_controller',
+                            'output': '',
+                            'error': 'No feedback target configured'
+                        }
+                        logger.error(f"[Canvas Execute] Loop controller {node_id} missing feedback target")
+                        continue
+
+                    if feedback_target_id not in node_map:
+                        results[node_id] = {
+                            'type': 'loop_controller',
+                            'output': '',
+                            'error': f'Feedback target {feedback_target_id} not found'
+                        }
+                        logger.error(f"[Canvas Execute] Loop controller {node_id} feedback target not found")
+                        continue
+
+                    # Check termination
+                    should_terminate = False
+                    termination_reason = None
+
+                    if termination_condition == 'max_iterations':
+                        if loop_counters[node_id] >= max_iterations:
+                            should_terminate = True
+                            termination_reason = 'Max iterations reached'
+                    elif termination_condition == 'evaluation_passed':
+                        if prev_eval_binary == True:
+                            should_terminate = True
+                            termination_reason = 'Evaluation passed'
+                    elif termination_condition == 'both':
+                        if loop_counters[node_id] >= max_iterations:
+                            should_terminate = True
+                            termination_reason = 'Max iterations reached'
+                        elif prev_eval_binary == True:
+                            should_terminate = True
+                            termination_reason = 'Evaluation passed'
+
+                    if should_terminate:
+                        # Exit loop
+                        results[node_id] = {
+                            'type': 'loop_controller',
+                            'output': input_text,  # Passthrough
+                            'metadata': {
+                                'iteration': loop_counters[node_id],
+                                'maxIterations': max_iterations,
+                                'shouldContinue': False,
+                                'terminationReason': termination_reason
+                            },
+                            'error': None
+                        }
+                        logger.info(f"[Canvas Execute] Loop {node_id} terminated: {termination_reason} (iteration {loop_counters[node_id]})")
+                    else:
+                        # Continue loop - re-queue feedback target
+                        execution_queue.append(feedback_target_id)
+                        logger.info(f"[Canvas Execute] Loop {node_id} continuing: iteration {loop_counters[node_id]}, re-queueing {feedback_target_id}")
+
+                        results[node_id] = {
+                            'type': 'loop_controller',
+                            'output': input_text,  # Pass feedback to target
+                            'metadata': {
+                                'iteration': loop_counters[node_id],
+                                'maxIterations': max_iterations,
+                                'shouldContinue': True,
+                                'terminationReason': None
+                            },
+                            'error': None
                         }
 
                 elif node_type == 'collector':

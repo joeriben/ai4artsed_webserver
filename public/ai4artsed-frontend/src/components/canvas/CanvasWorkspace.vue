@@ -60,6 +60,10 @@ const emit = defineEmits<{
   'update-node-branch-condition': [nodeId: string, condition: 'binary' | 'threshold']
   'update-node-threshold-value': [nodeId: string, threshold: number]
   'update-node-branch-labels': [nodeId: string, trueLabel: string, falseLabel: string]
+  // Session 134 Phase 4: Loop Controller events
+  'update-node-max-iterations': [nodeId: string, maxIterations: number]
+  'update-node-feedback-target': [nodeId: string, feedbackTargetId: string]
+  'update-node-termination-condition': [nodeId: string, condition: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -267,6 +271,9 @@ onUnmounted(() => {
       @update-branch-condition="emit('update-node-branch-condition', node.id, $event)"
       @update-threshold-value="emit('update-node-threshold-value', node.id, $event)"
       @update-branch-labels="(trueLabel, falseLabel) => emit('update-node-branch-labels', node.id, trueLabel, falseLabel)"
+      @update-node-max-iterations="emit('update-node-max-iterations', $event[0], $event[1])"
+      @update-node-feedback-target="emit('update-node-feedback-target', $event[0], $event[1])"
+      @update-node-termination-condition="emit('update-node-termination-condition', $event[0], $event[1])"
     />
 
     <!-- Empty state -->

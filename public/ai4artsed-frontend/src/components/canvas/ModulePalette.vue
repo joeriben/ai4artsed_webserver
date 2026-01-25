@@ -40,6 +40,11 @@ const categories = computed(() => [
     id: 'evaluation',
     label: locale.value === 'de' ? 'Bewertung' : 'Evaluation',
     types: ['evaluation'] as StageType[]
+  },
+  {
+    id: 'control',
+    label: locale.value === 'de' ? 'Steuerung' : 'Control Flow',
+    types: ['loop_controller'] as StageType[]
   }
 ])
 
