@@ -1,5 +1,48 @@
 # Development Log
 
+## Session 137 - Stage 3/4 Separation (Clean Architecture)
+**Date:** 2026-01-26
+**Focus:** Separate Stage 3 (Translation+Safety) from Stage 4 (Generation) for clean architecture
+**Status:** COMPLETED
+
+### Problem
+`execute_generation_stage4()` contained **embedded Stage 3 logic**, forcing Canvas to use `skip_translation=True` workaround when it had its own Translation node.
+
+**Old Architecture (problematic):**
+```
+Canvas: Translation Node → Generation Node (skip_translation=True) → Media
+Lab:    execute_generation_stage4() → [Stage 3 embedded] → Stage 4 → Media
+```
+
+**Bug Found:** Parameter was `skip_stage3` but code used undefined `skip_translation` variable.
+
+### Solution
+Created clean separation with new function `execute_stage4_generation_only()`:
+
+**New Architecture:**
+```
+Canvas: Translation Node → execute_stage4_generation_only() → Media
+Lab:    execute_generation_stage4() → Stage 3 → execute_stage4_generation_only() → Media
+```
+
+### Changes
+
+| File | Change |
+|------|--------|
+| `schema_pipeline_routes.py` | Added `execute_stage4_generation_only()` - pure Stage 4 generation |
+| `schema_pipeline_routes.py` | Refactored `execute_generation_stage4()` to call new function internally |
+| `canvas_routes.py` | Generation node now calls `execute_stage4_generation_only()` directly |
+| `canvas_routes.py` | Removed `skip_translation=True` workaround |
+
+### Key Principle
+- `execute_stage4_generation_only()` = Pure generation, expects ready-to-use prompt
+- `execute_generation_stage4()` = Legacy wrapper for Lab (handles Stage 3 first)
+- Canvas workflows call the clean function directly - no flags needed
+
+**Commit:** `9f34ca2` - refactor(stage4): Separate Stage 3 and Stage 4 for clean architecture
+
+---
+
 ## Session 134 - Canvas Decision & Evaluation Nodes (Unified Architecture)
 **Date:** 2026-01-25 → 2026-01-26
 **Focus:** Implement evaluation nodes with 3-output branching logic + Tracer-Pattern execution
