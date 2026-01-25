@@ -563,11 +563,13 @@ def execute_workflow():
                     else:
                         # Build evaluation instruction
                         # Session 134: ALWAYS request binary+commentary (for fork nodes), optionally request score
-                        evaluation_instruction = f"{evaluation_prompt}\n\nProvide your evaluation in the following format:\n"
+                        evaluation_instruction = f"{evaluation_prompt}\n\n"
+                        evaluation_instruction += "Provide your evaluation in the following format:\n\n"
                         evaluation_instruction += "COMMENTARY: [Your detailed evaluation and feedback]\n"
-                        evaluation_instruction += "BINARY: [true/false - does this pass the evaluation criteria?]\n"
                         if output_type in ['score', 'all']:
-                            evaluation_instruction += "SCORE: [0-10]\n"
+                            evaluation_instruction += "SCORE: [0-10 numeric score]\n"
+                        evaluation_instruction += "BINARY: [Answer ONLY 'true' or 'false' - does this content pass the evaluation criteria?]\n"
+                        evaluation_instruction += "\nIMPORTANT: You MUST provide a BINARY response. If the content has any issues or scores below 5, answer 'false'."
 
                         # Call LLM
                         req = PromptInterceptionRequest(
@@ -604,13 +606,31 @@ def execute_workflow():
                             # Extract binary (use output_binary if available)
                             if response.output_binary is not None:
                                 binary_result = response.output_binary
-                            elif 'BINARY:' in response.output_str:
-                                binary_match = response.output_str.split('BINARY:')[1].split('\n')[0].strip().lower()
-                                binary_result = binary_match in ['true', 'yes', '1', 'pass']
+                            elif 'BINARY:' in response.output_str.upper():
+                                # Case-insensitive search
+                                binary_start = response.output_str.upper().index('BINARY:')
+                                binary_line = response.output_str[binary_start:].split('\n')[0]
+                                binary_match = binary_line.split(':')[1].strip().lower()
+                                # Accept multiple variations of "true" and "false"
+                                binary_result = binary_match in ['true', 'yes', '1', 'pass', 'passed', 'bestanden', 'ja']
+                                if not binary_result:
+                                    # Explicitly check for false variations
+                                    is_false = any(word in binary_match for word in ['false', 'no', '0', 'fail', 'nein', 'nicht'])
+                                    if is_false:
+                                        binary_result = False
+                                    else:
+                                        logger.warning(f"[Canvas Execute] Evaluation {node_id}: Unclear binary value '{binary_match}', treating as False")
+                                        binary_result = False
                             else:
-                                # Fallback: If no binary found, default to True (pass)
-                                binary_result = True
-                                logger.warning(f"[Canvas Execute] Evaluation {node_id}: No binary result found, defaulting to True")
+                                # Fallback: If no binary found, use score as indicator
+                                if score is not None:
+                                    # Score < 5 → fail, >= 5 → pass
+                                    binary_result = score >= 5.0
+                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: No binary result found, using score {score} → binary={binary_result}")
+                                else:
+                                    # No binary, no score → default to False (safer, triggers feedback)
+                                    binary_result = False
+                                    logger.warning(f"[Canvas Execute] Evaluation {node_id}: No binary or score found, defaulting to False (fail)")
 
                             # Session 134 Refactored: 3 separate TEXT outputs
                             # 1. Passthrough: original input (active if binary=true)
