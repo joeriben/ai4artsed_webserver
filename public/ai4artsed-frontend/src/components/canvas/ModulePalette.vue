@@ -18,6 +18,7 @@ const emit = defineEmits<{
  * Group node types by category
  *
  * NOTE: Safety is NOT shown here - DevServer handles it automatically
+ * Session 134: Added Evaluation, Decision, and Display categories
  */
 const categories = computed(() => [
   {
@@ -28,12 +29,22 @@ const categories = computed(() => [
   {
     id: 'process',
     label: locale.value === 'de' ? 'Verarbeitung' : 'Processing',
-    types: ['interception', 'translation'] as StageType[]
+    types: ['interception', 'translation', 'display'] as StageType[]
   },
   {
     id: 'generate',
     label: locale.value === 'de' ? 'Generierung' : 'Generation',
     types: ['generation'] as StageType[]
+  },
+  {
+    id: 'evaluation',
+    label: locale.value === 'de' ? 'Bewertung' : 'Evaluation',
+    types: ['fairness_evaluation', 'creativity_evaluation', 'equity_evaluation', 'quality_evaluation', 'custom_evaluation'] as StageType[]
+  },
+  {
+    id: 'decision',
+    label: locale.value === 'de' ? 'Verzweigung' : 'Decision',
+    types: ['binary_fork', 'threshold_fork'] as StageType[]
   }
 ])
 
