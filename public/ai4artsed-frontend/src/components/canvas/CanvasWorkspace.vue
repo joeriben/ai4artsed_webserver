@@ -247,6 +247,7 @@ onUnmounted(() => {
       v-for="node in nodes"
       :key="node.id"
       :node="node"
+      :nodes="nodes"
       :selected="node.id === selectedNodeId"
       :llm-models="llmModels"
       :execution-result="executionResults?.[node.id]"
@@ -271,9 +272,9 @@ onUnmounted(() => {
       @update-branch-condition="emit('update-node-branch-condition', node.id, $event)"
       @update-threshold-value="emit('update-node-threshold-value', node.id, $event)"
       @update-branch-labels="(trueLabel, falseLabel) => emit('update-node-branch-labels', node.id, trueLabel, falseLabel)"
-      @update-node-max-iterations="emit('update-node-max-iterations', $event[0], $event[1])"
-      @update-node-feedback-target="emit('update-node-feedback-target', $event[0], $event[1])"
-      @update-node-termination-condition="emit('update-node-termination-condition', $event[0], $event[1])"
+      @update-node-max-iterations="(nodeId, maxIterations) => emit('update-node-max-iterations', nodeId, maxIterations)"
+      @update-node-feedback-target="(nodeId, feedbackTargetId) => emit('update-node-feedback-target', nodeId, feedbackTargetId)"
+      @update-node-termination-condition="(nodeId, condition) => emit('update-node-termination-condition', nodeId, condition)"
     />
 
     <!-- Empty state -->

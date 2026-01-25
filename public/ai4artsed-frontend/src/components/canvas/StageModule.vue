@@ -33,6 +33,8 @@ const props = defineProps<{
   }
   /** Collector output (only for collector nodes) */
   collectorOutput?: CollectorOutputItem[]
+  /** All nodes in workflow (for loop controller feedback target selection) */
+  nodes?: CanvasNode[]
 }>()
 
 const emit = defineEmits<{
@@ -106,7 +108,8 @@ const hasCollectorOutput = computed(() => isCollector.value && props.collectorOu
 const hasBranching = computed(() => isEvaluation.value && props.node.enableBranching === true)
 // Loop Controller: Available feedback targets (interception/translation nodes, excluding self)
 const availableFeedbackTargets = computed(() => {
-  return props.nodes.filter(n =>
+  if (!props.nodes) return []
+  return props.nodes.filter((n: CanvasNode) =>
     ['interception', 'translation'].includes(n.type) && n.id !== props.node.id
   )
 })
@@ -707,7 +710,7 @@ const nodeHeight = computed(() => {
           </label>
           <select
             v-model="node.feedbackTargetId"
-            @change="emit('update-node-feedback-target', node.id, node.feedbackTargetId)"
+            @change="emit('update-node-feedback-target', node.id, node.feedbackTargetId || '')"
             class="field-select"
           >
             <option value="">{{ locale === 'de' ? 'Zielnode auswählen' : 'Select target node' }}</option>
