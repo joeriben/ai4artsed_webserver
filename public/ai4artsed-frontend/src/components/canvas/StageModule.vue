@@ -638,35 +638,36 @@ const nodeHeight = computed(() => {
         </template>
       </template>
 
-      <!-- DISPLAY NODE: Title + Display mode -->
+      <!-- PREVIEW NODE: Shows content inline (pass-through) -->
       <template v-else-if="isDisplay">
-        <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Titel' : 'Title' }}</label>
-          <input
-            type="text"
-            class="llm-select"
-            :value="node.title || ''"
-            :placeholder="locale === 'de' ? 'Anzeige-Titel...' : 'Display title...'"
-            @input="onDisplayTitleChange"
-            @mousedown.stop
-          />
+        <div v-if="executionResult?.output" class="preview-content">
+          <!-- Text preview -->
+          <template v-if="typeof executionResult.output === 'string'">
+            <div class="preview-text">
+              {{ executionResult.output.slice(0, 150) }}{{ executionResult.output.length > 150 ? '...' : '' }}
+            </div>
+          </template>
+          <!-- Media preview (image/video) -->
+          <template v-else-if="typeof executionResult.output === 'object' && (executionResult.output as any)?.url">
+            <img
+              v-if="(executionResult.output as any).media_type === 'image' || !(executionResult.output as any).media_type"
+              :src="(executionResult.output as any).url"
+              class="preview-image"
+              :alt="locale === 'de' ? 'Vorschau' : 'Preview'"
+            />
+            <div v-else class="preview-media-info">
+              {{ (executionResult.output as any).media_type }}: {{ (executionResult.output as any).url }}
+            </div>
+          </template>
+          <template v-else>
+            <div class="preview-text">
+              {{ JSON.stringify(executionResult.output).slice(0, 100) }}...
+            </div>
+          </template>
         </div>
-        <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Anzeige-Modus' : 'Display Mode' }}</label>
-          <select
-            class="llm-select"
-            :value="node.displayMode || 'inline'"
-            @change="onDisplayModeChange"
-            @mousedown.stop
-          >
-            <option value="inline">{{ locale === 'de' ? 'Inline' : 'Inline' }}</option>
-            <option value="toast">{{ locale === 'de' ? 'Toast-Nachricht' : 'Toast' }}</option>
-            <option value="popup">{{ locale === 'de' ? 'Popup' : 'Popup' }}</option>
-          </select>
-        </div>
-        <div class="display-info">
+        <div v-else class="preview-empty">
           <span class="module-type-info">
-            {{ locale === 'de' ? 'Zeigt Ergebnisse an (nicht-blockierend)' : 'Shows results (non-blocking)' }}
+            {{ locale === 'de' ? 'Vorschau (nach Ausführung)' : 'Preview (after execution)' }}
           </span>
         </div>
       </template>
@@ -1099,16 +1100,45 @@ const nodeHeight = computed(() => {
 }
 
 /* Display node info */
-.display-info {
+/* Session 134 Refactored: Preview node inline display */
+.preview-content {
   padding: 0.5rem;
   background: rgba(16, 185, 129, 0.1);
   border-radius: 4px;
-  margin-top: 0.5rem;
+  border-left: 3px solid #10b981;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
-.display-info .module-type-info {
+.preview-text {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 150px;
+  border-radius: 4px;
+  display: block;
+}
+
+.preview-media-info {
   font-size: 0.625rem;
-  color: #10b981;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.preview-empty {
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.preview-empty .module-type-info {
+  font-size: 0.625rem;
+  color: #64748b;
   font-style: italic;
 }
 

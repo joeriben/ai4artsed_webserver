@@ -29,6 +29,106 @@
 
 ---
 
+## 🎯 CANVAS EVALUATION NODES: Unified 3-Output Architecture (2026-01-25)
+
+**Status:** ✅ DECIDED & IMPLEMENTED
+**Session:** 134
+**Full Details:** See `docs/ARCHITECTURE_CANVAS_EVALUATION_NODES.md`
+
+### Decision
+
+**ONE unified Evaluation node** with 3 separate TEXT outputs, instead of 7 separate node types (5 evaluation + 2 fork).
+
+### Reasoning
+
+**Problem with Original Plan (7 Nodes):**
+- Evaluation and Fork were conceptually ONE decision, split into TWO nodes
+- Unclear data flow: What text flows through fork? Input? Commentary? Both?
+- UI complexity: 7 new nodes for one logical operation
+- Pedagogically unclear: "Fairness Check" + "Binary Fork" = 2 steps for 1 decision
+
+**Why 3 Text Outputs?**
+1. **Passthrough (P)**: Original input unchanged (active if binary=true)
+   - Use: Evaluation passed → continue workflow
+2. **Commented (C)**: Input + "\n\nFEEDBACK: {commentary}" (active if binary=false)
+   - Use: Evaluation failed → loop back to Interception with feedback
+3. **Commentary (→)**: Just the commentary text (ALWAYS active)
+   - Use: Display/Collector for user transparency
+
+**Pedagogical Advantage:**
+- Explicit decision points in workflow
+- Visible feedback (not "black box")
+- Enables iterative improvement (feedback loops)
+- One node = one conceptual decision
+
+### Technical Implementation
+
+**Frontend Structure:**
+```typescript
+// Node properties
+evaluationType: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom'
+evaluationPrompt: string
+outputType: 'commentary' | 'score' | 'all'
+enableBranching: boolean
+branchCondition: 'binary' | 'threshold'
+thresholdValue: number
+trueLabel: string
+falseLabel: string
+```
+
+**Backend Structure:**
+```python
+# Evaluation result
+{
+  'type': 'evaluation',
+  'outputs': {
+    'passthrough': input_text,  # Original
+    'commented': f"{input_text}\n\nFEEDBACK: {commentary}",  # Input + feedback
+    'commentary': commentary  # Just commentary
+  },
+  'metadata': {
+    'binary': True/False,
+    'score': 0-10,
+    'active_path': 'passthrough' | 'commented'
+  }
+}
+```
+
+**Binary Logic:**
+- LLM prompt explicitly requests: "Answer ONLY 'true' or 'false'"
+- Fallback: No binary → use score (< 5.0 = fail)
+- Default if no score: False (safer, triggers feedback)
+
+### Affected Files
+
+- `public/.../types/canvas.ts` - Unified evaluation type
+- `public/.../StageModule.vue` - 3-output UI, evaluation config
+- `public/.../ModulePalette.vue` - 7 nodes → 1 node
+- `devserver/.../canvas_routes.py` - 3 text outputs, binary logic
+
+### Trade-offs
+
+**Chosen:**
+- Unified node with dropdown (1 node type)
+- 3 separate text outputs
+- Binary + Commentary always generated
+
+**Rejected:**
+- 7 separate node types (too complex)
+- 2 outputs only (loses transparency)
+- Combined object output (text doesn't flow properly)
+- Default binary=true (unsafe, hides problems)
+
+### Next Steps (Phase 3b - Not Yet Implemented)
+
+**Conditional Execution:**
+- Currently: All 3 outputs execute connected nodes
+- Goal: Only active path (P or C) executes downstream
+- Commentary path always executes (for display/collector)
+- Requires: Connection label tracking, active path marking
+
+---
+
 ## 🤖 LLM SELECTION: Model-Specific Prompting Strategy (2026-01-23)
 
 **Status:** ✅ DECIDED

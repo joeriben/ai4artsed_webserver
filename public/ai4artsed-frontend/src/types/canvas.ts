@@ -158,17 +158,17 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'display',
     type: 'display',
-    label: { en: 'Display', de: 'Anzeige' },
+    label: { en: 'Preview', de: 'Vorschau' },
     description: {
-      en: 'Visualize results (non-blocking pass-through)',
-      de: 'Ergebnisse visualisieren (nicht-blockierend)'
+      en: 'Preview text or media inline (pass-through)',
+      de: 'Vorschau von Text oder Medien inline (Durchleitung)'
     },
     color: '#10b981', // green
     icon: 'info_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
     acceptsFrom: ['input', 'interception', 'translation', 'generation', 'evaluation', 'display'],
-    outputsTo: ['collector', 'evaluation', 'loop_controller']
+    outputsTo: ['collector', 'evaluation', 'loop_controller', 'interception', 'translation', 'generation', 'display']
   }
 ]
 

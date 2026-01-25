@@ -1,5 +1,185 @@
 # Development Log
 
+## Session 134 - Canvas Decision & Evaluation Nodes (Unified Architecture)
+**Date:** 2026-01-25
+**Focus:** Implement evaluation nodes with 3-output branching logic for Canvas workflows
+**Status:** COMPLETED (Phase 1-3a), Phase 3b pending (Conditional Execution)
+
+### Pädagogisches Konzept: Evaluation als bewusste Entscheidung
+
+**Kernidee:** Evaluation = EINE konzeptionelle Entscheidung mit 3 Text-Outputs, nicht 7 separate Node-Typen.
+
+**Warum 3 Outputs?**
+1. **Passthrough (P)** - Evaluation bestanden → unverändert weiter
+2. **Commented (C)** - Evaluation nicht bestanden → mit Feedback zurück
+3. **Commentary (→)** - Immer → für User-Transparenz/Display
+
+**Pädagogischer Vorteil:**
+- Explizite Entscheidungspunkte im Workflow
+- Sichtbares Feedback (nicht "black box")
+- Ermöglicht iterative Verbesserung (Feedback Loops)
+
+### Architekturentscheidung: Von 7 Nodes → 1 Node
+
+**Ursprünglicher Plan (verworfen):**
+- 5 Evaluation-Types (fairness, creativity, equity, quality, custom)
+- 2 Fork-Types (binary_fork, threshold_fork)
+= 7 separate Node-Typen
+
+**Problem (User Feedback):**
+- Evaluation + Fork = konzeptuell EINE Entscheidung, nicht zwei
+- Datenfluss unklar: Was fließt durch Fork? Input? Commentary? Beides?
+- UI-Komplexität: 7 Nodes für eine logische Operation
+
+**Lösung: Unified Evaluation Node**
+- 1 Node-Typ mit Dropdown für Evaluation-Type
+- Optional branching (Checkbox)
+- 3 separate TEXT-Outputs (nicht kombiniertes Objekt)
+
+### Implementation - Phase 1: Evaluation Nodes (COMPLETED)
+
+**Frontend (canvas.ts):**
+- Node-Type: `'evaluation'`
+- Properties: `evaluationType`, `evaluationPrompt`, `outputType`, `enableBranching`, `branchCondition`, `thresholdValue`, `trueLabel`, `falseLabel`
+
+**UI (StageModule.vue):**
+```vue
+Evaluation Type: [Fairness ▼] (fairness, creativity, equity, quality, custom)
+LLM: [gpt-4o-mini ▼]
+Criteria: [Textarea mit Pre-fill Templates]
+Output: [Commentary+Score ▼]
+☑ Enable Branching
+  Condition: [Binary/Threshold]
+  Threshold: [5.0] (if threshold selected)
+  True Label: [Approved]
+  False Label: [Needs Revision]
+```
+
+**Backend (canvas_routes.py):**
+```python
+# 3 separate TEXT outputs
+outputs = {
+  'passthrough': input_text,  # Original unchanged
+  'commented': f"{input_text}\n\nFEEDBACK: {commentary}",  # Input + feedback
+  'commentary': commentary  # Just commentary
+}
+metadata = {
+  'binary': True/False,
+  'score': 0-10,
+  'active_path': 'passthrough' | 'commented'
+}
+```
+
+**Binary Logic (Fixed):**
+- LLM-Prompt: "Answer ONLY 'true' or 'false'. If issues or score < 5, answer 'false'"
+- Fallback: No binary → use score threshold (< 5.0 = fail)
+- Smart parsing: Case-insensitive, multiple variations (true/yes/pass/bestanden)
+
+### Implementation - Phase 2: Display → Preview Node (COMPLETED)
+
+**Problem:** Display-Node zeigte nichts an, hatte nutzloses Dropdown.
+
+**Lösung:** Umbenennung + Inline-Preview
+- Label: "Display" → "Preview/Vorschau"
+- Removed: title input, displayMode dropdown
+- Added: Inline content visualization
+  - Text: First 150 chars
+  - Images: Inline preview (max 150px)
+  - Media: Type + URL display
+
+**UI:**
+```
+┌──────────────┐
+│ 🔍 PREVIEW   │
+├──────────────┤
+│ [Content...] │ ← Shows execution result
+│ [truncated]  │
+└──────────────┘
+```
+
+### Implementation - Phase 3a: UI for Branching (COMPLETED)
+
+**3 Output Connectors:**
+```
+┌────────────────┐
+│ 📋 EVALUATION  │
+└────────────────┘
+       ├─ P (🟢 green - Passthrough)
+       ├─ C (🟠 orange - Commented)
+       └─ → (🔵 cyan - Commentary)
+```
+
+**Connection Labels:** `'passthrough'`, `'commented'`, `'commentary'`
+
+**Collector Display:**
+- Shows: Binary (✅/❌), Score, Active Path, Commentary, Output Text
+- Separate sections for metadata vs. outputs
+
+### Connection Rules (Fixed Multiple Times)
+
+**Problem:** Nodes couldn't connect (e.g., Input → Evaluation).
+
+**Solution:** Extended `acceptsFrom` and `outputsTo` for all nodes:
+- Input → can output to: interception, translation, evaluation, display
+- Evaluation → accepts from: input, interception, translation, generation, display, evaluation
+- All nodes → can connect to evaluation/display
+
+### Technical Debt & Next Steps
+
+**Phase 3b: Conditional Execution (NOT IMPLEMENTED)**
+- Currently: All 3 outputs execute connected nodes
+- Goal: Only active path (P or C) executes, Commentary always active
+- Requires: Connection label tracking, active path marking, conditional node execution
+
+**Phase 4: Loop Controller (PLANNED)**
+- Feedback loops with max iterations
+- Commented path → Loop Controller → back to Interception
+- Prevents infinite loops (max 3 iterations default)
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `public/.../types/canvas.ts` | Unified evaluation type, 3-output structure, connection rules |
+| `public/.../StageModule.vue` | Evaluation UI, 3 connectors, Preview inline display, Collector display |
+| `public/.../CanvasWorkspace.vue` | Event forwarding for evaluation/preview |
+| `public/.../canvas_workflow.vue` | Handler functions for evaluation config |
+| `public/.../ModulePalette.vue` | Removed 7 nodes → 1 evaluation node |
+| `devserver/.../canvas_routes.py` | Evaluation execution with 3 text outputs, binary logic |
+
+### Commits
+
+1. `feat(session-134): Add Evaluation node types (Phase 1)` - Initial 5 evaluation types
+2. `feat(session-134): Add Display node (Phase 2)` - Display node with config
+3. `feat(session-134): Add Fork node UI (Phase 3a)` - Binary/Threshold fork UI
+4. `fix(session-134): Add new node types to Palette menu` - Palette integration
+5. `fix(session-134): Fix connections and enforce binary output` - Binary always enabled
+6. `refactor(session-134): Unified Evaluation node (Option A)` - 7 nodes → 1 node
+7. `fix(session-134): Enable all nodes to connect to evaluation/display` - Connection rules
+8. `feat(session-134): 3 separate TEXT outputs for Evaluation nodes` - 3-output architecture
+9. `fix(session-134): Improve binary evaluation logic` - Score threshold fallback
+10. `refactor(session-134): Display → Preview with inline content display` - Preview node
+
+### Testing Results
+
+✅ **Working:**
+- Evaluation node with LLM selection
+- Type-specific prompt templates (fairness, creativity, equity, quality, custom)
+- Binary + Score + Commentary output
+- 3 output connectors (P, C, →)
+- Preview shows inline content
+- Collector displays evaluation results with metadata
+
+⚠️ **Known Issues:**
+- Binary logic had fallback bug (fixed: Score 2/10 now correctly fails)
+- Conditional execution not implemented (all paths execute)
+
+### Architecture Documentation
+
+See: `docs/ARCHITECTURE_CANVAS_EVALUATION_NODES.md` (created this session)
+
+---
+
 ## Session 136 - Träshy UX Enhancement: Living Assistant Interface
 **Date:** 2026-01-25
 **Focus:** Transform Träshy from static icon to living, context-aware assistant

@@ -1,6 +1,221 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2026-01-24 (Session 135: prompt_optimization Fix)
+**Last Updated:** 2026-01-25 (Session 134: Canvas Evaluation Nodes)
 **Context:** Current priorities and active TODOs
+
+---
+
+## 🎯 CANVAS: Evaluation Nodes - Conditional Execution (Phase 3b)
+
+**Status:** 🔴 **BLOCKED** - UI works, execution logic missing
+**Priority:** HIGH (User-facing feature incomplete)
+**Session:** 134
+**Estimated Effort:** 2-3 hours
+
+### Context
+
+Evaluation nodes are implemented with 3 separate text outputs (Passthrough, Commented, Commentary), but conditional execution is not yet implemented.
+
+**Current Behavior:**
+- ✅ UI works: 3 output connectors (P, C, →)
+- ✅ Backend generates 3 text outputs
+- ❌ ALL paths execute (no branching logic)
+
+**Expected Behavior:**
+- Only active path (P or C) executes downstream
+- Commentary path (→) ALWAYS executes
+- Based on binary evaluation result
+
+### Technical Requirements
+
+**1. Connection Label Storage**
+```typescript
+// public/.../types/canvas.ts
+interface CanvasConnection {
+  sourceId: string
+  targetId: string
+  label?: 'passthrough' | 'commented' | 'commentary'  // NEW
+  active?: boolean  // NEW - Set during execution
+}
+```
+
+**2. Active Path Marking (Backend)**
+```python
+# devserver/.../canvas_routes.py
+# After evaluation execution
+active_path = 'passthrough' if binary_result else 'commented'
+
+# Mark active connections
+for conn in connections:
+    if conn.sourceId == evaluation_node_id:
+        if conn.label == active_path or conn.label == 'commentary':
+            conn['active'] = True
+        else:
+            conn['active'] = False
+```
+
+**3. Conditional Execution**
+```python
+# In execution loop
+for node_id in execution_order:
+    # Check if all incoming connections are active
+    incoming_conns = [c for c in connections if c.targetId == node_id]
+    if incoming_conns:
+        all_active = all(conn.get('active', True) for conn in incoming_conns)
+        if not all_active:
+            logger.info(f"[Canvas] Skipping {node_id} (inactive path)")
+            continue
+
+    # Execute node
+    execute_node(node_id)
+```
+
+### Files to Modify
+
+1. `public/ai4artsed-frontend/src/types/canvas.ts`
+   - Add `label` and `active` to CanvasConnection
+
+2. `devserver/my_app/routes/canvas_routes.py`
+   - Store connection labels in workflow
+   - Mark active connections after evaluation
+   - Skip nodes on inactive paths
+
+3. `public/ai4artsed-frontend/src/stores/canvasStore.ts` (if exists)
+   - Store connection labels when creating connections
+
+### Testing Checklist
+
+- [ ] Evaluation with binary=true → only Passthrough path executes
+- [ ] Evaluation with binary=false → only Commented path executes
+- [ ] Commentary path ALWAYS executes (regardless of binary)
+- [ ] Loop workflow: Input → Interception → Eval → Loop Controller → Interception
+- [ ] Multiple evaluations in series (Fairness → Creativity)
+
+### Related Docs
+
+- `docs/ARCHITECTURE_CANVAS_EVALUATION_NODES.md` - Full architecture
+- `docs/HANDOVER_SESSION_134.md` - Implementation details
+
+---
+
+## 🔄 CANVAS: Loop Controller Node (Phase 4)
+
+**Status:** 📋 **PLANNED** - Depends on Phase 3b
+**Priority:** MEDIUM (After conditional execution)
+**Estimated Effort:** 3-4 hours
+
+### Purpose
+
+Enable feedback loops with max iteration limits for iterative content refinement.
+
+### Features
+
+- Max iterations counter (default: 3)
+- Current iteration tracking
+- Feedback target node selection (dropdown)
+- Termination conditions:
+  - `max_iterations` reached
+  - `evaluation_passed` (binary=true)
+  - `both` (either condition)
+
+### UI Design
+
+```
+┌──────────────────────┐
+│ 🔄 LOOP CONTROLLER   │
+├──────────────────────┤
+│ Max Iterations: [3]  │
+│ Feedback to: [▼]     │ ← Dropdown of canvas nodes
+│ Terminate: [Both ▼]  │
+│                      │
+│ Current: 0 / 3       │ ← Shows during execution
+└──────────────────────┘
+```
+
+### Example Workflow
+
+```
+Input → Interception → Generation → Quality Eval
+         ↑                              ↓ (Commented path)
+         └───────── Loop Controller ────┘
+                    (max 3 iterations)
+```
+
+**Behavior:**
+1. Quality Eval fails (score < 7) → Commented output
+2. Loop Controller receives Commented text
+3. Increment iteration counter (1/3)
+4. Check termination: Not reached → continue
+5. Route to Interception with feedback
+6. Repeat until: Quality passes OR max iterations reached
+
+### Technical Implementation
+
+**Node Type:**
+```typescript
+type: 'loop_controller'
+maxIterations: number
+currentIteration: number  // Managed by backend
+feedbackTargetId: string  // Node ID to loop back to
+terminationCondition: 'max_iterations' | 'evaluation_passed' | 'both'
+```
+
+**Backend Logic:**
+```python
+elif node_type == 'loop_controller':
+    # Get iteration counter from state
+    iteration = loop_state.get(node_id, {}).get('iteration', 0)
+    max_iter = node.get('maxIterations', 3)
+
+    # Check termination
+    should_terminate = False
+
+    if node.get('terminationCondition') == 'max_iterations':
+        should_terminate = iteration >= max_iter
+    elif node.get('terminationCondition') == 'evaluation_passed':
+        # Check if previous eval passed
+        prev_eval_binary = get_previous_eval_binary(node_id)
+        should_terminate = prev_eval_binary
+    elif node.get('terminationCondition') == 'both':
+        should_terminate = iteration >= max_iter or get_previous_eval_binary(node_id)
+
+    if should_terminate:
+        # Exit loop - continue to next node
+        logger.info(f"[Loop] Terminating after {iteration} iterations")
+        results[node_id] = {'type': 'loop_exit', 'output': input_text}
+    else:
+        # Continue loop - re-queue feedback target
+        iteration += 1
+        loop_state[node_id] = {'iteration': iteration}
+        logger.info(f"[Loop] Iteration {iteration}/{max_iter}")
+
+        # Re-queue feedback target for execution
+        feedback_target = node.get('feedbackTargetId')
+        execution_queue.append(feedback_target)
+
+        results[node_id] = {'type': 'loop_continue', 'output': input_text, 'iteration': iteration}
+```
+
+### Challenges
+
+**Re-queueing Nodes:**
+- Current execution uses topological sort (DAG)
+- Loops create cycles → need execution queue instead
+- Or: Special handling for loop edges (ignore in topo sort)
+
+**State Management:**
+- Iteration counter must persist across node executions
+- Per-loop state dict: `{loop_controller_id: {iteration: N}}`
+
+**Infinite Loop Prevention:**
+- Hard limit: Max 10 iterations (configurable)
+- Timeout: Max execution time per workflow
+
+### Files to Modify
+
+1. `public/.../types/canvas.ts` - loop_controller type
+2. `public/.../StageModule.vue` - Loop controller UI
+3. `public/.../ModulePalette.vue` - Add to palette
+4. `devserver/.../canvas_routes.py` - Loop execution logic
 
 ---
 
