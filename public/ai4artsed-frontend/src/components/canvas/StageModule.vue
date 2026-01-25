@@ -435,22 +435,39 @@ const nodeHeight = computed(() => {
               <template v-if="item.error">
                 <span class="error-text">{{ item.error }}</span>
               </template>
-              <!-- Session 134: Evaluation output display -->
+              <!-- Session 134 Refactored: Evaluation output display (3 separate outputs + metadata) -->
               <template v-else-if="item.nodeType === 'evaluation' && typeof item.output === 'object' && item.output !== null">
                 <div class="evaluation-result">
-                  <div v-if="(item.output as any).score !== null && (item.output as any).score !== undefined" class="eval-score">
-                    <span class="eval-label">{{ locale === 'de' ? 'Punktzahl' : 'Score' }}:</span>
-                    <span class="eval-value">{{ (item.output as any).score }}/10</span>
+                  <!-- Show metadata: binary result and score -->
+                  <div v-if="(item.output as any).metadata" class="eval-metadata">
+                    <div v-if="(item.output as any).metadata.binary !== null" class="eval-binary">
+                      <span class="eval-label">{{ locale === 'de' ? 'Ergebnis' : 'Result' }}:</span>
+                      <span class="eval-value" :class="{ 'pass': (item.output as any).metadata.binary, 'fail': !(item.output as any).metadata.binary }">
+                        {{ (item.output as any).metadata.binary ? (locale === 'de' ? 'Bestanden' : 'Pass') : (locale === 'de' ? 'Nicht bestanden' : 'Fail') }}
+                      </span>
+                    </div>
+                    <div v-if="(item.output as any).metadata.score !== null" class="eval-score">
+                      <span class="eval-label">{{ locale === 'de' ? 'Punktzahl' : 'Score' }}:</span>
+                      <span class="eval-value">{{ (item.output as any).metadata.score }}/10</span>
+                    </div>
+                    <div v-if="(item.output as any).metadata.active_path" class="eval-path">
+                      <span class="eval-label">{{ locale === 'de' ? 'Aktiver Pfad' : 'Active Path' }}:</span>
+                      <span class="eval-value">{{ (item.output as any).metadata.active_path }}</span>
+                    </div>
                   </div>
-                  <div v-if="(item.output as any).binary !== null && (item.output as any).binary !== undefined" class="eval-binary">
-                    <span class="eval-label">{{ locale === 'de' ? 'Ergebnis' : 'Result' }}:</span>
-                    <span class="eval-value" :class="{ 'pass': (item.output as any).binary, 'fail': !(item.output as any).binary }">
-                      {{ (item.output as any).binary ? (locale === 'de' ? 'Bestanden' : 'Pass') : (locale === 'de' ? 'Nicht bestanden' : 'Fail') }}
-                    </span>
-                  </div>
-                  <div v-if="(item.output as any).commentary" class="eval-commentary">
+                  <!-- Show commentary text -->
+                  <div v-if="(item.output as any).outputs?.commentary" class="eval-commentary">
                     <span class="eval-label">{{ locale === 'de' ? 'Kommentar' : 'Commentary' }}:</span>
-                    <p class="eval-text">{{ (item.output as any).commentary }}</p>
+                    <p class="eval-text">{{ (item.output as any).outputs.commentary }}</p>
+                  </div>
+                  <!-- Show active output (passthrough or commented) -->
+                  <div v-if="(item.output as any).metadata?.active_path && (item.output as any).outputs" class="eval-active-output">
+                    <span class="eval-label">{{ locale === 'de' ? 'Output-Text' : 'Output Text' }}:</span>
+                    <p class="eval-text">
+                      {{ (item.output as any).metadata.active_path === 'passthrough'
+                        ? (item.output as any).outputs.passthrough
+                        : (item.output as any).outputs.commented }}
+                    </p>
                   </div>
                 </div>
               </template>
@@ -667,21 +684,28 @@ const nodeHeight = computed(() => {
       @mousedown.stop="emit('start-connect')"
     />
 
-    <!-- Branching output connectors (evaluation node with branching enabled) -->
-    <div v-if="hasBranching" class="fork-outputs">
+    <!-- Evaluation outputs: 3 separate text outputs (passthrough, commented, commentary) -->
+    <div v-if="isEvaluation && node.enableBranching" class="eval-outputs">
       <div
-        class="connector output output-true"
-        @mousedown.stop="emit('start-connect-labeled', 'true')"
-        :title="node.trueLabel || (locale === 'de' ? 'Bestanden' : 'Approved')"
+        class="connector output output-passthrough"
+        @mousedown.stop="emit('start-connect-labeled', 'passthrough')"
+        :title="locale === 'de' ? 'Passthrough (OK - unverändert)' : 'Passthrough (OK - unchanged)'"
       >
-        <span class="connector-label">{{ (node.trueLabel || (locale === 'de' ? 'Bestanden' : 'Approved')).substring(0, 1) }}</span>
+        <span class="connector-label">P</span>
       </div>
       <div
-        class="connector output output-false"
-        @mousedown.stop="emit('start-connect-labeled', 'false')"
-        :title="node.falseLabel || (locale === 'de' ? 'Revision' : 'Revision')"
+        class="connector output output-commented"
+        @mousedown.stop="emit('start-connect-labeled', 'commented')"
+        :title="locale === 'de' ? 'Kommentiert (FAIL - mit Feedback)' : 'Commented (FAIL - with feedback)'"
       >
-        <span class="connector-label">{{ (node.falseLabel || (locale === 'de' ? 'Revision' : 'Revision')).substring(0, 1) }}</span>
+        <span class="connector-label">C</span>
+      </div>
+      <div
+        class="connector output output-commentary"
+        @mousedown.stop="emit('start-connect-labeled', 'commentary')"
+        :title="locale === 'de' ? 'Nur Kommentar (für Anzeige)' : 'Commentary only (for display)'"
+      >
+        <span class="connector-label">→</span>
       </div>
     </div>
 
@@ -1002,7 +1026,7 @@ const nodeHeight = computed(() => {
   height: auto;
 }
 
-/* Session 134: Evaluation result display */
+/* Session 134 Refactored: Evaluation result display with 3 outputs */
 .evaluation-result {
   display: flex;
   flex-direction: column;
@@ -1013,8 +1037,17 @@ const nodeHeight = computed(() => {
   border-left: 3px solid #f59e0b;
 }
 
+.eval-metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+
 .eval-score,
-.eval-binary {
+.eval-binary,
+.eval-path {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1042,10 +1075,17 @@ const nodeHeight = computed(() => {
   color: #ef4444;
 }
 
-.eval-commentary {
+.eval-commentary,
+.eval-active-output {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.eval-active-output {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .eval-text {
@@ -1054,6 +1094,8 @@ const nodeHeight = computed(() => {
   line-height: 1.4;
   margin: 0;
   white-space: pre-wrap;
+  max-height: 150px;
+  overflow-y: auto;
 }
 
 /* Display node info */
@@ -1097,35 +1139,22 @@ const nodeHeight = computed(() => {
   gap: 0.5rem;
 }
 
-/* Fork node styles (for branching evaluation) */
-.fork-info {
-  padding: 0.5rem;
-  background: rgba(239, 68, 68, 0.1);
-  border-radius: 4px;
-  margin-top: 0.5rem;
-}
-
-.fork-info .module-type-info {
-  font-size: 0.625rem;
-  color: #ef4444;
-  font-style: italic;
-}
-
-.fork-outputs {
+/* Evaluation outputs: 3 separate text outputs */
+.eval-outputs {
   position: absolute;
-  right: -14px;
+  right: -16px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   z-index: 2;
 }
 
-.fork-outputs .connector {
+.eval-outputs .connector {
   position: relative;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   background: var(--node-color);
   border: 2px solid #1e293b;
   border-radius: 50%;
@@ -1133,9 +1162,10 @@ const nodeHeight = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s;
 }
 
-.fork-outputs .connector-label {
+.eval-outputs .connector-label {
   font-size: 0.625rem;
   font-weight: 700;
   color: white;
@@ -1143,16 +1173,20 @@ const nodeHeight = computed(() => {
   pointer-events: none;
 }
 
-.fork-outputs .output-true {
-  background: #10b981;
+.eval-outputs .output-passthrough {
+  background: #10b981; /* green - OK */
 }
 
-.fork-outputs .output-false {
-  background: #ef4444;
+.eval-outputs .output-commented {
+  background: #f59e0b; /* amber - needs revision */
 }
 
-.fork-outputs .connector:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+.eval-outputs .output-commentary {
+  background: #06b6d4; /* cyan - for display/control */
+}
+
+.eval-outputs .connector:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 10px currentColor;
 }
 </style>

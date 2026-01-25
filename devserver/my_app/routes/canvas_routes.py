@@ -548,11 +548,15 @@ def execute_workflow():
                     if not input_text:
                         results[node_id] = {
                             'type': 'evaluation',
-                            'output': {
-                                'commentary': '',
-                                'score': None,
+                            'outputs': {
+                                'passthrough': '',
+                                'commented': '',
+                                'commentary': 'ERROR: No input from source node'
+                            },
+                            'metadata': {
                                 'binary': None,
-                                'error': 'No input from source node'
+                                'score': None,
+                                'active_path': None
                             },
                             'error': 'No input from source node'
                         }
@@ -576,58 +580,75 @@ def execute_workflow():
 
                         if response.success:
                             # Parse evaluation output
-                            evaluation_result = {
-                                'commentary': '',
-                                'score': None,
-                                'binary': None
-                            }
+                            commentary = ''
+                            score = None
+                            binary_result = None
 
                             # Extract commentary
                             if 'COMMENTARY:' in response.output_str:
                                 commentary_match = response.output_str.split('COMMENTARY:')[1].split('\n')[0].strip()
-                                evaluation_result['commentary'] = commentary_match or response.output_str
+                                commentary = commentary_match or response.output_str
+                            else:
+                                commentary = response.output_str
 
                             # Extract score (use output_float if available)
                             if response.output_float is not None:
-                                evaluation_result['score'] = float(response.output_float)
+                                score = float(response.output_float)
                             elif 'SCORE:' in response.output_str:
                                 try:
                                     score_match = response.output_str.split('SCORE:')[1].split('\n')[0].strip()
-                                    evaluation_result['score'] = float(score_match)
+                                    score = float(score_match)
                                 except (ValueError, IndexError):
                                     pass
 
                             # Extract binary (use output_binary if available)
                             if response.output_binary is not None:
-                                evaluation_result['binary'] = response.output_binary
+                                binary_result = response.output_binary
                             elif 'BINARY:' in response.output_str:
                                 binary_match = response.output_str.split('BINARY:')[1].split('\n')[0].strip().lower()
-                                evaluation_result['binary'] = binary_match in ['true', 'yes', '1', 'pass']
+                                binary_result = binary_match in ['true', 'yes', '1', 'pass']
                             else:
                                 # Fallback: If no binary found, default to True (pass)
-                                # This ensures fork nodes always have a binary value to work with
-                                evaluation_result['binary'] = True
+                                binary_result = True
                                 logger.warning(f"[Canvas Execute] Evaluation {node_id}: No binary result found, defaulting to True")
 
-                            # If no structured output, use full response as commentary
-                            if not evaluation_result['commentary'] and not evaluation_result['score']:
-                                evaluation_result['commentary'] = response.output_str
+                            # Session 134 Refactored: 3 separate TEXT outputs
+                            # 1. Passthrough: original input (active if binary=true)
+                            # 2. Commented: input + feedback (active if binary=false)
+                            # 3. Commentary: just the commentary (always active, for display/collector)
+
+                            passthrough_text = input_text  # Original unchanged
+                            commented_text = f"{input_text}\n\nFEEDBACK: {commentary}"  # Input + feedback
+                            commentary_text = commentary  # Just commentary
 
                             results[node_id] = {
                                 'type': 'evaluation',
-                                'output': evaluation_result,
+                                'outputs': {
+                                    'passthrough': passthrough_text,
+                                    'commented': commented_text,
+                                    'commentary': commentary_text
+                                },
+                                'metadata': {
+                                    'binary': binary_result,
+                                    'score': score,
+                                    'active_path': 'passthrough' if binary_result else 'commented'
+                                },
                                 'error': None,
-                                'model': response.model_used,
-                                'evaluationType': node_type
+                                'model': response.model_used
                             }
-                            logger.info(f"[Canvas Execute] Evaluation result: score={evaluation_result.get('score')}, binary={evaluation_result.get('binary')}")
+                            logger.info(f"[Canvas Execute] Evaluation result: binary={binary_result}, score={score}, active_path={'passthrough' if binary_result else 'commented'}")
                         else:
                             results[node_id] = {
                                 'type': 'evaluation',
-                                'output': {
-                                    'commentary': '',
+                                'outputs': {
+                                    'passthrough': '',
+                                    'commented': '',
+                                    'commentary': ''
+                                },
+                                'metadata': {
+                                    'binary': None,
                                     'score': None,
-                                    'binary': None
+                                    'active_path': None
                                 },
                                 'error': response.error,
                                 'model': response.model_used
@@ -668,16 +689,31 @@ def execute_workflow():
 
                 elif node_type == 'collector':
                     # Collector node: gather all inputs
+                    # Session 134: Handle both old format (output) and new format (outputs+metadata)
                     source_ids = incoming[node_id]
                     collected = []
                     for src_id in source_ids:
                         if src_id in results:
-                            collected.append({
-                                'nodeId': src_id,
-                                'nodeType': results[src_id].get('type'),
-                                'output': results[src_id].get('output'),
-                                'error': results[src_id].get('error')
-                            })
+                            result = results[src_id]
+                            # For evaluation nodes: include outputs and metadata
+                            if result.get('type') == 'evaluation':
+                                collected.append({
+                                    'nodeId': src_id,
+                                    'nodeType': result.get('type'),
+                                    'output': {
+                                        'outputs': result.get('outputs'),
+                                        'metadata': result.get('metadata')
+                                    },
+                                    'error': result.get('error')
+                                })
+                            else:
+                                # Other nodes: use 'output' field as before
+                                collected.append({
+                                    'nodeId': src_id,
+                                    'nodeType': result.get('type'),
+                                    'output': result.get('output'),
+                                    'error': result.get('error')
+                                })
 
                     results[node_id] = {
                         'type': 'collector',
