@@ -42,6 +42,9 @@ export const useCanvasStore = defineStore('canvas', () => {
   /** Node being connected (source of new connection) */
   const connectingFromId = ref<string | null>(null)
 
+  /** Session 134 Phase 3b: Label for the connection being created (passthrough/commented/commentary) */
+  const connectingLabel = ref<string | null>(null)
+
   /** Current mouse position (for connection preview) */
   const mousePosition = ref({ x: 0, y: 0 })
 
@@ -272,9 +275,11 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   /**
    * Start creating a connection from a node
+   * Session 134 Phase 3b: Added label parameter for evaluation node outputs
    */
-  function startConnection(nodeId: string) {
+  function startConnection(nodeId: string, label?: string) {
     connectingFromId.value = nodeId
+    connectingLabel.value = label || null
   }
 
   /**
@@ -282,6 +287,7 @@ export const useCanvasStore = defineStore('canvas', () => {
    */
   function cancelConnection() {
     connectingFromId.value = null
+    connectingLabel.value = null
   }
 
   /**
@@ -321,12 +327,19 @@ export const useCanvasStore = defineStore('canvas', () => {
     }
 
     // Add the connection
-    workflow.value.connections.push({
+    // Session 134 Phase 3b: Include label if present (for evaluation nodes)
+    const newConnection: CanvasConnection = {
       sourceId: connectingFromId.value,
       targetId
-    })
+    }
+    if (connectingLabel.value) {
+      newConnection.label = connectingLabel.value
+      console.log(`[Canvas] Added labeled connection: ${connectingFromId.value} -> ${targetId} (${connectingLabel.value})`)
+    } else {
+      console.log(`[Canvas] Added connection: ${connectingFromId.value} -> ${targetId}`)
+    }
+    workflow.value.connections.push(newConnection)
 
-    console.log(`[Canvas] Added connection: ${connectingFromId.value} -> ${targetId}`)
     cancelConnection()
     return true
   }

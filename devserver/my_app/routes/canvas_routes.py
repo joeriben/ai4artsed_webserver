@@ -328,12 +328,28 @@ def execute_workflow():
         # outgoing[nodeId] = list of target node IDs
         outgoing = {n['id']: [] for n in nodes}
 
+        # Session 134 Phase 3b: Connection map and active path tracking
+        # connection_map[(source_id, target_id)] = connection object (with label)
+        connection_map = {}
+        # active_connections = set of (source_id, target_id) tuples that are active
+        # Initially, all unlabeled connections are active. Labeled connections become active based on evaluation result.
+        active_connections = set()
+
         for conn in connections:
             source_id = conn.get('sourceId')
             target_id = conn.get('targetId')
+            conn_label = conn.get('label')  # 'passthrough', 'commented', 'commentary', or None
             if source_id and target_id:
                 incoming[target_id].append(source_id)
                 outgoing[source_id].append(target_id)
+                connection_map[(source_id, target_id)] = conn
+
+                # Unlabeled connections are active by default
+                # Labeled connections start inactive (will be activated by evaluation nodes)
+                # Exception: 'commentary' connections are ALWAYS active
+                if not conn_label or conn_label == 'commentary':
+                    active_connections.add((source_id, target_id))
+                    logger.debug(f"[Canvas Execute] Connection {source_id} -> {target_id} ({conn_label or 'unlabeled'}): active by default")
 
         # Topological sort (Kahn's algorithm)
         in_degree = {nid: len(incoming[nid]) for nid in node_map}
@@ -362,6 +378,21 @@ def execute_workflow():
             node_type = node.get('type')
 
             logger.info(f"[Canvas Execute] Processing node {node_id} (type: {node_type})")
+
+            # Session 134 Phase 3b: Check if all incoming connections are active
+            # Skip execution if any incoming connection is inactive (branching logic)
+            incoming_sources = incoming.get(node_id, [])
+            if incoming_sources:
+                inactive_incoming = []
+                for source_id in incoming_sources:
+                    conn_key = (source_id, node_id)
+                    if conn_key not in active_connections:
+                        inactive_incoming.append(source_id)
+
+                if inactive_incoming:
+                    logger.info(f"[Canvas Execute] Skipping node {node_id}: inactive incoming connections from {inactive_incoming}")
+                    # Skip this node - don't execute, don't add to results
+                    continue
 
             try:
                 if node_type == 'input':
@@ -658,6 +689,20 @@ def execute_workflow():
                                 'model': response.model_used
                             }
                             logger.info(f"[Canvas Execute] Evaluation result: binary={binary_result}, score={score}, active_path={'passthrough' if binary_result else 'commented'}")
+
+                            # Session 134 Phase 3b: Activate outgoing connections based on binary result
+                            active_label = 'passthrough' if binary_result else 'commented'
+                            for target_id in outgoing.get(node_id, []):
+                                conn_key = (node_id, target_id)
+                                if conn_key in connection_map:
+                                    conn = connection_map[conn_key]
+                                    conn_label = conn.get('label')
+                                    # Activate if: unlabeled, commentary (always), or matches active_label
+                                    if not conn_label or conn_label == 'commentary' or conn_label == active_label:
+                                        active_connections.add(conn_key)
+                                        logger.info(f"[Canvas Execute] Activated connection {node_id} -> {target_id} (label: {conn_label})")
+                                    else:
+                                        logger.info(f"[Canvas Execute] Connection {node_id} -> {target_id} (label: {conn_label}) INACTIVE (active_label={active_label})")
                         else:
                             results[node_id] = {
                                 'type': 'evaluation',
