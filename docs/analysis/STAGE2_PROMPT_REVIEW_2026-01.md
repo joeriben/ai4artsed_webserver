@@ -6,6 +6,19 @@
 
 ---
 
+> **⚠️ Critical Note (Added 2026-01-25):**
+>
+> This document's analysis and especially the "Proposed Rewrites" section should be treated with caution. The review approach was mechanistic and checklist-based, which may not capture actual pedagogical effectiveness. Specific concerns:
+>
+> - **The proposed rewrites have NOT been tested** in real workshop conditions
+> - Some rewrites may be **overcomplicated** (e.g., overdrive's guitar metaphor may confuse the LLM)
+> - Some may reflect **eurocentric assumptions** (e.g., tellastory's narrative structure)
+> - Scores are **structural assessments**, not measures of practical performance
+>
+> **Before implementing any rewrite:** Test the *current* prompt first. If it works well in practice, structural "improvements" may be unnecessary or harmful. Practical workshop feedback should take priority over structural completeness.
+
+---
+
 ## Executive Summary
 
 | Category | Count |
@@ -89,6 +102,13 @@
 ---
 
 ## Proposed Rewrites
+
+> **⚠️ These rewrites are UNTESTED DRAFTS.** They were generated through structural analysis without real-world validation. Before implementing:
+> 1. Test the **current** prompt to understand how it actually performs
+> 2. If there are real problems, consider whether these drafts address them
+> 3. Any rewrite should be tested with target models before deployment
+>
+> Some of these proposals may be overcomplicated, culturally biased, or simply worse than the originals.
 
 ### 1. overdrive.json - MAJOR REVISION
 

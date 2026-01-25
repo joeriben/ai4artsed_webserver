@@ -5,6 +5,10 @@
 
 ---
 
+> **Important Note:** This document provides *guidelines* for thinking about prompt quality, not a rigid evaluation system. Practical performance in real workshops matters more than structural completeness against a checklist. These criteria emerged from observing what tends to work well, but every pedagogical context is different. Use this as orientation, not as a scoring rubric.
+
+---
+
 ## 1. Core Principles
 
 ### 1.1 The WAS/WIE Principle (What/How Separation)
@@ -62,7 +66,7 @@ Prompt:
 
 ## 3. Quality Criteria Framework
 
-### 3.1 Content Quality (Weight: 40%)
+### 3.1 Content Quality
 
 | Criterion | Gold Standard | Red Flag |
 |-----------|---------------|----------|
@@ -73,7 +77,7 @@ Prompt:
 | **No Artist Names** | "ES IST DIR VERBOTEN... 'im Stil von'" | "in the style of Monet" |
 | **Bilingual Parity** | Both EN/DE are primary texts | One is translation of other |
 
-### 3.2 Structural Quality (Weight: 30%)
+### 3.2 Structural Quality
 
 | Criterion | Gold Standard | Red Flag |
 |-----------|---------------|----------|
@@ -84,7 +88,7 @@ Prompt:
 | **Meta-Prohibition** | "NO meta-commentary ('I will...')" | Missing |
 | **Appropriate Length** | 150-800 words depending on complexity | Too brief (<50) or bloated |
 
-### 3.3 Model Appropriateness (Weight: 15%)
+### 3.3 Model Appropriateness
 
 | Model Family | Optimal Structure |
 |--------------|-------------------|
@@ -92,7 +96,7 @@ Prompt:
 | **Mistral** | Minimal, precise, short imperative sentences, explicit rules |
 | **Claude/OpenAI** | Hierarchical sections, both principles AND rules, nuanced |
 
-### 3.4 Pedagogical Consistency (Weight: 15%)
+### 3.4 Pedagogical Consistency
 
 | Criterion | Description |
 |-----------|-------------|
@@ -119,24 +123,23 @@ Any of these issues requires immediate revision:
 
 ---
 
-## 5. Scoring System (0-3)
+## 5. Quality Levels (Reference Scale)
 
-| Score | Status | Definition |
-|-------|--------|------------|
-| **3** | Excellent | Clear methodology, specific rules, examples, prohibitions, output format |
-| **2.5** | Good | Functional with minor improvements possible |
-| **2** | Acceptable | Works but needs structural improvements |
-| **1.5** | Needs Work | Major gaps in methodology or clarity |
-| **1** | Poor | Missing key elements, unclear transformation |
-| **0** | Critical | Placeholder text, no guidance, broken |
+This is a rough orientation for discussion, not a formal grading system:
+
+| Level | Description |
+|-------|-------------|
+| **Excellent** | Clear methodology, specific rules, examples, prohibitions, output format |
+| **Good** | Functional, works in practice, minor structural improvements possible |
+| **Acceptable** | Works but could benefit from more specificity |
+| **Needs Work** | Noticeable gaps in methodology or clarity |
+| **Problematic** | Missing key elements, unclear transformation, or produces poor results in practice |
 
 ---
 
 ## 6. Gold Standard Examples
 
 ### 6.1 Photography/Technical: `analog_photography_1870s.json`
-
-**Score: 3/3**
 
 Key Features:
 - Clear role identity: "Du bist eine professionelle Fotografin und Künstlerin. Du lebst in den 1870er Jahren."
@@ -147,8 +150,6 @@ Key Features:
 
 ### 6.2 Art-Historical: `bauhaus.json`
 
-**Score: 3/3**
-
 Key Features:
 - 4-step methodology: Analysis → Functionalism → Geometric Reduction → Material/Color
 - Perspective-taking prohibition: "ES IST DIR VERBOTEN DEN STIL... 'Im Stil von'"
@@ -156,8 +157,6 @@ Key Features:
 - Clear prohibitions: "Verboten sind jegliche romantische, naturalistische oder ornamentale Sprache"
 
 ### 6.3 Critical Thinking: `planetarizer.json`
-
-**Score: 3/3**
 
 Key Features:
 - Clear framework: Anthropocene thinking, planetary perspective
@@ -183,22 +182,22 @@ Key Features:
 
 ### 8.1 Triage
 
-1. **Check for Red Flags** → Fix immediately if any found
-2. **Score with Rubric** → Calculate weighted score
-3. **Prioritize:**
-   - Score < 1.0: Critical - immediate revision
-   - Score 1.0-2.0: High priority
-   - Score 2.0-2.5: Medium priority
-   - Score > 2.5: Low priority polish
+1. **Check for Red Flags** → Address immediately if any found
+2. **Assess against criteria** → Note areas that could improve
+3. **Prioritize based on:**
+   - Practical workshop feedback (highest priority)
+   - Red flags present
+   - Missing structural elements
+   - Polish opportunities (lowest priority)
 
 ### 8.2 Revision Steps
 
 1. Identify specific issues using this framework
-2. Reference similar excellent configs for patterns
+2. Reference similar well-working configs for patterns
 3. Draft revision maintaining bilingual parity
-4. Test with target model(s)
+4. Test with target model(s) in realistic scenarios
 5. Verify pedagogical alignment (WAS/WIE, visibility, editability)
-6. Re-score with rubric
+6. Gather workshop feedback where possible
 
 ---
 

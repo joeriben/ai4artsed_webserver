@@ -603,5 +603,132 @@ COMMON ISSUES:
 - Try a different image
 
 ================================================================================
+SECTION 15: STAGE2 PROMPT QUALITY CRITERIA
+================================================================================
+
+The configurations (rules) that users select are called "Stage2 Interception Prompts".
+They determine HOW user input is transformed. This section explains what tends to make
+transformation prompts work well and can help explain to users why certain rules work better.
+
+NOTE: These are guidelines for orientation, not rigid rules. Practical workshop experience
+matters more than structural completeness. Use this as a thinking framework, not a checklist.
+
+THE WAS/WIE PRINCIPLE
+---------------------
+- WAS (WHAT): The user's input - the core idea
+- WIE (HOW): The config.context - the transformation rules
+
+The LLM acts as a "Co-Akteur" (co-actor), not just a tool:
+- It interprets user input according to explicit rules
+- Applies the transformation framework consistently
+- Adds its own "handwriting" through interpretive choices
+- Results are collaborative, not mechanical
+
+Stage2 prompts are NOT about making "better" prompts.
+Stage2 prompts ARE about:
+- Making visible HOW rules transform ideas
+- Making editable - users can intervene at every step
+- Making comparable - different rules on same idea
+- Making criticalizable - students discuss transformation choices
+
+THE 3-PART TEMPLATE STRUCTURE
+-----------------------------
+All Stage2 prompts work within this structure:
+
+Task:        Generic instruction (HOW to transform)
+Context:     Specific rules from the config
+Important:   Respond in the same language as the input prompt below.
+Prompt:      User's original text
+
+QUALITY CRITERIA FOR TRANSFORMATION RULES
+-----------------------------------------
+
+1. PERSPECTIVE-TAKING OVER IMITATION
+   GOOD: "DU BIST eine Künstlerin der 1870er Jahre. Du lebst in..."
+   BAD:  "Generate in vintage style"
+   FORBIDDEN: "in the style of [artist name]"
+
+2. CLEAR METHODOLOGY WITH STEPS
+   GOOD: "1. Analysiere... 2. Wende an... 3. Reduziere... 4. Beschreibe..."
+   BAD:  "Be creative and make something beautiful"
+
+3. SPECIFIC PROHIBITIONS
+   GOOD: "FORBIDDEN: romanticizing terms ('nostalgic glow'), digital terminology"
+   BAD:  "Don't be too kitschy"
+
+4. OUTPUT FORMAT SPECIFICATION
+   GOOD: "One paragraph, 120-180 words"
+   BAD:  No length hint at all
+
+5. META-COMMENTARY PROHIBITION
+   GOOD: "NO meta-commentary ('I will...', 'This shows...')"
+   Missing this causes LLM to explain instead of transform
+
+RED FLAGS (require immediate revision)
+--------------------------------------
+- Placeholder text ("professional translator", "prompting expert")
+- Artist name as style reference ("in the style of Monet")
+- Empty context fields
+- No prohibition of meta-commentary
+- Optimization framing ("make better", "improve")
+
+QUALITY LEVELS (rough orientation)
+-----------------------------------
+Excellent: Complete methodology, examples, prohibitions, output format
+Good: Functional with minor improvements possible
+Weak: Missing key elements, unclear transformation
+Problematic: Placeholder text, no guidance, or poor practical results
+
+GOLD STANDARD EXAMPLES
+----------------------
+
+PHOTOGRAPHY (analog_photography_1870s):
+- Role identity: "Du bist eine professionelle Fotografin..."
+- Material constraints: "silver-iodized copper plates, mercury development"
+- Prohibitions: "FORBIDDEN: romanticizing terms, 'in the style of [photographer]'"
+- Format: "One paragraph, 120-180 words"
+
+ART HISTORY (bauhaus):
+- 4-step methodology: Analysis → Functionalism → Geometric Reduction → Material/Color
+- Perspective prohibition: "ES IST DIR VERBOTEN... 'Im Stil von'"
+- Transformation examples: "Vase → functional prototype for cylindrical container"
+
+CRITICAL THINKING (planetarizer):
+- Clear framework: Anthropocene thinking, planetary perspective
+- Strict prohibitions: "Othering, exoticization STRICTLY forbidden"
+- Named theoretical basis: "Frantz Fanon, Homi Bhabha, Gayatri Spivak"
+
+SPECIAL CASES
+-------------
+
+PASSTHROUGH CONFIGS (skip Stage2):
+- Surrealizer, Split & Combine, Partial Elimination
+- These have minimal/empty contexts BY DESIGN
+- They pass prompts directly to specialized ComfyUI workflows
+
+USER-DEFINED CONFIG:
+- "Du bestimmst!" has empty context BY DESIGN
+- User provides their own rules via UI
+
+LORA-TRIGGER CONFIGS (e.g., Cooked Negatives):
+- Must include trigger term instruction to activate the LORA
+- Can be brief if LORA handles the aesthetic
+
+WHY THIS MATTERS FOR USERS
+--------------------------
+When users ask about why certain configurations work better:
+- Good configs ADOPT A PERSPECTIVE, not just surface style
+- Good configs have CLEAR STEPS the LLM can follow
+- Good configs PROHIBIT common failure modes explicitly
+- Good configs specify OUTPUT FORMAT so results are usable
+
+When users want to write their own rules:
+- Start with role identity: "Du bist..."
+- Add numbered steps or phases
+- Include specific prohibitions for what NOT to do
+- Specify output length and format
+- Ensure the rules work for ANY input (WAS), not just specific content
+
+================================================================================
 END OF KNOWLEDGE BASE
 ================================================================================
