@@ -116,6 +116,36 @@ const displayConfigName = computed(() => {
   return locale.value === 'de' ? 'Auswählen...' : 'Select...'
 })
 
+// Output bubble: shows truncated output when node has executed
+const bubbleContent = computed(() => {
+  if (!props.executionResult?.output) return null
+  const output = props.executionResult.output
+
+  // Handle different output types
+  if (typeof output === 'string') {
+    return output.length > 60 ? output.slice(0, 60) + '...' : output
+  }
+  if (typeof output === 'object' && output !== null) {
+    // Image/media output
+    if ((output as any).url) {
+      return (output as any).media_type === 'image' ? '🖼️' : '📦'
+    }
+    // Evaluation with metadata
+    if ((output as any).metadata?.score !== undefined) {
+      const meta = (output as any).metadata
+      return `Score: ${meta.score}/10 ${meta.binary ? '✓' : '✗'}`
+    }
+    // Other object
+    return JSON.stringify(output).slice(0, 40) + '...'
+  }
+  return String(output).slice(0, 60)
+})
+
+const showBubble = computed(() => {
+  // Show bubble for nodes that have output and are not terminals (collector/display)
+  return bubbleContent.value && !isCollector.value && !isDisplay.value
+})
+
 // Event handlers for inline editing
 function onLLMChange(event: Event) {
   const select = event.target as HTMLSelectElement
@@ -712,6 +742,11 @@ const nodeHeight = computed(() => {
       @mousedown.stop="emit('start-connect')"
     />
 
+    <!-- Output bubble: shows data flowing through -->
+    <div v-if="showBubble" class="output-bubble">
+      <span class="bubble-content">{{ bubbleContent }}</span>
+    </div>
+
     <!-- Evaluation outputs: 3 separate text outputs (passthrough, commented, commentary) -->
     <div v-if="isEvaluation && node.enableBranching" class="eval-outputs">
       <div
@@ -763,7 +798,7 @@ const nodeHeight = computed(() => {
   cursor: move;
   user-select: none;
   z-index: 1;
-  overflow: hidden;  /* Prevent content from overflowing frame */
+  /* Note: overflow visible to allow bubbles, but module-body handles content overflow */
 }
 
 .stage-module.wide-module {
@@ -990,6 +1025,54 @@ const nodeHeight = computed(() => {
 
 .connector.feedback-input:hover {
   background: #f97316;
+}
+
+/* Output bubble: shows data flowing through the node */
+.output-bubble {
+  position: absolute;
+  right: -12px;
+  top: 40px;
+  transform: translateX(100%);
+  background: rgba(59, 130, 246, 0.95);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: bubble-appear 0.3s ease-out;
+  pointer-events: none;
+}
+
+.output-bubble::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: rgba(59, 130, 246, 0.95);
+}
+
+.bubble-content {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes bubble-appear {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(100%) scale(1);
+  }
 }
 
 .feedback-label {
