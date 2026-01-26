@@ -43,6 +43,48 @@ Lab:    execute_generation_stage4() → Stage 3 → execute_stage4_generation_on
 
 ---
 
+## Session 135 - Canvas Cosmetic Fixes
+**Date:** 2026-01-26
+**Focus:** UI polish for Canvas workflow builder
+**Status:** COMPLETED
+
+### Fixes
+
+**1. Connection Lines - DOM-based Positioning**
+- Problem: Lines started from wrong positions (calculated widths didn't match CSS)
+- Solution: Query actual DOM positions using `data-node-id` and `data-connector` attributes
+- Uses `getBoundingClientRect()` for pixel-perfect connector positions
+
+**2. Preview/Display Node**
+- Made resizable (like Collector)
+- Removed 150-char text truncation
+- Removed `max-height: 200px` CSS constraint
+
+**3. Collector Node**
+- Removed 200-char text truncation
+- Removed `max-height: 150px` on `.eval-text`
+- Full text display with scrolling
+
+**4. Media Type Icons**
+- Google Material icons for Generation node config selection
+- Icons based on `mediaType`: image, video, audio/music, text
+- Added to both ConfigSelectorModal and StageModule
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `CanvasWorkspace.vue` | DOM-based connector positions, outputConfigs prop |
+| `StageModule.vue` | Data attributes, resizable display, media icons, configMediaType prop |
+| `ConfigSelectorModal.vue` | Media type icons replace emoji |
+| `canvas_workflow.vue` | Pass outputConfigs to CanvasWorkspace |
+
+### Commit
+
+`a4219c2` - feat(canvas): Session 135 - Cosmetic fixes and media type icons
+
+---
+
 ## Session 134 - Canvas Decision & Evaluation Nodes (Unified Architecture)
 **Date:** 2026-01-25 → 2026-01-26
 **Focus:** Implement evaluation nodes with 3-output branching logic + Tracer-Pattern execution
