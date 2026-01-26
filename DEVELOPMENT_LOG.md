@@ -162,45 +162,89 @@ Lab:    execute_generation_stage4() → Stage 3 → execute_stage4_generation_on
 
 ---
 
-## Session 135 - Canvas Cosmetic Fixes
+## Session 135 - Canvas Cosmetic Fixes & Live Data Flow
 **Date:** 2026-01-26
-**Focus:** UI polish for Canvas workflow builder
+**Focus:** UI polish for Canvas workflow builder + live execution visualization
 **Status:** COMPLETED
 
-### Fixes
+### Part 1: Initial Fixes
 
-**1. Connection Lines - DOM-based Positioning**
+**1. Connection Lines (Initial Attempt - DOM-based)**
 - Problem: Lines started from wrong positions (calculated widths didn't match CSS)
-- Solution: Query actual DOM positions using `data-node-id` and `data-connector` attributes
-- Uses `getBoundingClientRect()` for pixel-perfect connector positions
+- Initial solution: Query DOM positions using `data-node-id` and `data-connector` attributes
+- Issue: Vue computed properties don't track DOM changes reactively
 
 **2. Preview/Display Node**
 - Made resizable (like Collector)
 - Removed 150-char text truncation
-- Removed `max-height: 200px` CSS constraint
 
 **3. Collector Node**
 - Removed 200-char text truncation
-- Removed `max-height: 150px` on `.eval-text`
 - Full text display with scrolling
 
 **4. Media Type Icons**
 - Google Material icons for Generation node config selection
 - Icons based on `mediaType`: image, video, audio/music, text
-- Added to both ConfigSelectorModal and StageModule
+
+### Part 2: Connection Line Refactor (Data-Based)
+
+**Problem:** DOM-based approach had timing issues - computed properties run before DOM updates.
+
+**Solution:** Pure data-based connector positioning:
+```typescript
+const HEADER_CONNECTOR_Y = 24  // Fixed offset from top
+
+function getConnectorPosition(node, connectorType) {
+  const width = getNodeWidth(node)  // 280px wide, 180px narrow
+  if (connectorType === 'input') {
+    return { x: node.x, y: node.y + HEADER_CONNECTOR_Y }
+  }
+  return { x: node.x + width, y: node.y + HEADER_CONNECTOR_Y }
+}
+```
+
+**Key insight:** Connectors in HEADER area (fixed Y=24px) don't move when nodes resize.
+
+### Part 3: Evaluation Metadata in Collector
+
+**Problem:** Evaluation score/binary not showing in Collector.
+
+**Solution:** Backend now wraps evaluation output with metadata:
+```python
+if source_node_type == 'evaluation' and source_metadata:
+    collector_item['output'] = {
+        'text': input_data,
+        'metadata': source_metadata  # { score, binary, active_path }
+    }
+```
+
+Frontend displays: `Score: 7/10 ✓ Pass`
+
+### Part 4: Output Bubbles (Live Data Flow)
+
+**Feature:** Every node shows a temporary bubble when it produces output.
+
+- Blue speech bubble appears near output connector
+- Shows truncated content (60 chars text, icons for media, score for evaluation)
+- Animated appearance with scale/fade effect
+- Excluded from terminal nodes (collector, display)
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `CanvasWorkspace.vue` | DOM-based connector positions, outputConfigs prop |
-| `StageModule.vue` | Data attributes, resizable display, media icons, configMediaType prop |
-| `ConfigSelectorModal.vue` | Media type icons replace emoji |
-| `canvas_workflow.vue` | Pass outputConfigs to CanvasWorkspace |
+| `CanvasWorkspace.vue` | Pure data-based connector positions, node width by type |
+| `StageModule.vue` | Header connector CSS (top: 24px), output bubbles, evaluation display |
+| `ConfigSelectorModal.vue` | Media type icons |
+| `canvas_workflow.vue` | Pass outputConfigs prop |
+| `canvas_routes.py` | Evaluation metadata in collector items |
 
-### Commit
+### Commits
 
-`a4219c2` - feat(canvas): Session 135 - Cosmetic fixes and media type icons
+- `a4219c2` - feat(canvas): Session 135 - Cosmetic fixes and media type icons
+- `b9b692a` - fix(canvas): Data-based connector positioning with header alignment
+- `f770405` - fix(canvas): Evaluation metadata handling and display improvements
+- `3c58672` - feat(canvas): Output bubbles show data flowing through nodes
 
 ---
 
