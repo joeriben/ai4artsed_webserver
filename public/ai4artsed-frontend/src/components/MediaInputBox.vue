@@ -63,11 +63,6 @@
       </p>
     </div>
 
-    <!-- Wikipedia Lookup Indicator -->
-    <div v-if="wikipediaLookup.active" class="wikipedia-lookup-indicator">
-      <img src="/wikipedia-logo.svg" alt="Wikipedia" class="wikipedia-logo pulsing" />
-      <span class="wikipedia-terms">{{ wikipediaLookup.terms.join(', ') }}</span>
-    </div>
 
     <!-- Content: Text Input -->
     <textarea
@@ -112,7 +107,6 @@ let bufferInterval: number | null = null
 // Queue state
 const queueStatus = ref<'idle' | 'waiting' | 'acquired'>('idle')
 const queueMessage = ref('')
-const wikipediaLookup = ref<{ active: boolean; terms: string[] }>({ active: false, terms: [] })
 
 interface Props {
   icon: string
@@ -168,6 +162,7 @@ const emit = defineEmits<{
   'stream-started': []  // Emitted on first chunk (to hide loading spinner)
   'stream-complete': [data: any]
   'stream-error': [error: string]
+  'wikipedia-lookup': [data: { status: string; terms: string[] }]  // Session 139: Wikipedia lookup events
 }>()
 
 // Expose refs for parent access (like MediaOutputBox)
@@ -279,16 +274,11 @@ function startStreaming() {
     console.log('[MediaInputBox] Stream connected:', JSON.parse(event.data))
   })
 
-  // Handle Wikipedia Lookup Status
+  // Handle Wikipedia Lookup Status - emit to parent
   eventSource.value.addEventListener('wikipedia_lookup', (event) => {
-    const data = JSON.parse(event.data)
+    const data = JSON.parse(event.data) as { status: string; terms: string[] }
     console.log('[MediaInputBox] Wikipedia lookup:', data.status, data.terms)
-
-    if (data.status === 'start') {
-      wikipediaLookup.value = { active: true, terms: data.terms || [] }
-    } else if (data.status === 'complete') {
-      wikipediaLookup.value = { active: false, terms: data.terms || [] }
-    }
+    emit('wikipedia-lookup', data)
   })
 
   eventSource.value.addEventListener('chunk', (event) => {
@@ -596,50 +586,4 @@ onUnmounted(() => {
   50% { opacity: 0.7; }
 }
 
-/* Wikipedia Lookup Indicator */
-.wikipedia-lookup-indicator {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  z-index: 10;
-  background: rgba(20, 20, 20, 0.95);
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.wikipedia-logo {
-  width: 48px;
-  height: 48px;
-}
-
-.wikipedia-logo.pulsing {
-  animation: wikipedia-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes wikipedia-pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
-}
-
-.wikipedia-terms {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-  text-align: center;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 </style>

@@ -73,12 +73,33 @@
             @stream-started="handleStreamStarted"
             @stream-complete="handleStreamComplete"
             @stream-error="handleStreamError"
+            @wikipedia-lookup="handleWikipediaLookup"
             @copy="copyInterceptionResult"
             @paste="pasteInterceptionResult"
             @clear="clearInterceptionResult"
             @focus="focusedField = 'interception'"
             @blur="(val: string) => logPromptChange('interception', val)"
           />
+          <!-- Wikipedia Badge (Session 139) - shows during/after Wikipedia lookup -->
+          <transition name="fade">
+            <div v-if="wikipediaData.terms.length > 0" class="wikipedia-stamp" :class="{ active: wikipediaData.active }" @click="wikipediaExpanded = !wikipediaExpanded">
+              <div class="stamp-inner wikipedia-inner">
+                <div class="stamp-icon wikipedia-icon">
+                  <img src="/wikipedia-logo.svg" alt="Wikipedia" width="24" height="24" />
+                </div>
+                <div class="stamp-text">
+                  {{ wikipediaData.terms.length }} Artikel
+                </div>
+              </div>
+              <div v-if="wikipediaExpanded" class="wikipedia-details">
+                <div v-for="(term, index) in wikipediaData.terms" :key="index" class="wikipedia-item">
+                  <a :href="`https://de.wikipedia.org/wiki/${encodeURIComponent(term)}`" target="_blank" rel="noopener">
+                    {{ term }}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </transition>
           <!-- LoRA Badge (Session 116) - shows when interception config has LoRAs -->
           <transition name="fade">
             <div v-if="configLoras.length > 0" class="lora-stamp config-lora" @click="loraExpanded = !loraExpanded">
@@ -480,6 +501,10 @@ const generationProgress = ref(0)
 const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
 const activeLoras = ref<Array<{name: string, strength: number}>>([])
 const loraExpanded = ref(false)
+
+// Session 139: Wikipedia lookup state
+const wikipediaData = ref<{ active: boolean; terms: string[] }>({ active: false, terms: [] })
+const wikipediaExpanded = ref(false)
 
 // Refs for DOM elements and scrolling
 const mainContainerRef = ref<HTMLElement | null>(null)
@@ -1305,6 +1330,17 @@ function handleStreamError(error: string) {
   alert('Streaming-Fehler. Bitte erneut versuchen.')
 }
 
+// Session 139: Wikipedia lookup event handler
+function handleWikipediaLookup(data: { status: string; terms: string[] }) {
+  console.log('[Wikipedia] Lookup event:', data.status, data.terms)
+
+  if (data.status === 'start') {
+    wikipediaData.value = { active: true, terms: data.terms || [] }
+  } else if (data.status === 'complete') {
+    wikipediaData.value = { active: false, terms: data.terms || [] }
+  }
+}
+
 // Streaming event handlers (Optimization)
 function handleOptimizationStreamStarted() {
   console.log('[Optimization Stream] First chunk received, hiding spinner')
@@ -1368,6 +1404,8 @@ async function executePipeline() {
   generationProgress.value = 0  // Reset progress
   activeLoras.value = []  // Session 116: Reset LoRAs
   loraExpanded.value = false
+  wikipediaData.value = { active: false, terms: [] }  // Session 139: Reset Wikipedia
+  wikipediaExpanded.value = false
 
   // Phase 4: Intelligent seed logic
   const currentPromptToUse = optimizedPrompt.value || interceptionResult.value || inputText.value
