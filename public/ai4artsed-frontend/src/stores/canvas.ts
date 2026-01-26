@@ -88,6 +88,14 @@ export const useCanvasStore = defineStore('canvas', () => {
   /** Session 135: Execution order for replay animation */
   const executionOrder = ref<string[]>([])
 
+  /** Session 136: Hidden results for staged animation release */
+  const hiddenResults = ref<Record<string, {
+    type: string
+    output: unknown
+    error: string | null
+    model?: string
+  }>>({})
+
   /** Session 135: Animation timer reference */
   let animationTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -529,8 +537,9 @@ export const useCanvasStore = defineStore('canvas', () => {
   // ============================================================================
 
   /**
-   * Session 135: Animate bubbles through execution order
+   * Session 135/136: Animate bubbles through execution order
    * Shows each node's bubble sequentially to visualize data flow
+   * Session 136: Now progressively releases results for proper animation
    */
   function startBubbleAnimation() {
     // Clear any existing animation
@@ -539,6 +548,7 @@ export const useCanvasStore = defineStore('canvas', () => {
       animationTimer = null
     }
     activeNodeId.value = null
+    executionResults.value = {}  // Clear for fresh animation
 
     // Filter out duplicates and terminal nodes (collector/display) for cleaner animation
     const uniqueNodes = [...new Set(executionOrder.value)].filter(nodeId => {
@@ -546,7 +556,11 @@ export const useCanvasStore = defineStore('canvas', () => {
       return node && node.type !== 'collector' && node.type !== 'display'
     })
 
-    if (uniqueNodes.length === 0) return
+    if (uniqueNodes.length === 0) {
+      // No animation nodes, just show all results immediately
+      executionResults.value = { ...hiddenResults.value }
+      return
+    }
 
     const BUBBLE_DURATION = 800  // ms per bubble
     let index = 0
@@ -554,18 +568,22 @@ export const useCanvasStore = defineStore('canvas', () => {
     function showNextBubble() {
       if (index < uniqueNodes.length) {
         const nodeId = uniqueNodes[index]
-        if (nodeId) {
+        if (nodeId && hiddenResults.value[nodeId]) {
+          // Release this node's result - create new object for Vue reactivity
+          executionResults.value = {
+            ...executionResults.value,
+            [nodeId]: hiddenResults.value[nodeId]
+          }
           activeNodeId.value = nodeId
           console.log(`[Canvas Animation] Showing bubble for: ${nodeId}`)
         }
         index++
         animationTimer = setTimeout(showNextBubble, BUBBLE_DURATION)
       } else {
-        // Animation complete - clear active node after final delay
-        animationTimer = setTimeout(() => {
-          activeNodeId.value = null
-          console.log('[Canvas Animation] Complete')
-        }, BUBBLE_DURATION)
+        // Animation complete - release any remaining results
+        executionResults.value = { ...hiddenResults.value }
+        activeNodeId.value = null
+        console.log('[Canvas Animation] Complete')
       }
     }
 
@@ -575,12 +593,15 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   /**
    * Stop bubble animation
+   * Session 136: Now shows all results immediately when stopped
    */
   function stopBubbleAnimation() {
     if (animationTimer) {
       clearTimeout(animationTimer)
       animationTimer = null
     }
+    // Show all results immediately when animation stopped
+    executionResults.value = { ...hiddenResults.value }
     activeNodeId.value = null
   }
 
@@ -628,7 +649,9 @@ export const useCanvasStore = defineStore('canvas', () => {
       const data = await response.json()
 
       if (data.status === 'success') {
-        executionResults.value = data.results || {}
+        // Session 136: Store results hidden for staged animation release
+        hiddenResults.value = data.results || {}
+        executionResults.value = {}  // Keep empty - animation will populate
         collectorOutput.value = data.collectorOutput || []
         executionOrder.value = data.executionOrder || []
 
@@ -640,7 +663,7 @@ export const useCanvasStore = defineStore('canvas', () => {
         console.log('[Canvas] Execution completed:', data.executionOrder)
         console.log('[Canvas] Collector output:', collectorOutput.value)
 
-        // Start bubble animation replay
+        // Start bubble animation replay (progressively releases results)
         startBubbleAnimation()
       } else {
         error.value = data.error || 'Execution failed'
