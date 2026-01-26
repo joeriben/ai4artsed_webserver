@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StageModule from './StageModule.vue'
 import ConnectionLine from './ConnectionLine.vue'
-import type { CanvasNode, CanvasConnection, StageType, LLMModelSummary } from '@/types/canvas'
+import type { CanvasNode, CanvasConnection, StageType, LLMModelSummary, OutputConfigSummary } from '@/types/canvas'
 
 const { locale } = useI18n()
 
@@ -31,7 +31,22 @@ const props = defineProps<{
   }>
   /** Collector output for collector nodes */
   collectorOutput?: CollectorOutputItem[]
+  /** Available output configs for generation nodes */
+  outputConfigs?: OutputConfigSummary[]
 }>()
+
+/**
+ * Get config info for a node's configId
+ */
+function getConfigInfo(configId: string | undefined): { name: string; mediaType: string } | undefined {
+  if (!configId || !props.outputConfigs) return undefined
+  const config = props.outputConfigs.find(c => c.id === configId)
+  if (!config) return undefined
+  return {
+    name: locale.value === 'de' ? config.name.de : config.name.en,
+    mediaType: config.mediaType
+  }
+}
 
 const emit = defineEmits<{
   'select-node': [id: string | null]
@@ -67,56 +82,83 @@ const canvasRef = ref<HTMLElement | null>(null)
 const draggingNodeId = ref<string | null>(null)
 const dragOffset = ref({ x: 0, y: 0 })
 
-// Node dimensions (approximate for connection points)
-const NODE_WIDTH = 180
-const NODE_HEIGHT = 80
+/**
+ * Get actual connector position from DOM
+ * Uses data attributes on connectors: data-node-id, data-connector
+ */
+function getConnectorPosition(nodeId: string, connectorType: string): { x: number; y: number } {
+  if (!canvasRef.value) return { x: 0, y: 0 }
+
+  const selector = `[data-node-id="${nodeId}"][data-connector="${connectorType}"]`
+  const connector = canvasRef.value.querySelector(selector)
+
+  if (!connector) {
+    // Fallback: use node position + estimated offset
+    const node = props.nodes.find(n => n.id === nodeId)
+    if (!node) return { x: 0, y: 0 }
+
+    // Fallback calculations based on connector type
+    if (connectorType === 'input') {
+      return { x: node.x, y: node.y + 40 }
+    } else if (connectorType === 'feedback-input') {
+      return { x: node.x + 280, y: node.y + 60 }
+    } else {
+      // output connectors
+      return { x: node.x + 180, y: node.y + 40 }
+    }
+  }
+
+  const canvasRect = canvasRef.value.getBoundingClientRect()
+  const connectorRect = connector.getBoundingClientRect()
+
+  return {
+    x: connectorRect.left + connectorRect.width / 2 - canvasRect.left,
+    y: connectorRect.top + connectorRect.height / 2 - canvasRect.top
+  }
+}
 
 /**
  * Get center point of a node's output connector
  */
-function getNodeOutputCenter(nodeId: string): { x: number; y: number } {
-  const node = props.nodes.find(n => n.id === nodeId)
-  if (!node) return { x: 0, y: 0 }
-  return {
-    x: node.x + NODE_WIDTH + 7, // Right edge + connector offset
-    y: node.y + NODE_HEIGHT / 2
+function getNodeOutputCenter(nodeId: string, label?: string): { x: number; y: number } {
+  // For labeled outputs (evaluation branching)
+  if (label) {
+    return getConnectorPosition(nodeId, `output-${label}`)
   }
+  return getConnectorPosition(nodeId, 'output')
 }
 
 /**
  * Get center point of a node's input connector
  */
 function getNodeInputCenter(nodeId: string): { x: number; y: number } {
-  const node = props.nodes.find(n => n.id === nodeId)
-  if (!node) return { x: 0, y: 0 }
-  return {
-    x: node.x - 7, // Left edge - connector offset
-    y: node.y + NODE_HEIGHT / 2
-  }
+  return getConnectorPosition(nodeId, 'input')
 }
 
 /**
- * Get center point of a node's feedback input connector (right side, bottom)
+ * Get center point of a node's feedback input connector
  */
 function getNodeFeedbackInputCenter(nodeId: string): { x: number; y: number } {
-  const node = props.nodes.find(n => n.id === nodeId)
-  if (!node) return { x: 0, y: 0 }
-  return {
-    x: node.x + NODE_WIDTH + 7, // Right edge + connector offset
-    y: node.y + NODE_HEIGHT - 15 // Bottom area
-  }
+  return getConnectorPosition(nodeId, 'feedback-input')
 }
 
 /**
  * Connection paths for rendering
+ * Uses actual DOM positions of connectors
  */
 const connectionPaths = computed(() => {
   return props.connections.map(conn => {
-    const source = getNodeOutputCenter(conn.sourceId)
+    // For evaluation outputs with labels, use the specific labeled connector
+    const outputLabel = ['passthrough', 'commented', 'commentary'].includes(conn.label || '')
+      ? conn.label
+      : undefined
+    const source = getNodeOutputCenter(conn.sourceId, outputLabel)
+
     // Use feedback input position for connections with label 'feedback'
     const target = conn.label === 'feedback'
       ? getNodeFeedbackInputCenter(conn.targetId)
       : getNodeInputCenter(conn.targetId)
+
     return {
       ...conn,
       x1: source.x,
@@ -261,6 +303,8 @@ onUnmounted(() => {
       :node="node"
       :selected="node.id === selectedNodeId"
       :llm-models="llmModels"
+      :config-name="getConfigInfo(node.configId)?.name"
+      :config-media-type="getConfigInfo(node.configId)?.mediaType"
       :execution-result="executionResults?.[node.id]"
       :collector-output="node.type === 'collector' ? collectorOutput : undefined"
       @mousedown="startNodeDrag(node.id, $event)"

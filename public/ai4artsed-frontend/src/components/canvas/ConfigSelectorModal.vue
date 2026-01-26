@@ -95,7 +95,26 @@ watch(() => props.visible, (visible) => {
             :class="{ selected: config.id === currentConfigId }"
             @click="selectConfig(config.id)"
           >
-            <span class="config-icon">{{ config.icon }}</span>
+            <span class="config-icon">
+              <!-- Image -->
+              <svg v-if="config.mediaType === 'image'" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+                <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"/>
+              </svg>
+              <!-- Video -->
+              <svg v-else-if="config.mediaType === 'video'" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+                <path d="m380-300 280-180-280-180v360ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Z"/>
+              </svg>
+              <!-- Audio / Music -->
+              <svg v-else-if="config.mediaType === 'audio' || config.mediaType === 'music'" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+                <path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/>
+              </svg>
+              <!-- Text -->
+              <svg v-else-if="config.mediaType === 'text'" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+                <path d="M280-160v-520H80v-120h520v120H400v520H280Zm360 0v-320H520v-120h360v120H760v320H640Z"/>
+              </svg>
+              <!-- Fallback -->
+              <span v-else>{{ config.icon }}</span>
+            </span>
             <div class="config-info">
               <span class="config-name">{{ getName(config) }}</span>
               <span class="config-desc">{{ getDescription(config) }}</span>

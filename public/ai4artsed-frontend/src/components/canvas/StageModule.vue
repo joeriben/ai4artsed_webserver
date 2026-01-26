@@ -23,6 +23,7 @@ const props = defineProps<{
   node: CanvasNode
   selected: boolean
   configName?: string
+  configMediaType?: string
   llmModels?: LLMModelSummary[]
   /** Execution results for this node (from store) */
   executionResult?: {
@@ -285,8 +286,8 @@ const nodeHeight = computed(() => {
     :class="{
       selected,
       'needs-config': !isConfigured,
-      'wide-module': needsLLM || isInput || hasCollectorOutput || isEvaluation,
-      'resizable': isCollector
+      'wide-module': needsLLM || isInput || hasCollectorOutput || isEvaluation || isDisplay,
+      'resizable': isCollector || isDisplay
     }"
     :style="{
       left: `${node.x}px`,
@@ -301,6 +302,8 @@ const nodeHeight = computed(() => {
     <div
       v-if="hasInputConnector"
       class="connector input"
+      :data-node-id="node.id"
+      data-connector="input"
       @mouseup.stop="emit('end-connect')"
     />
 
@@ -308,6 +311,8 @@ const nodeHeight = computed(() => {
     <div
       v-if="hasFeedbackInput"
       class="connector feedback-input"
+      :data-node-id="node.id"
+      data-connector="feedback-input"
       @mouseup.stop="emit('end-connect-feedback')"
       :title="locale === 'de' ? 'Feedback-Eingang' : 'Feedback Input'"
     >
@@ -419,14 +424,36 @@ const nodeHeight = computed(() => {
         </div>
       </template>
 
-      <!-- GENERATION NODE: Config selector button -->
+      <!-- GENERATION NODE: Config selector button with media type icon -->
       <template v-else-if="isGeneration">
         <button
           class="config-selector"
           :class="{ 'has-config': !!node.configId }"
           @click.stop="emit('select-config')"
         >
-          {{ displayConfigName }}
+          <span class="config-media-icon">
+            <!-- Image -->
+            <svg v-if="configMediaType === 'image'" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+              <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"/>
+            </svg>
+            <!-- Video -->
+            <svg v-else-if="configMediaType === 'video'" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+              <path d="m380-300 280-180-280-180v360ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Z"/>
+            </svg>
+            <!-- Audio / Music -->
+            <svg v-else-if="configMediaType === 'audio' || configMediaType === 'music'" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+              <path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/>
+            </svg>
+            <!-- Text -->
+            <svg v-else-if="configMediaType === 'text'" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+              <path d="M280-160v-520H80v-120h520v120H400v520H280Zm360 0v-320H520v-120h360v120H760v320H640Z"/>
+            </svg>
+            <!-- No config selected -->
+            <svg v-else xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor" opacity="0.5">
+              <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"/>
+            </svg>
+          </span>
+          <span class="config-name-text">{{ displayConfigName }}</span>
           <span class="config-arrow">▼</span>
         </button>
       </template>
@@ -500,7 +527,7 @@ const nodeHeight = computed(() => {
                 </div>
               </template>
               <template v-else-if="typeof item.output === 'string'">
-                {{ item.output.slice(0, 200) }}{{ item.output.length > 200 ? '...' : '' }}
+                {{ item.output }}
               </template>
               <template v-else-if="item.output != null">
                 {{ JSON.stringify(item.output).slice(0, 100) }}...
@@ -654,10 +681,10 @@ const nodeHeight = computed(() => {
       <!-- PREVIEW NODE: Shows content inline (pass-through) -->
       <template v-else-if="isDisplay">
         <div v-if="executionResult?.output" class="preview-content">
-          <!-- Text preview -->
+          <!-- Text preview (full text, scrollable) -->
           <template v-if="typeof executionResult.output === 'string'">
             <div class="preview-text">
-              {{ executionResult.output.slice(0, 150) }}{{ executionResult.output.length > 150 ? '...' : '' }}
+              {{ executionResult.output }}
             </div>
           </template>
           <!-- Media preview (image/video) -->
@@ -695,6 +722,8 @@ const nodeHeight = computed(() => {
     <div
       v-if="hasOutputConnector && !hasBranching"
       class="connector output"
+      :data-node-id="node.id"
+      data-connector="output"
       @mousedown.stop="emit('start-connect')"
     />
 
@@ -702,6 +731,8 @@ const nodeHeight = computed(() => {
     <div v-if="isEvaluation && node.enableBranching" class="eval-outputs">
       <div
         class="connector output output-passthrough"
+        :data-node-id="node.id"
+        data-connector="output-passthrough"
         @mousedown.stop="emit('start-connect-labeled', 'passthrough')"
         :title="locale === 'de' ? 'Passthrough (OK - unverändert)' : 'Passthrough (OK - unchanged)'"
       >
@@ -709,6 +740,8 @@ const nodeHeight = computed(() => {
       </div>
       <div
         class="connector output output-commented"
+        :data-node-id="node.id"
+        data-connector="output-commented"
         @mousedown.stop="emit('start-connect-labeled', 'commented')"
         :title="locale === 'de' ? 'Kommentiert (FAIL - mit Feedback)' : 'Commented (FAIL - with feedback)'"
       >
@@ -716,6 +749,8 @@ const nodeHeight = computed(() => {
       </div>
       <div
         class="connector output output-commentary"
+        :data-node-id="node.id"
+        data-connector="output-commentary"
         @mousedown.stop="emit('start-connect-labeled', 'commentary')"
         :title="locale === 'de' ? 'Nur Kommentar (für Anzeige)' : 'Commentary only (for display)'"
       >
@@ -725,7 +760,7 @@ const nodeHeight = computed(() => {
 
     <!-- Resize handle (only for collector nodes) -->
     <div
-      v-if="isCollector"
+      v-if="isCollector || isDisplay"
       class="resize-handle"
       @mousedown.stop="startResize"
       :title="locale === 'de' ? 'Größe ändern' : 'Resize'"
@@ -875,8 +910,8 @@ const nodeHeight = computed(() => {
 .config-selector {
   width: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background: #0f172a;
   border: 1px solid #334155;
@@ -885,6 +920,25 @@ const nodeHeight = computed(() => {
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.15s;
+}
+
+.config-media-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.config-media-icon svg {
+  display: block;
+}
+
+.config-name-text {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .config-selector:hover {
@@ -1135,8 +1189,8 @@ const nodeHeight = computed(() => {
   line-height: 1.4;
   margin: 0;
   white-space: pre-wrap;
-  max-height: 150px;
-  overflow-y: auto;
+  max-height: none;  /* Full text visible, container scrolls */
+  overflow-y: visible;
 }
 
 /* Display node info */
@@ -1146,7 +1200,7 @@ const nodeHeight = computed(() => {
   background: rgba(16, 185, 129, 0.1);
   border-radius: 4px;
   border-left: 3px solid #10b981;
-  max-height: 200px;
+  max-height: none;  /* Node is resizable, no fixed limit */
   overflow-y: auto;
 }
 

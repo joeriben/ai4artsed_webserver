@@ -330,6 +330,7 @@ onUnmounted(() => {
           :llm-models="canvasStore.llmModels"
           :execution-results="canvasStore.executionResults"
           :collector-output="canvasStore.collectorOutput"
+          :output-configs="canvasStore.outputConfigs"
           @select-node="canvasStore.selectNode"
           @update-node-position="canvasStore.updateNodePosition"
           @delete-node="canvasStore.deleteNode"
