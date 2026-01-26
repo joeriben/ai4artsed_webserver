@@ -623,14 +623,15 @@ class PipelineExecutor:
                         logger.info(f"[WIKI-LOOKUP] '{marker.term}' ({lang})")
 
                     # Store Wikipedia status for real-time UI feedback
-                    terms_list = [t[0] for t in lookup_terms]
+                    # Session 136: Include language information for correct links
+                    terms_with_lang = [{'term': t[0], 'lang': t[1]} for t in lookup_terms]
                     WIKIPEDIA_STATUS['current'] = {
                         'status': 'lookup',
-                        'terms': terms_list,
+                        'terms': terms_with_lang,
                         'timestamp': time.time()
                     }
                     context.custom_placeholders['_WIKIPEDIA_STATUS'] = 'lookup'
-                    context.custom_placeholders['_WIKIPEDIA_TERMS'] = terms_list
+                    context.custom_placeholders['_WIKIPEDIA_TERMS'] = [t[0] for t in lookup_terms]  # Keep term-only list for backward compat
 
                     # Fetch Wikipedia content
                     try:
@@ -651,9 +652,10 @@ class PipelineExecutor:
                         logger.info(f"[WIKI-LOOP] Added {len(wiki_content)} chars to WIKIPEDIA_CONTEXT")
 
                         # Update status to complete
+                        # Session 136: Include language information for correct links
                         WIKIPEDIA_STATUS['current'] = {
                             'status': 'complete',
-                            'terms': terms_list,
+                            'terms': terms_with_lang,  # Now with lang info
                             'timestamp': time.time()
                         }
                         context.custom_placeholders['_WIKIPEDIA_STATUS'] = 'complete'

@@ -162,7 +162,7 @@ const emit = defineEmits<{
   'stream-started': []  // Emitted on first chunk (to hide loading spinner)
   'stream-complete': [data: any]
   'stream-error': [error: string]
-  'wikipedia-lookup': [data: { status: string; terms: string[] }]  // Session 139: Wikipedia lookup events
+  'wikipedia-lookup': [data: { status: string; terms: Array<{ term: string; lang: string }> }]  // Session 139: Wikipedia lookup events (Session 136: with language info)
 }>()
 
 // Expose refs for parent access (like MediaOutputBox)
@@ -275,8 +275,9 @@ function startStreaming() {
   })
 
   // Handle Wikipedia Lookup Status - emit to parent
+  // Session 136: terms now include language information
   eventSource.value.addEventListener('wikipedia_lookup', (event) => {
-    const data = JSON.parse(event.data) as { status: string; terms: string[] }
+    const data = JSON.parse(event.data) as { status: string; terms: Array<{ term: string; lang: string }> }
     console.log('[MediaInputBox] Wikipedia lookup:', data.status, data.terms)
     emit('wikipedia-lookup', data)
   })
