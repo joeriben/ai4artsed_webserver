@@ -1,5 +1,75 @@
 # Development Log
 
+## Session 138 - Trashy Context-Awareness Fix
+**Date:** 2026-01-26
+**Focus:** Fix Trashy losing context after pipeline execution
+**Status:** COMPLETED
+
+### Problem
+Träshy (AI chat helper) was "forgetting" current page context after a pipeline run:
+
+**Root Cause Chain:**
+1. User runs pipeline → `runId` gets set via `updateSession()`
+2. User changes MediaInputBox content → `runId` stays set (no `clearSession()` call)
+3. User opens Träshy → ChatOverlay sees `runId` exists
+4. ChatOverlay sends draft_context ONLY if `!runId` (Zeile 213)
+5. Backend loads **stale** session context from `exports/json/{runId}/`
+6. Träshy doesn't know about current input changes
+
+**Confirmed:** No Vue view calls `clearSession()` → `runId` persists until browser refresh
+
+### Solution: Always Send Draft Context
+
+**Option B (chosen):** Send `draft_context` as separate field, backend combines both contexts.
+
+**Frontend (`ChatOverlay.vue`):**
+```javascript
+// BEFORE: Conditional logic
+if (!currentSession.value.runId && draftContextString.value) {
+  messageForBackend = `${draftContextString.value}\n\n${userMessage}`
+}
+
+// AFTER: Always send as separate field
+const response = await axios.post('/api/chat', {
+  message: userMessage,  // Clean message
+  run_id: currentSession.value.runId || undefined,
+  draft_context: draftContextString.value || undefined,  // NEW: Always send
+  history: historyForBackend
+})
+```
+
+**Backend (`chat_routes.py`):**
+```python
+draft_context = data.get('draft_context')  # Current page state (transient)
+
+system_prompt = build_system_prompt(context)  # Session context from files
+
+# Append draft_context if provided (NOT saved to exports/)
+if draft_context:
+    system_prompt += f"\n\n[Aktuelle Eingaben auf der Seite]\n{draft_context}"
+```
+
+### Key Points
+
+- `draft_context` is **transient** (LLM context only, not persisted)
+- NOT saved to `chat_history.json` or `exports/json/`
+- Backend now knows BOTH: session files + current page state
+- No changes to exports system
+
+### Result
+
+**Before:**
+- Without runId: draft_context sent ✓
+- With runId: draft_context ignored ✗
+
+**After:**
+- Without runId: draft_context in system prompt ✓
+- With runId: BOTH session + draft_context in system prompt ✓
+
+**Commit:** `1fee080` - fix(trashy): Always send draft_context for context-aware chat
+
+---
+
 ## Session 137 - Stage 3/4 Separation (Clean Architecture)
 **Date:** 2026-01-26
 **Focus:** Separate Stage 3 (Translation+Safety) from Stage 4 (Generation) for clean architecture

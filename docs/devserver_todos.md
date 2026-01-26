@@ -3,8 +3,18 @@
 **Context:** Current priorities and active TODOs
 
 ---
+## 🔧 Chck for Need for REFACTORING: Prinzip der Pipeline-Autonomie
+Was in den über hundert      
+    Session ggf. etwas verwässert wurde ich meine Idee der "Binnen-Orchestrierung" der Pipelines in ihrer Domäne. Ich habe sie wie ausführenden Code gedacht, der
+     eben diese Interveption-Aufgabe erledigt (input -> komplexer Prozess -> einfacher Output). In dieser Logik würde die Pipeline eben auch rekursive           
+    Chunk-Aufrufe einfach selbst orchestrieren.
+    
+    Ich denke das passt sehr gut zu unserem Paradigmenwechsel vom Backend-Orchestrator zur objektorientierten Frontend/VUE-Prozessinitiierung.
 
-## 🎯 CANVAS: Evaluation Nodes - Conditional Execution (Phase 3b)
+Konkret heißt das für mich, der ich die Codebasis nicht vollständig überblicke: sind ggf in den schema-/pipeline- und chunkbezogenen py-Codefiles ggf. Funktionen absorbiert, die eigentlich zwischen Pipelines und "ihren" Chunks hätten realisiert werden sollen?
+
+
+## 🎯 CANVAS: Evaluation Nodes - Conditional Execution (Phase 3b) - DONE
 
 **Status:** 🔴 **BLOCKED** - UI works, execution logic missing
 **Priority:** HIGH (User-facing feature incomplete)
@@ -97,7 +107,7 @@ for node_id in execution_order:
 
 ---
 
-## 🔄 CANVAS: Loop Controller Node (Phase 4)
+## 🔄 CANVAS: Loop Controller Node (Phase 4) - DONE
 
 **Status:** 📋 **PLANNED** - Depends on Phase 3b
 **Priority:** MEDIUM (After conditional execution)
