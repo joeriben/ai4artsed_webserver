@@ -85,7 +85,7 @@
             <div v-if="wikipediaData.terms.length > 0" class="wikipedia-stamp" :class="{ active: wikipediaData.active }" @click="wikipediaExpanded = !wikipediaExpanded">
               <div class="stamp-inner wikipedia-inner">
                 <div class="stamp-icon wikipedia-icon">
-                  <img src="/wikipedia-logo-64px.png" alt="Wikipedia" />
+                  <img src="/wikipedia-logo-wordmark.svg" alt="WP" />
                 </div>
                 <div class="stamp-text">
                   {{ wikipediaData.terms.length }} Artikel
@@ -1232,6 +1232,9 @@ async function runInterception() {
   interceptionResult.value = '' // Clear previous result
   // Session 130: Reset output flag (new interception = new run)
   currentRunHasOutput.value = false
+  // Session 139: Reset Wikipedia data from previous run
+  wikipediaData.value = { active: false, terms: [] }
+  wikipediaExpanded.value = false
 
   // CRITICAL FIX: Wait for Vue to process all pending reactive updates
   // before setting isInterceptionLoading, which triggers the streaming chain
