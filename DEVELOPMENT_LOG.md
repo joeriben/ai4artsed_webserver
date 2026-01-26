@@ -1,5 +1,64 @@
 # Development Log
 
+## Session 136 - Anti-Orientalism Meta-Prompt Enhancement
+**Date:** 2026-01-26
+**Focus:** Prevent orientalist stereotypes in prompt interception
+**Status:** COMPLETED
+
+### Problem
+User report: GPT-OSS:120b produced "enormer, furchtbarer exotistischer orientalistischer Kitsch" when processing Nigerian cultural festival prompt. LLM defaulted to orientalist tropes (exotic, mysterious, timeless) despite pedagogical goals.
+
+### Root Cause
+Meta-prompt in `instruction_selector.py` lacked explicit anti-stereotype rules. Wikipedia lookup alone insufficient - models need explicit cultural respect principles.
+
+### Solution
+Enhanced "transformation" instruction with anti-orientalism rules:
+- FORBIDDEN: Exoticizing, romanticizing, mystifying cultural practices
+- FORBIDDEN: Orientalist tropes (exotic, mysterious, timeless, ancient wisdom)
+- FORBIDDEN: Homogenizing diverse cultures into aesthetic stereotypes
+- Equality principle: "Use the same neutral, fact-based approach as for Western contexts"
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `devserver/schemas/engine/instruction_selector.py` | Enhanced "transformation" instruction with CULTURAL RESPECT PRINCIPLES |
+| `devserver/schemas/chunks/manipulate.json` | Wikipedia instruction now uses cultural reference language (not prompt language) |
+| `docs/analysis/ORIENTALISM_PROBLEM_2026-01.md` | Complete analysis with test strategy and postcolonial theory references |
+
+### Key Decisions
+1. **Universal application**: Rules apply to ALL configs, not just cultural-specific ones
+2. **Explicit FORBIDDEN list**: Concrete examples of prohibited terms
+3. **Option A chosen**: Comprehensive instruction (~150 words) for maximum effectiveness
+4. **Cultural reference language**: Wikipedia lookup uses cultural context language (not prompt language)
+   - **70+ languages** mapped: Africa (15+), Asia (30+), Americas (indigenous languages), Oceania
+   - Example: German prompt about Nigeria → uses Hausa/Yoruba/Igbo/English Wikipedia (not German)
+   - Example: German prompt about India → uses Hindi/Tamil/Bengali/etc. Wikipedia (not German)
+   - Example: German prompt about Peru → uses Spanish/Quechua/Aymara Wikipedia (not German)
+   - Rationale: Local Wikipedia communities provide more accurate, less Eurocentric information
+5. **No code changes**: Only meta-prompt modifications needed
+
+### Architecture Alignment
+- ✅ Supports WAS/WIE principle (anti-stereotype rules are part of "HOW")
+- ✅ Reinforces planetarizer/one_world anti-Othering rules
+- ✅ Enhances pedagogical goal: visible, criticalizable transformations
+- ✅ No conflicts with existing configs
+
+### Testing Status
+✅ **PASSED** - Tested with original failing case via `/api/schema/pipeline/stage2`:
+- Input: "Das wichtigste Fest im Norden Nigerias" (schema: tellastory)
+- Model: GPT-OSS:120b (same as original failing case)
+- Result: Factual story about Sallah festival in Kano with:
+  - ✅ NO orientalist tropes (exotic, mysterious, timeless)
+  - ✅ Specific cultural details (Durbar, Boubou, Kora/Djembe instruments)
+  - ✅ Active protagonist (Amina) with agency
+  - ✅ Respectful, fact-based tone
+- Improvement: From "furchtbarer exotistischer Kitsch" to culturally respectful narrative
+
+### Theoretical Foundation
+Based on postcolonial theory (Said, Fanon, Spivak) - see analysis document for details.
+
+---
+
 ## Session 139 - Wikipedia Research Capability
 **Date:** 2026-01-26
 **Focus:** Enable LLM to fetch Wikipedia content during prompt interception

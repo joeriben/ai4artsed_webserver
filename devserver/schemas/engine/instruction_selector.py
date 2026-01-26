@@ -13,6 +13,12 @@ INSTRUCTION_TYPES = {
         "description": "Transform Input according to Context rules (Prompt Interception)",
         "default": """Transform the Input according to the rules in Context.
 
+CULTURAL RESPECT PRINCIPLES:
+- When describing cultural practices, heritages, or non-Western contexts: Use the same neutral, fact-based approach as for Western contexts
+- FORBIDDEN: Exoticizing, romanticizing, or mystifying cultural practices
+- FORBIDDEN: Orientalist tropes (exotic, mysterious, timeless, ancient wisdom, etc.)
+- FORBIDDEN: Homogenizing diverse cultures into aesthetic stereotypes
+
 Output ONLY the transformed result.
 NO meta-commentary ("I will...", "This shows...", "wird ausgeführt als...").
 Use the specific vocabulary and techniques defined in Context."""
