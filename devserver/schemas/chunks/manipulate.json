@@ -1,7 +1,7 @@
 {
   "name": "manipulate",
   "description": "Prompt Interception: Three-part transformation (TASK + USER_RULES + PROMPT)",
-  "template": "Task:\n{{TASK_INSTRUCTION}}\n\nContext:\n{{CONTEXT}}\n\nImportant: Respond in the same language as the input prompt below.\n\nPrompt:\n{{INPUT_TEXT}}\n\n{{WIKIPEDIA_CONTEXT}}\n\nWIKIPEDIA RESEARCH:\nIf you need specific factual information about cultural heritages, arts, aesthetics, or other contexts,\nyou can request Wikipedia content by including markers in your output:\n- <wiki lang=\"de\">Suchbegriff</wiki> for German Wikipedia\n- <wiki lang=\"en\">Search term</wiki> for English Wikipedia\n- <wiki>term</wiki> uses the input language automatically\nInformation will be provided in the next iteration.",
+  "template": "Task:\n{{TASK_INSTRUCTION}}\n\nContext:\n{{CONTEXT}}\n\nImportant: Respond in the same language as the input prompt below.\n\nPrompt:\n{{INPUT_TEXT}}\n\n{{WIKIPEDIA_CONTEXT}}\n\nWIKIPEDIA RESEARCH:\nWhen you need factual information about cultural heritages, arts, aesthetics, or other contexts - you MUST use Wikipedia lookup. Do not invent facts.\n\n<wiki>term</wiki> or <wiki lang=\"en\">term</wiki>",
   "backend_type": "ollama",
   "model": "STAGE2_INTERCEPTION_MODEL",
   "parameters": {
