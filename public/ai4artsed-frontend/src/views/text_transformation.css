@@ -772,77 +772,48 @@
 }
 
 /* ============================================================================
-   Session 139: Wikipedia Badge
-   TODO: Extract shared badge template for LoRA + Wikipedia
+   Session 139: Wikipedia Badge (uses shared lora-stamp design)
    ============================================================================ */
 
-.wikipedia-stamp {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  margin-left: 1rem;
+/* Wikipedia badge color override - Wikipedia blue instead of LoRA purple */
+.wikipedia-lora .lora-inner {
+  background: rgba(0, 102, 204, 0.15) !important;
+  border-color: #0066CC !important;
+  box-shadow: 0 0 20px rgba(0, 102, 204, 0.3) !important;
 }
 
-.wikipedia-stamp.active .wikipedia-inner {
+.wikipedia-lora .stamp-text {
+  color: #0066CC !important;
+}
+
+.wikipedia-lora.active .lora-inner {
   animation: wikipedia-pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes wikipedia-pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 0 20px rgba(0, 102, 204, 0.3);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 25px rgba(34, 197, 94, 0.5);
+    box-shadow: 0 0 25px rgba(0, 102, 204, 0.5);
   }
 }
 
-.wikipedia-inner {
-  background: rgba(34, 197, 94, 0.15) !important;
-  border-color: #22c55e !important;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3) !important;
+.wikipedia-lora .lora-details {
+  background: rgba(0, 102, 204, 0.1) !important;
+  border-color: rgba(0, 102, 204, 0.3) !important;
 }
 
-.wikipedia-inner .stamp-text {
-  color: #22c55e !important;
-}
-
-.wikipedia-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.wikipedia-icon img {
-  width: clamp(1.4rem, 3.5vw, 1.8rem);
-  height: clamp(1.4rem, 3.5vw, 1.8rem);
-  filter: brightness(1.2) sepia(1) saturate(3) hue-rotate(70deg);
-}
-
-.wikipedia-details {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 8px;
-  font-size: 0.75rem;
-  min-width: 150px;
-}
-
-.wikipedia-item {
-  padding: 0.25rem 0;
-}
-
-.wikipedia-item a {
-  color: #22c55e;
+.wikipedia-lora .lora-item a {
+  color: #0066CC;
   text-decoration: none;
   transition: color 0.2s;
 }
 
-.wikipedia-item a:hover {
-  color: #4ade80;
+.wikipedia-lora .lora-item a:hover {
+  color: #3399FF;
   text-decoration: underline;
 }
 
