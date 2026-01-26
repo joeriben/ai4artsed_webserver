@@ -34,6 +34,8 @@ const props = defineProps<{
   }
   /** Collector output (only for collector nodes) */
   collectorOutput?: CollectorOutputItem[]
+  /** Session 135: Is this node currently active in bubble animation? */
+  isActive?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -142,8 +144,13 @@ const bubbleContent = computed(() => {
 })
 
 const showBubble = computed(() => {
-  // Show bubble for nodes that have output and are not terminals (collector/display)
-  return bubbleContent.value && !isCollector.value && !isDisplay.value
+  // Show bubble only when:
+  // 1. Node is active in animation (or animation not running = isActive undefined)
+  // 2. Node has output content
+  // 3. Node is not a terminal (collector/display)
+  const isAnimationActive = props.isActive !== undefined
+  const shouldShow = isAnimationActive ? props.isActive : bubbleContent.value !== null
+  return shouldShow && bubbleContent.value && !isCollector.value && !isDisplay.value
 })
 
 // Event handlers for inline editing

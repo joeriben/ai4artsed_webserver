@@ -33,6 +33,8 @@ const props = defineProps<{
   collectorOutput?: CollectorOutputItem[]
   /** Available output configs for generation nodes */
   outputConfigs?: OutputConfigSummary[]
+  /** Session 135: Active node for bubble animation */
+  activeNodeId?: string | null
 }>()
 
 /**
@@ -334,6 +336,7 @@ onUnmounted(() => {
       :config-media-type="getConfigInfo(node.configId)?.mediaType"
       :execution-result="executionResults?.[node.id]"
       :collector-output="node.type === 'collector' ? collectorOutput : undefined"
+      :is-active="node.id === activeNodeId"
       @mousedown="startNodeDrag(node.id, $event)"
       @start-connect="emit('start-connection', node.id)"
       @start-connect-labeled="(label) => emit('start-connection', node.id, label)"

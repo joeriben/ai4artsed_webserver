@@ -82,6 +82,15 @@ export const useCanvasStore = defineStore('canvas', () => {
     error: string | null
   }>>([])
 
+  /** Session 135: Active node for bubble animation (shows one at a time) */
+  const activeNodeId = ref<string | null>(null)
+
+  /** Session 135: Execution order for replay animation */
+  const executionOrder = ref<string[]>([])
+
+  /** Session 135: Animation timer reference */
+  let animationTimer: ReturnType<typeof setTimeout> | null = null
+
   // ============================================================================
   // COMPUTED
   // ============================================================================
@@ -520,6 +529,62 @@ export const useCanvasStore = defineStore('canvas', () => {
   // ============================================================================
 
   /**
+   * Session 135: Animate bubbles through execution order
+   * Shows each node's bubble sequentially to visualize data flow
+   */
+  function startBubbleAnimation() {
+    // Clear any existing animation
+    if (animationTimer) {
+      clearTimeout(animationTimer)
+      animationTimer = null
+    }
+    activeNodeId.value = null
+
+    // Filter out duplicates and terminal nodes (collector/display) for cleaner animation
+    const uniqueNodes = [...new Set(executionOrder.value)].filter(nodeId => {
+      const node = workflow.value.nodes.find(n => n.id === nodeId)
+      return node && node.type !== 'collector' && node.type !== 'display'
+    })
+
+    if (uniqueNodes.length === 0) return
+
+    const BUBBLE_DURATION = 800  // ms per bubble
+    let index = 0
+
+    function showNextBubble() {
+      if (index < uniqueNodes.length) {
+        const nodeId = uniqueNodes[index]
+        if (nodeId) {
+          activeNodeId.value = nodeId
+          console.log(`[Canvas Animation] Showing bubble for: ${nodeId}`)
+        }
+        index++
+        animationTimer = setTimeout(showNextBubble, BUBBLE_DURATION)
+      } else {
+        // Animation complete - clear active node after final delay
+        animationTimer = setTimeout(() => {
+          activeNodeId.value = null
+          console.log('[Canvas Animation] Complete')
+        }, BUBBLE_DURATION)
+      }
+    }
+
+    // Start animation
+    showNextBubble()
+  }
+
+  /**
+   * Stop bubble animation
+   */
+  function stopBubbleAnimation() {
+    if (animationTimer) {
+      clearTimeout(animationTimer)
+      animationTimer = null
+    }
+    activeNodeId.value = null
+  }
+
+  /**
    * Start workflow execution
    * Session 133: Calls /api/canvas/execute backend endpoint
    */
@@ -565,6 +630,7 @@ export const useCanvasStore = defineStore('canvas', () => {
       if (data.status === 'success') {
         executionResults.value = data.results || {}
         collectorOutput.value = data.collectorOutput || []
+        executionOrder.value = data.executionOrder || []
 
         if (executionState.value) {
           executionState.value.status = 'completed'
@@ -573,6 +639,9 @@ export const useCanvasStore = defineStore('canvas', () => {
 
         console.log('[Canvas] Execution completed:', data.executionOrder)
         console.log('[Canvas] Collector output:', collectorOutput.value)
+
+        // Start bubble animation replay
+        startBubbleAnimation()
       } else {
         error.value = data.error || 'Execution failed'
         if (executionState.value) {
@@ -634,6 +703,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     isExecuting: computed(() => isExecuting.value),
     executionResults: computed(() => executionResults.value),
     collectorOutput: computed(() => collectorOutput.value),
+    activeNodeId: computed(() => activeNodeId.value),  // Session 135: For bubble animation
 
     // Computed
     isConnecting,
