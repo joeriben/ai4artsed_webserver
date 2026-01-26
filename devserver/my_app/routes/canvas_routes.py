@@ -558,12 +558,25 @@ def execute_workflow():
 
             elif node_type == 'collector':
                 # Collector gathers what arrives - use old format for frontend compatibility
-                collector_items.append({
+                # Include metadata from source node if available (e.g., evaluation score/binary)
+                source_result = results.get(source_node_id, {}) if source_node_id else {}
+                source_metadata = source_result.get('metadata')
+
+                collector_item = {
                     'nodeId': source_node_id or node_id,
                     'nodeType': source_node_type or data_type,
                     'output': input_data,
                     'error': None
-                })
+                }
+
+                # For evaluation nodes, wrap output with metadata for frontend
+                if source_node_type == 'evaluation' and source_metadata:
+                    collector_item['output'] = {
+                        'text': input_data,
+                        'metadata': source_metadata
+                    }
+
+                collector_items.append(collector_item)
                 results[node_id] = {
                     'type': 'collector',
                     'output': collector_items,

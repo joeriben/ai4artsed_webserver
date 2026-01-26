@@ -475,39 +475,24 @@ const nodeHeight = computed(() => {
               <template v-if="item.error">
                 <span class="error-text">{{ item.error }}</span>
               </template>
-              <!-- Session 134 Refactored: Evaluation output display (3 separate outputs + metadata) -->
-              <template v-else-if="item.nodeType === 'evaluation' && typeof item.output === 'object' && item.output !== null">
+              <!-- Session 134 Refactored: Evaluation output display with metadata -->
+              <template v-else-if="item.nodeType === 'evaluation' && typeof item.output === 'object' && item.output !== null && (item.output as any).metadata">
                 <div class="evaluation-result">
                   <!-- Show metadata: binary result and score -->
-                  <div v-if="(item.output as any).metadata" class="eval-metadata">
-                    <div v-if="(item.output as any).metadata.binary !== null" class="eval-binary">
-                      <span class="eval-label">{{ locale === 'de' ? 'Ergebnis' : 'Result' }}:</span>
-                      <span class="eval-value" :class="{ 'pass': (item.output as any).metadata.binary, 'fail': !(item.output as any).metadata.binary }">
-                        {{ (item.output as any).metadata.binary ? (locale === 'de' ? 'Bestanden' : 'Pass') : (locale === 'de' ? 'Nicht bestanden' : 'Fail') }}
-                      </span>
-                    </div>
-                    <div v-if="(item.output as any).metadata.score !== null" class="eval-score">
-                      <span class="eval-label">{{ locale === 'de' ? 'Punktzahl' : 'Score' }}:</span>
+                  <div class="eval-metadata">
+                    <div v-if="(item.output as any).metadata.score !== null && (item.output as any).metadata.score !== undefined" class="eval-score">
+                      <span class="eval-label">Score:</span>
                       <span class="eval-value">{{ (item.output as any).metadata.score }}/10</span>
                     </div>
-                    <div v-if="(item.output as any).metadata.active_path" class="eval-path">
-                      <span class="eval-label">{{ locale === 'de' ? 'Aktiver Pfad' : 'Active Path' }}:</span>
-                      <span class="eval-value">{{ (item.output as any).metadata.active_path }}</span>
+                    <div v-if="(item.output as any).metadata.binary !== null && (item.output as any).metadata.binary !== undefined" class="eval-binary">
+                      <span class="eval-value" :class="{ 'pass': (item.output as any).metadata.binary, 'fail': !(item.output as any).metadata.binary }">
+                        {{ (item.output as any).metadata.binary ? '✓ Pass' : '✗ Fail' }}
+                      </span>
                     </div>
                   </div>
-                  <!-- Show commentary text -->
-                  <div v-if="(item.output as any).outputs?.commentary" class="eval-commentary">
-                    <span class="eval-label">{{ locale === 'de' ? 'Kommentar' : 'Commentary' }}:</span>
-                    <p class="eval-text">{{ (item.output as any).outputs.commentary }}</p>
-                  </div>
-                  <!-- Show active output (passthrough or commented) -->
-                  <div v-if="(item.output as any).metadata?.active_path && (item.output as any).outputs" class="eval-active-output">
-                    <span class="eval-label">{{ locale === 'de' ? 'Output-Text' : 'Output Text' }}:</span>
-                    <p class="eval-text">
-                      {{ (item.output as any).metadata.active_path === 'passthrough'
-                        ? (item.output as any).outputs.passthrough
-                        : (item.output as any).outputs.commented }}
-                    </p>
+                  <!-- Show the text that was passed through -->
+                  <div v-if="(item.output as any).text" class="eval-text-output">
+                    <p class="eval-text">{{ (item.output as any).text }}</p>
                   </div>
                 </div>
               </template>
@@ -778,6 +763,7 @@ const nodeHeight = computed(() => {
   cursor: move;
   user-select: none;
   z-index: 1;
+  overflow: hidden;  /* Prevent content from overflowing frame */
 }
 
 .stage-module.wide-module {
@@ -845,6 +831,9 @@ const nodeHeight = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  overflow: auto;  /* Scroll when content exceeds container */
+  flex: 1;  /* Fill available space in resizable nodes */
+  min-height: 0;  /* Allow shrinking below content size */
 }
 
 .field-group {
@@ -1115,9 +1104,14 @@ const nodeHeight = computed(() => {
 }
 
 .stage-module.resizable {
-  /* Allow custom dimensions */
+  /* Allow custom dimensions but constrain max-width */
   width: auto;
   height: auto;
+  max-width: 400px;  /* Prevent expanding beyond reasonable width */
+  display: flex;
+  flex-direction: column;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Session 134 Refactored: Evaluation result display with 3 outputs */
