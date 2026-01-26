@@ -129,23 +129,15 @@ class WikipediaService:
 
     def __init__(self, cache_ttl: int = 3600):
         self._cache = WikipediaCache(ttl_seconds=cache_ttl)
-        self._session: Optional[aiohttp.ClientSession] = None
 
-    async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create aiohttp session with required headers"""
-        if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(total=HTTP_TIMEOUT)
-            headers = {
-                'User-Agent': HTTP_USER_AGENT,
-                'Accept': 'application/json'
-            }
-            self._session = aiohttp.ClientSession(timeout=timeout, headers=headers)
-        return self._session
-
-    async def close(self) -> None:
-        """Close the HTTP session"""
-        if self._session and not self._session.closed:
-            await self._session.close()
+    def _create_session(self) -> aiohttp.ClientSession:
+        """Create a new aiohttp session with required headers"""
+        timeout = aiohttp.ClientTimeout(total=HTTP_TIMEOUT)
+        headers = {
+            'User-Agent': HTTP_USER_AGENT,
+            'Accept': 'application/json'
+        }
+        return aiohttp.ClientSession(timeout=timeout, headers=headers)
 
     def _validate_language(self, language: str) -> bool:
         """Check if language code is in whitelist"""
@@ -212,56 +204,57 @@ class WikipediaService:
         logger.info(f"[WIKI] Looking up '{term}' on {lang_code}.wikipedia.org")
 
         try:
-            session = await self._get_session()
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
+            # Create session per-request to avoid event loop issues
+            async with self._create_session() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
 
-                    # Extract summary text
-                    extract = data.get('extract', '')
-                    title = data.get('title', term)
-                    page_url = data.get('content_urls', {}).get('desktop', {}).get('page', url)
+                        # Extract summary text
+                        extract = data.get('extract', '')
+                        title = data.get('title', term)
+                        page_url = data.get('content_urls', {}).get('desktop', {}).get('page', url)
 
-                    # Truncate if too long
-                    if len(extract) > MAX_CONTENT_LENGTH:
-                        extract = extract[:MAX_CONTENT_LENGTH] + '...'
+                        # Truncate if too long
+                        if len(extract) > MAX_CONTENT_LENGTH:
+                            extract = extract[:MAX_CONTENT_LENGTH] + '...'
 
-                    result = WikipediaResult(
-                        term=term,
-                        language=lang_code,
-                        title=title,
-                        extract=extract,
-                        url=page_url,
-                        success=True
-                    )
+                        result = WikipediaResult(
+                            term=term,
+                            language=lang_code,
+                            title=title,
+                            extract=extract,
+                            url=page_url,
+                            success=True
+                        )
 
-                    logger.info(f"[WIKI] Found '{title}': {len(extract)} chars")
+                        logger.info(f"[WIKI] Found '{title}': {len(extract)} chars")
 
-                elif response.status == 404:
-                    # Article not found
-                    result = WikipediaResult(
-                        term=term,
-                        language=lang_code,
-                        title='',
-                        extract='',
-                        url='',
-                        success=False,
-                        error=f"No Wikipedia article found for '{term}'"
-                    )
-                    logger.info(f"[WIKI] Not found: '{term}'")
+                    elif response.status == 404:
+                        # Article not found
+                        result = WikipediaResult(
+                            term=term,
+                            language=lang_code,
+                            title='',
+                            extract='',
+                            url='',
+                            success=False,
+                            error=f"No Wikipedia article found for '{term}'"
+                        )
+                        logger.info(f"[WIKI] Not found: '{term}'")
 
-                else:
-                    # Other HTTP error
-                    result = WikipediaResult(
-                        term=term,
-                        language=lang_code,
-                        title='',
-                        extract='',
-                        url='',
-                        success=False,
-                        error=f"Wikipedia API error: HTTP {response.status}"
-                    )
-                    logger.warning(f"[WIKI] HTTP error {response.status} for '{term}'")
+                    else:
+                        # Other HTTP error
+                        result = WikipediaResult(
+                            term=term,
+                            language=lang_code,
+                            title='',
+                            extract='',
+                            url='',
+                            success=False,
+                            error=f"Wikipedia API error: HTTP {response.status}"
+                        )
+                        logger.warning(f"[WIKI] HTTP error {response.status} for '{term}'")
 
         except asyncio.TimeoutError:
             result = WikipediaResult(
@@ -341,8 +334,11 @@ _wikipedia_service: Optional[WikipediaService] = None
 
 
 def get_wikipedia_service(cache_ttl: int = 3600) -> WikipediaService:
-    """Get the singleton WikipediaService instance"""
-    global _wikipedia_service
-    if _wikipedia_service is None:
-        _wikipedia_service = WikipediaService(cache_ttl=cache_ttl)
-    return _wikipedia_service
+    """Get the singleton WikipediaService instance
+
+    Note: Creates new instance each time to avoid event loop issues
+    when called from different threads/asyncio contexts.
+    """
+    # Don't use singleton - aiohttp session is tied to event loop
+    # Creating new instance ensures session uses current event loop
+    return WikipediaService(cache_ttl=cache_ttl)
