@@ -58,7 +58,7 @@ Enhanced "transformation" instruction with anti-orientalism rules:
   - ✅ Specific cultural details (Durbar, Boubou, Kora/Djembe instruments)
   - ✅ Active protagonist (Amina) with agency
   - ✅ Respectful, fact-based tone
-- Improvement: From "furchtbarer exotistischer Kitsch" to culturally respectful narrative
+- Improvement: From "furchtbarer exotistischer Kitsch" to significantly less orientalist output (though not perfect)
 
 ### Theoretical Foundation
 Based on postcolonial theory (Said, Fanon, Spivak) - see analysis document for details.

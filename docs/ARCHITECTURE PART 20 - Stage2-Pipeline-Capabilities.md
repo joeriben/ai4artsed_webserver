@@ -985,7 +985,7 @@ This is **NOT** a "nice-to-have" feature. This is a **core architectural princip
 
 2. **Cultural Diversity:** AI4ArtsEd is used in educational contexts globally. The system must systematically respect cultural diversity.
 
-3. **Decolonizing AI:** By prioritizing local-language Wikipedias and anti-stereotype rules, the architecture actively resists colonial knowledge patterns.
+3. **Steps Toward Cultural Respect:** By prioritizing local-language Wikipedias and anti-stereotype rules, the architecture attempts to reduce colonial knowledge patterns. This is a limited intervention - AI training data bias runs much deeper.
 
 4. **Pedagogical Integrity:** Students engage critically with AI transformations. The system must produce respectful, factually-grounded outputs.
 
@@ -1008,7 +1008,7 @@ Based on postcolonial theory:
 - Wikipedia links use cultural reference language (70+ languages)
 - Real Wikipedia URLs (not invented links)
 
-**Test Result:** Original failing case ("Das wichtigste Fest im Norden Nigerias") now produces factual, culturally-grounded narrative WITHOUT orientalist tropes.
+**Test Result:** Original failing case ("Das wichtigste Fest im Norden Nigerias") now produces improved output - more factual and less overtly orientalist. This is a partial mitigation, not a complete solution to LLM bias.
 
 ### Related Configs
 
