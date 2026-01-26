@@ -1,5 +1,54 @@
 # Development Log
 
+## Session 139 - Wikipedia Research Capability
+**Date:** 2026-01-26
+**Focus:** Enable LLM to fetch Wikipedia content during prompt interception
+**Status:** COMPLETED
+
+### Feature Overview
+LLM can now request Wikipedia content using `<wiki>term</wiki>` markers in its output. System fetches content and re-executes chunk with enriched context.
+
+### Architecture
+- **Chunk-Level Orchestration**: Wikipedia loop in `pipeline_executor._execute_single_step()`
+- **NOT a new pipeline** - fundamental capability of ALL interceptions
+- **Max 3 iterations** per chunk execution (configurable)
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `my_app/services/wikipedia_service.py` | Secure Wikipedia API client (whitelist-only) |
+| `schemas/engine/wikipedia_processor.py` | Marker extraction, content formatting |
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `config.py` | `WIKIPEDIA_MAX_ITERATIONS`, `WIKIPEDIA_FALLBACK_LANGUAGE`, `WIKIPEDIA_CACHE_TTL` |
+| `schemas/chunks/manipulate.json` | `{{WIKIPEDIA_CONTEXT}}` placeholder, instruction text |
+| `schemas/engine/pipeline_executor.py` | Wikipedia loop, `WIKIPEDIA_STATUS` global for UI |
+| `my_app/routes/schema_pipeline_routes.py` | Refactored to use `pipeline_executor` (fixes architecture violation), SSE `wikipedia_lookup` events |
+| `MediaInputBox.vue` | Pulsing Wikipedia logo during lookup |
+
+### Trigger Pattern
+```
+<wiki lang="de">Suchbegriff</wiki>  - German Wikipedia
+<wiki lang="en">Search term</wiki>  - English Wikipedia
+<wiki>term</wiki>                    - Uses input language
+```
+
+### Key Decisions
+1. **Language auto-detection**: Uses input language, falls back to `WIKIPEDIA_FALLBACK_LANGUAGE`
+2. **Session per-request**: aiohttp session created/closed per lookup (avoids event loop issues with threading)
+3. **Architecture fix**: SSE route now uses `pipeline_executor` instead of direct `PromptInterceptionEngine` call
+
+### Commits
+- `d66c37f` feat(wikipedia): Core implementation
+- `b617273` fix(wikipedia): Import paths
+- `277dbf7` fix(wikipedia): Stronger prompt (MUST use when needed)
+- `8e03431` feat(wikipedia): Real-time UI feedback
+- `761cffa` fix(wikipedia): Session per-request (event loop fix)
+
+---
+
 ## Session 138 - Trashy Context-Awareness Fix
 **Date:** 2026-01-26
 **Focus:** Fix Trashy losing context after pipeline execution
