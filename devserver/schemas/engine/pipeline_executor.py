@@ -505,8 +505,8 @@ class PipelineExecutor:
         - Maximum iterations configurable (WIKIPEDIA_MAX_ITERATIONS)
         - Language auto-detected from input (falls back to WIKIPEDIA_FALLBACK_LANGUAGE)
         """
-        from devserver import config
-        from devserver.my_app.services.wikipedia_service import get_wikipedia_service
+        import config
+        from my_app.services.wikipedia_service import get_wikipedia_service
 
         # Wikipedia iteration tracking
         wiki_iteration = 0
