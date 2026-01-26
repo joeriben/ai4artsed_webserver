@@ -27,6 +27,28 @@
       </section>
 
       <section>
+        <h2>{{ $t('docs.wikipedia.title') }}</h2>
+        <p><em>{{ $t('docs.wikipedia.subtitle') }}</em></p>
+
+        <h3>{{ $t('docs.wikipedia.languages') }}</h3>
+        <p>{{ $t('docs.wikipedia.feature') }}</p>
+        <p>{{ $t('docs.wikipedia.languagesDesc') }}</p>
+        <ul>
+          <li>{{ $t('docs.wikipedia.examples.nigeria') }}</li>
+          <li>{{ $t('docs.wikipedia.examples.india') }}</li>
+          <li>{{ $t('docs.wikipedia.examples.indigenous') }}</li>
+        </ul>
+
+        <h3>{{ $t('docs.wikipedia.why') }}</h3>
+        <p>{{ $t('docs.wikipedia.whyDesc') }}</p>
+
+        <h3>{{ $t('docs.wikipedia.culturalRespect') }}</h3>
+        <p>{{ $t('docs.wikipedia.culturalRespectDesc') }}</p>
+
+        <p><em>{{ $t('docs.wikipedia.limitations') }}</em></p>
+      </section>
+
+      <section>
         <h2>{{ $t('docs.support.title') }}</h2>
         <p>
           {{ $t('docs.support.content') }}<br>
@@ -71,6 +93,14 @@ h2 {
   color: rgba(255, 255, 255, 0.9);
 }
 
+h3 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 section {
   margin-bottom: 1.5rem;
 }
@@ -78,6 +108,11 @@ section {
 p, li {
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.8);
+}
+
+em {
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
 }
 
 ol, ul {

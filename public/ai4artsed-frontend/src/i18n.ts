@@ -251,6 +251,23 @@ const messages = {
       support: {
         title: 'Unterstützung',
         content: 'Bei Fragen:'
+      },
+      wikipedia: {
+        title: 'Wikipedia-Recherche & Kultureller Respekt',
+        subtitle: 'Wie die KI mit kulturellen Kontexten umgeht',
+        feature: 'Die KI kann während der Transformation auf Wikipedia zugreifen, um faktische Informationen zu kulturellen Kontexten zu finden.',
+        languages: 'Über 70 Sprachen werden unterstützt',
+        languagesDesc: 'Wenn die KI ein kulturelles Thema recherchiert, nutzt sie automatisch die passende sprachliche Wikipedia:',
+        examples: {
+          nigeria: 'Thema über Nigeria → Hausa, Yoruba, Igbo oder Englisch',
+          india: 'Thema über Indien → Hindi, Tamil, Bengali oder andere regionale Sprachen',
+          indigenous: 'Indigene Kulturen → Quechua, Māori, Inuktitut usw.'
+        },
+        why: 'Warum ist das wichtig?',
+        whyDesc: 'Lokale Wikipedia-Communities schreiben genauere und respektvollere Artikel über ihre eigenen Kulturen als die deutsche Wikipedia.',
+        culturalRespect: 'Kulturelle Respektregeln',
+        culturalRespectDesc: 'Das System enthält Regeln, die verhindern sollen, dass die KI nicht-westliche Kulturen exotisiert, romantisiert oder stereotypisiert.',
+        limitations: 'Dies ist ein Schritt in die richtige Richtung, aber keine vollständige Lösung für AI-Bias.'
       }
     },
     multiImage: {
@@ -576,6 +593,23 @@ const messages = {
       support: {
         title: 'Support',
         content: 'For questions:'
+      },
+      wikipedia: {
+        title: 'Wikipedia Research & Cultural Respect',
+        subtitle: 'How the AI handles cultural contexts',
+        feature: 'The AI can access Wikipedia during transformation to find factual information about cultural contexts.',
+        languages: 'Over 70 languages are supported',
+        languagesDesc: 'When the AI researches a cultural topic, it automatically uses the appropriate language Wikipedia:',
+        examples: {
+          nigeria: 'Topic about Nigeria → Hausa, Yoruba, Igbo, or English',
+          india: 'Topic about India → Hindi, Tamil, Bengali, or other regional languages',
+          indigenous: 'Indigenous cultures → Quechua, Māori, Inuktitut, etc.'
+        },
+        why: 'Why is this important?',
+        whyDesc: 'Local Wikipedia communities write more accurate and respectful articles about their own cultures than the German Wikipedia.',
+        culturalRespect: 'Cultural Respect Rules',
+        culturalRespectDesc: 'The system contains rules designed to prevent the AI from exoticizing, romanticizing, or stereotyping non-Western cultures.',
+        limitations: 'This is a step in the right direction, but not a complete solution to AI bias.'
       }
     },
     multiImage: {

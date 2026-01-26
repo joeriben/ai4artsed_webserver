@@ -227,8 +227,9 @@ function onDrop(e: DragEvent) {
   const nodeType = e.dataTransfer?.getData('nodeType') as StageType | undefined
   if (nodeType && canvasRef.value) {
     const rect = canvasRef.value.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    // Session 141: Account for scroll offset when dropping nodes
+    const x = e.clientX - rect.left + canvasRef.value.scrollLeft
+    const y = e.clientY - rect.top + canvasRef.value.scrollTop
     emit('add-node-at', nodeType, x, y)
   }
 }
@@ -240,12 +241,17 @@ function onDragOver(e: DragEvent) {
 
 function startNodeDrag(nodeId: string, e: MouseEvent) {
   const node = props.nodes.find(n => n.id === nodeId)
-  if (!node) return
+  if (!node || !canvasRef.value) return
+
+  // Session 141: Calculate offset in canvas coordinates (with scroll)
+  const rect = canvasRef.value.getBoundingClientRect()
+  const canvasX = e.clientX - rect.left + canvasRef.value.scrollLeft
+  const canvasY = e.clientY - rect.top + canvasRef.value.scrollTop
 
   draggingNodeId.value = nodeId
   dragOffset.value = {
-    x: e.clientX - node.x,
-    y: e.clientY - node.y
+    x: canvasX - node.x,
+    y: canvasY - node.y
   }
   emit('select-node', nodeId)
 }
@@ -254,14 +260,15 @@ function onMouseMove(e: MouseEvent) {
   if (!canvasRef.value) return
 
   const rect = canvasRef.value.getBoundingClientRect()
-  const x = e.clientX - rect.left
-  const y = e.clientY - rect.top
+  // Session 141: Account for scroll offset in canvas coordinates
+  const x = e.clientX - rect.left + canvasRef.value.scrollLeft
+  const y = e.clientY - rect.top + canvasRef.value.scrollTop
 
   emit('update-mouse-position', x, y)
 
   if (draggingNodeId.value) {
-    const newX = e.clientX - dragOffset.value.x
-    const newY = e.clientY - dragOffset.value.y
+    const newX = x - dragOffset.value.x
+    const newY = y - dragOffset.value.y
     emit('update-node-position', draggingNodeId.value, Math.max(0, newX), Math.max(0, newY))
   }
 }
@@ -382,7 +389,7 @@ onUnmounted(() => {
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
   background-color: #0f172a;
-  overflow: hidden;
+  overflow: auto;  /* Session 141: Enable scrolling for tall nodes */
   cursor: default;
 }
 

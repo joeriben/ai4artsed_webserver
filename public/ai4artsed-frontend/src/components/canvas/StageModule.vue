@@ -1194,10 +1194,11 @@ const nodeHeight = computed(() => {
 }
 
 .stage-module.resizable {
-  /* Allow custom dimensions but constrain max-width */
+  /* Allow custom dimensions but constrain max-width/height */
   width: auto;
   height: auto;
-  max-width: 400px;  /* Prevent expanding beyond reasonable width */
+  max-width: 400px;   /* Prevent expanding beyond reasonable width */
+  max-height: 600px;  /* Session 141: Prevent extremely tall nodes */
   display: flex;
   flex-direction: column;
   word-wrap: break-word;

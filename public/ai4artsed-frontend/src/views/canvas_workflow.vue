@@ -508,6 +508,7 @@ onUnmounted(() => {
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0;  /* Session 141: Allow flex children to shrink for proper scrolling */
 }
 
 .palette-panel {
@@ -520,6 +521,8 @@ onUnmounted(() => {
 .canvas-container {
   flex: 1;
   position: relative;
+  min-width: 0;   /* Session 141: Prevent flex item overflow */
+  min-height: 0;  /* Session 141: Prevent flex item overflow */
 }
 
 .loading-overlay {
