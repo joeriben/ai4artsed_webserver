@@ -932,6 +932,103 @@ Stage 4: Media generation → Actual image/audio/video
 
 ---
 
+## Cultural Respect & Epistemic Justice (Session 136, 2026-01-26)
+
+**A fundamental ethical architectural decision embedded in Stage 2.**
+
+### The Problem: LLM Default Orientalism
+
+When LLMs encounter non-Western cultural contexts, they default to orientalist stereotypes (exotic, mysterious, timeless, ancient wisdom) even when factual data is available. This is a training data bias issue that requires architectural intervention.
+
+**User Report Example:**
+- Input: "Das wichtigste Fest im Norden Nigerias"
+- Output: "enormer, furchtbarer exotistischer orientalistischer Kitsch"
+- Problem: GPT-OSS:120b produced romanticized, exoticizing descriptions despite pedagogical goals
+
+### The Solution: Two-Part Architecture
+
+#### 1. Anti-Orientalism Meta-Prompt (instruction_selector.py)
+
+Enhanced the "transformation" instruction with explicit **CULTURAL RESPECT PRINCIPLES**:
+
+```python
+FORBIDDEN: Exoticizing, romanticizing, or mystifying cultural practices
+FORBIDDEN: Orientalist tropes (exotic, mysterious, timeless, ancient wisdom, etc.)
+FORBIDDEN: Homogenizing diverse cultures into aesthetic stereotypes
+
+Equality Principle: Use the same neutral, fact-based approach as for Western contexts
+```
+
+**Universal Application:** These rules apply to ALL configs, not just cultural-specific ones. This is a system-wide ethical stance, not a per-config option.
+
+#### 2. Wikipedia in Cultural Reference Languages (manipulate.json + wikipedia_service.py)
+
+LLMs must use Wikipedia in the **cultural reference language**, not the prompt language:
+
+- **70+ languages supported:** Africa (ha, yo, ig, sw, am, zu...), Asia (zh, ja, ko, hi, ta, bn, id...), Americas (qu, ay, nah...), Oceania (mi, to, sm...)
+- **Example:** German prompt about Nigeria → uses Hausa/Yoruba/Igbo Wikipedia (not German)
+- **Example:** German prompt about Peru → uses Quechua/Aymara Wikipedia (not German)
+
+**Why This Matters - Epistemic Justice:**
+
+Using German/European Wikipedias for non-European topics perpetuates colonial knowledge hierarchies. Local-language Wikipedias are written BY local communities FOR local contexts, providing:
+- More accurate, detailed information
+- Local perspectives and terminology
+- Less Eurocentric framing
+- Respect for linguistic sovereignty
+
+### Architectural Significance
+
+This is **NOT** a "nice-to-have" feature. This is a **core architectural principle** that embodies AI4ArtsEd's pedagogical mission:
+
+1. **Visible Transformation Choices:** The Prompt Interception system makes transformation choices criticalizable. Orientalist output undermines this goal.
+
+2. **Cultural Diversity:** AI4ArtsEd is used in educational contexts globally. The system must systematically respect cultural diversity.
+
+3. **Decolonizing AI:** By prioritizing local-language Wikipedias and anti-stereotype rules, the architecture actively resists colonial knowledge patterns.
+
+4. **Pedagogical Integrity:** Students engage critically with AI transformations. The system must produce respectful, factually-grounded outputs.
+
+### Theoretical Foundation
+
+Based on postcolonial theory:
+- **Edward Said** (*Orientalism*, 1978): Western construction of exotic "Other"
+- **Frantz Fanon** (*Black Skin, White Masks*, 1952): Dehumanization through exoticization
+- **Gayatri Chakravorty Spivak** (*Can the Subaltern Speak?*, 1988): Epistemic violence of representation
+
+### Implementation Impact
+
+**Before:**
+- Orientalist kitsch for non-Western topics
+- Wikipedia links defaulted to German (limited info, Eurocentric bias)
+- 404 errors from invented Wikipedia URLs
+
+**After:**
+- Respectful, fact-based transformations
+- Wikipedia links use cultural reference language (70+ languages)
+- Real Wikipedia URLs (not invented links)
+
+**Test Result:** Original failing case ("Das wichtigste Fest im Norden Nigerias") now produces factual, culturally-grounded narrative WITHOUT orientalist tropes.
+
+### Related Configs
+
+- **planetarizer.json**: Already had specific anti-Othering rules for decentering Western norms
+- **one_world.json**: Already had anti-Othering rules for respecting cultural diversity
+- **Session 136 Decision**: Extends these principles universally across ALL configs
+
+### For Future Sessions
+
+**This is non-negotiable:**
+- Do NOT remove or weaken anti-orientalism rules
+- Do NOT restrict Wikipedia language mapping
+- Do NOT treat this as "optional" cultural sensitivity
+
+**This is architectural principle, not implementation detail.**
+
+See: `docs/analysis/ORIENTALISM_PROBLEM_2026-01.md` for complete analysis and `docs/DEVELOPMENT_DECISIONS.md` for decision documentation.
+
+---
+
 ## Conclusion
 
 **Stage 2 pipelines are extremely powerful, but their power comes from simplicity and separation of concerns.**

@@ -22,8 +22,14 @@ Enhanced "transformation" instruction with anti-orientalism rules:
 | File | Change |
 |------|--------|
 | `devserver/schemas/engine/instruction_selector.py` | Enhanced "transformation" instruction with CULTURAL RESPECT PRINCIPLES |
-| `devserver/schemas/chunks/manipulate.json` | Wikipedia instruction now uses cultural reference language (not prompt language) |
+| `devserver/schemas/chunks/manipulate.json` | Wikipedia instruction now uses cultural reference language (70+ languages) |
+| `devserver/schemas/engine/pipeline_executor.py` | Send REAL Wikipedia results (title, url) to frontend, not just search terms |
+| `devserver/my_app/services/wikipedia_service.py` | Expanded SUPPORTED_LANGUAGES from 20 to 70+ (Africa, Asia, Americas, Oceania) |
+| `public/ai4artsed-frontend/src/views/text_transformation.vue` | Wikipedia badge uses LoRA design pattern + real URLs; reset on Start button |
+| `public/ai4artsed-frontend/src/views/text_transformation.css` | Wikipedia badge reuses lora-stamp classes with color modifier |
+| `public/ai4artsed-frontend/src/components/MediaInputBox.vue` | TypeScript types updated for real Wikipedia results |
 | `docs/analysis/ORIENTALISM_PROBLEM_2026-01.md` | Complete analysis with test strategy and postcolonial theory references |
+| `docs/DEVELOPMENT_DECISIONS.md` | Documented epistemic justice as core architectural principle |
 
 ### Key Decisions
 1. **Universal application**: Rules apply to ALL configs, not just cultural-specific ones
@@ -56,6 +62,42 @@ Enhanced "transformation" instruction with anti-orientalism rules:
 
 ### Theoretical Foundation
 Based on postcolonial theory (Said, Fanon, Spivak) - see analysis document for details.
+
+### Additional Fixes (Same Session)
+
+**Wikipedia Badge UI Issues:**
+1. **External SVG file caused build errors**
+   - Solution: Inline SVG "W" icon (no external file dependency)
+2. **Inconsistent design** ("größerer Kasten")
+   - Solution: Reuse ALL lora-stamp classes (lora-inner, lora-details, lora-item)
+   - Only color modifier: `.wikipedia-lora` for Wikipedia blue (#0066CC)
+3. **Badge persisted after Start button**
+   - Solution: Reset wikipediaData on runInterception()
+
+**Wikipedia URL Issues:**
+1. **Invented links instead of real URLs**
+   - Root cause: Backend fetched WikipediaResult but only sent search terms to frontend
+   - Solution: Send REAL Wikipedia results (term, lang, title, url, success)
+   - Frontend now uses real URLs and displays real article titles
+2. **Only 20 languages supported**
+   - Root cause: SUPPORTED_LANGUAGES had only 20 codes
+   - Solution: Expanded to 70+ languages (ha, yo, ig, qu, ay, mi, etc.)
+3. **No debug visibility**
+   - Solution: Console logging shows which articles were found with their URLs
+
+**Result:**
+- Wikipedia badge matches LoRA badge design exactly
+- Links point to REAL Wikipedia articles (no more 404s)
+- All 70+ languages now work correctly
+- Debug output in console: "Found X Wikipedia articles: lang: title -> url"
+
+### Commits
+- `f73bd46` feat(interception): Add anti-orientalism rules and cultural-aware Wikipedia lookup
+- `a24fbc0` fix(wikipedia): Use SVG logo and reset data on Start button
+- `754b535` docs: Add epistemic justice decision to DEVELOPMENT_DECISIONS.md
+- `e929d57` fix(wikipedia): Copy LoRA badge design exactly (inline SVG, shared CSS)
+- `4e69051` fix(wikipedia): Use correct language-specific Wikipedia links
+- `de32065` fix(wikipedia): Use REAL Wikipedia URLs instead of invented links + 70+ languages
 
 ---
 
