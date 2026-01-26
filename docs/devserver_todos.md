@@ -1,8 +1,115 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2026-01-25 (Session 134: Canvas Evaluation Nodes)
+**Last Updated:** 2026-01-26 (Session 136)
 **Context:** Current priorities and active TODOs
 
 ---
+
+## 🔴 CRITICAL UX: Canvas Execution Feedback
+
+**Status:** 📋 **TODO** - User erlebt 5 Minuten Stillstand ohne jegliche Rückmeldung
+**Datum:** 2026-01-26 (Session 136)
+**Priority:** HIGH (Usability-Blocker)
+
+### Problem
+
+Bei komplexen Canvas Workflows starren User 5+ Minuten auf den Bildschirm ohne jegliches Feedback:
+- Keine Progress-Anzeige
+- Keine Statusmeldungen
+- Keine Bubble-Animation WÄHREND der Generierung (nur danach)
+- Terminal zeigt Debug-Output, aber Frontend ist stumm
+
+### Anforderungen
+
+IRGENDEINE Form der Rückmeldung implementieren:
+
+1. **Minimum Viable**: Spinner oder "Generating..." Text während Execution
+2. **Besser**: Progress-Anzeige pro Node (Node X von Y wird verarbeitet)
+3. **Ideal**: SSE-Stream mit Live-Updates vom Backend
+   - Welcher Node wird gerade ausgeführt
+   - Aktueller Stage (Interception/Translation/Generation)
+   - Estimated time remaining (optional)
+
+### Technische Optionen
+
+**Option A: Polling (einfach)**
+- Frontend pollt `/api/canvas/status/{run_id}` alle 2 Sekunden
+- Backend trackt aktuellen Node in Session/Memory
+- Pro: Einfach zu implementieren
+- Con: Nicht real-time, zusätzliche Requests
+
+**Option B: SSE Stream (sauber)**
+- Backend sendet Events: `node_started`, `node_completed`, `error`
+- Frontend zeigt Live-Progress
+- Pro: Real-time, elegant
+- Con: Mehr Aufwand, SSE-Infrastruktur nötig
+
+**Option C: WebSocket (overkill)**
+- Bidirektionale Kommunikation
+- Pro: Maximal flexibel
+- Con: Unnötig komplex für diesen Use Case
+
+### Betroffene Dateien
+
+**Backend:**
+- `devserver/my_app/routes/canvas_routes.py` - Execution mit Progress-Tracking
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/stores/canvas.ts` - Progress-State
+- `public/ai4artsed-frontend/src/views/canvas_workflow.vue` - Progress-UI
+
+### User-Zitat
+
+> "User starren jetzt bei komplexem run für 5 Minuten auf Bildschirm ohne Aktion, ohne Feedback."
+> "Es wäre ja nett zumindest einen gefilterten Stream vom Debug-Output zu sehen."
+
+---
+
+## 🔴 PRIORITY: Safety-Architektur Refactoring
+
+**Status:** 📋 **GEPLANT** - Detaillierter Plan vorhanden
+**Datum:** 2026-01-26
+**Priority:** HIGH (Sicherheitslücke + Architektur-Inkonsistenz)
+
+**Handover-Dokument:** `docs/HANDOVER_SAFETY_REFACTORING.md`
+**Detaillierter Plan:** `~/.claude/plans/wise-napping-metcalfe.md`
+
+### Gefundene Probleme
+
+1. **KRITISCH: context_prompt nicht geprüft** - User-editierbarer Meta-Prompt wird nirgends safety-geprüft
+2. **Namens-Inkonsistenz**: `/interception` macht Stage 1 + Stage 2 (nicht nur Interception)
+3. **Code-Duplikation**: Stage 1 Safety in 4 Endpoints embedded statt zentral
+4. **Frontend Bug**: MediaInputBox ignoriert 'blocked' SSE Events
+
+### Ziel-Architektur
+
+```
+NACHHER (sauber getrennt):
+├── /pipeline/safety            → NUR Stage 1 + context_prompt Support
+├── /pipeline/stage2            → NUR Stage 2 (kein embedded Safety)
+├── /pipeline/generation        → Stage 3 + Stage 4 + context_prompt
+└── /pipeline/interception      → DEPRECATED
+```
+
+### Betroffene Dateien
+
+**Backend:**
+- `devserver/my_app/routes/schema_pipeline_routes.py` (5 Stellen)
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+
+### Nächste Schritte
+
+1. Handover lesen: `docs/HANDOVER_SAFETY_REFACTORING.md`
+2. Plan lesen: `cat ~/.claude/plans/wise-napping-metcalfe.md`
+3. Backend implementieren (Teil 1-4)
+4. Frontend implementieren (Teil 5)
+5. Verifizieren (4 Tests im Plan)
+
+**Geschätzter Aufwand:** 3-4 Stunden
+
+---
+
 ## 🔧 Chck for Need for REFACTORING: Prinzip der Pipeline-Autonomie
 Was in den über hundert      
     Session ggf. etwas verwässert wurde ich meine Idee der "Binnen-Orchestrierung" der Pipelines in ihrer Domäne. Ich habe sie wie ausführenden Code gedacht, der
