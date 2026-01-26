@@ -298,6 +298,28 @@
                     : 'The platform unfolds its full value through reflective guidance. It is a tool for learning processes, not self-running. The questions that arise during experimentation are often more important than the images.' }}</p>
                 </div>
 
+                <div class="principle-card">
+                  <div class="principle-header">
+                    <span class="principle-number">7</span>
+                    <h3>{{ currentLanguage === 'de' ? 'Kultureller Respekt in der KI' : 'Cultural Respect in AI' }}</h3>
+                  </div>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'KI-Modelle sind auf westlich geprägten Daten trainiert und neigen zu Stereotypisierung nicht-westlicher Kulturen. Die Plattform versucht dem aktiv entgegenzuwirken: durch Wikipedia-Recherche in kulturell passenden Sprachen (70+ Sprachen: Hausa, Tamil, Quechua usw.) und durch explizite Anti-Stereotype-Regeln.'
+                    : 'AI models are trained on Western-centric data and tend to stereotype non-Western cultures. The platform actively tries to counteract this: through Wikipedia research in culturally appropriate languages (70+ languages: Hausa, Tamil, Quechua, etc.) and through explicit anti-stereotype rules.' }}</p>
+                  <div class="example-box">
+                    <strong>{{ currentLanguage === 'de' ? 'Das Wikipedia-Badge (W):' : 'The Wikipedia Badge (W):' }}</strong>
+                    {{ currentLanguage === 'de'
+                      ? 'Wenn du es siehst, hat die KI recherchiert – z.B. deutsches Thema → deutsche Wikipedia, nigerianisches Thema → Hausa/Yoruba/Igbo Wikipedia.'
+                      : 'When you see it, the AI has researched – e.g. German topic → German Wikipedia, Nigerian topic → Hausa/Yoruba/Igbo Wikipedia.' }}
+                  </div>
+                  <div class="tension-box">
+                    <span class="tension-label">{{ currentLanguage === 'de' ? 'Einschränkung:' : 'Limitation:' }}</span>
+                    {{ currentLanguage === 'de'
+                      ? 'Dies ist ein Schritt in die richtige Richtung, aber keine vollständige Lösung für AI-Bias. Systemische Vorurteile in Trainingsdaten gehen tiefer.'
+                      : 'This is a step in the right direction, but not a complete solution to AI bias. Systemic biases in training data run deeper.' }}
+                  </div>
+                </div>
+
                 <div class="disclaimer">
                   <p>{{ currentLanguage === 'de'
                     ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
