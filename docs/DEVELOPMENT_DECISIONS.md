@@ -29,6 +29,82 @@
 
 ---
 
+## 🌍 ANTI-ORIENTALISM & EPISTEMIC JUSTICE: Cultural-Aware AI (2026-01-26)
+
+**Status:** ✅ DECIDED & IMPLEMENTED
+**Session:** 136
+**Full Analysis:** See `docs/analysis/ORIENTALISM_PROBLEM_2026-01.md`
+
+### Decision
+
+**Two-part solution to prevent orientalist stereotypes in prompt interception:**
+
+1. **Enhanced Meta-Prompt with Anti-Orientalism Rules**
+   - Added CULTURAL RESPECT PRINCIPLES to `instruction_selector.py`
+   - Explicit FORBIDDEN list: exoticizing, romanticizing, mystifying cultural practices
+   - Equality principle: "Use the same neutral, fact-based approach as for Western contexts"
+   - Applies universally to ALL interception configs
+
+2. **Wikipedia Lookup in Cultural Reference Language**
+   - LLM must use Wikipedia in the CULTURAL REFERENCE LANGUAGE, not prompt language
+   - 70+ languages mapped: Africa (15+), Asia (30+), Americas (indigenous), Oceania
+   - Example: German prompt about Nigeria → uses Hausa/Yoruba/Igbo Wikipedia (not German)
+   - Example: German prompt about Peru → uses Quechua/Aymara Wikipedia (not German)
+
+### Reasoning
+
+**Problem Identified:**
+User report: GPT-OSS:120b produced "enormer, furchtbarer exotistischer orientalistischer Kitsch" when processing Nigerian cultural festival prompt. LLMs defaulted to orientalist tropes (exotic, mysterious, timeless) even with factual data available.
+
+**Root Cause:**
+- LLMs trained on Western-centric corpora default to orientalist framing
+- Wikipedia lookup alone insufficient - models need explicit anti-stereotype rules
+- Using German/European Wikipedia for non-European topics perpetuates colonial knowledge hierarchies
+
+**Why Epistemic Justice Matters:**
+- **Linguistic Sovereignty:** Cultures have the right to be represented in their own languages
+- **Local Knowledge:** Local-language Wikipedias written BY local communities FOR local contexts
+- **Decolonizing AI:** Breaks colonial pattern of European languages as "universal" knowledge sources
+- **Pedagogical Integrity:** AI4ArtsEd makes transformation choices visible and criticalizable - orientalist output undermines this goal
+
+**Theoretical Foundation:**
+Based on postcolonial theory (Said, Fanon, Spivak):
+- Edward Said: "Orientalism" as Western construction of exotic Other
+- Frantz Fanon: Dehumanization through exoticization
+- Gayatri Chakravorty Spivak: Epistemic violence of representation
+
+### Implementation
+
+**Files Modified:**
+- `devserver/schemas/engine/instruction_selector.py` - Anti-orientalism meta-prompt
+- `devserver/schemas/chunks/manipulate.json` - Wikipedia cultural reference language mapping
+- `docs/analysis/ORIENTALISM_PROBLEM_2026-01.md` - Complete analysis and testing strategy
+
+**Testing:**
+- ✅ Original failing case: "Das wichtigste Fest im Norden Nigerias"
+- ✅ Result: Factual, respectful narrative WITHOUT orientalist tropes
+- ✅ Improvement: From "furchtbarer exotistischer Kitsch" to culturally grounded output
+
+### Impact
+
+**Cultural Coverage (70+ Languages):**
+- **Nigeria:** ha (Hausa), yo (Yoruba), ig (Igbo), en
+- **India:** hi, ta, bn, te, mr, gu, kn, ml, pa, ur (10+ regional languages!)
+- **China:** zh, zh-yue (Cantonese)
+- **Latin America:** es, pt, qu (Quechua), ay (Aymara), nah (Nahuatl)
+- **Indigenous North America:** ik (Inuktitut), chr (Cherokee)
+- **Oceania:** mi (Māori), to (Tongan), sm (Samoan), fj (Fijian)
+- **Africa:** sw (Swahili), am (Amharic), zu (Zulu), xh (Xhosa), ar, ber
+
+**Pedagogical Significance:**
+This is not just a technical fix - it's a fundamental ethical stance. AI4ArtsEd systematically respects cultural diversity and actively resists colonial knowledge patterns. The system now embodies **epistemic justice** as a core architectural principle.
+
+**Related Decisions:**
+- See "planetarizer.json" and "one_world.json" configs (already had specific anti-Othering rules)
+- This decision extends those principles universally across ALL interception configs
+
+---
+
 ## 🎯 CANVAS EVALUATION NODES: Unified 3-Output Architecture (2026-01-25)
 
 **Status:** ✅ DECIDED & IMPLEMENTED
