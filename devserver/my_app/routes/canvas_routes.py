@@ -540,6 +540,7 @@ def execute_workflow():
                 return output_text, 'text', {'binary': binary_result, 'score': score, 'active_path': active_path}
 
             elif node_type == 'display':
+                # Session 135: Display node (tap/observer) - records but doesn't propagate in flow
                 display_title = node.get('title', 'Display')
                 display_mode = node.get('displayMode', 'inline')
                 results[node_id] = {
@@ -553,8 +554,9 @@ def execute_workflow():
                         'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S')
                     }
                 }
-                logger.info(f"[Canvas Tracer] Display: '{display_title}'")
-                return input_data, data_type, None  # Terminal but pass through
+                logger.info(f"[Canvas Tracer] Display (tap): '{display_title}'")
+                # Return None to signal this is a tap/observer (not part of main flow)
+                return None, data_type, None
 
             elif node_type == 'collector':
                 # Collector gathers what arrives - use old format for frontend compatibility
@@ -630,8 +632,27 @@ def execute_workflow():
                 next_conns = filtered_conns
                 logger.info(f"[Canvas Tracer] Evaluation fork: active_path={active_path}, following {len(next_conns)} connections")
 
-            # Follow each active connection
+            # Session 135: Separate display nodes from flow (tap/observer pattern)
+            display_conns = []
+            flow_conns = []
             for conn in next_conns:
+                target_node = node_map.get(conn['target'])
+                if target_node and target_node.get('type') == 'display':
+                    display_conns.append(conn)
+                else:
+                    flow_conns.append(conn)
+
+            # Session 135: Execute display nodes in parallel (fire-and-forget)
+            for conn in display_conns:
+                target_id = conn['target']
+                target_node = node_map.get(target_id)
+                if not target_node:
+                    continue
+                # Execute display but don't recurse
+                execute_node(target_node, output_data, output_type, node_id, node_type)
+
+            # Follow each active flow connection (non-display)
+            for conn in flow_conns:
                 target_id = conn['target']
                 target_node = node_map.get(target_id)
                 if not target_node:
@@ -639,8 +660,8 @@ def execute_workflow():
 
                 # Data type compatibility check
                 target_type = target_node.get('type')
-                accepts_text = target_type in ['interception', 'translation', 'generation', 'evaluation', 'display', 'collector']
-                accepts_image = target_type in ['evaluation', 'display', 'collector']
+                accepts_text = target_type in ['interception', 'translation', 'generation', 'evaluation', 'collector']
+                accepts_image = target_type in ['evaluation', 'collector']
 
                 if output_type == 'text' and not accepts_text:
                     logger.warning(f"[Canvas Tracer] Type mismatch: {node_id} outputs text, {target_id} ({target_type}) doesn't accept it")
