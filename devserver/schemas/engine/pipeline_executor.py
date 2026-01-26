@@ -624,7 +624,8 @@ class PipelineExecutor:
 
                     # Store Wikipedia status for real-time UI feedback
                     # Session 136: Include language information for correct links
-                    terms_with_lang = [{'term': t[0], 'lang': t[1]} for t in lookup_terms]
+                    # For "start" status, we don't have real results yet, so use placeholders
+                    terms_with_lang = [{'term': t[0], 'lang': t[1], 'title': t[0], 'url': '', 'success': False} for t in lookup_terms]
                     WIKIPEDIA_STATUS['current'] = {
                         'status': 'lookup',
                         'terms': terms_with_lang,
@@ -652,10 +653,26 @@ class PipelineExecutor:
                         logger.info(f"[WIKI-LOOP] Added {len(wiki_content)} chars to WIKIPEDIA_CONTEXT")
 
                         # Update status to complete
-                        # Session 136: Include language information for correct links
+                        # Session 136: Include REAL Wikipedia results (title, url) not just search terms
+                        results_with_urls = [
+                            {
+                                'term': r.term,
+                                'lang': r.language,
+                                'title': r.title,
+                                'url': r.url,
+                                'success': r.success
+                            }
+                            for r in results
+                            if r.success  # Only include successfully found articles
+                        ]
+
+                        logger.info(f"[WIKI-LOOP] Found {len(results_with_urls)} Wikipedia articles:")
+                        for r in results_with_urls:
+                            logger.info(f"  - {r['lang']}: {r['title']} -> {r['url']}")
+
                         WIKIPEDIA_STATUS['current'] = {
                             'status': 'complete',
-                            'terms': terms_with_lang,  # Now with lang info
+                            'terms': results_with_urls,  # Real results with URLs!
                             'timestamp': time.time()
                         }
                         context.custom_placeholders['_WIKIPEDIA_STATUS'] = 'complete'

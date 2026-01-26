@@ -103,8 +103,8 @@
               </div>
               <div v-if="wikipediaExpanded" class="lora-details">
                 <div v-for="(item, index) in wikipediaData.terms" :key="index" class="lora-item">
-                  <a :href="`https://${item.lang}.wikipedia.org/wiki/${encodeURIComponent(item.term)}`" target="_blank" rel="noopener">
-                    {{ item.term }}
+                  <a :href="item.url" target="_blank" rel="noopener">
+                    {{ item.title }}
                   </a>
                 </div>
               </div>
@@ -513,8 +513,8 @@ const activeLoras = ref<Array<{name: string, strength: number}>>([])
 const loraExpanded = ref(false)
 
 // Session 139: Wikipedia lookup state
-// Session 136: terms now include language information
-const wikipediaData = ref<{ active: boolean; terms: Array<{ term: string; lang: string }> }>({ active: false, terms: [] })
+// Session 136: terms now include actual Wikipedia results (title, url, language)
+const wikipediaData = ref<{ active: boolean; terms: Array<{ term: string; lang: string; title: string; url: string; success: boolean }> }>({ active: false, terms: [] })
 const wikipediaExpanded = ref(false)
 
 // Refs for DOM elements and scrolling
@@ -1345,14 +1345,19 @@ function handleStreamError(error: string) {
 }
 
 // Session 139: Wikipedia lookup event handler
-// Session 136: terms now include language information
-function handleWikipediaLookup(data: { status: string; terms: Array<{ term: string; lang: string }> }) {
+// Session 136: terms now include REAL Wikipedia results (title, url)
+function handleWikipediaLookup(data: { status: string; terms: Array<{ term: string; lang: string; title: string; url: string; success: boolean }> }) {
   console.log('[Wikipedia] Lookup event:', data.status, data.terms)
 
   if (data.status === 'start') {
     wikipediaData.value = { active: true, terms: data.terms || [] }
   } else if (data.status === 'complete') {
     wikipediaData.value = { active: false, terms: data.terms || [] }
+    // Debug: Log actual URLs
+    console.log('[Wikipedia] Articles found:')
+    data.terms.forEach(t => {
+      console.log(`  - ${t.lang}: ${t.title} -> ${t.url}`)
+    })
   }
 }
 

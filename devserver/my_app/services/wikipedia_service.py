@@ -30,27 +30,20 @@ import asyncio
 logger = logging.getLogger(__name__)
 
 # Supported Wikipedia languages (ISO 639-1 codes)
+# Session 136: Expanded to 70+ languages for epistemic justice
 SUPPORTED_LANGUAGES = frozenset([
-    'de',  # German
-    'en',  # English
-    'it',  # Italian
-    'fr',  # French
-    'es',  # Spanish
-    'pt',  # Portuguese
-    'nl',  # Dutch
-    'pl',  # Polish
-    'ru',  # Russian
-    'zh',  # Chinese
-    'ja',  # Japanese
-    'ko',  # Korean
-    'ar',  # Arabic
-    'tr',  # Turkish
-    'hi',  # Hindi
-    'sv',  # Swedish
-    'uk',  # Ukrainian
-    'cs',  # Czech
-    'el',  # Greek
-    'he',  # Hebrew
+    # Europe
+    'de', 'en', 'it', 'fr', 'es', 'pt', 'nl', 'pl', 'ru', 'sv', 'uk', 'cs', 'el', 'he',
+    'da', 'no', 'fi', 'ro', 'hu', 'sr', 'hr', 'bs', 'ca', 'eu', 'gl',
+    # Asia
+    'zh', 'zh-yue', 'ja', 'ko', 'hi', 'ta', 'bn', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur',
+    'id', 'jv', 'su', 'tl', 'ceb', 'th', 'vi', 'my', 'fa', 'tr', 'ar', 'arz', 'ps',
+    # Africa
+    'ha', 'yo', 'ig', 'sw', 'am', 'om', 'zu', 'xh', 'af', 'tw', 'wo', 'mg', 'ber',
+    # Americas
+    'nah', 'qu', 'ay', 'ht', 'ik', 'chr',
+    # Oceania
+    'mi', 'to', 'sm', 'fj',
 ])
 
 # Maximum content length per summary (characters)
