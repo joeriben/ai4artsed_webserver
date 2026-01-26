@@ -207,15 +207,7 @@ async function sendMessage() {
   const userMessage = inputMessage.value.trim()
   inputMessage.value = ''
 
-  // Build full message with draft context (only if no run_id session)
-  // Session context (from run_id files) takes priority over draft context
-  let messageForBackend = userMessage
-  if (!currentSession.value.runId && draftContextString.value) {
-    messageForBackend = `${draftContextString.value}\n\n${userMessage}`
-    console.log('[ChatOverlay] Prepending draft context to message')
-  }
-
-  // Add user message to UI (show original message, not context-prefixed)
+  // Add user message to UI (show original message only)
   messages.value.push({
     id: messageIdCounter++,
     role: 'user',
@@ -236,9 +228,12 @@ async function sendMessage() {
       content: msg.content
     }))
 
+    // Send draft_context as separate field (not embedded in message)
+    // Backend uses it for system prompt but does NOT save it to exports/
     const response = await axios.post('/api/chat', {
-      message: messageForBackend,  // Send with context prepended
+      message: userMessage,  // Original message without context prefix
       run_id: currentSession.value.runId || undefined,
+      draft_context: draftContextString.value || undefined,  // Always send current page state
       history: historyForBackend
     })
 

@@ -553,6 +553,7 @@ def chat():
         data = request.get_json()
         user_message = data.get('message', '').strip()
         run_id = data.get('run_id')
+        draft_context = data.get('draft_context')  # Current page state (transient, not saved)
 
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
@@ -572,6 +573,11 @@ def chat():
 
         # Build system prompt
         system_prompt = build_system_prompt(context)
+
+        # Add draft context if provided (NOT saved to exports/, only for this request)
+        if draft_context:
+            system_prompt += f"\n\n[Aktuelle Eingaben auf der Seite]\n{draft_context}"
+            logger.info(f"[CHAT] Draft context added to system prompt ({len(draft_context)} chars)")
 
         # Load chat history (priority: run_id file > request history > empty)
         history = []
