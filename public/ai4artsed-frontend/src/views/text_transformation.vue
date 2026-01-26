@@ -85,7 +85,7 @@
             <div v-if="wikipediaData.terms.length > 0" class="wikipedia-stamp" :class="{ active: wikipediaData.active }" @click="wikipediaExpanded = !wikipediaExpanded">
               <div class="stamp-inner wikipedia-inner">
                 <div class="stamp-icon wikipedia-icon">
-                  <img src="/wikipedia-logo.svg" alt="Wikipedia" width="24" height="24" />
+                  <img src="/wikipedia-logo.svg" alt="W" />
                 </div>
                 <div class="stamp-text">
                   {{ wikipediaData.terms.length }} Artikel
