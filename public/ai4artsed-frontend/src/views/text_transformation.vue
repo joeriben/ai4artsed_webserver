@@ -1205,9 +1205,14 @@ async function runInterception() {
   console.log('[DEBUG] Meta prompt:', pipelineStore.metaPrompt?.substring(0, 50), '...')
 
   interceptionResult.value = '' // Clear previous result
-  isInterceptionLoading.value = true
   // Session 130: Reset output flag (new interception = new run)
   currentRunHasOutput.value = false
+
+  // CRITICAL FIX: Wait for Vue to process all pending reactive updates
+  // before setting isInterceptionLoading, which triggers the streaming chain
+  await nextTick()
+
+  isInterceptionLoading.value = true
 
   console.log('[DEBUG] After - isInterceptionLoading:', isInterceptionLoading.value)
   console.log('[DEBUG] This should trigger streamingUrl computed property')
@@ -1247,6 +1252,11 @@ async function runOptimization() {
     // STEP 2: Start streaming (clear previous result and set loading state)
     // (Only reached if optimization_instruction is NOT empty)
     optimizedPrompt.value = ''  // Clear previous result
+
+    // CRITICAL FIX: Wait for Vue to process all pending reactive updates
+    // before setting isOptimizationLoading, which triggers the streaming chain
+    await nextTick()
+
     isOptimizationLoading.value = true
 
     console.log('[DEBUG] After - isOptimizationLoading:', isOptimizationLoading.value)
