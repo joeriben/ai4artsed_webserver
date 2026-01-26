@@ -295,6 +295,20 @@ NO_TRANSLATE = False  # Set to True to skip translation of prompts
 LOOP_GENERATION = 1
 LOOP_COMFYUI = 1
 
+# ----------------------------------------------------------------------------
+# WIKIPEDIA RESEARCH - Fundamental Interception Capability
+# ----------------------------------------------------------------------------
+# Enables LLM to fetch Wikipedia content during prompt interception using
+# <wiki lang="de">term</wiki> markers in its output.
+#
+# Language Detection: Default language is auto-detected from user's input.
+# WIKIPEDIA_FALLBACK_LANGUAGE is only used when input language cannot be determined.
+#
+WIKIPEDIA_MAX_ITERATIONS = int(os.environ.get("WIKIPEDIA_MAX_ITERATIONS", "3"))
+WIKIPEDIA_MAX_LOOKUPS_PER_ITERATION = int(os.environ.get("WIKIPEDIA_MAX_LOOKUPS_PER_ITERATION", "5"))
+WIKIPEDIA_FALLBACK_LANGUAGE = os.environ.get("WIKIPEDIA_FALLBACK_LANGUAGE", "de")  # Fallback when input lang unknown
+WIKIPEDIA_CACHE_TTL = int(os.environ.get("WIKIPEDIA_CACHE_TTL", "3600"))  # Cache TTL in seconds (default 1h)
+
 # Translation Prompt
 TRANSLATION_PROMPT = """Translate the following text to English. CRITICAL RULES:
 1. Preserve ALL brackets exactly as they appear: (), [], {{}}, and especially triple brackets ((()))

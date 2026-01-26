@@ -2,6 +2,7 @@
 Pipeline-Executor: Central orchestration for config-based pipelines
 REFACTORED for new architecture (config_loader instead of schema_registry)
 ENHANCED with 4-Stage Pre-Interception System
+ENHANCED with Wikipedia Research capability (Session 135)
 """
 from typing import Dict, Any, Optional, List, AsyncGenerator, Tuple
 from dataclasses import dataclass, field
@@ -15,6 +16,7 @@ import re
 from .config_loader import config_loader, ResolvedConfig
 from .chunk_builder import ChunkBuilder
 from .backend_router import BackendRouter, BackendRequest, BackendResponse, BackendType
+from .wikipedia_processor import extract_markers, format_wiki_content, remove_markers, has_markers
 
 logger = logging.getLogger(__name__)
 
@@ -495,80 +497,156 @@ class PipelineExecutor:
         })
     
     async def _execute_single_step(self, step: PipelineStep, context: PipelineContext, execution_mode: str = 'eco') -> str:
-        """Execute single pipeline step"""
-        chunk_context = {
-            "input_text": context.input_text,
-            "user_input": context.user_input,
-            "previous_output": context.get_previous_output(),
-            "custom_placeholders": context.custom_placeholders
-        }
+        """Execute single pipeline step with Wikipedia research capability
 
-        # Debug: Log chunk context
-        logger.info(f"[CHUNK-CONTEXT] input_text: '{chunk_context['input_text'][:50]}...'")
-        logger.info(f"[CHUNK-CONTEXT] previous_output: '{chunk_context['previous_output'][:50]}...'")
-        
-        chunk_request = self.chunk_builder.build_chunk(
-            chunk_name=step.chunk_name,
-            resolved_config=self._current_config,
-            context=chunk_context
-        )
+        Wikipedia Research Loop:
+        - After LLM output, check for <wiki> markers
+        - If markers found, fetch Wikipedia content and re-execute
+        - Maximum iterations configurable (WIKIPEDIA_MAX_ITERATIONS)
+        - Language auto-detected from input (falls back to WIKIPEDIA_FALLBACK_LANGUAGE)
+        """
+        from devserver import config
+        from devserver.my_app.services.wikipedia_service import get_wikipedia_service
 
-        step.input_data = chunk_request['prompt']
-        step.metadata.update(chunk_request['metadata'])
+        # Wikipedia iteration tracking
+        wiki_iteration = 0
+        max_wiki_iterations = getattr(config, 'WIKIPEDIA_MAX_ITERATIONS', 3)
+        max_lookups = getattr(config, 'WIKIPEDIA_MAX_LOOKUPS_PER_ITERATION', 5)
+        fallback_language = getattr(config, 'WIKIPEDIA_FALLBACK_LANGUAGE', 'de')
 
-        # Phase 4: Add seed_override to parameters if present in context
-        if 'seed_override' in context.custom_placeholders:
-            seed_value = context.custom_placeholders['seed_override']
-            chunk_request['parameters']['seed'] = seed_value  # lowercase!
-            logger.info(f"[PHASE4-SEED] Injected seed into chunk parameters: {seed_value}")
+        # Get input language from context (set by Stage 1 translation)
+        input_language = context.custom_placeholders.get('INPUT_LANGUAGE', fallback_language)
 
-        # Session 80: Add input_image to parameters if present in context (IMG2IMG support)
-        if 'input_image' in context.custom_placeholders:
-            image_path = context.custom_placeholders['input_image']
-            chunk_request['parameters']['input_image'] = image_path
-            logger.info(f"[IMG2IMG] Injected input_image into chunk parameters: {image_path}")
+        # Initialize WIKIPEDIA_CONTEXT if not present
+        if 'WIKIPEDIA_CONTEXT' not in context.custom_placeholders:
+            context.custom_placeholders['WIKIPEDIA_CONTEXT'] = ''
 
-        # Session 86+: Add multi-image paths to parameters if present in context
-        for i in range(1, 4):
-            key = f'input_image{i}'
-            if key in context.custom_placeholders:
-                image_path = context.custom_placeholders[key]
-                chunk_request['parameters'][key] = image_path
-                logger.info(f"[MULTI-IMG] Injected {key} into chunk parameters: {image_path}")
+        while True:
+            chunk_context = {
+                "input_text": context.input_text,
+                "user_input": context.user_input,
+                "previous_output": context.get_previous_output(),
+                "custom_placeholders": context.custom_placeholders
+            }
 
-        # Surrealizer: Add alpha_factor to parameters if present in context (T5-CLIP fusion)
-        if 'alpha_factor' in context.custom_placeholders:
-            alpha_value = context.custom_placeholders['alpha_factor']
-            chunk_request['parameters']['alpha_factor'] = alpha_value
-            logger.info(f"[SURREALIZER] Injected alpha_factor into chunk parameters: {alpha_value}")
+            # Debug: Log chunk context
+            logger.info(f"[CHUNK-CONTEXT] input_text: '{chunk_context['input_text'][:50]}...'")
+            logger.info(f"[CHUNK-CONTEXT] previous_output: '{chunk_context['previous_output'][:50]}...'")
 
-        # Add ALL custom placeholders to parameters (for legacy workflows with input_mappings)
-        for key, value in context.custom_placeholders.items():
-            if key not in chunk_request['parameters']:  # Don't overwrite existing
-                chunk_request['parameters'][key] = value
-                logger.info(f"[CUSTOM-PARAMS] Injected '{key}' = '{str(value)[:50]}' into chunk parameters")
+            chunk_request = self.chunk_builder.build_chunk(
+                chunk_name=step.chunk_name,
+                resolved_config=self._current_config,
+                context=chunk_context
+            )
 
-        backend_request = BackendRequest(
-            backend_type=BackendType(chunk_request['backend_type']),
-            model=chunk_request['model'],
-            prompt=chunk_request['prompt'],
-            parameters=chunk_request['parameters']
-        )
-        
-        response = await self.backend_router.process_request(backend_request)
+            step.input_data = chunk_request['prompt']
+            step.metadata.update(chunk_request['metadata'])
 
-        if isinstance(response, BackendResponse):
-            if response.success:
-                # Merge ALL backend metadata into step.metadata (preserves image_paths, seed, etc.)
-                step.metadata.update(response.metadata)
-                # Ensure fallbacks for critical fields
-                step.metadata['model_used'] = response.metadata.get('model_used', chunk_request['model'])
-                step.metadata['backend_type'] = response.metadata.get('backend_type', chunk_request['backend_type'])
-                return response.content
+            # Phase 4: Add seed_override to parameters if present in context
+            if 'seed_override' in context.custom_placeholders:
+                seed_value = context.custom_placeholders['seed_override']
+                chunk_request['parameters']['seed'] = seed_value  # lowercase!
+                logger.info(f"[PHASE4-SEED] Injected seed into chunk parameters: {seed_value}")
+
+            # Session 80: Add input_image to parameters if present in context (IMG2IMG support)
+            if 'input_image' in context.custom_placeholders:
+                image_path = context.custom_placeholders['input_image']
+                chunk_request['parameters']['input_image'] = image_path
+                logger.info(f"[IMG2IMG] Injected input_image into chunk parameters: {image_path}")
+
+            # Session 86+: Add multi-image paths to parameters if present in context
+            for i in range(1, 4):
+                key = f'input_image{i}'
+                if key in context.custom_placeholders:
+                    image_path = context.custom_placeholders[key]
+                    chunk_request['parameters'][key] = image_path
+                    logger.info(f"[MULTI-IMG] Injected {key} into chunk parameters: {image_path}")
+
+            # Surrealizer: Add alpha_factor to parameters if present in context (T5-CLIP fusion)
+            if 'alpha_factor' in context.custom_placeholders:
+                alpha_value = context.custom_placeholders['alpha_factor']
+                chunk_request['parameters']['alpha_factor'] = alpha_value
+                logger.info(f"[SURREALIZER] Injected alpha_factor into chunk parameters: {alpha_value}")
+
+            # Add ALL custom placeholders to parameters (for legacy workflows with input_mappings)
+            for key, value in context.custom_placeholders.items():
+                if key not in chunk_request['parameters']:  # Don't overwrite existing
+                    chunk_request['parameters'][key] = value
+                    logger.info(f"[CUSTOM-PARAMS] Injected '{key}' = '{str(value)[:50]}' into chunk parameters")
+
+            backend_request = BackendRequest(
+                backend_type=BackendType(chunk_request['backend_type']),
+                model=chunk_request['model'],
+                prompt=chunk_request['prompt'],
+                parameters=chunk_request['parameters']
+            )
+
+            response = await self.backend_router.process_request(backend_request)
+
+            if isinstance(response, BackendResponse):
+                if response.success:
+                    # Merge ALL backend metadata into step.metadata (preserves image_paths, seed, etc.)
+                    step.metadata.update(response.metadata)
+                    # Ensure fallbacks for critical fields
+                    step.metadata['model_used'] = response.metadata.get('model_used', chunk_request['model'])
+                    step.metadata['backend_type'] = response.metadata.get('backend_type', chunk_request['backend_type'])
+
+                    output = response.content
+
+                    # ================================================================
+                    # WIKIPEDIA RESEARCH LOOP
+                    # ================================================================
+                    # Check for <wiki> markers in output
+                    markers = extract_markers(output)
+
+                    if not markers or wiki_iteration >= max_wiki_iterations:
+                        # No markers or max iterations reached - return output
+                        if wiki_iteration > 0:
+                            logger.info(f"[WIKI-LOOP] Completed after {wiki_iteration} iteration(s)")
+                            # Clean markers from final output
+                            output = remove_markers(output)
+                        return output
+
+                    # Markers found - fetch Wikipedia content
+                    logger.info(f"[WIKI-LOOP] Iteration {wiki_iteration + 1}: Found {len(markers)} marker(s)")
+
+                    # Build lookup terms with language resolution
+                    lookup_terms = []
+                    for marker in markers[:max_lookups]:
+                        # Use marker's language or fall back to input language
+                        lang = marker.language if marker.language else input_language
+                        lookup_terms.append((marker.term, lang))
+                        logger.info(f"[WIKI-LOOKUP] '{marker.term}' ({lang})")
+
+                    # Fetch Wikipedia content
+                    try:
+                        wiki_service = get_wikipedia_service(
+                            cache_ttl=getattr(config, 'WIKIPEDIA_CACHE_TTL', 3600)
+                        )
+                        results = await wiki_service.lookup_multiple(lookup_terms, max_lookups=max_lookups)
+
+                        # Format and add to context
+                        wiki_content = format_wiki_content(results)
+                        existing_content = context.custom_placeholders.get('WIKIPEDIA_CONTEXT', '')
+
+                        if existing_content:
+                            context.custom_placeholders['WIKIPEDIA_CONTEXT'] = existing_content + '\n\n' + wiki_content
+                        else:
+                            context.custom_placeholders['WIKIPEDIA_CONTEXT'] = wiki_content
+
+                        logger.info(f"[WIKI-LOOP] Added {len(wiki_content)} chars to WIKIPEDIA_CONTEXT")
+
+                    except Exception as e:
+                        logger.warning(f"[WIKI-LOOP] Wikipedia lookup failed: {e}")
+                        # Continue without Wikipedia content
+
+                    wiki_iteration += 1
+                    # Loop continues with enriched context
+
+                else:
+                    raise RuntimeError(f"Backend error: {response.error}")
             else:
-                raise RuntimeError(f"Backend error: {response.error}")
-        else:
-            raise RuntimeError("Streaming not supported in single steps")
+                raise RuntimeError("Streaming not supported in single steps")
     
     def get_available_configs(self) -> List[str]:
         """List all available configs"""
