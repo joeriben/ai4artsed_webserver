@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <circle cx="64" cy="64" r="60" fill="#fff"/>
+  <path d="M64 8C33.1 8 8 33.1 8 64s25.1 56 56 56 56-25.1 56-56S94.9 8 64 8zm0 108C35.3 116 12 92.7 12 64S35.3 12 64 12s52 23.3 52 52-23.3 52-52 52z" fill="#333"/>
+  <text x="64" y="80" text-anchor="middle" font-family="Linux Libertine, Georgia, Times, serif" font-size="72" font-weight="bold" fill="#333">W</text>
+</svg>

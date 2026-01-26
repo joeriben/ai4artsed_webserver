@@ -1480,46 +1480,74 @@ def execute_pipeline_streaming(data: dict):
 
         logger.info(f"[UNIFIED-STREAMING] Stage 2: Starting Interception streaming")
 
-        # TODO [ARCHITECTURE VIOLATION]: Direct Engine instantiation bypasses ChunkBuilder
-        # See: docs/ARCHITECTURE_VIOLATION_PromptInterceptionEngine.md
-        engine = PromptInterceptionEngine()
-
-        # Get config and style context
+        # Get config for execution
         config = pipeline_executor.config_loader.get_config(schema_name)
-        style_prompt = context_prompt if context_prompt else (config.context if config else '')
 
-        # Session 134 FIX: Get meta-instruction based on config's instruction_type
-        # This tells the model HOW to transform, while style_prompt tells WHAT style
-        instruction_type = config.instruction_type if config and hasattr(config, 'instruction_type') else 'transformation'
-        task_instruction = get_instruction(instruction_type)
-        logger.info(f"[UNIFIED-STREAMING] Using instruction_type: {instruction_type}")
+        # Override context if custom context_prompt provided
+        if context_prompt and config:
+            config.context = context_prompt
+            logger.info(f"[UNIFIED-STREAMING] Using custom context_prompt override")
 
-        # Determine model
-        model = STAGE2_INTERCEPTION_MODEL
-        real_model = engine.extract_model_name(model)
+        # Execute Stage 2 via pipeline_executor (includes Wikipedia support)
+        # Use threading to enable real-time Wikipedia status events
+        from concurrent.futures import ThreadPoolExecutor, Future
+        from schemas.engine.pipeline_executor import WIKIPEDIA_STATUS
+        import time as time_module
 
-        # Backend-Routing: Route to correct backend based on model prefix
+        tracker = NoOpTracker()
+        result_holder = [None]  # Mutable container for thread result
+
+        def run_pipeline():
+            result_holder[0] = asyncio.run(pipeline_executor.execute_pipeline(
+                config_name=schema_name,
+                input_text=checked_text,
+                user_input=input_text,
+                execution_mode=execution_mode,
+                safety_level=safety_level,
+                tracker=tracker,
+                config_override=config
+            ))
+
+        # Start pipeline in background thread
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(run_pipeline)
+
+        # Poll for Wikipedia status while pipeline runs
+        last_wiki_status = None
+        while not future.done():
+            current_status = WIKIPEDIA_STATUS.get('current', {})
+            if current_status.get('status') != last_wiki_status:
+                last_wiki_status = current_status.get('status')
+                if last_wiki_status == 'lookup':
+                    yield generate_sse_event('wikipedia_lookup', {
+                        'status': 'start',
+                        'terms': current_status.get('terms', [])
+                    })
+                    yield ''
+                elif last_wiki_status == 'complete':
+                    yield generate_sse_event('wikipedia_lookup', {
+                        'status': 'complete',
+                        'terms': current_status.get('terms', [])
+                    })
+                    yield ''
+            time_module.sleep(0.1)  # Poll every 100ms
+
+        # Get result
+        future.result()  # Raises if thread had exception
+        result = result_holder[0]
+        executor.shutdown(wait=False)
+
+        # Clear Wikipedia status
+        WIKIPEDIA_STATUS['current'] = {}
+
         accumulated = ""
         chunk_count = 0
 
-        # Use Prompt Interception Engine (which has correct backend routing)
-        logger.info(f"[UNIFIED-STREAMING] Using Prompt Interception Engine for model: {model}")
-        pi_request = PromptInterceptionRequest(
-            input_prompt=checked_text,
-            input_context='',
-            style_prompt=style_prompt,
-            task_instruction=task_instruction,  # Session 134: Meta-instruction
-            model=model,
-            debug=False,
-            unload_model=False
-        )
-        pi_response = asyncio.run(engine.process_request(pi_request))
-
-        if pi_response.success:
-            accumulated = pi_response.output_str
+        if result.success:
+            accumulated = result.final_output
             chunk_count = 1
 
-            # Stream the complete response as one chunk (non-streaming backends)
+            # Stream the complete response as one chunk
             yield generate_sse_event('chunk', {
                 'stage': 2,
                 'text_chunk': accumulated,
@@ -1528,7 +1556,7 @@ def execute_pipeline_streaming(data: dict):
             })
             yield ''
         else:
-            raise Exception(f"Interception failed: {pi_response.error}")
+            raise Exception(f"Interception failed: {result.error}")
 
         logger.info(f"[UNIFIED-STREAMING] Stage 2 complete: {len(accumulated)} chars")
 

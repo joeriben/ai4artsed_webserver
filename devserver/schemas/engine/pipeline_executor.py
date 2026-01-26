@@ -20,6 +20,10 @@ from .wikipedia_processor import extract_markers, format_wiki_content, remove_ma
 
 logger = logging.getLogger(__name__)
 
+# Global Wikipedia status for real-time UI feedback
+# Key: run_id, Value: {'status': 'lookup'|'complete'|None, 'terms': [...], 'timestamp': float}
+WIKIPEDIA_STATUS = {}
+
 class PipelineStatus(Enum):
     """Pipeline execution status"""
     PENDING = "pending"
@@ -261,7 +265,7 @@ class PipelineExecutor:
         for step in steps:
             try:
                 step.status = PipelineStatus.RUNNING
-                output = await self._execute_single_step(step, context, execution_mode)
+                output = await self._execute_single_step(step, context, execution_mode, tracker=tracker)
 
                 step.status = PipelineStatus.COMPLETED
                 step.output_data = output
@@ -381,7 +385,7 @@ class PipelineExecutor:
 
                 logger.info(f"[RECURSIVE-LOOP] Iteration {i+1}/{iterations}: Translating to {get_language_name(target_lang)} ({target_lang})")
 
-                output = await self._execute_single_step(step, context, execution_mode)
+                output = await self._execute_single_step(step, context, execution_mode, tracker=tracker)
 
                 step.status = PipelineStatus.COMPLETED
                 step.output_data = output
@@ -496,7 +500,7 @@ class PipelineExecutor:
             "total_steps": len(steps)
         })
     
-    async def _execute_single_step(self, step: PipelineStep, context: PipelineContext, execution_mode: str = 'eco') -> str:
+    async def _execute_single_step(self, step: PipelineStep, context: PipelineContext, execution_mode: str = 'eco', tracker=None) -> str:
         """Execute single pipeline step with Wikipedia research capability
 
         Wikipedia Research Loop:
@@ -618,6 +622,16 @@ class PipelineExecutor:
                         lookup_terms.append((marker.term, lang))
                         logger.info(f"[WIKI-LOOKUP] '{marker.term}' ({lang})")
 
+                    # Store Wikipedia status for real-time UI feedback
+                    terms_list = [t[0] for t in lookup_terms]
+                    WIKIPEDIA_STATUS['current'] = {
+                        'status': 'lookup',
+                        'terms': terms_list,
+                        'timestamp': time.time()
+                    }
+                    context.custom_placeholders['_WIKIPEDIA_STATUS'] = 'lookup'
+                    context.custom_placeholders['_WIKIPEDIA_TERMS'] = terms_list
+
                     # Fetch Wikipedia content
                     try:
                         wiki_service = get_wikipedia_service(
@@ -636,8 +650,18 @@ class PipelineExecutor:
 
                         logger.info(f"[WIKI-LOOP] Added {len(wiki_content)} chars to WIKIPEDIA_CONTEXT")
 
+                        # Update status to complete
+                        WIKIPEDIA_STATUS['current'] = {
+                            'status': 'complete',
+                            'terms': terms_list,
+                            'timestamp': time.time()
+                        }
+                        context.custom_placeholders['_WIKIPEDIA_STATUS'] = 'complete'
+
                     except Exception as e:
                         logger.warning(f"[WIKI-LOOP] Wikipedia lookup failed: {e}")
+                        WIKIPEDIA_STATUS['current'] = {'status': None, 'terms': [], 'timestamp': time.time()}
+                        context.custom_placeholders['_WIKIPEDIA_STATUS'] = 'error'
                         # Continue without Wikipedia content
 
                     wiki_iteration += 1
