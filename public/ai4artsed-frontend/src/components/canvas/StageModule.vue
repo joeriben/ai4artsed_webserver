@@ -974,13 +974,13 @@ const nodeHeight = computed(() => {
 
 .connector.input {
   left: -7px;
-  top: 50%;
+  top: 24px;  /* Fixed position in header area */
   transform: translateY(-50%);
 }
 
 .connector.output {
   right: -7px;
-  top: 50%;
+  top: 24px;  /* Fixed position in header area */
   transform: translateY(-50%);
 }
 
@@ -991,9 +991,8 @@ const nodeHeight = computed(() => {
 /* Feedback input connector (for loops) */
 .connector.feedback-input {
   right: -7px;
-  bottom: 8px;
-  top: auto;
-  transform: none;
+  top: 44px;  /* Below main connector in header area */
+  transform: translateY(-50%);
   border-color: #f97316; /* Orange to distinguish from normal connectors */
   display: flex;
   align-items: center;

@@ -83,37 +83,52 @@ const draggingNodeId = ref<string | null>(null)
 const dragOffset = ref({ x: 0, y: 0 })
 
 /**
- * Get actual connector position from DOM
- * Uses data attributes on connectors: data-node-id, data-connector
+ * Node dimensions by type
+ * Wide nodes: input, interception, translation, evaluation, display, collector
+ * Narrow nodes: generation
  */
-function getConnectorPosition(nodeId: string, connectorType: string): { x: number; y: number } {
-  if (!canvasRef.value) return { x: 0, y: 0 }
+const NARROW_WIDTH = 180
+const WIDE_WIDTH = 280
+const DEFAULT_HEIGHT = 80
 
-  const selector = `[data-node-id="${nodeId}"][data-connector="${connectorType}"]`
-  const connector = canvasRef.value.querySelector(selector)
+/**
+ * Get node width based on type
+ */
+function getNodeWidth(node: CanvasNode): number {
+  // Use custom width if set (resizable nodes)
+  if (node.width) return node.width
 
-  if (!connector) {
-    // Fallback: use node position + estimated offset
-    const node = props.nodes.find(n => n.id === nodeId)
-    if (!node) return { x: 0, y: 0 }
+  // Wide types: input, interception, translation, evaluation, display, collector
+  const wideTypes: StageType[] = ['input', 'interception', 'translation', 'evaluation', 'display', 'collector']
+  return wideTypes.includes(node.type) ? WIDE_WIDTH : NARROW_WIDTH
+}
 
-    // Fallback calculations based on connector type
-    if (connectorType === 'input') {
-      return { x: node.x, y: node.y + 40 }
-    } else if (connectorType === 'feedback-input') {
-      return { x: node.x + 280, y: node.y + 60 }
-    } else {
-      // output connectors
-      return { x: node.x + 180, y: node.y + 40 }
-    }
-  }
+/**
+ * Get node height
+ */
+function getNodeHeight(node: CanvasNode): number {
+  return node.height || DEFAULT_HEIGHT
+}
 
-  const canvasRect = canvasRef.value.getBoundingClientRect()
-  const connectorRect = connector.getBoundingClientRect()
+/**
+ * Get connector position from node data (no DOM queries)
+ * All connectors positioned in HEADER area (fixed Y offset from top)
+ * This ensures connectors don't move when nodes resize
+ */
+const HEADER_CONNECTOR_Y = 24  // Fixed offset from top (middle of header)
 
-  return {
-    x: connectorRect.left + connectorRect.width / 2 - canvasRect.left,
-    y: connectorRect.top + connectorRect.height / 2 - canvasRect.top
+function getConnectorPosition(node: CanvasNode, connectorType: string): { x: number; y: number } {
+  const width = getNodeWidth(node)
+
+  if (connectorType === 'input') {
+    // Left edge, header height
+    return { x: node.x, y: node.y + HEADER_CONNECTOR_Y }
+  } else if (connectorType === 'feedback-input') {
+    // Right edge, slightly below header for feedback loops
+    return { x: node.x + width, y: node.y + HEADER_CONNECTOR_Y + 20 }
+  } else {
+    // Output connectors: right edge, header height
+    return { x: node.x + width, y: node.y + HEADER_CONNECTOR_Y }
   }
 }
 
@@ -121,30 +136,42 @@ function getConnectorPosition(nodeId: string, connectorType: string): { x: numbe
  * Get center point of a node's output connector
  */
 function getNodeOutputCenter(nodeId: string, label?: string): { x: number; y: number } {
-  // For labeled outputs (evaluation branching)
-  if (label) {
-    return getConnectorPosition(nodeId, `output-${label}`)
+  const node = props.nodes.find(n => n.id === nodeId)
+  if (!node) return { x: 0, y: 0 }
+
+  // For evaluation branching outputs, stack them in header area
+  if (label && node.type === 'evaluation' && node.enableBranching) {
+    const width = getNodeWidth(node)
+    // Three outputs stacked starting from header: passthrough, commented, commentary
+    const outputIndex = label === 'passthrough' ? 0 : label === 'commented' ? 1 : 2
+    const yOffset = HEADER_CONNECTOR_Y + outputIndex * 20
+    return { x: node.x + width, y: node.y + yOffset }
   }
-  return getConnectorPosition(nodeId, 'output')
+
+  return getConnectorPosition(node, 'output')
 }
 
 /**
  * Get center point of a node's input connector
  */
 function getNodeInputCenter(nodeId: string): { x: number; y: number } {
-  return getConnectorPosition(nodeId, 'input')
+  const node = props.nodes.find(n => n.id === nodeId)
+  if (!node) return { x: 0, y: 0 }
+  return getConnectorPosition(node, 'input')
 }
 
 /**
  * Get center point of a node's feedback input connector
  */
 function getNodeFeedbackInputCenter(nodeId: string): { x: number; y: number } {
-  return getConnectorPosition(nodeId, 'feedback-input')
+  const node = props.nodes.find(n => n.id === nodeId)
+  if (!node) return { x: 0, y: 0 }
+  return getConnectorPosition(node, 'feedback-input')
 }
 
 /**
  * Connection paths for rendering
- * Uses actual DOM positions of connectors
+ * Pure data-based calculation - no DOM queries
  */
 const connectionPaths = computed(() => {
   return props.connections.map(conn => {
