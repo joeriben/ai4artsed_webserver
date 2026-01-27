@@ -52,6 +52,37 @@
             <span class="button-text">Start</span>
             <span class="button-arrows button-arrows-right">>>></span>
           </button>
+
+          <!-- Wikipedia Badge (Session 139) - stable area next to Stage 1 -->
+          <transition name="fade">
+            <div v-if="wikipediaData.terms.length > 0" class="lora-stamp wikipedia-lora" @click="wikipediaExpanded = !wikipediaExpanded">
+              <div class="stamp-inner lora-inner">
+                <div class="stamp-icon lora-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <!-- Wikipedia "W" in puzzle globe style -->
+                    <circle cx="12" cy="12" r="10" fill="#fff" stroke="#000" stroke-width="1"/>
+                    <!-- Puzzle pieces (simplified globe) -->
+                    <path d="M12 2 A10 10 0 0 1 22 12" fill="none" stroke="#000" stroke-width="0.5"/>
+                    <path d="M22 12 A10 10 0 0 1 12 22" fill="none" stroke="#000" stroke-width="0.5"/>
+                    <path d="M12 22 A10 10 0 0 1 2 12" fill="none" stroke="#000" stroke-width="0.5"/>
+                    <path d="M2 12 A10 10 0 0 1 12 2" fill="none" stroke="#000" stroke-width="0.5"/>
+                    <!-- "W" letterform -->
+                    <text x="12" y="17" font-family="Georgia, serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#000">W</text>
+                  </svg>
+                </div>
+                <div class="stamp-text">
+                  {{ wikipediaData.terms.length }} Artikel
+                </div>
+              </div>
+              <div v-if="wikipediaExpanded" class="lora-details">
+                <div v-for="(item, index) in wikipediaData.terms" :key="index" class="lora-item">
+                  <a :href="item.url" target="_blank" rel="noopener">
+                    {{ item.title }}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </transition>
         </div>
 
         <!-- Section 3: Interception Preview (filled after Start #1) -->
@@ -281,37 +312,6 @@
               <div class="stamp-inner">
                 <div class="stamp-icon">✓</div>
                 <div class="stamp-text">Safety<br/>Approved</div>
-              </div>
-            </div>
-          </transition>
-
-          <!-- Wikipedia Badge (Session 139) - moved to stable area next to Stage 1 -->
-          <transition name="fade">
-            <div v-if="wikipediaData.terms.length > 0" class="lora-stamp wikipedia-lora" @click="wikipediaExpanded = !wikipediaExpanded">
-              <div class="stamp-inner lora-inner">
-                <div class="stamp-icon lora-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                    <!-- Wikipedia "W" in puzzle globe style -->
-                    <circle cx="12" cy="12" r="10" fill="#fff" stroke="#000" stroke-width="1"/>
-                    <!-- Puzzle pieces (simplified globe) -->
-                    <path d="M12 2 A10 10 0 0 1 22 12" fill="none" stroke="#000" stroke-width="0.5"/>
-                    <path d="M22 12 A10 10 0 0 1 12 22" fill="none" stroke="#000" stroke-width="0.5"/>
-                    <path d="M12 22 A10 10 0 0 1 2 12" fill="none" stroke="#000" stroke-width="0.5"/>
-                    <path d="M2 12 A10 10 0 0 1 12 2" fill="none" stroke="#000" stroke-width="0.5"/>
-                    <!-- "W" letterform -->
-                    <text x="12" y="17" font-family="Georgia, serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#000">W</text>
-                  </svg>
-                </div>
-                <div class="stamp-text">
-                  {{ wikipediaData.terms.length }} Artikel
-                </div>
-              </div>
-              <div v-if="wikipediaExpanded" class="lora-details">
-                <div v-for="(item, index) in wikipediaData.terms" :key="index" class="lora-item">
-                  <a :href="item.url" target="_blank" rel="noopener">
-                    {{ item.title }}
-                  </a>
-                </div>
               </div>
             </div>
           </transition>
