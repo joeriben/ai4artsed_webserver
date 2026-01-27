@@ -1,5 +1,43 @@
 # Development Log
 
+## Session 141 - Canvas SSE Streaming for Live Execution Progress
+**Date:** 2026-01-27
+**Focus:** Real-time progress feedback during canvas workflow execution
+**Status:** COMPLETED
+
+### Problem
+Users see nothing for 5+ minutes while canvas workflow runs. Terminal shows useful progress info (`[Canvas Tracer] Executing...`) but frontend only updates after everything completes.
+
+### Solution
+SSE (Server-Sent Events) streaming endpoint that yields events IMMEDIATELY during execution.
+
+### Key Implementation Detail
+**Iterative work-queue instead of recursion** - Critical architectural change:
+- Recursive `trace()` function cannot `yield` (nested function limitation)
+- Replaced with explicit work-queue loop in generator
+- `yield` now happens DIRECTLY in main generator between node executions
+
+### SSE Events
+| Event | Data | When |
+|-------|------|------|
+| `started` | `{total_nodes}` | Execution begins |
+| `progress` | `{node_id, node_type, message}` | Before each node |
+| `node_complete` | `{node_id, output_preview}` | After each node |
+| `complete` | `{results, collectorOutput}` | All done |
+| `error` | `{message}` | On failure |
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `devserver/my_app/routes/canvas_routes.py` | New `/api/canvas/execute-stream` endpoint with iterative work-queue |
+| `public/ai4artsed-frontend/src/stores/canvas.ts` | `executeWorkflow()` now uses streaming fetch + ReadableStream; added `currentProgress`, `totalNodes`, `completedNodes` refs |
+| `public/ai4artsed-frontend/src/views/canvas_workflow.vue` | Progress overlay with spinner, current step message, and node counter |
+
+### Commit
+`319313d` - feat(canvas): SSE streaming for live execution progress
+
+---
+
 ## Session 136 - Anti-Orientalism Meta-Prompt Enhancement
 **Date:** 2026-01-26
 **Focus:** Prevent orientalist stereotypes in prompt interception
