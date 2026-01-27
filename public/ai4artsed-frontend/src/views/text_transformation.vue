@@ -1367,11 +1367,9 @@ function handleWikipediaLookup(data: { status: string; terms: Array<{ term: stri
     wikipediaStatusText.value = '(Wikipedia-Recherche läuft...)'
   } else if (data.status === 'complete') {
     wikipediaData.value.active = false
-    // NUR bei complete: echte URLs sind jetzt da
+    // Bei complete: Backend hat schon mit r.success gefiltert
     if (data.terms && data.terms.length > 0) {
-      // Filter: nur erfolgreiche mit echten URLs
-      const validTerms = data.terms.filter(t => t.success && t.url)
-      wikipediaData.value.terms = [...wikipediaData.value.terms, ...validTerms]
+      wikipediaData.value.terms = [...wikipediaData.value.terms, ...data.terms]
     }
     const successCount = wikipediaData.value.terms.length
     wikipediaStatusText.value = successCount > 0
