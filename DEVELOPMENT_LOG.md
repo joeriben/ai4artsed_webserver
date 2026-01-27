@@ -1,5 +1,50 @@
 # Development Log
 
+## Session 142 - Wikipedia Badge Position Fix
+**Date:** 2026-01-27
+**Focus:** Fix disappearing Wikipedia badge by moving to stable UI area
+**Status:** COMPLETED
+
+### Problem
+Wikipedia badge disappeared after 3 seconds during multiple Wikipedia lookups:
+1. First lookup complete: `terms: [{...}]` → Badge appears ✓
+2. Second lookup start: `terms: []` → Badge disappears ✗ (SSE event overwrote terms array)
+3. Second lookup complete: `terms: [{...}]` → Badge reappears
+
+**Root Cause:**
+- Badge positioned in interception section (unstable during SSE streaming)
+- `handleWikipediaLookup()` replaced terms array on "start" event: `wikipediaData.value = { active: true, terms: [] }`
+
+### Solution
+**Moved badge to stable area** next to Start #1 button:
+- No movement during streaming
+- Not affected by SSE events
+- Visible immediately after first Wikipedia lookup
+- Persists during all subsequent lookups
+
+**Fixed data handling:**
+- `handleWikipediaLookup()`: Accumulates terms instead of replacing
+- `runInterception()`: Full reset only at start of new run
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `public/ai4artsed-frontend/src/views/text_transformation.vue` | Removed badge from interception section (line 83-112); Added badge to Start #1 button container; Fixed handleWikipediaLookup to accumulate terms; wikipediaStatusText shows live status in loading message |
+
+### Commits
+- `ab4e37c` - feat(wikipedia): Add status text and dynamic loading message
+- `4294bcd` - fix(wikipedia): Move badge to stable area next to Stage 1
+- `e1968c0` - fix(wikipedia): Move badge from Start #2 to Start #1
+
+### Result
+- Badge appears when first Wikipedia lookup completes
+- Badge stays visible during subsequent lookups
+- Terms accumulate (e.g., "3 Artikel")
+- Badge resets only on new interception run
+- Stable position next to Start #1 button
+
+---
+
 ## Session 141 - Canvas SSE Streaming for Live Execution Progress
 **Date:** 2026-01-27
 **Focus:** Real-time progress feedback during canvas workflow execution
