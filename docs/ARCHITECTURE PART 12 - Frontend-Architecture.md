@@ -1634,3 +1634,206 @@ async function sendMessage() {
 - `devserver/my_app/routes/chat_routes.py` - Backend chat API
 
 ---
+
+### UI Features: Badges & Status Indicators
+
+#### Wikipedia Research Badge (Session 136, 139, 142)
+
+**Purpose:** Visual indicator showing when AI system has consulted Wikipedia for cultural/factual context
+
+**Pedagogical Goal:**
+- Transparency about AI research process
+- Cultural respect through factual grounding
+- Build trust by showing Wikipedia sources
+
+**Implementation:**
+
+**Location:** Next to Start #1 button in `text_transformation.vue`
+- **Reason:** Stable UI area that doesn't move during SSE streaming
+- Previous location (interception section) caused badge to disappear during multiple lookups
+
+**Visual Design:**
+```typescript
+// Wikipedia badge uses LoRA badge design pattern
+class="lora-stamp wikipedia-lora"
+
+// SVG icon: Wikipedia "W" in puzzle globe style
+// Color: Distinct from LoRA green (configurable via CSS)
+```
+
+**Data Flow:**
+```typescript
+// SSE Event from backend during Stage 2 (Prompt Interception)
+@wikipedia-lookup="handleWikipediaLookup"
+
+// Event structure:
+{
+  status: 'start' | 'complete',
+  terms: Array<{
+    term: string,
+    lang: string,        // Language used for lookup
+    title: string,       // Wikipedia article title
+    url: string,         // Full Wikipedia URL
+    success: boolean     // Whether lookup succeeded
+  }>
+}
+```
+
+**State Management:**
+```typescript
+const wikipediaData = ref<{
+  active: boolean,  // Research in progress
+  terms: Array<WikipediaTerm>
+}>({ active: false, terms: [] })
+
+// Accumulates terms during multiple lookups
+// Only resets on new interception run
+```
+
+**User Interaction:**
+- Click badge → Expand list of Wikipedia articles
+- Each article shows language code `[de]`, `[en]`, etc.
+- Articles are clickable links to Wikipedia
+
+**Key Implementation Details (Session 142):**
+
+**Problem Solved:** Badge disappeared after 3 seconds during multiple lookups
+- **Root Cause:** SSE "start" events reset `terms: []`, badge was in unstable section
+- **Solution:**
+  1. Moved badge to stable area (Start #1 button container)
+  2. Changed `handleWikipediaLookup()` to **accumulate** terms instead of replacing
+  3. Only full reset on new interception run (`runInterception()`)
+
+**Code Pattern:**
+```typescript
+function handleWikipediaLookup(data) {
+  if (data.status === 'start') {
+    wikipediaData.value.active = true
+    // Accumulate, don't replace
+    if (data.terms?.length > 0) {
+      wikipediaData.value.terms = [...wikipediaData.value.terms, ...data.terms]
+    }
+  } else if (data.status === 'complete') {
+    wikipediaData.value.active = false
+    // Accumulate
+    if (data.terms?.length > 0) {
+      wikipediaData.value.terms = [...wikipediaData.value.terms, ...data.terms]
+    }
+  }
+}
+
+function runInterception() {
+  // Only place where terms reset
+  wikipediaData.value = { active: false, terms: [] }
+}
+```
+
+**Badge Text:**
+- During research: "Wikipedia-Recherche läuft..."
+- After completion: "3 Artikel" (shows count)
+
+**Expandable Details:**
+```typescript
+wikipediaExpanded = ref(false)  // Toggle state
+
+// Expanded view shows:
+<div class="lora-details">  // Reuses LoRA badge styles
+  <div v-for="term in wikipediaData.terms" class="lora-item">
+    <a :href="term.url" target="_blank">
+      {{ term.title }}
+    </a>
+  </div>
+</div>
+```
+
+**Cultural Context Feature (Session 136):**
+- Wikipedia lookup uses **cultural reference language**, not prompt language
+- Example: German prompt about Nigeria → uses Hausa/Yoruba/Igbo/English Wikipedia
+- 70+ languages supported for cultural contexts
+- Prevents orientalism by grounding in cultural sources
+
+**Related Files:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Badge UI
+- `devserver/schemas/engine/pipeline_executor.py` - Sends Wikipedia events via SSE
+- `devserver/my_app/services/wikipedia_service.py` - 70+ language support
+- `docs/analysis/ORIENTALISM_PROBLEM_2026-01.md` - Cultural respect rationale
+
+**TODO (Session 142):**
+- [ ] User testing of badge visibility and interaction
+- [ ] Fine-tuning of badge position/styling if needed
+
+---
+
+#### LoRA Badge (Session 116)
+
+**Purpose:** Shows when Low-Rank Adaptation models are being used
+
+**Locations:**
+1. **Stage 2 (Interception):** Shows config-defined LoRAs (after Start #1)
+2. **Stage 4 (Generation):** Shows active LoRAs from backend response (after Start #2)
+
+**Visual Design:**
+- Green color scheme (distinct from Wikipedia badge)
+- Caterpillar/nature icon
+- Shows count: "2 LoRAs"
+
+**Expandable Details:**
+- Click to expand list of LoRA names and strengths
+- Format: "LoRA Name" with strength value
+
+**Code Pattern:**
+```typescript
+// Stage 2: Uses config data
+const configLoras = computed(() => {
+  return pipelineStore.selectedConfig?.loras || []
+})
+
+// Stage 4: Uses backend response
+const activeLoras = ref<Array<{name: string, strength: number}>>([])
+
+// Smart computed: uses activeLoras if available, else configLoras
+const stage4Loras = computed(() => {
+  return activeLoras.value.length > 0
+    ? activeLoras.value
+    : configLoras.value
+})
+```
+
+**Related Files:**
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Badge UI
+- `devserver/my_app/routes/schema_pipeline_routes.py` - Returns active LoRAs in response
+
+---
+
+#### Safety Approved Stamp (Stage 1)
+
+**Purpose:** Visual confirmation that user input passed safety validation
+
+**Location:** Next to Start #2 button (Generation)
+
+**Visual Design:**
+- Checkmark icon ✓
+- Text: "Safety Approved"
+- Green color scheme
+
+**Timing:**
+- Appears after 300ms delay during `executePipeline()`
+- Simulates Stage 1 safety check
+- Provides user confidence before generation starts
+
+**Code Pattern:**
+```typescript
+const showSafetyApprovedStamp = ref(false)
+
+async function executePipeline() {
+  showSafetyApprovedStamp.value = false  // Reset
+
+  // Stage 1: Safety check (silent, shows stamp when complete)
+  await new Promise(resolve => setTimeout(resolve, 300))
+  showSafetyApprovedStamp.value = true
+
+  // Continue with generation...
+}
+```
+
+---
