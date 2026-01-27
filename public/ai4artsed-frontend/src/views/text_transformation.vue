@@ -1330,7 +1330,7 @@ function handleStreamStarted() {
   isInterceptionLoading.value = false  // Hide spinner, show typewriter effect
 
   // Track which interception config was used (for generation context)
-  lastInterceptionConfig.value = pipelineStore.selectedConfig?.id || 'overdrive'
+  lastInterceptionConfig.value = pipelineStore.selectedConfig?.id || 'user_defined'
   console.log('[Stream] Saved interception config:', lastInterceptionConfig.value)
 }
 
@@ -1362,19 +1362,18 @@ function handleWikipediaLookup(data: { status: string; terms: Array<{ term: stri
   console.log('[Wikipedia] Lookup event:', data.status, data.terms)
 
   if (data.status === 'start') {
-    // Don't reset terms array - just set active flag and optionally add new terms
     wikipediaData.value.active = true
-    if (data.terms && data.terms.length > 0) {
-      wikipediaData.value.terms = [...wikipediaData.value.terms, ...data.terms]
-    }
+    // KEINE terms bei start - sie haben leere URLs!
     wikipediaStatusText.value = '(Wikipedia-Recherche läuft...)'
   } else if (data.status === 'complete') {
     wikipediaData.value.active = false
-    // Accumulate terms instead of replacing
+    // NUR bei complete: echte URLs sind jetzt da
     if (data.terms && data.terms.length > 0) {
-      wikipediaData.value.terms = [...wikipediaData.value.terms, ...data.terms]
+      // Filter: nur erfolgreiche mit echten URLs
+      const validTerms = data.terms.filter(t => t.success && t.url)
+      wikipediaData.value.terms = [...wikipediaData.value.terms, ...validTerms]
     }
-    const successCount = wikipediaData.value.terms.filter(t => t.success).length
+    const successCount = wikipediaData.value.terms.length
     wikipediaStatusText.value = successCount > 0
       ? `(Wikipedia: ${successCount} Artikel gefunden)`
       : ''
