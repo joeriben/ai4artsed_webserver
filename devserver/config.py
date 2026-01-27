@@ -61,6 +61,14 @@ UI_MODE = "youth"  # ADMIN: Change to "kids", "youth", or "expert"
 DEFAULT_SAFETY_LEVEL = "youth"  # ADMIN: Change to "kids", "youth", "adult", or "off"
 
 # ----------------------------------------------------------------------------
+# 2b. DEFAULT INTERCEPTION CONFIG
+# ----------------------------------------------------------------------------
+# Default config for Stage 2 Prompt Interception when none is specified
+# "user_defined" = neutral passthrough (empty context = no AI transformation)
+# This allows users to have full control without unexpected transformations
+DEFAULT_INTERCEPTION_CONFIG = "user_defined"  # ADMIN: Change to any interception config name
+
+# ----------------------------------------------------------------------------
 # 3. SERVER SETTINGS
 # ----------------------------------------------------------------------------
 HOST = "0.0.0.0"

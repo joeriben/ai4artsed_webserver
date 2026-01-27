@@ -905,7 +905,7 @@ const streamingUrl = computed(() => {
 const streamingParams = computed(() => {
   // UNIFIED ORCHESTRATED STREAMING: All parameters for /api/schema/pipeline/execute
   const params = {
-    schema: pipelineStore.selectedConfig?.id || 'overdrive',
+    schema: pipelineStore.selectedConfig?.id || 'user_defined',
     input_text: inputText.value,
     context_prompt: contextPrompt.value || '',
     safety_level: 'youth',
@@ -967,7 +967,7 @@ const optimizationStreamingParams = computed(() => {
   // LAB ARCHITECTURE: Optimization uses /optimize endpoint
   // Input is already safe interception result, context is optimization instruction
   const params = {
-    schema: pipelineStore.selectedConfig?.id || 'overdrive',
+    schema: pipelineStore.selectedConfig?.id || 'user_defined',
     input_text: interceptionResult.value,  // Already safe interception result
     context_prompt: optimizationInstruction.value || '',  // Model-specific optimization instruction
     enable_streaming: true,

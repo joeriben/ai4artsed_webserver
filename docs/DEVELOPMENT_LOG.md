@@ -27,6 +27,83 @@
 
 ---
 
+## Session 143 (2026-01-27): Remove Hardcoded 'overdrive' Defaults
+
+**Date:** 2026-01-27
+**Duration:** ~1.5 hours
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** [to be added]
+
+### Objective
+
+Remove hardcoded 'overdrive' defaults from early testing days and replace with centralized `DEFAULT_INTERCEPTION_CONFIG = "user_defined"` for predictable, neutral behavior.
+
+### Problem
+
+Three hardcoded `'overdrive'` defaults existed in backend routes (schema_pipeline_routes.py lines 1330, 1613, 1773). When no `schema` parameter was provided in API requests, the system silently fell back to 'overdrive' (an extreme aesthetic transformation), causing unexpected behavior for users expecting neutral processing.
+
+### Solution
+
+1. **Added `DEFAULT_INTERCEPTION_CONFIG` constant to config.py**
+   - Location: After line 61 (near `DEFAULT_SAFETY_LEVEL`)
+   - Value: `"user_defined"` (neutral passthrough with empty context)
+   - Documentation: Explains why 'user_defined' is the default
+   - Admin-configurable: Can be changed to any interception config name
+
+2. **Updated 3 backend defaults in schema_pipeline_routes.py**
+   - Line 1330: `/api/schema/pipeline/interception` route
+   - Line 1613: `/api/schema/pipeline/optimize` route (streaming)
+   - Line 1773: `/api/schema/pipeline/optimize` route (sync fallback)
+   - All now use: `data.get('schema', DEFAULT_INTERCEPTION_CONFIG)`
+   - Added import: `from config import DEFAULT_INTERCEPTION_CONFIG`
+
+3. **Updated frontend fallback in text_transformation.vue**
+   - Lines 908, 970: Changed from `'overdrive'` to `'user_defined'`
+   - Ensures frontend matches backend default behavior
+
+### Why 'user_defined'?
+
+- **Empty context**: No AI transformation unless explicitly requested (lines 19-22 in user_defined.json)
+- **User empowerment**: "Your Call!" / "Du bestimmst!" philosophy
+- **Predictable behavior**: No surprises from unexpected AI transformations
+- **Pedagogical alignment**: DevServer should empower users, not impose transformations
+
+### Files Changed
+
+- `devserver/config.py`: Added DEFAULT_INTERCEPTION_CONFIG constant
+- `devserver/my_app/routes/schema_pipeline_routes.py`: Replaced 3 hardcoded defaults + import
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`: Updated 2 fallback instances
+- `docs/DEVELOPMENT_LOG.md`: This documentation
+
+### Breaking Changes
+
+**None** - API contracts unchanged. Only affects requests that don't specify `schema` parameter.
+- Requests WITH explicit `schema` → unchanged behavior
+- Requests WITHOUT `schema` → now use 'user_defined' instead of 'overdrive'
+
+### Technical Notes
+
+- Existing validation already handles missing configs (config_loader.get_config() returns None)
+- No additional error handling needed - graceful degradation already in place
+- Follows existing config.py pattern (DEFAULT_SAFETY_LEVEL, DEFAULT_LANGUAGE)
+- Centralized configuration prevents string literal repetition
+
+### Verification
+
+- Manual testing: API calls with/without schema parameter
+- Type checking: `npm run type-check` passed
+- Regression testing: Existing Stage 2 configs work as expected
+- No startup errors
+
+### Future Enhancements (Out of Scope)
+
+- Unify safety level defaults across all routes (currently inconsistent)
+- Add startup validation that checks if DEFAULT_INTERCEPTION_CONFIG exists
+- Create admin UI to change default config without editing files
+
+---
+
 ## Session 126 (2026-01-21): Documentation Marathon (Continued)
 
 **Date:** 2026-01-21

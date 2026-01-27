@@ -1324,10 +1324,10 @@ def execute_pipeline_streaming(data: dict):
     import time
     import os
     import requests
-    from config import OLLAMA_API_BASE_URL, STAGE2_INTERCEPTION_MODEL
+    from config import OLLAMA_API_BASE_URL, STAGE2_INTERCEPTION_MODEL, DEFAULT_INTERCEPTION_CONFIG
 
     # Extract parameters
-    schema_name = data.get('schema', 'overdrive')
+    schema_name = data.get('schema', DEFAULT_INTERCEPTION_CONFIG)
     input_text = data.get('input_text', '')
     context_prompt = data.get('context_prompt', '')
     safety_level = data.get('safety_level', 'youth')
@@ -1607,10 +1607,10 @@ def execute_optimization_streaming(data: dict):
     """
     import time
     import os
-    from config import STAGE2_INTERCEPTION_MODEL
+    from config import STAGE2_INTERCEPTION_MODEL, DEFAULT_INTERCEPTION_CONFIG
 
     # Extract parameters
-    schema_name = data.get('schema', 'overdrive')
+    schema_name = data.get('schema', DEFAULT_INTERCEPTION_CONFIG)
     input_text = data.get('input_text', '')  # Already safe interception result
     context_prompt = data.get('context_prompt', '')  # Optimization instruction
     run_id_param = data.get('run_id')  # Session 130: From interception for persistence
@@ -1770,7 +1770,7 @@ def optimize_pipeline():
             )
 
         # Non-streaming fallback (synchronous)
-        schema_name = data.get('schema', 'overdrive')
+        schema_name = data.get('schema', DEFAULT_INTERCEPTION_CONFIG)
         input_text = data.get('input_text', '')
         context_prompt = data.get('context_prompt', '')
 
