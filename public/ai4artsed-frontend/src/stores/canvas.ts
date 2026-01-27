@@ -96,6 +96,20 @@ export const useCanvasStore = defineStore('canvas', () => {
     model?: string
   }>>({})
 
+  /** Session 141: Current progress during streaming execution */
+  const currentProgress = ref<{
+    node_id: string
+    node_type: string
+    status: string
+    message: string
+  } | null>(null)
+
+  /** Session 141: Total nodes for progress display */
+  const totalNodes = ref(0)
+
+  /** Session 141: Completed nodes count for progress display */
+  const completedNodes = ref(0)
+
   /** Session 135: Animation timer reference */
   let animationTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -606,8 +620,40 @@ export const useCanvasStore = defineStore('canvas', () => {
   }
 
   /**
-   * Start workflow execution
-   * Session 133: Calls /api/canvas/execute backend endpoint
+   * Parse SSE event from text chunk
+   * Session 141: Helper for streaming execution
+   */
+  function parseSSEEvents(text: string): Array<{ type: string; data: unknown }> {
+    const events: Array<{ type: string; data: unknown }> = []
+    const lines = text.split('\n')
+
+    let currentEvent: { type?: string; data?: string } = {}
+
+    for (const line of lines) {
+      if (line.startsWith('event: ')) {
+        currentEvent.type = line.slice(7).trim()
+      } else if (line.startsWith('data: ')) {
+        currentEvent.data = line.slice(6)
+      } else if (line === '' && currentEvent.type && currentEvent.data) {
+        // Empty line = end of event
+        try {
+          events.push({
+            type: currentEvent.type,
+            data: JSON.parse(currentEvent.data)
+          })
+        } catch (e) {
+          console.warn('[Canvas] Failed to parse SSE data:', currentEvent.data)
+        }
+        currentEvent = {}
+      }
+    }
+
+    return events
+  }
+
+  /**
+   * Start workflow execution with SSE streaming
+   * Session 141: Real-time progress updates via SSE
    */
   async function executeWorkflow() {
     if (!isWorkflowValid.value) {
@@ -620,6 +666,9 @@ export const useCanvasStore = defineStore('canvas', () => {
     error.value = null
     executionResults.value = {}
     collectorOutput.value = []
+    currentProgress.value = null
+    totalNodes.value = 0
+    completedNodes.value = 0
 
     executionState.value = {
       workflowId: workflow.value.id,
@@ -630,10 +679,10 @@ export const useCanvasStore = defineStore('canvas', () => {
       startTime: Date.now()
     }
 
-    console.log('[Canvas] Starting workflow execution...')
+    console.log('[Canvas] Starting streaming workflow execution...')
 
     try {
-      const response = await fetch('/api/canvas/execute', {
+      const response = await fetch('/api/canvas/execute-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -646,32 +695,113 @@ export const useCanvasStore = defineStore('canvas', () => {
         })
       })
 
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
 
-      if (data.status === 'success') {
-        // Session 136: Store results hidden for staged animation release
-        hiddenResults.value = data.results || {}
-        executionResults.value = {}  // Keep empty - animation will populate
-        collectorOutput.value = data.collectorOutput || []
-        executionOrder.value = data.executionOrder || []
+      if (!response.body) {
+        throw new Error('No response body for streaming')
+      }
 
-        if (executionState.value) {
-          executionState.value.status = 'completed'
-          executionState.value.endTime = Date.now()
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+
+        // Parse complete events from buffer
+        const events = parseSSEEvents(buffer)
+
+        // Keep incomplete event data in buffer
+        const lastDoubleNewline = buffer.lastIndexOf('\n\n')
+        if (lastDoubleNewline !== -1) {
+          buffer = buffer.slice(lastDoubleNewline + 2)
         }
 
-        console.log('[Canvas] Execution completed:', data.executionOrder)
-        console.log('[Canvas] Collector output:', collectorOutput.value)
+        // Handle each event
+        for (const event of events) {
+          console.log(`[Canvas SSE] ${event.type}:`, event.data)
 
-        // Start bubble animation replay (progressively releases results)
-        startBubbleAnimation()
-      } else {
-        error.value = data.error || 'Execution failed'
-        if (executionState.value) {
-          executionState.value.status = 'failed'
-          executionState.value.endTime = Date.now()
+          switch (event.type) {
+            case 'started': {
+              const data = event.data as { total_nodes: number }
+              totalNodes.value = data.total_nodes
+              console.log(`[Canvas] Execution started with ${data.total_nodes} nodes`)
+              break
+            }
+
+            case 'progress': {
+              const data = event.data as {
+                node_id: string
+                node_type: string
+                status: string
+                message: string
+              }
+              currentProgress.value = data
+              console.log(`[Canvas] Progress: ${data.message}`)
+              break
+            }
+
+            case 'node_complete': {
+              const data = event.data as {
+                node_id: string
+                node_type: string
+                output_preview?: unknown
+              }
+              completedNodes.value++
+              console.log(`[Canvas] Node complete: ${data.node_id} (${completedNodes.value}/${totalNodes.value})`)
+              break
+            }
+
+            case 'complete': {
+              const data = event.data as {
+                results: Record<string, unknown>
+                collectorOutput: Array<{
+                  nodeId: string
+                  nodeType: string
+                  output: unknown
+                  error: string | null
+                }>
+                executionOrder: string[]
+              }
+
+              // Session 136: Store results hidden for staged animation release
+              hiddenResults.value = data.results as typeof hiddenResults.value || {}
+              executionResults.value = {}  // Keep empty - animation will populate
+              collectorOutput.value = data.collectorOutput || []
+              executionOrder.value = data.executionOrder || []
+
+              if (executionState.value) {
+                executionState.value.status = 'completed'
+                executionState.value.endTime = Date.now()
+              }
+
+              currentProgress.value = null
+              console.log('[Canvas] Execution completed:', data.executionOrder)
+              console.log('[Canvas] Collector output:', collectorOutput.value)
+
+              // Start bubble animation replay (progressively releases results)
+              startBubbleAnimation()
+              break
+            }
+
+            case 'error': {
+              const data = event.data as { message: string }
+              error.value = data.message || 'Execution failed'
+              if (executionState.value) {
+                executionState.value.status = 'failed'
+                executionState.value.endTime = Date.now()
+              }
+              currentProgress.value = null
+              console.error('[Canvas] Execution error:', data.message)
+              break
+            }
+          }
         }
-        console.error('[Canvas] Execution error:', data.error)
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Network error'
@@ -679,6 +809,7 @@ export const useCanvasStore = defineStore('canvas', () => {
         executionState.value.status = 'failed'
         executionState.value.endTime = Date.now()
       }
+      currentProgress.value = null
       console.error('[Canvas] Execution fetch error:', err)
     } finally {
       isExecuting.value = false
@@ -727,6 +858,9 @@ export const useCanvasStore = defineStore('canvas', () => {
     executionResults: computed(() => executionResults.value),
     collectorOutput: computed(() => collectorOutput.value),
     activeNodeId: computed(() => activeNodeId.value),  // Session 135: For bubble animation
+    currentProgress: computed(() => currentProgress.value),  // Session 141: SSE streaming progress
+    totalNodes: computed(() => totalNodes.value),  // Session 141: Total nodes count
+    completedNodes: computed(() => completedNodes.value),  // Session 141: Completed nodes count
 
     // Computed
     isConnecting,

@@ -377,6 +377,28 @@ onUnmounted(() => {
         {{ locale === 'de' ? 'Laden...' : 'Loading...' }}
       </div>
     </div>
+
+    <!-- Execution progress overlay (Session 141) -->
+    <div v-if="canvasStore.isExecuting" class="execution-overlay">
+      <div class="execution-progress">
+        <div class="progress-spinner-ring"></div>
+        <div class="progress-content">
+          <div class="progress-title">
+            {{ locale === 'de' ? 'Workflow wird ausgeführt...' : 'Executing Workflow...' }}
+          </div>
+          <div v-if="canvasStore.currentProgress" class="progress-detail">
+            <span class="progress-message">{{ canvasStore.currentProgress.message }}</span>
+          </div>
+          <div v-else class="progress-detail">
+            <span class="progress-message">{{ locale === 'de' ? 'Starte...' : 'Starting...' }}</span>
+          </div>
+          <div v-if="canvasStore.totalNodes > 0" class="progress-counter">
+            {{ canvasStore.completedNodes }} / {{ canvasStore.totalNodes }}
+            {{ locale === 'de' ? 'Knoten' : 'nodes' }}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -543,5 +565,81 @@ onUnmounted(() => {
   background: #1e293b;
   border-radius: 8px;
   font-size: 1rem;
+}
+
+/* Session 141: Execution Progress Overlay */
+.execution-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+}
+
+.execution-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem 3rem;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border-radius: 16px;
+  border: 1px solid #334155;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  min-width: 300px;
+}
+
+.progress-spinner-ring {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #334155;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.progress-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.progress-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.progress-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-message {
+  font-size: 0.9375rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.progress-counter {
+  font-size: 0.8125rem;
+  color: #64748b;
+  padding: 0.25rem 0.75rem;
+  background: rgba(51, 65, 85, 0.5);
+  border-radius: 12px;
+  margin-top: 0.25rem;
 }
 </style>

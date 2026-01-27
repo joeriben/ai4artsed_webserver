@@ -13,7 +13,7 @@ Provides:
 import logging
 import asyncio
 from pathlib import Path
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, Response
 import json
 
 from schemas.engine.model_selector import ModelSelector
@@ -711,3 +711,393 @@ def execute_workflow():
             'status': 'error',
             'error': str(e)
         }), 500
+
+
+@canvas_bp.route('/api/canvas/execute-stream', methods=['POST'])
+def execute_workflow_stream():
+    """
+    Execute a canvas workflow with SSE streaming for live progress updates.
+
+    Session 141: SSE streaming endpoint - yields events IMMEDIATELY as each node executes.
+    Uses iterative work-queue instead of recursion so we can yield between nodes.
+
+    Events:
+    - started: {total_nodes: N} - Execution begins
+    - progress: {node_id, node_type, status, message} - Node starts executing
+    - node_complete: {node_id, output_preview} - Node finished
+    - complete: {results, collectorOutput, executionOrder} - All done
+    - error: {message} - Error occurred
+    """
+    from schemas.engine.prompt_interception_engine import PromptInterceptionEngine, PromptInterceptionRequest
+    import time
+    import uuid
+
+    try:
+        data = request.get_json()
+        if not data:
+            def error_gen():
+                yield f"event: error\ndata: {json.dumps({'message': 'JSON request expected'})}\n\n"
+            return Response(error_gen(), mimetype='text/event-stream')
+
+        nodes = data.get('nodes', [])
+        connections = data.get('connections', [])
+
+        if not nodes:
+            def error_gen():
+                yield f"event: error\ndata: {json.dumps({'message': 'No nodes provided'})}\n\n"
+            return Response(error_gen(), mimetype='text/event-stream')
+
+        def generate():
+            """Generator that yields SSE events IMMEDIATELY during execution"""
+            try:
+                logger.info(f"[Canvas Stream] Starting with {len(nodes)} nodes, {len(connections)} connections")
+
+                # Send started event IMMEDIATELY
+                yield f"event: started\ndata: {json.dumps({'total_nodes': len(nodes)})}\n\n"
+
+                # Build graph
+                node_map = {n['id']: n for n in nodes}
+                outgoing = {n['id']: [] for n in nodes}
+                for conn in connections:
+                    src = conn.get('sourceId')
+                    tgt = conn.get('targetId')
+                    label = conn.get('label')
+                    if src and tgt:
+                        outgoing[src].append({'target': tgt, 'label': label})
+
+                # Find input node
+                input_node = None
+                for n in nodes:
+                    if n.get('type') == 'input':
+                        input_node = n
+                        break
+
+                if not input_node:
+                    yield f"event: error\ndata: {json.dumps({'message': 'No input node found'})}\n\n"
+                    return
+
+                # Execution state
+                results = {}
+                collector_items = []
+                execution_trace = []
+                engine = PromptInterceptionEngine()
+                canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
+                MAX_TOTAL_EXECUTIONS = 50
+                execution_count = 0
+
+                NODE_TYPE_LABELS = {
+                    'input': 'Processing Input',
+                    'interception': 'Running Interception',
+                    'translation': 'Translating',
+                    'generation': 'Generating Media',
+                    'evaluation': 'Evaluating',
+                    'display': 'Display',
+                    'collector': 'Collecting Results'
+                }
+
+                def get_output_preview(output_data, data_type):
+                    if output_data is None:
+                        return None
+                    if data_type == 'image' and isinstance(output_data, dict):
+                        return {'type': 'image', 'url': output_data.get('url', '')}
+                    if isinstance(output_data, str):
+                        preview = output_data[:100] + '...' if len(output_data) > 100 else output_data
+                        return {'type': 'text', 'preview': preview}
+                    return {'type': 'unknown'}
+
+                def execute_node_sync(node, input_data, data_type, source_node_id=None, source_node_type=None):
+                    """Execute a single node synchronously"""
+                    node_id = node['id']
+                    node_type = node.get('type')
+
+                    logger.info(f"[Canvas Stream] Executing {node_id} ({node_type})")
+
+                    if node_type == 'input':
+                        output = node.get('promptText', '')
+                        results[node_id] = {'type': 'input', 'output': output, 'error': None}
+                        return output, 'text', None
+
+                    elif node_type == 'interception':
+                        llm_model = node.get('llmModel', 'local/mistral-nemo')
+                        context_prompt = node.get('contextPrompt', '')
+                        if not input_data:
+                            results[node_id] = {'type': 'interception', 'output': '', 'error': 'No input'}
+                            return '', 'text', None
+                        req = PromptInterceptionRequest(
+                            input_prompt=input_data, style_prompt=context_prompt,
+                            model=llm_model, debug=True
+                        )
+                        response = asyncio.run(engine.process_request(req))
+                        output = response.output_str if response.success else ''
+                        results[node_id] = {
+                            'type': 'interception', 'output': output,
+                            'error': response.error if not response.success else None,
+                            'model': response.model_used
+                        }
+                        logger.info(f"[Canvas Stream] Interception: '{output[:50]}...'")
+                        return output, 'text', None
+
+                    elif node_type == 'translation':
+                        llm_model = node.get('llmModel', 'local/mistral-nemo')
+                        translation_prompt = node.get('translationPrompt', 'Translate to English:')
+                        if not input_data:
+                            results[node_id] = {'type': 'translation', 'output': '', 'error': 'No input'}
+                            return '', 'text', None
+                        req = PromptInterceptionRequest(
+                            input_prompt=input_data, style_prompt=translation_prompt,
+                            model=llm_model, debug=True
+                        )
+                        response = asyncio.run(engine.process_request(req))
+                        output = response.output_str if response.success else ''
+                        results[node_id] = {
+                            'type': 'translation', 'output': output,
+                            'error': response.error if not response.success else None,
+                            'model': response.model_used
+                        }
+                        return output, 'text', None
+
+                    elif node_type == 'generation':
+                        from my_app.routes.schema_pipeline_routes import execute_stage4_generation_only
+                        from config import DEFAULT_SAFETY_LEVEL
+                        config_id = node.get('configId')
+                        if not config_id:
+                            results[node_id] = {'type': 'generation', 'output': None, 'error': 'No config'}
+                            return None, 'image', None
+                        if not input_data:
+                            results[node_id] = {'type': 'generation', 'output': None, 'error': 'No input'}
+                            return None, 'image', None
+                        try:
+                            gen_result = asyncio.run(execute_stage4_generation_only(
+                                prompt=input_data, output_config=config_id,
+                                safety_level=DEFAULT_SAFETY_LEVEL, run_id=canvas_run_id, device_id=None
+                            ))
+                            if gen_result['success']:
+                                output = gen_result['media_output']
+                                results[node_id] = {'type': 'generation', 'output': output, 'error': None, 'configId': config_id}
+                                logger.info(f"[Canvas Stream] Generation: {output['url']}")
+                                return output, 'image', None
+                            else:
+                                results[node_id] = {'type': 'generation', 'output': None, 'error': gen_result.get('error'), 'configId': config_id}
+                                return None, 'image', None
+                        except Exception as e:
+                            results[node_id] = {'type': 'generation', 'output': None, 'error': str(e), 'configId': config_id}
+                            return None, 'image', None
+
+                    elif node_type == 'evaluation':
+                        llm_model = node.get('llmModel', 'local/mistral-nemo')
+                        evaluation_prompt = node.get('evaluationPrompt', '')
+                        output_type_setting = node.get('outputType', 'all')
+                        if isinstance(input_data, dict) and input_data.get('url'):
+                            eval_input = f"[Media: {input_data.get('media_type', 'image')} at {input_data.get('url')}]"
+                        else:
+                            eval_input = input_data or ''
+                        if not eval_input:
+                            results[node_id] = {
+                                'type': 'evaluation',
+                                'outputs': {'passthrough': '', 'commented': '', 'commentary': ''},
+                                'metadata': {'binary': None, 'score': None, 'active_path': None},
+                                'error': 'No input'
+                            }
+                            return '', 'text', {'binary': None, 'score': None, 'active_path': None}
+
+                        instruction = f"{evaluation_prompt}\n\nProvide your evaluation in the following format:\n\nCOMMENTARY: [Your detailed evaluation and feedback]\n"
+                        if output_type_setting in ['score', 'all']:
+                            instruction += "SCORE: [Numeric score from 0 to 10 only]\n"
+                        instruction += "\nIMPORTANT: SCORE must be 0-10. Scores < 5 = FAILED, >= 5 = PASSED."
+
+                        req = PromptInterceptionRequest(
+                            input_prompt=eval_input, style_prompt=instruction,
+                            model=llm_model, debug=True
+                        )
+                        response = asyncio.run(engine.process_request(req))
+                        if not response.success:
+                            results[node_id] = {
+                                'type': 'evaluation',
+                                'outputs': {'passthrough': '', 'commented': '', 'commentary': ''},
+                                'metadata': {'binary': None, 'score': None, 'active_path': None},
+                                'error': response.error
+                            }
+                            return '', 'text', {'binary': None, 'score': None, 'active_path': None}
+
+                        commentary = ''
+                        score = None
+                        if 'COMMENTARY:' in response.output_str:
+                            parts = response.output_str.split('COMMENTARY:')[1]
+                            commentary = parts.split('SCORE:')[0].strip() if 'SCORE:' in parts else parts.strip()
+                        else:
+                            commentary = response.output_str
+                        if response.output_float is not None:
+                            score = float(response.output_float)
+                        elif 'SCORE:' in response.output_str:
+                            import re
+                            score_part = response.output_str.split('SCORE:')[1].split('\n')[0]
+                            nums = re.findall(r'\d+\.?\d*', score_part)
+                            if nums:
+                                score = float(nums[0])
+                        if score is not None and (score < 0 or score > 10):
+                            score = None
+
+                        binary_result = score >= 5.0 if score is not None else False
+                        active_path = 'passthrough' if binary_result else 'commented'
+                        passthrough_text = eval_input
+                        commented_text = f"{eval_input}\n\nFEEDBACK: {commentary}"
+
+                        results[node_id] = {
+                            'type': 'evaluation',
+                            'outputs': {'passthrough': passthrough_text, 'commented': commented_text, 'commentary': commentary},
+                            'metadata': {'binary': binary_result, 'score': score, 'active_path': active_path},
+                            'error': None, 'model': response.model_used
+                        }
+                        logger.info(f"[Canvas Stream] Evaluation: score={score}, path={active_path}")
+                        return passthrough_text if binary_result else commented_text, 'text', {'binary': binary_result, 'score': score, 'active_path': active_path}
+
+                    elif node_type == 'display':
+                        display_title = node.get('title', 'Display')
+                        display_mode = node.get('displayMode', 'inline')
+                        results[node_id] = {
+                            'type': 'display', 'output': input_data, 'error': None,
+                            'displayData': {'title': display_title, 'mode': display_mode, 'content': input_data, 'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S')}
+                        }
+                        logger.info(f"[Canvas Stream] Display: '{display_title}'")
+                        return None, data_type, None
+
+                    elif node_type == 'collector':
+                        source_result = results.get(source_node_id, {}) if source_node_id else {}
+                        source_metadata = source_result.get('metadata')
+                        collector_item = {'nodeId': source_node_id or node_id, 'nodeType': source_node_type or data_type, 'output': input_data, 'error': None}
+                        if source_node_type == 'evaluation' and source_metadata:
+                            collector_item['output'] = {'text': input_data, 'metadata': source_metadata}
+                        collector_items.append(collector_item)
+                        results[node_id] = {'type': 'collector', 'output': collector_items, 'error': None}
+                        logger.info(f"[Canvas Stream] Collector: {len(collector_items)} items")
+                        return input_data, data_type, None
+
+                    else:
+                        results[node_id] = {'type': node_type, 'output': None, 'error': f'Unknown type: {node_type}'}
+                        return None, 'text', None
+
+                def get_next_nodes(node_id, output_data, output_type, metadata):
+                    """Get list of next nodes to execute based on connections"""
+                    node = node_map.get(node_id)
+                    node_type = node.get('type') if node else None
+                    next_conns = outgoing.get(node_id, [])
+                    if not next_conns:
+                        return []
+
+                    # For evaluation nodes: filter based on score
+                    if node_type == 'evaluation' and metadata:
+                        active_path = metadata.get('active_path')
+                        filtered = []
+                        for conn in next_conns:
+                            label = conn.get('label')
+                            if not label or label == 'commentary' or label == active_path:
+                                filtered.append(conn)
+                            elif label == 'feedback' and active_path == 'commented':
+                                filtered.append(conn)
+                        next_conns = filtered
+
+                    # Separate display vs flow nodes
+                    result = []
+                    for conn in next_conns:
+                        target_id = conn['target']
+                        target_node = node_map.get(target_id)
+                        if not target_node:
+                            continue
+
+                        target_type = target_node.get('type')
+                        accepts_text = target_type in ['interception', 'translation', 'generation', 'evaluation', 'collector', 'display']
+                        accepts_image = target_type in ['evaluation', 'collector', 'display']
+
+                        if output_type == 'text' and not accepts_text:
+                            continue
+                        if output_type == 'image' and not accepts_image:
+                            continue
+
+                        # Determine the data to pass
+                        if node_type == 'evaluation' and metadata:
+                            conn_label = conn.get('label')
+                            if conn_label == 'commentary':
+                                trace_data = results[node_id]['outputs']['commentary']
+                            elif conn_label == 'passthrough':
+                                trace_data = results[node_id]['outputs']['passthrough']
+                            elif conn_label in ['commented', 'feedback']:
+                                trace_data = results[node_id]['outputs']['commented']
+                            else:
+                                trace_data = output_data
+                        else:
+                            trace_data = output_data
+
+                        result.append({
+                            'node_id': target_id,
+                            'input_data': trace_data,
+                            'data_type': output_type,
+                            'source_node_id': node_id,
+                            'source_node_type': node_type
+                        })
+
+                    return result
+
+                # =============================================================
+                # ITERATIVE WORK QUEUE - yields events IMMEDIATELY
+                # =============================================================
+                work_queue = [{
+                    'node_id': input_node['id'],
+                    'input_data': None,
+                    'data_type': 'text',
+                    'source_node_id': None,
+                    'source_node_type': None
+                }]
+
+                while work_queue and execution_count < MAX_TOTAL_EXECUTIONS:
+                    work_item = work_queue.pop(0)
+                    node_id = work_item['node_id']
+                    node = node_map.get(node_id)
+                    if not node:
+                        continue
+
+                    node_type = node.get('type')
+                    execution_count += 1
+                    execution_trace.append(node_id)
+
+                    # YIELD progress event IMMEDIATELY before execution
+                    yield f"event: progress\ndata: {json.dumps({'node_id': node_id, 'node_type': node_type, 'status': 'executing', 'message': NODE_TYPE_LABELS.get(node_type, f'Executing {node_type}...')})}\n\n"
+
+                    # Execute the node
+                    output_data, output_type, metadata = execute_node_sync(
+                        node,
+                        work_item['input_data'],
+                        work_item['data_type'],
+                        work_item['source_node_id'],
+                        work_item['source_node_type']
+                    )
+
+                    # YIELD node_complete event IMMEDIATELY after execution
+                    yield f"event: node_complete\ndata: {json.dumps({'node_id': node_id, 'node_type': node_type, 'output_preview': get_output_preview(output_data, output_type)})}\n\n"
+
+                    # Add next nodes to work queue
+                    next_nodes = get_next_nodes(node_id, output_data, output_type, metadata)
+                    work_queue.extend(next_nodes)
+
+                logger.info(f"[Canvas Stream] Complete. {execution_count} executions, {len(collector_items)} collected")
+                logger.info(f"[Canvas Stream] Trace: {' -> '.join(execution_trace)}")
+
+                # Send complete event
+                yield f"event: complete\ndata: {json.dumps({'results': results, 'collectorOutput': collector_items, 'executionOrder': execution_trace})}\n\n"
+
+            except Exception as e:
+                logger.error(f"[Canvas Stream] Fatal error: {e}")
+                import traceback
+                traceback.print_exc()
+                yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+
+        return Response(generate(), mimetype='text/event-stream', headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        })
+
+    except Exception as e:
+        logger.error(f"[Canvas Stream] Setup error: {e}")
+        def error_gen():
+            yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+        return Response(error_gen(), mimetype='text/event-stream')
