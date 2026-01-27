@@ -66,7 +66,7 @@
             resize-type="auto"
             :is-empty="!interceptionResult"
             :is-loading="isInterceptionLoading"
-            loading-message="Die KI kombiniert jetzt deine Idee mit den Regeln ..."
+            :loading-message="interceptionLoadingMessage"
             :enable-streaming="true"
             :stream-url="streamingUrl"
             :stream-params="streamingParams"
@@ -82,7 +82,7 @@
           />
           <!-- Wikipedia Badge (Session 139) - shows during/after Wikipedia lookup -->
           <transition name="fade">
-            <div v-if="wikipediaData.terms.length > 0" class="lora-stamp wikipedia-lora" :class="{ active: wikipediaData.active }" @click="wikipediaExpanded = !wikipediaExpanded">
+            <div v-if="wikipediaData.terms.length > 0" class="lora-stamp wikipedia-lora" @click="wikipediaExpanded = !wikipediaExpanded">
               <div class="stamp-inner lora-inner">
                 <div class="stamp-icon lora-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
@@ -516,6 +516,7 @@ const loraExpanded = ref(false)
 // Session 136: terms now include actual Wikipedia results (title, url, language)
 const wikipediaData = ref<{ active: boolean; terms: Array<{ term: string; lang: string; title: string; url: string; success: boolean }> }>({ active: false, terms: [] })
 const wikipediaExpanded = ref(false)
+const wikipediaStatusText = ref<string>('')  // Session 139: Live status text for loading message
 
 // Refs for DOM elements and scrolling
 const mainContainerRef = ref<HTMLElement | null>(null)
@@ -920,6 +921,15 @@ const configLoras = computed(() => {
   return pipelineStore.selectedConfig?.loras || []
 })
 
+// Session 139: Dynamic loading message with Wikipedia status
+const interceptionLoadingMessage = computed(() => {
+  const baseMessage = 'Die KI kombiniert jetzt deine Idee mit den Regeln'
+  if (wikipediaStatusText.value) {
+    return `${baseMessage} ... ${wikipediaStatusText.value}`
+  }
+  return `${baseMessage} ...`
+})
+
 // Session 116: LoRAs for Stage 4 badge (uses activeLoras if available, falls back to configLoras)
 const stage4Loras = computed(() => {
   // After generation: use activeLoras (confirmed from backend)
@@ -1243,9 +1253,10 @@ async function runInterception() {
   interceptionResult.value = '' // Clear previous result
   // Session 130: Reset output flag (new interception = new run)
   currentRunHasOutput.value = false
-  // Session 139: Reset Wikipedia data from previous run
-  wikipediaData.value = { active: false, terms: [] }
+  // Session 139: Keep Wikipedia terms from previous run, only reset active flag
+  wikipediaData.value.active = false
   wikipediaExpanded.value = false
+  wikipediaStatusText.value = ''
 
   // CRITICAL FIX: Wait for Vue to process all pending reactive updates
   // before setting isInterceptionLoading, which triggers the streaming chain
@@ -1351,8 +1362,13 @@ function handleWikipediaLookup(data: { status: string; terms: Array<{ term: stri
 
   if (data.status === 'start') {
     wikipediaData.value = { active: true, terms: data.terms || [] }
+    wikipediaStatusText.value = '(Wikipedia-Recherche läuft...)'
   } else if (data.status === 'complete') {
+    const successCount = data.terms.filter(t => t.success).length
     wikipediaData.value = { active: false, terms: data.terms || [] }
+    wikipediaStatusText.value = successCount > 0
+      ? `(Wikipedia: ${successCount} Artikel gefunden)`
+      : ''
     // Debug: Log actual URLs
     console.log('[Wikipedia] Articles found:')
     data.terms.forEach(t => {
@@ -1424,7 +1440,7 @@ async function executePipeline() {
   generationProgress.value = 0  // Reset progress
   activeLoras.value = []  // Session 116: Reset LoRAs
   loraExpanded.value = false
-  wikipediaData.value = { active: false, terms: [] }  // Session 139: Reset Wikipedia
+  // Session 139: Don't reset Wikipedia terms - badge stays persistent during generation
   wikipediaExpanded.value = false
 
   // Phase 4: Intelligent seed logic

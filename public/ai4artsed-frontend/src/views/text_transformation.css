@@ -514,8 +514,8 @@
 
 .interception-section .media-input-box,
 .optimization-section .media-input-box {
-  width: 100%;
-  max-width: 1000px;
+  width: min(1000px, 100%);
+  flex-shrink: 0;
 }
 
 .interception-preview {
@@ -784,21 +784,6 @@
 
 .wikipedia-lora .stamp-text {
   color: #0066CC !important;
-}
-
-.wikipedia-lora.active .lora-inner {
-  animation: wikipedia-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes wikipedia-pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 20px rgba(0, 102, 204, 0.3);
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 25px rgba(0, 102, 204, 0.5);
-  }
 }
 
 .wikipedia-lora .lora-details {
