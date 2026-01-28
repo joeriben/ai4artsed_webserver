@@ -802,6 +802,17 @@
   text-decoration: underline;
 }
 
+/* Session 143: Not found terms shown in gray */
+.wikipedia-not-found {
+  color: #888;
+  font-style: italic;
+}
+
+.wikipedia-not-found small {
+  opacity: 0.7;
+  font-size: 0.85em;
+}
+
 /* ============================================================================
    Phase 2b: Horizontal Pipeline
    ============================================================================ */

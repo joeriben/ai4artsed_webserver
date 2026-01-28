@@ -654,19 +654,21 @@ class PipelineExecutor:
 
                         # Update status to complete
                         # Session 136: Include REAL Wikipedia results (title, url) not just search terms
+                        # Session 143: Include ALL terms (also not found) for transparency
                         results_with_urls = [
                             {
                                 'term': r.term,
                                 'lang': r.language,
-                                'title': r.title,
+                                'title': r.title if r.success else r.term,
                                 'url': r.url,
                                 'success': r.success
                             }
                             for r in results
-                            if r.success  # Only include successfully found articles
+                            # No filter - send ALL terms for transparency
                         ]
 
-                        logger.info(f"[WIKI-LOOP] Found {len(results_with_urls)} Wikipedia articles:")
+                        found_count = sum(1 for r in results_with_urls if r['success'])
+                        logger.info(f"[WIKI-LOOP] Found {found_count}/{len(results_with_urls)} Wikipedia articles:")
                         for r in results_with_urls:
                             logger.info(f"  - {r['lang']}: {r['title']} -> {r['url']}")
 

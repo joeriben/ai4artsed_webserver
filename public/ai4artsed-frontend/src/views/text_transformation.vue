@@ -71,14 +71,21 @@
                   </svg>
                 </div>
                 <div class="stamp-text">
-                  {{ wikipediaData.terms.length }} Artikel
+                  {{ wikipediaData.terms.length }} Begriff{{ wikipediaData.terms.length > 1 ? 'e' : '' }}
                 </div>
               </div>
               <div v-if="wikipediaExpanded" class="lora-details">
                 <div v-for="(item, index) in wikipediaData.terms" :key="index" class="lora-item">
-                  <a :href="item.url" target="_blank" rel="noopener">
-                    {{ item.title }}
-                  </a>
+                  <template v-if="item.success && item.url">
+                    <a :href="item.url" target="_blank" rel="noopener">
+                      {{ item.title }}
+                    </a>
+                  </template>
+                  <template v-else>
+                    <span class="wikipedia-not-found">
+                      {{ item.term }} <small>(nicht gefunden)</small>
+                    </span>
+                  </template>
                 </div>
               </div>
             </div>

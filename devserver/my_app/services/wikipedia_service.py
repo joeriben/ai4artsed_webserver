@@ -158,7 +158,11 @@ class WikipediaService:
 
     async def lookup(self, term: str, language: str = 'de') -> WikipediaResult:
         """
-        Look up a term on Wikipedia.
+        Look up a term on Wikipedia using Opensearch API (fuzzy matching).
+
+        Strategy:
+        1. Use Opensearch API to find the best matching article title
+        2. Fetch the full summary using Page Summary API
 
         Args:
             term: Search term (will be URL-encoded)
@@ -180,33 +184,69 @@ class WikipediaService:
         if cached:
             return cached
 
-        # Build URL (validates language again)
-        try:
-            url = self._build_url(term, lang_code)
-        except ValueError as e:
-            return WikipediaResult(
-                term=term,
-                language=lang_code,
-                title='',
-                extract='',
-                url='',
-                success=False,
-                error=str(e)
-            )
-
-        logger.info(f"[WIKI] Looking up '{term}' on {lang_code}.wikipedia.org")
+        logger.info(f"[WIKI] Searching '{term}' on {lang_code}.wikipedia.org (Opensearch)")
 
         try:
-            # Create session per-request to avoid event loop issues
             async with self._create_session() as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.json()
+                # Step 1: Use Opensearch API to find matching article
+                opensearch_url = f"https://{lang_code}.wikipedia.org/w/api.php"
+                opensearch_params = {
+                    'action': 'opensearch',
+                    'search': term,
+                    'limit': 1,
+                    'format': 'json'
+                }
+
+                async with session.get(opensearch_url, params=opensearch_params) as search_response:
+                    if search_response.status != 200:
+                        result = WikipediaResult(
+                            term=term,
+                            language=lang_code,
+                            title='',
+                            extract='',
+                            url='',
+                            success=False,
+                            error=f"Opensearch API error: HTTP {search_response.status}"
+                        )
+                        logger.warning(f"[WIKI] Opensearch HTTP error {search_response.status} for '{term}'")
+                        self._cache.set(term, lang_code, result)
+                        return result
+
+                    search_data = await search_response.json()
+                    # Opensearch returns: [searchTerm, [titles], [descriptions], [urls]]
+
+                    if len(search_data) < 4 or not search_data[1]:
+                        # No results found
+                        result = WikipediaResult(
+                            term=term,
+                            language=lang_code,
+                            title='',
+                            extract='',
+                            url='',
+                            success=False,
+                            error=f"No Wikipedia article found for '{term}'"
+                        )
+                        logger.info(f"[WIKI] Not found: '{term}'")
+                        self._cache.set(term, lang_code, result)
+                        return result
+
+                    found_title = search_data[1][0]
+                    found_url = search_data[3][0] if search_data[3] else ''
+
+                    logger.info(f"[WIKI] Opensearch found: '{found_title}' for search '{term}'")
+
+                # Step 2: Fetch full summary using Page Summary API
+                encoded_title = urllib.parse.quote(found_title, safe='')
+                summary_url = f"https://{lang_code}.wikipedia.org/api/rest_v1/page/summary/{encoded_title}"
+
+                async with session.get(summary_url) as summary_response:
+                    if summary_response.status == 200:
+                        data = await summary_response.json()
 
                         # Extract summary text
                         extract = data.get('extract', '')
-                        title = data.get('title', term)
-                        page_url = data.get('content_urls', {}).get('desktop', {}).get('page', url)
+                        title = data.get('title', found_title)
+                        page_url = data.get('content_urls', {}).get('desktop', {}).get('page', found_url)
 
                         # Truncate if too long
                         if len(extract) > MAX_CONTENT_LENGTH:
@@ -223,31 +263,17 @@ class WikipediaService:
 
                         logger.info(f"[WIKI] Found '{title}': {len(extract)} chars")
 
-                    elif response.status == 404:
-                        # Article not found
-                        result = WikipediaResult(
-                            term=term,
-                            language=lang_code,
-                            title='',
-                            extract='',
-                            url='',
-                            success=False,
-                            error=f"No Wikipedia article found for '{term}'"
-                        )
-                        logger.info(f"[WIKI] Not found: '{term}'")
-
                     else:
-                        # Other HTTP error
+                        # Summary fetch failed - still return opensearch result with URL
                         result = WikipediaResult(
                             term=term,
                             language=lang_code,
-                            title='',
+                            title=found_title,
                             extract='',
-                            url='',
-                            success=False,
-                            error=f"Wikipedia API error: HTTP {response.status}"
+                            url=found_url,
+                            success=True  # We found it, just couldn't get summary
                         )
-                        logger.warning(f"[WIKI] HTTP error {response.status} for '{term}'")
+                        logger.warning(f"[WIKI] Summary fetch failed for '{found_title}', using Opensearch URL")
 
         except asyncio.TimeoutError:
             result = WikipediaResult(
