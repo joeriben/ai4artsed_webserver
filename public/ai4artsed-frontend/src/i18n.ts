@@ -136,7 +136,7 @@ const messages = {
       cancel: 'Abbrechen'
     },
     gallery: {
-      title: 'Meine Favoriten',
+      title: 'Favoriten',  // Session 145: "Meine" redundant mit Switch
       empty: 'Noch keine Favoriten',
       favorite: 'Zu Favoriten',
       unfavorite: 'Aus Favoriten entfernen',
@@ -480,7 +480,7 @@ const messages = {
       cancel: 'Cancel'
     },
     gallery: {
-      title: 'My Favorites',
+      title: 'Favorites',  // Session 145: "My" redundant with switch
       empty: 'No favorites yet',
       favorite: 'Add to favorites',
       unfavorite: 'Remove from favorites',
