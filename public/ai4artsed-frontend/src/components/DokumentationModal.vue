@@ -301,22 +301,22 @@
                 <div class="principle-card">
                   <div class="principle-header">
                     <span class="principle-number">7</span>
-                    <h3>{{ currentLanguage === 'de' ? 'Kultureller Respekt in der KI' : 'Cultural Respect in AI' }}</h3>
+                    <h3>{{ currentLanguage === 'de' ? 'Wissen über die Welt' : 'Knowledge About the World' }}</h3>
                   </div>
                   <p>{{ currentLanguage === 'de'
-                    ? 'KI-Modelle sind auf westlich geprägten Daten trainiert und neigen zu Stereotypisierung nicht-westlicher Kulturen. Die Plattform versucht dem aktiv entgegenzuwirken: durch Wikipedia-Recherche in kulturell passenden Sprachen (70+ Sprachen: Hausa, Tamil, Quechua usw.) und durch explizite Anti-Stereotype-Regeln.'
-                    : 'AI models are trained on Western-centric data and tend to stereotype non-Western cultures. The platform actively tries to counteract this: through Wikipedia research in culturally appropriate languages (70+ languages: Hausa, Tamil, Quechua, etc.) and through explicit anti-stereotype rules.' }}</p>
+                    ? 'Künstlerische Prozesse erfordern nicht nur ästhetisches Wissen, sondern auch Wissen über Sachverhalte in der Welt. Die KI recherchiert während der Transformation auf Wikipedia, um faktische Informationen zu finden – in über 70 Sprachen, passend zum jeweiligen Thema.'
+                    : 'Artistic processes require not only aesthetic knowledge, but also knowledge about facts in the world. The AI researches Wikipedia during transformation to find factual information – in over 70 languages, appropriate to each topic.' }}</p>
                   <div class="example-box">
                     <strong>{{ currentLanguage === 'de' ? 'Das Wikipedia-Badge (W):' : 'The Wikipedia Badge (W):' }}</strong>
                     {{ currentLanguage === 'de'
-                      ? 'Wenn du es siehst, hat die KI recherchiert – z.B. deutsches Thema → deutsche Wikipedia, nigerianisches Thema → Hausa/Yoruba/Igbo Wikipedia.'
-                      : 'When you see it, the AI has researched – e.g. German topic → German Wikipedia, Nigerian topic → Hausa/Yoruba/Igbo Wikipedia.' }}
+                      ? 'Zeigt alle Recherche-Versuche an: Gefundene Artikel erscheinen als anklickbare Links, nicht gefundene Begriffe werden grau angezeigt. So wird sichtbar, was die KI zu wissen meint – und was nicht.'
+                      : 'Shows all research attempts: Found articles appear as clickable links, terms not found are shown in gray. This makes visible what the AI thinks it knows – and what it does not.' }}
                   </div>
                   <div class="tension-box">
-                    <span class="tension-label">{{ currentLanguage === 'de' ? 'Einschränkung:' : 'Limitation:' }}</span>
+                    <span class="tension-label">{{ currentLanguage === 'de' ? 'Einladung:' : 'Invitation:' }}</span>
                     {{ currentLanguage === 'de'
-                      ? 'Dies ist ein Schritt in die richtige Richtung, aber keine vollständige Lösung für AI-Bias. Systemische Vorurteile in Trainingsdaten gehen tiefer.'
-                      : 'This is a step in the right direction, but not a complete solution to AI bias. Systemic biases in training data run deeper.' }}
+                      ? 'Die Wikipedia-Links laden ein, selbst mehr zu erfahren. Klicken Sie auf die Links, um die Quellen zu prüfen und Ihr eigenes Wissen zu erweitern.'
+                      : 'The Wikipedia links invite you to learn more yourself. Click on the links to check the sources and expand your own knowledge.' }}
                   </div>
                 </div>
 
