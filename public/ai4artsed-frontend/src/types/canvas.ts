@@ -23,6 +23,7 @@
  */
 export type StageType =
   | 'input'
+  | 'random_prompt' // Session 140: LLM-based random prompt generator with presets
   | 'interception'
   | 'translation'
   | 'generation'
@@ -31,6 +32,27 @@ export type StageType =
   | 'evaluation'
   // Display node (visualization)
   | 'display'
+
+// ============================================================================
+// RANDOM PROMPT TYPES
+// ============================================================================
+
+/** Random Prompt Preset Types */
+export type RandomPromptPreset =
+  | 'clean_image'  // Medienneutrale Bild-Prompts
+  | 'photo'        // Fotografische Prompts mit Film-Typ
+  | 'artform'      // Kunstform-Transformation
+  | 'instruction'  // Kreative Transformation
+  | 'language'     // Sprach-Vorschlag
+
+/** Film types for photo preset */
+export type PhotoFilmType =
+  | 'random'
+  | 'Kodachrome' | 'Ektachrome'
+  | 'Portra 400' | 'Portra 800' | 'Ektar 100'
+  | 'Fuji Pro 400H' | 'Fuji Superia' | 'CineStill 800T'
+  | 'Ilford HP5' | 'Ilford Delta 400' | 'Ilford FP4' | 'Ilford Pan F' | 'Ilford XP2'
+  | 'Tri-X 400'
 
 /** Node type definition for the palette */
 export interface NodeTypeDefinition {
@@ -74,7 +96,23 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     allowMultiple: false,
     mandatory: true,
     acceptsFrom: [],
-    outputsTo: ['interception', 'translation', 'evaluation', 'display'] // Can connect to processing, evaluation, or display
+    outputsTo: ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'display'] // Can connect to processing, generation, evaluation, or display
+  },
+  // Session 140: Random Prompt Node with presets
+  {
+    id: 'random_prompt',
+    type: 'random_prompt',
+    label: { en: 'Random Prompt', de: 'Zufalls-Prompt' },
+    description: {
+      en: 'Generate creative content via LLM with presets',
+      de: 'Generiert kreative Inhalte via LLM mit Presets'
+    },
+    color: '#ec4899', // pink
+    icon: 'shuffle_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false,
+    acceptsFrom: ['input', 'interception', 'evaluation'], // Optional context
+    outputsTo: ['interception', 'translation', 'generation', 'evaluation', 'display', 'collector']
   },
   {
     id: 'interception',
@@ -88,7 +126,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'cognition_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['input', 'interception', 'evaluation'],
+    acceptsFrom: ['input', 'random_prompt', 'interception', 'evaluation'],
     outputsTo: ['interception', 'translation', 'generation', 'evaluation', 'display', 'collector']
   },
   {
@@ -103,7 +141,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'language_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false,
-    acceptsFrom: ['input', 'interception', 'evaluation'],
+    acceptsFrom: ['input', 'random_prompt', 'interception', 'evaluation'],
     outputsTo: ['generation', 'evaluation', 'display', 'collector']
   },
   {
@@ -118,7 +156,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'brush_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: true,
-    acceptsFrom: ['interception', 'translation', 'evaluation'],
+    acceptsFrom: ['input', 'random_prompt', 'interception', 'translation', 'evaluation'],
     outputsTo: ['evaluation', 'display', 'collector']
   },
   {
@@ -133,7 +171,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
     mandatory: true,
-    acceptsFrom: ['generation', 'interception', 'translation', 'display', 'evaluation'],
+    acceptsFrom: ['generation', 'random_prompt', 'interception', 'translation', 'display', 'evaluation'],
     outputsTo: []
   },
   // Session 134 Refactored: Unified Evaluation Node (replaces 5 eval nodes + 2 fork nodes)
@@ -240,6 +278,20 @@ export interface CanvasNode {
   displayMode?: 'popup' | 'inline' | 'toast'
   /** Display title */
   title?: string
+
+  // === Random Prompt node config (Session 140) ===
+  /** Selected preset (determines system prompt) */
+  randomPromptPreset?: RandomPromptPreset
+  /** LLM model for generation */
+  randomPromptModel?: string
+  /** Film type (only for 'photo' preset) */
+  randomPromptFilmType?: PhotoFilmType
+  /** Custom system prompt override (collapsed by default) */
+  randomPromptSystemPrompt?: string
+  /** Show system prompt editor */
+  randomPromptShowSystemPrompt?: boolean
+  /** Cache-breaking seed */
+  randomPromptSeed?: number
 }
 
 // ============================================================================
@@ -430,4 +482,108 @@ export function createDefaultWorkflow(): CanvasWorkflow {
       loraInjection: true
     }
   }
+}
+
+// ============================================================================
+// RANDOM PROMPT PRESETS (Session 140)
+// ============================================================================
+
+/** Preset configuration for Random Prompt node */
+export interface RandomPromptPresetConfig {
+  label: { en: string; de: string }
+  systemPrompt: string
+  userPromptTemplate: string
+}
+
+/** Random Prompt Presets with system prompts */
+export const RANDOM_PROMPT_PRESETS: Record<RandomPromptPreset, RandomPromptPresetConfig> = {
+  clean_image: {
+    label: { en: 'Clean Image Prompt', de: 'Sauberer Bild-Prompt' },
+    systemPrompt: `You are an inventive creative. Your task is to invent a vivid, detailed image prompt.
+
+IMPORTANT - Generate CLEAN, MEDIA-NEUTRAL images:
+- NO camera or photographic references (no film, no camera, no lens)
+- NO optical effects (no wide-angle, no telephoto, no macro)
+- NO depth of field or bokeh
+- NO motion blur or any blur effects
+- NO "retro", "vintage", or nostalgic styling
+- NO film grain, vignette, or post-processing artifacts
+
+Think globally. Avoid cultural clichés.
+Subject matter: scenes, objects, animals, nature, technology, culture, people, homes, family, work, holiday, urban, rural, trivia, intricate details.
+Be verbose, provide rich visual details about colors, lighting, textures, composition, atmosphere.
+Transform the prompt strictly following the context if provided.
+NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER.`,
+    userPromptTemplate: 'Generate a creative image prompt.'
+  },
+  photo: {
+    label: { en: 'Photo Prompt', de: 'Foto-Prompt' },
+    systemPrompt: `You are an inventive creative. Your task is to invent a REALISTIC photographic image prompt.
+
+Think globally. Avoid cultural clichés. Avoid "retro" style descriptions.
+Describe contemporary everyday motives: scenes, objects, animals, nature, tech, culture, people, homes, family, work, holiday, urban, rural, trivia, details.
+Choose either unlikely, untypical or typical photographical sujets. Be verbose, provide intricate details.
+Always begin your output with: "{film_description} of".
+Transform the prompt strictly following the context if provided.
+NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER.`,
+    userPromptTemplate: 'Generate a creative photographic image prompt.'
+  },
+  artform: {
+    label: { en: 'Artform Transformation', de: 'Kunstform-Transformation' },
+    systemPrompt: `You generate artform transformation instructions from an artist practice perspective.
+
+IMPORTANT: NEVER use "in the style of" - instead frame as artistic practice, technique, or creative process.
+
+Good examples:
+- "Render this as a Japanese Noh theatre performance"
+- "Transform this into a Yoruba praise poem"
+- "Compose this as a Maori chant"
+- "Frame this message through Cubist fragmentation"
+- "Present this as an Afro-futurist myth"
+- "Choreograph this as a Bharatanatyam narrative"
+- "Inscribe this as Egyptian hieroglyphics"
+- "Express this through Aboriginal dot painting technique"
+
+Think globally across all cultures and art practices.
+Focus on the DOING - the artistic practice, not imitation.
+Output ONLY the transformation instruction, nothing else.`,
+    userPromptTemplate: 'Generate a creative artform transformation instruction.'
+  },
+  instruction: {
+    label: { en: 'Creative Instruction', de: 'Kreative Anweisung' },
+    systemPrompt: `You generate creative transformation instructions.
+Your output is a single instruction that transforms content in an unusual, creative way.
+Examples: nature language, theatrical play, nostalgic robot voice, rhythmic rap, animal fable, alien explanation, philosophical versions (Wittgenstein, Heidegger, Adorno), ancient manuscript, bedtime story for post-human child, internal monologue of a tree, forgotten folk song lyrics, spy messages, protest chant, underwater civilization dialect, extinct animal conversation, dream sequence, poetic weather forecast, love letter to future generation, etc.
+Be wildly creative and unexpected.
+Output ONLY the transformation instruction, nothing else.`,
+    userPromptTemplate: 'Generate a creative transformation instruction.'
+  },
+  language: {
+    label: { en: 'Language Suggestion', de: 'Sprach-Vorschlag' },
+    systemPrompt: `You suggest a random language from around the world.
+Choose from major world languages, regional languages, or less common languages.
+Consider: European, Asian, African, Indigenous American, Pacific languages.
+Output ONLY the language name in English, nothing else.
+Example outputs: "Swahili", "Bengali", "Quechua", "Welsh", "Tagalog"`,
+    userPromptTemplate: 'Suggest a random language.'
+  }
+}
+
+/** Photo film type descriptions */
+export const PHOTO_FILM_TYPES: Record<PhotoFilmType, string> = {
+  random: '', // Will be selected at runtime
+  'Kodachrome': 'a Kodachrome film slide',
+  'Ektachrome': 'an Ektachrome film slide',
+  'Portra 400': 'a Kodak Portra 400 color negative',
+  'Portra 800': 'a Kodak Portra 800 color negative',
+  'Ektar 100': 'a Kodak Ektar 100 color negative',
+  'Fuji Pro 400H': 'a Fujifilm Pro 400H color negative',
+  'Fuji Superia': 'a Fujifilm Superia color negative',
+  'CineStill 800T': 'a CineStill 800T tungsten-balanced color negative',
+  'Ilford HP5': 'an Ilford HP5 Plus black and white negative',
+  'Ilford Delta 400': 'an Ilford Delta 400 black and white negative',
+  'Ilford FP4': 'an Ilford FP4 Plus black and white negative',
+  'Ilford Pan F': 'an Ilford Pan F Plus 50 black and white negative',
+  'Ilford XP2': 'an Ilford XP2 Super chromogenic black and white negative',
+  'Tri-X 400': 'a Kodak Tri-X 400 black and white negative'
 }
