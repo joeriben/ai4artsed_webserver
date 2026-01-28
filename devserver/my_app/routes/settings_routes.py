@@ -1462,11 +1462,18 @@ def get_sessions():
                         if thumbnail_path is None:
                             filename = entity.get('filename')
                             if filename:
+                                # Check if file is in final/ subdirectory (new structure) or direct (old structure)
+                                file_path_final = session_dir / "final" / filename
+                                if file_path_final.exists():
+                                    file_subpath = f"final/{filename}"
+                                else:
+                                    file_subpath = filename
+
                                 if entity_type == 'output_image':
-                                    thumbnail_path = f"/exports/json/{metadata_info.relative_path}/{filename}"
+                                    thumbnail_path = f"/exports/json/{metadata_info.relative_path}/{file_subpath}"
                                     thumbnail_type = 'image'
                                 elif entity_type == 'output_video':
-                                    thumbnail_path = f"/exports/json/{metadata_info.relative_path}/{filename}"
+                                    thumbnail_path = f"/exports/json/{metadata_info.relative_path}/{file_subpath}"
                                     thumbnail_type = 'video'
 
                 # Build session summary
@@ -1554,15 +1561,23 @@ def get_session_detail(run_id):
             entity_copy = entity.copy()
             filename = entity.get('filename')
             if filename:
-                file_path = session_dir / filename
+                # Try final/ subdirectory first (new structure), then direct (old structure)
+                file_path = session_dir / "final" / filename
+                file_subpath = f"final/{filename}"
+
+                if not file_path.exists():
+                    # Fallback to direct path for older sessions
+                    file_path = session_dir / filename
+                    file_subpath = filename
+
                 if file_path.exists():
                     # For images, provide URL path
                     if file_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
-                        entity_copy['image_url'] = f"/exports/json/{relative_path}/{filename}"
+                        entity_copy['image_url'] = f"/exports/json/{relative_path}/{file_subpath}"
                         entity_copy['media_type'] = 'image'
                     # For videos, provide URL path
                     elif file_path.suffix.lower() in ['.mp4', '.webm', '.mov']:
-                        entity_copy['video_url'] = f"/exports/json/{relative_path}/{filename}"
+                        entity_copy['video_url'] = f"/exports/json/{relative_path}/{file_subpath}"
                         entity_copy['media_type'] = 'video'
                     # For text files, read content
                     elif file_path.suffix in ['.txt', '.json']:
