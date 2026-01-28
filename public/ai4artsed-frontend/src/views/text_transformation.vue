@@ -1682,7 +1682,7 @@ async function toggleFavorite() {
 
   // Convert outputMediaType to the correct type for favorites
   const mediaType = outputMediaType.value as 'image' | 'video' | 'audio' | 'music'
-  await favoritesStore.toggleFavorite(currentRunId.value, mediaType)
+  await favoritesStore.toggleFavorite(currentRunId.value, mediaType, getDeviceId())  // Session 145
   console.log('[Media Actions] Favorite toggled for run_id:', currentRunId.value)
 }
 

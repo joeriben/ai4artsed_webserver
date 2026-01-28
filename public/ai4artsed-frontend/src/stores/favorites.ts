@@ -21,6 +21,7 @@ import axios from 'axios'
 /** Favorite item from backend */
 export interface FavoriteItem {
   run_id: string
+  device_id?: string  // Session 145: Per-user favorites (optional for backward compat)
   added_at: string
   thumbnail_url: string
   media_type: 'image' | 'audio' | 'video' | 'music' | 'text' | '3d' | 'midi' | 'p5' | 'sonicpi'
@@ -113,6 +114,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
   /** Favorites mode (global vs per_user) */
   const mode = ref<'global' | 'per_user'>('global')
 
+  /** View mode: 'per_user' shows only own favorites, 'global' shows all */
+  const viewMode = ref<'per_user' | 'global'>('per_user')  // Session 145: Default to per_user
+
   /** Pending restore data (set by FooterGallery, consumed by views via watcher) */
   const pendingRestoreData = ref<RestoreData | null>(null)
 
@@ -144,19 +148,32 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   /**
    * Load all favorites from backend
+   *
+   * @param deviceId - Optional device ID for filtering (per_user mode)
    */
-  async function loadFavorites(): Promise<void> {
+  async function loadFavorites(deviceId?: string): Promise<void> {
     isLoading.value = true
     error.value = null
 
     try {
       console.log('[Favorites] Loading favorites from backend...')
-      const response = await axios.get<FavoritesResponse>('/api/favorites')
+
+      // Query parameters for filtering (Session 145)
+      const params = new URLSearchParams()
+      if (deviceId) {
+        params.append('device_id', deviceId)
+      }
+      params.append('view_mode', viewMode.value)
+
+      const response = await axios.get<FavoritesResponse>(`/api/favorites?${params.toString()}`)
 
       favorites.value = response.data.favorites
       mode.value = response.data.mode
 
-      console.log(`[Favorites] Loaded ${response.data.total} favorites (mode: ${mode.value})`)
+      console.log(
+        `[Favorites] Loaded ${response.data.total} favorites ` +
+          `(backend mode: ${mode.value}, view mode: ${viewMode.value})`
+      )
     } catch (e) {
       console.error('[Favorites] Failed to load favorites:', e)
       error.value = e instanceof Error ? e.message : 'Failed to load favorites'
@@ -171,11 +188,13 @@ export const useFavoritesStore = defineStore('favorites', () => {
    *
    * @param runId - Run ID to favorite
    * @param mediaType - Type of media
+   * @param deviceId - Device identifier (browser_id + date) (Session 145)
    * @param userId - Optional user ID (default: 'anonymous')
    */
   async function addFavorite(
     runId: string,
     mediaType: FavoriteItem['media_type'],
+    deviceId: string,
     userId: string = 'anonymous'
   ): Promise<boolean> {
     error.value = null
@@ -183,6 +202,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     // Optimistic update
     const tempFavorite: FavoriteItem = {
       run_id: runId,
+      device_id: deviceId,  // Session 145
       added_at: new Date().toISOString(),
       thumbnail_url: `/api/media/${mediaType}/${runId}${mediaType === 'image' ? '/0' : ''}`,
       media_type: mediaType,
@@ -199,6 +219,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       const response = await axios.post<AddFavoriteResponse>('/api/favorites', {
         run_id: runId,
         media_type: mediaType,
+        device_id: deviceId,  // Session 145
         user_id: userId
       })
 
@@ -217,8 +238,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
       if (axios.isAxiosError(e) && e.response?.status === 409) {
         // Already exists - not an error
         console.log(`[Favorites] Favorite already exists: ${runId}`)
-        // Reload to get current state
-        await loadFavorites()
+        // Reload to get current state (Session 145: pass deviceId)
+        await loadFavorites(deviceId)
         return true
       }
 
@@ -232,8 +253,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
    * Remove a favorite
    *
    * @param runId - Run ID to remove from favorites
+   * @param deviceId - Optional device ID for ownership validation (Session 145)
    */
-  async function removeFavorite(runId: string): Promise<boolean> {
+  async function removeFavorite(runId: string, deviceId?: string): Promise<boolean> {
     error.value = null
 
     // Store for potential rollback
@@ -266,17 +288,19 @@ export const useFavoritesStore = defineStore('favorites', () => {
    *
    * @param runId - Run ID to toggle
    * @param mediaType - Type of media (required for adding)
+   * @param deviceId - Device identifier (Session 145)
    * @param userId - Optional user ID
    */
   async function toggleFavorite(
     runId: string,
     mediaType: FavoriteItem['media_type'],
+    deviceId: string,
     userId: string = 'anonymous'
   ): Promise<boolean> {
     if (isFavorited(runId)) {
-      return removeFavorite(runId)
+      return removeFavorite(runId, deviceId)
     } else {
-      return addFavorite(runId, mediaType, userId)
+      return addFavorite(runId, mediaType, deviceId, userId)
     }
   }
 
@@ -329,6 +353,31 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   /**
+   * Toggle between per_user and global view mode (Session 145)
+   *
+   * @param newMode - 'per_user' or 'global'
+   * @param deviceId - Device ID for filtering (required in per_user mode)
+   */
+  async function setViewMode(
+    newMode: 'per_user' | 'global',
+    deviceId?: string
+  ): Promise<boolean> {
+    try {
+      console.log(`[Favorites] Switching to ${newMode} view`)
+      viewMode.value = newMode
+
+      // Reload with new filter
+      await loadFavorites(deviceId)
+
+      return true
+    } catch (e) {
+      console.error('[Favorites] Failed to switch view:', e)
+      error.value = e instanceof Error ? e.message : 'Failed to switch view'
+      return false
+    }
+  }
+
+  /**
    * Set restore data for cross-component communication
    *
    * Used by FooterGallery to signal views to restore state.
@@ -351,6 +400,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     isGalleryExpanded,
     error,
     mode,
+    viewMode,  // Session 145: Per-user favorites
     pendingRestoreData,
 
     // Computed
@@ -367,6 +417,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     removeFavorite,
     toggleFavorite,
     getRestoreData,
+    setViewMode,  // Session 145: Toggle per_user/global view
     toggleGallery,
     expandGallery,
     collapseGallery,

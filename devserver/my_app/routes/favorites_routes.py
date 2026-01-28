@@ -99,18 +99,33 @@ def get_favorites():
     """
     List all favorites with metadata.
 
+    Query parameters:
+        - device_id: Filter favorites by device ID (optional)
+        - view_mode: 'per_user' (filter by device_id) or 'global' (show all)
+
     Returns:
         200: List of favorites with thumbnail URLs and metadata
         500: Server error
 
     Example:
-        GET /api/favorites
+        GET /api/favorites?device_id=abc123_2026-01-28&view_mode=per_user
     """
     try:
-        logger.info("[FAVORITES] Fetching all favorites")
+        # Query parameters for filtering
+        device_id = request.args.get('device_id')
+        view_mode = request.args.get('view_mode', 'per_user')  # 'per_user' or 'global'
+
+        logger.info(f"[FAVORITES] Fetching favorites (view_mode={view_mode}, device_id={device_id})")
 
         data = _load_favorites()
         favorites = data.get('favorites', [])
+
+        # Filter by device_id if in per_user mode
+        if view_mode == 'per_user' and device_id:
+            favorites = [f for f in favorites if f.get('device_id') == device_id]
+            logger.info(f"[FAVORITES] Filtered to {len(favorites)} favorites for device {device_id}")
+        else:
+            logger.info(f"[FAVORITES] Returning {len(favorites)} favorites (global mode)")
 
         # Enrich favorites with additional metadata from run data
         enriched_favorites = []
@@ -168,6 +183,7 @@ def add_favorite():
     Request body (JSON):
         - run_id: Run ID to favorite (required)
         - media_type: Type of media ('image', 'audio', 'video', etc.) (required)
+        - device_id: Device identifier (browser_id + date) (optional)
         - user_id: Optional user ID (default: 'anonymous')
         - user_note: Optional note from user
 
@@ -190,6 +206,7 @@ def add_favorite():
 
         run_id = body.get('run_id')
         media_type = body.get('media_type')
+        device_id = body.get('device_id')  # Session 145: Per-user favorites
         user_id = body.get('user_id', 'anonymous')
         user_note = body.get('user_note', '')
 
@@ -199,7 +216,7 @@ def add_favorite():
         if not media_type:
             return jsonify({'error': 'media_type is required'}), 400
 
-        logger.info(f"[FAVORITES] Adding favorite: run_id={run_id}, media_type={media_type}")
+        logger.info(f"[FAVORITES] Adding favorite: run_id={run_id}, media_type={media_type}, device_id={device_id}")
 
         # Verify run exists
         recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
@@ -224,6 +241,7 @@ def add_favorite():
         # Create new favorite entry
         new_favorite = {
             'run_id': run_id,
+            'device_id': device_id,  # Session 145: Per-user favorites
             'added_at': datetime.now().isoformat(),
             'thumbnail_url': _get_thumbnail_url(run_id, media_type),
             'media_type': media_type,

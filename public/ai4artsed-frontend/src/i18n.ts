@@ -141,7 +141,9 @@ const messages = {
       favorite: 'Zu Favoriten',
       unfavorite: 'Aus Favoriten entfernen',
       continue: 'Weiterentwickeln',
-      restore: 'Wiederherstellen'
+      restore: 'Wiederherstellen',
+      viewMine: 'Meine Favoriten',  // Session 145
+      viewAll: 'Alle Favoriten'  // Session 145
     },
     settings: {
       authRequired: 'Authentifizierung erforderlich',
@@ -483,7 +485,9 @@ const messages = {
       favorite: 'Add to favorites',
       unfavorite: 'Remove from favorites',
       continue: 'Continue editing',
-      restore: 'Restore session'
+      restore: 'Restore session',
+      viewMine: 'My favorites',  // Session 145
+      viewAll: 'All favorites'  // Session 145
     },
     settings: {
       authRequired: 'Authentication Required',
