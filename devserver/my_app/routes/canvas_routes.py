@@ -464,11 +464,6 @@ def execute_workflow():
                 llm_model = node.get('randomPromptModel', 'local/mistral-nemo')
                 film_type = node.get('randomPromptFilmType', 'random')
                 custom_system = node.get('randomPromptSystemPrompt')
-                seed = node.get('randomPromptSeed', 0)
-
-                # CACHE-BREAKING: Each run = new output
-                import time as time_module
-                cache_breaker = f"[seed:{seed or time_module.time_ns()}]"
 
                 # Get preset config
                 preset_config = RANDOM_PROMPT_PRESETS.get(preset, RANDOM_PROMPT_PRESETS['clean_image'])
@@ -482,11 +477,11 @@ def execute_workflow():
                     film_desc = PHOTO_FILM_TYPES.get(film_type, 'a photograph')
                     system_prompt = system_prompt.replace('{film_description}', film_desc)
 
-                # Build user prompt with optional context + cache breaker
+                # Build user prompt with optional context
                 if input_data and str(input_data).strip():
-                    user_prompt = f"{cache_breaker}\nContext: {input_data.strip()}\n\n{user_prompt_template}"
+                    user_prompt = f"Context: {input_data.strip()}\n\n{user_prompt_template}"
                 else:
-                    user_prompt = f"{cache_breaker}\n{user_prompt_template}"
+                    user_prompt = user_prompt_template
 
                 req = PromptInterceptionRequest(
                     input_prompt=user_prompt,
@@ -974,11 +969,6 @@ def execute_workflow_stream():
                         llm_model = node.get('randomPromptModel', 'local/mistral-nemo')
                         film_type = node.get('randomPromptFilmType', 'random')
                         custom_system = node.get('randomPromptSystemPrompt')
-                        seed = node.get('randomPromptSeed', 0)
-
-                        # CACHE-BREAKING: Each run = new output
-                        import time as time_module
-                        cache_breaker = f"[seed:{seed or time_module.time_ns()}]"
 
                         # Get preset config
                         preset_config = RANDOM_PROMPT_PRESETS.get(preset, RANDOM_PROMPT_PRESETS['clean_image'])
@@ -992,11 +982,11 @@ def execute_workflow_stream():
                             film_desc = PHOTO_FILM_TYPES.get(film_type, 'a photograph')
                             system_prompt = system_prompt.replace('{film_description}', film_desc)
 
-                        # Build user prompt with optional context + cache breaker
+                        # Build user prompt with optional context
                         if input_data and str(input_data).strip():
-                            user_prompt = f"{cache_breaker}\nContext: {input_data.strip()}\n\n{user_prompt_template}"
+                            user_prompt = f"Context: {input_data.strip()}\n\n{user_prompt_template}"
                         else:
-                            user_prompt = f"{cache_breaker}\n{user_prompt_template}"
+                            user_prompt = user_prompt_template
 
                         req = PromptInterceptionRequest(
                             input_prompt=user_prompt, style_prompt=system_prompt,
