@@ -1,5 +1,97 @@
 # Development Log
 
+## Session 144 - Interception Config Revision: Analog Photography 1970s
+**Date:** 2026-01-28
+**Focus:** Config-Text für detailliertere Objektbeschreibung optimiert
+**Status:** COMPLETED
+
+### Änderungstyp: Prompt-Strategie für Wikipedia-Integration
+
+Die Analogfotografie-Config wurde überarbeitet, um die **Objektbeschreibungs-Qualität** zu verbessern - relevant für die neue Wikipedia-Suchfunktion (Session 142/143).
+
+**Kernänderungen:**
+1. **Neuer Fokus auf Recherche**: "Du arbeitest sorgfältig und informierst dich sehr genau über Deine Gegenstände. Du beschriebst sie extrem detailliert als fotografische Visualisierung"
+2. **Entfernt**: Detaillierte Dunkelkammer-Terminologie (Zonenfokussierung, Push/Pull-Entwicklung, Papiergradwahl etc.) - diese technischen Details sind für die Bildgenerierung weniger relevant als präzise Objektbeschreibungen
+3. **Vereinfacht**: Verbotene Sprache auf Kernpunkte reduziert
+
+### Implikation für Config-Revision
+Diese Änderung zeigt ein Muster für die Überarbeitung anderer Interception-Configs:
+- **Weniger**: Stilistische/technische Detailverliebtheit im Prompt
+- **Mehr**: Explizite Anweisung zur genauen Recherche und Beschreibung der Eingabe-Objekte
+- **Ziel**: Bessere Wikipedia-Suchbegriffe durch detailliertere Objektnennung im Output
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `devserver/schemas/configs/interception/analog_photography_1970s.json` | `context.de` neu formuliert |
+
+---
+
+## Session 143 - Wikipedia Opensearch API + Transparency
+**Date:** 2026-01-28
+**Focus:** Fix Wikipedia badge not appearing due to failed lookups
+**Status:** COMPLETED
+
+### Problem
+Wikipedia badge never appeared because all lookups returned 404:
+```
+[WIKI] Looking up 'Igbo New Yam Festival' on en.wikipedia.org
+[WIKI] Not found: 'Igbo New Yam Festival'
+```
+
+**Root Cause:**
+- LLM generated search terms (e.g., "Igbo New Yam Festival") that don't match exact Wikipedia article titles
+- Backend used direct Page Summary API (`/page/summary/{term}`) which requires exact title
+- The actual article exists as "New Yam Festival" but wasn't found
+
+### Solution
+**1. Backend: Opensearch API as primary search**
+
+Query construction:
+```
+https://{lang}.wikipedia.org/w/api.php?action=opensearch&search={term}&limit=1&format=json
+```
+
+Response format:
+```json
+[searchTerm, [titles], [descriptions], [urls]]
+["Igbo New Yam", ["New Yam Festival"], ["The New Yam Festival..."], ["https://en.wikipedia.org/wiki/New_Yam_Festival"]]
+```
+
+Flow:
+1. Opensearch finds best matching article title (fuzzy matching)
+2. Page Summary API fetches full content using found title
+3. Returns real Wikipedia URL and title
+
+**2. Backend: Send ALL terms (transparency)**
+- Removed `if r.success` filter in `pipeline_executor.py`
+- All lookup attempts are now sent to frontend
+- Frontend knows what was searched, even if not found
+
+**3. Frontend: Visual distinction**
+- Found articles: Blue link (clickable)
+- Not found: Gray italic text with "(nicht gefunden)"
+- Badge shows total count as "N Begriff(e)" instead of "N Artikel"
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `devserver/my_app/services/wikipedia_service.py` | Replaced direct lookup with Opensearch API + Page Summary |
+| `devserver/schemas/engine/pipeline_executor.py` | Removed success filter, send all terms |
+| `public/.../text_transformation.vue` | Badge shows found/not-found distinction |
+| `public/.../text_transformation.css` | Added `.wikipedia-not-found` styling |
+
+### Commits
+- `ea9c5cf` - feat(wikipedia): Use Opensearch API for fuzzy matching + show all terms
+
+### Result
+- Badge now appears (shows all searched terms)
+- Fuzzy matching finds articles even with inexact search terms
+- Transparent: User sees what was searched and whether it was found
+- Links point to real Wikipedia articles
+
+---
+
 ## Session 142 - Wikipedia Badge Position Fix
 **Date:** 2026-01-27
 **Focus:** Fix disappearing Wikipedia badge by moving to stable UI area

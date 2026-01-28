@@ -1637,7 +1637,7 @@ async function sendMessage() {
 
 ### UI Features: Badges & Status Indicators
 
-#### Wikipedia Research Badge (Session 136, 139, 142)
+#### Wikipedia Research Badge (Session 136, 139, 142, 143)
 
 **Purpose:** Visual indicator showing when AI system has consulted Wikipedia for cultural/factual context
 
@@ -1645,6 +1645,7 @@ async function sendMessage() {
 - Transparency about AI research process
 - Cultural respect through factual grounding
 - Build trust by showing Wikipedia sources
+- **Session 143:** Show ALL search attempts (found + not found) for full transparency
 
 **Implementation:**
 
@@ -1659,7 +1660,32 @@ class="lora-stamp wikipedia-lora"
 
 // SVG icon: Wikipedia "W" in puzzle globe style
 // Color: Distinct from LoRA green (configurable via CSS)
+
+// Session 143: Visual distinction for found/not-found
+// Found: Blue clickable link
+// Not found: Gray italic with "(nicht gefunden)"
 ```
+
+**Backend: Wikipedia Lookup Strategy (Session 143)**
+
+Uses **Opensearch API** for fuzzy matching instead of direct Page Summary lookup:
+
+```
+Step 1: Opensearch API (finds best matching article)
+https://{lang}.wikipedia.org/w/api.php?action=opensearch&search={term}&limit=1&format=json
+
+Response: [searchTerm, [titles], [descriptions], [urls]]
+Example: ["Igbo New Yam", ["New Yam Festival"], ["..."], ["https://en.wikipedia.org/wiki/New_Yam_Festival"]]
+
+Step 2: Page Summary API (fetches full content)
+https://{lang}.wikipedia.org/api/rest_v1/page/summary/{foundTitle}
+```
+
+**Why Opensearch?**
+- LLM generates search terms that may not match exact Wikipedia titles
+- Example: "Igbo New Yam Festival" → actual article is "New Yam Festival"
+- Opensearch does fuzzy matching, Page Summary requires exact title
+- Combined approach: Opensearch finds, Page Summary fetches content
 
 **Data Flow:**
 ```typescript
@@ -1670,13 +1696,15 @@ class="lora-stamp wikipedia-lora"
 {
   status: 'start' | 'complete',
   terms: Array<{
-    term: string,
+    term: string,        // Original search term from LLM
     lang: string,        // Language used for lookup
-    title: string,       // Wikipedia article title
-    url: string,         // Full Wikipedia URL
+    title: string,       // Wikipedia article title (or term if not found)
+    url: string,         // Full Wikipedia URL (empty if not found)
     success: boolean     // Whether lookup succeeded
   }>
 }
+
+// Session 143: ALL terms sent (no filter), success=false for not found
 ```
 
 **State Management:**
@@ -1730,20 +1758,35 @@ function runInterception() {
 
 **Badge Text:**
 - During research: "Wikipedia-Recherche läuft..."
-- After completion: "3 Artikel" (shows count)
+- After completion: "3 Begriff(e)" (shows count of ALL searched terms)
 
-**Expandable Details:**
+**Expandable Details (Session 143):**
 ```typescript
 wikipediaExpanded = ref(false)  // Toggle state
 
-// Expanded view shows:
-<div class="lora-details">  // Reuses LoRA badge styles
+// Expanded view shows ALL terms with visual distinction:
+<div class="lora-details">
   <div v-for="term in wikipediaData.terms" class="lora-item">
-    <a :href="term.url" target="_blank">
-      {{ term.title }}
-    </a>
+    // Found: Blue clickable link
+    <template v-if="item.success && item.url">
+      <a :href="item.url" target="_blank">{{ item.title }}</a>
+    </template>
+    // Not found: Gray italic text
+    <template v-else>
+      <span class="wikipedia-not-found">
+        {{ item.term }} <small>(nicht gefunden)</small>
+      </span>
+    </template>
   </div>
 </div>
+```
+
+**CSS for Not Found:**
+```css
+.wikipedia-not-found {
+  color: #888;
+  font-style: italic;
+}
 ```
 
 **Cultural Context Feature (Session 136):**
@@ -1754,13 +1797,16 @@ wikipediaExpanded = ref(false)  // Toggle state
 
 **Related Files:**
 - `public/ai4artsed-frontend/src/views/text_transformation.vue` - Badge UI
+- `public/ai4artsed-frontend/src/views/text_transformation.css` - Badge styling
 - `devserver/schemas/engine/pipeline_executor.py` - Sends Wikipedia events via SSE
-- `devserver/my_app/services/wikipedia_service.py` - 70+ language support
+- `devserver/my_app/services/wikipedia_service.py` - Opensearch API + 70+ languages
 - `docs/analysis/ORIENTALISM_PROBLEM_2026-01.md` - Cultural respect rationale
 
-**TODO (Session 142):**
-- [ ] User testing of badge visibility and interaction
-- [ ] Fine-tuning of badge position/styling if needed
+**Session History:**
+- Session 136: Initial implementation with cultural language support
+- Session 139: Badge UI improvements
+- Session 142: Fixed badge disappearing (moved to stable area)
+- Session 143: Opensearch API for fuzzy matching + show all terms
 
 ---
 
