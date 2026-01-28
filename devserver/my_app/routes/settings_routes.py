@@ -17,6 +17,10 @@ import subprocess
 import requests
 import sys
 import threading
+from dataclasses import dataclass
+import re
+import time
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +38,132 @@ MISTRAL_KEY_FILE = Path(__file__).parent.parent.parent / "mistral.key"
 # Path to settings password file (stores password hash)
 SETTINGS_PASSWORD_FILE = Path(__file__).parent.parent.parent / "settings_password.key"
 
+
+# ============================================================================
+# Session Export Folder Discovery (for nested folder structure)
+# ============================================================================
+
+@dataclass
+class MetadataInfo:
+    """Info about a session's metadata file location"""
+    metadata_path: Path          # Full path to metadata.json
+    run_id: str                  # Extracted from metadata
+    run_folder: Path             # Directory containing metadata.json
+    relative_path: str           # Relative path from exports/json/ (for URLs)
+
+
+# Module-level cache for metadata files
+_metadata_cache = {
+    'data': None,
+    'timestamp': 0,
+    'ttl': 60  # seconds
+}
+
+
+def find_all_metadata_files(base_path: Path, max_depth: int = 4) -> List[MetadataInfo]:
+    """
+    Recursively find all metadata.json files.
+
+    Handles:
+    - New: YYYY-MM-DD/device_id/run_xxx/metadata.json (depth 4)
+    - Legacy migrated: YYYY-MM-DD/legacy_XXX/old_folder/metadata.json (depth 4)
+    - Unmigrated: YYYY-MM-DD/old_folder/metadata.json (depth 3)
+    - Flat legacy: old_folder/metadata.json (depth 2)
+
+    Args:
+        base_path: Base directory to search (exports/json/)
+        max_depth: Maximum directory depth to traverse
+
+    Returns:
+        List of MetadataInfo objects for each found session
+    """
+    results = []
+
+    def traverse(current_path: Path, depth: int):
+        if depth > max_depth:
+            return
+
+        # Check if current directory has metadata.json
+        metadata_file = current_path / "metadata.json"
+        if metadata_file.exists():
+            try:
+                with open(metadata_file) as f:
+                    metadata = json.load(f)
+
+                run_id = metadata.get('run_id')
+                if not run_id:
+                    return  # Skip invalid entries
+
+                results.append(MetadataInfo(
+                    metadata_path=metadata_file,
+                    run_id=run_id,
+                    run_folder=current_path,
+                    relative_path=str(current_path.relative_to(base_path))
+                ))
+            except Exception as e:
+                logger.debug(f"Error reading {metadata_file}: {e}")
+                return
+
+        # Recurse into subdirectories
+        try:
+            for item in current_path.iterdir():
+                if item.is_dir():
+                    traverse(item, depth + 1)
+        except PermissionError:
+            pass  # Skip inaccessible directories
+
+    traverse(base_path, 0)
+    return results
+
+
+def get_cached_metadata_files(base_path: Path) -> List[MetadataInfo]:
+    """Get metadata files with simple in-memory caching"""
+    now = time.time()
+    if _metadata_cache['data'] is None or (now - _metadata_cache['timestamp']) > _metadata_cache['ttl']:
+        _metadata_cache['data'] = find_all_metadata_files(base_path)
+        _metadata_cache['timestamp'] = now
+    return _metadata_cache['data']
+
+
+def find_metadata_by_run_id(base_path: Path, run_id: str) -> Optional[Path]:
+    """
+    Find metadata.json for a specific run_id.
+
+    Uses timestamp extraction optimization when possible.
+
+    Args:
+        base_path: Base directory to search (exports/json/)
+        run_id: The run_id to find
+
+    Returns:
+        Path to metadata.json file, or None if not found
+    """
+    # Try to extract timestamp from run_id for optimization
+    timestamp_match = re.match(r'run_(\d+)_', run_id)
+    if timestamp_match:
+        timestamp_ms = int(timestamp_match.group(1))
+        timestamp_s = timestamp_ms / 1000
+        dt = datetime.fromtimestamp(timestamp_s)
+        date_str = dt.strftime('%Y-%m-%d')
+
+        # Try searching in the date folder first (fast path)
+        date_folder = base_path / date_str
+        if date_folder.exists():
+            for metadata_info in find_all_metadata_files(date_folder):
+                if metadata_info.run_id == run_id:
+                    return metadata_info.metadata_path
+
+    # Fallback: search all (slower but guaranteed)
+    for metadata_info in find_all_metadata_files(base_path):
+        if metadata_info.run_id == run_id:
+            return metadata_info.metadata_path
+
+    return None
+
+
+# ============================================================================
+# Settings Routes
+# ============================================================================
 
 def generate_strong_password(length=24):
     """Generate a cryptographically secure random password"""
@@ -1142,16 +1272,12 @@ def get_available_dates():
         # Collect dates with session counts
         date_counts = {}
 
-        for session_dir in exports_path.iterdir():
-            if not session_dir.is_dir():
-                continue
+        # Use helper to find all metadata files (handles nested structure)
+        metadata_files = get_cached_metadata_files(exports_path)
 
-            metadata_file = session_dir / "metadata.json"
-            if not metadata_file.exists():
-                continue
-
+        for metadata_info in metadata_files:
             try:
-                with open(metadata_file) as f:
+                with open(metadata_info.metadata_path) as f:
                     metadata = json.load(f)
 
                 timestamp_str = metadata.get('timestamp', '')
@@ -1221,17 +1347,16 @@ def get_sessions():
         # Collect all sessions
         all_sessions = []
 
-        for session_dir in exports_path.iterdir():
-            if not session_dir.is_dir():
-                continue
+        # Use helper to find all metadata files (handles nested structure)
+        metadata_files = get_cached_metadata_files(exports_path)
 
-            metadata_file = session_dir / "metadata.json"
-            if not metadata_file.exists():
-                continue
-
+        for metadata_info in metadata_files:
             try:
-                with open(metadata_file) as f:
+                with open(metadata_info.metadata_path) as f:
                     metadata = json.load(f)
+
+                # Set session_dir to run_folder for reading other files
+                session_dir = metadata_info.run_folder
 
                 # Parse timestamp
                 timestamp_str = metadata.get('timestamp', '')
@@ -1338,10 +1463,10 @@ def get_sessions():
                             filename = entity.get('filename')
                             if filename:
                                 if entity_type == 'output_image':
-                                    thumbnail_path = f"/exports/json/{session_dir.name}/{filename}"
+                                    thumbnail_path = f"/exports/json/{metadata_info.relative_path}/{filename}"
                                     thumbnail_type = 'image'
                                 elif entity_type == 'output_video':
-                                    thumbnail_path = f"/exports/json/{session_dir.name}/{filename}"
+                                    thumbnail_path = f"/exports/json/{metadata_info.relative_path}/{filename}"
                                     thumbnail_type = 'video'
 
                 # Build session summary
@@ -1358,7 +1483,7 @@ def get_sessions():
                     'step': metadata.get('current_state', {}).get('step'),
                     'entity_count': len(metadata.get('entities', [])),
                     'media_count': media_count,
-                    'session_dir': str(session_dir.name),
+                    'session_dir': metadata_info.relative_path,
                     'thumbnail': thumbnail_path,
                     'thumbnail_type': thumbnail_type
                 }
@@ -1366,7 +1491,7 @@ def get_sessions():
                 all_sessions.append(session_summary)
 
             except Exception as e:
-                logger.error(f"[SETTINGS] Error reading metadata from {session_dir.name}: {e}")
+                logger.error(f"[SETTINGS] Error reading metadata from {metadata_info.relative_path}: {e}")
                 continue
 
         # Sort sessions
@@ -1410,16 +1535,17 @@ def get_session_detail(run_id):
     """Get detailed information for a specific session"""
     try:
         exports_path = Path(__file__).parent.parent.parent.parent / "exports" / "json"
-        session_dir = exports_path / run_id
 
-        if not session_dir.exists():
+        # Use helper to find session by run_id (handles nested structure)
+        metadata_path = find_metadata_by_run_id(exports_path, run_id)
+
+        if not metadata_path:
             return jsonify({"error": "Session not found"}), 404
 
-        metadata_file = session_dir / "metadata.json"
-        if not metadata_file.exists():
-            return jsonify({"error": "Metadata not found"}), 404
+        session_dir = metadata_path.parent
+        relative_path = str(session_dir.relative_to(exports_path))
 
-        with open(metadata_file) as f:
+        with open(metadata_path) as f:
             metadata = json.load(f)
 
         # Read all entity files
@@ -1432,11 +1558,11 @@ def get_session_detail(run_id):
                 if file_path.exists():
                     # For images, provide URL path
                     if file_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
-                        entity_copy['image_url'] = f"/exports/json/{run_id}/{filename}"
+                        entity_copy['image_url'] = f"/exports/json/{relative_path}/{filename}"
                         entity_copy['media_type'] = 'image'
                     # For videos, provide URL path
                     elif file_path.suffix.lower() in ['.mp4', '.webm', '.mov']:
-                        entity_copy['video_url'] = f"/exports/json/{run_id}/{filename}"
+                        entity_copy['video_url'] = f"/exports/json/{relative_path}/{filename}"
                         entity_copy['media_type'] = 'video'
                     # For text files, read content
                     elif file_path.suffix in ['.txt', '.json']:
