@@ -158,13 +158,19 @@ export const useCanvasStore = defineStore('canvas', () => {
     const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
     const allTranslationConfigured = translationNodes.every(n => n.llmModel)
 
-    // Need at least one processing node (interception, translation, or generation)
+    // Session 140: Check all random_prompt nodes have preset and LLM selected
+    const randomPromptNodes = workflow.value.nodes.filter(n => n.type === 'random_prompt')
+    const allRandomPromptConfigured = randomPromptNodes.every(n => n.randomPromptPreset && n.randomPromptModel)
+
+    // Need at least one processing node (interception, translation, generation, or random_prompt)
     const hasProcessingNode = interceptionNodes.length > 0 ||
                               translationNodes.length > 0 ||
-                              generationNodes.length > 0
+                              generationNodes.length > 0 ||
+                              randomPromptNodes.length > 0
 
     return hasInput && hasCollector && hasProcessingNode &&
-           allGenerationConfigured && allInterceptionConfigured && allTranslationConfigured
+           allGenerationConfigured && allInterceptionConfigured && allTranslationConfigured &&
+           allRandomPromptConfigured
   })
 
   /**
@@ -186,10 +192,11 @@ export const useCanvasStore = defineStore('canvas', () => {
     const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
     const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
     const generationNodes = workflow.value.nodes.filter(n => n.type === 'generation')
+    const randomPromptNodes = workflow.value.nodes.filter(n => n.type === 'random_prompt')
 
     // Need at least one processing node
-    if (interceptionNodes.length === 0 && translationNodes.length === 0 && generationNodes.length === 0) {
-      errors.push('Need at least one processing node (Interception, Translation, or Generation)')
+    if (interceptionNodes.length === 0 && translationNodes.length === 0 && generationNodes.length === 0 && randomPromptNodes.length === 0) {
+      errors.push('Need at least one processing node (Random Prompt, Interception, Translation, or Generation)')
     }
 
     generationNodes.forEach(n => {
@@ -206,6 +213,16 @@ export const useCanvasStore = defineStore('canvas', () => {
     translationNodes.forEach(n => {
       if (!n.llmModel) {
         errors.push(`Translation node needs LLM selection`)
+      }
+    })
+
+    // Session 140: Random Prompt validation
+    randomPromptNodes.forEach(n => {
+      if (!n.randomPromptModel) {
+        errors.push(`Random Prompt node needs LLM selection`)
+      }
+      if (!n.randomPromptPreset) {
+        errors.push(`Random Prompt node needs preset selection`)
       }
     })
 

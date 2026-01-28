@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { CanvasNode, LLMModelSummary } from '@/types/canvas'
-import { getNodeTypeDefinition } from '@/types/canvas'
+import type { CanvasNode, LLMModelSummary, RandomPromptPreset, PhotoFilmType } from '@/types/canvas'
+import { getNodeTypeDefinition, RANDOM_PROMPT_PRESETS, PHOTO_FILM_TYPES } from '@/types/canvas'
 
 const { locale } = useI18n()
 
@@ -61,6 +61,13 @@ const emit = defineEmits<{
   'update-threshold-value': [threshold: number]
   'update-branch-labels': [trueLabel: string, falseLabel: string]
   'start-connect-labeled': [label: string]
+  // Session 140: Random Prompt events
+  'update-random-prompt-preset': [preset: string]
+  'update-random-prompt-model': [model: string]
+  'update-random-prompt-film-type': [filmType: string]
+  'update-random-prompt-system': [prompt: string]
+  'update-random-prompt-seed': [seed: number]
+  'toggle-random-prompt-system': [show: boolean]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -91,6 +98,7 @@ const hasOutputConnector = computed(() => {
 
 // Node type checks
 const isInput = computed(() => props.node.type === 'input')
+const isRandomPrompt = computed(() => props.node.type === 'random_prompt')
 const isInterception = computed(() => props.node.type === 'interception')
 const isTranslation = computed(() => props.node.type === 'translation')
 const isGeneration = computed(() => props.node.type === 'generation')
@@ -98,7 +106,7 @@ const isCollector = computed(() => props.node.type === 'collector')
 const isDisplay = computed(() => props.node.type === 'display')
 // Session 134 Refactored: Unified evaluation node
 const isEvaluation = computed(() => props.node.type === 'evaluation')
-const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value)
+const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value || isRandomPrompt.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 // Evaluation branching
 const hasBranching = computed(() => isEvaluation.value && props.node.enableBranching === true)
@@ -108,6 +116,7 @@ const hasFeedbackInput = computed(() => isInterception.value || isTranslation.va
 // Check if node is properly configured
 const isConfigured = computed(() => {
   if (isGeneration.value) return !!props.node.configId
+  if (isRandomPrompt.value) return !!(props.node.randomPromptModel && props.node.randomPromptPreset)
   if (needsLLM.value) return !!props.node.llmModel
   return true
 })
@@ -232,6 +241,47 @@ function getEvaluationPromptTemplate(evalType: string): string {
   const template = templates[evalType]
   if (!template) return locale.value === 'de' ? 'Bewertungskriterien...' : 'Evaluation criteria...'
   return locale.value === 'de' ? template.de : template.en
+}
+
+// Session 140: Random Prompt node handlers
+function onRandomPromptPresetChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-random-prompt-preset', select.value)
+}
+
+function onRandomPromptModelChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-random-prompt-model', select.value)
+}
+
+function onRandomPromptFilmTypeChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-random-prompt-film-type', select.value)
+}
+
+function onRandomPromptSystemChange(event: Event) {
+  const textarea = event.target as HTMLTextAreaElement
+  emit('update-random-prompt-system', textarea.value)
+}
+
+function onRegenerateRandomPrompt() {
+  // Update seed to force new generation
+  emit('update-random-prompt-seed', Date.now())
+}
+
+function onToggleRandomPromptSystem() {
+  emit('toggle-random-prompt-system', !(props.node.randomPromptShowSystemPrompt || false))
+}
+
+function onResetRandomPromptSystem() {
+  const preset = (props.node.randomPromptPreset || 'clean_image') as RandomPromptPreset
+  const defaultPrompt = RANDOM_PROMPT_PRESETS[preset]?.systemPrompt || ''
+  emit('update-random-prompt-system', defaultPrompt)
+}
+
+function getDefaultSystemPrompt(): string {
+  const preset = (props.node.randomPromptPreset || 'clean_image') as RandomPromptPreset
+  return RANDOM_PROMPT_PRESETS[preset]?.systemPrompt || ''
 }
 
 // Session 134: Display node handlers
@@ -392,6 +442,104 @@ const nodeHeight = computed(() => {
             @input="onPromptTextChange"
             @mousedown.stop
           />
+        </div>
+      </template>
+
+      <!-- RANDOM_PROMPT NODE: Preset + LLM + Film Type + Regenerate (Session 140) -->
+      <template v-else-if="isRandomPrompt">
+        <!-- Preset Selector -->
+        <div class="field-group">
+          <label class="field-label">Preset</label>
+          <select
+            class="llm-select"
+            :value="node.randomPromptPreset || 'clean_image'"
+            @change="onRandomPromptPresetChange"
+            @mousedown.stop
+          >
+            <option
+              v-for="(config, presetKey) in RANDOM_PROMPT_PRESETS"
+              :key="presetKey"
+              :value="presetKey"
+            >
+              {{ locale === 'de' ? config.label.de : config.label.en }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Film Type (only for photo preset) -->
+        <div v-if="node.randomPromptPreset === 'photo'" class="field-group">
+          <label class="field-label">Film</label>
+          <select
+            class="llm-select"
+            :value="node.randomPromptFilmType || 'random'"
+            @change="onRandomPromptFilmTypeChange"
+            @mousedown.stop
+          >
+            <option
+              v-for="(desc, filmKey) in PHOTO_FILM_TYPES"
+              :key="filmKey"
+              :value="filmKey"
+            >
+              {{ filmKey }}
+            </option>
+          </select>
+        </div>
+
+        <!-- LLM Selector -->
+        <div class="field-group">
+          <label class="field-label">LLM</label>
+          <select
+            class="llm-select"
+            :value="node.randomPromptModel || ''"
+            @change="onRandomPromptModelChange"
+            @mousedown.stop
+          >
+            <option value="" disabled>{{ locale === 'de' ? 'LLM wählen...' : 'Select LLM...' }}</option>
+            <option
+              v-for="model in llmModels"
+              :key="model.id"
+              :value="model.id"
+            >
+              {{ model.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Regenerate Button -->
+        <div class="field-group">
+          <button
+            class="regenerate-btn"
+            @click.stop="onRegenerateRandomPrompt"
+          >
+            ↻ {{ locale === 'de' ? 'Neu generieren' : 'Regenerate' }}
+          </button>
+        </div>
+
+        <!-- Collapsible System Prompt (advanced) -->
+        <div class="field-group">
+          <label class="field-checkbox" @click.stop="onToggleRandomPromptSystem">
+            <input
+              type="checkbox"
+              :checked="node.randomPromptShowSystemPrompt || false"
+              @mousedown.stop
+            />
+            <span>{{ locale === 'de' ? 'System-Prompt' : 'System Prompt' }}</span>
+          </label>
+        </div>
+        <div v-if="node.randomPromptShowSystemPrompt" class="field-group">
+          <textarea
+            class="prompt-textarea"
+            :value="node.randomPromptSystemPrompt || getDefaultSystemPrompt()"
+            rows="4"
+            @input="onRandomPromptSystemChange"
+            @mousedown.stop
+          />
+          <button
+            class="reset-btn"
+            @click.stop="onResetRandomPromptSystem"
+          >
+            {{ locale === 'de' ? 'Zurücksetzen' : 'Reset' }}
+          </button>
         </div>
       </template>
 
@@ -1335,6 +1483,41 @@ const nodeHeight = computed(() => {
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+/* Session 140: Random Prompt node styles */
+.regenerate-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: #3b82f6;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.regenerate-btn:hover {
+  background: #2563eb;
+}
+
+.reset-btn {
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 0.625rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-btn:hover {
+  border-color: #64748b;
+  color: #e2e8f0;
 }
 
 .branching-section {

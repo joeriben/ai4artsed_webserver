@@ -29,7 +29,7 @@ const categories = computed(() => [
   {
     id: 'process',
     label: locale.value === 'de' ? 'Verarbeitung' : 'Processing',
-    types: ['interception', 'translation', 'display'] as StageType[]
+    types: ['random_prompt', 'interception', 'translation', 'display'] as StageType[]
   },
   {
     id: 'generate',

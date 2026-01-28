@@ -5,7 +5,7 @@ import { useCanvasStore } from '@/stores/canvas'
 import CanvasWorkspace from '@/components/canvas/CanvasWorkspace.vue'
 import ModulePalette from '@/components/canvas/ModulePalette.vue'
 import ConfigSelectorModal from '@/components/canvas/ConfigSelectorModal.vue'
-import type { StageType } from '@/types/canvas'
+import type { StageType, RandomPromptPreset, PhotoFilmType } from '@/types/canvas'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
@@ -124,6 +124,31 @@ function handleUpdateNodeThresholdValue(nodeId: string, threshold: number) {
 
 function handleUpdateNodeBranchLabels(nodeId: string, trueLabel: string, falseLabel: string) {
   canvasStore.updateNode(nodeId, { trueLabel, falseLabel })
+}
+
+// Session 140: Random Prompt node handlers
+function handleUpdateNodeRandomPromptPreset(nodeId: string, preset: string) {
+  canvasStore.updateNode(nodeId, { randomPromptPreset: preset as RandomPromptPreset })
+}
+
+function handleUpdateNodeRandomPromptModel(nodeId: string, model: string) {
+  canvasStore.updateNode(nodeId, { randomPromptModel: model })
+}
+
+function handleUpdateNodeRandomPromptFilmType(nodeId: string, filmType: string) {
+  canvasStore.updateNode(nodeId, { randomPromptFilmType: filmType as PhotoFilmType })
+}
+
+function handleUpdateNodeRandomPromptSystem(nodeId: string, prompt: string) {
+  canvasStore.updateNode(nodeId, { randomPromptSystemPrompt: prompt })
+}
+
+function handleUpdateNodeRandomPromptSeed(nodeId: string, seed: number) {
+  canvasStore.updateNode(nodeId, { randomPromptSeed: seed })
+}
+
+function handleToggleRandomPromptSystem(nodeId: string, show: boolean) {
+  canvasStore.updateNode(nodeId, { randomPromptShowSystemPrompt: show })
 }
 
 function startEditingName() {
@@ -358,6 +383,12 @@ onUnmounted(() => {
           @update-node-branch-condition="handleUpdateNodeBranchCondition"
           @update-node-threshold-value="handleUpdateNodeThresholdValue"
           @update-node-branch-labels="handleUpdateNodeBranchLabels"
+          @update-node-random-prompt-preset="handleUpdateNodeRandomPromptPreset"
+          @update-node-random-prompt-model="handleUpdateNodeRandomPromptModel"
+          @update-node-random-prompt-film-type="handleUpdateNodeRandomPromptFilmType"
+          @update-node-random-prompt-system="handleUpdateNodeRandomPromptSystem"
+          @update-node-random-prompt-seed="handleUpdateNodeRandomPromptSeed"
+          @toggle-node-random-prompt-system="handleToggleRandomPromptSystem"
         />
       </div>
     </div>

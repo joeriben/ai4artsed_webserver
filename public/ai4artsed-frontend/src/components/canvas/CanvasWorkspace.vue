@@ -78,6 +78,13 @@ const emit = defineEmits<{
   'update-node-branch-condition': [nodeId: string, condition: 'binary' | 'threshold']
   'update-node-threshold-value': [nodeId: string, threshold: number]
   'update-node-branch-labels': [nodeId: string, trueLabel: string, falseLabel: string]
+  // Session 140: Random Prompt events
+  'update-node-random-prompt-preset': [nodeId: string, preset: string]
+  'update-node-random-prompt-model': [nodeId: string, model: string]
+  'update-node-random-prompt-film-type': [nodeId: string, filmType: string]
+  'update-node-random-prompt-system': [nodeId: string, prompt: string]
+  'update-node-random-prompt-seed': [nodeId: string, seed: number]
+  'toggle-node-random-prompt-system': [nodeId: string, show: boolean]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -365,6 +372,12 @@ onUnmounted(() => {
       @update-branch-condition="emit('update-node-branch-condition', node.id, $event)"
       @update-threshold-value="emit('update-node-threshold-value', node.id, $event)"
       @update-branch-labels="(trueLabel, falseLabel) => emit('update-node-branch-labels', node.id, trueLabel, falseLabel)"
+      @update-random-prompt-preset="emit('update-node-random-prompt-preset', node.id, $event)"
+      @update-random-prompt-model="emit('update-node-random-prompt-model', node.id, $event)"
+      @update-random-prompt-film-type="emit('update-node-random-prompt-film-type', node.id, $event)"
+      @update-random-prompt-system="emit('update-node-random-prompt-system', node.id, $event)"
+      @update-random-prompt-seed="emit('update-node-random-prompt-seed', node.id, $event)"
+      @toggle-random-prompt-system="emit('toggle-node-random-prompt-system', node.id, $event)"
     />
 
     <!-- Empty state -->
