@@ -16,33 +16,35 @@
           <span v-if="totalFavorites > 0" class="badge">{{ totalFavorites }}</span>
         </span>
 
-        <!-- View Mode Toggle (Session 145: Per-user favorites) -->
-        <button
-          class="view-mode-toggle"
-          @click.stop="toggleViewMode"
-          :title="viewMode === 'per_user' ? 'Alle Favoriten anzeigen' : 'Nur meine Favoriten'"
-        >
-          <!-- Icon: Person (per_user) or Group (global) -->
-          <svg
-            v-if="viewMode === 'per_user'"
-            xmlns="http://www.w3.org/2000/svg"
-            height="16"
-            width="16"
-            viewBox="0 -960 960 960"
+        <!-- View Mode Toggle (Session 145: Per-user favorites - 2-Feld-Switch) -->
+        <div class="view-mode-switch" @click.stop>
+          <button
+            class="switch-option"
+            :class="{ active: viewMode === 'per_user' }"
+            @click="setViewModePerUser"
+            title="Nur meine Favoriten"
           >
-            <path
-              d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z"
-            />
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 -960 960 960">
-            <path
-              d="M0-240v-63q0-43 44-70t116-27q13 0 25 .5t23 2.5q-14 21-21 44t-7 48v65H0Zm240 0v-65q0-32 17.5-58.5T307-410q32-20 76.5-30t96.5-10q53 0 97.5 10t76.5 30q32 20 49 46.5t17 58.5v65H240Zm540 0v-65q0-26-6.5-49T754-397q11-2 22.5-2.5t23.5-.5q72 0 116 26.5t44 70.5v63H780Z"
-            />
-          </svg>
-          <span class="view-mode-text">
-            {{ viewMode === 'per_user' ? 'Meine' : 'Alle' }}
-          </span>
-        </button>
+            <svg xmlns="http://www.w3.org/2000/svg" height="14" width="14" viewBox="0 -960 960 960">
+              <path
+                d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z"
+              />
+            </svg>
+            <span>Meine</span>
+          </button>
+          <button
+            class="switch-option"
+            :class="{ active: viewMode === 'global' }"
+            @click="setViewModeGlobal"
+            title="Alle Favoriten"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" height="14" width="14" viewBox="0 -960 960 960">
+              <path
+                d="M0-240v-63q0-43 44-70t116-27q13 0 25 .5t23 2.5q-14 21-21 44t-7 48v65H0Zm240 0v-65q0-32 17.5-58.5T307-410q32-20 76.5-30t96.5-10q53 0 97.5 10t76.5 30q32 20 49 46.5t17 58.5v65H240Zm540 0v-65q0-26-6.5-49T754-397q11-2 22.5-2.5t23.5-.5q72 0 116 26.5t44 70.5v63H780Z"
+              />
+            </svg>
+            <span>Alle</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -175,10 +177,17 @@ function toggleGallery() {
   favoritesStore.toggleGallery()
 }
 
-// Session 145: Toggle view mode
-function toggleViewMode() {
-  const newMode = viewMode.value === 'per_user' ? 'global' : 'per_user'
-  favoritesStore.setViewMode(newMode, currentDeviceId.value)
+// Session 145: Set view mode handlers
+function setViewModePerUser() {
+  if (viewMode.value !== 'per_user') {
+    favoritesStore.setViewMode('per_user', currentDeviceId.value)
+  }
+}
+
+function setViewModeGlobal() {
+  if (viewMode.value !== 'global') {
+    favoritesStore.setViewMode('global', currentDeviceId.value)
+  }
 }
 
 function getMediaIcon(mediaType: string): string {
@@ -308,34 +317,50 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* View Mode Toggle (Session 145: Per-user favorites) */
-.view-mode-toggle {
+/* View Mode Switch (Session 145: 2-Feld-Switch) */
+.view-mode-switch {
+  display: flex;
+  gap: 0;
+  margin-left: auto;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.switch-option {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.5rem;
-  margin-left: auto;
-  background: rgba(102, 126, 234, 0.2);
-  border: 1px solid rgba(102, 126, 234, 0.3);
+  background: transparent;
+  border: none;
   border-radius: 4px;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.view-mode-toggle:hover {
-  background: rgba(102, 126, 234, 0.3);
-  border-color: rgba(102, 126, 234, 0.5);
-  transform: translateY(-1px);
+.switch-option:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.view-mode-toggle svg {
-  fill: currentColor;
-}
-
-.view-mode-text {
+.switch-option.active {
+  background: rgba(102, 126, 234, 0.4);
+  color: rgba(255, 255, 255, 1);
   font-weight: 600;
+}
+
+.switch-option svg {
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.switch-option span {
+  font-weight: inherit;
 }
 
 /* ============================================================================
