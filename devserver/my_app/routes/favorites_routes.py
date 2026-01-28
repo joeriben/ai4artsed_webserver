@@ -210,6 +210,10 @@ def add_favorite():
         user_id = body.get('user_id', 'anonymous')
         user_note = body.get('user_note', '')
 
+        # Session 145: Debug logging
+        logger.info(f"[FAVORITES] POST Request Body: {body}")
+        logger.info(f"[FAVORITES] device_id extracted: {device_id!r} (type: {type(device_id).__name__})")
+
         if not run_id:
             return jsonify({'error': 'run_id is required'}), 400
 
