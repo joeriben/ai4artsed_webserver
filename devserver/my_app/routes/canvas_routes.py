@@ -142,6 +142,14 @@ def _load_config_summaries(config_type: str) -> list:
             logger.error(f"Error loading config {config_file}: {e}")
             continue
 
+    # Sort output configs by media type (image, video, audio, other) then alphabetically
+    if config_type == 'output':
+        media_type_order = {'image': 0, 'video': 1, 'audio': 2, 'music': 2}
+        summaries.sort(key=lambda x: (
+            media_type_order.get(x.get('mediaType', ''), 999),  # Media type priority
+            x.get('name', {}).get('en', x.get('id', '')).lower()  # Alphabetically by EN name
+        ))
+
     logger.info(f"Loaded {len(summaries)} {config_type} configs")
     return summaries
 
