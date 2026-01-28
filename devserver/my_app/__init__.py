@@ -6,7 +6,75 @@ import os
 from flask import Flask, request
 from flask_cors import CORS
 
-from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR, DISABLE_API_CACHE, CACHE_STRATEGY
+from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR, DISABLE_API_CACHE, CACHE_STRATEGY, ENABLE_LEGACY_MIGRATION
+
+
+def _run_startup_migration():
+    """Run legacy folder migration on startup if needed."""
+    if not ENABLE_LEGACY_MIGRATION:
+        logging.debug("[MIGRATION] Legacy migration disabled via config")
+        return
+
+    try:
+        from pathlib import Path
+        from my_app.utils.legacy_migration import is_legacy_folder, run_migration, run_migration_async
+
+        # Get exports base path
+        # __file__ is devserver/my_app/__init__.py
+        # parent.parent.parent gives us project root
+        export_base = Path(__file__).parent.parent.parent / "exports" / "json"
+
+        if not export_base.exists():
+            logging.info("[MIGRATION] Export directory does not exist yet - skipping migration")
+            return
+
+        # Quick check: Count legacy folders
+        legacy_count = 0
+        try:
+            for item in export_base.iterdir():
+                if item.is_dir() and is_legacy_folder(item.name):
+                    legacy_count += 1
+                    if legacy_count > 50:  # Stop counting after 50 for performance
+                        break
+        except OSError as e:
+            logging.error(f"[MIGRATION] Error scanning export directory: {e}")
+            return
+
+        if legacy_count == 0:
+            logging.debug("[MIGRATION] No legacy folders found - migration complete")
+            return
+
+        logging.info(f"[MIGRATION] Starting legacy folder migration in {export_base}")
+        logging.info(f"[MIGRATION] Found at least {legacy_count} legacy folders to process")
+
+        # Small migrations: Run synchronously (don't block server start)
+        if legacy_count <= 50:
+            logging.info("[MIGRATION] Running migration synchronously")
+
+            def progress_callback(current, total):
+                if current % 10 == 0:
+                    logging.info(f"[MIGRATION] Progress: {current}/{total}")
+
+            result = run_migration(export_base, dry_run=False, progress_callback=progress_callback)
+
+            # Log summary
+            logging.info("[MIGRATION] ========== SUMMARY ==========")
+            logging.info(f"[MIGRATION] Total found: {result.total_found}")
+            logging.info(f"[MIGRATION] Migrated: {result.migrated}")
+            logging.info(f"[MIGRATION] Already migrated: {result.already_migrated}")
+            logging.info(f"[MIGRATION] Errors: {result.errors}")
+            logging.info("[MIGRATION] ==============================")
+
+            if result.errors > 0:
+                logging.error("[MIGRATION] Some errors occurred during migration - check logs")
+
+        # Large migrations: Run in background thread
+        else:
+            logging.info("[MIGRATION] Running migration in background thread")
+            run_migration_async(export_base, dry_run=False)
+
+    except Exception as e:
+        logging.error(f"[MIGRATION] Unexpected error during startup migration: {e}")
 
 
 def _load_user_settings():
@@ -163,5 +231,8 @@ def create_app():
     
     # Store pending exports in app context (in production, use a proper database)
     app.pending_exports = {}
-    
+
+    # Run legacy folder migration on startup if enabled
+    _run_startup_migration()
+
     return app    

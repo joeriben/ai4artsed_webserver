@@ -300,6 +300,7 @@ ENABLE_AUTO_EXPORT = True
 ENABLE_TEXT_STREAMING = True  # Enable character-by-character text streaming (typewriter effect)
 TEXT_STREAM_SPEED_MS = 30  # Milliseconds per character in frontend typewriter display (~33 chars/sec)
 NO_TRANSLATE = False  # Set to True to skip translation of prompts
+ENABLE_LEGACY_MIGRATION = os.environ.get("ENABLE_LEGACY_MIGRATION", "true").lower() == "true"  # Auto-migrate legacy export folders on startup
 LOOP_GENERATION = 1
 LOOP_COMFYUI = 1
 
