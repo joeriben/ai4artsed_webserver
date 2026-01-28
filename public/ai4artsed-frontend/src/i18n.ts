@@ -253,21 +253,21 @@ const messages = {
         content: 'Bei Fragen:'
       },
       wikipedia: {
-        title: 'Wikipedia-Recherche & Kultureller Respekt',
-        subtitle: 'Wie die KI mit kulturellen Kontexten umgeht',
-        feature: 'Die KI kann während der Transformation auf Wikipedia zugreifen, um faktische Informationen zu kulturellen Kontexten zu finden.',
+        title: 'Wikipedia-Recherche',
+        subtitle: 'Wissen über die Welt als Teil künstlerischer Prozesse',
+        feature: 'Künstlerische Prozesse erfordern nicht nur ästhetisches Wissen, sondern auch Wissen über Sachverhalte in der Welt. Die KI recherchiert während der Transformation auf Wikipedia, um faktische Informationen zu finden.',
         languages: 'Über 70 Sprachen werden unterstützt',
-        languagesDesc: 'Wenn die KI ein kulturelles Thema recherchiert, nutzt sie automatisch die passende sprachliche Wikipedia:',
+        languagesDesc: 'Die KI wählt automatisch die passende sprachliche Wikipedia für das jeweilige Thema:',
         examples: {
           nigeria: 'Thema über Nigeria → Hausa, Yoruba, Igbo oder Englisch',
           india: 'Thema über Indien → Hindi, Tamil, Bengali oder andere regionale Sprachen',
           indigenous: 'Indigene Kulturen → Quechua, Māori, Inuktitut usw.'
         },
-        why: 'Warum ist das wichtig?',
-        whyDesc: 'Lokale Wikipedia-Communities schreiben genauere und respektvollere Artikel über ihre eigenen Kulturen als die deutsche Wikipedia.',
-        culturalRespect: 'Kulturelle Respektregeln',
-        culturalRespectDesc: 'Das System enthält Regeln, die verhindern sollen, dass die KI nicht-westliche Kulturen exotisiert, romantisiert oder stereotypisiert.',
-        limitations: 'Dies ist ein Schritt in die richtige Richtung, aber keine vollständige Lösung für AI-Bias.'
+        why: 'Transparenz: Was weiß die KI?',
+        whyDesc: 'Das System zeigt alle Recherche-Versuche an: Sowohl gefundene Artikel (als anklickbare Links) als auch Begriffe, zu denen nichts gefunden wurde. So wird sichtbar, was die KI zu wissen meint – und was nicht.',
+        culturalRespect: 'Einladung zum Selbst-Recherchieren',
+        culturalRespectDesc: 'Die angezeigten Wikipedia-Links sind eine Einladung, selbst mehr zu erfahren. Klicken Sie auf die Links, um die Quellen zu prüfen und Ihr eigenes Wissen zu erweitern.',
+        limitations: 'Die KI-Recherche ist ein Hilfsmittel, kein Ersatz für eigene Auseinandersetzung mit dem Thema.'
       }
     },
     multiImage: {
@@ -595,21 +595,21 @@ const messages = {
         content: 'For questions:'
       },
       wikipedia: {
-        title: 'Wikipedia Research & Cultural Respect',
-        subtitle: 'How the AI handles cultural contexts',
-        feature: 'The AI can access Wikipedia during transformation to find factual information about cultural contexts.',
+        title: 'Wikipedia Research',
+        subtitle: 'Knowledge about the world as part of artistic processes',
+        feature: 'Artistic processes require not only aesthetic knowledge, but also knowledge about facts in the world. The AI researches Wikipedia during transformation to find factual information.',
         languages: 'Over 70 languages are supported',
-        languagesDesc: 'When the AI researches a cultural topic, it automatically uses the appropriate language Wikipedia:',
+        languagesDesc: 'The AI automatically chooses the appropriate language Wikipedia for each topic:',
         examples: {
           nigeria: 'Topic about Nigeria → Hausa, Yoruba, Igbo, or English',
           india: 'Topic about India → Hindi, Tamil, Bengali, or other regional languages',
           indigenous: 'Indigenous cultures → Quechua, Māori, Inuktitut, etc.'
         },
-        why: 'Why is this important?',
-        whyDesc: 'Local Wikipedia communities write more accurate and respectful articles about their own cultures than the German Wikipedia.',
-        culturalRespect: 'Cultural Respect Rules',
-        culturalRespectDesc: 'The system contains rules designed to prevent the AI from exoticizing, romanticizing, or stereotyping non-Western cultures.',
-        limitations: 'This is a step in the right direction, but not a complete solution to AI bias.'
+        why: 'Transparency: What does the AI know?',
+        whyDesc: 'The system shows all research attempts: Both found articles (as clickable links) and terms for which nothing was found. This makes visible what the AI thinks it knows – and what it does not.',
+        culturalRespect: 'Invitation to research yourself',
+        culturalRespectDesc: 'The displayed Wikipedia links are an invitation to learn more yourself. Click on the links to check the sources and expand your own knowledge.',
+        limitations: 'AI research is an aid, not a substitute for your own engagement with the topic.'
       }
     },
     multiImage: {
