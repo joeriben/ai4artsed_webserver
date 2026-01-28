@@ -98,7 +98,7 @@ function handleUpdateNodeDisplayMode(nodeId: string, mode: 'popup' | 'inline' | 
 }
 
 // Session 134 Refactored: Unified evaluation node handlers
-function handleUpdateNodeEvaluationType(nodeId: string, type: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom') {
+function handleUpdateNodeEvaluationType(nodeId: string, type: 'fairness' | 'creativity' | 'bias' | 'quality' | 'custom') {
   canvasStore.updateNode(nodeId, { evaluationType: type })
 }
 

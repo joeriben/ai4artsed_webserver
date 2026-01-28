@@ -215,7 +215,7 @@ export interface CanvasNode {
 
   // === Session 134 Refactored: Unified Evaluation node config ===
   /** Evaluation type (pre-fills prompt template) */
-  evaluationType?: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom'
+  evaluationType?: 'fairness' | 'creativity' | 'bias' | 'quality' | 'custom'
   /** Evaluation prompt/criteria description */
   evaluationPrompt?: string
   /** Output type for evaluation results (controls if score is requested) */

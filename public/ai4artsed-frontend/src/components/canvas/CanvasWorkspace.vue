@@ -71,7 +71,7 @@ const emit = defineEmits<{
   'update-node-display-title': [nodeId: string, title: string]
   'update-node-display-mode': [nodeId: string, mode: 'popup' | 'inline' | 'toast']
   // Session 134 Refactored: Unified evaluation events
-  'update-node-evaluation-type': [nodeId: string, type: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom']
+  'update-node-evaluation-type': [nodeId: string, type: 'fairness' | 'creativity' | 'bias' | 'quality' | 'custom']
   'update-node-evaluation-prompt': [nodeId: string, prompt: string]
   'update-node-output-type': [nodeId: string, outputType: 'commentary' | 'score' | 'all']
   'update-node-enable-branching': [nodeId: string, enabled: boolean]

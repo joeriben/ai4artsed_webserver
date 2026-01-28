@@ -53,7 +53,7 @@ const emit = defineEmits<{
   'update-display-title': [title: string]
   'update-display-mode': [mode: 'popup' | 'inline' | 'toast']
   // Session 134 Refactored: Unified evaluation events
-  'update-evaluation-type': [type: 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom']
+  'update-evaluation-type': [type: 'fairness' | 'creativity' | 'bias' | 'quality' | 'custom']
   'update-evaluation-prompt': [prompt: string]
   'update-output-type': [outputType: 'commentary' | 'score' | 'all']
   'update-enable-branching': [enabled: boolean]
@@ -177,7 +177,7 @@ function onPromptTextChange(event: Event) {
 // Session 134 Refactored: Unified evaluation node handlers
 function onEvaluationTypeChange(event: Event) {
   const select = event.target as HTMLSelectElement
-  const newType = select.value as 'fairness' | 'creativity' | 'equity' | 'quality' | 'custom'
+  const newType = select.value as 'fairness' | 'creativity' | 'bias' | 'quality' | 'custom'
   emit('update-evaluation-type', newType)
 
   // Auto-fill prompt based on type
@@ -215,9 +215,9 @@ function getEvaluationPromptTemplate(evalType: string): string {
       en: 'Evaluate originality and creative quality. Check if the content shows genuine creativity or resembles generic stock imagery/text.',
       de: 'Bewerte Originalität und kreative Qualität. Prüfe, ob der Inhalt echte Kreativität zeigt oder generischen Stock-Bildern/-Texten ähnelt.'
     },
-    equity: {
-      en: 'Evaluate cultural sensitivity and representational equity. Check for respectful portrayal of diverse cultures and communities.',
-      de: 'Bewerte kulturelle Sensibilität und Repräsentations-Equity. Prüfe auf respektvolle Darstellung verschiedener Kulturen und Gemeinschaften.'
+    bias: {
+      en: 'Evaluate cultural sensitivity and representational bias. Check whether the input - contextually appropriate! - actively prevents cultural, ethnic, and gender-related biases of genAI systems and actively counters a western gaze, without becoming dogmatic.',
+      de: 'Bewerte kulturelle Sensibilität und Repräsentations-Equity. Prüfe, ob der Input - situationsangemessen! - aktiv kulturelle, ethnische und genderbezogene Biases von genAI-Systemen verhindert und aktiv gegen einen western gaze vorgeht, ohne jedoch dogmatisch zu werden.'
     },
     quality: {
       en: 'Evaluate technical quality, composition, and clarity. Check for coherence, visual/textual quality, and overall execution.',
@@ -577,7 +577,7 @@ const nodeHeight = computed(() => {
           >
             <option value="fairness">{{ locale === 'de' ? 'Fairness' : 'Fairness' }}</option>
             <option value="creativity">{{ locale === 'de' ? 'Kreativität' : 'Creativity' }}</option>
-            <option value="equity">{{ locale === 'de' ? 'Equity' : 'Equity' }}</option>
+            <option value="bias">{{ locale === 'de' ? 'Bias' : 'Bias' }}</option>
             <option value="quality">{{ locale === 'de' ? 'Qualität' : 'Quality' }}</option>
             <option value="custom">{{ locale === 'de' ? 'Eigene' : 'Custom' }}</option>
           </select>
