@@ -418,22 +418,29 @@ def execute_workflow():
         node_map = {n['id']: n for n in nodes}
         # outgoing[node_id] = [(target_id, label), ...]
         outgoing = {n['id']: [] for n in nodes}
+        incoming = {n['id']: [] for n in nodes}
         for conn in connections:
             src = conn.get('sourceId')
             tgt = conn.get('targetId')
             label = conn.get('label')  # 'passthrough', 'commented', 'commentary', 'feedback', or None
             if src and tgt:
                 outgoing[src].append({'target': tgt, 'label': label})
+                incoming[tgt].append({'source': src, 'label': label})
 
-        # Find input node
+        # Find source nodes: input node + random_prompt nodes with no incoming connections
+        source_nodes = []
         input_node = None
         for n in nodes:
-            if n.get('type') == 'input':
+            ntype = n.get('type')
+            if ntype == 'input':
                 input_node = n
-                break
+                source_nodes.append(n)
+            elif ntype == 'random_prompt' and not incoming.get(n['id']):
+                # random_prompt without input = standalone source
+                source_nodes.append(n)
 
-        if not input_node:
-            return jsonify({'status': 'error', 'error': 'No input node found'}), 400
+        if not source_nodes:
+            return jsonify({'status': 'error', 'error': 'No source nodes found (need input or standalone random_prompt)'}), 400
 
         # Execution state
         results = {}
@@ -805,8 +812,8 @@ def execute_workflow():
 
                 # Data type compatibility check
                 target_type = target_node.get('type')
-                accepts_text = target_type in ['interception', 'translation', 'generation', 'evaluation', 'collector']
-                accepts_image = target_type in ['evaluation', 'collector']
+                accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display']
+                accepts_image = target_type in ['evaluation', 'collector', 'display']
 
                 if output_type == 'text' and not accepts_text:
                     logger.warning(f"[Canvas Tracer] Type mismatch: {node_id} outputs text, {target_id} ({target_type}) doesn't accept it")
@@ -833,10 +840,15 @@ def execute_workflow():
                 # Recurse - pass source node info for collector
                 trace(target_id, trace_data, output_type, node_id, node_type)
 
-        # Start tracing from input
-        input_text = input_node.get('promptText', '')
-        logger.info(f"[Canvas Tracer] Starting from input: '{input_text[:50]}...'")
-        trace(input_node['id'], None, 'text')  # Input node doesn't receive data
+        # Start tracing from all source nodes (input + standalone random_prompt)
+        for src_node in source_nodes:
+            src_type = src_node.get('type')
+            if src_type == 'input':
+                input_text = src_node.get('promptText', '')
+                logger.info(f"[Canvas Tracer] Starting from input: '{input_text[:50]}...'")
+            else:
+                logger.info(f"[Canvas Tracer] Starting from {src_type}: {src_node['id']}")
+            trace(src_node['id'], None, 'text')  # Source nodes don't receive data
 
         logger.info(f"[Canvas Tracer] Complete. {execution_count[0]} executions, {len(collector_items)} collected items")
         logger.info(f"[Canvas Tracer] Trace: {' -> '.join(execution_trace)}")
@@ -903,22 +915,29 @@ def execute_workflow_stream():
                 # Build graph
                 node_map = {n['id']: n for n in nodes}
                 outgoing = {n['id']: [] for n in nodes}
+                incoming = {n['id']: [] for n in nodes}
                 for conn in connections:
                     src = conn.get('sourceId')
                     tgt = conn.get('targetId')
                     label = conn.get('label')
                     if src and tgt:
                         outgoing[src].append({'target': tgt, 'label': label})
+                        incoming[tgt].append({'source': src, 'label': label})
 
-                # Find input node
+                # Find source nodes: input node + random_prompt nodes with no incoming connections
+                source_nodes = []
                 input_node = None
                 for n in nodes:
-                    if n.get('type') == 'input':
+                    ntype = n.get('type')
+                    if ntype == 'input':
                         input_node = n
-                        break
+                        source_nodes.append(n)
+                    elif ntype == 'random_prompt' and not incoming.get(n['id']):
+                        # random_prompt without input = standalone source
+                        source_nodes.append(n)
 
-                if not input_node:
-                    yield f"event: error\ndata: {json.dumps({'message': 'No input node found'})}\n\n"
+                if not source_nodes:
+                    yield f"event: error\ndata: {json.dumps({'message': 'No source nodes found (need input or standalone random_prompt)'})}\n\n"
                     return
 
                 # Execution state
@@ -933,6 +952,7 @@ def execute_workflow_stream():
 
                 NODE_TYPE_LABELS = {
                     'input': 'Processing Input',
+                    'random_prompt': 'Generating Random Prompt',
                     'interception': 'Running Interception',
                     'translation': 'Translating',
                     'generation': 'Generating Media',
@@ -1191,7 +1211,7 @@ def execute_workflow_stream():
                             continue
 
                         target_type = target_node.get('type')
-                        accepts_text = target_type in ['interception', 'translation', 'generation', 'evaluation', 'collector', 'display']
+                        accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display']
                         accepts_image = target_type in ['evaluation', 'collector', 'display']
 
                         if output_type == 'text' and not accepts_text:
@@ -1226,13 +1246,14 @@ def execute_workflow_stream():
                 # =============================================================
                 # ITERATIVE WORK QUEUE - yields events IMMEDIATELY
                 # =============================================================
+                # Start with all source nodes (input + standalone random_prompt)
                 work_queue = [{
-                    'node_id': input_node['id'],
+                    'node_id': src_node['id'],
                     'input_data': None,
                     'data_type': 'text',
                     'source_node_id': None,
                     'source_node_type': None
-                }]
+                } for src_node in source_nodes]
 
                 while work_queue and execution_count < MAX_TOTAL_EXECUTIONS:
                     work_item = work_queue.pop(0)

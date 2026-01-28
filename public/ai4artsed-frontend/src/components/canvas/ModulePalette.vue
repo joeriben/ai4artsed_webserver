@@ -24,12 +24,12 @@ const categories = computed(() => [
   {
     id: 'core',
     label: locale.value === 'de' ? 'Kernmodule' : 'Core Modules',
-    types: ['input', 'collector'] as StageType[]
+    types: ['input', 'random_prompt', 'collector'] as StageType[]
   },
   {
     id: 'process',
     label: locale.value === 'de' ? 'Verarbeitung' : 'Processing',
-    types: ['random_prompt', 'interception', 'translation', 'display'] as StageType[]
+    types: ['interception', 'translation', 'display'] as StageType[]
   },
   {
     id: 'generate',
