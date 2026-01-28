@@ -12,6 +12,7 @@ Provides:
 """
 import logging
 import asyncio
+import random
 from pathlib import Path
 from flask import Blueprint, jsonify, request, Response
 import json
@@ -58,6 +59,96 @@ CURATED_MODELS = {
         'top': {'id': 'local/gpt-OSS:120b', 'name': 'GPT-OSS 120B (Lokal)'},
         'dsgvo': True  # Lokal
     }
+}
+
+# ============================================================================
+# RANDOM PROMPT PRESETS (Session 140)
+# ============================================================================
+
+RANDOM_PROMPT_PRESETS = {
+    'clean_image': {
+        'systemPrompt': """You are an inventive creative. Your task is to invent a vivid, detailed image prompt.
+
+IMPORTANT - Generate CLEAN, MEDIA-NEUTRAL images:
+- NO camera or photographic references (no film, no camera, no lens)
+- NO optical effects (no wide-angle, no telephoto, no macro)
+- NO depth of field or bokeh
+- NO motion blur or any blur effects
+- NO "retro", "vintage", or nostalgic styling
+- NO film grain, vignette, or post-processing artifacts
+
+Think globally. Avoid cultural clichés.
+Subject matter: scenes, objects, animals, nature, technology, culture, people, homes, family, work, holiday, urban, rural, trivia, intricate details.
+Be verbose, provide rich visual details about colors, lighting, textures, composition, atmosphere.
+Transform the prompt strictly following the context if provided.
+NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER.""",
+        'userPromptTemplate': 'Generate a creative image prompt.'
+    },
+    'photo': {
+        'systemPrompt': """You are an inventive creative. Your task is to invent a REALISTIC photographic image prompt.
+
+Think globally. Avoid cultural clichés. Avoid "retro" style descriptions.
+Describe contemporary everyday motives: scenes, objects, animals, nature, tech, culture, people, homes, family, work, holiday, urban, rural, trivia, details.
+Choose either unlikely, untypical or typical photographical sujets. Be verbose, provide intricate details.
+Always begin your output with: "{film_description} of".
+Transform the prompt strictly following the context if provided.
+NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER.""",
+        'userPromptTemplate': 'Generate a creative photographic image prompt.'
+    },
+    'artform': {
+        'systemPrompt': """You generate artform transformation instructions from an artist practice perspective.
+
+IMPORTANT: NEVER use "in the style of" - instead frame as artistic practice, technique, or creative process.
+
+Good examples:
+- "Render this as a Japanese Noh theatre performance"
+- "Transform this into a Yoruba praise poem"
+- "Compose this as a Maori chant"
+- "Frame this message through Cubist fragmentation"
+- "Present this as an Afro-futurist myth"
+- "Choreograph this as a Bharatanatyam narrative"
+- "Inscribe this as Egyptian hieroglyphics"
+- "Express this through Aboriginal dot painting technique"
+
+Think globally across all cultures and art practices.
+Focus on the DOING - the artistic practice, not imitation.
+Output ONLY the transformation instruction, nothing else.""",
+        'userPromptTemplate': 'Generate a creative artform transformation instruction.'
+    },
+    'instruction': {
+        'systemPrompt': """You generate creative transformation instructions.
+Your output is a single instruction that transforms content in an unusual, creative way.
+Examples: nature language, theatrical play, nostalgic robot voice, rhythmic rap, animal fable, alien explanation, philosophical versions (Wittgenstein, Heidegger, Adorno), ancient manuscript, bedtime story for post-human child, internal monologue of a tree, forgotten folk song lyrics, spy messages, protest chant, underwater civilization dialect, extinct animal conversation, dream sequence, poetic weather forecast, love letter to future generation, etc.
+Be wildly creative and unexpected.
+Output ONLY the transformation instruction, nothing else.""",
+        'userPromptTemplate': 'Generate a creative transformation instruction.'
+    },
+    'language': {
+        'systemPrompt': """You suggest a random language from around the world.
+Choose from major world languages, regional languages, or less common languages.
+Consider: European, Asian, African, Indigenous American, Pacific languages.
+Output ONLY the language name in English, nothing else.
+Example outputs: "Swahili", "Bengali", "Quechua", "Welsh", "Tagalog" """,
+        'userPromptTemplate': 'Suggest a random language.'
+    }
+}
+
+PHOTO_FILM_TYPES = {
+    'random': None,
+    'Kodachrome': 'a Kodachrome film slide',
+    'Ektachrome': 'an Ektachrome film slide',
+    'Portra 400': 'a Kodak Portra 400 color negative',
+    'Portra 800': 'a Kodak Portra 800 color negative',
+    'Ektar 100': 'a Kodak Ektar 100 color negative',
+    'Fuji Pro 400H': 'a Fujifilm Pro 400H color negative',
+    'Fuji Superia': 'a Fujifilm Superia color negative',
+    'CineStill 800T': 'a CineStill 800T tungsten-balanced color negative',
+    'Ilford HP5': 'an Ilford HP5 Plus black and white negative',
+    'Ilford Delta 400': 'an Ilford Delta 400 black and white negative',
+    'Ilford FP4': 'an Ilford FP4 Plus black and white negative',
+    'Ilford Pan F': 'an Ilford Pan F Plus 50 black and white negative',
+    'Ilford XP2': 'an Ilford XP2 Super chromogenic black and white negative',
+    'Tri-X 400': 'a Kodak Tri-X 400 black and white negative'
 }
 
 # Create blueprint
@@ -365,6 +456,57 @@ def execute_workflow():
             if node_type == 'input':
                 output = node.get('promptText', '')
                 results[node_id] = {'type': 'input', 'output': output, 'error': None}
+                return output, 'text', None
+
+            elif node_type == 'random_prompt':
+                # Session 140: Random Prompt Node with presets
+                preset = node.get('randomPromptPreset', 'clean_image')
+                llm_model = node.get('randomPromptModel', 'local/mistral-nemo')
+                film_type = node.get('randomPromptFilmType', 'random')
+                custom_system = node.get('randomPromptSystemPrompt')
+                seed = node.get('randomPromptSeed', 0)
+
+                # CACHE-BREAKING: Each run = new output
+                import time as time_module
+                cache_breaker = f"[seed:{seed or time_module.time_ns()}]"
+
+                # Get preset config
+                preset_config = RANDOM_PROMPT_PRESETS.get(preset, RANDOM_PROMPT_PRESETS['clean_image'])
+                system_prompt = custom_system or preset_config['systemPrompt']
+                user_prompt_template = preset_config['userPromptTemplate']
+
+                # Handle photo preset film type
+                if preset == 'photo':
+                    if film_type == 'random':
+                        film_type = random.choice([k for k in PHOTO_FILM_TYPES.keys() if k != 'random'])
+                    film_desc = PHOTO_FILM_TYPES.get(film_type, 'a photograph')
+                    system_prompt = system_prompt.replace('{film_description}', film_desc)
+
+                # Build user prompt with optional context + cache breaker
+                if input_data and str(input_data).strip():
+                    user_prompt = f"{cache_breaker}\nContext: {input_data.strip()}\n\n{user_prompt_template}"
+                else:
+                    user_prompt = f"{cache_breaker}\n{user_prompt_template}"
+
+                req = PromptInterceptionRequest(
+                    input_prompt=user_prompt,
+                    style_prompt=system_prompt,
+                    model=llm_model,
+                    temperature=0.9,  # High variance for creative outputs
+                    debug=True
+                )
+                response = asyncio.run(engine.process_request(req))
+                output = response.output_str if response.success else ''
+
+                results[node_id] = {
+                    'type': 'random_prompt',
+                    'output': output,
+                    'preset': preset,
+                    'film_type': film_type if preset == 'photo' else None,
+                    'error': response.error if not response.success else None,
+                    'model': response.model_used
+                }
+                logger.info(f"[Canvas Tracer] Random Prompt ({preset}): '{output[:50]}...'")
                 return output, 'text', None
 
             elif node_type == 'interception':
@@ -824,6 +966,51 @@ def execute_workflow_stream():
                     if node_type == 'input':
                         output = node.get('promptText', '')
                         results[node_id] = {'type': 'input', 'output': output, 'error': None}
+                        return output, 'text', None
+
+                    elif node_type == 'random_prompt':
+                        # Session 140: Random Prompt Node with presets
+                        preset = node.get('randomPromptPreset', 'clean_image')
+                        llm_model = node.get('randomPromptModel', 'local/mistral-nemo')
+                        film_type = node.get('randomPromptFilmType', 'random')
+                        custom_system = node.get('randomPromptSystemPrompt')
+                        seed = node.get('randomPromptSeed', 0)
+
+                        # CACHE-BREAKING: Each run = new output
+                        import time as time_module
+                        cache_breaker = f"[seed:{seed or time_module.time_ns()}]"
+
+                        # Get preset config
+                        preset_config = RANDOM_PROMPT_PRESETS.get(preset, RANDOM_PROMPT_PRESETS['clean_image'])
+                        system_prompt = custom_system or preset_config['systemPrompt']
+                        user_prompt_template = preset_config['userPromptTemplate']
+
+                        # Handle photo preset film type
+                        if preset == 'photo':
+                            if film_type == 'random':
+                                film_type = random.choice([k for k in PHOTO_FILM_TYPES.keys() if k != 'random'])
+                            film_desc = PHOTO_FILM_TYPES.get(film_type, 'a photograph')
+                            system_prompt = system_prompt.replace('{film_description}', film_desc)
+
+                        # Build user prompt with optional context + cache breaker
+                        if input_data and str(input_data).strip():
+                            user_prompt = f"{cache_breaker}\nContext: {input_data.strip()}\n\n{user_prompt_template}"
+                        else:
+                            user_prompt = f"{cache_breaker}\n{user_prompt_template}"
+
+                        req = PromptInterceptionRequest(
+                            input_prompt=user_prompt, style_prompt=system_prompt,
+                            model=llm_model, temperature=0.9, debug=True
+                        )
+                        response = asyncio.run(engine.process_request(req))
+                        output = response.output_str if response.success else ''
+                        results[node_id] = {
+                            'type': 'random_prompt', 'output': output,
+                            'preset': preset, 'film_type': film_type if preset == 'photo' else None,
+                            'error': response.error if not response.success else None,
+                            'model': response.model_used
+                        }
+                        logger.info(f"[Canvas Stream] Random Prompt ({preset}): '{output[:50]}...'")
                         return output, 'text', None
 
                     elif node_type == 'interception':
