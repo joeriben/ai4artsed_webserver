@@ -1883,3 +1883,375 @@ async function executePipeline() {
 ```
 
 ---
+
+## Favorites System: Dual-Mode Pedagogical Workspace (Session 145)
+
+**Purpose:** Two-mode favorites system balancing **personal creative iteration** with **collaborative workshop learning**.
+
+### Architecture Overview
+
+**Two Modes:**
+1. **"Meine" (Per-User):** Personal workspace - filter by device_id
+2. **"Alle" (Global):** Workshop collaboration - show all favorites
+
+**Key Decision:** Device-based identity (not login) for workshop context.
+
+### Component Structure
+
+```
+FooterGallery.vue (Fixed footer at bottom)
+├── Toggle Bar (Collapse/Expand)
+│   ├── Gallery Title: "Favoriten"
+│   ├── Badge: Favorite count
+│   └── View Mode Switch: [Meine | Alle]  ← 2-field segmented control
+│
+└── Gallery Content (Expandable)
+    ├── Loading State
+    ├── Empty State
+    └── Favorites Grid
+        ├── Thumbnail
+        ├── Input Preview (overlay)
+        └── Action Buttons
+            ├── Continue (copy URL) - images only
+            ├── Restore (load session)
+            └── Remove (delete favorite)
+```
+
+### State Management (Pinia Store)
+
+**File:** `public/ai4artsed-frontend/src/stores/favorites.ts`
+
+```typescript
+// State
+const favorites = ref<FavoriteItem[]>([])
+const viewMode = ref<'per_user' | 'global'>('per_user')  // Default: personal
+const mode = ref<'global' | 'per_user'>('global')  // Backend mode
+const isGalleryExpanded = ref(false)
+const pendingRestoreData = ref<RestoreData | null>(null)
+
+// Types
+interface FavoriteItem {
+  run_id: string
+  device_id?: string  // Added Session 145
+  media_type: 'image' | 'audio' | 'video' | ...
+  added_at: string
+  thumbnail_url: string
+  user_id: string
+  user_note: string
+  // Enriched by backend
+  exists?: boolean
+  schema?: string
+  timestamp?: string
+  input_preview?: string
+}
+```
+
+### Device ID System (Reuses Export Architecture)
+
+**Same as Session 129 export system:**
+
+```typescript
+function getDeviceId(): string {
+  // Browser ID (persistent across sessions)
+  let browserId = localStorage.getItem('browser_id')
+  if (!browserId) {
+    browserId = crypto.randomUUID()
+    localStorage.setItem('browser_id', browserId)
+  }
+
+  // Combine with date (24h rotation)
+  const today = new Date().toISOString().split('T')[0]  // "2026-01-28"
+  return `${browserId}_${today}`
+}
+
+// Example: "a1b2c3d4-e5f6_2026-01-28"
+```
+
+**Privacy:**
+- Daily rotation at midnight → GDPR-friendly
+- No long-term tracking
+- Acceptable for workshop context (device = workstation)
+
+### API Integration
+
+#### Loading Favorites (with filtering)
+
+```typescript
+async function loadFavorites(deviceId?: string): Promise<void> {
+  // Build query parameters
+  const params = new URLSearchParams()
+  if (deviceId) {
+    params.append('device_id', deviceId)
+  }
+  params.append('view_mode', viewMode.value)  // 'per_user' or 'global'
+
+  // Fetch with filter
+  const response = await axios.get<FavoritesResponse>(
+    `/api/favorites?${params.toString()}`
+  )
+
+  favorites.value = response.data.favorites
+}
+```
+
+**Backend Filter (`favorites_routes.py`):**
+```python
+# GET /api/favorites?device_id=xxx_2026-01-28&view_mode=per_user
+device_id = request.args.get('device_id')
+view_mode = request.args.get('view_mode', 'per_user')
+
+# Filter if per_user mode
+if view_mode == 'per_user' and device_id:
+    favorites = [f for f in favorites if f.get('device_id') == device_id]
+```
+
+#### Adding Favorites
+
+```typescript
+async function addFavorite(
+  runId: string,
+  mediaType: FavoriteItem['media_type'],
+  deviceId: string,  // Required for per-user filtering
+  userId: string = 'anonymous'
+): Promise<boolean> {
+  // Optimistic update
+  favorites.value.unshift({
+    run_id: runId,
+    device_id: deviceId,  // Store device_id
+    media_type: mediaType,
+    // ...
+  })
+
+  // POST to backend
+  await axios.post('/api/favorites', {
+    run_id: runId,
+    media_type: mediaType,
+    device_id: deviceId,  // Include in request
+    user_id: userId
+  })
+}
+```
+
+### UI: 2-Field Segmented Control
+
+**Why 2-field (not toggle button):**
+- User feedback: Single toggle confusing - can't see inactive option
+- Both options visible → clear affordance
+- Active state highlighted → current mode obvious
+
+**Template (`FooterGallery.vue`):**
+```vue
+<div class="view-mode-switch" @click.stop>
+  <button
+    class="switch-option"
+    :class="{ active: viewMode === 'per_user' }"
+    @click="setViewModePerUser"
+    title="Nur meine Favoriten"
+  >
+    <svg><!-- Person icon --></svg>
+    <span>Meine</span>
+  </button>
+
+  <button
+    class="switch-option"
+    :class="{ active: viewMode === 'global' }"
+    @click="setViewModeGlobal"
+    title="Alle Favoriten"
+  >
+    <svg><!-- Group icon --></svg>
+    <span>Alle</span>
+  </button>
+</div>
+```
+
+**CSS:**
+```css
+.view-mode-switch {
+  display: flex;
+  gap: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.switch-option {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.switch-option.active {
+  background: rgba(102, 126, 234, 0.4);  /* Highlighted */
+  color: rgba(255, 255, 255, 1);
+  font-weight: 600;
+}
+```
+
+### Session Restore Pattern (Cross-Component Communication)
+
+**Pattern:** Pinia store reactive signal (not sessionStorage)
+
+**FooterGallery (sets data):**
+```typescript
+async function handleRestore(favorite: FavoriteItem) {
+  // Fetch complete session data
+  const restoreData = await favoritesStore.getRestoreData(favorite.run_id)
+
+  // Set reactive signal
+  favoritesStore.setRestoreData(restoreData)
+
+  // Navigate to target view
+  router.push(restoreData.target_view)  // 'text-transformation' or 'image-transformation'
+}
+```
+
+**View (watches and consumes):**
+```typescript
+// text_transformation.vue
+watch(() => favoritesStore.pendingRestoreData, (data) => {
+  if (!data) return
+
+  // Restore fields
+  inputText.value = data.input_text
+  contextPrompt.value = data.context_prompt
+  interceptionResult.value = data.transformed_text
+
+  // Clear signal
+  favoritesStore.setRestoreData(null)
+}, { immediate: true })
+```
+
+**Why this pattern:**
+- Reactive: Works even if already on target page
+- Timing-safe: `{ immediate: true }` processes on mount
+- Clean: Automatic cleanup via watcher
+
+### Pedagogical Workflows
+
+#### Workflow 1: Personal Iteration
+
+1. Student generates image → clicks favorite
+2. Generates variation → favorites it
+3. Opens FooterGallery in "Meine" mode
+4. Compares thumbnails side-by-side
+5. Selects best version for continuation
+6. Clicks "Restore" → session reloaded
+7. Refines prompt, generates final version
+
+**Pedagogical Value:**
+- Visual comparison of variations
+- Learn from own process (what worked/didn't)
+- Iterate without losing intermediate steps
+- Build personal portfolio
+
+#### Workflow 2: Collaborative Learning
+
+1. Student A generates interesting result → favorites it
+2. Student B switches to "Alle" mode
+3. Sees Student A's thumbnail in gallery
+4. Clicks "Restore" → loads Student A's complete session
+5. Sees original prompt, transformation, and parameters
+6. Can remix: modify prompt, try different config
+7. Generate own variation, favorite for others to see
+
+**Pedagogical Value:**
+- Transparent creative process (prompts visible)
+- Peer learning (discover effective strategies)
+- Collective refinement (build on others' work)
+- Workshop culture (shared visual vocabulary)
+
+### Storage Architecture
+
+**Backend File:** `exports/json/favorites.json`
+
+```json
+{
+  "version": "1.0",
+  "mode": "global",
+  "favorites": [
+    {
+      "run_id": "run_1769619726272_aa0ee5",
+      "device_id": "a1b2c3d4_2026-01-28",  // Added Session 145
+      "media_type": "image",
+      "added_at": "2026-01-28T18:02:50.294120",
+      "thumbnail_url": "/api/media/image/run_1769619726272_aa0ee5/0",
+      "user_id": "anonymous",
+      "user_note": ""
+    }
+  ]
+}
+```
+
+**Metadata Enrichment:**
+
+Backend loads run metadata for each favorite:
+- Schema used (`config_name`)
+- Timestamp
+- Input text preview (first 100 chars)
+- Exists check (run folder still available)
+
+**Restore Data:**
+
+```typescript
+interface RestoreData {
+  run_id: string
+  schema: string
+  execution_mode: string
+  timestamp: string
+  input_text?: string
+  context_prompt?: string  // Meta-prompt (user-editable!)
+  transformed_text?: string
+  translation_en?: string
+  models_used?: ModelsUsed
+  media_outputs: MediaOutput[]
+  target_view: string  // 'text-transformation' | 'image-transformation'
+}
+```
+
+### Edge Cases & Workshop Scenarios
+
+**1. Shared Device (Multiple Students):**
+- All share same browser_id → same device_id
+- Favorites are per-workstation, not per-person
+- Acceptable: Device = Arbeitsplatz in workshop
+
+**2. Daily Rotation (Privacy):**
+- device_id changes at midnight
+- Old favorites persist in backend
+- "Meine" shows only today's device_id
+- "Alle" shows all days → can restore old work
+
+**3. localStorage Cleared:**
+- New browser_id generated
+- Old favorites lost in "Meine" mode
+- Still accessible in "Alle" mode
+- Trade-off for privacy
+
+**4. Collaborative Remixing:**
+- Student sees interesting work in "Alle"
+- Restores session → gets complete prompt chain
+- Modifies and generates variation
+- Favorites own version for others to build upon
+
+### Related Files
+
+**Backend:**
+- `devserver/my_app/routes/favorites_routes.py` - REST API + filtering logic
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/stores/favorites.ts` - Pinia store
+- `public/ai4artsed-frontend/src/components/FooterGallery.vue` - UI component
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Restore watcher
+- `public/ai4artsed-frontend/src/views/image_transformation.vue` - Restore watcher
+- `public/ai4artsed-frontend/src/App.vue` - FooterGallery mounting
+
+---

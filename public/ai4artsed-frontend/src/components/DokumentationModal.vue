@@ -218,7 +218,7 @@
             <!-- Pedagogy Tab -->
             <div v-if="activeTab === 'pedagogy'" class="tab-content">
               <section class="concept-section">
-                <h2>{{ currentLanguage === 'de' ? '6 Pädagogische Prinzipien' : '6 Pedagogical Principles' }}</h2>
+                <h2>{{ currentLanguage === 'de' ? '8 Pädagogische Prinzipien' : '8 Pedagogical Principles' }}</h2>
 
                 <div class="principle-card">
                   <div class="principle-header">
@@ -317,6 +317,34 @@
                     {{ currentLanguage === 'de'
                       ? 'Die Wikipedia-Links laden ein, selbst mehr zu erfahren. Klicken Sie auf die Links, um die Quellen zu prüfen und Ihr eigenes Wissen zu erweitern.'
                       : 'The Wikipedia links invite you to learn more yourself. Click on the links to check the sources and expand your own knowledge.' }}
+                  </div>
+                </div>
+
+                <div class="principle-card">
+                  <div class="principle-header">
+                    <span class="principle-number">8</span>
+                    <h3>{{ currentLanguage === 'de' ? 'Zusammenarbeiten' : 'Collaboration' }}</h3>
+                  </div>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Das Favoriten-System ermöglicht zwei Arbeitsmodi: "Meine" zeigt nur deine eigenen Favoriten – eine persönliche Arbeitsfläche zum Iterieren, Vergleichen und Auswählen zwischen Entwürfen. "Alle" zeigt die Favoriten aller Workshop-Teilnehmenden – ein kollektiver Pool zum Teilen von Bildern und Prompts, gegenseitigem Inspirieren und gemeinsamen Weiterentwickeln.'
+                    : 'The favorites system enables two working modes: "Mine" shows only your own favorites – a personal workspace for iterating, comparing, and selecting between drafts. "All" shows favorites from all workshop participants – a collective pool for sharing images and prompts, mutual inspiration, and collaborative development.' }}</p>
+                  <div class="example-box">
+                    <strong>{{ currentLanguage === 'de' ? 'Persönlich:' : 'Personal:' }}</strong>
+                    {{ currentLanguage === 'de'
+                      ? 'Speichere mehrere Varianten eines Bildes, vergleiche sie, wähle die beste aus und arbeite daran weiter. Die Favoriten sind deine Werkbank.'
+                      : 'Save multiple variations of an image, compare them, select the best one, and continue working on it. Favorites are your workbench.' }}
+                  </div>
+                  <div class="example-box">
+                    <strong>{{ currentLanguage === 'de' ? 'Kollaborativ:' : 'Collaborative:' }}</strong>
+                    {{ currentLanguage === 'de'
+                      ? 'Sehe interessante Arbeiten von anderen, lade ihre kompletten Prompts und Einstellungen, verändere sie und entwickle eigene Varianten. Die "Wiederherstellen"-Funktion macht den kreativen Prozess transparent und teilbar.'
+                      : 'See interesting work from others, load their complete prompts and settings, modify them, and develop your own variations. The "Restore" function makes the creative process transparent and shareable.' }}
+                  </div>
+                  <div class="tension-box">
+                    <span class="tension-label">{{ currentLanguage === 'de' ? 'Workshop-Kontext:' : 'Workshop Context:' }}</span>
+                    {{ currentLanguage === 'de'
+                      ? 'Der Wechsel zwischen "Meine" und "Alle" macht die soziale Dimension kreativer KI-Arbeit sichtbar: Wann arbeite ich allein, wann teile ich? Diese bewusste Entscheidung ist pädagogisch wertvoll.'
+                      : 'Switching between "Mine" and "All" makes the social dimension of creative AI work visible: When do I work alone, when do I share? This conscious choice has pedagogical value.' }}
                   </div>
                 </div>
 

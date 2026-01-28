@@ -6376,3 +6376,199 @@ GET  /api/favorites/<run_id>/restore  # Get restore data
 **Commits:** 3
 
 ---
+
+## Session 145 (2026-01-28): Per-User Favorites - Personal Workspace & Collaboration
+
+**Date:** 2026-01-28
+**Duration:** ~3 hours
+**Status:** ✅ COMPLETE
+**Branch:** develop
+**Commits:** `1298ee6`, `b66a2bf`, `d15c5fb`, `813ec4e`
+
+### Objective
+
+Transform favorites from global-only to **dual-mode system**:
+1. **"Meine" Mode:** Personal workspace for iteration/curation
+2. **"Alle" Mode:** Workshop collaboration for shared learning
+
+### Problem
+
+Existing favorites system (Session 127-128) was **global-only**:
+- All users saw all favorites from entire workshop
+- No way to filter personal work-in-progress
+- No distinction between personal iteration and collaborative sharing
+- Missing pedagogical affordance for switching between private/public modes
+
+**User Feedback:**
+"Es geht um eine persönliche Arbeitsfläche (weiterarbeiten, Auswahl zwischen Entwürfen), aber auch um Workshop-Kollaboration (Bilder und Prompts teilen, gemeinsam weiterentwickeln). Beides ist pädagogisch wichtig."
+
+### Solution Implemented
+
+#### 1. Device-Based Filtering (Backend)
+
+**Storage (`favorites.json`):**
+```json
+{
+  "favorites": [
+    {
+      "run_id": "run_123",
+      "device_id": "browser123_2026-01-28",  // NEW
+      "media_type": "image",
+      "added_at": "2026-01-28T10:00:00"
+    }
+  ]
+}
+```
+
+**Filtering (`favorites_routes.py`):**
+```python
+# GET /api/favorites?device_id=xxx&view_mode=per_user
+device_id = request.args.get('device_id')
+view_mode = request.args.get('view_mode', 'per_user')
+
+if view_mode == 'per_user' and device_id:
+    favorites = [f for f in favorites if f.get('device_id') == device_id]
+```
+
+#### 2. Two-Mode Frontend (Pinia Store)
+
+**State (`favorites.ts`):**
+```typescript
+const viewMode = ref<'per_user' | 'global'>('per_user')  // Default: personal
+
+async function loadFavorites(deviceId?: string) {
+  const params = new URLSearchParams()
+  if (deviceId) {
+    params.append('device_id', deviceId)
+  }
+  params.append('view_mode', viewMode.value)
+  // ...
+}
+```
+
+#### 3. UI: 2-Field Segmented Control
+
+**FooterGallery:**
+```vue
+<div class="view-mode-switch">
+  <button :class="{ active: viewMode === 'per_user' }" @click="setViewModePerUser">
+    <svg><!-- Person icon --></svg>
+    <span>Meine</span>
+  </button>
+  <button :class="{ active: viewMode === 'global' }" @click="setViewModeGlobal">
+    <svg><!-- Group icon --></svg>
+    <span>Alle</span>
+  </button>
+</div>
+```
+
+**Design Rationale:**
+- Both options visible → clear affordance
+- Active state highlighted → current mode obvious
+- Icons reinforce meaning: Person (individual) | Group (collective)
+
+#### 4. Device ID Generation
+
+**Same system as export (Session 129):**
+```typescript
+function getDeviceId(): string {
+  let browserId = localStorage.getItem('browser_id')
+  if (!browserId) {
+    browserId = crypto.randomUUID()
+    localStorage.setItem('browser_id', browserId)
+  }
+  const today = new Date().toISOString().split('T')[0]
+  return `${browserId}_${today}`  // e.g., "abc123_2026-01-28"
+}
+```
+
+**Privacy:** Daily rotation (GDPR-friendly), no long-term tracking
+
+### Key Fixes
+
+**Bug 1: Filter Not Working**
+- **Problem:** Frontend sent device_id correctly, but browser cache served old JS
+- **Diagnosis:** Added debug logging to backend
+- **Fix:** Hard-reload (Ctrl+Shift+R) required after deployment
+- **Lesson:** Dev server hot-reload doesn't always catch state/reactive changes
+
+**Bug 2: Redundant Title**
+- **Problem:** Gallery title "Meine Favoriten" + Switch "Meine | Alle" → redundant
+- **Fix:** Simplified to "Favoriten" (switch already indicates ownership)
+
+### Pedagogical Significance
+
+This is not a "bookmark feature" - it's a **pedagogical workspace system**:
+
+**1. Personal Mode ("Meine"):**
+- Iteration: Compare variations, select best
+- Work-in-Progress: Continue later
+- Portfolio: Curate personal work
+- Reflection: Learn from own process
+
+**2. Collaborative Mode ("Alle"):**
+- Peer Learning: See others' approaches
+- Prompt Sharing: Discover effective formulations
+- Collective Refinement: Build on others' work
+- Workshop Culture: Shared visual vocabulary
+
+**Design Philosophy:**
+- **Not global-only:** Would overwhelm, prevent personal agency
+- **Not per-user-only:** Would isolate, miss collaborative learning
+- **Both modes:** Balances individual work with collective knowledge building
+
+The 2-field switch makes this **pedagogically visible**: Students consciously choose between private iteration and collaborative sharing.
+
+### Files Modified
+
+**Backend:**
+- `devserver/my_app/routes/favorites_routes.py` - Filter logic, device_id storage, debug logging
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/stores/favorites.ts` - viewMode state, device_id parameters
+- `public/ai4artsed-frontend/src/components/FooterGallery.vue` - 2-field switch UI, device_id extraction
+- `public/ai4artsed-frontend/src/views/text_transformation.vue` - Pass device_id to toggleFavorite
+- `public/ai4artsed-frontend/src/views/image_transformation.vue` - Pass device_id to toggleFavorite
+- `public/ai4artsed-frontend/src/i18n.ts` - Simplified "Favoriten" (not "Meine Favoriten")
+
+### Testing
+
+**1. Per-User Filtering:**
+- Generate image on Device A → Favorite → Appears in "Meine" ✓
+- Switch to "Alle" → See favorites from all devices ✓
+- Simulate Device B (change browser_id) → "Meine" shows only Device B ✓
+
+**2. Collaborative Workflow:**
+- Student A favorites image → visible in "Alle" mode for Student B ✓
+- Student B clicks restore → loads Student A's complete session ✓
+- Prompts transparently shared → pedagogical value confirmed ✓
+
+**3. Privacy:**
+- localStorage cleared → new device_id generated ✓
+- Old favorites lost in "Meine", but accessible in "Alle" ✓
+- Daily rotation → device_id changes at midnight ✓
+
+### Commits
+
+- `1298ee6` - feat(favorites): Add per-user favorites with device_id filtering
+- `b66a2bf` - refactor(favorites): Change toggle to 2-field switch for clarity
+- `d15c5fb` - debug(favorites): Add logging to track device_id in POST requests
+- `813ec4e` - refactor(i18n): Remove redundant 'Meine/My' from gallery title
+
+### Session Metrics
+
+**Duration:** ~3 hours
+**Files Modified:** 6
+**Lines Changed:** ~170 (additions) + CSS + i18n
+**Commits:** 4
+**Type Check:** ✅ Passed (all TypeScript signatures correct)
+
+### Documentation
+
+**Updated:**
+- `docs/DEVELOPMENT_DECISIONS.md` - Pedagogical workspace decision
+- `docs/DEVELOPMENT_LOG.md` - This session
+- *(Pending)* `docs/ARCHITECTURE PART 12 - Frontend-Architecture.md` - Favorites architecture
+- *(Pending)* Modal Pedagogy Tab - "Zusammenarbeiten" section
+
+---

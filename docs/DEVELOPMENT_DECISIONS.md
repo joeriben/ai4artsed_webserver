@@ -3537,3 +3537,169 @@ Nach Implementierung:
 2. Vergleichen: Produzieren die neuen Prompts weniger Klischees?
 3. Feedback von Workshopleitern sammeln
 
+---
+
+## 🤝 FAVORITES AS PEDAGOGICAL WORKSPACE: Personal & Collaborative (2026-01-28)
+
+**Status:** ✅ IMPLEMENTED
+**Session:** 145
+**Commits:** `1298ee6`, `b66a2bf`, `d15c5fb`, `813ec4e`
+
+### Decision
+
+**Two-mode favorites system with device-based filtering:**
+
+1. **"Meine" (Per-User) Mode - Personal Workspace**
+   - Filter favorites by `device_id` (browser_id + date)
+   - Shows only current device's favorites
+   - Use case: Personal working area, iterate on own drafts, select between variations
+
+2. **"Alle" (Global) Mode - Workshop Collaboration**
+   - Shows all favorites from all workshop participants
+   - Use case: Share images and prompts, collaborative refinement, learn from others
+   - Pedagogical: Enables collective creative process
+
+3. **UI: 2-Field Segmented Control**
+   - Both options always visible: `[Meine | Alle]`
+   - Active state highlighted
+   - Clear affordance for switching between personal/collaborative views
+
+### Reasoning
+
+**Dual Pedagogical Purpose:**
+
+The favorites system serves **two distinct educational functions**:
+
+#### 1. Personal Creative Workspace
+- **Iteration:** Save multiple variations, refine, select best version
+- **Work-in-Progress:** Bookmark intermediate results for later continuation
+- **Portfolio Building:** Curate personal best work
+- **Learning Through Comparison:** Compare own outputs across different prompts/configs
+
+#### 2. Collaborative Workshop Tool
+- **Peer Learning:** Students see each other's creative approaches
+- **Prompt Sharing:** Discover how others formulated effective prompts
+- **Collective Refinement:** Build upon others' work, remixing and evolving ideas
+- **Workshop Culture:** Create shared visual vocabulary and reference pool
+
+**Why Device-Based Identity (Not Login):**
+- Workshop context: No authentication barrier
+- Privacy-friendly: 24h device_id rotation (GDPR-compliant)
+- Simple: Works immediately without setup
+- Pedagogically appropriate: Low-threshold tool for educational settings
+
+**Why NOT Global-Only:**
+- Information overload: In large workshops, "Alle" becomes chaotic
+- Lost personal items: Can't find own work-in-progress
+- Missing agency: No personal workspace feeling
+
+**Why NOT Per-User-Only:**
+- Isolates students: Loses collaborative potential
+- Misses pedagogical value: Peer learning through shared work
+- Ignores workshop context: Collective creative process is core pedagogy
+
+### Technical Implementation
+
+**Backend (`favorites_routes.py`):**
+```python
+# Query parameters
+device_id = request.args.get('device_id')
+view_mode = request.args.get('view_mode', 'per_user')
+
+# Filter by device_id if in per_user mode
+if view_mode == 'per_user' and device_id:
+    favorites = [f for f in favorites if f.get('device_id') == device_id]
+```
+
+**Frontend (`favorites.ts`):**
+```typescript
+const viewMode = ref<'per_user' | 'global'>('per_user')  // Default: personal
+
+async function loadFavorites(deviceId?: string): Promise<void> {
+  const params = new URLSearchParams()
+  if (deviceId) {
+    params.append('device_id', deviceId)
+  }
+  params.append('view_mode', viewMode.value)
+  // ...
+}
+```
+
+**Device ID Generation:**
+```typescript
+function getDeviceId(): string {
+  let browserId = localStorage.getItem('browser_id')
+  if (!browserId) {
+    browserId = crypto.randomUUID()
+    localStorage.setItem('browser_id', browserId)
+  }
+  const today = new Date().toISOString().split('T')[0]  // "2026-01-28"
+  return `${browserId}_${today}`  // e.g., "abc123_2026-01-28"
+}
+```
+
+**Storage Structure (`favorites.json`):**
+```json
+{
+  "version": "1.0",
+  "mode": "global",
+  "favorites": [
+    {
+      "run_id": "run_123",
+      "device_id": "abc123_2026-01-28",  // Added in Session 145
+      "media_type": "image",
+      "added_at": "2026-01-28T10:00:00",
+      "user_id": "anonymous"
+    }
+  ]
+}
+```
+
+### Affected Files
+
+**Backend:**
+- `devserver/my_app/routes/favorites_routes.py`
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/stores/favorites.ts`
+- `public/ai4artsed-frontend/src/components/FooterGallery.vue`
+- `public/ai4artsed-frontend/src/views/text_transformation.vue`
+- `public/ai4artsed-frontend/src/views/image_transformation.vue`
+- `public/ai4artsed-frontend/src/i18n.ts`
+
+### Edge Cases & Workshop Scenarios
+
+**1. Shared Device (Multiple Students):**
+- All share same browser_id → same device_id
+- Favorites are per-workstation, not per-person
+- Pedagogically acceptable: Device = Arbeitsplatz
+
+**2. Daily Rotation (Privacy):**
+- device_id includes date → changes daily at midnight
+- Old favorites remain in backend, visible in "Alle" mode
+- "Meine" mode shows only today's device_id
+- GDPR-friendly: No long-term tracking
+
+**3. localStorage Cleared:**
+- New browser_id generated → new device_id
+- Old favorites lost in "Meine" mode
+- Still accessible in "Alle" mode → can restore
+- Acceptable trade-off for privacy
+
+**4. Collaborative Workflow:**
+- Student A generates image → favorites it
+- Student B sees in "Alle" mode → clicks restore
+- Student B's session restores with A's prompt → can remix
+- Pedagogical value: Transparent creative process, prompts as learning material
+
+### Pedagogical Significance
+
+This is not just a "bookmark feature" - it's a **dual-mode creative workspace**:
+
+1. **Personal Mode:** Supports individual creative process (iteration, curation, reflection)
+2. **Collaborative Mode:** Enables collective learning (peer inspiration, prompt sharing, remixing)
+
+The system embodies **workshop pedagogy**: balancing personal agency with collective knowledge building. Students can work privately when needed, but easily share discoveries with the group.
+
+The 2-field switch makes this **pedagogically visible**: Students consciously choose between personal work and collaborative exploration, making the social dimension of creative AI work explicit.
+
