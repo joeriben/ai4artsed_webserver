@@ -1018,7 +1018,7 @@ def execute_workflow_stream():
 
                         req = PromptInterceptionRequest(
                             input_prompt=user_prompt, style_prompt=system_prompt,
-                            model=llm_model, temperature=0.9, debug=True
+                            model=llm_model, debug=True
                         )
                         response = asyncio.run(engine.process_request(req))
                         output = response.output_str if response.success else ''

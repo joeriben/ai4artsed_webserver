@@ -1453,11 +1453,10 @@ const nodeHeight = computed(() => {
 .eval-outputs {
   position: absolute;
   right: -16px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 16px;  /* Fixed position in header area */
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
   z-index: 2;
 }
 
