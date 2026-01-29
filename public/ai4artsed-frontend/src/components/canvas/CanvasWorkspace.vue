@@ -84,6 +84,15 @@ const emit = defineEmits<{
   'update-node-random-prompt-film-type': [nodeId: string, filmType: string]
   // Session 145: Model Adaption event
   'update-node-model-adaption-preset': [nodeId: string, preset: string]
+  // Session 146: Interception Preset event
+  'update-node-interception-preset': [nodeId: string, preset: string, context: string]
+  // Session 147: Comparison Evaluator events
+  'update-node-comparison-llm': [nodeId: string, model: string]
+  'update-node-comparison-criteria': [nodeId: string, criteria: string]
+  // Session 147: Numbered input connector events
+  'end-connect-input-1': [nodeId: string]
+  'end-connect-input-2': [nodeId: string]
+  'end-connect-input-3': [nodeId: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -106,8 +115,8 @@ function getNodeWidth(node: CanvasNode): number {
   // Use custom width if set (resizable nodes)
   if (node.width) return node.width
 
-  // Wide types: input, random_prompt, interception, translation, evaluation, display, collector
-  const wideTypes: StageType[] = ['input', 'random_prompt', 'interception', 'translation', 'evaluation', 'display', 'collector']
+  // Wide types: input, random_prompt, interception, translation, evaluation, display, collector, comparison_evaluator
+  const wideTypes: StageType[] = ['input', 'random_prompt', 'interception', 'translation', 'evaluation', 'display', 'collector', 'comparison_evaluator']
   return wideTypes.includes(node.type) ? WIDE_WIDTH : NARROW_WIDTH
 }
 
@@ -131,6 +140,15 @@ function getConnectorPosition(node: CanvasNode, connectorType: string): { x: num
   if (connectorType === 'input') {
     // Left edge, header height
     return { x: node.x, y: node.y + HEADER_CONNECTOR_Y }
+  } else if (connectorType === 'input-1') {
+    // Session 147: First numbered input
+    return { x: node.x, y: node.y + HEADER_CONNECTOR_Y }
+  } else if (connectorType === 'input-2') {
+    // Session 147: Second numbered input
+    return { x: node.x, y: node.y + HEADER_CONNECTOR_Y + 20 }
+  } else if (connectorType === 'input-3') {
+    // Session 147: Third numbered input
+    return { x: node.x, y: node.y + HEADER_CONNECTOR_Y + 40 }
   } else if (connectorType === 'feedback-input') {
     // Right edge, slightly below header for feedback loops
     return { x: node.x + width, y: node.y + HEADER_CONNECTOR_Y + 20 }
@@ -161,10 +179,19 @@ function getNodeOutputCenter(nodeId: string, label?: string): { x: number; y: nu
 
 /**
  * Get center point of a node's input connector
+ * Session 147: Added label parameter for numbered inputs
  */
-function getNodeInputCenter(nodeId: string): { x: number; y: number } {
+function getNodeInputCenter(nodeId: string, label?: string): { x: number; y: number } {
   const node = props.nodes.find(n => n.id === nodeId)
   if (!node) return { x: 0, y: 0 }
+
+  // Session 147: Handle numbered inputs for comparison_evaluator
+  if (label && node.type === 'comparison_evaluator') {
+    if (label === 'input-1') return getConnectorPosition(node, 'input-1')
+    if (label === 'input-2') return getConnectorPosition(node, 'input-2')
+    if (label === 'input-3') return getConnectorPosition(node, 'input-3')
+  }
+
   return getConnectorPosition(node, 'input')
 }
 
@@ -192,7 +219,7 @@ const connectionPaths = computed(() => {
     // Use feedback input position for connections with label 'feedback'
     const target = conn.label === 'feedback'
       ? getNodeFeedbackInputCenter(conn.targetId)
-      : getNodeInputCenter(conn.targetId)
+      : getNodeInputCenter(conn.targetId, conn.label)
 
     return {
       ...conn,
@@ -284,8 +311,8 @@ function onMouseUp() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  // Delete selected node on Delete/Backspace
-  if ((e.key === 'Delete' || e.key === 'Backspace') && props.selectedNodeId) {
+  // Delete selected node on Delete key only (not Backspace - too easy to trigger in text fields)
+  if (e.key === 'Delete' && props.selectedNodeId) {
     emit('delete-node', props.selectedNodeId)
   }
   // Cancel connection on Escape
@@ -375,6 +402,12 @@ onUnmounted(() => {
       @update-random-prompt-model="emit('update-node-random-prompt-model', node.id, $event)"
       @update-random-prompt-film-type="emit('update-node-random-prompt-film-type', node.id, $event)"
       @update-model-adaption-preset="emit('update-node-model-adaption-preset', node.id, $event)"
+      @update-interception-preset="(preset, context) => emit('update-node-interception-preset', node.id, preset, context)"
+      @update-comparison-llm="emit('update-node-comparison-llm', node.id, $event)"
+      @update-comparison-criteria="emit('update-node-comparison-criteria', node.id, $event)"
+      @end-connect-input-1="emit('end-connect-input-1', node.id)"
+      @end-connect-input-2="emit('end-connect-input-2', node.id)"
+      @end-connect-input-3="emit('end-connect-input-3', node.id)"
     />
 
     <!-- Empty state -->

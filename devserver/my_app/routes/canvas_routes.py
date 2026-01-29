@@ -23,44 +23,24 @@ import config
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# CURATED LLM MODELS - Small/Medium/Top per Provider
+# CURATED LLM MODELS - Top-tier models only (5-10 max)
 # ============================================================================
-# DSGVO-compliant: local (Ollama), Mistral (EU-based)
-# NOT DSGVO-compliant: Anthropic, Google, Meta, OpenAI (US-based)
+# Session 147: Simplified to only high-performance models
+# DSGVO: Mistral (EU-based), Local (Ollama)
 # ============================================================================
 
-CURATED_MODELS = {
-    'anthropic': {
-        'small': {'id': 'anthropic/claude-3-5-haiku-latest', 'name': 'Claude 3.5 Haiku'},
-        'medium': {'id': 'anthropic/claude-3-5-sonnet-latest', 'name': 'Claude 3.5 Sonnet'},
-        'top': {'id': 'anthropic/claude-sonnet-4-latest', 'name': 'Claude Sonnet 4'},
-        'dsgvo': False
-    },
-    'mistral': {
-        'small': {'id': 'mistral/ministral-8b-latest', 'name': 'Ministral 8B'},
-        'medium': {'id': 'mistral/mistral-small-latest', 'name': 'Mistral Small 3.1'},
-        'top': {'id': 'mistral/mistral-large-latest', 'name': 'Mistral Large'},
-        'dsgvo': True  # EU-based
-    },
-    'google': {
-        'small': {'id': 'google/gemma-3-4b-it', 'name': 'Gemma 3 4B'},
-        'medium': {'id': 'google/gemini-2.0-flash', 'name': 'Gemini 2.0 Flash'},
-        'top': {'id': 'google/gemini-2.5-pro', 'name': 'Gemini 2.5 Pro'},
-        'dsgvo': False
-    },
-    'meta': {
-        'small': {'id': 'meta/llama-3.2-3b-instruct', 'name': 'Llama 3.2 3B'},
-        'medium': {'id': 'meta/llama-3.3-70b-instruct', 'name': 'Llama 3.3 70B'},
-        'top': {'id': 'meta/llama-4-maverick', 'name': 'Llama 4 Maverick'},
-        'dsgvo': False
-    },
-    'openai-oss': {
-        'small': {'id': 'local/gpt-OSS:8b', 'name': 'GPT-OSS 8B (Lokal)'},
-        'medium': {'id': 'local/gpt-OSS:20b', 'name': 'GPT-OSS 20B (Lokal)'},
-        'top': {'id': 'local/gpt-OSS:120b', 'name': 'GPT-OSS 120B (Lokal)'},
-        'dsgvo': True  # Lokal
-    }
-}
+CURATED_TOP_MODELS = [
+    # Anthropic Claude 4.5 Series (OpenRouter paths)
+    {'id': 'anthropic/claude-opus-4.5', 'name': 'Claude Opus 4.5', 'provider': 'anthropic', 'dsgvo': False},
+    {'id': 'anthropic/claude-sonnet-4.5', 'name': 'Claude Sonnet 4.5', 'provider': 'anthropic', 'dsgvo': False},
+    {'id': 'anthropic/claude-haiku-4.5', 'name': 'Claude Haiku 4.5', 'provider': 'anthropic', 'dsgvo': False},
+    # Google
+    {'id': 'google/gemini-3-pro', 'name': 'Gemini 3 Pro', 'provider': 'google', 'dsgvo': False},
+    # Mistral (DSGVO-compliant - EU-based)
+    {'id': 'mistral/mistral-large-latest', 'name': 'Mistral Large', 'provider': 'mistral', 'dsgvo': True},
+    # Meta
+    {'id': 'meta/llama-4-maverick', 'name': 'Llama 4 Maverick', 'provider': 'meta', 'dsgvo': False},
+]
 
 # ============================================================================
 # RANDOM PROMPT PRESETS (Session 140)
@@ -295,20 +275,16 @@ def get_llm_models():
     except Exception as e:
         logger.warning(f"[Canvas LLM] Failed to load Ollama models: {e}")
 
-    # 2. Curated models (small/medium/top per provider)
-    for provider, tiers in CURATED_MODELS.items():
-        dsgvo = tiers.get('dsgvo', False)
-        for tier in ['small', 'medium', 'top']:
-            if tier in tiers:
-                model = tiers[tier]
-                models.append({
-                    'id': model['id'],
-                    'name': model['name'],
-                    'provider': provider,
-                    'tier': tier,
-                    'dsgvoCompliant': dsgvo,
-                    'isDefault': model['id'] == default_model_id
-                })
+    # 2. Curated top-tier models (Session 147: simplified to 5-10 models)
+    for model in CURATED_TOP_MODELS:
+        models.append({
+            'id': model['id'],
+            'name': model['name'],
+            'provider': model['provider'],
+            'tier': 'top',
+            'dsgvoCompliant': model['dsgvo'],
+            'isDefault': model['id'] == default_model_id
+        })
 
     logger.info(f"[Canvas LLM] Returning {len(models)} total models ({ollama_count} Ollama + {len(models) - ollama_count} curated)")
 
@@ -453,6 +429,7 @@ def execute_workflow():
         # Execution state
         results = {}
         collector_items = []
+        comparison_inputs = {}  # Session 147: {node_id: [{label, text, source}, ...]}
         execution_trace = []
         engine = PromptInterceptionEngine()
         canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
@@ -747,6 +724,88 @@ def execute_workflow():
                 logger.info(f"[Canvas Tracer] Collector: {len(collector_items)} items")
                 return input_data, data_type, None  # Terminal
 
+            elif node_type == 'comparison_evaluator':
+                # Session 147: Multi-input comparison evaluator
+                # Accumulate inputs like Collector, run LLM comparison when all inputs arrive
+                llm_model = node.get('comparisonLlmModel', 'local/mistral-nemo')
+                criteria = node.get('comparisonCriteria', '')
+                expected_count = len(incoming.get(node_id, []))
+
+                # Initialize buffer for this node if not exists
+                if node_id not in comparison_inputs:
+                    comparison_inputs[node_id] = []
+
+                # Add this input to the buffer
+                input_num = len(comparison_inputs[node_id]) + 1
+                comparison_inputs[node_id].append({
+                    'label': f'Text {input_num}',
+                    'text': input_data or '',
+                    'source': source_node_id
+                })
+
+                current_count = len(comparison_inputs[node_id])
+                logger.info(f"[Canvas Tracer] Comparison Evaluator: received {current_count}/{expected_count} inputs")
+
+                # Check if all expected inputs have arrived
+                if current_count < expected_count:
+                    # Not all inputs yet - store partial result, don't proceed
+                    results[node_id] = {
+                        'type': 'comparison_evaluator',
+                        'output': None,
+                        'error': None,
+                        'status': 'waiting',
+                        'inputs_received': current_count,
+                        'inputs_expected': expected_count
+                    }
+                    # Signal waiting state via metadata to prevent propagation
+                    return None, 'text', {'waiting': True}
+
+                # All inputs received - run comparison
+                inputs_list = comparison_inputs[node_id]
+
+                # Format inputs for LLM
+                formatted_inputs = "\n\n".join([
+                    f"=== {inp['label']} (Quelle: {inp['source']}) ===\n{inp['text']}"
+                    for inp in inputs_list
+                ])
+
+                instruction = f"""Analysiere und vergleiche die folgenden {len(inputs_list)} Texte systematisch.
+
+{formatted_inputs}
+
+EVALUATIONSKRITERIEN:
+{criteria if criteria else 'Allgemeiner Vergleich nach Qualität, Klarheit und Vollständigkeit'}
+
+Deine Analyse soll:
+1. Jeden Text einzeln kurz charakterisieren (mit Bezug auf "Text 1", "Text 2" etc.)
+2. Systematische Vergleiche anstellen
+3. Gemäß der Kriterien bewerten
+4. Eine Gesamteinschätzung geben
+
+Strukturiere deine Antwort klar und beziehe dich immer auf die Text-Nummern."""
+
+                req = PromptInterceptionRequest(
+                    input_prompt="Führe die Analyse durch.",
+                    style_prompt=instruction,
+                    model=llm_model,
+                    debug=True
+                )
+                response = asyncio.run(engine.process_request(req))
+                output = response.output_str if response.success else ''
+
+                results[node_id] = {
+                    'type': 'comparison_evaluator',
+                    'output': output,
+                    'error': response.error if not response.success else None,
+                    'model': response.model_used,
+                    'metadata': {
+                        'input_count': len(inputs_list),
+                        'sources': [inp['source'] for inp in inputs_list]
+                    }
+                }
+                logger.info(f"[Canvas Tracer] Comparison complete: {len(output)} chars")
+                return output, 'text', None
+
             else:
                 results[node_id] = {'type': node_type, 'output': None, 'error': f'Unknown type: {node_type}'}
                 return None, 'text', None
@@ -766,6 +825,11 @@ def execute_workflow():
 
             # Execute this node (pass source info for collector)
             output_data, output_type, metadata = execute_node(node, input_data, data_type, source_node_id, source_node_type)
+
+            # Check if node is waiting for more inputs (comparison_evaluator)
+            if metadata and metadata.get('waiting'):
+                logger.info(f"[Canvas Tracer] Node {node_id} waiting for more inputs, not propagating")
+                return
 
             # Get outgoing connections
             next_conns = outgoing.get(node_id, [])
@@ -820,7 +884,7 @@ def execute_workflow():
 
                 # Data type compatibility check
                 target_type = target_node.get('type')
-                accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display']
+                accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display', 'comparison_evaluator']
                 accepts_image = target_type in ['evaluation', 'collector', 'display']
 
                 if output_type == 'text' and not accepts_text:
@@ -951,6 +1015,7 @@ def execute_workflow_stream():
                 # Execution state
                 results = {}
                 collector_items = []
+                comparison_inputs = {}  # Session 147: {node_id: [{label, text, source}, ...]}
                 execution_trace = []
                 engine = PromptInterceptionEngine()
                 canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
@@ -1186,6 +1251,64 @@ def execute_workflow_stream():
                         logger.info(f"[Canvas Stream] Collector: {len(collector_items)} items")
                         return input_data, data_type, None
 
+                    elif node_type == 'comparison_evaluator':
+                        # Session 147: Multi-input comparison evaluator
+                        llm_model = node.get('comparisonLlmModel', 'local/mistral-nemo')
+                        criteria = node.get('comparisonCriteria', '')
+                        expected_count = len(incoming.get(node_id, []))
+
+                        if node_id not in comparison_inputs:
+                            comparison_inputs[node_id] = []
+
+                        input_num = len(comparison_inputs[node_id]) + 1
+                        comparison_inputs[node_id].append({
+                            'label': f'Text {input_num}',
+                            'text': input_data or '',
+                            'source': source_node_id
+                        })
+
+                        current_count = len(comparison_inputs[node_id])
+                        logger.info(f"[Canvas Stream] Comparison: {current_count}/{expected_count} inputs")
+
+                        if current_count < expected_count:
+                            results[node_id] = {
+                                'type': 'comparison_evaluator', 'output': None, 'error': None,
+                                'status': 'waiting', 'inputs_received': current_count, 'inputs_expected': expected_count
+                            }
+                            # Signal waiting state via metadata to prevent propagation
+                            return None, 'text', {'waiting': True}
+
+                        # All inputs received - run comparison
+                        inputs_list = comparison_inputs[node_id]
+                        formatted_inputs = "\n\n".join([
+                            f"=== {inp['label']} (Quelle: {inp['source']}) ===\n{inp['text']}"
+                            for inp in inputs_list
+                        ])
+
+                        instruction = f"""Analysiere und vergleiche die folgenden {len(inputs_list)} Texte systematisch.
+
+{formatted_inputs}
+
+EVALUATIONSKRITERIEN:
+{criteria if criteria else 'Allgemeiner Vergleich nach Qualität, Klarheit und Vollständigkeit'}
+
+Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
+
+                        req = PromptInterceptionRequest(
+                            input_prompt="Führe die Analyse durch.",
+                            style_prompt=instruction, model=llm_model, debug=True
+                        )
+                        response = asyncio.run(engine.process_request(req))
+                        output = response.output_str if response.success else ''
+                        results[node_id] = {
+                            'type': 'comparison_evaluator', 'output': output,
+                            'error': response.error if not response.success else None,
+                            'model': response.model_used,
+                            'metadata': {'input_count': len(inputs_list), 'sources': [inp['source'] for inp in inputs_list]}
+                        }
+                        logger.info(f"[Canvas Stream] Comparison complete: {len(output)} chars")
+                        return output, 'text', None
+
                     else:
                         results[node_id] = {'type': node_type, 'output': None, 'error': f'Unknown type: {node_type}'}
                         return None, 'text', None
@@ -1219,7 +1342,7 @@ def execute_workflow_stream():
                             continue
 
                         target_type = target_node.get('type')
-                        accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display']
+                        accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display', 'comparison_evaluator']
                         accepts_image = target_type in ['evaluation', 'collector', 'display']
 
                         if output_type == 'text' and not accepts_text:
@@ -1289,6 +1412,11 @@ def execute_workflow_stream():
                     # YIELD node_complete event IMMEDIATELY after execution
                     yield f"event: node_complete\ndata: {json.dumps({'node_id': node_id, 'node_type': node_type, 'output_preview': get_output_preview(output_data, output_type)})}\n\n"
 
+                    # Check if node is waiting for more inputs (comparison_evaluator)
+                    if metadata and metadata.get('waiting'):
+                        logger.info(f"[Canvas Stream] Node {node_id} waiting for more inputs, not propagating")
+                        continue
+
                     # Add next nodes to work queue
                     next_nodes = get_next_nodes(node_id, output_data, output_type, metadata)
                     work_queue.extend(next_nodes)
@@ -1315,3 +1443,48 @@ def execute_workflow_stream():
         def error_gen():
             yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
         return Response(error_gen(), mimetype='text/event-stream')
+
+
+@canvas_bp.route('/api/interception/<preset_id>', methods=['GET'])
+def get_interception_config(preset_id: str):
+    """
+    Get a single interception config by ID (Session 146)
+
+    Used by the Canvas Interception node to fetch the context prompt
+    when a preset is selected.
+
+    Args:
+        preset_id: The interception config ID (e.g., 'bauhaus', 'overdrive')
+
+    Returns:
+        Full config including context field with en/de translations
+    """
+    try:
+        schemas_path = _get_schemas_path()
+        config_path = schemas_path / "configs" / "interception" / f"{preset_id}.json"
+
+        if not config_path.exists():
+            return jsonify({
+                'status': 'error',
+                'error': f'Interception config not found: {preset_id}'
+            }), 404
+
+        with open(config_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        return jsonify({
+            'status': 'success',
+            'id': preset_id,
+            'name': data.get('name', {}),
+            'description': data.get('description', {}),
+            'context': data.get('context', {}),
+            'parameters': data.get('parameters', {}),
+            'display': data.get('display', {})
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading interception config {preset_id}: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
