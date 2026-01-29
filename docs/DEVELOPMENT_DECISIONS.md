@@ -29,6 +29,100 @@
 
 ---
 
+## 🧠 LLM-STRATEGIE: Wechsel zu Mistral für VRAM-Optimierung (2026-01-29)
+
+**Status:** ✅ DECIDED - Implementation pending
+**Session:** 147
+
+### Decision
+
+**Strategische Entscheidung: Lokales LLM (gpt-OSS:120b) durch externes Mistral ersetzen, um VRAM für Bild-/Video-Modelle freizugeben.**
+
+1. **Alle Meta-Prompts für Mistral optimieren**
+   - Interception-Prompts, Safety-Checks, Translations
+   - Ziel: Gleiche oder bessere Ergebnisse wie mit gpt-OSS:120b
+
+2. **VRAM-Budget für ComfyUI maximieren**
+   - Aktuell: 96GB - 65GB (LLM) = 31GB für Bild/Video
+   - Zukünftig: 96GB - ~0GB (externes LLM) = 96GB für Bild/Video
+   - Ermöglicht: Mehrere Modelle gleichzeitig geladen (wan22 + sd35 + flux + audio)
+
+3. **Zentralen VRAM-Manager implementieren**
+   - Ersetzt dezentrale `keep_alive` Settings
+   - Koordiniert ComfyUI-Modell-Loading
+   - Verhindert VRAM-Thrashing im Workshop-Betrieb
+
+### Reasoning
+
+**Problem-Analyse (Workshop 29.1.2026):**
+
+| Szenario | Problem |
+|----------|---------|
+| Kleine LLMs (20b) | Qualität zu schlecht für Interception |
+| Große LLMs (120b) | Funktioniert gut für Einzelsessions |
+| Workshop (120b) | VRAM-Stau: 65GB LLM + wechselnde Bild-Modelle = Thrashing |
+| Einzelsession (120b) | Kreativ-Flow behindert: Modellwechsel dauert "ewig" → User vermeidet intuitiv |
+
+**DSGVO-Analyse externer LLM-Anbieter:**
+
+| Anbieter | DSGVO-Status | Verfügbarkeit |
+|----------|--------------|---------------|
+| OpenAI | ❌ US-Server | Nicht nutzbar |
+| Anthropic | ❌ US-Server | Nicht nutzbar |
+| Google | ⚠️ Kompliziert | Nicht praktikabel |
+| AWS Bedrock EU | ✅ EU-Server | Nur Enterprise-Verträge |
+| **Mistral** | ✅ EU (Frankreich) | **Token-basiert für Kleinabnehmer** |
+
+**Einzige DSGVO-konforme Option für Kleinabnehmer: Mistral**
+
+**Qualitätseinschätzung:**
+- gpt-OSS:120b: Sehr gute Ergebnisse für Interception
+- Mistral Large: Nach bisherigen Tests etwas schwächer
+- **Konsequenz:** Meta-Prompts müssen für Mistral optimiert werden
+
+### Architektur-Implikation
+
+**Dezentrales VRAM-Problem (Ist-Zustand):**
+```
+manipulate.json:          keep_alive: "10m"
+safety_check_*.json:      keep_alive: "10m"
+prompt_interception.py:   keep_alive: 0  (aktives Entladen!)
+image_analysis.py:        keep_alive: "0s"
+→ Keine Koordination zwischen Ollama und ComfyUI
+→ VRAM-Thrashing bei parallelen Requests
+```
+
+**Zentraler VRAM-Manager (Soll-Zustand):**
+```
+VRAMManager:
+  - Trackt verfügbares VRAM (96GB)
+  - Reserviert Budget für ComfyUI-Modelle
+  - Entscheidet welche Modelle geladen bleiben
+  - Kein Ollama mehr → volle 96GB für ComfyUI
+```
+
+### Betroffene Dateien (Implementation)
+
+**Phase 1: Mistral-Migration**
+- `devserver/config.py` - Model-Konstanten auf Mistral
+- `devserver/schemas/chunks/*.json` - Alle LLM-Chunks
+- `devserver/schemas/engine/instruction_selector.py` - Meta-Prompts
+- `devserver/schemas/engine/prompt_interception_engine.py` - Entfernen von keep_alive=0
+
+**Phase 2: VRAM-Manager**
+- `devserver/my_app/services/vram_manager.py` - NEU
+- `devserver/my_app/services/comfyui_service.py` - Integration
+- `devserver/schemas/engine/backend_router.py` - Integration
+
+### Offene Fragen
+
+1. Mistral-API-Key-Management (*.key Datei)
+2. Fallback-Strategie wenn Mistral nicht erreichbar
+3. Kosten-Monitoring für Token-Verbrauch
+4. Prompt-Optimierung: Wie viel Aufwand für Mistral-Anpassung?
+
+---
+
 ## 🌍 ANTI-ORIENTALISM & EPISTEMIC JUSTICE: Cultural-Aware AI (2026-01-26)
 
 **Status:** ✅ DECIDED & IMPLEMENTED
