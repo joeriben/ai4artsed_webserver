@@ -18,6 +18,7 @@ from flask import Blueprint, jsonify, request, Response
 import json
 
 from schemas.engine.model_selector import ModelSelector
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -272,16 +273,21 @@ def get_llm_models():
     models = []
     ollama_count = 0
 
+    # Get default model from settings (Stage 2 Interception Model)
+    default_model_id = f"local/{config.STAGE2_INTERCEPTION_MODEL}"
+
     # 1. Dynamic Ollama models (all locally installed models)
     try:
         ollama_models = selector.get_ollama_models()
         for model_name in ollama_models:
+            model_id = f"local/{model_name}"
             models.append({
-                'id': f"local/{model_name}",
+                'id': model_id,
                 'name': f"{model_name} (Lokal)",
                 'provider': 'local',
                 'tier': 'local',
-                'dsgvoCompliant': True
+                'dsgvoCompliant': True,
+                'isDefault': model_id == default_model_id
             })
             ollama_count += 1
         logger.info(f"[Canvas LLM] Loaded {ollama_count} Ollama models")
@@ -299,7 +305,8 @@ def get_llm_models():
                     'name': model['name'],
                     'provider': provider,
                     'tier': tier,
-                    'dsgvoCompliant': dsgvo
+                    'dsgvoCompliant': dsgvo,
+                    'isDefault': model['id'] == default_model_id
                 })
 
     logger.info(f"[Canvas LLM] Returning {len(models)} total models ({ollama_count} Ollama + {len(models) - ollama_count} curated)")

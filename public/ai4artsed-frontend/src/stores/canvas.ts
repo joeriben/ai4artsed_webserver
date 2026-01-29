@@ -241,6 +241,20 @@ export const useCanvasStore = defineStore('canvas', () => {
       config: {}
     }
 
+    // Set default LLM for LLM-based nodes
+    const llmNodeTypes: StageType[] = ['random_prompt', 'interception', 'translation', 'evaluation']
+    if (llmNodeTypes.includes(type)) {
+      const defaultModel = llmModels.value.find(m => m.isDefault)
+      if (defaultModel) {
+        if (type === 'random_prompt') {
+          node.randomPromptModel = defaultModel.id
+          node.randomPromptPreset = 'clean_image' // Default preset
+        } else {
+          node.llmModel = defaultModel.id
+        }
+      }
+    }
+
     workflow.value.nodes.push(node)
     console.log(`[Canvas] Added ${type} node at (${x}, ${y})`)
     return node
