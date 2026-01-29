@@ -205,35 +205,34 @@ function resetPosition() {
 }
 
 // Drag handlers - track if we actually dragged (vs just clicked)
-let dragStartPos = { x: 0, y: 0 }
+let dragStartMouse = { x: 0, y: 0 }
+let dragStartPosition = { right: 0, bottom: 0 }
 let hasDragged = false
 
 function startDrag(event: MouseEvent) {
   if (isExpanded.value) return
 
-  dragStartPos = { x: event.clientX, y: event.clientY }
   hasDragged = false
   isDragging.value = true
 
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
 
-  // Calculate current position
-  const currentRight = userPosition.value?.right ??
-    Math.max(CHAT_MIN_MARGIN, Math.min(
-      viewportWidth - ICON_SIZE - CHAT_MIN_MARGIN,
-      ((100 - pageContextStore.currentFocusHint.x) / 100) * viewportWidth
-    ))
-  const currentBottom = userPosition.value?.bottom ??
-    Math.max(CHAT_MIN_MARGIN, Math.min(
-      viewportHeight - ICON_SIZE - CHAT_MIN_MARGIN,
-      ((100 - pageContextStore.currentFocusHint.y) / 100) * viewportHeight
-    ))
+  // Store mouse start position
+  dragStartMouse = { x: event.clientX, y: event.clientY }
 
-  // Store offset from mouse to icon position
-  dragOffset.value = {
-    x: event.clientX + currentRight,
-    y: (viewportHeight - event.clientY) + currentBottom - viewportHeight
+  // Store current icon position
+  dragStartPosition = {
+    right: userPosition.value?.right ??
+      Math.max(CHAT_MIN_MARGIN, Math.min(
+        viewportWidth - ICON_SIZE - CHAT_MIN_MARGIN,
+        ((100 - pageContextStore.currentFocusHint.x) / 100) * viewportWidth
+      )),
+    bottom: userPosition.value?.bottom ??
+      Math.max(CHAT_MIN_MARGIN, Math.min(
+        viewportHeight - ICON_SIZE - CHAT_MIN_MARGIN,
+        ((100 - pageContextStore.currentFocusHint.y) / 100) * viewportHeight
+      ))
   }
 
   document.body.style.cursor = 'grabbing'
@@ -248,8 +247,8 @@ function onDrag(event: MouseEvent) {
   if (!isDragging.value) return
 
   // Check if we've moved enough to count as a drag (5px threshold)
-  const dx = event.clientX - dragStartPos.x
-  const dy = event.clientY - dragStartPos.y
+  const dx = event.clientX - dragStartMouse.x
+  const dy = event.clientY - dragStartMouse.y
   if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
     hasDragged = true
   }
@@ -257,8 +256,11 @@ function onDrag(event: MouseEvent) {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
 
-  let newRight = dragOffset.value.x - event.clientX
-  let newBottom = viewportHeight - event.clientY + dragOffset.value.y
+  // Calculate new position based on mouse delta
+  // Moving mouse RIGHT (positive dx) → decrease "right" value
+  // Moving mouse DOWN (positive dy) → decrease "bottom" value
+  let newRight = dragStartPosition.right - dx
+  let newBottom = dragStartPosition.bottom - dy
 
   // Clamp to viewport bounds
   const minRight = CHAT_MIN_MARGIN
