@@ -33,6 +33,8 @@ export type StageType =
   | 'evaluation'
   // Display node (visualization)
   | 'display'
+  // Session 147: Multi-input comparison evaluator
+  | 'comparison_evaluator'
 
 // ============================================================================
 // MODEL ADAPTION TYPES (Session 145)
@@ -45,6 +47,70 @@ export type ModelAdaptionPreset =
   | 'flux'      // Flux (T5-style natural language)
   | 'video'     // Video models (scenic descriptions)
   | 'audio'     // Audio/Music models (auditive descriptions)
+
+// ============================================================================
+// INTERCEPTION PRESET TYPES (Session 146)
+// ============================================================================
+
+/** Interception Preset IDs - maps to Stage2 interception configs */
+export type InterceptionPreset =
+  | 'user_defined'              // Default - eigene Anweisung
+  | 'analog_photography_1870s'  // Daguerreotype
+  | 'analog_photography_1970s'  // Analog Photography
+  | 'analogue_copy'             // Analogue Copy
+  | 'bauhaus'                   // Bauhaus
+  | 'clichefilter_v2'           // De-Kitsch (note: no accent in ID)
+  | 'confucianliterati'         // Literati
+  | 'cooked_negatives'          // Cooked Negatives
+  | 'digital_photography'       // Digital Photography
+  | 'forceful'                  // Forceful
+  | 'hunkydoryharmonizer'       // Sweetener
+  | 'jugendsprache'             // Slang
+  | 'mad_world'                 // mad world
+  | 'one_world'                 // One World
+  | 'overdrive'                 // Amplifier
+  | 'p5js_simplifier'           // Listifier
+  | 'piglatin'                  // Word Game
+  | 'planetarizer'              // Planetarizer
+  | 'renaissance'               // Renaissance
+  | 'sensitive'                 // Sensitive
+  | 'stillepost'                // Telephone
+  | 'technicaldrawing'          // Technical
+  | 'tellastory'                // Your Story
+  | 'theopposite'               // On the Contrary!
+
+/** Interception Preset Config with labels */
+export interface InterceptionPresetConfig {
+  label: { en: string; de: string }
+}
+
+/** Interception Presets - labels only, context loaded from backend on selection */
+export const INTERCEPTION_PRESETS: Record<InterceptionPreset, InterceptionPresetConfig> = {
+  user_defined: { label: { en: 'Your Call!', de: 'Du bestimmst!' } },
+  analog_photography_1870s: { label: { en: 'Daguerreotype', de: 'Daguerreotypie' } },
+  analog_photography_1970s: { label: { en: 'Analog Photography', de: 'Analogfotografie' } },
+  analogue_copy: { label: { en: 'Analogue Copy', de: 'Analoge Kopie' } },
+  bauhaus: { label: { en: 'Bauhaus', de: 'Bauhaus' } },
+  clichefilter_v2: { label: { en: 'De-Kitsch', de: 'Entkitscher' } },
+  confucianliterati: { label: { en: 'Literati', de: 'Literati' } },
+  cooked_negatives: { label: { en: 'Cooked Negatives', de: 'Gekochte Filmnegative' } },
+  digital_photography: { label: { en: 'Digital Photography', de: 'Digitalfotografie' } },
+  forceful: { label: { en: 'Forceful', de: 'kraftvoll' } },
+  hunkydoryharmonizer: { label: { en: 'Sweetener', de: 'Verniedlicher' } },
+  jugendsprache: { label: { en: 'Slang', de: 'Jugendslang' } },
+  mad_world: { label: { en: 'mad world', de: 'verrückt' } },
+  one_world: { label: { en: 'One World', de: 'Eine Welt' } },
+  overdrive: { label: { en: 'Amplifier', de: 'Übertreiber!' } },
+  p5js_simplifier: { label: { en: 'Listifier', de: 'Auflister' } },
+  piglatin: { label: { en: 'Word Game', de: 'Sprachspiel' } },
+  planetarizer: { label: { en: 'Planetarizer', de: 'Planetarisierer' } },
+  renaissance: { label: { en: 'Renaissance', de: 'Renaissance' } },
+  sensitive: { label: { en: 'Sensitive', de: 'sensibel' } },
+  stillepost: { label: { en: 'Telephone', de: 'Stille Post' } },
+  technicaldrawing: { label: { en: 'Technical', de: 'Technisch' } },
+  tellastory: { label: { en: 'Your Story', de: 'Deine Geschichte' } },
+  theopposite: { label: { en: 'On the Contrary!', de: 'Im Gegenteil!' } }
+}
 
 // ============================================================================
 // RANDOM PROMPT TYPES
@@ -212,6 +278,20 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'info_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false
+  },
+  // Session 147: Comparison Evaluator Node (Multi-input comparison)
+  {
+    id: 'comparison_evaluator',
+    type: 'comparison_evaluator',
+    label: { en: 'Comparison', de: 'Vergleich' },
+    description: {
+      en: 'Compare multiple text inputs with LLM analysis',
+      de: 'Vergleiche mehrere Text-Inputs mit LLM-Analyse'
+    },
+    color: '#f97316', // orange
+    icon: 'analyze.svg',
+    allowMultiple: true,
+    mandatory: false
   }
 ]
 
@@ -237,6 +317,8 @@ export interface CanvasNode {
   configId?: string
 
   // === Interception node config ===
+  /** Selected interception preset (Session 146) */
+  interceptionPreset?: InterceptionPreset
   /** Selected LLM model ID (e.g., 'gpt-4o-mini', 'claude-3-haiku') */
   llmModel?: string
   /** Context/system prompt for the LLM (pedagogical transformation instructions) */
@@ -295,6 +377,12 @@ export interface CanvasNode {
   // === Model Adaption node config (Session 145) ===
   /** Adaption preset (CLIP, T5, or none) */
   modelAdaptionPreset?: ModelAdaptionPreset
+
+  // === Comparison Evaluator node config (Session 147) ===
+  /** LLM model for comparison analysis */
+  comparisonLlmModel?: string
+  /** Evaluation criteria/goals for comparison */
+  comparisonCriteria?: string
 }
 
 // ============================================================================

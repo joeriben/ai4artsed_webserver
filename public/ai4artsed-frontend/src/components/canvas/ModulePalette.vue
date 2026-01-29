@@ -29,7 +29,7 @@ const categories = computed(() => [
   {
     id: 'interception',
     label: locale.value === 'de' ? '2 · Interception' : '2 · Interception',
-    types: ['interception', 'evaluation'] as StageType[]
+    types: ['interception', 'evaluation', 'comparison_evaluator'] as StageType[]
   },
   {
     id: 'adaption',

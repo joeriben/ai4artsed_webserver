@@ -242,13 +242,15 @@ export const useCanvasStore = defineStore('canvas', () => {
     }
 
     // Set default LLM for LLM-based nodes
-    const llmNodeTypes: StageType[] = ['random_prompt', 'interception', 'translation', 'evaluation']
+    const llmNodeTypes: StageType[] = ['random_prompt', 'interception', 'translation', 'evaluation', 'comparison_evaluator']
     if (llmNodeTypes.includes(type)) {
       const defaultModel = llmModels.value.find(m => m.isDefault)
       if (defaultModel) {
         if (type === 'random_prompt') {
           node.randomPromptModel = defaultModel.id
           node.randomPromptPreset = 'clean_image' // Default preset
+        } else if (type === 'comparison_evaluator') {
+          node.comparisonLlmModel = defaultModel.id
         } else {
           node.llmModel = defaultModel.id
         }
@@ -442,6 +444,55 @@ export const useCanvasStore = defineStore('canvas', () => {
       label: 'feedback'
     }
     console.log(`[Canvas] Added feedback connection: ${connectingFromId.value} -> ${targetId}`)
+    workflow.value.connections.push(newConnection)
+
+    cancelConnection()
+    return true
+  }
+
+  /**
+   * Session 147: Complete a connection to a numbered input (comparison_evaluator)
+   */
+  function completeConnectionToInput(targetId: string, inputLabel: string): boolean {
+    if (!connectingFromId.value) return false
+    if (connectingFromId.value === targetId) {
+      cancelConnection()
+      return false
+    }
+
+    const sourceNode = workflow.value.nodes.find(n => n.id === connectingFromId.value)
+    const targetNode = workflow.value.nodes.find(n => n.id === targetId)
+
+    if (!sourceNode || !targetNode) {
+      cancelConnection()
+      return false
+    }
+
+    // Numbered inputs only valid for comparison_evaluator nodes
+    if (targetNode.type !== 'comparison_evaluator') {
+      console.warn(`[Canvas] Numbered inputs only valid for comparison_evaluator nodes`)
+      cancelConnection()
+      return false
+    }
+
+    // Check if connection to this input already exists
+    const exists = workflow.value.connections.some(
+      c => c.targetId === targetId && c.label === inputLabel
+    )
+
+    if (exists) {
+      console.warn(`[Canvas] Connection to ${inputLabel} already exists`)
+      cancelConnection()
+      return false
+    }
+
+    // Add the connection with input label
+    const newConnection: CanvasConnection = {
+      sourceId: connectingFromId.value,
+      targetId,
+      label: inputLabel
+    }
+    console.log(`[Canvas] Added connection to ${inputLabel}: ${connectingFromId.value} -> ${targetId}`)
     workflow.value.connections.push(newConnection)
 
     cancelConnection()
@@ -904,6 +955,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     cancelConnection,
     completeConnection,
     completeConnectionFeedback,
+    completeConnectionToInput,
     deleteConnection,
     updateMousePosition,
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { CanvasNode, LLMModelSummary, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset } from '@/types/canvas'
-import { getNodeTypeDefinition, RANDOM_PROMPT_PRESETS, PHOTO_FILM_TYPES } from '@/types/canvas'
+import type { CanvasNode, LLMModelSummary, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset, InterceptionPreset } from '@/types/canvas'
+import { getNodeTypeDefinition, RANDOM_PROMPT_PRESETS, PHOTO_FILM_TYPES, INTERCEPTION_PRESETS } from '@/types/canvas'
 
 const { locale } = useI18n()
 
@@ -67,6 +67,14 @@ const emit = defineEmits<{
   'update-random-prompt-film-type': [filmType: string]
   // Session 145: Model Adaption event
   'update-model-adaption-preset': [preset: string]
+  // Session 146: Interception Preset event
+  'update-interception-preset': [preset: string, context: string]
+  // Session 147: Comparison Evaluator events
+  'update-comparison-llm': [model: string]
+  'update-comparison-criteria': [criteria: string]
+  'end-connect-input-1': []
+  'end-connect-input-2': []
+  'end-connect-input-3': []
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -86,9 +94,11 @@ const nodeLabel = computed(() => {
 })
 
 // Source nodes (input) have no input connector
-const hasInputConnector = computed(() => props.node.type !== 'input')
+const hasInputConnector = computed(() => props.node.type !== 'input' && props.node.type !== 'comparison_evaluator')
 // Terminal nodes (collector, display) have no output connector
 const hasOutputConnector = computed(() => !['collector', 'display'].includes(props.node.type))
+// Session 147: Comparison evaluator has 3 numbered input connectors
+const hasMultipleInputConnectors = computed(() => props.node.type === 'comparison_evaluator')
 
 // Node type checks
 const isInput = computed(() => props.node.type === 'input')
@@ -102,7 +112,9 @@ const isDisplay = computed(() => props.node.type === 'display')
 const isEvaluation = computed(() => props.node.type === 'evaluation')
 // Session 145: Model Adaption node
 const isModelAdaption = computed(() => props.node.type === 'model_adaption')
-const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value || isRandomPrompt.value)
+// Session 147: Comparison Evaluator node
+const isComparisonEvaluator = computed(() => props.node.type === 'comparison_evaluator')
+const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value || isRandomPrompt.value || isComparisonEvaluator.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 // Evaluation branching
 const hasBranching = computed(() => isEvaluation.value && props.node.enableBranching === true)
@@ -113,6 +125,7 @@ const hasFeedbackInput = computed(() => isInterception.value || isTranslation.va
 const isConfigured = computed(() => {
   if (isGeneration.value) return !!props.node.configId
   if (isRandomPrompt.value) return !!(props.node.randomPromptModel && props.node.randomPromptPreset)
+  if (isComparisonEvaluator.value) return !!props.node.comparisonLlmModel
   if (needsLLM.value) return !!props.node.llmModel
   return true
 })
@@ -167,6 +180,32 @@ function onLLMChange(event: Event) {
 function onContextPromptChange(event: Event) {
   const textarea = event.target as HTMLTextAreaElement
   emit('update-context-prompt', textarea.value)
+}
+
+// Session 146: Interception Preset handler
+async function onInterceptionPresetChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  const presetId = select.value as InterceptionPreset
+
+  if (presetId === 'user_defined') {
+    // User defined: emit empty context, let user fill in
+    emit('update-interception-preset', presetId, '')
+  } else {
+    // Fetch context from backend
+    try {
+      const response = await fetch(`/api/interception/${presetId}`)
+      if (response.ok) {
+        const data = await response.json()
+        const context = locale.value === 'de' ? data.context?.de : data.context?.en
+        emit('update-interception-preset', presetId, context || '')
+      } else {
+        // Fallback: just emit the preset ID with empty context
+        emit('update-interception-preset', presetId, '')
+      }
+    } catch {
+      emit('update-interception-preset', presetId, '')
+    }
+  }
 }
 
 function onTranslationPromptChange(event: Event) {
@@ -259,6 +298,17 @@ function onRandomPromptFilmTypeChange(event: Event) {
 function onModelAdaptionPresetChange(event: Event) {
   const select = event.target as HTMLSelectElement
   emit('update-model-adaption-preset', select.value)
+}
+
+// Session 147: Comparison Evaluator handlers
+function onComparisonLlmChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-comparison-llm', select.value)
+}
+
+function onComparisonCriteriaChange(event: Event) {
+  const textarea = event.target as HTMLTextAreaElement
+  emit('update-comparison-criteria', textarea.value)
 }
 
 // Session 134: Display node handlers
@@ -370,6 +420,37 @@ const nodeHeight = computed(() => {
       data-connector="input"
       @mouseup.stop="emit('end-connect')"
     />
+
+    <!-- Session 147: Multiple numbered input connectors for Comparison Evaluator -->
+    <template v-if="hasMultipleInputConnectors">
+      <div
+        class="connector input input-1"
+        :data-node-id="node.id"
+        data-connector="input-1"
+        @mouseup.stop="emit('end-connect-input-1')"
+        title="Input 1"
+      >
+        <span class="connector-label">1</span>
+      </div>
+      <div
+        class="connector input input-2"
+        :data-node-id="node.id"
+        data-connector="input-2"
+        @mouseup.stop="emit('end-connect-input-2')"
+        title="Input 2"
+      >
+        <span class="connector-label">2</span>
+      </div>
+      <div
+        class="connector input input-3"
+        :data-node-id="node.id"
+        data-connector="input-3"
+        @mouseup.stop="emit('end-connect-input-3')"
+        title="Input 3"
+      >
+        <span class="connector-label">3</span>
+      </div>
+    </template>
 
     <!-- Feedback input connector (for Interception/Translation nodes) -->
     <div
@@ -483,8 +564,25 @@ const nodeHeight = computed(() => {
 
       </template>
 
-      <!-- INTERCEPTION NODE: LLM dropdown + Context prompt -->
+      <!-- INTERCEPTION NODE: Preset dropdown + LLM dropdown + Context prompt (Session 146) -->
       <template v-else-if="isInterception">
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Interception' : 'Interception' }}</label>
+          <select
+            class="llm-select"
+            :value="node.interceptionPreset || 'user_defined'"
+            @change="onInterceptionPresetChange"
+            @mousedown.stop
+          >
+            <option
+              v-for="(config, presetKey) in INTERCEPTION_PRESETS"
+              :key="presetKey"
+              :value="presetKey"
+            >
+              {{ locale === 'de' ? config.label.de : config.label.en }}
+            </option>
+          </select>
+        </div>
         <div class="field-group">
           <label class="field-label">LLM</label>
           <select
@@ -565,6 +663,42 @@ const nodeHeight = computed(() => {
             <option value="video">{{ locale === 'de' ? 'Video-Modelle' : 'Video Models' }}</option>
             <option value="audio">{{ locale === 'de' ? 'Audio-Modelle' : 'Audio Models' }}</option>
           </select>
+        </div>
+      </template>
+
+      <!-- COMPARISON EVALUATOR NODE: Multi-input comparison with LLM (Session 147) -->
+      <template v-else-if="isComparisonEvaluator">
+        <div class="field-group">
+          <label class="field-label">LLM</label>
+          <select
+            class="llm-select"
+            :value="node.comparisonLlmModel || ''"
+            @change="onComparisonLlmChange"
+            @mousedown.stop
+          >
+            <option value="" disabled>{{ locale === 'de' ? 'LLM wählen...' : 'Select LLM...' }}</option>
+            <option
+              v-for="model in llmModels"
+              :key="model.id"
+              :value="model.id"
+            >
+              {{ model.name }}
+            </option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Vergleichs-Kriterien' : 'Comparison Criteria' }}</label>
+          <textarea
+            class="prompt-textarea"
+            :value="node.comparisonCriteria || ''"
+            :placeholder="locale === 'de' ? 'z.B. Vergleiche nach Originalität, Klarheit, Detailreichtum...' : 'e.g. Compare by originality, clarity, detail...'"
+            rows="3"
+            @input="onComparisonCriteriaChange"
+            @mousedown.stop
+          />
+        </div>
+        <div class="field-info">
+          {{ locale === 'de' ? 'Verbinde bis zu 3 Text-Outputs' : 'Connect up to 3 text outputs' }}
         </div>
       </template>
 
@@ -994,6 +1128,13 @@ const nodeHeight = computed(() => {
   letter-spacing: 0.05em;
 }
 
+.field-info {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
 .llm-select {
   width: 100%;
   padding: 0.375rem 0.5rem;
@@ -1109,6 +1250,33 @@ const nodeHeight = computed(() => {
   left: -7px;
   top: 24px;  /* Fixed position in header area */
   transform: translateY(-50%);
+}
+
+/* Session 147: Numbered input connectors for Comparison Evaluator */
+.connector.input-1 {
+  left: -7px;
+  top: 24px;
+  transform: translateY(-50%);
+}
+
+.connector.input-2 {
+  left: -7px;
+  top: 44px;
+  transform: translateY(-50%);
+}
+
+.connector.input-3 {
+  left: -7px;
+  top: 64px;
+  transform: translateY(-50%);
+}
+
+.connector-label {
+  position: absolute;
+  left: -14px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 .connector.output {
