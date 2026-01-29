@@ -286,12 +286,6 @@ export interface CanvasNode {
   randomPromptModel?: string
   /** Film type (only for 'photo' preset) */
   randomPromptFilmType?: PhotoFilmType
-  /** Custom system prompt override (collapsed by default) */
-  randomPromptSystemPrompt?: string
-  /** Show system prompt editor */
-  randomPromptShowSystemPrompt?: boolean
-  /** Cache-breaking seed */
-  randomPromptSeed?: number
 }
 
 // ============================================================================

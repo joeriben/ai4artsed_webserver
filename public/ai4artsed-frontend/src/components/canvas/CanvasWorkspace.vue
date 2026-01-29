@@ -82,9 +82,6 @@ const emit = defineEmits<{
   'update-node-random-prompt-preset': [nodeId: string, preset: string]
   'update-node-random-prompt-model': [nodeId: string, model: string]
   'update-node-random-prompt-film-type': [nodeId: string, filmType: string]
-  'update-node-random-prompt-system': [nodeId: string, prompt: string]
-  'update-node-random-prompt-seed': [nodeId: string, seed: number]
-  'toggle-node-random-prompt-system': [nodeId: string, show: boolean]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -107,8 +104,8 @@ function getNodeWidth(node: CanvasNode): number {
   // Use custom width if set (resizable nodes)
   if (node.width) return node.width
 
-  // Wide types: input, interception, translation, evaluation, display, collector
-  const wideTypes: StageType[] = ['input', 'interception', 'translation', 'evaluation', 'display', 'collector']
+  // Wide types: input, random_prompt, interception, translation, evaluation, display, collector
+  const wideTypes: StageType[] = ['input', 'random_prompt', 'interception', 'translation', 'evaluation', 'display', 'collector']
   return wideTypes.includes(node.type) ? WIDE_WIDTH : NARROW_WIDTH
 }
 
@@ -375,9 +372,6 @@ onUnmounted(() => {
       @update-random-prompt-preset="emit('update-node-random-prompt-preset', node.id, $event)"
       @update-random-prompt-model="emit('update-node-random-prompt-model', node.id, $event)"
       @update-random-prompt-film-type="emit('update-node-random-prompt-film-type', node.id, $event)"
-      @update-random-prompt-system="emit('update-node-random-prompt-system', node.id, $event)"
-      @update-random-prompt-seed="emit('update-node-random-prompt-seed', node.id, $event)"
-      @toggle-random-prompt-system="emit('toggle-node-random-prompt-system', node.id, $event)"
     />
 
     <!-- Empty state -->

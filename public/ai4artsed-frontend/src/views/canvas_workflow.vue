@@ -139,18 +139,6 @@ function handleUpdateNodeRandomPromptFilmType(nodeId: string, filmType: string) 
   canvasStore.updateNode(nodeId, { randomPromptFilmType: filmType as PhotoFilmType })
 }
 
-function handleUpdateNodeRandomPromptSystem(nodeId: string, prompt: string) {
-  canvasStore.updateNode(nodeId, { randomPromptSystemPrompt: prompt })
-}
-
-function handleUpdateNodeRandomPromptSeed(nodeId: string, seed: number) {
-  canvasStore.updateNode(nodeId, { randomPromptSeed: seed })
-}
-
-function handleToggleRandomPromptSystem(nodeId: string, show: boolean) {
-  canvasStore.updateNode(nodeId, { randomPromptShowSystemPrompt: show })
-}
-
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -386,9 +374,6 @@ onUnmounted(() => {
           @update-node-random-prompt-preset="handleUpdateNodeRandomPromptPreset"
           @update-node-random-prompt-model="handleUpdateNodeRandomPromptModel"
           @update-node-random-prompt-film-type="handleUpdateNodeRandomPromptFilmType"
-          @update-node-random-prompt-system="handleUpdateNodeRandomPromptSystem"
-          @update-node-random-prompt-seed="handleUpdateNodeRandomPromptSeed"
-          @toggle-node-random-prompt-system="handleToggleRandomPromptSystem"
         />
       </div>
     </div>

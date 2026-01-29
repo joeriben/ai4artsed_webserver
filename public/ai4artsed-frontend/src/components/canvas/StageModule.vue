@@ -65,9 +65,6 @@ const emit = defineEmits<{
   'update-random-prompt-preset': [preset: string]
   'update-random-prompt-model': [model: string]
   'update-random-prompt-film-type': [filmType: string]
-  'update-random-prompt-system': [prompt: string]
-  'update-random-prompt-seed': [seed: number]
-  'toggle-random-prompt-system': [show: boolean]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -257,31 +254,6 @@ function onRandomPromptModelChange(event: Event) {
 function onRandomPromptFilmTypeChange(event: Event) {
   const select = event.target as HTMLSelectElement
   emit('update-random-prompt-film-type', select.value)
-}
-
-function onRandomPromptSystemChange(event: Event) {
-  const textarea = event.target as HTMLTextAreaElement
-  emit('update-random-prompt-system', textarea.value)
-}
-
-function onRegenerateRandomPrompt() {
-  // Update seed to force new generation
-  emit('update-random-prompt-seed', Date.now())
-}
-
-function onToggleRandomPromptSystem() {
-  emit('toggle-random-prompt-system', !(props.node.randomPromptShowSystemPrompt || false))
-}
-
-function onResetRandomPromptSystem() {
-  const preset = (props.node.randomPromptPreset || 'clean_image') as RandomPromptPreset
-  const defaultPrompt = RANDOM_PROMPT_PRESETS[preset]?.systemPrompt || ''
-  emit('update-random-prompt-system', defaultPrompt)
-}
-
-function getDefaultSystemPrompt(): string {
-  const preset = (props.node.randomPromptPreset || 'clean_image') as RandomPromptPreset
-  return RANDOM_PROMPT_PRESETS[preset]?.systemPrompt || ''
 }
 
 // Session 134: Display node handlers
@@ -505,42 +477,6 @@ const nodeHeight = computed(() => {
           </select>
         </div>
 
-        <!-- Regenerate Button -->
-        <div class="field-group">
-          <button
-            class="regenerate-btn"
-            @click.stop="onRegenerateRandomPrompt"
-          >
-            ↻ {{ locale === 'de' ? 'Neu generieren' : 'Regenerate' }}
-          </button>
-        </div>
-
-        <!-- Collapsible System Prompt (advanced) -->
-        <div class="field-group">
-          <label class="field-checkbox" @click.stop="onToggleRandomPromptSystem">
-            <input
-              type="checkbox"
-              :checked="node.randomPromptShowSystemPrompt || false"
-              @mousedown.stop
-            />
-            <span>{{ locale === 'de' ? 'System-Prompt' : 'System Prompt' }}</span>
-          </label>
-        </div>
-        <div v-if="node.randomPromptShowSystemPrompt" class="field-group">
-          <textarea
-            class="prompt-textarea"
-            :value="node.randomPromptSystemPrompt || getDefaultSystemPrompt()"
-            rows="4"
-            @input="onRandomPromptSystemChange"
-            @mousedown.stop
-          />
-          <button
-            class="reset-btn"
-            @click.stop="onResetRandomPromptSystem"
-          >
-            {{ locale === 'de' ? 'Zurücksetzen' : 'Reset' }}
-          </button>
-        </div>
       </template>
 
       <!-- INTERCEPTION NODE: LLM dropdown + Context prompt -->
@@ -1483,41 +1419,6 @@ const nodeHeight = computed(() => {
   width: 16px;
   height: 16px;
   cursor: pointer;
-}
-
-/* Session 140: Random Prompt node styles */
-.regenerate-btn {
-  width: 100%;
-  padding: 0.5rem;
-  background: #3b82f6;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.regenerate-btn:hover {
-  background: #2563eb;
-}
-
-.reset-btn {
-  margin-top: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  background: transparent;
-  border: 1px solid #475569;
-  border-radius: 4px;
-  color: #94a3b8;
-  font-size: 0.625rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.reset-btn:hover {
-  border-color: #64748b;
-  color: #e2e8f0;
 }
 
 .branching-section {
