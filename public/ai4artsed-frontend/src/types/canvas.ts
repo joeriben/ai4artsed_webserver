@@ -204,8 +204,6 @@ export interface CanvasNode {
   y: number
   /** Node-specific configuration overrides */
   config: Record<string, unknown>
-  /** Whether this node is locked (cannot be deleted) */
-  locked?: boolean
 
   // === Generation node config ===
   /** Selected output config ID for generation nodes (e.g., 'sd35_large', 'flux2_schnell') */
@@ -447,8 +445,7 @@ export function createDefaultWorkflow(): CanvasWorkflow {
     type: 'input',
     x: 100,
     y: 200,
-    config: { source: 'text' },
-    locked: true
+    config: { source: 'text' }
   }
 
   const collectorNode: CanvasNode = {
@@ -456,8 +453,7 @@ export function createDefaultWorkflow(): CanvasWorkflow {
     type: 'collector',
     x: 900,
     y: 200,
-    config: {},
-    locked: true
+    config: {}
   }
 
   return {

@@ -282,12 +282,6 @@ export const useCanvasStore = defineStore('canvas', () => {
    * Delete a node
    */
   function deleteNode(nodeId: string) {
-    const node = workflow.value.nodes.find(n => n.id === nodeId)
-    if (node?.locked) {
-      console.warn(`[Canvas] Cannot delete locked node ${nodeId}`)
-      return false
-    }
-
     // Remove all connections to/from this node
     workflow.value.connections = workflow.value.connections.filter(
       c => c.sourceId !== nodeId && c.targetId !== nodeId

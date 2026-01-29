@@ -83,7 +83,6 @@ const nodeLabel = computed(() => {
   return locale.value === 'de' ? def.label.de : def.label.en
 })
 
-const canDelete = computed(() => !props.node.locked)
 // Source nodes (input) have no input connector
 const hasInputConnector = computed(() => props.node.type !== 'input')
 // Terminal nodes (collector, display) have no output connector
@@ -385,14 +384,12 @@ const nodeHeight = computed(() => {
       <span v-else class="module-icon">{{ nodeIcon }}</span>
       <span class="module-label">{{ nodeLabel }}</span>
       <button
-        v-if="canDelete"
         class="delete-btn"
         @click.stop="emit('delete')"
         :title="locale === 'de' ? 'Löschen' : 'Delete'"
       >
         ×
       </button>
-      <span v-else class="lock-icon" :title="locale === 'de' ? 'Gesperrt' : 'Locked'">🔒</span>
     </div>
 
     <!-- Node body -->
@@ -941,11 +938,6 @@ const nodeHeight = computed(() => {
 
 .delete-btn:hover {
   color: white;
-}
-
-.lock-icon {
-  font-size: 0.75rem;
-  opacity: 0.7;
 }
 
 .module-body {
