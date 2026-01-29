@@ -82,6 +82,8 @@ const emit = defineEmits<{
   'update-node-random-prompt-preset': [nodeId: string, preset: string]
   'update-node-random-prompt-model': [nodeId: string, model: string]
   'update-node-random-prompt-film-type': [nodeId: string, filmType: string]
+  // Session 145: Model Adaption event
+  'update-node-model-adaption-preset': [nodeId: string, preset: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -372,6 +374,7 @@ onUnmounted(() => {
       @update-random-prompt-preset="emit('update-node-random-prompt-preset', node.id, $event)"
       @update-random-prompt-model="emit('update-node-random-prompt-model', node.id, $event)"
       @update-random-prompt-film-type="emit('update-node-random-prompt-film-type', node.id, $event)"
+      @update-model-adaption-preset="emit('update-node-model-adaption-preset', node.id, $event)"
     />
 
     <!-- Empty state -->

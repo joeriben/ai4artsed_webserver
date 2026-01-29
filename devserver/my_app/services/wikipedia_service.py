@@ -52,6 +52,20 @@ MAX_CONTENT_LENGTH = 2000
 # HTTP timeout for Wikipedia API requests
 HTTP_TIMEOUT = 10.0
 
+# Patterns to detect disambiguation pages across languages
+DISAMBIGUATION_PATTERNS = frozenset([
+    'disambiguation',           # English
+    'begriffsklärung',          # German
+    'desambiguación',           # Spanish
+    'homonymie',                # French
+    'disambigua',               # Italian
+    'doorverwijspagina',        # Dutch
+    'значения',                 # Russian (meanings)
+    'ujednoznacznienie',        # Polish
+    '曖昧さ回避',                # Japanese
+    '消歧义',                    # Chinese (simplified)
+])
+
 # User-Agent required by Wikipedia API (https://meta.wikimedia.org/wiki/User-Agent_policy)
 HTTP_USER_AGENT = "AI4ArtsEd-DevServer/1.0 (https://github.com/ai4artsed; ai4artsed@example.org) Python/aiohttp"
 
@@ -156,6 +170,26 @@ class WikipediaService:
 
         return url
 
+    def _is_disambiguation_page(self, data: dict) -> bool:
+        """
+        Detect if API response is a disambiguation page.
+
+        Checks:
+        1. type field == 'disambiguation' (used by English Wikipedia)
+        2. description field contains disambiguation keywords (used by other languages)
+        """
+        # Check type field (English Wikipedia uses this)
+        if data.get('type') == 'disambiguation':
+            return True
+
+        # Check description field for disambiguation patterns
+        description = data.get('description', '').lower()
+        for pattern in DISAMBIGUATION_PATTERNS:
+            if pattern in description:
+                return True
+
+        return False
+
     async def lookup(self, term: str, language: str = 'de') -> WikipediaResult:
         """
         Look up a term on Wikipedia using Opensearch API (fuzzy matching).
@@ -242,6 +276,21 @@ class WikipediaService:
                 async with session.get(summary_url) as summary_response:
                     if summary_response.status == 200:
                         data = await summary_response.json()
+
+                        # Check for disambiguation page
+                        if self._is_disambiguation_page(data):
+                            result = WikipediaResult(
+                                term=term,
+                                language=lang_code,
+                                title=data.get('title', found_title),
+                                extract='',
+                                url=data.get('content_urls', {}).get('desktop', {}).get('page', found_url),
+                                success=False,
+                                error=f"Begriffsklärung: '{data.get('title', found_title)}' ist mehrdeutig - keine eindeutige Faktenbasis verfügbar."
+                            )
+                            logger.info(f"[WIKI] Disambiguation page detected for '{term}'")
+                            self._cache.set(term, lang_code, result)
+                            return result
 
                         # Extract summary text
                         extract = data.get('extract', '')

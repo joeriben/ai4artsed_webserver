@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { CanvasNode, LLMModelSummary, RandomPromptPreset, PhotoFilmType } from '@/types/canvas'
+import type { CanvasNode, LLMModelSummary, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset } from '@/types/canvas'
 import { getNodeTypeDefinition, RANDOM_PROMPT_PRESETS, PHOTO_FILM_TYPES } from '@/types/canvas'
 
 const { locale } = useI18n()
@@ -65,6 +65,8 @@ const emit = defineEmits<{
   'update-random-prompt-preset': [preset: string]
   'update-random-prompt-model': [model: string]
   'update-random-prompt-film-type': [filmType: string]
+  // Session 145: Model Adaption event
+  'update-model-adaption-preset': [preset: string]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -98,6 +100,8 @@ const isCollector = computed(() => props.node.type === 'collector')
 const isDisplay = computed(() => props.node.type === 'display')
 // Session 134 Refactored: Unified evaluation node
 const isEvaluation = computed(() => props.node.type === 'evaluation')
+// Session 145: Model Adaption node
+const isModelAdaption = computed(() => props.node.type === 'model_adaption')
 const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value || isRandomPrompt.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 // Evaluation branching
@@ -249,6 +253,12 @@ function onRandomPromptModelChange(event: Event) {
 function onRandomPromptFilmTypeChange(event: Event) {
   const select = event.target as HTMLSelectElement
   emit('update-random-prompt-film-type', select.value)
+}
+
+// Session 145: Model Adaption node handler
+function onModelAdaptionPresetChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-model-adaption-preset', select.value)
 }
 
 // Session 134: Display node handlers
@@ -536,6 +546,25 @@ const nodeHeight = computed(() => {
             @input="onTranslationPromptChange"
             @mousedown.stop
           />
+        </div>
+      </template>
+
+      <!-- MODEL ADAPTION NODE: Media model preset selector (Session 145) -->
+      <template v-else-if="isModelAdaption">
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Zielmodell' : 'Target Model' }}</label>
+          <select
+            class="llm-select"
+            :value="node.modelAdaptionPreset || 'none'"
+            @change="onModelAdaptionPresetChange"
+            @mousedown.stop
+          >
+            <option value="none">{{ locale === 'de' ? 'Keine Adaption' : 'No Adaption' }}</option>
+            <option value="sd35">Stable Diffusion 3.5</option>
+            <option value="flux">Flux</option>
+            <option value="video">{{ locale === 'de' ? 'Video-Modelle' : 'Video Models' }}</option>
+            <option value="audio">{{ locale === 'de' ? 'Audio-Modelle' : 'Audio Models' }}</option>
+          </select>
         </div>
       </template>
 

@@ -22,24 +22,29 @@ const emit = defineEmits<{
  */
 const categories = computed(() => [
   {
-    id: 'core',
-    label: locale.value === 'de' ? 'Kernmodule' : 'Core Modules',
-    types: ['input', 'random_prompt', 'collector'] as StageType[]
+    id: 'input',
+    label: locale.value === 'de' ? '1 · Eingabe' : '1 · Input',
+    types: ['input', 'random_prompt'] as StageType[]
   },
   {
-    id: 'process',
-    label: locale.value === 'de' ? 'Verarbeitung' : 'Processing',
-    types: ['interception', 'translation', 'display'] as StageType[]
+    id: 'interception',
+    label: locale.value === 'de' ? '2 · Interception' : '2 · Interception',
+    types: ['interception', 'evaluation'] as StageType[]
+  },
+  {
+    id: 'adaption',
+    label: locale.value === 'de' ? '3 · Adaption' : '3 · Adaption',
+    types: ['translation', 'model_adaption'] as StageType[]
   },
   {
     id: 'generate',
-    label: locale.value === 'de' ? 'Generierung' : 'Generation',
+    label: locale.value === 'de' ? '4 · Generierung' : '4 · Generation',
     types: ['generation'] as StageType[]
   },
   {
-    id: 'evaluation',
-    label: locale.value === 'de' ? 'Bewertung' : 'Evaluation',
-    types: ['evaluation'] as StageType[]
+    id: 'tools',
+    label: 'Tools',
+    types: ['display'] as StageType[]
   }
 ])
 

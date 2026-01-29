@@ -2140,7 +2140,8 @@ def generation_endpoint():
             'media_output': result['media_output'],
             'run_id': result['run_id'],
             'duration_ms': duration_ms,
-            'loras': result.get('loras', [])
+            'loras': result.get('loras', []),
+            'was_translated': result.get('was_translated', False)
         })
 
     except Exception as e:
@@ -2619,13 +2620,15 @@ async def execute_generation_stage4(
         recorder.save_entity('optimized_prompt', prompt)
 
         # Save translation (English, for media generation)
-        if translated_prompt and translated_prompt != prompt:
+        # Track if translation actually occurred (for frontend badge)
+        was_translated = translated_prompt and translated_prompt != prompt
+        if was_translated:
             recorder.save_entity('translation_en', translated_prompt)
 
         # ====================================================================
         # STAGE 4: GENERATION (via clean function)
         # ====================================================================
-        return await execute_stage4_generation_only(
+        stage4_result = await execute_stage4_generation_only(
             prompt=translated_prompt,
             output_config=output_config,
             safety_level=safety_level,
@@ -2643,6 +2646,11 @@ async def execute_generation_stage4(
             input_image3=input_image3,
             alpha_factor=alpha_factor
         )
+
+        # Add was_translated flag to result for frontend badge display
+        if stage4_result.get('success'):
+            stage4_result['was_translated'] = was_translated
+        return stage4_result
 
     except Exception as e:
         logger.error(f"[STAGE3+4] Error: {e}")

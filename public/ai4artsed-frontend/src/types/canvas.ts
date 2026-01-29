@@ -26,12 +26,25 @@ export type StageType =
   | 'random_prompt' // Session 140: LLM-based random prompt generator with presets
   | 'interception'
   | 'translation'
+  | 'model_adaption' // Session 145: Model-specific prompt adaption (CLIP/T5 encoder)
   | 'generation'
   | 'collector'
   // Session 134 Refactored: Unified evaluation node with optional branching
   | 'evaluation'
   // Display node (visualization)
   | 'display'
+
+// ============================================================================
+// MODEL ADAPTION TYPES (Session 145)
+// ============================================================================
+
+/** Model Adaption Preset Types - adapts prompt for specific media models */
+export type ModelAdaptionPreset =
+  | 'none'      // No adaption (pass-through)
+  | 'sd35'      // Stable Diffusion 3.5 (CLIP-style keywords)
+  | 'flux'      // Flux (T5-style natural language)
+  | 'video'     // Video models (scenic descriptions)
+  | 'audio'     // Audio/Music models (auditive descriptions)
 
 // ============================================================================
 // RANDOM PROMPT TYPES
@@ -129,6 +142,20 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     },
     color: '#f59e0b', // amber
     icon: 'language_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false
+  },
+  // Session 145: Model Adaption Node - adapts prompt for specific media models
+  {
+    id: 'model_adaption',
+    type: 'model_adaption',
+    label: { en: 'Model Adaption', de: 'Modell-Adaption' },
+    description: {
+      en: 'Adapt prompt for media model (SD3.5, Flux, Video, Audio)',
+      de: 'Prompt für Medienmodell anpassen (SD3.5, Flux, Video, Audio)'
+    },
+    color: '#14b8a6', // teal
+    icon: 'tune_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false
   },
@@ -264,6 +291,10 @@ export interface CanvasNode {
   randomPromptModel?: string
   /** Film type (only for 'photo' preset) */
   randomPromptFilmType?: PhotoFilmType
+
+  // === Model Adaption node config (Session 145) ===
+  /** Adaption preset (CLIP, T5, or none) */
+  modelAdaptionPreset?: ModelAdaptionPreset
 }
 
 // ============================================================================

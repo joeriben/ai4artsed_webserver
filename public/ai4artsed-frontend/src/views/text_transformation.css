@@ -814,6 +814,43 @@
 }
 
 /* ============================================================================
+   Translated Badge - Teal color scheme (Stage 3 translation indicator)
+   ============================================================================ */
+
+.translated-stamp {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.translated-stamp .stamp-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
+  background: rgba(0, 150, 136, 0.15);
+  border: 2px solid #009688;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 150, 136, 0.3);
+  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.translated-stamp .stamp-icon {
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  line-height: 1;
+}
+
+.translated-stamp .stamp-text {
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+  font-weight: 700;
+  color: #009688;
+  text-align: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================================
    Phase 2b: Horizontal Pipeline
    ============================================================================ */
 

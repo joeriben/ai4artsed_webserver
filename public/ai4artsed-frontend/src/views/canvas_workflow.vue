@@ -5,7 +5,7 @@ import { useCanvasStore } from '@/stores/canvas'
 import CanvasWorkspace from '@/components/canvas/CanvasWorkspace.vue'
 import ModulePalette from '@/components/canvas/ModulePalette.vue'
 import ConfigSelectorModal from '@/components/canvas/ConfigSelectorModal.vue'
-import type { StageType, RandomPromptPreset, PhotoFilmType } from '@/types/canvas'
+import type { StageType, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset } from '@/types/canvas'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
@@ -137,6 +137,11 @@ function handleUpdateNodeRandomPromptModel(nodeId: string, model: string) {
 
 function handleUpdateNodeRandomPromptFilmType(nodeId: string, filmType: string) {
   canvasStore.updateNode(nodeId, { randomPromptFilmType: filmType as PhotoFilmType })
+}
+
+// Session 145: Model Adaption node handler
+function handleUpdateNodeModelAdaptionPreset(nodeId: string, preset: string) {
+  canvasStore.updateNode(nodeId, { modelAdaptionPreset: preset as ModelAdaptionPreset })
 }
 
 function startEditingName() {
@@ -374,6 +379,7 @@ onUnmounted(() => {
           @update-node-random-prompt-preset="handleUpdateNodeRandomPromptPreset"
           @update-node-random-prompt-model="handleUpdateNodeRandomPromptModel"
           @update-node-random-prompt-film-type="handleUpdateNodeRandomPromptFilmType"
+          @update-node-model-adaption-preset="handleUpdateNodeModelAdaptionPreset"
         />
       </div>
     </div>

@@ -142,7 +142,7 @@
                 <div class="step-card">
                   <div class="step-header">
                     <span class="step-badge">4</span>
-                    <h3>{{ currentLanguage === 'de' ? 'Prompt-Optimierung (je nach Modell)' : 'Prompt Optimization (depending on model)' }}</h3>
+                    <h3>{{ currentLanguage === 'de' ? 'Modell-Adaption (je nach Modell)' : 'Model Adaption (depending on model)' }}</h3>
                   </div>
                   <p>{{ currentLanguage === 'de'
                     ? 'Nicht alle Modelle brauchen denselben Prompt-Stil:'
@@ -151,31 +151,31 @@
                     <div class="mode-item">
                       <strong>Stable Diffusion 3.5</strong>
                       <p>{{ currentLanguage === 'de'
-                        ? 'BRAUCHT Optimierung: Der Prompt wird in "klassischen" Prompt-Stil umgewandelt (Stichworte, Gewichtungen). Hier kannst du lernen, wie traditionelles Prompting funktioniert.'
-                        : 'NEEDS optimization: The prompt is converted to "classic" prompt style (keywords, weightings). Here you can learn how traditional prompting works.' }}</p>
+                        ? 'BRAUCHT Adaption: Der Prompt wird in "klassischen" Prompt-Stil umgewandelt (Stichworte, Gewichtungen). Hier kannst du lernen, wie traditionelles Prompting funktioniert.'
+                        : 'NEEDS adaption: The prompt is converted to "classic" prompt style (keywords, weightings). Here you can learn how traditional prompting works.' }}</p>
                     </div>
                     <div class="mode-item">
                       <strong>GPT Image, Gemini, QWEN</strong>
                       <p>{{ currentLanguage === 'de'
-                        ? 'BRAUCHEN KEINE Optimierung, weil sie selbst ein mächtiges Sprachmodul besitzen und natürliche Sprache direkt verstehen.'
-                        : 'DON\'T NEED optimization because they have their own powerful language module and understand natural language directly.' }}</p>
+                        ? 'BRAUCHEN KEINE Adaption, weil sie selbst ein mächtiges Sprachmodul besitzen und natürliche Sprache direkt verstehen.'
+                        : 'DON\'T NEED adaption because they have their own powerful language module and understand natural language directly.' }}</p>
                     </div>
                     <div class="mode-item">
                       <strong>{{ currentLanguage === 'de' ? 'Video- und Audio-Modelle' : 'Video and Audio Models' }}</strong>
                       <p>{{ currentLanguage === 'de'
-                        ? 'Erhalten Optimierung für szenische (Video) bzw. auditive (Sound/Musik) Beschreibungen.'
-                        : 'Receive optimization for scenic (video) or auditive (sound/music) descriptions.' }}</p>
+                        ? 'Erhalten Adaption für szenische (Video) bzw. auditive (Sound/Musik) Beschreibungen.'
+                        : 'Receive adaption for scenic (video) or auditive (sound/music) descriptions.' }}</p>
                     </div>
                     <div class="mode-item">
                       <strong>p5.js</strong>
                       <p>{{ currentLanguage === 'de'
-                        ? 'Ein Sonderfall: Hier wird generativer Code erzeugt, keine Bilder. Die Optimierung bereitet den Prompt für Code-Generierung vor.'
-                        : 'A special case: Here generative code is created, not images. The optimization prepares the prompt for code generation.' }}</p>
+                        ? 'Ein Sonderfall: Hier wird generativer Code erzeugt, keine Bilder. Die Adaption bereitet den Prompt für Code-Generierung vor.'
+                        : 'A special case: Here generative code is created, not images. The adaption prepares the prompt for code generation.' }}</p>
                     </div>
                   </div>
                   <p class="note">{{ currentLanguage === 'de'
-                    ? 'Wichtig: Auch hier kannst du alles verändern – der optimierte Prompt ist nur ein Vorschlag.'
-                    : 'Important: You can change everything here too – the optimized prompt is just a suggestion.' }}</p>
+                    ? 'Wichtig: Auch hier kannst du alles verändern – der adaptierte Prompt ist nur ein Vorschlag.'
+                    : 'Important: You can change everything here too – the adapted prompt is just a suggestion.' }}</p>
                 </div>
 
                 <div class="step-card">
@@ -268,8 +268,8 @@
                     <h3>{{ currentLanguage === 'de' ? 'Sichtbarkeit der Verarbeitung' : 'Visibility of Processing' }}</h3>
                   </div>
                   <p>{{ currentLanguage === 'de'
-                    ? 'Jeder Zwischenschritt ist sichtbar: die transformierte Beschreibung, die Optimierung, das Endergebnis. Du kannst eingreifen, verändern, zurückgehen. Die "Black Box" wird geöffnet.'
-                    : 'Every intermediate step is visible: the transformed description, the optimization, the final result. You can intervene, change, go back. The "black box" is opened.' }}</p>
+                    ? 'Jeder Zwischenschritt ist sichtbar: die transformierte Beschreibung, die Adaption, das Endergebnis. Du kannst eingreifen, verändern, zurückgehen. Die "Black Box" wird geöffnet.'
+                    : 'Every intermediate step is visible: the transformed description, the adaption, the final result. You can intervene, change, go back. The "black box" is opened.' }}</p>
                 </div>
 
                 <div class="principle-card">

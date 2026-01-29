@@ -1509,6 +1509,40 @@ devserver/schemas/language_templates/
 
 ## 📝 Quick Reference
 
+---
+
+## 🟡 REFACTORING: "optimization" → "adaptation"
+
+**Status:** 📋 **TODO** - Terminology cleanup
+**Datum:** 2026-01-29 (Session 145)
+**Priority:** LOW (Code-Hygiene)
+
+### Problem
+
+Backend verwendet "optimization" für Prompt-Adaption an Medienmodelle:
+- `optimize_clip_prompt.json` → SD3.5
+- `optimize_t5_prompt.json` → Flux
+- Weitere für Video/Audio
+
+Frontend/Dokumentation verwendet jetzt korrekt "Adaption/Adaptation".
+
+### Aufgabe
+
+Alle Backend-Referenzen von "optimization/optimize" zu "adaptation/adapt" umbenennen:
+- Chunk-Dateien: `optimize_*.json` → `adapt_*.json`
+- Code-Referenzen in Python
+- Config-Keys
+
+### Betroffene Dateien
+```
+devserver/schemas/chunks/optimize_clip_prompt*.json
+devserver/schemas/chunks/optimize_t5_prompt*.json
+devserver/my_app/routes/*.py (Referenzen)
+devserver/my_app/engine/*.py (Referenzen)
+```
+
+---
+
 **Current Architecture Status:**
 - ✅ 4-Stage Pipeline System (Stages 1-4)
 - ✅ Config-based system (Chunks → Pipelines → Configs)

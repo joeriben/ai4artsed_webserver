@@ -323,6 +323,16 @@
             </div>
           </transition>
 
+          <!-- Translated Badge - appears when Stage 3 actually translated the prompt -->
+          <transition name="fade">
+            <div v-if="showTranslatedStamp" class="translated-stamp">
+              <div class="stamp-inner">
+                <div class="stamp-icon">🇬🇧</div>
+                <div class="stamp-text">Translated</div>
+              </div>
+            </div>
+          </transition>
+
           <!-- LoRA Badge (Session 116) - shows configLoras before generation, activeLoras after -->
           <transition name="fade">
             <div v-if="stage4Loras.length > 0" class="lora-stamp" @click="loraExpanded = !loraExpanded">
@@ -515,6 +525,7 @@ const editedCode = ref<string>('') // Editable code (user can modify)
 const iframeKey = ref<number>(0) // Force iframe re-render
 const fullscreenImage = ref<string | null>(null)
 const showSafetyApprovedStamp = ref(false)
+const showTranslatedStamp = ref(false)
 const generationProgress = ref(0)
 const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
 const activeLoras = ref<Array<{name: string, strength: number}>>([])
@@ -1450,6 +1461,7 @@ async function executePipeline() {
   outputCode.value = null  // Clear previous code
   outputMediaType.value = 'image'  // Reset to default media type
   showSafetyApprovedStamp.value = false  // Reset safety stamp
+  showTranslatedStamp.value = false  // Reset translated stamp
   generationProgress.value = 0  // Reset progress
   activeLoras.value = []  // Session 116: Reset LoRAs
   loraExpanded.value = false
@@ -1560,6 +1572,11 @@ async function executePipeline() {
       // Session 116: Extract LoRAs from response
       if (response.data.loras) {
         activeLoras.value = response.data.loras
+      }
+
+      // Show translated badge if Stage 3 actually translated the prompt
+      if (response.data.was_translated) {
+        showTranslatedStamp.value = true
       }
 
       // Get run_id, media_type and index from response
