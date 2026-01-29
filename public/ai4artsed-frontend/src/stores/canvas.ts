@@ -162,13 +162,10 @@ export const useCanvasStore = defineStore('canvas', () => {
     const randomPromptNodes = workflow.value.nodes.filter(n => n.type === 'random_prompt')
     const allRandomPromptConfigured = randomPromptNodes.every(n => n.randomPromptPreset && n.randomPromptModel)
 
-    // Need at least one processing node (interception, translation, generation, or random_prompt)
-    const hasProcessingNode = interceptionNodes.length > 0 ||
-                              translationNodes.length > 0 ||
-                              generationNodes.length > 0 ||
-                              randomPromptNodes.length > 0
+    // Need a source: input OR standalone random_prompt (random_prompt can be a source)
+    const hasSource = hasInput || randomPromptNodes.length > 0
 
-    return hasInput && hasCollector && hasProcessingNode &&
+    return hasSource && hasCollector &&
            allGenerationConfigured && allInterceptionConfigured && allTranslationConfigured &&
            allRandomPromptConfigured
   })
@@ -182,8 +179,12 @@ export const useCanvasStore = defineStore('canvas', () => {
   const validationErrors = computed(() => {
     const errors: string[] = []
 
-    if (!workflow.value.nodes.some(n => n.type === 'input')) {
-      errors.push('Missing input node')
+    const hasInput = workflow.value.nodes.some(n => n.type === 'input')
+    const randomPromptNodes = workflow.value.nodes.filter(n => n.type === 'random_prompt')
+
+    // Need a source: input OR random_prompt
+    if (!hasInput && randomPromptNodes.length === 0) {
+      errors.push('Missing source node (Input or Random Prompt)')
     }
     if (!workflow.value.nodes.some(n => n.type === 'collector')) {
       errors.push('Missing collector node')
@@ -192,12 +193,6 @@ export const useCanvasStore = defineStore('canvas', () => {
     const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
     const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
     const generationNodes = workflow.value.nodes.filter(n => n.type === 'generation')
-    const randomPromptNodes = workflow.value.nodes.filter(n => n.type === 'random_prompt')
-
-    // Need at least one processing node
-    if (interceptionNodes.length === 0 && translationNodes.length === 0 && generationNodes.length === 0 && randomPromptNodes.length === 0) {
-      errors.push('Need at least one processing node (Random Prompt, Interception, Translation, or Generation)')
-    }
 
     generationNodes.forEach(n => {
       if (!n.configId) {
