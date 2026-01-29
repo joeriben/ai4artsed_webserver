@@ -1048,7 +1048,7 @@ def execute_workflow_stream():
                         return {'type': 'text', 'preview': preview}
                     return {'type': 'unknown'}
 
-                def execute_node_sync(node, input_data, data_type, source_node_id=None, source_node_type=None):
+                def execute_node_sync(node, input_data, data_type, source_node_id=None, source_node_type=None, connection_label=None):
                     """Execute a single node synchronously"""
                     node_id = node['id']
                     node_type = node.get('type')
@@ -1264,15 +1264,26 @@ def execute_workflow_stream():
                         if node_id not in comparison_inputs:
                             comparison_inputs[node_id] = []
 
-                        input_num = len(comparison_inputs[node_id]) + 1
+                        # Use connection label (input-1, input-2, input-3) for ordering
+                        # Extract number from label like "input-1" → 1
+                        pipe_num = 0
+                        if connection_label and connection_label.startswith('input-'):
+                            try:
+                                pipe_num = int(connection_label.split('-')[1])
+                            except (ValueError, IndexError):
+                                pipe_num = len(comparison_inputs[node_id]) + 1
+                        else:
+                            pipe_num = len(comparison_inputs[node_id]) + 1
+
                         comparison_inputs[node_id].append({
-                            'label': f'Text {input_num}',
+                            'label': f'Text {pipe_num}',
+                            'pipe_num': pipe_num,  # For sorting
                             'text': input_data or '',
                             'source': source_node_id
                         })
 
                         current_count = len(comparison_inputs[node_id])
-                        logger.info(f"[Canvas Stream] Comparison: {current_count}/{expected_count} inputs")
+                        logger.info(f"[Canvas Stream] Comparison: {current_count}/{expected_count} inputs (pipe {pipe_num})")
 
                         if current_count < expected_count:
                             results[node_id] = {
@@ -1282,8 +1293,8 @@ def execute_workflow_stream():
                             # Signal waiting state via metadata to prevent propagation
                             return None, 'text', {'waiting': True}
 
-                        # All inputs received - run comparison
-                        inputs_list = comparison_inputs[node_id]
+                        # All inputs received - sort by pipe number and run comparison
+                        inputs_list = sorted(comparison_inputs[node_id], key=lambda x: x.get('pipe_num', 0))
                         formatted_inputs = "\n\n".join([
                             f"=== {inp['label']} (Quelle: {inp['source']}) ===\n{inp['text']}"
                             for inp in inputs_list
@@ -1373,7 +1384,8 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
                             'input_data': trace_data,
                             'data_type': output_type,
                             'source_node_id': node_id,
-                            'source_node_type': node_type
+                            'source_node_type': node_type,
+                            'connection_label': conn.get('label')  # For comparison_evaluator ordering
                         })
 
                     return result
@@ -1410,7 +1422,8 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
                         work_item['input_data'],
                         work_item['data_type'],
                         work_item['source_node_id'],
-                        work_item['source_node_type']
+                        work_item['source_node_type'],
+                        work_item.get('connection_label')  # For comparison_evaluator ordering
                     )
 
                     # YIELD node_complete event IMMEDIATELY after execution
