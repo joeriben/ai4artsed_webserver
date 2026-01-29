@@ -1,5 +1,47 @@
 # Development Log
 
+## Session 147 - Documentation Updates: Canvas & Pedagogical Framework
+**Date:** 2026-01-29
+**Focus:** Vollständige Canvas-Dokumentation, pädagogisches Framework, DokumentationModal-Erweiterungen
+**Status:** COMPLETED
+
+### Neue Dokumentation
+
+**ARCHITECTURE PART 26 - Canvas-Workflow-System.md**
+- Vollständige technische Dokumentation des Canvas Workflow Systems
+- Alle 10 Node-Typen (inkl. neu: Comparison Evaluator)
+- Connection Rules, Workflow Execution, Presets
+- **Pedagogical Framework**: Lehrforschung, Dekonstruktion des Kontroll-Paradigmas, Prompt Interception, rekursiv-reflexive Workflows
+- Zielgruppen, Verhältnis zu anderen Views
+
+### DokumentationModal Änderungen
+
+**Tabs neu organisiert:**
+- FAQ-Tab aufgelöst und Inhalte verteilt
+- Neue Reihenfolge: Willkommen, Anleitung, Pädagogik, Workshop, Experimente, Canvas
+
+**Neue Inhalte:**
+- **Canvas-Tab**: Pädagogisches Framework, Node-Typen mit Stage-Farbcodierung
+- **Workshop-Tab**: LLM-Konfiguration (lokal/extern/DSGVO)
+- **Pädagogik-Tab**: Prinzip 2 erweitert um "Prompt Interception"
+- **Willkommen-Tab**: Datenschutz-Info, Kontakt
+
+**Icons:**
+- Canvas-Icon in Navigation: account_tree (korrekter Material Icons Pfad)
+- Select-Icon in Anleitung: apps Icon (48px)
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `docs/ARCHITECTURE PART 26 - Canvas-Workflow-System.md` | NEU - Vollständige Canvas-Dokumentation |
+| `docs/00_MAIN_DOCUMENTATION_INDEX.md` | Part 26 hinzugefügt |
+| `public/.../components/DokumentationModal.vue` | Canvas-Tab, Tab-Reorganisation, Icons |
+| `public/.../src/App.vue` | Canvas-Icon (account_tree) |
+| `public/.../composables/usePageContext.ts` | Träshy x: 2→8 (ungelöst) |
+| `public/.../views/canvas_workflow.vue` | height: 100vh→100% |
+
+---
+
 ## Session 144 - Interception Config Revision: Analog Photography 1970s
 **Date:** 2026-01-28
 **Focus:** Config-Text für detailliertere Objektbeschreibung optimiert

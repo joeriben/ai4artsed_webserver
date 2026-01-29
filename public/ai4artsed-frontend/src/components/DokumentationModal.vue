@@ -42,6 +42,20 @@
                 <p>{{ currentLanguage === 'de'
                   ? 'Ein zentrales Konzept: Das Sprachmodell (LLM) ist hier nicht nur ein Werkzeug, sondern ein Co-Akteur im kreativen Prozess. Es verarbeitet deine Eingabe auf Basis seiner Trainingsdaten und erzeugt etwas Neues. Das ist faszinierend, aber auch nicht unproblematisch – denn wir wissen nicht genau, wie und warum das Modell bestimmte Entscheidungen trifft.'
                   : 'A central concept: The language model (LLM) is not just a tool here, but a co-actor in the creative process. It processes your input based on its training data and generates something new. This is fascinating, but also not unproblematic – because we don\'t know exactly how and why the model makes certain decisions.' }}</p>
+              </section>
+
+              <section class="info-section">
+                <h3>{{ currentLanguage === 'de' ? 'Was passiert mit meinen Eingaben?' : 'What happens to my inputs?' }}</h3>
+                <p>{{ currentLanguage === 'de'
+                  ? 'Generierte Inhalte werden zu Forschungszwecken gespeichert – sie helfen uns, die Plattform zu verbessern. Hochgeladene Bilder werden nicht dauerhaft gespeichert. Es werden keine personenbezogenen Daten erfasst.'
+                  : 'Generated content is saved for research purposes – it helps us improve the platform. Uploaded images are not permanently stored. No personal data is collected.' }}</p>
+              </section>
+
+              <section class="info-section contact-welcome">
+                <h3>{{ currentLanguage === 'de' ? 'Kontakt' : 'Contact' }}</h3>
+                <p>{{ currentLanguage === 'de'
+                  ? 'Frag Träshy direkt in der Anwendung, oder schreibe an: '
+                  : 'Ask Träshy directly in the application, or write to: ' }}<a href="mailto:vanessa.baumann@fau.de">vanessa.baumann@fau.de</a></p>
 
                 <div class="disclaimer">
                   <p>{{ currentLanguage === 'de'
@@ -70,10 +84,13 @@
                 <div class="step-card">
                   <div class="step-header">
                     <span class="step-badge">1</span>
-                    <h3>{{ currentLanguage === 'de' ? 'Startseite: Regeln wählen' : 'Start Page: Choose Rules' }}</h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 0 24 24" width="48" fill="currentColor" class="step-view-icon">
+                      <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
+                    </svg>
+                    <h3>{{ currentLanguage === 'de' ? 'Regeln wählen' : 'Choose Rules' }}</h3>
                   </div>
                   <div class="step-image-display">
-                    <img src="/images/select-view-preview.png" alt="Startseite" class="preview-image" />
+                    <img src="/images/select-view-preview.png" alt="Select View" class="preview-image" />
                   </div>
                   <p>{{ currentLanguage === 'de'
                     ? 'Auf der Eingangsseite siehst du in der Mitte "Du bestimmst!" – das ist der Ausgangspunkt mit einer LEEREN Regel-Box. Alles drum herum sind Anregungen: vorgefertigte Regeln, die du als Inspiration nutzen oder direkt verwenden kannst. Die ausgewählten Regeln werden in alle drei Modi übernommen.'
@@ -239,11 +256,11 @@
                 <div class="principle-card">
                   <div class="principle-header">
                     <span class="principle-number">2</span>
-                    <h3>{{ currentLanguage === 'de' ? 'LLM als Co-Akteur' : 'LLM as Co-Actor' }}</h3>
+                    <h3>{{ currentLanguage === 'de' ? 'Prompt Interception: LLM als Co-Akteur' : 'Prompt Interception: LLM as Co-Actor' }}</h3>
                   </div>
                   <p>{{ currentLanguage === 'de'
-                    ? 'Das Sprachmodell ist kein Werkzeug, das tut was du willst. Es ist ein Co-Akteur, der mitgestaltet. Es interpretiert, wählt aus, ergänzt. Das Ergebnis trägt deine Handschrift UND die des Modells.'
-                    : 'The language model is not a tool that does what you want. It is a co-actor that participates in creation. It interprets, selects, adds. The result bears your signature AND that of the model.' }}</p>
+                    ? 'Konventionelle KI-Interfaces machen Nutzende zu Befehlsgebenden, die zugleich der Maschinenlogik unterworfen sind. Prompt Interception bricht dieses Muster: Das LLM ist kein Werkzeug, das tut was du willst – es ist ein Co-Akteur, der Neues und Unwägbarkeiten in den Prozess einbringt. Es interpretiert, wählt aus, ergänzt. Das Ergebnis trägt deine Handschrift UND die des Modells. Die Maschine dient deinem kreativen Werden – nicht umgekehrt.'
+                    : 'Conventional AI interfaces turn users into commanders who are simultaneously subjected to machine logic. Prompt Interception breaks this pattern: The LLM is not a tool that does what you want – it is a co-actor that introduces novelty and unpredictability into the process. It interprets, selects, adds. The result bears your signature AND that of the model. The machine serves your creative becoming – not vice versa.' }}</p>
                   <div class="tension-box">
                     <span class="tension-label">{{ currentLanguage === 'de' ? 'Spannung:' : 'Tension:' }}</span>
                     {{ currentLanguage === 'de'
@@ -478,6 +495,25 @@
                   </ul>
                 </div>
 
+                <div class="workshop-card safety">
+                  <h3>{{ currentLanguage === 'de' ? 'Sicherheitsstufen' : 'Safety Levels' }}</h3>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Es gibt drei Stufen: Kinder, Jugend und Erwachsene. Sie bestimmen, welche Inhalte generiert werden können. Die Stufe wird von der betreuenden Person in den Einstellungen festgelegt.'
+                    : 'There are three levels: Kids, Youth, and Adults. They determine what content can be generated. The level is set by the supervising person in the settings.' }}</p>
+                </div>
+
+                <div class="workshop-card">
+                  <h3>{{ currentLanguage === 'de' ? 'LLM-Konfiguration' : 'LLM Configuration' }}</h3>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'In den Einstellungen können die verwendeten Sprachmodelle flexibel konfiguriert werden:'
+                    : 'The language models used can be flexibly configured in the settings:' }}</p>
+                  <ul>
+                    <li>{{ currentLanguage === 'de' ? 'Lokale Modelle (Ollama) – volle Datenkontrolle' : 'Local models (Ollama) – full data control' }}</li>
+                    <li>{{ currentLanguage === 'de' ? 'Externe Cloud-Anbieter – mehr Leistung' : 'External cloud providers – more performance' }}</li>
+                    <li>{{ currentLanguage === 'de' ? 'DSGVO-konforme Optionen (Mistral, lokale Modelle)' : 'GDPR-compliant options (Mistral, local models)' }}</li>
+                  </ul>
+                </div>
+
                 <div class="contact-box">
                   <h3>{{ currentLanguage === 'de' ? 'Kontakt' : 'Contact' }}</h3>
                   <p>{{ currentLanguage === 'de'
@@ -494,44 +530,75 @@
               </section>
             </div>
 
-            <!-- FAQ Tab -->
-            <div v-if="activeTab === 'faq'" class="tab-content">
-              <section class="faq-section">
-                <h2>{{ currentLanguage === 'de' ? 'Häufige Fragen' : 'Frequently Asked Questions' }}</h2>
-
-                <div class="faq-item">
-                  <h3 class="faq-question">{{ currentLanguage === 'de' ? 'Wie lange dauert die Bildgenerierung?' : 'How long does image generation take?' }}</h3>
-                  <p class="faq-answer">{{ currentLanguage === 'de'
-                    ? 'Die Dauer hängt vom gewählten Modell und der Komplexität des Prompts ab. In der Regel dauert es zwischen 20 Sekunden und 2 Minuten. Während dieser Zeit kannst du den Fortschritt beobachten.'
-                    : 'The duration depends on the selected model and the complexity of the prompt. Usually it takes between 20 seconds and 2 minutes. During this time you can observe the progress.' }}</p>
+            <!-- Canvas Tab -->
+            <div v-if="activeTab === 'canvas'" class="tab-content">
+              <section class="canvas-section">
+                <div class="canvas-header">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 0 24 24" width="48" fill="currentColor" class="canvas-header-icon">
+                    <path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/>
+                  </svg>
+                  <div>
+                    <h2>{{ currentLanguage === 'de' ? 'Canvas Workflow System' : 'Canvas Workflow System' }}</h2>
+                    <p class="section-intro">{{ currentLanguage === 'de'
+                      ? 'Canvas ist eine visuelle Forschungs-Workbench für die systematische Erkundung generativer KI.'
+                      : 'Canvas is a visual research workbench for systematic exploration of generative AI.' }}</p>
+                  </div>
                 </div>
 
-                <div class="faq-item">
-                  <h3 class="faq-question">{{ currentLanguage === 'de' ? 'Was passiert mit meinen Eingaben?' : 'What happens to my inputs?' }}</h3>
-                  <p class="faq-answer">{{ currentLanguage === 'de'
-                    ? 'Generierte Inhalte werden zu Forschungszwecken gespeichert – sie helfen uns, die Plattform zu verbessern. Hochgeladene Bilder werden nicht dauerhaft gespeichert. Es werden keine personenbezogenen Daten erfasst.'
-                    : 'Generated content is saved for research purposes – it helps us improve the platform. Uploaded images are not permanently stored. No personal data is collected.' }}</p>
-                </div>
-
-                <div class="faq-item">
-                  <h3 class="faq-question">{{ currentLanguage === 'de' ? 'Was sind die Sicherheitsstufen?' : 'What are the safety levels?' }}</h3>
-                  <p class="faq-answer">{{ currentLanguage === 'de'
-                    ? 'Es gibt drei Stufen: Kinder, Jugend und Erwachsene. Sie bestimmen, welche Inhalte generiert werden können. Die Stufe wird von der betreuenden Person eingestellt.'
-                    : 'There are three levels: Kids, Youth, and Adults. They determine what content can be generated. The level is set by the supervising person.' }}</p>
-                </div>
-
-                <div class="faq-item">
-                  <h3 class="faq-question">{{ currentLanguage === 'de' ? 'Kann ich eigene Stile trainieren?' : 'Can I train my own styles?' }}</h3>
-                  <p class="faq-answer">{{ currentLanguage === 'de'
-                    ? 'Ja, im LoRA Training Studio kannst du mit eigenen Beispielbildern einen Stil trainieren, der dann für die Bildgenerierung verfügbar ist.'
-                    : 'Yes, in the LoRA Training Studio you can train a style with your own example images, which then becomes available for image generation.' }}</p>
-                </div>
-
-                <div class="contact-section">
-                  <h3>{{ currentLanguage === 'de' ? 'Noch Fragen?' : 'Still have questions?' }}</h3>
+                <div class="canvas-card paradigm">
+                  <h3>{{ currentLanguage === 'de' ? 'Lehrforschung' : 'Exploratory Research' }}</h3>
                   <p>{{ currentLanguage === 'de'
-                    ? 'Frag Träshy direkt in der Anwendung, oder schreibe an: '
-                    : 'Ask Träshy directly in the application, or write to: ' }}<a href="mailto:vanessa.baumann@fau.de">vanessa.baumann@fau.de</a></p>
+                    ? 'Canvas ist für gemeinsames Erforschen in Workshops, Unterricht oder zur Professionalisierung konzipiert. Anders als technische Systeme wie ComfyUI oder Max/MSP verzichtet Canvas bewusst auf tiefe technische Parametrierung – dafür macht es strukturelle Komplexität sichtbar und erforschbar.'
+                    : 'Canvas is designed for collaborative exploration in workshops, teaching, or professional development. Unlike technical systems like ComfyUI or Max/MSP, Canvas deliberately avoids deep technical parameterization – instead, it makes structural complexity visible and explorable.' }}</p>
+                </div>
+
+                <div class="canvas-card interception">
+                  <h3>{{ currentLanguage === 'de' ? 'Prompt Interception' : 'Prompt Interception' }}</h3>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Konventionelle KI-Interfaces machen Nutzende zu Befehlsgebenden, die zugleich der Maschinenlogik unterworfen sind. Prompt Interception bricht dieses Muster auf: Das LLM bringt Neues und Unwägbarkeiten in den Prozess ein. Nutzende und KI erzeugen gemeinsam neue Feedback-Loops. Die Maschine dient dem kreativen Werden – nicht umgekehrt.'
+                    : 'Conventional AI interfaces turn users into commanders who are simultaneously subjected to machine logic. Prompt Interception breaks this pattern: The LLM introduces novelty and unpredictability into the process. Users and AI create new feedback loops together. The machine serves creative becoming – not vice versa.' }}</p>
+                  <p class="pragmatic-note">{{ currentLanguage === 'de'
+                    ? 'Pragmatisch ermöglicht Interception auch komplexere Prompts – wesentlich für echte KI-Erkundung. Einfache Prompts erzeugen notwendig klischeehafte Outputs. Erst mit angemessen komplexen Prompts lassen sich Biases, aber auch interessante Eigenheiten des Systems systematisch erfahren.'
+                    : 'Pragmatically, Interception also enables more complex prompts – essential for genuine AI exploration. Simple prompts necessarily produce clichéd outputs. Only with appropriately complex prompts can biases, but also interesting system characteristics, be systematically experienced.' }}</p>
+                </div>
+
+                <div class="canvas-card recursive">
+                  <h3>{{ currentLanguage === 'de' ? 'Rekursiv-reflexive Workflows' : 'Recursive-Reflexive Workflows' }}</h3>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Ein Novum, das wir von keiner anderen genAI-Plattform kennen: Evaluation-Nodes können Feedback an andere Nodes zurückgeben. Der Workflow wird rekursiv durchlaufen, bis nutzerdefinierte Kriterien erfüllt sind. So entstehen experimentelle Setups zur Erforschung von:'
+                    : 'A novelty we don\'t know from any other genAI platform: Evaluation nodes can feed back to other nodes. The workflow runs recursively until user-defined criteria are met. This enables experimental setups for researching:' }}</p>
+                  <ul>
+                    <li>{{ currentLanguage === 'de' ? 'Biases in Modellen' : 'Biases in models' }}</li>
+                    <li>{{ currentLanguage === 'de' ? 'Normiertheit vs. "Kreativität"' : 'Normativity vs. "creativity"' }}</li>
+                    <li>{{ currentLanguage === 'de' ? 'Ethische Bewertung von LLM-Outputs' : 'Ethical assessment of LLM outputs' }}</li>
+                    <li>{{ currentLanguage === 'de' ? 'Vergleichende Analysen mit Massenoutput' : 'Comparative analyses with mass output' }}</li>
+                  </ul>
+                </div>
+
+                <div class="canvas-card nodes">
+                  <h3>{{ currentLanguage === 'de' ? 'Verfügbare Node-Typen' : 'Available Node Types' }}</h3>
+                  <div class="node-grid">
+                    <div class="node-item"><span class="node-color" style="background: #3b82f6;"></span><strong>Input</strong> – {{ currentLanguage === 'de' ? 'Texteingabe' : 'Text input' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Interception</strong> – {{ currentLanguage === 'de' ? 'Pädagogische Transformation' : 'Pedagogical transformation' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Random Prompt</strong> – {{ currentLanguage === 'de' ? 'LLM-generierte Inhalte' : 'LLM-generated content' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Translation</strong> – {{ currentLanguage === 'de' ? 'Sprachübersetzung' : 'Language translation' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Model Adaption</strong> – {{ currentLanguage === 'de' ? 'Prompt-Optimierung' : 'Prompt optimization' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #10b981;"></span><strong>Generation</strong> – {{ currentLanguage === 'de' ? 'Medienerzeugung' : 'Media generation' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #f97316;"></span><strong>Evaluation</strong> – {{ currentLanguage === 'de' ? 'LLM-Bewertung mit Verzweigung' : 'LLM evaluation with branching' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #f97316;"></span><strong>Comparison</strong> – {{ currentLanguage === 'de' ? 'Vergleicht mehrere Inputs' : 'Compares multiple inputs' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #06b6d4;"></span><strong>Preview</strong> – {{ currentLanguage === 'de' ? 'Zwischenergebnis-Vorschau' : 'Intermediate result preview' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #06b6d4;"></span><strong>Collector</strong> – {{ currentLanguage === 'de' ? 'Sammelt alle Outputs' : 'Collects all outputs' }}</div>
+                  </div>
+                </div>
+
+                <div class="canvas-card target-groups">
+                  <h3>{{ currentLanguage === 'de' ? 'Zielgruppen' : 'Target Groups' }}</h3>
+                  <ul>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Ältere Kinder (ab 12 J.)' : 'Older children (12+)' }}</strong> – {{ currentLanguage === 'de' ? 'Strukturierte KI-Erkundung in Bildungssettings' : 'Structured AI exploration in educational settings' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Pädagog:innen' : 'Educators' }}</strong> – {{ currentLanguage === 'de' ? 'Professionalisierung durch Verständnis von genAI' : 'Professional development through understanding genAI' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Forschende' : 'Researchers' }}</strong> – {{ currentLanguage === 'de' ? 'Systematische Untersuchung von Modellverhalten' : 'Systematic investigation of model behavior' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Kulturelle Bildung' : 'Cultural education' }}</strong> – {{ currentLanguage === 'de' ? 'Workshop-Settings für kritische KI-Literacy' : 'Workshop settings for critical AI literacy' }}</li>
+                  </ul>
                 </div>
 
                 <div class="disclaimer">
@@ -541,6 +608,7 @@
                 </div>
               </section>
             </div>
+
           </div>
 
         </div>
@@ -570,9 +638,9 @@ const tabs = [
   { id: 'welcome', labelDe: 'Willkommen', labelEn: 'Welcome' },
   { id: 'start', labelDe: 'Anleitung', labelEn: 'Guide' },
   { id: 'pedagogy', labelDe: 'Pädagogik', labelEn: 'Pedagogy' },
-  { id: 'experiments', labelDe: 'Experimente', labelEn: 'Experiments' },
   { id: 'workshop', labelDe: 'Workshop', labelEn: 'Workshop' },
-  { id: 'faq', labelDe: 'Fragen', labelEn: 'FAQ' }
+  { id: 'experiments', labelDe: 'Experimente', labelEn: 'Experiments' },
+  { id: 'canvas', labelDe: 'Canvas', labelEn: 'Canvas' }
 ]
 
 function closeModal() {
@@ -770,6 +838,13 @@ onUnmounted(() => {
   margin-bottom: 0.75rem;
 }
 
+
+.step-view-icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .step-badge {
   width: 28px;
   height: 28px;
@@ -909,57 +984,13 @@ onUnmounted(() => {
   font-size: 1rem;
 }
 
-/* FAQ Section */
-.faq-section h2 {
-  margin-bottom: 1.25rem;
-}
-
-.faq-item {
-  padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  margin-bottom: 0.75rem;
-}
-
-.faq-question {
-  margin: 0 0 0.5rem 0;
-  color: #4CAF50;
-  font-size: 0.95rem;
-}
-
-.faq-answer {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.6;
-  font-size: 0.95rem;
-}
-
-.contact-section {
-  margin-top: 1.5rem;
-  padding: 1.25rem;
-  background: rgba(76, 175, 80, 0.1);
-  border-radius: 10px;
-  text-align: center;
-}
-
-.contact-section h3 {
-  margin: 0 0 0.5rem 0;
-  color: #ffffff;
-  font-size: 1rem;
-}
-
-.contact-section p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.contact-section a {
+/* Contact in Welcome */
+.contact-welcome a {
   color: #4CAF50;
   text-decoration: none;
 }
 
-.contact-section a:hover {
+.contact-welcome a:hover {
   text-decoration: underline;
 }
 
@@ -1113,6 +1144,120 @@ onUnmounted(() => {
 .workshop-card li {
   margin-bottom: 0.5rem;
   line-height: 1.5;
+}
+
+/* Canvas Tab */
+.canvas-section {
+  padding: 0.5rem;
+}
+
+.canvas-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.canvas-header-icon {
+  flex-shrink: 0;
+  color: #10b981;
+  opacity: 0.9;
+}
+
+.canvas-header h2 {
+  margin: 0 0 0.5rem 0;
+}
+
+.canvas-header .section-intro {
+  margin: 0;
+}
+
+.canvas-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.canvas-card.paradigm {
+  border-left: 3px solid #3b82f6;
+}
+
+.canvas-card.interception {
+  border-left: 3px solid #8b5cf6;
+}
+
+.canvas-card.recursive {
+  border-left: 3px solid #f59e0b;
+}
+
+.canvas-card.nodes {
+  border-left: 3px solid #10b981;
+}
+
+.canvas-card.target-groups {
+  border-left: 3px solid #06b6d4;
+}
+
+.canvas-card h3 {
+  margin: 0 0 1rem 0;
+  color: #ffffff;
+  font-size: 1.1rem;
+}
+
+.canvas-card p {
+  margin: 0 0 0.75rem 0;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+}
+
+.canvas-card p:last-child {
+  margin-bottom: 0;
+}
+
+.canvas-card .pragmatic-note {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+.canvas-card ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.25rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.canvas-card li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.node-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.node-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.node-item strong {
+  color: #ffffff;
 }
 
 .question-list li {

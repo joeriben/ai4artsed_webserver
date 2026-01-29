@@ -61,7 +61,8 @@
 | 22 | Legacy Workflow Architecture | SwarmUI workflow routing |
 | 23 | LoRA Training Studio | Custom style training |
 | 24 | SwarmUI Integration | Auto-recovery & health checks |
-| **25** | **Watermarking & Content Credentials** | AI provenance tracking (NEW) |
+| 25 | Watermarking & Content Credentials | AI provenance tracking |
+| **26** | **Canvas Workflow System** | Visual node-based workflow builder (NEW) |
 
 ---
 

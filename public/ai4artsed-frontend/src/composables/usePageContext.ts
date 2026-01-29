@@ -51,9 +51,9 @@ export interface FocusHint {
   anchor: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 }
 
-/** Default position: bottom-left corner */
+/** Default position: bottom-left corner, inside viewport */
 export const DEFAULT_FOCUS_HINT: FocusHint = {
-  x: 2,
+  x: 8,
   y: 95,
   anchor: 'bottom-left'
 }

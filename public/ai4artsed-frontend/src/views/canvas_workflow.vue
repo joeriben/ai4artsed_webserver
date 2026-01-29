@@ -5,7 +5,7 @@ import { useCanvasStore } from '@/stores/canvas'
 import CanvasWorkspace from '@/components/canvas/CanvasWorkspace.vue'
 import ModulePalette from '@/components/canvas/ModulePalette.vue'
 import ConfigSelectorModal from '@/components/canvas/ConfigSelectorModal.vue'
-import type { StageType, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset } from '@/types/canvas'
+import type { StageType, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset, InterceptionPreset } from '@/types/canvas'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
@@ -144,6 +144,23 @@ function handleUpdateNodeModelAdaptionPreset(nodeId: string, preset: string) {
   canvasStore.updateNode(nodeId, { modelAdaptionPreset: preset as ModelAdaptionPreset })
 }
 
+// Session 146: Interception Preset handler
+function handleUpdateNodeInterceptionPreset(nodeId: string, preset: string, context: string) {
+  canvasStore.updateNode(nodeId, {
+    interceptionPreset: preset as InterceptionPreset,
+    contextPrompt: context
+  })
+}
+
+// Session 147: Comparison Evaluator handlers
+function handleUpdateNodeComparisonLlm(nodeId: string, model: string) {
+  canvasStore.updateNode(nodeId, { comparisonLlmModel: model })
+}
+
+function handleUpdateNodeComparisonCriteria(nodeId: string, criteria: string) {
+  canvasStore.updateNode(nodeId, { comparisonCriteria: criteria })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -254,9 +271,9 @@ onUnmounted(() => {
           class="toolbar-btn"
           :class="{ active: showPalette }"
           @click="showPalette = !showPalette"
-          :title="locale === 'de' ? 'Palette ein/aus' : 'Toggle palette'"
+          :title="locale === 'de' ? 'Sidebar ein/aus' : 'Toggle sidebar'"
         >
-          📦
+          <img src="@/assets/icons/thumbnail_bar_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.png" alt="" class="toolbar-icon" />
         </button>
 
         <!-- Workflow name -->
@@ -291,6 +308,16 @@ onUnmounted(() => {
       </div>
 
       <div class="toolbar-right">
+        <!-- DSGVO Warning Badge -->
+        <span
+          class="dsgvo-badge"
+          :title="locale === 'de'
+            ? 'Canvas-Workflows können externe LLM-APIs nutzen. Die DSGVO-Konformität liegt in der Verantwortung der Nutzer:innen.'
+            : 'Canvas workflows may use external LLM APIs. GDPR compliance is the responsibility of the user.'"
+        >
+          <s>DS-GVO</s>
+        </span>
+
         <!-- New workflow -->
         <button
           class="toolbar-btn"
@@ -380,6 +407,12 @@ onUnmounted(() => {
           @update-node-random-prompt-model="handleUpdateNodeRandomPromptModel"
           @update-node-random-prompt-film-type="handleUpdateNodeRandomPromptFilmType"
           @update-node-model-adaption-preset="handleUpdateNodeModelAdaptionPreset"
+          @update-node-interception-preset="handleUpdateNodeInterceptionPreset"
+          @update-node-comparison-llm="handleUpdateNodeComparisonLlm"
+          @update-node-comparison-criteria="handleUpdateNodeComparisonCriteria"
+          @end-connect-input-1="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-1')"
+          @end-connect-input-2="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-2')"
+          @end-connect-input-3="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-3')"
         />
       </div>
     </div>
@@ -428,7 +461,7 @@ onUnmounted(() => {
 .canvas-workflow-view {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background: #0f172a;
   color: #e2e8f0;
 }
@@ -493,6 +526,31 @@ onUnmounted(() => {
 
 .toolbar-btn.primary:hover:not(:disabled) {
   background: #2563eb;
+}
+
+.dsgvo-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #f87171;
+  cursor: help;
+  letter-spacing: 0.025em;
+}
+
+.dsgvo-badge:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.toolbar-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.9;
 }
 
 .workflow-name {
