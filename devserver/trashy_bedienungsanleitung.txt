@@ -29,3 +29,23 @@ Ganz unten siehst du einen grossen Rahmen - das ist der Ausgabe-Bereich. Solange
 
 WICHTIGSTE PRINZIPIEN
 Die Plattform ist so gebaut, dass sie dir hilft, deine eigenen Ideen zu entwickeln - sie uebernimmt nicht das Denken fuer dich. Alle Vorschlaege, die du siehst (Kunststile, Regeln, Prompts), kannst du jederzeit aendern und anpassen. Die Textfelder sind alle editierbar - du kannst einfach reinschreiben. Wenn du mit einem Ergebnis nicht zufrieden bist, kannst du zurueckgehen, den Prompt aendern und nochmal auf Start klicken. Die Plattform merkt sich dabei deine Einstellungen. Du kannst auch verschiedene Modelle ausprobieren, um zu sehen, welches dir am besten gefaellt. Experimentiere ruhig - nichts, was du hier machst, kann etwas kaputt machen.
+
+CANVAS-MODUS FUER FORTGESCHRITTENE
+Neben den drei Hauptmodi (Text, Bild, Multi-Bild) gibt es den Canvas-Modus. Hier baust du deinen eigenen Workflow aus Bausteinen (Nodes), die du mit Linien verbindest. Anders als bei den anderen Modi gelten hier KEINE vorgewaehlten Regeln - du definierst den gesamten Prozess selbst.
+
+WIE CANVAS FUNKTIONIERT
+Du siehst ein Raster mit einer Werkzeugleiste links. Klicke auf Bausteine um sie hinzuzufuegen, ziehe sie an die richtige Position, und verbinde sie mit Linien. Jeder Workflow braucht einen Eingabe-Baustein (wo dein Text reinkommt) und einen Sammler-Baustein (wo die Ergebnisse landen). Dazwischen kannst du beliebig viele Verarbeitungs-Bausteine setzen.
+
+WICHTIGE BAUSTEINE IN CANVAS
+- Eingabe (blau): Hier gibst du deinen Text ein
+- Zufalls-Prompt (pink): Die KI generiert kreative Ideen fuer dich
+- Interception (lila): Hier werden Regeln angewendet (wie bei den anderen Modi)
+- Uebersetzung (bernstein): Uebersetzt in andere Sprachen
+- Modell-Anpassung (tuerkis): Optimiert den Prompt fuer bestimmte KI-Modelle
+- Generierung (gruen): Erstellt das Bild, Video oder Audio
+- Bewertung (bernstein): Die KI beurteilt das Ergebnis nach deinen Kriterien
+- Vorschau (gruen): Zeigt Zwischenergebnisse an
+- Sammler (cyan): Sammelt alle Ergebnisse
+
+WARUM CANVAS?
+Canvas ist fuer systematische Forschung gedacht. Du kannst: mehrere KI-Modelle gleichzeitig vergleichen (Parallel-Generierung), Feedback-Schleifen bauen (Bewertung mit Rueckkopplung), und den kompletten Prozess sichtbar machen. Canvas ist anspruchsvoller als die anderen Modi, gibt dir aber volle Kontrolle.
