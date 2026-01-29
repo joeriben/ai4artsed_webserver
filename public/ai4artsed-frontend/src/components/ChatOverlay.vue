@@ -113,36 +113,56 @@ const draftContextString = computed(() => {
 
 // Chat window dimensions
 const CHAT_HEIGHT = 520
+const CHAT_WIDTH = 380
 const CHAT_MIN_MARGIN = 10 // Minimum margin from viewport edges
+const ICON_SIZE = 100 // Maximum icon size (clamp max)
 
 // Dynamic positioning based on focusHint
-// When expanded, clamp position to keep chat within viewport
+// Clamp position to keep Träshy FULLY within viewport (never outside, not even partially)
 const overlayPositionStyle = computed(() => {
   const hint = pageContextStore.currentFocusHint
   const style: Record<string, string> = {}
-
-  // Position from right side using percentage (hint.x = 95 → right: 5%)
-  style.right = `${100 - hint.x}%`
-  style.left = 'auto'
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
 
   if (isExpanded.value) {
-    // Calculate clamped Y position to keep chat within viewport
-    const viewportHeight = window.innerHeight
-    const chatHeight = Math.min(CHAT_HEIGHT, viewportHeight - 120) // matches max-height in CSS
+    // EXPANDED: Chat window positioning
+    const chatHeight = Math.min(CHAT_HEIGHT, viewportHeight - 120)
 
-    // Convert hint.y (percentage) to pixels
+    // Horizontal: Convert hint.x to pixels and clamp
+    const requestedRight = ((100 - hint.x) / 100) * viewportWidth
+    const minRight = CHAT_MIN_MARGIN
+    const maxRight = viewportWidth - CHAT_WIDTH - CHAT_MIN_MARGIN
+    const clampedRight = Math.max(minRight, Math.min(maxRight, requestedRight))
+    style.right = `${clampedRight}px`
+    style.left = 'auto'
+
+    // Vertical: Convert hint.y to pixels and clamp
     const requestedTop = (hint.y / 100) * viewportHeight
-
-    // Clamp: don't go above viewport, don't extend below viewport
     const minTop = CHAT_MIN_MARGIN
     const maxTop = viewportHeight - chatHeight - CHAT_MIN_MARGIN
     const clampedTop = Math.max(minTop, Math.min(maxTop, requestedTop))
-
     style.top = `${clampedTop}px`
     style.bottom = 'auto'
   } else {
-    // When collapsed (icon): use BOTTOM positioning
-    style.bottom = `${100 - hint.y}%`
+    // COLLAPSED: Icon positioning - MUST stay fully inside viewport
+    // Convert hint percentages to pixel positions
+    const requestedRight = ((100 - hint.x) / 100) * viewportWidth
+    const requestedBottom = ((100 - hint.y) / 100) * viewportHeight
+
+    // Clamp horizontal: icon must not extend past left or right edge
+    const minRight = CHAT_MIN_MARGIN // Don't go past right edge
+    const maxRight = viewportWidth - ICON_SIZE - CHAT_MIN_MARGIN // Don't go past left edge
+    const clampedRight = Math.max(minRight, Math.min(maxRight, requestedRight))
+
+    // Clamp vertical: icon must not extend past top or bottom edge
+    const minBottom = CHAT_MIN_MARGIN // Don't go past bottom edge
+    const maxBottom = viewportHeight - ICON_SIZE - CHAT_MIN_MARGIN // Don't go past top edge
+    const clampedBottom = Math.max(minBottom, Math.min(maxBottom, requestedBottom))
+
+    style.right = `${clampedRight}px`
+    style.left = 'auto'
+    style.bottom = `${clampedBottom}px`
     style.top = 'auto'
   }
 

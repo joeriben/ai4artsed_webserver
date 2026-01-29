@@ -4,22 +4,20 @@
 
 ---
 
-## 🟡 BUG: Träshy Ruheposition außerhalb Viewport
+## ✅ GELÖST: Träshy Ruheposition außerhalb Viewport
 
-**Status:** 📋 **UNGELÖST** - Session 147 Versuch fehlgeschlagen
+**Status:** ✅ **GELÖST** - Session 147
 **Datum:** 2026-01-29
-**Priority:** MEDIUM (UX)
 
-### Problem
-Träshy (ChatOverlay) sitzt in seiner Ruheposition (collapsed state) halb außerhalb des Browserfensters auf der linken Seite.
+### Problem (gelöst)
+Träshy (ChatOverlay) saß in seiner Ruheposition (collapsed state) halb außerhalb des Browserfensters.
 
-### Versuchte Lösung (fehlgeschlagen)
-`usePageContext.ts`: DEFAULT_FOCUS_HINT.x von 2 auf 8 geändert → Problem besteht weiterhin.
-
-### Analyse benötigt
-- Positionierungslogik in `ChatOverlay.vue` prüfen (Zeile 120-150)
-- `right: ${100 - hint.x}%` Berechnung überprüfen
-- Eventuell Icon-Größe (`clamp(75px, 10vw, 100px)`) berücksichtigen
+### Lösung
+`ChatOverlay.vue`: Positionierungslogik komplett überarbeitet:
+- Prozentuale Positionierung durch Pixel-basierte Positionierung mit Clamping ersetzt
+- Icon-Größe (100px max) wird jetzt berücksichtigt
+- Sowohl collapsed als auch expanded State werden innerhalb des Viewports gehalten
+- `minRight/maxRight` und `minBottom/maxBottom` Grenzen eingeführt
 
 ---
 
