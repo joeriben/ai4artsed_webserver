@@ -84,14 +84,10 @@ const nodeLabel = computed(() => {
 })
 
 const canDelete = computed(() => !props.node.locked)
-const hasInputConnector = computed(() => {
-  const def = nodeTypeDef.value
-  return def && def.acceptsFrom.length > 0
-})
-const hasOutputConnector = computed(() => {
-  const def = nodeTypeDef.value
-  return def && def.outputsTo.length > 0
-})
+// Source nodes (input) have no input connector
+const hasInputConnector = computed(() => props.node.type !== 'input')
+// Terminal nodes (collector, display) have no output connector
+const hasOutputConnector = computed(() => !['collector', 'display'].includes(props.node.type))
 
 // Node type checks
 const isInput = computed(() => props.node.type === 'input')

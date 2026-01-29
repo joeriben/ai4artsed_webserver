@@ -66,10 +66,6 @@ export interface NodeTypeDefinition {
   allowMultiple: boolean
   /** Whether this node is mandatory in workflows */
   mandatory: boolean
-  /** Allowed input connection types */
-  acceptsFrom: StageType[]
-  /** Allowed output connection types */
-  outputsTo: StageType[]
 }
 
 /**
@@ -94,9 +90,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     color: '#3b82f6', // blue
     icon: 'edit_square_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
-    mandatory: true,
-    acceptsFrom: [],
-    outputsTo: ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'display'] // Can connect to processing, generation, evaluation, or display
+    mandatory: true
   },
   // Session 140: Random Prompt Node with presets
   {
@@ -110,9 +104,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     color: '#ec4899', // pink
     icon: 'shuffle_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'interception', 'evaluation'], // Optional context
-    outputsTo: ['interception', 'translation', 'generation', 'evaluation', 'display', 'collector']
+    mandatory: false
   },
   {
     id: 'interception',
@@ -125,9 +117,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     color: '#8b5cf6', // purple
     icon: 'cognition_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'random_prompt', 'interception', 'evaluation'],
-    outputsTo: ['interception', 'translation', 'generation', 'evaluation', 'display', 'collector']
+    mandatory: false
   },
   {
     id: 'translation',
@@ -140,9 +130,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     color: '#f59e0b', // amber
     icon: 'language_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'random_prompt', 'interception', 'evaluation'],
-    outputsTo: ['generation', 'evaluation', 'display', 'collector']
+    mandatory: false
   },
   {
     id: 'generation',
@@ -155,9 +143,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     color: '#10b981', // emerald
     icon: 'brush_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
-    mandatory: true,
-    acceptsFrom: ['input', 'random_prompt', 'interception', 'translation', 'evaluation'],
-    outputsTo: ['evaluation', 'display', 'collector']
+    mandatory: true
   },
   {
     id: 'collector',
@@ -170,9 +156,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     color: '#06b6d4', // cyan
     icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
-    mandatory: true,
-    acceptsFrom: ['generation', 'random_prompt', 'interception', 'translation', 'display', 'evaluation'],
-    outputsTo: []
+    mandatory: true
   },
   // Session 134 Refactored: Unified Evaluation Node (replaces 5 eval nodes + 2 fork nodes)
   {
@@ -186,9 +170,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     color: '#f59e0b', // amber
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'display', 'evaluation'],
-    outputsTo: ['interception', 'translation', 'generation', 'display', 'evaluation', 'collector']
+    mandatory: false
   },
   // Session 135: Display Node (Terminal - no output)
   {
@@ -202,9 +184,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     color: '#10b981', // green
     icon: 'info_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
-    mandatory: false,
-    acceptsFrom: ['input', 'interception', 'translation', 'generation', 'evaluation', 'display'],
-    outputsTo: []  // TERMINAL: No output connector (tap/observer pattern)
+    mandatory: false
   }
 ]
 
@@ -425,12 +405,27 @@ export function getNodeTypeDefinition(type: StageType): NodeTypeDefinition | und
 
 /**
  * Check if a connection is valid between two node types
+ *
+ * Simplified validation - only structural constraints:
+ * 1. Terminal nodes (collector, display) have no output
+ * 2. Source nodes (input) have no input
+ * 3. No self-loops
+ *
+ * Data type compatibility (text vs image) is checked at runtime by the backend.
  */
 export function isValidConnection(sourceType: StageType, targetType: StageType): boolean {
-  const sourceDef = getNodeTypeDefinition(sourceType)
-  const targetDef = getNodeTypeDefinition(targetType)
-  if (!sourceDef || !targetDef) return false
-  return sourceDef.outputsTo.includes(targetType) && targetDef.acceptsFrom.includes(sourceType)
+  // Terminal nodes have no output connector
+  const terminalNodes: StageType[] = ['collector', 'display']
+  if (terminalNodes.includes(sourceType)) return false
+
+  // Source nodes have no input connector
+  const sourceNodes: StageType[] = ['input']
+  if (sourceNodes.includes(targetType)) return false
+
+  // No self-loops (same node type connecting to itself is allowed, just not same instance)
+  // This is handled elsewhere - same type is fine
+
+  return true
 }
 
 /**
