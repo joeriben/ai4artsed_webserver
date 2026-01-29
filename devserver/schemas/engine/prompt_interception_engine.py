@@ -143,9 +143,19 @@ class PromptInterceptionEngine:
             self.openrouter_models = self.model_selector.get_openrouter_models()
             self.ollama_models = self.model_selector.get_ollama_models()
 
-            # Route based on provider prefix
-            if request.model.startswith("bedrock/"):
+            # Route based on provider prefix (explicit routing)
+            # Canvas and other components select specific providers via prefix
+            if request.model.startswith("local/") or real_model_name in self.ollama_models:
+                output_text, model_used = await self._call_ollama(
+                    full_prompt, real_model_name, request.debug, request.unload_model
+                )
+            elif request.model.startswith("bedrock/"):
                 output_text, model_used = await self._call_aws_bedrock(
+                    full_prompt, real_model_name, request.debug
+                )
+            elif request.model.startswith("openrouter/"):
+                # OpenRouter can route any model (anthropic/, mistral/, etc.)
+                output_text, model_used = await self._call_openrouter(
                     full_prompt, real_model_name, request.debug
                 )
             elif request.model.startswith("anthropic/"):
@@ -160,13 +170,9 @@ class PromptInterceptionEngine:
                 output_text, model_used = await self._call_mistral(
                     full_prompt, real_model_name, request.debug
                 )
-            elif request.model.startswith("openrouter/") or real_model_name in self.openrouter_models:
+            elif real_model_name in self.openrouter_models:
                 output_text, model_used = await self._call_openrouter(
                     full_prompt, real_model_name, request.debug
-                )
-            elif request.model.startswith("local/") or real_model_name in self.ollama_models:
-                output_text, model_used = await self._call_ollama(
-                    full_prompt, real_model_name, request.debug, request.unload_model
                 )
             else:
                 return PromptInterceptionResponse(

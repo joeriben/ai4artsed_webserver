@@ -123,6 +123,42 @@ VRAMManager:
 
 ---
 
+## 🔀 MODEL-ROUTING: Prefix-basierte Provider-Auswahl (2026-01-29)
+
+**Status:** ✅ DECIDED & IMPLEMENTED
+**Session:** 147
+
+### Decision
+
+**Prefix-basierte Model-Routing bleibt erhalten für maximale Flexibilität.**
+
+Das Model-Prefix bestimmt explizit den Provider:
+- `local/model-name` → Ollama (lokales LLM)
+- `openrouter/provider/model` → OpenRouter API
+- `anthropic/model` → Anthropic API direkt
+- `mistral/model` → Mistral API direkt
+- `bedrock/model` → AWS Bedrock
+
+### Reasoning
+
+1. **Canvas braucht explizite Auswahl:** User wählt gezielt Provider + Model
+2. **Flexibilität:** Gleiche Models über verschiedene Provider verfügbar
+3. **Transparenz:** Prefix macht den API-Endpunkt sichtbar
+4. **Fallback-fähig:** Prefix kann zu OpenRouter führen wenn direkter Provider nicht verfügbar
+
+### Implementation
+
+Canvas zeigt für Anthropic-Models beide Optionen:
+- "Claude Opus 4.5 (OpenRouter)" → `openrouter/anthropic/claude-opus-4.5`
+- "Claude Opus 4.5 (Anthropic)" → `anthropic/claude-opus-4.5`
+
+### Affected Files
+
+- `devserver/schemas/engine/prompt_interception_engine.py:146-175` - Routing-Logik
+- `devserver/my_app/routes/canvas_routes.py:32-43` - CURATED_TOP_MODELS Liste
+
+---
+
 ## 🌍 ANTI-ORIENTALISM & EPISTEMIC JUSTICE: Cultural-Aware AI (2026-01-26)
 
 **Status:** ✅ DECIDED & IMPLEMENTED

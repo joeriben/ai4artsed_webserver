@@ -30,10 +30,14 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 CURATED_TOP_MODELS = [
-    # Anthropic Claude 4.5 Series (OpenRouter paths)
-    {'id': 'anthropic/claude-opus-4.5', 'name': 'Claude Opus 4.5', 'provider': 'anthropic', 'dsgvo': False},
-    {'id': 'anthropic/claude-sonnet-4.5', 'name': 'Claude Sonnet 4.5', 'provider': 'anthropic', 'dsgvo': False},
-    {'id': 'anthropic/claude-haiku-4.5', 'name': 'Claude Haiku 4.5', 'provider': 'anthropic', 'dsgvo': False},
+    # Anthropic Claude 4.5 Series - via OpenRouter (requires openrouter.key)
+    {'id': 'openrouter/anthropic/claude-opus-4.5', 'name': 'Claude Opus 4.5 (OpenRouter)', 'provider': 'openrouter', 'dsgvo': False},
+    {'id': 'openrouter/anthropic/claude-sonnet-4.5', 'name': 'Claude Sonnet 4.5 (OpenRouter)', 'provider': 'openrouter', 'dsgvo': False},
+    {'id': 'openrouter/anthropic/claude-haiku-4.5', 'name': 'Claude Haiku 4.5 (OpenRouter)', 'provider': 'openrouter', 'dsgvo': False},
+    # Anthropic Claude 4.5 Series - direct API (requires anthropic.key)
+    {'id': 'anthropic/claude-opus-4.5', 'name': 'Claude Opus 4.5 (Anthropic)', 'provider': 'anthropic', 'dsgvo': False},
+    {'id': 'anthropic/claude-sonnet-4.5', 'name': 'Claude Sonnet 4.5 (Anthropic)', 'provider': 'anthropic', 'dsgvo': False},
+    {'id': 'anthropic/claude-haiku-4.5', 'name': 'Claude Haiku 4.5 (Anthropic)', 'provider': 'anthropic', 'dsgvo': False},
     # Google
     {'id': 'google/gemini-3-pro', 'name': 'Gemini 3 Pro', 'provider': 'google', 'dsgvo': False},
     # Mistral (DSGVO-compliant - EU-based)
