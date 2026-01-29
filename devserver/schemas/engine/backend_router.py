@@ -31,11 +31,17 @@ def _resolve_media_url_to_path(url_or_path: str) -> str:
     """
     Resolve media URL to filesystem path.
 
-    If input is a URL like /api/media/image/<run_id>, resolves to actual file path.
-    Otherwise returns the input unchanged.
+    Handles both URL formats:
+    - /api/media/image/<run_id>
+    - /api/media/image/<run_id>/<index>
+
+    Resolves to actual file path. Otherwise returns the input unchanged.
     """
     if url_or_path.startswith('/api/media/image/'):
-        run_id = url_or_path.replace('/api/media/image/', '')
+        path_part = url_or_path.replace('/api/media/image/', '')
+        # Handle both /run_id and /run_id/index formats
+        parts = path_part.split('/')
+        run_id = parts[0]
         try:
             recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
             if recorder:
