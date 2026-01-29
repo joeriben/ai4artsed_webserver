@@ -1,5 +1,45 @@
 # Development Log
 
+## Session 148 - "Translated" Badge für Stage 3
+**Date:** 2026-01-29
+**Focus:** Badge-Anzeige wenn Prompt tatsächlich übersetzt wurde (DE→EN)
+**Status:** COMPLETED
+
+### Feature
+Neues "Translated" Badge (🇬🇧) neben dem Safety-Approved Badge. Erscheint **nur** wenn Stage 3 den Prompt tatsächlich übersetzt hat (deutsch → englisch). Bei englischem Input erscheint kein Badge.
+
+### Implementierung
+
+**Backend (`schema_pipeline_routes.py`):**
+1. `was_translated` Flag in `execute_generation_stage4()` gesetzt (~Zeile 2622)
+   - Vergleicht `translated_prompt != prompt` (bereits existierender Check)
+   - Flag wird zum `stage4_result` hinzugefügt
+2. `/generation` endpoint Response erweitert um `was_translated: bool`
+
+**Frontend CSS (`text_transformation.css`):**
+- `.translated-stamp` Klasse mit Teal-Farbschema (#009688)
+- Identisches Design wie Safety-Approved Badge (nur andere Farbe)
+
+**Frontend Vue (`text_transformation.vue`):**
+1. State: `showTranslatedStamp` ref
+2. Template: Badge HTML neben Safety-Approved
+3. Reset: Bei neuer Generation zurückgesetzt
+4. Response-Handling: Badge angezeigt wenn `response.data.was_translated === true`
+
+### Design-Entscheidungen
+- **Icon**: 🇬🇧 (Britische Flagge) - international neutraler als US-Flagge, klarer als Globe
+- **Farbe**: Teal (#009688) - unterscheidet sich von Grün (Safety), Lila (LoRA), Blau (Wikipedia)
+- **Trigger**: Backend-gesteuert, nur bei tatsächlicher Übersetzung
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `devserver/my_app/routes/schema_pipeline_routes.py` | `was_translated` Flag tracking + Response |
+| `public/.../views/text_transformation.vue` | Badge Template + State + Response-Handling |
+| `public/.../views/text_transformation.css` | `.translated-stamp` Styling |
+
+---
+
 ## Session 147 - Documentation Updates: Canvas & Pedagogical Framework
 **Date:** 2026-01-29
 **Focus:** Vollständige Canvas-Dokumentation, pädagogisches Framework, DokumentationModal-Erweiterungen
