@@ -384,6 +384,7 @@ const nodeHeight = computed(() => {
       <span v-else class="module-icon">{{ nodeIcon }}</span>
       <span class="module-label">{{ nodeLabel }}</span>
       <button
+        v-if="node.type !== 'collector'"
         class="delete-btn"
         @click.stop="emit('delete')"
         :title="locale === 'de' ? 'Löschen' : 'Delete'"

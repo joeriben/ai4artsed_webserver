@@ -282,6 +282,10 @@ export const useCanvasStore = defineStore('canvas', () => {
    * Delete a node
    */
   function deleteNode(nodeId: string) {
+    // Collector cannot be deleted
+    const node = workflow.value.nodes.find(n => n.id === nodeId)
+    if (node?.type === 'collector') return
+
     // Remove all connections to/from this node
     workflow.value.connections = workflow.value.connections.filter(
       c => c.sourceId !== nodeId && c.targetId !== nodeId
