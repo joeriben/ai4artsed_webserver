@@ -101,11 +101,11 @@
                 <div class="step-card">
                   <div class="step-header">
                     <span class="step-badge">2</span>
-                    <h3>{{ currentLanguage === 'de' ? 'Drei Modi zur Auswahl' : 'Three Modes to Choose From' }}</h3>
+                    <h3>{{ currentLanguage === 'de' ? 'Vier Modi zur Auswahl' : 'Four Modes to Choose From' }}</h3>
                   </div>
                   <p>{{ currentLanguage === 'de'
-                    ? 'In allen drei Modi gelten die gewählten Regeln. Der Unterschied liegt darin, WAS du eingibst:'
-                    : 'In all three modes, the selected rules apply. The difference is WHAT you input:' }}</p>
+                    ? 'In den ersten drei Modi gelten die gewählten Regeln. Der Unterschied liegt darin, WAS du eingibst:'
+                    : 'In the first three modes, the selected rules apply. The difference is WHAT you input:' }}</p>
 
                   <div class="mode-list">
                     <div class="mode-item">
@@ -140,6 +140,17 @@
                       <p>{{ currentLanguage === 'de'
                         ? 'Du lädst bis zu DREI Bilder hoch, die zusammen den Prompt ersetzen. Du beschreibst, wie sie kombiniert werden sollen.'
                         : 'You upload up to THREE images that together replace the prompt. You describe how they should be combined.' }}</p>
+                    </div>
+                    <div class="mode-item">
+                      <div class="mode-item-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" width="20" fill="currentColor" class="mode-icon">
+                          <path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/>
+                        </svg>
+                        <strong>{{ currentLanguage === 'de' ? 'Canvas-Modus' : 'Canvas Mode' }}</strong>
+                      </div>
+                      <p>{{ currentLanguage === 'de'
+                        ? 'Du baust einen visuellen Workflow aus Nodes. Hier gelten keine vorgewählten Regeln – du definierst den gesamten Prozess selbst, von der Eingabe über Transformationen bis zur Ausgabe.'
+                        : 'You build a visual workflow from nodes. No pre-selected rules apply here – you define the entire process yourself, from input through transformations to output.' }}</p>
                     </div>
                   </div>
                 </div>
