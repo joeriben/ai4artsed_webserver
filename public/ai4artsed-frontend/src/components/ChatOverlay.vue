@@ -1,11 +1,14 @@
 <template>
   <div class="chat-overlay" :style="overlayPositionStyle">
-    <!-- Collapsed State: Floating Icon Button -->
+    <!-- Collapsed State: Floating Icon Button (Draggable) -->
     <button
       v-if="!isExpanded"
       class="chat-toggle-icon"
-      @click="expand"
-      title="KI-Helfer öffnen (Träshy)"
+      :class="{ 'is-dragging': isDragging }"
+      @mousedown="startDrag"
+      @click="onIconClick"
+      @dblclick="resetPosition"
+      title="KI-Helfer öffnen (Träshy) – Ziehen zum Verschieben, Doppelklick zum Zurücksetzen"
     >
       <img :src="trashyIcon" alt="Träshy" class="chat-icon-img" />
     </button>
@@ -94,6 +97,22 @@ const inputMessage = ref('')
 const messages = ref<Message[]>([])
 let messageIdCounter = 0
 
+// Drag state
+const isDragging = ref(false)
+const dragOffset = ref({ x: 0, y: 0 })
+const userPosition = ref<{ right: number; bottom: number } | null>(null)
+
+// Load saved position from localStorage
+const STORAGE_KEY = 'trashy-position'
+const savedPosition = localStorage.getItem(STORAGE_KEY)
+if (savedPosition) {
+  try {
+    userPosition.value = JSON.parse(savedPosition)
+  } catch {
+    // Invalid JSON, ignore
+  }
+}
+
 // Refs
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputTextarea = ref<HTMLTextAreaElement | null>(null)
@@ -117,7 +136,7 @@ const CHAT_WIDTH = 380
 const CHAT_MIN_MARGIN = 10 // Minimum margin from viewport edges
 const ICON_SIZE = 100 // Maximum icon size (clamp max)
 
-// Dynamic positioning based on focusHint
+// Dynamic positioning based on focusHint OR user drag position
 // Clamp position to keep Träshy FULLY within viewport (never outside, not even partially)
 const overlayPositionStyle = computed(() => {
   const hint = pageContextStore.currentFocusHint
@@ -126,7 +145,7 @@ const overlayPositionStyle = computed(() => {
   const viewportHeight = window.innerHeight
 
   if (isExpanded.value) {
-    // EXPANDED: Chat window positioning
+    // EXPANDED: Chat window positioning (uses hint, not user position)
     const chatHeight = Math.min(CHAT_HEIGHT, viewportHeight - 120)
 
     // Horizontal: Convert hint.x to pixels and clamp
@@ -145,29 +164,135 @@ const overlayPositionStyle = computed(() => {
     style.top = `${clampedTop}px`
     style.bottom = 'auto'
   } else {
-    // COLLAPSED: Icon positioning - MUST stay fully inside viewport
-    // Convert hint percentages to pixel positions
-    const requestedRight = ((100 - hint.x) / 100) * viewportWidth
-    const requestedBottom = ((100 - hint.y) / 100) * viewportHeight
+    // COLLAPSED: Icon positioning
+    // Use user-dragged position if available, otherwise use hint
+    let finalRight: number
+    let finalBottom: number
 
-    // Clamp horizontal: icon must not extend past left or right edge
-    const minRight = CHAT_MIN_MARGIN // Don't go past right edge
-    const maxRight = viewportWidth - ICON_SIZE - CHAT_MIN_MARGIN // Don't go past left edge
-    const clampedRight = Math.max(minRight, Math.min(maxRight, requestedRight))
+    if (userPosition.value) {
+      // User has dragged Träshy - use their position (already clamped during drag)
+      finalRight = userPosition.value.right
+      finalBottom = userPosition.value.bottom
+    } else {
+      // No user position - calculate from hint
+      const requestedRight = ((100 - hint.x) / 100) * viewportWidth
+      const requestedBottom = ((100 - hint.y) / 100) * viewportHeight
 
-    // Clamp vertical: icon must not extend past top or bottom edge
-    const minBottom = CHAT_MIN_MARGIN // Don't go past bottom edge
-    const maxBottom = viewportHeight - ICON_SIZE - CHAT_MIN_MARGIN // Don't go past top edge
-    const clampedBottom = Math.max(minBottom, Math.min(maxBottom, requestedBottom))
+      // Clamp horizontal: icon must not extend past left or right edge
+      const minRight = CHAT_MIN_MARGIN
+      const maxRight = viewportWidth - ICON_SIZE - CHAT_MIN_MARGIN
+      finalRight = Math.max(minRight, Math.min(maxRight, requestedRight))
 
-    style.right = `${clampedRight}px`
+      // Clamp vertical: icon must not extend past top or bottom edge
+      const minBottom = CHAT_MIN_MARGIN
+      const maxBottom = viewportHeight - ICON_SIZE - CHAT_MIN_MARGIN
+      finalBottom = Math.max(minBottom, Math.min(maxBottom, requestedBottom))
+    }
+
+    style.right = `${finalRight}px`
     style.left = 'auto'
-    style.bottom = `${clampedBottom}px`
+    style.bottom = `${finalBottom}px`
     style.top = 'auto'
   }
 
   return style
 })
+
+// Double-click to reset to default position
+function resetPosition() {
+  userPosition.value = null
+  localStorage.removeItem(STORAGE_KEY)
+}
+
+// Drag handlers - track if we actually dragged (vs just clicked)
+let dragStartPos = { x: 0, y: 0 }
+let hasDragged = false
+
+function startDrag(event: MouseEvent) {
+  if (isExpanded.value) return
+
+  dragStartPos = { x: event.clientX, y: event.clientY }
+  hasDragged = false
+  isDragging.value = true
+
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+
+  // Calculate current position
+  const currentRight = userPosition.value?.right ??
+    Math.max(CHAT_MIN_MARGIN, Math.min(
+      viewportWidth - ICON_SIZE - CHAT_MIN_MARGIN,
+      ((100 - pageContextStore.currentFocusHint.x) / 100) * viewportWidth
+    ))
+  const currentBottom = userPosition.value?.bottom ??
+    Math.max(CHAT_MIN_MARGIN, Math.min(
+      viewportHeight - ICON_SIZE - CHAT_MIN_MARGIN,
+      ((100 - pageContextStore.currentFocusHint.y) / 100) * viewportHeight
+    ))
+
+  // Store offset from mouse to icon position
+  dragOffset.value = {
+    x: event.clientX + currentRight,
+    y: (viewportHeight - event.clientY) + currentBottom - viewportHeight
+  }
+
+  document.body.style.cursor = 'grabbing'
+
+  window.addEventListener('mousemove', onDrag)
+  window.addEventListener('mouseup', endDrag)
+
+  event.preventDefault()
+}
+
+function onDrag(event: MouseEvent) {
+  if (!isDragging.value) return
+
+  // Check if we've moved enough to count as a drag (5px threshold)
+  const dx = event.clientX - dragStartPos.x
+  const dy = event.clientY - dragStartPos.y
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    hasDragged = true
+  }
+
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+
+  let newRight = dragOffset.value.x - event.clientX
+  let newBottom = viewportHeight - event.clientY + dragOffset.value.y
+
+  // Clamp to viewport bounds
+  const minRight = CHAT_MIN_MARGIN
+  const maxRight = viewportWidth - ICON_SIZE - CHAT_MIN_MARGIN
+  const minBottom = CHAT_MIN_MARGIN
+  const maxBottom = viewportHeight - ICON_SIZE - CHAT_MIN_MARGIN
+
+  newRight = Math.max(minRight, Math.min(maxRight, newRight))
+  newBottom = Math.max(minBottom, Math.min(maxBottom, newBottom))
+
+  userPosition.value = { right: newRight, bottom: newBottom }
+}
+
+function endDrag() {
+  isDragging.value = false
+  document.body.style.cursor = ''
+
+  if (userPosition.value && hasDragged) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userPosition.value))
+  }
+
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('mouseup', endDrag)
+}
+
+// Click handler: only expand if we didn't drag
+function onIconClick(event: MouseEvent) {
+  if (hasDragged) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+  expand()
+}
 
 // Computed
 const canSend = computed(() => {
@@ -347,6 +472,16 @@ watch(
 .chat-toggle-icon:hover {
   transform: scale(1.1);
   animation-play-state: paused;
+}
+
+.chat-toggle-icon.is-dragging {
+  animation: none !important;
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+.chat-toggle-icon.is-dragging .chat-icon-img {
+  animation: none !important;
 }
 
 /* Idle floating animation - subtle movement */
