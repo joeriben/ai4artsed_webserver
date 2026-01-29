@@ -39,7 +39,7 @@ export type StageType =
 
 /** Random Prompt Preset Types */
 export type RandomPromptPreset =
-  | 'clean_image'  // Medienneutrale Bild-Prompts
+  | 'clean_image'  // Szenische Beschreibung (medienneutral)
   | 'photo'        // Fotografische Prompts mit Film-Typ
   | 'artform'      // Kunstform-Transformation
   | 'instruction'  // Kreative Transformation
@@ -85,7 +85,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'input',
     type: 'input',
-    label: { en: 'Input', de: 'Eingabe' },
+    label: { en: 'Input Prompt', de: 'Eingabe-Prompt' },
     description: { en: 'Text input source', de: 'Text-Eingabequelle' },
     color: '#3b82f6', // blue
     icon: 'edit_square_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -148,10 +148,10 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'collector',
     type: 'collector',
-    label: { en: 'Media Collector', de: 'Medien-Sammler' },
+    label: { en: 'Media Output', de: 'Medienausgabe' },
     description: {
-      en: 'Collects outputs (media + text) from nodes',
-      de: 'Sammelt Ausgaben (Medien + Text) von Knoten'
+      en: 'Collects and displays outputs (media + text)',
+      de: 'Sammelt und zeigt Ausgaben (Medien + Text)'
     },
     color: '#06b6d4', // cyan
     icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -483,7 +483,7 @@ export interface RandomPromptPresetConfig {
 /** Random Prompt Presets with system prompts */
 export const RANDOM_PROMPT_PRESETS: Record<RandomPromptPreset, RandomPromptPresetConfig> = {
   clean_image: {
-    label: { en: 'Clean Image Prompt', de: 'Sauberer Bild-Prompt' },
+    label: { en: 'Scenic Description', de: 'Szenische Beschreibung' },
     systemPrompt: `You are an inventive creative. Your task is to invent a vivid, detailed image prompt.
 
 IMPORTANT - Generate CLEAN, MEDIA-NEUTRAL images:
