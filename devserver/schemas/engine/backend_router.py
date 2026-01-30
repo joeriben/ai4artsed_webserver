@@ -127,6 +127,9 @@ class BackendType(Enum):
     MISTRAL = "mistral"
     AWS_BEDROCK = "bedrock"
     COMFYUI = "comfyui"
+    # Session 149: New inference backends for SwarmUI/ComfyUI independence
+    TRITON = "triton"      # NVIDIA Triton Inference Server (batched, multi-user)
+    DIFFUSERS = "diffusers"  # Direct HuggingFace Diffusers (TensorRT optional)
 
 @dataclass
 class BackendRequest:
@@ -472,13 +475,23 @@ class BackendRouter:
 
             media_type = chunk.get('media_type', 'image')
             execution_mode = chunk.get('execution_mode', 'standard')
-            logger.info(f"Loaded Output-Chunk: {chunk_name} ({media_type} media, {execution_mode} mode)")
+            backend_type = chunk.get('backend_type', 'comfyui')
+            logger.info(f"Loaded Output-Chunk: {chunk_name} ({media_type} media, {execution_mode} mode, {backend_type} backend)")
 
             # FIX: Extract text prompt from parameters (not from 'prompt' param which is workflow dict)
             text_prompt = parameters.get('prompt', '') or parameters.get('PREVIOUS_OUTPUT', '')
             logger.info(f"[DEBUG-FIX] Extracted text_prompt from parameters: '{text_prompt[:200]}...'" if text_prompt else f"[DEBUG-FIX] ⚠️ No text prompt in parameters!")
 
-            # 2. Route based on execution mode first
+            # Session 149: Route based on backend_type FIRST (before execution_mode)
+            # This enables alternative backends (Triton, Diffusers) without ComfyUI
+            if backend_type == 'triton':
+                logger.info(f"[ROUTER] Using Triton backend for '{chunk_name}'")
+                return await self._process_triton_chunk(chunk_name, text_prompt, parameters, chunk)
+            elif backend_type == 'diffusers':
+                logger.info(f"[ROUTER] Using Diffusers backend for '{chunk_name}'")
+                return await self._process_diffusers_chunk(chunk_name, text_prompt, parameters, chunk)
+
+            # 2. Route based on execution mode (for ComfyUI backend)
             if execution_mode == 'legacy_workflow':
                 # TODO (2026 Refactoring): Move this logic into pipeline itself
                 # Legacy workflow: complete workflow passthrough
@@ -1486,6 +1499,210 @@ class BackendRouter:
         except Exception as e:
             logger.error(f"[MEDIA-DOWNLOAD] Download error: {e}")
             return None
+
+    async def _process_triton_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
+        """Process image generation using NVIDIA Triton Inference Server
+
+        Session 149: Alternative backend for workshop scenarios with multiple users.
+        Triton provides dynamic batching for efficient multi-user inference.
+
+        Args:
+            chunk_name: Name of the output chunk
+            prompt: Text prompt for generation
+            parameters: Generation parameters (width, height, steps, etc.)
+            chunk: Chunk configuration with triton_config
+
+        Returns:
+            BackendResponse with generated image
+        """
+        try:
+            from my_app.services.triton_client import get_triton_client
+            from config import TRITON_ENABLED
+            import random
+
+            # Check if Triton is enabled
+            if not TRITON_ENABLED:
+                logger.warning(f"[TRITON] Backend disabled in config, falling back to ComfyUI")
+                # Fallback to ComfyUI workflow
+                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+            client = get_triton_client()
+
+            # Health check
+            if not await client.health_check():
+                logger.warning(f"[TRITON] Server not available, falling back to ComfyUI")
+                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+            # Extract parameters from chunk config
+            input_mappings = chunk.get('input_mappings', {})
+            triton_config = chunk.get('triton_config', {})
+
+            model_name = triton_config.get('model_name', 'stable_diffusion_pipeline')
+
+            # Get generation parameters
+            width = int(parameters.get('width') or input_mappings.get('width', {}).get('default', 1024))
+            height = int(parameters.get('height') or input_mappings.get('height', {}).get('default', 1024))
+            steps = int(parameters.get('steps') or input_mappings.get('steps', {}).get('default', 25))
+            cfg_scale = float(parameters.get('cfg') or input_mappings.get('cfg', {}).get('default', 5.5))
+            negative_prompt = parameters.get('negative_prompt') or input_mappings.get('negative_prompt', {}).get('default', '')
+
+            # Seed handling
+            seed = parameters.get('seed') or input_mappings.get('seed', {}).get('default', 'random')
+            if seed == 'random' or seed == -1:
+                seed = random.randint(0, 2**32 - 1)
+                logger.info(f"[TRITON] Generated random seed: {seed}")
+            else:
+                seed = int(seed)
+
+            # Generate image via Triton
+            logger.info(f"[TRITON] Generating image: model={model_name}, steps={steps}, size={width}x{height}")
+
+            image_bytes = await client.generate_image(
+                prompt=prompt,
+                model_name=model_name,
+                negative_prompt=negative_prompt,
+                width=width,
+                height=height,
+                steps=steps,
+                cfg_scale=cfg_scale,
+                seed=seed
+            )
+
+            if not image_bytes:
+                logger.error("[TRITON] Generation failed, falling back to ComfyUI")
+                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+            # Return with binary image data
+            import base64
+            return BackendResponse(
+                success=True,
+                content="triton_generated",
+                metadata={
+                    'chunk_name': chunk_name,
+                    'media_type': chunk.get('media_type', 'image'),
+                    'backend': 'triton',
+                    'model_name': model_name,
+                    'seed': seed,
+                    'image_data': base64.b64encode(image_bytes).decode('utf-8'),
+                    'parameters': {
+                        'width': width,
+                        'height': height,
+                        'steps': steps,
+                        'cfg_scale': cfg_scale
+                    }
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"[TRITON] Error processing chunk '{chunk_name}': {e}")
+            import traceback
+            traceback.print_exc()
+
+            # Fallback to ComfyUI on error
+            logger.info(f"[TRITON] Falling back to ComfyUI due to error")
+            return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+    async def _process_diffusers_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
+        """Process image generation using HuggingFace Diffusers directly
+
+        Session 149: Alternative backend for direct model inference.
+        Provides full control and optional TensorRT acceleration.
+
+        Args:
+            chunk_name: Name of the output chunk
+            prompt: Text prompt for generation
+            parameters: Generation parameters (width, height, steps, etc.)
+            chunk: Chunk configuration with diffusers_config
+
+        Returns:
+            BackendResponse with generated image
+        """
+        try:
+            from my_app.services.diffusers_backend import get_diffusers_backend
+            from config import DIFFUSERS_ENABLED
+            import random
+
+            # Check if Diffusers backend is enabled
+            if not DIFFUSERS_ENABLED:
+                logger.warning(f"[DIFFUSERS] Backend disabled in config, falling back to ComfyUI")
+                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+            backend = get_diffusers_backend()
+
+            # Check availability (torch, diffusers, GPU)
+            if not await backend.is_available():
+                logger.warning(f"[DIFFUSERS] Backend not available, falling back to ComfyUI")
+                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+            # Extract parameters from chunk config
+            input_mappings = chunk.get('input_mappings', {})
+            diffusers_config = chunk.get('diffusers_config', {})
+
+            model_id = diffusers_config.get('model_id', 'stabilityai/stable-diffusion-3.5-large')
+            pipeline_class = diffusers_config.get('pipeline_class', 'StableDiffusion3Pipeline')
+
+            # Get generation parameters
+            width = int(parameters.get('width') or input_mappings.get('width', {}).get('default', 1024))
+            height = int(parameters.get('height') or input_mappings.get('height', {}).get('default', 1024))
+            steps = int(parameters.get('steps') or input_mappings.get('steps', {}).get('default', 25))
+            cfg_scale = float(parameters.get('cfg') or input_mappings.get('cfg', {}).get('default', 5.5))
+            negative_prompt = parameters.get('negative_prompt') or input_mappings.get('negative_prompt', {}).get('default', '')
+
+            # Seed handling
+            seed = parameters.get('seed') or input_mappings.get('seed', {}).get('default', 'random')
+            if seed == 'random' or seed == -1:
+                seed = random.randint(0, 2**32 - 1)
+                logger.info(f"[DIFFUSERS] Generated random seed: {seed}")
+            else:
+                seed = int(seed)
+
+            # Generate image via Diffusers
+            logger.info(f"[DIFFUSERS] Generating image: model={model_id}, steps={steps}, size={width}x{height}")
+
+            image_bytes = await backend.generate_image(
+                prompt=prompt,
+                model_id=model_id,
+                negative_prompt=negative_prompt,
+                width=width,
+                height=height,
+                steps=steps,
+                cfg_scale=cfg_scale,
+                seed=seed
+            )
+
+            if not image_bytes:
+                logger.error("[DIFFUSERS] Generation failed, falling back to ComfyUI")
+                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+            # Return with binary image data
+            import base64
+            return BackendResponse(
+                success=True,
+                content="diffusers_generated",
+                metadata={
+                    'chunk_name': chunk_name,
+                    'media_type': chunk.get('media_type', 'image'),
+                    'backend': 'diffusers',
+                    'model_id': model_id,
+                    'seed': seed,
+                    'image_data': base64.b64encode(image_bytes).decode('utf-8'),
+                    'parameters': {
+                        'width': width,
+                        'height': height,
+                        'steps': steps,
+                        'cfg_scale': cfg_scale
+                    }
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"[DIFFUSERS] Error processing chunk '{chunk_name}': {e}")
+            import traceback
+            traceback.print_exc()
+
+            # Fallback to ComfyUI on error
+            logger.info(f"[DIFFUSERS] Falling back to ComfyUI due to error")
+            return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
 
     def _set_nested_value(self, obj: Any, path: str, value: Any):
         """Set nested value in dict or list using path notation (e.g., 'messages[1].content')"""

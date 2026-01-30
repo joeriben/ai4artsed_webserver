@@ -294,6 +294,48 @@ SWARMUI_STARTUP_TIMEOUT = int(os.environ.get("SWARMUI_STARTUP_TIMEOUT", "120")) 
 SWARMUI_HEALTH_CHECK_INTERVAL = float(os.environ.get("SWARMUI_HEALTH_CHECK_INTERVAL", "2.0"))  # seconds
 
 
+# ============================================================================
+# TRITON INFERENCE SERVER CONFIGURATION (Session 149)
+# ============================================================================
+# NVIDIA Triton Inference Server for high-performance batched inference
+# Enables multi-user workshops with dynamic batching
+#
+# To start Triton (Docker required):
+#   docker run --gpus=all --rm \
+#     -p8000:8000 -p8001:8001 -p8002:8002 \
+#     -v ~/ai/triton_models:/models \
+#     nvcr.io/nvidia/tritonserver:24.08-py3 \
+#     tritonserver --model-repository=/models
+#
+TRITON_ENABLED = os.environ.get("TRITON_ENABLED", "false").lower() == "true"
+TRITON_SERVER_URL = os.environ.get("TRITON_SERVER_URL", "localhost:8000")  # HTTP endpoint
+TRITON_GRPC_URL = os.environ.get("TRITON_GRPC_URL", "localhost:8001")      # gRPC (faster for batch)
+TRITON_METRICS_URL = os.environ.get("TRITON_METRICS_URL", "localhost:8002")  # Prometheus metrics
+TRITON_MODEL_REPOSITORY = Path(os.environ.get("TRITON_MODEL_REPOSITORY", str(_AI_TOOLS_BASE / "triton_models")))
+TRITON_TIMEOUT = int(os.environ.get("TRITON_TIMEOUT", "120"))  # seconds per request
+TRITON_HEALTH_CHECK_INTERVAL = float(os.environ.get("TRITON_HEALTH_CHECK_INTERVAL", "5.0"))  # seconds
+
+# ============================================================================
+# DIFFUSERS BACKEND CONFIGURATION (Session 149)
+# ============================================================================
+# Direct HuggingFace Diffusers inference for maximum control
+# Optional TensorRT acceleration for 2.3x speedup on NVIDIA GPUs
+#
+DIFFUSERS_ENABLED = os.environ.get("DIFFUSERS_ENABLED", "false").lower() == "true"
+DIFFUSERS_CACHE_DIR = Path(os.environ.get("DIFFUSERS_CACHE_DIR", str(_AI_TOOLS_BASE / "diffusers_cache")))
+DIFFUSERS_USE_TENSORRT = os.environ.get("DIFFUSERS_USE_TENSORRT", "false").lower() == "true"
+DIFFUSERS_TORCH_DTYPE = os.environ.get("DIFFUSERS_TORCH_DTYPE", "float16")  # float16, bfloat16, float32
+DIFFUSERS_DEVICE = os.environ.get("DIFFUSERS_DEVICE", "cuda")  # cuda, cpu
+DIFFUSERS_ENABLE_ATTENTION_SLICING = os.environ.get("DIFFUSERS_ENABLE_ATTENTION_SLICING", "true").lower() == "true"
+DIFFUSERS_ENABLE_VAE_TILING = os.environ.get("DIFFUSERS_ENABLE_VAE_TILING", "false").lower() == "true"
+
+# Pre-compiled TensorRT models on HuggingFace (if available)
+DIFFUSERS_TENSORRT_MODELS = {
+    "sd35_large": "stabilityai/stable-diffusion-3.5-large-tensorrt",
+    "sd35_medium": "stabilityai/stable-diffusion-3.5-medium-tensorrt",
+}
+
+
 # Feature Flags
 ENABLE_VALIDATION_PIPELINE = True
 ENABLE_AUTO_EXPORT = True
