@@ -664,3 +664,101 @@ onUploadProgress: (progressEvent) => {
 
 ---
 
+## Code Generation Output (Session 152 - 2026-01-31)
+
+### Overview
+
+Code generation is a special output type where the LLM generates executable code that runs in the browser. Unlike binary media (image/audio/video), no ComfyUI workflow is executed.
+
+### Supported Frameworks
+
+| Framework | Media Type | Language | Execution | Use Case |
+|-----------|------------|----------|-----------|----------|
+| **p5.js** | `code` | JavaScript | Browser Canvas | Generative graphics |
+| **Tone.js** | `code` | JavaScript | Web Audio API | Browser-based music synthesis |
+
+### Architecture Pattern
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Stage 2        │    │  Stage 4        │    │  Frontend       │
+│  Interception   │───▶│  LLM Generation │───▶│  Browser Exec   │
+│  (Listifier/    │    │  (Claude via    │    │  (iframe with   │
+│   Composer)     │    │   OpenRouter)   │    │   p5.js/Tone.js)│
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+**Key Differences from Binary Media:**
+
+1. **Chunk Type:** `text_passthrough` (not `output_chunk`)
+2. **Backend:** `openrouter` (LLM), not `comfyui`
+3. **Template:** `{{PREVIOUS_OUTPUT}}` - passes Stage 2 output directly
+4. **Storage:** JSON entity (not binary file)
+5. **Playback:** Browser-side execution (not server-side rendering)
+
+### Schema Structure
+
+**Output Chunk (text_passthrough):**
+```json
+{
+  "name": "output_code_tonejs",
+  "type": "text_passthrough",
+  "backend_type": "vue_tonejs",
+  "media_type": "code",
+  "template": "{{PREVIOUS_OUTPUT}}"
+}
+```
+
+**Output Config:**
+```json
+{
+  "pipeline": "single_text_media_generation",
+  "parameters": {
+    "OUTPUT_CHUNK": "output_code_tonejs"
+  },
+  "meta": {
+    "backend": "openrouter",
+    "backend_type": "openrouter",
+    "language": "javascript",
+    "framework": "tonejs"
+  }
+}
+```
+
+### Media Type Detection
+
+In `schema_pipeline_routes.py`, code output is detected by config name:
+
+```python
+if 'code' in output_config.lower() or 'p5js' in output_config.lower() or 'tonejs' in output_config.lower():
+    media_type = 'code'
+```
+
+### Entity Storage
+
+Code is saved as a JSON entity (not binary file):
+
+```python
+saved_filename = recorder.save_entity(
+    entity_type='tonejs',  # or 'p5'
+    content=output_value.encode('utf-8'),
+    metadata={'format': 'js', 'framework': 'tonejs'}
+)
+```
+
+### API Routes
+
+- `/api/media/p5/<run_id>` - Serve p5.js code
+- `/api/media/tonejs/<run_id>` - Serve Tone.js code
+
+### Third-Party Libraries (CDN)
+
+Both libraries are loaded via CDN in the frontend iframe:
+
+- **p5.js** v1.7.0 - LGPL-2.1 - `https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js`
+- **Tone.js** v14.8.49 - MIT - `https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js`
+
+License documentation: `public/ai4artsed-frontend/THIRD_PARTY_CREDITS.md`
+
+---
+
