@@ -34,7 +34,7 @@
       <div v-if="state === 'melted' || (props.progress && props.progress > 90)" class="state-overlay melted">
         <span class="status">{{ t('edutainment.iceberg.melted') }}</span>
         <span class="detail">{{ t('edutainment.iceberg.meltedMessage', { co2: totalCo2.toFixed(2) }) }}</span>
-        <span class="comparison">{{ t('edutainment.iceberg.comparison', { minutes: treeMinutes }) }}</span>
+        <span class="comparison">{{ t('edutainment.iceberg.comparison', { hours: treeHours }) }}</span>
       </div>
     </div>
 
@@ -90,6 +90,36 @@ const canvasWidth = ref(600)
 const canvasHeight = ref(320)
 const waterLineY = computed(() => canvasHeight.value * 0.6)
 
+// Smooth ship position (interpolates towards props.progress)
+const shipProgress = ref(0)
+let shipAnimationId: number | null = null
+
+function animateShip() {
+  const target = props.progress ?? 0
+  const diff = target - shipProgress.value
+
+  if (Math.abs(diff) > 0.01) {
+    // Ease towards target (lerp factor 0.05 = smooth, 0.1 = faster)
+    shipProgress.value += diff * 0.08
+
+    // Redraw if not in melting animation (which redraws itself)
+    if (state.value !== 'melting') {
+      const canvas = icebergCanvasRef.value
+      const ctx = canvas?.getContext('2d')
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas!.width, canvas!.height)
+        drawWaterLine(ctx)
+        drawShip(ctx)
+        for (const iceberg of icebergs.value) {
+          drawSingleIceberg(ctx, iceberg)
+        }
+      }
+    }
+  }
+
+  shipAnimationId = requestAnimationFrame(animateShip)
+}
+
 function resizeCanvas() {
   if (containerRef.value) {
     const rect = containerRef.value.getBoundingClientRect()
@@ -140,10 +170,10 @@ const effectiveTemp = computed(() => {
   return realPower > 100 ? realTemp : simulatedTemp.value
 })
 
-// Tree absorbs ~12kg CO2/year = ~0.023g/minute
-const treeMinutes = computed(() => {
-  const minutes = totalCo2.value / 0.023
-  return Math.round(minutes)
+// Tree absorbs ~22kg CO2/year = ~2.51g/hour (mature tree average)
+const treeHours = computed(() => {
+  const hours = totalCo2.value / 2.51
+  return hours.toFixed(1)
 })
 
 // Animation
@@ -426,6 +456,7 @@ function clearCanvas() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawWaterLine(ctx)
+  drawShip(ctx)
 }
 
 function drawWaterLine(ctx: CanvasRenderingContext2D) {
@@ -442,6 +473,58 @@ function drawWaterLine(ctx: CanvasRenderingContext2D) {
   ctx.setLineDash([])
 }
 
+/**
+ * Draw a small ship on the horizon based on progress (0-100%)
+ */
+function drawShip(ctx: CanvasRenderingContext2D) {
+  const canvas = icebergCanvasRef.value
+  if (!canvas) return
+
+  // Use smoothed shipProgress for animation
+  const progress = shipProgress.value
+  if (progress <= 0.1) return
+
+  const shipWidth = 24
+  const shipHeight = 16
+  const margin = 20
+
+  // Ship position: left edge at 0%, right edge at 100%
+  const x = margin + (progress / 100) * (canvas.width - 2 * margin - shipWidth)
+  const y = waterLineY.value - shipHeight / 2
+
+  ctx.save()
+
+  // Hull (dark brown boat shape)
+  ctx.beginPath()
+  ctx.moveTo(x, y + shipHeight * 0.4)
+  ctx.lineTo(x + shipWidth * 0.15, y + shipHeight)
+  ctx.lineTo(x + shipWidth * 0.85, y + shipHeight)
+  ctx.lineTo(x + shipWidth, y + shipHeight * 0.4)
+  ctx.closePath()
+  ctx.fillStyle = '#5D4037'
+  ctx.fill()
+
+  // Mast
+  const mastX = x + shipWidth * 0.45
+  ctx.beginPath()
+  ctx.moveTo(mastX, y + shipHeight * 0.4)
+  ctx.lineTo(mastX, y - shipHeight * 0.6)
+  ctx.strokeStyle = '#4E342E'
+  ctx.lineWidth = 2
+  ctx.stroke()
+
+  // Sail (white triangle)
+  ctx.beginPath()
+  ctx.moveTo(mastX + 1, y - shipHeight * 0.5)
+  ctx.lineTo(mastX + shipWidth * 0.45, y + shipHeight * 0.2)
+  ctx.lineTo(mastX + 1, y + shipHeight * 0.3)
+  ctx.closePath()
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+  ctx.fill()
+
+  ctx.restore()
+}
+
 function drawCurrentPath() {
   const canvas = icebergCanvasRef.value
   const ctx = canvas?.getContext('2d')
@@ -449,6 +532,7 @@ function drawCurrentPath() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawWaterLine(ctx)
+  drawShip(ctx)
 
   // Draw existing icebergs first
   for (const iceberg of icebergs.value) {
@@ -532,6 +616,7 @@ function drawAllIcebergs() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawWaterLine(ctx)
+  drawShip(ctx)
 
   for (const iceberg of icebergs.value) {
     drawSingleIceberg(ctx, iceberg)
@@ -645,6 +730,7 @@ watch(() => props.progress, (newProgress) => {
   if (props.autoStart && newProgress && newProgress > 0 && state.value === 'idle') {
     // Auto-start with a default iceberg if progress starts
   }
+  // Ship position is now smoothly animated via animateShip()
 })
 
 onMounted(() => {
@@ -653,12 +739,19 @@ onMounted(() => {
   // Wait for next tick to ensure canvas is sized
   setTimeout(() => clearCanvas(), 10)
   fetchGpuStats()
+  // Start smooth ship animation
+  animateShip()
 })
 
 onUnmounted(() => {
   stopAnimation()
   stopGpuPolling()
   window.removeEventListener('resize', resizeCanvas)
+  // Stop ship animation
+  if (shipAnimationId) {
+    cancelAnimationFrame(shipAnimationId)
+    shipAnimationId = null
+  }
 })
 </script>
 
@@ -715,6 +808,7 @@ onUnmounted(() => {
 }
 
 .state-overlay.melted {
+  top: 40%;
   pointer-events: none;
 }
 
@@ -732,25 +826,32 @@ onUnmounted(() => {
 
 .status {
   display: block;
-  color: #fff;
-  font-size: 20px;
-  font-weight: bold;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  color: #1a5276;
+  font-size: 18px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
   margin-bottom: 10px;
 }
 
 .detail {
   display: block;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
+  color: #1a5276;
+  font-size: 15px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
   margin-bottom: 8px;
 }
 
 .comparison {
   display: block;
-  color: rgba(180, 220, 180, 0.9);
-  font-size: 13px;
+  color: #1a5276;
+  font-size: 14px;
+  font-family: 'Georgia', 'Times New Roman', serif;
   font-style: italic;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
   margin-bottom: 15px;
 }
 
