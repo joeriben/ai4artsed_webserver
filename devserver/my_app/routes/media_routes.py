@@ -856,6 +856,58 @@ def get_p5(run_id: str):
         return jsonify({"error": str(e)}), 500
 
 
+@media_bp.route('/tonejs/<run_id>', methods=['GET'])
+def get_tonejs(run_id: str):
+    """
+    Serve Tone.js code from local storage by run_id
+
+    Args:
+        run_id: UUID of the pipeline run
+
+    Returns:
+        Tone.js file or 404 error
+    """
+    try:
+        # Load recorder from disk
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return jsonify({"error": f"Run {run_id} not found"}), 404
+
+        # Find tonejs entity
+        tonejs_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'tonejs')
+        if not tonejs_entity:
+            return jsonify({"error": f"No Tone.js code found for run {run_id}"}), 404
+
+        # Get file path
+        filename = tonejs_entity['filename']
+        file_path = recorder.final_folder / filename
+        if not file_path.exists():
+            return jsonify({"error": f"Tone.js file not found: {filename}"}), 404
+
+        # Determine mimetype from format
+        file_format = tonejs_entity.get('metadata', {}).get('format', filename.split('.')[-1])
+        mimetype_map = {
+            'js': 'text/javascript',
+            'html': 'text/html',
+            'txt': 'text/plain'
+        }
+        mimetype = mimetype_map.get(file_format.lower(), 'text/javascript')
+
+        # Serve file directly from disk
+        return send_file(
+            file_path,
+            mimetype=mimetype,
+            as_attachment=False,
+            download_name=f'{run_id}.{file_format}'
+        )
+
+    except Exception as e:
+        logger.error(f"Error serving Tone.js code for run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @media_bp.route('/info/<run_id>', methods=['GET'])
 def get_media_info(run_id: str):
     """

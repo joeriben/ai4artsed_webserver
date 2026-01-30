@@ -2101,7 +2101,7 @@ def execute_generation_streaming(data: dict):
         logger.info(f"[GENERATION-STREAMING] Stage 3: Translation + Safety")
 
         # Determine media type from output config
-        if 'code' in output_config.lower() or 'p5js' in output_config.lower():
+        if 'code' in output_config.lower() or 'p5js' in output_config.lower() or 'tonejs' in output_config.lower():
             media_type = 'code'
         elif 'video' in output_config.lower():
             media_type = 'video'
@@ -2453,7 +2453,7 @@ async def execute_stage4_generation_only(
             device_id = f"api_{uuid.uuid4().hex[:12]}"
 
         # Determine media type from output config
-        if 'code' in output_config.lower() or 'p5js' in output_config.lower():
+        if 'code' in output_config.lower() or 'p5js' in output_config.lower() or 'tonejs' in output_config.lower():
             media_type = 'code'
         elif 'video' in output_config.lower():
             media_type = 'video'
@@ -2554,16 +2554,24 @@ async def execute_stage4_generation_only(
 
         # Handle different output types
         if media_type == 'code':
-            # Code output (P5.js etc.)
+            # Code output (P5.js, Tone.js, etc.)
+            # Determine entity type and route based on output config
+            if 'tonejs' in output_config.lower():
+                code_entity_type = 'tonejs'
+                code_route = f'/api/media/tonejs/{run_id}'
+            else:
+                code_entity_type = 'p5'
+                code_route = f'/api/media/p5/{run_id}'
+
             if output_value and len(output_value) > 0:
                 saved_filename = recorder.save_entity(
-                    entity_type='p5',
+                    entity_type=code_entity_type,
                     content=output_value.encode('utf-8'),
                     metadata={'config': output_config, 'seed': result_seed, 'format': 'js'}
                 )
                 media_output = {
                     'media_type': 'code',
-                    'url': f'/api/media/p5/{run_id}',
+                    'url': code_route,
                     'code': output_value,
                     'run_id': run_id,
                     'seed': result_seed
@@ -2787,7 +2795,7 @@ async def execute_generation_stage4(
             device_id = f"api_{uuid.uuid4().hex[:12]}"
 
         # Determine media type from output config
-        if 'code' in output_config.lower() or 'p5js' in output_config.lower():
+        if 'code' in output_config.lower() or 'p5js' in output_config.lower() or 'tonejs' in output_config.lower():
             media_type = 'code'
         elif 'video' in output_config.lower():
             media_type = 'video'
@@ -3678,7 +3686,8 @@ def interception_pipeline():
                 # Extract media type from output config name BEFORE Stage 3
                 # This ensures media_type is ALWAYS defined, even when stage4_only=True
                 # SESSION 84: Added 'code' media type for P5.js code generation
-                if 'code' in output_config_name.lower() or 'p5js' in output_config_name.lower():
+                # SESSION 95: Added Tone.js code generation
+                if 'code' in output_config_name.lower() or 'p5js' in output_config_name.lower() or 'tonejs' in output_config_name.lower():
                     media_type = 'code'
                 elif 'image' in output_config_name.lower() or 'sd' in output_config_name.lower() or 'flux' in output_config_name.lower() or 'gpt' in output_config_name.lower():
                     media_type = 'image'
@@ -3924,21 +3933,32 @@ def interception_pipeline():
                                 logger.info(f"[MEDIA-STORAGE-DEBUG] Checking routing conditions...")
 
                                 # SESSION 84: Handle code output (P5.js, SonicPi, etc.)
+                                # SESSION 95: Added Tone.js support
                                 if media_type == 'code':
                                     logger.info(f"[STAGE4-CODE] Handling code output for {output_config_name}")
+
+                                    # Determine entity type and route based on output config
+                                    if 'tonejs' in output_config_name.lower():
+                                        code_entity_type = 'tonejs'
+                                        code_framework = 'tonejs'
+                                        code_route = f'/api/media/tonejs/{run_id}'
+                                    else:
+                                        code_entity_type = 'p5'
+                                        code_framework = 'p5js'
+                                        code_route = f'/api/media/p5/{run_id}'
 
                                     # Code is already in output_value (from API response)
                                     if isinstance(output_value, str) and len(output_value) > 0:
                                         # Save code as entity
                                         saved_filename = recorder.save_entity(
-                                            entity_type='p5',  # Matches /api/media/p5/<run_id> route
+                                            entity_type=code_entity_type,
                                             content=output_value.encode('utf-8'),
                                             metadata={
                                                 'config': output_config_name,
                                                 'backend': output_result.metadata.get('backend', 'openrouter'),
                                                 'model': output_result.metadata.get('model', 'unknown'),
                                                 'language': 'javascript',
-                                                'framework': 'p5js',
+                                                'framework': code_framework,
                                                 'seed': seed,
                                                 'format': 'js'
                                             }
@@ -3952,7 +3972,7 @@ def interception_pipeline():
                                             'status': 'success',
                                             'media_type': 'code',
                                             'filename': saved_filename,
-                                            'url': f'/api/media/p5/{run_id}',
+                                            'url': code_route,
                                             'code': output_value  # Include code in response
                                         }
                                     else:

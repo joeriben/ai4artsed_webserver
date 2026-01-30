@@ -72,6 +72,7 @@ export type InterceptionPreset =
   | 'one_world'                 // One World
   | 'overdrive'                 // Amplifier
   | 'p5js_simplifier'           // Listifier
+  | 'tonejs_composer'           // Music Composer
   | 'piglatin'                  // Word Game
   | 'planetarizer'              // Planetarizer
   | 'renaissance'               // Renaissance
@@ -104,6 +105,7 @@ export const INTERCEPTION_PRESETS: Record<InterceptionPreset, InterceptionPreset
   one_world: { label: { en: 'One World', de: 'Eine Welt' } },
   overdrive: { label: { en: 'Amplifier', de: 'Übertreiber!' } },
   p5js_simplifier: { label: { en: 'Listifier', de: 'Auflister' } },
+  tonejs_composer: { label: { en: 'Music Composer', de: 'Musikkomponist' } },
   piglatin: { label: { en: 'Word Game', de: 'Sprachspiel' } },
   planetarizer: { label: { en: 'Planetarizer', de: 'Planetarisierer' } },
   renaissance: { label: { en: 'Renaissance', de: 'Renaissance' } },

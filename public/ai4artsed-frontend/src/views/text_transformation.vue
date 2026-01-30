@@ -277,10 +277,11 @@
         </section>
 
         <!-- Code Output (p5.js) - appears right after optimization -->
-        <div v-if="outputMediaType === 'code' && outputCode" class="code-output-stage2">
+        <!-- P5.js Code Output -->
+        <div v-if="outputMediaType === 'code' && outputCode && selectedConfig === 'p5js_code'" class="code-output-stage2">
           <div class="code-display">
             <div class="code-header">
-              <h3>Generated Code</h3>
+              <h3>P5.js Code</h3>
               <button @click="runCode" class="action-btn run-btn" title="Code ausführen">▶️</button>
             </div>
             <textarea
@@ -295,6 +296,30 @@
               :key="iframeKey"
               :srcdoc="getP5jsIframeContent()"
               class="p5js-iframe"
+              sandbox="allow-scripts"
+            ></iframe>
+          </div>
+        </div>
+
+        <!-- Tone.js Code Output -->
+        <div v-if="outputMediaType === 'code' && outputCode && selectedConfig === 'tonejs_code'" class="code-output-stage2 tonejs-output">
+          <div class="code-display">
+            <div class="code-header">
+              <h3>Tone.js Code</h3>
+              <button @click="runCode" class="action-btn run-btn" title="Code ausführen">▶️</button>
+            </div>
+            <textarea
+              v-model="editedCode"
+              class="code-textarea"
+              rows="15"
+            ></textarea>
+          </div>
+          <div class="code-preview tonejs-preview">
+            <h3>Audio Player</h3>
+            <iframe
+              :key="iframeKey"
+              :srcdoc="getToneJsIframeContent()"
+              class="tonejs-iframe"
               sandbox="allow-scripts"
             ></iframe>
           </div>
@@ -662,7 +687,8 @@ const configsByCategory: Record<string, Config[]> = {
   ],
   sound: [
     { id: 'acenet_t2instrumental', label: 'ACE\nInstrumental', emoji: '🎵', color: '#FF5722', description: 'KI-Musikgenerierung für Instrumentalstücke', logo: '/logos/ace_logo.png', lightBg: false },
-    { id: 'stableaudio_open', label: 'Stable\nAudio', emoji: '🔊', color: '#00BCD4', description: 'Open-Source Audio-Generierung (max 47s)', logo: '/logos/stableaudio_logo.png', lightBg: false }
+    { id: 'stableaudio_open', label: 'Stable\nAudio', emoji: '🔊', color: '#00BCD4', description: 'Open-Source Audio-Generierung (max 47s)', logo: '/logos/stableaudio_logo.png', lightBg: false },
+    { id: 'tonejs_code', label: 'Tone.js', emoji: '🎹', color: '#FF4081', description: 'Browser-basierte Musiksynthese mit Live-Code' }
   ],
   '3d': []
 }
@@ -685,6 +711,7 @@ const configIdToChunkName: Record<string, string> = {
   'gemini_3_pro_image': 'gemini_3_pro',
   // 'gpt_image_1': 'gpt_image_1',
   'p5js_code': 'p5js',
+  'tonejs_code': 'tonejs',
   'ltx_video': 'ltx',
   'wan22_video': 'wan22',
   'acenet_t2instrumental': 'acenet',
@@ -792,6 +819,7 @@ const modelFullNames: Record<string, string> = {
   gemini_3_pro_image: 'Gemini 3 Pro',
   // gpt_image_1: 'GPT Image 1',
   p5js_code: 'p5.js Code Generation',
+  tonejs_code: 'Tone.js Music Generation',
   ltx_video: 'LTX Video',
   wan22_video: 'Wan 2.2 Text-to-Video',
   acenet_t2instrumental: 'ACE Step Instrumental',
@@ -1643,6 +1671,167 @@ function getP5jsIframeContent(): string {
             document.body.innerHTML = '<div style="color: red; padding: 20px; font-family: monospace;">Error: ' + error.message + '<\/div>';
             console.error('p5.js error:', error);
         }
+    <\/script>
+</body>
+</html>`
+}
+
+// Generate iframe content for Tone.js audio playback
+function getToneJsIframeContent(): string {
+  const codeToRender = editedCode.value || outputCode.value
+  if (!codeToRender) return ''
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"><\/script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 16px 32px;
+            font-size: 18px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        .play-btn {
+            background: linear-gradient(135deg, #FF4081 0%, #FF6EC4 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 64, 129, 0.4);
+        }
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 64, 129, 0.6);
+        }
+        .play-btn:active {
+            transform: scale(0.98);
+        }
+        .stop-btn {
+            background: linear-gradient(135deg, #424242 0%, #616161 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .stop-btn:hover {
+            transform: scale(1.05);
+        }
+        .status {
+            font-size: 14px;
+            color: #b0b0b0;
+            margin-top: 10px;
+        }
+        .status.playing {
+            color: #FF4081;
+        }
+        .visualizer {
+            width: 200px;
+            height: 60px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 20px;
+        }
+        .bar {
+            width: 8px;
+            background: linear-gradient(180deg, #FF4081 0%, #FF6EC4 100%);
+            border-radius: 4px;
+            transition: height 0.1s ease;
+        }
+        .error {
+            color: #ff6b6b;
+            padding: 20px;
+            font-family: monospace;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 8px;
+            max-width: 80%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="play-btn" id="playBtn">▶️ Play</button>
+        <button class="stop-btn" id="stopBtn">⏹️ Stop</button>
+    </div>
+    <div class="status" id="status">Klicke Play um die Musik zu starten</div>
+    <div class="visualizer" id="visualizer">
+        <div class="bar" style="height: 20px"></div>
+        <div class="bar" style="height: 30px"></div>
+        <div class="bar" style="height: 25px"></div>
+        <div class="bar" style="height: 40px"></div>
+        <div class="bar" style="height: 35px"></div>
+        <div class="bar" style="height: 28px"></div>
+        <div class="bar" style="height: 32px"></div>
+    </div>
+    <script>
+        let isPlaying = false;
+        let visualizerInterval = null;
+        const bars = document.querySelectorAll('.bar');
+
+        function updateVisualizer() {
+            bars.forEach(bar => {
+                const height = Math.random() * 50 + 10;
+                bar.style.height = height + 'px';
+            });
+        }
+
+        function startVisualizer() {
+            visualizerInterval = setInterval(updateVisualizer, 100);
+        }
+
+        function stopVisualizer() {
+            clearInterval(visualizerInterval);
+            bars.forEach(bar => bar.style.height = '20px');
+        }
+
+        document.getElementById('playBtn').onclick = async () => {
+            if (isPlaying) return;
+
+            try {
+                await Tone.start();
+                document.getElementById('status').textContent = '🎵 Musik spielt...';
+                document.getElementById('status').classList.add('playing');
+                isPlaying = true;
+                startVisualizer();
+
+                // Execute generated code
+                ${codeToRender}
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ Fehler: ' + error.message;
+                console.error('Tone.js error:', error);
+            }
+        };
+
+        document.getElementById('stopBtn').onclick = () => {
+            Tone.Transport.stop();
+            Tone.Transport.cancel();
+
+            // Dispose all scheduled events
+            Tone.Transport.position = 0;
+
+            document.getElementById('status').textContent = '⏹️ Gestoppt';
+            document.getElementById('status').classList.remove('playing');
+            isPlaying = false;
+            stopVisualizer();
+        };
     <\/script>
 </body>
 </html>`
