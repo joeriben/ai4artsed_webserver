@@ -81,10 +81,17 @@
           :progress="progress"
         />
       </div>
+
+      <!-- 5. Wald Mini-Game -->
+      <div v-if="selectedAnimation === 'forest'" class="animation-wrapper">
+        <ForestMiniGame
+          :progress="progress"
+        />
+      </div>
     </div>
 
-    <!-- Live stats (hidden for iceberg which has its own) -->
-    <div v-if="selectedAnimation !== 'iceberg'" class="live-stats">
+    <!-- Live stats (hidden for iceberg and forest which have their own) -->
+    <div v-if="selectedAnimation !== 'iceberg' && selectedAnimation !== 'forest'" class="live-stats">
       <div class="stat-card">
         <div class="stat-label">Power</div>
         <div class="stat-value">{{ Math.round(gpuStats.power_draw_watts || simulatedPower) }}W</div>
@@ -119,6 +126,7 @@ import EdutainmentProgressAnimation from '@/components/edutainment/EdutainmentPr
 import EnvironmentAnimation from '@/components/edutainment/EnvironmentAnimation.vue'
 import RetroCockpitAnimation from '@/components/edutainment/RetroCockpitAnimation.vue'
 import IcebergAnimation from '@/components/edutainment/IcebergAnimation.vue'
+import ForestMiniGame from '@/components/edutainment/ForestMiniGame.vue'
 import type { GpuRealtimeStats } from '@/composables/useEdutainmentFacts'
 
 // Animation selection
@@ -126,7 +134,8 @@ const animations = [
   { id: 'pixel', name: '1. Pixel + Bubbles' },
   { id: 'environment', name: '2. Umwelt-Landschaft' },
   { id: 'cockpit', name: '3. Retro Cockpit' },
-  { id: 'iceberg', name: '4. Klima-Eisberg' }
+  { id: 'iceberg', name: '4. Klima-Eisberg' },
+  { id: 'forest', name: '5. Wald-Spiel' }
 ]
 const selectedAnimation = ref('pixel')
 

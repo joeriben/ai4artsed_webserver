@@ -425,6 +425,12 @@ const messages = {
         energieverbrauch: 'Energieverbrauch',
         co2Menge: 'CO₂-Menge',
         smartphoneComparison: 'Du müsstest Dein Handy {minutes} Minuten ausgeschaltet lassen, um den CO₂-Verbrauch wieder auszugleichen!'
+      },
+      forest: {
+        trees: 'Bäume',
+        clickToPlant: 'Klicke um Bäume zu pflanzen!',
+        gameOver: 'Der Wald ist verloren!',
+        treesPlanted: 'Du hast {count} Bäume gepflanzt.'
       }
     }
   },
@@ -852,6 +858,12 @@ const messages = {
         energieverbrauch: 'Energy Usage',
         co2Menge: 'CO₂ Amount',
         smartphoneComparison: 'You would need to keep your phone off for {minutes} minutes to offset this CO₂ usage!'
+      },
+      forest: {
+        trees: 'Trees',
+        clickToPlant: 'Click to plant trees!',
+        gameOver: 'The forest is lost!',
+        treesPlanted: 'You planted {count} trees.'
       }
     }
   }
