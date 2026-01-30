@@ -9,6 +9,12 @@
         class="cloud"
         :style="cloud.style"
       ></div>
+
+      <!-- Flying bird (progress indicator: right to left) -->
+      <!-- Sprite-based animation from CodePen (Open Source) -->
+      <div class="bird-container" :style="birdStyle">
+        <div class="bird"></div>
+      </div>
     </div>
 
     <!-- Ground -->
@@ -55,17 +61,17 @@
       </div>
     </div>
 
-    <!-- Plant instruction -->
+    <!-- Plant instruction (before first click) / Cooldown indicator (after) -->
     <div class="plant-instruction" :class="{ cooldown: plantCooldown > 0 }">
-      <template v-if="plantCooldown > 0">
-        ⏳ {{ plantCooldown.toFixed(1) }}s
-      </template>
-      <template v-else>
+      <template v-if="treesPlanted === 0">
         {{ t('edutainment.forest.clickToPlant') }}
+      </template>
+      <template v-else-if="plantCooldown > 0">
+        ⏳ {{ plantCooldown.toFixed(1) }}s
       </template>
     </div>
 
-    <!-- Game over / Summary -->
+    <!-- Game over (all trees destroyed) -->
     <div v-if="gameOver" class="game-over">
       <div class="game-over-text">{{ t('edutainment.forest.gameOver') }}</div>
       <div class="game-over-co2">{{ totalCo2.toFixed(1) }}g CO₂</div>
@@ -75,6 +81,14 @@
       <div class="game-over-stats">
         {{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}
       </div>
+    </div>
+
+    <!-- Summary overlay (progress complete) -->
+    <div v-if="!gameOver && props.progress && props.progress > 90" class="summary-overlay">
+      <span class="summary-status">{{ t('edutainment.forest.complete') }}</span>
+      <span class="summary-detail">{{ totalCo2.toFixed(2) }}g CO₂</span>
+      <span class="summary-comparison">{{ t('edutainment.iceberg.comparison', { hours: treeHours }) }}</span>
+      <span class="summary-trees">{{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}</span>
     </div>
   </div>
 </template>
@@ -118,6 +132,10 @@ const treesPlanted = ref(0)
 const gameOver = ref(false)
 let nextId = 0
 
+// Bird animation (progress indicator)
+const birdProgress = ref(0)
+let birdAnimationId: number | null = null
+
 // GPU stats
 const gpuStats = ref<GpuRealtimeStats>({ available: false })
 const simulatedPower = ref(200)
@@ -142,6 +160,26 @@ const treeHours = computed(() => {
   const hours = totalCo2.value / 2.51
   return hours.toFixed(1)
 })
+
+// Bird style (flies from left to right as progress increases - European reading direction)
+const birdStyle = computed(() => {
+  // left: 5% at 0% progress, left: 95% at 100% progress
+  const leftPos = 5 + birdProgress.value * 0.9
+  return {
+    left: `${leftPos}%`,
+    top: `${15 + Math.sin(birdProgress.value * 0.3) * 5}%` // Slight wave motion
+  }
+})
+
+// Smooth bird animation
+function animateBird() {
+  const target = props.progress ?? 0
+  const diff = target - birdProgress.value
+  if (Math.abs(diff) > 0.01) {
+    birdProgress.value += diff * 0.08 // lerp for smooth movement
+  }
+  birdAnimationId = requestAnimationFrame(animateBird)
+}
 
 // Sky darkens with CO2
 const skyStyle = computed(() => {
@@ -364,12 +402,16 @@ onMounted(() => {
 
   // Energy calculation
   energyInterval = window.setInterval(updateEnergy, 1000)
+
+  // Start bird animation
+  animateBird()
 })
 
 onUnmounted(() => {
   if (gameLoopInterval) clearInterval(gameLoopInterval)
   if (gpuPollInterval) clearInterval(gpuPollInterval)
   if (energyInterval) clearInterval(energyInterval)
+  if (birdAnimationId) cancelAnimationFrame(birdAnimationId)
 })
 
 // Watch progress for auto-start behavior
@@ -651,6 +693,12 @@ watch(() => props.progress, (newProgress) => {
   font-size: 12px;
   font-weight: bold;
   transition: background 0.3s;
+  min-width: 60px;
+  text-align: center;
+}
+
+.plant-instruction:empty {
+  display: none;
 }
 
 .plant-instruction.cooldown {
@@ -694,5 +742,79 @@ watch(() => props.progress, (newProgress) => {
 .game-over-stats {
   color: rgba(255, 255, 255, 0.7);
   font-size: 12px;
+}
+
+/* Summary overlay (generation complete) */
+.summary-overlay {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 80;
+}
+
+.summary-status {
+  display: block;
+  color: #1e5631;
+  font-size: 18px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+}
+
+.summary-detail {
+  display: block;
+  color: #2d5a2d;
+  font-size: 15px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  margin-bottom: 6px;
+}
+
+.summary-comparison {
+  display: block;
+  color: #1e5631;
+  font-size: 14px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  margin-bottom: 10px;
+  max-width: 280px;
+}
+
+.summary-trees {
+  display: block;
+  color: #3d7a3d;
+  font-size: 12px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* Flying bird - Sprite-based animation (Open Source from CodePen) */
+/* Source: https://codepen.io/hoangdacviet/pen/GRWvWmg */
+.bird-container {
+  position: absolute;
+  z-index: 60;
+}
+
+.bird {
+  background-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/174479/bird-cells.svg');
+  background-size: auto 100%;
+  width: 88px;
+  height: 125px;
+  will-change: background-position;
+  animation: fly-cycle 1s steps(10) infinite;
+  /* Make bird white with filter */
+  filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+  transform: scale(0.4);
+}
+
+@keyframes fly-cycle {
+  100% {
+    background-position: -900px 0;
+  }
 }
 </style>

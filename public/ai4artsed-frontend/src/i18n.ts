@@ -430,7 +430,8 @@ const messages = {
         trees: 'Bäume',
         clickToPlant: 'Klicke um Bäume zu pflanzen!',
         gameOver: 'Der Wald ist verloren!',
-        treesPlanted: 'Du hast {count} Bäume gepflanzt.'
+        treesPlanted: 'Du hast {count} Bäume gepflanzt.',
+        complete: 'Generation abgeschlossen'
       }
     }
   },
@@ -863,7 +864,8 @@ const messages = {
         trees: 'Trees',
         clickToPlant: 'Click to plant trees!',
         gameOver: 'The forest is lost!',
-        treesPlanted: 'You planted {count} trees.'
+        treesPlanted: 'You planted {count} trees.',
+        complete: 'Generation complete'
       }
     }
   }
