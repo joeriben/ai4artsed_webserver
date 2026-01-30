@@ -1540,22 +1540,12 @@ async function executePipeline() {
   }
 
   // Session 148: Progress simulation (starts when stage4_start event arrives)
-  // Parse estimated_duration_seconds (handle ranges like "20-60" → use minimum 20)
-  let durationSeconds = 30  // fallback if parsing fails
-  const durationStr = estimatedDurationSeconds.value
+  // Use estimatedGenerationSeconds from OUTPUT config (not optimization config!)
+  let durationSeconds = estimatedGenerationSeconds.value || 30
 
-  if (durationStr.includes('-')) {
-    durationSeconds = parseInt(durationStr.split('-')[0] || '30')
-  } else {
-    durationSeconds = parseInt(durationStr)
-  }
-
-  if (durationSeconds === 0 || isNaN(durationSeconds)) {
-    durationSeconds = 5
-  }
-
+  // Apply 0.9 multiplier so animation finishes slightly before actual completion
   durationSeconds = durationSeconds * 0.9
-  console.log(`[Progress] Using ${durationSeconds}s animation`)
+  console.log(`[Progress] Using ${durationSeconds}s animation (from output config: ${selectedConfig.value})`)
 
   const targetProgress = 98
   const updateInterval = 100

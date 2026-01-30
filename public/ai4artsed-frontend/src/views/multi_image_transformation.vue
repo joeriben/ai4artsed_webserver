@@ -320,7 +320,6 @@ const {
   executeWithStreaming,
   reset: resetGenerationStream
 } = useGenerationStream()
-const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
 
 // Image Analysis
 const isAnalyzing = ref(false)
@@ -855,21 +854,12 @@ async function startGeneration() {
   setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
 
   // Session 148: Progress simulation (starts when stage4_start event arrives)
-  let durationSeconds = 30
-  const durationStr = estimatedDurationSeconds.value
+  // Use estimatedGenerationSeconds from OUTPUT config (not optimization config!)
+  let durationSeconds = estimatedGenerationSeconds.value || 30
 
-  if (durationStr.includes('-')) {
-    durationSeconds = parseInt(durationStr.split('-')[0] || '30')
-  } else {
-    durationSeconds = parseInt(durationStr)
-  }
-
-  if (durationSeconds === 0 || isNaN(durationSeconds)) {
-    durationSeconds = 5
-  }
-
+  // Apply 0.9 multiplier so animation finishes slightly before actual completion
   durationSeconds = durationSeconds * 0.9
-  console.log(`[Progress] Using ${durationSeconds}s animation`)
+  console.log(`[Progress] Using ${durationSeconds}s animation (from output config: ${selectedConfig.value})`)
 
   const targetProgress = 98
   const updateInterval = 100
