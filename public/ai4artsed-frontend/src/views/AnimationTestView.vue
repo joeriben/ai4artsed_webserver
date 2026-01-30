@@ -74,6 +74,13 @@
           :gpu-name="gpuStats.gpu_name || 'Simulated GPU'"
         />
       </div>
+
+      <!-- 4. Klima-Eisberg Animation -->
+      <div v-if="selectedAnimation === 'iceberg'" class="animation-wrapper">
+        <IcebergAnimation
+          :progress="progress"
+        />
+      </div>
     </div>
 
     <!-- Live stats -->
@@ -111,13 +118,15 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import EdutainmentProgressAnimation from '@/components/edutainment/EdutainmentProgressAnimation.vue'
 import EnvironmentAnimation from '@/components/edutainment/EnvironmentAnimation.vue'
 import RetroCockpitAnimation from '@/components/edutainment/RetroCockpitAnimation.vue'
+import IcebergAnimation from '@/components/edutainment/IcebergAnimation.vue'
 import type { GpuRealtimeStats } from '@/composables/useEdutainmentFacts'
 
 // Animation selection
 const animations = [
   { id: 'pixel', name: '1. Pixel + Bubbles' },
   { id: 'environment', name: '2. Umwelt-Landschaft' },
-  { id: 'cockpit', name: '3. Retro Cockpit' }
+  { id: 'cockpit', name: '3. Retro Cockpit' },
+  { id: 'iceberg', name: '4. Klima-Eisberg' }
 ]
 const selectedAnimation = ref('pixel')
 

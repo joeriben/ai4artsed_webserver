@@ -406,6 +406,15 @@ const messages = {
         expert_1: '📊 Berechnung: {watts}W × {seconds}s ÷ 3600 × 400g/kWh = {co2}g CO₂',
         expert_2: '🔬 Scope 2 Emissionen: Standort des Rechenzentrums entscheidend',
         expert_3: '⚡ PUE (Power Usage Effectiveness): Zusätzlicher Energie-Overhead für Kühlung'
+      },
+      iceberg: {
+        drawPrompt: 'Zeichne deinen Eisberg!',
+        redraw: 'Neu zeichnen',
+        startMelting: 'Schmelzen starten',
+        melting: 'Eisberg schmilzt...',
+        melted: 'Eisberg geschmolzen!',
+        meltedMessage: 'Dein Eisberg ist geschmolzen. Du hast {co2}g CO₂ produziert.',
+        comparison: 'Das entspricht einem Baum, der {minutes} Minuten braucht um es zu absorbieren.'
       }
     }
   },
@@ -814,6 +823,15 @@ const messages = {
         expert_1: '📊 Calculation: {watts}W × {seconds}s ÷ 3600 × 400g/kWh = {co2}g CO₂',
         expert_2: '🔬 Scope 2 emissions: data center location is decisive',
         expert_3: '⚡ PUE (Power Usage Effectiveness): Additional energy overhead for cooling'
+      },
+      iceberg: {
+        drawPrompt: 'Draw your iceberg!',
+        redraw: 'Redraw',
+        startMelting: 'Start melting',
+        melting: 'Iceberg melting...',
+        melted: 'Iceberg melted!',
+        meltedMessage: 'Your iceberg has melted. You produced {co2}g CO₂.',
+        comparison: 'That\'s equivalent to a tree needing {minutes} minutes to absorb it.'
       }
     }
   }
