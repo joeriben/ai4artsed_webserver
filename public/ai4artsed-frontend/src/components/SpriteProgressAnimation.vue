@@ -21,8 +21,8 @@
         </div>
       </div>
 
-      <!-- Summary overlay when generation complete -->
-      <div v-if="progress >= 100" class="summary-overlay">
+      <!-- Summary overlay when generation near complete (>=80% to account for fast generations) -->
+      <div v-if="progress >= 80" class="summary-overlay">
         <div class="summary-comparison">
           {{ t('edutainment.pixel.smartphoneComparison', { minutes: smartphoneMinutes }) }}
         </div>

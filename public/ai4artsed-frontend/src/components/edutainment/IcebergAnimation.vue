@@ -30,8 +30,8 @@
       </div>
 
 
-      <!-- Melted/Summary message (shows when all icebergs melted OR progress > 90%) -->
-      <div v-if="state === 'melted' || (props.progress && props.progress > 90)" class="state-overlay melted">
+      <!-- Melted/Summary message (shows when all icebergs melted OR progress >= 80%) -->
+      <div v-if="state === 'melted' || (props.progress && props.progress >= 80)" class="state-overlay melted">
         <span class="status">{{ t('edutainment.iceberg.melted') }}</span>
         <span class="detail">{{ t('edutainment.iceberg.meltedMessage', { co2: totalCo2.toFixed(2) }) }}</span>
         <span class="comparison">{{ t('edutainment.iceberg.comparison', { volume: iceMeltVolume }) }}</span>

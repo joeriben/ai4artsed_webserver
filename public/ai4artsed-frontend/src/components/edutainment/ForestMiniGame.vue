@@ -87,8 +87,8 @@
       </div>
     </div>
 
-    <!-- Summary overlay (progress complete) -->
-    <div v-if="!gameOver && props.progress && props.progress > 90" class="summary-overlay">
+    <!-- Summary overlay (progress >= 80% to account for fast generations) -->
+    <div v-if="!gameOver && props.progress && props.progress >= 80" class="summary-overlay">
       <span class="summary-status">{{ t('edutainment.forest.complete') }}</span>
       <span class="summary-detail">{{ totalCo2.toFixed(2) }}g CO₂</span>
       <span class="summary-comparison">{{ t('edutainment.forest.comparison', { hours: treeHours }) }}</span>
