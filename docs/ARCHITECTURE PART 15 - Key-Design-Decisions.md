@@ -320,3 +320,127 @@ transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 
 ---
 
+### 9. Edutainment Animations: GPU Impact Visualization
+
+**Decision:** Create interactive animations that visualize the environmental impact of AI generation in real-time, using scientifically grounded comparisons
+
+**Problem:**
+- Users are unaware of the energy consumption and CO2 emissions during AI image generation
+- Abstract numbers (watts, grams CO2) lack emotional/educational impact
+- Standard progress bars provide no pedagogical value
+- Need to make invisible environmental costs visible and tangible
+
+**Solution: Three Complementary Animations**
+
+| Animation | Metaphor | Educational Focus |
+|-----------|----------|-------------------|
+| **IcebergAnimation** | Melting Arctic ice | Climate change connection |
+| **ForestMiniGame** | Deforestation battle | Trees as CO2 absorbers |
+| **PixelAnimation** | Token processing | GPU stats + smartphone comparison |
+
+#### Scientific Calculations
+
+**1. Tree CO2 Absorption (ForestMiniGame, IcebergAnimation fallback)**
+
+```
+Source: Multiple forestry studies (EPA, Arbor Day Foundation, research papers)
+
+Mature tree absorption rate:
+- Average tree absorbs ~22 kg CO2/year
+- Calculation: 22,000g / 365 days / 24 hours = ~2.51 g/hour
+
+Code implementation:
+const treeHours = computed(() => {
+  const hours = totalCo2.value / 2.51
+  return hours.toFixed(1)
+})
+
+Example: 5g CO2 generated → "Ein Baum braucht 2.0 Stunden zur Absorption"
+```
+
+**2. Arctic Ice Melt (IcebergAnimation)**
+
+```
+Source: Notz & Stroeve (2016), Science journal
+Study: "Observed Arctic sea-ice loss directly follows cumulative CO2 emissions"
+DOI: 10.1126/science.aag2345
+
+Key finding: ~3 m² Arctic summer sea ice lost per metric ton of CO2 emitted
+
+Volume calculation (assuming average ice thickness ~2m):
+- 1 ton CO2 = 3 m² × 2m = 6 m³ ice
+- 1 kg CO2 = 6,000 cm³ ice
+- 1 g CO2 = 6 cm³ ice
+
+Code implementation:
+const iceMeltVolume = computed(() => {
+  const volumeCm3 = totalCo2.value * 6
+  return Math.round(volumeCm3)
+})
+
+Example: 5g CO2 generated → "Diese Menge lässt ~30 cm³ Arktis-Eis schmelzen"
+```
+
+**3. Smartphone Comparison (PixelAnimation)**
+
+```
+Source: Energy consumption studies, German energy mix data
+
+Smartphone power consumption (idle/standby): ~5W
+German energy mix CO2 intensity: ~400g CO2/kWh
+
+Calculation:
+- Smartphone CO2 per hour: 5W × 1h / 1000 × 400g = 2g/hour
+- Minutes per gram CO2: 60 min / 2g = 30 minutes
+
+Code implementation:
+const smartphoneMinutes = computed(() => {
+  const minutes = totalCo2.value * 30
+  return Math.round(minutes)
+})
+
+Example: 5g CO2 generated → "Du müsstest Dein Handy 150 Minuten ausschalten"
+```
+
+**Pädagogische Intention:**
+
+1. **Sichtbarmachung:** Unsichtbare Umweltkosten werden durch visuelle Metaphern greifbar
+   - Schmelzende Eisberge → globale Klimafolgen
+   - Verschwindende Bäume → lokale Ökosysteme
+   - Handy-Minuten → persönlicher Alltag
+
+2. **Handlungsbezug:** ForestMiniGame erzeugt Verantwortungsgefühl
+   - Aktives Gegenhandeln (Bäume pflanzen) während Verbrauch läuft
+   - Fabrik-Spawn-Rate proportional zur GPU-Leistung (~1.1/sec bei 450W)
+   - Spielerisches Lernen: "Kann ich schneller pflanzen als Fabriken entstehen?"
+
+3. **Vergleichbarkeit:** Abstrakte Zahlen werden relational
+   - Nicht "5g CO2" sondern "2 Stunden Baumarbeit"
+   - Nicht "0.02 kWh" sondern "30 cm³ Eis"
+   - Altersgerechte Vergleiche (Kinder: Eisberg, Jugendliche: Smartphone)
+
+4. **Echtzeit-Feedback:** Werte ändern sich während Generation
+   - GPU-Polling alle 2 Sekunden
+   - Simulated values wenn echte GPU idle
+   - Fortschrittsanzeigen (Vogel, Schiff) für Orientierung
+
+**Design-Prinzipien:**
+
+- **Wissenschaftliche Genauigkeit:** Alle Berechnungen basieren auf peer-reviewed Studien
+- **Altersgerecht:** Verschiedene Metaphern für verschiedene Zielgruppen
+- **Interaktiv:** Nicht nur Beobachten, sondern Handeln (ForestMiniGame)
+- **Nicht moralisierend:** Information statt Vorwurf ("Du müsstest..." nicht "Du solltest...")
+
+**Files:**
+- `src/components/edutainment/IcebergAnimation.vue` - Ice melt visualization
+- `src/components/edutainment/ForestMiniGame.vue` - Interactive tree planting game
+- `src/components/SpriteProgressAnimation.vue` - GPU stats + smartphone comparison
+- `src/components/edutainment/EdutainmentProgressAnimation.vue` - Wrapper component
+
+**Third-Party Assets:**
+- Flying bird sprite: CodePen (MIT License) - see `THIRD_PARTY_CREDITS.md`
+
+**Session:** Session 151 (2026-01-31)
+
+---
+

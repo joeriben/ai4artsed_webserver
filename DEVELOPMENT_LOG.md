@@ -1,5 +1,84 @@
 # Development Log
 
+## Session 151 - Edutainment Animations: Environmental Impact Visualization
+**Date:** 2026-01-31
+**Focus:** Wissenschaftlich fundierte CO2-Visualisierungen für AI-Generierung
+**Status:** IN PROGRESS
+
+### Neue Features
+
+**1. IcebergAnimation - Arktis-Eis-Schmelze**
+- Zeichne Eisberge, beobachte Schmelzen während GPU arbeitet
+- Segelschiff als Fortschrittsanzeige (links→rechts)
+- Abschluss-Info: CO2-Menge → cm³ geschmolzenes Arktis-Eis
+- Berechnung: 1g CO2 = 6 cm³ Eis (basierend auf Notz & Stroeve 2016)
+
+**2. ForestMiniGame - Interaktives Baumpflanzen**
+- Spiel: Pflanze Bäume gegen Fabriken (GPU-Power = Fabrik-Spawn-Rate)
+- 7 Baumtypen (Kiefer, Fichte, Tanne, Eiche, Birke, Ahorn, Weide)
+- Vogel als Fortschrittsanzeige (Sprite-Animation, Open Source)
+- Fabrik auf Baum → Fabrik verschwindet
+- Abschluss: Baum-CO2-Absorption (22kg/Jahr = 2.51g/Stunde)
+
+**3. PixelAnimation - GPU-Stats + Smartphone-Vergleich**
+- Echtzeit GPU-Werte: Grafikkarte, Energieverbrauch, CO2
+- Abschluss: "Du müsstest Dein Handy X Minuten ausschalten"
+- Berechnung: 5W Smartphone × 400g CO2/kWh = 30 min pro g CO2
+
+### Wissenschaftliche Grundlagen
+
+| Metrik | Wert | Quelle |
+|--------|------|--------|
+| Baum CO2-Absorption | 22 kg/Jahr | EPA, Arbor Day Foundation |
+| Arktis-Eisverlust | 3 m²/Tonne CO2 | Notz & Stroeve, Science 2016 |
+| Eisdicke (Durchschnitt) | ~2m | → 6 m³/Tonne = 6 cm³/g |
+| Smartphone Standby | ~5W | Energiestudien |
+| Deutscher Strommix | ~400g CO2/kWh | Umweltbundesamt |
+
+### Pädagogische Intention
+
+**Sichtbarmachung unsichtbarer Kosten:**
+- Abstrakte Zahlen (Watt, Gramm) → greifbare Metaphern
+- Eisschmelze → globale Klimafolgen
+- Bäume → lokale Ökosysteme
+- Smartphone → persönlicher Alltag
+
+**Handlungsbezug (ForestMiniGame):**
+- Aktives Gegenhandeln während Verbrauch läuft
+- Spielerische Reflexion: "Kann ich schneller pflanzen?"
+- Nicht moralisierend, sondern informierend
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `IcebergAnimation.vue` | Neuer Vergleich (cm³ Eis statt Baum-Stunden) |
+| `ForestMiniGame.vue` | Vogel-Animation, Abschluss-Overlay |
+| `SpriteProgressAnimation.vue` | GPU-Stats, Smartphone-Vergleich |
+| `i18n.ts` | Neue Übersetzungen (iceberg, forest) |
+| `ARCHITECTURE PART 15.md` | Design Decision #9 |
+| `THIRD_PARTY_CREDITS.md` | Vogel-Sprite Lizenz |
+
+### Integration in MediaOutputBox
+
+**RandomEdutainmentAnimation.vue** - Wrapper-Komponente:
+- Wählt zufällig eine der 3 Animationen bei Mount
+- Bleibt während gesamter Generation konstant
+- Empfängt nur `progress` prop
+
+**Änderung in MediaOutputBox:**
+- Ersetzt `SpriteProgressAnimation` durch `RandomEdutainmentAnimation`
+- Alle Views die MediaOutputBox nutzen erhalten automatisch die neuen Animationen
+
+### Fixes
+- **Fehlende Eis-Zahl:** IcebergAnimation startet jetzt Energy-Tracking automatisch wenn progress > 0
+- **Falsche Vergleiche:** ForestMiniGame nutzt jetzt `forest.comparison` (Baum), nicht `iceberg.comparison` (Eis)
+
+### Commits
+- `4d70f26` feat(forest): Add bird progress indicator and summary overlay
+
+---
+
 ## Session 148 - "Translated" Badge mit SSE-Streaming
 **Date:** 2026-01-30
 **Focus:** Echtzeit-Badge via SSE wenn Prompt übersetzt wird (vor Bildgenerierung)

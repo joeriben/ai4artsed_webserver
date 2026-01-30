@@ -15,6 +15,10 @@
           <span class="stat-label">{{ t('edutainment.pixel.co2Menge') }}</span>
           <span class="stat-value">{{ totalCo2.toFixed(1) }}g</span>
         </div>
+        <div v-if="estimatedSeconds" class="stat">
+          <span class="stat-label">~</span>
+          <span class="stat-value">{{ estimatedSeconds }}s</span>
+        </div>
       </div>
 
       <!-- Summary overlay when generation complete -->
@@ -85,6 +89,7 @@ const { t } = useI18n()
 
 const props = defineProps<{
   progress: number // 0-100
+  estimatedSeconds?: number // From output config
   gpuPower?: number // Watts
   gpuTemp?: number // Celsius
   totalEnergy?: number // Wh

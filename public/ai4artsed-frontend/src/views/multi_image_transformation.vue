@@ -214,6 +214,7 @@
         :media-type="outputMediaType"
         :is-executing="isPipelineExecuting"
         :progress="generationProgress"
+        :estimated-seconds="estimatedGenerationSeconds"
         :is-analyzing="isAnalyzing"
         :show-analysis="showAnalysis"
         :analysis-data="imageAnalysis"
@@ -278,6 +279,14 @@ const contextPrompt = ref('')
 const selectedCategory = ref<string | null>('image')  // Default: image (only option for multi-image)
 const selectedConfig = ref<string | null>('qwen_2511_multi')  // Default: qwen (only multi-image model)
 const hoveredConfigId = ref<string | null>(null)  // For hover cards
+
+// Estimated generation duration from selected config
+const estimatedGenerationSeconds = computed(() => {
+  if (!selectedConfig.value || !selectedCategory.value) return 30
+  const configs = configsByCategory[selectedCategory.value] || []
+  const config = configs.find(c => c.id === selectedConfig.value)
+  return parseInt(config?.duration || '30') || 30
+})
 
 // Phase 4: Seed management
 const previousOptimizedPrompt = ref('')

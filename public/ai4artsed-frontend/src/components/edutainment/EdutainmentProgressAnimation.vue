@@ -3,6 +3,7 @@
     <!-- Original Pixel Animation with GPU Stats -->
     <SpriteProgressAnimation
       :progress="progress"
+      :estimated-seconds="estimatedSeconds"
       :gpu-power="gpuStats.power_draw_watts || simulatedPower"
       :gpu-temp="gpuStats.temperature_celsius || simulatedTemp"
       :total-energy="totalEnergyWh"
@@ -27,6 +28,7 @@ import type { GpuRealtimeStats } from '@/composables/useEdutainmentFacts'
 
 const props = defineProps<{
   progress: number
+  estimatedSeconds?: number
 }>()
 
 // State

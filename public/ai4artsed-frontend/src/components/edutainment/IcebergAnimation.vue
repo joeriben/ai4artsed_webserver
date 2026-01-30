@@ -34,7 +34,8 @@
       <div v-if="state === 'melted' || (props.progress && props.progress > 90)" class="state-overlay melted">
         <span class="status">{{ t('edutainment.iceberg.melted') }}</span>
         <span class="detail">{{ t('edutainment.iceberg.meltedMessage', { co2: totalCo2.toFixed(2) }) }}</span>
-        <span class="comparison">{{ t('edutainment.iceberg.comparison', { hours: treeHours }) }}</span>
+        <span class="comparison">{{ t('edutainment.iceberg.comparison', { volume: iceMeltVolume }) }}</span>
+        <span class="comparison-info">{{ t('edutainment.iceberg.comparisonInfo') }}</span>
       </div>
     </div>
 
@@ -51,6 +52,10 @@
       <div class="stat" :title="t('edutainment.iceberg.co2Info')">
         <span class="stat-label">CO₂</span>
         <span class="stat-value">{{ totalCo2.toFixed(1) }}g</span>
+      </div>
+      <div v-if="estimatedSeconds" class="stat">
+        <span class="stat-label">~</span>
+        <span class="stat-value">{{ estimatedSeconds }}s</span>
       </div>
     </div>
 
@@ -77,6 +82,7 @@ const { t } = useI18n()
 const props = defineProps<{
   autoStart?: boolean
   progress?: number
+  estimatedSeconds?: number
 }>()
 
 // State
@@ -170,10 +176,11 @@ const effectiveTemp = computed(() => {
   return realPower > 100 ? realTemp : simulatedTemp.value
 })
 
-// Tree absorbs ~22kg CO2/year = ~2.51g/hour (mature tree average)
-const treeHours = computed(() => {
-  const hours = totalCo2.value / 2.51
-  return hours.toFixed(1)
+// Arctic ice melt: 1 ton CO2 = ~3m² sea ice loss × ~2m avg thickness = ~6m³
+// 1g CO2 = 6 cm³ ice melt
+const iceMeltVolume = computed(() => {
+  const volumeCm3 = totalCo2.value * 6
+  return Math.round(volumeCm3)
 })
 
 // Animation
@@ -727,8 +734,11 @@ function resetAnimation() {
 // ==================== Lifecycle ====================
 
 watch(() => props.progress, (newProgress) => {
-  if (props.autoStart && newProgress && newProgress > 0 && state.value === 'idle') {
-    // Auto-start with a default iceberg if progress starts
+  if (newProgress && newProgress > 0) {
+    // Auto-start energy tracking when progress begins (for use without drawing)
+    if (!energyInterval) {
+      startGpuPolling()
+    }
   }
   // Ship position is now smoothly animated via animateShip()
 })
@@ -852,6 +862,16 @@ onUnmounted(() => {
   font-family: 'Georgia', 'Times New Roman', serif;
   font-style: italic;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  margin-bottom: 5px;
+}
+
+.comparison-info {
+  display: block;
+  color: #1a5276;
+  font-size: 11px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  opacity: 0.7;
   margin-bottom: 15px;
 }
 

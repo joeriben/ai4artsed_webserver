@@ -2,9 +2,9 @@
   <section class="pipeline-section" ref="sectionRef">
     <!-- Output Frame (Always visible) -->
     <div class="output-frame" :class="{ empty: !isExecuting && !outputImage, generating: isExecuting && !outputImage }">
-      <!-- Generation Progress Animation -->
+      <!-- Generation Progress Animation (random selection of 3 edutainment games) -->
       <div v-if="isExecuting && !outputImage" class="generation-animation-container">
-        <SpriteProgressAnimation :progress="progress" />
+        <RandomEdutainmentAnimation :progress="progress" :estimated-seconds="estimatedSeconds" />
       </div>
 
       <!-- Empty State with inactive Actions -->
@@ -249,7 +249,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
+import RandomEdutainmentAnimation from '@/components/edutainment/RandomEdutainmentAnimation.vue'
 
 // Template ref for autoscroll functionality
 const sectionRef = ref<HTMLElement | null>(null)
@@ -266,6 +266,7 @@ interface Props {
   mediaType: string
   isExecuting: boolean
   progress: number
+  estimatedSeconds?: number
   isAnalyzing?: boolean
   showAnalysis?: boolean
   analysisData?: AnalysisData | null

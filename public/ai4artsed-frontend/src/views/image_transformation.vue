@@ -162,6 +162,7 @@
         :media-type="outputMediaType"
         :is-executing="isPipelineExecuting"
         :progress="generationProgress"
+        :estimated-seconds="estimatedGenerationSeconds"
         :is-analyzing="isAnalyzing"
         :show-analysis="showAnalysis"
         :analysis-data="imageAnalysis"
@@ -225,6 +226,14 @@ const contextPrompt = ref('')
 const selectedCategory = ref<string | null>(null)
 const selectedConfig = ref<string | null>(null)  // User selects model from bubbles
 const hoveredConfigId = ref<string | null>(null)  // For hover cards
+
+// Estimated generation duration from selected config
+const estimatedGenerationSeconds = computed(() => {
+  if (!selectedConfig.value || !selectedCategory.value) return 30
+  const configs = configsByCategory[selectedCategory.value] || []
+  const config = configs.find(c => c.id === selectedConfig.value)
+  return parseInt(config?.duration || '30') || 30
+})
 
 // Model availability (Session 91+)
 const modelAvailability = ref<ModelAvailability>({})

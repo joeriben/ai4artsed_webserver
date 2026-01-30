@@ -59,6 +59,10 @@
         <span class="stat-label">{{ t('edutainment.pixel.co2Menge') }}</span>
         <span class="stat-value">{{ totalCo2.toFixed(1) }}g</span>
       </div>
+      <div v-if="estimatedSeconds" class="stat">
+        <span class="stat-label">~</span>
+        <span class="stat-value">{{ estimatedSeconds }}s</span>
+      </div>
     </div>
 
     <!-- Plant instruction (before first click) / Cooldown indicator (after) -->
@@ -76,7 +80,7 @@
       <div class="game-over-text">{{ t('edutainment.forest.gameOver') }}</div>
       <div class="game-over-co2">{{ totalCo2.toFixed(1) }}g CO₂</div>
       <div class="game-over-comparison">
-        {{ t('edutainment.iceberg.comparison', { hours: treeHours }) }}
+        {{ t('edutainment.forest.comparison', { hours: treeHours }) }}
       </div>
       <div class="game-over-stats">
         {{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}
@@ -87,7 +91,7 @@
     <div v-if="!gameOver && props.progress && props.progress > 90" class="summary-overlay">
       <span class="summary-status">{{ t('edutainment.forest.complete') }}</span>
       <span class="summary-detail">{{ totalCo2.toFixed(2) }}g CO₂</span>
-      <span class="summary-comparison">{{ t('edutainment.iceberg.comparison', { hours: treeHours }) }}</span>
+      <span class="summary-comparison">{{ t('edutainment.forest.comparison', { hours: treeHours }) }}</span>
       <span class="summary-trees">{{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}</span>
     </div>
   </div>
@@ -102,6 +106,7 @@ const { t } = useI18n()
 
 const props = defineProps<{
   progress?: number
+  estimatedSeconds?: number
 }>()
 
 // Tree types for variety (conifers and broadleaf)

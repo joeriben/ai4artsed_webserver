@@ -414,7 +414,8 @@ const messages = {
         melting: 'Eisberg schmilzt...',
         melted: 'Geschmolzen!',
         meltedMessage: '{co2}g CO₂ produziert',
-        comparison: 'Ein durchschnittlicher Baum braucht {hours} Stunden, um diese CO₂-Menge zu absorbieren.',
+        comparison: 'Diese CO₂-Menge lässt etwa {volume} cm³ Arktis-Eis schmelzen.',
+        comparisonInfo: '(Jede Tonne CO₂ = ca. 6m³ Meereis-Verlust)',
         gpuPower: 'Stromverbrauch der Grafikkarte',
         gpuTemp: 'Temperatur der Grafikkarte',
         co2Info: 'CO₂-Emissionen durch Stromverbrauch (basierend auf deutschem Strommix)',
@@ -431,7 +432,8 @@ const messages = {
         clickToPlant: 'Klicke um Bäume zu pflanzen!',
         gameOver: 'Der Wald ist verloren!',
         treesPlanted: 'Du hast {count} Bäume gepflanzt.',
-        complete: 'Generation abgeschlossen'
+        complete: 'Generation abgeschlossen',
+        comparison: 'Ein durchschnittlicher Baum braucht {hours} Stunden, um diese CO₂-Menge zu absorbieren.'
       }
     }
   },
@@ -848,7 +850,8 @@ const messages = {
         melting: 'Iceberg melting...',
         melted: 'Melted!',
         meltedMessage: '{co2}g CO₂ produced',
-        comparison: 'An average tree needs {hours} hours to absorb this amount of CO₂.',
+        comparison: 'This CO₂ amount melts about {volume} cm³ of Arctic ice.',
+        comparisonInfo: '(Each ton of CO₂ = approx. 6m³ sea ice loss)',
         gpuPower: 'Graphics card power consumption',
         gpuTemp: 'Graphics card temperature',
         co2Info: 'CO₂ emissions from power consumption (based on German energy mix)',
@@ -865,7 +868,8 @@ const messages = {
         clickToPlant: 'Click to plant trees!',
         gameOver: 'The forest is lost!',
         treesPlanted: 'You planted {count} trees.',
-        complete: 'Generation complete'
+        complete: 'Generation complete',
+        comparison: 'An average tree needs {hours} hours to absorb this amount of CO₂.'
       }
     }
   }

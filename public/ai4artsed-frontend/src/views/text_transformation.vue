@@ -398,6 +398,7 @@
           :media-type="outputMediaType"
           :is-executing="isPipelineExecuting"
           :progress="generationProgress"
+          :estimated-seconds="estimatedGenerationSeconds"
           :is-analyzing="isAnalyzing"
           :show-analysis="showAnalysis"
           :analysis-data="imageAnalysis"
@@ -506,6 +507,21 @@ const contextPrompt = ref('')
 const focusedField = ref<'input' | 'context' | 'interception' | 'optimization' | null>(null)
 const selectedCategory = ref<string | null>(null)
 const selectedConfig = ref<string | null>(null)
+
+// Estimated generation duration from output config (for animation display)
+const estimatedGenerationSeconds = computed(() => {
+  if (!selectedConfig.value) return 30
+  const chunk = chunkMetadata.value[selectedConfig.value]
+  if (!chunk?.duration) return 30
+  // Handle ranges like "20-60" → use average
+  const durationStr = String(chunk.duration)
+  if (durationStr.includes('-')) {
+    const [min, max] = durationStr.split('-').map(s => parseInt(s))
+    return Math.round(((min || 30) + (max || 30)) / 2)
+  }
+  return parseInt(durationStr) || 30
+})
+
 const interceptionResult = ref('')
 const isInterceptionLoading = ref(false)
 const optimizedPrompt = ref('')
