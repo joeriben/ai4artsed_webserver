@@ -419,6 +419,12 @@ const messages = {
         gpuTemp: 'Temperatur der Grafikkarte',
         co2Info: 'CO₂-Emissionen durch Stromverbrauch (basierend auf deutschem Strommix)',
         drawAgain: 'Zeichne weitere Eisberge...'
+      },
+      pixel: {
+        grafikkarte: 'Grafikkarte',
+        energieverbrauch: 'Energieverbrauch',
+        co2Menge: 'CO₂-Menge',
+        smartphoneComparison: 'Du müsstest Dein Handy {minutes} Minuten ausgeschaltet lassen, um den CO₂-Verbrauch wieder auszugleichen!'
       }
     }
   },
@@ -840,6 +846,12 @@ const messages = {
         gpuTemp: 'Graphics card temperature',
         co2Info: 'CO₂ emissions from power consumption (based on German energy mix)',
         drawAgain: 'Draw more icebergs...'
+      },
+      pixel: {
+        grafikkarte: 'Graphics Card',
+        energieverbrauch: 'Energy Usage',
+        co2Menge: 'CO₂ Amount',
+        smartphoneComparison: 'You would need to keep your phone off for {minutes} minutes to offset this CO₂ usage!'
       }
     }
   }

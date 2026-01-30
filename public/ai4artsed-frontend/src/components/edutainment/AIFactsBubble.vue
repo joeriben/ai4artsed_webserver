@@ -148,7 +148,7 @@ onUnmounted(() => {
 <style scoped>
 .facts-bubble-container {
   position: absolute;
-  top: 50px;
+  top: 0px;
   left: 50%;
   transform: translateX(-50%);
   width: 200px;

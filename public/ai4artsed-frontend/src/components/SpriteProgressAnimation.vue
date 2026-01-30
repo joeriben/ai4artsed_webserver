@@ -1,8 +1,28 @@
 <template>
   <div class="progress-animation-container">
     <div class="token-processing-scene">
-      <!-- Simple generating text with cursor -->
-      <div class="generating-text">generating {{ elapsedSeconds }} sec.<span class="cursor">_</span></div>
+      <!-- GPU Stats Bar (like Iceberg, but terminal-styled) -->
+      <div class="stats-bar">
+        <div class="stat">
+          <span class="stat-label">{{ t('edutainment.pixel.grafikkarte') }}</span>
+          <span class="stat-value">{{ Math.round(gpuPower) }}W / {{ Math.round(gpuTemp) }}°C<span class="cursor">_</span></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">{{ t('edutainment.pixel.energieverbrauch') }}</span>
+          <span class="stat-value">{{ (totalEnergy / 1000).toFixed(4) }}kWh</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">{{ t('edutainment.pixel.co2Menge') }}</span>
+          <span class="stat-value">{{ totalCo2.toFixed(1) }}g</span>
+        </div>
+      </div>
+
+      <!-- Summary overlay when generation complete -->
+      <div v-if="progress >= 100" class="summary-overlay">
+        <div class="summary-comparison">
+          {{ t('edutainment.pixel.smartphoneComparison', { minutes: smartphoneMinutes }) }}
+        </div>
+      </div>
 
       <!-- Input Grid (Left) -->
       <div class="input-grid-container">
@@ -53,25 +73,37 @@
         </div>
       </div>
 
-      <!-- Progress Bar at Bottom -->
-      <div class="progress-bar-container">
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" :style="{ width: progress + '%' }">
-            <div class="progress-shine"></div>
           </div>
-        </div>
-        <div class="progress-text">{{ Math.round(progress) }}%</div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   progress: number // 0-100
+  gpuPower?: number // Watts
+  gpuTemp?: number // Celsius
+  totalEnergy?: number // Wh
+  totalCo2?: number // grams
 }>()
+
+// Default values for GPU stats
+const gpuPower = computed(() => props.gpuPower ?? 0)
+const gpuTemp = computed(() => props.gpuTemp ?? 0)
+const totalEnergy = computed(() => props.totalEnergy ?? 0)
+const totalCo2 = computed(() => props.totalCo2 ?? 0)
+
+// Smartphone uses ~5W (idle/standby), German energy mix ~400g CO2/kWh
+// CO2 per hour of smartphone: 5W * 1h / 1000 * 400g = 2g/hour
+// Minutes to save X grams: X / 2 * 60 = X * 30 minutes
+const smartphoneMinutes = computed(() => {
+  const minutes = totalCo2.value * 30
+  return Math.round(minutes)
+})
 
 const totalTokens = 196 // 14x14 grid
 // Animation completes at 90%, so scale progress accordingly
@@ -841,19 +873,38 @@ function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: numb
   border-radius: 12px;
 }
 
-/* Generating text with cursor */
-.generating-text {
+/* Stats bar (terminal-styled like Iceberg) */
+.stats-bar {
   position: absolute;
-  top: 15px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
-  font-family: 'Courier New', monospace;
-  font-size: 16px;
-  font-weight: normal;
-  letter-spacing: 2px;
-  color: #0f0;
-  text-shadow: 0 0 8px #0f0;
+  display: flex;
+  gap: 20px;
   z-index: 100;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-label {
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: rgba(0, 255, 0, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #0f0;
+  font-weight: bold;
+  text-shadow: 0 0 8px #0f0;
 }
 
 .cursor {
@@ -863,6 +914,33 @@ function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: numb
 @keyframes cursor-blink {
   0%, 50% { opacity: 1; }
   50.1%, 100% { opacity: 0; }
+}
+
+/* Summary overlay when generation complete */
+.summary-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 12px 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  min-width: 340px;
+}
+
+.summary-comparison {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #0f0;
+  text-shadow: 0 0 8px #0f0;
+  max-width: 340px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Input Grid (Left) */
@@ -1287,66 +1365,6 @@ function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: numb
   }
 }
 
-/* Progress Bar */
-.progress-bar-container {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 85%;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-}
-
-.progress-bar-bg {
-  width: 100%;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3498db 0%, #2ecc71 50%, #f39c12 100%);
-  border-radius: 10px;
-  position: relative;
-  transition: width 0.3s ease-out;
-  box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
-}
-
-.progress-shine {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
-  animation: shine-move 2s ease-in-out infinite;
-}
-
-@keyframes shine-move {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 200%;
-  }
-}
-
-.progress-text {
-  font-family: 'Courier New', monospace;
-  font-size: 16px;
-  font-weight: bold;
-  color: #0f0;
-  text-shadow: 0 0 8px #0f0;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .token-processing-scene {
@@ -1382,10 +1400,6 @@ function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: numb
   .pixel-token {
     width: 8px;
     height: 8px;
-  }
-
-  .progress-text {
-    font-size: 14px;
   }
 }
 </style>
