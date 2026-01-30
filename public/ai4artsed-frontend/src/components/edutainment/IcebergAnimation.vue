@@ -2,17 +2,17 @@
   <div class="iceberg-animation">
     <!-- Climate background (sky, sun, clouds) -->
     <ClimateBackground
-      :power-watts="gpuStats.power_draw_watts || simulatedPower"
+      :power-watts="effectivePower"
       :power-limit="gpuStats.power_limit_watts || 600"
       :co2-grams="totalCo2"
-      :temperature="gpuStats.temperature_celsius || simulatedTemp"
+      :temperature="effectiveTemp"
     />
 
     <!-- Water area -->
     <div class="water-area" :style="waterStyle"></div>
 
     <!-- Iceberg canvas (drawing or display) -->
-    <div class="iceberg-container">
+    <div class="iceberg-container" ref="containerRef">
       <canvas
         ref="icebergCanvasRef"
         :width="canvasWidth"
@@ -29,48 +29,31 @@
         <span class="instruction">{{ t('edutainment.iceberg.drawPrompt') }}</span>
       </div>
 
-      <!-- Melting indicator -->
-      <div v-if="state === 'melting'" class="state-overlay melting">
-        <span class="status">{{ t('edutainment.iceberg.melting') }}</span>
-      </div>
 
-      <!-- Melted message -->
-      <div v-if="state === 'melted'" class="state-overlay melted">
+      <!-- Melted/Summary message (shows when all icebergs melted OR progress > 90%) -->
+      <div v-if="state === 'melted' || (props.progress && props.progress > 90)" class="state-overlay melted">
         <span class="status">{{ t('edutainment.iceberg.melted') }}</span>
         <span class="detail">{{ t('edutainment.iceberg.meltedMessage', { co2: totalCo2.toFixed(2) }) }}</span>
-        <button class="restart-btn" @click="resetAnimation">{{ t('edutainment.iceberg.redraw') }}</button>
+        <span class="comparison">{{ t('edutainment.iceberg.comparison', { minutes: treeMinutes }) }}</span>
       </div>
     </div>
 
-    <!-- Stats overlay -->
+    <!-- Stats overlay with labels -->
     <div class="stats-bar">
-      <div class="stat">
-        <span class="stat-icon">⚡</span>
-        <span class="stat-value">{{ Math.round(gpuStats.power_draw_watts || simulatedPower) }}W</span>
+      <div class="stat" :title="t('edutainment.iceberg.gpuPower')">
+        <span class="stat-label">Grafikkarte</span>
+        <span class="stat-value">{{ Math.round(effectivePower) }}W / {{ Math.round(effectiveTemp) }}°C</span>
       </div>
       <div class="stat">
-        <span class="stat-icon">🌡️</span>
-        <span class="stat-value">{{ gpuStats.temperature_celsius || simulatedTemp }}°C</span>
+        <span class="stat-label">Energie</span>
+        <span class="stat-value">{{ (totalEnergy / 1000).toFixed(4) }}kWh</span>
       </div>
-      <div class="stat">
-        <span class="stat-icon">☁️</span>
-        <span class="stat-value">{{ totalCo2.toFixed(2) }}g CO₂</span>
-      </div>
-      <div class="stat">
-        <span class="stat-icon">⏱️</span>
-        <span class="stat-value">{{ elapsedSeconds }}s</span>
+      <div class="stat" :title="t('edutainment.iceberg.co2Info')">
+        <span class="stat-label">CO₂</span>
+        <span class="stat-value">{{ totalCo2.toFixed(1) }}g</span>
       </div>
     </div>
 
-    <!-- Control buttons (when iceberg is drawn) -->
-    <div v-if="state === 'drawn'" class="controls">
-      <button class="start-btn" @click="startMelting">
-        {{ t('edutainment.iceberg.startMelting') }}
-      </button>
-      <button class="clear-btn" @click="resetAnimation">
-        {{ t('edutainment.iceberg.redraw') }}
-      </button>
-    </div>
   </div>
 </template>
 
@@ -97,37 +80,46 @@ const props = defineProps<{
 }>()
 
 // State
-type AnimationState = 'idle' | 'drawing' | 'drawn' | 'melting' | 'melted'
+type AnimationState = 'idle' | 'drawing' | 'melting' | 'melted'
 const state = ref<AnimationState>('idle')
 
-// Canvas
+// Canvas (responsive)
 const icebergCanvasRef = ref<HTMLCanvasElement | null>(null)
-const canvasWidth = ref(500)
+const containerRef = ref<HTMLDivElement | null>(null)
+const canvasWidth = ref(600)
 const canvasHeight = ref(320)
 const waterLineY = computed(() => canvasHeight.value * 0.6)
+
+function resizeCanvas() {
+  if (containerRef.value) {
+    const rect = containerRef.value.getBoundingClientRect()
+    canvasWidth.value = Math.floor(rect.width)
+  }
+}
 
 // Drawing state
 const isPointerDown = ref(false)
 const currentPath = ref<Point[]>([])
-const icebergPolygon = ref<Point[]>([])
 
-// Physics state
-const physicsState = ref({
-  x: 0,           // Center position X
-  y: 0,           // Center position Y
-  angle: 0,       // Rotation angle in radians
-  vx: 0,          // Velocity X
-  vy: 0,          // Velocity Y
-  vAngle: 0       // Angular velocity
-})
+// Iceberg type with polygon and physics
+interface Iceberg {
+  polygon: Point[]      // Original polygon centered at origin
+  x: number             // Position X
+  y: number             // Position Y
+  angle: number         // Rotation angle
+  vx: number            // Velocity X
+  vy: number            // Velocity Y
+  vAngle: number        // Angular velocity
+}
 
-// Physics constants
-const GRAVITY = 0.15
-const BUOYANCY_FACTOR = 0.18  // Upward force per submerged pixel
-const WATER_DENSITY = 0.92    // Ice is less dense than water (floats ~10% above)
-const DAMPING = 0.98          // Velocity damping
-const ANGULAR_DAMPING = 0.95  // Angular velocity damping
-const TORQUE_FACTOR = 0.00008 // How much offset creates rotation
+// Multiple icebergs
+const icebergs = ref<Iceberg[]>([])
+
+// Physics constants (from iceberger.html - physical formulas are not copyrightable)
+const SPECIFIC_GRAVITY = 0.85   // Ice density relative to water (simplified 2D mode)
+const TIME_SCALE = 0.5          // Simulation speed (slower for smooth animation)
+const DAMPING_AIR = 0.98        // Velocity damping in air
+const DAMPING_WATER = 0.94      // Velocity damping in water (more drag)
 
 // GPU stats
 const gpuStats = ref<GpuRealtimeStats>({ available: false })
@@ -137,14 +129,28 @@ const totalCo2 = ref(0)
 const totalEnergy = ref(0)
 const elapsedSeconds = ref(0)
 
+// Effective values (use simulated when GPU not under load)
+const effectivePower = computed(() => {
+  const realPower = gpuStats.value.power_draw_watts || 0
+  return realPower > 100 ? realPower : simulatedPower.value
+})
+const effectiveTemp = computed(() => {
+  const realTemp = gpuStats.value.temperature_celsius || 0
+  const realPower = gpuStats.value.power_draw_watts || 0
+  return realPower > 100 ? realTemp : simulatedTemp.value
+})
+
+// Tree absorbs ~12kg CO2/year = ~0.023g/minute
+const treeMinutes = computed(() => {
+  const minutes = totalCo2.value / 0.023
+  return Math.round(minutes)
+})
+
 // Animation
 let animationFrameId: number | null = null
 let gpuPollInterval: number | null = null
 let energyInterval: number | null = null
 let lastFrameTime = 0
-
-// Original polygon (before transforms)
-const originalPolygon = ref<Point[]>([])
 
 // Water color based on temperature/energy
 const waterStyle = computed(() => {
@@ -162,14 +168,14 @@ const waterStyle = computed(() => {
 // ==================== Physics Engine ====================
 
 /**
- * Transform polygon by current physics state (position + rotation)
+ * Transform polygon by iceberg's physics state (position + rotation)
  */
-function getTransformedPolygon(): Point[] {
-  const { x, y, angle } = physicsState.value
+function getTransformedPolygon(iceberg: Iceberg): Point[] {
+  const { x, y, angle, polygon } = iceberg
   const cos = Math.cos(angle)
   const sin = Math.sin(angle)
 
-  return originalPolygon.value.map(p => ({
+  return polygon.map(p => ({
     x: x + p.x * cos - p.y * sin,
     y: y + p.x * sin + p.y * cos
   }))
@@ -207,83 +213,84 @@ function getSubmergedPolygon(polygon: Point[]): Point[] {
 }
 
 /**
- * Apply physics forces and update state
+ * Apply physics forces to a single iceberg
+ * Physics from iceberger.html (formulas are not copyrightable)
  */
-function updatePhysics(dt: number) {
-  const dtSeconds = dt / 1000
-  const state = physicsState.value
-
-  // Get current transformed polygon
-  const polygon = getTransformedPolygon()
+function updateIcebergPhysics(iceberg: Iceberg, dtScale: number) {
+  const polygon = getTransformedPolygon(iceberg)
   if (polygon.length < 3) return
 
-  // Calculate centers
-  const massCentroid = calculateCentroid(polygon)
+  const totalArea = calculateArea(polygon)
+  if (totalArea < 10) return
+
+  const pc = calculateCentroid(polygon)
   const submerged = getSubmergedPolygon(polygon)
   const submergedArea = calculateArea(submerged)
-  const totalArea = calculateArea(polygon)
+  const submergedRatio = submergedArea / totalArea
 
-  // Apply gravity (downward force at center of mass)
-  state.vy += GRAVITY * dtSeconds * 60
+  // Forces (normalized to area)
+  let forceY = 1  // Gravity: normalized downward force
+  const fb = submergedRatio / SPECIFIC_GRAVITY  // Buoyancy factor
+  forceY -= fb  // Net vertical force
 
-  // Apply buoyancy (upward force proportional to submerged volume)
+  // Torque: fb * (submerged_centroid.x - full_centroid.x)
+  // This creates rotation towards equilibrium
+  let torque = 0
   if (submergedArea > 0 && submerged.length >= 3) {
-    const buoyancyCentroid = calculateCentroid(submerged)
-    const buoyancyForce = submergedArea * BUOYANCY_FACTOR * dtSeconds * 60 / WATER_DENSITY
-
-    state.vy -= buoyancyForce / Math.max(1, totalArea / 100)
-
-    // Calculate torque from offset between mass center and buoyancy center
-    const offsetX = buoyancyCentroid.x - massCentroid.x
-    const torque = offsetX * buoyancyForce * TORQUE_FACTOR
-    state.vAngle += torque
+    const pcSubmerged = calculateCentroid(submerged)
+    torque = fb * (pcSubmerged.x - pc.x)  // No clamping - let physics work
   }
 
-  // Apply damping
-  state.vx *= DAMPING
-  state.vy *= DAMPING
-  state.vAngle *= ANGULAR_DAMPING
+  // Rotational inertia proportional to area
+  // Original formula sqrt(area)/1000000 is for different coordinate scale
+  // Calibrated for our canvas size (~500x320)
+  const rotationalInertia = Math.sqrt(totalArea) * 0.5
 
-  // Update position and angle
-  state.x += state.vx * dtSeconds * 60
-  state.y += state.vy * dtSeconds * 60
-  state.angle += state.vAngle * dtSeconds * 60
+  // Apply forces to velocity
+  iceberg.vy += forceY * TIME_SCALE * dtScale
+  iceberg.vAngle += (torque / rotationalInertia) * TIME_SCALE * dtScale
 
-  // Keep iceberg roughly centered horizontally
-  if (state.x < -50) state.x = -50
-  if (state.x > 50) state.x = 50
+  // Damping (interpolate air/water)
+  const baseDamping = DAMPING_AIR * (1 - submergedRatio) + DAMPING_WATER * submergedRatio
+  const damping = Math.pow(baseDamping, dtScale)
+  const rotDamping = Math.pow(baseDamping - 0.1, dtScale)  // Stronger rotation damping
 
-  // Prevent sinking too deep or flying away
-  const minY = -100
-  const maxY = canvasHeight.value * 0.3
-  if (state.y < minY) {
-    state.y = minY
-    state.vy = 0
-  }
-  if (state.y > maxY) {
-    state.y = maxY
-    state.vy *= -0.3 // Bounce slightly
+  iceberg.vx *= damping
+  iceberg.vy *= damping
+  iceberg.vAngle *= Math.max(0.5, rotDamping)
+
+  // Update position
+  iceberg.x += iceberg.vx * dtScale
+  iceberg.y += iceberg.vy * dtScale
+  iceberg.angle += iceberg.vAngle * dtScale
+
+  // Soft bounds
+  const minY = 30
+  const maxY = canvasHeight.value - 30
+  if (iceberg.y < minY) iceberg.vy += (minY - iceberg.y) * 0.02 * dtScale
+  if (iceberg.y > maxY) iceberg.vy -= (iceberg.y - maxY) * 0.02 * dtScale
+}
+
+/**
+ * Update physics for all icebergs
+ */
+function updateAllPhysics(dt: number) {
+  const dtScale = Math.min(dt, 100) / 50
+  for (const iceberg of icebergs.value) {
+    updateIcebergPhysics(iceberg, dtScale)
   }
 }
 
 /**
- * Initialize physics from drawn polygon
+ * Create new iceberg from drawn polygon
  */
-function initializePhysics() {
-  const polygon = icebergPolygon.value
-  if (polygon.length < 3) return
-
-  // Calculate initial centroid
-  const centroid = calculateCentroid(polygon)
-
-  // Center polygon around origin for rotation
-  originalPolygon.value = polygon.map(p => ({
-    x: p.x - centroid.x,
-    y: p.y - centroid.y
-  }))
-
-  // Set initial position at centroid
-  physicsState.value = {
+function createIceberg(drawnPolygon: Point[]): Iceberg {
+  const centroid = calculateCentroid(drawnPolygon)
+  return {
+    polygon: drawnPolygon.map(p => ({
+      x: p.x - centroid.x,
+      y: p.y - centroid.y
+    })),
     x: centroid.x,
     y: centroid.y,
     angle: 0,
@@ -312,15 +319,23 @@ function startGpuPolling() {
 
   energyInterval = window.setInterval(() => {
     elapsedSeconds.value++
-    const watts = gpuStats.value.power_draw_watts || simulatedPower.value
+
+    // Use real GPU values if available and under load, otherwise simulate
+    const realPower = gpuStats.value.power_draw_watts || 0
+    const realTemp = gpuStats.value.temperature_celsius || 0
+    const isGpuActive = realPower > 100  // GPU considered active above 100W
+
+    // Simulation ramps up over time to demonstrate the effect
+    simulatedPower.value = Math.min(450, 150 + elapsedSeconds.value * 15 + Math.random() * 50)
+    simulatedTemp.value = Math.min(82, 45 + elapsedSeconds.value * 2 + Math.random() * 3)
+
+    const watts = isGpuActive ? realPower : simulatedPower.value
+    const temp = isGpuActive ? realTemp : simulatedTemp.value
     const co2PerKwh = gpuStats.value.co2_per_kwh_grams || 400
 
     const whThisSecond = watts / 3600
     totalEnergy.value += whThisSecond
     totalCo2.value += (whThisSecond / 1000) * co2PerKwh
-
-    simulatedPower.value = 180 + Math.random() * 120
-    simulatedTemp.value = Math.min(85, simulatedTemp.value + Math.random() * 0.3)
   }, 1000)
 }
 
@@ -338,7 +353,7 @@ function stopGpuPolling() {
 // ==================== Drawing ====================
 
 function handlePointerDown(event: PointerEvent) {
-  if (state.value !== 'idle' && state.value !== 'drawing') return
+  // Allow drawing anytime - keep existing icebergs
 
   state.value = 'drawing'
   isPointerDown.value = true
@@ -374,12 +389,12 @@ function handlePointerUp(event: PointerEvent) {
   if (currentPath.value.length >= 5) {
     const simplified = simplifyPolygon(currentPath.value, 3)
     if (simplified.length >= 3) {
-      icebergPolygon.value = simplified
-      initializePhysics()
-      state.value = 'drawn'
-      // Start physics immediately for the "settling" effect
-      lastFrameTime = performance.now()
-      settleAnimation()
+      // Add new iceberg to the array (keep existing ones)
+      icebergs.value.push(createIceberg(simplified))
+      // Start melting if not already
+      if (state.value !== 'melting') {
+        startMelting()
+      }
       return
     }
   }
@@ -435,6 +450,11 @@ function drawCurrentPath() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawWaterLine(ctx)
 
+  // Draw existing icebergs first
+  for (const iceberg of icebergs.value) {
+    drawSingleIceberg(ctx, iceberg)
+  }
+
   if (currentPath.value.length < 2) return
 
   const firstPoint = currentPath.value[0]
@@ -459,22 +479,14 @@ function drawCurrentPath() {
   ctx.fill()
 }
 
-function drawIceberg() {
-  const canvas = icebergCanvasRef.value
-  const ctx = canvas?.getContext('2d')
-  if (!ctx || !canvas) return
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  drawWaterLine(ctx)
-
-  // Get transformed polygon with physics
-  const polygon = getTransformedPolygon()
+function drawSingleIceberg(ctx: CanvasRenderingContext2D, iceberg: Iceberg) {
+  const polygon = getTransformedPolygon(iceberg)
   if (polygon.length < 3) return
 
   const firstPoint = polygon[0]
   if (!firstPoint) return
 
-  // Draw underwater portion with different color
+  // Draw underwater portion
   const submerged = getSubmergedPolygon(polygon)
   if (submerged.length >= 3) {
     const subFirst = submerged[0]
@@ -496,69 +508,49 @@ function drawIceberg() {
   ctx.moveTo(firstPoint.x, firstPoint.y)
   for (let i = 1; i < polygon.length; i++) {
     const point = polygon[i]
-    if (point) {
-      ctx.lineTo(point.x, point.y)
-    }
+    if (point) ctx.lineTo(point.x, point.y)
   }
   ctx.closePath()
 
-  // Gradient fill
   const centroid = calculateCentroid(polygon)
-  const gradient = ctx.createRadialGradient(
-    centroid.x, centroid.y, 0,
-    centroid.x, centroid.y, 100
-  )
+  const gradient = ctx.createRadialGradient(centroid.x, centroid.y, 0, centroid.x, centroid.y, 100)
   gradient.addColorStop(0, 'rgba(230, 245, 255, 0.95)')
   gradient.addColorStop(0.5, 'rgba(200, 230, 255, 0.9)')
   gradient.addColorStop(1, 'rgba(150, 200, 255, 0.85)')
 
   ctx.fillStyle = gradient
   ctx.fill()
-
   ctx.strokeStyle = 'rgba(100, 180, 220, 0.8)'
   ctx.lineWidth = 2
   ctx.stroke()
 }
 
-// ==================== Settling Animation (after drawing) ====================
+function drawAllIcebergs() {
+  const canvas = icebergCanvasRef.value
+  const ctx = canvas?.getContext('2d')
+  if (!ctx || !canvas) return
 
-let settleFrameId: number | null = null
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  drawWaterLine(ctx)
 
-function settleAnimation() {
-  const now = performance.now()
-  const dt = now - lastFrameTime
-  lastFrameTime = now
-
-  updatePhysics(dt)
-  drawIceberg()
-
-  // Continue settling until velocities are very small
-  const { vx, vy, vAngle } = physicsState.value
-  const isSettled = Math.abs(vx) < 0.01 && Math.abs(vy) < 0.01 && Math.abs(vAngle) < 0.001
-
-  if (!isSettled && state.value === 'drawn') {
-    settleFrameId = requestAnimationFrame(settleAnimation)
+  for (const iceberg of icebergs.value) {
+    drawSingleIceberg(ctx, iceberg)
   }
 }
 
-function stopSettling() {
-  if (settleFrameId) {
-    cancelAnimationFrame(settleFrameId)
-    settleFrameId = null
-  }
-}
+// ==================== Continuous Physics Animation (after drawing) ====================
 
 // ==================== Melting Animation ====================
 
 function startMelting() {
-  if (state.value !== 'drawn') return
+  if (state.value === 'melting') return  // Already running, don't reset values
 
-  stopSettling()
   state.value = 'melting'
-  totalCo2.value = 0
-  totalEnergy.value = 0
-  elapsedSeconds.value = 0
-  simulatedTemp.value = 55
+  // Don't reset CO2/energy - they accumulate across the session
+  // Only reset time and temp for new session
+  if (elapsedSeconds.value === 0) {
+    simulatedTemp.value = 55
+  }
 
   startGpuPolling()
   lastFrameTime = performance.now()
@@ -569,22 +561,28 @@ function animationLoop() {
   if (state.value !== 'melting') return
 
   const now = performance.now()
-  const dt = now - lastFrameTime
+  const dt = Math.min(now - lastFrameTime, 100)
   lastFrameTime = now
 
-  const temp = gpuStats.value.temperature_celsius || simulatedTemp.value
+  // Use effective temperature (simulated when GPU idle)
+  const temp = effectiveTemp.value
 
-  // Melt the original polygon (shrink towards center)
-  originalPolygon.value = meltPolygonAtOrigin(originalPolygon.value, temp, dt)
+  // Melt and update physics for each iceberg
+  for (const iceberg of icebergs.value) {
+    meltIcebergPolygon(iceberg, temp, dt)
+  }
+  updateAllPhysics(dt)
 
-  // Update physics
-  updatePhysics(dt)
+  // Remove fully melted icebergs
+  icebergs.value = icebergs.value.filter(iceberg =>
+    calculateArea(iceberg.polygon) >= 50
+  )
 
   // Redraw
-  drawIceberg()
+  drawAllIcebergs()
 
-  // Check if melted
-  if (calculateArea(originalPolygon.value) < 50) {
+  // Check if all melted
+  if (icebergs.value.length === 0) {
     state.value = 'melted'
     stopGpuPolling()
     stopAnimation()
@@ -595,20 +593,22 @@ function animationLoop() {
 }
 
 /**
- * Melt polygon centered at origin
+ * Melt a single iceberg's polygon
  */
-function meltPolygonAtOrigin(polygon: Point[], temp: number, dt: number): Point[] {
-  if (polygon.length < 3) return polygon
+function meltIcebergPolygon(iceberg: Iceberg, temp: number, dt: number) {
+  if (iceberg.polygon.length < 3) return
 
-  const baseMeltRate = (temp / 1000) * (dt / 16.67) * 0.002
+  const MELT_THRESHOLD = 45
+  if (temp < MELT_THRESHOLD) return
 
-  return polygon.map(point => {
-    // Points "above" water (negative Y in local coords relative to water line offset)
-    const worldY = physicsState.value.y + point.y
+  const tempAboveThreshold = temp - MELT_THRESHOLD
+  const meltRate = (tempAboveThreshold / 40) * (dt / 16.67) * 0.002  // 50% slower
+
+  iceberg.polygon = iceberg.polygon.map(point => {
+    const worldY = iceberg.y + point.y
     const isAboveWater = worldY < waterLineY.value
-    const meltMultiplier = isAboveWater ? 1.5 : 1.0
-
-    const factor = 1 - baseMeltRate * meltMultiplier
+    const meltMultiplier = isAboveWater ? 2.0 : 1.0
+    const factor = 1 - meltRate * meltMultiplier
 
     return {
       x: point.x * factor,
@@ -626,18 +626,15 @@ function stopAnimation() {
 
 function resetAnimation() {
   stopAnimation()
-  stopSettling()
   stopGpuPolling()
 
   state.value = 'idle'
-  icebergPolygon.value = []
-  originalPolygon.value = []
+  icebergs.value = []
   currentPath.value = []
   totalCo2.value = 0
   totalEnergy.value = 0
   elapsedSeconds.value = 0
   simulatedTemp.value = 55
-  physicsState.value = { x: 0, y: 0, angle: 0, vx: 0, vy: 0, vAngle: 0 }
 
   clearCanvas()
 }
@@ -651,14 +648,17 @@ watch(() => props.progress, (newProgress) => {
 })
 
 onMounted(() => {
-  clearCanvas()
+  resizeCanvas()
+  window.addEventListener('resize', resizeCanvas)
+  // Wait for next tick to ensure canvas is sized
+  setTimeout(() => clearCanvas(), 10)
   fetchGpuStats()
 })
 
 onUnmounted(() => {
   stopAnimation()
-  stopSettling()
   stopGpuPolling()
+  window.removeEventListener('resize', resizeCanvas)
 })
 </script>
 
@@ -715,17 +715,19 @@ onUnmounted(() => {
 }
 
 .state-overlay.melted {
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .instruction {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 18px;
-  font-family: system-ui, sans-serif;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  background: rgba(0, 0, 0, 0.4);
-  padding: 12px 24px;
-  border-radius: 8px;
+  color: #1a5276;
+  font-size: 16px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  max-width: 300px;
 }
 
 .status {
@@ -741,7 +743,22 @@ onUnmounted(() => {
   display: block;
   color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.comparison {
+  display: block;
+  color: rgba(180, 220, 180, 0.9);
+  font-size: 13px;
+  font-style: italic;
   margin-bottom: 15px;
+}
+
+.hint {
+  display: block;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin-top: 10px;
 }
 
 .restart-btn {
@@ -771,22 +788,28 @@ onUnmounted(() => {
   padding: 8px 16px;
   border-radius: 20px;
   backdrop-filter: blur(4px);
+  pointer-events: none; /* Don't interrupt drawing */
 }
 
 .stat {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 2px;
 }
 
-.stat-icon {
-  font-size: 14px;
+.stat-label {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
   font-family: 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 13px;
   color: #fff;
+  font-weight: bold;
 }
 
 /* Controls */

@@ -42,8 +42,8 @@ const props = defineProps<{
 const powerRatio = computed(() => Math.min(1, props.powerWatts / props.powerLimit))
 
 const sunSize = computed(() => {
-  // Size from 40px (idle) to 100px (full power)
-  return 40 + powerRatio.value * 60
+  // Size from 50px (idle) to 150px (full power) - dramatic effect
+  return 50 + powerRatio.value * 100
 })
 
 const sunStyle = computed(() => ({
@@ -63,11 +63,12 @@ const sunGlowStyle = computed(() => {
 
 function getRayStyle(n: number) {
   const angle = (n - 1) * 45
-  const length = 20 + powerRatio.value * 30
+  const length = 15 + powerRatio.value * 40  // Longer rays at high power
+  const radius = sunSize.value / 2
   return {
-    transform: `rotate(${angle}deg)`,
+    transform: `rotate(${angle}deg) translateY(${radius}px)`,
     height: `${length}px`,
-    opacity: 0.3 + powerRatio.value * 0.5
+    opacity: 0.5 + powerRatio.value * 0.5  // More visible
   }
 }
 
@@ -75,8 +76,8 @@ function getRayStyle(n: number) {
 const co2Ratio = computed(() => Math.min(1, props.co2Grams / 5)) // Max effect at 5g
 
 const clouds = computed(() => {
-  // Number of clouds: 1-8 based on CO2
-  const cloudCount = Math.min(8, Math.floor(props.co2Grams / 0.3) + 1)
+  // Number of clouds: 2-12 based on CO2 (more clouds, faster accumulation)
+  const cloudCount = Math.min(12, Math.floor(props.co2Grams / 0.15) + 2)
   const darkness = Math.min(0.8, co2Ratio.value)
 
   return Array.from({ length: cloudCount }, (_, i) => {
@@ -195,12 +196,14 @@ const smogStyle = computed(() => {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 4px;
-  background: linear-gradient(to top,
-    rgba(255, 200, 50, 0.8),
+  margin-left: -4px;
+  width: 8px;
+  background: linear-gradient(
+    rgba(255, 220, 100, 0.9),
     transparent
   );
-  transform-origin: bottom center;
+  transform-origin: center 0;
+  border-radius: 4px;
   transition: all 0.5s ease;
 }
 

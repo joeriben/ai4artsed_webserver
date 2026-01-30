@@ -83,8 +83,8 @@
       </div>
     </div>
 
-    <!-- Live stats -->
-    <div class="live-stats">
+    <!-- Live stats (hidden for iceberg which has its own) -->
+    <div v-if="selectedAnimation !== 'iceberg'" class="live-stats">
       <div class="stat-card">
         <div class="stat-label">Power</div>
         <div class="stat-value">{{ Math.round(gpuStats.power_draw_watts || simulatedPower) }}W</div>

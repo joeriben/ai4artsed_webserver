@@ -408,13 +408,17 @@ const messages = {
         expert_3: '⚡ PUE (Power Usage Effectiveness): Zusätzlicher Energie-Overhead für Kühlung'
       },
       iceberg: {
-        drawPrompt: 'Zeichne deinen Eisberg!',
+        drawPrompt: 'KI-Generierung verbraucht viel Energie. Zeichne Eisberge und schau was geschieht...',
         redraw: 'Neu zeichnen',
         startMelting: 'Schmelzen starten',
         melting: 'Eisberg schmilzt...',
-        melted: 'Eisberg geschmolzen!',
-        meltedMessage: 'Dein Eisberg ist geschmolzen. Du hast {co2}g CO₂ produziert.',
-        comparison: 'Das entspricht einem Baum, der {minutes} Minuten braucht um es zu absorbieren.'
+        melted: 'Geschmolzen!',
+        meltedMessage: '{co2}g CO₂ produziert',
+        comparison: 'Das entspricht einem Baum, der {minutes} Minuten braucht um es zu absorbieren.',
+        gpuPower: 'Stromverbrauch der Grafikkarte',
+        gpuTemp: 'Temperatur der Grafikkarte',
+        co2Info: 'CO₂-Emissionen durch Stromverbrauch (basierend auf deutschem Strommix)',
+        drawAgain: 'Zeichne weitere Eisberge...'
       }
     }
   },
@@ -825,13 +829,17 @@ const messages = {
         expert_3: '⚡ PUE (Power Usage Effectiveness): Additional energy overhead for cooling'
       },
       iceberg: {
-        drawPrompt: 'Draw your iceberg!',
+        drawPrompt: 'AI generation uses a lot of energy. Draw icebergs and see what happens...',
         redraw: 'Redraw',
         startMelting: 'Start melting',
         melting: 'Iceberg melting...',
-        melted: 'Iceberg melted!',
-        meltedMessage: 'Your iceberg has melted. You produced {co2}g CO₂.',
-        comparison: 'That\'s equivalent to a tree needing {minutes} minutes to absorb it.'
+        melted: 'Melted!',
+        meltedMessage: '{co2}g CO₂ produced',
+        comparison: 'That\'s equivalent to a tree needing {minutes} minutes to absorb it.',
+        gpuPower: 'Graphics card power consumption',
+        gpuTemp: 'Graphics card temperature',
+        co2Info: 'CO₂ emissions from power consumption (based on German energy mix)',
+        drawAgain: 'Draw more icebergs...'
       }
     }
   }
