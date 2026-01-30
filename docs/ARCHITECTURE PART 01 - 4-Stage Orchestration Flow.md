@@ -699,7 +699,188 @@ Stage 4: Media Generation (with calculated seed) ✅
 
 ---
 
-**Document Version:** 2.3
-**Last Updated:** 2025-11-28 (Session 79)
-**Status:** v2.2.0-alpha - 2-Phase Stage 2 + Centralized Models + Phase 4 Intelligent Seeds
+## 4. SSE Streaming for Stage-by-Stage Progress (Session 148)
+
+**Added:** 2026-01-30 - Real-time UI updates during generation
+
+### 4.1 Purpose
+
+Enable frontend to show stage-specific badges (Safety Approved, Translated) at the **correct time** - after Stage 3 completes, before Stage 4 begins.
+
+**Previous Problem:**
+- Badges appeared after entire generation completed (too late)
+- Safety badge used fake 300ms delay (not accurate)
+- No real-time feedback during Stage 3 (Translation + Safety)
+
+**Solution:**
+- SSE (Server-Sent Events) streaming mode for `/generation` endpoint
+- Backend emits events at stage boundaries
+- Frontend shows badges when `stage3_complete` event arrives
+
+### 4.2 SSE Event Flow
+
+```
+Frontend                          Backend (/generation)
+   │                                   │
+   │─────── GET ?enable_streaming=true ────────>│
+   │                                   │
+   │<────── event: connected ──────────│
+   │        {run_id, output_config}    │
+   │                                   │
+   │<────── event: stage3_start ───────│
+   │                                   │
+   │        [Stage 3: Translation + Safety Check]
+   │                                   │
+   │<────── event: stage3_complete ────│
+   │        {safe: true,               │
+   │         was_translated: true}     │
+   │        ↓                          │
+   │   [SHOW BADGES NOW!]              │
+   │                                   │
+   │<────── event: stage4_start ───────│
+   │        ↓                          │
+   │   [START PROGRESS ANIMATION]      │
+   │                                   │
+   │        [Stage 4: Media Generation]
+   │                                   │
+   │<────── event: complete ───────────│
+   │        {media_output, run_id,     │
+   │         loras, was_translated}    │
+   │                                   │
+```
+
+### 4.3 Backend Implementation
+
+**Location:** `schema_pipeline_routes.py`
+
+**Generator Function:**
+```python
+def execute_generation_streaming(data: dict):
+    """SSE-Generator für Stage 3+4"""
+
+    # Stage 3: Translation + Safety
+    yield generate_sse_event('stage3_start', {})
+
+    safety_result = await execute_stage3_safety(...)
+    was_translated = translated_prompt != prompt
+
+    yield generate_sse_event('stage3_complete', {
+        'was_translated': was_translated,
+        'safe': safety_result['safe']
+    })
+
+    if not safety_result['safe']:
+        yield generate_sse_event('blocked', {...})
+        return
+
+    # Stage 4: Generation
+    yield generate_sse_event('stage4_start', {})
+
+    result = await execute_stage4_generation_only(...)
+
+    yield generate_sse_event('complete', {
+        'media_output': result['media_output'],
+        'run_id': result['run_id'],
+        'loras': result.get('loras', [])
+    })
+```
+
+**Endpoint Modification:**
+```python
+@schema_bp.route('/pipeline/generation', methods=['POST', 'GET'])
+def generation_endpoint():
+    # Support GET for EventSource
+    if request.method == 'GET':
+        data = {param: request.args.get(param) for param in PARAMS}
+
+    # Streaming mode
+    if data.get('enable_streaming'):
+        return Response(
+            stream_with_context(execute_generation_streaming(data)),
+            mimetype='text/event-stream',
+            headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+        )
+
+    # Non-streaming fallback (original behavior)
+    ...
+```
+
+### 4.4 Frontend Implementation
+
+**Shared Composable:** `useGenerationStream.ts`
+
+```typescript
+export function useGenerationStream() {
+  const showSafetyApprovedStamp = ref(false)
+  const showTranslatedStamp = ref(false)
+  const generationProgress = ref(0)
+  const currentStage = ref<'idle' | 'stage3' | 'stage4' | 'complete'>('idle')
+
+  async function executeWithStreaming(params): Promise<GenerationResult> {
+    const eventSource = new EventSource(buildSSEUrl(params))
+
+    eventSource.addEventListener('stage3_complete', (e) => {
+      const data = JSON.parse(e.data)
+      showSafetyApprovedStamp.value = data.safe
+      showTranslatedStamp.value = data.was_translated
+    })
+
+    eventSource.addEventListener('stage4_start', () => {
+      // Start progress animation here
+    })
+
+    // ... complete, blocked, error handlers
+  }
+
+  return { showSafetyApprovedStamp, showTranslatedStamp, ... }
+}
+```
+
+**Views Using Composable:**
+- `text_transformation.vue`
+- `image_transformation.vue`
+- `multi_image_transformation.vue`
+
+### 4.5 Stage Separation Summary
+
+| Stage | Function | Endpoint | SSE Event |
+|-------|----------|----------|-----------|
+| Stage 1 | Safety Check (§86a) | `/interception` | `stage_start/complete (stage: 1)` |
+| Stage 2 | Prompt Interception | `/interception` | `stage_start/complete (stage: 2)` |
+| Stage 3 | Translation + Safety | `/generation` | `stage3_start/complete` |
+| Stage 4 | Media Generation | `/generation` | `stage4_start/complete` |
+
+**Endpoint Bundling (by design):**
+- `/interception` = Stage 1 + Stage 2 (input processing)
+- `/generation` = Stage 3 + Stage 4 (output generation)
+
+**Clean Internal Separation:**
+- `execute_stage1_gpt_oss_unified()` - Stage 1
+- `execute_pipeline()` (via PipelineExecutor) - Stage 2
+- `execute_stage3_safety()` - Stage 3
+- `execute_stage4_generation_only()` - Stage 4
+
+### 4.6 Design Decisions
+
+**Why SSE instead of Split Requests?**
+- ✅ Single connection, no race conditions
+- ✅ If connection drops, everything stops cleanly
+- ✅ No state synchronization issues between two requests
+- ❌ Split would risk: Stage 3 succeeds, network drops, no Stage 4
+
+**Why Shared Composable?**
+- ✅ DRY: Same SSE logic for all 3 views
+- ✅ Consistent badge behavior
+- ✅ Single place to modify streaming logic
+
+**Why "→ EN" instead of Flag Icon?**
+- ✅ Neutral, no political connotation
+- ✅ Clear meaning: "translated to English"
+- ❌ 🇬🇧 flag was problematic (colonialism, UK-centrism)
+
+---
+
+**Document Version:** 2.4
+**Last Updated:** 2026-01-30 (Session 148)
+**Status:** v2.2.0-alpha - 2-Phase Stage 2 + Centralized Models + Phase 4 Seeds + SSE Streaming
 **Authors:** Joerissen + Claude collaborative design

@@ -1,7 +1,7 @@
 # AI4ArtsEd DevServer Documentation
 
 **Main Documentation Index**
-**Last Updated:** 2026-01-20
+**Last Updated:** 2026-01-30
 
 ---
 
@@ -24,7 +24,7 @@
 **Foundation:**
 | Part | Title | Description |
 |------|-------|-------------|
-| 01 | 4-Stage Orchestration Flow | The core pipeline system (AUTHORITATIVE) |
+| 01 | 4-Stage Orchestration Flow | The core pipeline system + SSE Streaming (AUTHORITATIVE) |
 | 02 | Architecture Overview | System-wide patterns |
 | 03 | Three-Layer System | Chunks → Pipelines → Configs |
 | 04 | Pipeline Types | Stage 2 pipeline capabilities |

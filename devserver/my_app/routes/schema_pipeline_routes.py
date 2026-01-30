@@ -2032,12 +2032,202 @@ def log_prompt_change():
         return jsonify({'error': str(e)}), 500
 
 
-@schema_bp.route('/pipeline/generation', methods=['POST'])
+# ============================================================================
+# GENERATION STREAMING (Stage 3 + Stage 4)
+# Session 148: SSE for real-time badge updates
+# ============================================================================
+
+def execute_generation_streaming(data: dict):
+    """
+    Execute Stage 3 (Translation+Safety) + Stage 4 (Generation) with SSE streaming.
+
+    Session 148: Enables real-time badge updates for Safety and Translation
+    before media generation starts.
+
+    Events emitted:
+        - connected: Initial connection with run_id
+        - stage3_start: Translation + Safety check starting
+        - stage3_complete: {was_translated, safe} - triggers badges in frontend
+        - blocked: Content blocked by safety check (stops here)
+        - stage4_start: Media generation starting
+        - complete: {media_output, run_id, loras} - final result
+        - error: Error occurred
+    """
+    import time
+    import os
+
+    # Extract parameters
+    prompt = data.get('prompt', '')
+    output_config = data.get('output_config')
+    seed = data.get('seed')
+    safety_level = data.get('safety_level', 'youth')
+    alpha_factor = data.get('alpha_factor')
+    input_image = data.get('input_image')
+    input_image1 = data.get('input_image1')
+    input_image2 = data.get('input_image2')
+    input_image3 = data.get('input_image3')
+    input_text = data.get('input_text', '')
+    context_prompt = data.get('context_prompt', '')
+    interception_result = data.get('interception_result', '')
+    interception_config = data.get('interception_config', '')
+    device_id = data.get('device_id') or f"api_{os.urandom(6).hex()}"
+    provided_run_id = data.get('run_id')
+
+    # Generate run_id
+    run_id = provided_run_id or f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+
+    logger.info(f"[GENERATION-STREAMING] Starting for config '{output_config}', run {run_id}")
+
+    try:
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        # Send initial connection event
+        yield generate_sse_event('connected', {
+            'run_id': run_id,
+            'output_config': output_config
+        })
+        yield ''  # Force flush
+
+        # ====================================================================
+        # STAGE 3: TRANSLATION + SAFETY CHECK
+        # ====================================================================
+        yield generate_sse_event('stage3_start', {
+            'name': 'Translation & Safety',
+            'description': 'Translating and checking content safety'
+        })
+        yield ''
+
+        logger.info(f"[GENERATION-STREAMING] Stage 3: Translation + Safety")
+
+        # Determine media type from output config
+        if 'code' in output_config.lower() or 'p5js' in output_config.lower():
+            media_type = 'code'
+        elif 'video' in output_config.lower():
+            media_type = 'video'
+        elif 'audio' in output_config.lower() or 'music' in output_config.lower() or 'ace' in output_config.lower():
+            media_type = 'audio'
+        else:
+            media_type = 'image'
+
+        # Execute Stage 3: Translation + Safety
+        safety_result = asyncio.run(execute_stage3_safety(
+            prompt,
+            safety_level,
+            media_type,
+            'eco',
+            pipeline_executor
+        ))
+
+        # Check if translation occurred
+        translated_prompt = safety_result.get('positive_prompt', prompt)
+        was_translated = translated_prompt and translated_prompt != prompt
+
+        if not safety_result['safe']:
+            # BLOCKED by Stage 3
+            logger.warning(f"[GENERATION-STREAMING] Stage 3 BLOCKED for run {run_id}")
+            yield generate_sse_event('blocked', {
+                'stage': 3,
+                'reason': safety_result.get('abort_reason', 'Content blocked by safety check'),
+                'found_terms': safety_result.get('found_terms', []),
+                'run_id': run_id
+            })
+            yield ''
+            return
+
+        # Stage 3 complete - send badge trigger event
+        logger.info(f"[GENERATION-STREAMING] Stage 3 PASSED, was_translated={was_translated}")
+        yield generate_sse_event('stage3_complete', {
+            'safe': True,
+            'was_translated': was_translated
+        })
+        yield ''
+
+        # ====================================================================
+        # STAGE 4: MEDIA GENERATION
+        # ====================================================================
+        yield generate_sse_event('stage4_start', {
+            'name': 'Media Generation',
+            'output_config': output_config
+        })
+        yield ''
+
+        logger.info(f"[GENERATION-STREAMING] Stage 4: Starting generation")
+
+        # Create recorder
+        from config import JSON_STORAGE_DIR
+        recorder = get_recorder(
+            run_id=run_id,
+            config_name=output_config,
+            execution_mode='eco',
+            safety_level=safety_level,
+            device_id=device_id,
+            base_path=JSON_STORAGE_DIR
+        )
+
+        # Save translation info
+        if was_translated:
+            recorder.save_entity('translation_en', translated_prompt)
+
+        # Execute Stage 4 (generation only - Stage 3 already done)
+        result = asyncio.run(execute_stage4_generation_only(
+            prompt=translated_prompt,
+            output_config=output_config,
+            safety_level=safety_level,
+            run_id=run_id,
+            seed=seed,
+            recorder=recorder,
+            device_id=device_id,
+            input_text=input_text,
+            context_prompt=context_prompt,
+            interception_result=interception_result,
+            interception_config=interception_config,
+            input_image=input_image,
+            input_image1=input_image1,
+            input_image2=input_image2,
+            input_image3=input_image3,
+            alpha_factor=alpha_factor
+        ))
+
+        if not result['success']:
+            raise Exception(result.get('error', 'Generation failed'))
+
+        logger.info(f"[GENERATION-STREAMING] Stage 4 complete: {result['media_output']}")
+
+        # Send completion event
+        yield generate_sse_event('complete', {
+            'status': 'success',
+            'media_output': result['media_output'],
+            'run_id': result['run_id'],
+            'loras': result.get('loras', []),
+            'was_translated': was_translated
+        })
+        yield ''
+
+    except GeneratorExit:
+        logger.info(f"[GENERATION-STREAMING] Client disconnected: {run_id}")
+
+    except Exception as e:
+        logger.error(f"[GENERATION-STREAMING] Error in run {run_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        yield generate_sse_event('error', {
+            'message': str(e),
+            'run_id': run_id
+        })
+        yield ''
+
+    finally:
+        logger.info(f"[GENERATION-STREAMING] Cleanup complete for run: {run_id}")
+
+
+@schema_bp.route('/pipeline/generation', methods=['POST', 'GET'])
 def generation_endpoint():
     """
     Generation endpoint - Stage 3 Safety (auto) + Stage 4 Media Generation.
 
     Session 133: Refactored to use execute_generation_stage4() helper.
+    Session 148: Added SSE streaming mode for real-time badge updates.
     Lab Architecture: Each generation creates NEW run with complete context.
 
     Request Body: See execute_generation_stage4() docstring for parameters.
@@ -2048,10 +2238,51 @@ def generation_endpoint():
     start_time = time.time()
 
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
+        # Support both POST (JSON) and GET (query params for EventSource)
+        if request.method == 'GET':
+            data = {
+                'prompt': request.args.get('prompt', ''),
+                'output_config': request.args.get('output_config'),
+                'seed': request.args.get('seed'),
+                'safety_level': request.args.get('safety_level', 'youth'),
+                'alpha_factor': request.args.get('alpha_factor'),
+                'input_image': request.args.get('input_image'),
+                'input_image1': request.args.get('input_image1'),
+                'input_image2': request.args.get('input_image2'),
+                'input_image3': request.args.get('input_image3'),
+                'input_text': request.args.get('input_text', ''),
+                'context_prompt': request.args.get('context_prompt', ''),
+                'interception_result': request.args.get('interception_result', ''),
+                'interception_config': request.args.get('interception_config', ''),
+                'device_id': request.args.get('device_id'),
+                'run_id': request.args.get('run_id'),
+                'enable_streaming': request.args.get('enable_streaming') == 'true'
+            }
+            # Convert seed to int if present
+            if data['seed']:
+                try:
+                    data['seed'] = int(data['seed'])
+                except ValueError:
+                    data['seed'] = None
+        else:
+            data = request.get_json()
+            if not data:
+                return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
 
+        # Session 148: Streaming mode for real-time badge updates
+        enable_streaming = data.get('enable_streaming', False)
+        if enable_streaming:
+            logger.info("[GENERATION-STREAMING] Streaming mode requested")
+            return Response(
+                stream_with_context(execute_generation_streaming(data)),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'X-Accel-Buffering': 'no'
+                }
+            )
+
+        # Non-streaming mode (original behavior)
         # Extract parameters
         prompt = data.get('prompt', '')
         output_config = data.get('output_config')

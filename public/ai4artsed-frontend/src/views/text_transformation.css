@@ -836,8 +836,11 @@
 }
 
 .translated-stamp .stamp-icon {
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 700;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .translated-stamp .stamp-text {

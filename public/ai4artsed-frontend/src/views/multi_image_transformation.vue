@@ -195,6 +195,16 @@
             </div>
           </div>
         </transition>
+
+        <!-- Translated Badge - appears when Stage 3 actually translated the prompt -->
+        <transition name="fade">
+          <div v-if="showTranslatedStamp" class="translated-stamp">
+            <div class="stamp-inner">
+              <div class="stamp-icon">→ EN</div>
+              <div class="stamp-text">Translated</div>
+            </div>
+          </div>
+        </transition>
       </div>
 
       <!-- OUTPUT BOX (Template Component) -->
@@ -242,6 +252,7 @@ import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import { usePageContextStore } from '@/stores/pageContext'
+import { useGenerationStream } from '@/composables/useGenerationStream'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
@@ -290,8 +301,16 @@ const isPipelineExecuting = ref(false)
 const outputImage = ref<string | null>(null)
 const outputMediaType = ref<string>('image')
 const fullscreenImage = ref<string | null>(null)
-const showSafetyApprovedStamp = ref(false)
-const generationProgress = ref(0)
+
+// Session 148: SSE-based generation with real-time badge updates
+const {
+  showSafetyApprovedStamp,
+  showTranslatedStamp,
+  generationProgress,
+  currentStage,
+  executeWithStreaming,
+  reset: resetGenerationStream
+} = useGenerationStream()
 const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
 
 // Image Analysis
@@ -819,51 +838,49 @@ async function startGeneration() {
   if (!canStartGeneration.value) return
 
   isPipelineExecuting.value = true
-  generationProgress.value = 0
+  resetGenerationStream()  // Session 148: Reset badges via composable
   outputImage.value = null  // Clear previous output
 
   // Scroll to output frame
   await nextTick()
   setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
 
-  // Start progress simulation based on estimated duration from stage4-chunk
-
-  // Parse estimated_duration_seconds (handle ranges like "20-60" → use minimum 20)
-  let durationSeconds = 30  // fallback if parsing fails
+  // Session 148: Progress simulation (starts when stage4_start event arrives)
+  let durationSeconds = 30
   const durationStr = estimatedDurationSeconds.value
 
   if (durationStr.includes('-')) {
-    // Range value: "20-60" → use minimum
     durationSeconds = parseInt(durationStr.split('-')[0] || '30')
   } else {
     durationSeconds = parseInt(durationStr)
   }
 
-  // Handle instant completion (duration=0 → show 5-second animation for UX)
   if (durationSeconds === 0 || isNaN(durationSeconds)) {
     durationSeconds = 5
   }
 
-  // Finish 10% before estimated time (more buffer for backend completion)
   durationSeconds = durationSeconds * 0.9
+  console.log(`[Progress] Using ${durationSeconds}s animation`)
 
-  console.log(`[Progress] Using ${durationSeconds}s animation (10% faster than estimate: "${durationStr}")`)
-
-  // Calculate progress to reach 98% at adjusted time (finishes ~10% early)
   const targetProgress = 98
-  const updateInterval = 100  // Update every 100ms
+  const updateInterval = 100
   const totalUpdates = (durationSeconds * 1000) / updateInterval
   const progressPerUpdate = targetProgress / totalUpdates
+  let progressInterval: ReturnType<typeof setInterval> | null = null
 
-  const progressInterval = setInterval(() => {
-    if (generationProgress.value < targetProgress) {
-      generationProgress.value += progressPerUpdate
-      if (generationProgress.value > targetProgress) {
-        generationProgress.value = targetProgress
-      }
+  // Watch for stage4 to start progress animation
+  const stopWatcher = watch(currentStage, (stage) => {
+    if (stage === 'stage4' && !progressInterval) {
+      progressInterval = setInterval(() => {
+        if (generationProgress.value < targetProgress) {
+          generationProgress.value += progressPerUpdate
+          if (generationProgress.value > targetProgress) {
+            generationProgress.value = targetProgress
+          }
+        }
+      }, updateInterval)
     }
-    // Stop at 98%, backend completion will jump to 100%
-  }, updateInterval)
+  }, { immediate: true })
 
   // Phase 4: Intelligent seed logic
   const promptChanged = contextPrompt.value !== previousOptimizedPrompt.value
@@ -876,55 +893,54 @@ async function startGeneration() {
   previousOptimizedPrompt.value = contextPrompt.value
 
   try {
-    // Lab Architecture: /generation for multi-image fusion
-    const response = await axios.post('/api/schema/pipeline/generation', {
+    // Session 148: Use SSE streaming for real-time badge updates
+    const result = await executeWithStreaming({
       prompt: contextPrompt.value,
-      output_config: selectedConfig.value,
+      output_config: selectedConfig.value || '',
       input_image1: uploadedImagePath1.value,
-      input_image2: uploadedImagePath2.value || null,
-      input_image3: uploadedImagePath3.value || null,
+      input_image2: uploadedImagePath2.value || undefined,
+      input_image3: uploadedImagePath3.value || undefined,
       seed: currentSeed.value,
-      device_id: getDeviceId()  // Session 129: Folder structure
+      device_id: getDeviceId()
     })
 
-    if (response.data.status === 'success') {
-      // Stop progress simulation and complete
+    // Stop progress interval
+    if (progressInterval) {
       clearInterval(progressInterval)
-      generationProgress.value = 100
+    }
+    stopWatcher()
 
-      // Get run_id, media_type and index from response
-      const runId = response.data.media_output?.run_id || response.data.run_id
-      const mediaType = response.data.media_output?.media_type || 'image'
-      const mediaIndex = response.data.media_output?.index ?? 0  // Explicit index from backend
+    console.log('[GENERATION-STREAM] Result:', result)
+
+    if (result.status === 'success' && result.media_output) {
+      const runId = result.media_output.run_id || result.run_id
+      const mediaType = result.media_output.media_type || 'image'
+      const mediaIndex = result.media_output.index ?? 0
 
       console.log('[Generation] Success, run_id:', runId, 'media_type:', mediaType, 'index:', mediaIndex)
 
       if (runId) {
-        // Use explicit index from backend for correct image addressing
-        // Each image has unique URL: /api/media/{type}/{run_id}/{index}
         outputMediaType.value = mediaType
         outputImage.value = `/api/media/${mediaType}/${runId}/${mediaIndex}`
         executionPhase.value = 'generation_done'
-        showSafetyApprovedStamp.value = true
 
-        // Hide stamp after 3 seconds
-        setTimeout(() => {
-          showSafetyApprovedStamp.value = false
-        }, 3000)
-
-        // Scroll to show complete output
         await nextTick()
         setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
       }
+    } else if (result.status === 'blocked') {
+      alert(`Inhalt blockiert: ${result.blocked_reason}`)
+      generationProgress.value = 0
     } else {
-      clearInterval(progressInterval)
-      alert(`Generation fehlgeschlagen: ${response.data.error}`)
+      alert(`Generation fehlgeschlagen: ${result.error}`)
       generationProgress.value = 0
     }
   } catch (error: any) {
-    clearInterval(progressInterval)
+    if (progressInterval) {
+      clearInterval(progressInterval)
+    }
+    stopWatcher()
     console.error('[Generation] Error:', error)
-    alert('Fehler bei der Generierung: ' + (error.response?.data?.error || error.message))
+    alert('Fehler bei der Generierung: ' + error.message)
     generationProgress.value = 0
   } finally {
     isPipelineExecuting.value = false
@@ -1653,6 +1669,32 @@ watch(uploadedImagePath3, (newVal) => {
   line-height: 1.2;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Translated Badge - Teal color scheme (Session 148) */
+.translated-stamp {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.translated-stamp .stamp-inner {
+  background: rgba(0, 150, 136, 0.15);
+  border-color: #009688;
+  box-shadow: 0 0 20px rgba(0, 150, 136, 0.3);
+}
+
+.translated-stamp .stamp-icon {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 700;
+  color: #009688;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.translated-stamp .stamp-text {
+  color: #009688;
 }
 
 /* Output box styles moved to MediaOutputBox.vue component */

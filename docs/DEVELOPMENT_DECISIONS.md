@@ -159,6 +159,86 @@ Canvas zeigt für Anthropic-Models beide Optionen:
 
 ---
 
+## 📡 SSE-STREAMING: Real-Time Stage Progress für Generation (2026-01-30)
+
+**Status:** ✅ DECIDED & IMPLEMENTED
+**Session:** 148
+
+### Decision
+
+**SSE (Server-Sent Events) für den `/generation` Endpoint, um Badges zum richtigen Zeitpunkt anzuzeigen.**
+
+Statt:
+- ❌ Fake 300ms Delay für Safety Badge
+- ❌ Badges erst nach kompletter Generation
+
+Jetzt:
+- ✅ `stage3_complete` Event → Badges sofort anzeigen
+- ✅ `stage4_start` Event → Progress-Animation starten
+- ✅ Echte Stage-Trennung im UI sichtbar
+
+### Reasoning
+
+**Problem:**
+- "Translated" Badge erschien erst NACH der Bildgenerierung
+- Safety Badge verwendete künstlichen 300ms Delay - nicht akkurat
+- User hatte keine Ahnung was gerade passiert (Translation? Safety? Generation?)
+
+**Warum SSE statt Split-Requests:**
+
+| Ansatz | Pro | Contra |
+|--------|-----|--------|
+| **Split (Stage 3 → Stage 4)** | Einfach zu implementieren | Race Conditions, State-Sync |
+| **SSE Streaming** | Single Connection, failsafe | Etwas komplexer |
+
+SSE gewählt weil:
+1. **Failsafe:** Wenn Connection abbricht, stoppt alles sauber
+2. **Kein Race:** Keine zwei Requests die synchronisiert werden müssen
+3. **Bestehendes Pattern:** `/interception` nutzt bereits SSE
+
+**Warum "→ EN" statt Flag-Icon:**
+- 🇬🇧 (Britische Flagge) war problematisch: Kolonialismus, UK-Zentrismus
+- "→ EN" ist neutral, klar, ohne politische Konnotation
+
+### Architecture Impact
+
+**Stage-Separation jetzt sauber:**
+
+| Stage | Funktion | Endpoint | SSE Event |
+|-------|----------|----------|-----------|
+| Stage 1 | Safety (§86a) | `/interception` | `stage_complete (1)` |
+| Stage 2 | Interception | `/interception` | `stage_complete (2)` |
+| Stage 3 | Translation + Safety | `/generation` | `stage3_complete` |
+| Stage 4 | Generation | `/generation` | `stage4_complete` |
+
+**Backend-Funktionen klar getrennt:**
+- `execute_stage1_gpt_oss_unified()`
+- `execute_pipeline()` (Stage 2)
+- `execute_stage3_safety()`
+- `execute_stage4_generation_only()`
+
+### Implementation
+
+**Backend (`schema_pipeline_routes.py`):**
+- `execute_generation_streaming()` Generator-Funktion
+- Events: `connected`, `stage3_start`, `stage3_complete`, `stage4_start`, `complete`, `blocked`, `error`
+
+**Frontend:**
+- Neuer Composable: `useGenerationStream.ts`
+- Shared zwischen 3 Views: text_, image_, multi_image_transformation
+
+### Affected Files
+
+| File | Change |
+|------|--------|
+| `devserver/my_app/routes/schema_pipeline_routes.py` | SSE-Modus für /generation |
+| `public/.../composables/useGenerationStream.ts` | NEU - Shared SSE Composable |
+| `public/.../views/text_transformation.vue` | Composable eingebunden |
+| `public/.../views/image_transformation.vue` | Composable eingebunden |
+| `public/.../views/multi_image_transformation.vue` | Composable eingebunden |
+
+---
+
 ## 🌍 ANTI-ORIENTALISM & EPISTEMIC JUSTICE: Cultural-Aware AI (2026-01-26)
 
 **Status:** ✅ DECIDED & IMPLEMENTED

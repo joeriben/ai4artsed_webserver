@@ -327,7 +327,7 @@
           <transition name="fade">
             <div v-if="showTranslatedStamp" class="translated-stamp">
               <div class="stamp-inner">
-                <div class="stamp-icon">🇬🇧</div>
+                <div class="stamp-icon">→ EN</div>
                 <div class="stamp-text">Translated</div>
               </div>
             </div>
@@ -415,6 +415,7 @@ import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
+import { useGenerationStream } from '@/composables/useGenerationStream'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 import { getModelAvailability, type ModelAvailability } from '@/services/api'
@@ -524,9 +525,17 @@ const outputCode = ref<string | null>(null) // For code output (p5.js, etc.)
 const editedCode = ref<string>('') // Editable code (user can modify)
 const iframeKey = ref<number>(0) // Force iframe re-render
 const fullscreenImage = ref<string | null>(null)
-const showSafetyApprovedStamp = ref(false)
-const showTranslatedStamp = ref(false)
-const generationProgress = ref(0)
+
+// Session 148: SSE-based generation with real-time badge updates
+const {
+  showSafetyApprovedStamp,
+  showTranslatedStamp,
+  generationProgress,
+  currentStage,
+  executeWithStreaming,
+  reset: resetGenerationStream
+} = useGenerationStream()
+
 const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
 const activeLoras = ref<Array<{name: string, strength: number}>>([])
 const loraExpanded = ref(false)
@@ -1460,9 +1469,7 @@ async function executePipeline() {
   outputImage.value = ''  // Clear previous image
   outputCode.value = null  // Clear previous code
   outputMediaType.value = 'image'  // Reset to default media type
-  showSafetyApprovedStamp.value = false  // Reset safety stamp
-  showTranslatedStamp.value = false  // Reset translated stamp
-  generationProgress.value = 0  // Reset progress
+  resetGenerationStream()  // Session 148: Reset badges via composable
   activeLoras.value = []  // Session 116: Reset LoRAs
   loraExpanded.value = false
   // Session 139: Don't reset Wikipedia terms - badge stays persistent during generation
@@ -1488,115 +1495,86 @@ async function executePipeline() {
     previousOptimizedPrompt.value = currentPromptToUse
   }
 
-  // Stage 1: Safety check (silent, shows stamp when complete)
-  await new Promise(resolve => setTimeout(resolve, 300))
-  showSafetyApprovedStamp.value = true
-
-  // Stage 2: Generation with progress simulation
-
+  // Session 148: Progress simulation (starts when stage4_start event arrives)
   // Parse estimated_duration_seconds (handle ranges like "20-60" → use minimum 20)
   let durationSeconds = 30  // fallback if parsing fails
   const durationStr = estimatedDurationSeconds.value
 
   if (durationStr.includes('-')) {
-    // Range value: "20-60" → use minimum
     durationSeconds = parseInt(durationStr.split('-')[0] || '30')
   } else {
     durationSeconds = parseInt(durationStr)
   }
 
-  // Handle instant completion (duration=0 → show 5-second animation for UX)
   if (durationSeconds === 0 || isNaN(durationSeconds)) {
     durationSeconds = 5
   }
 
-  // Finish 10% before estimated time (more buffer for backend completion)
   durationSeconds = durationSeconds * 0.9
+  console.log(`[Progress] Using ${durationSeconds}s animation`)
 
-  console.log(`[Progress] Using ${durationSeconds}s animation (10% faster than estimate: "${durationStr}")`)
-
-  // Calculate progress to reach 98% at adjusted time (finishes ~10% early)
   const targetProgress = 98
-  const updateInterval = 100  // Update every 100ms
+  const updateInterval = 100
   const totalUpdates = (durationSeconds * 1000) / updateInterval
   const progressPerUpdate = targetProgress / totalUpdates
+  let progressInterval: ReturnType<typeof setInterval> | null = null
 
-  const progressInterval = setInterval(() => {
-    if (generationProgress.value < targetProgress) {
-      generationProgress.value += progressPerUpdate
-      if (generationProgress.value > targetProgress) {
-        generationProgress.value = targetProgress
-      }
+  // Watch for stage4 to start progress animation
+  const stopWatcher = watch(currentStage, (stage) => {
+    if (stage === 'stage4' && !progressInterval) {
+      progressInterval = setInterval(() => {
+        if (generationProgress.value < targetProgress) {
+          generationProgress.value += progressPerUpdate
+          if (generationProgress.value > targetProgress) {
+            generationProgress.value = targetProgress
+          }
+        }
+      }, updateInterval)
     }
-    // Stop at 98%, backend completion will jump to 100%
-  }, updateInterval)
+  }, { immediate: true })
 
   try {
-    // Lab Architecture: /generation expects already-processed prompt
-    // Use optimizedPrompt if available (model-specific), else interceptionResult
     const finalPrompt = optimizedPrompt.value || interceptionResult.value || inputText.value
 
-    // DEBUG: Log what prompt is being sent
-    console.log('[GENERATION-DEBUG] === PROMPT SELECTION ===')
-    console.log('[GENERATION-DEBUG] optimizedPrompt.value:', optimizedPrompt.value?.substring(0, 100) + '...')
-    console.log('[GENERATION-DEBUG] interceptionResult.value:', interceptionResult.value?.substring(0, 100) + '...')
-    console.log('[GENERATION-DEBUG] inputText.value:', inputText.value?.substring(0, 100) + '...')
-    console.log('[GENERATION-DEBUG] SELECTED finalPrompt:', finalPrompt?.substring(0, 100) + '...')
-    console.log('[GENERATION-DEBUG] currentSeed:', currentSeed.value)
+    console.log('[GENERATION-STREAM] === PROMPT SELECTION ===')
+    console.log('[GENERATION-STREAM] SELECTED finalPrompt:', finalPrompt?.substring(0, 100) + '...')
+    console.log('[GENERATION-STREAM] currentSeed:', currentSeed.value)
 
-    // Session 129: Pass run_id from interception (prompting_process_xxx)
-    // Backend renames folder to run_xxx on generation
-    const response = await axios.post('/api/schema/pipeline/generation', {
+    // Session 148: Use SSE streaming for real-time badge updates
+    const result = await executeWithStreaming({
       prompt: finalPrompt,
-      output_config: selectedConfig.value,
+      output_config: selectedConfig.value || '',
       seed: currentSeed.value,
-      run_id: currentRunId.value,  // prompting_process_xxx -> renamed to run_xxx
-      // Context from interception (stored for research data export)
+      run_id: currentRunId.value || undefined,
       input_text: inputText.value,
-      context_prompt: contextPrompt.value,  // Meta-Prompt/Regeln (user-editable!)
+      context_prompt: contextPrompt.value,
       interception_result: interceptionResult.value,
       interception_config: lastInterceptionConfig.value || pipelineStore.selectedConfig?.id,
-      device_id: getDeviceId()  // Workshop tracking + folder structure
+      device_id: getDeviceId()
     })
 
-    clearInterval(progressInterval)
+    // Stop progress interval
+    if (progressInterval) {
+      clearInterval(progressInterval)
+    }
+    stopWatcher()
 
-    console.log('[CODE-DEBUG] Full response:', response.data)
-    console.log('[CODE-DEBUG] response.data.status:', response.data.status)
-    console.log('[CODE-DEBUG] response.data.media_output:', response.data.media_output)
+    console.log('[GENERATION-STREAM] Result:', result)
 
-    if (response.data.status === 'success') {
-      // Complete progress
-      generationProgress.value = 100
-
+    if (result.status === 'success' && result.media_output) {
       // Session 116: Extract LoRAs from response
-      if (response.data.loras) {
-        activeLoras.value = response.data.loras
+      if (result.loras) {
+        activeLoras.value = result.loras
       }
 
-      // Show translated badge if Stage 3 actually translated the prompt
-      if (response.data.was_translated) {
-        showTranslatedStamp.value = true
-      }
-
-      // Get run_id, media_type and index from response
-      const runId = response.data.media_output?.run_id || response.data.run_id
-      const mediaType = response.data.media_output?.media_type || 'image'
-      const mediaIndex = response.data.media_output?.index ?? 0  // Explicit index from backend
-
-      console.log('[CODE-DEBUG] runId:', runId)
-      console.log('[CODE-DEBUG] mediaType:', mediaType)
-      console.log('[CODE-DEBUG] mediaIndex:', mediaIndex)
-      console.log('[CODE-DEBUG] Has code?:', !!response.data.media_output?.code)
+      const runId = result.media_output.run_id || result.run_id
+      const mediaType = result.media_output.media_type || 'image'
+      const mediaIndex = result.media_output.index ?? 0
 
       if (runId) {
-        // Store run_id for favorites (Session 127)
         currentRunId.value = runId
-        // Session 130: Mark run as complete (stops further logging to this folder)
         currentRunHasOutput.value = true
 
-        // Use explicit index from backend for correct image addressing
-        // Each image has unique URL: /api/media/{type}/{run_id}/{index}
         outputMediaType.value = mediaType
         outputImage.value = `/api/media/${mediaType}/${runId}/${mediaIndex}`
         executionPhase.value = 'generation_done'
@@ -1606,32 +1584,25 @@ async function executePipeline() {
           mediaType,
           configName: selectedConfig.value || 'unknown'
         })
-        console.log('[Session 82] Registered session with chat overlay:', runId)
 
-        // Scroll3: Show complete media after layout settles
-        await nextTick()
-        setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
-      } else if (response.data.outputs && response.data.outputs.length > 0) {
-        // Fallback: use outputs array (assume image)
-        outputMediaType.value = 'image'
-        outputImage.value = `http://localhost:17802${response.data.outputs[0]}`
-        executionPhase.value = 'generation_done'
-
-        // Scroll3: Show complete media after layout settles
         await nextTick()
         setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
       }
+    } else if (result.status === 'blocked') {
+      alert(`Inhalt blockiert: ${result.blocked_reason}`)
+      generationProgress.value = 0
     } else {
-      alert(`Generation fehlgeschlagen: ${response.data.error}`)
+      alert(`Generation fehlgeschlagen: ${result.error}`)
       generationProgress.value = 0
     }
   } catch (error: any) {
-    clearInterval(progressInterval)
+    if (progressInterval) {
+      clearInterval(progressInterval)
+    }
+    stopWatcher()
     console.error('Pipeline error:', error)
-    const errorMessage = error.response?.data?.error || error.message
-    alert(`Pipeline failed: ${errorMessage}`)
+    alert(`Pipeline failed: ${error.message}`)
 
-    // Reset UI completely
     generationProgress.value = 0
     isPipelineExecuting.value = false
     outputImage.value = null

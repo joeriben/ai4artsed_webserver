@@ -1,42 +1,77 @@
 # Development Log
 
-## Session 148 - "Translated" Badge für Stage 3
-**Date:** 2026-01-29
-**Focus:** Badge-Anzeige wenn Prompt tatsächlich übersetzt wurde (DE→EN)
+## Session 148 - "Translated" Badge mit SSE-Streaming
+**Date:** 2026-01-30
+**Focus:** Echtzeit-Badge via SSE wenn Prompt übersetzt wird (vor Bildgenerierung)
 **Status:** COMPLETED
 
 ### Feature
-Neues "Translated" Badge (🇬🇧) neben dem Safety-Approved Badge. Erscheint **nur** wenn Stage 3 den Prompt tatsächlich übersetzt hat (deutsch → englisch). Bei englischem Input erscheint kein Badge.
+Neues "Translated" Badge (→ EN) neben dem Safety-Approved Badge. Erscheint in **Echtzeit** nach Stage 3, **bevor** die Bildgenerierung beginnt. Ermöglicht durch SSE-Streaming des `/generation` Endpoints.
 
-### Implementierung
+### Architektur: SSE für `/generation`
 
-**Backend (`schema_pipeline_routes.py`):**
-1. `was_translated` Flag in `execute_generation_stage4()` gesetzt (~Zeile 2622)
-   - Vergleicht `translated_prompt != prompt` (bereits existierender Check)
-   - Flag wird zum `stage4_result` hinzugefügt
-2. `/generation` endpoint Response erweitert um `was_translated: bool`
+**Problem (ursprünglich):**
+- Badge erschien erst nach kompletter Generation (zu spät)
+- Safety-Badge wurde mit Fake-300ms-Delay gezeigt (nicht akkurat)
 
-**Frontend CSS (`text_transformation.css`):**
-- `.translated-stamp` Klasse mit Teal-Farbschema (#009688)
-- Identisches Design wie Safety-Approved Badge (nur andere Farbe)
+**Lösung:**
+- Neuer SSE-Modus für `/generation` Endpoint
+- Backend emittiert Events stage-by-stage
+- Frontend zeigt Badges sobald `stage3_complete` Event eintrifft
 
-**Frontend Vue (`text_transformation.vue`):**
-1. State: `showTranslatedStamp` ref
-2. Template: Badge HTML neben Safety-Approved
-3. Reset: Bei neuer Generation zurückgesetzt
-4. Response-Handling: Badge angezeigt wenn `response.data.was_translated === true`
+### Backend Änderungen
+
+**`schema_pipeline_routes.py`:**
+
+1. **Neue Generator-Funktion** `execute_generation_streaming()`:
+   - Emittiert: `connected`, `stage3_start`, `stage3_complete`, `stage4_start`, `complete`, `error`, `blocked`
+   - `stage3_complete` enthält `{safe: bool, was_translated: bool}`
+
+2. **Endpoint erweitert** (`/pipeline/generation`):
+   - Unterstützt jetzt GET + POST
+   - `enable_streaming=true` → SSE Response
+   - Fallback: Original JSON Response
+
+### Frontend Änderungen
+
+**Neuer Composable** `useGenerationStream.ts`:
+- Shared SSE-Handler für alle 3 Views
+- Exponiert: `showSafetyApprovedStamp`, `showTranslatedStamp`, `generationProgress`, `currentStage`
+- Methode: `executeWithStreaming(params)` → Promise\<GenerationResult\>
+- Progress-Animation startet bei `stage4_start` Event
+
+**Aktualisierte Views:**
+- `text_transformation.vue`
+- `image_transformation.vue`
+- `multi_image_transformation.vue`
+
+Alle nutzen jetzt den Composable statt lokaler Refs.
 
 ### Design-Entscheidungen
-- **Icon**: 🇬🇧 (Britische Flagge) - international neutraler als US-Flagge, klarer als Globe
+- **Icon**: `→ EN` (Pfeil + Text) - neutral, keine politische Konnotation
 - **Farbe**: Teal (#009688) - unterscheidet sich von Grün (Safety), Lila (LoRA), Blau (Wikipedia)
-- **Trigger**: Backend-gesteuert, nur bei tatsächlicher Übersetzung
+- **Timing**: Badges erscheinen nach Stage 3, bevor Stage 4 startet
+
+### Scope
+
+| View | Endpoint | Badge |
+|------|----------|-------|
+| text_transformation | `/generation` | ✅ SSE |
+| image_transformation | `/generation` | ✅ SSE |
+| multi_image_transformation | `/generation` | ✅ SSE |
+| surrealizer | `/legacy` | ❌ (kein Stage 3) |
+| split_and_combine | `/legacy` | ❌ (kein Stage 3) |
+| canvas_workflow | eigene Architektur | ❌ (separat) |
 
 ### Modified Files
 | File | Change |
 |------|--------|
-| `devserver/my_app/routes/schema_pipeline_routes.py` | `was_translated` Flag tracking + Response |
-| `public/.../views/text_transformation.vue` | Badge Template + State + Response-Handling |
+| `devserver/my_app/routes/schema_pipeline_routes.py` | SSE-Modus für /generation |
+| `public/.../composables/useGenerationStream.ts` | NEU - Shared SSE Composable |
+| `public/.../views/text_transformation.vue` | Composable + Icon "→ EN" |
 | `public/.../views/text_transformation.css` | `.translated-stamp` Styling |
+| `public/.../views/image_transformation.vue` | Composable + Badge |
+| `public/.../views/multi_image_transformation.vue` | Composable + Badge |
 
 ---
 
