@@ -96,6 +96,12 @@ const router = createRouter({
       // Session 129: Canvas workflow builder for parallel fan-out workflows
       component: () => import('../views/canvas_workflow.vue'),
     },
+    {
+      path: '/animation-test',
+      name: 'animation-test',
+      // Test page for GPU visualization animations
+      component: () => import('../views/AnimationTestView.vue'),
+    },
   ],
 })
 

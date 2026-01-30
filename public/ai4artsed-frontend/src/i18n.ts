@@ -343,6 +343,70 @@ const messages = {
       purposeText: 'Erkunde die verschiedenen "Weltbilder" unterschiedlicher KI-Architekturen. Wie verändert sich die visuelle Interpretation je nach Encoder-Gewichtung?',
       techTitle: 'Technische Details',
       techText: 'Modell: SD3.5 Large | Encoder: Separate CLIP-L + T5-XXL (für Dual-Fusion)'
+    },
+    edutainment: {
+      ui: {
+        didYouKnow: '🤔 Wusstest du?',
+        learnMore: '📚 Mehr erfahren',
+        currentlyHappening: '⚡ Gerade passiert:',
+        energyUsed: 'Verbrauchte Energie',
+        co2Produced: 'CO₂ produziert'
+      },
+      energy: {
+        kids_1: '💡 KI-Bilder brauchen Strom – so viel wie dein Handy 3 Stunden laden!',
+        kids_2: '🔌 Die GPU ist wie ein Super-Taschenrechner der sehr viel Strom frisst!',
+        kids_3: '⚡ Jedes Bild braucht so viel Energie wie eine LED-Lampe 10 Minuten an!',
+        youth_1: '⚡ Eine GPU braucht beim Generieren {watts}W – wie ein kleiner Heizlüfter!',
+        youth_2: '🔋 Ein Bild verbraucht etwa 0.01-0.02 kWh – klingt wenig, summiert sich aber!',
+        youth_3: '🌡️ Die GPU wird gerade {temp}°C heiß – deshalb braucht sie Kühlung!',
+        expert_1: '📊 Echtzeit: {watts}W bei {util}% Auslastung = {kwh} kWh bisher',
+        expert_2: '🔥 TDP-Limit: {tdp}W | Aktuell: {watts}W ({percent}% des Limits)',
+        expert_3: '💾 VRAM: {used}/{total} GB ({percent}%) – Modell + Aktivierungen'
+      },
+      data: {
+        kids_1: '🧮 Die GPU rechnet gerade 10 Milliarden mal – schneller als du zählen kannst!',
+        kids_2: '🎨 Das Bild entsteht in 50 kleinen Schritten – wie ein Puzzle das sich selbst löst!',
+        kids_3: '🧩 Millionen von Zahlen fliegen gerade durch die GPU!',
+        youth_1: '🔄 Jedes Bild durchläuft ~50 "Denoising Steps" – 50 Runden Rauschen entfernen!',
+        youth_2: '📐 8 Milliarden Parameter werden gerade abgefragt – pro Bild!',
+        youth_3: '🧠 Die KI "denkt" in Vektoren mit tausenden Dimensionen – wie Koordinaten in einem Raum.',
+        expert_1: '🔬 MMDiT: Multimodal Diffusion Transformer – Text + Bild in gemeinsamen Attention-Layern',
+        expert_2: '📈 Self-Attention: O(n²) Komplexität – jedes Token "sieht" alle anderen',
+        expert_3: '⚙️ Classifier-Free Guidance: Prompt-Einfluss vs. Kreativität-Balance'
+      },
+      model: {
+        kids_1: '🎓 Das KI-Modell hat sich Millionen Bilder angeschaut um malen zu lernen!',
+        kids_2: '🤖 Die KI ist wie ein Künstler der nie vergisst was er gesehen hat!',
+        kids_3: '✨ 8 Milliarden Verbindungen im Modell – mehr als Sterne am Himmel die du sehen kannst!',
+        youth_1: '🧠 SD3.5 Large hat 8 Milliarden Parameter – wie 8 Milliarden Entscheidungsknoten.',
+        youth_2: '📚 3 Text-Encoder arbeiten zusammen: CLIP-L, CLIP-G und T5-XXL',
+        youth_3: '🔢 Das Modell braucht {vram} GB VRAM nur um geladen zu werden!',
+        expert_1: '🏗️ Architektur: Rectified Flow + MMDiT mit 38 Transformer-Blöcken',
+        expert_2: '📊 FP16/FP8 Quantisierung: Präzision vs. VRAM-Trade-off',
+        expert_3: '🔗 LoRA: Low-Rank Adaptation – nur 0.1% der Parameter neu trainiert'
+      },
+      ethics: {
+        kids_1: '🌍 KI lernt von Bildern im Internet – deshalb ist es wichtig, fair mit Kunst anderer zu sein!',
+        kids_2: '⚖️ Nicht alle Künstler wurden gefragt ob die KI von ihnen lernen darf.',
+        kids_3: '🤝 Gute KI respektiert die Arbeit von Menschen!',
+        youth_1: '📜 Trainingsdaten stammen oft aus dem Internet. Künstler diskutieren: Fair Use oder Kopieren?',
+        youth_2: '🏛️ Der EU AI Act fordert Transparenz: Woher kommen die Trainingsdaten?',
+        youth_3: '💭 Frage: Wem gehört ein KI-generiertes Bild eigentlich?',
+        expert_1: '⚠️ LAION-5B wurde teils ohne Urheber-Zustimmung erstellt – rechtliche Grauzone.',
+        expert_2: '📋 EU AI Act Art. 52: Kennzeichnungspflicht für KI-generierte Inhalte',
+        expert_3: '🔍 Model Cards & Datasheets: Best Practice für ML-Transparenz'
+      },
+      environment: {
+        kids_1: '☁️ Jedes KI-Bild produziert ein bisschen CO₂ – wie Autofahren, nur weniger!',
+        kids_2: '🌱 Überlege: Ist dieses Bild den Strom wert?',
+        kids_3: '🌞 Die Energie für KI kommt oft aus Kraftwerken – manche sauber, manche nicht.',
+        youth_1: '🏭 Deutscher Strommix: ~400g CO₂ pro kWh – das addiert sich!',
+        youth_2: '📈 {co2}g CO₂ für dieses Bild – bei 1000 Bildern wären das {totalKg} kg!',
+        youth_3: '💡 Tipp: Weniger Bilder generieren, dafür bewusster – spart Energie und CO₂.',
+        expert_1: '📊 Berechnung: {watts}W × {seconds}s ÷ 3600 × 400g/kWh = {co2}g CO₂',
+        expert_2: '🔬 Scope 2 Emissionen: Standort des Rechenzentrums entscheidend',
+        expert_3: '⚡ PUE (Power Usage Effectiveness): Zusätzlicher Energie-Overhead für Kühlung'
+      }
     }
   },
   en: {
@@ -687,6 +751,70 @@ const messages = {
       purposeText: 'Explore the different "worldviews" of different AI architectures. How does the visual interpretation change depending on encoder weighting?',
       techTitle: 'Technical Details',
       techText: 'Model: SD3.5 Large | Encoder: Separate CLIP-L + T5-XXL (for dual fusion)'
+    },
+    edutainment: {
+      ui: {
+        didYouKnow: '🤔 Did you know?',
+        learnMore: '📚 Learn more',
+        currentlyHappening: '⚡ Currently happening:',
+        energyUsed: 'Energy used',
+        co2Produced: 'CO₂ produced'
+      },
+      energy: {
+        kids_1: '💡 AI images need electricity – as much as charging your phone for 3 hours!',
+        kids_2: '🔌 The GPU is like a super calculator that eats lots of power!',
+        kids_3: '⚡ Each image needs as much energy as running an LED light for 10 minutes!',
+        youth_1: '⚡ A GPU uses {watts}W while generating – like a small space heater!',
+        youth_2: '🔋 One image uses about 0.01-0.02 kWh – sounds little, but adds up!',
+        youth_3: '🌡️ The GPU is getting {temp}°C hot right now – that\'s why it needs cooling!',
+        expert_1: '📊 Realtime: {watts}W at {util}% utilization = {kwh} kWh so far',
+        expert_2: '🔥 TDP limit: {tdp}W | Current: {watts}W ({percent}% of limit)',
+        expert_3: '💾 VRAM: {used}/{total} GB ({percent}%) – model + activations'
+      },
+      data: {
+        kids_1: '🧮 The GPU is calculating 10 billion times right now – faster than you can count!',
+        kids_2: '🎨 The image is created in 50 small steps – like a puzzle solving itself!',
+        kids_3: '🧩 Millions of numbers are flying through the GPU right now!',
+        youth_1: '🔄 Each image goes through ~50 "denoising steps" – 50 rounds of removing noise!',
+        youth_2: '📐 8 billion parameters are being queried – per image!',
+        youth_3: '🧠 The AI "thinks" in vectors with thousands of dimensions – like coordinates in a space.',
+        expert_1: '🔬 MMDiT: Multimodal Diffusion Transformer – text + image in joint attention layers',
+        expert_2: '📈 Self-Attention: O(n²) complexity – every token "sees" all others',
+        expert_3: '⚙️ Classifier-Free Guidance: prompt influence vs. creativity balance'
+      },
+      model: {
+        kids_1: '🎓 The AI model looked at millions of images to learn how to paint!',
+        kids_2: '🤖 The AI is like an artist who never forgets what they\'ve seen!',
+        kids_3: '✨ 8 billion connections in the model – more than stars you can see in the sky!',
+        youth_1: '🧠 SD3.5 Large has 8 billion parameters – like 8 billion decision nodes.',
+        youth_2: '📚 3 text encoders work together: CLIP-L, CLIP-G, and T5-XXL',
+        youth_3: '🔢 The model needs {vram} GB VRAM just to be loaded!',
+        expert_1: '🏗️ Architecture: Rectified Flow + MMDiT with 38 transformer blocks',
+        expert_2: '📊 FP16/FP8 quantization: precision vs. VRAM trade-off',
+        expert_3: '🔗 LoRA: Low-Rank Adaptation – only 0.1% of parameters retrained'
+      },
+      ethics: {
+        kids_1: '🌍 AI learns from images on the internet – that\'s why it\'s important to be fair with other people\'s art!',
+        kids_2: '⚖️ Not all artists were asked if the AI could learn from them.',
+        kids_3: '🤝 Good AI respects people\'s work!',
+        youth_1: '📜 Training data often comes from the internet. Artists debate: Fair Use or copying?',
+        youth_2: '🏛️ The EU AI Act demands transparency: Where does the training data come from?',
+        youth_3: '💭 Question: Who actually owns an AI-generated image?',
+        expert_1: '⚠️ LAION-5B was partly created without creator consent – legal gray area.',
+        expert_2: '📋 EU AI Act Art. 52: Labeling requirement for AI-generated content',
+        expert_3: '🔍 Model Cards & Datasheets: Best practice for ML transparency'
+      },
+      environment: {
+        kids_1: '☁️ Each AI image produces a bit of CO₂ – like driving a car, but less!',
+        kids_2: '🌱 Think: Is this image worth the electricity?',
+        kids_3: '🌞 Energy for AI often comes from power plants – some clean, some not.',
+        youth_1: '🏭 German power grid: ~400g CO₂ per kWh – that adds up!',
+        youth_2: '📈 {co2}g CO₂ for this image – with 1000 images that would be {totalKg} kg!',
+        youth_3: '💡 Tip: Generate fewer images, but more thoughtfully – saves energy and CO₂.',
+        expert_1: '📊 Calculation: {watts}W × {seconds}s ÷ 3600 × 400g/kWh = {co2}g CO₂',
+        expert_2: '🔬 Scope 2 emissions: data center location is decisive',
+        expert_3: '⚡ PUE (Power Usage Effectiveness): Additional energy overhead for cooling'
+      }
     }
   }
 }

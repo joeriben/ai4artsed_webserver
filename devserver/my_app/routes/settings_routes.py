@@ -934,6 +934,109 @@ def get_gpu_info():
     return jsonify(gpu_info), 200
 
 
+@settings_bp.route('/gpu-realtime', methods=['GET'])
+def get_gpu_realtime():
+    """
+    Get realtime GPU statistics for edutainment display.
+
+    No authentication required - just hardware monitoring data.
+
+    Uses nvidia-smi to fetch:
+    - power.draw: Current power consumption (Watts)
+    - power.limit: TDP/Power limit (Watts)
+    - temperature.gpu: Current temperature (Celsius)
+    - utilization.gpu: GPU utilization (%)
+    - memory.used: VRAM currently used (MB)
+    - memory.total: Total VRAM (MB)
+
+    Also calculates:
+    - co2_per_kwh: CO2 emissions factor (g/kWh, default: German grid 400g)
+
+    Returns:
+        {
+            "available": true,
+            "gpu_name": "NVIDIA RTX 6000",
+            "power_draw_watts": 285.32,
+            "power_limit_watts": 600,
+            "temperature_celsius": 72,
+            "utilization_percent": 98,
+            "memory_used_mb": 32456,
+            "memory_total_mb": 49152,
+            "memory_used_percent": 66.1,
+            "co2_per_kwh_grams": 400
+        }
+    """
+    try:
+        # Query comprehensive GPU stats
+        result = subprocess.run(
+            [
+                'nvidia-smi',
+                '--query-gpu=name,power.draw,power.limit,temperature.gpu,utilization.gpu,memory.used,memory.total',
+                '--format=csv,noheader,nounits'
+            ],
+            capture_output=True, text=True, timeout=5
+        )
+
+        if result.returncode != 0:
+            logger.warning("[GPU-REALTIME] nvidia-smi failed")
+            return jsonify({
+                "available": False,
+                "error": "nvidia-smi not available or failed"
+            }), 200
+
+        # Parse output (format: "name, power.draw, power.limit, temp, util, mem_used, mem_total")
+        line = result.stdout.strip().split('\n')[0]  # First GPU
+        parts = [p.strip() for p in line.split(', ')]
+
+        if len(parts) < 7:
+            logger.warning(f"[GPU-REALTIME] Unexpected nvidia-smi output: {line}")
+            return jsonify({
+                "available": False,
+                "error": "Unexpected nvidia-smi output format"
+            }), 200
+
+        gpu_name = parts[0]
+        power_draw = float(parts[1]) if parts[1] not in ['[N/A]', 'N/A', ''] else 0.0
+        power_limit = float(parts[2]) if parts[2] not in ['[N/A]', 'N/A', ''] else 0.0
+        temperature = int(float(parts[3])) if parts[3] not in ['[N/A]', 'N/A', ''] else 0
+        utilization = int(float(parts[4])) if parts[4] not in ['[N/A]', 'N/A', ''] else 0
+        memory_used = int(float(parts[5])) if parts[5] not in ['[N/A]', 'N/A', ''] else 0
+        memory_total = int(float(parts[6])) if parts[6] not in ['[N/A]', 'N/A', ''] else 1
+
+        # Calculate memory percentage
+        memory_percent = round((memory_used / memory_total) * 100, 1) if memory_total > 0 else 0
+
+        # CO2 factor: German electricity grid average ~400g CO2/kWh (2024)
+        # This could be made configurable in the future
+        co2_per_kwh = 400
+
+        return jsonify({
+            "available": True,
+            "gpu_name": gpu_name,
+            "power_draw_watts": power_draw,
+            "power_limit_watts": power_limit,
+            "temperature_celsius": temperature,
+            "utilization_percent": utilization,
+            "memory_used_mb": memory_used,
+            "memory_total_mb": memory_total,
+            "memory_used_percent": memory_percent,
+            "co2_per_kwh_grams": co2_per_kwh
+        }), 200
+
+    except subprocess.TimeoutExpired:
+        logger.warning("[GPU-REALTIME] nvidia-smi timed out")
+        return jsonify({
+            "available": False,
+            "error": "nvidia-smi timed out"
+        }), 200
+    except Exception as e:
+        logger.error(f"[GPU-REALTIME] Error: {e}")
+        return jsonify({
+            "available": False,
+            "error": str(e)
+        }), 200
+
+
 @settings_bp.route('/change-password', methods=['POST'])
 @require_settings_auth
 def change_password():
