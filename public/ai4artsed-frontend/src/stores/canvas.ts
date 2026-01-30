@@ -110,6 +110,25 @@ export const useCanvasStore = defineStore('canvas', () => {
   /** Session 141: Completed nodes count for progress display */
   const completedNodes = ref(0)
 
+  // Session 149: Batch execution state
+  /** Whether batch execution is active */
+  const isBatchExecuting = ref(false)
+
+  /** Current batch ID */
+  const batchId = ref<string | null>(null)
+
+  /** Total runs in current batch */
+  const batchTotalRuns = ref(0)
+
+  /** Completed runs in current batch */
+  const batchCompletedRuns = ref(0)
+
+  /** Current run index (0-based) */
+  const batchCurrentRun = ref(0)
+
+  /** Export paths from completed batch runs */
+  const batchExportPaths = ref<string[]>([])
+
   /** Session 135: Animation timer reference */
   let animationTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -892,6 +911,114 @@ export const useCanvasStore = defineStore('canvas', () => {
   }
 
   /**
+   * Session 149: Execute workflow in batch mode
+   *
+   * @param count Number of runs (for seed variance)
+   * @param prompts Optional list of prompts (overrides count if provided)
+   * @param baseSeed Optional base seed for reproducibility
+   */
+  async function executeBatch(count: number = 1, prompts?: string[], baseSeed?: number) {
+    if (isBatchExecuting.value) {
+      console.warn('[Canvas] Batch already executing')
+      return
+    }
+
+    // Reset batch state
+    isBatchExecuting.value = true
+    batchId.value = null
+    batchTotalRuns.value = prompts?.length || count
+    batchCompletedRuns.value = 0
+    batchCurrentRun.value = 0
+    batchExportPaths.value = []
+    error.value = null
+
+    console.log(`[Canvas] Starting batch execution: ${batchTotalRuns.value} runs`)
+
+    try {
+      const response = await fetch('/api/canvas/execute-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workflow: {
+            nodes: workflow.value.nodes,
+            connections: workflow.value.connections
+          },
+          count: prompts ? undefined : count,
+          prompts: prompts,
+          base_seed: baseSeed
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      // Handle SSE stream
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            const eventType = line.substring(7).trim()
+            continue
+          }
+          if (line.startsWith('data:')) {
+            const dataStr = line.substring(5).trim()
+            if (!dataStr) continue
+
+            try {
+              const data = JSON.parse(dataStr)
+
+              // Handle different event types
+              if (data.batch_id) {
+                batchId.value = data.batch_id
+              }
+              if (data.run_index !== undefined) {
+                batchCurrentRun.value = data.run_index
+              }
+              if (data.export_path) {
+                batchExportPaths.value.push(data.export_path)
+                batchCompletedRuns.value = batchExportPaths.value.length
+              }
+              if (data.error) {
+                console.error(`[Canvas] Batch run ${data.run_index} error:`, data.error)
+              }
+              if (data.export_paths) {
+                // Batch complete
+                batchExportPaths.value = data.export_paths
+                batchCompletedRuns.value = data.total_runs
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      console.log(`[Canvas] Batch complete: ${batchCompletedRuns.value}/${batchTotalRuns.value} runs`)
+
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Batch execution failed'
+      console.error('[Canvas] Batch error:', err)
+    } finally {
+      isBatchExecuting.value = false
+    }
+  }
+
+  /**
    * Interrupt workflow execution
    */
   function interruptExecution() {
@@ -973,6 +1100,15 @@ export const useCanvasStore = defineStore('canvas', () => {
     // Execution
     executeWorkflow,
     interruptExecution,
-    resetExecution
+    resetExecution,
+
+    // Session 149: Batch execution
+    isBatchExecuting: computed(() => isBatchExecuting.value),
+    batchId: computed(() => batchId.value),
+    batchTotalRuns: computed(() => batchTotalRuns.value),
+    batchCompletedRuns: computed(() => batchCompletedRuns.value),
+    batchCurrentRun: computed(() => batchCurrentRun.value),
+    batchExportPaths: computed(() => batchExportPaths.value),
+    executeBatch
   }
 })

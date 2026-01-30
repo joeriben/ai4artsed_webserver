@@ -23,6 +23,12 @@ const editingNameValue = ref('')
 // Panel visibility
 const showPalette = ref(true)
 
+// Session 149: Batch modal state
+const showBatchModal = ref(false)
+const batchCount = ref(3)
+const batchBaseSeed = ref<number | undefined>(undefined)
+const batchUseSeed = ref(false)
+
 onMounted(async () => {
   // Load available configs
   await canvasStore.loadAllConfigs()
@@ -194,6 +200,13 @@ function handleExportWorkflow() {
   URL.revokeObjectURL(url)
 }
 
+// Session 149: Start batch execution
+function handleStartBatch() {
+  const seed = batchUseSeed.value ? batchBaseSeed.value : undefined
+  canvasStore.executeBatch(batchCount.value, undefined, seed)
+  showBatchModal.value = false
+}
+
 function handleImportWorkflow() {
   const input = document.createElement('input')
   input.type = 'file'
@@ -348,12 +361,38 @@ onUnmounted(() => {
         <!-- Execute (disabled for now) -->
         <button
           class="toolbar-btn primary"
-          :disabled="!canvasStore.isWorkflowValid || canvasStore.isExecuting"
+          :disabled="!canvasStore.isWorkflowValid || canvasStore.isExecuting || canvasStore.isBatchExecuting"
           @click="canvasStore.executeWorkflow()"
           :title="locale === 'de' ? 'Ausführen' : 'Execute'"
         >
           ▶️ {{ locale === 'de' ? 'Ausführen' : 'Execute' }}
         </button>
+
+        <!-- Session 149: Batch Execute -->
+        <button
+          class="toolbar-btn batch"
+          :disabled="!canvasStore.isWorkflowValid || canvasStore.isExecuting || canvasStore.isBatchExecuting"
+          @click="showBatchModal = true"
+          :title="locale === 'de' ? 'Batch-Ausführung' : 'Batch Execute'"
+        >
+          🔄 Batch
+        </button>
+      </div>
+    </div>
+
+    <!-- Session 149: Batch Progress Indicator -->
+    <div v-if="canvasStore.isBatchExecuting" class="batch-progress-bar">
+      <div class="batch-progress-info">
+        <span>{{ locale === 'de' ? 'Batch-Ausführung' : 'Batch Execution' }}: {{ canvasStore.batchCompletedRuns }}/{{ canvasStore.batchTotalRuns }}</span>
+        <span v-if="canvasStore.batchCurrentRun >= 0">
+          ({{ locale === 'de' ? 'Run' : 'Run' }} {{ canvasStore.batchCurrentRun + 1 }})
+        </span>
+      </div>
+      <div class="batch-progress-track">
+        <div
+          class="batch-progress-fill"
+          :style="{ width: `${(canvasStore.batchCompletedRuns / canvasStore.batchTotalRuns) * 100}%` }"
+        ></div>
       </div>
     </div>
 
@@ -451,6 +490,41 @@ onUnmounted(() => {
             {{ canvasStore.completedNodes }} / {{ canvasStore.totalNodes }}
             {{ locale === 'de' ? 'Knoten' : 'nodes' }}
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session 149: Batch Modal -->
+    <div v-if="showBatchModal" class="modal-overlay" @click.self="showBatchModal = false">
+      <div class="batch-modal">
+        <div class="batch-modal-header">
+          <h3>{{ locale === 'de' ? 'Batch-Ausführung' : 'Batch Execution' }}</h3>
+          <button class="close-btn" @click="showBatchModal = false">×</button>
+        </div>
+        <div class="batch-modal-content">
+          <div class="batch-field">
+            <label>{{ locale === 'de' ? 'Anzahl Runs' : 'Number of Runs' }}</label>
+            <input type="number" v-model.number="batchCount" min="1" max="100" />
+          </div>
+          <div class="batch-field checkbox">
+            <label>
+              <input type="checkbox" v-model="batchUseSeed" />
+              {{ locale === 'de' ? 'Basis-Seed verwenden' : 'Use Base Seed' }}
+            </label>
+          </div>
+          <div v-if="batchUseSeed" class="batch-field">
+            <label>{{ locale === 'de' ? 'Basis-Seed' : 'Base Seed' }}</label>
+            <input type="number" v-model.number="batchBaseSeed" placeholder="42" />
+            <small>{{ locale === 'de' ? 'Jeder Run: Seed + Index' : 'Each run: seed + index' }}</small>
+          </div>
+        </div>
+        <div class="batch-modal-footer">
+          <button class="btn secondary" @click="showBatchModal = false">
+            {{ locale === 'de' ? 'Abbrechen' : 'Cancel' }}
+          </button>
+          <button class="btn primary" @click="handleStartBatch">
+            🔄 {{ locale === 'de' ? 'Batch starten' : 'Start Batch' }}
+          </button>
         </div>
       </div>
     </div>
@@ -721,5 +795,171 @@ onUnmounted(() => {
   background: rgba(51, 65, 85, 0.5);
   border-radius: 12px;
   margin-top: 0.25rem;
+}
+
+/* Session 149: Batch UI Styles */
+.toolbar-btn.batch {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-color: #6366f1;
+}
+
+.toolbar-btn.batch:hover:not(:disabled) {
+  background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+}
+
+.batch-progress-bar {
+  background: rgba(99, 102, 241, 0.2);
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #334155;
+}
+
+.batch-progress-info {
+  font-size: 0.875rem;
+  color: #c7d2fe;
+  margin-bottom: 0.25rem;
+}
+
+.batch-progress-track {
+  height: 4px;
+  background: #334155;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.batch-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: width 0.3s ease;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.batch-modal {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90vw;
+}
+
+.batch-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #334155;
+}
+
+.batch-modal-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #f1f5f9;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #f1f5f9;
+}
+
+.batch-modal-content {
+  padding: 1.25rem;
+}
+
+.batch-field {
+  margin-bottom: 1rem;
+}
+
+.batch-field label {
+  display: block;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+}
+
+.batch-field.checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.batch-field input[type="number"] {
+  width: 100%;
+  padding: 0.625rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 1rem;
+}
+
+.batch-field input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.batch-field small {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.batch-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #334155;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  color: white;
+}
+
+.btn.primary:hover {
+  background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+}
+
+.btn.secondary {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #94a3b8;
+}
+
+.btn.secondary:hover {
+  background: rgba(51, 65, 85, 0.5);
+  color: #f1f5f9;
 }
 </style>

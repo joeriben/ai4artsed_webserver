@@ -6,6 +6,10 @@ ADMIN: Adjust settings in the "MAIN CONFIGURATION" section below!
 import os
 from pathlib import Path
 
+# Base paths (defined early because used throughout config)
+_SERVER_BASE = Path(__file__).parent.parent  # devserver parent = ai4artsed_development
+_AI_TOOLS_BASE = _SERVER_BASE.parent  # ai4artsed_development parent = ai/
+
 # ============================================================================
 # ============================================================================
 # MAIN CONFIGURATION - ADMIN: CHANGE THESE SETTINGS
@@ -525,9 +529,7 @@ ENABLE_MODEL_PATH_RESOLUTION = True  # ENABLED: SwarmUI uses OfficialStableDiffu
 MODEL_RESOLUTION_FALLBACK = True      # Fallback to original names if resolution fails
 
 # Base paths for model resolution (configure these to your actual paths)
-# Default: SwarmUI is a sibling directory to the server directory
-_SERVER_BASE = Path(__file__).parent.parent  # devserver parent = ai4artsed_development
-_AI_TOOLS_BASE = _SERVER_BASE.parent  # ai4artsed_development parent = ai/
+# Note: _SERVER_BASE and _AI_TOOLS_BASE are defined at top of file
 SWARMUI_BASE_PATH = os.environ.get("SWARMUI_PATH", str(_AI_TOOLS_BASE / "SwarmUI"))
 COMFYUI_BASE_PATH = os.environ.get("COMFYUI_PATH", str(_AI_TOOLS_BASE / "SwarmUI" / "dlbackend" / "ComfyUI"))
 

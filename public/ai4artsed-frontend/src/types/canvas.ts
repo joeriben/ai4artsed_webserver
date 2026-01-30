@@ -35,6 +35,8 @@ export type StageType =
   | 'display'
   // Session 147: Multi-input comparison evaluator
   | 'comparison_evaluator'
+  // Session 149: Seed control node for reproducible generation
+  | 'seed'
 
 // ============================================================================
 // MODEL ADAPTION TYPES (Session 145)
@@ -292,6 +294,20 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'analyze.svg',
     allowMultiple: true,
     mandatory: false
+  },
+  // Session 149: Seed Node for reproducible generation
+  {
+    id: 'seed',
+    type: 'seed',
+    label: { en: 'Seed', de: 'Seed' },
+    description: {
+      en: 'Control seed for reproducible media generation',
+      de: 'Seed für reproduzierbare Mediengenerierung'
+    },
+    color: '#6366f1', // indigo
+    icon: 'casino_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false
   }
 ]
 
@@ -383,6 +399,14 @@ export interface CanvasNode {
   comparisonLlmModel?: string
   /** Evaluation criteria/goals for comparison */
   comparisonCriteria?: string
+
+  // === Seed node config (Session 149) ===
+  /** Seed mode: fixed value, random per execution, or increment for batch */
+  seedMode?: 'fixed' | 'random' | 'increment'
+  /** Fixed seed value (only used when seedMode is 'fixed') */
+  seedValue?: number
+  /** Base seed for increment mode (batch execution adds run_index) */
+  seedBase?: number
 }
 
 // ============================================================================
@@ -526,7 +550,8 @@ export function getNodeTypeDefinition(type: StageType): NodeTypeDefinition | und
  * Simplified validation - only structural constraints:
  * 1. Terminal nodes (collector, display) have no output
  * 2. Source nodes (input) have no input
- * 3. No self-loops
+ * 3. Seed nodes can only connect to generation nodes
+ * 4. No self-loops
  *
  * Data type compatibility (text vs image) is checked at runtime by the backend.
  */
@@ -538,6 +563,9 @@ export function isValidConnection(sourceType: StageType, targetType: StageType):
   // Source nodes have no input connector
   const sourceNodes: StageType[] = ['input']
   if (sourceNodes.includes(targetType)) return false
+
+  // Session 149: Seed nodes can only connect to generation nodes
+  if (sourceType === 'seed' && targetType !== 'generation') return false
 
   // No self-loops (same node type connecting to itself is allowed, just not same instance)
   // This is handled elsewhere - same type is fine

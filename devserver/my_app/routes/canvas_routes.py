@@ -18,6 +18,7 @@ from flask import Blueprint, jsonify, request, Response
 import json
 
 from schemas.engine.model_selector import ModelSelector
+from my_app.services.canvas_recorder import CanvasRecorder, get_canvas_recorder, cleanup_canvas_recorder
 import config
 
 logger = logging.getLogger(__name__)
@@ -436,7 +437,16 @@ def execute_workflow():
         comparison_inputs = {}  # Session 147: {node_id: [{label, text, source}, ...]}
         execution_trace = []
         engine = PromptInterceptionEngine()
-        canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        canvas_run_id = f"canvas_run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
+        # Session 149: Initialize CanvasRecorder for export
+        # Get device_id from request if provided
+        device_id = data.get('device_id')
+        recorder = get_canvas_recorder(
+            run_id=canvas_run_id,
+            workflow={'nodes': nodes, 'connections': connections},
+            device_id=device_id
+        )
 
         # Safety limit for feedback loops
         MAX_TOTAL_EXECUTIONS = 50
@@ -452,6 +462,9 @@ def execute_workflow():
             if node_type == 'input':
                 output = node.get('promptText', '')
                 results[node_id] = {'type': 'input', 'output': output, 'error': None}
+                # Session 149: Save to recorder
+                if output:
+                    recorder.save_entity(node_id=node_id, node_type='input', content=output)
                 return output, 'text', None
 
             elif node_type == 'random_prompt':
@@ -497,6 +510,10 @@ def execute_workflow():
                     'error': response.error if not response.success else None,
                     'model': response.model_used
                 }
+                # Session 149: Save to recorder
+                if output:
+                    recorder.save_entity(node_id=node_id, node_type='random_prompt', content=output,
+                                        metadata={'preset': preset, 'model': response.model_used})
                 logger.info(f"[Canvas Tracer] Random Prompt ({preset}): '{output[:50]}...'")
                 return output, 'text', None
 
@@ -522,6 +539,10 @@ def execute_workflow():
                     'error': response.error if not response.success else None,
                     'model': response.model_used
                 }
+                # Session 149: Save to recorder
+                if output:
+                    recorder.save_entity(node_id=node_id, node_type='interception', content=output,
+                                        metadata={'model': response.model_used})
                 logger.info(f"[Canvas Tracer] Interception: '{output[:50]}...'")
                 return output, 'text', None
 
@@ -547,7 +568,32 @@ def execute_workflow():
                     'error': response.error if not response.success else None,
                     'model': response.model_used
                 }
+                # Session 149: Save to recorder
+                if output:
+                    recorder.save_entity(node_id=node_id, node_type='translation', content=output,
+                                        metadata={'model': response.model_used})
                 return output, 'text', None
+
+            elif node_type == 'seed':
+                # Session 149: Seed node for reproducible generation
+                seed_mode = node.get('seedMode', 'fixed')
+                seed_value = node.get('seedValue', 42)
+                seed_base = node.get('seedBase', 0)
+
+                if seed_mode == 'fixed':
+                    output_seed = seed_value
+                elif seed_mode == 'random':
+                    output_seed = random.randint(0, 2**32 - 1)
+                elif seed_mode == 'increment':
+                    # Increment mode uses seedBase, incremented by batch run_index
+                    # For single runs, just use seedBase
+                    output_seed = seed_base
+                else:
+                    output_seed = seed_value
+
+                results[node_id] = {'type': 'seed', 'output': output_seed, 'error': None, 'seedMode': seed_mode}
+                logger.info(f"[Canvas Tracer] Seed: {output_seed} (mode={seed_mode})")
+                return output_seed, 'seed', None
 
             elif node_type == 'generation':
                 # Session 136: Use execute_stage4_generation_only directly
@@ -560,22 +606,59 @@ def execute_workflow():
                     results[node_id] = {'type': 'generation', 'output': None, 'error': 'No config'}
                     return None, 'image', None
 
-                if not input_data:
+                # Session 149: Check for seed from connected seed node
+                # Look for incoming 'seed' labeled connection
+                generation_seed = None
+                for inc in incoming.get(node_id, []):
+                    source_id = inc.get('source')
+                    source_node = node_map.get(source_id)
+                    if source_node and source_node.get('type') == 'seed':
+                        seed_result = results.get(source_id)
+                        if seed_result and seed_result.get('output') is not None:
+                            generation_seed = int(seed_result['output'])
+                            logger.info(f"[Canvas Tracer] Generation using seed from node {source_id}: {generation_seed}")
+                            break
+
+                # Get prompt from text connection (not seed)
+                prompt_data = None
+                if isinstance(input_data, int):
+                    # Input is a seed, not a prompt - look for prompt from other connections
+                    for inc in incoming.get(node_id, []):
+                        source_id = inc.get('source')
+                        source_node = node_map.get(source_id)
+                        if source_node and source_node.get('type') != 'seed':
+                            source_result = results.get(source_id)
+                            if source_result and isinstance(source_result.get('output'), str):
+                                prompt_data = source_result['output']
+                                break
+                else:
+                    prompt_data = input_data
+
+                if not prompt_data:
                     results[node_id] = {'type': 'generation', 'output': None, 'error': 'No input'}
                     return None, 'image', None
 
                 try:
                     # Call Stage 4 only - prompt is already translated by Canvas Translation node
                     gen_result = asyncio.run(execute_stage4_generation_only(
-                        prompt=input_data,
+                        prompt=prompt_data,
                         output_config=config_id,
                         safety_level=DEFAULT_SAFETY_LEVEL,
                         run_id=canvas_run_id,
-                        device_id=None
+                        device_id=None,
+                        seed=generation_seed  # Session 149: Pass seed if available
                     ))
                     if gen_result['success']:
                         output = gen_result['media_output']
                         results[node_id] = {'type': 'generation', 'output': output, 'error': None, 'configId': config_id}
+                        # Session 149: Save image to recorder
+                        if output and output.get('url'):
+                            recorder.save_image_from_url(
+                                node_id=node_id,
+                                url=output['url'],
+                                config_id=config_id,
+                                seed=output.get('seed')
+                            )
                         logger.info(f"[Canvas Tracer] Generation: {output['url']}")
                         return output, 'image', None
                     else:
@@ -674,6 +757,10 @@ def execute_workflow():
                     'error': None,
                     'model': response.model_used
                 }
+                # Session 149: Save evaluation to recorder
+                if commentary_text:
+                    recorder.save_entity(node_id=node_id, node_type='evaluation', content=commentary_text,
+                                        metadata={'score': score, 'binary': binary_result, 'active_path': active_path, 'model': response.model_used})
                 logger.info(f"[Canvas Tracer] Evaluation: score={score}, binary={binary_result}, path={active_path}")
 
                 # Return the appropriate output based on binary result
@@ -807,6 +894,10 @@ Strukturiere deine Antwort klar und beziehe dich immer auf die Text-Nummern."""
                         'sources': [inp['source'] for inp in inputs_list]
                     }
                 }
+                # Session 149: Save comparison to recorder
+                if output:
+                    recorder.save_entity(node_id=node_id, node_type='comparison_evaluator', content=output,
+                                        metadata={'input_count': len(inputs_list), 'sources': [inp['source'] for inp in inputs_list], 'model': response.model_used})
                 logger.info(f"[Canvas Tracer] Comparison complete: {len(output)} chars")
                 return output, 'text', None
 
@@ -890,12 +981,16 @@ Strukturiere deine Antwort klar und beziehe dich immer auf die Text-Nummern."""
                 target_type = target_node.get('type')
                 accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display', 'comparison_evaluator']
                 accepts_image = target_type in ['evaluation', 'collector', 'display']
+                accepts_seed = target_type == 'generation'  # Session 149: seed → generation
 
                 if output_type == 'text' and not accepts_text:
                     logger.warning(f"[Canvas Tracer] Type mismatch: {node_id} outputs text, {target_id} ({target_type}) doesn't accept it")
                     continue
                 if output_type == 'image' and not accepts_image:
                     logger.warning(f"[Canvas Tracer] Type mismatch: {node_id} outputs image, {target_id} ({target_type}) doesn't accept it")
+                    continue
+                if output_type == 'seed' and not accepts_seed:
+                    logger.warning(f"[Canvas Tracer] Type mismatch: {node_id} outputs seed, {target_id} ({target_type}) doesn't accept it")
                     continue
 
                 # For evaluation with specific output paths
@@ -929,17 +1024,25 @@ Strukturiere deine Antwort klar und beziehe dich immer auf die Text-Nummern."""
         logger.info(f"[Canvas Tracer] Complete. {execution_count[0]} executions, {len(collector_items)} collected items")
         logger.info(f"[Canvas Tracer] Trace: {' -> '.join(execution_trace)}")
 
+        # Session 149: Mark recorder complete and cleanup
+        recorder.mark_complete()
+        cleanup_canvas_recorder(canvas_run_id)
+
         return jsonify({
             'status': 'success',
             'results': results,
             'collectorOutput': collector_items,
-            'executionOrder': execution_trace
+            'executionOrder': execution_trace,
+            'exportPath': str(recorder.run_folder)  # Session 149: Return export path
         })
 
     except Exception as e:
         logger.error(f"[Canvas Tracer] Fatal error: {e}")
         import traceback
         traceback.print_exc()
+        # Session 149: Cleanup recorder on error
+        if 'canvas_run_id' in locals() and 'recorder' in locals():
+            cleanup_canvas_recorder(canvas_run_id)
         return jsonify({
             'status': 'error',
             'error': str(e)
@@ -1022,7 +1125,15 @@ def execute_workflow_stream():
                 comparison_inputs = {}  # Session 147: {node_id: [{label, text, source}, ...]}
                 execution_trace = []
                 engine = PromptInterceptionEngine()
-                canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+                canvas_run_id = f"canvas_run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
+                # Session 149: Initialize CanvasRecorder for export
+                device_id = data.get('device_id')
+                recorder = get_canvas_recorder(
+                    run_id=canvas_run_id,
+                    workflow={'nodes': nodes, 'connections': connections},
+                    device_id=device_id
+                )
 
                 MAX_TOTAL_EXECUTIONS = 50
                 execution_count = 0
@@ -1058,6 +1169,9 @@ def execute_workflow_stream():
                     if node_type == 'input':
                         output = node.get('promptText', '')
                         results[node_id] = {'type': 'input', 'output': output, 'error': None}
+                        # Session 149: Save to recorder
+                        if output:
+                            recorder.save_entity(node_id=node_id, node_type='input', content=output)
                         return output, 'text', None
 
                     elif node_type == 'random_prompt':
@@ -1097,6 +1211,10 @@ def execute_workflow_stream():
                             'error': response.error if not response.success else None,
                             'model': response.model_used
                         }
+                        # Session 149: Save to recorder
+                        if output:
+                            recorder.save_entity(node_id=node_id, node_type='random_prompt', content=output,
+                                                metadata={'preset': preset, 'model': response.model_used})
                         logger.info(f"[Canvas Stream] Random Prompt ({preset}): '{output[:50]}...'")
                         return output, 'text', None
 
@@ -1117,6 +1235,10 @@ def execute_workflow_stream():
                             'error': response.error if not response.success else None,
                             'model': response.model_used
                         }
+                        # Session 149: Save to recorder
+                        if output:
+                            recorder.save_entity(node_id=node_id, node_type='interception', content=output,
+                                                metadata={'model': response.model_used})
                         logger.info(f"[Canvas Stream] Interception: '{output[:50]}...'")
                         return output, 'text', None
 
@@ -1137,7 +1259,26 @@ def execute_workflow_stream():
                             'error': response.error if not response.success else None,
                             'model': response.model_used
                         }
+                        # Session 149: Save to recorder
+                        if output:
+                            recorder.save_entity(node_id=node_id, node_type='translation', content=output,
+                                                metadata={'model': response.model_used})
                         return output, 'text', None
+
+                    elif node_type == 'seed':
+                        # Session 149: Seed node for reproducible generation
+                        seed_mode = node.get('seedMode', 'fixed')
+                        seed_value = node.get('seedValue', 42)
+                        seed_base = node.get('seedBase', 0)
+                        if seed_mode == 'fixed':
+                            output_seed = seed_value
+                        elif seed_mode == 'random':
+                            output_seed = random.randint(0, 2**32 - 1)
+                        else:
+                            output_seed = seed_base
+                        results[node_id] = {'type': 'seed', 'output': output_seed, 'error': None, 'seedMode': seed_mode}
+                        logger.info(f"[Canvas Stream] Seed: {output_seed} (mode={seed_mode})")
+                        return output_seed, 'seed', None
 
                     elif node_type == 'generation':
                         from my_app.routes.schema_pipeline_routes import execute_stage4_generation_only
@@ -1146,17 +1287,50 @@ def execute_workflow_stream():
                         if not config_id:
                             results[node_id] = {'type': 'generation', 'output': None, 'error': 'No config'}
                             return None, 'image', None
-                        if not input_data:
+
+                        # Session 149: Check for seed from connected seed node
+                        generation_seed = None
+                        for inc in incoming.get(node_id, []):
+                            source_id = inc.get('source')
+                            source_node = node_map.get(source_id)
+                            if source_node and source_node.get('type') == 'seed':
+                                seed_result = results.get(source_id)
+                                if seed_result and seed_result.get('output') is not None:
+                                    generation_seed = int(seed_result['output'])
+                                    break
+
+                        # Get prompt from text connection (not seed)
+                        prompt_data = input_data
+                        if isinstance(input_data, int):
+                            for inc in incoming.get(node_id, []):
+                                source_id = inc.get('source')
+                                source_node = node_map.get(source_id)
+                                if source_node and source_node.get('type') != 'seed':
+                                    source_result = results.get(source_id)
+                                    if source_result and isinstance(source_result.get('output'), str):
+                                        prompt_data = source_result['output']
+                                        break
+
+                        if not prompt_data or isinstance(prompt_data, int):
                             results[node_id] = {'type': 'generation', 'output': None, 'error': 'No input'}
                             return None, 'image', None
                         try:
                             gen_result = asyncio.run(execute_stage4_generation_only(
-                                prompt=input_data, output_config=config_id,
-                                safety_level=DEFAULT_SAFETY_LEVEL, run_id=canvas_run_id, device_id=None
+                                prompt=prompt_data, output_config=config_id,
+                                safety_level=DEFAULT_SAFETY_LEVEL, run_id=canvas_run_id, device_id=None,
+                                seed=generation_seed
                             ))
                             if gen_result['success']:
                                 output = gen_result['media_output']
                                 results[node_id] = {'type': 'generation', 'output': output, 'error': None, 'configId': config_id}
+                                # Session 149: Save image to recorder
+                                if output and output.get('url'):
+                                    recorder.save_image_from_url(
+                                        node_id=node_id,
+                                        url=output['url'],
+                                        config_id=config_id,
+                                        seed=output.get('seed')
+                                    )
                                 logger.info(f"[Canvas Stream] Generation: {output['url']}")
                                 return output, 'image', None
                             else:
@@ -1231,6 +1405,10 @@ def execute_workflow_stream():
                             'metadata': {'binary': binary_result, 'score': score, 'active_path': active_path},
                             'error': None, 'model': response.model_used
                         }
+                        # Session 149: Save evaluation to recorder
+                        if commentary:
+                            recorder.save_entity(node_id=node_id, node_type='evaluation', content=commentary,
+                                                metadata={'score': score, 'binary': binary_result, 'active_path': active_path, 'model': response.model_used})
                         logger.info(f"[Canvas Stream] Evaluation: score={score}, path={active_path}")
                         return passthrough_text if binary_result else commented_text, 'text', {'binary': binary_result, 'score': score, 'active_path': active_path}
 
@@ -1321,6 +1499,10 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
                             'model': response.model_used,
                             'metadata': {'input_count': len(inputs_list), 'sources': [inp['source'] for inp in inputs_list]}
                         }
+                        # Session 149: Save comparison to recorder
+                        if output:
+                            recorder.save_entity(node_id=node_id, node_type='comparison_evaluator', content=output,
+                                                metadata={'input_count': len(inputs_list), 'sources': [inp['source'] for inp in inputs_list], 'model': response.model_used})
                         logger.info(f"[Canvas Stream] Comparison complete: {len(output)} chars")
                         return output, 'text', None
 
@@ -1359,10 +1541,13 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
                         target_type = target_node.get('type')
                         accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display', 'comparison_evaluator']
                         accepts_image = target_type in ['evaluation', 'collector', 'display']
+                        accepts_seed = target_type == 'generation'  # Session 149: seed → generation
 
                         if output_type == 'text' and not accepts_text:
                             continue
                         if output_type == 'image' and not accepts_image:
+                            continue
+                        if output_type == 'seed' and not accepts_seed:
                             continue
 
                         # Determine the data to pass
@@ -1441,13 +1626,21 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
                 logger.info(f"[Canvas Stream] Complete. {execution_count} executions, {len(collector_items)} collected")
                 logger.info(f"[Canvas Stream] Trace: {' -> '.join(execution_trace)}")
 
+                # Session 149: Mark recorder complete and cleanup
+                recorder.mark_complete()
+                export_path = str(recorder.run_folder)
+                cleanup_canvas_recorder(canvas_run_id)
+
                 # Send complete event
-                yield f"event: complete\ndata: {json.dumps({'results': results, 'collectorOutput': collector_items, 'executionOrder': execution_trace})}\n\n"
+                yield f"event: complete\ndata: {json.dumps({'results': results, 'collectorOutput': collector_items, 'executionOrder': execution_trace, 'exportPath': export_path})}\n\n"
 
             except Exception as e:
                 logger.error(f"[Canvas Stream] Fatal error: {e}")
                 import traceback
                 traceback.print_exc()
+                # Session 149: Cleanup recorder on error
+                if 'canvas_run_id' in locals():
+                    cleanup_canvas_recorder(canvas_run_id)
                 yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
 
         return Response(generate(), mimetype='text/event-stream', headers={
@@ -1505,3 +1698,355 @@ def get_interception_config(preset_id: str):
             'status': 'error',
             'error': str(e)
         }), 500
+
+
+@canvas_bp.route('/api/canvas/execute-batch', methods=['POST'])
+def execute_batch():
+    """
+    Execute a canvas workflow multiple times with SSE streaming.
+
+    Session 149: Batch execution for research data production.
+
+    Request body:
+    {
+        "workflow": {"nodes": [...], "connections": [...]},
+        "count": 3,                    // Number of runs (for seed variance)
+        "prompts": ["prompt1", ...],   // OR list of prompts (1 prompt = 1 run)
+        "device_id": "...",            // Optional device identifier
+        "base_seed": 42                // Optional base seed for reproducibility
+    }
+
+    Events:
+    - batch_started: {batch_id, total_runs}
+    - run_start: {run_index, total_runs, run_id}
+    - progress: {run_index, node_id, node_type, status, message}
+    - run_complete: {run_index, run_id, export_path, results}
+    - batch_complete: {batch_id, total_runs, export_paths}
+    - error: {message, run_index}
+    """
+    from schemas.engine.prompt_interception_engine import PromptInterceptionEngine, PromptInterceptionRequest
+    import time
+    import uuid
+
+    try:
+        data = request.get_json()
+        if not data:
+            def error_gen():
+                yield f"event: error\ndata: {json.dumps({'message': 'JSON request expected'})}\n\n"
+            return Response(error_gen(), mimetype='text/event-stream')
+
+        workflow = data.get('workflow', {})
+        nodes = workflow.get('nodes', [])
+        connections = workflow.get('connections', [])
+
+        if not nodes:
+            def error_gen():
+                yield f"event: error\ndata: {json.dumps({'message': 'No nodes in workflow'})}\n\n"
+            return Response(error_gen(), mimetype='text/event-stream')
+
+        # Determine batch mode: prompts list OR count
+        prompts = data.get('prompts')  # List of input prompts
+        count = data.get('count', 1)   # Number of runs (seed variance)
+        device_id = data.get('device_id')
+        base_seed = data.get('base_seed')  # Optional base seed
+
+        if prompts and len(prompts) > 0:
+            total_runs = len(prompts)
+            batch_mode = 'prompts'
+        else:
+            total_runs = count
+            batch_mode = 'seed_variance'
+
+        batch_id = f"batch_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
+        def generate():
+            """Generator that yields SSE events for batch execution"""
+            try:
+                logger.info(f"[Canvas Batch] Starting batch {batch_id}: {total_runs} runs ({batch_mode})")
+
+                # Send batch_started event
+                yield f"event: batch_started\ndata: {json.dumps({'batch_id': batch_id, 'total_runs': total_runs, 'batch_mode': batch_mode})}\n\n"
+
+                export_paths = []
+                engine = PromptInterceptionEngine()
+
+                for run_index in range(total_runs):
+                    run_id = f"{batch_id}_run_{run_index:03d}"
+
+                    # Get prompt override for this run (if using prompts mode)
+                    prompt_override = prompts[run_index] if batch_mode == 'prompts' else None
+
+                    # Calculate seed for this run (if using seed variance)
+                    run_seed = None
+                    if base_seed is not None:
+                        run_seed = base_seed + run_index
+
+                    yield f"event: run_start\ndata: {json.dumps({'run_index': run_index, 'total_runs': total_runs, 'run_id': run_id, 'seed': run_seed})}\n\n"
+
+                    try:
+                        # Initialize recorder for this run
+                        recorder = get_canvas_recorder(
+                            run_id=run_id,
+                            workflow={'nodes': nodes, 'connections': connections},
+                            device_id=device_id,
+                            batch_id=batch_id,
+                            batch_index=run_index
+                        )
+
+                        # Execute single run (using internal execute logic)
+                        run_result = _execute_single_workflow(
+                            nodes=nodes,
+                            connections=connections,
+                            engine=engine,
+                            recorder=recorder,
+                            run_id=run_id,
+                            prompt_override=prompt_override,
+                            run_seed=run_seed
+                        )
+
+                        # Mark complete and cleanup
+                        recorder.mark_complete()
+                        export_path = str(recorder.run_folder)
+                        export_paths.append(export_path)
+                        cleanup_canvas_recorder(run_id)
+
+                        yield f"event: run_complete\ndata: {json.dumps({'run_index': run_index, 'run_id': run_id, 'export_path': export_path, 'success': run_result.get('success', False)})}\n\n"
+
+                    except Exception as e:
+                        logger.error(f"[Canvas Batch] Run {run_index} failed: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        cleanup_canvas_recorder(run_id)
+                        yield f"event: run_error\ndata: {json.dumps({'run_index': run_index, 'run_id': run_id, 'error': str(e)})}\n\n"
+
+                # Send batch_complete event
+                yield f"event: batch_complete\ndata: {json.dumps({'batch_id': batch_id, 'total_runs': total_runs, 'export_paths': export_paths})}\n\n"
+                logger.info(f"[Canvas Batch] Batch {batch_id} complete: {len(export_paths)} successful runs")
+
+            except Exception as e:
+                logger.error(f"[Canvas Batch] Fatal error: {e}")
+                import traceback
+                traceback.print_exc()
+                yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+
+        return Response(generate(), mimetype='text/event-stream', headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        })
+
+    except Exception as e:
+        logger.error(f"[Canvas Batch] Setup error: {e}")
+        def error_gen():
+            yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+        return Response(error_gen(), mimetype='text/event-stream')
+
+
+def _execute_single_workflow(nodes, connections, engine, recorder, run_id, prompt_override=None, run_seed=None):
+    """
+    Execute a single workflow run (internal helper for batch).
+
+    This is a simplified version of execute_workflow() that:
+    - Uses an existing recorder (no init/cleanup)
+    - Supports prompt_override for batch prompts mode
+    - Supports run_seed for seed variance mode
+
+    Returns:
+        dict with 'success', 'results', 'collector_items', 'execution_trace'
+    """
+    from schemas.engine.prompt_interception_engine import PromptInterceptionRequest
+    import time
+
+    results = {}
+    collector_items = []
+    comparison_inputs = {}
+    execution_trace = []
+
+    MAX_TOTAL_EXECUTIONS = 50
+    execution_count = 0
+
+    # Build graph
+    node_map = {n['id']: n for n in nodes}
+    outgoing = {n['id']: [] for n in nodes}
+    incoming = {n['id']: [] for n in nodes}
+    for conn in connections:
+        src = conn.get('sourceId')
+        tgt = conn.get('targetId')
+        label = conn.get('label')
+        if src and tgt:
+            outgoing[src].append({'target': tgt, 'label': label})
+            incoming[tgt].append({'source': src, 'label': label})
+
+    # Find source nodes
+    source_nodes = []
+    for n in nodes:
+        ntype = n.get('type')
+        if ntype == 'input':
+            # Apply prompt override if provided
+            if prompt_override is not None:
+                n = dict(n)  # Copy to avoid mutating original
+                n['promptText'] = prompt_override
+            source_nodes.append(n)
+        elif ntype == 'random_prompt' and not incoming.get(n['id']):
+            source_nodes.append(n)
+
+    if not source_nodes:
+        return {'success': False, 'error': 'No source nodes found'}
+
+    def execute_node(node, input_data, data_type, source_node_id=None, source_node_type=None):
+        """Execute a single node (simplified batch version)"""
+        nonlocal execution_count
+        node_id = node['id']
+        node_type = node.get('type')
+
+        if node_type == 'input':
+            output = node.get('promptText', '')
+            results[node_id] = {'type': 'input', 'output': output, 'error': None}
+            if output:
+                recorder.save_entity(node_id=node_id, node_type='input', content=output)
+            return output, 'text', None
+
+        elif node_type == 'random_prompt':
+            preset = node.get('randomPromptPreset', 'clean_image')
+            llm_model = node.get('randomPromptModel', 'local/mistral-nemo')
+            preset_config = RANDOM_PROMPT_PRESETS.get(preset, RANDOM_PROMPT_PRESETS['clean_image'])
+            system_prompt = node.get('randomPromptSystemPrompt') or preset_config['systemPrompt']
+            user_prompt = preset_config['userPromptTemplate']
+            if input_data and str(input_data).strip():
+                user_prompt = f"Context: {input_data.strip()}\n\n{user_prompt}"
+            req = PromptInterceptionRequest(input_prompt=user_prompt, style_prompt=system_prompt, model=llm_model, debug=True)
+            response = asyncio.run(engine.process_request(req))
+            output = response.output_str if response.success else ''
+            results[node_id] = {'type': 'random_prompt', 'output': output, 'error': response.error if not response.success else None}
+            if output:
+                recorder.save_entity(node_id=node_id, node_type='random_prompt', content=output, metadata={'preset': preset})
+            return output, 'text', None
+
+        elif node_type == 'interception':
+            llm_model = node.get('llmModel', 'local/mistral-nemo')
+            context_prompt = node.get('contextPrompt', '')
+            if not input_data:
+                results[node_id] = {'type': 'interception', 'output': '', 'error': 'No input'}
+                return '', 'text', None
+            req = PromptInterceptionRequest(input_prompt=input_data, style_prompt=context_prompt, model=llm_model, debug=True)
+            response = asyncio.run(engine.process_request(req))
+            output = response.output_str if response.success else ''
+            results[node_id] = {'type': 'interception', 'output': output, 'error': response.error if not response.success else None}
+            if output:
+                recorder.save_entity(node_id=node_id, node_type='interception', content=output, metadata={'model': response.model_used})
+            return output, 'text', None
+
+        elif node_type == 'translation':
+            llm_model = node.get('llmModel', 'local/mistral-nemo')
+            translation_prompt = node.get('translationPrompt', 'Translate to English:')
+            if not input_data:
+                results[node_id] = {'type': 'translation', 'output': '', 'error': 'No input'}
+                return '', 'text', None
+            req = PromptInterceptionRequest(input_prompt=input_data, style_prompt=translation_prompt, model=llm_model, debug=True)
+            response = asyncio.run(engine.process_request(req))
+            output = response.output_str if response.success else ''
+            results[node_id] = {'type': 'translation', 'output': output, 'error': response.error if not response.success else None}
+            if output:
+                recorder.save_entity(node_id=node_id, node_type='translation', content=output, metadata={'model': response.model_used})
+            return output, 'text', None
+
+        elif node_type == 'generation':
+            from my_app.routes.schema_pipeline_routes import execute_stage4_generation_only
+            from config import DEFAULT_SAFETY_LEVEL
+            config_id = node.get('configId')
+            if not config_id or not input_data:
+                results[node_id] = {'type': 'generation', 'output': None, 'error': 'No config or input'}
+                return None, 'image', None
+            try:
+                gen_result = asyncio.run(execute_stage4_generation_only(
+                    prompt=input_data, output_config=config_id,
+                    safety_level=DEFAULT_SAFETY_LEVEL, run_id=run_id, device_id=None
+                ))
+                if gen_result['success']:
+                    output = gen_result['media_output']
+                    results[node_id] = {'type': 'generation', 'output': output, 'error': None, 'configId': config_id}
+                    if output and output.get('url'):
+                        recorder.save_image_from_url(node_id=node_id, url=output['url'], config_id=config_id, seed=output.get('seed'))
+                    return output, 'image', None
+                else:
+                    results[node_id] = {'type': 'generation', 'output': None, 'error': gen_result.get('error')}
+                    return None, 'image', None
+            except Exception as e:
+                results[node_id] = {'type': 'generation', 'output': None, 'error': str(e)}
+                return None, 'image', None
+
+        elif node_type == 'evaluation':
+            llm_model = node.get('llmModel', 'local/mistral-nemo')
+            evaluation_prompt = node.get('evaluationPrompt', '')
+            if isinstance(input_data, dict) and input_data.get('url'):
+                eval_input = f"[Media: {input_data.get('media_type', 'image')} at {input_data.get('url')}]"
+            else:
+                eval_input = input_data or ''
+            if not eval_input:
+                results[node_id] = {'type': 'evaluation', 'outputs': {}, 'metadata': {}, 'error': 'No input'}
+                return '', 'text', {}
+            instruction = f"{evaluation_prompt}\n\nProvide evaluation:\nCOMMENTARY: [feedback]\nSCORE: [0-10]"
+            req = PromptInterceptionRequest(input_prompt=eval_input, style_prompt=instruction, model=llm_model, debug=True)
+            response = asyncio.run(engine.process_request(req))
+            if not response.success:
+                results[node_id] = {'type': 'evaluation', 'outputs': {}, 'metadata': {}, 'error': response.error}
+                return '', 'text', {}
+            commentary = response.output_str
+            score = response.output_float
+            binary_result = score >= 5.0 if score is not None else False
+            active_path = 'passthrough' if binary_result else 'commented'
+            results[node_id] = {'type': 'evaluation', 'outputs': {'commentary': commentary}, 'metadata': {'score': score, 'active_path': active_path}, 'error': None}
+            if commentary:
+                recorder.save_entity(node_id=node_id, node_type='evaluation', content=commentary, metadata={'score': score, 'active_path': active_path})
+            return eval_input if binary_result else f"{eval_input}\n\nFEEDBACK: {commentary}", 'text', {'active_path': active_path}
+
+        elif node_type == 'collector':
+            collector_item = {'nodeId': source_node_id or node_id, 'nodeType': source_node_type or data_type, 'output': input_data, 'error': None}
+            collector_items.append(collector_item)
+            results[node_id] = {'type': 'collector', 'output': collector_items, 'error': None}
+            return input_data, data_type, None
+
+        else:
+            results[node_id] = {'type': node_type, 'output': None, 'error': f'Unknown type: {node_type}'}
+            return None, 'text', None
+
+    def trace(node_id, input_data, data_type, source_node_id=None, source_node_type=None):
+        """Trace through graph"""
+        nonlocal execution_count
+        execution_count += 1
+        if execution_count > MAX_TOTAL_EXECUTIONS:
+            return
+
+        node = node_map.get(node_id)
+        if not node:
+            return
+
+        execution_trace.append(node_id)
+        output_data, output_type, metadata = execute_node(node, input_data, data_type, source_node_id, source_node_type)
+
+        if metadata and metadata.get('waiting'):
+            return
+
+        node_type = node.get('type')
+        next_conns = outgoing.get(node_id, [])
+
+        # Filter for evaluation
+        if node_type == 'evaluation' and metadata:
+            active_path = metadata.get('active_path')
+            next_conns = [c for c in next_conns if not c.get('label') or c.get('label') == active_path or c.get('label') == 'commentary']
+
+        for conn in next_conns:
+            target_id = conn['target']
+            target_node = node_map.get(target_id)
+            if target_node:
+                trace(target_id, output_data, output_type, node_id, node_type)
+
+    # Start tracing from source nodes
+    for src_node in source_nodes:
+        trace(src_node['id'], None, 'text')
+
+    return {
+        'success': True,
+        'results': results,
+        'collector_items': collector_items,
+        'execution_trace': execution_trace
+    }
