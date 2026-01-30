@@ -1,5 +1,78 @@
 # Development Log
 
+## Session 152 - Tone.js Browser-Based Music Generation
+**Date:** 2026-01-31
+**Focus:** Add Tone.js as new output option for browser-based music synthesis
+**Status:** COMPLETED
+
+### Overview
+
+Following the p5.js pattern for generative graphics, Tone.js enables browser-based music generation. The LLM generates Tone.js JavaScript code that runs directly in the frontend via iframe.
+
+### Architecture Pattern: Code Generation Output
+
+| Component | p5.js (Graphics) | Tone.js (Audio) |
+|-----------|------------------|-----------------|
+| Chunk Type | `text_passthrough` | `text_passthrough` |
+| Backend Type | `vue_p5js` | `vue_tonejs` |
+| Media Type | `code` | `code` |
+| Language | JavaScript | JavaScript |
+| Execution | Browser Canvas | Web Audio API |
+
+**Key Difference from Binary Media:**
+- No ComfyUI/SwarmUI workflow execution
+- LLM generates code directly (Claude Sonnet 4.5 via OpenRouter)
+- Code passed through to frontend for browser execution
+- No server-side rendering required
+
+### New Files
+
+| File | Description |
+|------|-------------|
+| `schemas/chunks/output_code_tonejs.json` | Passthrough chunk for Tone.js code |
+| `schemas/configs/output/tonejs_code.json` | Output config with LLM prompt |
+| `schemas/configs/interception/tonejs_composer.json` | Stage 2: Text → Musical structure |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `routes/schema_pipeline_routes.py` | Media type detection for 'tonejs' (4 locations) |
+| `routes/media_routes.py` | New route `/api/media/tonejs/<run_id>` |
+| `text_transformation.vue` | Tone.js config bubble, iframe with Play/Stop |
+| `text_transformation.css` | Styles for `.tonejs-iframe` |
+| `canvas.ts` | `tonejs_composer` in InterceptionPresets |
+| `THIRD_PARTY_CREDITS.md` | p5.js (LGPL-2.1) and Tone.js (MIT) licenses |
+
+### Stage 2 Interception: Music Composer
+
+Transforms text descriptions into layered musical structure:
+```
+RHYTHM: [Drums, percussion patterns]
+BASS: [Bass line characteristics]
+HARMONY: [Chord progressions, pads]
+MELODY: [Lead lines, hooks]
+TEXTURE: [Ambient elements, effects]
+```
+
+### Frontend: Tone.js Player
+
+- Play/Stop buttons (required due to browser audio policy)
+- Visual feedback (animated bars visualizer)
+- Status indicator (German: "Klicke Play um die Musik zu starten")
+- Code editor for viewing/editing generated code
+
+### Third-Party Libraries (CDN)
+
+- **p5.js** v1.7.0 - LGPL-2.1 - Creative coding for graphics
+- **Tone.js** v14.8.49 - MIT - Web Audio framework for music
+
+### Commit
+
+`0e7bd45` - feat(audio): Add Tone.js browser-based music generation
+
+---
+
 ## Session 151 - Edutainment Animations: Environmental Impact Visualization
 **Date:** 2026-01-31
 **Focus:** Wissenschaftlich fundierte CO2-Visualisierungen für AI-Generierung
