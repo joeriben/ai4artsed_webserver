@@ -21,12 +21,14 @@
         </div>
       </div>
 
-      <!-- Summary overlay when showing summary (5s pause at 100%) -->
-      <div v-if="isShowingSummary" class="summary-overlay">
-        <div class="summary-comparison">
-          {{ t('edutainment.pixel.smartphoneComparison', { minutes: smartphoneMinutes }) }}
+      <!-- Summary overlay (bottom, styled box, appears after 5s) -->
+      <Transition name="fade">
+        <div v-if="isShowingSummary" class="summary-box">
+          <div class="summary-comparison">
+            {{ t('edutainment.pixel.smartphoneComparison', { minutes: smartphoneMinutes }) }}
+          </div>
         </div>
-      </div>
+      </Transition>
 
       <!-- Input Grid (Left) -->
       <div class="input-grid-container">
@@ -950,31 +952,39 @@ function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: numb
   50.1%, 100% { opacity: 0; }
 }
 
-/* Summary overlay when generation complete */
-.summary-overlay {
+/* Summary box at bottom - wide and compact */
+.summary-box {
   position: absolute;
-  top: 50%;
+  bottom: 50px;
   left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
+  transform: translateX(-50%);
   z-index: 200;
-  background: rgba(0, 0, 0, 0.75);
-  padding: 12px 30px;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 6px 24px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 255, 0, 0.3);
-  min-width: 340px;
+  border: 1px solid rgba(0, 255, 0, 0.4);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  max-width: 90%;
 }
 
 .summary-comparison {
   font-family: 'Courier New', monospace;
-  font-size: 13px;
+  font-size: 12px;
   color: #0f0;
   text-shadow: 0 0 8px #0f0;
-  max-width: 340px;
-  line-height: 1.5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  white-space: nowrap;
+}
+
+/* Fade transition for summary */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* Input Grid (Left) */

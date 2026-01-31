@@ -24,19 +24,27 @@
         :class="{ drawing: drawingState === 'drawing' && isPointerDown }"
       />
 
-      <!-- Drawing instructions -->
-      <div v-if="drawingState === 'idle'" class="state-overlay">
-        <span class="instruction">{{ t('edutainment.iceberg.drawPrompt') }}</span>
-      </div>
+      <!-- Drawing instructions (visible first 5 seconds, then fades) -->
+      <Transition name="fade">
+        <div v-if="showInstructions && drawingState === 'idle'" class="state-overlay instructions">
+          <span class="instruction">{{ t('edutainment.iceberg.drawPrompt') }}</span>
+        </div>
+      </Transition>
 
-      <!-- Melted/Summary message (shows when all icebergs melted OR showing summary) -->
-      <div v-if="drawingState === 'melted' || isShowingSummary" class="state-overlay melted">
+      <!-- Melted message (when all icebergs have melted) -->
+      <div v-if="drawingState === 'melted'" class="state-overlay melted center">
         <span class="status">{{ t('edutainment.iceberg.melted') }}</span>
-        <span class="detail">{{ t('edutainment.iceberg.meltedMessage', { co2: totalCo2.toFixed(2) }) }}</span>
-        <span class="comparison">{{ t('edutainment.iceberg.comparison', { volume: iceMeltVolume }) }}</span>
-        <span class="comparison-info">{{ t('edutainment.iceberg.comparisonInfo') }}</span>
       </div>
     </div>
+
+    <!-- Summary overlay (bottom, styled box, appears after 5s) -->
+    <Transition name="fade">
+      <div v-if="isShowingSummary" class="summary-box">
+        <span class="summary-detail">{{ t('edutainment.iceberg.meltedMessage', { co2: totalCo2.toFixed(2) }) }}</span>
+        <span class="summary-comparison">{{ t('edutainment.iceberg.comparison', { volume: iceMeltVolume }) }}</span>
+        <span class="summary-info">{{ t('edutainment.iceberg.comparisonInfo') }}</span>
+      </div>
+    </Transition>
 
     <!-- Stats overlay with labels -->
     <div class="stats-bar">
@@ -97,8 +105,11 @@ const {
   isActive: computed(() => (props.progress ?? 0) > 0)
 })
 
-// Summary: shows when first loop completes OR 10s elapsed, stays visible
+// Summary: shows after 5 seconds (when instructions fade), stays visible
 const isShowingSummary = computed(() => summaryShown.value)
+
+// Instructions visibility: visible at start, fades after 5 seconds
+const showInstructions = ref(true)
 
 // ==================== Drawing State ====================
 type DrawingState = 'idle' | 'drawing' | 'melting' | 'melted'
@@ -466,8 +477,8 @@ function drawShip(ctx: CanvasRenderingContext2D) {
   const canvas = icebergCanvasRef.value
   if (!canvas) return
 
-  const progress = shipProgress.value
-  if (progress <= 0.1) return
+  // Ship is always visible (at left edge when progress is 0)
+  const progress = Math.max(0, shipProgress.value)
 
   const shipWidth = 24
   const shipHeight = 16
@@ -586,10 +597,15 @@ onMounted(() => {
   resizeCanvas()
   window.addEventListener('resize', resizeCanvas)
 
-  // Initial render
+  // Initial render (ensures ship is visible immediately)
   setTimeout(() => {
     renderCanvas()
   }, 10)
+
+  // Hide instructions after 5 seconds (summary appears at same time via composable)
+  setTimeout(() => {
+    showInstructions.value = false
+  }, 5000)
 })
 
 onUnmounted(() => {
@@ -651,9 +667,66 @@ onUnmounted(() => {
   z-index: 10;
 }
 
-.state-overlay.melted {
-  top: 40%;
+.state-overlay.instructions {
+  top: 50%;
+}
+
+.state-overlay.melted.center {
+  top: 50%;
+}
+
+/* Summary box at bottom - wide and compact */
+.summary-box {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
   pointer-events: none;
+  z-index: 50;
+  background: rgba(0, 40, 80, 0.85);
+  padding: 6px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(100, 180, 255, 0.4);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
+}
+
+.summary-detail {
+  color: #e0f0ff;
+  font-size: 12px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  white-space: nowrap;
+}
+
+.summary-comparison {
+  color: #a0d0ff;
+  font-size: 12px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.summary-info {
+  color: #80b0d0;
+  font-size: 10px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+/* Fade transition for instructions/summary */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .instruction {
@@ -711,7 +784,7 @@ onUnmounted(() => {
 
 .stats-bar {
   position: absolute;
-  bottom: 10px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;

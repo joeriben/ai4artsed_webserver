@@ -64,15 +64,17 @@
       </div>
     </div>
 
-    <!-- Plant instruction / Cooldown indicator -->
-    <div class="plant-instruction" :class="{ cooldown: plantCooldown > 0 }">
-      <template v-if="treesPlanted === 0">
-        {{ t('edutainment.forest.clickToPlant') }}
-      </template>
-      <template v-else-if="plantCooldown > 0">
-        ⏳ {{ plantCooldown.toFixed(1) }}s
-      </template>
-    </div>
+    <!-- Plant instruction / Cooldown indicator (visible first 5 seconds) -->
+    <Transition name="fade">
+      <div v-if="showInstructions" class="plant-instruction" :class="{ cooldown: plantCooldown > 0 }">
+        <template v-if="treesPlanted === 0">
+          {{ t('edutainment.forest.clickToPlant') }}
+        </template>
+        <template v-else-if="plantCooldown > 0">
+          ⏳ {{ plantCooldown.toFixed(1) }}s
+        </template>
+      </div>
+    </Transition>
 
     <!-- Game over (all trees destroyed) -->
     <div v-if="gameOver" class="game-over">
@@ -86,13 +88,14 @@
       </div>
     </div>
 
-    <!-- Summary overlay (showing summary at end of progress cycle) -->
-    <div v-if="!gameOver && isShowingSummary" class="summary-overlay">
-      <span class="summary-status">{{ t('edutainment.forest.complete') }}</span>
-      <span class="summary-detail">{{ totalCo2.toFixed(2) }}g CO₂</span>
-      <span class="summary-comparison">{{ t('edutainment.forest.comparison', { minutes: treeMinutes }) }}</span>
-      <span class="summary-trees">{{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}</span>
-    </div>
+    <!-- Summary overlay (bottom, styled box, appears after 5s) -->
+    <Transition name="fade">
+      <div v-if="!gameOver && isShowingSummary" class="summary-box">
+        <span class="summary-detail">{{ totalCo2.toFixed(2) }}g CO₂</span>
+        <span class="summary-comparison">{{ t('edutainment.forest.comparison', { minutes: treeMinutes }) }}</span>
+        <span class="summary-trees">{{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -121,8 +124,11 @@ const {
   isActive: computed(() => (props.progress ?? 0) > 0)
 })
 
-// Summary: shows when first loop completes OR 10s elapsed, stays visible
+// Summary: shows after 5 seconds (when instructions fade), stays visible
 const isShowingSummary = computed(() => summaryShown.value)
+
+// Instructions visibility: visible at start, fades after 5 seconds
+const showInstructions = ref(true)
 
 // ==================== Tree Types ====================
 const TREE_TYPES = ['pine', 'spruce', 'fir', 'oak', 'birch', 'maple', 'willow'] as const
@@ -365,6 +371,11 @@ onMounted(() => {
   initForest()
   // Single game loop handles everything including bird position
   gameLoopInterval = window.setInterval(gameLoop, 100)
+
+  // Hide instructions after 5 seconds (summary appears at same time via composable)
+  setTimeout(() => {
+    showInstructions.value = false
+  }, 5000)
 })
 
 onUnmounted(() => {
@@ -680,52 +691,57 @@ watch(() => props.progress, (newProgress) => {
   font-size: 12px;
 }
 
-.summary-overlay {
+/* Summary box at bottom - wide and compact */
+.summary-box {
   position: absolute;
-  top: 40%;
+  bottom: 12px;
   left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
   pointer-events: none;
   z-index: 80;
-}
-
-.summary-status {
-  display: block;
-  color: #1e5631;
-  font-size: 18px;
-  font-family: 'Georgia', 'Times New Roman', serif;
-  font-weight: bold;
-  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.7);
-  margin-bottom: 8px;
+  background: rgba(30, 86, 49, 0.9);
+  padding: 6px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
 }
 
 .summary-detail {
-  display: block;
-  color: #2d5a2d;
-  font-size: 15px;
+  color: #c8e6c9;
+  font-size: 12px;
   font-family: 'Georgia', 'Times New Roman', serif;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-  margin-bottom: 6px;
+  white-space: nowrap;
 }
 
 .summary-comparison {
-  display: block;
-  color: #1e5631;
-  font-size: 14px;
+  color: #a5d6a7;
+  font-size: 12px;
   font-family: 'Georgia', 'Times New Roman', serif;
   font-style: italic;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-  margin-bottom: 10px;
-  max-width: 280px;
+  white-space: nowrap;
 }
 
 .summary-trees {
-  display: block;
-  color: #3d7a3d;
-  font-size: 12px;
+  color: #81c784;
+  font-size: 11px;
   font-family: 'Georgia', 'Times New Roman', serif;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+/* Fade transition for instructions/summary */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .bird-container {

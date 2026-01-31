@@ -48,7 +48,7 @@ const {
   isActive: computed(() => props.progress > 0)
 })
 
-// Summary: shows after 10 seconds elapsed, stays visible until generation ends
+// Summary: shows after 5 seconds elapsed (when instructions fade), stays visible
 const isShowingSummary = computed(() => summaryShown.value)
 const isGenerating = computed(() => props.progress > 0 && !summaryShown.value)
 </script>
