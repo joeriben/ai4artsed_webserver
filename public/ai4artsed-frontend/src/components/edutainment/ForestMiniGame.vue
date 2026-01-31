@@ -111,7 +111,6 @@ const props = defineProps<{
 // ==================== Use Animation Progress Composable ====================
 const {
   internalProgress,
-  isShowingSummary,
   totalCo2,
   effectivePower,
   effectiveTemp,
@@ -120,6 +119,9 @@ const {
   estimatedSeconds: computed(() => props.estimatedSeconds || 30),
   isActive: computed(() => (props.progress ?? 0) > 0)
 })
+
+// Show summary when progress >= 95%
+const isShowingSummary = computed(() => internalProgress.value >= 95)
 
 // ==================== Tree Types ====================
 const TREE_TYPES = ['pine', 'spruce', 'fir', 'oak', 'birch', 'maple', 'willow'] as const

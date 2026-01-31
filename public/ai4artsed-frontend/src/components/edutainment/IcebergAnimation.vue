@@ -85,7 +85,6 @@ const props = defineProps<{
 // ==================== Use Animation Progress Composable ====================
 const {
   internalProgress,
-  isShowingSummary,
   gpuStats,
   totalEnergy,
   totalCo2,
@@ -97,6 +96,9 @@ const {
   estimatedSeconds: computed(() => props.estimatedSeconds || 30),
   isActive: computed(() => (props.progress ?? 0) > 0)
 })
+
+// Show summary when progress >= 95%
+const isShowingSummary = computed(() => internalProgress.value >= 95)
 
 // ==================== Drawing State ====================
 type DrawingState = 'idle' | 'drawing' | 'melting' | 'melted'

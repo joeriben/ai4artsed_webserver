@@ -22,8 +22,6 @@ export interface UseAnimationProgressOptions {
   estimatedSeconds: Ref<number> | ComputedRef<number> | number
   /** Whether generation is active (controls start/stop) */
   isActive: Ref<boolean> | ComputedRef<boolean>
-  /** Duration to show summary at 100% before looping (ms) */
-  summaryPauseDuration?: number
 }
 
 /**
@@ -39,8 +37,7 @@ export interface UseAnimationProgressOptions {
 export function useAnimationProgress(options: UseAnimationProgressOptions) {
   const {
     estimatedSeconds: estimatedSecondsOption,
-    isActive: isActiveOption,
-    summaryPauseDuration = 5000
+    isActive: isActiveOption
   } = options
 
   // Normalize refs
@@ -51,7 +48,6 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
 
   // ==================== Progress State ====================
   const internalProgress = ref(0)
-  const isShowingSummary = ref(false)
   const cycleCount = ref(0)
 
   // ==================== GPU/Energy State ====================
@@ -107,11 +103,11 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     return Math.round(totalCo2.value * 6)
   })
 
-  // ==================== Intervals ====================
-  let progressInterval: number | null = null
+  // ==================== Animation State ====================
+  let animationFrameId: number | null = null
+  let animationStartTime: number = 0
   let gpuPollInterval: number | null = null
   let energyInterval: number | null = null
-  let summaryTimeout: number | null = null
 
   // ==================== GPU Fetching ====================
 
@@ -147,48 +143,34 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     totalCo2.value += co2ThisSecond
   }
 
-  // ==================== Progress Animation ====================
+  // ==================== Progress Animation (requestAnimationFrame) ====================
 
-  function startProgressLoop(): void {
-    if (progressInterval) return
+  function animationLoop(currentTime: number): void {
+    if (!isActive.value) return
 
-    const seconds = typeof estimatedSeconds.value === 'number'
+    const durationMs = (typeof estimatedSeconds.value === 'number'
       ? estimatedSeconds.value
-      : 30
+      : 30) * 1000
 
-    // Calculate update rate: 100% over estimatedSeconds, update every 100ms
-    const updateIntervalMs = 100
-    const totalUpdates = (seconds * 1000) / updateIntervalMs
-    const progressPerUpdate = 100 / totalUpdates
+    const elapsed = currentTime - animationStartTime
+    const progress = (elapsed / durationMs) * 100
 
-    progressInterval = window.setInterval(() => {
-      if (isShowingSummary.value) return  // Paused during summary
-
-      internalProgress.value += progressPerUpdate
-
-      if (internalProgress.value >= 100) {
-        internalProgress.value = 100
-        showSummaryAndLoop()
-      }
-    }, updateIntervalMs)
-  }
-
-  function showSummaryAndLoop(): void {
-    isShowingSummary.value = true
-
-    // Clear any existing timeout
-    if (summaryTimeout) {
-      clearTimeout(summaryTimeout)
+    if (progress >= 100) {
+      // Loop: reset and continue
+      internalProgress.value = 0
+      cycleCount.value++
+      animationStartTime = currentTime
+    } else {
+      internalProgress.value = progress
     }
 
-    summaryTimeout = window.setTimeout(() => {
-      // Only loop if still active
-      if (isActive.value) {
-        isShowingSummary.value = false
-        internalProgress.value = 0
-        cycleCount.value++
-      }
-    }, summaryPauseDuration)
+    animationFrameId = requestAnimationFrame(animationLoop)
+  }
+
+  function startProgressLoop(): void {
+    if (animationFrameId) return
+    animationStartTime = performance.now()
+    animationFrameId = requestAnimationFrame(animationLoop)
   }
 
   // ==================== Lifecycle ====================
@@ -196,7 +178,6 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
   function start(): void {
     // Reset progress state
     internalProgress.value = 0
-    isShowingSummary.value = false
 
     // Don't reset energy totals - they accumulate across cycles
     // Only reset if this is the first start
@@ -224,9 +205,9 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
   }
 
   function stop(): void {
-    if (progressInterval) {
-      clearInterval(progressInterval)
-      progressInterval = null
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId)
+      animationFrameId = null
     }
     if (gpuPollInterval) {
       clearInterval(gpuPollInterval)
@@ -236,16 +217,11 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
       clearInterval(energyInterval)
       energyInterval = null
     }
-    if (summaryTimeout) {
-      clearTimeout(summaryTimeout)
-      summaryTimeout = null
-    }
   }
 
   function reset(): void {
     stop()
     internalProgress.value = 0
-    isShowingSummary.value = false
     cycleCount.value = 0
     elapsedSeconds.value = 0
     totalEnergy.value = 0
@@ -273,7 +249,6 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
   return {
     // Progress state
     internalProgress,
-    isShowingSummary,
     cycleCount,
 
     // GPU/Energy state
