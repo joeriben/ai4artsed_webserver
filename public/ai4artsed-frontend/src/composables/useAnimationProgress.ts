@@ -140,9 +140,9 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     const co2ThisSecond = (whThisSecond / 1000) * co2PerKwh
     totalCo2.value += co2ThisSecond
 
-    // Check summary condition: >= 90% progress AND >= 10 seconds elapsed
-    // Once true, stays true (sticky)
-    if (!summaryShown.value && internalProgress.value >= 90 && elapsedSeconds.value >= 10) {
+    // Check summary condition: >= 10 seconds elapsed
+    // Once true, stays true (sticky) - progress loop is independent
+    if (!summaryShown.value && elapsedSeconds.value >= 10) {
       summaryShown.value = true
     }
   }

@@ -48,7 +48,7 @@ const {
   isActive: computed(() => props.progress > 0)
 })
 
-// Summary: shows when progress >= 90% AND elapsed >= 10s, stays visible
+// Summary: shows after 10 seconds elapsed, stays visible until generation ends
 const isShowingSummary = computed(() => summaryShown.value)
 const isGenerating = computed(() => props.progress > 0 && !summaryShown.value)
 </script>
