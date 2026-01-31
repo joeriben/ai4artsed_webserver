@@ -97,7 +97,7 @@ const {
   isActive: computed(() => (props.progress ?? 0) > 0)
 })
 
-// Summary: shows when progress >= 90% AND elapsed >= 10s, stays visible
+// Summary: shows when first loop completes OR 10s elapsed, stays visible
 const isShowingSummary = computed(() => summaryShown.value)
 
 // ==================== Drawing State ====================

@@ -29,7 +29,7 @@ export interface UseAnimationProgressOptions {
  *
  * Two INDEPENDENT concerns:
  * 1. Progress loop: 0→100→0→100 continuously (based on estimatedSeconds)
- * 2. Summary visibility: Shows when progress >= 90% AND elapsed >= 10s, then stays visible
+ * 2. Summary visibility: Shows when first loop completes OR 10s elapsed, stays visible
  *
  * These are completely decoupled - the loop doesn't care about summary, summary doesn't affect loop.
  */
@@ -141,8 +141,8 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     const co2ThisSecond = (whThisSecond / 1000) * co2PerKwh
     totalCo2.value += co2ThisSecond
 
-    // Check summary condition: >= 10 seconds elapsed
-    // Once true, stays true (sticky) - progress loop is independent
+    // Fallback: show summary after 10 seconds even if loop hasn't completed
+    // (Primary trigger is in animationLoop when progress hits 100%)
     if (!summaryShown.value && elapsedSeconds.value >= 10) {
       summaryShown.value = true
     }
@@ -175,6 +175,10 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
       internalProgress.value = 0
       cycleCount.value++
       animationStartTime = currentTime
+      // Show summary after first complete cycle
+      if (!summaryShown.value) {
+        summaryShown.value = true
+      }
     } else {
       internalProgress.value = progress
     }
