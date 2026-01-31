@@ -858,11 +858,24 @@ HARDWARE_MATRIX = {
 }
 
 
+# Localhost detection for auto-login
+def is_localhost_request():
+    """Check if request comes from localhost (for auto-login in development)"""
+    remote_addr = request.remote_addr
+    host = request.host.split(':')[0]  # Remove port
+    return remote_addr in ('127.0.0.1', '::1') or host in ('localhost', '127.0.0.1')
+
+
 # Authentication decorator
 def require_settings_auth(f):
-    """Decorator to protect settings routes with password authentication"""
+    """Decorator to protect settings routes - auto-login for localhost"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Auto-authenticate localhost requests (no password needed for local dev)
+        if is_localhost_request():
+            session['settings_authenticated'] = True
+            return f(*args, **kwargs)
+
         if not session.get('settings_authenticated', False):
             return jsonify({"error": "Authentication required"}), 401
         return f(*args, **kwargs)
@@ -909,7 +922,12 @@ def logout():
 
 @settings_bp.route('/check-auth', methods=['GET'])
 def check_auth():
-    """Check if currently authenticated"""
+    """Check if currently authenticated - auto-auth for localhost"""
+    # Auto-authenticate localhost requests
+    if is_localhost_request():
+        session['settings_authenticated'] = True
+        return jsonify({"authenticated": True, "auto_login": True}), 200
+
     authenticated = session.get('settings_authenticated', False)
     return jsonify({"authenticated": authenticated}), 200
 
