@@ -387,6 +387,14 @@ onUnmounted(() => {
         <span v-if="canvasStore.batchCurrentRun >= 0">
           ({{ locale === 'de' ? 'Run' : 'Run' }} {{ canvasStore.batchCurrentRun + 1 }})
         </span>
+        <!-- Session 150: Batch Abort Button -->
+        <button
+          class="batch-abort-btn"
+          @click="canvasStore.abortBatch()"
+          :title="locale === 'de' ? 'Batch abbrechen' : 'Abort Batch'"
+        >
+          ⏹️ {{ locale === 'de' ? 'Abbrechen' : 'Abort' }}
+        </button>
       </div>
       <div class="batch-progress-track">
         <div
@@ -817,6 +825,26 @@ onUnmounted(() => {
   font-size: 0.875rem;
   color: #c7d2fe;
   margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Session 150: Batch Abort Button */
+.batch-abort-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.batch-abort-btn:hover {
+  background: #b91c1c;
 }
 
 .batch-progress-track {

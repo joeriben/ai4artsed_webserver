@@ -1038,6 +1038,35 @@ export const useCanvasStore = defineStore('canvas', () => {
     isExecuting.value = false
   }
 
+  /**
+   * Abort a running batch execution (Session 150)
+   */
+  async function abortBatch() {
+    if (!batchId.value || !isBatchExecuting.value) {
+      console.warn('[Canvas] No batch to abort')
+      return false
+    }
+
+    try {
+      const response = await fetch('/api/canvas/abort-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batch_id: batchId.value })
+      })
+
+      if (response.ok) {
+        console.log(`[Canvas] Abort requested for batch ${batchId.value}`)
+        return true
+      } else {
+        console.error('[Canvas] Abort request failed:', await response.text())
+        return false
+      }
+    } catch (err) {
+      console.error('[Canvas] Abort error:', err)
+      return false
+    }
+  }
+
   // ============================================================================
   // RETURN PUBLIC API
   // ============================================================================
@@ -1109,6 +1138,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     batchCompletedRuns: computed(() => batchCompletedRuns.value),
     batchCurrentRun: computed(() => batchCurrentRun.value),
     batchExportPaths: computed(() => batchExportPaths.value),
-    executeBatch
+    executeBatch,
+    abortBatch  // Session 150: Batch abort
   }
 })
