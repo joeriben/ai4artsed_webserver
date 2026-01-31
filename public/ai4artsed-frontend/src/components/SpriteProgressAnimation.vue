@@ -21,8 +21,8 @@
         </div>
       </div>
 
-      <!-- Summary overlay when showing summary (5s pause at 100%) -->
-      <div v-if="isShowingSummary" class="summary-overlay">
+      <!-- Summary overlay when generation near complete (>=80% to account for fast generations) -->
+      <div v-if="progress >= 80" class="summary-overlay">
         <div class="summary-comparison">
           {{ t('edutainment.pixel.smartphoneComparison', { minutes: smartphoneMinutes }) }}
         </div>
@@ -88,14 +88,12 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
 const props = defineProps<{
-  progress: number // 0-100 (internal progress from composable)
+  progress: number // 0-100
   estimatedSeconds?: number // From output config
   gpuPower?: number // Watts
   gpuTemp?: number // Celsius
   totalEnergy?: number // Wh
   totalCo2?: number // grams
-  isShowingSummary?: boolean // True during 5s summary pause
-  smartphoneMinutes?: number // Pre-computed from composable
 }>()
 
 // Default values for GPU stats
@@ -104,10 +102,12 @@ const gpuTemp = computed(() => props.gpuTemp ?? 0)
 const totalEnergy = computed(() => props.totalEnergy ?? 0)
 const totalCo2 = computed(() => props.totalCo2 ?? 0)
 
-// Use prop if provided, otherwise compute locally (fallback for standalone use)
+// Smartphone uses ~5W (idle/standby), German energy mix ~400g CO2/kWh
+// CO2 per hour of smartphone: 5W * 1h / 1000 * 400g = 2g/hour
+// Minutes to save X grams: X / 2 * 60 = X * 30 minutes
 const smartphoneMinutes = computed(() => {
-  if (props.smartphoneMinutes !== undefined) return props.smartphoneMinutes
-  return Math.round(totalCo2.value * 30)
+  const minutes = totalCo2.value * 30
+  return Math.round(minutes)
 })
 
 const totalTokens = 196 // 14x14 grid
