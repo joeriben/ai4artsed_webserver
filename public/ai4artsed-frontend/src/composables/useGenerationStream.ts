@@ -32,6 +32,16 @@ export interface GenerationParams {
   input_image2?: string | null
   input_image3?: string | null
   alpha_factor?: number | null
+
+  // Session 151: Generation parameters (optional, ignored if config doesn't support them)
+  width?: number
+  height?: number
+  steps?: number
+  cfg?: number
+  negative_prompt?: string
+  sampler_name?: string
+  scheduler?: string
+  denoise?: number
 }
 
 export interface GenerationResult {
@@ -112,6 +122,32 @@ export function useGenerationStream() {
     }
     if (params.alpha_factor !== null && params.alpha_factor !== undefined) {
       queryParams.set('alpha_factor', String(params.alpha_factor))
+    }
+
+    // Session 151: Generation parameters (optional)
+    if (params.width !== undefined) {
+      queryParams.set('width', String(params.width))
+    }
+    if (params.height !== undefined) {
+      queryParams.set('height', String(params.height))
+    }
+    if (params.steps !== undefined) {
+      queryParams.set('steps', String(params.steps))
+    }
+    if (params.cfg !== undefined) {
+      queryParams.set('cfg', String(params.cfg))
+    }
+    if (params.negative_prompt) {
+      queryParams.set('negative_prompt', params.negative_prompt)
+    }
+    if (params.sampler_name) {
+      queryParams.set('sampler_name', params.sampler_name)
+    }
+    if (params.scheduler) {
+      queryParams.set('scheduler', params.scheduler)
+    }
+    if (params.denoise !== undefined) {
+      queryParams.set('denoise', String(params.denoise))
     }
 
     return `${baseUrl}?${queryParams.toString()}`

@@ -294,6 +294,16 @@ export const useCanvasStore = defineStore('canvas', () => {
       }
     }
 
+    // Session 151: Set defaults for parameter nodes
+    if (type === 'resolution') {
+      node.resolutionPreset = 'square_1024'
+      node.resolutionWidth = 1024
+      node.resolutionHeight = 1024
+    } else if (type === 'quality') {
+      node.qualitySteps = 25
+      node.qualityCfg = 5.5
+    }
+
     workflow.value.nodes.push(node)
     console.log(`[Canvas] Added ${type} node at (${x}, ${y})`)
     return node

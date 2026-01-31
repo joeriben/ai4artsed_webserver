@@ -79,6 +79,13 @@ const emit = defineEmits<{
   'update-seed-mode': [mode: 'fixed' | 'random' | 'increment']
   'update-seed-value': [value: number]
   'update-seed-base': [base: number]
+  // Session 151: Resolution node events
+  'update-resolution-preset': [preset: 'square_1024' | 'portrait_768x1344' | 'landscape_1344x768' | 'custom']
+  'update-resolution-width': [width: number]
+  'update-resolution-height': [height: number]
+  // Session 151: Quality node events
+  'update-quality-steps': [steps: number]
+  'update-quality-cfg': [cfg: number]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -97,8 +104,8 @@ const nodeLabel = computed(() => {
   return locale.value === 'de' ? def.label.de : def.label.en
 })
 
-// Source nodes (input) have no input connector
-const hasInputConnector = computed(() => props.node.type !== 'input' && props.node.type !== 'comparison_evaluator')
+// Source nodes (input, seed, resolution, quality) have no input connector
+const hasInputConnector = computed(() => !['input', 'comparison_evaluator', 'seed', 'resolution', 'quality'].includes(props.node.type))
 // Terminal nodes (collector, display) have no output connector
 const hasOutputConnector = computed(() => !['collector', 'display'].includes(props.node.type))
 // Session 147: Comparison evaluator has 3 numbered input connectors
@@ -120,6 +127,9 @@ const isModelAdaption = computed(() => props.node.type === 'model_adaption')
 const isComparisonEvaluator = computed(() => props.node.type === 'comparison_evaluator')
 // Session 150: Seed node
 const isSeed = computed(() => props.node.type === 'seed')
+// Session 151: Resolution and Quality nodes
+const isResolution = computed(() => props.node.type === 'resolution')
+const isQuality = computed(() => props.node.type === 'quality')
 const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value || isRandomPrompt.value || isComparisonEvaluator.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 // Evaluation branching
@@ -763,7 +773,7 @@ const nodeHeight = computed(() => {
               :value="node.seedValue ?? 42"
               min="0"
               max="4294967295"
-              @input="emit('update-seed-value', parseInt(($event.target as HTMLInputElement).value) || 42)"
+              @change="emit('update-seed-value', parseInt(($event.target as HTMLInputElement).value) || 42)"
             />
           </div>
           <div v-if="node.seedMode === 'increment'" class="config-row">
@@ -772,7 +782,77 @@ const nodeHeight = computed(() => {
               type="number"
               :value="node.seedBase ?? 0"
               min="0"
-              @input="emit('update-seed-base', parseInt(($event.target as HTMLInputElement).value) || 0)"
+              @change="emit('update-seed-base', parseInt(($event.target as HTMLInputElement).value) || 0)"
+            />
+          </div>
+        </div>
+      </template>
+
+      <!-- SESSION 151: RESOLUTION NODE -->
+      <template v-else-if="node.type === 'resolution'">
+        <div class="resolution-config">
+          <div class="config-row">
+            <label>{{ locale === 'de' ? 'Preset' : 'Preset' }}</label>
+            <select
+              :value="node.resolutionPreset || 'square_1024'"
+              @change="emit('update-resolution-preset', ($event.target as HTMLSelectElement).value as 'square_1024' | 'portrait_768x1344' | 'landscape_1344x768' | 'custom')"
+            >
+              <option value="square_1024">1024 × 1024</option>
+              <option value="portrait_768x1344">768 × 1344</option>
+              <option value="landscape_1344x768">1344 × 768</option>
+              <option value="custom">{{ locale === 'de' ? 'Benutzerdefiniert' : 'Custom' }}</option>
+            </select>
+          </div>
+          <div v-if="node.resolutionPreset === 'custom'" class="config-row">
+            <label>{{ locale === 'de' ? 'Breite' : 'Width' }}</label>
+            <input
+              type="number"
+              :value="node.resolutionWidth ?? 1024"
+              min="64"
+              max="4096"
+              step="64"
+              @change="emit('update-resolution-width', parseInt(($event.target as HTMLInputElement).value) || 1024)"
+            />
+          </div>
+          <div v-if="node.resolutionPreset === 'custom'" class="config-row">
+            <label>{{ locale === 'de' ? 'Höhe' : 'Height' }}</label>
+            <input
+              type="number"
+              :value="node.resolutionHeight ?? 1024"
+              min="64"
+              max="4096"
+              step="64"
+              @change="emit('update-resolution-height', parseInt(($event.target as HTMLInputElement).value) || 1024)"
+            />
+          </div>
+          <div class="resolution-preview">
+            {{ node.resolutionWidth ?? 1024 }} × {{ node.resolutionHeight ?? 1024 }}
+          </div>
+        </div>
+      </template>
+
+      <!-- SESSION 151: QUALITY NODE -->
+      <template v-else-if="node.type === 'quality'">
+        <div class="quality-config">
+          <div class="config-row">
+            <label>{{ locale === 'de' ? 'Steps' : 'Steps' }}</label>
+            <input
+              type="number"
+              :value="node.qualitySteps ?? 25"
+              min="1"
+              max="150"
+              @change="emit('update-quality-steps', parseInt(($event.target as HTMLInputElement).value) || 25)"
+            />
+          </div>
+          <div class="config-row">
+            <label>CFG</label>
+            <input
+              type="number"
+              :value="node.qualityCfg ?? 5.5"
+              min="0"
+              max="30"
+              step="0.5"
+              @change="emit('update-quality-cfg', parseFloat(($event.target as HTMLInputElement).value) || 5.5)"
             />
           </div>
         </div>
@@ -1316,6 +1396,85 @@ const nodeHeight = computed(() => {
 .seed-config input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* Session 151: Resolution node config */
+.resolution-config {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resolution-config .config-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.resolution-config label {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  min-width: 40px;
+}
+
+.resolution-config select,
+.resolution-config input {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+}
+
+.resolution-config select:focus,
+.resolution-config input:focus {
+  outline: none;
+  border-color: var(--node-color);
+}
+
+.resolution-preview {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-align: center;
+  padding: 0.25rem;
+  background: #0f172a;
+  border-radius: 4px;
+}
+
+/* Session 151: Quality node config */
+.quality-config {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quality-config .config-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quality-config label {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  min-width: 40px;
+}
+
+.quality-config input {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+}
+
+.quality-config input:focus {
+  outline: none;
+  border-color: var(--node-color);
 }
 
 .module-type-info {

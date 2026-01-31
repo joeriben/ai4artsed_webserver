@@ -180,6 +180,40 @@ function handleUpdateNodeSeedBase(nodeId: string, base: number) {
   canvasStore.updateNode(nodeId, { seedBase: base })
 }
 
+// Session 151: Resolution node handlers
+function handleUpdateNodeResolutionPreset(nodeId: string, preset: 'square_1024' | 'portrait_768x1344' | 'landscape_1344x768' | 'custom') {
+  const updates: Record<string, unknown> = { resolutionPreset: preset }
+  // Apply preset dimensions
+  if (preset === 'square_1024') {
+    updates.resolutionWidth = 1024
+    updates.resolutionHeight = 1024
+  } else if (preset === 'portrait_768x1344') {
+    updates.resolutionWidth = 768
+    updates.resolutionHeight = 1344
+  } else if (preset === 'landscape_1344x768') {
+    updates.resolutionWidth = 1344
+    updates.resolutionHeight = 768
+  }
+  canvasStore.updateNode(nodeId, updates)
+}
+
+function handleUpdateNodeResolutionWidth(nodeId: string, width: number) {
+  canvasStore.updateNode(nodeId, { resolutionWidth: width })
+}
+
+function handleUpdateNodeResolutionHeight(nodeId: string, height: number) {
+  canvasStore.updateNode(nodeId, { resolutionHeight: height })
+}
+
+// Session 151: Quality node handlers
+function handleUpdateNodeQualitySteps(nodeId: string, steps: number) {
+  canvasStore.updateNode(nodeId, { qualitySteps: steps })
+}
+
+function handleUpdateNodeQualityCfg(nodeId: string, cfg: number) {
+  canvasStore.updateNode(nodeId, { qualityCfg: cfg })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -473,6 +507,11 @@ onUnmounted(() => {
           @update-node-seed-mode="handleUpdateNodeSeedMode"
           @update-node-seed-value="handleUpdateNodeSeedValue"
           @update-node-seed-base="handleUpdateNodeSeedBase"
+          @update-node-resolution-preset="handleUpdateNodeResolutionPreset"
+          @update-node-resolution-width="handleUpdateNodeResolutionWidth"
+          @update-node-resolution-height="handleUpdateNodeResolutionHeight"
+          @update-node-quality-steps="handleUpdateNodeQualitySteps"
+          @update-node-quality-cfg="handleUpdateNodeQualityCfg"
           @end-connect-input-1="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-1')"
           @end-connect-input-2="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-2')"
           @end-connect-input-3="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-3')"

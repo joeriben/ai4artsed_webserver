@@ -95,7 +95,9 @@ NODE_TYPE_LABELS = {
     'display': 'Display',
     'collector': 'Collecting Results',
     'comparison_evaluator': 'Comparing Inputs',
-    'seed': 'Processing Seed'
+    'seed': 'Processing Seed',
+    'resolution': 'Setting Resolution',
+    'quality': 'Setting Quality'
 }
 
 MAX_TOTAL_EXECUTIONS = 50
@@ -248,7 +250,7 @@ class CanvasWorkflowExecutor:
         return self._final_result
 
     def _find_source_nodes(self) -> List[Dict[str, Any]]:
-        """Find source nodes: input nodes + standalone random_prompt nodes."""
+        """Find source nodes: input nodes + standalone random_prompt nodes + parameter nodes."""
         source_nodes = []
         for n in self.nodes:
             ntype = n.get('type')
@@ -259,6 +261,15 @@ class CanvasWorkflowExecutor:
                     n['promptText'] = self.prompt_override
                 source_nodes.append(n)
             elif ntype == 'random_prompt' and not self.incoming.get(n['id']):
+                source_nodes.append(n)
+            elif ntype == 'seed':
+                # Session 151: Seed nodes are always source nodes (no incoming connections)
+                source_nodes.append(n)
+            elif ntype == 'resolution':
+                # Session 151: Resolution nodes are always source nodes
+                source_nodes.append(n)
+            elif ntype == 'quality':
+                # Session 151: Quality nodes are always source nodes
                 source_nodes.append(n)
         return source_nodes
 
@@ -298,6 +309,10 @@ class CanvasWorkflowExecutor:
             return self._execute_translation(node, node_id, input_data)
         elif node_type == 'seed':
             return self._execute_seed(node, node_id)
+        elif node_type == 'resolution':
+            return self._execute_resolution(node, node_id)
+        elif node_type == 'quality':
+            return self._execute_quality(node, node_id)
         elif node_type == 'generation':
             return self._execute_generation(node, node_id, input_data)
         elif node_type == 'evaluation':
@@ -435,6 +450,36 @@ class CanvasWorkflowExecutor:
         logger.info(f"[Canvas Executor] Seed: {output_seed} (mode={seed_mode})")
         return output_seed, 'seed', None
 
+    def _execute_resolution(self, node: Dict[str, Any], node_id: str) -> Tuple[Dict[str, int], str, None]:
+        """Session 151: Execute resolution node - outputs width/height."""
+        preset = node.get('resolutionPreset', 'square_1024')
+        width = node.get('resolutionWidth', 1024)
+        height = node.get('resolutionHeight', 1024)
+
+        # Apply preset if not custom
+        if preset == 'square_1024':
+            width, height = 1024, 1024
+        elif preset == 'portrait_768x1344':
+            width, height = 768, 1344
+        elif preset == 'landscape_1344x768':
+            width, height = 1344, 768
+        # 'custom' uses the explicit width/height values
+
+        output = {'width': width, 'height': height}
+        self.results[node_id] = {'type': 'resolution', 'output': output, 'error': None, 'preset': preset}
+        logger.info(f"[Canvas Executor] Resolution: {width}x{height} (preset={preset})")
+        return output, 'resolution', None
+
+    def _execute_quality(self, node: Dict[str, Any], node_id: str) -> Tuple[Dict[str, Any], str, None]:
+        """Session 151: Execute quality node - outputs steps/cfg."""
+        steps = node.get('qualitySteps', 25)
+        cfg = node.get('qualityCfg', 5.5)
+
+        output = {'steps': steps, 'cfg': cfg}
+        self.results[node_id] = {'type': 'quality', 'output': output, 'error': None}
+        logger.info(f"[Canvas Executor] Quality: steps={steps}, cfg={cfg}")
+        return output, 'quality', None
+
     def _execute_generation(self, node: Dict[str, Any], node_id: str, input_data: Any) -> Tuple[Any, str, None]:
         from my_app.routes.schema_pipeline_routes import execute_stage4_generation_only
         from config import DEFAULT_SAFETY_LEVEL
@@ -444,34 +489,51 @@ class CanvasWorkflowExecutor:
             self.results[node_id] = {'type': 'generation', 'output': None, 'error': 'No config'}
             return None, 'image', None
 
-        # Check for seed from connected seed node
+        # Session 151: Collect parameters from connected parameter nodes
         generation_seed = None
+        generation_width = None
+        generation_height = None
+        generation_steps = None
+        generation_cfg = None
+
         for inc in self.incoming.get(node_id, []):
             source_id = inc.get('source')
             source_node = self.node_map.get(source_id)
-            if source_node and source_node.get('type') == 'seed':
-                seed_result = self.results.get(source_id)
-                if seed_result and seed_result.get('output') is not None:
-                    generation_seed = int(seed_result['output'])
-                    break
+            if not source_node:
+                continue
+
+            source_type = source_node.get('type')
+            source_result = self.results.get(source_id)
+
+            if source_type == 'seed' and source_result and source_result.get('output') is not None:
+                generation_seed = int(source_result['output'])
+            elif source_type == 'resolution' and source_result and source_result.get('output'):
+                res_output = source_result['output']
+                generation_width = res_output.get('width')
+                generation_height = res_output.get('height')
+            elif source_type == 'quality' and source_result and source_result.get('output'):
+                quality_output = source_result['output']
+                generation_steps = quality_output.get('steps')
+                generation_cfg = quality_output.get('cfg')
 
         # Use run_seed if no connected seed node (for batch execution)
         if generation_seed is None and self.run_seed is not None:
             generation_seed = self.run_seed
 
-        # Get prompt from text connection (not seed)
+        # Get prompt from text connection (not parameter nodes)
         prompt_data = input_data
-        if isinstance(input_data, int):
+        parameter_types = {'seed', 'resolution', 'quality'}
+        if isinstance(input_data, (int, dict)) or input_data is None:
             for inc in self.incoming.get(node_id, []):
                 source_id = inc.get('source')
                 source_node = self.node_map.get(source_id)
-                if source_node and source_node.get('type') != 'seed':
+                if source_node and source_node.get('type') not in parameter_types:
                     source_result = self.results.get(source_id)
                     if source_result and isinstance(source_result.get('output'), str):
                         prompt_data = source_result['output']
                         break
 
-        if not prompt_data or isinstance(prompt_data, int):
+        if not prompt_data or isinstance(prompt_data, (int, dict)):
             self.results[node_id] = {'type': 'generation', 'output': None, 'error': 'No input'}
             return None, 'image', None
 
@@ -479,8 +541,13 @@ class CanvasWorkflowExecutor:
             gen_result = asyncio.run(execute_stage4_generation_only(
                 prompt=prompt_data, output_config=config_id,
                 safety_level=DEFAULT_SAFETY_LEVEL, run_id=self.run_id,
-                device_id=self.device_id,  # Fixed: was hardcoded to None
-                seed=generation_seed
+                device_id=self.device_id,
+                seed=generation_seed,
+                # Session 151: Pass generation parameters
+                width=generation_width,
+                height=generation_height,
+                steps=generation_steps,
+                cfg=generation_cfg
             ))
             if gen_result['success']:
                 output = gen_result['media_output']
@@ -676,6 +743,13 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
         """Get list of next nodes to execute based on connections."""
         node = self.node_map.get(node_id)
         node_type = node.get('type') if node else None
+
+        # Session 151: Parameter nodes (seed, resolution, quality) don't propagate to next nodes.
+        # Their results are stored and the Generation node fetches them from self.results.
+        # This prevents double-execution of Generation when both Input and Seed connect to it.
+        if node_type in ('seed', 'resolution', 'quality'):
+            return []
+
         next_conns = self.outgoing.get(node_id, [])
         if not next_conns:
             return []
@@ -703,12 +777,19 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
             accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display', 'comparison_evaluator']
             accepts_image = target_type in ['evaluation', 'collector', 'display']
             accepts_seed = target_type == 'generation'
+            # Session 151: Resolution and quality nodes output to generation
+            accepts_resolution = target_type == 'generation'
+            accepts_quality = target_type == 'generation'
 
             if output_type == 'text' and not accepts_text:
                 continue
             if output_type == 'image' and not accepts_image:
                 continue
             if output_type == 'seed' and not accepts_seed:
+                continue
+            if output_type == 'resolution' and not accepts_resolution:
+                continue
+            if output_type == 'quality' and not accepts_quality:
                 continue
 
             # Determine the data to pass

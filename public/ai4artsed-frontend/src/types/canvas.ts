@@ -37,6 +37,9 @@ export type StageType =
   | 'comparison_evaluator'
   // Session 149: Seed control node for reproducible generation
   | 'seed'
+  // Session 151: Parameter nodes for generation control
+  | 'resolution'
+  | 'quality'
 
 // ============================================================================
 // MODEL ADAPTION TYPES (Session 145)
@@ -310,6 +313,34 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'casino_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false
+  },
+  // Session 151: Resolution Node for width/height control
+  {
+    id: 'resolution',
+    type: 'resolution',
+    label: { en: 'Resolution', de: 'Auflösung' },
+    description: {
+      en: 'Set width and height for image generation (ComfyUI only)',
+      de: 'Breite und Höhe für Bildgenerierung (nur ComfyUI)'
+    },
+    color: '#0ea5e9', // sky blue
+    icon: 'aspect_ratio_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false
+  },
+  // Session 151: Quality Node for steps/cfg control
+  {
+    id: 'quality',
+    type: 'quality',
+    label: { en: 'Quality', de: 'Qualität' },
+    description: {
+      en: 'Set steps and CFG for generation quality (ComfyUI only)',
+      de: 'Steps und CFG für Generierungsqualität (nur ComfyUI)'
+    },
+    color: '#84cc16', // lime
+    icon: 'tune_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false
   }
 ]
 
@@ -409,6 +440,20 @@ export interface CanvasNode {
   seedValue?: number
   /** Base seed for increment mode (batch execution adds run_index) */
   seedBase?: number
+
+  // === Resolution node config (Session 151) ===
+  /** Image width in pixels */
+  resolutionWidth?: number
+  /** Image height in pixels */
+  resolutionHeight?: number
+  /** Resolution preset (square, portrait, landscape, custom) */
+  resolutionPreset?: 'square_1024' | 'portrait_768x1344' | 'landscape_1344x768' | 'custom'
+
+  // === Quality node config (Session 151) ===
+  /** Number of inference steps */
+  qualitySteps?: number
+  /** CFG scale value */
+  qualityCfg?: number
 }
 
 // ============================================================================
@@ -568,6 +613,10 @@ export function isValidConnection(sourceType: StageType, targetType: StageType):
 
   // Session 149: Seed nodes can only connect to generation nodes
   if (sourceType === 'seed' && targetType !== 'generation') return false
+
+  // Session 151: Resolution and Quality nodes can only connect to generation nodes
+  if (sourceType === 'resolution' && targetType !== 'generation') return false
+  if (sourceType === 'quality' && targetType !== 'generation') return false
 
   // No self-loops (same node type connecting to itself is allowed, just not same instance)
   // This is handled elsewhere - same type is fine

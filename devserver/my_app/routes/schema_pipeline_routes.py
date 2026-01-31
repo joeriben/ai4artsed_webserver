@@ -2073,8 +2073,39 @@ def execute_generation_streaming(data: dict):
     device_id = data.get('device_id') or f"api_{os.urandom(6).hex()}"
     provided_run_id = data.get('run_id')
 
-    # Generate run_id
-    run_id = provided_run_id or f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+    # Session 151: Generation parameters (optional, gracefully ignored if config doesn't support them)
+    width = data.get('width')
+    height = data.get('height')
+    steps = data.get('steps')
+    cfg = data.get('cfg')
+    negative_prompt = data.get('negative_prompt')
+    sampler_name = data.get('sampler_name')
+    scheduler = data.get('scheduler')
+    denoise = data.get('denoise')
+
+    # Session 153: Apply same run_id continuity logic as non-streaming mode
+    # 1 Run = 1 Media Output - create new run if existing has output
+    from config import JSON_STORAGE_DIR
+    run_id = None
+    existing_recorder = None
+
+    if provided_run_id and provided_run_id.startswith('run_'):
+        existing_recorder = load_recorder(provided_run_id, base_path=JSON_STORAGE_DIR)
+        if existing_recorder:
+            has_output = any(
+                e.get('type', '').startswith('output_')
+                for e in existing_recorder.metadata.get('entities', [])
+            )
+            if has_output:
+                run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+                existing_recorder = None  # Don't reuse - create new recorder later
+                logger.info(f"[GENERATION-STREAMING] Previous run has output, creating new: {run_id}")
+            else:
+                run_id = provided_run_id
+                logger.info(f"[GENERATION-STREAMING] Continuing existing run: {run_id}")
+
+    if not run_id:
+        run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
 
     logger.info(f"[GENERATION-STREAMING] Starting for config '{output_config}', run {run_id}")
 
@@ -2154,16 +2185,19 @@ def execute_generation_streaming(data: dict):
 
         logger.info(f"[GENERATION-STREAMING] Stage 4: Starting generation")
 
-        # Create recorder
-        from config import JSON_STORAGE_DIR
-        recorder = get_recorder(
-            run_id=run_id,
-            config_name=output_config,
-            execution_mode='eco',
-            safety_level=safety_level,
-            device_id=device_id,
-            base_path=JSON_STORAGE_DIR
-        )
+        # Session 153: Reuse existing recorder if continuing run, else create new
+        if existing_recorder:
+            recorder = existing_recorder
+            logger.info(f"[GENERATION-STREAMING] Reusing existing recorder for {run_id}")
+        else:
+            recorder = get_recorder(
+                run_id=run_id,
+                config_name=output_config,
+                execution_mode='eco',
+                safety_level=safety_level,
+                device_id=device_id,
+                base_path=JSON_STORAGE_DIR
+            )
 
         # Save translation info
         if was_translated:
@@ -2186,7 +2220,16 @@ def execute_generation_streaming(data: dict):
             input_image1=input_image1,
             input_image2=input_image2,
             input_image3=input_image3,
-            alpha_factor=alpha_factor
+            alpha_factor=alpha_factor,
+            # Session 151: Generation parameters
+            width=width,
+            height=height,
+            steps=steps,
+            cfg=cfg,
+            negative_prompt=negative_prompt,
+            sampler_name=sampler_name,
+            scheduler=scheduler,
+            denoise=denoise
         ))
 
         if not result['success']:
@@ -2256,7 +2299,16 @@ def generation_endpoint():
                 'interception_config': request.args.get('interception_config', ''),
                 'device_id': request.args.get('device_id'),
                 'run_id': request.args.get('run_id'),
-                'enable_streaming': request.args.get('enable_streaming') == 'true'
+                'enable_streaming': request.args.get('enable_streaming') == 'true',
+                # Session 151: Generation parameters (optional)
+                'width': request.args.get('width', type=int),
+                'height': request.args.get('height', type=int),
+                'steps': request.args.get('steps', type=int),
+                'cfg': request.args.get('cfg', type=float),
+                'negative_prompt': request.args.get('negative_prompt'),
+                'sampler_name': request.args.get('sampler_name'),
+                'scheduler': request.args.get('scheduler'),
+                'denoise': request.args.get('denoise', type=float)
             }
             # Convert seed to int if present
             if data['seed']:
@@ -2398,7 +2450,16 @@ async def execute_stage4_generation_only(
     input_image1: str = None,
     input_image2: str = None,
     input_image3: str = None,
-    alpha_factor = None
+    alpha_factor = None,
+    # Session 151: Generation parameters (all optional, ignored if config doesn't support them)
+    width: int = None,
+    height: int = None,
+    steps: int = None,
+    cfg: float = None,
+    negative_prompt: str = None,
+    sampler_name: str = None,
+    scheduler: str = None,
+    denoise: float = None
 ) -> dict:
     """
     Stage 4 ONLY: Media generation.
@@ -2504,6 +2565,24 @@ async def execute_stage4_generation_only(
         custom_params = {}
         if alpha_factor is not None:
             custom_params['alpha_factor'] = alpha_factor
+
+        # Session 151: Add generation parameters (gracefully ignored if not in config's input_mappings)
+        if width is not None:
+            custom_params['width'] = width
+        if height is not None:
+            custom_params['height'] = height
+        if steps is not None:
+            custom_params['steps'] = steps
+        if cfg is not None:
+            custom_params['cfg'] = cfg
+        if negative_prompt is not None:
+            custom_params['negative_prompt'] = negative_prompt
+        if sampler_name is not None:
+            custom_params['sampler_name'] = sampler_name
+        if scheduler is not None:
+            custom_params['scheduler'] = scheduler
+        if denoise is not None:
+            custom_params['denoise'] = denoise
 
         # Extract LoRAs from interception config
         if interception_config:

@@ -97,6 +97,13 @@ const emit = defineEmits<{
   'update-node-seed-mode': [nodeId: string, mode: 'fixed' | 'random' | 'increment']
   'update-node-seed-value': [nodeId: string, value: number]
   'update-node-seed-base': [nodeId: string, base: number]
+  // Session 151: Resolution node events
+  'update-node-resolution-preset': [nodeId: string, preset: 'square_1024' | 'portrait_768x1344' | 'landscape_1344x768' | 'custom']
+  'update-node-resolution-width': [nodeId: string, width: number]
+  'update-node-resolution-height': [nodeId: string, height: number]
+  // Session 151: Quality node events
+  'update-node-quality-steps': [nodeId: string, steps: number]
+  'update-node-quality-cfg': [nodeId: string, cfg: number]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -412,6 +419,11 @@ onUnmounted(() => {
       @update-seed-mode="emit('update-node-seed-mode', node.id, $event)"
       @update-seed-value="emit('update-node-seed-value', node.id, $event)"
       @update-seed-base="emit('update-node-seed-base', node.id, $event)"
+      @update-resolution-preset="emit('update-node-resolution-preset', node.id, $event)"
+      @update-resolution-width="emit('update-node-resolution-width', node.id, $event)"
+      @update-resolution-height="emit('update-node-resolution-height', node.id, $event)"
+      @update-quality-steps="emit('update-node-quality-steps', node.id, $event)"
+      @update-quality-cfg="emit('update-node-quality-cfg', node.id, $event)"
       @end-connect-input-1="emit('end-connect-input-1', node.id)"
       @end-connect-input-2="emit('end-connect-input-2', node.id)"
       @end-connect-input-3="emit('end-connect-input-3', node.id)"

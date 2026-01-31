@@ -39,12 +39,13 @@ const categories = computed(() => [
   {
     id: 'generate',
     label: locale.value === 'de' ? '4 · Generierung' : '4 · Generation',
-    types: ['seed', 'generation'] as StageType[]  // Session 150: Added seed node
+    types: ['generation'] as StageType[]
   },
   {
     id: 'tools',
     label: 'Tools',
-    types: ['display'] as StageType[]
+    // Session 151: Parameter nodes (seed, resolution, quality) + display under Tools
+    types: ['seed', 'resolution', 'quality', 'display'] as StageType[]
   }
 ])
 
