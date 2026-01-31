@@ -287,7 +287,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "local/qwen2.5vl:72b",
                 "STAGE4_LEGACY_MODEL": "local/qwen2.5vl:72b",
                 "CHAT_HELPER_MODEL": "local/qwen2.5vl:72b",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "local/codestral:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
@@ -302,7 +303,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
@@ -317,7 +319,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "openrouter/mistralai/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
@@ -332,7 +335,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "mistral/mistral-large-latest",
                 "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
                 "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "mistral",
             "DSGVO_CONFORMITY": True
@@ -347,7 +351,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "anthropic/claude-sonnet-4-5-20250929"
             },
             "EXTERNAL_LLM_PROVIDER": "anthropic",
             "DSGVO_CONFORMITY": False
@@ -362,7 +367,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openai/gpt-4o-mini",
                 "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
                 "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "openai/gpt-4o"
             },
             "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
@@ -383,7 +389,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "local/qwen2.5vl:72b",
                 "STAGE4_LEGACY_MODEL": "local/qwen2.5vl:72b",
                 "CHAT_HELPER_MODEL": "local/qwen2.5vl:72b",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "local/codestral:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
@@ -398,7 +405,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
@@ -413,7 +421,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "openrouter/mistralai/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
@@ -428,7 +437,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "mistral/mistral-large-latest",
                 "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
                 "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "mistral",
             "DSGVO_CONFORMITY": True
@@ -443,7 +453,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "anthropic/claude-sonnet-4-5-20250929"
             },
             "EXTERNAL_LLM_PROVIDER": "anthropic",
             "DSGVO_CONFORMITY": False
@@ -458,7 +469,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openai/gpt-4o-mini",
                 "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
                 "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b"
+                "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
+                "CODING_MODEL": "openai/gpt-4o"
             },
             "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
@@ -482,7 +494,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "local/qwen3:32b",
                 "STAGE4_LEGACY_MODEL": "local/qwen3:32b",
                 "CHAT_HELPER_MODEL": "local/qwen3:32b",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "local/codestral:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
@@ -497,7 +510,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
@@ -512,7 +526,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "openrouter/mistralai/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
@@ -527,7 +542,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "mistral/mistral-large-latest",
                 "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
                 "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "mistral",
             "DSGVO_CONFORMITY": True
@@ -542,7 +558,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "anthropic/claude-sonnet-4-5-20250929"
             },
             "EXTERNAL_LLM_PROVIDER": "anthropic",
             "DSGVO_CONFORMITY": False
@@ -557,7 +574,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openai/gpt-4o-mini",
                 "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
                 "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "openai/gpt-4o"
             },
             "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
@@ -582,7 +600,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "local/gpt-OSS:20b",
                 "STAGE4_LEGACY_MODEL": "local/gpt-OSS:20b",
                 "CHAT_HELPER_MODEL": "local/gpt-OSS:20b",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "local/codestral:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
@@ -597,7 +616,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
@@ -612,7 +632,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "openrouter/mistralai/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
@@ -627,7 +648,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "mistral/mistral-large-latest",
                 "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
                 "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "mistral",
             "DSGVO_CONFORMITY": True
@@ -642,7 +664,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "anthropic/claude-sonnet-4-5-20250929"
             },
             "EXTERNAL_LLM_PROVIDER": "anthropic",
             "DSGVO_CONFORMITY": False
@@ -657,7 +680,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openai/gpt-4o-mini",
                 "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
                 "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "openai/gpt-4o"
             },
             "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
@@ -682,7 +706,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "local/mistral-nemo",
                 "STAGE4_LEGACY_MODEL": "local/mistral-nemo",
                 "CHAT_HELPER_MODEL": "local/mistral-nemo",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "local/codestral:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
@@ -697,7 +722,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
@@ -712,7 +738,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "openrouter/mistralai/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
@@ -727,7 +754,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "mistral/mistral-large-latest",
                 "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
                 "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "mistral",
             "DSGVO_CONFORMITY": True
@@ -742,7 +770,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "anthropic/claude-sonnet-4-5-20250929"
             },
             "EXTERNAL_LLM_PROVIDER": "anthropic",
             "DSGVO_CONFORMITY": False
@@ -757,7 +786,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openai/gpt-4o-mini",
                 "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
                 "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+                "CODING_MODEL": "openai/gpt-4o"
             },
             "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
@@ -774,7 +804,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "local/gemma:2b",
                 "STAGE4_LEGACY_MODEL": "local/gemma:2b",
                 "CHAT_HELPER_MODEL": "local/gemma:2b",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
+                "CODING_MODEL": "local/codestral:latest"
             },
             "EXTERNAL_LLM_PROVIDER": "none",
             "DSGVO_CONFORMITY": True
@@ -789,7 +820,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
                 "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "bedrock",
             "DSGVO_CONFORMITY": True
@@ -804,7 +836,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
                 "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
+                "CODING_MODEL": "openrouter/mistralai/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "openrouter",
             "DSGVO_CONFORMITY": False
@@ -819,7 +852,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "mistral/mistral-large-latest",
                 "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
                 "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
+                "CODING_MODEL": "mistral/codestral-latest"
             },
             "EXTERNAL_LLM_PROVIDER": "mistral",
             "DSGVO_CONFORMITY": True
@@ -834,7 +868,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "STAGE4_LEGACY_MODEL": "anthropic/claude-3-5-haiku-latest",
                 "CHAT_HELPER_MODEL": "anthropic/claude-3-5-haiku-latest",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
+                "CODING_MODEL": "anthropic/claude-sonnet-4-5-20250929"
             },
             "EXTERNAL_LLM_PROVIDER": "anthropic",
             "DSGVO_CONFORMITY": False
@@ -849,7 +884,8 @@ HARDWARE_MATRIX = {
                 "STAGE3_MODEL": "openai/gpt-4o-mini",
                 "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
                 "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+                "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
+                "CODING_MODEL": "openai/gpt-4o"
             },
             "EXTERNAL_LLM_PROVIDER": "openai",
             "DSGVO_CONFORMITY": False
@@ -1114,6 +1150,7 @@ def get_settings():
             "STAGE4_LEGACY_MODEL": config.STAGE4_LEGACY_MODEL,
             "CHAT_HELPER_MODEL": config.CHAT_HELPER_MODEL,
             "IMAGE_ANALYSIS_MODEL": config.IMAGE_ANALYSIS_MODEL,
+            "CODING_MODEL": config.CODING_MODEL,
 
             # API Configuration
             "LLM_PROVIDER": config.LLM_PROVIDER,

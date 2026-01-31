@@ -190,6 +190,46 @@ def _load_optimization_instruction(output_config_name: str):
     return None
 
 
+def _load_model_from_output_config(output_config_name: str) -> str | None:
+    """Load model from output config meta, resolving config variable names.
+
+    If meta.model is a config variable name (e.g., "CODING_MODEL"),
+    resolve it to the actual model string from config.py.
+
+    Returns:
+        Model string (e.g., "mistral/codestral-latest"), "DEFAULT", or None if not found
+    """
+    try:
+        if pipeline_executor is None:
+            init_schema_engine()
+
+        output_config_obj = pipeline_executor.config_loader.get_config(output_config_name)
+
+        if output_config_obj and hasattr(output_config_obj, 'meta'):
+            model_value = output_config_obj.meta.get('model')
+
+            if model_value:
+                # "DEFAULT" means use the stage's default model
+                if model_value == "DEFAULT":
+                    logger.info(f"[LOAD-MODEL] Config '{output_config_name}' has DEFAULT - use stage default")
+                    return "DEFAULT"
+
+                # Check if model_value is a config variable name (e.g., "CODING_MODEL")
+                if hasattr(config, model_value):
+                    resolved_model = getattr(config, model_value)
+                    logger.info(f"[LOAD-MODEL] Resolved config.{model_value} → {resolved_model}")
+                    return resolved_model
+                else:
+                    # Use directly (backward compatibility with hardcoded models)
+                    logger.info(f"[LOAD-MODEL] Using direct model: {model_value}")
+                    return model_value
+    except Exception as e:
+        logger.warning(f"[LOAD-MODEL] Failed to load model: {e}")
+
+    logger.info(f"[LOAD-MODEL] No model in config '{output_config_name}'")
+    return None
+
+
 def _load_estimated_duration(output_config_name: str) -> str:
     """Load estimated_duration_seconds from output chunk meta.
 
@@ -1607,7 +1647,7 @@ def execute_optimization_streaming(data: dict):
     """
     import time
     import os
-    from config import STAGE2_INTERCEPTION_MODEL, DEFAULT_INTERCEPTION_CONFIG
+    from config import STAGE3_MODEL, DEFAULT_INTERCEPTION_CONFIG
 
     # Extract parameters
     schema_name = data.get('schema', DEFAULT_INTERCEPTION_CONFIG)
@@ -1615,6 +1655,7 @@ def execute_optimization_streaming(data: dict):
     context_prompt = data.get('context_prompt', '')  # Optimization instruction
     run_id_param = data.get('run_id')  # Session 130: From interception for persistence
     device_id = data.get('device_id')
+    output_config = data.get('output_config')  # Session 153: For model selection from output config
 
     # Generate run ID for logging (use param if available)
     run_id = run_id_param or f"opt_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
@@ -1665,11 +1706,18 @@ def execute_optimization_streaming(data: dict):
         # Session 134 FIX: Use prompt_optimization instruction for this stage
         task_instruction = get_instruction("prompt_optimization")
 
-        # Determine model
-        model = STAGE2_INTERCEPTION_MODEL
+        # Determine model - Session 153: Override-Pattern for CODING_MODEL
+        # If output_config has meta.model set (and != "DEFAULT"), use that
+        model_override = None
+        if output_config:
+            model_override = _load_model_from_output_config(output_config)
 
-        # Use Prompt Interception Engine for the transformation
-        logger.info(f"[OPTIMIZATION-STREAMING] Using model: {model}")
+        if model_override and model_override != "DEFAULT":
+            model = model_override
+            logger.info(f"[OPTIMIZATION-STREAMING] Using model override from {output_config}: {model}")
+        else:
+            model = STAGE3_MODEL
+            logger.info(f"[OPTIMIZATION-STREAMING] Using default STAGE3_MODEL: {model}")
         pi_request = PromptInterceptionRequest(
             input_prompt=input_text,
             input_context='',

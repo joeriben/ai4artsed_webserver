@@ -374,7 +374,8 @@ const modelLabels = {
   'STAGE3_MODEL': 'Stage 3 - Translation/Safety Model',
   'STAGE4_LEGACY_MODEL': 'Stage 4 - Legacy Model',
   'CHAT_HELPER_MODEL': 'Chat Helper Model',
-  'IMAGE_ANALYSIS_MODEL': 'Image Analysis Model'
+  'IMAGE_ANALYSIS_MODEL': 'Image Analysis Model',
+  'CODING_MODEL': 'Code Generation (Tone.js, p5.js)'
 }
 
 // Check if any cloud models are being used

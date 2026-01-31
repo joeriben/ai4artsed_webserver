@@ -123,6 +123,7 @@ STAGE2_OPTIMIZATION_MODEL = LOCAL_DEFAULT_MODEL           # Stage 2: Prompt opti
 STAGE3_MODEL = LOCAL_DEFAULT_MODEL                        # Stage 3: Translation and final safety check (simple task)
 STAGE4_LEGACY_MODEL = LOCAL_DEFAULT_MODEL                 # For legacy workflow execution
 CHAT_HELPER_MODEL = LOCAL_DEFAULT_MODEL                   # Chat overlay: Interactive help system
+CODING_MODEL = "mistral/codestral-latest"                 # Code generation (Tone.js, p5.js) - specialized for precise syntax
 
 # Legacy Model Configuration
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama

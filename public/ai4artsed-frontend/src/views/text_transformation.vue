@@ -1043,7 +1043,8 @@ const optimizationStreamingParams = computed(() => {
     context_prompt: optimizationInstruction.value || '',  // Model-specific optimization instruction
     enable_streaming: true,
     run_id: currentRunId.value || '',  // Session 130: For persistence
-    device_id: getDeviceId()
+    device_id: getDeviceId(),
+    output_config: selectedConfig.value || ''  // Session 153: For model override (e.g., CODING_MODEL)
   }
   console.log('[OPTIMIZATION-STREAMING] params:', params)
   return params
