@@ -1107,14 +1107,14 @@ def execute_workflow_stream():
                     device_id=device_id
                 )
 
-                # Create executor and run
+                # Create executor and run - use recorder's device_id (may be auto-generated)
                 executor = CanvasWorkflowExecutor(
                     nodes=nodes,
                     connections=connections,
                     recorder=recorder,
                     run_id=canvas_run_id,
                     engine=engine,
-                    device_id=device_id
+                    device_id=recorder.device_id  # Use recorder's device_id, not the original
                 )
 
                 # Execute and yield events
@@ -1336,7 +1336,7 @@ def execute_batch():
                             batch_index=run_index
                         )
 
-                        # Create executor for this run
+                        # Create executor for this run - use recorder's device_id
                         executor = CanvasWorkflowExecutor(
                             nodes=nodes,
                             connections=connections,
@@ -1345,7 +1345,7 @@ def execute_batch():
                             engine=engine,
                             prompt_override=prompt_override,
                             run_seed=run_seed,
-                            device_id=device_id
+                            device_id=recorder.device_id  # Use recorder's device_id
                         )
 
                         # Execute and yield events with run_index context

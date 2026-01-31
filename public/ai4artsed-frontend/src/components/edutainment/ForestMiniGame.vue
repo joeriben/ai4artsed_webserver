@@ -2,7 +2,7 @@
   <div class="forest-game" @click="handleClick">
     <!-- Sky -->
     <div class="sky" :style="skyStyle">
-      <!-- Clouds - more factories = more dark clouds, more trees = fewer clouds -->
+      <!-- Clouds -->
       <div
         v-for="(cloud, i) in clouds"
         :key="'cloud-' + i"
@@ -10,8 +10,7 @@
         :style="cloud.style"
       ></div>
 
-      <!-- Flying bird (progress indicator: right to left) -->
-      <!-- Sprite-based animation from CodePen (Open Source) -->
+      <!-- Flying bird (progress indicator: left to right) -->
       <div class="bird-container" :style="birdStyle">
         <div class="bird"></div>
       </div>
@@ -65,7 +64,7 @@
       </div>
     </div>
 
-    <!-- Plant instruction (before first click) / Cooldown indicator (after) -->
+    <!-- Plant instruction / Cooldown indicator -->
     <div class="plant-instruction" :class="{ cooldown: plantCooldown > 0 }">
       <template v-if="treesPlanted === 0">
         {{ t('edutainment.forest.clickToPlant') }}
@@ -87,8 +86,8 @@
       </div>
     </div>
 
-    <!-- Summary overlay (progress >= 80% to account for fast generations) -->
-    <div v-if="!gameOver && props.progress && props.progress >= 80" class="summary-overlay">
+    <!-- Summary overlay (showing summary at end of progress cycle) -->
+    <div v-if="!gameOver && isShowingSummary" class="summary-overlay">
       <span class="summary-status">{{ t('edutainment.forest.complete') }}</span>
       <span class="summary-detail">{{ totalCo2.toFixed(2) }}g CO₂</span>
       <span class="summary-comparison">{{ t('edutainment.forest.comparison', { hours: treeHours }) }}</span>
@@ -100,7 +99,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { GpuRealtimeStats } from '@/composables/useEdutainmentFacts'
+import { useAnimationProgress } from '@/composables/useAnimationProgress'
 
 const { t } = useI18n()
 
@@ -109,27 +108,40 @@ const props = defineProps<{
   estimatedSeconds?: number
 }>()
 
-// Tree types for variety (conifers and broadleaf)
+// ==================== Use Animation Progress Composable ====================
+const {
+  internalProgress,
+  isShowingSummary,
+  totalCo2,
+  effectivePower,
+  effectiveTemp,
+  treeHours
+} = useAnimationProgress({
+  estimatedSeconds: computed(() => props.estimatedSeconds || 30),
+  isActive: computed(() => (props.progress ?? 0) > 0)
+})
+
+// ==================== Tree Types ====================
 const TREE_TYPES = ['pine', 'spruce', 'fir', 'oak', 'birch', 'maple', 'willow'] as const
 type TreeType = typeof TREE_TYPES[number]
 
 interface Tree {
   id: number
-  x: number // 0-100%
+  x: number
   type: TreeType
-  scale: number // 0.5-1.5
+  scale: number
   growing: boolean
-  growthProgress: number // 0-1
+  growthProgress: number
 }
 
 interface Factory {
   id: number
   x: number
-  y: number // vertical offset (0-8%)
+  y: number
   scale: number
 }
 
-// State
+// ==================== State ====================
 const trees = ref<Tree[]>([])
 const factories = ref<Factory[]>([])
 const plantCooldown = ref(0)
@@ -137,54 +149,26 @@ const treesPlanted = ref(0)
 const gameOver = ref(false)
 let nextId = 0
 
-// Bird animation (progress indicator)
+// Bird animation (follows internalProgress from composable)
 const birdProgress = ref(0)
 let birdAnimationId: number | null = null
 
-// GPU stats
-const gpuStats = ref<GpuRealtimeStats>({ available: false })
-const simulatedPower = ref(200)
-const simulatedTemp = ref(55)
-const totalCo2 = ref(0)
-const totalEnergy = ref(0)
-const elapsedSeconds = ref(0)
-
-// Effective values
-const effectivePower = computed(() => {
-  const realPower = gpuStats.value.power_draw_watts || 0
-  return realPower > 100 ? realPower : simulatedPower.value
-})
-const effectiveTemp = computed(() => {
-  const realPower = gpuStats.value.power_draw_watts || 0
-  const realTemp = gpuStats.value.temperature_celsius || 0
-  return realPower > 100 ? realTemp : simulatedTemp.value
-})
-
-// Tree absorbs ~22kg CO2/year = ~2.51g/hour (mature tree average)
-const treeHours = computed(() => {
-  const hours = totalCo2.value / 2.51
-  return hours.toFixed(1)
-})
-
-// Bird style (flies from left to right as progress increases - European reading direction)
-const birdStyle = computed(() => {
-  // left: 5% at 0% progress, left: 95% at 100% progress
-  const leftPos = 5 + birdProgress.value * 0.9
-  return {
-    left: `${leftPos}%`,
-    top: `${15 + Math.sin(birdProgress.value * 0.3) * 5}%` // Slight wave motion
-  }
-})
-
-// Smooth bird animation
 function animateBird() {
-  const target = props.progress ?? 0
+  const target = internalProgress.value
   const diff = target - birdProgress.value
   if (Math.abs(diff) > 0.01) {
-    birdProgress.value += diff * 0.08 // lerp for smooth movement
+    birdProgress.value += diff * 0.08
   }
   birdAnimationId = requestAnimationFrame(animateBird)
 }
+
+const birdStyle = computed(() => {
+  const leftPos = 5 + birdProgress.value * 0.9
+  return {
+    left: `${leftPos}%`,
+    top: `${15 + Math.sin(birdProgress.value * 0.3) * 5}%`
+  }
+})
 
 // Sky darkens with CO2
 const skyStyle = computed(() => {
@@ -197,18 +181,16 @@ const skyStyle = computed(() => {
   }
 })
 
-// Clouds - more factories = more dark clouds, more trees = cleaner sky
+// Clouds
 const clouds = computed(() => {
   const treeCount = trees.value.length
   const factoryCount = factories.value.length
 
-  // Calculate cloud amount: more factories = more clouds (0-12), fewer trees = more clouds
   const pollutionRatio = factoryCount / Math.max(1, treeCount)
   const cloudCount = Math.min(12, Math.floor(pollutionRatio * 8) + Math.floor(factoryCount * 0.8))
 
   if (cloudCount === 0) return []
 
-  // Darkness based on factory/tree ratio
   const darkness = Math.min(0.9, pollutionRatio * 0.5)
 
   return Array.from({ length: cloudCount }, (_, i) => {
@@ -226,17 +208,13 @@ const clouds = computed(() => {
   })
 })
 
-// Intervals
+// ==================== Game Logic ====================
 let gameLoopInterval: number | null = null
-let gpuPollInterval: number | null = null
-let energyInterval: number | null = null
 
-// Initialize forest
 function initForest() {
   trees.value = []
   factories.value = []
 
-  // Create initial trees (15-25 trees spread across landscape)
   const treeCount = 18 + Math.floor(Math.random() * 8)
   for (let i = 0; i < treeCount; i++) {
     trees.value.push({
@@ -250,14 +228,11 @@ function initForest() {
   }
 }
 
-// Plant a tree
 function plantTree(x: number) {
   if (plantCooldown.value > 0 || gameOver.value) return
 
-  // Check if planting on/near a factory (within 8% distance)
   const nearbyFactory = factories.value.find(f => Math.abs(f.x - x) < 8)
   if (nearbyFactory) {
-    // Remove the factory
     factories.value = factories.value.filter(f => f.id !== nearbyFactory.id)
   }
 
@@ -271,45 +246,37 @@ function plantTree(x: number) {
   })
 
   treesPlanted.value++
-  plantCooldown.value = 1.0 // 1 second cooldown
+  plantCooldown.value = 1.0
 }
 
-// Handle click to plant
 function handleClick(event: MouseEvent) {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   const x = ((event.clientX - rect.left) / rect.width) * 100
   plantTree(x)
 }
 
-// Game loop
 function gameLoop() {
   if (gameOver.value) return
 
-  const dt = 0.1 // 100ms tick
+  const dt = 0.1
 
-  // Update cooldown
   if (plantCooldown.value > 0) {
     plantCooldown.value = Math.max(0, plantCooldown.value - dt)
   }
 
-  // Grow trees
   for (const tree of trees.value) {
     if (tree.growing && tree.growthProgress < 1) {
-      tree.growthProgress = Math.min(1, tree.growthProgress + dt * 0.15) // ~7 seconds to fully grow
+      tree.growthProgress = Math.min(1, tree.growthProgress + dt * 0.15)
       if (tree.growthProgress >= 1) {
         tree.growing = false
       }
     }
   }
 
-  // Factory spawn rate: ~1.1 per second at 450W
-  // 10 ticks/second, so need ~0.11 probability per tick at 450W
-  // Formula: (watts / 450) * 0.11 per tick
+  // Factory spawn rate based on GPU power
   const factoryRate = (effectivePower.value / 450) * dt * 1.1
 
   if (Math.random() < factoryRate && factories.value.length < 30) {
-    // Spawn factory with better distribution
-    // Avoid clustering by checking existing factory positions
     let newX = 10 + Math.random() * 80
     const minDistance = 12
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -321,11 +288,10 @@ function gameLoop() {
     factories.value.push({
       id: nextId++,
       x: newX,
-      y: Math.random() * 6, // Slight vertical variation
+      y: Math.random() * 6,
       scale: 0.45 + Math.random() * 0.65
     })
 
-    // Also remove a tree if available (factories replace trees)
     const matureTrees = trees.value.filter(t => !t.growing)
     if (matureTrees.length > 0 && Math.random() < 0.7) {
       const treeToRemove = matureTrees[Math.floor(Math.random() * matureTrees.length)]!
@@ -333,42 +299,12 @@ function gameLoop() {
     }
   }
 
-  // Check game over
   if (trees.value.length === 0 && factories.value.length > 3) {
     gameOver.value = true
   }
 }
 
-// GPU fetching
-async function fetchGpuStats() {
-  try {
-    const response = await fetch('/api/settings/gpu-realtime')
-    if (response.ok) {
-      gpuStats.value = await response.json()
-    }
-  } catch (error) {
-    console.warn('[ForestGame] GPU fetch failed:', error)
-  }
-}
-
-function updateEnergy() {
-  elapsedSeconds.value++
-
-  const realPower = gpuStats.value.power_draw_watts || 0
-  const isGpuActive = realPower > 100
-
-  simulatedPower.value = Math.min(450, 150 + elapsedSeconds.value * 10 + Math.random() * 50)
-  simulatedTemp.value = Math.min(82, 45 + elapsedSeconds.value * 1.5 + Math.random() * 3)
-
-  const watts = isGpuActive ? realPower : simulatedPower.value
-  const co2PerKwh = gpuStats.value.co2_per_kwh_grams || 400
-
-  const whThisSecond = watts / 3600
-  totalEnergy.value += whThisSecond
-  totalCo2.value += (whThisSecond / 1000) * co2PerKwh
-}
-
-// Tree styling
+// ==================== Styling ====================
 function getTreeStyle(tree: Tree) {
   const baseSize = 40 * tree.scale * tree.growthProgress
   return {
@@ -381,45 +317,30 @@ function getTreeStyle(tree: Tree) {
   }
 }
 
-// Factory styling
 function getFactoryStyle(factory: Factory) {
   const baseSize = 30 * factory.scale
-  const bottomPos = 18 + (factory.y || 0) // Lower base (18%) + variation
+  const bottomPos = 18 + (factory.y || 0)
   return {
     left: `${factory.x}%`,
     bottom: `${bottomPos}%`,
     width: `${baseSize}px`,
     height: `${baseSize * 1.2}px`,
-    zIndex: Math.floor(100 - factory.y * 10) // Closer to bottom = higher z-index
+    zIndex: Math.floor(100 - factory.y * 10)
   }
 }
 
-// Lifecycle
+// ==================== Lifecycle ====================
 onMounted(() => {
   initForest()
-  fetchGpuStats()
-
-  // Start game loop (100ms tick)
   gameLoopInterval = window.setInterval(gameLoop, 100)
-
-  // GPU polling
-  gpuPollInterval = window.setInterval(fetchGpuStats, 2000)
-
-  // Energy calculation
-  energyInterval = window.setInterval(updateEnergy, 1000)
-
-  // Start bird animation
   animateBird()
 })
 
 onUnmounted(() => {
   if (gameLoopInterval) clearInterval(gameLoopInterval)
-  if (gpuPollInterval) clearInterval(gpuPollInterval)
-  if (energyInterval) clearInterval(energyInterval)
   if (birdAnimationId) cancelAnimationFrame(birdAnimationId)
 })
 
-// Watch progress for auto-start behavior
 watch(() => props.progress, (newProgress) => {
   if (newProgress && newProgress > 0 && trees.value.length === 0) {
     initForest()
@@ -438,7 +359,6 @@ watch(() => props.progress, (newProgress) => {
   user-select: none;
 }
 
-/* Sky */
 .sky {
   position: absolute;
   top: 0;
@@ -448,7 +368,6 @@ watch(() => props.progress, (newProgress) => {
   transition: background 1s ease;
 }
 
-/* Clouds */
 .cloud {
   position: absolute;
   width: 50px;
@@ -485,7 +404,6 @@ watch(() => props.progress, (newProgress) => {
   50% { transform: translateX(15px) scale(calc(var(--scale, 1) * 1.05)); }
 }
 
-/* Ground */
 .ground {
   position: absolute;
   bottom: 0;
@@ -495,7 +413,6 @@ watch(() => props.progress, (newProgress) => {
   background: linear-gradient(180deg, #5a8f5a 0%, #3d6b3d 50%, #2d4a2d 100%);
 }
 
-/* Trees */
 .tree {
   position: absolute;
   transform: translateX(-50%);
@@ -516,10 +433,7 @@ watch(() => props.progress, (newProgress) => {
   border-radius: 2px;
 }
 
-/* Pine tree */
-.tree-pine .tree-top {
-  background: none;
-}
+.tree-pine .tree-top { background: none; }
 .tree-pine .tree-top::before,
 .tree-pine .tree-top::after {
   content: '';
@@ -540,13 +454,11 @@ watch(() => props.progress, (newProgress) => {
   width: 100%;
 }
 
-/* Oak tree */
 .tree-oak .tree-top {
   background: radial-gradient(ellipse at center, #3d7a3d 0%, #2d5a2d 70%, #1e4a1e 100%);
   border-radius: 50% 50% 40% 40%;
 }
 
-/* Birch tree */
 .tree-birch .tree-top {
   background: radial-gradient(ellipse at center, #7ab87a 0%, #5a9a5a 60%, #3d7a3d 100%);
   border-radius: 40% 40% 30% 30%;
@@ -555,17 +467,13 @@ watch(() => props.progress, (newProgress) => {
   background: linear-gradient(90deg, #f5f5f5 0%, #e0e0e0 30%, #bdbdbd 50%, #e0e0e0 70%, #f5f5f5 100%);
 }
 
-/* Spruce tree (tall conifer) */
 .tree-spruce .tree-top {
   background: none;
   clip-path: polygon(50% 0%, 15% 100%, 85% 100%);
   background: linear-gradient(180deg, #1a4a1a 0%, #2d5a2d 50%, #1e3a1e 100%);
 }
 
-/* Fir tree (classic Christmas tree shape) */
-.tree-fir .tree-top {
-  background: none;
-}
+.tree-fir .tree-top { background: none; }
 .tree-fir .tree-top::before {
   content: '';
   position: absolute;
@@ -577,7 +485,6 @@ watch(() => props.progress, (newProgress) => {
   clip-path: polygon(50% 0%, 5% 35%, 20% 35%, 0% 70%, 25% 70%, 10% 100%, 90% 100%, 75% 70%, 100% 70%, 80% 35%, 95% 35%);
 }
 
-/* Maple tree (rounded with reddish tint) */
 .tree-maple .tree-top {
   background: radial-gradient(ellipse at center, #5a8a4a 0%, #4a7a3a 50%, #3a6a2a 100%);
   border-radius: 45% 45% 40% 40%;
@@ -586,7 +493,6 @@ watch(() => props.progress, (newProgress) => {
   background: linear-gradient(90deg, #6d4c41 0%, #8d6e63 50%, #6d4c41 100%);
 }
 
-/* Willow tree (drooping shape) */
 .tree-willow .tree-top {
   background: radial-gradient(ellipse 60% 80% at center top, #6a9a5a 0%, #4a7a4a 60%, #3a6a3a 100%);
   border-radius: 50% 50% 60% 60%;
@@ -597,7 +503,6 @@ watch(() => props.progress, (newProgress) => {
   background: linear-gradient(90deg, #5d4037 0%, #795548 50%, #5d4037 100%);
 }
 
-/* Growing animation */
 .tree.growing {
   animation: sway 2s ease-in-out infinite;
 }
@@ -607,7 +512,6 @@ watch(() => props.progress, (newProgress) => {
   50% { transform: translateX(-50%) rotate(1deg); }
 }
 
-/* Factories */
 .factory {
   position: absolute;
   transform: translateX(-50%);
@@ -651,7 +555,6 @@ watch(() => props.progress, (newProgress) => {
   }
 }
 
-/* Stats bar */
 .stats-bar {
   position: absolute;
   top: 8px;
@@ -685,7 +588,6 @@ watch(() => props.progress, (newProgress) => {
   font-weight: bold;
 }
 
-/* Plant instruction */
 .plant-instruction {
   position: absolute;
   bottom: 10px;
@@ -710,7 +612,6 @@ watch(() => props.progress, (newProgress) => {
   background: rgba(158, 158, 158, 0.8);
 }
 
-/* Game over */
 .game-over {
   position: absolute;
   top: 50%;
@@ -749,7 +650,6 @@ watch(() => props.progress, (newProgress) => {
   font-size: 12px;
 }
 
-/* Summary overlay (generation complete) */
 .summary-overlay {
   position: absolute;
   top: 40%;
@@ -798,8 +698,6 @@ watch(() => props.progress, (newProgress) => {
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
-/* Flying bird - Sprite-based animation (Open Source from CodePen) */
-/* Source: https://codepen.io/hoangdacviet/pen/GRWvWmg */
 .bird-container {
   position: absolute;
   z-index: 60;
@@ -812,14 +710,12 @@ watch(() => props.progress, (newProgress) => {
   height: 125px;
   will-change: background-position;
   animation: fly-cycle 1s steps(10) infinite;
-  /* Make bird white with filter */
   filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
   transform: scale(0.4);
 }
 
 @keyframes fly-cycle {
-  100% {
-    background-position: -900px 0;
-  }
+  0% { background-position: 0 0; }
+  100% { background-position: -900px 0; }
 }
 </style>
