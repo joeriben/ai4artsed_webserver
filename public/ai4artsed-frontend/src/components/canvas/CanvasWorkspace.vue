@@ -93,6 +93,10 @@ const emit = defineEmits<{
   'end-connect-input-1': [nodeId: string]
   'end-connect-input-2': [nodeId: string]
   'end-connect-input-3': [nodeId: string]
+  // Session 150: Seed node events
+  'update-node-seed-mode': [nodeId: string, mode: 'fixed' | 'random' | 'increment']
+  'update-node-seed-value': [nodeId: string, value: number]
+  'update-node-seed-base': [nodeId: string, base: number]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -405,6 +409,9 @@ onUnmounted(() => {
       @update-interception-preset="(preset, context) => emit('update-node-interception-preset', node.id, preset, context)"
       @update-comparison-llm="emit('update-node-comparison-llm', node.id, $event)"
       @update-comparison-criteria="emit('update-node-comparison-criteria', node.id, $event)"
+      @update-seed-mode="emit('update-node-seed-mode', node.id, $event)"
+      @update-seed-value="emit('update-node-seed-value', node.id, $event)"
+      @update-seed-base="emit('update-node-seed-base', node.id, $event)"
       @end-connect-input-1="emit('end-connect-input-1', node.id)"
       @end-connect-input-2="emit('end-connect-input-2', node.id)"
       @end-connect-input-3="emit('end-connect-input-3', node.id)"

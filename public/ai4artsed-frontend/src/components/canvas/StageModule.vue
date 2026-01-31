@@ -75,6 +75,10 @@ const emit = defineEmits<{
   'end-connect-input-1': []
   'end-connect-input-2': []
   'end-connect-input-3': []
+  // Session 150: Seed node events
+  'update-seed-mode': [mode: 'fixed' | 'random' | 'increment']
+  'update-seed-value': [value: number]
+  'update-seed-base': [base: number]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -114,6 +118,8 @@ const isEvaluation = computed(() => props.node.type === 'evaluation')
 const isModelAdaption = computed(() => props.node.type === 'model_adaption')
 // Session 147: Comparison Evaluator node
 const isComparisonEvaluator = computed(() => props.node.type === 'comparison_evaluator')
+// Session 150: Seed node
+const isSeed = computed(() => props.node.type === 'seed')
 const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value || isRandomPrompt.value || isComparisonEvaluator.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 // Evaluation branching
@@ -736,6 +742,42 @@ const nodeHeight = computed(() => {
         </button>
       </template>
 
+      <!-- SEED NODE: Seed mode and value configuration (Session 150) -->
+      <template v-else-if="isSeed">
+        <div class="seed-config">
+          <div class="config-row">
+            <label>{{ locale === 'de' ? 'Modus' : 'Mode' }}</label>
+            <select
+              :value="node.seedMode || 'fixed'"
+              @change="emit('update-seed-mode', ($event.target as HTMLSelectElement).value as 'fixed' | 'random' | 'increment')"
+            >
+              <option value="fixed">{{ locale === 'de' ? 'Fest' : 'Fixed' }}</option>
+              <option value="random">{{ locale === 'de' ? 'Zufällig' : 'Random' }}</option>
+              <option value="increment">{{ locale === 'de' ? 'Batch (+1)' : 'Batch (+1)' }}</option>
+            </select>
+          </div>
+          <div v-if="node.seedMode === 'fixed' || !node.seedMode" class="config-row">
+            <label>{{ locale === 'de' ? 'Wert' : 'Value' }}</label>
+            <input
+              type="number"
+              :value="node.seedValue ?? 42"
+              min="0"
+              max="4294967295"
+              @input="emit('update-seed-value', parseInt(($event.target as HTMLInputElement).value) || 42)"
+            />
+          </div>
+          <div v-if="node.seedMode === 'increment'" class="config-row">
+            <label>{{ locale === 'de' ? 'Basis' : 'Base' }}</label>
+            <input
+              type="number"
+              :value="node.seedBase ?? 0"
+              min="0"
+              @input="emit('update-seed-base', parseInt(($event.target as HTMLInputElement).value) || 0)"
+            />
+          </div>
+        </div>
+      </template>
+
       <!-- COLLECTOR NODE: Display collected outputs -->
       <template v-else-if="node.type === 'collector'">
         <div v-if="collectorOutput && collectorOutput.length > 0" class="collector-results">
@@ -1228,6 +1270,52 @@ const nodeHeight = computed(() => {
 .config-arrow {
   font-size: 0.6rem;
   opacity: 0.7;
+}
+
+/* Session 150: Seed node config */
+.seed-config {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.seed-config .config-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.seed-config label {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  min-width: 40px;
+}
+
+.seed-config select,
+.seed-config input {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+}
+
+.seed-config select:focus,
+.seed-config input:focus {
+  outline: none;
+  border-color: var(--node-color);
+}
+
+.seed-config input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.seed-config input[type="number"]::-webkit-outer-spin-button,
+.seed-config input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .module-type-info {

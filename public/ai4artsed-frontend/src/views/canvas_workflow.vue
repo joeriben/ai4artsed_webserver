@@ -167,6 +167,19 @@ function handleUpdateNodeComparisonCriteria(nodeId: string, criteria: string) {
   canvasStore.updateNode(nodeId, { comparisonCriteria: criteria })
 }
 
+// Session 150: Seed node handlers
+function handleUpdateNodeSeedMode(nodeId: string, mode: 'fixed' | 'random' | 'increment') {
+  canvasStore.updateNode(nodeId, { seedMode: mode })
+}
+
+function handleUpdateNodeSeedValue(nodeId: string, value: number) {
+  canvasStore.updateNode(nodeId, { seedValue: value })
+}
+
+function handleUpdateNodeSeedBase(nodeId: string, base: number) {
+  canvasStore.updateNode(nodeId, { seedBase: base })
+}
+
 function startEditingName() {
   editingNameValue.value = canvasStore.workflow.name
   isEditingName.value = true
@@ -457,6 +470,9 @@ onUnmounted(() => {
           @update-node-interception-preset="handleUpdateNodeInterceptionPreset"
           @update-node-comparison-llm="handleUpdateNodeComparisonLlm"
           @update-node-comparison-criteria="handleUpdateNodeComparisonCriteria"
+          @update-node-seed-mode="handleUpdateNodeSeedMode"
+          @update-node-seed-value="handleUpdateNodeSeedValue"
+          @update-node-seed-base="handleUpdateNodeSeedBase"
           @end-connect-input-1="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-1')"
           @end-connect-input-2="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-2')"
           @end-connect-input-3="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-3')"
