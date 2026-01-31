@@ -9,6 +9,7 @@ import asyncio
 import threading
 import json
 import uuid
+import config  # Session 154: For CODING_MODEL resolution in _load_model_from_output_config
 
 # Schema-Engine importieren
 import sys
@@ -1794,7 +1795,8 @@ def optimize_pipeline():
                 'context_prompt': request.args.get('context_prompt', ''),
                 'enable_streaming': request.args.get('enable_streaming') == 'true',
                 'run_id': request.args.get('run_id'),  # Session 130: For persistence
-                'device_id': request.args.get('device_id')
+                'device_id': request.args.get('device_id'),
+                'output_config': request.args.get('output_config')  # Session 154: For CODING_MODEL override
             }
         else:
             data = request.get_json()
