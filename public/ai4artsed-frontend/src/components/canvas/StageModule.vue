@@ -357,7 +357,7 @@ function onFalseLabelChange(event: Event) {
 function onSeedValueChange(event: Event) {
   const input = event.target as HTMLInputElement
   const value = parseInt(input.value)
-  emit('update-seed-value', isNaN(value) ? 42 : value)
+  emit('update-seed-value', isNaN(value) ? 123456789 : value)
 }
 
 function onSeedBaseChange(event: Event) {
@@ -797,6 +797,7 @@ const nodeHeight = computed(() => {
             <select
               :value="node.seedMode || 'fixed'"
               @change="emit('update-seed-mode', ($event.target as HTMLSelectElement).value as 'fixed' | 'random' | 'increment')"
+              @mousedown.stop
             >
               <option value="fixed">{{ locale === 'de' ? 'Fest' : 'Fixed' }}</option>
               <option value="random">{{ locale === 'de' ? 'Zufällig' : 'Random' }}</option>
@@ -807,11 +808,11 @@ const nodeHeight = computed(() => {
             <label>{{ locale === 'de' ? 'Wert' : 'Value' }}</label>
             <input
               type="number"
-              :value="node.seedValue ?? 42"
+              :value="node.seedValue ?? 123456789"
               min="0"
               max="4294967295"
-              @blur="onSeedValueChange"
-              @keyup.enter="onSeedValueChange"
+              @input="onSeedValueChange"
+              @mousedown.stop
             />
           </div>
           <div v-if="node.seedMode === 'increment'" class="config-row">
@@ -820,8 +821,8 @@ const nodeHeight = computed(() => {
               type="number"
               :value="node.seedBase ?? 0"
               min="0"
-              @blur="onSeedBaseChange"
-              @keyup.enter="onSeedBaseChange"
+              @input="onSeedBaseChange"
+              @mousedown.stop
             />
           </div>
         </div>
@@ -835,6 +836,7 @@ const nodeHeight = computed(() => {
             <select
               :value="node.resolutionPreset || 'square_1024'"
               @change="emit('update-resolution-preset', ($event.target as HTMLSelectElement).value as 'square_1024' | 'portrait_768x1344' | 'landscape_1344x768' | 'custom')"
+              @mousedown.stop
             >
               <option value="square_1024">1024 × 1024</option>
               <option value="portrait_768x1344">768 × 1344</option>
@@ -850,8 +852,8 @@ const nodeHeight = computed(() => {
               min="64"
               max="4096"
               step="64"
-              @blur="onResolutionWidthChange"
-              @keyup.enter="onResolutionWidthChange"
+              @input="onResolutionWidthChange"
+              @mousedown.stop
             />
           </div>
           <div v-if="node.resolutionPreset === 'custom'" class="config-row">
@@ -862,8 +864,8 @@ const nodeHeight = computed(() => {
               min="64"
               max="4096"
               step="64"
-              @blur="onResolutionHeightChange"
-              @keyup.enter="onResolutionHeightChange"
+              @input="onResolutionHeightChange"
+              @mousedown.stop
             />
           </div>
           <div class="resolution-preview">
@@ -882,8 +884,8 @@ const nodeHeight = computed(() => {
               :value="node.qualitySteps ?? 25"
               min="1"
               max="150"
-              @blur="onQualityStepsChange"
-              @keyup.enter="onQualityStepsChange"
+              @input="onQualityStepsChange"
+              @mousedown.stop
             />
           </div>
           <div class="config-row">
@@ -894,8 +896,8 @@ const nodeHeight = computed(() => {
               min="0"
               max="30"
               step="0.5"
-              @blur="onQualityCfgChange"
-              @keyup.enter="onQualityCfgChange"
+              @input="onQualityCfgChange"
+              @mousedown.stop
             />
           </div>
         </div>

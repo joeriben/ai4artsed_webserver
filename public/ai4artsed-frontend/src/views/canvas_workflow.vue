@@ -577,7 +577,7 @@ onUnmounted(() => {
           </div>
           <div v-if="batchUseSeed" class="batch-field">
             <label>{{ locale === 'de' ? 'Basis-Seed' : 'Base Seed' }}</label>
-            <input type="number" v-model.number="batchBaseSeed" placeholder="42" />
+            <input type="number" v-model.number="batchBaseSeed" placeholder="123456789" />
             <small>{{ locale === 'de' ? 'Jeder Run: Seed + Index' : 'Each run: seed + index' }}</small>
           </div>
         </div>
