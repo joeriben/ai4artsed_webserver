@@ -77,6 +77,16 @@
         </div>
       </div>
 
+      <!-- Progress Bar at Bottom -->
+      <div class="progress-bar-container">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" :style="{ width: progress + '%' }">
+            <div class="progress-shine"></div>
+          </div>
+        </div>
+        <div class="progress-text">{{ Math.round(progress) }}%</div>
+      </div>
+
           </div>
   </div>
 </template>
@@ -132,6 +142,10 @@ const tokenColors = [
   '#1abc9c', // turquoise
   '#e91e63', // pink
 ]
+
+// Pre-computed pixel styles cache (avoids creating 196 objects per render)
+const inputPixelStyleCache = new Map<string, Record<string, string>>()
+const outputPixelStyleCache = new Map<string, Record<string, string | number>>()
 
 // Image templates - 14x14 grid
 // 0 = empty, 1-7 = color index
@@ -822,19 +836,26 @@ watch(() => props.progress, (newProgress, oldProgress) => {
 })
 
 function getInputPixelStyle(pixel: { colorIndex: number; row: number; col: number }, index: number) {
-  const color = tokenColors[pixel.colorIndex - 1]
-  return {
+  const cacheKey = `${pixel.colorIndex}-${index}`
+  if (inputPixelStyleCache.has(cacheKey)) {
+    return inputPixelStyleCache.get(cacheKey)!
+  }
+
+  const color = tokenColors[pixel.colorIndex - 1] ?? '#888'
+  const style = {
     backgroundColor: color,
     boxShadow: `0 0 6px ${color}80, inset 0 0 3px rgba(255,255,255,0.2)`,
     animationDelay: (index * 0.005) + 's'
   }
+  inputPixelStyleCache.set(cacheKey, style)
+  return style
 }
 
 function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: number }, index: number) {
   const outputPixel = outputPixels.value[index]
   const inputPixel = inputPixels.value[index]
 
-  // If this is the flying pixel, use CSS variables for color transition
+  // If this is the flying pixel, use CSS variables for color transition (not cached - dynamic state)
   if (index === processedCount.value - 1 && isProcessing.value && inputPixel && outputPixel) {
     const fromColor = tokenColors[inputPixel.colorIndex - 1]
     const toColor = outputPixel.colorIndex > 0 ? tokenColors[outputPixel.colorIndex - 1] : 'transparent'
@@ -846,13 +867,21 @@ function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: numb
     }
   }
 
-  const color = pixel.colorIndex > 0 ? tokenColors[pixel.colorIndex - 1] : 'transparent'
-  return {
+  // Non-flying pixels: cache the style
+  const cacheKey = `${pixel.colorIndex}-${index}`
+  if (outputPixelStyleCache.has(cacheKey)) {
+    return outputPixelStyleCache.get(cacheKey)!
+  }
+
+  const color = pixel.colorIndex > 0 ? (tokenColors[pixel.colorIndex - 1] ?? '#888') : 'transparent'
+  const style = {
     backgroundColor: color,
     boxShadow: pixel.colorIndex > 0 ? `0 0 8px ${color}80, inset 0 0 4px rgba(255,255,255,0.3)` : 'none',
     animationDelay: (index * 0.005) + 's',
     opacity: pixel.colorIndex === 0 ? 0 : 1
   }
+  outputPixelStyleCache.set(cacheKey, style)
+  return style
 }
 </script>
 
@@ -1370,6 +1399,62 @@ function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: numb
   }
 }
 
+/* Progress Bar at Bottom */
+.progress-bar-container {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 85%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3498db 0%, #2ecc71 50%, #f39c12 100%);
+  border-radius: 10px;
+  position: relative;
+  transition: width 0.3s ease-out;
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+}
+
+.progress-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  animation: shine-move 2s ease-in-out infinite;
+}
+
+@keyframes shine-move {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+.progress-text {
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  color: #0f0;
+  text-shadow: 0 0 8px #0f0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .token-processing-scene {
@@ -1405,6 +1490,10 @@ function getOutputPixelStyle(pixel: { colorIndex: number; row: number; col: numb
   .pixel-token {
     width: 8px;
     height: 8px;
+  }
+
+  .progress-text {
+    font-size: 14px;
   }
 }
 </style>

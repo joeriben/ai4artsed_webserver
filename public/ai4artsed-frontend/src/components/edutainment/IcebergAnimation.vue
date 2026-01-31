@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ClimateBackground from './ClimateBackground.vue'
 import {
@@ -85,20 +85,20 @@ const props = defineProps<{
 // ==================== Use Animation Progress Composable ====================
 const {
   internalProgress,
+  summaryShown,
   gpuStats,
   totalEnergy,
   totalCo2,
   effectivePower,
   effectiveTemp,
-  simulatedTemp,
   iceMeltVolume
 } = useAnimationProgress({
   estimatedSeconds: computed(() => props.estimatedSeconds || 30),
   isActive: computed(() => (props.progress ?? 0) > 0)
 })
 
-// Show summary when progress >= 95%
-const isShowingSummary = computed(() => internalProgress.value >= 95)
+// Summary: shows when progress >= 90% AND elapsed >= 10s, stays visible
+const isShowingSummary = computed(() => summaryShown.value)
 
 // ==================== Drawing State ====================
 type DrawingState = 'idle' | 'drawing' | 'melting' | 'melted'
@@ -113,37 +113,18 @@ const waterLineY = computed(() => canvasHeight.value * 0.6)
 
 // Smooth ship position (interpolates towards internalProgress)
 const shipProgress = ref(0)
-let shipAnimationId: number | null = null
 
-function animateShip() {
-  const target = internalProgress.value
-  const diff = target - shipProgress.value
-
-  if (Math.abs(diff) > 0.01) {
-    shipProgress.value += diff * 0.08
-
-    if (drawingState.value !== 'melting') {
-      const canvas = icebergCanvasRef.value
-      const ctx = canvas?.getContext('2d')
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas!.width, canvas!.height)
-        drawWaterLine(ctx)
-        drawShip(ctx)
-        for (const iceberg of icebergs.value) {
-          drawSingleIceberg(ctx, iceberg)
-        }
-      }
-    }
-  }
-
-  shipAnimationId = requestAnimationFrame(animateShip)
-}
+// Debounced resize
+let resizeTimeout: number | null = null
 
 function resizeCanvas() {
-  if (containerRef.value) {
-    const rect = containerRef.value.getBoundingClientRect()
-    canvasWidth.value = Math.floor(rect.width)
-  }
+  if (resizeTimeout) clearTimeout(resizeTimeout)
+  resizeTimeout = window.setTimeout(() => {
+    if (containerRef.value) {
+      const rect = containerRef.value.getBoundingClientRect()
+      canvasWidth.value = Math.floor(rect.width)
+    }
+  }, 100)
 }
 
 // Drawing state
@@ -169,21 +150,32 @@ const TIME_SCALE = 0.5
 const DAMPING_AIR = 0.98
 const DAMPING_WATER = 0.94
 
-// Animation
-let animationFrameId: number | null = null
+// Single unified animation loop
+let renderLoopId: number | null = null
 let lastFrameTime = 0
 
-// Water color based on temperature/energy
+// Cached water style (only update when energy changes significantly)
+let cachedWaterStyleEnergy = -1
+let cachedWaterStyle: { background: string } | null = null
+
 const waterStyle = computed(() => {
+  // Only recompute if energy changed by more than 0.1
+  const energyRounded = Math.round(totalEnergy.value * 10) / 10
+  if (cachedWaterStyle && Math.abs(energyRounded - cachedWaterStyleEnergy) < 0.1) {
+    return cachedWaterStyle
+  }
+
+  cachedWaterStyleEnergy = energyRounded
   const warmth = Math.min(1, totalEnergy.value / 10)
   const r = Math.round(0 + warmth * 50)
   const g = Math.round(100 - warmth * 30)
   const b = Math.round(200 - warmth * 50)
-  return {
+  cachedWaterStyle = {
     background: `linear-gradient(180deg,
       rgba(${r}, ${g}, ${b}, 0.6) 0%,
       rgba(${r - 20}, ${g - 20}, ${b + 20}, 0.8) 100%)`
   }
+  return cachedWaterStyle
 })
 
 // ==================== Physics Engine ====================
@@ -302,6 +294,9 @@ function handlePointerDown(event: PointerEvent) {
   const point = getCanvasPoint(event)
   currentPath.value.push(point)
 
+  // Start render loop if not running
+  startRenderLoop()
+
   ;(event.target as HTMLCanvasElement).setPointerCapture(event.pointerId)
 }
 
@@ -315,7 +310,7 @@ function handlePointerMove(event: PointerEvent) {
     const dist = Math.sqrt((point.x - lastPoint.x) ** 2 + (point.y - lastPoint.y) ** 2)
     if (dist > 3) {
       currentPath.value.push(point)
-      drawCurrentPath()
+      // Render loop will handle drawing
     }
   }
 }
@@ -330,15 +325,16 @@ function handlePointerUp(event: PointerEvent) {
     const simplified = simplifyPolygon(currentPath.value, 3)
     if (simplified.length >= 3) {
       icebergs.value.push(createIceberg(simplified))
+      currentPath.value = []
       if (drawingState.value !== 'melting') {
-        startMelting()
+        drawingState.value = 'melting'
       }
       return
     }
   }
 
+  currentPath.value = []
   drawingState.value = 'idle'
-  clearCanvas()
 }
 
 function getCanvasPoint(event: PointerEvent): Point {
@@ -355,9 +351,68 @@ function getCanvasPoint(event: PointerEvent): Point {
   }
 }
 
-// ==================== Rendering ====================
+// ==================== Unified Render Loop ====================
 
-function clearCanvas() {
+function startRenderLoop() {
+  if (renderLoopId) return
+  lastFrameTime = performance.now()
+  renderLoopId = requestAnimationFrame(renderLoop)
+}
+
+function stopRenderLoop() {
+  if (renderLoopId) {
+    cancelAnimationFrame(renderLoopId)
+    renderLoopId = null
+  }
+}
+
+function renderLoop(currentTime: number) {
+  const dt = Math.min(currentTime - lastFrameTime, 100)
+  lastFrameTime = currentTime
+
+  // Update ship position (smooth interpolation)
+  const target = internalProgress.value
+  const diff = target - shipProgress.value
+  if (Math.abs(diff) > 0.01) {
+    shipProgress.value += diff * 0.08
+  }
+
+  // Update physics if melting
+  if (drawingState.value === 'melting') {
+    const temp = effectiveTemp.value
+
+    for (const iceberg of icebergs.value) {
+      meltIcebergPolygon(iceberg, temp, dt)
+    }
+    updateAllPhysics(dt)
+
+    icebergs.value = icebergs.value.filter(iceberg =>
+      calculateArea(iceberg.polygon) >= 50
+    )
+
+    if (icebergs.value.length === 0) {
+      drawingState.value = 'melted'
+    }
+  }
+
+  // Render everything
+  renderCanvas()
+
+  // Continue loop if needed
+  const needsAnimation =
+    drawingState.value === 'drawing' ||
+    drawingState.value === 'melting' ||
+    icebergs.value.length > 0 ||
+    Math.abs(diff) > 0.01
+
+  if (needsAnimation) {
+    renderLoopId = requestAnimationFrame(renderLoop)
+  } else {
+    renderLoopId = null
+  }
+}
+
+function renderCanvas() {
   const canvas = icebergCanvasRef.value
   const ctx = canvas?.getContext('2d')
   if (!ctx || !canvas) return
@@ -365,6 +420,32 @@ function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawWaterLine(ctx)
   drawShip(ctx)
+
+  // Draw icebergs
+  for (const iceberg of icebergs.value) {
+    drawSingleIceberg(ctx, iceberg)
+  }
+
+  // Draw current path if user is drawing
+  if (isPointerDown.value && currentPath.value.length >= 2) {
+    const firstPoint = currentPath.value[0]!
+    ctx.beginPath()
+    ctx.moveTo(firstPoint.x, firstPoint.y)
+    for (let i = 1; i < currentPath.value.length; i++) {
+      const point = currentPath.value[i]
+      if (point) ctx.lineTo(point.x, point.y)
+    }
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    ctx.stroke()
+
+    // Start point indicator
+    ctx.beginPath()
+    ctx.arc(firstPoint.x, firstPoint.y, 5, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+    ctx.fill()
+  }
 }
 
 function drawWaterLine(ctx: CanvasRenderingContext2D) {
@@ -425,42 +506,12 @@ function drawShip(ctx: CanvasRenderingContext2D) {
   ctx.restore()
 }
 
-function drawCurrentPath() {
-  const canvas = icebergCanvasRef.value
-  const ctx = canvas?.getContext('2d')
-  if (!ctx || !canvas) return
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  drawWaterLine(ctx)
-  drawShip(ctx)
-
-  for (const iceberg of icebergs.value) {
-    drawSingleIceberg(ctx, iceberg)
-  }
-
-  if (currentPath.value.length < 2) return
-
-  const firstPoint = currentPath.value[0]
-  if (!firstPoint) return
-
-  ctx.beginPath()
-  ctx.moveTo(firstPoint.x, firstPoint.y)
-  for (let i = 1; i < currentPath.value.length; i++) {
-    const point = currentPath.value[i]
-    if (point) {
-      ctx.lineTo(point.x, point.y)
-    }
-  }
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
-  ctx.lineWidth = 2
-  ctx.lineCap = 'round'
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.arc(firstPoint.x, firstPoint.y, 5, 0, Math.PI * 2)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
-  ctx.fill()
-}
+// Cached gradient colors (static, no need to recreate per frame)
+const ICEBERG_GRADIENT_COLORS = [
+  { stop: 0, color: 'rgba(230, 245, 255, 0.95)' },
+  { stop: 0.5, color: 'rgba(200, 230, 255, 0.9)' },
+  { stop: 1, color: 'rgba(150, 200, 255, 0.85)' }
+]
 
 function drawSingleIceberg(ctx: CanvasRenderingContext2D, iceberg: Iceberg) {
   const polygon = getTransformedPolygon(iceberg)
@@ -493,70 +544,18 @@ function drawSingleIceberg(ctx: CanvasRenderingContext2D, iceberg: Iceberg) {
   }
   ctx.closePath()
 
+  // Create gradient (this is unavoidable as it depends on centroid position)
   const centroid = calculateCentroid(polygon)
   const gradient = ctx.createRadialGradient(centroid.x, centroid.y, 0, centroid.x, centroid.y, 100)
-  gradient.addColorStop(0, 'rgba(230, 245, 255, 0.95)')
-  gradient.addColorStop(0.5, 'rgba(200, 230, 255, 0.9)')
-  gradient.addColorStop(1, 'rgba(150, 200, 255, 0.85)')
+  for (const { stop, color } of ICEBERG_GRADIENT_COLORS) {
+    gradient.addColorStop(stop, color)
+  }
 
   ctx.fillStyle = gradient
   ctx.fill()
   ctx.strokeStyle = 'rgba(100, 180, 220, 0.8)'
   ctx.lineWidth = 2
   ctx.stroke()
-}
-
-function drawAllIcebergs() {
-  const canvas = icebergCanvasRef.value
-  const ctx = canvas?.getContext('2d')
-  if (!ctx || !canvas) return
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  drawWaterLine(ctx)
-  drawShip(ctx)
-
-  for (const iceberg of icebergs.value) {
-    drawSingleIceberg(ctx, iceberg)
-  }
-}
-
-// ==================== Melting Animation ====================
-
-function startMelting() {
-  if (drawingState.value === 'melting') return
-
-  drawingState.value = 'melting'
-  lastFrameTime = performance.now()
-  animationLoop()
-}
-
-function animationLoop() {
-  if (drawingState.value !== 'melting') return
-
-  const now = performance.now()
-  const dt = Math.min(now - lastFrameTime, 100)
-  lastFrameTime = now
-
-  const temp = effectiveTemp.value
-
-  for (const iceberg of icebergs.value) {
-    meltIcebergPolygon(iceberg, temp, dt)
-  }
-  updateAllPhysics(dt)
-
-  icebergs.value = icebergs.value.filter(iceberg =>
-    calculateArea(iceberg.polygon) >= 50
-  )
-
-  drawAllIcebergs()
-
-  if (icebergs.value.length === 0) {
-    drawingState.value = 'melted'
-    stopAnimation()
-    return
-  }
-
-  animationFrameId = requestAnimationFrame(animationLoop)
 }
 
 function meltIcebergPolygon(iceberg: Iceberg, temp: number, dt: number) {
@@ -581,28 +580,24 @@ function meltIcebergPolygon(iceberg: Iceberg, temp: number, dt: number) {
   })
 }
 
-function stopAnimation() {
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId)
-    animationFrameId = null
-  }
-}
-
 // ==================== Lifecycle ====================
 
 onMounted(() => {
   resizeCanvas()
   window.addEventListener('resize', resizeCanvas)
-  setTimeout(() => clearCanvas(), 10)
-  animateShip()
+
+  // Initial render
+  setTimeout(() => {
+    renderCanvas()
+  }, 10)
 })
 
 onUnmounted(() => {
-  stopAnimation()
+  stopRenderLoop()
   window.removeEventListener('resize', resizeCanvas)
-  if (shipAnimationId) {
-    cancelAnimationFrame(shipAnimationId)
-    shipAnimationId = null
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout)
+    resizeTimeout = null
   }
 })
 </script>

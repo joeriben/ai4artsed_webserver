@@ -111,6 +111,7 @@ const props = defineProps<{
 // ==================== Use Animation Progress Composable ====================
 const {
   internalProgress,
+  summaryShown,
   totalCo2,
   effectivePower,
   effectiveTemp,
@@ -120,8 +121,8 @@ const {
   isActive: computed(() => (props.progress ?? 0) > 0)
 })
 
-// Show summary when progress >= 95%
-const isShowingSummary = computed(() => internalProgress.value >= 95)
+// Summary: shows when progress >= 90% AND elapsed >= 10s, stays visible
+const isShowingSummary = computed(() => summaryShown.value)
 
 // ==================== Tree Types ====================
 const TREE_TYPES = ['pine', 'spruce', 'fir', 'oak', 'birch', 'maple', 'willow'] as const
@@ -152,17 +153,8 @@ const gameOver = ref(false)
 let nextId = 0
 
 // Bird animation (follows internalProgress from composable)
+// Updated in game loop instead of separate RAF
 const birdProgress = ref(0)
-let birdAnimationId: number | null = null
-
-function animateBird() {
-  const target = internalProgress.value
-  const diff = target - birdProgress.value
-  if (Math.abs(diff) > 0.01) {
-    birdProgress.value += diff * 0.08
-  }
-  birdAnimationId = requestAnimationFrame(animateBird)
-}
 
 const birdStyle = computed(() => {
   const leftPos = 5 + birdProgress.value * 0.9
@@ -172,18 +164,31 @@ const birdStyle = computed(() => {
   }
 })
 
-// Sky darkens with CO2
+// Cached sky style - only recompute when CO2 changes significantly
+let cachedSkyStyleCo2 = -1
+let cachedSkyStyle: { background: string } | null = null
+
 const skyStyle = computed(() => {
+  const co2Rounded = Math.round(totalCo2.value * 10) / 10
+  if (cachedSkyStyle && Math.abs(co2Rounded - cachedSkyStyleCo2) < 0.5) {
+    return cachedSkyStyle
+  }
+
+  cachedSkyStyleCo2 = co2Rounded
   const pollution = Math.min(1, totalCo2.value / 20)
   const r = Math.round(135 - pollution * 80)
   const g = Math.round(206 - pollution * 120)
   const b = Math.round(250 - pollution * 100)
-  return {
+  cachedSkyStyle = {
     background: `linear-gradient(180deg, rgb(${r}, ${g}, ${b}) 0%, rgb(${r + 40}, ${g + 30}, ${b - 20}) 100%)`
   }
+  return cachedSkyStyle
 })
 
-// Clouds
+// Clouds - memoized by cloud count
+let cachedCloudCount = -1
+let cachedClouds: Array<{ style: Record<string, string | number> }> = []
+
 const clouds = computed(() => {
   const treeCount = trees.value.length
   const factoryCount = factories.value.length
@@ -191,11 +196,21 @@ const clouds = computed(() => {
   const pollutionRatio = factoryCount / Math.max(1, treeCount)
   const cloudCount = Math.min(12, Math.floor(pollutionRatio * 8) + Math.floor(factoryCount * 0.8))
 
-  if (cloudCount === 0) return []
+  // Only regenerate if count changed
+  if (cloudCount === cachedCloudCount && cachedClouds.length > 0) {
+    return cachedClouds
+  }
 
+  if (cloudCount === 0) {
+    cachedCloudCount = 0
+    cachedClouds = []
+    return []
+  }
+
+  cachedCloudCount = cloudCount
   const darkness = Math.min(0.9, pollutionRatio * 0.5)
 
-  return Array.from({ length: cloudCount }, (_, i) => {
+  cachedClouds = Array.from({ length: cloudCount }, (_, i) => {
     const gray = Math.round(150 - darkness * 100)
     return {
       style: {
@@ -208,6 +223,8 @@ const clouds = computed(() => {
       }
     }
   })
+
+  return cachedClouds
 })
 
 // ==================== Game Logic ====================
@@ -233,7 +250,12 @@ function initForest() {
 function plantTree(x: number) {
   if (plantCooldown.value > 0 || gameOver.value) return
 
-  const nearbyFactory = factories.value.find(f => Math.abs(f.x - x) < 8)
+  // Hit detection based on actual factory width (scales with factory.scale)
+  // Factory width ≈ 30 * scale pixels, assuming ~600px container → ~5% * scale
+  const nearbyFactory = factories.value.find(f => {
+    const hitRadius = 5 * f.scale
+    return Math.abs(f.x - x) < hitRadius
+  })
   if (nearbyFactory) {
     factories.value = factories.value.filter(f => f.id !== nearbyFactory.id)
   }
@@ -244,7 +266,7 @@ function plantTree(x: number) {
     type: TREE_TYPES[Math.floor(Math.random() * TREE_TYPES.length)]!,
     scale: 0.6 + Math.random() * 0.4,
     growing: true,
-    growthProgress: 0.1
+    growthProgress: 0.35  // Start larger so young trees are visible
   })
 
   treesPlanted.value++
@@ -261,6 +283,13 @@ function gameLoop() {
   if (gameOver.value) return
 
   const dt = 0.1
+
+  // Update bird position (moved from separate RAF loop)
+  const target = internalProgress.value
+  const diff = target - birdProgress.value
+  if (Math.abs(diff) > 0.01) {
+    birdProgress.value += diff * 0.08
+  }
 
   if (plantCooldown.value > 0) {
     plantCooldown.value = Math.max(0, plantCooldown.value - dt)
@@ -334,13 +363,12 @@ function getFactoryStyle(factory: Factory) {
 // ==================== Lifecycle ====================
 onMounted(() => {
   initForest()
+  // Single game loop handles everything including bird position
   gameLoopInterval = window.setInterval(gameLoop, 100)
-  animateBird()
 })
 
 onUnmounted(() => {
   if (gameLoopInterval) clearInterval(gameLoopInterval)
-  if (birdAnimationId) cancelAnimationFrame(birdAnimationId)
 })
 
 watch(() => props.progress, (newProgress) => {

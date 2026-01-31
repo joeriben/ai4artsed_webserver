@@ -429,7 +429,7 @@ const messages = {
       },
       forest: {
         trees: 'Bäume',
-        clickToPlant: 'Klicke um Bäume zu pflanzen!',
+        clickToPlant: 'Klicke um Bäume zu pflanzen! Wo Du einen Baum pflanzt, wird die Fabrik verschwinden.',
         gameOver: 'Der Wald ist verloren!',
         treesPlanted: 'Du hast {count} Bäume gepflanzt.',
         complete: 'Generation abgeschlossen',
@@ -865,7 +865,7 @@ const messages = {
       },
       forest: {
         trees: 'Trees',
-        clickToPlant: 'Click to plant trees!',
+        clickToPlant: 'Click to plant trees! Where you plant a tree, the factory will disappear.',
         gameOver: 'The forest is lost!',
         treesPlanted: 'You planted {count} trees.',
         complete: 'Generation complete',

@@ -36,6 +36,7 @@ const props = defineProps<{
 // Use the unified animation progress composable
 const {
   internalProgress,
+  summaryShown,
   gpuStats,
   totalEnergy,
   totalCo2,
@@ -47,9 +48,9 @@ const {
   isActive: computed(() => props.progress > 0)
 })
 
-// Computed - show summary when progress >= 95%
-const isShowingSummary = computed(() => internalProgress.value >= 95)
-const isGenerating = computed(() => props.progress > 0 && !isShowingSummary.value)
+// Summary: shows when progress >= 90% AND elapsed >= 10s, stays visible
+const isShowingSummary = computed(() => summaryShown.value)
+const isGenerating = computed(() => props.progress > 0 && !summaryShown.value)
 </script>
 
 <style scoped>

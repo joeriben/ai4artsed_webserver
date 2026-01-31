@@ -27,12 +27,11 @@ export interface UseAnimationProgressOptions {
 /**
  * Composable for unified animation progress across all edutainment animations
  *
- * Features:
- * - Internal progress loops 0→100% over estimatedSeconds
- * - 5s pause at 100% to show summary, then restarts
- * - GPU polling with simulated fallback when GPU idle
- * - Energy/CO2 tracking across all cycles
- * - Computed comparison values for different animation themes
+ * Two INDEPENDENT concerns:
+ * 1. Progress loop: 0→100→0→100 continuously (based on estimatedSeconds)
+ * 2. Summary visibility: Shows when progress >= 90% AND elapsed >= 10s, then stays visible
+ *
+ * These are completely decoupled - the loop doesn't care about summary, summary doesn't affect loop.
  */
 export function useAnimationProgress(options: UseAnimationProgressOptions) {
   const {
@@ -46,9 +45,13 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     : estimatedSecondsOption
   const isActive = isActiveOption
 
-  // ==================== Progress State ====================
+  // ==================== Progress State (Independent) ====================
   const internalProgress = ref(0)
   const cycleCount = ref(0)
+
+  // ==================== Summary State (Independent) ====================
+  // Once true, stays true until generation ends
+  const summaryShown = ref(false)
 
   // ==================== GPU/Energy State ====================
   const gpuStats = ref<GpuRealtimeStats>({ available: false })
@@ -77,9 +80,6 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
 
   /**
    * Smartphone comparison (for Pixel animation)
-   * Smartphone uses ~5W idle, German energy mix ~400g CO2/kWh
-   * CO2 per hour of smartphone: 5W * 1h / 1000 * 400g = 2g/hour
-   * Minutes to "save" X grams: X / 2 * 60 = X * 30 minutes
    */
   const smartphoneMinutes = computed(() => {
     return Math.round(totalCo2.value * 30)
@@ -87,8 +87,6 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
 
   /**
    * Tree absorption comparison (for Forest animation)
-   * Average tree absorbs ~22kg CO2/year = 2.51g/hour
-   * Hours for tree to absorb X grams: X / 2.51
    */
   const treeHours = computed(() => {
     return Math.round(totalCo2.value / 2.51)
@@ -96,18 +94,18 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
 
   /**
    * Arctic ice melt comparison (for Iceberg animation)
-   * 1 ton CO2 = ~3m² sea ice loss × ~2m avg thickness = ~6m³
-   * 1g CO2 = 6 cm³ ice melt
    */
   const iceMeltVolume = computed(() => {
     return Math.round(totalCo2.value * 6)
   })
 
-  // ==================== Animation State ====================
+  // ==================== Animation Loop State ====================
   let animationFrameId: number | null = null
   let animationStartTime: number = 0
-  let gpuPollInterval: number | null = null
-  let energyInterval: number | null = null
+
+  // ==================== Consolidated Timer ====================
+  let consolidatedInterval: number | null = null
+  let tickCount = 0
 
   // ==================== GPU Fetching ====================
 
@@ -141,9 +139,25 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     // CO2: Wh / 1000 * g/kWh
     const co2ThisSecond = (whThisSecond / 1000) * co2PerKwh
     totalCo2.value += co2ThisSecond
+
+    // Check summary condition: >= 90% progress AND >= 10 seconds elapsed
+    // Once true, stays true (sticky)
+    if (!summaryShown.value && internalProgress.value >= 90 && elapsedSeconds.value >= 10) {
+      summaryShown.value = true
+    }
   }
 
-  // ==================== Progress Animation (requestAnimationFrame) ====================
+  // ==================== Consolidated Timer Tick ====================
+
+  function consolidatedTick(): void {
+    tickCount++
+    updateEnergy()
+    if (tickCount % 2 === 0) {
+      fetchGpuStats()
+    }
+  }
+
+  // ==================== Progress Loop (completely independent) ====================
 
   function animationLoop(currentTime: number): void {
     if (!isActive.value) return
@@ -156,7 +170,7 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     const progress = (elapsed / durationMs) * 100
 
     if (progress >= 100) {
-      // Loop: reset and continue
+      // Loop: reset to 0 and continue
       internalProgress.value = 0
       cycleCount.value++
       animationStartTime = currentTime
@@ -176,31 +190,23 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
   // ==================== Lifecycle ====================
 
   function start(): void {
-    // Reset progress state
     internalProgress.value = 0
+    summaryShown.value = false
 
-    // Don't reset energy totals - they accumulate across cycles
-    // Only reset if this is the first start
     if (cycleCount.value === 0) {
       elapsedSeconds.value = 0
       totalEnergy.value = 0
       totalCo2.value = 0
       simulatedPower.value = 200
       simulatedTemp.value = 55
+      tickCount = 0
     }
 
-    // Start GPU polling
     fetchGpuStats()
-    if (!gpuPollInterval) {
-      gpuPollInterval = window.setInterval(fetchGpuStats, 2000)
+    if (!consolidatedInterval) {
+      consolidatedInterval = window.setInterval(consolidatedTick, 1000)
     }
 
-    // Start energy tracking
-    if (!energyInterval) {
-      energyInterval = window.setInterval(updateEnergy, 1000)
-    }
-
-    // Start progress animation
     startProgressLoop()
   }
 
@@ -209,13 +215,9 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
       cancelAnimationFrame(animationFrameId)
       animationFrameId = null
     }
-    if (gpuPollInterval) {
-      clearInterval(gpuPollInterval)
-      gpuPollInterval = null
-    }
-    if (energyInterval) {
-      clearInterval(energyInterval)
-      energyInterval = null
+    if (consolidatedInterval) {
+      clearInterval(consolidatedInterval)
+      consolidatedInterval = null
     }
   }
 
@@ -228,6 +230,8 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     totalCo2.value = 0
     simulatedPower.value = 200
     simulatedTemp.value = 55
+    tickCount = 0
+    summaryShown.value = false
   }
 
   // ==================== Watch isActive ====================
@@ -247,9 +251,12 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
   })
 
   return {
-    // Progress state
+    // Progress (loops independently)
     internalProgress,
     cycleCount,
+
+    // Summary visibility (independent, sticky once true)
+    summaryShown,
 
     // GPU/Energy state
     gpuStats,
