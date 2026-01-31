@@ -353,6 +353,43 @@ function onFalseLabelChange(event: Event) {
   emit('update-branch-labels', props.node.trueLabel || (locale.value === 'de' ? 'Wahr' : 'True'), input.value)
 }
 
+// Session 151: Parameter node handlers
+function onSeedValueChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const value = parseInt(input.value)
+  emit('update-seed-value', isNaN(value) ? 42 : value)
+}
+
+function onSeedBaseChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const value = parseInt(input.value)
+  emit('update-seed-base', isNaN(value) ? 0 : value)
+}
+
+function onResolutionWidthChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const value = parseInt(input.value)
+  emit('update-resolution-width', isNaN(value) ? 1024 : value)
+}
+
+function onResolutionHeightChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const value = parseInt(input.value)
+  emit('update-resolution-height', isNaN(value) ? 1024 : value)
+}
+
+function onQualityStepsChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const value = parseInt(input.value)
+  emit('update-quality-steps', isNaN(value) ? 25 : value)
+}
+
+function onQualityCfgChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const value = parseFloat(input.value)
+  emit('update-quality-cfg', isNaN(value) ? 5.5 : value)
+}
+
 // Resize handling (for Collector nodes)
 const isResizing = ref(false)
 const resizeStartSize = ref({ width: 0, height: 0 })
@@ -773,7 +810,8 @@ const nodeHeight = computed(() => {
               :value="node.seedValue ?? 42"
               min="0"
               max="4294967295"
-              @change="emit('update-seed-value', parseInt(($event.target as HTMLInputElement).value) || 42)"
+              @blur="onSeedValueChange"
+              @keyup.enter="onSeedValueChange"
             />
           </div>
           <div v-if="node.seedMode === 'increment'" class="config-row">
@@ -782,14 +820,15 @@ const nodeHeight = computed(() => {
               type="number"
               :value="node.seedBase ?? 0"
               min="0"
-              @change="emit('update-seed-base', parseInt(($event.target as HTMLInputElement).value) || 0)"
+              @blur="onSeedBaseChange"
+              @keyup.enter="onSeedBaseChange"
             />
           </div>
         </div>
       </template>
 
       <!-- SESSION 151: RESOLUTION NODE -->
-      <template v-else-if="node.type === 'resolution'">
+      <template v-else-if="isResolution">
         <div class="resolution-config">
           <div class="config-row">
             <label>{{ locale === 'de' ? 'Preset' : 'Preset' }}</label>
@@ -811,7 +850,8 @@ const nodeHeight = computed(() => {
               min="64"
               max="4096"
               step="64"
-              @change="emit('update-resolution-width', parseInt(($event.target as HTMLInputElement).value) || 1024)"
+              @blur="onResolutionWidthChange"
+              @keyup.enter="onResolutionWidthChange"
             />
           </div>
           <div v-if="node.resolutionPreset === 'custom'" class="config-row">
@@ -822,7 +862,8 @@ const nodeHeight = computed(() => {
               min="64"
               max="4096"
               step="64"
-              @change="emit('update-resolution-height', parseInt(($event.target as HTMLInputElement).value) || 1024)"
+              @blur="onResolutionHeightChange"
+              @keyup.enter="onResolutionHeightChange"
             />
           </div>
           <div class="resolution-preview">
@@ -832,7 +873,7 @@ const nodeHeight = computed(() => {
       </template>
 
       <!-- SESSION 151: QUALITY NODE -->
-      <template v-else-if="node.type === 'quality'">
+      <template v-else-if="isQuality">
         <div class="quality-config">
           <div class="config-row">
             <label>{{ locale === 'de' ? 'Steps' : 'Steps' }}</label>
@@ -841,7 +882,8 @@ const nodeHeight = computed(() => {
               :value="node.qualitySteps ?? 25"
               min="1"
               max="150"
-              @change="emit('update-quality-steps', parseInt(($event.target as HTMLInputElement).value) || 25)"
+              @blur="onQualityStepsChange"
+              @keyup.enter="onQualityStepsChange"
             />
           </div>
           <div class="config-row">
@@ -852,7 +894,8 @@ const nodeHeight = computed(() => {
               min="0"
               max="30"
               step="0.5"
-              @change="emit('update-quality-cfg', parseFloat(($event.target as HTMLInputElement).value) || 5.5)"
+              @blur="onQualityCfgChange"
+              @keyup.enter="onQualityCfgChange"
             />
           </div>
         </div>
