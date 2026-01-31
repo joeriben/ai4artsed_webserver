@@ -433,7 +433,7 @@ const messages = {
         gameOver: 'Der Wald ist verloren!',
         treesPlanted: 'Du hast {count} Bäume gepflanzt.',
         complete: 'Generation abgeschlossen',
-        comparison: 'Ein durchschnittlicher Baum braucht {hours} Stunden, um diese CO₂-Menge zu absorbieren.'
+        comparison: 'Ein durchschnittlicher Baum braucht {minutes} Minuten, um diese CO₂-Menge zu absorbieren.'
       }
     }
   },
@@ -869,7 +869,7 @@ const messages = {
         gameOver: 'The forest is lost!',
         treesPlanted: 'You planted {count} trees.',
         complete: 'Generation complete',
-        comparison: 'An average tree needs {hours} hours to absorb this amount of CO₂.'
+        comparison: 'An average tree needs {minutes} minutes to absorb this amount of CO₂.'
       }
     }
   }

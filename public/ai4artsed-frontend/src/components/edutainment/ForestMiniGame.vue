@@ -79,7 +79,7 @@
       <div class="game-over-text">{{ t('edutainment.forest.gameOver') }}</div>
       <div class="game-over-co2">{{ totalCo2.toFixed(1) }}g CO₂</div>
       <div class="game-over-comparison">
-        {{ t('edutainment.forest.comparison', { hours: treeHours }) }}
+        {{ t('edutainment.forest.comparison', { minutes: treeMinutes }) }}
       </div>
       <div class="game-over-stats">
         {{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}
@@ -90,7 +90,7 @@
     <div v-if="!gameOver && isShowingSummary" class="summary-overlay">
       <span class="summary-status">{{ t('edutainment.forest.complete') }}</span>
       <span class="summary-detail">{{ totalCo2.toFixed(2) }}g CO₂</span>
-      <span class="summary-comparison">{{ t('edutainment.forest.comparison', { hours: treeHours }) }}</span>
+      <span class="summary-comparison">{{ t('edutainment.forest.comparison', { minutes: treeMinutes }) }}</span>
       <span class="summary-trees">{{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}</span>
     </div>
   </div>
@@ -115,7 +115,7 @@ const {
   totalCo2,
   effectivePower,
   effectiveTemp,
-  treeHours
+  treeMinutes
 } = useAnimationProgress({
   estimatedSeconds: computed(() => props.estimatedSeconds || 30),
   isActive: computed(() => (props.progress ?? 0) > 0)

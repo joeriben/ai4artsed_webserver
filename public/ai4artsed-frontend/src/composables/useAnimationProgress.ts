@@ -87,9 +87,10 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
 
   /**
    * Tree absorption comparison (for Forest animation)
+   * A tree absorbs ~2.51g CO2 per hour = ~0.042g per minute
    */
-  const treeHours = computed(() => {
-    return Math.round(totalCo2.value / 2.51)
+  const treeMinutes = computed(() => {
+    return Math.round(totalCo2.value * 60 / 2.51)
   })
 
   /**
@@ -270,7 +271,7 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
 
     // Comparison values
     smartphoneMinutes,
-    treeHours,
+    treeMinutes,
     iceMeltVolume,
 
     // Lifecycle
