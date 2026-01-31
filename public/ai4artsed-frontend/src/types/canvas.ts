@@ -324,7 +324,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
       de: 'Breite und Höhe für Bildgenerierung (nur ComfyUI)'
     },
     color: '#0ea5e9', // sky blue
-    icon: 'aspect_ratio_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    icon: 'display_settings_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false
   },
@@ -338,7 +338,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
       de: 'Steps und CFG für Generierungsqualität (nur ComfyUI)'
     },
     color: '#84cc16', // lime
-    icon: 'tune_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    icon: 'display_settings_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false
   }
