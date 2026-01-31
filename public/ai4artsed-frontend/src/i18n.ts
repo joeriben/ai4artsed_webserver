@@ -426,7 +426,7 @@ const messages = {
         energieverbrauch: 'Energieverbrauch',
         co2Menge: 'CO₂-Menge',
         smartphoneComparison: 'Du müsstest Dein Handy {minutes} Minuten ausgeschaltet lassen, um den CO₂-Verbrauch wieder auszugleichen!',
-        clickToProcess: 'Klicke auf die Pixel links!'
+        clickToProcess: 'Klicke auf die Daten-Pixel um ein Minibild zu generieren!'
       },
       forest: {
         trees: 'Bäume',
@@ -863,7 +863,7 @@ const messages = {
         energieverbrauch: 'Energy Usage',
         co2Menge: 'CO₂ Amount',
         smartphoneComparison: 'You would need to keep your phone off for {minutes} minutes to offset this CO₂ usage!',
-        clickToProcess: 'Click on the pixels on the left!'
+        clickToProcess: 'Click on the data pixels to generate a mini image!'
       },
       forest: {
         trees: 'Trees',
