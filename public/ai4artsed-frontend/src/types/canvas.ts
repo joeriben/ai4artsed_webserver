@@ -310,7 +310,7 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
       de: 'Seed für reproduzierbare Mediengenerierung'
     },
     color: '#6366f1', // indigo
-    icon: 'casino_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    icon: 'potted_plant_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false
   },
