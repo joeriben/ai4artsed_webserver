@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 def analyze_image(
     image_path: str,
     prompt: Optional[str] = None,
-    analysis_type: str = 'bildwissenschaftlich'
+    analysis_type: str = 'bildwissenschaftlich',
+    model: Optional[str] = None
 ) -> str:
     """
     Analyze image using Ollama vision model
@@ -29,6 +30,8 @@ def analyze_image(
             - 'bildwissenschaftlich': Panofsky (art-historical, default)
             - 'ethisch': Ethical analysis
             - 'kritisch': Decolonial & critical media studies
+        model: Vision model to use. If None, uses IMAGE_ANALYSIS_MODEL from config.
+               Session 152: Accepts 'local/model:tag' format, strips 'local/' prefix.
 
     Returns:
         Analysis text from vision model
@@ -44,6 +47,13 @@ def analyze_image(
         IMAGE_ANALYSIS_PROMPTS
     )
     import requests
+
+    # Session 152: Use provided model or fallback to config default
+    # Strip 'local/' prefix if present (Canvas uses 'local/model:tag' format)
+    if model:
+        vision_model = model.replace('local/', '') if model.startswith('local/') else model
+    else:
+        vision_model = IMAGE_ANALYSIS_MODEL
 
     # Step 1: Load image as base64
     if ',' in image_path and image_path.startswith('data:image'):
@@ -67,11 +77,17 @@ def analyze_image(
             prompt = "Analyze this image thoroughly."
             logger.warning(f"Analysis prompt not found for {analysis_type}/{DEFAULT_LANGUAGE}, using fallback")
 
-    # Step 3: Call Ollama directly
+    # Step 3: Call Ollama via /api/chat (required for vision models like qwen3-vl)
+    # Session 152: Use chat endpoint for better vision model compatibility
     payload = {
-        "model": IMAGE_ANALYSIS_MODEL,
-        "prompt": prompt,
-        "images": [image_data],
+        "model": vision_model,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt,
+                "images": [image_data]
+            }
+        ],
         "stream": False,
         "options": {
             "temperature": 0.7,
@@ -80,18 +96,19 @@ def analyze_image(
         "keep_alive": "0s"  # Unload model after use (save VRAM)
     }
 
-    logger.info(f"[IMAGE-ANALYSIS] Analyzing image with {IMAGE_ANALYSIS_MODEL}")
+    logger.info(f"[IMAGE-ANALYSIS] Analyzing image with {vision_model}")
 
     try:
         response = requests.post(
-            "http://localhost:11434/api/generate",
+            "http://localhost:11434/api/chat",
             json=payload,
             timeout=120
         )
         response.raise_for_status()
         result = response.json()
 
-        analysis_text = result.get("response", "").strip()
+        # Chat endpoint returns message.content instead of response
+        analysis_text = result.get("message", {}).get("content", "").strip()
 
         if not analysis_text:
             raise Exception("Empty response from Ollama")

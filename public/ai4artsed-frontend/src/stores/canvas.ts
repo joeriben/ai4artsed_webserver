@@ -69,6 +69,9 @@ export const useCanvasStore = defineStore('canvas', () => {
   /** Available LLM models for interception/translation nodes */
   const llmModels = ref<LLMModelSummary[]>([])
 
+  /** Session 152: Available Vision models for image_evaluation nodes */
+  const visionModels = ref<LLMModelSummary[]>([])
+
   /** Available output/generation configs */
   const outputConfigs = ref<OutputConfigSummary[]>([])
 
@@ -181,6 +184,8 @@ export const useCanvasStore = defineStore('canvas', () => {
    */
   const isWorkflowValid = computed(() => {
     const hasInput = workflow.value.nodes.some(n => n.type === 'input')
+    // Session 152: image_input is also a valid source
+    const hasImageInput = workflow.value.nodes.some(n => n.type === 'image_input')
     const hasCollector = workflow.value.nodes.some(n => n.type === 'collector')
 
     // Check all generation nodes have configs selected (if any exist)
@@ -199,12 +204,20 @@ export const useCanvasStore = defineStore('canvas', () => {
     const randomPromptNodes = workflow.value.nodes.filter(n => n.type === 'random_prompt')
     const allRandomPromptConfigured = randomPromptNodes.every(n => n.randomPromptPreset && n.randomPromptModel)
 
-    // Need a source: input OR standalone random_prompt (random_prompt can be a source)
-    const hasSource = hasInput || randomPromptNodes.length > 0
+    // Session 152: Check all image_evaluation nodes have vision model selected
+    const imageEvaluationNodes = workflow.value.nodes.filter(n => n.type === 'image_evaluation')
+    const allImageEvaluationConfigured = imageEvaluationNodes.every(n => n.visionModel)
+
+    // Session 152: Check all image_input nodes have image uploaded
+    const imageInputNodes = workflow.value.nodes.filter(n => n.type === 'image_input')
+    const allImageInputConfigured = imageInputNodes.every(n => n.imageData?.image_path)
+
+    // Need a source: input, image_input, OR standalone random_prompt
+    const hasSource = hasInput || hasImageInput || randomPromptNodes.length > 0
 
     return hasSource && hasCollector &&
            allGenerationConfigured && allInterceptionConfigured && allTranslationConfigured &&
-           allRandomPromptConfigured
+           allRandomPromptConfigured && allImageEvaluationConfigured && allImageInputConfigured
   })
 
   /**
@@ -217,11 +230,13 @@ export const useCanvasStore = defineStore('canvas', () => {
     const errors: string[] = []
 
     const hasInput = workflow.value.nodes.some(n => n.type === 'input')
+    // Session 152: image_input is also a valid source
+    const hasImageInput = workflow.value.nodes.some(n => n.type === 'image_input')
     const randomPromptNodes = workflow.value.nodes.filter(n => n.type === 'random_prompt')
 
-    // Need a source: input OR random_prompt
-    if (!hasInput && randomPromptNodes.length === 0) {
-      errors.push('Missing source node (Input or Random Prompt)')
+    // Need a source: input, image_input, OR random_prompt
+    if (!hasInput && !hasImageInput && randomPromptNodes.length === 0) {
+      errors.push('Missing source node (Input, Image Input, or Random Prompt)')
     }
     if (!workflow.value.nodes.some(n => n.type === 'collector')) {
       errors.push('Missing collector node')
@@ -230,6 +245,9 @@ export const useCanvasStore = defineStore('canvas', () => {
     const interceptionNodes = workflow.value.nodes.filter(n => n.type === 'interception')
     const translationNodes = workflow.value.nodes.filter(n => n.type === 'translation')
     const generationNodes = workflow.value.nodes.filter(n => n.type === 'generation')
+    // Session 152: Image nodes
+    const imageInputNodes = workflow.value.nodes.filter(n => n.type === 'image_input')
+    const imageEvaluationNodes = workflow.value.nodes.filter(n => n.type === 'image_evaluation')
 
     generationNodes.forEach(n => {
       if (!n.configId) {
@@ -255,6 +273,20 @@ export const useCanvasStore = defineStore('canvas', () => {
       }
       if (!n.randomPromptPreset) {
         errors.push(`Random Prompt node needs preset selection`)
+      }
+    })
+
+    // Session 152: Image Input validation
+    imageInputNodes.forEach(n => {
+      if (!n.imageData?.image_path) {
+        errors.push(`Image Input node needs image upload`)
+      }
+    })
+
+    // Session 152: Image Evaluation validation
+    imageEvaluationNodes.forEach(n => {
+      if (!n.visionModel) {
+        errors.push(`Image Analysis node needs Vision model selection`)
       }
     })
 
@@ -659,12 +691,31 @@ export const useCanvasStore = defineStore('canvas', () => {
   }
 
   /**
+   * Session 152: Load available Vision models from backend
+   */
+  async function loadVisionModels() {
+    try {
+      const response = await fetch('/api/canvas/vision-models')
+      if (!response.ok) {
+        throw new Error(`Failed to load vision models: ${response.statusText}`)
+      }
+      const data = await response.json()
+      visionModels.value = data.models || []
+      console.log(`[Canvas] Loaded ${visionModels.value.length} vision models`)
+    } catch (err) {
+      console.error('[Canvas] Error loading vision models:', err)
+      // Non-critical - don't set error state
+    }
+  }
+
+  /**
    * Load all configs
    */
   async function loadAllConfigs() {
     await Promise.all([
       loadLLMModels(),
-      loadOutputConfigs()
+      loadOutputConfigs(),
+      loadVisionModels()
     ])
   }
 
@@ -1154,7 +1205,9 @@ export const useCanvasStore = defineStore('canvas', () => {
     // Config loading
     loadLLMModels,
     loadOutputConfigs,
+    loadVisionModels,
     loadAllConfigs,
+    visionModels: computed(() => visionModels.value),
 
     // Execution
     executeWorkflow,

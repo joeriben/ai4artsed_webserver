@@ -332,6 +332,39 @@ def get_mask(image_uuid: str):
         return jsonify({'error': str(e)}), 500
 
 
+@media_bp.route('/uploads/<image_id>', methods=['GET'])
+def get_uploaded_image(image_id: str):
+    """
+    Session 152: Serve uploaded image by image_id.
+
+    Used by image_input nodes to display preview.
+
+    Args:
+        image_id: UUID of the uploaded image
+
+    Returns:
+        Image file or 404 error
+    """
+    try:
+        # Look for image in uploads directory (supports multiple extensions)
+        for ext in ['png', 'jpg', 'jpeg', 'webp']:
+            file_path = UPLOADS_TMP_DIR / f"{image_id}.{ext}"
+            if file_path.exists():
+                mimetype = f'image/{ext}' if ext != 'jpg' else 'image/jpeg'
+                return send_file(
+                    str(file_path),
+                    mimetype=mimetype,
+                    as_attachment=False,
+                    download_name=f'{image_id}.{ext}'
+                )
+
+        return jsonify({'error': 'Image not found'}), 404
+
+    except Exception as e:
+        logger.error(f"Error serving uploaded image {image_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @media_bp.route('/image/<run_id>', methods=['GET'])
 @media_bp.route('/image/<run_id>/<int:index>', methods=['GET'])
 def get_image(run_id: str, index: int = -1):

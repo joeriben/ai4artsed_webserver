@@ -25,6 +25,8 @@ const props = defineProps<{
   configName?: string
   configMediaType?: string
   llmModels?: LLMModelSummary[]
+  /** Session 152: Available Vision models for image_evaluation */
+  visionModels?: LLMModelSummary[]
   /** Execution results for this node (from store) */
   executionResult?: {
     type: string
@@ -86,6 +88,12 @@ const emit = defineEmits<{
   // Session 151: Quality node events
   'update-quality-steps': [steps: number]
   'update-quality-cfg': [cfg: number]
+  // Session 152: Image Input events
+  'update-image-data': [imageData: { image_id: string; image_path: string; preview_url: string; original_size: [number, number]; resized_size: [number, number] }]
+  // Session 152: Image Evaluation events
+  'update-vision-model': [model: string]
+  'update-image-evaluation-preset': [preset: string]
+  'update-image-evaluation-prompt': [prompt: string]
 }>()
 
 const nodeTypeDef = computed(() => getNodeTypeDefinition(props.node.type))
@@ -104,8 +112,8 @@ const nodeLabel = computed(() => {
   return locale.value === 'de' ? def.label.de : def.label.en
 })
 
-// Source nodes (input, seed, resolution, quality) have no input connector
-const hasInputConnector = computed(() => !['input', 'comparison_evaluator', 'seed', 'resolution', 'quality'].includes(props.node.type))
+// Source nodes (input, image_input, seed, resolution, quality) have no input connector
+const hasInputConnector = computed(() => !['input', 'image_input', 'comparison_evaluator', 'seed', 'resolution', 'quality'].includes(props.node.type))
 // Terminal nodes (collector, display) have no output connector
 const hasOutputConnector = computed(() => !['collector', 'display'].includes(props.node.type))
 // Session 147: Comparison evaluator has 3 numbered input connectors
@@ -130,6 +138,9 @@ const isSeed = computed(() => props.node.type === 'seed')
 // Session 151: Resolution and Quality nodes
 const isResolution = computed(() => props.node.type === 'resolution')
 const isQuality = computed(() => props.node.type === 'quality')
+// Session 152: Image Input and Image Evaluation nodes
+const isImageInput = computed(() => props.node.type === 'image_input')
+const isImageEvaluation = computed(() => props.node.type === 'image_evaluation')
 const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value || isRandomPrompt.value || isComparisonEvaluator.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
 // Evaluation branching
@@ -390,6 +401,54 @@ function onQualityCfgChange(event: Event) {
   emit('update-quality-cfg', isNaN(value) ? 5.5 : value)
 }
 
+// Session 152: Image Input handlers
+async function onImageUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const response = await fetch('/api/media/upload/image', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      emit('update-image-data', {
+        image_id: data.image_id,
+        image_path: data.image_path,
+        preview_url: `/api/media/uploads/${data.image_id}`,
+        original_size: data.original_size,
+        resized_size: data.resized_size
+      })
+    } else {
+      console.error('[ImageInput] Upload failed:', response.statusText)
+    }
+  } catch (err) {
+    console.error('[ImageInput] Upload error:', err)
+  }
+}
+
+// Session 152: Image Evaluation handlers
+function onVisionModelChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-vision-model', select.value)
+}
+
+function onImageEvaluationPresetChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  emit('update-image-evaluation-preset', select.value)
+}
+
+function onImageEvaluationPromptChange(event: Event) {
+  const textarea = event.target as HTMLTextAreaElement
+  emit('update-image-evaluation-prompt', textarea.value)
+}
+
 // Resize handling (for Collector nodes)
 const isResizing = ref(false)
 const resizeStartSize = ref({ width: 0, height: 0 })
@@ -550,6 +609,26 @@ const nodeHeight = computed(() => {
             :placeholder="locale === 'de' ? 'Dein Prompt...' : 'Your prompt...'"
             rows="4"
             @input="onPromptTextChange"
+            @mousedown.stop
+          />
+        </div>
+      </template>
+
+      <!-- IMAGE_INPUT NODE: Image upload (Session 152) -->
+      <template v-else-if="isImageInput">
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Bild hochladen' : 'Upload Image' }}</label>
+          <!-- Preview if image uploaded -->
+          <div v-if="node.imageData?.preview_url" class="image-preview">
+            <img :src="node.imageData.preview_url" class="uploaded-image-thumb" />
+            <span class="image-size">{{ node.imageData.resized_size?.[0] }} × {{ node.imageData.resized_size?.[1] }}</span>
+          </div>
+          <!-- Upload button -->
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            class="file-input"
+            @change="onImageUpload"
             @mousedown.stop
           />
         </div>
@@ -1106,6 +1185,59 @@ const nodeHeight = computed(() => {
             </div>
           </div>
         </template>
+      </template>
+
+      <!-- IMAGE_EVALUATION NODE: Vision-LLM analysis (Session 152) -->
+      <template v-else-if="isImageEvaluation">
+        <!-- Vision Model Selection -->
+        <div class="field-group">
+          <label class="field-label">Vision Model</label>
+          <select
+            class="llm-select"
+            :value="node.visionModel || ''"
+            @change="onVisionModelChange"
+            @mousedown.stop
+          >
+            <option value="" disabled>{{ locale === 'de' ? 'Vision-Modell wählen...' : 'Select Vision Model...' }}</option>
+            <option
+              v-for="model in visionModels"
+              :key="model.id"
+              :value="model.id"
+            >
+              {{ model.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Analysis Framework/Preset -->
+        <div class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Analyse-Framework' : 'Analysis Framework' }}</label>
+          <select
+            class="llm-select"
+            :value="node.imageEvaluationPreset || 'bildwissenschaftlich'"
+            @change="onImageEvaluationPresetChange"
+            @mousedown.stop
+          >
+            <option value="bildwissenschaftlich">{{ locale === 'de' ? 'Kunsthistorisch (Panofsky)' : 'Art Historical (Panofsky)' }}</option>
+            <option value="bildungstheoretisch">{{ locale === 'de' ? 'Bildungstheoretisch' : 'Educational Theory' }}</option>
+            <option value="ethisch">{{ locale === 'de' ? 'Ethisch' : 'Ethical' }}</option>
+            <option value="kritisch">{{ locale === 'de' ? 'Kritisch/Dekolonial' : 'Critical/Decolonial' }}</option>
+            <option value="custom">{{ locale === 'de' ? 'Eigene Anweisung' : 'Custom' }}</option>
+          </select>
+        </div>
+
+        <!-- Custom Prompt (only if preset is 'custom') -->
+        <div v-if="node.imageEvaluationPreset === 'custom'" class="field-group">
+          <label class="field-label">{{ locale === 'de' ? 'Analyse-Prompt' : 'Analysis Prompt' }}</label>
+          <textarea
+            class="prompt-textarea"
+            :value="node.imageEvaluationPrompt || ''"
+            :placeholder="locale === 'de' ? 'Beschreibe, wie das Bild analysiert werden soll...' : 'Describe how the image should be analyzed...'"
+            rows="4"
+            @input="onImageEvaluationPromptChange"
+            @mousedown.stop
+          />
+        </div>
       </template>
 
       <!-- PREVIEW NODE: Shows content inline (pass-through) -->
@@ -1880,6 +2012,57 @@ const nodeHeight = computed(() => {
   font-size: 0.625rem;
   color: #64748b;
   font-style: italic;
+}
+
+/* Session 152: Image Input node styles */
+.image-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: rgba(14, 165, 233, 0.1);
+  border-radius: 4px;
+  border: 1px dashed #0ea5e9;
+  margin-bottom: 0.5rem;
+}
+
+.uploaded-image-thumb {
+  max-width: 100%;
+  max-height: 100px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.image-size {
+  font-size: 0.625rem;
+  color: #94a3b8;
+}
+
+.file-input {
+  width: 100%;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 0.375rem;
+  cursor: pointer;
+}
+
+.file-input::file-selector-button {
+  background: #334155;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.file-input::file-selector-button:hover {
+  background: #475569;
 }
 
 /* Session 134 Refactored: Unified evaluation node styles */

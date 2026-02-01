@@ -24,12 +24,14 @@ const categories = computed(() => [
   {
     id: 'input',
     label: locale.value === 'de' ? '1 · Eingabe' : '1 · Input',
-    types: ['input', 'random_prompt'] as StageType[]
+    // Session 152: Added image_input
+    types: ['input', 'image_input', 'random_prompt'] as StageType[]
   },
   {
     id: 'interception',
     label: locale.value === 'de' ? '2 · Interception' : '2 · Interception',
-    types: ['interception', 'evaluation', 'comparison_evaluator'] as StageType[]
+    // Session 152: Added image_evaluation
+    types: ['interception', 'evaluation', 'image_evaluation', 'comparison_evaluator'] as StageType[]
   },
   {
     id: 'adaption',

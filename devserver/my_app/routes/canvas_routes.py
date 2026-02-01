@@ -305,6 +305,90 @@ def get_llm_models():
     })
 
 
+# ============================================================================
+# VISION MODELS (Session 152)
+# ============================================================================
+
+# Vision-capable Ollama model patterns (checked against model names)
+# Session 152: Comprehensive list - matches "vision" or "vl" in name
+VISION_CAPABLE_PATTERNS = [
+    # Llama Vision
+    'llama3.2-vision',
+    'llama-vision',
+    # LLaVA family
+    'llava',
+    'bakllava',
+    'llava-llama3',
+    # Qwen VL family (qwen-vl, qwen2-vl, qwen3-vl, etc.)
+    'qwen-vl',
+    'qwen2-vl',
+    'qwen3-vl',
+    # Other vision models
+    'moondream',
+    'minicpm-v',
+    'cogvlm',
+    'internvl',
+    # Generic patterns - any model with "vision" or "-vl" in name
+    'vision',
+    '-vl',
+]
+
+
+@canvas_bp.route('/api/canvas/vision-models', methods=['GET'])
+def get_vision_models():
+    """
+    Get available Vision models for image_evaluation nodes.
+
+    Session 152: Vision models are ALWAYS local (per Model Matrix architecture):
+    - Run on local Ollama
+    - VRAM-dependent
+    - DSGVO-compliant by default (no cloud APIs)
+
+    Returns list of vision-capable Ollama models.
+    """
+    selector = ModelSelector()
+    models = []
+
+    # Get default vision model from settings
+    default_model_id = config.IMAGE_ANALYSIS_MODEL
+
+    try:
+        ollama_models = selector.get_ollama_models()
+        for model_name in ollama_models:
+            # Check if model is vision-capable
+            base_name = model_name.split(':')[0].lower()
+            is_vision = any(pattern in base_name for pattern in VISION_CAPABLE_PATTERNS)
+
+            if is_vision:
+                model_id = f"local/{model_name}"
+                models.append({
+                    'id': model_id,
+                    'name': f"{model_name} (Vision)",
+                    'provider': 'local',
+                    'dsgvoCompliant': True,
+                    'isDefault': model_id == default_model_id
+                })
+
+        logger.info(f"[Canvas Vision] Found {len(models)} vision models")
+
+    except Exception as e:
+        logger.warning(f"[Canvas Vision] Failed to load models: {e}")
+        # Fallback to configured default
+        models.append({
+            'id': config.IMAGE_ANALYSIS_MODEL,
+            'name': 'Default Vision Model',
+            'provider': 'local',
+            'dsgvoCompliant': True,
+            'isDefault': True
+        })
+
+    return jsonify({
+        'status': 'success',
+        'models': models,
+        'count': len(models)
+    })
+
+
 @canvas_bp.route('/api/canvas/output-configs', methods=['GET'])
 def get_output_configs():
     """

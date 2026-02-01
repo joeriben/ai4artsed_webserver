@@ -5,7 +5,7 @@ import { useCanvasStore } from '@/stores/canvas'
 import CanvasWorkspace from '@/components/canvas/CanvasWorkspace.vue'
 import ModulePalette from '@/components/canvas/ModulePalette.vue'
 import ConfigSelectorModal from '@/components/canvas/ConfigSelectorModal.vue'
-import type { StageType, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset, InterceptionPreset } from '@/types/canvas'
+import type { StageType, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset, InterceptionPreset, ImageEvaluationPreset } from '@/types/canvas'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
@@ -212,6 +212,23 @@ function handleUpdateNodeQualitySteps(nodeId: string, steps: number) {
 
 function handleUpdateNodeQualityCfg(nodeId: string, cfg: number) {
   canvasStore.updateNode(nodeId, { qualityCfg: cfg })
+}
+
+// Session 152: Image Input/Evaluation handlers
+function handleUpdateNodeImageData(nodeId: string, imageData: { image_id: string; image_path: string; preview_url: string; original_size: [number, number]; resized_size: [number, number] }) {
+  canvasStore.updateNode(nodeId, { imageData })
+}
+
+function handleUpdateNodeVisionModel(nodeId: string, model: string) {
+  canvasStore.updateNode(nodeId, { visionModel: model })
+}
+
+function handleUpdateNodeImageEvaluationPreset(nodeId: string, preset: ImageEvaluationPreset) {
+  canvasStore.updateNode(nodeId, { imageEvaluationPreset: preset })
+}
+
+function handleUpdateNodeImageEvaluationPrompt(nodeId: string, prompt: string) {
+  canvasStore.updateNode(nodeId, { imageEvaluationPrompt: prompt })
 }
 
 function startEditingName() {
@@ -467,6 +484,7 @@ onUnmounted(() => {
           :connecting-from-id="canvasStore.connectingFromId"
           :mouse-position="canvasStore.mousePosition"
           :llm-models="canvasStore.llmModels"
+          :vision-models="canvasStore.visionModels"
           :execution-results="canvasStore.executionResults"
           :collector-output="canvasStore.collectorOutput"
           :output-configs="canvasStore.outputConfigs"
@@ -512,9 +530,13 @@ onUnmounted(() => {
           @update-node-resolution-height="handleUpdateNodeResolutionHeight"
           @update-node-quality-steps="handleUpdateNodeQualitySteps"
           @update-node-quality-cfg="handleUpdateNodeQualityCfg"
-          @end-connect-input-1="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-1')"
-          @end-connect-input-2="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-2')"
-          @end-connect-input-3="(nodeId) => canvasStore.completeConnectionToInput(nodeId, 'input-3')"
+          @end-connect-input-1="(nodeId: string) => canvasStore.completeConnectionToInput(nodeId, 'input-1')"
+          @end-connect-input-2="(nodeId: string) => canvasStore.completeConnectionToInput(nodeId, 'input-2')"
+          @end-connect-input-3="(nodeId: string) => canvasStore.completeConnectionToInput(nodeId, 'input-3')"
+          @update-node-image-data="handleUpdateNodeImageData"
+          @update-node-vision-model="handleUpdateNodeVisionModel"
+          @update-node-image-evaluation-preset="handleUpdateNodeImageEvaluationPreset"
+          @update-node-image-evaluation-prompt="handleUpdateNodeImageEvaluationPrompt"
         />
       </div>
     </div>

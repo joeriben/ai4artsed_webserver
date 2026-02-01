@@ -22,6 +22,8 @@ const props = defineProps<{
   connectingFromId: string | null
   mousePosition: { x: number; y: number }
   llmModels: LLMModelSummary[]
+  /** Session 152: Vision models for image_evaluation nodes */
+  visionModels?: LLMModelSummary[]
   /** Execution results per node (nodeId -> result) */
   executionResults?: Record<string, {
     type: string
@@ -104,6 +106,11 @@ const emit = defineEmits<{
   // Session 151: Quality node events
   'update-node-quality-steps': [nodeId: string, steps: number]
   'update-node-quality-cfg': [nodeId: string, cfg: number]
+  // Session 152: Image Input/Evaluation events
+  'update-node-image-data': [nodeId: string, imageData: { image_id: string; image_path: string; preview_url: string; original_size: [number, number]; resized_size: [number, number] }]
+  'update-node-vision-model': [nodeId: string, model: string]
+  'update-node-image-evaluation-preset': [nodeId: string, preset: string]
+  'update-node-image-evaluation-prompt': [nodeId: string, prompt: string]
 }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -383,6 +390,7 @@ onUnmounted(() => {
       :node="node"
       :selected="node.id === selectedNodeId"
       :llm-models="llmModels"
+      :vision-models="visionModels"
       :config-name="getConfigInfo(node.configId)?.name"
       :config-media-type="getConfigInfo(node.configId)?.mediaType"
       :execution-result="executionResults?.[node.id]"
@@ -427,6 +435,10 @@ onUnmounted(() => {
       @end-connect-input-1="emit('end-connect-input-1', node.id)"
       @end-connect-input-2="emit('end-connect-input-2', node.id)"
       @end-connect-input-3="emit('end-connect-input-3', node.id)"
+      @update-image-data="emit('update-node-image-data', node.id, $event)"
+      @update-vision-model="emit('update-node-vision-model', node.id, $event)"
+      @update-image-evaluation-preset="emit('update-node-image-evaluation-preset', node.id, $event)"
+      @update-image-evaluation-prompt="emit('update-node-image-evaluation-prompt', node.id, $event)"
     />
 
     <!-- Empty state -->

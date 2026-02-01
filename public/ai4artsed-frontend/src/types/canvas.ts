@@ -23,6 +23,7 @@
  */
 export type StageType =
   | 'input'
+  | 'image_input' // Session 152: Image upload as source
   | 'random_prompt' // Session 140: LLM-based random prompt generator with presets
   | 'interception'
   | 'translation'
@@ -31,6 +32,8 @@ export type StageType =
   | 'collector'
   // Session 134 Refactored: Unified evaluation node with optional branching
   | 'evaluation'
+  // Session 152: Vision-LLM image analysis
+  | 'image_evaluation'
   // Display node (visualization)
   | 'display'
   // Session 147: Multi-input comparison evaluator
@@ -120,6 +123,48 @@ export const INTERCEPTION_PRESETS: Record<InterceptionPreset, InterceptionPreset
 }
 
 // ============================================================================
+// IMAGE EVALUATION PRESET TYPES (Session 152)
+// ============================================================================
+
+/** Image Evaluation Preset Types - pedagogical analysis frameworks */
+export type ImageEvaluationPreset =
+  | 'bildwissenschaftlich'  // Panofsky - Art-historical analysis
+  | 'bildungstheoretisch'   // Jörissen/Marotzki - Educational theory
+  | 'ethisch'               // Ethical analysis
+  | 'kritisch'              // Critical/Decolonial analysis
+  | 'custom'                // Custom prompt
+
+/** Image Evaluation Preset Config with labels */
+export interface ImageEvaluationPresetConfig {
+  label: { en: string; de: string }
+  description: { en: string; de: string }
+}
+
+/** Image Evaluation Presets - labels only, prompts loaded from backend config.py */
+export const IMAGE_EVALUATION_PRESETS: Record<ImageEvaluationPreset, ImageEvaluationPresetConfig> = {
+  bildwissenschaftlich: {
+    label: { en: 'Art Historical (Panofsky)', de: 'Kunsthistorisch (Panofsky)' },
+    description: { en: '4-stage iconological method', de: '4-stufige ikonologische Methode' }
+  },
+  bildungstheoretisch: {
+    label: { en: 'Educational Theory', de: 'Bildungstheoretisch' },
+    description: { en: 'Jörissen/Marotzki framework', de: 'Jörissen/Marotzki Framework' }
+  },
+  ethisch: {
+    label: { en: 'Ethical', de: 'Ethisch' },
+    description: { en: 'Ethical analysis', de: 'Ethische Analyse' }
+  },
+  kritisch: {
+    label: { en: 'Critical/Decolonial', de: 'Kritisch/Dekolonial' },
+    description: { en: 'Critical media studies', de: 'Kritische Medienwissenschaft' }
+  },
+  custom: {
+    label: { en: 'Custom', de: 'Eigene Anweisung' },
+    description: { en: 'Define your own analysis prompt', de: 'Eigenen Analyse-Prompt definieren' }
+  }
+}
+
+// ============================================================================
 // RANDOM PROMPT TYPES
 // ============================================================================
 
@@ -177,6 +222,17 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     icon: 'edit_square_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
     mandatory: true
+  },
+  // Session 152: Image Input Node
+  {
+    id: 'image_input',
+    type: 'image_input',
+    label: { en: 'Image Input', de: 'Bild-Eingabe' },
+    description: { en: 'Upload image as source', de: 'Bild als Quelle hochladen' },
+    color: '#0ea5e9', // sky blue
+    icon: 'add_photo_alternate_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false
   },
   // Session 140: Random Prompt Node with presets
   {
@@ -269,6 +325,20 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     },
     color: '#f59e0b', // amber
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
+    allowMultiple: true,
+    mandatory: false
+  },
+  // Session 152: Image Evaluation Node (Vision-LLM analysis)
+  {
+    id: 'image_evaluation',
+    type: 'image_evaluation',
+    label: { en: 'Image Analysis', de: 'Bild-Analyse' },
+    description: {
+      en: 'Vision-LLM analysis of images',
+      de: 'Vision-LLM Analyse von Bildern'
+    },
+    color: '#dc2626', // red
+    icon: 'imagesmode_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
     mandatory: false
   },
@@ -454,6 +524,24 @@ export interface CanvasNode {
   qualitySteps?: number
   /** CFG scale value */
   qualityCfg?: number
+
+  // === Image Input node config (Session 152) ===
+  /** Uploaded image data */
+  imageData?: {
+    image_id: string
+    image_path: string
+    preview_url: string
+    original_size: [number, number]
+    resized_size: [number, number]
+  }
+
+  // === Image Evaluation node config (Session 152) ===
+  /** Vision model for image analysis (local Ollama only) */
+  visionModel?: string
+  /** Image evaluation preset (pedagogical framework) */
+  imageEvaluationPreset?: 'bildwissenschaftlich' | 'bildungstheoretisch' | 'ethisch' | 'kritisch' | 'custom'
+  /** Custom evaluation prompt (only if preset is 'custom') */
+  imageEvaluationPrompt?: string
 }
 
 // ============================================================================
@@ -608,7 +696,7 @@ export function isValidConnection(sourceType: StageType, targetType: StageType):
   if (terminalNodes.includes(sourceType)) return false
 
   // Source nodes have no input connector
-  const sourceNodes: StageType[] = ['input']
+  const sourceNodes: StageType[] = ['input', 'image_input']
   if (sourceNodes.includes(targetType)) return false
 
   // Session 149: Seed nodes can only connect to generation nodes

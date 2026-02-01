@@ -87,11 +87,13 @@ PHOTO_FILM_TYPES = {
 
 NODE_TYPE_LABELS = {
     'input': 'Processing Input',
+    'image_input': 'Loading Image',
     'random_prompt': 'Generating Random Prompt',
     'interception': 'Running Interception',
     'translation': 'Translating',
     'generation': 'Generating Media',
     'evaluation': 'Evaluating',
+    'image_evaluation': 'Analyzing Image',
     'display': 'Display',
     'collector': 'Collecting Results',
     'comparison_evaluator': 'Comparing Inputs',
@@ -250,7 +252,7 @@ class CanvasWorkflowExecutor:
         return self._final_result
 
     def _find_source_nodes(self) -> List[Dict[str, Any]]:
-        """Find source nodes: input nodes + standalone random_prompt nodes + parameter nodes."""
+        """Find source nodes: input nodes + image_input + standalone random_prompt nodes + parameter nodes."""
         source_nodes = []
         for n in self.nodes:
             ntype = n.get('type')
@@ -259,6 +261,9 @@ class CanvasWorkflowExecutor:
                 if self.prompt_override is not None:
                     n = dict(n)  # Copy to avoid mutating original
                     n['promptText'] = self.prompt_override
+                source_nodes.append(n)
+            elif ntype == 'image_input':
+                # Session 152: Image input nodes are always source nodes
                 source_nodes.append(n)
             elif ntype == 'random_prompt' and not self.incoming.get(n['id']):
                 source_nodes.append(n)
@@ -301,6 +306,8 @@ class CanvasWorkflowExecutor:
 
         if node_type == 'input':
             return self._execute_input(node, node_id)
+        elif node_type == 'image_input':
+            return self._execute_image_input(node, node_id)
         elif node_type == 'random_prompt':
             return self._execute_random_prompt(node, node_id, input_data)
         elif node_type == 'interception':
@@ -317,6 +324,8 @@ class CanvasWorkflowExecutor:
             return self._execute_generation(node, node_id, input_data)
         elif node_type == 'evaluation':
             return self._execute_evaluation(node, node_id, input_data)
+        elif node_type == 'image_evaluation':
+            return self._execute_image_evaluation(node, node_id, input_data, data_type)
         elif node_type == 'display':
             return self._execute_display(node, node_id, input_data, data_type)
         elif node_type == 'collector':
@@ -337,6 +346,112 @@ class CanvasWorkflowExecutor:
         if output:
             self.recorder.save_entity(node_id=node_id, node_type='input', content=output)
         return output, 'text', None
+
+    def _execute_image_input(self, node: Dict[str, Any], node_id: str) -> Tuple[Optional[Dict[str, Any]], str, None]:
+        """Session 152: Execute image_input node - outputs uploaded image data."""
+        image_data = node.get('imageData')
+
+        if not image_data or not image_data.get('image_path'):
+            self.results[node_id] = {'type': 'image_input', 'output': None, 'error': 'No image uploaded'}
+            return None, 'image', None
+
+        # Build image output dict (same format as generation output)
+        output = {
+            'url': image_data.get('preview_url', f"/api/media/uploads/{image_data['image_id']}"),
+            'media_type': 'image',
+            'source': 'upload',
+            'image_path': image_data['image_path'],  # Absolute path for backend
+            'image_id': image_data['image_id'],
+            'width': image_data.get('resized_size', [1024, 1024])[0],
+            'height': image_data.get('resized_size', [1024, 1024])[1]
+        }
+
+        self.results[node_id] = {'type': 'image_input', 'output': output, 'error': None}
+        logger.info(f"[Canvas Executor] Image Input: {output['url']}")
+
+        return output, 'image', None
+
+    def _execute_image_evaluation(self, node: Dict[str, Any], node_id: str,
+                                   input_data: Any, data_type: str) -> Tuple[str, str, Optional[Dict[str, Any]]]:
+        """Session 152: Execute image_evaluation node - Vision-LLM analysis of images."""
+        from my_app.utils.image_analysis import analyze_image
+        from config import IMAGE_ANALYSIS_PROMPTS, DEFAULT_LANGUAGE
+
+        vision_model = node.get('visionModel', 'local/llama3.2-vision:latest')
+        preset = node.get('imageEvaluationPreset', 'bildwissenschaftlich')
+        custom_prompt = node.get('imageEvaluationPrompt', '')
+
+        # Validate input is an image
+        if data_type != 'image' or not isinstance(input_data, dict):
+            self.results[node_id] = {
+                'type': 'image_evaluation',
+                'output': '',
+                'error': 'Expected image input'
+            }
+            return '', 'text', None
+
+        # Get image path (prefer absolute path, fallback to URL)
+        image_path = input_data.get('image_path')
+        image_url = input_data.get('url')
+
+        if not image_path and not image_url:
+            self.results[node_id] = {
+                'type': 'image_evaluation',
+                'output': '',
+                'error': 'No image path or URL'
+            }
+            return '', 'text', None
+
+        # Determine analysis prompt
+        if preset == 'custom' and custom_prompt:
+            analysis_prompt = custom_prompt
+        else:
+            # Use configured prompts from config.py
+            try:
+                analysis_prompt = IMAGE_ANALYSIS_PROMPTS[preset][DEFAULT_LANGUAGE]
+            except KeyError:
+                analysis_prompt = "Analyze this image thoroughly."
+                logger.warning(f"[Canvas Executor] Image eval preset '{preset}' not found, using fallback")
+
+        try:
+            # Use existing image analysis helper (calls Ollama vision)
+            # Note: analyze_image handles both file paths and base64
+            # Session 152: Pass selected vision model from node
+            analysis_text = analyze_image(
+                image_path=image_path or image_url,
+                prompt=analysis_prompt,
+                analysis_type=preset,
+                model=vision_model
+            )
+
+            self.results[node_id] = {
+                'type': 'image_evaluation',
+                'output': analysis_text,
+                'metadata': {'preset': preset},
+                'error': None,
+                'model': vision_model
+            }
+
+            if analysis_text:
+                self.recorder.save_entity(
+                    node_id=node_id,
+                    node_type='image_evaluation',
+                    content=analysis_text,
+                    metadata={'preset': preset, 'model': vision_model}
+                )
+
+            logger.info(f"[Canvas Executor] Image Evaluation: {len(analysis_text)} chars")
+            return analysis_text, 'text', None
+
+        except Exception as e:
+            error_msg = f"Vision analysis failed: {str(e)}"
+            self.results[node_id] = {
+                'type': 'image_evaluation',
+                'output': '',
+                'error': error_msg
+            }
+            logger.error(f"[Canvas Executor] {error_msg}")
+            return '', 'text', None
 
     def _execute_random_prompt(self, node: Dict[str, Any], node_id: str, input_data: Any) -> Tuple[str, str, None]:
         preset = node.get('randomPromptPreset', 'clean_image')
@@ -789,7 +904,7 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
 
             target_type = target_node.get('type')
             accepts_text = target_type in ['random_prompt', 'interception', 'translation', 'generation', 'evaluation', 'collector', 'display', 'comparison_evaluator']
-            accepts_image = target_type in ['evaluation', 'collector', 'display']
+            accepts_image = target_type in ['image_evaluation', 'evaluation', 'collector', 'display', 'generation']
             accepts_seed = target_type == 'generation'
             # Session 151: Resolution and quality nodes output to generation
             accepts_resolution = target_type == 'generation'
