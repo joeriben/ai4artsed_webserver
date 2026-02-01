@@ -77,8 +77,11 @@ def _run_startup_migration():
         logging.error(f"[MIGRATION] Unexpected error during startup migration: {e}")
 
 
-def _load_user_settings():
-    """Load user settings from user_settings.json and override config.py defaults"""
+def reload_user_settings():
+    """Load user settings from user_settings.json and override config.py defaults.
+
+    Can be called at startup or anytime to hot-reload settings without restart.
+    """
     try:
         import json
         from pathlib import Path
@@ -125,7 +128,7 @@ def create_app():
     logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 
     # Load user settings BEFORE creating app
-    _load_user_settings()
+    reload_user_settings()
     
     # Create Flask app
     # static_url_path=None disables Flask's automatic static file serving

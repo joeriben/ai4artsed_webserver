@@ -19,12 +19,6 @@
         >
           Configuration
         </button>
-        <button
-          :class="['tab-btn', { active: activeTab === 'matrix' }]"
-          @click="activeTab = 'matrix'"
-        >
-          Model Matrix
-        </button>
       </div>
     </div>
 
@@ -39,18 +33,51 @@
       <div v-else-if="error" class="error">Error: {{ error }}</div>
 
       <div v-else class="settings-content">
-      <!-- Quick-Fill Hint -->
+      <!-- Hardware Quick-Fill Section -->
       <div class="section">
-        <h2>Model Presets</h2>
-        <p class="help">
-          Use the <strong>Model Matrix</strong> tab to see all available presets and apply them with one click.
-          <span v-if="gpuInfo.detected" class="gpu-detected" style="display: block; margin-top: 8px;">
-            Detected: {{ gpuInfo.gpu_name }} ({{ gpuInfo.vram_gb }} GB)
-          </span>
-        </p>
-        <button @click="activeTab = 'matrix'" class="action-btn" style="margin-top: 10px;">
-          Open Model Matrix
-        </button>
+        <h2>Hardware Quick-Fill (Optional)</h2>
+        <p class="help">Select preset to auto-fill model fields based on your hardware and cloud provider</p>
+
+        <table class="config-table">
+          <tbody>
+            <tr>
+              <td class="label-cell">Graphic Card Memory (VRAM)</td>
+              <td class="value-cell">
+                <select v-model="selectedVramTier">
+                  <option value="vram_96">96 GB</option>
+                  <option value="vram_32">32 GB</option>
+                  <option value="vram_24">24 GB</option>
+                  <option value="vram_16">16 GB</option>
+                  <option value="vram_8">8 GB</option>
+                </select>
+                <span v-if="gpuInfo.detected" class="help-text gpu-detected">
+                  ✓ Auto-detected: {{ gpuInfo.gpu_name }} ({{ gpuInfo.vram_gb }} GB)
+                </span>
+                <span v-else-if="gpuInfo.error" class="help-text gpu-error">
+                  ⚠ GPU detection failed
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">Cloud Provider</td>
+              <td class="value-cell">
+                <select v-model="settings.EXTERNAL_LLM_PROVIDER">
+                  <option value="none">None (Local only)</option>
+                  <option value="bedrock">AWS Bedrock (EU region, DSGVO ✓)</option>
+                  <option value="mistral">Mistral AI (EU-based, DSGVO ✓)</option>
+                  <option value="anthropic">Anthropic Direct API (NOT DSGVO)</option>
+                  <option value="openai">OpenAI Direct API (NOT DSGVO)</option>
+                  <option value="openrouter">OpenRouter Aggregator (NOT DSGVO)</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="text-align: center; padding: 12px;">
+                <button @click="fillFromPreset" class="action-btn">Fill Model Fields from Preset</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- General Settings -->
@@ -97,7 +124,7 @@
                   <input type="checkbox" v-model="settings.DSGVO_CONFORMITY" style="width: auto;" />
                   <span>DSGVO-compliant configuration</span>
                 </label>
-                <span class="help-text">Enforces DSGVO-compliant models (local or Mistral EU)</span>
+                <span class="help-text">Enforces DSGVO-compliant models (local or AWS Bedrock EU)</span>
               </td>
             </tr>
           </tbody>
@@ -107,8 +134,7 @@
       <!-- Model Configuration -->
       <div class="section">
         <h2>Model Configuration</h2>
-        <p class="help">Model identifiers with provider prefix: local/, mistral/, anthropic/, openai/, openrouter/</p>
-        <p class="help">Use of Model Matrix is advised. However, you may configure your settings here freely.</p>
+        <p class="help">Model identifiers with provider prefix: local/, bedrock/, anthropic/, openai/, openrouter/</p>
         <p v-if="ollamaModels.length > 0" class="help" style="color: #4CAF50;">
           {{ ollamaModels.length }} Ollama models available (type or select from dropdown)
         </p>
@@ -166,15 +192,22 @@
             <td class="label-cell">External LLM Provider</td>
             <td class="value-cell">
               <select v-model="settings.EXTERNAL_LLM_PROVIDER">
-                <option value="none">None (Local only, DSGVO)</option>
-                <option value="mistral">Mistral AI (EU-based, DSGVO)</option>
+                <option value="none">None (Local only)</option>
+                <option value="bedrock">AWS Bedrock (EU region, DSGVO ✓)</option>
+                <option value="mistral">Mistral AI (EU-based, DSGVO ✓)</option>
                 <option value="anthropic">Anthropic Direct API (NOT DSGVO)</option>
                 <option value="openai">OpenAI Direct API (NOT DSGVO)</option>
-                <option value="openrouter">OpenRouter (NOT DSGVO, EU routing available)</option>
+                <option value="openrouter">OpenRouter Aggregator (NOT DSGVO)</option>
               </select>
-              <span class="help-text">Cloud LLM provider - requires API key</span>
+              <span class="help-text">Cloud LLM provider (bedrock uses ENV credentials, others require API key)</span>
 
               <!-- Provider info boxes -->
+              <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'bedrock'" class="info-box" style="margin-top: 12px;">
+                <strong>AWS Bedrock (EU Region)</strong>
+                <p>✅ DSGVO-compliant (EU Frankfurt region)</p>
+                <p>Credentials via environment variables or CSV upload below.</p>
+              </div>
+
               <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'mistral'" class="info-box info-box-success" style="margin-top: 12px;">
                 <strong>Mistral AI (EU-based)</strong>
                 <p>✅ DSGVO-compliant (EU infrastructure)</p>
@@ -195,9 +228,9 @@
               </div>
 
               <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'openrouter'" class="info-box" style="margin-top: 12px; border-color: #ff9800;">
-                <strong>OpenRouter</strong>
-                <p>⚠️ NOT DSGVO-compliant (US company)</p>
-                <p>EU server routing configurable in OpenRouter settings, but company is US-based.</p>
+                <strong>OpenRouter Aggregator</strong>
+                <p>⚠️ NOT DSGVO-compliant (US proxy)</p>
+                <p>Routes through US servers even for EU models. Use only for non-educational contexts.</p>
               </div>
             </td>
           </tr>
@@ -258,6 +291,19 @@
             </td>
           </tr>
 
+          <tr v-if="settings.EXTERNAL_LLM_PROVIDER === 'bedrock'">
+            <td class="label-cell">AWS Credentials CSV</td>
+            <td class="value-cell">
+              <input
+                type="file"
+                accept=".csv"
+                @change="handleAwsCsvUpload"
+                class="file-input"
+              />
+              <span class="help-text">Upload AWS accessKeys.csv (from AWS IAM Console)</span>
+              <span class="help-text" v-if="awsCredentialsConfigured" style="color: green;">✓ AWS credentials configured</span>
+            </td>
+          </tr>
           </tbody>
         </table>
       </div>
@@ -265,39 +311,17 @@
       <!-- Save Button -->
       <div class="button-row">
         <button @click="saveSettings" class="save-btn">Save Configuration</button>
-        <button @click="restartBackend" class="restart-btn" :disabled="restartInProgress">
-          {{ restartInProgress ? 'Restarting...' : 'Restart Backend' }}
+        <button @click="applySettings" class="apply-btn" :disabled="applyInProgress">
+          {{ applyInProgress ? 'Applying...' : 'Apply Settings' }}
         </button>
         <span v-if="saveMessage" :class="{'save-message': true, 'error-message': !saveSuccess}">
           {{ saveMessage }}
         </span>
-        <span v-if="restartMessage" :class="{'save-message': true, 'error-message': !restartSuccess}">
-          {{ restartMessage }}
-        </span>
-      </div>
-
-      <div class="info-note">
-        <span v-if="detectedContext">
-          Detected: <strong>{{ detectedContext }}</strong> mode
-          (will use {{ detectedContext === 'development' ? '3_start_backend_dev.sh' : '5_start_backend_prod.sh' }})
+        <span v-if="applyMessage" :class="{'save-message': true, 'error-message': !applySuccess}">
+          {{ applyMessage }}
         </span>
       </div>
       </div>
-    </div>
-
-    <!-- Model Matrix Tab -->
-    <div v-if="activeTab === 'matrix'">
-      <div v-if="loading" class="loading">Loading settings...</div>
-      <div v-else-if="error" class="error">Error: {{ error }}</div>
-      <ModelMatrixTab
-        v-else
-        :matrix="matrix"
-        :currentSettings="settings"
-        :selectedProvider="settings.EXTERNAL_LLM_PROVIDER || 'none'"
-        :detectedVramTier="gpuInfo.vram_tier || null"
-        @apply-preset="handleMatrixPresetApply"
-        @matrix-updated="loadSettings"
-      />
     </div>
   </div>
 </template>
@@ -305,7 +329,6 @@
 <script setup>
 import SessionExportView from '../components/SessionExportView.vue'
 import SettingsAuthModal from '../components/SettingsAuthModal.vue'
-import ModelMatrixTab from '../components/ModelMatrixTab.vue'
 import { ref, computed, onMounted } from 'vue'
 
 // Authentication state
@@ -317,6 +340,7 @@ const loading = ref(true)
 const error = ref(null)
 const settings = ref({})
 const matrix = ref({})
+const selectedVramTier = ref('vram_24')
 const gpuInfo = ref({ detected: false, error: null })
 const openrouterKey = ref('')
 const openrouterKeyMasked = ref('')
@@ -329,10 +353,9 @@ const mistralKeyMasked = ref('')
 const awsCredentialsConfigured = ref(false)
 const saveMessage = ref('')
 const saveSuccess = ref(true)
-const restartInProgress = ref(false)
-const restartMessage = ref('')
-const restartSuccess = ref(true)
-const detectedContext = ref('')
+const applyInProgress = ref(false)
+const applyMessage = ref('')
+const applySuccess = ref(true)
 const ollamaModels = ref([])  // Session 133: Ollama model dropdown
 
 const modelLabels = {
@@ -343,8 +366,7 @@ const modelLabels = {
   'STAGE3_MODEL': 'Stage 3 - Translation/Safety Model',
   'STAGE4_LEGACY_MODEL': 'Stage 4 - Legacy Model',
   'CHAT_HELPER_MODEL': 'Chat Helper Model',
-  'IMAGE_ANALYSIS_MODEL': 'Image Analysis Model',
-  'CODING_MODEL': 'Code Generation (Tone.js, p5.js)'
+  'IMAGE_ANALYSIS_MODEL': 'Image Analysis Model'
 }
 
 // Check if any cloud models are being used
@@ -453,6 +475,8 @@ async function detectGpu() {
       gpuInfo.value = data
 
       if (data.detected && data.vram_tier) {
+        // Auto-select the detected VRAM tier
+        selectedVramTier.value = data.vram_tier
         console.log(`[Settings] GPU detected: ${data.gpu_name} (${data.vram_gb} GB) → ${data.vram_tier}`)
       }
     }
@@ -462,45 +486,32 @@ async function detectGpu() {
   }
 }
 
-// fillFromPreset is now handled by handleMatrixPresetApply
-
-// Handler for Matrix tab preset application (new structure)
-async function handleMatrixPresetApply(provider) {
-  try {
-    // Fetch merged preset from backend
-    const response = await fetch(`/api/settings/preset/${provider}`, {
-      credentials: 'include'
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-
-    const preset = await response.json()
-
-    // Apply all model fields from preset
-    Object.keys(modelLabels).forEach(key => {
-      if (preset.models && preset.models[key]) {
-        settings.value[key] = preset.models[key]
-      }
-    })
-
-    // Apply provider and DSGVO settings
-    settings.value.EXTERNAL_LLM_PROVIDER = preset.EXTERNAL_LLM_PROVIDER
-    settings.value.DSGVO_CONFORMITY = preset.DSGVO_CONFORMITY
-
-    saveMessage.value = `✓ Applied preset: ${preset.label}`
-    saveSuccess.value = true
-    setTimeout(() => { saveMessage.value = '' }, 3000)
-
-    // Switch to config tab to show filled values
-    activeTab.value = 'config'
-
-  } catch (e) {
-    saveMessage.value = `Error applying preset: ${e.message}`
+function fillFromPreset() {
+  if (!matrix.value[selectedVramTier.value] || !matrix.value[selectedVramTier.value][settings.value.EXTERNAL_LLM_PROVIDER]) {
+    saveMessage.value = 'Preset not found'
     saveSuccess.value = false
-    setTimeout(() => { saveMessage.value = '' }, 5000)
+    setTimeout(() => { saveMessage.value = '' }, 3000)
+    return
   }
+
+  const preset = matrix.value[selectedVramTier.value][settings.value.EXTERNAL_LLM_PROVIDER]
+  const presetModels = preset.models
+
+  // Fill model fields from preset
+  Object.keys(modelLabels).forEach(key => {
+    if (presetModels[key]) {
+      settings.value[key] = presetModels[key]
+    }
+  })
+
+  // Fill DSGVO_CONFORMITY from preset (EXTERNAL_LLM_PROVIDER already set via dropdown)
+  if (preset.DSGVO_CONFORMITY !== undefined) {
+    settings.value.DSGVO_CONFORMITY = preset.DSGVO_CONFORMITY
+  }
+
+  saveMessage.value = `✓ Filled from: ${preset.label}`
+  saveSuccess.value = true
+  setTimeout(() => { saveMessage.value = '' }, 3000)
 }
 
 async function handleAwsCsvUpload(event) {
@@ -521,7 +532,7 @@ async function handleAwsCsvUpload(event) {
 
     if (response.ok) {
       awsCredentialsConfigured.value = true
-      saveMessage.value = '✓ AWS credentials uploaded successfully. Server restart required.'
+      saveMessage.value = '✓ AWS credentials uploaded successfully. Click "Apply Settings" to activate.'
       saveSuccess.value = true
     } else {
       throw new Error(result.error || 'Upload failed')
@@ -634,13 +645,13 @@ async function saveSettings() {
   }
 }
 
-async function restartBackend() {
+async function applySettings() {
   try {
-    restartInProgress.value = true
-    restartMessage.value = 'Initiating restart...'
-    restartSuccess.value = true
+    applyInProgress.value = true
+    applyMessage.value = 'Applying...'
+    applySuccess.value = true
 
-    const response = await fetch('/api/settings/restart-backend', {
+    const response = await fetch('/api/settings/reload-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include'
@@ -651,22 +662,21 @@ async function restartBackend() {
     }
 
     const data = await response.json()
-    restartMessage.value = '✓ ' + data.message
-    restartSuccess.value = true
-    detectedContext.value = data.script.includes('dev') ? 'development' : 'production'
+    applyMessage.value = '✓ ' + data.message
+    applySuccess.value = true
 
     // Keep message visible for 3 seconds
     setTimeout(() => {
-      restartMessage.value = ''
-      restartInProgress.value = false
+      applyMessage.value = ''
+      applyInProgress.value = false
     }, 3000)
 
   } catch (e) {
-    restartMessage.value = 'Error: ' + e.message
-    restartSuccess.value = false
-    restartInProgress.value = false
+    applyMessage.value = 'Error: ' + e.message
+    applySuccess.value = false
+    applyInProgress.value = false
     setTimeout(() => {
-      restartMessage.value = ''
+      applyMessage.value = ''
     }, 5000)
   }
 }
@@ -903,7 +913,7 @@ onMounted(() => {
   background: #888;
 }
 
-.restart-btn {
+.apply-btn {
   background: #4a90e2;
   color: #fff;
   border: 1px solid #3a7bc8;
@@ -914,11 +924,11 @@ onMounted(() => {
   margin-left: 10px;
 }
 
-.restart-btn:hover:not(:disabled) {
+.apply-btn:hover:not(:disabled) {
   background: #3a7bc8;
 }
 
-.restart-btn:disabled {
+.apply-btn:disabled {
   background: #999;
   cursor: not-allowed;
   opacity: 0.6;
