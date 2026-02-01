@@ -39,6 +39,23 @@ python-docx==1.1.0   # DOCX (Word document) generation
 lxml==5.1.0          # XML processing and parsing
 
 # ============================================================================
+# Diffusers Backend (Session 150)
+# ============================================================================
+# For direct image generation without SwarmUI/ComfyUI
+# Requires NVIDIA GPU with CUDA support
+#
+# NOTE: PyTorch must be installed separately with correct CUDA version:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#   # Or for CUDA 13.0 (Blackwell):
+#   pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu130
+#
+diffusers>=0.32.0    # HuggingFace Diffusers (SD3.5, Flux2)
+transformers>=4.45.0 # HuggingFace Transformers (text encoders)
+accelerate>=0.34.0   # HuggingFace Accelerate (device management)
+safetensors>=0.4.0   # Safe model loading format
+sentencepiece>=0.2.0 # T5 tokenizer dependency
+
+# ============================================================================
 # Optional: Development/Testing
 # ============================================================================
 # Uncomment for development:
