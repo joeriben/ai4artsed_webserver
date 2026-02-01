@@ -2448,7 +2448,12 @@ def generation_endpoint():
             input_image1=input_image1,
             input_image2=input_image2,
             input_image3=input_image3,
-            alpha_factor=alpha_factor
+            alpha_factor=alpha_factor,
+            # Session 155: Parameter Injection (replicate seed pattern)
+            width=data.get('width'),
+            height=data.get('height'),
+            steps=data.get('steps'),
+            cfg=data.get('cfg')
         ))
 
         # Handle result
@@ -3046,7 +3051,12 @@ async def execute_generation_stage4(
             input_image1=input_image1,
             input_image2=input_image2,
             input_image3=input_image3,
-            alpha_factor=alpha_factor
+            alpha_factor=alpha_factor,
+            # Session 155: Parameter Injection aus kwargs
+            width=kwargs.get('width'),
+            height=kwargs.get('height'),
+            steps=kwargs.get('steps'),
+            cfg=kwargs.get('cfg')
         )
 
         # Add was_translated flag to result for frontend badge display

@@ -573,11 +573,20 @@ class PipelineExecutor:
                 logger.info(f"[SURREALIZER] Injected alpha_factor into chunk parameters: {alpha_value}")
 
             # Add ALL custom placeholders to parameters (for legacy workflows with input_mappings)
-            # Session 155: Debug logging to trace parameter injection
+            # Session 155: Generation parameters should OVERRIDE defaults from output_config
+            # These are user-provided values that take priority over config defaults
+            GENERATION_OVERRIDE_PARAMS = {'width', 'height', 'steps', 'cfg', 'negative_prompt', 'sampler_name', 'scheduler', 'denoise'}
+
             logger.info(f"[DEBUG-PARAMS] custom_placeholders keys: {list(context.custom_placeholders.keys())}")
             logger.info(f"[DEBUG-PARAMS] chunk_request['parameters'] keys before injection: {list(chunk_request['parameters'].keys())}")
             for key, value in context.custom_placeholders.items():
-                if key not in chunk_request['parameters']:  # Don't overwrite existing
+                if key in GENERATION_OVERRIDE_PARAMS:
+                    # Generation params: User values ALWAYS override defaults
+                    old_value = chunk_request['parameters'].get(key, 'N/A')
+                    chunk_request['parameters'][key] = value
+                    logger.info(f"[CUSTOM-PARAMS] Override '{key}': {old_value} → {value}")
+                elif key not in chunk_request['parameters']:
+                    # Other params: Only inject if not already present
                     chunk_request['parameters'][key] = value
                     logger.info(f"[CUSTOM-PARAMS] Injected '{key}' = '{str(value)[:50]}' into chunk parameters")
                 else:
