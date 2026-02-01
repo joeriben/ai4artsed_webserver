@@ -1,590 +1,172 @@
 {
-  "vram_96": {
-    "none": {
-      "label": "96 GB VRAM (Local only)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "local/qwen2.5vl:72b",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_INTERCEPTION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_OPTIMIZATION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE3_MODEL": "local/qwen2.5vl:72b",
-        "STAGE4_LEGACY_MODEL": "local/qwen2.5vl:72b",
-        "CHAT_HELPER_MODEL": "local/qwen2.5vl:72b",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
-        "CODING_MODEL": "local/codestral:latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "none",
-      "DSGVO_CONFORMITY": true
+  "vision_presets": {
+    "vram_96": {
+      "STAGE1_VISION_MODEL": "local/qwen3-vl:32b",
+      "IMAGE_ANALYSIS_MODEL": "local/qwen3-vl:32b"
     },
-    "bedrock": {
-      "label": "96 GB VRAM (AWS Bedrock EU)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "bedrock",
-      "DSGVO_CONFORMITY": true
+    "vram_48": {
+      "STAGE1_VISION_MODEL": "local/qwen3-vl:32b",
+      "IMAGE_ANALYSIS_MODEL": "local/qwen3-vl:32b"
     },
-    "openrouter": {
-      "label": "96 GB VRAM (OpenRouter)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-        "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
-        "CODING_MODEL": "openrouter/mistralai/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openrouter",
-      "DSGVO_CONFORMITY": false
+    "vram_32": {
+      "STAGE1_VISION_MODEL": "local/qwen3-vl:32b",
+      "IMAGE_ANALYSIS_MODEL": "local/qwen3-vl:32b"
     },
+    "vram_24": {
+      "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+      "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+    },
+    "vram_16": {
+      "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
+      "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b"
+    },
+    "vram_8": {
+      "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
+      "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest"
+    }
+  },
+  "llm_presets": {
     "mistral": {
-      "label": "96 GB VRAM (Mistral AI EU)",
+      "label": "Mistral AI EU",
+      "EXTERNAL_LLM_PROVIDER": "mistral",
+      "DSGVO_CONFORMITY": true,
       "models": {
         "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
         "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
         "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
         "STAGE3_MODEL": "mistral/mistral-large-latest",
         "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
         "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
         "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "mistral",
-      "DSGVO_CONFORMITY": true
+      }
     },
     "anthropic": {
-      "label": "96 GB VRAM (Anthropic Direct API)",
+      "label": "Anthropic Direct API",
+      "EXTERNAL_LLM_PROVIDER": "anthropic",
+      "DSGVO_CONFORMITY": false,
       "models": {
         "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
         "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5",
         "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-haiku-4-5",
         "STAGE3_MODEL": "anthropic/claude-haiku-4-5",
         "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5",
         "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
         "CODING_MODEL": "anthropic/claude-sonnet-4-5"
-      },
-      "EXTERNAL_LLM_PROVIDER": "anthropic",
-      "DSGVO_CONFORMITY": false
+      }
     },
     "openai": {
-      "label": "96 GB VRAM (OpenAI Direct API)",
+      "label": "OpenAI Direct API",
+      "EXTERNAL_LLM_PROVIDER": "openai",
+      "DSGVO_CONFORMITY": false,
       "models": {
         "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
         "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
         "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
         "STAGE3_MODEL": "openai/gpt-4o-mini",
         "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
         "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
         "CODING_MODEL": "openai/gpt-4o"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openai",
-      "DSGVO_CONFORMITY": false
-    }
-  },
-  "vram_48": {
-    "none": {
-      "label": "48 GB VRAM (Local only)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "local/qwen2.5vl:72b",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_INTERCEPTION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_OPTIMIZATION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE3_MODEL": "local/qwen2.5vl:72b",
-        "STAGE4_LEGACY_MODEL": "local/qwen2.5vl:72b",
-        "CHAT_HELPER_MODEL": "local/qwen2.5vl:72b",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
-        "CODING_MODEL": "local/codestral:latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "none",
-      "DSGVO_CONFORMITY": true
-    },
-    "bedrock": {
-      "label": "48 GB VRAM (AWS Bedrock EU)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "bedrock",
-      "DSGVO_CONFORMITY": true
+      }
     },
     "openrouter": {
-      "label": "48 GB VRAM (OpenRouter)",
+      "label": "OpenRouter (NOT DSGVO, EU routing available)",
+      "EXTERNAL_LLM_PROVIDER": "openrouter",
+      "DSGVO_CONFORMITY": false,
       "models": {
         "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
         "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
         "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
         "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
         "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
         "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
         "CODING_MODEL": "openrouter/mistralai/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openrouter",
-      "DSGVO_CONFORMITY": false
-    },
-    "mistral": {
-      "label": "48 GB VRAM (Mistral AI EU)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-        "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-        "STAGE3_MODEL": "mistral/mistral-large-latest",
-        "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
-        "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "mistral",
-      "DSGVO_CONFORMITY": true
-    },
-    "anthropic": {
-      "label": "48 GB VRAM (Anthropic Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5",
-        "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE3_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5",
-        "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
-        "CODING_MODEL": "anthropic/claude-sonnet-4-5"
-      },
-      "EXTERNAL_LLM_PROVIDER": "anthropic",
-      "DSGVO_CONFORMITY": false
-    },
-    "openai": {
-      "label": "48 GB VRAM (OpenAI Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-        "STAGE1_VISION_MODEL": "local/qwen2.5vl:72b",
-        "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-        "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
-        "STAGE3_MODEL": "openai/gpt-4o-mini",
-        "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-        "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-        "IMAGE_ANALYSIS_MODEL": "local/qwen2.5vl:72b",
-        "CODING_MODEL": "openai/gpt-4o"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openai",
-      "DSGVO_CONFORMITY": false
+      }
     }
   },
-  "vram_32": {
-    "none": {
-      "label": "32 GB VRAM (Local only)",
+  "local_llm_presets": {
+    "vram_96": {
+      "label": "Local (96 GB VRAM)",
+      "EXTERNAL_LLM_PROVIDER": "none",
+      "DSGVO_CONFORMITY": true,
       "models": {
         "STAGE1_TEXT_MODEL": "local/qwen3:32b",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
         "STAGE2_INTERCEPTION_MODEL": "local/qwen3:32b",
         "STAGE2_OPTIMIZATION_MODEL": "local/qwen3:32b",
         "STAGE3_MODEL": "local/qwen3:32b",
         "STAGE4_LEGACY_MODEL": "local/qwen3:32b",
         "CHAT_HELPER_MODEL": "local/qwen3:32b",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
         "CODING_MODEL": "local/codestral:latest"
-      },
+      }
+    },
+    "vram_48": {
+      "label": "Local (48 GB VRAM)",
       "EXTERNAL_LLM_PROVIDER": "none",
-      "DSGVO_CONFORMITY": true
-    },
-    "bedrock": {
-      "label": "32 GB VRAM (AWS Bedrock EU)",
+      "DSGVO_CONFORMITY": true,
       "models": {
-        "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "bedrock",
-      "DSGVO_CONFORMITY": true
-    },
-    "openrouter": {
-      "label": "32 GB VRAM (OpenRouter)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-        "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "openrouter/mistralai/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openrouter",
-      "DSGVO_CONFORMITY": false
-    },
-    "mistral": {
-      "label": "32 GB VRAM (Mistral AI EU)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-        "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-        "STAGE3_MODEL": "mistral/mistral-large-latest",
-        "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
-        "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "mistral",
-      "DSGVO_CONFORMITY": true
-    },
-    "anthropic": {
-      "label": "32 GB VRAM (Anthropic Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5",
-        "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE3_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5",
-        "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "anthropic/claude-sonnet-4-5"
-      },
-      "EXTERNAL_LLM_PROVIDER": "anthropic",
-      "DSGVO_CONFORMITY": false
-    },
-    "openai": {
-      "label": "32 GB VRAM (OpenAI Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-        "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
-        "STAGE3_MODEL": "openai/gpt-4o-mini",
-        "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-        "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "openai/gpt-4o"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openai",
-      "DSGVO_CONFORMITY": false
-    }
-  },
-  "vram_24": {
-    "none": {
-      "label": "24 GB VRAM (Local only)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "local/gpt-OSS:20b",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "local/gpt-OSS:20b",
-        "STAGE2_OPTIMIZATION_MODEL": "local/gpt-OSS:20b",
-        "STAGE3_MODEL": "local/gpt-OSS:20b",
-        "STAGE4_LEGACY_MODEL": "local/gpt-OSS:20b",
-        "CHAT_HELPER_MODEL": "local/gpt-OSS:20b",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+        "STAGE1_TEXT_MODEL": "local/qwen3:32b",
+        "STAGE2_INTERCEPTION_MODEL": "local/qwen3:32b",
+        "STAGE2_OPTIMIZATION_MODEL": "local/qwen3:32b",
+        "STAGE3_MODEL": "local/qwen3:32b",
+        "STAGE4_LEGACY_MODEL": "local/qwen3:32b",
+        "CHAT_HELPER_MODEL": "local/qwen3:32b",
         "CODING_MODEL": "local/codestral:latest"
-      },
+      }
+    },
+    "vram_32": {
+      "label": "Local (32 GB VRAM)",
       "EXTERNAL_LLM_PROVIDER": "none",
-      "DSGVO_CONFORMITY": true
-    },
-    "bedrock": {
-      "label": "24 GB VRAM (AWS Bedrock EU)",
+      "DSGVO_CONFORMITY": true,
       "models": {
-        "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "bedrock",
-      "DSGVO_CONFORMITY": true
-    },
-    "openrouter": {
-      "label": "24 GB VRAM (OpenRouter)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-        "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "openrouter/mistralai/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openrouter",
-      "DSGVO_CONFORMITY": false
-    },
-    "mistral": {
-      "label": "24 GB VRAM (Mistral AI EU)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-        "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-        "STAGE3_MODEL": "mistral/mistral-large-latest",
-        "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
-        "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "mistral",
-      "DSGVO_CONFORMITY": true
-    },
-    "anthropic": {
-      "label": "24 GB VRAM (Anthropic Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5",
-        "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE3_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5",
-        "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "anthropic/claude-sonnet-4-5"
-      },
-      "EXTERNAL_LLM_PROVIDER": "anthropic",
-      "DSGVO_CONFORMITY": false
-    },
-    "openai": {
-      "label": "24 GB VRAM (OpenAI Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-        "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
-        "STAGE3_MODEL": "openai/gpt-4o-mini",
-        "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-        "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "openai/gpt-4o"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openai",
-      "DSGVO_CONFORMITY": false
-    }
-  },
-  "vram_16": {
-    "none": {
-      "label": "16 GB VRAM (Local only)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "local/mistral-nemo",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "local/mistral-nemo",
-        "STAGE2_OPTIMIZATION_MODEL": "local/mistral-nemo",
-        "STAGE3_MODEL": "local/mistral-nemo",
-        "STAGE4_LEGACY_MODEL": "local/mistral-nemo",
-        "CHAT_HELPER_MODEL": "local/mistral-nemo",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
+        "STAGE1_TEXT_MODEL": "local/qwen3:32b",
+        "STAGE2_INTERCEPTION_MODEL": "local/qwen3:32b",
+        "STAGE2_OPTIMIZATION_MODEL": "local/qwen3:32b",
+        "STAGE3_MODEL": "local/qwen3:32b",
+        "STAGE4_LEGACY_MODEL": "local/qwen3:32b",
+        "CHAT_HELPER_MODEL": "local/qwen3:32b",
         "CODING_MODEL": "local/codestral:latest"
-      },
+      }
+    },
+    "vram_24": {
+      "label": "Local (24 GB VRAM)",
       "EXTERNAL_LLM_PROVIDER": "none",
-      "DSGVO_CONFORMITY": true
-    },
-    "bedrock": {
-      "label": "16 GB VRAM (AWS Bedrock EU)",
+      "DSGVO_CONFORMITY": true,
       "models": {
-        "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "bedrock",
-      "DSGVO_CONFORMITY": true
-    },
-    "openrouter": {
-      "label": "16 GB VRAM (OpenRouter)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-        "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "openrouter/mistralai/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openrouter",
-      "DSGVO_CONFORMITY": false
-    },
-    "mistral": {
-      "label": "16 GB VRAM (Mistral AI EU)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-        "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-        "STAGE3_MODEL": "mistral/mistral-large-latest",
-        "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
-        "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "mistral",
-      "DSGVO_CONFORMITY": true
-    },
-    "anthropic": {
-      "label": "16 GB VRAM (Anthropic Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5",
-        "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE3_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5",
-        "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "anthropic/claude-sonnet-4-5"
-      },
-      "EXTERNAL_LLM_PROVIDER": "anthropic",
-      "DSGVO_CONFORMITY": false
-    },
-    "openai": {
-      "label": "16 GB VRAM (OpenAI Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:11b",
-        "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-        "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
-        "STAGE3_MODEL": "openai/gpt-4o-mini",
-        "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-        "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:11b",
-        "CODING_MODEL": "openai/gpt-4o"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openai",
-      "DSGVO_CONFORMITY": false
-    }
-  },
-  "vram_8": {
-    "none": {
-      "label": "8 GB VRAM (Local only)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "local/gemma:2b",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-        "STAGE2_INTERCEPTION_MODEL": "local/gemma:2b",
-        "STAGE2_OPTIMIZATION_MODEL": "local/gemma:2b",
-        "STAGE3_MODEL": "local/gemma:2b",
-        "STAGE4_LEGACY_MODEL": "local/gemma:2b",
-        "CHAT_HELPER_MODEL": "local/gemma:2b",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
+        "STAGE1_TEXT_MODEL": "local/qwen3:14b",
+        "STAGE2_INTERCEPTION_MODEL": "local/qwen3:14b",
+        "STAGE2_OPTIMIZATION_MODEL": "local/qwen3:14b",
+        "STAGE3_MODEL": "local/qwen3:14b",
+        "STAGE4_LEGACY_MODEL": "local/qwen3:14b",
+        "CHAT_HELPER_MODEL": "local/qwen3:14b",
         "CODING_MODEL": "local/codestral:latest"
-      },
+      }
+    },
+    "vram_16": {
+      "label": "Local (16 GB VRAM)",
       "EXTERNAL_LLM_PROVIDER": "none",
-      "DSGVO_CONFORMITY": true
-    },
-    "bedrock": {
-      "label": "8 GB VRAM (AWS Bedrock EU)",
+      "DSGVO_CONFORMITY": true,
       "models": {
-        "STAGE1_TEXT_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-        "STAGE2_INTERCEPTION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE2_OPTIMIZATION_MODEL": "bedrock/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "STAGE3_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "STAGE4_LEGACY_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "CHAT_HELPER_MODEL": "bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "bedrock",
-      "DSGVO_CONFORMITY": true
+        "STAGE1_TEXT_MODEL": "local/qwen3:8b",
+        "STAGE2_INTERCEPTION_MODEL": "local/qwen3:8b",
+        "STAGE2_OPTIMIZATION_MODEL": "local/qwen3:8b",
+        "STAGE3_MODEL": "local/qwen3:8b",
+        "STAGE4_LEGACY_MODEL": "local/qwen3:8b",
+        "CHAT_HELPER_MODEL": "local/qwen3:8b",
+        "CODING_MODEL": "local/codestral:latest"
+      }
     },
-    "openrouter": {
-      "label": "8 GB VRAM (OpenRouter)",
+    "vram_8": {
+      "label": "Local (8 GB VRAM)",
+      "EXTERNAL_LLM_PROVIDER": "none",
+      "DSGVO_CONFORMITY": true,
       "models": {
-        "STAGE1_TEXT_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-        "STAGE2_INTERCEPTION_MODEL": "openrouter/anthropic/claude-sonnet-4.5",
-        "STAGE2_OPTIMIZATION_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE3_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "STAGE4_LEGACY_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "CHAT_HELPER_MODEL": "openrouter/anthropic/claude-haiku-4.5",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
-        "CODING_MODEL": "openrouter/mistralai/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openrouter",
-      "DSGVO_CONFORMITY": false
-    },
-    "mistral": {
-      "label": "8 GB VRAM (Mistral AI EU)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "mistral/mistral-large-latest",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-        "STAGE2_INTERCEPTION_MODEL": "mistral/mistral-large-latest",
-        "STAGE2_OPTIMIZATION_MODEL": "mistral/mistral-large-latest",
-        "STAGE3_MODEL": "mistral/mistral-large-latest",
-        "STAGE4_LEGACY_MODEL": "mistral/mistral-large-latest",
-        "CHAT_HELPER_MODEL": "mistral/mistral-large-latest",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
-        "CODING_MODEL": "mistral/codestral-latest"
-      },
-      "EXTERNAL_LLM_PROVIDER": "mistral",
-      "DSGVO_CONFORMITY": true
-    },
-    "anthropic": {
-      "label": "8 GB VRAM (Anthropic Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-        "STAGE2_INTERCEPTION_MODEL": "anthropic/claude-sonnet-4-5",
-        "STAGE2_OPTIMIZATION_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE3_MODEL": "anthropic/claude-haiku-4-5",
-        "STAGE4_LEGACY_MODEL": "anthropic/claude-haiku-4-5",
-        "CHAT_HELPER_MODEL": "anthropic/claude-haiku-4-5",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
-        "CODING_MODEL": "anthropic/claude-sonnet-4-5"
-      },
-      "EXTERNAL_LLM_PROVIDER": "anthropic",
-      "DSGVO_CONFORMITY": false
-    },
-    "openai": {
-      "label": "8 GB VRAM (OpenAI Direct API)",
-      "models": {
-        "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-        "STAGE1_VISION_MODEL": "local/llama3.2-vision:latest",
-        "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-        "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
-        "STAGE3_MODEL": "openai/gpt-4o-mini",
-        "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-        "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-        "IMAGE_ANALYSIS_MODEL": "local/llama3.2-vision:latest",
-        "CODING_MODEL": "openai/gpt-4o"
-      },
-      "EXTERNAL_LLM_PROVIDER": "openai",
-      "DSGVO_CONFORMITY": false
+        "STAGE1_TEXT_MODEL": "local/qwen3:4b",
+        "STAGE2_INTERCEPTION_MODEL": "local/qwen3:4b",
+        "STAGE2_OPTIMIZATION_MODEL": "local/qwen3:4b",
+        "STAGE3_MODEL": "local/qwen3:4b",
+        "STAGE4_LEGACY_MODEL": "local/qwen3:4b",
+        "CHAT_HELPER_MODEL": "local/qwen3:4b",
+        "CODING_MODEL": "local/codestral:latest"
+      }
     }
   }
 }

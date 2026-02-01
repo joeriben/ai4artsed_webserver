@@ -3,54 +3,44 @@
     <div class="matrix-header">
       <h2>Model Selection Matrix</h2>
       <p class="help">
-        Click a column header to apply that preset. Your current configuration is highlighted.
+        Click a column header to apply that preset. Vision models are always local and auto-selected based on your hardware.
       </p>
       <p v-if="props.detectedVramTier" class="hardware-info">
         Detected Hardware: <strong>{{ getVramLabel(props.detectedVramTier) }}</strong>
+        <span class="vision-note">→ Vision: {{ getVisionModel() }}</span>
       </p>
     </div>
 
     <div class="matrix-scroll-container">
       <table class="model-matrix">
         <thead>
-          <!-- Group headers -->
-          <tr class="group-header-row">
-            <th class="row-label-header"></th>
-            <th :colspan="localColumns.length" class="group-header local-group">
-              LOCAL (DSGVO compliant)
-            </th>
-            <th :colspan="cloudColumns.length" class="group-header cloud-group">
-              CLOUD PROVIDERS
-            </th>
-          </tr>
           <!-- Column headers -->
           <tr class="column-header-row">
             <th class="row-label-header">Application Area</th>
+            <!-- Local column -->
             <th
-              v-for="col in localColumns"
-              :key="col.id"
               class="column-header local-column"
               :class="{
-                'column-active': isColumnActive(col),
-                'column-detected': isDetectedHardware(col)
+                'column-active': props.selectedProvider === 'none' || props.selectedProvider === 'local'
               }"
-              @click="applyPreset(col)"
-              :title="'Click to apply ' + col.label + ' preset'"
+              @click="applyPreset('local')"
+              title="Click to use local models only"
             >
-              <span class="col-label">{{ col.label }}</span>
+              <span class="col-label">Local</span>
+              <span class="vram-sub">({{ getVramLabel(props.detectedVramTier || 'vram_16') }})</span>
               <span class="dsgvo-badge dsgvo-ok">DSGVO</span>
-              <span v-if="isDetectedHardware(col)" class="hardware-badge">YOUR HW</span>
             </th>
+            <!-- Cloud columns -->
             <th
               v-for="col in cloudColumns"
               :key="col.id"
               class="column-header cloud-column"
               :class="{
-                'column-active': isColumnActive(col),
+                'column-active': props.selectedProvider === col.id,
                 'dsgvo-warning': !col.dsgvoCompliant
               }"
-              @click="applyPreset(col)"
-              :title="'Click to apply ' + col.label + ' preset'"
+              @click="applyPreset(col.id)"
+              :title="'Click to use ' + col.label + ' for LLM tasks'"
             >
               <span class="col-label">{{ col.label }}</span>
               <span v-if="col.dsgvoCompliant" class="dsgvo-badge dsgvo-ok">DSGVO</span>
@@ -59,24 +49,23 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in matrixRows" :key="row.field" class="data-row">
+          <tr v-for="row in matrixRows" :key="row.field" class="data-row" :class="{ 'vision-row': isVisionField(row.field) }">
             <td class="row-label">
               <span class="stage-badge">{{ row.stage }}</span>
               {{ row.label }}
+              <span v-if="isVisionField(row.field)" class="local-only-badge">LOCAL</span>
             </td>
-            <!-- Local columns -->
+            <!-- Local column -->
             <td
-              v-for="col in localColumns"
-              :key="col.id"
               class="matrix-cell"
               :class="{
-                'cell-active': isCellActive(row.field, col),
-                'cell-highlighted': isColumnActive(col)
+                'cell-active': isCellActive(row.field, 'local'),
+                'cell-highlighted': props.selectedProvider === 'none' || props.selectedProvider === 'local'
               }"
-              :title="getCellModel(col.id, 'none', row.field)"
+              :title="getLocalModel(row.field)"
             >
-              <span class="model-name">{{ getShortModelName(col.id, 'none', row.field) }}</span>
-              <span v-if="isCellActive(row.field, col)" class="active-indicator"></span>
+              <span class="model-name">{{ getShortModelName(getLocalModel(row.field)) }}</span>
+              <span v-if="isCellActive(row.field, 'local')" class="active-indicator"></span>
             </td>
             <!-- Cloud columns -->
             <td
@@ -84,14 +73,18 @@
               :key="col.id"
               class="matrix-cell"
               :class="{
-                'cell-active': isCellActive(row.field, col),
-                'cell-highlighted': isColumnActive(col),
-                'dsgvo-warning-cell': !col.dsgvoCompliant
+                'cell-active': isCellActive(row.field, col.id),
+                'cell-highlighted': props.selectedProvider === col.id,
+                'dsgvo-warning-cell': !col.dsgvoCompliant,
+                'vision-auto-cell': isVisionField(row.field)
               }"
-              :title="getCellModel('vram_24', col.id, row.field)"
+              :title="getCloudModel(col.id, row.field)"
             >
-              <span class="model-name">{{ getShortModelName('vram_24', col.id, row.field) }}</span>
-              <span v-if="isCellActive(row.field, col)" class="active-indicator"></span>
+              <span v-if="isVisionField(row.field)" class="model-name auto-vision">
+                auto (local)
+              </span>
+              <span v-else class="model-name">{{ getShortModelName(getCloudModel(col.id, row.field)) }}</span>
+              <span v-if="isCellActive(row.field, col.id)" class="active-indicator"></span>
             </td>
           </tr>
         </tbody>
@@ -108,11 +101,14 @@
       <span class="legend-item">
         <span class="legend-color us-color"></span> NOT DSGVO
       </span>
+      <span class="legend-item">
+        <span class="legend-color vision-color"></span> Vision (always local)
+      </span>
     </div>
 
     <div class="matrix-notes">
+      <p><strong>Vision models</strong> are always run locally and selected based on your VRAM. They work with any LLM provider.</p>
       <p><strong>OpenRouter:</strong> EU server routing configurable, but NOT DSGVO compliant (US company).</p>
-      <p><strong>Local models:</strong> Always DSGVO compliant - data stays on your hardware.</p>
     </div>
 
     <!-- Developer: Edit Matrix Button -->
@@ -151,8 +147,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { ModelField, MatrixColumn, MatrixRow, HardwareMatrix, VramTier, CloudProvider } from '@/types/settings'
+import { ref, computed } from 'vue'
+import type { ModelField, MatrixRow, VramTier } from '@/types/settings'
+
+// New matrix structure types
+interface NewHardwareMatrix {
+  vision_presets: Record<string, Record<string, string>>
+  llm_presets: Record<string, {
+    label: string
+    EXTERNAL_LLM_PROVIDER: string
+    DSGVO_CONFORMITY: boolean
+    models: Record<string, string>
+  }>
+  local_llm_presets: Record<string, {
+    label: string
+    EXTERNAL_LLM_PROVIDER: string
+    DSGVO_CONFORMITY: boolean
+    models: Record<string, string>
+  }>
+}
+
+interface CloudColumn {
+  id: string
+  label: string
+  dsgvoCompliant: boolean
+}
 
 // JSON Editor state
 const showJsonEditor = ref(false)
@@ -162,51 +181,53 @@ const saveMessage = ref('')
 const saveSuccess = ref(true)
 
 const props = defineProps<{
-  matrix: HardwareMatrix
+  matrix: NewHardwareMatrix
   currentSettings: Record<string, string>
-  selectedVramTier: VramTier
-  selectedProvider: CloudProvider
+  selectedProvider: string
   detectedVramTier: VramTier | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'apply-preset', vramTier: VramTier, provider: CloudProvider): void
+  (e: 'apply-preset', provider: string): void
   (e: 'matrix-updated'): void
 }>()
 
-// Column definitions
-const localColumns: MatrixColumn[] = [
-  { id: 'vram_8', label: '8 GB', type: 'local', dsgvoCompliant: true },
-  { id: 'vram_16', label: '16 GB', type: 'local', dsgvoCompliant: true },
-  { id: 'vram_24', label: '24 GB', type: 'local', dsgvoCompliant: true },
-  { id: 'vram_32', label: '32 GB', type: 'local', dsgvoCompliant: true },
-  { id: 'vram_48', label: '48 GB', type: 'local', dsgvoCompliant: true },
-  { id: 'vram_96', label: '96 GB', type: 'local', dsgvoCompliant: true },
+// Cloud column definitions (4 providers)
+const cloudColumns: CloudColumn[] = [
+  { id: 'mistral', label: 'Mistral EU', dsgvoCompliant: true },
+  { id: 'anthropic', label: 'Anthropic', dsgvoCompliant: false },
+  { id: 'openai', label: 'OpenAI', dsgvoCompliant: false },
+  { id: 'openrouter', label: 'OpenRouter', dsgvoCompliant: false },
 ]
 
-const cloudColumns: MatrixColumn[] = [
-  { id: 'mistral', label: 'Mistral EU', type: 'cloud', dsgvoCompliant: true },
-  { id: 'anthropic', label: 'Anthropic', type: 'cloud', dsgvoCompliant: false },
-  { id: 'openai', label: 'OpenAI', type: 'cloud', dsgvoCompliant: false },
-  { id: 'openrouter', label: 'OpenRouter', type: 'cloud', dsgvoCompliant: false },
-]
+// Vision fields that are always local
+const visionFields: ModelField[] = ['STAGE1_VISION_MODEL', 'IMAGE_ANALYSIS_MODEL']
+
+function isVisionField(field: ModelField): boolean {
+  return visionFields.includes(field)
+}
 
 // Helper to get VRAM label
-function getVramLabel(tier: VramTier): string {
-  const labels: Record<VramTier, string> = {
-    'vram_8': '8 GB VRAM',
-    'vram_16': '16 GB VRAM',
-    'vram_24': '24 GB VRAM',
-    'vram_32': '32 GB VRAM',
-    'vram_48': '48 GB VRAM',
-    'vram_96': '96 GB VRAM',
+function getVramLabel(tier: VramTier | string): string {
+  const labels: Record<string, string> = {
+    'vram_8': '8 GB',
+    'vram_16': '16 GB',
+    'vram_24': '24 GB',
+    'vram_32': '32 GB',
+    'vram_48': '48 GB',
+    'vram_96': '96 GB',
   }
   return labels[tier] || tier
 }
 
-// Check if column matches detected hardware
-function isDetectedHardware(col: MatrixColumn): boolean {
-  return col.type === 'local' && col.id === props.detectedVramTier
+// Get vision model for detected VRAM
+function getVisionModel(): string {
+  const vramTier = props.detectedVramTier || 'vram_16'
+  const vision = props.matrix?.vision_presets?.[vramTier]
+  if (vision?.STAGE1_VISION_MODEL) {
+    return getShortModelName(vision.STAGE1_VISION_MODEL)
+  }
+  return 'auto'
 }
 
 // Row definitions
@@ -222,24 +243,38 @@ const matrixRows: MatrixRow[] = [
   { field: 'CODING_MODEL', label: 'Coding', stage: 'H' },
 ]
 
-// Get model from matrix
-function getCellModel(vramTier: string, provider: string, field: ModelField): string {
-  const preset = props.matrix?.[vramTier as VramTier]?.[provider as CloudProvider]
-  if (!preset?.models) return '-'
-  return preset.models[field] || '-'
+// Get local model (from local_llm_presets + vision_presets)
+function getLocalModel(field: ModelField): string {
+  const vramTier = props.detectedVramTier || 'vram_16'
+
+  if (isVisionField(field)) {
+    return props.matrix?.vision_presets?.[vramTier]?.[field] || '-'
+  }
+
+  return props.matrix?.local_llm_presets?.[vramTier]?.models?.[field] || '-'
+}
+
+// Get cloud model (from llm_presets, vision always from vision_presets)
+function getCloudModel(provider: string, field: ModelField): string {
+  const vramTier = props.detectedVramTier || 'vram_16'
+
+  if (isVisionField(field)) {
+    // Vision is always local
+    return props.matrix?.vision_presets?.[vramTier]?.[field] || '-'
+  }
+
+  return props.matrix?.llm_presets?.[provider]?.models?.[field] || '-'
 }
 
 // Get shortened model name for display
-function getShortModelName(vramTier: string, provider: string, field: ModelField): string {
-  const fullModel = getCellModel(vramTier, provider, field)
-  if (fullModel === '-') return '-'
+function getShortModelName(fullModel: string): string {
+  if (!fullModel || fullModel === '-') return '-'
 
   // Remove provider prefix (local/, bedrock/, etc.)
   const withoutPrefix = fullModel.replace(/^[a-z]+\//, '')
 
   // Shorten long model names
   if (withoutPrefix.length > 20) {
-    // Extract key part of model name
     const parts = withoutPrefix.split(/[:\-.]/)
     if (parts.length > 1 && parts[0]) {
       return parts[0].substring(0, 12) + '...'
@@ -249,39 +284,24 @@ function getShortModelName(vramTier: string, provider: string, field: ModelField
   return withoutPrefix
 }
 
-// Check if a column is the currently active selection
-function isColumnActive(col: MatrixColumn): boolean {
-  if (col.type === 'local') {
-    return props.selectedVramTier === col.id && props.selectedProvider === 'none'
-  } else {
-    return props.selectedProvider === col.id
-  }
-}
-
 // Check if a specific cell matches current settings
-function isCellActive(field: ModelField, col: MatrixColumn): boolean {
+function isCellActive(field: ModelField, provider: string): boolean {
   const currentModel = props.currentSettings?.[field]
   if (!currentModel) return false
 
   let presetModel: string
-  if (col.type === 'local') {
-    presetModel = getCellModel(col.id, 'none', field)
+  if (provider === 'local') {
+    presetModel = getLocalModel(field)
   } else {
-    // For cloud columns, use vram_24 as reference
-    presetModel = getCellModel('vram_24', col.id, field)
+    presetModel = getCloudModel(provider, field)
   }
 
   return currentModel === presetModel
 }
 
 // Apply preset when column header is clicked
-function applyPreset(col: MatrixColumn) {
-  if (col.type === 'local') {
-    emit('apply-preset', col.id as VramTier, 'none')
-  } else {
-    // For cloud providers, use the current VRAM tier
-    emit('apply-preset', props.selectedVramTier, col.id as CloudProvider)
-  }
+function applyPreset(provider: string) {
+  emit('apply-preset', provider)
 }
 
 // JSON Editor functions
@@ -375,6 +395,12 @@ async function saveMatrix() {
   display: inline-block;
 }
 
+.vision-note {
+  margin-left: 10px;
+  color: #2e7d32;
+  font-weight: normal;
+}
+
 .matrix-scroll-container {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -382,46 +408,28 @@ async function saveMatrix() {
 
 .model-matrix {
   width: 100%;
-  min-width: 900px;
+  min-width: 700px;
   border-collapse: collapse;
   font-size: 12px;
 }
 
-/* Group headers (LOCAL / CLOUD) */
-.group-header-row th {
-  background: #333;
-  color: #fff;
-  padding: 8px 4px;
-  font-weight: 600;
-  text-align: center;
-  border: 1px solid #222;
-}
-
 .row-label-header {
-  background: #f0f0f0 !important;
-  color: #333 !important;
+  background: #f0f0f0;
+  color: #333;
   font-weight: 500;
   text-align: left;
-  padding: 8px 10px !important;
-  width: 140px;
-  min-width: 140px;
+  padding: 8px 10px;
+  width: 160px;
+  min-width: 160px;
   position: sticky;
   left: 0;
   z-index: 2;
-  border: 1px solid #999 !important;
-}
-
-.local-group {
-  background: #2e7d32 !important;
-}
-
-.cloud-group {
-  background: #1565c0 !important;
+  border: 1px solid #999;
 }
 
 /* Column headers */
 .column-header-row th {
-  padding: 6px 4px;
+  padding: 8px 6px;
   text-align: center;
   font-weight: 500;
   cursor: pointer;
@@ -437,11 +445,13 @@ async function saveMatrix() {
 .local-column {
   background: #e8f5e9;
   color: #1b5e20;
+  min-width: 100px;
 }
 
 .cloud-column {
   background: #e3f2fd;
   color: #0d47a1;
+  min-width: 100px;
 }
 
 .cloud-column.dsgvo-warning {
@@ -454,25 +464,17 @@ async function saveMatrix() {
   font-weight: 700;
 }
 
-.column-detected {
-  background: #c8e6c9 !important;
-  border: 2px solid #2e7d32 !important;
-}
-
-.hardware-badge {
-  display: inline-block;
-  font-size: 8px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-weight: 700;
-  background: #1565c0;
-  color: #fff;
-}
-
 .col-label {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   margin-bottom: 2px;
+}
+
+.vram-sub {
+  display: block;
+  font-size: 10px;
+  font-weight: normal;
+  opacity: 0.8;
 }
 
 .dsgvo-badge {
@@ -481,6 +483,7 @@ async function saveMatrix() {
   padding: 1px 4px;
   border-radius: 3px;
   font-weight: 600;
+  margin-top: 3px;
 }
 
 .dsgvo-ok {
@@ -500,6 +503,14 @@ async function saveMatrix() {
 
 .data-row:hover {
   background: #fafafa;
+}
+
+.vision-row {
+  background: #f1f8e9;
+}
+
+.vision-row:hover {
+  background: #e8f5e9;
 }
 
 .row-label {
@@ -528,6 +539,17 @@ async function saveMatrix() {
   padding: 1px 0;
 }
 
+.local-only-badge {
+  display: inline-block;
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+  background: #2e7d32;
+  color: #fff;
+  margin-left: 6px;
+}
+
 /* Matrix cells */
 .matrix-cell {
   padding: 5px 4px;
@@ -554,6 +576,14 @@ async function saveMatrix() {
   background: #fff8e1;
 }
 
+.vision-auto-cell {
+  background: #f1f8e9 !important;
+}
+
+.vision-auto-cell.cell-highlighted {
+  background: #c8e6c9 !important;
+}
+
 .model-name {
   font-family: 'Courier New', monospace;
   font-size: 10px;
@@ -562,7 +592,13 @@ async function saveMatrix() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 80px;
+  max-width: 90px;
+}
+
+.model-name.auto-vision {
+  color: #2e7d32;
+  font-style: italic;
+  font-family: inherit;
 }
 
 .active-indicator {
@@ -578,7 +614,8 @@ async function saveMatrix() {
 /* Legend */
 .matrix-legend {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #ddd;
@@ -609,6 +646,10 @@ async function saveMatrix() {
 
 .us-color {
   background: #ff9800;
+}
+
+.vision-color {
+  background: #c8e6c9;
 }
 
 /* Notes section */
@@ -646,7 +687,7 @@ async function saveMatrix() {
 
   .model-name {
     font-size: 9px;
-    max-width: 60px;
+    max-width: 70px;
   }
 
   .row-label {

@@ -293,7 +293,6 @@
         v-else
         :matrix="matrix"
         :currentSettings="settings"
-        :selectedVramTier="selectedVramTier"
         :selectedProvider="settings.EXTERNAL_LLM_PROVIDER || 'none'"
         :detectedVramTier="gpuInfo.vram_tier || null"
         @apply-preset="handleMatrixPresetApply"
@@ -318,7 +317,6 @@ const loading = ref(true)
 const error = ref(null)
 const settings = ref({})
 const matrix = ref({})
-const selectedVramTier = ref('vram_24')
 const gpuInfo = ref({ detected: false, error: null })
 const openrouterKey = ref('')
 const openrouterKeyMasked = ref('')
@@ -455,8 +453,6 @@ async function detectGpu() {
       gpuInfo.value = data
 
       if (data.detected && data.vram_tier) {
-        // Auto-select the detected VRAM tier
-        selectedVramTier.value = data.vram_tier
         console.log(`[Settings] GPU detected: ${data.gpu_name} (${data.vram_gb} GB) → ${data.vram_tier}`)
       }
     }
@@ -466,41 +462,45 @@ async function detectGpu() {
   }
 }
 
-function fillFromPreset() {
-  if (!matrix.value[selectedVramTier.value] || !matrix.value[selectedVramTier.value][settings.value.EXTERNAL_LLM_PROVIDER]) {
-    saveMessage.value = 'Preset not found'
-    saveSuccess.value = false
-    setTimeout(() => { saveMessage.value = '' }, 3000)
-    return
-  }
+// fillFromPreset is now handled by handleMatrixPresetApply
 
-  const preset = matrix.value[selectedVramTier.value][settings.value.EXTERNAL_LLM_PROVIDER]
-  const presetModels = preset.models
+// Handler for Matrix tab preset application (new structure)
+async function handleMatrixPresetApply(provider) {
+  try {
+    // Fetch merged preset from backend
+    const response = await fetch(`/api/settings/preset/${provider}`, {
+      credentials: 'include'
+    })
 
-  // Fill model fields from preset
-  Object.keys(modelLabels).forEach(key => {
-    if (presetModels[key]) {
-      settings.value[key] = presetModels[key]
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
     }
-  })
 
-  // Fill DSGVO_CONFORMITY from preset (EXTERNAL_LLM_PROVIDER already set via dropdown)
-  if (preset.DSGVO_CONFORMITY !== undefined) {
+    const preset = await response.json()
+
+    // Apply all model fields from preset
+    Object.keys(modelLabels).forEach(key => {
+      if (preset.models && preset.models[key]) {
+        settings.value[key] = preset.models[key]
+      }
+    })
+
+    // Apply provider and DSGVO settings
+    settings.value.EXTERNAL_LLM_PROVIDER = preset.EXTERNAL_LLM_PROVIDER
     settings.value.DSGVO_CONFORMITY = preset.DSGVO_CONFORMITY
+
+    saveMessage.value = `✓ Applied preset: ${preset.label}`
+    saveSuccess.value = true
+    setTimeout(() => { saveMessage.value = '' }, 3000)
+
+    // Switch to config tab to show filled values
+    activeTab.value = 'config'
+
+  } catch (e) {
+    saveMessage.value = `Error applying preset: ${e.message}`
+    saveSuccess.value = false
+    setTimeout(() => { saveMessage.value = '' }, 5000)
   }
-
-  saveMessage.value = `✓ Filled from: ${preset.label}`
-  saveSuccess.value = true
-  setTimeout(() => { saveMessage.value = '' }, 3000)
-}
-
-// Handler for Matrix tab preset application
-function handleMatrixPresetApply(vramTier, provider) {
-  selectedVramTier.value = vramTier
-  settings.value.EXTERNAL_LLM_PROVIDER = provider
-  fillFromPreset()
-  // Switch to config tab to show filled values
-  activeTab.value = 'config'
 }
 
 async function handleAwsCsvUpload(event) {

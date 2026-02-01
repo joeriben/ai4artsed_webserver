@@ -293,6 +293,58 @@ def get_hardware_matrix():
     """Get the current hardware matrix (loads from file each time for fresh data)"""
     return load_hardware_matrix()
 
+
+def get_merged_preset(provider: str, vram_tier: str) -> dict:
+    """
+    Get a merged preset combining LLM models and Vision models.
+
+    The matrix has three lookup tables:
+    - vision_presets[vram_tier]: Vision models (always local, VRAM-dependent)
+    - llm_presets[provider]: Cloud LLM models (VRAM-independent)
+    - local_llm_presets[vram_tier]: Local LLM models (VRAM-dependent)
+
+    For "local" provider: Uses local_llm_presets + vision_presets
+    For cloud providers: Uses llm_presets + vision_presets (vision from detected VRAM)
+
+    Args:
+        provider: "local", "mistral", "anthropic", "openai", "openrouter"
+        vram_tier: "vram_8", "vram_16", "vram_24", "vram_32", "vram_48", "vram_96"
+
+    Returns:
+        dict with all 9 model fields + metadata (label, EXTERNAL_LLM_PROVIDER, DSGVO_CONFORMITY)
+    """
+    matrix = get_hardware_matrix()
+
+    # Get vision models (always VRAM-dependent)
+    vision_preset = matrix.get('vision_presets', {}).get(vram_tier, {})
+
+    if provider == 'local' or provider == 'none':
+        # Local: both LLM and Vision from VRAM tier
+        llm_preset = matrix.get('local_llm_presets', {}).get(vram_tier, {})
+        label = llm_preset.get('label', f'Local ({vram_tier})')
+        external_provider = 'none'
+        dsgvo = True
+    else:
+        # Cloud: LLM from provider, Vision from VRAM tier
+        llm_preset = matrix.get('llm_presets', {}).get(provider, {})
+        label = llm_preset.get('label', provider.capitalize())
+        external_provider = llm_preset.get('EXTERNAL_LLM_PROVIDER', provider)
+        dsgvo = llm_preset.get('DSGVO_CONFORMITY', False)
+
+    # Merge models
+    models = {}
+    if 'models' in llm_preset:
+        models.update(llm_preset['models'])
+    models.update(vision_preset)  # Vision overwrites any conflicting keys
+
+    return {
+        'label': label,
+        'EXTERNAL_LLM_PROVIDER': external_provider,
+        'DSGVO_CONFORMITY': dsgvo,
+        'models': models
+    }
+
+
 # Hardware Matrix - loaded dynamically from hardware_matrix.json
 HARDWARE_MATRIX = get_hardware_matrix()
 
@@ -1263,10 +1315,11 @@ def save_matrix():
         if not isinstance(matrix_data, dict):
             return jsonify({"success": False, "error": "Matrix must be a JSON object"}), 400
 
-        expected_tiers = ['vram_8', 'vram_16', 'vram_24', 'vram_32', 'vram_48', 'vram_96']
-        for tier in expected_tiers:
-            if tier not in matrix_data:
-                logger.warning(f"[SETTINGS] Matrix missing tier: {tier}")
+        # New structure validation: vision_presets, llm_presets, local_llm_presets
+        expected_sections = ['vision_presets', 'llm_presets', 'local_llm_presets']
+        for section in expected_sections:
+            if section not in matrix_data:
+                logger.warning(f"[SETTINGS] Matrix missing section: {section}")
 
         success, message = save_hardware_matrix(matrix_data)
         if success:
@@ -1280,6 +1333,58 @@ def save_matrix():
     except Exception as e:
         logger.error(f"[SETTINGS] Error saving matrix: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@settings_bp.route('/preset/<provider>', methods=['GET'])
+@require_settings_auth
+def get_preset_for_provider(provider):
+    """
+    Get merged preset for a provider, using detected VRAM for vision models.
+
+    The preset merges:
+    - LLM models from the specified provider
+    - Vision models from the detected VRAM tier (always local)
+
+    Args:
+        provider: "local", "mistral", "anthropic", "openai", "openrouter"
+
+    Query params:
+        vram_tier: Override detected VRAM (optional)
+
+    Returns:
+        {
+            "label": "Anthropic Direct API",
+            "EXTERNAL_LLM_PROVIDER": "anthropic",
+            "DSGVO_CONFORMITY": false,
+            "vram_tier": "vram_96",
+            "models": {
+                "STAGE1_TEXT_MODEL": "anthropic/claude-haiku-4-5",
+                "STAGE1_VISION_MODEL": "local/qwen3-vl:32b",
+                ...
+            }
+        }
+    """
+    try:
+        # Get VRAM tier (from query param or detect)
+        vram_tier = request.args.get('vram_tier')
+        if not vram_tier:
+            gpu_info = detect_gpu_vram()
+            vram_tier = gpu_info.get('vram_tier', 'vram_16')
+
+        # Validate provider
+        valid_providers = ['local', 'none', 'mistral', 'anthropic', 'openai', 'openrouter']
+        if provider not in valid_providers:
+            return jsonify({"error": f"Invalid provider: {provider}"}), 400
+
+        # Get merged preset
+        preset = get_merged_preset(provider, vram_tier)
+        preset['vram_tier'] = vram_tier
+
+        return jsonify(preset), 200
+
+    except Exception as e:
+        logger.error(f"[SETTINGS] Error getting preset for {provider}: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @settings_bp.route('/ollama-models', methods=['GET'])
