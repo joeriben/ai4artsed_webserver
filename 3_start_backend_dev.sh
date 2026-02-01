@@ -25,7 +25,7 @@ echo ""
 echo "Checking port ${BACKEND_PORT}..."
 if lsof -ti:${BACKEND_PORT} > /dev/null 2>&1; then
     echo "Port ${BACKEND_PORT} is in use. Terminating existing process..."
-    lsof -ti:${BACKEND_PORT} | xargs -r kill -9
+    lsof -ti:${BACKEND_PORT} -sTCP:LISTEN | xargs -r kill -9
     sleep 2
     echo "✅ Process terminated."
 fi

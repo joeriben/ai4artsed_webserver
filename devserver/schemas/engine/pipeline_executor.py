@@ -320,7 +320,7 @@ class PipelineExecutor:
         if completed_steps:
             last_step_metadata = completed_steps[-1].metadata
             # Merge backend-specific keys into result metadata
-            for key in ['image_paths', 'seed', 'model', 'media_type', 'swarmui_available', 'parameters', 'filesystem_path', 'prompt_id', 'workflow_completed', 'legacy_workflow', 'media_files', 'outputs_metadata', 'workflow_json', 'download_all', 'chunk_name']:
+            for key in ['image_paths', 'seed', 'model', 'media_type', 'swarmui_available', 'parameters', 'filesystem_path', 'prompt_id', 'workflow_completed', 'legacy_workflow', 'media_files', 'outputs_metadata', 'workflow_json', 'download_all', 'chunk_name', 'image_data', 'model_id', 'backend']:
                 if key in last_step_metadata:
                     result_metadata[key] = last_step_metadata[key]
 
@@ -573,10 +573,15 @@ class PipelineExecutor:
                 logger.info(f"[SURREALIZER] Injected alpha_factor into chunk parameters: {alpha_value}")
 
             # Add ALL custom placeholders to parameters (for legacy workflows with input_mappings)
+            # Session 155: Debug logging to trace parameter injection
+            logger.info(f"[DEBUG-PARAMS] custom_placeholders keys: {list(context.custom_placeholders.keys())}")
+            logger.info(f"[DEBUG-PARAMS] chunk_request['parameters'] keys before injection: {list(chunk_request['parameters'].keys())}")
             for key, value in context.custom_placeholders.items():
                 if key not in chunk_request['parameters']:  # Don't overwrite existing
                     chunk_request['parameters'][key] = value
                     logger.info(f"[CUSTOM-PARAMS] Injected '{key}' = '{str(value)[:50]}' into chunk parameters")
+                else:
+                    logger.info(f"[CUSTOM-PARAMS] Skipped '{key}' - already in parameters with value: {chunk_request['parameters'][key]}")
 
             backend_request = BackendRequest(
                 backend_type=BackendType(chunk_request['backend_type']),

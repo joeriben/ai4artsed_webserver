@@ -489,6 +489,17 @@ class CanvasWorkflowExecutor:
             self.results[node_id] = {'type': 'generation', 'output': None, 'error': 'No config'}
             return None, 'image', None
 
+        # Session 155: Ensure connected parameter nodes have executed (lazy dependency resolution)
+        # Generation is responsible for its own dependencies - OOP principle
+        parameter_types_to_execute = ('seed', 'resolution', 'quality')
+        for inc in self.incoming.get(node_id, []):
+            source_id = inc.get('source')
+            source_node = self.node_map.get(source_id)
+            if source_node and source_node.get('type') in parameter_types_to_execute:
+                if source_id not in self.results:
+                    logger.info(f"[Canvas Executor] Generation triggering {source_node.get('type')} node {source_id}")
+                    self._execute_node(source_node, None, 'parameter', None, None)
+
         # Session 151: Collect parameters from connected parameter nodes
         generation_seed = None
         generation_width = None
@@ -515,6 +526,9 @@ class CanvasWorkflowExecutor:
                 quality_output = source_result['output']
                 generation_steps = quality_output.get('steps')
                 generation_cfg = quality_output.get('cfg')
+
+        # Debug: Log collected parameters
+        logger.info(f"[Canvas Executor] Generation params: seed={generation_seed}, width={generation_width}, height={generation_height}, steps={generation_steps}, cfg={generation_cfg}")
 
         # Use run_seed if no connected seed node (for batch execution)
         if generation_seed is None and self.run_seed is not None:

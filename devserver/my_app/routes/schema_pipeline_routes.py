@@ -2731,6 +2731,40 @@ async def execute_stage4_generation_only(
                 'seed': result_seed
             }
 
+        elif output_value == 'diffusers_generated':
+            # Session 150: Diffusers backend - image data is base64 encoded
+            image_data_b64 = output_result.metadata.get('image_data')
+            if image_data_b64:
+                import base64
+                image_bytes = base64.b64decode(image_data_b64)
+                logger.info(f"[RECORDER] Saving Diffusers image: {len(image_bytes)} bytes")
+                saved_filename = recorder.save_entity(
+                    entity_type=f'output_{media_type}',
+                    content=image_bytes,
+                    metadata={
+                        'config': output_config,
+                        'backend': 'diffusers',
+                        'model': output_result.metadata.get('model_id', 'unknown'),
+                        'seed': result_seed
+                    }
+                )
+                logger.info(f"[RECORDER] Diffusers image saved: {saved_filename}")
+                media_entities = [e for e in recorder.metadata.get('entities', []) if e.get('type') == f'output_{media_type}']
+                media_index = len(media_entities) - 1 if media_entities else 0
+                media_output = {
+                    'media_type': media_type,
+                    'url': f'/api/media/{media_type}/{run_id}/{media_index}',
+                    'run_id': run_id,
+                    'index': media_index,
+                    'seed': result_seed
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'Diffusers: No image_data in response',
+                    'run_id': run_id
+                }
+
         elif output_value == 'workflow_generated':
             # ComfyUI workflow
             filesystem_path = output_result.metadata.get('filesystem_path')
@@ -4127,6 +4161,28 @@ def interception_pipeline():
                                         config=output_config_name,
                                         seed=seed
                                     ))
+                                elif output_value == 'diffusers_generated':
+                                    # Session 150: Diffusers backend - image data is base64 encoded
+                                    logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: diffusers_generated")
+                                    image_data_b64 = output_result.metadata.get('image_data')
+                                    if image_data_b64:
+                                        import base64
+                                        image_bytes = base64.b64decode(image_data_b64)
+                                        logger.info(f"[RECORDER] Saving Diffusers image: {len(image_bytes)} bytes")
+                                        saved_filename = recorder.save_entity(
+                                            entity_type=f'output_{media_type}',
+                                            content=image_bytes,
+                                            metadata={
+                                                'config': output_config_name,
+                                                'backend': 'diffusers',
+                                                'model': output_result.metadata.get('model_id', 'unknown'),
+                                                'seed': seed
+                                            }
+                                        )
+                                        logger.info(f"[RECORDER] Diffusers image saved: {saved_filename}")
+                                    else:
+                                        logger.error("[DIFFUSERS] No image_data in response metadata")
+                                        saved_filename = None
                                 elif output_value == 'workflow_generated':
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: workflow_generated")
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] Metadata keys: {list(output_result.metadata.keys())}")
