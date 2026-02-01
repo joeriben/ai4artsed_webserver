@@ -94,6 +94,16 @@
         </table>
       </div>
 
+      <!-- DSGVO Warning -->
+      <div v-if="hasDsgvoWarning" class="section dsgvo-warning">
+        <h2>⚠️ DSGVO Warning</h2>
+        <p>The following models are <strong>NOT DSGVO-compliant</strong> (data processed outside EU):</p>
+        <ul>
+          <li v-for="model in nonDsgvoModels" :key="model">{{ model }}</li>
+        </ul>
+        <p class="help">DSGVO-compliant options: <code>local/*</code> (local models) or <code>mistral/*</code> (EU-based)</p>
+      </div>
+
       <!-- Model Configuration -->
       <div class="section">
         <h2>Model Configuration</h2>
@@ -323,21 +333,22 @@ const modelLabels = {
   'CODING_MODEL': 'Code Generation (Tone.js, p5.js)'
 }
 
-// Check if any cloud models are being used
-const cloudModelsDetected = computed(() => {
-  const cloudModels = []
+// Check for non-DSGVO-compliant models
+// DSGVO-compliant: local/ (local models), mistral/ (EU-based)
+// NOT DSGVO-compliant: anthropic/, openai/, openrouter/, google/, etc.
+const nonDsgvoModels = computed(() => {
+  const problematic = []
   Object.keys(modelLabels).forEach(key => {
     const modelValue = settings.value[key] || ''
-    // Cloud models don't start with "local/"
-    if (modelValue && !modelValue.startsWith('local/')) {
-      cloudModels.push(`${modelLabels[key]}: ${modelValue}`)
+    if (modelValue && !modelValue.startsWith('local/') && !modelValue.startsWith('mistral/')) {
+      problematic.push(`${modelLabels[key]}: ${modelValue}`)
     }
   })
-  return cloudModels
+  return problematic
 })
 
-const hasCloudModels = computed(() => {
-  return cloudModelsDetected.value.length > 0
+const hasDsgvoWarning = computed(() => {
+  return nonDsgvoModels.value.length > 0
 })
 
 // Session 133: Load available Ollama models for dropdown
@@ -745,6 +756,34 @@ onMounted(() => {
   background: #fff;
   border: 1px solid #ccc;
   padding: 15px;
+}
+
+.section.dsgvo-warning {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-left: 5px solid #ff9800;
+}
+
+.section.dsgvo-warning h2 {
+  color: #856404;
+}
+
+.section.dsgvo-warning ul {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.section.dsgvo-warning li {
+  color: #721c24;
+  font-family: monospace;
+  font-size: 12px;
+  margin: 4px 0;
+}
+
+.section.dsgvo-warning code {
+  background: rgba(0,0,0,0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
 }
 
 .section h2 {
