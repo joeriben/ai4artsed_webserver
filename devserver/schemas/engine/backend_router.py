@@ -511,8 +511,13 @@ class BackendRouter:
                     logger.info(f"[ROUTER] Using workflow API for '{chunk_name}' (LoRA injection)")
                     return await self._process_workflow_chunk(chunk_name, text_prompt, parameters, chunk)
                 else:
-                    # Use SwarmUI's simple Text2Image API (SD3.5 native support)
-                    logger.info(f"[ROUTER] Using simple API for '{chunk_name}'")
+                    # Session 150: Prefer Diffusers when enabled (faster, simpler)
+                    from config import DIFFUSERS_ENABLED
+                    if DIFFUSERS_ENABLED:
+                        logger.info(f"[ROUTER] Using Diffusers backend for '{chunk_name}' (DIFFUSERS_ENABLED=true)")
+                        return await self._process_diffusers_chunk(chunk_name, text_prompt, parameters, chunk)
+                    # Fallback: SwarmUI's simple Text2Image API
+                    logger.info(f"[ROUTER] Using SwarmUI simple API for '{chunk_name}'")
                     return await self._process_image_chunk_simple(chunk_name, text_prompt, parameters, chunk)
             else:
                 # For audio/video: use custom workflow submission

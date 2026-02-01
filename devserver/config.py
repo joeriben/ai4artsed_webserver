@@ -326,7 +326,7 @@ TRITON_HEALTH_CHECK_INTERVAL = float(os.environ.get("TRITON_HEALTH_CHECK_INTERVA
 # Direct HuggingFace Diffusers inference for maximum control
 # Optional TensorRT acceleration for 2.3x speedup on NVIDIA GPUs
 #
-DIFFUSERS_ENABLED = os.environ.get("DIFFUSERS_ENABLED", "false").lower() == "true"
+DIFFUSERS_ENABLED = os.environ.get("DIFFUSERS_ENABLED", "true").lower() == "true"  # Session 150: Default ON
 # Default to None = use HuggingFace default cache (~/.cache/huggingface/hub)
 _diffusers_cache_env = os.environ.get("DIFFUSERS_CACHE_DIR", "")
 DIFFUSERS_CACHE_DIR = Path(_diffusers_cache_env) if _diffusers_cache_env else None
