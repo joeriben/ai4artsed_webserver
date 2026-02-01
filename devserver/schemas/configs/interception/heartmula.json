@@ -1,0 +1,72 @@
+{
+  "pipeline": "music_generation",
+  "instruction_type": "music_generation",
+  "name": {
+    "en": "HeartMuLa Music",
+    "de": "HeartMuLa Musik"
+  },
+  "description": {
+    "en": "Generate music from lyrics and style tags using HeartMuLa AI. Supports English, Chinese, Japanese, Korean, and Spanish lyrics.",
+    "de": "Musik aus Lyrics und Style-Tags mit HeartMuLa AI generieren. Unterstützt Englisch, Chinesisch, Japanisch, Koreanisch und Spanisch."
+  },
+  "category": {
+    "de": "Sound",
+    "en": "Sound"
+  },
+  "properties": [
+    "sound"
+  ],
+  "context": {
+    "en": "HeartMuLa generates music from structured lyrics with markers like [Verse], [Chorus], [Bridge] and comma-separated style tags describing genre, mood, tempo, and instruments.",
+    "de": "HeartMuLa generiert Musik aus strukturierten Lyrics mit Markern wie [Verse], [Chorus], [Bridge] und kommaseparierten Style-Tags für Genre, Stimmung, Tempo und Instrumente."
+  },
+  "parameters": {
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "max_tokens": 1
+  },
+  "media_preferences": {
+    "default_output": "music",
+    "supported_types": [
+      "music"
+    ]
+  },
+  "meta": {
+    "stage": "interception",
+    "skip_stage2": true,
+    "backend": "heartmula",
+    "workflow_type": "passthrough",
+    "output_config": "heartmula_standard",
+    "note": "HeartMuLa music generation - requires dual text input (lyrics + tags)",
+    "system_config": false
+  },
+  "display": {
+    "icon": "🎵",
+    "color": "#9C27B0",
+    "category": "sound",
+    "difficulty": 3,
+    "order": 50,
+    "hidden": false
+  },
+  "tags": {
+    "en": [
+      "music",
+      "lyrics",
+      "multilingual",
+      "AI music",
+      "HeartMuLa"
+    ],
+    "de": [
+      "Musik",
+      "Lyrics",
+      "mehrsprachig",
+      "KI-Musik",
+      "HeartMuLa"
+    ]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

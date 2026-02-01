@@ -97,6 +97,12 @@ const router = createRouter({
       component: () => import('../views/canvas_workflow.vue'),
     },
     {
+      path: '/music-generation',
+      name: 'music-generation',
+      // HeartMuLa music generation with dual text input (lyrics + tags)
+      component: () => import('../views/music_generation.vue'),
+    },
+    {
       path: '/animation-test',
       name: 'animation-test',
       // Test page for GPU visualization animations
