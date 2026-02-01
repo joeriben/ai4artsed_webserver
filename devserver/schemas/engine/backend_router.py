@@ -514,8 +514,11 @@ class BackendRouter:
                     # Session 150: Prefer Diffusers when enabled (faster, simpler)
                     from config import DIFFUSERS_ENABLED
                     if DIFFUSERS_ENABLED:
-                        logger.info(f"[ROUTER] Using Diffusers backend for '{chunk_name}' (DIFFUSERS_ENABLED=true)")
-                        return await self._process_diffusers_chunk(chunk_name, text_prompt, parameters, chunk)
+                        # Session 150: Auto-detect Diffusers-compatible models
+                        diffusers_chunk = self._get_diffusers_compatible_chunk(chunk_name, chunk)
+                        if diffusers_chunk:
+                            logger.info(f"[ROUTER] Using Diffusers backend for '{chunk_name}' (DIFFUSERS_ENABLED=true)")
+                            return await self._process_diffusers_chunk(chunk_name, text_prompt, parameters, diffusers_chunk)
                     # Fallback: SwarmUI's simple Text2Image API
                     logger.info(f"[ROUTER] Using SwarmUI simple API for '{chunk_name}'")
                     return await self._process_image_chunk_simple(chunk_name, text_prompt, parameters, chunk)
@@ -532,6 +535,48 @@ class BackendRouter:
                 content="",
                 error=f"Output-Chunk processing error: {str(e)}"
             )
+
+    def _get_diffusers_compatible_chunk(self, chunk_name: str, chunk: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Check if chunk can be handled by Diffusers and return modified chunk with diffusers_config.
+
+        Session 150: Auto-detect Diffusers-compatible models (SD3.5, Flux2)
+        Returns None if not compatible, otherwise returns chunk with diffusers_config.
+        """
+        # Already has diffusers_config - use as-is
+        if chunk.get('diffusers_config'):
+            return chunk
+
+        # Auto-detect based on chunk name
+        diffusers_models = {
+            'sd35': {
+                'model_id': 'stabilityai/stable-diffusion-3.5-large',
+                'pipeline_class': 'StableDiffusion3Pipeline',
+                'torch_dtype': 'float16'
+            },
+            'flux2': {
+                'model_id': 'black-forest-labs/FLUX.2-dev',
+                'pipeline_class': 'Flux2Pipeline',
+                'torch_dtype': 'bfloat16'
+            },
+            'flux2_fp8': {
+                'model_id': 'silveroxides/FLUX.2-dev-fp8_scaled',
+                'pipeline_class': 'Flux2Pipeline',
+                'torch_dtype': 'bfloat16'
+            }
+        }
+
+        chunk_lower = chunk_name.lower()
+        for key, config in diffusers_models.items():
+            if key in chunk_lower:
+                logger.info(f"[ROUTER] Auto-detected Diffusers model for '{chunk_name}': {config['model_id']}")
+                # Create modified chunk with diffusers_config
+                modified_chunk = chunk.copy()
+                modified_chunk['diffusers_config'] = config
+                return modified_chunk
+
+        # Not a Diffusers-compatible model
+        return None
 
     async def _process_image_chunk_simple(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
         """Process image chunks using SwarmUI's /API/GenerateText2Image endpoint"""

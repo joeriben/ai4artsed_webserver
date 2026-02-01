@@ -151,6 +151,9 @@ class DiffusersImageGenerator:
             elif pipeline_class == "FluxPipeline":
                 from diffusers import FluxPipeline
                 PipelineClass = FluxPipeline
+            elif pipeline_class == "Flux2Pipeline":
+                from diffusers import Flux2Pipeline
+                PipelineClass = Flux2Pipeline
             else:
                 logger.error(f"[DIFFUSERS] Unknown pipeline class: {pipeline_class}")
                 return False
@@ -297,17 +300,26 @@ class DiffusersImageGenerator:
 
             # Run inference in thread to avoid blocking event loop
             def _generate():
-                result = pipe(
-                    prompt=prompt,
-                    negative_prompt=negative_prompt if negative_prompt else None,
-                    width=width,
-                    height=height,
-                    num_inference_steps=steps,
-                    guidance_scale=cfg_scale,
-                    generator=generator,
-                    callback_on_step_end=step_callback if callback else None,
-                    callback_on_step_end_tensor_inputs=["latents"] if callback else None,
-                )
+                # Build generation kwargs
+                gen_kwargs = {
+                    "prompt": prompt,
+                    "negative_prompt": negative_prompt if negative_prompt else None,
+                    "width": width,
+                    "height": height,
+                    "num_inference_steps": steps,
+                    "guidance_scale": cfg_scale,
+                    "generator": generator,
+                }
+
+                # SD3.5: Set max_sequence_length=512 for T5-XXL encoder
+                if hasattr(pipe, 'tokenizer_3'):  # SD3 has tokenizer_3 for T5
+                    gen_kwargs["max_sequence_length"] = 512
+
+                if callback:
+                    gen_kwargs["callback_on_step_end"] = step_callback
+                    gen_kwargs["callback_on_step_end_tensor_inputs"] = ["latents"]
+
+                result = pipe(**gen_kwargs)
                 return result.images[0]
 
             image = await asyncio.to_thread(_generate)
