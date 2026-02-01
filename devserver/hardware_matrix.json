@@ -59,13 +59,13 @@
       "EXTERNAL_LLM_PROVIDER": "openai",
       "DSGVO_CONFORMITY": false,
       "models": {
-        "STAGE1_TEXT_MODEL": "openai/gpt-4o-mini",
-        "STAGE2_INTERCEPTION_MODEL": "openai/gpt-4o",
-        "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-4o-mini",
-        "STAGE3_MODEL": "openai/gpt-4o-mini",
-        "STAGE4_LEGACY_MODEL": "openai/gpt-4o-mini",
-        "CHAT_HELPER_MODEL": "openai/gpt-4o-mini",
-        "CODING_MODEL": "openai/gpt-4o"
+        "STAGE1_TEXT_MODEL": "openai/gpt-OSS:120b",
+        "STAGE2_INTERCEPTION_MODEL": "openai/gpt-OSS:120b",
+        "STAGE2_OPTIMIZATION_MODEL": "openai/gpt-OSS:120b",
+        "STAGE3_MODEL": "openai/gpt-OSS:120b",
+        "STAGE4_LEGACY_MODEL": "openai/gpt-OSS:120b",
+        "CHAT_HELPER_MODEL": "openai/gpt-OSS:120b",
+        "CODING_MODEL": "openai/gpt-OSS:120b"
       }
     },
     "openrouter": {
