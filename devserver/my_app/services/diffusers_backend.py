@@ -157,16 +157,17 @@ class DiffusersImageGenerator:
 
             logger.info(f"[DIFFUSERS] Loading model: {model_id}")
 
-            # Load in executor to avoid blocking
-            loop = asyncio.get_event_loop()
-
+            # Load in thread to avoid blocking event loop
             def _load():
-                pipe = PipelineClass.from_pretrained(
-                    model_id,
-                    torch_dtype=self._get_torch_dtype(),
-                    cache_dir=str(self.cache_dir),
-                    use_safetensors=True
-                )
+                kwargs = {
+                    "torch_dtype": self._get_torch_dtype(),
+                    "use_safetensors": True
+                }
+                # Only set cache_dir if explicitly configured
+                if self.cache_dir:
+                    kwargs["cache_dir"] = str(self.cache_dir)
+
+                pipe = PipelineClass.from_pretrained(model_id, **kwargs)
                 pipe = pipe.to(self.device)
 
                 # Apply memory optimizations
@@ -180,7 +181,7 @@ class DiffusersImageGenerator:
 
                 return pipe
 
-            pipe = await loop.run_in_executor(None, _load)
+            pipe = await asyncio.to_thread(_load)
 
             self._pipelines[model_id] = pipe
             self._current_model = model_id
@@ -294,9 +295,7 @@ class DiffusersImageGenerator:
                         logger.warning(f"[DIFFUSERS] Callback error: {e}")
                 return callback_kwargs
 
-            # Run inference in executor
-            loop = asyncio.get_event_loop()
-
+            # Run inference in thread to avoid blocking event loop
             def _generate():
                 result = pipe(
                     prompt=prompt,
@@ -311,7 +310,7 @@ class DiffusersImageGenerator:
                 )
                 return result.images[0]
 
-            image = await loop.run_in_executor(None, _generate)
+            image = await asyncio.to_thread(_generate)
 
             # Convert to PNG bytes
             buffer = io.BytesIO()

@@ -327,7 +327,9 @@ TRITON_HEALTH_CHECK_INTERVAL = float(os.environ.get("TRITON_HEALTH_CHECK_INTERVA
 # Optional TensorRT acceleration for 2.3x speedup on NVIDIA GPUs
 #
 DIFFUSERS_ENABLED = os.environ.get("DIFFUSERS_ENABLED", "false").lower() == "true"
-DIFFUSERS_CACHE_DIR = Path(os.environ.get("DIFFUSERS_CACHE_DIR", str(_AI_TOOLS_BASE / "diffusers_cache")))
+# Default to None = use HuggingFace default cache (~/.cache/huggingface/hub)
+_diffusers_cache_env = os.environ.get("DIFFUSERS_CACHE_DIR", "")
+DIFFUSERS_CACHE_DIR = Path(_diffusers_cache_env) if _diffusers_cache_env else None
 DIFFUSERS_USE_TENSORRT = os.environ.get("DIFFUSERS_USE_TENSORRT", "false").lower() == "true"
 DIFFUSERS_TORCH_DTYPE = os.environ.get("DIFFUSERS_TORCH_DTYPE", "float16")  # float16, bfloat16, float32
 DIFFUSERS_DEVICE = os.environ.get("DIFFUSERS_DEVICE", "cuda")  # cuda, cpu
