@@ -344,6 +344,19 @@ const messages = {
       techTitle: 'Technische Details',
       techText: 'Modell: SD3.5 Large | Encoder: Separate CLIP-L + T5-XXL (für Dual-Fusion)'
     },
+    musicGeneration: {
+      infoTitle: 'Musik-Generierung',
+      infoDescription: 'Erstelle Musik aus Texten und Style-Tags. Die KI generiert Melodien, Rhythmen und Harmonien basierend auf deinen Lyrics und Genre-Angaben.',
+      purposeTitle: 'Pädagogischer Zweck',
+      purposeText: 'Erkunde wie KI musikalische Konzepte interpretiert. Wie beeinflusst die Wortwahl in den Lyrics die Melodie?',
+      lyricsLabel: 'Lyrics (Text)',
+      lyricsPlaceholder: '[Verse]\nDeine Lyrics hier...\n\n[Chorus]\nRefrain...',
+      tagsLabel: 'Style Tags',
+      tagsPlaceholder: 'pop, piano, upbeat, female vocal, 120bpm',
+      selectModel: 'Wähle ein Musik-Modell:',
+      generate: 'Musik generieren',
+      generating: 'Musik wird generiert...'
+    },
     edutainment: {
       ui: {
         didYouKnow: '🤔 Wusstest du?',
@@ -780,6 +793,19 @@ const messages = {
       purposeText: 'Explore the different "worldviews" of different AI architectures. How does the visual interpretation change depending on encoder weighting?',
       techTitle: 'Technical Details',
       techText: 'Model: SD3.5 Large | Encoder: Separate CLIP-L + T5-XXL (for dual fusion)'
+    },
+    musicGeneration: {
+      infoTitle: 'Music Generation',
+      infoDescription: 'Create music from text and style tags. The AI generates melodies, rhythms, and harmonies based on your lyrics and genre specifications.',
+      purposeTitle: 'Pedagogical Purpose',
+      purposeText: 'Explore how AI interprets musical concepts. How does word choice in lyrics affect the melody?',
+      lyricsLabel: 'Lyrics (Text)',
+      lyricsPlaceholder: '[Verse]\nYour lyrics here...\n\n[Chorus]\nChorus...',
+      tagsLabel: 'Style Tags',
+      tagsPlaceholder: 'pop, piano, upbeat, female vocal, 120bpm',
+      selectModel: 'Choose a music model:',
+      generate: 'Generate Music',
+      generating: 'Generating music...'
     },
     edutainment: {
       ui: {
