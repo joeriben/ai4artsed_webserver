@@ -1,0 +1,49 @@
+{
+  "pipeline": "music_generation",
+  "name": {
+    "en": "HeartMuLa Music",
+    "de": "HeartMuLa Musik"
+  },
+  "description": {
+    "en": "Generate music from lyrics and style tags using HeartMuLa AI - supports English, Chinese, Japanese, Korean, Spanish",
+    "de": "Musik aus Lyrics und Style-Tags mit HeartMuLa AI generieren - unterstützt Englisch, Chinesisch, Japanisch, Koreanisch, Spanisch"
+  },
+  "category": {
+    "en": "Sound",
+    "de": "Sound"
+  },
+  "context": "Write structured song lyrics with markers like [Verse], [Chorus], [Bridge] and provide comma-separated style tags describing genre, mood, instruments, and tempo. Focus on creating poetic, rhythmic lyrics that fit the musical style.",
+  "parameters": {
+    "OUTPUT_CHUNK": "output_music_heartmula",
+    "temperature": 1.0,
+    "topk": 50,
+    "cfg_scale": 1.5,
+    "max_audio_length_ms": 240000
+  },
+  "media_preferences": {
+    "default_output": "music",
+    "supported_types": ["music"]
+  },
+  "meta": {
+    "stage": "output",
+    "backend": "heartmula",
+    "requires_dual_input": true,
+    "supported_languages": ["en", "zh", "ja", "ko", "es"]
+  },
+  "display": {
+    "icon": "music_note",
+    "color": "#9C27B0",
+    "category": "sound",
+    "difficulty": 3,
+    "order": 110
+  },
+  "tags": {
+    "en": ["music", "lyrics", "multilingual", "AI music"],
+    "de": ["Musik", "Lyrics", "mehrsprachig", "KI-Musik"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 12,
+    "complexity": "intermediate"
+  }
+}

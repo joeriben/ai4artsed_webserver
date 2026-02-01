@@ -342,6 +342,22 @@ DIFFUSERS_TENSORRT_MODELS = {
     "sd35_medium": "stabilityai/stable-diffusion-3.5-medium-tensorrt",
 }
 
+# ============================================================================
+# HEARTMULA BACKEND CONFIGURATION
+# ============================================================================
+# HeartMuLa - Music generation from lyrics and tags using LLM + Audio Codec
+# Model: HeartMuLa 3B (open-source, multilingual)
+# VRAM: ~12-16GB recommended
+#
+HEARTMULA_ENABLED = os.environ.get("HEARTMULA_ENABLED", "true").lower() == "true"
+HEARTMULA_MODEL_PATH = os.environ.get(
+    "HEARTMULA_MODEL_PATH",
+    str(_AI_TOOLS_BASE / "heartlib" / "ckpt")
+)
+HEARTMULA_VERSION = os.environ.get("HEARTMULA_VERSION", "3B")
+HEARTMULA_LAZY_LOAD = os.environ.get("HEARTMULA_LAZY_LOAD", "true").lower() == "true"
+HEARTMULA_DEVICE = os.environ.get("HEARTMULA_DEVICE", "cuda")  # cuda, cpu
+
 
 # Feature Flags
 ENABLE_VALIDATION_PIPELINE = True

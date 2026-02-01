@@ -490,6 +490,9 @@ class BackendRouter:
             elif backend_type == 'diffusers':
                 logger.info(f"[ROUTER] Using Diffusers backend for '{chunk_name}'")
                 return await self._process_diffusers_chunk(chunk_name, text_prompt, parameters, chunk)
+            elif backend_type == 'heartmula':
+                logger.info(f"[ROUTER] Using HeartMuLa backend for '{chunk_name}'")
+                return await self._process_heartmula_chunk(chunk_name, text_prompt, parameters, chunk)
 
             # 2. Route based on execution mode (for ComfyUI backend)
             if execution_mode == 'legacy_workflow':
@@ -1753,6 +1756,136 @@ class BackendRouter:
             # Fallback to ComfyUI on error
             logger.info(f"[DIFFUSERS] Falling back to ComfyUI due to error")
             return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+    async def _process_heartmula_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
+        """Process music generation using HeartMuLa (heartlib)
+
+        Session XXX: Music generation backend using HeartMuLa library.
+        Generates music from lyrics and style tags using LLM + Audio Codec.
+
+        Args:
+            chunk_name: Name of the output chunk
+            prompt: Text prompt (used as fallback for lyrics)
+            parameters: Generation parameters including lyrics, tags, etc.
+            chunk: Chunk configuration
+
+        Returns:
+            BackendResponse with generated audio
+        """
+        try:
+            from my_app.services.heartmula_backend import get_heartmula_backend
+            from config import HEARTMULA_ENABLED
+            import random
+            import base64
+
+            # Check if HeartMuLa backend is enabled
+            if not HEARTMULA_ENABLED:
+                logger.warning(f"[HEARTMULA] Backend disabled in config")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="HeartMuLa backend is disabled in config (HEARTMULA_ENABLED=false)"
+                )
+
+            backend = get_heartmula_backend()
+
+            # Check availability (heartlib, models, GPU)
+            if not await backend.is_available():
+                logger.error(f"[HEARTMULA] Backend not available")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="HeartMuLa backend not available. Check if heartlib is installed and models are downloaded."
+                )
+
+            # Extract parameters from chunk config
+            input_mappings = chunk.get('input_mappings', {})
+
+            # Get lyrics and tags from parameters
+            # music_generation pipeline provides TEXT_1 (lyrics) and TEXT_2 (tags)
+            lyrics = parameters.get('lyrics') or parameters.get('TEXT_1', '')
+            tags = parameters.get('tags') or parameters.get('TEXT_2', '')
+
+            # Fallback: use prompt as lyrics if not provided
+            if not lyrics and prompt:
+                lyrics = prompt
+
+            if not lyrics:
+                logger.error("[HEARTMULA] No lyrics provided")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="No lyrics provided for music generation"
+                )
+
+            # Get generation parameters
+            temperature = float(parameters.get('temperature') or input_mappings.get('temperature', {}).get('default', 1.0))
+            topk = int(parameters.get('topk') or input_mappings.get('topk', {}).get('default', 50))
+            cfg_scale = float(parameters.get('cfg_scale') or input_mappings.get('cfg_scale', {}).get('default', 1.5))
+            max_audio_length_ms = int(parameters.get('max_audio_length_ms') or input_mappings.get('max_audio_length_ms', {}).get('default', 240000))
+
+            # Seed handling
+            seed = parameters.get('seed') or input_mappings.get('seed', {}).get('default', 'random')
+            if seed == 'random' or seed == -1:
+                seed = random.randint(0, 2**32 - 1)
+                logger.info(f"[HEARTMULA] Generated random seed: {seed}")
+            else:
+                seed = int(seed)
+
+            # Generate music via HeartMuLa
+            logger.info(f"[HEARTMULA] Generating music: lyrics={len(lyrics)} chars, tags={tags[:100] if tags else 'none'}...")
+
+            audio_bytes = await backend.generate_music(
+                lyrics=lyrics,
+                tags=tags,
+                temperature=temperature,
+                topk=topk,
+                cfg_scale=cfg_scale,
+                max_audio_length_ms=max_audio_length_ms,
+                seed=seed,
+                output_format="mp3"
+            )
+
+            if not audio_bytes:
+                logger.error("[HEARTMULA] Generation failed")
+                return BackendResponse(
+                    success=False,
+                    content="",
+                    error="HeartMuLa music generation failed"
+                )
+
+            # Return with binary audio data (base64 encoded)
+            return BackendResponse(
+                success=True,
+                content="heartmula_generated",
+                metadata={
+                    'chunk_name': chunk_name,
+                    'media_type': 'music',
+                    'backend': 'heartmula',
+                    'seed': seed,
+                    'audio_data': base64.b64encode(audio_bytes).decode('utf-8'),
+                    'audio_format': 'mp3',
+                    'parameters': {
+                        'lyrics_length': len(lyrics),
+                        'tags': tags,
+                        'temperature': temperature,
+                        'topk': topk,
+                        'cfg_scale': cfg_scale,
+                        'max_audio_length_ms': max_audio_length_ms
+                    }
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"[HEARTMULA] Error processing chunk '{chunk_name}': {e}")
+            import traceback
+            traceback.print_exc()
+
+            return BackendResponse(
+                success=False,
+                content="",
+                error=f"HeartMuLa error: {str(e)}"
+            )
 
     def _set_nested_value(self, obj: Any, path: str, value: Any):
         """Set nested value in dict or list using path notation (e.g., 'messages[1].content')"""
