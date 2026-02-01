@@ -90,16 +90,6 @@
                 </select>
               </td>
             </tr>
-            <tr>
-              <td class="label-cell">DSGVO Conformity</td>
-              <td class="value-cell">
-                <label style="display: flex; align-items: center; gap: 8px;">
-                  <input type="checkbox" v-model="settings.DSGVO_CONFORMITY" style="width: auto;" />
-                  <span>DSGVO-compliant configuration</span>
-                </label>
-                <span class="help-text">Enforces DSGVO-compliant models (local or Mistral EU)</span>
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>
@@ -262,17 +252,13 @@
         </table>
       </div>
 
-      <!-- Save Button -->
+      <!-- Save & Apply Button -->
       <div class="button-row">
-        <button @click="saveSettings" class="save-btn">Save Configuration</button>
-        <button @click="applySettings" class="apply-btn" :disabled="applyInProgress">
-          {{ applyInProgress ? 'Applying...' : 'Apply Settings' }}
+        <button @click="saveAndApply" class="save-btn" :disabled="saveInProgress">
+          {{ saveInProgress ? 'Saving...' : 'Save & Apply' }}
         </button>
         <span v-if="saveMessage" :class="{'save-message': true, 'error-message': !saveSuccess}">
           {{ saveMessage }}
-        </span>
-        <span v-if="applyMessage" :class="{'save-message': true, 'error-message': !applySuccess}">
-          {{ applyMessage }}
         </span>
       </div>
       </div>
@@ -322,9 +308,7 @@ const mistralKeyMasked = ref('')
 const awsCredentialsConfigured = ref(false)
 const saveMessage = ref('')
 const saveSuccess = ref(true)
-const applyInProgress = ref(false)
-const applyMessage = ref('')
-const applySuccess = ref(true)
+const saveInProgress = ref(false)
 const ollamaModels = ref([])  // Session 133: Ollama model dropdown
 
 const modelLabels = {
@@ -477,9 +461,8 @@ async function handleMatrixPresetApply(provider) {
       }
     })
 
-    // Apply provider and DSGVO settings
+    // Apply provider setting
     settings.value.EXTERNAL_LLM_PROVIDER = preset.EXTERNAL_LLM_PROVIDER
-    settings.value.DSGVO_CONFORMITY = preset.DSGVO_CONFORMITY
 
     saveMessage.value = `✓ Applied preset: ${preset.label}`
     saveSuccess.value = true
@@ -526,8 +509,9 @@ async function handleAwsCsvUpload(event) {
   setTimeout(() => { saveMessage.value = '' }, 5000)
 }
 
-async function saveSettings() {
+async function saveAndApply() {
   try {
+    saveInProgress.value = true
     saveMessage.value = 'Saving...'
     saveSuccess.value = true
 
@@ -548,19 +532,31 @@ async function saveSettings() {
       payload.MISTRAL_API_KEY = mistralKey.value
     }
 
-    const response = await fetch('/api/settings/', {  // Trailing slash to match Flask route
+    // Step 1: Save settings
+    const saveResponse = await fetch('/api/settings/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify(payload)
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
+    if (!saveResponse.ok) {
+      throw new Error(`Save failed: HTTP ${saveResponse.status}`)
     }
 
-    const data = await response.json()
-    saveMessage.value = '✓ ' + data.message
+    // Step 2: Apply settings (hot-reload)
+    saveMessage.value = 'Applying...'
+    const applyResponse = await fetch('/api/settings/reload-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+
+    if (!applyResponse.ok) {
+      throw new Error(`Apply failed: HTTP ${applyResponse.status}`)
+    }
+
+    saveMessage.value = '✓ Settings saved and applied'
     saveSuccess.value = true
 
     // Clear API key inputs and reload masked versions after successful save
@@ -618,47 +614,13 @@ async function saveSettings() {
 
     setTimeout(() => {
       saveMessage.value = ''
-    }, 5000)
+    }, 3000)
 
   } catch (e) {
     saveMessage.value = 'Error: ' + e.message
     saveSuccess.value = false
-  }
-}
-
-async function applySettings() {
-  try {
-    applyInProgress.value = true
-    applyMessage.value = 'Applying...'
-    applySuccess.value = true
-
-    const response = await fetch('/api/settings/reload-settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-
-    const data = await response.json()
-    applyMessage.value = '✓ ' + data.message
-    applySuccess.value = true
-
-    // Keep message visible for 3 seconds
-    setTimeout(() => {
-      applyMessage.value = ''
-      applyInProgress.value = false
-    }, 3000)
-
-  } catch (e) {
-    applyMessage.value = 'Error: ' + e.message
-    applySuccess.value = false
-    applyInProgress.value = false
-    setTimeout(() => {
-      applyMessage.value = ''
-    }, 5000)
+  } finally {
+    saveInProgress.value = false
   }
 }
 
@@ -710,6 +672,7 @@ onMounted(() => {
   min-height: 100vh;
   background: #000;
   padding: 20px;
+  padding-bottom: 120px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   color: #fff;
 }
