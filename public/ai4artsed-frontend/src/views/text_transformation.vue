@@ -702,6 +702,7 @@ const configsByCategory: Record<string, Config[]> = {
     { id: 'wan22_video', label: 'Wan 2.2', emoji: '🎬', color: '#E91E63', description: 'Hochwertige 720p Videogenerierung mit Wan 2.2 (5B)', logo: '/logos/Qwen_logo.png', lightBg: false }
   ],
   sound: [
+    { id: 'heartmula_standard', label: 'HeartMuLa', emoji: '🎵', color: '#9C27B0', description: 'Musik aus Lyrics + Style-Tags (multilingual)', logo: '/logos/heartmula_logo.png', lightBg: false },
     { id: 'acenet_t2instrumental', label: 'ACE\nInstrumental', emoji: '🎵', color: '#FF5722', description: 'KI-Musikgenerierung für Instrumentalstücke', logo: '/logos/ace_logo.png', lightBg: false },
     { id: 'stableaudio_open', label: 'Stable\nAudio', emoji: '🔊', color: '#00BCD4', description: 'Open-Source Audio-Generierung (max 47s)', logo: '/logos/stableaudio_logo.png', lightBg: false },
     { id: 'tonejs_code', label: 'Tone.js', emoji: '🎹', color: '#FF4081', description: 'Browser-basierte Musiksynthese mit Live-Code' }
@@ -1291,9 +1292,21 @@ async function selectCategory(categoryId: string) {
   scrollDownOnly(categorySectionRef.value, 'start')
 }
 
+// Configs that require their own dedicated Vue page (different input requirements)
+const REDIRECT_CONFIGS: Record<string, string> = {
+  'heartmula_standard': '/execute/heartmula_standard'  // music_generation.vue (dual text input)
+}
+
 async function selectConfig(configId: string) {
   // Only allow selection after interception is done
   if (!areModelBubblesEnabled.value || isOptimizationLoading.value) return
+
+  // Check if this config needs a different page (e.g., dual-text input)
+  if (REDIRECT_CONFIGS[configId]) {
+    console.log(`[SelectConfig] Redirecting to dedicated page for ${configId}`)
+    router.push(REDIRECT_CONFIGS[configId])
+    return
+  }
 
   // ALWAYS set selectedConfig (even if same) to trigger optimization
   selectedConfig.value = configId
