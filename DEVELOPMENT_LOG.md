@@ -1,5 +1,126 @@
 # Development Log
 
+## Session 154 - Canvas Parameter Injection System
+**Date:** 2026-02-01
+**Focus:** Parameter Nodes (Seed, Resolution, Quality) + Input Handling Fixes
+**Status:** COMPLETED
+
+### Overview
+
+Complete parameter injection system for Canvas workflows, enabling users to control generation parameters (seed, resolution, steps, cfg) through visual nodes.
+
+### Architecture: Parameter Injection Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Frontend (Canvas)                                                   │
+│  ├─ Parameter Nodes (Seed, Resolution, Quality)                     │
+│  ├─ Values stored in CanvasNode properties                          │
+│  └─ Passed to backend via /api/canvas/execute-stream                │
+└─────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  Backend (canvas_executor.py)                                        │
+│  ├─ Parameter nodes executed as source nodes (no propagation)       │
+│  ├─ Generation node collects params from connected parameter nodes  │
+│  └─ Calls execute_stage4_generation_only() with params              │
+└─────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  Pipeline Executor                                                   │
+│  ├─ Params injected via custom_placeholders                         │
+│  ├─ Only params in config's input_mappings are applied              │
+│  └─ Unsupported params gracefully ignored                           │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### New Node Types
+
+| Node | Type | Color | Purpose |
+|------|------|-------|---------|
+| **Seed** | `seed` | Teal (#14b8a6) | Control random seed for reproducibility |
+| **Resolution** | `resolution` | Teal (#14b8a6) | Set width/height dimensions |
+| **Quality** | `quality` | Teal (#14b8a6) | Set steps and CFG scale |
+
+### Seed Node Modes
+
+| Mode | Behavior |
+|------|----------|
+| `fixed` | Use specified seed value (default: 123456789) |
+| `random` | Generate random seed per execution |
+| `increment` | Base seed + batch index (for batch runs) |
+
+### Resolution Presets
+
+| Preset | Dimensions | Use Case |
+|--------|------------|----------|
+| `square_1024` | 1024 × 1024 | SD3.5 default |
+| `portrait_768x1344` | 768 × 1344 | Portrait images |
+| `landscape_1344x768` | 1344 × 768 | Landscape images |
+| `custom` | User-defined | Any resolution |
+
+### Parameter Support Matrix
+
+| Parameter | SD3.5 | Flux2 | GPT-Image | Gemini | ACEnet | Wan22 |
+|-----------|:-----:|:-----:|:---------:|:------:|:------:|:-----:|
+| `seed` | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| `width` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `height` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `steps` | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| `cfg` | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+
+**Note:** API-based backends (GPT-Image, Gemini) ignore ComfyUI parameters.
+
+### Bug Fixes
+
+1. **Parameter nodes not propagating** - Fixed `_find_source_nodes()` to recognize seed/resolution/quality
+2. **Double execution** - Parameter nodes now return `[]` from `_get_next_nodes()`
+3. **Input events not firing** - Changed `@blur/@keyup.enter` to `@input` for immediate updates
+4. **Node drag on input click** - Added `@mousedown.stop` to all parameter node inputs
+5. **Wrong default seed** - Changed from 42 to 123456789 (system standard)
+
+### useGenerationStream Integration
+
+Other views can inject parameters via the composable:
+
+```typescript
+import { useGenerationStream } from '@/composables/useGenerationStream'
+
+const { startGeneration } = useGenerationStream()
+
+await startGeneration({
+  prompt: 'A sunset over mountains',
+  outputConfig: 'sd35_large',
+  safetyLevel: 'youth',
+  // Parameter injection:
+  width: 1920,
+  height: 1080,
+  steps: 30,
+  cfg: 7.0
+})
+```
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `types/canvas.ts` | Added `seed`, `resolution`, `quality` to StageType + NODE_TYPE_DEFINITIONS |
+| `stores/canvas.ts` | Node property defaults |
+| `components/canvas/StageModule.vue` | Node UI templates + event handling fixes |
+| `components/canvas/ModulePalette.vue` | Added nodes to "Tools" category |
+| `views/canvas_workflow.vue` | Event handlers for new nodes |
+| `composables/useGenerationStream.ts` | Extended GenerationParams interface |
+| `services/canvas_executor.py` | `_execute_seed()`, `_execute_resolution()`, `_execute_quality()` |
+| `routes/schema_pipeline_routes.py` | Extended SSE endpoint + `execute_stage4_generation_only()` |
+
+### Commits
+
+- `1dca36c` - fix(edutainment): Show summary when first loop completes OR 10s elapsed
+- `367c4b4` - fix(canvas): Fix parameter node inputs not updating values
+- `d2d246a` - fix(canvas): Fix all parameter node input handling
+
+---
+
 ## Session 153 - Localhost Auto-Login for Settings
 **Date:** 2026-01-31
 **Focus:** Skip password authentication for local development

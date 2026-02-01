@@ -159,6 +159,9 @@ Canvas serves those ready for deeper, systematic exploration - including generat
 | **Evaluation** | `evaluation` | Amber (#f59e0b) | LLM-based judgment with branching | Yes | No |
 | **Preview** | `display` | Green (#10b981) | Inline text/media preview | Yes | No |
 | **Media Output** | `collector` | Cyan (#06b6d4) | Collects and displays all outputs | No | Yes |
+| **Seed** | `seed` | Teal (#14b8a6) | Random seed control for reproducibility | Yes | No |
+| **Resolution** | `resolution` | Teal (#14b8a6) | Image dimensions (width/height) | Yes | No |
+| **Quality** | `quality` | Teal (#14b8a6) | Generation quality (steps/cfg) | Yes | No |
 
 ---
 
@@ -260,7 +263,75 @@ Canvas serves those ready for deeper, systematic exploration - including generat
 
 ---
 
-#### 6. Generation (`generation`)
+#### 6. Seed (`seed`) - Session 154
+
+**Purpose**: Control random seed for reproducible generation.
+
+**Configuration**:
+- `seedMode`: `fixed` | `random` | `increment`
+- `seedValue`: Fixed seed value (default: 123456789)
+- `seedBase`: Base value for increment mode
+
+**Modes**:
+| Mode | Behavior |
+|------|----------|
+| `fixed` | Use specified seed value |
+| `random` | Generate random seed per execution |
+| `increment` | Base seed + batch index |
+
+**Connectors**:
+- Input: None (parameter source node)
+- Output: 1 (connects to Generation node)
+
+**Notes**:
+- Parameter nodes don't propagate through workflow
+- Only affects connected Generation nodes
+- Ignored by API-based backends (GPT-Image, Gemini)
+
+---
+
+#### 7. Resolution (`resolution`) - Session 154
+
+**Purpose**: Set image dimensions for generation.
+
+**Configuration**:
+- `resolutionPreset`: `square_1024` | `portrait_768x1344` | `landscape_1344x768` | `custom`
+- `resolutionWidth`: Custom width (64-4096)
+- `resolutionHeight`: Custom height (64-4096)
+
+**Presets**:
+| Preset | Dimensions |
+|--------|------------|
+| `square_1024` | 1024 × 1024 |
+| `portrait_768x1344` | 768 × 1344 |
+| `landscape_1344x768` | 1344 × 768 |
+| `custom` | User-defined |
+
+**Connectors**:
+- Input: None (parameter source node)
+- Output: 1 (connects to Generation node)
+
+---
+
+#### 8. Quality (`quality`) - Session 154
+
+**Purpose**: Control generation quality parameters.
+
+**Configuration**:
+- `qualitySteps`: Number of diffusion steps (1-150, default: 25)
+- `qualityCfg`: CFG scale (0-30, default: 5.5)
+
+**Connectors**:
+- Input: None (parameter source node)
+- Output: 1 (connects to Generation node)
+
+**Notes**:
+- Higher steps = more detail, slower generation
+- CFG controls prompt adherence (too high = artifacts)
+
+---
+
+#### 9. Generation (`generation`)
 
 **Purpose**: Create media (image, audio, video) from text prompt.
 
@@ -350,7 +421,7 @@ Canvas serves those ready for deeper, systematic exploration - including generat
 const terminalNodes = ['collector', 'display']
 
 // Source nodes (no input connector)
-const sourceNodes = ['input']
+const sourceNodes = ['input', 'seed', 'resolution', 'quality']
 ```
 
 ### Valid Connections Matrix
@@ -653,6 +724,20 @@ interface CanvasNode {
 
   // Model Adaption
   modelAdaptionPreset?: ModelAdaptionPreset
+
+  // Seed (Session 154)
+  seedMode?: 'fixed' | 'random' | 'increment'
+  seedValue?: number
+  seedBase?: number
+
+  // Resolution (Session 154)
+  resolutionPreset?: 'square_1024' | 'portrait_768x1344' | 'landscape_1344x768' | 'custom'
+  resolutionWidth?: number
+  resolutionHeight?: number
+
+  // Quality (Session 154)
+  qualitySteps?: number
+  qualityCfg?: number
 }
 ```
 
@@ -683,6 +768,86 @@ interface CanvasWorkflow {
   updatedAt?: string
 }
 ```
+
+---
+
+## Parameter Injection System (Session 154)
+
+### Overview
+
+Parameter nodes (Seed, Resolution, Quality) allow users to control generation parameters without exposing technical complexity. Parameters are injected into the pipeline at execution time.
+
+### Architecture
+
+```
+Parameter Nodes (source)     Workflow Nodes           Generation
+┌──────────────────┐        ┌─────────────────┐      ┌──────────────┐
+│ Seed Node        │───┐    │                 │      │              │
+│ seedValue: 999   │   │    │ Input → Interc. │──────│  Generation  │
+└──────────────────┘   │    │                 │      │              │
+┌──────────────────┐   ├───▶│                 │      │ Collects:    │
+│ Resolution Node  │───┘    └─────────────────┘      │ - seed       │
+│ 1920 × 1080      │                                 │ - width      │
+└──────────────────┘                                 │ - height     │
+                                                     │ - steps      │
+                                                     │ - cfg        │
+                                                     └──────────────┘
+                                                            │
+                                                            ▼
+                                                     Pipeline Executor
+                                                     custom_placeholders
+```
+
+### Execution Model
+
+1. **Parameter nodes are source nodes** - They are executed first, like Input nodes
+2. **No downstream propagation** - Parameter nodes return `[]` from `_get_next_nodes()`
+3. **Collection at Generation** - Generation node queries connected parameter nodes
+4. **Graceful ignore** - Params not in config's `input_mappings` are silently ignored
+
+### Parameter Support by Backend
+
+| Parameter | SD3.5 | Flux2 | GPT-Image | Gemini | ACEnet | Wan22 |
+|-----------|:-----:|:-----:|:---------:|:------:|:------:|:-----:|
+| `seed` | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| `width` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `height` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `steps` | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| `cfg` | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| `negative_prompt` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+
+**Note**: API-based backends (GPT-Image, Gemini) use different parameter systems and ignore ComfyUI-style parameters.
+
+### useGenerationStream Integration
+
+Other Vue views can inject parameters via the composable:
+
+```typescript
+import { useGenerationStream } from '@/composables/useGenerationStream'
+
+const { startGeneration } = useGenerationStream()
+
+await startGeneration({
+  prompt: 'A sunset',
+  outputConfig: 'sd35_large',
+  safetyLevel: 'youth',
+  // Parameter injection (all optional):
+  seed: 123456789,
+  width: 1920,
+  height: 1080,
+  steps: 30,
+  cfg: 7.0,
+  negative_prompt: 'blurry, low quality'
+})
+```
+
+### Backend Implementation
+
+Parameters flow through:
+1. **SSE Endpoint** (`/api/schema/pipeline/generation`) - Parses query params
+2. **`execute_stage4_generation_only()`** - Accepts optional params
+3. **`custom_placeholders`** - Injected into PipelineContext
+4. **Pipeline Executor** - Applies params via `input_mappings`
 
 ---
 
@@ -717,6 +882,16 @@ Input → Random Prompt → Interception → Model Adaption → Generation → C
                            Preview
 ```
 
+### With Parameter Nodes (Session 154)
+
+```
+Seed (fixed: 999) ──────────────────────────┐
+Resolution (1920×1080) ─────────────────────┼──→ Generation → Collector
+Quality (steps: 30, cfg: 7) ────────────────┘         ↑
+                                                      │
+Input → Interception ─────────────────────────────────┘
+```
+
 ---
 
 ## Related Documentation
@@ -728,4 +903,4 @@ Input → Random Prompt → Interception → Model Adaption → Generation → C
 ---
 
 **Document Status:** Complete
-**Last Updated:** 2026-01-29
+**Last Updated:** 2026-02-01 (Session 154: Parameter Injection)
