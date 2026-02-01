@@ -1,5 +1,47 @@
 # Development Log
 
+## Session 153 - Localhost Auto-Login for Settings
+**Date:** 2026-01-31
+**Focus:** Skip password authentication for local development
+**Status:** COMPLETED
+
+### Problem
+
+- Browser password managers don't work reliably with `localhost:17802` (no proper domain)
+- No password recovery mechanism
+- Unnecessary friction during local development
+
+### Solution
+
+Auto-login for localhost requests, similar to ComfyUI's approach.
+
+### Implementation
+
+Added `is_localhost_request()` helper that checks:
+- `request.remote_addr` in `('127.0.0.1', '::1')`
+- `request.host` in `('localhost', '127.0.0.1')`
+
+Modified `require_settings_auth` decorator to bypass authentication for localhost.
+Modified `/api/settings/check-auth` to return `auto_login: true` for localhost.
+
+### Security
+
+- Production access via `lab.ai4artsed.org` still requires password
+- Only true localhost connections are auto-authenticated
+- `request.remote_addr` is set by Flask/Werkzeug, not user-manipulable
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `routes/settings_routes.py` | `is_localhost_request()`, decorator bypass, check-auth update |
+
+### Commit
+
+`af9b988` - feat(settings): Auto-login for localhost development
+
+---
+
 ## Session 152 - Tone.js Browser-Based Music Generation
 **Date:** 2026-01-31
 **Focus:** Add Tone.js as new output option for browser-based music synthesis
