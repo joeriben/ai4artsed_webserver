@@ -695,14 +695,14 @@ const configsByCategory: Record<string, Config[]> = {
     { id: 'flux2', label: 'Flux 2', emoji: '⚡', color: '#FF6B35', description: 'Hochwertige Bildgenerierung mit Flux 2 Dev', logo: '/logos/flux2_logo.png', lightBg: false },
     { id: 'gemini_3_pro_image', label: 'Gemini 3\nPro', emoji: '🔷', color: '#4285F4', description: 'Google Gemini Bildgenerierung', logo: '/logos/gemini_logo.png', lightBg: false },
     // { id: 'gpt_image_1', label: 'GPT Image', emoji: '🌟', color: '#FFC107', description: 'Moderne KI-Bilder', logo: '/logos/ChatGPT-Logo.png', lightBg: true },
-    { id: 'p5js_code', label: 'P5.js', emoji: '💻', color: '#ED225D', description: 'Generative Computergrafik mit P5.js Code', logo: '/logos/p5js_logo.png', lightBg: false }
+    { id: 'p5js_code', label: 'P5.js', emoji: '💻', color: '#ED225D', description: 'Generative Computergrafik mit P5.js Code', logo: '/logos/p5js_logo.png', lightBg: false },
+    { id: 'zimage', label: 'Z-Image', emoji: '⚡', color: '#00D4AA', description: 'Hochwertige Bildgenerierung mit Text-Rendering', logo: '/logos/zimage_logo.png', lightBg: false }
   ],
   video: [
     { id: 'ltx_video', label: 'LTX\nVideo', emoji: '⚡', color: '#9C27B0', description: 'Schnelle lokale Videogenerierung', logo: '/logos/ltx_logo.png', lightBg: false },
     { id: 'wan22_video', label: 'Wan 2.2', emoji: '🎬', color: '#E91E63', description: 'Hochwertige 720p Videogenerierung mit Wan 2.2 (5B)', logo: '/logos/Qwen_logo.png', lightBg: false }
   ],
   sound: [
-    { id: 'heartmula_standard', label: 'HeartMuLa', emoji: '🎵', color: '#9C27B0', description: 'Musik aus Lyrics + Style-Tags (multilingual)', logo: '/logos/heartmula_logo.png', lightBg: false },
     { id: 'acenet_t2instrumental', label: 'ACE\nInstrumental', emoji: '🎵', color: '#FF5722', description: 'KI-Musikgenerierung für Instrumentalstücke', logo: '/logos/ace_logo.png', lightBg: false },
     { id: 'stableaudio_open', label: 'Stable\nAudio', emoji: '🔊', color: '#00BCD4', description: 'Open-Source Audio-Generierung (max 47s)', logo: '/logos/stableaudio_logo.png', lightBg: false },
     { id: 'tonejs_code', label: 'Tone.js', emoji: '🎹', color: '#FF4081', description: 'Browser-basierte Musiksynthese mit Live-Code' }
@@ -732,7 +732,8 @@ const configIdToChunkName: Record<string, string> = {
   'ltx_video': 'ltx',
   'wan22_video': 'wan22',
   'acenet_t2instrumental': 'acenet',
-  'stableaudio_open': 'stableaudio'
+  'stableaudio_open': 'stableaudio',
+  'zimage': 'zimage_diffusers'
 }
 
 // Helper to calculate speed from duration (0s=5★, 90s=1★)
@@ -840,7 +841,8 @@ const modelFullNames: Record<string, string> = {
   ltx_video: 'LTX Video',
   wan22_video: 'Wan 2.2 Text-to-Video',
   acenet_t2instrumental: 'ACE Step Instrumental',
-  stableaudio_open: 'Stable Audio Open'
+  stableaudio_open: 'Stable Audio Open',
+  zimage: 'Z-Image Turbo 6B'
 }
 
 // Helper to get hover data from chunks
@@ -1292,21 +1294,9 @@ async function selectCategory(categoryId: string) {
   scrollDownOnly(categorySectionRef.value, 'start')
 }
 
-// Configs that require their own dedicated Vue page (different input requirements)
-const REDIRECT_CONFIGS: Record<string, string> = {
-  'heartmula_standard': '/execute/heartmula_standard'  // music_generation.vue (dual text input)
-}
-
 async function selectConfig(configId: string) {
   // Only allow selection after interception is done
   if (!areModelBubblesEnabled.value || isOptimizationLoading.value) return
-
-  // Check if this config needs a different page (e.g., dual-text input)
-  if (REDIRECT_CONFIGS[configId]) {
-    console.log(`[SelectConfig] Redirecting to dedicated page for ${configId}`)
-    router.push(REDIRECT_CONFIGS[configId])
-    return
-  }
 
   // ALWAYS set selectedConfig (even if same) to trigger optimization
   selectedConfig.value = configId
