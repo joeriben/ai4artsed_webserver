@@ -130,6 +130,8 @@ class BackendType(Enum):
     # Session 149: New inference backends for SwarmUI/ComfyUI independence
     TRITON = "triton"      # NVIDIA Triton Inference Server (batched, multi-user)
     DIFFUSERS = "diffusers"  # Direct HuggingFace Diffusers (TensorRT optional)
+    # HeartMuLa: External music generation via heartlib
+    HEARTMULA = "heartmula"
 
 @dataclass
 class BackendRequest:
@@ -1953,12 +1955,16 @@ class BackendRouter:
             execution_mode = chunk.get('execution_mode', 'standard')
 
             if chunk_type == 'output_chunk':
+                backend_type = chunk.get('backend_type', 'comfyui')
                 if execution_mode == 'legacy_workflow':
                     # Legacy workflows have different requirements
                     required_fields = ['workflow', 'backend_type']
                     # Optional but recommended: legacy_config
+                elif backend_type == 'diffusers':
+                    # Diffusers chunks use diffusers_config instead of workflow
+                    required_fields = ['diffusers_config', 'input_mappings', 'output_mapping', 'backend_type']
                 else:
-                    # Standard output chunks
+                    # Standard output chunks (comfyui, swarmui)
                     required_fields = ['workflow', 'input_mappings', 'output_mapping', 'backend_type']
             elif chunk_type == 'api_output_chunk':
                 required_fields = ['api_config', 'input_mappings', 'output_mapping', 'backend_type']
