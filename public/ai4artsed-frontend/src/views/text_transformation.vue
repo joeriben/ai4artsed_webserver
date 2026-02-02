@@ -695,8 +695,7 @@ const configsByCategory: Record<string, Config[]> = {
     { id: 'flux2', label: 'Flux 2', emoji: '⚡', color: '#FF6B35', description: 'Hochwertige Bildgenerierung mit Flux 2 Dev', logo: '/logos/flux2_logo.png', lightBg: false },
     { id: 'gemini_3_pro_image', label: 'Gemini 3\nPro', emoji: '🔷', color: '#4285F4', description: 'Google Gemini Bildgenerierung', logo: '/logos/gemini_logo.png', lightBg: false },
     // { id: 'gpt_image_1', label: 'GPT Image', emoji: '🌟', color: '#FFC107', description: 'Moderne KI-Bilder', logo: '/logos/ChatGPT-Logo.png', lightBg: true },
-    { id: 'p5js_code', label: 'P5.js', emoji: '💻', color: '#ED225D', description: 'Generative Computergrafik mit P5.js Code', logo: '/logos/p5js_logo.png', lightBg: false },
-    { id: 'zimage', label: 'Z-Image', emoji: '⚡', color: '#00D4AA', description: 'Hochwertige Bildgenerierung mit Text-Rendering', logo: '/logos/zimage_logo.png', lightBg: false }
+    { id: 'p5js_code', label: 'P5.js', emoji: '💻', color: '#ED225D', description: 'Generative Computergrafik mit P5.js Code', logo: '/logos/p5js_logo.png', lightBg: false }
   ],
   video: [
     { id: 'ltx_video', label: 'LTX\nVideo', emoji: '⚡', color: '#9C27B0', description: 'Schnelle lokale Videogenerierung', logo: '/logos/ltx_logo.png', lightBg: false },
@@ -732,8 +731,7 @@ const configIdToChunkName: Record<string, string> = {
   'ltx_video': 'ltx',
   'wan22_video': 'wan22',
   'acenet_t2instrumental': 'acenet',
-  'stableaudio_open': 'stableaudio',
-  'zimage': 'zimage_diffusers'
+  'stableaudio_open': 'stableaudio'
 }
 
 // Helper to calculate speed from duration (0s=5★, 90s=1★)
@@ -841,8 +839,7 @@ const modelFullNames: Record<string, string> = {
   ltx_video: 'LTX Video',
   wan22_video: 'Wan 2.2 Text-to-Video',
   acenet_t2instrumental: 'ACE Step Instrumental',
-  stableaudio_open: 'Stable Audio Open',
-  zimage: 'Z-Image Turbo 6B'
+  stableaudio_open: 'Stable Audio Open'
 }
 
 // Helper to get hover data from chunks

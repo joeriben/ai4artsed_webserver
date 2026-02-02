@@ -154,9 +154,6 @@ class DiffusersImageGenerator:
             elif pipeline_class == "Flux2Pipeline":
                 from diffusers import Flux2Pipeline
                 PipelineClass = Flux2Pipeline
-            elif pipeline_class == "ZImagePipeline":
-                from diffusers import ZImagePipeline
-                PipelineClass = ZImagePipeline
             else:
                 logger.error(f"[DIFFUSERS] Unknown pipeline class: {pipeline_class}")
                 return False
