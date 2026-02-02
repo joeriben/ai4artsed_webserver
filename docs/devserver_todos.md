@@ -1,6 +1,34 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2026-01-29 (Session 147)
+**Last Updated:** 2026-02-02
 **Context:** Current priorities and active TODOs
+
+---
+
+## 🔴 CRITICAL REFACTORING: Proxy-Chunk-Pattern eliminieren
+
+**Status:** 🔴 **ARCHITEKTUR-VERLETZUNG** - Refactoring erforderlich
+**Datum:** 2026-02-02
+**Priority:** HIGH (blockiert saubere Backend-Integrationen)
+**Dokumentation:** `docs/ARCHITECTURE_VIOLATION_ProxyChunkPattern.md`
+
+### Problem
+
+Das `output_image.json` Proxy-Chunk-Pattern verletzt die 3-Ebenen-Architektur:
+
+- **Soll:** Pipeline entscheidet welche Chunks ausgeführt werden
+- **Ist:** Config.OUTPUT_CHUNK entscheidet, Proxy-Chunk routet zu anderem Chunk
+
+### Betroffene Dateien
+
+- `single_text_media_generation.json` Pipeline
+- `output_image.json` Proxy-Chunk
+- 17 Output-Configs die das Pattern nutzen
+
+### Lösung
+
+Pipeline sollte `{{OUTPUT_CHUNK}}` direkt in `chunks` Array verwenden - kein Proxy nötig.
+
+**Referenz-Implementierung:** `dual_text_media_generation` Pipeline (HeartMuLa) zeigt das korrekte Pattern.
 
 ---
 
@@ -127,12 +155,69 @@ NACHHER (sauber getrennt):
 
 ---
 
+## 🔴 CRITICAL REFACTORING: Output-Chunks als Ausführungseinheiten
+
+**Status:** 🔴 **ARCHITEKTUR-VERLETZUNG** - Output-Chunks wurden zu Metadaten-Containern degradiert
+**Datum:** 2026-02-02
+**Priority:** HIGH (blockiert neue Backend-Integrationen wie HeartMuLa)
+
+### Das Problem
+
+Output-Chunks sollten die **komplette Ausführung** übernehmen und ein fertiges Produkt liefern. Stattdessen:
+
+1. **Chunks wurden zu reinen Metadaten-Containern** - enthalten nur `input_mappings`, `meta`, etc.
+2. **Zentraler Code überladen** - `backend_router.py` hat jetzt `_process_diffusers_chunk()`, `_process_heartmula_chunk()`, etc.
+3. **Unmaintainbar** - Für jedes neue Backend muss zentraler Code geändert werden
+
+### Soll-Zustand (Ursprüngliche Architektur)
+
+Output-Chunks enthalten **ausführbaren Code** oder **vollständige Konfiguration**:
+
+| Chunk-Typ | Ausführungs-Config | Beispiel |
+|-----------|-------------------|----------|
+| ComfyUI | `workflow` | Komplettes ComfyUI-Workflow JSON |
+| API | `api_config` | endpoint, headers, request_body |
+| Diffusers | `diffusers_config` | model_id, pipeline_class |
+| **HeartMuLa** | **FEHLT** | Sollte `heartmula_config` haben |
+
+### Ist-Zustand (Architektur-Verletzung)
+
+- **Diffusers-Chunks** haben zwar `diffusers_config`, aber die Ausführungslogik ist in `backend_router.py:_process_diffusers_chunk()`
+- **HeartMuLa-Chunk** hat NUR Metadaten - keine Ausführungskonfiguration
+- **Neue Backends** erfordern Änderungen am zentralen `backend_router.py`
+
+### Konsequenz
+
+Diese Praxis bringt das komplette Development durcheinander:
+- Entwickler suchen Logik im Chunk, finden sie aber im Router
+- Debugging wird schwieriger (Logik verstreut)
+- Neue Backends können nicht "einfach einen Chunk hinzufügen"
+
+### Betroffene Dateien
+
+**Zentral (überladen):**
+- `devserver/schemas/engine/backend_router.py` - Enthält Backend-spezifische Logik die in Chunks gehört
+
+**Chunks (unvollständig):**
+- `devserver/schemas/chunks/output_music_heartmula.json` - Nur Metadaten, keine Ausführungskonfiguration
+- `devserver/schemas/chunks/output_image_*_diffusers.json` - Hat Config, aber Logik im Router
+
+### TODO: Diffusers refactoren
+
+Die Diffusers-Chunks haben `diffusers_config`, aber die Ausführungslogik (`_process_diffusers_chunk()`) gehört eigentlich IN den Chunk oder in ein Chunk-spezifisches Modul - nicht in den zentralen Router.
+
+### TODO: HeartMuLa korrekt implementieren
+
+HeartMuLa-Chunk braucht eine vollständige `heartmula_config` die definiert WIE heartmula aufgerufen wird, analog zu `diffusers_config` oder `api_config`.
+
+---
+
 ## 🔧 Chck for Need for REFACTORING: Prinzip der Pipeline-Autonomie
-Was in den über hundert      
+Was in den über hundert
     Session ggf. etwas verwässert wurde ich meine Idee der "Binnen-Orchestrierung" der Pipelines in ihrer Domäne. Ich habe sie wie ausführenden Code gedacht, der
-     eben diese Interveption-Aufgabe erledigt (input -> komplexer Prozess -> einfacher Output). In dieser Logik würde die Pipeline eben auch rekursive           
+     eben diese Interveption-Aufgabe erledigt (input -> komplexer Prozess -> einfacher Output). In dieser Logik würde die Pipeline eben auch rekursive
     Chunk-Aufrufe einfach selbst orchestrieren.
-    
+
     Ich denke das passt sehr gut zu unserem Paradigmenwechsel vom Backend-Orchestrator zur objektorientierten Frontend/VUE-Prozessinitiierung.
 
 Konkret heißt das für mich, der ich die Codebasis nicht vollständig überblicke: sind ggf in den schema-/pipeline- und chunkbezogenen py-Codefiles ggf. Funktionen absorbiert, die eigentlich zwischen Pipelines und "ihren" Chunks hätten realisiert werden sollen?
