@@ -1,5 +1,5 @@
 {
-  "pipeline": "music_generation",
+  "pipeline": "dual_text_media_generation",
   "name": {
     "en": "HeartMuLa Music",
     "de": "HeartMuLa Musik"

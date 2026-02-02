@@ -461,18 +461,25 @@ class BackendRouter:
         NOTE: For output chunks, the 'prompt' parameter contains the workflow dict,
         and the actual text prompt is in parameters['prompt'] or parameters.get('previous_output').
 
+        - Python Chunks (.py): Execute directly via importlib
         - Legacy Workflows: Use complete workflow passthrough with title-based prompt injection
         - Images: Use SwarmUI /API/GenerateText2Image (simple, fast)
         - Audio/Video: Use custom workflow submission via /ComfyBackendDirect
         """
         try:
-            # 1. Load Output-Chunk from JSON
+            # 1. Check for Python-Chunk first (new standard)
+            chunk_py_path = Path(__file__).parent.parent / "chunks" / f"{chunk_name}.py"
+            if chunk_py_path.exists():
+                logger.info(f"[ROUTER] Detected Python chunk: {chunk_name}.py")
+                return await self._execute_python_chunk(chunk_py_path, parameters)
+
+            # 2. Load Output-Chunk from JSON (legacy)
             chunk = self._load_output_chunk(chunk_name)
             if not chunk:
                 return BackendResponse(
                     success=False,
                     content="",
-                    error=f"Output-Chunk '{chunk_name}' not found"
+                    error=f"Output-Chunk '{chunk_name}' not found (.json or .py)"
                 )
 
             media_type = chunk.get('media_type', 'image')
@@ -1955,16 +1962,12 @@ class BackendRouter:
             execution_mode = chunk.get('execution_mode', 'standard')
 
             if chunk_type == 'output_chunk':
-                backend_type = chunk.get('backend_type', 'comfyui')
                 if execution_mode == 'legacy_workflow':
                     # Legacy workflows have different requirements
                     required_fields = ['workflow', 'backend_type']
                     # Optional but recommended: legacy_config
-                elif backend_type == 'diffusers':
-                    # Diffusers chunks use diffusers_config instead of workflow
-                    required_fields = ['diffusers_config', 'input_mappings', 'output_mapping', 'backend_type']
                 else:
-                    # Standard output chunks (comfyui, swarmui)
+                    # Standard output chunks
                     required_fields = ['workflow', 'input_mappings', 'output_mapping', 'backend_type']
             elif chunk_type == 'api_output_chunk':
                 required_fields = ['api_config', 'input_mappings', 'output_mapping', 'backend_type']
@@ -1983,6 +1986,88 @@ class BackendRouter:
         except Exception as e:
             logger.error(f"Error loading Output-Chunk '{chunk_name}': {e}")
             return None
+
+    async def _execute_python_chunk(self, chunk_path: Path, parameters: Dict[str, Any]) -> BackendResponse:
+        """
+        Execute Python-based Output-Chunk.
+
+        Python chunks are the new standard (JSON chunks are deprecated).
+        The chunk must have an async execute() function that takes parameters and returns bytes.
+
+        Args:
+            chunk_path: Path to the .py chunk file
+            parameters: Dict with chunk parameters (TEXT_1, TEXT_2, etc.)
+
+        Returns:
+            BackendResponse with generated media bytes
+        """
+        try:
+            import importlib.util
+            import sys
+
+            chunk_name = chunk_path.stem
+            logger.info(f"[PYTHON-CHUNK] Loading chunk: {chunk_name}")
+
+            # Load module dynamically
+            spec = importlib.util.spec_from_file_location(f"chunk_{chunk_name}", chunk_path)
+            if not spec or not spec.loader:
+                return BackendResponse(
+                    success=False,
+                    error=f"Failed to load Python chunk: {chunk_path}"
+                )
+
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[spec.name] = module
+            spec.loader.exec_module(module)
+
+            # Verify execute() function exists
+            if not hasattr(module, 'execute'):
+                return BackendResponse(
+                    success=False,
+                    error=f"Python chunk '{chunk_name}' missing execute() function"
+                )
+
+            logger.info(f"[PYTHON-CHUNK] Executing {chunk_name}.execute() with {len(parameters)} parameters")
+
+            # Call execute() with parameters
+            result = await module.execute(**parameters)
+
+            # Result should be bytes (audio/image/video data)
+            if not isinstance(result, bytes):
+                logger.warning(f"[PYTHON-CHUNK] execute() returned {type(result)}, expected bytes")
+                # Try to convert if it's a string path
+                if isinstance(result, str) and Path(result).exists():
+                    with open(result, 'rb') as f:
+                        result = f.read()
+                    logger.info(f"[PYTHON-CHUNK] Converted file path to bytes ({len(result)} bytes)")
+
+            logger.info(f"[PYTHON-CHUNK] Success - generated {len(result)} bytes")
+
+            return BackendResponse(
+                success=True,
+                content=result,
+                metadata={
+                    "chunk_type": "python",
+                    "chunk_name": chunk_name,
+                    "size_bytes": len(result)
+                }
+            )
+
+        except TypeError as e:
+            # Parameter mismatch
+            logger.error(f"[PYTHON-CHUNK] Parameter mismatch: {e}")
+            return BackendResponse(
+                success=False,
+                error=f"Parameter error in {chunk_path.name}: {str(e)}"
+            )
+        except Exception as e:
+            logger.error(f"[PYTHON-CHUNK] Execution failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return BackendResponse(
+                success=False,
+                error=f"Python chunk execution failed: {str(e)}"
+            )
 
     def _inject_lora_nodes(self, workflow: Dict, loras: list) -> Dict:
         """
