@@ -132,6 +132,8 @@ class BackendType(Enum):
     DIFFUSERS = "diffusers"  # Direct HuggingFace Diffusers (TensorRT optional)
     # HeartMuLa: External music generation via heartlib
     HEARTMULA = "heartmula"
+    # Python chunks: Self-contained executable Python modules
+    PYTHON = "python"
 
 @dataclass
 class BackendRequest:
