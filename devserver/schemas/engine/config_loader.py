@@ -295,13 +295,31 @@ class ConfigLoader:
             if config.parameters:
                 parameters.update(config.parameters)
 
+            # Resolve placeholders in chunk names (e.g., {{OUTPUT_CHUNK}})
+            resolved_chunks = []
+            for chunk_name in pipeline.chunks:
+                # Replace placeholders like {{OUTPUT_CHUNK}} with values from parameters
+                resolved_chunk_name = chunk_name
+                if '{{' in chunk_name and '}}' in chunk_name:
+                    # Extract placeholder name
+                    import re
+                    placeholders = re.findall(r'\{\{(\w+)\}\}', chunk_name)
+                    for placeholder in placeholders:
+                        if placeholder in parameters:
+                            resolved_chunk_name = resolved_chunk_name.replace(
+                                f'{{{{{placeholder}}}}}',
+                                str(parameters[placeholder])
+                            )
+                            logger.debug(f"Resolved chunk placeholder: {chunk_name} → {resolved_chunk_name}")
+                resolved_chunks.append(resolved_chunk_name)
+
             # Create resolved config
             resolved = ResolvedConfig(
                 name=config.name,
                 display_name=config.display_name,
                 description=config.description,
                 pipeline_name=config.pipeline,
-                chunks=pipeline.chunks,
+                chunks=resolved_chunks,
                 context=config.context,
                 parameters=parameters,
                 media_preferences=config.media_preferences,
