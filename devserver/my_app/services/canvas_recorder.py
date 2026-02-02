@@ -72,7 +72,7 @@ class CanvasRecorder:
         self.base_path = Path(base_path)
 
         # Date + Device based folder structure
-        # exports/json/YYYY-MM-DD/device_id/canvas_run_xxx/
+        # exports/json/YYYY-MM-DD/device_id/run_xxx_canvas/
         date_folder = datetime.now().strftime('%Y-%m-%d')
         self.run_folder = self.base_path / date_folder / self.device_id / run_id
         self.run_folder.mkdir(parents=True, exist_ok=True)

@@ -525,7 +525,7 @@ def execute_workflow():
         comparison_inputs = {}  # Session 147: {node_id: [{label, text, source}, ...]}
         execution_trace = []
         engine = PromptInterceptionEngine()
-        canvas_run_id = f"canvas_run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}_canvas"
 
         # Session 149: Initialize CanvasRecorder for export
         # Get device_id from request if provided
@@ -1182,7 +1182,7 @@ def execute_workflow_stream():
 
                 # Initialize
                 engine = PromptInterceptionEngine()
-                canvas_run_id = f"canvas_run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+                canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}_canvas"
                 device_id = data.get('device_id')
 
                 recorder = get_canvas_recorder(
@@ -1375,7 +1375,7 @@ def execute_batch():
             total_runs = count
             batch_mode = 'seed_variance'
 
-        batch_id = f"batch_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        batch_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}_canvas_batch"
 
         def generate():
             """Generator that yields SSE events for batch execution using CanvasWorkflowExecutor"""
@@ -1398,7 +1398,7 @@ def execute_batch():
                         yield f"event: batch_aborted\ndata: {json.dumps({'batch_id': batch_id, 'aborted_at_run': run_index, 'completed_runs': len(export_paths)})}\n\n"
                         break
 
-                    run_id = f"{batch_id}_run_{run_index + 1:03d}"
+                    run_id = f"{batch_id}_{run_index + 1:03d}"
 
                     # Get prompt override for this run (if using prompts mode)
                     prompt_override = prompts[run_index] if batch_mode == 'prompts' else None
