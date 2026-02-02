@@ -181,6 +181,28 @@ class BackendRouter:
             # This allows execution_mode to override the template's backend_type
             actual_backend = self._detect_backend_from_model(request.model, request.backend_type)
 
+            # Check if this is an Output-Chunk request (has workflow dict OR unknown backend type)
+            # Output-Chunks can be:
+            # 1. Python chunks (backend_type not in known LLM backends)
+            # 2. JSON chunks with workflow dict
+            is_output_chunk = (
+                isinstance(request.prompt, dict) or  # Workflow dict
+                actual_backend not in [BackendType.OLLAMA, BackendType.OPENROUTER, BackendType.ANTHROPIC,
+                                      BackendType.OPENAI, BackendType.MISTRAL, BackendType.AWS_BEDROCK, BackendType.COMFYUI]
+            )
+
+            if is_output_chunk:
+                # Output-Chunk: Route to _process_output_chunk
+                # Extract chunk_name from parameters (set by ChunkBuilder)
+                chunk_name = request.parameters.get('_chunk_name') or request.parameters.get('chunk_name')
+                if not chunk_name:
+                    # Fallback: Try to infer from metadata or fail gracefully
+                    logger.warning("[ROUTER] Output-Chunk detected but no chunk_name in parameters")
+                    chunk_name = "unknown"
+
+                logger.info(f"[ROUTER] Routing Output-Chunk: {chunk_name} (backend_type={actual_backend.value})")
+                return await self._process_output_chunk(chunk_name, request.prompt, request.parameters)
+
             # Schema-Pipelines: All LLM providers via Prompt Interception Engine
             if actual_backend in [BackendType.OLLAMA, BackendType.OPENROUTER, BackendType.ANTHROPIC, BackendType.OPENAI, BackendType.MISTRAL, BackendType.AWS_BEDROCK]:
                 # Create modified request with detected backend for proper routing

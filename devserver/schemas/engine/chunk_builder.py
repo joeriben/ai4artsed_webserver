@@ -184,6 +184,37 @@ class ChunkBuilder:
             pipeline: Pipeline object (for accessing instruction_type)
             model_override: Optional model name for variant selection
         """
+        # Check if Python chunk exists (new standard for Output-Chunks)
+        from pathlib import Path
+        chunk_py_path = Path(__file__).parent.parent / "chunks" / f"{chunk_name}.py"
+        if chunk_py_path.exists():
+            logger.info(f"[CHUNK-BUILD] Detected Python chunk: {chunk_name}.py")
+            # Python chunks don't need template processing - return minimal request
+            # The actual execution happens in backend_router._execute_python_chunk()
+            parameters = dict(resolved_config.parameters) if resolved_config.parameters else {}
+            parameters['_chunk_name'] = chunk_name
+
+            # Map TEXT_1, TEXT_2 from context
+            if 'input_text' in context:
+                parameters['TEXT_1'] = context['input_text']
+            if 'previous_output' in context:
+                parameters['TEXT_1'] = context['previous_output']  # Override with previous output if exists
+            if 'user_input' in context:
+                parameters['TEXT_2'] = context.get('text2', '')  # Second input for dual-text pipelines
+
+            return {
+                'backend_type': 'python',  # Special marker for Python chunks
+                'model': '',  # Python chunks don't use model
+                'prompt': {},  # Empty workflow dict
+                'parameters': parameters,
+                'metadata': {
+                    'chunk_name': chunk_name,
+                    'config_name': resolved_config.name,
+                    'chunk_type': 'python_chunk',
+                    'is_python_chunk': True
+                }
+            }
+
         # Model-specific variant selection
         template = self._get_template_with_variant(chunk_name, model_override)
         if not template:
@@ -277,6 +308,9 @@ class ChunkBuilder:
             # Output chunk: workflow dict with replaced placeholders
             logger.debug(f"[CHUNK-BUILD] '{chunk_name}' is output chunk - processing workflow")
             processed_workflow = self._process_workflow_placeholders(template.workflow, replacement_context)
+
+            # Include chunk_name in parameters for router detection (Python chunks)
+            processed_parameters['_chunk_name'] = chunk_name
 
             chunk_request = {
                 'backend_type': template.backend_type,

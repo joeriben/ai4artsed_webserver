@@ -1,24 +1,25 @@
 {
   "name": "music_generation",
-  "description": "Multi-Media Music Generation Pipeline",
-  "requires_interception_prompt": false,
+  "pipeline_type": "passthrough",
   "pipeline_stage": "2",
-  "pipeline_type": "music_generation",
+  "requires_interception_prompt": false,
+  "skip_stage2": true,
+  "description": "Dedicated pipeline for HeartMuLa music generation. Bypasses Stage 2 - user provides structured lyrics + tags directly.",
   "input_requirements": {
     "texts": 2
   },
-  "chunks": [
-    "manipulate",
-    "output_music_heartmula"
-  ],
-  "config_mappings": {
-    "manipulate": "media_prompt_optimization.music_acestep"
-  },
+  "chunks": ["output_music_heartmula"],
+  "required_configs": [],
+  "config_mappings": {},
   "meta": {
-    "version": "1.1",
-    "description_de": "Musikgenerierung mit HeartMuLa (Lyrics + Tags)",
-    "description_en": "Music Generation with HeartMuLa (Lyrics + Tags)",
-    "output_type": "music",
-    "backend": "heartmula"
+    "workflow_type": "skip",
+    "reusable": false,
+    "pre_translation": false,
+    "prompt_structure": {
+      "type": "passthrough",
+      "parts": [],
+      "description": "No Stage 2 execution - dual input (lyrics + tags) passed directly to Stage 3"
+    },
+    "use_case": "HeartMuLa music generation with dual text input. Stage 2 skipped as user provides structured lyrics."
   }
 }

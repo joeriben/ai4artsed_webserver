@@ -138,11 +138,9 @@ const currentRunId = ref<string | null>(null)
 // Config selection
 const selectedConfig = ref<string>('heartmula_standard')
 
-// Available music generation configs
+// Available music generation configs (HeartMuLa only - AceStep/StableAudio available in t2X Vue)
 const availableConfigs = ref<MusicConfig[]>([
-  { id: 'heartmula_standard', name: 'HeartMuLa', icon: '🎵' },
-  { id: 'acestep_instrumental', name: 'AceStep', icon: '🎸' },
-  { id: 'stableaudio', name: 'Stable Audio', icon: '🎹' }
+  { id: 'heartmula_standard', name: 'HeartMuLa', icon: '🎵' }
 ])
 
 // Page Context for Trashy
@@ -248,8 +246,9 @@ async function executeGeneration() {
 
   try {
     // Use interception endpoint with custom_placeholders for dual-text input
+    // schema = interception config (heartmula), output_config = output config for Stage 4
     const response = await axios.post('/api/schema/pipeline/interception', {
-      schema: selectedConfig.value,
+      schema: 'heartmula',
       input_text: lyricsInput.value,  // TEXT_1 as primary
       output_config: selectedConfig.value,
       safety_level: 'youth',
