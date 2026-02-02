@@ -1,5 +1,32 @@
 # Development Log
 
+## Session 155 - Z-Image Integration Attempt
+**Date:** 2026-02-02
+**Focus:** Z-Image 6B Model Evaluation
+**Status:** REJECTED
+
+### Summary
+
+Attempted integration of Z-Image (Alibaba Tongyi Lab) as new image generation model.
+
+### Actions Taken
+
+1. **Session 150**: Downloaded Z-Image models for ComfyUI (~28GB safetensors)
+2. **Session 155**: Switched to Diffusers backend (ZImagePipeline)
+3. **Testing**: Model produces content unsafe for educational platform
+
+### Decision
+
+**Z-Image wird nicht angeboten.** Das Modell generiert Inhalte, die für die pädagogische Plattform AI4ArtsEd ungeeignet sind.
+
+### Cleanup
+
+- All Z-Image configs removed
+- Model files deleted from SwarmUI
+- Commits: `2fb94fb` (integration), `9fedf40` (revert)
+
+---
+
 ## Session 154 - Canvas Parameter Injection System
 **Date:** 2026-02-01
 **Focus:** Parameter Nodes (Seed, Resolution, Quality) + Input Handling Fixes
