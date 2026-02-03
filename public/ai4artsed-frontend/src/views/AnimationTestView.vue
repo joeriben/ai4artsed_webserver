@@ -47,49 +47,21 @@
         />
       </div>
 
-      <!-- 2. Environment Animation -->
-      <div v-if="selectedAnimation === 'environment'" class="animation-wrapper">
-        <EnvironmentAnimation
-          :progress="progress"
-          :power-watts="gpuStats.power_draw_watts || simulatedPower"
-          :temperature="gpuStats.temperature_celsius || simulatedTemp"
-          :co2-grams="totalCo2"
-          :power-limit="gpuStats.power_limit_watts || 600"
-        />
-      </div>
-
-      <!-- 3. Retro Cockpit Animation -->
-      <div v-if="selectedAnimation === 'cockpit'" class="animation-wrapper">
-        <RetroCockpitAnimation
-          :progress="progress"
-          :power-watts="gpuStats.power_draw_watts || simulatedPower"
-          :power-limit="gpuStats.power_limit_watts || 600"
-          :temperature="gpuStats.temperature_celsius || simulatedTemp"
-          :utilization="gpuStats.utilization_percent || simulatedUtil"
-          :vram-used-mb="gpuStats.memory_used_mb || 24000"
-          :vram-total-mb="gpuStats.memory_total_mb || 48000"
-          :co2-grams="totalCo2"
-          :energy-wh="totalEnergy"
-          :elapsed-seconds="elapsedSeconds"
-          :gpu-name="gpuStats.gpu_name || 'Simulated GPU'"
-        />
-      </div>
-
-      <!-- 4. Klima-Eisberg Animation -->
+      <!-- 2. Klima-Eisberg Animation -->
       <div v-if="selectedAnimation === 'iceberg'" class="animation-wrapper">
         <IcebergAnimation
           :progress="progress"
         />
       </div>
 
-      <!-- 5. Wald Mini-Game -->
+      <!-- 3. Wald Mini-Game -->
       <div v-if="selectedAnimation === 'forest'" class="animation-wrapper">
         <ForestMiniGame
           :progress="progress"
         />
       </div>
 
-      <!-- 6. Seltene Erden Mini-Game -->
+      <!-- 4. Seltene Erden Mini-Game -->
       <div v-if="selectedAnimation === 'rareearth'" class="animation-wrapper">
         <RareEarthMiniGame
           :progress="progress"
@@ -130,8 +102,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import EdutainmentProgressAnimation from '@/components/edutainment/EdutainmentProgressAnimation.vue'
-import EnvironmentAnimation from '@/components/edutainment/EnvironmentAnimation.vue'
-import RetroCockpitAnimation from '@/components/edutainment/RetroCockpitAnimation.vue'
 import IcebergAnimation from '@/components/edutainment/IcebergAnimation.vue'
 import ForestMiniGame from '@/components/edutainment/ForestMiniGame.vue'
 import RareEarthMiniGame from '@/components/edutainment/RareEarthMiniGame.vue'
@@ -140,11 +110,9 @@ import type { GpuRealtimeStats } from '@/composables/useEdutainmentFacts'
 // Animation selection
 const animations = [
   { id: 'pixel', name: '1. Pixel + Bubbles' },
-  { id: 'environment', name: '2. Umwelt-Landschaft' },
-  { id: 'cockpit', name: '3. Retro Cockpit' },
-  { id: 'iceberg', name: '4. Klima-Eisberg' },
-  { id: 'forest', name: '5. Wald-Spiel' },
-  { id: 'rareearth', name: '6. Seltene Erden' }
+  { id: 'iceberg', name: '2. Klima-Eisberg' },
+  { id: 'forest', name: '3. Wald-Spiel' },
+  { id: 'rareearth', name: '4. Seltene Erden' }
 ]
 const selectedAnimation = ref('pixel')
 

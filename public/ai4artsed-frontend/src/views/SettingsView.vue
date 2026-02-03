@@ -63,7 +63,7 @@
           ▶️ Minigame Preview öffnen
         </button>
         <p class="help" style="margin-top: 10px; font-size: 12px; color: #888;">
-          Enthält: Pixel-Animation, Umwelt-Landschaft, Retro-Cockpit, Eisberg-Schmelzen, Wald-Spiel, <strong>Seltene Erden</strong>
+          Enthält: Pixel-Animation, Eisberg-Schmelzen, Wald-Spiel, <strong>Seltene Erden</strong>
         </p>
       </div>
 
