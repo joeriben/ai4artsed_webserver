@@ -1609,6 +1609,132 @@ devserver/schemas/language_templates/
 
 ---
 
+## 🎮 MINIGAMES / WAITING ANIMATIONS
+
+### 🎯 Design Principles (Übergreifend)
+
+**Kern-Prinzip: "Sisyphus der Systeme"**
+
+Alle Minigames folgen einem gemeinsamen pädagogischen Ansatz:
+- **Abwärtsdynamik:** Keine vollständige Heilung möglich
+- **User kann handeln:** Aber systemische Zerstörung läuft schneller als individuelle Aktion
+- **Realistische Darstellung:** Zeigt die echte Asymmetrie des Problems
+- **Sisyphus-Metapher:** Kämpfen gegen eine Übermacht (wie in "Papers, Please", "This War of Mine")
+
+**Beispiele:**
+- **Trees:** 1 Sekunde pro Baumpflanzung, ABER Fabriken wachsen schneller
+- **Seltene Erden:** Giftschlamm entfernen, ABER Abbau läuft weiter
+- **Fair Culture:** (Noch zu definieren - ähnliches Prinzip)
+
+---
+
+**⚠️ KRITISCHE SELBSTREFLEXION - Zu klären:**
+
+**Risiko 1: Resignation statt Handlung**
+- Führt die Hoffnungslosigkeit zu Lähmung?
+- Lernen Schüler "Es ist aussichtslos, also warum versuchen?"
+- Ist das pädagogisch kontraproduktiv?
+
+**Risiko 2: Fehlende Handlungsoptionen**
+- Minigame zeigt Problem, aber keine Lösung
+- Sollte es konkrete Exit-Strategien geben?
+- Links zu realen Organisationen/Initiativen nach dem Spiel?
+
+**Risiko 3: Zu deprimierend für Zielgruppe**
+- Ist das für Kids (8-12) / Youth (13-17) angemessen?
+- Balance zwischen Realismus und psychischer Belastung?
+- Braucht es Hoffnungsmomente?
+
+**Mögliche Lösungsansätze:**
+- [ ] **"Was kann ich wirklich tun?"** - Sektion nach jedem Spiel
+  - Recycling-Initiativen (z.B. Fairphone, refurbished Hardware)
+  - Fair-Culture-Bewegungen (Künstler-Kollektive)
+  - Politische Handlungsoptionen (Petitionen, Awareness-Kampagnen)
+- [ ] **Kleine Siege zeigen:** User kann temporäre Verbesserungen erreichen
+- [ ] **Kollektive Aktion:** "Du allein kannst es nicht schaffen, aber gemeinsam..."
+- [ ] **Systemkritik statt Verzweiflung:** Fokus auf strukturelle Probleme, nicht individuelle Schuld
+
+**Designfrage:** Wie balancieren wir **ehrlichen Realismus** mit **pädagogischer Ermächtigung**?
+
+---
+
+### Exploitation 1: Seltene Erden (Rare Earths)
+
+**Status:** 📋 **PLANNED**
+**Datum:** 2026-02-03
+**Priority:** MEDIUM (pedagogical feature, not blocking core functionality)
+
+**Konzept:** Pädagogisches Minigame über das "Zurückbringen" seltener Erden in den Berg
+
+**Game Mechanic (v2 - "Sisyphus der Umweltzerstörung"):**
+- **Prinzip:** Umwelt vs. genAI - "Tauziehen"-Mechanik mit **Abwärtsdynamik**
+- **Setting:** Landschaft degradiert kontinuierlich durch Abbau (wie in Realität)
+- **User-Aktion:**
+  - Giftschlamm aus See baggern
+  - In Container bringen
+  - Landschaft wird temporär gesünder
+- **ABER: Keine Heilung möglich** - Abwärtsspirale wie bei "Trees"-Spiel
+  - 1 Sekunde pro Giftschlamm-Entfernung
+  - ABER: Abbau läuft schneller als Aufräumen
+  - Degradierung schreitet immer fort (wie reale Seltene-Erden-Industrie)
+
+**Pädagogischer Kern:**
+- Zeigt die **systemische Hoffnungslosigkeit** des Problems
+- User kämpft gegen unaufhaltsame Zerstörung (Sisyphus-Metapher)
+- NICHT naiv-optimistisch ("Alles wird gut wenn wir aufräumen!")
+- Verdeutlicht: AI-Nutzung → mehr GPU-Nachfrage → mehr Abbau → mehr Zerstörung
+- User kann handeln, aber nicht gewinnen (realistisch)
+
+**Referenz:** Vergleichbar mit Games wie "Papers, Please" oder "This War of Mine" - moralische Dilemmata ohne "gute" Lösung
+
+**Details:**
+- **Type:** Waiting animation / minigame
+- **Educational Goal:** Bewusstsein schaffen für die Umweltauswirkungen des Abbaus seltener Erden für AI-Hardware
+- **Thema:** Seltene Erden für GPU/AI-Chips (Neodym, Dysprosium, Terbium, etc.)
+- **Integration Point:** Während lang laufender AI-Generierungsprozesse
+- **Pädagogischer Wert:** Verbindet AI-Nutzung mit realen ökologischen Kosten
+
+**Nächste Schritte:**
+- [ ] **Design-Entscheidung:** Tonalität klären (naiv-verspielt vs. ernst-aufklärend)
+- [ ] Recherche: Reale Umweltschäden durch Seltene-Erden-Abbau
+- [ ] Game Mechanic finalisieren basierend auf Tonalität
+- [ ] Artwork/Assets (passend zum AI4ArtsEd Design)
+- [ ] Backend: Progress-Tracking für Minigame-State
+- [ ] Frontend: Vue-Komponente für Minigame-UI
+
+---
+
+### Exploitation 2: Fair Culture (Web Scraping Ethics)
+
+**Status:** 📋 **PLANNED**
+**Datum:** 2026-02-03
+**Priority:** MEDIUM (pedagogical feature, not blocking core functionality)
+
+**Konzept:** Pädagogischer Content über Web-Scraping für generative AI, mit Spiel-Mechanik zur Künstler-Kompensation
+
+**Details:**
+- **Type:** Waiting animation / minigame
+- **Educational Goal:** Aufklärung über AI-Training-Data-Ethik und Künstler-Kompensation
+- **Thema:** Wie AI-Modelle mit geklauten/gescrapten Kunstwerken trainiert werden
+- **Game Mechanic:** Spieler könnten virtuelle Künstler "kompensieren" (Noch zu designen)
+- **Integration Point:** Während AI-Model-Loading oder Generierungsprozessen
+- **Pädagogischer Wert:** Kritisches Bewusstsein für Copyright und faire Entlohnung im AI-Zeitalter
+
+**Mögliche Mechaniken:**
+- Künstler-Profile mit echten Hintergründen (anonymisiert)
+- "Kompensations-Punkte" sammeln während Wartezeit
+- Visualisierung: Wie viele Kunstwerke für Training verwendet wurden
+- Link zu Fair-Culture-Initiativen und Künstler-Kollektiven
+
+**Nächste Schritte:**
+- [ ] Recherche: Fair-Culture-Bewegung, Künstler-Initiativen
+- [ ] Game Mechanic Design (Kompensations-System)
+- [ ] Content: Künstler-Geschichten und Fakten über AI-Training
+- [ ] Frontend: Integration in Waiting-Overlay
+- [ ] Backend: Optional - Tracking welche Models genutzt werden
+
+---
+
 ## 📝 Quick Reference
 
 ---
