@@ -88,10 +88,17 @@
           :progress="progress"
         />
       </div>
+
+      <!-- 6. Seltene Erden Mini-Game -->
+      <div v-if="selectedAnimation === 'rareearth'" class="animation-wrapper">
+        <RareEarthMiniGame
+          :progress="progress"
+        />
+      </div>
     </div>
 
-    <!-- Live stats (hidden for iceberg and forest which have their own) -->
-    <div v-if="selectedAnimation !== 'iceberg' && selectedAnimation !== 'forest'" class="live-stats">
+    <!-- Live stats (hidden for iceberg, forest, and rareearth which have their own) -->
+    <div v-if="selectedAnimation !== 'iceberg' && selectedAnimation !== 'forest' && selectedAnimation !== 'rareearth'" class="live-stats">
       <div class="stat-card">
         <div class="stat-label">Power</div>
         <div class="stat-value">{{ Math.round(gpuStats.power_draw_watts || simulatedPower) }}W</div>
@@ -127,6 +134,7 @@ import EnvironmentAnimation from '@/components/edutainment/EnvironmentAnimation.
 import RetroCockpitAnimation from '@/components/edutainment/RetroCockpitAnimation.vue'
 import IcebergAnimation from '@/components/edutainment/IcebergAnimation.vue'
 import ForestMiniGame from '@/components/edutainment/ForestMiniGame.vue'
+import RareEarthMiniGame from '@/components/edutainment/RareEarthMiniGame.vue'
 import type { GpuRealtimeStats } from '@/composables/useEdutainmentFacts'
 
 // Animation selection
@@ -135,7 +143,8 @@ const animations = [
   { id: 'environment', name: '2. Umwelt-Landschaft' },
   { id: 'cockpit', name: '3. Retro Cockpit' },
   { id: 'iceberg', name: '4. Klima-Eisberg' },
-  { id: 'forest', name: '5. Wald-Spiel' }
+  { id: 'forest', name: '5. Wald-Spiel' },
+  { id: 'rareearth', name: '6. Seltene Erden' }
 ]
 const selectedAnimation = ref('pixel')
 

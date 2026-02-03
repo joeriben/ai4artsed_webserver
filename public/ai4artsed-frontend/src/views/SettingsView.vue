@@ -53,6 +53,20 @@
         </button>
       </div>
 
+      <!-- Testing Tools for Educators -->
+      <div class="section">
+        <h2>🎮 Testing Tools für Pädagog*innen</h2>
+        <p class="help">
+          Testen und erkunden Sie die pädagogischen Minigames und Animationen, bevor Sie sie mit Lernenden nutzen.
+        </p>
+        <button @click="$router.push('/animation-test')" class="action-btn" style="margin-top: 10px;">
+          ▶️ Minigame Preview öffnen
+        </button>
+        <p class="help" style="margin-top: 10px; font-size: 12px; color: #888;">
+          Enthält: Pixel-Animation, Umwelt-Landschaft, Retro-Cockpit, Eisberg-Schmelzen, Wald-Spiel, <strong>Seltene Erden</strong>
+        </p>
+      </div>
+
       <!-- General Settings -->
       <div class="section">
         <h2>General Configuration</h2>
