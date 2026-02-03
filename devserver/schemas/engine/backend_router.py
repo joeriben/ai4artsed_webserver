@@ -130,9 +130,7 @@ class BackendType(Enum):
     # Session 149: New inference backends for SwarmUI/ComfyUI independence
     TRITON = "triton"      # NVIDIA Triton Inference Server (batched, multi-user)
     DIFFUSERS = "diffusers"  # Direct HuggingFace Diffusers (TensorRT optional)
-    # HeartMuLa: External music generation via heartlib
-    HEARTMULA = "heartmula"
-    # Python chunks: Self-contained executable Python modules
+    # Python chunks: Self-contained executable Python modules (HeartMuLa, future backends)
     PYTHON = "python"
 
 @dataclass
@@ -2037,6 +2035,7 @@ class BackendRouter:
             if not spec or not spec.loader:
                 return BackendResponse(
                     success=False,
+                    content="",
                     error=f"Failed to load Python chunk: {chunk_path}"
                 )
 
@@ -2048,6 +2047,7 @@ class BackendRouter:
             if not hasattr(module, 'execute'):
                 return BackendResponse(
                     success=False,
+                    content="",
                     error=f"Python chunk '{chunk_name}' missing execute() function"
                 )
 
@@ -2082,6 +2082,7 @@ class BackendRouter:
             logger.error(f"[PYTHON-CHUNK] Parameter mismatch: {e}")
             return BackendResponse(
                 success=False,
+                content="",
                 error=f"Parameter error in {chunk_path.name}: {str(e)}"
             )
         except Exception as e:
@@ -2090,6 +2091,7 @@ class BackendRouter:
             traceback.print_exc()
             return BackendResponse(
                 success=False,
+                content="",
                 error=f"Python chunk execution failed: {str(e)}"
             )
 

@@ -95,7 +95,7 @@ Server selects OUTPUT-CONFIGS (not chunks directly) using `output_config_default
 5. Config has `"OUTPUT_CHUNK": "output_image_sd35_large"`
 6. Proxy-Chunk (output_image.json) receives this parameter
 7. backend_router loads specialized Output-Chunk
-8. Output-Chunk contains complete ComfyUI API workflow
+8. Output-Chunk contains execution logic (ComfyUI workflow OR Python code)
 
 ---
 
@@ -115,9 +115,15 @@ Output-Chunks are **highly specialized** for specific backend+model combinations
 - ❌ `output_image_sd35_standard` - "standard" is config concept, not chunk!
 
 **Each Output-Chunk contains:**
-- Complete backend-specific workflow (e.g., ComfyUI API JSON)
-- input_mappings (where to inject prompts/parameters)
-- output_mapping (where to extract generated media)
+- **JSON Chunks (.json):** Complete ComfyUI workflow + input_mappings + output_mapping
+- **Python Chunks (.py):** execute() function with type-safe parameters
+- Both types contain complete backend-specific execution logic
+
+**Backend Type for Python Chunks:**
+- ALL Python chunks use `backend_type='python'` (generic)
+- Chunk name determines specific implementation (e.g., `output_music_heartmula`)
+- No per-backend enum entries needed
+- See ARCHITECTURE PART 03 for Python chunk pattern details
 
 ---
 

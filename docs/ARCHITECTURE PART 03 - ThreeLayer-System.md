@@ -18,7 +18,7 @@
 |------------|---------|---------|-----------|
 | `manipulate` | Ollama/OpenRouter | Universal text transformation | `standard` / `advanced` |
 
-**2. Output Chunks** (Media generation via ComfyUI)
+**2. Output Chunks** (Media generation via backends)
 | Chunk Name | Backend | Purpose | Media Type |
 |------------|---------|---------|-----------|
 | `output_image_sd35_standard` | ComfyUI | SD3.5 Large image generation | Image |
@@ -64,7 +64,26 @@
 
 ---
 
-**Type 2: Output Chunk (ComfyUI media generation)**
+#### Output Chunk Types
+
+**IMPORTANT:** Stage4-JSON-Chunks are **DEPRECATED**. Only use JSON if there's a documented good reason.
+
+**Standard (Python-Based Chunks):**
+- Format: `output_*.py`
+- Contains: Executable Python code with `execute()` function
+- Example: `output_music_heartmula.py`
+- Use for: ALL new Stage4 output chunks (HeartMuLa, Diffusers, future backends)
+
+**Legacy (JSON-Based Chunks) - DEPRECATED:**
+- Format: `output_*.json`
+- Contains: Complete ComfyUI API workflow embedded in JSON
+- Example: `output_image_sd35_large.json`, `output_audio_stable_audio.json`
+- Status: Legacy pattern, being phased out
+- Only use if: Documented good reason exists (e.g., pure ComfyUI passthrough without any Python logic)
+
+---
+
+**Type 2A: Output Chunk (ComfyUI - JSON Workflow)**
 
 Output-Chunks contain **complete ComfyUI API workflows** embedded directly in the JSON, along with metadata for input/output mapping.
 
@@ -223,6 +242,116 @@ Output-Chunks contain **complete ComfyUI API workflows** embedded directly in th
    - SwarmUI
    - ComfyUI forks
    - Any system that accepts ComfyUI API format
+
+5. **Chunk Format Flexibility:** Output-Chunks can be JSON (ComfyUI) OR Python (.py)
+   - ComfyUI backends: Use JSON chunks with embedded workflows
+   - Python backends: Use .py chunks with execute() function
+   - Router detects format automatically (.json vs .py)
+   - See Type 2B below for Python chunk pattern
+
+---
+
+**Type 2B: Output Chunk (Python - Executable Code)**
+
+Python-based Output-Chunks are `.py` files that contain the complete execution logic for non-ComfyUI backends.
+
+```python
+"""
+Output Chunk: HeartMuLa Music Generation
+
+Generates music from lyrics and style tags using HeartMuLa (heartlib).
+This is a Python-based chunk - the code IS the chunk.
+
+Input (from Stage 2/3 or direct):
+    - lyrics (TEXT_1): Song lyrics with [Verse], [Chorus], [Bridge] markers
+    - tags (TEXT_2): Comma-separated style tags (genre, mood, instruments)
+
+Output:
+    - MP3 audio bytes
+
+Usage:
+    result = await execute(lyrics="[Verse] Hello...", tags="pop, upbeat")
+"""
+
+async def execute(
+    lyrics: str = None,
+    tags: str = "",
+    TEXT_1: str = None,  # Pipeline convention: first text input
+    TEXT_2: str = None,  # Pipeline convention: second text input
+    temperature: float = 1.0,
+    topk: int = 250,
+    cfg_scale: float = 1.0,
+    max_audio_length_ms: int = 120000,
+    seed: Optional[int] = None,
+    **kwargs  # Ignore extra parameters from pipeline
+) -> bytes:
+    """
+    Execute HeartMuLa music generation.
+
+    Args:
+        lyrics: Song lyrics with structure markers [Verse], [Chorus], [Bridge]
+        tags: Comma-separated style tags (genre, mood, instruments, tempo)
+        temperature: Creativity (0.1-2.0)
+        topk: Token sampling parameter
+        cfg_scale: Classifier-free guidance scale
+        max_audio_length_ms: Maximum audio length in milliseconds
+        seed: Seed for reproducibility (None = random)
+
+    Returns:
+        MP3 audio bytes (ready for storage/response)
+
+    Raises:
+        Exception: If generation fails or backend unavailable
+    """
+    from my_app.services.heartmula_backend import get_heartmula_backend
+
+    # Map pipeline convention (TEXT_1, TEXT_2) to semantic names
+    if lyrics is None and TEXT_1 is not None:
+        lyrics = TEXT_1
+    if not tags and TEXT_2 is not None:
+        tags = TEXT_2
+
+    backend = get_heartmula_backend()
+    if not await backend.is_available():
+        raise Exception("HeartMuLa backend not available")
+
+    return await backend.generate_music(
+        lyrics=lyrics,
+        tags=tags,
+        temperature=temperature,
+        topk=topk,
+        cfg_scale=cfg_scale,
+        max_audio_length_ms=max_audio_length_ms,
+        seed=seed,
+        output_format="mp3"
+    )
+```
+
+**Key Design Principles:**
+
+1. **Self-Contained:** Chunk contains ALL execution logic
+   - No delegation to central router code
+   - Backend communication happens inside chunk
+   - Clean separation of concerns
+
+2. **Type-Safe:** Function signature declares inputs/outputs
+   - No JSON parsing needed
+   - IDE autocomplete works
+   - Runtime type checking possible
+
+3. **Async-First:** All execution is async/await compatible
+   - Integrates with FastAPI routes
+   - Non-blocking for concurrent requests
+
+4. **No JSON Wrapper:** The `.py` file IS the chunk
+   - No separate `.json` metadata file needed
+   - Code is self-documenting (docstrings)
+   - Simpler than JSON + separate code
+
+5. **Backend Type:** ALL Python chunks use `backend_type='python'`
+   - Generic type for all Python-based chunks
+   - Chunk name determines specific implementation
+   - No per-backend enum entries needed
 
 ---
 
