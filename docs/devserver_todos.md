@@ -1708,17 +1708,22 @@ Alle Minigames folgen einem gemeinsamen pädagogischen Ansatz:
 **Implementation Tasks:**
 - [x] Design finalisiert (User-Feedback eingearbeitet)
 - [x] Plan erstellt (`/home/joerissen/.claude/plans/atomic-beaming-seal.md`)
-- [ ] **Phase 1:** i18n keys hinzufügen (DE/EN)
-- [ ] **Phase 2:** `RareEarthMiniGame.vue` erstellen
-  - [ ] Component scaffold (props, composable, refs)
-  - [ ] Visual elements (sky, mountain, conveyor, lake, GPU, container, vegetation)
-  - [ ] Game loop (degradation, mining, sludge influx)
-  - [ ] Click handler (shovel animation, sludge removal)
-  - [ ] Truck animation (container full)
-  - [ ] Stats bar + UI
-- [ ] **Phase 3:** `RandomEdutainmentAnimation.vue` updaten
+- [x] **Phase 1:** i18n keys hinzufügen (DE/EN) - Commit `69e25ed`
+- [x] **Phase 2:** `RareEarthMiniGame.vue` erstellen (569 Zeilen) - Commit `b85552c`
+  - [x] Component scaffold (props, composable, refs)
+  - [x] Visual elements (sky, mountain, conveyor, lake, GPU, container, vegetation)
+  - [x] Game loop (degradation, mining, sludge influx)
+  - [x] Click handler (shovel animation, sludge removal)
+  - [x] Truck animation (container full)
+  - [x] Stats bar + UI (instructions, info banner, game over)
+- [x] **Phase 3:** `RandomEdutainmentAnimation.vue` updaten - Commit `b85552c`
 - [ ] **Phase 4:** Testing (balance, inactivity timeout, mobile responsive)
-- [ ] **Phase 5:** Commit + Documentation
+  - [ ] Manual testing im Frontend
+  - [ ] Balance prüfen (Degradation vs. Cleanup rates)
+  - [ ] Inactivity timeout (30s) verifizieren
+  - [ ] Truck animation testen
+  - [ ] Mobile Responsiveness prüfen
+  - [ ] Vue type-check ausführen
 
 ---
 
