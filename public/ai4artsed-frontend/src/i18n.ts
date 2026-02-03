@@ -448,6 +448,17 @@ const messages = {
         treesPlanted: 'Du hast {count} Bäume gepflanzt.',
         complete: 'Generation abgeschlossen',
         comparison: 'Ein durchschnittlicher Baum braucht {minutes} Minuten, um diese CO₂-Menge zu absorbieren.'
+      },
+      rareearth: {
+        clickToClean: 'Klicke auf den See um Giftschlamm zu entfernen!',
+        sludgeRemoved: 'Schlamm entfernt',
+        environmentHealth: 'Umwelt',
+        gameOverInactive: 'Du hast aufgegeben... der Abbau geht weiter',
+        infoBanner: 'Seltene Erden für GPU-Chips: Der Abbau hinterlässt Giftschlamm und zerstört Ökosysteme. Deine Aufräum-Arbeit kann die Geschwindigkeit des Abbaus nicht aufhalten.',
+        instructionsCooldown: '⏳ {seconds}s',
+        statsGpu: 'GPU',
+        statsHealth: 'Umwelt',
+        statsSludge: 'Schlamm entfernt'
       }
     }
   },
@@ -898,6 +909,17 @@ const messages = {
         treesPlanted: 'You planted {count} trees.',
         complete: 'Generation complete',
         comparison: 'An average tree needs {minutes} minutes to absorb this amount of CO₂.'
+      },
+      rareearth: {
+        clickToClean: 'Click the lake to remove toxic sludge!',
+        sludgeRemoved: 'Sludge removed',
+        environmentHealth: 'Environment',
+        gameOverInactive: 'You gave up... mining continues',
+        infoBanner: 'Rare earth mining for GPU chips leaves toxic sludge and destroys ecosystems. Your cleanup efforts cannot match the speed of extraction.',
+        instructionsCooldown: '⏳ {seconds}s',
+        statsGpu: 'GPU',
+        statsHealth: 'Environment',
+        statsSludge: 'Sludge removed'
       }
     }
   }

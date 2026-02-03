@@ -1660,47 +1660,65 @@ Alle Minigames folgen einem gemeinsamen pädagogischen Ansatz:
 
 ### Exploitation 1: Seltene Erden (Rare Earths)
 
-**Status:** 📋 **PLANNED**
+**Status:** 🔧 **IN PROGRESS** - Implementation started (Session 156)
 **Datum:** 2026-02-03
 **Priority:** MEDIUM (pedagogical feature, not blocking core functionality)
 
-**Konzept:** Pädagogisches Minigame über das "Zurückbringen" seltener Erden in den Berg
+**Konzept:** Pädagogisches Minigame über Seltene-Erden-Abbau und Umweltzerstörung
 
-**Game Mechanic (v2 - "Sisyphus der Umweltzerstörung"):**
+**Game Mechanic (v3 - FINAL DESIGN):**
 - **Prinzip:** Umwelt vs. genAI - "Tauziehen"-Mechanik mit **Abwärtsdynamik**
-- **Setting:** Landschaft degradiert kontinuierlich durch Abbau (wie in Realität)
-- **User-Aktion:**
-  - Giftschlamm aus See baggern
-  - In Container bringen
-  - Landschaft wird temporär gesünder
-- **ABER: Keine Heilung möglich** - Abwärtsspirale wie bei "Trees"-Spiel
-  - 1 Sekunde pro Giftschlamm-Entfernung
-  - ABER: Abbau läuft schneller als Aufräumen
-  - Degradierung schreitet immer fort (wie reale Seltene-Erden-Industrie)
+- **Förderband (Conveyor Belt):** Abbau geschieht AUTOMATISCH
+  - 3 farbige Kristalle (Nd, Dy, Tb) werden gefördert
+  - Geschwindigkeit = f(GPU Temperatur) - je heißer, desto schneller
+  - Füllt GPU-Chip kontinuierlich
+- **Giftschlamm:** Fließt vom Förderband in den See
+  - See färbt sich: blau → braun/grün
+  - Himmel verdunkelt sich mit Verschmutzung
+- **User-Tool:** Minecraft-like **Schaufel** (erscheint beim Click)
+  - Click auf See → entfernt 10% Schlamm
+  - 1 Sekunde Cooldown
+  - Temporäre Heilung von 1-2 kranken Pflanzen (re-degradieren nach 5s)
+- **Container:** Sammelt Schlamm
+  - Bei 100% voll → **LKW fährt weg** (Animation)
+  - Container leert sich, Loop geht weiter
+- **Game Over:** Nur bei Inaktivität (30s kein Click)
+  - NICHT bei Ökosystem-Kollaps (See kann 100% sein, Game läuft weiter)
+
+**Visuelle Elemente:**
+- ⛰️ Berg (links)
+- 🏭 Förderband (oben rechts) mit 3 Kristallen
+- 🌊 See (Mitte-rechts) - dynamische Farbe basierend auf Verschmutzung
+- 🥄 Schaufel (erscheint beim Click)
+- 🖥️ GPU-Chip (unten rechts) - zeigt 3 Edelsteine (Nd, Dy, Tb)
+- 🌳🌿 Umwelt (Bäume/Büsche: grün/gesund → braun/krank → tot)
+- 📦 Container (unten links)
+- 🚚 LKW-Animation (fährt Container weg bei 100%)
+- ☁️ Himmel (verdunkelt sich mit Verschmutzung)
+- 📝 Info-Banner (wie bei anderen Games)
 
 **Pädagogischer Kern:**
 - Zeigt die **systemische Hoffnungslosigkeit** des Problems
-- User kämpft gegen unaufhaltsame Zerstörung (Sisyphus-Metapher)
-- NICHT naiv-optimistisch ("Alles wird gut wenn wir aufräumen!")
-- Verdeutlicht: AI-Nutzung → mehr GPU-Nachfrage → mehr Abbau → mehr Zerstörung
+- Abbau läuft schneller als Aufräumen (Sisyphus-Metapher)
+- Verdeutlicht: AI-Nutzung → GPU-Nachfrage → Seltene-Erden-Abbau → Umweltzerstörung
 - User kann handeln, aber nicht gewinnen (realistisch)
 
-**Referenz:** Vergleichbar mit Games wie "Papers, Please" oder "This War of Mine" - moralische Dilemmata ohne "gute" Lösung
+**Integration:** Als 4. Option in `RandomEdutainmentAnimation.vue` (neben pixel, iceberg, forest)
 
-**Details:**
-- **Type:** Waiting animation / minigame
-- **Educational Goal:** Bewusstsein schaffen für die Umweltauswirkungen des Abbaus seltener Erden für AI-Hardware
-- **Thema:** Seltene Erden für GPU/AI-Chips (Neodym, Dysprosium, Terbium, etc.)
-- **Integration Point:** Während lang laufender AI-Generierungsprozesse
-- **Pädagogischer Wert:** Verbindet AI-Nutzung mit realen ökologischen Kosten
-
-**Nächste Schritte:**
-- [ ] **Design-Entscheidung:** Tonalität klären (naiv-verspielt vs. ernst-aufklärend)
-- [ ] Recherche: Reale Umweltschäden durch Seltene-Erden-Abbau
-- [ ] Game Mechanic finalisieren basierend auf Tonalität
-- [ ] Artwork/Assets (passend zum AI4ArtsEd Design)
-- [ ] Backend: Progress-Tracking für Minigame-State
-- [ ] Frontend: Vue-Komponente für Minigame-UI
+**Implementation Tasks:**
+- [x] Design finalisiert (User-Feedback eingearbeitet)
+- [x] Plan erstellt (`/home/joerissen/.claude/plans/atomic-beaming-seal.md`)
+- [ ] **Phase 1:** i18n keys hinzufügen (DE/EN)
+- [ ] **Phase 2:** `RareEarthMiniGame.vue` erstellen
+  - [ ] Component scaffold (props, composable, refs)
+  - [ ] Visual elements (sky, mountain, conveyor, lake, GPU, container, vegetation)
+  - [ ] Game loop (degradation, mining, sludge influx)
+  - [ ] Click handler (shovel animation, sludge removal)
+  - [ ] Truck animation (container full)
+  - [ ] Stats bar + UI
+- [ ] **Phase 3:** `RandomEdutainmentAnimation.vue` updaten
+- [ ] **Phase 4:** Testing (balance, inactivity timeout, mobile responsive)
+- [ ] **Phase 5:** Commit + Documentation
 
 ---
 
