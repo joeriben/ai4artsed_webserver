@@ -1,5 +1,99 @@
 # Development Log
 
+## Session 156 - HeartMuLa Integration (Python-Chunk Pattern)
+**Date:** 2026-02-02 to 2026-02-03
+**Focus:** First Python-based Output-Chunk Implementation
+**Status:** COMPLETE ✅
+
+### Summary
+
+Implemented HeartMuLa music generation as the **first Python-based Output-Chunk**, establishing a new standard pattern that replaces deprecated JSON chunks for non-ComfyUI backends.
+
+### Key Achievements
+
+1. **Python-Chunk Pattern Established**
+   - Created `output_music_heartmula.py` - self-contained executable chunk
+   - Chunk contains complete backend logic (no central router delegation)
+   - Uses async `execute()` function with type-safe parameters
+   - Returns bytes (MP3 audio) directly
+
+2. **Architecture Decision: Generic backend_type**
+   - ALL Python chunks use `backend_type='python'` (generic)
+   - Chunk name determines implementation (e.g., `output_music_heartmula`)
+   - No per-backend enum entries needed (extensible design)
+   - Removed HEARTMULA enum (redundant)
+
+3. **New Pipeline Created**
+   - `dual_text_media_generation.json` - 2 text inputs → media output
+   - Uses `{{OUTPUT_CHUNK}}` placeholder (resolved from config)
+   - No Proxy-Chunk pattern (direct chunk selection)
+   - Skip Stage 2 (passthrough to Stage 4)
+
+4. **Implementation Fixes (5 Errors Resolved)**
+   - Placeholder resolution in config_loader.py
+   - Output-Chunk detection in backend_router.py
+   - Python chunk detection in chunk_builder.py
+   - BackendResponse content="" for error cases
+   - BackendType.PYTHON enum added
+
+5. **Documentation Updates**
+   - ARCHITECTURE PART 03: Added Python-Chunk section (Type 2B)
+   - ARCHITECTURE PART 05: Updated routing documentation
+   - JSON chunks declared DEPRECATED (use only for pure ComfyUI passthrough)
+   - Created ARCHITECTURE_VIOLATION_ProxyChunkPattern.md
+
+### Technical Details
+
+**Input:** 2 text fields (lyrics + style tags)
+**Output:** MP3 audio bytes
+**Backend:** heartlib (external Python library)
+**Pipeline:** `dual_text_media_generation` → `output_music_heartmula`
+
+**Files Created:**
+- `devserver/schemas/chunks/output_music_heartmula.py`
+- `devserver/schemas/pipelines/dual_text_media_generation.json`
+- `docs/ARCHITECTURE_VIOLATION_ProxyChunkPattern.md`
+
+**Files Modified:**
+- `devserver/schemas/engine/backend_router.py` - Python chunk execution
+- `devserver/schemas/engine/config_loader.py` - Placeholder resolution
+- `devserver/schemas/engine/chunk_builder.py` - Python chunk detection
+- `devserver/schemas/configs/output/heartmula_standard.json`
+- `public/ai4artsed-frontend/src/views/music_generation.vue`
+- `docs/ARCHITECTURE PART 03 - ThreeLayer-System.md`
+- `docs/ARCHITECTURE PART 05 - Pipeline-Chunk-Backend-Routing.md`
+- `docs/devserver_todos.md`
+
+### Commits
+
+- `958ae0d` - feat(chunks): Implement Python-based Output-Chunks (HeartMuLa reference)
+- `e0ccfd6` - docs: Document architecture violations and Python-Chunk standard
+- `5d24a15` - fix(config-loader): Resolve placeholders in pipeline chunk names
+- `d8f420f` - fix(chunks): Complete Python-Chunk routing and execution flow
+- `a3354ff` - fix(backend): Add PYTHON to BackendType enum
+- `c03499a` - docs(architecture): Complete Python-Chunk documentation + backend fixes
+
+### Testing Status
+
+✅ Python chunk loads and executes correctly
+✅ Backend routing works (backend_type='python')
+✅ Parameters passed correctly (11 parameters verified)
+✅ Error handling works (heartlib not installed - expected)
+❌ Actual music generation - requires heartlib installation
+
+### Future Work
+
+- Install heartlib for actual music generation
+- Refactor existing Diffusers chunks to Python pattern
+- Remove deprecated JSON-based Output-Chunks (if no ComfyUI passthrough needed)
+- Migrate Proxy-Chunk pattern in `single_text_media_generation`
+
+### Notes
+
+This session established the **reference implementation** for all future Python-based backends. The pattern is simpler, more maintainable, and more extensible than JSON chunks.
+
+---
+
 ## Session 155 - Z-Image Integration Attempt
 **Date:** 2026-02-02
 **Focus:** Z-Image 6B Model Evaluation
