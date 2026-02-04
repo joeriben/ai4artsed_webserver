@@ -194,13 +194,17 @@ class ChunkBuilder:
             parameters = dict(resolved_config.parameters) if resolved_config.parameters else {}
             parameters['_chunk_name'] = chunk_name
 
-            # Map TEXT_1, TEXT_2 from context
+            # Map TEXT_1, TEXT_2 from context (defaults)
             if 'input_text' in context:
                 parameters['TEXT_1'] = context['input_text']
             if 'previous_output' in context:
                 parameters['TEXT_1'] = context['previous_output']  # Override with previous output if exists
             if 'user_input' in context:
-                parameters['TEXT_2'] = context['user_input']  # Second input for dual-text pipelines (FIXED: was context.get('text2', ''))
+                parameters['TEXT_2'] = context['user_input']
+
+            # Override with custom_placeholders (higher priority - explicit values from frontend)
+            if context.get('custom_placeholders'):
+                parameters.update(context['custom_placeholders'])
 
             return {
                 'backend_type': 'python',  # Special marker for Python chunks
