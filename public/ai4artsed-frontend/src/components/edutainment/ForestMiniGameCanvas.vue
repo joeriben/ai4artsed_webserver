@@ -234,13 +234,28 @@ function renderGround(ctx: CanvasRenderingContext2D, width: number, height: numb
 }
 
 function renderClouds(ctx: CanvasRenderingContext2D) {
-  // Simple overlapping semi-transparent circles
+  // Each cloud = 3 overlapping circles (puffs) - pattern from ClimateBackground.vue
   clouds.value.forEach(cloud => {
     ctx.fillStyle = cloud.color
     ctx.globalAlpha = cloud.opacity
+
+    const scale = cloud.radius / 25  // Scale factor based on radius
+
+    // Puff 1: 40px circle at base position
     ctx.beginPath()
-    ctx.arc(cloud.x, cloud.y, cloud.radius, 0, Math.PI * 2)
+    ctx.arc(cloud.x, cloud.y, 20 * scale, 0, Math.PI * 2)
     ctx.fill()
+
+    // Puff 2: 50px circle, offset right and slightly up (middle, largest)
+    ctx.beginPath()
+    ctx.arc(cloud.x + 25 * scale, cloud.y - 5 * scale, 25 * scale, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Puff 3: 35px circle, offset further right
+    ctx.beginPath()
+    ctx.arc(cloud.x + 55 * scale, cloud.y, 17.5 * scale, 0, Math.PI * 2)
+    ctx.fill()
+
     ctx.globalAlpha = 1
   })
 }
