@@ -3450,6 +3450,12 @@ def interception_pipeline():
                 logger.info(f"[EXTRACT-DEBUG] Extracted {param_name} = {repr(value)}")
                 custom_params[param_name] = value
 
+        # CRITICAL FIX: Extract custom_placeholders for music generation (TEXT_1, TEXT_2)
+        custom_placeholders = data.get('custom_placeholders', {})
+        if custom_placeholders:
+            logger.info(f"[CUSTOM-PLACEHOLDERS] Extracted: {list(custom_placeholders.keys())}")
+            custom_params.update(custom_placeholders)
+
         if not schema_name or not input_text:
             return jsonify({
                 'status': 'error',
