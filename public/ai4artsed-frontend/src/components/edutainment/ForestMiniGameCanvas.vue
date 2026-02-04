@@ -385,7 +385,8 @@ function render() {
 
   // Game objects
   trees.value.forEach(tree => tree.render(ctx))
-  factories.value.forEach(factory => factory.render(ctx))
+  // Draw back-to-front (higher y = further back = draw first)
+  ;[...factories.value].sort((a, b) => b.y - a.y).forEach(factory => factory.render(ctx))
 }
 
 // ==================== Game Loop ====================
@@ -464,20 +465,32 @@ function gameTick(dt: number) {
   const factoryRate = (effectivePower.value / 450) * dt * 1.1
 
   if (factories.value.length < 30 && Math.random() < factoryRate) {
-    // Min distance check (5 attempts to find good position)
+    // Pick Y first (0-10), then derive scale from depth (perspective)
+    let newY = Math.random() * 10
+    let newScale = 1.0 - (newY / 10) * 0.45  // y=0 (front) → 1.0, y=10 (horizon) → 0.55
+
+    // Find non-overlapping position (10 attempts)
     let newX = 10 + Math.random() * 80
-    const minDistance = 12
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const tooClose = factories.value.some(f => Math.abs(f.x - newX) < minDistance)
-      if (!tooClose) break
+    let placed = false
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const overlaps = factories.value.some(f => {
+        const dx = Math.abs(f.x - newX)
+        const dy = Math.abs(f.y - newY)
+        const minX = 6 * (f.scale + newScale)  // Scale-aware X gap
+        return dx < minX && dy < 3
+      })
+      if (!overlaps) { placed = true; break }
       newX = 10 + Math.random() * 80
+      newY = Math.random() * 10
+      newScale = 1.0 - (newY / 10) * 0.45
     }
+    if (!placed) return  // Skip if no room
 
     const factory: Factory = {
       id: nextId++,
       x: newX,
-      y: Math.random() * 6,  // Small offset 0-6
-      scale: 0.7 + Math.random() * 0.4,  // Range 0.7-1.1 (min 28px wide)
+      y: newY,
+      scale: newScale,
       smoke: [],
       render: (ctx) => renderFactory(ctx, factory)
     }

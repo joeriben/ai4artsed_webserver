@@ -441,7 +441,8 @@ async function runDualInterception() {
     input_text: lyricsInput.value,
     safety_level: pipelineStore.safetyLevel,
     device_id: getDeviceId(),  // FIX: Persistent device_id for consistent folders
-    enable_streaming: true  // KEY: Request SSE streaming
+    enable_streaming: true,  // KEY: Request SSE streaming
+    skip_wikipedia: 'true'  // Music: No Wikipedia research needed for lyrics/tags
   }
 
   // Start Tags Interception (if tags exist)
