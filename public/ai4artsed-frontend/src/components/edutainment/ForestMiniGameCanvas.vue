@@ -155,8 +155,8 @@ const { createCachedGradient, drawCircle, interpolateColor } = useCanvasDrawing(
 // ==================== Colors & Constants ====================
 const SKY_CLEAN = { r: 135, g: 206, b: 250 }
 const SKY_POLLUTED = { r: 55, g: 86, b: 150 }
-const GROUND_COLOR_TOP = '#8b7355'
-const GROUND_COLOR_BOTTOM = '#6d5a44'
+const GROUND_COLOR_TOP = '#5a8f5a'
+const GROUND_COLOR_BOTTOM = '#2d4a2d'
 const GROUND_HEIGHT = 0.3  // 30% of canvas height
 
 // Tree colors by type and health
@@ -284,17 +284,27 @@ function renderClouds(ctx: CanvasRenderingContext2D) {
 }
 
 function renderBird(ctx: CanvasRenderingContext2D, width: number, height: number) {
-  const x = (5 + birdProgress.value * 90) / 100 * width
+  const x = (5 + birdProgress.value * 0.9) / 100 * width
   const y = (15 + Math.sin(birdProgress.value * 0.3) * 5) / 100 * height
 
-  // Simple bird shape (triangle)
-  ctx.fillStyle = '#4a4a4a'
+  // Flying bird: V-shape wings
+  ctx.strokeStyle = '#3a3a3a'
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
   ctx.beginPath()
-  ctx.moveTo(x, y)
-  ctx.lineTo(x - 8, y + 4)
-  ctx.lineTo(x - 8, y - 4)
-  ctx.closePath()
-  ctx.fill()
+  // Left wing
+  ctx.moveTo(x - 10, y + 3)
+  ctx.quadraticCurveTo(x - 4, y - 6, x, y)
+  // Right wing
+  ctx.quadraticCurveTo(x + 4, y - 6, x + 10, y + 3)
+  ctx.stroke()
+
+  // Percentage label below bird
+  const pct = Math.round(birdProgress.value)
+  ctx.font = 'bold 10px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
+  ctx.fillText(`${pct}%`, x, y + 14)
 }
 
 function renderTree(ctx: CanvasRenderingContext2D, tree: Tree) {
@@ -478,8 +488,8 @@ function gameTick(dt: number) {
     plantCooldown.value = Math.max(0, plantCooldown.value - dt)
   }
 
-  // Update bird progress (smooth interpolation)
-  const target = internalProgress.value * 100
+  // Update bird progress (smooth interpolation, 0-100 matching internalProgress)
+  const target = internalProgress.value
   birdProgress.value += (target - birdProgress.value) * 0.08
 
   // Update trees
