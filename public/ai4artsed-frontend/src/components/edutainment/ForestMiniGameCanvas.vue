@@ -92,7 +92,16 @@ const isShowingSummary = computed(() => summaryShown.value)
 const showInstructions = ref(true)
 
 // ==================== Tree Types ====================
-const TREE_TYPES = ['pine', 'spruce', 'fir', 'oak', 'birch', 'maple', 'willow'] as const
+const TREE_TYPES = ['pine', 'spruce', 'fir', 'oak', 'birch', 'maple', 'willow', 'park', 'forest_icon', 'nature'] as const
+
+// SVG tree paths (outer only — no compound subpaths = solid fill)
+// All from Google Material Icons, viewBox 0 -960 960 960, bottom y=-80, height 800, center x≈480
+const SVG_TREE_PATHS = {
+  park: new Path2D('M558-80H402v-160H120l160-240h-80l280-400 280 400h-80l160 240H558v160Z'),
+  forest_icon: new Path2D('M280-80v-160H0l154-240H80l280-400 120 172 120-172 280 400h-74l154 240H680v160H520v-160h-80v160H280Z'),
+  nature: new Path2D('M200-80v-80h240v-160h-80q-83 0-141.5-58.5T160-520q0-60 33-110.5t89-73.5q9-75 65.5-125.5T480-880q76 0 132.5 50.5T678-704q56 23 89 73.5T800-520q0 83-58.5 141.5T600-320h-80v160h240v80H200Z'),
+} as const
+const SVG_SCALE = 50 / 800  // 800 SVG units → 50px canvas (matches geometric tree sizes)
 type TreeType = typeof TREE_TYPES[number]
 
 interface Tree extends CanvasObject {
@@ -299,44 +308,71 @@ function renderTree(ctx: CanvasRenderingContext2D, tree: Tree) {
   ctx.translate(x, y)
   ctx.scale(tree.scale * tree.growthProgress, tree.scale * tree.growthProgress)
 
-  // Trunk
-  ctx.fillStyle = TREE_COLORS.healthy.trunk
-  ctx.fillRect(-3, -10, 6, 15)
+  const svgPath = SVG_TREE_PATHS[tree.type as keyof typeof SVG_TREE_PATHS]
 
-  // Foliage (simplified - could be type-specific)
-  ctx.fillStyle = TREE_COLORS.healthy.foliage
-  ctx.beginPath()
+  if (svgPath) {
+    // SVG tree types (park, forest_icon, nature)
+    ctx.save()
+    ctx.scale(SVG_SCALE, SVG_SCALE)
+    ctx.translate(-480, 80)  // Bottom-center of SVG (480, -80) → origin
 
-  switch (tree.type) {
-    case 'pine':
-    case 'spruce':
-    case 'fir':
-      // Triangle
-      ctx.moveTo(0, -30)
-      ctx.lineTo(-15, 0)
-      ctx.lineTo(15, 0)
-      break
+    // Foliage fill
+    ctx.fillStyle = TREE_COLORS.healthy.foliage
+    ctx.fill(svgPath)
 
-    case 'oak':
-    case 'maple':
-      // Round
-      ctx.arc(0, -20, 18, 0, Math.PI * 2)
-      break
+    // Trunk: brown rectangles over trunk areas
+    ctx.fillStyle = TREE_COLORS.healthy.trunk
+    if (tree.type === 'park') {
+      ctx.fillRect(402, -240, 156, 160)
+    } else if (tree.type === 'forest_icon') {
+      ctx.fillRect(280, -240, 160, 160)
+      ctx.fillRect(520, -240, 160, 160)
+    } else if (tree.type === 'nature') {
+      ctx.fillRect(430, -320, 100, 240)
+    }
 
-    case 'birch':
-    case 'willow':
-      // Oval
-      ctx.ellipse(0, -20, 12, 20, 0, 0, Math.PI * 2)
-      break
+    // Outline
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)'
+    ctx.lineWidth = 1 / SVG_SCALE  // Compensate for SVG scale
+    ctx.stroke(svgPath)
+
+    ctx.restore()
+  } else {
+    // Geometric tree types (pine, spruce, fir, oak, maple, birch, willow)
+    // Trunk
+    ctx.fillStyle = TREE_COLORS.healthy.trunk
+    ctx.fillRect(-3, -10, 6, 15)
+
+    // Foliage
+    ctx.fillStyle = TREE_COLORS.healthy.foliage
+    ctx.beginPath()
+
+    switch (tree.type) {
+      case 'pine':
+      case 'spruce':
+      case 'fir':
+        ctx.moveTo(0, -30)
+        ctx.lineTo(-15, 0)
+        ctx.lineTo(15, 0)
+        break
+      case 'oak':
+      case 'maple':
+        ctx.arc(0, -20, 18, 0, Math.PI * 2)
+        break
+      case 'birch':
+      case 'willow':
+        ctx.ellipse(0, -20, 12, 20, 0, 0, Math.PI * 2)
+        break
+    }
+
+    ctx.closePath()
+    ctx.fill()
+
+    // Outline
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)'
+    ctx.lineWidth = 1
+    ctx.stroke()
   }
-
-  ctx.closePath()
-  ctx.fill()
-
-  // Subtle outline so trees don't blend into each other
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)'
-  ctx.lineWidth = 1
-  ctx.stroke()
 
   ctx.restore()
 }
