@@ -91,7 +91,8 @@ async def execute(
     if seed is None or seed == "random":
         seed = random.randint(0, 2**32 - 1)
 
-    logger.info(f"[CHUNK:heartmula] Executing with lyrics={len(lyrics)} chars, tags='{tags[:50]}...'")
+    logger.info(f"[CHUNK:heartmula] Executing with lyrics={len(lyrics)} chars")
+    logger.info(f"[CHUNK:heartmula] Tags (full): '{tags}'")
     logger.info(f"[CHUNK:heartmula] Parameters: temp={temperature}, topk={topk}, cfg={cfg_scale}, max_ms={max_audio_length_ms}, seed={seed}")
 
     # Check if HeartMuLa is enabled
@@ -130,4 +131,5 @@ async def execute(
 
     logger.info(f"[CHUNK:heartmula] Generated {len(audio_bytes)} bytes (seed={seed})")
 
+    # Return raw bytes - backend_router will wrap them properly
     return audio_bytes

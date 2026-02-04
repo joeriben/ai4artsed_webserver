@@ -357,6 +357,22 @@ const messages = {
       generate: 'Musik generieren',
       generating: 'Musik wird generiert...'
     },
+    musicGen: {
+      lyricsLabel: 'Lyrics',
+      lyricsPlaceholder: 'Schreibe deine Song-Lyrics mit Strukturmarkern wie [Verse], [Chorus], [Bridge]...\n\nBeispiel:\n[Verse]\nde doo doo doo\nde blaa blaa blaa\n\n[Chorus]\nis all I want to sing to you',
+      tagsLabel: 'Style Tags',
+      tagsPlaceholder: 'Genre, Stimmung, Instrumente...\n\nBeispiel: ska, aggressive, upbeat, high definition, bass and sax trio',
+      refineButton: 'Lyrics & Tags verfeinern',
+      refinedLyricsLabel: 'Verfeinerte Lyrics',
+      refinedLyricsPlaceholder: 'Hier erscheinen deine verfeinerten Lyrics...',
+      refiningLyricsMessage: 'Die KI verfeinert deine Lyrics...',
+      refinedTagsLabel: 'Verfeinerte Tags',
+      refinedTagsPlaceholder: 'Hier erscheinen die verfeinerten Style Tags...',
+      refiningTagsMessage: 'Die KI generiert passende Style Tags...',
+      selectModel: 'Wähle ein Musik-Modell',
+      generateButton: 'Musik generieren',
+      quality: 'Qualität'
+    },
     edutainment: {
       ui: {
         didYouKnow: '🤔 Wusstest du?',
@@ -817,6 +833,22 @@ const messages = {
       selectModel: 'Choose a music model:',
       generate: 'Generate Music',
       generating: 'Generating music...'
+    },
+    musicGen: {
+      lyricsLabel: 'Lyrics',
+      lyricsPlaceholder: 'Write your song lyrics with structure markers like [Verse], [Chorus], [Bridge]...\n\nExample:\n[Verse]\nde doo doo doo\nde blaa blaa blaa\n\n[Chorus]\nis all I want to sing to you',
+      tagsLabel: 'Style Tags',
+      tagsPlaceholder: 'Genre, mood, instruments...\n\nExample: ska, aggressive, upbeat, high definition, bass and sax trio',
+      refineButton: 'Refine Lyrics & Tags',
+      refinedLyricsLabel: 'Refined Lyrics',
+      refinedLyricsPlaceholder: 'Your refined lyrics will appear here...',
+      refiningLyricsMessage: 'AI is refining your lyrics...',
+      refinedTagsLabel: 'Refined Tags',
+      refinedTagsPlaceholder: 'Refined style tags will appear here...',
+      refiningTagsMessage: 'AI is generating matching style tags...',
+      selectModel: 'Choose a Music Model',
+      generateButton: 'Generate Music',
+      quality: 'Quality'
     },
     edutainment: {
       ui: {

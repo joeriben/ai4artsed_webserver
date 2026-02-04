@@ -1,110 +1,221 @@
 <template>
   <div class="music-generation-view">
-    <!-- Main Content -->
-    <div class="main-container">
-      <!-- Info Box -->
-      <div class="info-box" :class="{ 'expanded': infoExpanded }">
-        <div class="info-header" @click="infoExpanded = !infoExpanded">
-          <span class="info-icon">🎵</span>
-          <span class="info-title">{{ t('musicGeneration.infoTitle') }}</span>
-          <span class="info-toggle">{{ infoExpanded ? '▲' : '▼' }}</span>
-        </div>
-        <div v-if="infoExpanded" class="info-content">
-          <p>{{ t('musicGeneration.infoDescription') }}</p>
-          <div class="info-purpose">
-            <strong>{{ t('musicGeneration.purposeTitle') }}</strong>
-            <p>{{ t('musicGeneration.purposeText') }}</p>
-          </div>
-        </div>
-      </div>
 
-      <!-- Input Section -->
-      <section class="input-section">
+    <!-- Single Continuous Flow (t2x pattern) -->
+    <div class="phase-2a" ref="mainContainerRef">
+
+      <!-- Section 1: Dual Input (Lyrics + Tags) -->
+      <section class="input-section" ref="inputSectionRef">
         <!-- Lyrics Input (TEXT_1) -->
         <MediaInputBox
-          icon="🎤"
-          :label="t('musicGeneration.lyricsLabel')"
-          :placeholder="t('musicGeneration.lyricsPlaceholder')"
+          icon="💡"
+          :label="$t('musicGen.lyricsLabel')"
+          :placeholder="$t('musicGen.lyricsPlaceholder')"
           v-model:value="lyricsInput"
           input-type="text"
           :rows="8"
+          :is-filled="!!lyricsInput"
           @copy="copyLyrics"
           @paste="pasteLyrics"
           @clear="clearLyrics"
+          @focus="focusedField = 'lyrics'"
+          @blur="(val: string) => logPromptChange('lyrics', val)"
         />
 
         <!-- Tags Input (TEXT_2) -->
         <MediaInputBox
-          icon="🏷️"
-          :label="t('musicGeneration.tagsLabel')"
-          :placeholder="t('musicGeneration.tagsPlaceholder')"
+          icon="📋"
+          :label="$t('musicGen.tagsLabel')"
+          :placeholder="$t('musicGen.tagsPlaceholder')"
           v-model:value="tagsInput"
           input-type="text"
           :rows="3"
+          :is-filled="!!tagsInput"
           @copy="copyTags"
           @paste="pasteTags"
           @clear="clearTags"
+          @focus="focusedField = 'tags'"
+          @blur="(val: string) => logPromptChange('tags', val)"
         />
-
-        <!-- Execute Button -->
-        <button
-          class="execute-button"
-          :class="{ disabled: !canExecute }"
-          :disabled="!canExecute"
-          @click="executeGeneration"
-        >
-          <span class="button-text">{{ isExecuting ? t('musicGeneration.generating') : t('musicGeneration.generate') }}</span>
-        </button>
       </section>
 
-      <!-- Model Selection Section -->
-      <section class="model-section">
-        <h3 class="section-title">{{ t('musicGeneration.selectModel') }}</h3>
-        <div class="model-bubbles">
-          <div
-            v-for="config in availableConfigs"
-            :key="config.id"
-            class="model-bubble"
-            :class="{ selected: selectedConfig === config.id }"
-            @click="selectConfig(config.id)"
-          >
-            <span class="model-icon">{{ config.icon }}</span>
-            <span class="model-name">{{ config.name }}</span>
+      <!-- START BUTTON #1: Dual Interception (Lyrics + Tags) -->
+      <div class="start-button-container">
+        <button
+          class="start-button"
+          :class="{ disabled: !lyricsInput }"
+          :disabled="!lyricsInput"
+          @click="runDualInterception()"
+        >
+          <span class="button-arrows button-arrows-left">>>></span>
+          <span class="button-text">{{ $t('musicGen.refineButton') }}</span>
+          <span class="button-arrows button-arrows-right">>>></span>
+        </button>
+      </div>
+
+      <!-- Section 2: Dual Interception Results (Side by Side) -->
+      <section class="interception-section dual-outputs" ref="interceptionSectionRef">
+        <!-- Refined Lyrics (TEXT_1) -->
+        <MediaInputBox
+          icon="→"
+          :label="$t('musicGen.refinedLyricsLabel')"
+          :placeholder="$t('musicGen.refinedLyricsPlaceholder')"
+          v-model:value="refinedLyrics"
+          input-type="text"
+          :rows="8"
+          resize-type="auto"
+          :is-empty="!refinedLyrics"
+          :is-loading="isLyricsInterceptionLoading"
+          :loading-message="$t('musicGen.refiningLyricsMessage')"
+          :enable-streaming="true"
+          :stream-url="lyricsStreamingUrl"
+          :stream-params="lyricsStreamingParams"
+          @stream-started="handleLyricsStreamStarted"
+          @stream-complete="handleLyricsStreamComplete"
+          @stream-error="handleLyricsStreamError"
+          @copy="copyRefinedLyrics"
+          @paste="pasteRefinedLyrics"
+          @clear="clearRefinedLyrics"
+          @focus="focusedField = 'refinedLyrics'"
+          @blur="(val: string) => logPromptChange('refined_lyrics', val)"
+        />
+
+        <!-- Refined Tags (TEXT_2) -->
+        <MediaInputBox
+          icon="✨"
+          :label="$t('musicGen.refinedTagsLabel')"
+          :placeholder="$t('musicGen.refinedTagsPlaceholder')"
+          v-model:value="refinedTags"
+          input-type="text"
+          :rows="8"
+          resize-type="auto"
+          :is-empty="!refinedTags"
+          :is-loading="isTagsInterceptionLoading"
+          :loading-message="$t('musicGen.refiningTagsMessage')"
+          :enable-streaming="true"
+          :stream-url="tagsStreamingUrl"
+          :stream-params="tagsStreamingParams"
+          @stream-started="handleTagsStreamStarted"
+          @stream-complete="handleTagsStreamComplete"
+          @stream-error="handleTagsStreamError"
+          @copy="copyRefinedTags"
+          @paste="pasteRefinedTags"
+          @clear="clearRefinedTags"
+          @focus="focusedField = 'refinedTags'"
+          @blur="(val: string) => logPromptChange('refined_tags', val)"
+        />
+      </section>
+
+      <!-- Section 3: Model Selection -->
+      <section class="config-section">
+        <h2 v-if="executionPhase !== 'initial'" class="section-title">{{ $t('musicGen.selectModel') }}</h2>
+        <div class="config-bubbles-container">
+          <div class="config-bubbles-row">
+            <div
+              v-for="config in availableConfigs"
+              :key="config.id"
+              class="config-bubble"
+              :class="{
+                selected: selectedConfig === config.id,
+                hovered: hoveredConfigId === config.id
+              }"
+              :style="{ '--bubble-color': config.color }"
+              @click="selectConfig(config.id)"
+              @mouseenter="hoveredConfigId = config.id"
+              @mouseleave="hoveredConfigId = null"
+              role="button"
+              :aria-pressed="selectedConfig === config.id"
+              tabindex="0"
+              @keydown.enter="selectConfig(config.id)"
+              @keydown.space.prevent="selectConfig(config.id)"
+            >
+              <div class="bubble-emoji-medium">{{ config.emoji }}</div>
+
+              <!-- Hover info -->
+              <div v-if="hoveredConfigId === config.id" class="bubble-hover-info">
+                <div class="hover-info-name">{{ config.name }}</div>
+                <div class="hover-info-meta">
+                  <div class="meta-row">
+                    <span class="meta-label">{{ $t('musicGen.quality') }}</span>
+                    <span class="meta-value">
+                      <span class="stars-filled">{{ '★'.repeat(config.quality) }}</span><span class="stars-unfilled">{{ '☆'.repeat(5 - config.quality) }}</span>
+                    </span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-label">Speed</span>
+                    <span class="meta-value">
+                      <span class="stars-filled">{{ '★'.repeat(config.speed) }}</span><span class="stars-unfilled">{{ '☆'.repeat(5 - config.speed) }}</span>
+                    </span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-value duration-only">⏱ {{ config.duration }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- Output Section -->
-      <section class="output-section">
-        <MediaOutputBox
-          ref="outputSectionRef"
-          :output-image="outputAudio"
-          media-type="music"
-          :is-executing="isExecuting"
-          :progress="generationProgress"
-          @save="saveMedia"
-          @download="downloadMedia"
-        />
-      </section>
+      <!-- START BUTTON #2: Generate Music -->
+      <div class="start-button-container">
+        <button
+          class="start-button"
+          :class="{ disabled: !canGenerate }"
+          :disabled="!canGenerate"
+          @click="startGeneration()"
+          ref="startButtonRef"
+        >
+          <span class="button-arrows button-arrows-left">>>></span>
+          <span class="button-text">{{ $t('musicGen.generateButton') }}</span>
+          <span class="button-arrows button-arrows-right">>>></span>
+        </button>
+
+        <transition name="fade">
+          <div v-if="showSafetyStamp" class="safety-stamp">
+            <div class="stamp-inner">
+              <div class="stamp-icon">✓</div>
+              <div class="stamp-text">Safety<br/>Approved</div>
+            </div>
+          </div>
+        </transition>
+      </div>
+
+      <!-- OUTPUT BOX -->
+      <MediaOutputBox
+        ref="outputSectionRef"
+        :output-image="outputAudio"
+        media-type="music"
+        :is-executing="isGenerating"
+        :progress="generationProgress"
+        :estimated-seconds="estimatedGenerationSeconds"
+        :run-id="currentRunId"
+        :is-favorited="isFavorited"
+        @save="saveMedia"
+        @download="downloadMedia"
+        @toggle-favorite="toggleFavorite"
+      />
+
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
+import { useAppClipboard } from '@/composables/useAppClipboard'
+import { usePageContextStore } from '@/stores/pageContext'
+import { useFavoritesStore } from '@/stores/favorites'
+import type { PageContext, FocusHint } from '@/composables/usePageContext'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
-import { useAppClipboard } from '@/composables/useAppClipboard'
-import { usePageContextStore } from '@/stores/pageContext'
-import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
-// i18n
+// i18n (temporary inline, move to i18n.ts later)
 // ============================================================================
 
+import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
 // ============================================================================
@@ -114,40 +225,78 @@ const { t } = useI18n()
 interface MusicConfig {
   id: string
   name: string
-  icon: string
+  emoji: string
+  color: string
+  quality: number
+  speed: number
+  duration: string
 }
+
+type ExecutionPhase = 'initial' | 'interception_loading' | 'interception_done' | 'generating' | 'generation_done'
 
 // ============================================================================
 // STATE
 // ============================================================================
 
 const route = useRoute()
-const infoExpanded = ref(false)
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+const pageContextStore = usePageContextStore()
+const favoritesStore = useFavoritesStore()
+
+// Refs
+const mainContainerRef = ref<HTMLElement | null>(null)
+const inputSectionRef = ref<HTMLElement | null>(null)
+const interceptionSectionRef = ref<HTMLElement | null>(null)
+const startButtonRef = ref<HTMLButtonElement | null>(null)
+const outputSectionRef = ref<InstanceType<typeof MediaOutputBox> | null>(null)
 
 // Input state
 const lyricsInput = ref('')
 const tagsInput = ref('')
+const focusedField = ref<'lyrics' | 'tags' | 'refinedLyrics' | 'refinedTags' | null>(null)
 
-// Execution state
-const isExecuting = ref(false)
-const generationProgress = ref(0)
-const outputAudio = ref<string | null>(null)
-const currentRunId = ref<string | null>(null)
+// Interception state - Dual (Lyrics + Tags)
+const refinedLyrics = ref('')
+const refinedTags = ref('')
+const isLyricsInterceptionLoading = ref(false)
+const isTagsInterceptionLoading = ref(false)
+const lyricsStreamingUrl = ref('')
+const lyricsStreamingParams = ref<Record<string, any>>({})
+const tagsStreamingUrl = ref('')
+const tagsStreamingParams = ref<Record<string, any>>({})
 
 // Config selection
 const selectedConfig = ref<string>('heartmula_standard')
+const hoveredConfigId = ref<string | null>(null)
 
-// Available music generation configs (HeartMuLa only - AceStep/StableAudio available in t2X Vue)
+// Available music generation configs
 const availableConfigs = ref<MusicConfig[]>([
-  { id: 'heartmula_standard', name: 'HeartMuLa', icon: '🎵' }
+  {
+    id: 'heartmula_standard',
+    name: 'HeartMuLa',
+    emoji: '🎵',
+    color: '#9C27B0',
+    quality: 4,
+    speed: 2,
+    duration: '30-240s'
+  }
 ])
 
-// Page Context for Trashy
-const pageContextStore = usePageContextStore()
+// Generation state
+const isGenerating = ref(false)
+const generationProgress = ref(0)
+const estimatedGenerationSeconds = ref(180)
+const outputAudio = ref<string | null>(null)
+const currentRunId = ref<string | null>(null)
+const executionPhase = ref<ExecutionPhase>('initial')
+const showSafetyStamp = ref(false)
 
+// Favorites
+const isFavorited = ref(false)
+
+// Page Context for Trashy
 const trashyFocusHint = computed<FocusHint>(() => {
-  if (isExecuting.value || outputAudio.value) {
+  if (isGenerating.value || outputAudio.value) {
     return { x: 95, y: 85, anchor: 'bottom-right' }
   }
   return { x: 2, y: 95, anchor: 'bottom-left' }
@@ -157,7 +306,8 @@ const pageContext = computed<PageContext>(() => ({
   activeViewType: 'music_generation',
   pageContent: {
     inputText: lyricsInput.value,
-    contextPrompt: tagsInput.value
+    contextPrompt: tagsInput.value,
+    refinedText: refinedLyrics.value
   },
   focusHint: trashyFocusHint.value
 }))
@@ -174,8 +324,10 @@ onUnmounted(() => {
 // Computed
 // ============================================================================
 
-const canExecute = computed(() => {
-  return lyricsInput.value.trim().length > 0 && !isExecuting.value
+const canGenerate = computed(() => {
+  // Can generate if we have lyrics (either original or refined) and a selected config
+  const hasLyrics = refinedLyrics.value || lyricsInput.value
+  return hasLyrics && selectedConfig.value && executionPhase.value !== 'generating'
 })
 
 // ============================================================================
@@ -208,53 +360,173 @@ function clearTags() {
   tagsInput.value = ''
 }
 
+function copyRefinedLyrics() {
+  copyToClipboard(refinedLyrics.value)
+}
+
+async function pasteRefinedLyrics() {
+  const text = await pasteFromClipboard()
+  if (text) refinedLyrics.value = text
+}
+
+function clearRefinedLyrics() {
+  refinedLyrics.value = ''
+}
+
+function copyRefinedTags() {
+  copyToClipboard(refinedTags.value)
+}
+
+async function pasteRefinedTags() {
+  const text = await pasteFromClipboard()
+  if (text) refinedTags.value = text
+}
+
+function clearRefinedTags() {
+  refinedTags.value = ''
+}
+
+// ============================================================================
+// Methods - Logging
+// ============================================================================
+
+function logPromptChange(field: string, value: string) {
+  console.log(`[MusicGen] ${field} changed:`, value.substring(0, 50))
+}
+
 // ============================================================================
 // Methods - Config Selection
 // ============================================================================
 
 function selectConfig(configId: string) {
   selectedConfig.value = configId
-  console.log('[MusicGeneration] Selected config:', configId)
+  console.log('[MusicGen] Selected config:', configId)
 }
 
 // ============================================================================
-// Methods - Execution
+// Methods - Dual Interception (Lyrics + Tags separately)
 // ============================================================================
 
-async function executeGeneration() {
-  if (!canExecute.value) return
+async function runDualInterception() {
+  if (!lyricsInput.value) return
 
-  isExecuting.value = true
+  executionPhase.value = 'interception_loading'
+
+  // Start Lyrics Interception
+  isLyricsInterceptionLoading.value = true
+  refinedLyrics.value = ''
+  lyricsStreamingUrl.value = '/api/schema/pipeline/interception/stream'
+  lyricsStreamingParams.value = {
+    schema: 'lyrics_refinement', // TODO: Create interception config
+    input_text: lyricsInput.value,
+    safety_level: 'youth'
+  }
+
+  // Start Tags Interception (if tags exist)
+  if (tagsInput.value) {
+    isTagsInterceptionLoading.value = true
+    refinedTags.value = ''
+    tagsStreamingUrl.value = '/api/schema/pipeline/interception/stream'
+    tagsStreamingParams.value = {
+      schema: 'tags_generation', // TODO: Create interception config
+      input_text: tagsInput.value,
+      safety_level: 'youth'
+    }
+  } else {
+    // No tags input, just use empty
+    refinedTags.value = ''
+  }
+
+  console.log('[MusicGen] Starting dual interception (lyrics + tags)')
+}
+
+// Lyrics Stream Handlers
+function handleLyricsStreamStarted() {
+  console.log('[MusicGen] Lyrics stream started')
+}
+
+function handleLyricsStreamComplete(content: string) {
+  console.log('[MusicGen] Lyrics stream complete:', content.substring(0, 50))
+  refinedLyrics.value = content
+  isLyricsInterceptionLoading.value = false
+  checkInterceptionComplete()
+}
+
+function handleLyricsStreamError(error: string) {
+  console.error('[MusicGen] Lyrics stream error:', error)
+  isLyricsInterceptionLoading.value = false
+  refinedLyrics.value = lyricsInput.value // Fallback
+  checkInterceptionComplete()
+}
+
+// Tags Stream Handlers
+function handleTagsStreamStarted() {
+  console.log('[MusicGen] Tags stream started')
+}
+
+function handleTagsStreamComplete(content: string) {
+  console.log('[MusicGen] Tags stream complete:', content.substring(0, 50))
+  refinedTags.value = content
+  isTagsInterceptionLoading.value = false
+  checkInterceptionComplete()
+}
+
+function handleTagsStreamError(error: string) {
+  console.error('[MusicGen] Tags stream error:', error)
+  isTagsInterceptionLoading.value = false
+  refinedTags.value = tagsInput.value || '' // Fallback
+  checkInterceptionComplete()
+}
+
+// Check if both interceptions are done
+function checkInterceptionComplete() {
+  if (!isLyricsInterceptionLoading.value && !isTagsInterceptionLoading.value) {
+    executionPhase.value = 'interception_done'
+    // Scroll to next section
+    nextTick(() => {
+      if (interceptionSectionRef.value) {
+        interceptionSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
+  }
+}
+
+// ============================================================================
+// Methods - Generation
+// ============================================================================
+
+async function startGeneration() {
+  if (!canGenerate.value) return
+
+  isGenerating.value = true
+  executionPhase.value = 'generating'
   outputAudio.value = null
   generationProgress.value = 0
+  showSafetyStamp.value = true
 
-  // Progress simulation (music generation takes longer)
-  const durationSeconds = 180 * 0.9  // ~3 minutes
-  const targetProgress = 98
-  const updateInterval = 500
-  const totalUpdates = (durationSeconds * 1000) / updateInterval
-  const progressPerUpdate = targetProgress / totalUpdates
+  // Use refined lyrics if available, otherwise original
+  const finalLyrics = refinedLyrics.value || lyricsInput.value
 
+  // Progress simulation
   const progressInterval = setInterval(() => {
-    if (generationProgress.value < targetProgress) {
-      generationProgress.value += progressPerUpdate
-      if (generationProgress.value > targetProgress) {
-        generationProgress.value = targetProgress
-      }
+    if (generationProgress.value < 98) {
+      generationProgress.value += 0.5
     }
-  }, updateInterval)
+  }, 1000)
 
   try {
-    // Use interception endpoint with custom_placeholders for dual-text input
-    // schema = interception config (heartmula), output_config = output config for Stage 4
+    // Use refined lyrics + tags if available, otherwise original
+    const finalTags = refinedTags.value || tagsInput.value || ''
+
+    // Call pipeline execution endpoint with dual text inputs (TEXT_1 + TEXT_2 separately)
     const response = await axios.post('/api/schema/pipeline/interception', {
-      schema: 'heartmula',
-      input_text: lyricsInput.value,  // TEXT_1 as primary
+      schema: 'heartmula', // Use heartmula interception config
+      input_text: finalLyrics,
       output_config: selectedConfig.value,
       safety_level: 'youth',
       custom_placeholders: {
-        TEXT_1: lyricsInput.value,
-        TEXT_2: tagsInput.value
+        TEXT_1: finalLyrics,
+        TEXT_2: finalTags
       }
     })
 
@@ -263,25 +535,35 @@ async function executeGeneration() {
       currentRunId.value = runId
 
       if (runId) {
-        // Fetch media output
+        // Fetch music output
         await fetchMusicOutput(runId)
       }
+
+      executionPhase.value = 'generation_done'
     } else {
-      console.error('[MusicGeneration] Generation failed:', response.data.error)
+      console.error('[MusicGen] Generation failed:', response.data.error)
     }
   } catch (error) {
-    console.error('[MusicGeneration] Error:', error)
+    console.error('[MusicGen] Error:', error)
   } finally {
     clearInterval(progressInterval)
     generationProgress.value = 100
-    isExecuting.value = false
+    isGenerating.value = false
+    showSafetyStamp.value = false
+
+    // Scroll to output
+    nextTick(() => {
+      if (outputSectionRef.value) {
+        (outputSectionRef.value.$el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
   }
 }
 
 async function fetchMusicOutput(runId: string) {
   try {
     // Poll for music output
-    const maxAttempts = 60  // 5 minutes max (5s interval)
+    const maxAttempts = 60 // 5 minutes max
     let attempts = 0
 
     while (attempts < maxAttempts) {
@@ -291,7 +573,7 @@ async function fetchMusicOutput(runId: string) {
         // Found music file
         const musicFile = response.data.files[0]
         outputAudio.value = `/api/media/file/${runId}/${musicFile}`
-        console.log('[MusicGeneration] Music output:', outputAudio.value)
+        console.log('[MusicGen] Music output:', outputAudio.value)
         return
       }
 
@@ -300,9 +582,9 @@ async function fetchMusicOutput(runId: string) {
       attempts++
     }
 
-    console.error('[MusicGeneration] Timeout waiting for music output')
+    console.error('[MusicGen] Timeout waiting for music output')
   } catch (error) {
-    console.error('[MusicGeneration] Error fetching output:', error)
+    console.error('[MusicGen] Error fetching output:', error)
   }
 }
 
@@ -310,10 +592,19 @@ async function fetchMusicOutput(runId: string) {
 // Methods - Media Actions
 // ============================================================================
 
-function saveMedia() {
-  if (outputAudio.value) {
-    console.log('[MusicGeneration] Save media:', outputAudio.value)
-    // TODO: Implement save to favorites
+async function saveMedia() {
+  if (outputAudio.value && currentRunId.value) {
+    console.log('[MusicGen] Save media:', currentRunId.value)
+    // Add to favorites - deviceId will be extracted from runId or use 'local'
+    const deviceId = 'local' // TODO: Extract from run directory structure
+    const success = await favoritesStore.addFavorite(
+      currentRunId.value,
+      'music',
+      deviceId
+    )
+    if (success) {
+      isFavorited.value = true
+    }
   }
 }
 
@@ -329,6 +620,17 @@ function downloadMedia() {
   }
 }
 
+function toggleFavorite() {
+  if (currentRunId.value) {
+    if (isFavorited.value) {
+      favoritesStore.removeFavorite(currentRunId.value)
+      isFavorited.value = false
+    } else {
+      saveMedia()
+    }
+  }
+}
+
 // ============================================================================
 // Lifecycle
 // ============================================================================
@@ -338,175 +640,284 @@ onMounted(() => {
   const configId = route.params.configId as string
   if (configId) {
     selectedConfig.value = configId
-    console.log('[MusicGeneration] Config from route:', configId)
+    console.log('[MusicGen] Config from route:', configId)
+  }
+
+  // Check if run is favorited
+  if (currentRunId.value) {
+    isFavorited.value = favoritesStore.isFavorited(currentRunId.value)
   }
 })
 </script>
 
 <style scoped>
+/* Import t2x-consistent styles */
 .music-generation-view {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   color: white;
-  padding: 1rem;
+  padding: 2rem 1rem;
 }
 
-.main-container {
+.phase-2a {
   max-width: 800px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
-/* Info Box */
-.info-box {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.info-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.info-header:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.info-icon {
-  font-size: 1.5rem;
-}
-
-.info-title {
-  flex: 1;
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.info-toggle {
-  opacity: 0.6;
-}
-
-.info-content {
-  padding: 0 1rem 1rem;
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.6;
-}
-
-.info-purpose {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: rgba(156, 39, 176, 0.1);
-  border-radius: 8px;
-}
-
-/* Input Section */
+/* Input Section - Side by Side */
 .input-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .input-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sections */
+.interception-section,
+.config-section {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-/* Execute Button */
-.execute-button {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #9c27b0, #673ab7);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
+/* Dual Outputs - Side by Side */
+.interception-section.dual-outputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
-.execute-button:hover:not(.disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
-}
-
-.execute-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Model Selection */
-.model-section {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  padding: 1rem;
+@media (max-width: 768px) {
+  .interception-section.dual-outputs {
+    grid-template-columns: 1fr;
+  }
 }
 
 .section-title {
   font-size: 0.9rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
 }
 
-.model-bubbles {
+/* Start Button Container */
+.start-button-container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  position: relative;
 }
 
-.model-bubble {
+.start-button {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid transparent;
-  border-radius: 24px;
+  gap: 1rem;
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #9c27b0, #673ab7);
+  color: white;
+  border: none;
+  border-radius: 50px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
 }
 
-.model-bubble:hover {
+.start-button:hover:not(.disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(156, 39, 176, 0.5);
+}
+
+.start-button.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.button-arrows {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+/* Config Bubbles */
+.config-bubbles-container {
+  display: flex;
+  justify-content: center;
+}
+
+.config-bubbles-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.config-bubble {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.config-bubble:hover {
   background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
 }
 
-.model-bubble.selected {
-  background: rgba(156, 39, 176, 0.2);
-  border-color: #9c27b0;
+.config-bubble.selected {
+  border-color: var(--bubble-color, #9c27b0);
+  background: rgba(var(--bubble-color-rgb, 156, 39, 176), 0.2);
 }
 
-.model-icon {
-  font-size: 1.25rem;
+.bubble-emoji-medium {
+  font-size: 3rem;
 }
 
-.model-name {
-  font-weight: 500;
+/* Bubble Hover Info */
+.bubble-hover-info {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  gap: 0.5rem;
 }
 
-/* Output Section */
-.output-section {
-  min-height: 200px;
+.hover-info-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.hover-info-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.meta-label {
+  opacity: 0.7;
+}
+
+.stars-filled {
+  color: #fbbf24;
+}
+
+.stars-unfilled {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.duration-only {
+  text-align: center;
+  opacity: 0.8;
+}
+
+/* Safety Stamp */
+.safety-stamp {
+  position: absolute;
+  right: 0;
+  animation: stamp-appear 0.4s ease-out;
+}
+
+@keyframes stamp-appear {
+  from {
+    transform: scale(0) rotate(-20deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+.stamp-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(34, 197, 94, 0.2);
+  border: 2px solid #22c55e;
+  border-radius: 8px;
+  transform: rotate(-5deg);
+}
+
+.stamp-icon {
+  font-size: 1.5rem;
+  color: #22c55e;
+}
+
+.stamp-text {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #22c55e;
+  text-align: center;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* Responsive */
 @media (max-width: 600px) {
   .music-generation-view {
-    padding: 0.5rem;
+    padding: 1rem 0.5rem;
   }
 
-  .model-bubbles {
-    flex-direction: column;
+  .phase-2a {
+    gap: 1.5rem;
   }
 
-  .model-bubble {
-    justify-content: center;
+  .start-button {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+  }
+
+  .config-bubble {
+    width: 100px;
+    height: 100px;
+  }
+
+  .bubble-emoji-medium {
+    font-size: 2.5rem;
   }
 }
 </style>

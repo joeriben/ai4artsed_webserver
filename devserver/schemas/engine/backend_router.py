@@ -2067,6 +2067,27 @@ class BackendRouter:
 
             logger.info(f"[PYTHON-CHUNK] Success - generated {len(result)} bytes")
 
+            # For audio/music chunks, return in format expected by routes
+            # (content=marker_string, audio_data in metadata as base64)
+            if chunk_name.startswith('output_music_') or chunk_name.startswith('output_audio_'):
+                import base64
+                # Extract backend name (e.g., "output_music_heartmula" -> "heartmula")
+                backend_name = chunk_name.replace('output_music_', '').replace('output_audio_', '')
+                return BackendResponse(
+                    success=True,
+                    content=f"{backend_name}_generated",  # e.g. "heartmula_generated"
+                    metadata={
+                        "chunk_type": "python",
+                        "chunk_name": chunk_name,
+                        "media_type": "music" if "music" in chunk_name else "audio",
+                        "backend": backend_name,
+                        "audio_data": base64.b64encode(result).decode('utf-8'),
+                        "audio_format": "mp3",
+                        "size_bytes": len(result)
+                    }
+                )
+
+            # For other chunks, return bytes as-is (images, video, etc.)
             return BackendResponse(
                 success=True,
                 content=result,

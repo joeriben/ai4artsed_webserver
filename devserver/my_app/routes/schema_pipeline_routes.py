@@ -4139,9 +4139,101 @@ def interception_pipeline():
                                 logger.info(f"[MEDIA-STORAGE-DEBUG] output_value type: {type(output_value)}, length: {len(output_value) if output_value else 0}")
                                 logger.info(f"[MEDIA-STORAGE-DEBUG] Checking routing conditions...")
 
+                                # ====================================================================
+                                # PYTHON CHUNKS: Direct storage path (parallel to JSON chunk routing)
+                                # ====================================================================
+                                # Python chunks (.py) return bytes directly with base64 in metadata
+                                # This bypasses the marker-based routing used by JSON chunks
+                                if output_result.metadata.get('chunk_type') == 'python':
+                                    logger.info(f"[PYTHON-CHUNK-ROUTE] Detected Python chunk, using direct storage path")
+
+                                    import base64
+
+                                    # Check for audio data (music/audio chunks)
+                                    audio_data_b64 = output_result.metadata.get('audio_data')
+                                    if audio_data_b64:
+                                        logger.info(f"[PYTHON-CHUNK-ROUTE] Audio data found: {len(audio_data_b64)} chars base64")
+                                        audio_bytes = base64.b64decode(audio_data_b64)
+                                        audio_format = output_result.metadata.get('audio_format', 'mp3')
+
+                                        # Save audio directly
+                                        saved_filename = recorder.save_entity(
+                                            entity_type='output_image',  # Reuses existing entity naming
+                                            content=audio_bytes,
+                                            extension=f'.{audio_format}',
+                                            metadata={
+                                                'config': output_config_name,
+                                                'backend': output_result.metadata.get('backend', 'unknown'),
+                                                'media_type': 'music',
+                                                'seed': seed,
+                                                'size_bytes': len(audio_bytes),
+                                                'format': audio_format
+                                            }
+                                        )
+                                        logger.info(f"[PYTHON-CHUNK-ROUTE] Audio saved: {saved_filename}")
+                                        media_stored = True
+
+                                        # Create media output data for frontend
+                                        media_output_data = {
+                                            'config': output_config_name,
+                                            'status': 'success',
+                                            'media_type': 'music',
+                                            'filename': saved_filename,
+                                            'url': f'/api/media/runs/{run_id}/{saved_filename}'
+                                        }
+
+                                    # Check for image data (image chunks)
+                                    elif output_result.metadata.get('image_data'):
+                                        image_data_b64 = output_result.metadata.get('image_data')
+                                        logger.info(f"[PYTHON-CHUNK-ROUTE] Image data found: {len(image_data_b64)} chars base64")
+                                        image_bytes = base64.b64decode(image_data_b64)
+                                        image_format = output_result.metadata.get('image_format', 'png')
+
+                                        # Save image directly
+                                        saved_filename = recorder.save_entity(
+                                            entity_type='output_image',
+                                            content=image_bytes,
+                                            extension=f'.{image_format}',
+                                            metadata={
+                                                'config': output_config_name,
+                                                'backend': output_result.metadata.get('backend', 'unknown'),
+                                                'media_type': 'image',
+                                                'seed': seed,
+                                                'size_bytes': len(image_bytes),
+                                                'format': image_format
+                                            }
+                                        )
+                                        logger.info(f"[PYTHON-CHUNK-ROUTE] Image saved: {saved_filename}")
+                                        media_stored = True
+
+                                        # Create media output data for frontend
+                                        media_output_data = {
+                                            'config': output_config_name,
+                                            'status': 'success',
+                                            'media_type': 'image',
+                                            'filename': saved_filename,
+                                            'url': f'/api/media/runs/{run_id}/{saved_filename}'
+                                        }
+
+                                    else:
+                                        logger.error(f"[PYTHON-CHUNK-ROUTE] No audio_data or image_data in metadata")
+                                        media_stored = False
+                                        media_output_data = {
+                                            'config': output_config_name,
+                                            'status': 'error',
+                                            'error': 'Python chunk returned no media data'
+                                        }
+
+                                    # Skip all marker-based routing below (early exit from routing logic)
+                                    # media_stored=True prevents JSON chunk routing from running
+
+                                # ====================================================================
+                                # JSON CHUNKS: Marker-based routing (legacy, but still supported)
+                                # ====================================================================
+                                # Only run if Python chunk didn't already handle storage
                                 # SESSION 84: Handle code output (P5.js, SonicPi, etc.)
                                 # SESSION 95: Added Tone.js support
-                                if media_type == 'code':
+                                if not media_stored and media_type == 'code':
                                     logger.info(f"[STAGE4-CODE] Handling code output for {output_config_name}")
 
                                     # Determine entity type and route based on output config
@@ -4192,7 +4284,7 @@ def interception_pipeline():
                                         }
 
                                 # Detect generation backend and download appropriately
-                                elif output_value == 'swarmui_generated':
+                                elif not media_stored and output_value == 'swarmui_generated':
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: swarmui_generated")
                                     # SwarmUI generation - image paths returned directly
                                     logger.info(f"[RECORDER-DEBUG] output_result.metadata keys: {list(output_result.metadata.keys())}")
@@ -4205,7 +4297,7 @@ def interception_pipeline():
                                         config=output_config_name,
                                         seed=seed
                                     ))
-                                elif output_value == 'diffusers_generated':
+                                elif not media_stored and output_value == 'diffusers_generated':
                                     # Session 150: Diffusers backend - image data is base64 encoded
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: diffusers_generated")
                                     image_data_b64 = output_result.metadata.get('image_data')
@@ -4227,7 +4319,7 @@ def interception_pipeline():
                                     else:
                                         logger.error("[DIFFUSERS] No image_data in response metadata")
                                         saved_filename = None
-                                elif output_value == 'heartmula_generated':
+                                elif not media_stored and output_value == 'heartmula_generated':
                                     # HeartMuLa backend - audio data is base64 encoded
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: heartmula_generated")
                                     audio_data_b64 = output_result.metadata.get('audio_data')
@@ -4249,7 +4341,7 @@ def interception_pipeline():
                                     else:
                                         logger.error("[HEARTMULA] No audio_data in response metadata")
                                         saved_filename = None
-                                elif output_value == 'workflow_generated':
+                                elif not media_stored and output_value == 'workflow_generated':
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: workflow_generated")
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] Metadata keys: {list(output_result.metadata.keys())}")
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] legacy_workflow: {output_result.metadata.get('legacy_workflow', 'NOT_FOUND')}")
@@ -4424,7 +4516,7 @@ def interception_pipeline():
                                         else:
                                             logger.warning(f"[RECORDER] No filesystem_path in metadata for workflow_generated")
                                             saved_filename = None
-                                elif output_value.startswith('http://') or output_value.startswith('https://'):
+                                elif not media_stored and (output_value.startswith('http://') or output_value.startswith('https://')):
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: http/https URL")
                                     # API-based generation (GPT-5, Replicate, etc.) - URL
                                     logger.info(f"[RECORDER] Downloading from URL: {output_value}")
@@ -4434,7 +4526,7 @@ def interception_pipeline():
                                         config=output_config_name,
                                         seed=seed
                                     ))
-                                elif not output_value.startswith(('http://', 'https://', 'data:')) and len(output_value) > 1000 and output_value[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/':
+                                elif not media_stored and not output_value.startswith(('http://', 'https://', 'data:')) and len(output_value) > 1000 and output_value[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/':
                                     # Pure base64 string (OpenAI Images API format)
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: Pure base64 (OpenAI Images API)")
                                     logger.info(f"[RECORDER] Decoding pure base64 string ({len(output_value)} chars)")
@@ -4466,7 +4558,7 @@ def interception_pipeline():
                                         import traceback
                                         traceback.print_exc()
                                         saved_filename = None
-                                elif output_value.startswith('data:'):
+                                elif not media_stored and output_value.startswith('data:'):
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: data: URI (base64 with mime type)")
                                     # API-based generation with base64 data URI (e.g., some API providers)
                                     logger.info(f"[RECORDER] Decoding base64 data URI ({len(output_value)} chars)")
@@ -4515,7 +4607,7 @@ def interception_pipeline():
                                         import traceback
                                         traceback.print_exc()
                                         saved_filename = None
-                                else:
+                                elif not media_stored:
                                     logger.info(f"[MEDIA-STORAGE-DEBUG] ✓ Matched: ComfyUI prompt_id (fallback)")
                                     # ComfyUI generation - prompt_id
                                     logger.info(f"[RECORDER] Downloading from ComfyUI: {output_value}")
