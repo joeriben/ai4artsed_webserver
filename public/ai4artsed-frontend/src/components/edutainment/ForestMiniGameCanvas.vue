@@ -329,32 +329,31 @@ function renderFactory(ctx: CanvasRenderingContext2D, factory: Factory) {
   const bottomOffset = (18 + factory.y) / 100 * height
   const y = height - bottomOffset
 
-  const factorySize = 30 * factory.scale  // Base size for scaling
+  const factoryWidth = 40 * factory.scale
+  const factoryHeight = 30 * factory.scale
+  const bodyHeight = factoryHeight * 0.7
 
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.scale(factorySize / 24, -factorySize / 24)  // SVG is 24px, flip Y (SVG coords are inverted)
+  // Factory body with gradient (matches original CSS)
+  const bodyGradient = ctx.createLinearGradient(0, y - factoryHeight, 0, y)
+  bodyGradient.addColorStop(0, '#616161')
+  bodyGradient.addColorStop(0.5, '#424242')
+  bodyGradient.addColorStop(1, '#212121')
 
-  // Google Material Icon Factory path (from factory_24dp SVG)
-  // ViewBox: 0 -960 960 960, scaled to 24x24
-  const factoryPath = new Path2D('M80-80v-481l280-119v80l200-80v120h320v480H80Zm80-80h640v-320H480v-82l-200 80v-78l-120 53v347Zm280-80h80v-160h-80v160Zm-160 0h80v-160h-80v160Zm320 0h80v-160h-80v160Z')
+  ctx.fillStyle = bodyGradient
+  ctx.beginPath()
+  ctx.roundRect(x - factoryWidth / 2, y - factoryHeight, factoryWidth, bodyHeight, [2, 2, 0, 0])
+  ctx.fill()
 
-  // Scale path to fit 24x24 viewport (original is 960x960)
-  ctx.scale(24/960, 24/960)
-  ctx.translate(0, -960)  // Adjust for SVG coordinate system
+  // Chimney (left side, 30% from left edge)
+  const chimneyWidth = factoryWidth * 0.25
+  const chimneyHeight = bodyHeight * 0.6
+  const chimneyX = x - factoryWidth / 2 + factoryWidth * 0.3
+  const chimneyY = y - factoryHeight - chimneyHeight
 
-  // Fill with gradient
-  const gradient = ctx.createLinearGradient(80, -560, 880, -160)
-  gradient.addColorStop(0, '#616161')
-  gradient.addColorStop(0.5, '#424242')
-  gradient.addColorStop(1, '#212121')
+  ctx.fillStyle = '#757575'
+  ctx.fillRect(chimneyX, chimneyY, chimneyWidth, chimneyHeight)
 
-  ctx.fillStyle = gradient
-  ctx.fill(factoryPath)
-
-  ctx.restore()
-
-  // Smoke particles (in world coordinates)
+  // Smoke particles
   factory.smoke.forEach(particle => {
     ctx.fillStyle = `rgba(100, 100, 100, ${particle.opacity})`
     drawCircle(ctx, particle.x, particle.y, 3, ctx.fillStyle)
@@ -425,21 +424,24 @@ function gameTick(dt: number) {
     // Remove dead particles
     factory.smoke = factory.smoke.filter(p => p.life > 0)
 
-    // Spawn new particles from factory top
+    // Spawn new particles from chimney
     if (Math.random() < 0.3) {
       const { width, height } = getRenderContext()
       const factoryX = (factory.x / 100) * width
-      const factorySize = 30 * factory.scale
+      const factoryWidth = 40 * factory.scale
+      const factoryHeight = 30 * factory.scale
+      const bodyHeight = factoryHeight * 0.7
+      const chimneyHeight = bodyHeight * 0.6
       const bottomOffset = (18 + factory.y) / 100 * height
       const factoryY = height - bottomOffset
 
-      // Smoke spawns from top-center of factory
-      const smokeX = factoryX
-      const smokeY = factoryY - factorySize
+      // Chimney center position
+      const chimneyX = factoryX - factoryWidth / 2 + factoryWidth * 0.3 + (factoryWidth * 0.25) / 2
+      const chimneyTop = factoryY - factoryHeight - chimneyHeight
 
       factory.smoke.push({
-        x: smokeX + (Math.random() - 0.5) * 10,  // Slight horizontal variance
-        y: smokeY,
+        x: chimneyX,
+        y: chimneyTop,
         vy: 0.5 + Math.random() * 0.5,
         opacity: 0.6,
         life: 2
