@@ -237,9 +237,26 @@ function renderClouds(ctx: CanvasRenderingContext2D) {
   clouds.value.forEach(cloud => {
     ctx.fillStyle = cloud.color
     ctx.globalAlpha = cloud.opacity
+
+    // Base oval (50px wide × 20px high scaled by radius)
+    const scale = cloud.radius / 25
+    const baseWidth = 50 * scale
+    const baseHeight = 20 * scale
+
     ctx.beginPath()
-    ctx.arc(cloud.x, cloud.y, cloud.radius, 0, Math.PI * 2)
+    ctx.ellipse(cloud.x, cloud.y, baseWidth / 2, baseHeight / 2, 0, 0, Math.PI * 2)
     ctx.fill()
+
+    // Left puff (20px circle)
+    ctx.beginPath()
+    ctx.arc(cloud.x - baseWidth / 4, cloud.y - 10 * scale, 10 * scale, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Right puff (28px circle)
+    ctx.beginPath()
+    ctx.arc(cloud.x + baseWidth / 6, cloud.y - 14 * scale, 14 * scale, 0, Math.PI * 2)
+    ctx.fill()
+
     ctx.globalAlpha = 1
   })
 }
@@ -315,15 +332,27 @@ function renderFactory(ctx: CanvasRenderingContext2D, factory: Factory) {
 
   const factoryWidth = 40 * factory.scale
   const factoryHeight = 30 * factory.scale
+  const bodyHeight = factoryHeight * 0.7
 
-  // Factory body
-  ctx.fillStyle = '#666'
-  ctx.fillRect(x - factoryWidth / 2, y, factoryWidth, factoryHeight)
+  // Factory body with gradient (matches original CSS)
+  const bodyGradient = ctx.createLinearGradient(0, y, 0, y + bodyHeight)
+  bodyGradient.addColorStop(0, '#616161')
+  bodyGradient.addColorStop(0.5, '#424242')
+  bodyGradient.addColorStop(1, '#212121')
 
-  // Chimney
-  const chimneyWidth = 10 * factory.scale
-  const chimneyHeight = 15 * factory.scale
-  ctx.fillRect(x - factoryWidth / 2 + 15 * factory.scale, y - chimneyHeight, chimneyWidth, chimneyHeight)
+  ctx.fillStyle = bodyGradient
+  ctx.beginPath()
+  ctx.roundRect(x - factoryWidth / 2, y, factoryWidth, bodyHeight, [2, 2, 0, 0])
+  ctx.fill()
+
+  // Chimney (left side, 30% from left edge)
+  const chimneyWidth = factoryWidth * 0.25
+  const chimneyHeight = bodyHeight * 0.6
+  const chimneyX = x - factoryWidth / 2 + factoryWidth * 0.3
+  const chimneyY = y - chimneyHeight
+
+  ctx.fillStyle = '#757575'
+  ctx.fillRect(chimneyX, chimneyY, chimneyWidth, chimneyHeight)
 
   // Smoke particles
   factory.smoke.forEach(particle => {
@@ -396,17 +425,24 @@ function gameTick(dt: number) {
     // Remove dead particles
     factory.smoke = factory.smoke.filter(p => p.life > 0)
 
-    // Spawn new particles
+    // Spawn new particles from chimney
     if (Math.random() < 0.3) {
       const { width, height } = getRenderContext()
       const factoryX = (factory.x / 100) * width
-      const groundY = height * 0.7
+      const factoryWidth = 40 * factory.scale
+      const factoryHeight = 30 * factory.scale
+      const bodyHeight = factoryHeight * 0.7
+      const chimneyHeight = bodyHeight * 0.6
       const bottomOffset = (18 + factory.y) / 100 * height
-      const factoryY = height - bottomOffset - (30 * factory.scale)
+      const factoryY = height - bottomOffset - factoryHeight
+
+      // Chimney center position
+      const chimneyX = factoryX - factoryWidth / 2 + factoryWidth * 0.3 + (factoryWidth * 0.25) / 2
+      const chimneyTop = factoryY - chimneyHeight
 
       factory.smoke.push({
-        x: factoryX,  // Center of factory
-        y: factoryY - 10,  // Top of chimney
+        x: chimneyX,
+        y: chimneyTop,
         vy: 0.5 + Math.random() * 0.5,
         opacity: 0.6,
         life: 2
@@ -414,14 +450,24 @@ function gameTick(dt: number) {
     }
   })
 
-  // Spawn factories based on GPU power
-  if (factories.value.length < 30 && Math.random() < effectivePower.value / 10000) {
-    const x = 5 + Math.random() * 90
+  // Factory spawn rate based on GPU power (matches original formula)
+  const factoryRate = (effectivePower.value / 450) * dt * 1.1
+
+  if (factories.value.length < 30 && Math.random() < factoryRate) {
+    // Min distance check (5 attempts to find good position)
+    let newX = 10 + Math.random() * 80
+    const minDistance = 12
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const tooClose = factories.value.some(f => Math.abs(f.x - newX) < minDistance)
+      if (!tooClose) break
+      newX = 10 + Math.random() * 80
+    }
+
     const factory: Factory = {
       id: nextId++,
-      x: x,
-      y: Math.random() * 6,  // Small offset 0-6 (matches original)
-      scale: 1,
+      x: newX,
+      y: Math.random() * 6,  // Small offset 0-6
+      scale: 0.45 + Math.random() * 0.65,  // Random scale 0.45-1.1
       smoke: [],
       render: (ctx) => renderFactory(ctx, factory)
     }
