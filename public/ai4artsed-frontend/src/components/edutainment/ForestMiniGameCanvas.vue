@@ -54,7 +54,6 @@
       <div v-if="!gameOver && isShowingSummary" class="summary-box">
         <span class="summary-detail">{{ totalCo2.toFixed(2) }}g CO₂</span>
         <span class="summary-comparison">{{ t('edutainment.forest.comparison', { minutes: treeMinutes }) }}</span>
-        <span class="summary-trees">{{ t('edutainment.forest.treesPlanted', { count: treesPlanted }) }}</span>
       </div>
     </Transition>
   </div>
