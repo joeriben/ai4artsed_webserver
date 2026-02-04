@@ -200,7 +200,7 @@ class ChunkBuilder:
             if 'previous_output' in context:
                 parameters['TEXT_1'] = context['previous_output']  # Override with previous output if exists
             if 'user_input' in context:
-                parameters['TEXT_2'] = context.get('text2', '')  # Second input for dual-text pipelines
+                parameters['TEXT_2'] = context['user_input']  # Second input for dual-text pipelines (FIXED: was context.get('text2', ''))
 
             return {
                 'backend_type': 'python',  # Special marker for Python chunks
