@@ -1,0 +1,19 @@
+{
+  "config_id": "lyrics_refinement",
+  "pipeline": "text_transformation",
+  "description": "Refines song lyrics for better structure, rhythm, and poetic quality",
+  "chunks": [
+    {
+      "chunk_name": "manipulate",
+      "prompt": "You are a professional songwriter. Refine the following song lyrics while PRESERVING the original words and meaning:\n\n{input_text}\n\nYour task:\n1. Keep the SAME words and phrases\n2. Improve structure with proper [Verse], [Chorus], [Bridge] markers if missing\n3. Adjust line breaks for better rhythm\n4. Small improvements to rhyme/meter WITHOUT changing the core text\n\nIMPORTANT: Do NOT rewrite the lyrics completely. Output ONLY the refined version with the SAME content.",
+      "parameters": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 1000
+      }
+    }
+  ],
+  "model_preferences": {
+    "default": "mistral/mistral-large-latest"
+  }
+}

@@ -206,6 +206,7 @@ import { useRoute } from 'vue-router'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import { usePageContextStore } from '@/stores/pageContext'
 import { useFavoritesStore } from '@/stores/favorites'
+import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
@@ -242,6 +243,7 @@ const route = useRoute()
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 const pageContextStore = usePageContextStore()
 const favoritesStore = useFavoritesStore()
+const pipelineStore = usePipelineExecutionStore()
 
 // Refs
 const mainContainerRef = ref<HTMLElement | null>(null)
@@ -415,22 +417,34 @@ async function runDualInterception() {
   // Start Lyrics Interception
   isLyricsInterceptionLoading.value = true
   refinedLyrics.value = ''
-  lyricsStreamingUrl.value = '/api/schema/pipeline/interception/stream'
+
+  // Use correct endpoint (same as text_transformation.vue)
+  const isDev = import.meta.env.DEV
+  lyricsStreamingUrl.value = isDev
+    ? 'http://localhost:17802/api/schema/pipeline/interception'
+    : '/api/schema/pipeline/interception'
+
   lyricsStreamingParams.value = {
-    schema: 'lyrics_refinement', // TODO: Create interception config
+    schema: 'lyrics_refinement',
     input_text: lyricsInput.value,
-    safety_level: 'youth'
+    safety_level: pipelineStore.safetyLevel,
+    enable_streaming: true  // KEY: Request SSE streaming
   }
 
   // Start Tags Interception (if tags exist)
   if (tagsInput.value) {
     isTagsInterceptionLoading.value = true
     refinedTags.value = ''
-    tagsStreamingUrl.value = '/api/schema/pipeline/interception/stream'
+
+    tagsStreamingUrl.value = isDev
+      ? 'http://localhost:17802/api/schema/pipeline/interception'
+      : '/api/schema/pipeline/interception'
+
     tagsStreamingParams.value = {
-      schema: 'tags_generation', // TODO: Create interception config
+      schema: 'tags_generation',
       input_text: tagsInput.value,
-      safety_level: 'youth'
+      safety_level: pipelineStore.safetyLevel,
+      enable_streaming: true
     }
   } else {
     // No tags input, just use empty
@@ -523,7 +537,7 @@ async function startGeneration() {
       schema: 'heartmula', // Use heartmula interception config
       input_text: finalLyrics,
       output_config: selectedConfig.value,
-      safety_level: 'youth',
+      safety_level: pipelineStore.safetyLevel,
       custom_placeholders: {
         TEXT_1: finalLyrics,
         TEXT_2: finalTags

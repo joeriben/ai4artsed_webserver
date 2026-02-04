@@ -1,0 +1,19 @@
+{
+  "config_id": "tags_generation",
+  "pipeline": "text_transformation",
+  "description": "Generates and refines music style tags based on lyrics with artificial/robotic emphasis",
+  "chunks": [
+    {
+      "chunk_name": "manipulate",
+      "prompt": "TASK: Generate music style tags (NOT lyrics, NOT text)\n\nBased on these song lyrics:\n{input_text}\n\nGenerate ONLY music style descriptors with ARTIFICIAL/ROBOTIC emphasis:\n\nCategories to include:\n- Genre: synthpop, electropop, electronic, industrial, math rock\n- Vocals: vocoder, autotune, pitch-shifted, robotic voice, synthetic voice\n- Instruments: synthesizer, drum machine, sequencer, electronic beats, digital\n- Production: artificial, synthetic, processed, glitchy, lo-fi, mechanical\n- Mood: cold, algorithmic, precise, mathematical, experimental\n\nFORMAT: Comma-separated tags ONLY. No sentences, no lyrics, no explanations.\n\nEXAMPLE OUTPUT:\nsynthpop, vocoder, robotic voice, drum machine, artificial, glitchy, cold, mathematical\n\nYOUR OUTPUT (tags only):",
+      "parameters": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 200
+      }
+    }
+  ],
+  "model_preferences": {
+    "default": "mistral/mistral-large-latest"
+  }
+}
