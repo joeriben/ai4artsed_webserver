@@ -440,6 +440,7 @@ async function runDualInterception() {
     schema: 'lyrics_refinement',
     input_text: lyricsInput.value,
     safety_level: pipelineStore.safetyLevel,
+    device_id: getDeviceId(),  // FIX: Persistent device_id for consistent folders
     enable_streaming: true  // KEY: Request SSE streaming
   }
 
@@ -456,6 +457,7 @@ async function runDualInterception() {
       schema: 'tags_generation',
       input_text: tagsInput.value,
       safety_level: pipelineStore.safetyLevel,
+      device_id: getDeviceId(),  // FIX: Persistent device_id for consistent folders
       enable_streaming: true
     }
   } else {
