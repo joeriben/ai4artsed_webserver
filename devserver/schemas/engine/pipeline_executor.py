@@ -516,6 +516,11 @@ class PipelineExecutor:
         wiki_iteration = 0
         max_wiki_iterations = getattr(config, 'WIKIPEDIA_MAX_ITERATIONS', 3)
         max_lookups = getattr(config, 'WIKIPEDIA_MAX_LOOKUPS_PER_ITERATION', 5)
+
+        # Per-request Wikipedia toggle (e.g., music generation doesn't need Wikipedia)
+        if context.custom_placeholders.get('_SKIP_WIKIPEDIA'):
+            max_wiki_iterations = 0
+            logger.info("[WIKI-LOOP] Skipped (per-request _SKIP_WIKIPEDIA flag)")
         fallback_language = getattr(config, 'WIKIPEDIA_FALLBACK_LANGUAGE', 'de')
 
         # Get input language from context (set by Stage 1 translation)

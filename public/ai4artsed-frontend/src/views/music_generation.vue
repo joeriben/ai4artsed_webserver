@@ -459,7 +459,8 @@ async function runDualInterception() {
       input_text: tagsInput.value,
       safety_level: pipelineStore.safetyLevel,
       device_id: getDeviceId(),  // FIX: Persistent device_id for consistent folders
-      enable_streaming: true
+      enable_streaming: true,
+      skip_wikipedia: 'true'  // Music: No Wikipedia research needed for lyrics/tags
     }
   } else {
     // No tags input, just use empty

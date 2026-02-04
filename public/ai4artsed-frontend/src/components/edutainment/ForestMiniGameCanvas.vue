@@ -176,16 +176,31 @@ function initForest() {
   gameOver.value = false
   birdProgress.value = 0
 
-  // Initial trees
+  // Initial trees with perspective + non-overlapping
   const treeCount = 18 + Math.floor(Math.random() * 8)
   for (let i = 0; i < treeCount; i++) {
-    const x = 5 + Math.random() * 90  // 5-95% of width
+    let treeY = Math.random() * 10
+    let treeScale = 1.0 - (treeY / 10) * 0.45  // Perspective: front=1.0, horizon=0.55
+    let treeX = 5 + Math.random() * 90
+
+    // Non-overlapping placement (10 attempts)
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const overlaps = trees.value.some(t => {
+        const avgScale = (t.scale + treeScale) / 2
+        return Math.abs(t.x - treeX) < 5 * avgScale && Math.abs(t.y - treeY) < 3
+      })
+      if (!overlaps) break
+      treeX = 5 + Math.random() * 90
+      treeY = Math.random() * 10
+      treeScale = 1.0 - (treeY / 10) * 0.45
+    }
+
     const tree: Tree = {
       id: nextId++,
-      x: x,
-      y: 0,  // Will be calculated from height
+      x: treeX,
+      y: treeY,
       type: TREE_TYPES[Math.floor(Math.random() * TREE_TYPES.length)]!,
-      scale: 0.6 + Math.random() * 0.8,
+      scale: treeScale,
       growing: false,
       growthProgress: 1,
       render: (ctx) => renderTree(ctx, tree),
@@ -276,11 +291,12 @@ function renderBird(ctx: CanvasRenderingContext2D, width: number, height: number
 function renderTree(ctx: CanvasRenderingContext2D, tree: Tree) {
   const { width, height } = getRenderContext()
   const x = (tree.x / 100) * width
-  const groundY = height * 0.7
-  const treeSize = 35 * tree.scale * tree.growthProgress
+  // Depth positioning: base 18% from bottom + Y offset (same system as factories)
+  const bottomOffset = (18 + tree.y) / 100 * height
+  const y = height - bottomOffset
 
   ctx.save()
-  ctx.translate(x, groundY)
+  ctx.translate(x, y)
   ctx.scale(tree.scale * tree.growthProgress, tree.scale * tree.growthProgress)
 
   // Trunk
@@ -316,6 +332,11 @@ function renderTree(ctx: CanvasRenderingContext2D, tree: Tree) {
 
   ctx.closePath()
   ctx.fill()
+
+  // Subtle outline so trees don't blend into each other
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)'
+  ctx.lineWidth = 1
+  ctx.stroke()
 
   ctx.restore()
 }
@@ -384,7 +405,8 @@ function render() {
   renderBird(ctx, width, height)
 
   // Game objects
-  trees.value.forEach(tree => tree.render(ctx))
+  // Draw back-to-front (higher y = further back = draw first)
+  ;[...trees.value].sort((a, b) => b.y - a.y).forEach(tree => tree.render(ctx))
   // Draw back-to-front (higher y = further back = draw first)
   ;[...factories.value].sort((a, b) => b.y - a.y).forEach(factory => factory.render(ctx))
 }
@@ -539,23 +561,31 @@ function handleClick(e: MouseEvent) {
     return Math.abs(f.x - clickX) < hitRadius
   })
 
+  // Determine tree position: at factory if hit, otherwise front row
+  let treeX = clickX
+  let treeY = Math.random() * 2  // Front row (0-2) for normal clicks
+
   if (nearbyFactory) {
-    // Remove factory (but also plant tree - don't return!)
+    // Remove factory, plant tree at factory's position
+    treeX = nearbyFactory.x
+    treeY = nearbyFactory.y
     const index = factories.value.findIndex(f => f.id === nearbyFactory.id)
     if (index !== -1) {
       factories.value.splice(index, 1)
     }
   }
 
-  // Plant tree at click position
+  const treeScale = 1.0 - (treeY / 10) * 0.45  // Perspective scale
+
+  // Plant tree
   const tree: Tree = {
     id: nextId++,
-    x: clickX,
-    y: 0,
+    x: treeX,
+    y: treeY,
     type: TREE_TYPES[Math.floor(Math.random() * TREE_TYPES.length)]!,
-    scale: 0.6 + Math.random() * 0.8,
+    scale: treeScale,
     growing: true,
-    growthProgress: 0,  // Start at 0, grow to 1 over 1 second
+    growthProgress: 0,
     render: (ctx) => renderTree(ctx, tree),
     update: (dt) => {
       if (tree.growing && tree.growthProgress < 1) {

@@ -1374,6 +1374,7 @@ def execute_pipeline_streaming(data: dict):
     safety_level = data.get('safety_level', 'youth')
     execution_mode = data.get('execution_mode', 'eco')
     device_id = data.get('device_id')  # Session 129: For folder structure
+    skip_wikipedia = data.get('skip_wikipedia', False)  # Per-request Wikipedia toggle
 
     # Session 130: Simplified - always use run_xxx from the start
     run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
@@ -1538,6 +1539,16 @@ def execute_pipeline_streaming(data: dict):
         tracker = NoOpTracker()
         result_holder = [None]  # Mutable container for thread result
 
+        # Build context_override if skip_wikipedia requested
+        streaming_context = None
+        if skip_wikipedia:
+            from schemas.engine.pipeline_executor import PipelineContext
+            streaming_context = PipelineContext(
+                input_text=checked_text,
+                user_input=input_text,
+                custom_placeholders={'_SKIP_WIKIPEDIA': True}
+            )
+
         def run_pipeline():
             result_holder[0] = asyncio.run(pipeline_executor.execute_pipeline(
                 config_name=schema_name,
@@ -1546,7 +1557,8 @@ def execute_pipeline_streaming(data: dict):
                 execution_mode=execution_mode,
                 safety_level=safety_level,
                 tracker=tracker,
-                config_override=config
+                config_override=config,
+                context_override=streaming_context
             ))
 
         # Start pipeline in background thread
@@ -3385,7 +3397,8 @@ def interception_pipeline():
                 'safety_level': request.args.get('safety_level', 'youth'),
                 'execution_mode': request.args.get('execution_mode', 'eco'),
                 'enable_streaming': request.args.get('enable_streaming') == 'true',
-                'device_id': request.args.get('device_id')  # Session 130: Fix missing device_id
+                'device_id': request.args.get('device_id'),  # Session 130: Fix missing device_id
+                'skip_wikipedia': request.args.get('skip_wikipedia') == 'true'  # Per-request Wikipedia toggle
             }
         else:
             # POST with JSON body
