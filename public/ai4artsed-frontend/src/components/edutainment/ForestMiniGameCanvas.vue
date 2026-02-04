@@ -234,29 +234,13 @@ function renderGround(ctx: CanvasRenderingContext2D, width: number, height: numb
 }
 
 function renderClouds(ctx: CanvasRenderingContext2D) {
+  // Simple overlapping semi-transparent circles
   clouds.value.forEach(cloud => {
     ctx.fillStyle = cloud.color
     ctx.globalAlpha = cloud.opacity
-
-    // Base oval (50px wide × 20px high scaled by radius)
-    const scale = cloud.radius / 25
-    const baseWidth = 50 * scale
-    const baseHeight = 20 * scale
-
     ctx.beginPath()
-    ctx.ellipse(cloud.x, cloud.y, baseWidth / 2, baseHeight / 2, 0, 0, Math.PI * 2)
+    ctx.arc(cloud.x, cloud.y, cloud.radius, 0, Math.PI * 2)
     ctx.fill()
-
-    // Left puff (20px circle)
-    ctx.beginPath()
-    ctx.arc(cloud.x - baseWidth / 4, cloud.y - 10 * scale, 10 * scale, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Right puff (28px circle)
-    ctx.beginPath()
-    ctx.arc(cloud.x + baseWidth / 6, cloud.y - 14 * scale, 14 * scale, 0, Math.PI * 2)
-    ctx.fill()
-
     ctx.globalAlpha = 1
   })
 }
@@ -517,12 +501,11 @@ function handleClick(e: MouseEvent) {
   })
 
   if (nearbyFactory) {
-    // Remove factory instead of planting tree
+    // Remove factory (but also plant tree - don't return!)
     const index = factories.value.findIndex(f => f.id === nearbyFactory.id)
     if (index !== -1) {
       factories.value.splice(index, 1)
     }
-    return  // Don't plant tree when hitting factory
   }
 
   // Plant tree at click position
@@ -533,11 +516,11 @@ function handleClick(e: MouseEvent) {
     type: TREE_TYPES[Math.floor(Math.random() * TREE_TYPES.length)]!,
     scale: 0.6 + Math.random() * 0.8,
     growing: true,
-    growthProgress: 0,
+    growthProgress: 0,  // Start at 0, grow to 1 over 1 second
     render: (ctx) => renderTree(ctx, tree),
     update: (dt) => {
       if (tree.growing && tree.growthProgress < 1) {
-        tree.growthProgress = Math.min(1, tree.growthProgress + dt * 2)
+        tree.growthProgress = Math.min(1, tree.growthProgress + dt)  // dt * 1 = 1 second growth
         if (tree.growthProgress >= 1) {
           tree.growing = false
         }
@@ -547,7 +530,7 @@ function handleClick(e: MouseEvent) {
 
   addTree(tree)
   treesPlanted.value++
-  plantCooldown.value = 1  // 1 second cooldown
+  plantCooldown.value = 1  // 1 second cooldown (same as growth time)
 }
 
 // ==================== Lifecycle ====================
