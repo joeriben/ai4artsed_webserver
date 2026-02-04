@@ -284,6 +284,17 @@ const { objects, addObject, removeObject, updateAll, renderAll } = useCanvasObje
 **Original:** `flex-direction: row` (default) → Texte nebeneinander
 **Learning:** ✅ Original CSS 1:1 übernehmen für UI-Elemente, nicht "verbessern"
 
+#### 5. Wolken over-engineered (3-teilig statt einfach)
+**Fehler:** 3-part cloud (Base Oval + 2 Circles) → zu komplex
+**Original:** Einfache überlappende semi-transparente Kreise
+**Problem:** CSS ::before/::after sind DOM-Tricks, Canvas braucht das nicht
+**Learning:** ✅ Canvas = Simple Geometric Primitives, NICHT komplexe Shapes nachbauen
+
+#### 6. Factory Click behavior falsch
+**Fehler:** `return` nach Factory-Destroy → Kein Baum gepflanzt
+**Original:** Factory destroy UND Baum pflanzen (kein return)
+**Learning:** ✅ Logik-Flow genau prüfen, nicht raten
+
 ### Wie man diese Fehler vermeidet:
 
 0. **🔥 WICHTIGSTE REGEL: Schau bei IcebergAnimation.vue 🔥**
