@@ -54,23 +54,32 @@
         />
       </div>
 
-      <!-- 3. Wald Mini-Game -->
+      <!-- 3. Wald Mini-Game (Original DOM/CSS) -->
       <div v-if="selectedAnimation === 'forest'" class="animation-wrapper">
         <ForestMiniGame
           :progress="progress"
         />
       </div>
 
-      <!-- 4. Seltene Erden Mini-Game -->
+      <!-- 3b. Wald Mini-Game (Canvas Version) -->
+      <div v-if="selectedAnimation === 'forest-canvas'" class="animation-wrapper">
+        <ForestMiniGameCanvas
+          :progress="progress"
+        />
+      </div>
+
+      <!-- 4. Seltene Erden Mini-Game - DISABLED -->
+      <!--
       <div v-if="selectedAnimation === 'rareearth'" class="animation-wrapper">
         <RareEarthMiniGame
           :progress="progress"
         />
       </div>
+      -->
     </div>
 
-    <!-- Live stats (hidden for iceberg, forest, and rareearth which have their own) -->
-    <div v-if="selectedAnimation !== 'iceberg' && selectedAnimation !== 'forest' && selectedAnimation !== 'rareearth'" class="live-stats">
+    <!-- Live stats (hidden for iceberg, forest, forest-canvas, and rareearth which have their own) -->
+    <div v-if="selectedAnimation !== 'iceberg' && selectedAnimation !== 'forest' && selectedAnimation !== 'forest-canvas' && selectedAnimation !== 'rareearth'" class="live-stats">
       <div class="stat-card">
         <div class="stat-label">Power</div>
         <div class="stat-value">{{ Math.round(gpuStats.power_draw_watts || simulatedPower) }}W</div>
@@ -104,7 +113,8 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import EdutainmentProgressAnimation from '@/components/edutainment/EdutainmentProgressAnimation.vue'
 import IcebergAnimation from '@/components/edutainment/IcebergAnimation.vue'
 import ForestMiniGame from '@/components/edutainment/ForestMiniGame.vue'
-import RareEarthMiniGame from '@/components/edutainment/RareEarthMiniGame.vue'
+import ForestMiniGameCanvas from '@/components/edutainment/ForestMiniGameCanvas.vue'
+// import RareEarthMiniGame from '@/components/edutainment/RareEarthMiniGame.vue' // DISABLED
 import type { GpuRealtimeStats } from '@/composables/useEdutainmentFacts'
 
 // Animation selection
@@ -112,6 +122,7 @@ const animations = [
   { id: 'pixel', name: '1. Pixel + Bubbles' },
   { id: 'iceberg', name: '2. Klima-Eisberg' },
   { id: 'forest', name: '3. Wald-Spiel' },
+  { id: 'forest-canvas', name: '3b. Wald-Spiel (Canvas)' },
   { id: 'rareearth', name: '4. Seltene Erden' }
 ]
 const selectedAnimation = ref('pixel')
