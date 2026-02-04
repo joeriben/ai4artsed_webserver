@@ -54,4 +54,5 @@ echo ""
 # Remove error trap - allow normal server exit without "Script failed" message
 trap - ERR
 
-python3 server.py
+# Use venv Python directly (more reliable than sourcing activate)
+"$SCRIPT_DIR/venv/bin/python" server.py

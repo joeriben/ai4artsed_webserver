@@ -252,18 +252,79 @@ const { objects, addObject, removeObject, updateAll, renderAll } = useCanvasObje
 
 ---
 
+## ⚠️ WICHTIGE LEARNINGS (Session 2026-02-04) ⚠️
+
+### Fehler die gemacht wurden und wie man sie vermeidet:
+
+#### 1. Canvas Dimensions Hardcoded
+**Fehler:** `canvasWidth = ref(800)`, `canvasHeight = ref(320)` - Canvas auf feste Größe gesetzt
+**Problem:** Container ist breiter → Canvas wird gestretcht → Clipping/Verzerrung
+**Fix:** Keine Dimensionen an `useCanvasRenderer` übergeben → Auto-Sizing vom Container
+**Learning:** ✅ Canvas soll sich immer an Container-Größe anpassen, nicht hardcoded sein
+
+#### 2. Factory Y-Position falsch interpretiert
+**Fehler:** `y: 40` (absolut) → Factory schwebt in der Luft
+**Original:** `y: Math.random() * 6` → Kleiner Offset (0-6%)
+**Problem:** Y ist KEIN absoluter %-Wert, sondern ein kleiner Offset zum Basis-Bottom (18%)
+**Fix:**
+```typescript
+// Spawn: y: Math.random() * 6
+// Render: const bottomOffset = (18 + factory.y) / 100 * height
+```
+**Learning:** ✅ Immer original Koordinaten-System verstehen, nicht raten!
+
+#### 3. UI Element Sizing mit Prozenten statt Pixel
+**Fehler:** Summary Box mit `bottom: 3.75%`, `padding: 2.5% 6%`, `gap: 0.3rem`
+**Original:** `bottom: 12px`, `padding: 6px 20px`, `gap: 16px`
+**Problem:** Prozente skalieren mit Screen-Größe → UI-Elemente inkonsistent groß/klein
+**Learning:** ✅ UI Overlays (Stats, Summary) IMMER mit fixen Pixeln, NICHT Prozente/rem!
+
+#### 4. Summary Box Layout vertikal statt horizontal
+**Fehler:** `flex-direction: column` → Texte untereinander
+**Original:** `flex-direction: row` (default) → Texte nebeneinander
+**Learning:** ✅ Original CSS 1:1 übernehmen für UI-Elemente, nicht "verbessern"
+
+### Wie man diese Fehler vermeidet:
+
+1. **IMMER Original lesen BEVOR man migriert**
+   - Nicht raten wie Koordinaten funktionieren
+   - Original 1:1 verstehen, dann übersetzen
+
+2. **Koordinaten-Systeme verstehen**
+   - DOM: `bottom: %` = absolut
+   - Canvas: Alles in pixels oder % von Dimensionen
+   - Y-Offsets können relativ sein (wie bei Factory)
+
+3. **UI Overlays = Fixed Pixels**
+   - Stats Bar: Fixed pixels
+   - Summary Box: Fixed pixels
+   - Nur Game-Objekte (Trees, Factories) in %
+
+4. **Vergleiche mit Original während der Implementierung**
+   - Nicht erst am Ende testen
+   - Bei jedem Feature: "Wie macht das Original das?"
+
+5. **TypeScript + Browser Test SOFORT**
+   - Nach jedem Feature kompilieren + im Browser checken
+   - Visuelle Bugs fallen sofort auf
+
+---
+
 ## Bekannte Issues / TODOs
 
 ### ForestMiniGameCanvas
 1. **Tree Rendering vereinfacht:** Aktuell nur Basis-Shapes (Triangle/Circle/Oval). Original hat detailliertere CSS-Shapes.
    - **Fix:** Detailliertere Path2D-Shapes pro Tree-Type
-2. **Factory Hit Detection fehlt:** Original erlaubt Factory-Clicks (zerstören), Canvas-Version nicht implementiert.
-   - **Fix:** Click-Handler erweitern mit Factory hitbox check
-3. **Tree Destruction fehlt:** Original hat Logik zum Zerstören von Trees durch Factories.
-   - **Fix:** Game Logic aus Original übernehmen
 
 ### Utilities
 - Alle stabil, keine bekannten Issues
+
+### ✅ FIXED (Session 2026-02-04)
+- ~~Canvas dimensions hardcoded~~ → Auto-sizing implementiert
+- ~~Factory Hit Detection fehlt~~ → Implementiert
+- ~~Tree Destruction fehlt~~ → Implementiert
+- ~~Factory Y-Position falsch~~ → Korrigiert (0-6 offset)
+- ~~Summary Box Layout falsch~~ → Horizontal + fixed pixels
 
 ---
 

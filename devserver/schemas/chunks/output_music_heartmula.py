@@ -32,11 +32,13 @@ CHUNK_META = {
 }
 
 # Default parameters (replaces JSON input_mappings defaults)
+# IMPORTANT: max_audio_length_ms must match HeartMuLa's training (120s max)
+# Longer audio causes CUDA out-of-bounds errors in codec
 DEFAULTS = {
     "temperature": 1.0,
     "topk": 50,
     "cfg_scale": 1.5,
-    "max_audio_length_ms": 240000,
+    "max_audio_length_ms": 120000,  # 2 minutes (HeartMuLa standard, DO NOT EXCEED)
     "seed": None  # None = random
 }
 
@@ -112,6 +114,21 @@ async def execute(
     if not lyrics or not lyrics.strip():
         logger.error("[CHUNK:heartmula] No lyrics provided")
         raise ValueError("No lyrics provided for music generation")
+
+    # Validate lyrics length (HeartMuLa has token limits)
+    MAX_LYRICS_CHARS = 2000  # Conservative limit
+    if len(lyrics) > MAX_LYRICS_CHARS:
+        logger.warning(f"[CHUNK:heartmula] Lyrics too long ({len(lyrics)} chars), truncating to {MAX_LYRICS_CHARS}")
+        lyrics = lyrics[:MAX_LYRICS_CHARS]
+
+    # Validate tags (keep simple like HeartMuLa examples: "piano,happy")
+    MAX_TAGS_CHARS = 200  # HeartMuLa expects simple tags
+    if tags and len(tags) > MAX_TAGS_CHARS:
+        logger.warning(f"[CHUNK:heartmula] Tags too long ({len(tags)} chars), truncating to {MAX_TAGS_CHARS}")
+        tags = tags[:MAX_TAGS_CHARS]
+        # Ensure we don't cut mid-tag
+        if ',' in tags:
+            tags = ','.join(tags.split(',')[:-1])  # Remove partial last tag
 
     # Generate music
     audio_bytes = await backend.generate_music(

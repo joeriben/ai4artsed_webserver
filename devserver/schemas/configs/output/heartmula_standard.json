@@ -18,7 +18,7 @@
     "temperature": 1.0,
     "topk": 50,
     "cfg_scale": 1.5,
-    "max_audio_length_ms": 240000
+    "max_audio_length_ms": 120000
   },
   "media_preferences": {
     "default_output": "music",

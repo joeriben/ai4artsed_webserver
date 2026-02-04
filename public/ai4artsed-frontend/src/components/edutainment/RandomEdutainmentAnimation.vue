@@ -21,12 +21,14 @@
       :estimated-seconds="estimatedSeconds"
     />
 
-    <!-- Rare Earth Mini-Game (Environmental Mining) -->
+    <!-- Rare Earth Mini-Game (Environmental Mining) - DISABLED -->
+    <!--
     <RareEarthMiniGame
       v-else-if="selectedAnimation === 'rareearth'"
       :progress="progress"
       :estimated-seconds="estimatedSeconds"
     />
+    -->
   </div>
 </template>
 
@@ -35,15 +37,15 @@ import { ref, onMounted } from 'vue'
 import EdutainmentProgressAnimation from './EdutainmentProgressAnimation.vue'
 import IcebergAnimation from './IcebergAnimation.vue'
 import ForestMiniGame from './ForestMiniGame.vue'
-import RareEarthMiniGame from './RareEarthMiniGame.vue'
+// import RareEarthMiniGame from './RareEarthMiniGame.vue' // DISABLED
 
 defineProps<{
   progress: number
   estimatedSeconds?: number
 }>()
 
-// Available animations
-const ANIMATIONS = ['pixel', 'iceberg', 'forest', 'rareearth'] as const
+// Available animations (rareearth DISABLED)
+const ANIMATIONS = ['pixel', 'iceberg', 'forest'] as const
 type AnimationType = typeof ANIMATIONS[number]
 
 // Randomly select on mount (stays same for entire generation)

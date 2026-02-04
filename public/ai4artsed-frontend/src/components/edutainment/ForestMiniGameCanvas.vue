@@ -1,5 +1,5 @@
 <template>
-  <div class="forest-game-canvas">
+  <div ref="containerRef" class="forest-game-canvas">
     <canvas
       ref="canvasRef"
       @click="handleClick"
@@ -138,13 +138,9 @@ let nextId = 0
 
 // ==================== Canvas Setup ====================
 const containerRef = ref<HTMLElement | null>(null)
-const canvasWidth = ref(800)
-const canvasHeight = ref(320)
 
-const { canvasRef, getRenderContext } = useCanvasRenderer(containerRef, {
-  width: canvasWidth,
-  height: canvasHeight
-})
+// Let useCanvasRenderer auto-size to container (no hardcoded dimensions)
+const { canvasRef, getRenderContext, width: canvasWidth, height: canvasHeight } = useCanvasRenderer(containerRef, {})
 
 const { createCachedGradient, drawCircle, interpolateColor } = useCanvasDrawing()
 
@@ -312,14 +308,22 @@ function renderTree(ctx: CanvasRenderingContext2D, tree: Tree) {
 function renderFactory(ctx: CanvasRenderingContext2D, factory: Factory) {
   const { width, height } = getRenderContext()
   const x = (factory.x / 100) * width
-  const y = (factory.y / 100) * height
+  const groundY = height * 0.7
+  // Bottom position: base 18% from bottom + Y offset (0-6%)
+  const bottomOffset = (18 + factory.y) / 100 * height
+  const y = height - bottomOffset - (30 * factory.scale)  // Subtract factory height
+
+  const factoryWidth = 40 * factory.scale
+  const factoryHeight = 30 * factory.scale
 
   // Factory body
   ctx.fillStyle = '#666'
-  ctx.fillRect(x, y, 40, 30)
+  ctx.fillRect(x - factoryWidth / 2, y, factoryWidth, factoryHeight)
 
   // Chimney
-  ctx.fillRect(x + 15, y - 10, 10, 10)
+  const chimneyWidth = 10 * factory.scale
+  const chimneyHeight = 15 * factory.scale
+  ctx.fillRect(x - factoryWidth / 2 + 15 * factory.scale, y - chimneyHeight, chimneyWidth, chimneyHeight)
 
   // Smoke particles
   factory.smoke.forEach(particle => {
@@ -394,9 +398,15 @@ function gameTick(dt: number) {
 
     // Spawn new particles
     if (Math.random() < 0.3) {
+      const { width, height } = getRenderContext()
+      const factoryX = (factory.x / 100) * width
+      const groundY = height * 0.7
+      const bottomOffset = (18 + factory.y) / 100 * height
+      const factoryY = height - bottomOffset - (30 * factory.scale)
+
       factory.smoke.push({
-        x: (factory.x / 100) * canvasWidth.value + 20,
-        y: (factory.y / 100) * canvasHeight.value - 10,
+        x: factoryX,  // Center of factory
+        y: factoryY - 10,  // Top of chimney
         vy: 0.5 + Math.random() * 0.5,
         opacity: 0.6,
         life: 2
@@ -410,12 +420,22 @@ function gameTick(dt: number) {
     const factory: Factory = {
       id: nextId++,
       x: x,
-      y: 40,  // Fixed Y position
+      y: Math.random() * 6,  // Small offset 0-6 (matches original)
       scale: 1,
       smoke: [],
       render: (ctx) => renderFactory(ctx, factory)
     }
     addFactory(factory)
+
+    // Tree destruction: Remove a random mature tree (70% chance)
+    const matureTrees = trees.value.filter(t => !t.growing && t.growthProgress >= 1)
+    if (matureTrees.length > 0 && Math.random() < 0.7) {
+      const treeToRemove = matureTrees[Math.floor(Math.random() * matureTrees.length)]!
+      const index = trees.value.findIndex(t => t.id === treeToRemove.id)
+      if (index !== -1) {
+        trees.value.splice(index, 1)
+      }
+    }
   }
 
   // Update clouds
@@ -444,6 +464,21 @@ function handleClick(e: MouseEvent) {
   const rect = canvasRef.value!.getBoundingClientRect()
   const clickX = ((e.clientX - rect.left) / rect.width) * 100  // Convert to percentage
 
+  // Factory hit detection: Check if click is near a factory
+  const nearbyFactory = factories.value.find(f => {
+    const hitRadius = 5 * f.scale  // Factory width ~5% per scale unit
+    return Math.abs(f.x - clickX) < hitRadius
+  })
+
+  if (nearbyFactory) {
+    // Remove factory instead of planting tree
+    const index = factories.value.findIndex(f => f.id === nearbyFactory.id)
+    if (index !== -1) {
+      factories.value.splice(index, 1)
+    }
+    return  // Don't plant tree when hitting factory
+  }
+
   // Plant tree at click position
   const tree: Tree = {
     id: nextId++,
@@ -471,7 +506,6 @@ function handleClick(e: MouseEvent) {
 
 // ==================== Lifecycle ====================
 onMounted(() => {
-  containerRef.value = canvasRef.value?.parentElement ?? null
   initForest()
 
   setTimeout(() => {
@@ -588,32 +622,43 @@ canvas {
 
 .summary-box {
   position: absolute;
-  bottom: 3.75%;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(30, 86, 49, 0.9);
-  padding: 2.5% 6%;
-  border-radius: 8px;
-  border: 0.1% solid rgba(76, 175, 80, 0.5);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 0.6% 3.75% rgba(0, 0, 0, 0.3);
-  max-width: 90%;
-  z-index: 80;
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 16px;
+  pointer-events: none;
+  z-index: 80;
+  background: rgba(30, 86, 49, 0.9);
+  padding: 6px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
 }
 
 .summary-detail {
   color: #c8e6c9;
-  font-size: 0.75rem;
-  font-weight: bold;
+  font-size: 12px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  white-space: nowrap;
 }
 
-.summary-comparison,
-.summary-trees {
+.summary-comparison {
   color: #a5d6a7;
-  font-size: 0.7rem;
+  font-size: 12px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.summary-trees {
+  color: #81c784;
+  font-size: 11px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  white-space: nowrap;
 }
 
 .fade-enter-active,

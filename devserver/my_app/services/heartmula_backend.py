@@ -277,6 +277,12 @@ class HeartMuLaMusicGenerator:
                 # Generate in thread to avoid blocking
                 def _generate():
                     with torch.no_grad():
+                        logger.info(f"[HEARTMULA-DEBUG] Calling pipeline with:")
+                        logger.info(f"  lyrics length: {len(lyrics)} chars")
+                        logger.info(f"  tags: '{tags}'")
+                        logger.info(f"  max_audio_length_ms: {max_audio_length_ms}")
+                        logger.info(f"  topk: {topk}, temp: {temperature}, cfg: {cfg_scale}")
+
                         self._pipeline(
                             input_data,
                             max_audio_length_ms=max_audio_length_ms,

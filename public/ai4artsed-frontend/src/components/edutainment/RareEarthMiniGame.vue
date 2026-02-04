@@ -280,9 +280,9 @@ function initEnvironment() {
   for (let i = 0; i < count; i++) {
     const isTree = Math.random() < 0.6  // 60% trees, 40% bushes
 
-    // Avoid lake area (center-right: 45-75%)
+    // Avoid mountain/conveyor area (left: 0-30%) and lake area (center-right: 45-75%)
     let x = Math.random() * 100
-    while (x > 45 && x < 75) {
+    while ((x < 30) || (x > 45 && x < 75)) {
       x = Math.random() * 100
     }
 
@@ -390,11 +390,14 @@ function handleClick(event: MouseEvent) {
   const x = event.clientX - rect.left
   const y = event.clientY - rect.top
 
-  // Lake hitbox detection (approximate center-right area)
-  const lakeX = rect.width * 0.6  // Center of lake
-  const lakeY = rect.height * 0.7  // Vertical center
-  const lakeRadiusX = rect.width * 0.15
-  const lakeRadiusY = rect.height * 0.1
+  // Lake hitbox detection - CALCULATED from CSS position
+  // Lake: left: 50%, width: 20%, bottom: 16%, height: 15.625%
+  // Lake center: left: 50% + 10% = 60%
+  // Lake center: bottom: 16% + 7.8125% = 23.8125% from bottom = 76.1875% from top
+  const lakeX = rect.width * 0.60  // left: 50% + width/2 (10%) = 60%
+  const lakeY = rect.height * 0.76  // bottom: 16% + height/2 (7.8125%) ≈ 76%
+  const lakeRadiusX = rect.width * 0.10  // width: 20% / 2 = 10%
+  const lakeRadiusY = rect.height * 0.078  // height: 15.625% / 2 = 7.8125%
 
   const dx = (x - lakeX) / lakeRadiusX
   const dy = (y - lakeY) / lakeRadiusY
@@ -414,6 +417,13 @@ function removeSludge(x: number, y: number) {
   setTimeout(() => {
     shovels.value = shovels.value.filter(s => s.id !== shovelId)
   }, 500)  // Remove after animation
+
+  // Add ripple effect
+  const lakeElement = document.querySelector('.lake')
+  lakeElement?.classList.add('ripple-effect')
+  setTimeout(() => {
+    lakeElement?.classList.remove('ripple-effect')
+  }, 600)
 
   // Remove 10% pollution
   lakePollution.value = Math.max(0, lakePollution.value - 10)
@@ -450,14 +460,14 @@ function removeSludge(x: number, y: number) {
 
 // ==================== Styling Helpers ====================
 function getVegetationStyle(veg: VegetationItem) {
-  const baseSize = veg.type === 'tree' ? 35 : 25
+  const baseSize = veg.type === 'tree' ? 3.5 : 2.5  // % of container width
   const size = baseSize * veg.scale
 
   return {
     left: `${veg.x}%`,
     bottom: '25%',
-    width: `${size}px`,
-    height: `${size * 1.4}px`,
+    width: `${size}%`,
+    height: `${size * 1.4}%`,
     zIndex: Math.floor(veg.x)
   }
 }
@@ -515,33 +525,97 @@ watch(() => props.progress, (newProgress) => {
 
 .mountain {
   position: absolute;
-  left: 5%;
-  bottom: 25%;
-  width: 150px;
-  height: 120px;
-  background: linear-gradient(135deg, #696969 0%, #8b7355 50%, #4a4a4a 100%);
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  left: -5%;
+  bottom: 30%;
+  width: 25%;
+  height: 56.25%;
+  background: linear-gradient(135deg, #696969 0%, #8b7355 40%, #5a4a3a 70%, #4a4a4a 100%);
+  clip-path: polygon(40% 0%, 45% 8%, 52% 15%, 58% 25%, 65% 40%, 72% 60%, 78% 80%, 82% 100%, 0% 100%, 0% 50%, 15% 30%, 25% 15%, 32% 5%);
   z-index: 5;
+}
+
+.mountain::after {
+  content: '';
+  position: absolute;
+  bottom: 2.5%;
+  right: 30%;
+  width: 18%;
+  height: 33.33%;
+  background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+  border-radius: 8px 8px 0 0;
+  border: 2px solid #3a3a3a;
+  box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.8);
+  z-index: 6;
 }
 
 .conveyor-belt {
   position: absolute;
-  right: 15%;
-  top: 25%;
-  width: 120px;
-  height: 20px;
-  background: linear-gradient(90deg, #3a3a3a 0%, #2a2a2a 100%);
-  border: 2px solid #555;
+  left: 12%;
+  bottom: 35%;
+  width: 58%;
+  height: 4.375%;
+  transform: rotate(-7deg);
+  transform-origin: left center;
+
+  /* 2.5D side view - belt going DOWN into earth */
+  background: linear-gradient(180deg,
+    #5a5a5a 0%,     /* Top edge (lighter) */
+    #3a3a3a 20%,    /* Upper surface */
+    #2a2a2a 50%,    /* Middle (darkest) */
+    #3a3a3a 80%,    /* Lower surface */
+    #4a4a4a 100%    /* Bottom edge (lighter) */
+  );
+
+  border-top: 1px solid #6a6a6a;
+  border-bottom: 1px solid #1a1a1a;
+  border-left: 1px solid #4a4a4a;
+  border-right: 1px solid #4a4a4a;
+
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.1),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.5),
+    0 3px 6px rgba(0, 0, 0, 0.3);
+
   z-index: 10;
+}
+
+.conveyor-belt::before {
+  content: '';
+  position: absolute;
+  top: 14%;
+  left: 0;
+  right: 0;
+  height: 7%;
+  background: repeating-linear-gradient(
+    90deg,
+    #666 0px,
+    #666 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  animation: belt-scroll 1s linear infinite;
+  opacity: 0.4;
+}
+
+@keyframes belt-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 16px 0; }
 }
 
 .conveyor-crystal {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 4px;
+  top: -50%;
+  width: 2.4%;
+  height: 4.375%;
+  border-radius: 20%;
+
+  /* Faceted gem appearance */
+  box-shadow:
+    inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.2),
+    0 0 8px currentColor,
+    0 2px 4px rgba(0, 0, 0, 0.3);
+
   animation: conveyor-move 2s linear infinite;
 }
 
@@ -553,32 +627,76 @@ watch(() => props.progress, (newProgress) => {
 .sludge-drip {
   position: absolute;
   top: 100%;
-  width: 4px;
-  height: 15px;
-  background: linear-gradient(180deg, #5a3e2b, transparent);
+  width: 0.7%;
+  height: 4.6875%;
+  background: linear-gradient(180deg, #5a3e2b, rgba(90, 62, 43, 0.3));
+  border-radius: 0 0 15% 15%;
   animation: drip 1.5s ease-in infinite;
 }
 
 @keyframes drip {
-  0% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(80px); opacity: 0; }
+  0% {
+    transform: translateY(0) scaleY(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(40px) scaleY(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(80px) scaleY(0.8);
+    opacity: 0;
+  }
 }
 
 .lake {
   position: absolute;
-  right: 20%;
-  bottom: 28%;
-  width: 180px;
-  height: 80px;
-  border-radius: 50%;
-  transition: background 1s ease;
-  z-index: 3;
+  left: 50%;
+  bottom: 16%;
+  width: 20%;
+  height: 15.625%;
+
+  /* Side-view: flat surface with slightly rounded top edges */
+  border-radius: 15% 15% 0 0;
+
+  /* Add depth perception */
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 -8px 15px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.15);
+
+  transition: background 1s ease, border-color 0.5s ease;
+  z-index: 8;
+}
+
+.lake.ripple-effect {
+  animation: lake-ripple 0.6s ease-out;
+}
+
+@keyframes lake-ripple {
+  0% {
+    box-shadow:
+      inset 0 -10px 20px rgba(0, 0, 0, 0.15),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow:
+      inset 0 -10px 20px rgba(0, 0, 0, 0.15),
+      0 4px 8px rgba(0, 0, 0, 0.2),
+      0 0 0 6px rgba(100, 180, 255, 0.4),
+      0 0 0 12px rgba(100, 180, 255, 0.2);
+  }
+  100% {
+    box-shadow:
+      inset 0 -10px 20px rgba(0, 0, 0, 0.15),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+  }
 }
 
 .shovel {
   position: absolute;
-  width: 30px;
-  height: 30px;
+  width: 3%;
+  height: 9.375%;
   background: linear-gradient(135deg, #8B4513 0%, #654321 50%, #8B4513 100%);
   clip-path: polygon(70% 0%, 100% 30%, 60% 70%, 30% 40%);
   animation: scoop 0.5s ease-out;
@@ -596,21 +714,21 @@ watch(() => props.progress, (newProgress) => {
   position: absolute;
   right: 8%;
   bottom: 12%;
-  width: 60px;
-  height: 40px;
+  width: 6%;
+  height: 12.5%;
   background: linear-gradient(135deg, #2c2c2c, #1a1a1a);
-  border-radius: 4px;
-  border: 2px solid #444;
-  padding: 4px;
+  border-radius: 8%;
+  border: 0.2% solid #444;
+  padding: 1%;
   z-index: 15;
 }
 
 .chip-label {
   position: absolute;
-  top: 2px;
+  top: 5%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 8px;
+  font-size: 0.5rem;
   color: #888;
   font-weight: bold;
 }
@@ -620,12 +738,12 @@ watch(() => props.progress, (newProgress) => {
   justify-content: space-around;
   align-items: center;
   height: 100%;
-  padding-top: 8px;
+  padding-top: 20%;
 }
 
 .gem {
-  width: 12px;
-  height: 12px;
+  width: 30%;
+  aspect-ratio: 1;
   border-radius: 50%;
   transition: opacity 0.5s, box-shadow 0.3s;
 }
@@ -634,11 +752,11 @@ watch(() => props.progress, (newProgress) => {
   position: absolute;
   left: 8%;
   bottom: 12%;
-  width: 40px;
-  height: 50px;
+  width: 4%;
+  height: 15.625%;
   background: #424242;
-  border: 2px solid #666;
-  border-radius: 4px;
+  border: 0.2% solid #666;
+  border-radius: 8%;
   overflow: hidden;
   z-index: 15;
 }
@@ -653,21 +771,21 @@ watch(() => props.progress, (newProgress) => {
 
 .truck {
   position: absolute;
-  left: -60px;
+  left: -6%;
   bottom: 12%;
-  width: 50px;
-  height: 30px;
+  width: 5%;
+  height: 9.375%;
   background: linear-gradient(90deg, #ff6b35 0%, #f7931e 100%);
-  border-radius: 4px;
+  border-radius: 8%;
   animation: truck-drive-in 2s ease-in-out;
   z-index: 20;
 }
 
 @keyframes truck-drive-in {
-  0% { left: -60px; }
+  0% { left: -6%; }
   40% { left: 5%; }
   60% { left: 5%; }
-  100% { left: -60px; }
+  100% { left: -6%; }
 }
 
 .vegetation {
@@ -740,31 +858,31 @@ watch(() => props.progress, (newProgress) => {
 }
 
 .stat-label {
-  font-size: 8px;
+  font-size: 0.5rem;
   color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
 }
 
 .stat-value {
   font-family: 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 0.7rem;
   color: #fff;
   font-weight: bold;
 }
 
 .instruction-overlay {
   position: absolute;
-  bottom: 10px;
+  bottom: 3%;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(76, 175, 80, 0.8);
   color: white;
-  padding: 6px 14px;
+  padding: 2% 4%;
   border-radius: 15px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: bold;
   transition: background 0.3s;
-  min-width: 60px;
+  min-width: 20%;
   text-align: center;
   z-index: 90;
 }
@@ -787,41 +905,41 @@ watch(() => props.progress, (newProgress) => {
 
 .game-over-text {
   color: #ff5722;
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .game-over-co2 {
   color: #fff;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: bold;
-  margin-bottom: 6px;
+  margin-bottom: 0.4rem;
 }
 
 .game-over-stats {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .info-banner {
   position: absolute;
-  bottom: 12px;
+  bottom: 3.75%;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(30, 86, 49, 0.9);
-  padding: 8px 20px;
+  padding: 2.5% 6%;
   border-radius: 8px;
-  border: 1px solid rgba(76, 175, 80, 0.5);
+  border: 0.1% solid rgba(76, 175, 80, 0.5);
   backdrop-filter: blur(8px);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0.6% 3.75% rgba(0, 0, 0, 0.3);
   max-width: 90%;
   z-index: 80;
 }
 
 .info-banner p {
   color: #c8e6c9;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-family: 'Georgia', 'Times New Roman', serif;
   margin: 0;
   line-height: 1.4;
