@@ -286,6 +286,13 @@ const { objects, addObject, removeObject, updateAll, renderAll } = useCanvasObje
 
 ### Wie man diese Fehler vermeidet:
 
+0. **🔥 WICHTIGSTE REGEL: Schau bei IcebergAnimation.vue 🔥**
+   - IcebergAnimation ist BEREITS Canvas-Implementierung
+   - Alle UI-Pattern sind dort KORREKT implementiert
+   - Summary Box, Stats Bar, Overlays → Alles schon da!
+   - **ERST Iceberg checken, DANN Original DOM, DANN migrieren**
+   - Spart 90% der Fehler und Diskussionen!
+
 1. **IMMER Original lesen BEVOR man migriert**
    - Nicht raten wie Koordinaten funktionieren
    - Original 1:1 verstehen, dann übersetzen
