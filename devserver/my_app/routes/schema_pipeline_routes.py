@@ -3501,12 +3501,15 @@ def interception_pipeline():
             STAGE2_INTERCEPTION_MODEL,
             STAGE3_MODEL
         )
+        # Extract device_id from request (FIX: consistent folder structure)
+        device_id = data.get('device_id')
+
         recorder = get_recorder(
             run_id=run_id,
             config_name=schema_name,
             execution_mode=execution_mode,
             safety_level=safety_level,
-            user_id='anonymous',
+            device_id=device_id,  # FIX: Use device_id from request instead of hardcoded 'anonymous'
             base_path=JSON_STORAGE_DIR
         )
         recorder.set_state(0, "pipeline_starting")

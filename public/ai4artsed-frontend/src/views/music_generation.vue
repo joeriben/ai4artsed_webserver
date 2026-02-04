@@ -267,6 +267,18 @@ const lyricsStreamingParams = ref<Record<string, any>>({})
 const tagsStreamingUrl = ref('')
 const tagsStreamingParams = ref<Record<string, any>>({})
 
+// Device ID for folder structure (json/date/device_id/run_xxx/)
+// Combines permanent browser ID + date = valid until end of day
+function getDeviceId(): string {
+  let browserId = localStorage.getItem('browser_id')
+  if (!browserId) {
+    browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
+    localStorage.setItem('browser_id', browserId)
+  }
+  const today = new Date().toISOString().split('T')[0]
+  return `${browserId}_${today}`
+}
+
 // Config selection
 const selectedConfig = ref<string>('heartmula_standard')
 const hoveredConfigId = ref<string | null>(null)
@@ -538,6 +550,7 @@ async function startGeneration() {
       input_text: finalLyrics,
       output_config: selectedConfig.value,
       safety_level: pipelineStore.safetyLevel,
+      device_id: getDeviceId(), // FIX: Persistent device_id for consistent export folders
       custom_placeholders: {
         TEXT_1: finalLyrics,
         TEXT_2: finalTags
