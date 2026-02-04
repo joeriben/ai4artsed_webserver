@@ -336,14 +336,15 @@ function renderFactory(ctx: CanvasRenderingContext2D, factory: Factory) {
   // Position: x = center, y = bottom of factory
   ctx.translate(x, y)
 
-  // SVG path analysis: factory occupies x:80-880 (800 units), y:-561 to -80 (481 units)
-  // Scale to map 800 SVG units → factoryWidth, 481 SVG units → factoryHeight
+  // SVG viewBox 0 -960 960 960: path spans x:80-880 (800u), y:-561 to -80 (481u)
+  // NO Y-flip needed: SVG y=-80 (bottom) maps to canvas y (ground), y=-561 (top) maps upward
+  // Flipping Y would reverse path winding → nonzero fill rule makes factory invisible!
   const scaleX = factoryWidth / 800
   const scaleY = factoryHeight / 481
-  ctx.scale(scaleX, -scaleY)  // Negative Y to flip (SVG Y increases upward)
+  ctx.scale(scaleX, scaleY)
 
-  // Translate so factory bottom-center (x=480, y=-561) maps to origin
-  ctx.translate(-480, 561)
+  // Translate so SVG bottom-center (480, -80) maps to canvas origin (0, 0)
+  ctx.translate(-480, 80)
 
   // Google Material Icon Factory path
   const factoryPath = new Path2D('M80-80v-481l280-119v80l200-80v120h320v480H80Zm80-80h640v-320H480v-82l-200 80v-78l-120 53v347Zm280-80h80v-160h-80v160Zm-160 0h80v-160h-80v160Zm320 0h80v-160h-80v160Z')
