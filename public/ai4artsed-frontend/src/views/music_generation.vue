@@ -473,9 +473,9 @@ function handleLyricsStreamStarted() {
   console.log('[MusicGen] Lyrics stream started')
 }
 
-function handleLyricsStreamComplete(content: string) {
-  console.log('[MusicGen] Lyrics stream complete:', content.substring(0, 50))
-  refinedLyrics.value = content
+function handleLyricsStreamComplete(data: any) {
+  console.log('[MusicGen] Lyrics stream complete:', data)
+  // v-model already updated by MediaInputBox, no need to set refinedLyrics
   isLyricsInterceptionLoading.value = false
   checkInterceptionComplete()
 }
@@ -492,9 +492,9 @@ function handleTagsStreamStarted() {
   console.log('[MusicGen] Tags stream started')
 }
 
-function handleTagsStreamComplete(content: string) {
-  console.log('[MusicGen] Tags stream complete:', content.substring(0, 50))
-  refinedTags.value = content
+function handleTagsStreamComplete(data: any) {
+  console.log('[MusicGen] Tags stream complete:', data)
+  // v-model already updated by MediaInputBox, no need to set refinedTags
   isTagsInterceptionLoading.value = false
   checkInterceptionComplete()
 }

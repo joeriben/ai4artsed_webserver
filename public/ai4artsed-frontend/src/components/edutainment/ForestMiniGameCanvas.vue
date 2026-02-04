@@ -238,7 +238,7 @@ function renderClouds(ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = cloud.color
     ctx.globalAlpha = cloud.opacity
 
-    const scale = cloud.radius / 25  // Scale factor based on radius
+    const scale = cloud.radius  // Already a scale factor (0.6-1.1)
 
     // Puff 1: 40px circle at base position
     ctx.beginPath()
@@ -346,8 +346,8 @@ function renderFactory(ctx: CanvasRenderingContext2D, factory: Factory) {
   // Translate so SVG bottom-center (480, -80) maps to canvas origin (0, 0)
   ctx.translate(-480, 80)
 
-  // Google Material Icon Factory path
-  const factoryPath = new Path2D('M80-80v-481l280-119v80l200-80v120h320v480H80Zm80-80h640v-320H480v-82l-200 80v-78l-120 53v347Zm280-80h80v-160h-80v160Zm-160 0h80v-160h-80v160Zm320 0h80v-160h-80v160Z')
+  // Outer silhouette only (no compound subpaths = no holes = SOLID fill)
+  const factoryPath = new Path2D('M80-80v-481l280-119v80l200-80v120h320v480H80Z')
 
   // Gradient in SVG coordinate space
   const gradient = ctx.createLinearGradient(80, -561, 880, -80)
@@ -357,6 +357,12 @@ function renderFactory(ctx: CanvasRenderingContext2D, factory: Factory) {
 
   ctx.fillStyle = gradient
   ctx.fill(factoryPath)
+
+  // Windows as dark rectangles
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+  ctx.fillRect(200, -320, 80, 160)
+  ctx.fillRect(360, -320, 80, 160)
+  ctx.fillRect(520, -320, 80, 160)
 
   ctx.restore()
 
@@ -391,15 +397,15 @@ function updateClouds() {
 
   // Only regenerate if count changed
   if (clouds.value.length !== cloudCount) {
-    const darkness = Math.min(0.9, pollutionRatio * 0.5)
+    const darkness = Math.min(0.8, pollutionRatio * 0.5)
+    const gray = Math.round(200 - darkness * 120)
     clouds.value = Array.from({ length: cloudCount }, (_, i) => {
-      const gray = Math.round(150 - darkness * 100)
       return {
         x: ((5 + (i * 17 + i * i * 3) % 90) / 100) * canvasWidth.value,
-        y: ((8 + (i * 11) % 35) / 100) * canvasHeight.value,
-        radius: 20 + (i % 4) * 10,
+        y: ((5 + (i * 11) % 25) / 100) * canvasHeight.value,
+        radius: 0.6 + (i % 3) * 0.25,  // Scale factor 0.6-1.1 (matches ClimateBackground)
         opacity: 0.4 + darkness * 0.5,
-        color: `rgba(${gray}, ${gray}, ${gray + 10}, ${0.6 + darkness * 0.3})`
+        color: `rgb(${gray}, ${gray}, ${gray})`  // No alpha (opacity via globalAlpha only)
       }
     })
   }
@@ -471,7 +477,7 @@ function gameTick(dt: number) {
       id: nextId++,
       x: newX,
       y: Math.random() * 6,  // Small offset 0-6
-      scale: 0.45 + Math.random() * 0.65,  // Random scale 0.45-1.1
+      scale: 0.7 + Math.random() * 0.4,  // Range 0.7-1.1 (min 28px wide)
       smoke: [],
       render: (ctx) => renderFactory(ctx, factory)
     }
