@@ -423,7 +423,7 @@ async function suggestTagsFromLyrics() {
     })
 
     if (response.data.status === 'success') {
-      const outputText = response.data.output_text || response.data.result || ''
+      const outputText = response.data.final_output || ''
       parseAndApplyTagSuggestions(outputText)
     }
   } catch (error) {
