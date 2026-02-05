@@ -552,10 +552,13 @@ class PipelineExecutor:
             step.metadata.update(chunk_request['metadata'])
 
             # Phase 4: Add seed_override to parameters if present in context
-            if 'seed_override' in context.custom_placeholders:
+            # Skip for Python chunks (e.g. HeartMuLa) - seed logic designed for image generation only
+            if 'seed_override' in context.custom_placeholders and chunk_request.get('backend_type') != 'python':
                 seed_value = context.custom_placeholders['seed_override']
                 chunk_request['parameters']['seed'] = seed_value  # lowercase!
                 logger.info(f"[PHASE4-SEED] Injected seed into chunk parameters: {seed_value}")
+            elif 'seed_override' in context.custom_placeholders:
+                logger.info(f"[PHASE4-SEED] Skipped seed injection for Python chunk (uses own random seed)")
 
             # Session 80: Add input_image to parameters if present in context (IMG2IMG support)
             if 'input_image' in context.custom_placeholders:

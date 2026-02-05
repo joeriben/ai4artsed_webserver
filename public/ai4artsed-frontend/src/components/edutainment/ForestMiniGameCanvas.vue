@@ -1,5 +1,13 @@
 <template>
   <div ref="containerRef" class="forest-game-canvas">
+    <!-- Climate background (sky, sun, clouds) - reused from IcebergAnimation -->
+    <ClimateBackground
+      :power-watts="effectivePower"
+      :power-limit="450"
+      :co2-grams="totalCo2"
+      :temperature="effectiveTemp"
+    />
+
     <canvas
       ref="canvasRef"
       @click="handleClick"
@@ -67,6 +75,7 @@ import { useCanvasRenderer } from '@/composables/useCanvasRenderer'
 import { useGameLoop } from '@/composables/useGameLoop'
 import { useCanvasDrawing } from '@/composables/useCanvasDrawing'
 import { useCanvasObjects, type CanvasObject } from '@/composables/useCanvasObjects'
+import ClimateBackground from './ClimateBackground.vue'
 
 const { t } = useI18n()
 
@@ -124,14 +133,6 @@ interface SmokeParticle {
   life: number
 }
 
-interface Cloud {
-  x: number
-  y: number
-  radius: number
-  opacity: number
-  color: string
-}
-
 // ==================== State ====================
 const { objects: trees, addObject: addTree, clear: clearTrees } = useCanvasObjects<Tree>()
 const { objects: factories, addObject: addFactory, clear: clearFactories } = useCanvasObjects<Factory>()
@@ -140,7 +141,13 @@ const plantCooldown = ref(0)
 const treesPlanted = ref(0)
 const gameOver = ref(false)
 const birdProgress = ref(0)
-const clouds = ref<Cloud[]>([])
+let birdFrame = 0
+let birdFrameTimer = 0
+
+// Load bird sprite sheet
+const birdImage = new Image()
+birdImage.crossOrigin = 'anonymous'
+birdImage.src = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/174479/bird-cells.svg'
 
 let nextId = 0
 
@@ -153,8 +160,6 @@ const { canvasRef, getRenderContext, width: canvasWidth, height: canvasHeight } 
 const { createCachedGradient, drawCircle, interpolateColor } = useCanvasDrawing()
 
 // ==================== Colors & Constants ====================
-const SKY_CLEAN = { r: 135, g: 206, b: 250 }
-const SKY_POLLUTED = { r: 55, g: 86, b: 150 }
 const GROUND_COLOR_TOP = '#5a8f5a'
 const GROUND_COLOR_BOTTOM = '#2d4a2d'
 const GROUND_HEIGHT = 0.3  // 30% of canvas height
@@ -227,22 +232,6 @@ function initForest() {
 }
 
 // ==================== Rendering ====================
-function renderSky(ctx: CanvasRenderingContext2D, width: number, height: number) {
-  // Sky gradient based on pollution
-  const pollution = Math.min(1, totalCo2.value / 20)
-  const r = Math.round(SKY_CLEAN.r - pollution * (SKY_CLEAN.r - SKY_POLLUTED.r))
-  const g = Math.round(SKY_CLEAN.g - pollution * (SKY_CLEAN.g - SKY_POLLUTED.g))
-  const b = Math.round(SKY_CLEAN.b - pollution * (SKY_CLEAN.b - SKY_POLLUTED.b))
-
-  const grad = createCachedGradient(ctx, 0, 0, 0, height * 0.7, [
-    [0, `rgb(${r}, ${g}, ${b})`],
-    [1, `rgb(${r + 40}, ${g + 30}, ${b - 20})`]
-  ], `sky-${totalCo2.value.toFixed(1)}`)
-
-  ctx.fillStyle = grad
-  ctx.fillRect(0, 0, width, height * 0.7)
-}
-
 function renderGround(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const groundY = height * 0.7
   const groundH = height * GROUND_HEIGHT
@@ -256,55 +245,36 @@ function renderGround(ctx: CanvasRenderingContext2D, width: number, height: numb
   ctx.fillRect(0, groundY, width, groundH)
 }
 
-function renderClouds(ctx: CanvasRenderingContext2D) {
-  // Each cloud = 3 overlapping circles (puffs) - pattern from ClimateBackground.vue
-  clouds.value.forEach(cloud => {
-    ctx.fillStyle = cloud.color
-    ctx.globalAlpha = cloud.opacity
-
-    const scale = cloud.radius  // Already a scale factor (0.6-1.1)
-
-    // Puff 1: 40px circle at base position
-    ctx.beginPath()
-    ctx.arc(cloud.x, cloud.y, 20 * scale, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Puff 2: 50px circle, offset right and slightly up (middle, largest)
-    ctx.beginPath()
-    ctx.arc(cloud.x + 25 * scale, cloud.y - 5 * scale, 25 * scale, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Puff 3: 35px circle, offset further right
-    ctx.beginPath()
-    ctx.arc(cloud.x + 55 * scale, cloud.y, 17.5 * scale, 0, Math.PI * 2)
-    ctx.fill()
-
-    ctx.globalAlpha = 1
-  })
-}
-
 function renderBird(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  if (!birdImage.complete) return
+
   const x = (5 + birdProgress.value * 0.9) / 100 * width
   const y = (15 + Math.sin(birdProgress.value * 0.3) * 5) / 100 * height
 
-  // Flying bird: V-shape wings
-  ctx.strokeStyle = '#3a3a3a'
-  ctx.lineWidth = 2
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  // Left wing
-  ctx.moveTo(x - 10, y + 3)
-  ctx.quadraticCurveTo(x - 4, y - 6, x, y)
-  // Right wing
-  ctx.quadraticCurveTo(x + 4, y - 6, x + 10, y + 3)
-  ctx.stroke()
+  // Sprite sheet: 10 frames, each 88px wide, 125px tall (total 900×125)
+  const frameWidth = 88
+  const frameHeight = 125
+  const drawScale = 0.4  // Match original CSS transform: scale(0.4)
+  const drawW = frameWidth * drawScale
+  const drawH = frameHeight * drawScale
+
+  ctx.save()
+  // Match original: filter: brightness(0) invert(1) = white silhouette
+  ctx.filter = 'brightness(0) invert(1) drop-shadow(0 0 4px rgba(255,255,255,0.5))'
+  ctx.drawImage(
+    birdImage,
+    birdFrame * frameWidth, 0, frameWidth, frameHeight,  // Source rect (sprite frame)
+    x - drawW / 2, y - drawH / 2, drawW, drawH           // Dest rect (centered)
+  )
+  ctx.filter = 'none'
+  ctx.restore()
 
   // Percentage label below bird
   const pct = Math.round(birdProgress.value)
   ctx.font = 'bold 10px sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
-  ctx.fillText(`${pct}%`, x, y + 14)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+  ctx.fillText(`${pct}%`, x, y + drawH / 2 + 12)
 }
 
 function renderTree(ctx: CanvasRenderingContext2D, tree: Tree) {
@@ -443,43 +413,16 @@ function renderFactory(ctx: CanvasRenderingContext2D, factory: Factory) {
 function render() {
   const { ctx, width, height, clear } = getRenderContext()
   clear()
+  // Sky + clouds handled by ClimateBackground component (DOM overlay)
 
-  // Background
-  renderSky(ctx, width, height)
+  // Canvas: ground, trees, factories, bird
   renderGround(ctx, width, height)
-  renderClouds(ctx)
-  renderBird(ctx, width, height)
-
-  // Game objects
-  // Draw back-to-front (higher y = further back = draw first)
   ;[...trees.value].sort((a, b) => b.y - a.y).forEach(tree => tree.render(ctx))
-  // Draw back-to-front (higher y = further back = draw first)
   ;[...factories.value].sort((a, b) => b.y - a.y).forEach(factory => factory.render(ctx))
+  renderBird(ctx, width, height)
 }
 
 // ==================== Game Loop ====================
-function updateClouds() {
-  const treeCount = trees.value.length
-  const factoryCount = factories.value.length
-  const pollutionRatio = factoryCount / Math.max(1, treeCount)
-  const cloudCount = Math.min(12, Math.floor(pollutionRatio * 8) + Math.floor(factoryCount * 0.8))
-
-  // Only regenerate if count changed
-  if (clouds.value.length !== cloudCount) {
-    const darkness = Math.min(0.8, pollutionRatio * 0.5)
-    const gray = Math.round(200 - darkness * 120)
-    clouds.value = Array.from({ length: cloudCount }, (_, i) => {
-      return {
-        x: ((5 + (i * 17 + i * i * 3) % 90) / 100) * canvasWidth.value,
-        y: ((5 + (i * 11) % 25) / 100) * canvasHeight.value,
-        radius: 0.6 + (i % 3) * 0.25,  // Scale factor 0.6-1.1 (matches ClimateBackground)
-        opacity: 0.4 + darkness * 0.5,
-        color: `rgb(${gray}, ${gray}, ${gray})`  // No alpha (opacity via globalAlpha only)
-      }
-    })
-  }
-}
-
 function gameTick(dt: number) {
   if (gameOver.value) return
 
@@ -491,6 +434,13 @@ function gameTick(dt: number) {
   // Update bird progress (smooth interpolation, 0-100 matching internalProgress)
   const target = internalProgress.value
   birdProgress.value += (target - birdProgress.value) * 0.08
+
+  // Bird sprite animation: 10 frames at ~10fps = cycle every 1s
+  birdFrameTimer += dt
+  if (birdFrameTimer >= 0.1) {
+    birdFrameTimer = 0
+    birdFrame = (birdFrame + 1) % 10
+  }
 
   // Update trees
   trees.value.forEach(tree => tree.update?.(dt))
@@ -574,9 +524,6 @@ function gameTick(dt: number) {
       }
     }
   }
-
-  // Update clouds
-  updateClouds()
 
   // Check game over
   if (trees.value.length === 0) {
@@ -670,9 +617,13 @@ onMounted(() => {
 }
 
 canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
   width: 100%;
   height: 100%;
+  z-index: 10;
 }
 
 /* UI Overlays - same as original */
