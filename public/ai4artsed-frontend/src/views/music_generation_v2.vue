@@ -141,8 +141,13 @@
         </div>
       </section>
 
-      <!-- Generate Button -->
+      <!-- Generate Button + Batch -->
       <div class="start-button-container">
+        <div class="batch-control">
+          <button class="batch-btn" :disabled="batchCount <= 1" @click="batchCount--">-</button>
+          <span class="batch-value">{{ batchCount }}x</span>
+          <button class="batch-btn" @click="batchCount++">+</button>
+        </div>
         <button
           class="start-button"
           :class="{ disabled: !canGenerate }"
@@ -150,7 +155,7 @@
           @click="startGeneration"
         >
           <span class="button-arrows button-arrows-left">>>></span>
-          <span class="button-text">{{ $t('musicGenV2.generateButton') }}</span>
+          <span class="button-text">{{ batchCount > 1 ? `${batchCurrent}/${batchCount}` : '' }} {{ $t('musicGenV2.generateButton') }}</span>
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
 
@@ -329,6 +334,8 @@ const audioLengthSeconds = ref(120)
 const temperature = ref(1.0)
 const topk = ref(50)
 const cfgScale = ref(1.5)
+const batchCount = ref(1)
+const batchCurrent = ref(0)
 
 const audioLengthDisplay = computed(() => {
   const mins = Math.floor(audioLengthSeconds.value / 60)
@@ -491,6 +498,16 @@ function parseAndApplyTagSuggestions(text: string) {
 async function startGeneration() {
   if (!canGenerate.value) return
 
+  const total = batchCount.value
+  for (let i = 1; i <= total; i++) {
+    batchCurrent.value = i
+    console.log(`[MusicGenV2] Batch ${i}/${total}`)
+    await runSingleGeneration()
+  }
+  batchCurrent.value = 0
+}
+
+async function runSingleGeneration() {
   isGenerating.value = true
   outputAudio.value = null
   generationProgress.value = 0
@@ -763,6 +780,48 @@ onMounted(() => {
   justify-content: space-between;
   font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.3);
+}
+
+/* Batch Control */
+.batch-control {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.batch-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.batch-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: white;
+}
+
+.batch-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.batch-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 2rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Start Button */
