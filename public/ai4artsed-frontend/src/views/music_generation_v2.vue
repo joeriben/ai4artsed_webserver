@@ -475,7 +475,7 @@ function parseAndApplyTagSuggestions(text: string) {
     for (const [dimName, tags] of Object.entries(suggestions)) {
       if (!Array.isArray(tags) || !knownChips[dimName]) continue
       // Only select tags that exist in our chip list
-      newSelection[dimName] = tags.filter(tag => knownChips[dimName].has(tag))
+      newSelection[dimName] = tags.filter(tag => knownChips[dimName]!.has(tag))
     }
 
     selectedTags.value = newSelection
