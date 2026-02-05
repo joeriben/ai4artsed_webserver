@@ -234,6 +234,7 @@ import type { PageContext, FocusHint } from '@/composables/usePageContext'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
+import '@/assets/animations.css'
 
 // ============================================================================
 // i18n (temporary inline, move to i18n.ts later)
@@ -692,199 +693,257 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Import t2x-consistent styles */
+/* ============================================================================
+   music_generation.vue Styles
+   Design system aligned with text_transformation.css
+   ============================================================================ */
+
+/* ============================================================================
+   Root Container
+   ============================================================================ */
+
 .music-generation-view {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: white;
-  padding: 2rem 1rem;
+  min-height: 100%;
+  background: #0a0a0a;
+  color: #ffffff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 120px;
 }
+
+/* ============================================================================
+   Phase 2a: Vertical Flow
+   ============================================================================ */
 
 .phase-2a {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: clamp(320px, 90vw, 1100px);
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2rem);
+  padding-top: clamp(1rem, 3vw, 2rem);
+
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  align-items: center;
+  gap: clamp(1rem, 3vh, 2rem);
 }
 
-/* Input Section - Side by Side */
+/* Section Titles */
+.section-title {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 1rem 0;
+  color: transparent;
+  -webkit-text-stroke: 2px #FFB300;
+  text-stroke: 2px #FFB300;
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6),
+               0 0 20px rgba(255, 179, 0, 0.4),
+               0 0 30px rgba(255, 179, 0, 0.2);
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================================================
+   Section 1: Dual Input (Lyrics + Tags, Side by Side)
+   ============================================================================ */
+
 .input-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  display: flex;
+  gap: clamp(1rem, 3vw, 2rem);
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-@media (max-width: 768px) {
-  .input-section {
-    grid-template-columns: 1fr;
-  }
-}
+/* ============================================================================
+   Section 2: Interception Results (Dual Outputs, Side by Side)
+   ============================================================================ */
 
-/* Sections */
 .interception-section,
 .config-section {
+  width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1rem;
 }
 
-/* Dual Outputs - Side by Side */
 .interception-section.dual-outputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-@media (max-width: 768px) {
-  .interception-section.dual-outputs {
-    grid-template-columns: 1fr;
-  }
-}
-
-.section-title {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
-}
-
-/* Start Button Container */
-.start-button-container {
   display: flex;
+  flex-direction: row;
+  gap: clamp(1rem, 3vw, 2rem);
+  width: 100%;
   justify-content: center;
-  align-items: center;
-  gap: 1.5rem;
-  position: relative;
+  flex-wrap: wrap;
 }
 
-.start-button {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 3rem;
-  font-size: 1.2rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #9c27b0, #673ab7);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
-}
+/* ============================================================================
+   Section 3: Config Bubbles (Model Selection)
+   ============================================================================ */
 
-.start-button:hover:not(.disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(156, 39, 176, 0.5);
-}
-
-.start-button.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.button-arrows {
-  font-size: 0.8em;
-  opacity: 0.7;
-}
-
-/* Config Bubbles */
 .config-bubbles-container {
+  width: 100%;
   display: flex;
   justify-content: center;
 }
 
 .config-bubbles-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  display: inline-flex;
+  flex-direction: row;
+  gap: clamp(0.75rem, 2vw, 1rem);
   justify-content: center;
+  flex-wrap: wrap;
+  max-width: fit-content;
 }
 
 .config-bubble {
   position: relative;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 3px solid transparent;
+  z-index: 1;
+  width: clamp(80px, 12vw, 100px);
+  height: clamp(80px, 12vw, 100px);
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  background: rgba(30, 30, 30, 0.9);
+  border: 3px solid var(--bubble-color, rgba(255, 255, 255, 0.3));
+  border-radius: 50%;
+
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
 }
 
-.config-bubble:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: scale(1.05);
+.config-bubble:hover:not(.disabled):not(.loading),
+.config-bubble.hovered {
+  transform: scale(2.0);
+  background: rgba(20, 20, 20, 0.9);
+  box-shadow: 0 0 30px var(--bubble-color);
+  z-index: 100;
 }
 
 .config-bubble.selected {
-  border-color: var(--bubble-color, #9c27b0);
-  background: rgba(var(--bubble-color-rgb, 156, 39, 176), 0.2);
+  transform: scale(1.1);
+  background: var(--bubble-color);
+  box-shadow: 0 0 30px var(--bubble-color);
+  border-color: #ffffff;
+}
+
+.config-bubble.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.8);
 }
 
 .bubble-emoji-medium {
-  font-size: 3rem;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  line-height: 1;
 }
 
-/* Bubble Hover Info */
+/* Hide emoji when hovered (to show hover info) */
+.config-bubble.hovered .bubble-emoji-medium {
+  opacity: 0;
+  display: none;
+}
+
+/* ============================================================================
+   Hover Info Overlay - Mathematical precision for circular constraint
+   ============================================================================ */
+
 .bubble-hover-info {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.95);
-  border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  gap: 0.5rem;
+  padding: 18%;
+  color: white;
+  z-index: 10;
+  pointer-events: none;
+  gap: 0.3rem;
 }
 
 .hover-info-name {
-  font-size: 0.9rem;
+  font-size: 0.5rem;
   font-weight: 600;
   text-align: center;
+  line-height: 1.25;
+  margin-bottom: 0;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 100%;
+  word-wrap: break-word;
+  hyphens: manual;
 }
 
 .hover-info-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.75rem;
+  gap: 0;
+  width: 100%;
 }
 
 .meta-row {
   display: flex;
   justify-content: space-between;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.18rem;
+  width: 100%;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
 }
 
 .meta-label {
-  opacity: 0.7;
+  font-size: 0.45rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 400;
+  text-align: left;
+  flex-shrink: 0;
+  flex-basis: 35%;
+  letter-spacing: -0.01em;
+}
+
+.meta-value {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  flex-basis: 60%;
+  letter-spacing: 0.02em;
 }
 
 .stars-filled {
-  color: #fbbf24;
+  color: #FFD700;
 }
 
 .stars-unfilled {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(150, 150, 150, 0.5);
 }
 
-.duration-only {
+.meta-value.duration-only {
+  width: 100%;
   text-align: center;
-  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.45rem;
+  flex-basis: auto;
+  margin-top: 0.25rem;
+  line-height: 1;
 }
 
-/* Audio Length Slider */
+/* ============================================================================
+   Audio Length Slider (Music-specific, adapted to design language)
+   ============================================================================ */
+
 .slider-section {
+  width: 100%;
+  max-width: 480px;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -898,17 +957,22 @@ onMounted(() => {
 }
 
 .slider-label-text {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: clamp(0.75rem, 2vw, 0.85rem);
+  color: transparent;
+  -webkit-text-stroke: 1px #FFB300;
+  text-stroke: 1px #FFB300;
+  text-shadow: 0 0 8px rgba(255, 179, 0, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  font-weight: 700;
 }
 
 .slider-value {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: #FFB300;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6);
 }
 
 .audio-slider {
@@ -927,79 +991,159 @@ onMounted(() => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #9c27b0;
+  background: #FFB300;
   cursor: pointer;
   border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 10px rgba(255, 179, 0, 0.4);
   transition: transform 0.15s;
 }
 
 .audio-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
+  box-shadow: 0 0 15px rgba(255, 179, 0, 0.6);
 }
 
 .audio-slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #9c27b0;
+  background: #FFB300;
   cursor: pointer;
   border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 10px rgba(255, 179, 0, 0.4);
 }
 
 .slider-marks {
   display: flex;
   justify-content: space-between;
-  font-size: 0.7rem;
+  font-size: clamp(0.6rem, 1.5vw, 0.7rem);
   color: rgba(255, 255, 255, 0.3);
 }
 
-/* Safety Stamp */
-.safety-stamp {
-  position: absolute;
-  right: 0;
-  animation: stamp-appear 0.4s ease-out;
+/* ============================================================================
+   Start Button Container
+   ============================================================================ */
+
+.start-button-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 3vw, 2rem);
+  flex-wrap: wrap;
 }
 
-@keyframes stamp-appear {
-  from {
-    transform: scale(0) rotate(-20deg);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1) rotate(0);
-    opacity: 1;
-  }
+/* ============================================================================
+   Start Button
+   ============================================================================ */
+
+.start-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  padding: clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.5rem);
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-weight: 700;
+  background: #000000;
+  color: #FFB300;
+  border: 3px solid #FFB300;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(255, 179, 0, 0.4),
+              0 4px 15px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6);
+  transition: all 0.3s ease;
+}
+
+.button-arrows {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+}
+
+.button-arrows-left {
+  animation: arrow-pulse-left 1.5s ease-in-out infinite;
+}
+
+.button-arrows-right {
+  animation: arrow-pulse-right 1.5s ease-in-out infinite;
+}
+
+.button-text {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+}
+
+.start-button:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 0 30px rgba(255, 179, 0, 0.6),
+              0 6px 25px rgba(0, 0, 0, 0.6);
+  border-color: #FF8F00;
+}
+
+.start-button:active {
+  transform: scale(0.98);
+}
+
+.start-button.disabled,
+.start-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.8);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.start-button.disabled .button-arrows,
+.start-button:disabled .button-arrows {
+  animation: none;
+  opacity: 0.3;
+}
+
+/* ============================================================================
+   Safety Approved Stamp
+   ============================================================================ */
+
+.safety-stamp {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .stamp-inner {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: rgba(34, 197, 94, 0.2);
-  border: 2px solid #22c55e;
-  border-radius: 8px;
-  transform: rotate(-5deg);
+  gap: 0.5rem;
+  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
+  background: rgba(76, 175, 80, 0.15);
+  border: 2px solid #4CAF50;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .stamp-icon {
-  font-size: 1.5rem;
-  color: #22c55e;
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  color: #4CAF50;
+  font-weight: bold;
+  line-height: 1;
 }
 
 .stamp-text {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #22c55e;
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+  font-weight: 700;
+  color: #4CAF50;
   text-align: center;
-  text-transform: uppercase;
   line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Transitions */
+/* ============================================================================
+   Transitions
+   ============================================================================ */
+
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s;
+  transition: opacity 0.3s ease;
 }
 
 .fade-enter-from,
@@ -1007,28 +1151,35 @@ onMounted(() => {
   opacity: 0;
 }
 
-/* Responsive */
-@media (max-width: 600px) {
-  .music-generation-view {
-    padding: 1rem 0.5rem;
+/* ============================================================================
+   Responsive: Mobile Adjustments
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .input-section {
+    flex-direction: column;
   }
 
+  .interception-section.dual-outputs {
+    flex-direction: column;
+  }
+}
+
+/* iPad 1024x768 Optimization */
+@media (min-width: 1024px) and (max-height: 768px) {
   .phase-2a {
-    gap: 1.5rem;
+    padding: 1.5rem;
+    gap: 1.25rem;
   }
+}
+</style>
 
-  .start-button {
-    padding: 0.75rem 2rem;
-    font-size: 1rem;
-  }
-
-  .config-bubble {
-    width: 100px;
-    height: 100px;
-  }
-
-  .bubble-emoji-medium {
-    font-size: 2.5rem;
-  }
+<style>
+/* GLOBAL unscoped - force MediaInputBox width in music sections */
+.music-generation-view .input-section .media-input-box,
+.music-generation-view .interception-section.dual-outputs .media-input-box {
+  flex: 0 1 480px !important;
+  width: 100% !important;
+  max-width: 480px !important;
 }
 </style>
