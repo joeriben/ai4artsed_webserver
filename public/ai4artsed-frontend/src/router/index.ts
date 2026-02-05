@@ -103,6 +103,12 @@ const router = createRouter({
       component: () => import('../views/music_generation.vue'),
     },
     {
+      path: '/music-generation-v2',
+      name: 'music-generation-v2',
+      // HeartMuLa music generation v2: Lyrics Workshop + Sound Explorer
+      component: () => import('../views/music_generation_v2.vue'),
+    },
+    {
       path: '/animation-test',
       name: 'animation-test',
       // Test page for GPU visualization animations

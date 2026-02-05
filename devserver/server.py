@@ -30,7 +30,8 @@ def main():
         host=HOST,
         port=PORT,
         threads=THREADS,
-        url_scheme='http'
+        url_scheme='http',
+        channel_timeout=600  # 10 min (default 120s too short for HeartMuLa music generation)
     )
 
 

@@ -1,0 +1,19 @@
+{
+  "config_id": "tag_suggestion_from_lyrics",
+  "pipeline": "text_transformation",
+  "description": "Analyzes lyrics and suggests HeartMuLa music style tags across 8 dimensions",
+  "chunks": [
+    {
+      "chunk_name": "manipulate",
+      "prompt": "Analyze these song lyrics and suggest music style tags for AI music generation.\n\nLYRICS:\n{input_text}\n\nReturn a JSON object with 1-3 tags per category. Use ONLY English tags from these allowed values:\n\n- genre: pop, rock, jazz, classical, electronic, hip-hop, r&b, country, folk, metal, indie, blues, latin, reggae, funk, soul, dance, punk, ambient, gospel\n- timbre: bright, dark, warm, crisp, smooth, mellow, harsh, soft, rich, thin\n- gender: male, female, mixed, choir\n- mood: happy, sad, energetic, calm, romantic, melancholic, aggressive, dreamy, nostalgic, upbeat, dark, hopeful, playful, dramatic\n- instrument: piano, guitar, drums, bass, violin, saxophone, trumpet, synthesizer, flute, keyboard, cello, harmonica, organ, ukulele\n- scene: wedding, party, meditation, workout, study, road_trip, summer, nature, night, morning, rain\n- region: western, latin, asian, african, middle_eastern, nordic, caribbean, eastern_european\n- topic: love, heartbreak, freedom, nature, city, friendship, loss, hope, rebellion, celebration, journey\n\nSelect tags that BEST MATCH the lyrics content, mood, and implied musical style.\n\nOutput ONLY valid JSON, no explanation:\n{\"genre\": [...], \"timbre\": [...], \"gender\": [...], \"mood\": [...], \"instrument\": [...], \"scene\": [...], \"region\": [...], \"topic\": [...]}",
+      "parameters": {
+        "temperature": 0.5,
+        "top_p": 0.9,
+        "max_tokens": 400
+      }
+    }
+  ],
+  "model_preferences": {
+    "default": "mistral/mistral-large-latest"
+  }
+}

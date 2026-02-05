@@ -1,0 +1,19 @@
+{
+  "config_id": "lyrics_from_theme",
+  "pipeline": "text_transformation",
+  "description": "Expands a theme, keywords, or mood into structured song lyrics",
+  "chunks": [
+    {
+      "chunk_name": "manipulate",
+      "prompt": "You are a creative songwriter. The user has provided a theme, mood, or keywords. Your task is to write complete song lyrics based on this input.\n\nUser input:\n{input_text}\n\nGuidelines:\n1. Write complete song lyrics with structural markers: [Verse], [Chorus], [Bridge], [Outro]\n2. Create 2-3 verses, a repeating chorus, and optionally a bridge\n3. Match the tone and mood to the input (upbeat/melancholic/energetic/calm/etc.)\n4. Use vivid imagery and emotion\n5. Ensure singable rhythm and natural flow\n6. IMPORTANT: Write in the SAME LANGUAGE as the user's input\n\nOutput ONLY the structured lyrics with markers. No explanation, no commentary.",
+      "parameters": {
+        "temperature": 0.85,
+        "top_p": 0.9,
+        "max_tokens": 1200
+      }
+    }
+  ],
+  "model_preferences": {
+    "default": "mistral/mistral-large-latest"
+  }
+}

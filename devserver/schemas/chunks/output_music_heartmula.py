@@ -121,6 +121,12 @@ async def execute(
         logger.warning(f"[CHUNK:heartmula] Lyrics too long ({len(lyrics)} chars), truncating to {MAX_LYRICS_CHARS}")
         lyrics = lyrics[:MAX_LYRICS_CHARS]
 
+    # Normalize tag format: HeartMuLa expects "pop,upbeat,piano" not "pop, upbeat, piano"
+    if tags:
+        tag_list = ['_'.join(tag.strip().split()) for tag in tags.split(',')]
+        tags = ','.join(t for t in tag_list if t)
+        logger.info(f"[CHUNK:heartmula] Tags normalized: '{tags}'")
+
     # Validate tags (keep simple like HeartMuLa examples: "piano,happy")
     MAX_TAGS_CHARS = 200  # HeartMuLa expects simple tags
     if tags and len(tags) > MAX_TAGS_CHARS:
