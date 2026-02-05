@@ -268,13 +268,6 @@ function renderBird(ctx: CanvasRenderingContext2D, width: number, height: number
   )
   ctx.filter = 'none'
   ctx.restore()
-
-  // Percentage label below bird
-  const pct = Math.round(birdProgress.value)
-  ctx.font = 'bold 10px sans-serif'
-  ctx.textAlign = 'center'
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
-  ctx.fillText(`${pct}%`, x, y + drawH / 2 + 12)
 }
 
 function renderTree(ctx: CanvasRenderingContext2D, tree: Tree) {
