@@ -98,26 +98,46 @@
            GENERATION CONTROLS
            ================================================================ -->
 
-      <!-- Audio Length Slider -->
-      <section class="slider-section">
-        <label class="slider-label">
-          <span class="slider-label-text">{{ $t('musicGenV2.audioLength') }}</span>
-          <span class="slider-value">{{ audioLengthDisplay }}</span>
-        </label>
-        <input
-          type="range"
-          class="audio-slider"
-          v-model.number="audioLengthSeconds"
-          :min="30"
-          :max="240"
-          :step="10"
-        />
-        <div class="slider-marks">
-          <span>0:30</span>
-          <span>1:00</span>
-          <span>2:00</span>
-          <span>3:00</span>
-          <span>4:00</span>
+      <!-- Generation Parameters -->
+      <section class="params-section">
+        <!-- Audio Length -->
+        <div class="param-row">
+          <label class="slider-label">
+            <span class="slider-label-text">{{ $t('musicGenV2.audioLength') }}</span>
+            <span class="slider-value">{{ audioLengthDisplay }}</span>
+          </label>
+          <input type="range" class="audio-slider" v-model.number="audioLengthSeconds" :min="30" :max="240" :step="10" />
+          <div class="slider-marks"><span>0:30</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span></div>
+        </div>
+
+        <!-- Temperature -->
+        <div class="param-row">
+          <label class="slider-label">
+            <span class="slider-label-text">Temperature</span>
+            <span class="slider-value">{{ temperature.toFixed(1) }}</span>
+          </label>
+          <input type="range" class="audio-slider" v-model.number="temperature" :min="0.1" :max="2.0" :step="0.1" />
+          <div class="slider-marks"><span>0.1</span><span>0.5</span><span>1.0</span><span>1.5</span><span>2.0</span></div>
+        </div>
+
+        <!-- Top-K -->
+        <div class="param-row">
+          <label class="slider-label">
+            <span class="slider-label-text">Top-K</span>
+            <span class="slider-value">{{ topk }}</span>
+          </label>
+          <input type="range" class="audio-slider" v-model.number="topk" :min="10" :max="200" :step="10" />
+          <div class="slider-marks"><span>10</span><span>50</span><span>100</span><span>150</span><span>200</span></div>
+        </div>
+
+        <!-- CFG Scale -->
+        <div class="param-row">
+          <label class="slider-label">
+            <span class="slider-label-text">CFG Scale</span>
+            <span class="slider-value">{{ cfgScale.toFixed(1) }}</span>
+          </label>
+          <input type="range" class="audio-slider" v-model.number="cfgScale" :min="0.5" :max="5.0" :step="0.5" />
+          <div class="slider-marks"><span>0.5</span><span>1.5</span><span>2.5</span><span>3.5</span><span>5.0</span></div>
         </div>
       </section>
 
@@ -306,6 +326,9 @@ const currentRunId = ref<string | null>(null)
 const showSafetyStamp = ref(false)
 const isFavorited = ref(false)
 const audioLengthSeconds = ref(120)
+const temperature = ref(1.0)
+const topk = ref(50)
+const cfgScale = ref(1.5)
 
 const audioLengthDisplay = computed(() => {
   const mins = Math.floor(audioLengthSeconds.value / 60)
@@ -493,7 +516,10 @@ async function startGeneration() {
       custom_placeholders: {
         TEXT_1: finalLyrics,
         TEXT_2: finalTags,
-        max_audio_length_ms: audioLengthSeconds.value * 1000
+        max_audio_length_ms: audioLengthSeconds.value * 1000,
+        temperature: temperature.value,
+        topk: topk.value,
+        cfg_scale: cfgScale.value
       }
     })
 
@@ -663,12 +689,18 @@ onMounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* Audio Length Slider */
-.slider-section {
+/* Generation Parameters */
+.params-section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
   padding: 0 0.5rem;
+}
+
+.param-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
 .slider-label {
