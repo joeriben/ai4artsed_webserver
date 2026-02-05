@@ -171,15 +171,6 @@ class HeartMuLaMusicGenerator:
             self._pipeline = await asyncio.to_thread(_load)
             self._is_loaded = True
 
-            # torch.compile: fuse ops + optimize GPU kernels for faster inference
-            # First call is slow (compilation), subsequent calls 10-30% faster
-            try:
-                if self.device == "cuda" and hasattr(self._pipeline, 'model'):
-                    self._pipeline.model = torch.compile(self._pipeline.model)
-                    logger.info("[HEARTMULA] torch.compile() applied to model")
-            except Exception as compile_err:
-                logger.warning(f"[HEARTMULA] torch.compile() failed (non-critical): {compile_err}")
-
             # Get GPU info after loading
             gpu_info = await self.get_gpu_info()
             logger.info(f"[HEARTMULA] Pipeline loaded (VRAM: {gpu_info.get('allocated_gb', 'N/A')}GB)")
@@ -285,7 +276,7 @@ class HeartMuLaMusicGenerator:
             try:
                 # Generate in thread to avoid blocking
                 def _generate():
-                    with torch.no_grad():
+                    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
                         logger.info(f"[HEARTMULA-DEBUG] Calling pipeline with:")
                         logger.info(f"  lyrics length: {len(lyrics)} chars")
                         logger.info(f"  tags: '{tags}'")
