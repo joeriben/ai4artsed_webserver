@@ -4180,7 +4180,7 @@ def interception_pipeline():
 
                                         # Save audio directly
                                         saved_filename = recorder.save_entity(
-                                            entity_type='output_image',  # Reuses existing entity naming
+                                            entity_type=f'output_{media_type}',  # e.g. output_music
                                             content=audio_bytes,
                                             extension=f'.{audio_format}',
                                             metadata={
@@ -4196,12 +4196,13 @@ def interception_pipeline():
                                         media_stored = True
 
                                         # Create media output data for frontend
+                                        chunk_media_type = output_result.metadata.get('media_type', media_type)
                                         media_output_data = {
                                             'config': output_config_name,
                                             'status': 'success',
-                                            'media_type': 'music',
+                                            'media_type': chunk_media_type,
                                             'filename': saved_filename,
-                                            'url': f'/api/media/runs/{run_id}/{saved_filename}'
+                                            'url': f'/api/media/{chunk_media_type}/{run_id}'
                                         }
 
                                     # Check for image data (image chunks)

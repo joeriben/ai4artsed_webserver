@@ -30,6 +30,7 @@ aiohttp==3.13.2      # Async HTTP client (required by comfyui_client.py and swar
 # Configuration & Environment
 # ============================================================================
 python-dotenv==1.0.0 # Load environment variables from .env file
+toml>=0.10.2         # Kohya dataset config files (training_service)
 
 # ============================================================================
 # Export Functionality
@@ -39,21 +40,40 @@ python-docx==1.1.0   # DOCX (Word document) generation
 lxml==5.1.0          # XML processing and parsing
 
 # ============================================================================
-# Diffusers Backend (Session 150)
+# PyTorch (GPU Backend)
 # ============================================================================
-# For direct image generation without SwarmUI/ComfyUI
-# Requires NVIDIA GPU with CUDA support
+# IMPORTANT: PyTorch must be installed BEFORE this file, with correct CUDA version:
+#   # For Blackwell GPUs (sm_120) - CUDA 13.0 nightly required:
+#   pip install --pre torch torchaudio torchvision --index-url https://download.pytorch.org/whl/nightly/cu130
+#   # For older GPUs (Ampere/Ada) - CUDA 12.1:
+#   pip install torch torchaudio torchvision --index-url https://download.pytorch.org/whl/cu121
 #
-# NOTE: PyTorch must be installed separately with correct CUDA version:
-#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
-#   # Or for CUDA 13.0 (Blackwell):
-#   pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu130
-#
+# These are NOT listed below because they require a special --index-url.
+
+# ============================================================================
+# Diffusers Backend (Image Generation)
+# ============================================================================
 diffusers>=0.32.0    # HuggingFace Diffusers (SD3.5, Flux2)
 transformers>=4.45.0 # HuggingFace Transformers (text encoders)
 accelerate>=0.34.0   # HuggingFace Accelerate (device management)
 safetensors>=0.4.0   # Safe model loading format
 sentencepiece>=0.2.0 # T5 tokenizer dependency
+
+# ============================================================================
+# HeartMuLa Backend (Music Generation)
+# ============================================================================
+# heartlib is installed separately in editable mode:
+#   pip install --no-deps -e /path/to/heartlib
+#
+# These are heartlib's runtime dependencies (installed here to avoid
+# heartlib's pinned versions conflicting with our torch nightly):
+vector-quantize-pytorch>=1.27.0  # HeartCodec audio codec
+soundfile                        # Audio file I/O
+bitsandbytes>=0.49.0             # Quantization support
+einops>=0.8.0                    # Tensor operations
+modelscope>=1.33.0               # Model hub
+torchtune>=0.4.0                 # Fine-tuning utilities
+torchao>=0.9.0                   # Torch AO (quantization)
 
 # ============================================================================
 # Optional: Development/Testing
