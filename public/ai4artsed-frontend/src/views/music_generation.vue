@@ -157,6 +157,29 @@
         </div>
       </section>
 
+      <!-- Audio Length Slider -->
+      <section class="slider-section">
+        <label class="slider-label">
+          <span class="slider-label-text">Audio Length</span>
+          <span class="slider-value">{{ audioLengthDisplay }}</span>
+        </label>
+        <input
+          type="range"
+          class="audio-slider"
+          v-model.number="audioLengthSeconds"
+          :min="30"
+          :max="240"
+          :step="10"
+        />
+        <div class="slider-marks">
+          <span>0:30</span>
+          <span>1:00</span>
+          <span>2:00</span>
+          <span>3:00</span>
+          <span>4:00</span>
+        </div>
+      </section>
+
       <!-- START BUTTON #2: Generate Music -->
       <div class="start-button-container">
         <button
@@ -295,6 +318,14 @@ const availableConfigs = ref<MusicConfig[]>([
     duration: '30-240s'
   }
 ])
+
+// Audio length slider (30s - 240s, step 10s)
+const audioLengthSeconds = ref(120)
+const audioLengthDisplay = computed(() => {
+  const mins = Math.floor(audioLengthSeconds.value / 60)
+  const secs = audioLengthSeconds.value % 60
+  return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`
+})
 
 // Generation state
 const isGenerating = ref(false)
@@ -557,7 +588,8 @@ async function startGeneration() {
       device_id: getDeviceId(), // FIX: Persistent device_id for consistent export folders
       custom_placeholders: {
         TEXT_1: finalLyrics,
-        TEXT_2: finalTags
+        TEXT_2: finalTags,
+        max_audio_length_ms: audioLengthSeconds.value * 1000
       }
     })
 
@@ -592,31 +624,9 @@ async function startGeneration() {
 }
 
 async function fetchMusicOutput(runId: string) {
-  try {
-    // Poll for music output
-    const maxAttempts = 60 // 5 minutes max
-    let attempts = 0
-
-    while (attempts < maxAttempts) {
-      const response = await axios.get(`/api/media/music/${runId}`)
-
-      if (response.data.files && response.data.files.length > 0) {
-        // Found music file
-        const musicFile = response.data.files[0]
-        outputAudio.value = `/api/media/file/${runId}/${musicFile}`
-        console.log('[MusicGen] Music output:', outputAudio.value)
-        return
-      }
-
-      // Wait and retry
-      await new Promise(resolve => setTimeout(resolve, 5000))
-      attempts++
-    }
-
-    console.error('[MusicGen] Timeout waiting for music output')
-  } catch (error) {
-    console.error('[MusicGen] Error fetching output:', error)
-  }
+  // The /api/media/music/ endpoint serves the file directly - use as audio src URL
+  outputAudio.value = `/api/media/music/${runId}`
+  console.log('[MusicGen] Music output URL:', outputAudio.value)
 }
 
 // ============================================================================
@@ -871,6 +881,76 @@ onMounted(() => {
 .duration-only {
   text-align: center;
   opacity: 0.8;
+}
+
+/* Audio Length Slider */
+.slider-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+}
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.slider-label-text {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.slider-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  font-variant-numeric: tabular-nums;
+}
+
+.audio-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+}
+
+.audio-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #9c27b0;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: transform 0.15s;
+}
+
+.audio-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.audio-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #9c27b0;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.slider-marks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 /* Safety Stamp */

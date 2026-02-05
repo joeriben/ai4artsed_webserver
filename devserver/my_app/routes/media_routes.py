@@ -586,10 +586,16 @@ def get_music(run_id: str):
         if not recorder:
             return jsonify({"error": f"Run {run_id} not found"}), 404
 
-        # Find music entity (try 'music' first, then 'audio' as fallback)
+        # Find music entity (try 'music' first, then 'audio', then 'output_image' with mp3 format)
         music_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'music')
         if not music_entity:
             music_entity = _find_entity_by_type(recorder.metadata.get('entities', []), 'audio')
+        if not music_entity:
+            # Legacy: all media stored as 'output_image' - check for audio formats
+            for entity in recorder.metadata.get('entities', []):
+                if entity.get('type') == 'output_image' and entity.get('filename', '').endswith(('.mp3', '.wav', '.ogg', '.flac')):
+                    music_entity = entity
+                    break
 
         if not music_entity:
             return jsonify({"error": f"No music found for run {run_id}"}), 404
