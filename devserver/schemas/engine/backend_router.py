@@ -1851,8 +1851,8 @@ class BackendRouter:
 
             # Get generation parameters
             temperature = float(parameters.get('temperature') or input_mappings.get('temperature', {}).get('default', 1.0))
-            topk = int(parameters.get('topk') or input_mappings.get('topk', {}).get('default', 50))
-            cfg_scale = float(parameters.get('cfg_scale') or input_mappings.get('cfg_scale', {}).get('default', 1.5))
+            topk = int(parameters.get('topk') or input_mappings.get('topk', {}).get('default', 70))
+            cfg_scale = float(parameters.get('cfg_scale') or input_mappings.get('cfg_scale', {}).get('default', 3.0))
             max_audio_length_ms = int(parameters.get('max_audio_length_ms') or input_mappings.get('max_audio_length_ms', {}).get('default', 240000))
 
             # Seed handling

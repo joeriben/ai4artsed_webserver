@@ -218,8 +218,8 @@ class HeartMuLaMusicGenerator:
         lyrics: str,
         tags: str,
         temperature: float = 1.0,
-        topk: int = 50,
-        cfg_scale: float = 1.5,
+        topk: int = 70,
+        cfg_scale: float = 3.0,
         max_audio_length_ms: int = 240000,
         seed: Optional[int] = None,
         output_format: str = "mp3"
@@ -231,8 +231,8 @@ class HeartMuLaMusicGenerator:
             lyrics: Song lyrics with structure markers [Verse], [Chorus], etc.
             tags: Comma-separated style tags (genre, mood, instruments)
             temperature: Creativity (0.1-2.0), default 1.0
-            topk: Token sampling parameter, default 50
-            cfg_scale: Classifier-free guidance scale, default 1.5
+            topk: Token sampling parameter, default 70
+            cfg_scale: Classifier-free guidance scale, default 3.0
             max_audio_length_ms: Maximum audio length in ms, default 240000 (4 min)
             seed: Seed for reproducibility (None = random)
             output_format: Output format ('mp3' or 'wav'), default 'mp3'

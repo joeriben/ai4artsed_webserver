@@ -36,8 +36,8 @@ CHUNK_META = {
 # Longer audio causes CUDA out-of-bounds errors in codec
 DEFAULTS = {
     "temperature": 1.0,
-    "topk": 50,
-    "cfg_scale": 1.5,
+    "topk": 70,
+    "cfg_scale": 3.0,
     "max_audio_length_ms": 240000,  # 4 minutes (HeartMuLa tested value from working Feb 3 runs)
     "seed": None  # None = random
 }

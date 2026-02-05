@@ -16,8 +16,8 @@
   "parameters": {
     "OUTPUT_CHUNK": "output_music_heartmula",
     "temperature": 1.0,
-    "topk": 50,
-    "cfg_scale": 1.5,
+    "topk": 70,
+    "cfg_scale": 3.0,
     "max_audio_length_ms": 240000
   },
   "media_preferences": {
