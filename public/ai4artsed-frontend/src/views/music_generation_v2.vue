@@ -411,10 +411,8 @@ async function suggestTagsFromLyrics() {
   isSuggesting.value = true
 
   try {
-    const isDev = import.meta.env.DEV
-    const baseUrl = isDev ? 'http://localhost:17802' : ''
-
-    const response = await axios.post(`${baseUrl}/api/schema/pipeline/interception`, {
+    // POST uses Vite proxy (relative URL), only EventSource/SSE needs full URL
+    const response = await axios.post('/api/schema/pipeline/interception', {
       schema: 'tag_suggestion_from_lyrics',
       input_text: effectiveLyrics.value,
       safety_level: pipelineStore.safetyLevel,
@@ -485,9 +483,8 @@ async function startGeneration() {
   }, 1000)
 
   try {
-    const isDev = import.meta.env.DEV
-    const baseUrl = isDev ? 'http://localhost:17802' : ''
-    const response = await axios.post(`${baseUrl}/api/schema/pipeline/interception`, {
+    // POST uses Vite proxy (relative URL), only EventSource/SSE needs full URL
+    const response = await axios.post('/api/schema/pipeline/interception', {
       schema: 'heartmula',
       input_text: finalLyrics,
       output_config: 'heartmula_standard',
