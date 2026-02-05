@@ -22,9 +22,44 @@
 | Backend | Type | Use Cases | Authentication | DSGVO |
 |---------|------|-----------|----------------|-------|
 | **Ollama** | Local | Text transformation, translation | None (local) | ✅ Compliant |
-| **ComfyUI** | Local | Image/Audio/Music/Video generation | None (local) | ✅ Compliant |
+| **ComfyUI** | Local | Image/Audio/Video generation | None (local) | ✅ Compliant |
+| **HeartMuLa** | Local | Music generation (lyrics + tags → MP3) | None (local) | ✅ Compliant |
 | **OpenRouter** | Cloud | Fast text/image tasks | API Key required | ❌ Non-compliant |
 | **OpenAI** | Cloud | GPT-5 Image, Sora2 Video (future) | API Key required | ⚠️ Enterprise only |
+
+#### HeartMuLa Backend (Session 156-157)
+
+**Model:** HeartMuLa 3B (heartlib), LLM + Audio Codec architecture
+**Location:** `devserver/my_app/services/heartmula_backend.py` (singleton)
+**Checkpoint:** `~/ai_tools/heartlib/ckpt/` (HeartMuLa-oss-3B + HeartCodec-oss)
+**VRAM:** ~12-16GB (bfloat16 for MuLa, float32 for Codec)
+**Config:** `devserver/config.py` → `HEARTMULA_ENABLED`, `HEARTMULA_MODEL_PATH`, `HEARTMULA_DEVICE`
+
+**Execution Path (Python-Chunk Pattern):**
+```
+Frontend custom_placeholders: { TEXT_1, TEXT_2, temperature, topk, cfg_scale, max_audio_length_ms }
+  → schema_pipeline_routes.py: custom_params.update(custom_placeholders)
+  → chunk_builder.py: parameters.update(custom_placeholders)
+  → output_music_heartmula.py: execute(TEXT_1=lyrics, TEXT_2=tags, ...)
+  → heartmula_backend.py: generate_music(lyrics, tags, ...) → MP3 bytes
+```
+
+**Tag System:** 8 dimensions (comma-separated, no spaces, underscores for multi-word):
+Genre (0.95), Timbre (0.5), Gender (0.375), Mood (0.325), Instrument (0.25), Scene (0.2), Region (0.125), Topic (0.1)
+
+**Generation Parameters:**
+| Parameter | Default | Range | Effect |
+|-----------|---------|-------|--------|
+| temperature | 1.0 | 0.1–2.0 | Creativity/randomness |
+| topk | 70 | 10–200 | Token diversity |
+| cfg_scale | 3.0 | 0.5–5.0 | Tag adherence strength |
+| max_audio_length_ms | 240000 | 30000–240000 | Audio duration |
+
+**Performance Notes:**
+- `torch.autocast("cuda", bfloat16)` enables fused RMS-norm kernels
+- `torch.compile()` incompatible with heartlib (crashes on batch)
+- GPU utilization ~50% is expected (autoregressive LLM inference, batch=1)
+- `channel_timeout=600` in server.py for long generation requests
 
 ---
 

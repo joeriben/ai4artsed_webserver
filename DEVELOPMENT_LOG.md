@@ -1,5 +1,56 @@
 # Development Log
 
+## Session 157 - Music Generation V2 (Lyrics Workshop + Sound Explorer)
+**Date:** 2026-02-05
+**Focus:** New music generation UI concept + HeartMuLa tag system + performance tuning
+**Status:** COMPLETE ✅
+
+### Summary
+
+Redesigned the music generation frontend as a dual creative-process workbench. Investigated why user-selected genres were ineffective and fixed the root causes (LLM prompt bias + tag format). Added generation parameter controls and batch mode.
+
+### Key Achievements
+
+1. **Root Cause Analysis: Ineffective Genre Tags**
+   - Verified genre injection works end-to-end (frontend → chunk_builder → heartmula_backend → model)
+   - Found 2 bugs: (A) `tags_generation.json` LLM prompt hardcoded ROBOTIC/ELECTRONIC bias, overriding user genre; (B) Tag format used spaces after commas, HeartMuLa expects no spaces
+   - Researched HeartMuLa tag system: 8 dimensions with training probabilities (Genre 0.95, Timbre 0.5, Gender 0.375, Mood 0.325, Instrument 0.25, Scene 0.2, Region 0.125, Topic 0.1)
+
+2. **Music Generation V2 Page** (`music_generation_v2.vue`)
+   - **Process A: Lyrics Workshop** — User writes theme/keywords/lyrics, clicks [Thema→Lyrics] or [Lyrics verfeinern], LLM streams result
+   - **Process B: Sound Explorer** — 8-dimension chip selector (MusicTagSelector.vue), LLM auto-suggest from lyrics, manual toggle
+   - New interception configs: `lyrics_from_theme.json`, `tag_suggestion_from_lyrics.json`
+   - Hidden route (`/music-generation-v2`) — workbench tool, not pedagogical feature
+   - Original `music_generation.vue` untouched at `/music-generation`
+
+3. **Generation Controls**
+   - Temperature, Top-K, CFG Scale sliders with injection via `custom_placeholders`
+   - Batch mode: `[-] Nx [+]` counter, sequential generation runs
+   - Updated defaults: Top-K 50→70, CFG Scale 1.5→3.0 (all 6 locations)
+
+4. **Backend Performance**
+   - Tag format sanitization in `output_music_heartmula.py` (strip spaces, underscores for multi-word)
+   - `torch.autocast("cuda", dtype=torch.bfloat16)` for fused RMS-norm kernels (fixes dtype mismatch warning)
+   - `torch.compile()` tested but incompatible with heartlib (crashes on batch) — removed
+   - Server `channel_timeout=600` for long music generation requests
+
+### Files Created
+- `public/ai4artsed-frontend/src/views/music_generation_v2.vue`
+- `public/ai4artsed-frontend/src/components/MusicTagSelector.vue`
+- `devserver/schemas/configs/interception/lyrics_from_theme.json`
+- `devserver/schemas/configs/interception/tag_suggestion_from_lyrics.json`
+
+### Files Modified
+- `devserver/schemas/chunks/output_music_heartmula.py` — tag normalization, new defaults
+- `devserver/my_app/services/heartmula_backend.py` — autocast bfloat16, new defaults
+- `devserver/schemas/configs/output/heartmula_standard.json` — new defaults
+- `devserver/schemas/engine/backend_router.py` — new defaults
+- `devserver/server.py` — channel_timeout=600
+- `public/ai4artsed-frontend/src/router/index.ts` — v2 route
+- `public/ai4artsed-frontend/src/i18n.ts` — musicGenV2 keys (DE + EN)
+
+---
+
 ## Session 156 - HeartMuLa Integration (Python-Chunk Pattern)
 **Date:** 2026-02-02 to 2026-02-03
 **Focus:** First Python-based Output-Chunk Implementation

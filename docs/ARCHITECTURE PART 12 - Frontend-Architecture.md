@@ -976,6 +976,9 @@ public/ai4artsed-frontend/
 │   │   └── PropertyBubble.vue.archive # Backup of previous version
 │   ├── views/
 │   │   ├── PropertyQuadrantsView.vue # Main selection view
+│   │   ├── text_transformation.vue   # Text→Image/Video pipeline (gold standard pattern)
+│   │   ├── music_generation.vue      # Music Gen V1: dual input (lyrics+tags), single refine button
+│   │   ├── music_generation_v2.vue   # Music Gen V2: Lyrics Workshop + Sound Explorer (hidden workbench)
 │   │   └── PropertyQuadrantsView.vue.archive # Backup of previous version
 │   ├── stores/
 │   │   ├── configSelection.ts        # Config selection state
@@ -990,6 +993,51 @@ public/ai4artsed-frontend/
         ├── dada.png
         └── ...
 ```
+
+### Music Generation Views (Session 156-157)
+
+Two Vue pages for HeartMuLa music generation, serving different purposes:
+
+#### music_generation.vue (V1 — Pedagogical)
+**Route:** `/music-generation` (visible in navigation)
+**Pattern:** Dual input (lyrics + tags) → single "Refine" button → dual SSE streams → generate
+
+```
+[Lyrics Input]  [Tags Input]
+       >>> Refine Lyrics & Tags >>>
+[Refined Lyrics] [Refined Tags]
+       [Model Selection] [Audio Length]
+       >>> Generate Music >>>
+       [Audio Player]
+```
+
+**Interception configs:** `lyrics_refinement`, `tags_generation`
+**Generation:** POST to `/api/schema/pipeline/interception` with `schema: 'heartmula'`
+
+#### music_generation_v2.vue (V2 — Hidden Workbench)
+**Route:** `/music-generation-v2` (NOT in navigation, direct URL only)
+**Pattern:** Two independent creative processes + parameter controls + batch mode
+
+```
+LYRICS WORKSHOP
+  [Input] → [Thema→Lyrics] [Lyrics verfeinern] → [Streaming Result]
+
+SOUND EXPLORER
+  [Suggest from Lyrics]
+  Genre:  [pop][rock][jazz]...     ← MusicTagSelector.vue (8 dimensions)
+  Timbre: [warm][bright]...
+  ...
+  Tags: jazz,warm,saxophone,romantic
+
+PARAMETERS
+  [Audio Length] [Temperature] [Top-K] [CFG Scale]
+  [-] 3x [+] >>> Generate Music >>>
+  [Audio Player]
+```
+
+**Key component:** `MusicTagSelector.vue` — 8-dimension chip selector with per-dimension colors, toggle, live tag preview
+**Interception configs:** `lyrics_from_theme`, `lyrics_refinement`, `tag_suggestion_from_lyrics`
+**Batch mode:** Sequential N runs with same parameters, progress shown as "2/5"
 
 ### Testing Checklist (Vue Frontend)
 
