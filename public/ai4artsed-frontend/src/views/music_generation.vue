@@ -473,8 +473,7 @@ async function runDualInterception() {
     input_text: lyricsInput.value,
     safety_level: pipelineStore.safetyLevel,
     device_id: getDeviceId(),  // FIX: Persistent device_id for consistent folders
-    enable_streaming: true,  // KEY: Request SSE streaming
-    skip_wikipedia: 'true'  // Music: No Wikipedia research needed for lyrics/tags
+    enable_streaming: true  // KEY: Request SSE streaming
   }
 
   // Start Tags Interception (if tags exist)
@@ -491,8 +490,7 @@ async function runDualInterception() {
       input_text: tagsInput.value,
       safety_level: pipelineStore.safetyLevel,
       device_id: getDeviceId(),  // FIX: Persistent device_id for consistent folders
-      enable_streaming: true,
-      skip_wikipedia: 'true'  // Music: No Wikipedia research needed for lyrics/tags
+      enable_streaming: true
     }
   } else {
     // No tags input, just use empty

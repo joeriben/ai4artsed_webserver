@@ -35,7 +35,8 @@
     "stage": "interception",
     "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Renaissance_2509061035.json",
     "extracted_date": "2025-10-19",
-    "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
+    "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+    "wikipedia": true
   },
   "display": {
     "icon": "🖌️",

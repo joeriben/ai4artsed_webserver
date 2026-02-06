@@ -501,9 +501,10 @@ class PipelineExecutor:
         })
     
     async def _execute_single_step(self, step: PipelineStep, context: PipelineContext, execution_mode: str = 'eco', tracker=None) -> str:
-        """Execute single pipeline step with Wikipedia research capability
+        """Execute single pipeline step with optional Wikipedia research capability
 
-        Wikipedia Research Loop:
+        Wikipedia Research (opt-in via config meta "wikipedia": true):
+        - Only active when the interception config declares "wikipedia": true
         - After LLM output, check for <wiki> markers
         - If markers found, fetch Wikipedia content and re-execute
         - Maximum iterations configurable (WIKIPEDIA_MAX_ITERATIONS)
@@ -511,23 +512,32 @@ class PipelineExecutor:
         """
         import config
         from my_app.services.wikipedia_service import get_wikipedia_service
+        from .wikipedia_prompt_helper import get_wikipedia_instructions, build_wikipedia_context_block
+
+        # Wikipedia: opt-in via config meta (default: disabled)
+        wikipedia_enabled = (
+            self._current_config
+            and self._current_config.meta
+            and self._current_config.meta.get('wikipedia', False)
+        )
 
         # Wikipedia iteration tracking
         wiki_iteration = 0
-        max_wiki_iterations = getattr(config, 'WIKIPEDIA_MAX_ITERATIONS', 3)
-        max_lookups = getattr(config, 'WIKIPEDIA_MAX_LOOKUPS_PER_ITERATION', 5)
-
-        # Per-request Wikipedia toggle (e.g., music generation doesn't need Wikipedia)
-        if context.custom_placeholders.get('_SKIP_WIKIPEDIA'):
+        if wikipedia_enabled:
+            max_wiki_iterations = getattr(config, 'WIKIPEDIA_MAX_ITERATIONS', 3)
+            max_lookups = getattr(config, 'WIKIPEDIA_MAX_LOOKUPS_PER_ITERATION', 5)
+            logger.info("[WIKI] Wikipedia research enabled for this config")
+        else:
             max_wiki_iterations = 0
-            logger.info("[WIKI-LOOP] Skipped (per-request _SKIP_WIKIPEDIA flag)")
+            max_lookups = 0
+
         fallback_language = getattr(config, 'WIKIPEDIA_FALLBACK_LANGUAGE', 'de')
 
         # Get input language from context (set by Stage 1 translation)
         input_language = context.custom_placeholders.get('INPUT_LANGUAGE', fallback_language)
 
-        # Initialize WIKIPEDIA_CONTEXT if not present
-        if 'WIKIPEDIA_CONTEXT' not in context.custom_placeholders:
+        # Initialize WIKIPEDIA_CONTEXT if wikipedia is enabled
+        if wikipedia_enabled and 'WIKIPEDIA_CONTEXT' not in context.custom_placeholders:
             context.custom_placeholders['WIKIPEDIA_CONTEXT'] = ''
 
         while True:
@@ -547,6 +557,12 @@ class PipelineExecutor:
                 resolved_config=self._current_config,
                 context=chunk_context
             )
+
+            # Wikipedia: append instructions + context to prompt if enabled
+            if wikipedia_enabled and isinstance(chunk_request['prompt'], str):
+                wiki_context = context.custom_placeholders.get('WIKIPEDIA_CONTEXT', '')
+                wiki_context_block = build_wikipedia_context_block(wiki_context)
+                chunk_request['prompt'] += wiki_context_block + get_wikipedia_instructions()
 
             step.input_data = chunk_request['prompt']
             step.metadata.update(chunk_request['metadata'])
@@ -627,9 +643,9 @@ class PipelineExecutor:
 
                     if not markers or wiki_iteration >= max_wiki_iterations:
                         # No markers or max iterations reached - return output
-                        if wiki_iteration > 0:
+                        if markers:
+                            # Markers present but not resolved (skip or max iterations) - strip them
                             logger.info(f"[WIKI-LOOP] Completed after {wiki_iteration} iteration(s)")
-                            # Clean markers from final output
                             output = remove_markers(output)
                         return output
 

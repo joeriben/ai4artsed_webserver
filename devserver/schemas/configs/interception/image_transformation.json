@@ -22,11 +22,14 @@
   },
   "media_preferences": {
     "default_output": "image",
-    "supported_types": ["image"]
+    "supported_types": [
+      "image"
+    ]
   },
   "meta": {
     "stage": "interception",
     "skip_stage2": true,
-    "hidden": true
+    "hidden": true,
+    "wikipedia": true
   }
 }

@@ -961,7 +961,13 @@ Equality Principle: Use the same neutral, fact-based approach as for Western con
 
 **Universal Application:** These rules apply to ALL configs, not just cultural-specific ones. This is a system-wide ethical stance, not a per-config option.
 
-#### 2. Wikipedia in Cultural Reference Languages (manipulate.json + wikipedia_service.py)
+#### 2. Wikipedia in Cultural Reference Languages (wikipedia_prompt_helper.py + wikipedia_service.py)
+
+**Architecture (Session 160):** Wikipedia research is **opt-in per interception config** via `"meta": {"wikipedia": true}`. Only pedagogical art/culture configs enable it. Music, code, and utility configs don't include Wikipedia instructions in their prompts.
+
+- Wikipedia instructions live in `schemas/engine/wikipedia_prompt_helper.py` (not in the `manipulate.json` chunk template)
+- `pipeline_executor._execute_single_step()` checks `config.meta.get('wikipedia', False)` and conditionally appends instructions + enables the research loop
+- 28 pedagogical configs have `"wikipedia": true`; music/code configs don't
 
 LLMs must use Wikipedia in the **cultural reference language**, not the prompt language:
 

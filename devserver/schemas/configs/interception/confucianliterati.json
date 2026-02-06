@@ -9,7 +9,7 @@
     "en": "Critical examination tool: Tests how AI handles complex cultural knowledge. Reveals AI's limitations in understanding Confucian literati culture - not for authentic representation, but to critically investigate how generative AI deals with cultural specifics.",
     "de": "Kritisches Untersuchungswerkzeug: Prüft wie KI mit komplexem kulturellem Wissen umgeht. Zeigt die Grenzen der KI im Verständnis konfuzianischer Gelehrtenkultur - nicht zur authentischen Darstellung, sondern zur kritischen Untersuchung wie generative KI mit kulturellen Feinheiten umgeht."
   },
-   "category": {
+  "category": {
     "de": "Kunstgeschichte",
     "en": "Art History"
   },
@@ -35,7 +35,8 @@
     "stage": "interception",
     "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_ConfucianLiterati_2509061912.json",
     "extracted_date": "2025-10-19",
-    "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]"
+    "original_model": "openrouter/mistralai/mistral-nemo [multilingual / $0.01/$0.001]",
+    "wikipedia": true
   },
   "display": {
     "icon": "💭",

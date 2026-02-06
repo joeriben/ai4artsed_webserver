@@ -36,7 +36,8 @@
     "backend": "none",
     "workflow_type": "passthrough",
     "note": "Surrealizer config for legacy surrealization workflow. Stage 2 is skipped to preserve original prompt.",
-    "system_config": false
+    "system_config": false,
+    "wikipedia": true
   },
   "display": {
     "icon": "🔬",

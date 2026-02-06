@@ -403,15 +403,18 @@ onUnmounted(() => {
 // PROCESS A: Lyrics Workshop
 // ============================================================================
 
-function runLyricsAction(action: 'expand' | 'refine') {
+async function runLyricsAction(action: 'expand' | 'refine') {
   if (!lyricsInput.value || isLyricsProcessing.value) return
 
   activeLyricsAction.value = action
   isLyricsProcessing.value = true
   lyricsResult.value = ''
 
+  // Reset URL so MediaInputBox watch fires when we set it again
+  lyricsStreamUrl.value = ''
+
   const isDev = import.meta.env.DEV
-  lyricsStreamUrl.value = isDev
+  const url = isDev
     ? 'http://localhost:17802/api/schema/pipeline/interception'
     : '/api/schema/pipeline/interception'
 
@@ -420,9 +423,13 @@ function runLyricsAction(action: 'expand' | 'refine') {
     input_text: lyricsInput.value,
     safety_level: pipelineStore.safetyLevel,
     device_id: getDeviceId(),
-    enable_streaming: true,
-    skip_wikipedia: 'true'
+    enable_streaming: true
   }
+
+  // Set URL in next tick — component is now mounted with empty URL,
+  // this change triggers the MediaInputBox watch
+  await nextTick()
+  lyricsStreamUrl.value = url
 }
 
 function handleLyricsComplete() {
@@ -452,8 +459,7 @@ async function suggestTagsFromLyrics() {
       schema: 'tag_suggestion_from_lyrics',
       input_text: effectiveLyrics.value,
       safety_level: pipelineStore.safetyLevel,
-      device_id: getDeviceId(),
-      skip_wikipedia: 'true'
+      device_id: getDeviceId()
     })
 
     if (response.data.status === 'success') {

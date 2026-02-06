@@ -37,17 +37,18 @@
     "era": "1870s",
     "approach": "material_constraints",
     "equipment": [
-  	"large-format wooden camera with ground glass focusing screen",
- 	 "brass lens (Petzval or Aplanat design)",
- 	 "wooden tripod with metal head",
- 	 "light-tight plate holder for daguerreotype plates"
+      "large-format wooden camera with ground glass focusing screen",
+      "brass lens (Petzval or Aplanat design)",
+      "wooden tripod with metal head",
+      "light-tight plate holder for daguerreotype plates"
     ],
     "photographic_media": [
       "silver-iodized copper plate (daguerreotype)",
       "iodine and bromine sensitization apparatus",
       "mercury development box",
       "fixing bath with sodium thiosulfate (hypo)"
-    ]
+    ],
+    "wikipedia": true
   },
   "display": {
     "icon": "📷",
@@ -57,8 +58,20 @@
     "order": 100
   },
   "tags": {
-    "en": ["photography", "analog", "daguerreotype", "1870s", "darkroom"],
-    "de": ["fotografie", "analog", "daguerreotypie", "1870er", "dunkelkammer"]
+    "en": [
+      "photography",
+      "analog",
+      "daguerreotype",
+      "1870s",
+      "darkroom"
+    ],
+    "de": [
+      "fotografie",
+      "analog",
+      "daguerreotypie",
+      "1870er",
+      "dunkelkammer"
+    ]
   },
   "audience": {
     "workshop_suitable": true,

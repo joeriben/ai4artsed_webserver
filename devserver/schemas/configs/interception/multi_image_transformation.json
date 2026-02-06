@@ -22,12 +22,15 @@
   },
   "media_preferences": {
     "default_output": "image",
-    "supported_types": ["image"],
+    "supported_types": [
+      "image"
+    ],
     "output_config": "qwen_2511_multi"
   },
   "meta": {
     "stage": "interception",
     "skip_stage2": true,
-    "hidden": true
+    "hidden": true,
+    "wikipedia": true
   }
 }

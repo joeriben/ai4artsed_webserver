@@ -1,5 +1,96 @@
 # Development Log
 
+## Session 160 - Music Gen V2 LLM Functions + Wikipedia Opt-In Refactor
+**Date:** 2026-02-06
+**Focus:** Fix broken LLM functions in music_generation_v2.vue + architectural refactor of Wikipedia research from opt-out to opt-in
+**Status:** COMPLETE
+
+### Problems
+
+1. **SSE Streaming never started** (Theme→Lyrics, Refine Lyrics): Requests never reached the backend
+2. **Tag Suggestion produced no result**: Backend ran but output was corrupted by Wikipedia loop
+3. **Wikipedia was architecturally backwards**: Hardcoded in `manipulate.json` template, required `skip_wikipedia` flag to disable — opt-out instead of opt-in
+
+### Root Causes
+
+1. **Vue reactivity timing bug**: `runLyricsAction()` set `isLyricsProcessing=true` (triggering v-if mount of MediaInputBox) and `lyricsStreamUrl` in the same synchronous call. MediaInputBox mounted with URL already set — its `watch` on `streamUrl` only fires on changes, not initial values. `startStreaming()` was never called.
+
+2. **Wikipedia loop corrupted output**: The non-streaming path didn't forward `skip_wikipedia` to the pipeline context. The LLM produced `<wiki>` markers (because instructions were in the prompt), triggering 3 Wikipedia iterations that converted the output to an input echo. `parseAndApplyTagSuggestions()` found no JSON → no tags applied.
+
+3. **Architectural smell**: Wikipedia instructions were baked into `manipulate.json` — every `manipulate` chunk call got Wikipedia instructions, even lyrics refinement and tag suggestion. The `skip_wikipedia` flag was a workaround, not a solution.
+
+### Fixes Applied
+
+**Bug Fix A — SSE Streaming (music_generation_v2.vue)**
+- `runLyricsAction()` made `async`, resets `lyricsStreamUrl` to `''`, then sets URL via `await nextTick()` so MediaInputBox's watch fires
+
+**Bug Fix B + Architectural Refactor — Wikipedia Opt-In**
+- Created `schemas/engine/wikipedia_prompt_helper.py` — Wikipedia instructions as standalone module
+- Cleaned `manipulate.json` — removed Wikipedia block and `WIKIPEDIA_CONTEXT` placeholder
+- Modified `pipeline_executor.py:_execute_single_step()` — checks `config.meta.get('wikipedia', False)` to conditionally enable Wikipedia instructions + research loop
+- Added `"wikipedia": true` to 28 pedagogical interception configs (all except music/code)
+- Removed `skip_wikipedia` from entire codebase (frontend v1+v2, backend streaming+non-streaming paths)
+
+### Files Modified
+- `public/ai4artsed-frontend/src/views/music_generation_v2.vue` — async runLyricsAction + nextTick
+- `public/ai4artsed-frontend/src/views/music_generation.vue` — removed skip_wikipedia
+- `devserver/schemas/engine/wikipedia_prompt_helper.py` — NEW: Wikipedia instructions module
+- `devserver/schemas/chunks/manipulate.json` — cleaned template
+- `devserver/schemas/engine/pipeline_executor.py` — Wikipedia opt-in logic
+- `devserver/my_app/routes/schema_pipeline_routes.py` — removed all skip_wikipedia plumbing
+- `devserver/schemas/configs/interception/*.json` — 28 configs updated with `"wikipedia": true`
+
+### Key Learnings
+- Vue `watch()` without `{ immediate: true }` does NOT fire on initial mount values — critical when combining `v-if` conditional rendering with reactive prop changes
+- Architectural opt-out patterns (features that must be explicitly disabled) are fragile — prefer opt-in (features must be explicitly enabled)
+- Wikipedia research is a pedagogical feature specific to `text_transformation.vue` art configs, not a universal pipeline feature
+
+---
+
+## Session 159 - HeartMuLa Production CUDA Crash Fix
+**Date:** 2026-02-06
+**Focus:** Fix HeartMuLa music generation crashing in production but not dev
+**Status:** COMPLETE
+
+### Problem
+
+HeartMuLa worked in dev (port 17802) but crashed in production (port 17801) with CUDA "index out of bounds" during codec detokenization. Investigation revealed two layered issues.
+
+### Root Causes
+
+1. **Redundant `torch.autocast` wrapper** (`heartmula_backend.py:279`)
+   - Wrapped entire `self._pipeline()` call in `torch.autocast("cuda", dtype=torch.bfloat16)`
+   - Forced bfloat16 on HeartCodec which requires float32
+   - heartlib already handles autocast internally for MuLa generation only (`music_generation.py:284, 318`)
+   - Different PyTorch nightly versions (dev: Feb 3, prod: Feb 4) determined whether this crashed or not
+
+2. **Vocab/codebook size mismatch in heartlib** (the actual bug)
+   - MuLa `audio_vocab_size` = 8197, codec `codebook_size` = 8192
+   - MuLa can generate token indices 8192-8196 that exceed codec's embedding range
+   - Causes CUDA index out of bounds in `vq_embed.get_output_from_indices()`
+   - Data-dependent: longer generations and certain lyrics/tag combinations trigger it more often
+   - No bounds checking existed anywhere in the heartlib pipeline
+
+### Fixes Applied
+
+1. **Removed outer autocast** — `heartmula_backend.py:279`: `torch.autocast` removed, `torch.no_grad()` kept
+2. **Index clamping in heartlib** — `flow_matching.py:75`: `torch.clamp(codes, 0, codebook_size - 1)` before embedding lookup
+3. **Tightened Vue slider ranges** — `music_generation_v2.vue`: Top-K max 200→100, CFG max 5.0→4.0
+4. **Updated installation docs** — `INSTALLATION.md`: documented post-install clamp fix and PyTorch version sensitivity
+
+### Files Modified
+- `devserver/my_app/services/heartmula_backend.py` — removed autocast
+- `public/ai4artsed-frontend/src/views/music_generation_v2.vue` — slider limits
+- `docs/installation/INSTALLATION.md` — heartmula setup warnings
+- `~/ai/heartlib/src/heartlib/heartcodec/models/flow_matching.py` — index clamping (separate repo)
+
+### Key Learnings
+- heartlib manages dtype internally — never wrap `self._pipeline()` in external autocast
+- PyTorch nightly builds are fragile on Blackwell GPUs — even 1 day difference breaks things
+- MuLa vocab > codec codebook is a design flaw in heartlib; clamp is a necessary workaround
+
+---
+
 ## Session 158 - Music Generation Unified Page (Simple/Advanced Toggle)
 **Date:** 2026-02-06
 **Focus:** Unify V1 and V2 music generation into single page with mode toggle

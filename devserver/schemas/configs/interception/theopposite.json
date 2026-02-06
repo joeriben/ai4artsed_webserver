@@ -35,7 +35,8 @@
     "stage": "interception",
     "legacy_source": "workflows_legacy/semantics/ai4artsed_TheOpposite_2507122354.json",
     "extracted_date": "2025-10-19",
-    "original_model": "local/mistral-nemo:latest [local / $0.00]"
+    "original_model": "local/mistral-nemo:latest [local / $0.00]",
+    "wikipedia": true
   },
   "display": {
     "icon": "💬",

@@ -40,7 +40,8 @@
       "white_normativity",
       "consumerist_aesthetics",
       "gendered_stereotypes"
-    ]
+    ],
+    "wikipedia": true
   },
   "display": {
     "icon": "🌍",
@@ -50,8 +51,20 @@
     "order": 100
   },
   "tags": {
-    "en": ["decolonial", "critical", "bias", "global south", "perspective"],
-    "de": ["dekolonial", "kritisch", "bias", "globaler süden", "perspektive"]
+    "en": [
+      "decolonial",
+      "critical",
+      "bias",
+      "global south",
+      "perspective"
+    ],
+    "de": [
+      "dekolonial",
+      "kritisch",
+      "bias",
+      "globaler süden",
+      "perspektive"
+    ]
   },
   "audience": {
     "workshop_suitable": true,

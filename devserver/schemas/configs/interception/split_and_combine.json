@@ -25,14 +25,30 @@
     "hidden": false
   },
   "tags": {
-    "en": ["vector", "research", "experimental", "legacy", "prompt-splitting", "advanced"],
-    "de": ["vektor", "forschung", "experimentell", "legacy", "prompt-aufteilung", "fortgeschritten"]
+    "en": [
+      "vector",
+      "research",
+      "experimental",
+      "legacy",
+      "prompt-splitting",
+      "advanced"
+    ],
+    "de": [
+      "vektor",
+      "forschung",
+      "experimentell",
+      "legacy",
+      "prompt-aufteilung",
+      "fortgeschritten"
+    ]
   },
   "audience": {
     "workshop_suitable": true,
     "min_age": 14,
     "complexity": "advanced",
-    "requires": ["ComfyUI backend"]
+    "requires": [
+      "ComfyUI backend"
+    ]
   },
   "meta": {
     "stage": "interception",
@@ -40,6 +56,7 @@
     "backend": "none",
     "workflow_type": "passthrough",
     "note": "Split and Combine config for legacy vector manipulation workflow. Stage 2 is skipped to preserve original prompt.",
-    "system_config": false
+    "system_config": false,
+    "wikipedia": true
   }
 }

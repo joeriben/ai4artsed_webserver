@@ -37,8 +37,12 @@
     "era": "contemporary",
     "approach": "technical_professional",
     "loras": [
-      {"name": "sd3.5-large_cooked_negatives-000004.safetensors", "strength": 0.7}
-    ]
+      {
+        "name": "sd3.5-large_cooked_negatives-000004.safetensors",
+        "strength": 0.7
+      }
+    ],
+    "wikipedia": true
   },
   "display": {
     "icon": "📸",
@@ -48,8 +52,18 @@
     "order": 100
   },
   "tags": {
-    "en": ["photography", "digital", "contemporary", "technical"],
-    "de": ["fotografie", "digital", "zeitgenössisch", "technisch"]
+    "en": [
+      "photography",
+      "digital",
+      "contemporary",
+      "technical"
+    ],
+    "de": [
+      "fotografie",
+      "digital",
+      "zeitgenössisch",
+      "technisch"
+    ]
   },
   "audience": {
     "workshop_suitable": true,

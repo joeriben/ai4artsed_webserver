@@ -53,7 +53,8 @@
       "continuation without belief",
       "non-reparative critique"
     ],
-    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Dada_2506220140.json"
+    "legacy_source": "workflows_legacy/arts_and_heritage/ai4artsed_Dada_2506220140.json",
+    "wikipedia": true
   },
   "display": {
     "icon": "💭",
@@ -72,4 +73,3 @@
     "complexity": "advanced"
   }
 }
-

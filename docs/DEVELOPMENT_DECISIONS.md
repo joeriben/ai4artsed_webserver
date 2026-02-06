@@ -29,6 +29,43 @@
 
 ---
 
+## 📚 WIKIPEDIA: Opt-In per Config statt Opt-Out per Request (2026-02-06)
+
+**Status:** ✅ IMPLEMENTED
+**Session:** 160
+
+### Decision
+
+**Wikipedia-Research wird von opt-out (global aktiv, per Request abschaltbar) auf opt-in (per Config aktivierbar) umgestellt.**
+
+### Problem (vorher)
+
+Wikipedia-Instruktionen waren hardcoded in `manipulate.json` — jeder `manipulate`-Chunk-Call enthielt die gesamten Wikipedia-Anweisungen (70+ Sprachen, ~2KB Prompt-Text). Pipelines die kein Wikipedia brauchten (Musik, Code) mussten `skip_wikipedia: true` im Frontend-Request senden. Das war:
+- Architektonisch fragwürdig (Feature wird zum Problem das man vermeiden muss)
+- Fehleranfällig (vergessenes Flag → Wikipedia-Loop korrumpiert Output)
+- Token-Verschwendung (Wikipedia-Instruktionen in jedem Prompt, auch bei Lyrics-Generierung)
+
+### Lösung (nachher)
+
+- Wikipedia-Instruktionen in eigenem Modul: `schemas/engine/wikipedia_prompt_helper.py`
+- `manipulate.json` Template ist sauber: nur Task + Context + Prompt
+- Config-level Steuerung: `"meta": {"wikipedia": true}` in Interception-Config JSONs
+- `pipeline_executor._execute_single_step()` prüft Config-Flag, injiziert Instruktionen + Loop nur wenn aktiv
+- `skip_wikipedia` komplett entfernt (Frontend + Backend)
+
+### Betroffene Dateien
+- `schemas/engine/wikipedia_prompt_helper.py` (NEU)
+- `schemas/chunks/manipulate.json` (bereinigt)
+- `schemas/engine/pipeline_executor.py` (opt-in Logik)
+- 28 pädagogische Interception-Configs (`"wikipedia": true`)
+- `schema_pipeline_routes.py` (skip_wikipedia entfernt)
+- `music_generation.vue`, `music_generation_v2.vue` (skip_wikipedia entfernt)
+
+### Prinzip
+Wikipedia-Research ist ein pädagogisches Feature der `text_transformation.vue` für Kunst/Kultur-Configs. Es gehört nicht in den generischen `manipulate`-Chunk.
+
+---
+
 ## 🎵 MUSIC-GENERATION: Unified Simple/Advanced Mode (2026-02-06)
 
 **Status:** ✅ IMPLEMENTED

@@ -47,7 +47,8 @@
       "Tri-X",
       "Ektachrome",
       "Plus-X"
-    ]
+    ],
+    "wikipedia": true
   },
   "display": {
     "icon": "📷",
@@ -57,8 +58,20 @@
     "order": 100
   },
   "tags": {
-    "en": ["photography", "analog", "film", "1970s", "darkroom"],
-    "de": ["fotografie", "analog", "film", "1970er", "dunkelkammer"]
+    "en": [
+      "photography",
+      "analog",
+      "film",
+      "1970s",
+      "darkroom"
+    ],
+    "de": [
+      "fotografie",
+      "analog",
+      "film",
+      "1970er",
+      "dunkelkammer"
+    ]
   },
   "audience": {
     "workshop_suitable": true,
