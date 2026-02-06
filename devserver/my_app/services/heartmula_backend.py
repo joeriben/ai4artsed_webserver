@@ -276,7 +276,7 @@ class HeartMuLaMusicGenerator:
             try:
                 # Generate in thread to avoid blocking
                 def _generate():
-                    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+                    with torch.no_grad():
                         logger.info(f"[HEARTMULA-DEBUG] Calling pipeline with:")
                         logger.info(f"  lyrics length: {len(lyrics)} chars")
                         logger.info(f"  tags: '{tags}'")
