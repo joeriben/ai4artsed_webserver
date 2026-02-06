@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pull latest code from main branch and deploy in production
-# Steps: git pull → pip install → npm build → restart backend
+# Automates Steps 4 & 5 from DEPLOYMENT.md
 
 # Ensure script runs in a terminal window
 if [ ! -t 0 ]; then
@@ -34,19 +34,8 @@ git pull origin main
 echo "✅ Code updated successfully"
 echo ""
 
-# Step 5: Install Python dependencies
-echo "📦 Step 5: Installing Python dependencies..."
-"$SCRIPT_DIR/venv/bin/python" -m pip install -r "$SCRIPT_DIR/requirements.txt" --quiet 2>&1 | grep -v "already satisfied"
-# heartlib: install without deps (its deps are in requirements.txt, avoids version pin conflicts)
-if [ -d "$HOME/ai/heartlib" ]; then
-    "$SCRIPT_DIR/venv/bin/python" -m pip install --no-deps -e "$HOME/ai/heartlib" --quiet 2>&1 | grep -v "already satisfied"
-    echo "  heartlib installed from $HOME/ai/heartlib"
-fi
-echo "✅ Python dependencies updated"
-echo ""
-
-# Step 6: Build frontend
-echo "🔨 Step 6: Building frontend..."
+# Step 5: Build frontend
+echo "🔨 Step 5a: Building frontend..."
 cd "$SCRIPT_DIR/public/ai4artsed-frontend"
 
 # Check if 'install' script exists in package.json, run it only if present
@@ -60,7 +49,7 @@ npm run build
 echo "✅ Frontend built successfully"
 echo ""
 
-# Step 7: Restart backend
+# Step 6: Restart backend
 read -p "Restart Backend? (y/N): " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then

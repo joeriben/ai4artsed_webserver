@@ -450,7 +450,48 @@ pip install -r requirements.txt
 # Verify packages installed
 pip list | grep Flask
 pip list | grep waitress
+```
 
+### HeartMuLa Music Generation (Optional)
+
+HeartMuLa is a direct Diffusers backend for music generation. Skip this section if you don't need music generation or will use ComfyUI-based ACE-Step instead.
+
+**Prerequisites:**
+- heartlib repository cloned to `~/ai/heartlib`
+- Model checkpoint in `~/ai/heartlib/ckpt/`
+
+**Installation:**
+
+```bash
+# Ensure venv is still active
+# Install heartlib in editable mode WITHOUT its dependencies
+# (dependencies are already in requirements.txt to avoid version conflicts)
+pip install --no-deps -e ~/ai/heartlib
+
+# Verify installation
+pip list | grep heartlib
+# Should show: heartlib 0.x.x /home/USER/ai/heartlib
+```
+
+**Configuration:**
+
+Edit `devserver/config/backends.json` to enable/disable:
+```json
+{
+  "backends": {
+    "heartmula": {
+      "enabled": true,
+      "requirements": {
+        "model_path": "~/ai/heartlib/ckpt"
+      }
+    }
+  }
+}
+```
+
+**Note:** If heartlib is not installed, the system automatically falls back to ComfyUI for music generation.
+
+```bash
 # Deactivate venv for now
 deactivate
 ```
