@@ -31,7 +31,6 @@ aiohttp==3.13.2      # Async HTTP client (required by comfyui_client.py and swar
 # ============================================================================
 python-dotenv==1.0.0 # Load environment variables from .env file
 toml>=0.10.2         # Kohya dataset config files (training_service)
-PyYAML>=6.0          # Backend registry configuration (backends.yaml)
 
 # ============================================================================
 # Export Functionality

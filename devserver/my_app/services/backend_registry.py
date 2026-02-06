@@ -1,11 +1,11 @@
 """
 Backend Registry - Centralized backend configuration and availability management
 
-Session XXX: Replaces scattered ENABLED flags in config.py with a single YAML-based
-configuration. Workshop-friendly: edit backends.yaml instead of Python code.
+Session 163: Replaces scattered ENABLED flags in config.py with a single JSON-based
+configuration. Workshop-friendly: edit backends.json instead of Python code.
 
 Features:
-- Load backend configs from YAML
+- Load backend configs from JSON
 - Check backend availability (packages, VRAM, external services)
 - Priority chains for media type routing
 - Workflow requirement validation (ComfyUI custom nodes)
@@ -56,20 +56,20 @@ class BackendConfig:
 
 class BackendRegistry:
     """
-    Loads backends.yaml and manages backend availability.
+    Loads backends.json and manages backend availability.
     Replaces scattered ENABLED flags in config.py.
     """
 
     def __init__(self, config_path: Optional[Path] = None):
         """
-        Initialize registry from YAML config
+        Initialize registry from JSON config
 
         Args:
-            config_path: Path to backends.yaml (default: devserver/config/backends.yaml)
+            config_path: Path to backends.json (default: devserver/config/backends.json)
         """
         if config_path is None:
-            # Default: devserver/config/backends.yaml
-            config_path = Path(__file__).parent.parent.parent / "config" / "backends.yaml"
+            # Default: devserver/config/backends.json
+            config_path = Path(__file__).parent.parent.parent / "config" / "backends.json"
 
         self.config_path = config_path
         self._backends: Dict[str, BackendConfig] = {}
@@ -81,12 +81,8 @@ class BackendRegistry:
         self._load_config()
 
     def _load_config(self):
-        """Load YAML configuration"""
-        try:
-            import yaml
-        except ImportError:
-            logger.error("[REGISTRY] PyYAML not installed. Run: pip install pyyaml")
-            return
+        """Load JSON configuration"""
+        import json
 
         if not self.config_path.exists():
             logger.warning(f"[REGISTRY] Config not found: {self.config_path}")
@@ -94,7 +90,7 @@ class BackendRegistry:
 
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
+                config = json.load(f)
 
             # Load backends
             backends_data = config.get("backends", {})
@@ -117,7 +113,7 @@ class BackendRegistry:
             logger.error(f"[REGISTRY] Failed to load config: {e}")
 
     def reload(self):
-        """Reload configuration from YAML"""
+        """Reload configuration from JSON"""
         self._backends.clear()
         self._priorities.clear()
         self._settings.clear()
