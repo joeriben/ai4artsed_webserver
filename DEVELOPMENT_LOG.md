@@ -1,5 +1,62 @@
 # Development Log
 
+## Session 158 - Music Generation Unified Page (Simple/Advanced Toggle)
+**Date:** 2026-02-06
+**Focus:** Unify V1 and V2 music generation into single page with mode toggle
+**Status:** COMPLETE ✅
+
+### Summary
+
+Created a unified music generation page that offers both the simple (V1) and advanced (V2) interfaces via a toggle switch. This addresses the pedagogical trade-off: V1 is accessible but teaches nothing about music; V2 teaches music vocabulary but has complex ML parameters.
+
+### Pedagogical Rationale
+
+**V1 (Simple Mode):**
+- Dual text inputs: lyrics + free-form tags
+- Low barrier to entry
+- No scaffolding for students without lyrics
+- Tags as free-text requires prior knowledge
+
+**V2 (Advanced Mode):**
+- Lyrics Workshop: "Theme → Lyrics" scaffold for students without lyrics
+- Sound Explorer: 8-dimension chip selector teaches music vocabulary (genre, timbre, mood, instruments, etc.)
+- "Suggest from Lyrics" bridges lyrics→sound understanding
+- ML parameters (temp, topk, cfg) now with good defaults
+- Custom tags input for power users
+
+### Key Changes
+
+1. **Unified Wrapper** (`music_generation_unified.vue`)
+   - Sticky toggle at top: Simple / Advanced
+   - Mode persists to localStorage
+   - Background adapts (solid #0a0a0a for V1, gradient for V2)
+
+2. **Router Update**
+   - `/music-generation` → unified page
+   - `/music-generation-simple` → direct V1 access
+   - `/music-generation-advanced` → direct V2 access
+
+3. **V2 Defaults Updated**
+   - Audio length: 120s → 200s (3:20)
+   - Top-K: 70 → 65
+   - CFG Scale: 3.0 → 2.75
+
+4. **Custom Tags Feature**
+   - MusicTagSelector now accepts `v-model:customTags`
+   - Text input below chip grid
+   - Merged into compiledTags output
+
+### Files Created
+- `public/ai4artsed-frontend/src/views/music_generation_unified.vue`
+
+### Files Modified
+- `public/ai4artsed-frontend/src/router/index.ts` — unified route
+- `public/ai4artsed-frontend/src/components/MusicTagSelector.vue` — custom tags
+- `public/ai4artsed-frontend/src/views/music_generation_v2.vue` — new defaults + customTags
+- `public/ai4artsed-frontend/src/i18n.ts` — simpleMode, advancedMode, customTags keys
+
+---
+
 ## Session 157 - Music Generation V2 (Lyrics Workshop + Sound Explorer)
 **Date:** 2026-02-05
 **Focus:** New music generation UI concept + HeartMuLa tag system + performance tuning

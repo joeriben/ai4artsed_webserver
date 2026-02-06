@@ -29,6 +29,46 @@
 
 ---
 
+## 🎵 MUSIC-GENERATION: Unified Simple/Advanced Mode (2026-02-06)
+
+**Status:** ✅ IMPLEMENTED
+**Session:** 158
+
+### Decision
+
+**Beide Music-Generation-UIs (V1 + V2) bleiben erhalten und werden über einen Simple/Advanced Toggle auf einer gemeinsamen Seite angeboten.**
+
+### Reasoning
+
+**Pädagogische Analyse der beiden Ansätze:**
+
+| Aspekt | V1 (Simple) | V2 (Advanced) |
+|--------|-------------|---------------|
+| Einstiegshürde | Niedrig | Mittel |
+| Lerneffekt Musik | Keiner | Hoch (8 Dimensionen) |
+| Scaffold ohne Lyrics | Keines | "Theme → Lyrics" |
+| Tag-Wissen nötig | Ja (Freitext) | Nein (Chips) |
+| ML-Parameter | Keine | Temp/TopK/CFG |
+
+**Lösung: Benutzer wählt selbst**
+- **Simple Mode** = V1: Schneller Einstieg, keine Erklärung nötig
+- **Advanced Mode** = V2: Musikalisches Lernen, mehr Kontrolle
+
+**Default-Presets für V2:**
+- Audio Length: 3:20 (200s) — typische Songlänge
+- Temperature: 1.0 — balancierte Kreativität
+- Top-K: 65 — etwas fokussierter als 70
+- CFG Scale: 2.75 — Mitte von 2.5-3.0 sweet spot
+
+### Implementation
+
+- `music_generation_unified.vue` als Wrapper
+- Toggle persistiert in localStorage
+- `/music-generation` → unified, `/music-generation-simple` + `/music-generation-advanced` für direkten Zugriff
+- Custom Tags in MusicTagSelector für Power-User
+
+---
+
 ## 🧠 LLM-STRATEGIE: Wechsel zu Mistral für VRAM-Optimierung (2026-01-29)
 
 **Status:** ✅ DECIDED - Implementation pending

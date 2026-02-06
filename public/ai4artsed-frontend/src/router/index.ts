@@ -99,13 +99,19 @@ const router = createRouter({
     {
       path: '/music-generation',
       name: 'music-generation',
-      // HeartMuLa music generation with dual text input (lyrics + tags)
+      // Unified music generation with Simple/Advanced mode toggle
+      component: () => import('../views/music_generation_unified.vue'),
+    },
+    {
+      path: '/music-generation-simple',
+      name: 'music-generation-simple',
+      // Direct access to V1 (Simple) for testing
       component: () => import('../views/music_generation.vue'),
     },
     {
-      path: '/music-generation-v2',
-      name: 'music-generation-v2',
-      // HeartMuLa music generation v2: Lyrics Workshop + Sound Explorer
+      path: '/music-generation-advanced',
+      name: 'music-generation-advanced',
+      // Direct access to V2 (Advanced) for testing
       component: () => import('../views/music_generation_v2.vue'),
     },
     {

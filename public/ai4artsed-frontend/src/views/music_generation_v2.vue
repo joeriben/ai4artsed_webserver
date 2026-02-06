@@ -90,6 +90,7 @@
         <MusicTagSelector
           :dimensions="tagDimensions"
           v-model:selected="selectedTags"
+          v-model:customTags="customTags"
           :disabled="isSuggesting"
         />
       </section>
@@ -317,6 +318,7 @@ const selectedTags = ref<Record<string, string[]>>({
   genre: [], timbre: [], gender: [], mood: [],
   instrument: [], scene: [], region: [], topic: []
 })
+const customTags = ref('')
 const isSuggesting = ref(false)
 
 // ============================================================================
@@ -330,10 +332,10 @@ const outputAudio = ref<string | null>(null)
 const currentRunId = ref<string | null>(null)
 const showSafetyStamp = ref(false)
 const isFavorited = ref(false)
-const audioLengthSeconds = ref(120)
+const audioLengthSeconds = ref(200)
 const temperature = ref(1.0)
-const topk = ref(70)
-const cfgScale = ref(3.0)
+const topk = ref(65)
+const cfgScale = ref(2.75)
 const batchCount = ref(1)
 const batchCurrent = ref(0)
 
@@ -357,7 +359,11 @@ const outputSectionRef = ref<InstanceType<typeof MediaOutputBox> | null>(null)
 const effectiveLyrics = computed(() => lyricsResult.value || lyricsInput.value)
 
 const compiledTags = computed(() => {
-  return Object.values(selectedTags.value).flat().join(',')
+  const chipTags = Object.values(selectedTags.value).flat()
+  const custom = customTags.value
+    ? customTags.value.split(',').map(t => t.trim()).filter(Boolean)
+    : []
+  return [...chipTags, ...custom].join(',')
 })
 
 const canGenerate = computed(() => {

@@ -358,6 +358,8 @@ const messages = {
       generating: 'Musik wird generiert...'
     },
     musicGen: {
+      simpleMode: 'Einfach',
+      advancedMode: 'Erweitert',
       lyricsLabel: 'Lyrics',
       lyricsPlaceholder: 'Schreibe deine Song-Lyrics mit Strukturmarkern wie [Verse], [Chorus], [Bridge]...\n\nBeispiel:\n[Verse]\nde doo doo doo\nde blaa blaa blaa\n\n[Chorus]\nis all I want to sing to you',
       tagsLabel: 'Style Tags',
@@ -397,7 +399,9 @@ const messages = {
       dimTopic: 'Thema',
       audioLength: 'Audio-Länge',
       generateButton: 'Musik generieren',
-      selectModel: 'Modell'
+      selectModel: 'Modell',
+      customTags: 'Eigene Tags',
+      customTagsPlaceholder: 'z.B. acoustic,dreamy,summer_vibes'
     },
     edutainment: {
       ui: {
@@ -861,6 +865,8 @@ const messages = {
       generating: 'Generating music...'
     },
     musicGen: {
+      simpleMode: 'Simple',
+      advancedMode: 'Advanced',
       lyricsLabel: 'Lyrics',
       lyricsPlaceholder: 'Write your song lyrics with structure markers like [Verse], [Chorus], [Bridge]...\n\nExample:\n[Verse]\nde doo doo doo\nde blaa blaa blaa\n\n[Chorus]\nis all I want to sing to you',
       tagsLabel: 'Style Tags',
@@ -900,7 +906,9 @@ const messages = {
       dimTopic: 'Topic',
       audioLength: 'Audio Length',
       generateButton: 'Generate Music',
-      selectModel: 'Model'
+      selectModel: 'Model',
+      customTags: 'Custom Tags',
+      customTagsPlaceholder: 'e.g. acoustic,dreamy,summer_vibes'
     },
     edutainment: {
       ui: {

@@ -28,6 +28,19 @@
       </div>
     </div>
 
+    <!-- Custom Tags Input -->
+    <div class="custom-tags-row">
+      <label class="custom-tags-label">{{ t('musicGenV2.customTags') }}</label>
+      <input
+        type="text"
+        class="custom-tags-input"
+        :placeholder="t('musicGenV2.customTagsPlaceholder')"
+        :value="customTags"
+        :disabled="disabled"
+        @input="onCustomTagsInput"
+      />
+    </div>
+
     <!-- Live tag preview -->
     <div v-if="compiledTags" class="tag-preview">
       <span class="tag-preview-label">Tags:</span>
@@ -54,13 +67,16 @@ export interface DimensionConfig {
 const props = withDefaults(defineProps<{
   dimensions: DimensionConfig[]
   selected: Record<string, string[]>
+  customTags?: string
   disabled?: boolean
 }>(), {
+  customTags: '',
   disabled: false
 })
 
 const emit = defineEmits<{
   'update:selected': [value: Record<string, string[]>]
+  'update:customTags': [value: string]
 }>()
 
 function dimLabel(dim: DimensionConfig): string {
@@ -88,10 +104,17 @@ function toggleChip(dimName: string, chip: string) {
   emit('update:selected', current)
 }
 
+function onCustomTagsInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  emit('update:customTags', value)
+}
+
 const compiledTags = computed(() => {
-  return Object.values(props.selected)
-    .flat()
-    .join(',')
+  const chipTags = Object.values(props.selected).flat()
+  const custom = props.customTags
+    ? props.customTags.split(',').map(t => t.trim()).filter(Boolean)
+    : []
+  return [...chipTags, ...custom].join(',')
 })
 
 defineExpose({ compiledTags })
@@ -169,6 +192,47 @@ defineExpose({ compiledTags })
 }
 
 .tag-chip:disabled {
+  cursor: not-allowed;
+}
+
+/* Custom Tags Input */
+.custom-tags-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.custom-tags-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.custom-tags-input {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.custom-tags-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.custom-tags-input:focus {
+  border-color: rgba(156, 39, 176, 0.5);
+}
+
+.custom-tags-input:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
