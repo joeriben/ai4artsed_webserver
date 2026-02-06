@@ -19,6 +19,7 @@ from datetime import datetime
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import JSON_STORAGE_DIR, CHAT_HELPER_MODEL
+from my_app.services.pipeline_recorder import load_recorder
 
 logger = logging.getLogger(__name__)
 
@@ -423,7 +424,7 @@ def call_chat_helper(messages: list, temperature: float = 0.7, max_tokens: int =
 
 def load_session_context(run_id: str) -> dict:
     """
-    Load session context from exports/json/{run_id}/
+    Load session context from the run folder (resolved via load_recorder).
 
     Returns dict with:
     - success: bool
@@ -431,11 +432,11 @@ def load_session_context(run_id: str) -> dict:
     - error: str (if success=False)
     """
     try:
-        session_path = JSON_STORAGE_DIR / run_id
-
-        if not session_path.exists():
-            logger.warning(f"Session path not found: {session_path}")
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            logger.warning(f"Session not found for run_id: {run_id}")
             return {"success": False, "error": "Session not found"}
+        session_path = recorder.run_folder
 
         context = {}
 
@@ -477,9 +478,12 @@ def load_session_context(run_id: str) -> dict:
 
 
 def load_chat_history(run_id: str) -> list:
-    """Load chat history from exports/json/{run_id}/chat_history.json"""
+    """Load chat history from the run folder."""
     try:
-        history_path = JSON_STORAGE_DIR / run_id / "chat_history.json"
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            return []
+        history_path = recorder.run_folder / "chat_history.json"
         if history_path.exists():
             with open(history_path, 'r', encoding='utf-8') as f:
                 history = json.load(f)
@@ -492,14 +496,14 @@ def load_chat_history(run_id: str) -> list:
 
 
 def save_chat_history(run_id: str, history: list):
-    """Save chat history to exports/json/{run_id}/chat_history.json"""
+    """Save chat history to the run folder."""
     try:
-        session_path = JSON_STORAGE_DIR / run_id
-        if not session_path.exists():
-            logger.warning(f"Session path not found for saving history: {session_path}")
+        recorder = load_recorder(run_id, base_path=JSON_STORAGE_DIR)
+        if not recorder:
+            logger.warning(f"Session not found for saving history: {run_id}")
             return
 
-        history_path = session_path / "chat_history.json"
+        history_path = recorder.run_folder / "chat_history.json"
         with open(history_path, 'w', encoding='utf-8') as f:
             json.dump(history, f, ensure_ascii=False, indent=2)
 

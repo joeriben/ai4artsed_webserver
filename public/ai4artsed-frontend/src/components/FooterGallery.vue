@@ -144,6 +144,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFavoritesStore, type FavoriteItem } from '@/stores/favorites'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useDeviceId } from '@/composables/useDeviceId'
 
 const router = useRouter()
 const favoritesStore = useFavoritesStore()
@@ -157,20 +158,7 @@ const isLoading = computed(() => favoritesStore.isLoading)
 const isExpanded = computed(() => favoritesStore.isGalleryExpanded)
 const viewMode = computed(() => favoritesStore.viewMode)  // Session 145
 
-// Device ID (Session 145: Same logic as text_transformation.vue)
-function getDeviceId(): string {
-  let browserId = localStorage.getItem('browser_id')
-  if (!browserId) {
-    browserId =
-      crypto.randomUUID?.() ||
-      `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
-    localStorage.setItem('browser_id', browserId)
-  }
-  const today = new Date().toISOString().split('T')[0]
-  return `${browserId}_${today}`
-}
-
-const currentDeviceId = ref(getDeviceId())
+const currentDeviceId = ref(useDeviceId())
 
 // Actions
 function toggleGallery() {

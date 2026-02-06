@@ -227,6 +227,7 @@
 import { ref, computed, nextTick, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
 import { useFavoritesStore } from '@/stores/favorites'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
@@ -291,17 +292,7 @@ const lyricsStreamingParams = ref<Record<string, any>>({})
 const tagsStreamingUrl = ref('')
 const tagsStreamingParams = ref<Record<string, any>>({})
 
-// Device ID for folder structure (json/date/device_id/run_xxx/)
-// Combines permanent browser ID + date = valid until end of day
-function getDeviceId(): string {
-  let browserId = localStorage.getItem('browser_id')
-  if (!browserId) {
-    browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
-    localStorage.setItem('browser_id', browserId)
-  }
-  const today = new Date().toISOString().split('T')[0]
-  return `${browserId}_${today}`
-}
+const deviceId = useDeviceId()
 
 // Config selection
 const selectedConfig = ref<string>('heartmula_standard')
@@ -472,7 +463,7 @@ async function runDualInterception() {
     schema: 'lyrics_refinement',
     input_text: lyricsInput.value,
     safety_level: pipelineStore.safetyLevel,
-    device_id: getDeviceId(),  // FIX: Persistent device_id for consistent folders
+    device_id: deviceId,  // FIX: Persistent device_id for consistent folders
     enable_streaming: true  // KEY: Request SSE streaming
   }
 
@@ -489,7 +480,7 @@ async function runDualInterception() {
       schema: 'tags_generation',
       input_text: tagsInput.value,
       safety_level: pipelineStore.safetyLevel,
-      device_id: getDeviceId(),  // FIX: Persistent device_id for consistent folders
+      device_id: deviceId,  // FIX: Persistent device_id for consistent folders
       enable_streaming: true
     }
   } else {
@@ -584,7 +575,7 @@ async function startGeneration() {
       input_text: finalLyrics,
       output_config: selectedConfig.value,
       safety_level: pipelineStore.safetyLevel,
-      device_id: getDeviceId(), // FIX: Persistent device_id for consistent export folders
+      device_id: deviceId, // FIX: Persistent device_id for consistent export folders
       custom_placeholders: {
         TEXT_1: finalLyrics,
         TEXT_2: finalTags,
@@ -635,8 +626,6 @@ async function fetchMusicOutput(runId: string) {
 async function saveMedia() {
   if (outputAudio.value && currentRunId.value) {
     console.log('[MusicGen] Save media:', currentRunId.value)
-    // Add to favorites - deviceId will be extracted from runId or use 'local'
-    const deviceId = 'local' // TODO: Extract from run directory structure
     const success = await favoritesStore.addFavorite(
       currentRunId.value,
       'music',

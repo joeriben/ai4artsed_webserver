@@ -252,6 +252,7 @@ import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
 import { useGenerationStream } from '@/composables/useGenerationStream'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
@@ -292,17 +293,7 @@ const estimatedGenerationSeconds = computed(() => {
 const previousOptimizedPrompt = ref('')
 const currentSeed = ref<number | null>(null)
 
-// Session 129: Device ID for folder structure (json/date/device_id/run_xxx/)
-// Combines permanent browser ID + date = valid until end of day
-function getDeviceId(): string {
-  let browserId = localStorage.getItem('browser_id')
-  if (!browserId) {
-    browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
-    localStorage.setItem('browser_id', browserId)
-  }
-  const today = new Date().toISOString().split('T')[0]
-  return `${browserId}_${today}`
-}
+const deviceId = useDeviceId()
 
 // Execution
 const executionPhase = ref<'initial' | 'image_uploaded' | 'ready_for_media' | 'generation_done'>('initial')
@@ -900,7 +891,7 @@ async function startGeneration() {
       input_image2: uploadedImagePath2.value || undefined,
       input_image3: uploadedImagePath3.value || undefined,
       seed: currentSeed.value,
-      device_id: getDeviceId()
+      device_id: deviceId
     })
 
     // Stop progress interval

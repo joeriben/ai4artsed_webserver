@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { useDeviceId } from '@/composables/useDeviceId'
 import type {
   CanvasNode,
   CanvasConnection,
@@ -29,23 +30,7 @@ import {
  * Session 129: Phase 1 Implementation
  */
 export const useCanvasStore = defineStore('canvas', () => {
-  // ============================================================================
-  // DEVICE ID (Session 150)
-  // ============================================================================
-
-  /**
-   * Get persistent device ID for folder structure.
-   * Uses localStorage for browser persistence + daily date suffix.
-   */
-  function getDeviceId(): string {
-    let browserId = localStorage.getItem('browser_id')
-    if (!browserId) {
-      browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
-      localStorage.setItem('browser_id', browserId)
-    }
-    const today = new Date().toISOString().split('T')[0]
-    return `${browserId}_${today}`
-  }
+  const deviceId = useDeviceId()
 
   // ============================================================================
   // STATE
@@ -861,7 +846,7 @@ export const useCanvasStore = defineStore('canvas', () => {
         body: JSON.stringify({
           nodes: workflow.value.nodes,
           connections: workflow.value.connections,
-          device_id: getDeviceId(),  // Session 150: Consistent folder structure
+          device_id: deviceId,  // Session 150: Consistent folder structure
           workflow: {
             id: workflow.value.id,
             name: workflow.value.name
@@ -1023,7 +1008,7 @@ export const useCanvasStore = defineStore('canvas', () => {
             nodes: workflow.value.nodes,
             connections: workflow.value.connections
           },
-          device_id: getDeviceId(),  // Session 150: Consistent folder structure
+          device_id: deviceId,  // Session 150: Consistent folder structure
           count: prompts ? undefined : count,
           prompts: prompts,
           base_seed: baseSeed

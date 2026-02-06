@@ -192,6 +192,7 @@
 import { ref, computed, nextTick, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
 import { useFavoritesStore } from '@/stores/favorites'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
@@ -219,15 +220,7 @@ const pipelineStore = usePipelineExecutionStore()
 // Device ID (consistent with v1)
 // ============================================================================
 
-function getDeviceId(): string {
-  let browserId = localStorage.getItem('browser_id')
-  if (!browserId) {
-    browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
-    localStorage.setItem('browser_id', browserId)
-  }
-  const today = new Date().toISOString().split('T')[0]
-  return `${browserId}_${today}`
-}
+const deviceId = useDeviceId()
 
 // ============================================================================
 // Tag Dimensions Configuration
@@ -422,7 +415,7 @@ async function runLyricsAction(action: 'expand' | 'refine') {
     schema: action === 'expand' ? 'lyrics_from_theme' : 'lyrics_refinement',
     input_text: lyricsInput.value,
     safety_level: pipelineStore.safetyLevel,
-    device_id: getDeviceId(),
+    device_id: deviceId,
     enable_streaming: true
   }
 
@@ -459,7 +452,7 @@ async function suggestTagsFromLyrics() {
       schema: 'tag_suggestion_from_lyrics',
       input_text: effectiveLyrics.value,
       safety_level: pipelineStore.safetyLevel,
-      device_id: getDeviceId()
+      device_id: deviceId
     })
 
     if (response.data.status === 'success') {
@@ -541,7 +534,7 @@ async function runSingleGeneration() {
       input_text: finalLyrics,
       output_config: 'heartmula_standard',
       safety_level: pipelineStore.safetyLevel,
-      device_id: getDeviceId(),
+      device_id: deviceId,
       custom_placeholders: {
         TEXT_1: finalLyrics,
         TEXT_2: finalTags,
@@ -583,7 +576,6 @@ async function runSingleGeneration() {
 
 async function saveMedia() {
   if (outputAudio.value && currentRunId.value) {
-    const deviceId = 'local'
     const success = await favoritesStore.addFavorite(currentRunId.value, 'music', deviceId)
     if (success) isFavorited.value = true
   }

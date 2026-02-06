@@ -20,6 +20,7 @@ import json
 from schemas.engine.model_selector import ModelSelector
 from my_app.services.canvas_recorder import CanvasRecorder, get_canvas_recorder, cleanup_canvas_recorder
 from my_app.services.canvas_executor import CanvasWorkflowExecutor
+from my_app.services.pipeline_recorder import generate_run_id
 import config
 
 logger = logging.getLogger(__name__)
@@ -525,7 +526,7 @@ def execute_workflow():
         comparison_inputs = {}  # Session 147: {node_id: [{label, text, source}, ...]}
         execution_trace = []
         engine = PromptInterceptionEngine()
-        canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}_canvas"
+        canvas_run_id = generate_run_id("canvas")
 
         # Session 149: Initialize CanvasRecorder for export
         # Get device_id from request if provided
@@ -1182,7 +1183,7 @@ def execute_workflow_stream():
 
                 # Initialize
                 engine = PromptInterceptionEngine()
-                canvas_run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}_canvas"
+                canvas_run_id = generate_run_id("canvas")
                 device_id = data.get('device_id')
 
                 recorder = get_canvas_recorder(

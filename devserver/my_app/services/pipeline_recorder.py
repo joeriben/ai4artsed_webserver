@@ -16,7 +16,9 @@ Migration Status (Session 37):
 
 import json
 import logging
+import os
 import requests
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -917,6 +919,11 @@ class LivePipelineRecorder:
     # REMOVED: download_and_save_all_from_comfyui()
     # Legacy workflows now handled by legacy_workflow_service.py
     # Media files are downloaded by the service and passed as binary data to recorder
+
+
+def generate_run_id(prefix: str = "run") -> str:
+    """Single authority for run_id generation. Chronologically sortable."""
+    return f"{prefix}_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
 
 
 # Singleton management

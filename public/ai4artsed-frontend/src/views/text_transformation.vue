@@ -437,6 +437,7 @@ import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useUserPreferencesStore } from '@/stores/userPreferences'
 import { useFavoritesStore } from '@/stores/favorites'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useDeviceId } from '@/composables/useDeviceId'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
@@ -540,19 +541,7 @@ const currentRunId = ref<string | null>(null)  // Run ID from interception (prom
 const currentRunHasOutput = ref(false)  // Session 130: True after media generation (stops logging)
 const lastInterceptionConfig = ref<string | null>(null)  // Track which interception config was used
 
-// Session 129: Device ID for folder structure (json/date/device_id/run_xxx/)
-// Combines permanent browser ID + date = valid until end of day
-function getDeviceId(): string {
-  // Get or create persistent browser identifier
-  let browserId = localStorage.getItem('browser_id')
-  if (!browserId) {
-    browserId = crypto.randomUUID?.() || `${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`
-    localStorage.setItem('browser_id', browserId)
-  }
-  // Combine with date for daily uniqueness
-  const today = new Date().toISOString().split('T')[0]  // "2026-01-23"
-  return `${browserId}_${today}`
-}
+const deviceId = useDeviceId()
 
 // Execution phase tracking
 // 'initial' -> 'interception_done' -> 'optimization_done' -> 'generation_done'
@@ -982,7 +971,7 @@ const streamingParams = computed(() => {
     safety_level: 'youth',
     execution_mode: 'eco',
     enable_streaming: true,  // KEY: Request SSE streaming
-    device_id: getDeviceId()  // Session 129: Folder structure
+    device_id: deviceId  // Session 129: Folder structure
   }
   console.log('[UNIFIED-STREAMING] streamingParams:', params)
   return params
@@ -1043,7 +1032,7 @@ const optimizationStreamingParams = computed(() => {
     context_prompt: optimizationInstruction.value || '',  // Model-specific optimization instruction
     enable_streaming: true,
     run_id: currentRunId.value || '',  // Session 130: For persistence
-    device_id: getDeviceId(),
+    device_id: deviceId,
     output_config: selectedConfig.value || ''  // Session 153: For model override (e.g., CODING_MODEL)
   }
   console.log('[OPTIMIZATION-STREAMING] params:', params)
@@ -1585,7 +1574,7 @@ async function executePipeline() {
       context_prompt: contextPrompt.value,
       interception_result: interceptionResult.value,
       interception_config: lastInterceptionConfig.value || pipelineStore.selectedConfig?.id,
-      device_id: getDeviceId()
+      device_id: deviceId
     })
 
     // Stop progress interval
@@ -1866,7 +1855,7 @@ async function toggleFavorite() {
 
   // Convert outputMediaType to the correct type for favorites
   const mediaType = outputMediaType.value as 'image' | 'video' | 'audio' | 'music'
-  await favoritesStore.toggleFavorite(currentRunId.value, mediaType, getDeviceId())  // Session 145
+  await favoritesStore.toggleFavorite(currentRunId.value, mediaType, deviceId)  // Session 145
   console.log('[Media Actions] Favorite toggled for run_id:', currentRunId.value)
 }
 
@@ -1909,7 +1898,7 @@ async function logPromptChange(entityType: string, content: string) {
         run_id: currentRunId.value,
         entity_type: entityType,
         content: content,
-        device_id: getDeviceId()
+        device_id: deviceId
       })
     })
 

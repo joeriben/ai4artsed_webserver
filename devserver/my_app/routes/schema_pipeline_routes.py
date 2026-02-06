@@ -47,7 +47,7 @@ class NoOpTracker:
         return noop
 
 # Live Pipeline Recorder - Single source of truth (Session 37 Migration Complete)
-from my_app.services.pipeline_recorder import get_recorder, load_recorder
+from my_app.services.pipeline_recorder import get_recorder, load_recorder, generate_run_id
 
 logger = logging.getLogger(__name__)
 
@@ -920,7 +920,7 @@ def execute_stage2():
                         break
 
         # Generate session ID for Stage 3-4 continuation
-        run_id = str(uuid.uuid4())
+        run_id = generate_run_id()
 
         total_time = (time.time() - start_time) * 1000
 
@@ -1144,7 +1144,7 @@ def execute_stage3_4():
         output_config = data.get('output_config')
         execution_mode = data.get('execution_mode', 'eco')
         safety_level = data.get('safety_level', 'kids')
-        run_id = data.get('run_id', str(uuid.uuid4()))
+        run_id = data.get('run_id', generate_run_id())
         seed_override = data.get('seed')
 
         if not stage2_result or not output_config:
@@ -1402,7 +1402,7 @@ def execute_pipeline_streaming(data: dict):
     device_id = data.get('device_id')  # Session 129: For folder structure
 
     # Session 130: Simplified - always use run_xxx from the start
-    run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+    run_id = generate_run_id()
 
     logger.info(f"[UNIFIED-STREAMING] Starting orchestrated pipeline for run {run_id}")
     logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}, Device: {device_id}")
@@ -1685,7 +1685,7 @@ def execute_optimization_streaming(data: dict):
     output_config = data.get('output_config')  # Session 153: For model selection from output config
 
     # Generate run ID for logging (use param if available)
-    run_id = run_id_param or f"opt_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+    run_id = run_id_param or generate_run_id("opt")
 
     logger.info(f"[OPTIMIZATION-STREAMING] Starting for run {run_id}")
     logger.info(f"[OPTIMIZATION-STREAMING] Schema: {schema_name}, Input length: {len(input_text)}")
@@ -2173,7 +2173,7 @@ def execute_generation_streaming(data: dict):
                 for e in existing_recorder.metadata.get('entities', [])
             )
             if has_output:
-                run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+                run_id = generate_run_id()
                 existing_recorder = None  # Don't reuse - create new recorder later
                 logger.info(f"[GENERATION-STREAMING] Previous run has output, creating new: {run_id}")
             else:
@@ -2181,7 +2181,7 @@ def execute_generation_streaming(data: dict):
                 logger.info(f"[GENERATION-STREAMING] Continuing existing run: {run_id}")
 
     if not run_id:
-        run_id = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+        run_id = generate_run_id()
 
     logger.info(f"[GENERATION-STREAMING] Starting for config '{output_config}', run {run_id}")
 
@@ -2450,7 +2450,7 @@ def generation_endpoint():
                     for e in existing_recorder.metadata.get('entities', [])
                 )
                 if has_output:
-                    run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+                    run_id = generate_run_id()
                     logger.info(f"[GENERATION-ENDPOINT] Previous run has output, creating new: {run_id}")
                 else:
                     run_id = provided_run_id
@@ -3016,7 +3016,7 @@ async def execute_generation_stage4(
 
         # Generate run_id if not provided
         if run_id is None:
-            run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+            run_id = generate_run_id()
 
         # Generate device_id if not provided
         if device_id is None:
@@ -3215,7 +3215,7 @@ def legacy_workflow():
         logger.info(f"[LEGACY-ENDPOINT] Stage 1 PASSED")
 
         # Generate run_id
-        run_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        run_id = generate_run_id()
 
         # Initialize recorder
         from config import JSON_STORAGE_DIR
@@ -3507,7 +3507,7 @@ def interception_pipeline():
         # SESSION 29: GENERATE UNIFIED RUN ID
         # ====================================================================
         # FIX: Generate ONE run_id used by ALL systems (not separate IDs)
-        run_id = str(uuid.uuid4())
+        run_id = generate_run_id()
         logger.info(f"[RUN_ID] Generated unified run_id: {run_id} for {schema_name}")
 
         # ====================================================================
