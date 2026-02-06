@@ -31,6 +31,7 @@ aiohttp==3.13.2      # Async HTTP client (required by comfyui_client.py and swar
 # ============================================================================
 python-dotenv==1.0.0 # Load environment variables from .env file
 toml>=0.10.2         # Kohya dataset config files (training_service)
+PyYAML>=6.0          # Backend registry configuration (backends.yaml)
 
 # ============================================================================
 # Export Functionality
@@ -53,7 +54,8 @@ lxml>=5.1.0          # XML processing and parsing
 # ============================================================================
 # Diffusers Backend (Image Generation)
 # ============================================================================
-diffusers>=0.32.0    # HuggingFace Diffusers (SD3.5, Flux2)
+diffusers>=0.32.0    # HuggingFace Diffusers (SD3.5, Flux2, Stable Audio)
+scipy>=1.12.0        # WAV audio file I/O (Stable Audio backend)
 transformers>=4.45.0 # HuggingFace Transformers (text encoders)
 accelerate>=0.34.0   # HuggingFace Accelerate (device management)
 safetensors>=0.4.0   # Safe model loading format
