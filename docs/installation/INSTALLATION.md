@@ -473,20 +473,31 @@ pip list | grep heartlib
 # Should show: heartlib 0.x.x /home/USER/ai/heartlib
 ```
 
+**Required Post-Install Fix — Codebook Index Clamping:**
+
+HeartMuLa's audio vocabulary (8197 tokens) exceeds HeartCodec's codebook size (8192). Without clamping, certain generated tokens cause CUDA crashes. Apply this fix in heartlib:
+
+File: `~/ai/heartlib/src/heartlib/heartcodec/models/flow_matching.py`, in `inference_codes()`, before the `get_output_from_indices` call (~line 75):
+
+```python
+# Add this line:
+codes_bestrq_emb = torch.clamp(codes_bestrq_emb, 0, self.vq_embed.codebook_size - 1)
+```
+
+**PyTorch Version Sensitivity:**
+
+heartlib's codec is sensitive to PyTorch nightly versions, especially on newer GPUs (Blackwell/sm_120). If you encounter CUDA errors during codec detokenization, ensure all machines use the **exact same PyTorch nightly build**. Even a one-day difference between nightlies can introduce regressions.
+
 **Configuration:**
 
-Edit `devserver/config/backends.json` to enable/disable:
-```json
-{
-  "backends": {
-    "heartmula": {
-      "enabled": true,
-      "requirements": {
-        "model_path": "~/ai/heartlib/ckpt"
-      }
-    }
-  }
-}
+Edit `devserver/config/backends.yaml` to enable/disable:
+```yaml
+heartmula:
+  enabled: true
+  config:
+    device: cuda
+    version: "3B"
+    lazy_load: true
 ```
 
 **Note:** If heartlib is not installed, the system automatically falls back to ComfyUI for music generation.
