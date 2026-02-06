@@ -514,12 +514,14 @@ def get_images(run_id: str):
 
 
 @media_bp.route('/audio/<run_id>', methods=['GET'])
-def get_audio(run_id: str):
+@media_bp.route('/audio/<run_id>/<int:index>', methods=['GET'])
+def get_audio(run_id: str, index: int = 0):
     """
     Serve audio from local storage by run_id
 
     Args:
         run_id: UUID of the pipeline run
+        index: Optional index (for consistency with image API, currently ignored)
 
     Returns:
         Audio file or 404 error
@@ -570,12 +572,14 @@ def get_audio(run_id: str):
 
 
 @media_bp.route('/music/<run_id>', methods=['GET'])
-def get_music(run_id: str):
+@media_bp.route('/music/<run_id>/<int:index>', methods=['GET'])
+def get_music(run_id: str, index: int = 0):
     """
     Serve music from local storage by run_id
 
     Args:
         run_id: UUID of the pipeline run
+        index: Optional index (for consistency with image API, currently ignored)
 
     Returns:
         Music file or 404 error

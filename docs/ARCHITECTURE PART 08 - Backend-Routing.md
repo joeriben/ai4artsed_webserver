@@ -27,6 +27,142 @@
 | **OpenRouter** | Cloud | Fast text/image tasks | API Key required | ❌ Non-compliant |
 | **OpenAI** | Cloud | GPT-5 Image, Sora2 Video (future) | API Key required | ⚠️ Enterprise only |
 
+---
+
+### Backend-Registry & Fallback Pattern (Session 163)
+
+**Principle:** Direct backends (Diffusers, HeartMuLa, StableAudio) ALWAYS fall back to ComfyUI if unavailable.
+
+#### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    backends.yaml                             │
+│  (Central config: enabled, VRAM requirements, priorities)    │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  BackendRegistry                             │
+│  is_enabled() → is_available() → get_preferred_backend()    │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  backend_router.py                           │
+│  _process_stable_audio_chunk():                             │
+│    1. Check registry.is_enabled("stable_audio")             │
+│    2. Check backend.is_available() (GPU, packages)          │
+│    3. Generate via Diffusers                                 │
+│    4. ON ANY FAILURE → _process_workflow_chunk() (ComfyUI)  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Fallback Triggers
+
+Direct backends fall back to ComfyUI when:
+1. **Disabled in config:** `backends.yaml` has `enabled: false`
+2. **Missing packages:** Required Python packages not installed
+3. **Insufficient VRAM:** GPU memory below `min_vram_gb` threshold
+4. **Generation failure:** Any exception during inference
+5. **Empty result:** Backend returns None/empty
+
+#### Configuration
+
+**File:** `devserver/config/backends.yaml`
+
+```yaml
+backends:
+  stable_audio:
+    enabled: true
+    media_types: [audio]
+    requirements:
+      min_vram_gb: 8
+      packages: [diffusers]
+    config:
+      torch_dtype: float16
+
+settings:
+  fallback_to_comfyui: true  # Global fallback enable
+```
+
+#### Code Pattern (MANDATORY for all direct backends)
+
+**Generic Fallback Method:** `BackendRouter._fallback_to_comfyui()`
+
+```python
+async def _fallback_to_comfyui(self, chunk, chunk_name, prompt, parameters, reason):
+    """
+    Generic fallback - loads meta.fallback_chunk and executes via ComfyUI.
+    Returns error if no fallback_chunk defined.
+    """
+    fallback_chunk_name = chunk.get('meta', {}).get('fallback_chunk')
+    if not fallback_chunk_name:
+        return BackendResponse(success=False, error="No fallback_chunk defined")
+
+    fallback_chunk = self._load_output_chunk(fallback_chunk_name)
+    return await self._process_workflow_chunk(fallback_chunk_name, prompt, parameters, fallback_chunk)
+```
+
+**Backend Implementation Pattern:**
+
+```python
+async def _process_xxx_chunk(self, chunk_name, prompt, parameters, chunk):
+    try:
+        # 1. Check enabled
+        if not registry.is_enabled("xxx"):
+            return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, "Backend disabled")
+
+        # 2. Check available
+        if not await backend.is_available():
+            return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, "Not available")
+
+        # 3. Generate
+        result = await backend.generate(...)
+
+        # 4. Check result
+        if not result:
+            return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, "Empty result")
+
+        return BackendResponse(success=True, ...)
+
+    except Exception as e:
+        # 5. Any error → fallback
+        return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, f"Error: {e}")
+```
+
+**Chunk Requirement:**
+
+Direct backend chunks MUST define `meta.fallback_chunk`:
+
+```json
+{
+  "name": "output_audio_stableaudio_diffusers",
+  "backend_type": "stable_audio",
+  "meta": {
+    "fallback_chunk": "output_audio_stableaudio"
+  }
+}
+```
+
+#### Priority Chain
+
+When multiple backends support a media type, the registry returns the first available:
+
+```yaml
+priorities:
+  audio:
+    - stable_audio   # Try Diffusers first
+    - comfyui        # Fallback to ComfyUI workflow
+```
+
+#### Benefits
+
+1. **Resilience:** System always works (ComfyUI as universal fallback)
+2. **Performance:** Direct backends faster when available
+3. **Workshop-friendly:** Just edit `backends.yaml`, no code changes
+4. **VRAM-aware:** Auto-disable high-VRAM backends on low-memory GPUs
+
+---
+
 #### HeartMuLa Backend (Session 156-157)
 
 **Model:** HeartMuLa 3B (heartlib), LLM + Audio Codec architecture

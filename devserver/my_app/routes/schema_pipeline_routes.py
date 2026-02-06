@@ -192,10 +192,16 @@ def _load_optimization_instruction(output_config_name: str):
 
 
 def _load_model_from_output_config(output_config_name: str) -> str | None:
-    """Load model from output config meta, resolving config variable names.
+    """Load LLM model override for Stage 3 optimization from output config.
 
-    If meta.model is a config variable name (e.g., "CODING_MODEL"),
-    resolve it to the actual model string from config.py.
+    IMPORTANT: This loads the LLM for prompt optimization, NOT the media model.
+    Uses meta.optimization_model field (preferred) or meta.model as fallback
+    ONLY if it's a config.py variable reference.
+
+    Field semantics:
+    - meta.optimization_model: LLM for Stage 3 (e.g., "CODING_MODEL")
+    - meta.media_model: The actual media generation model (e.g., "stable-audio-open-1.0")
+    - meta.model: DEPRECATED for LLM override, kept for backward compatibility
 
     Returns:
         Model string (e.g., "mistral/codestral-latest"), "DEFAULT", or None if not found
@@ -207,27 +213,46 @@ def _load_model_from_output_config(output_config_name: str) -> str | None:
         output_config_obj = pipeline_executor.config_loader.get_config(output_config_name)
 
         if output_config_obj and hasattr(output_config_obj, 'meta'):
-            model_value = output_config_obj.meta.get('model')
+            meta = output_config_obj.meta
 
-            if model_value:
-                # "DEFAULT" means use the stage's default model
-                if model_value == "DEFAULT":
-                    logger.info(f"[LOAD-MODEL] Config '{output_config_name}' has DEFAULT - use stage default")
+            # 1. Check optimization_model first (new, preferred field)
+            opt_model = meta.get('optimization_model')
+            if opt_model:
+                if opt_model == "DEFAULT":
+                    logger.info(f"[LOAD-MODEL] Config '{output_config_name}' optimization_model=DEFAULT")
                     return "DEFAULT"
 
-                # Check if model_value is a config variable name (e.g., "CODING_MODEL")
-                if hasattr(config, model_value):
-                    resolved_model = getattr(config, model_value)
-                    logger.info(f"[LOAD-MODEL] Resolved config.{model_value} → {resolved_model}")
-                    return resolved_model
+                # Resolve config variable if applicable
+                if hasattr(config, opt_model):
+                    resolved = getattr(config, opt_model)
+                    logger.info(f"[LOAD-MODEL] Resolved optimization_model config.{opt_model} → {resolved}")
+                    return resolved
                 else:
-                    # Use directly (backward compatibility with hardcoded models)
-                    logger.info(f"[LOAD-MODEL] Using direct model: {model_value}")
-                    return model_value
+                    # Direct model string (e.g., "local/codestral:latest")
+                    logger.info(f"[LOAD-MODEL] Using optimization_model: {opt_model}")
+                    return opt_model
+
+            # 2. Fallback: Check model field ONLY if it's a config.py variable
+            # This prevents media models (e.g., "stable-audio-open-1.0") from being used as LLM
+            model_value = meta.get('model')
+            if model_value:
+                if model_value == "DEFAULT":
+                    logger.info(f"[LOAD-MODEL] Config '{output_config_name}' model=DEFAULT")
+                    return "DEFAULT"
+
+                # ONLY use if it's a config.py variable (LLM reference)
+                if hasattr(config, model_value):
+                    resolved = getattr(config, model_value)
+                    logger.info(f"[LOAD-MODEL] Resolved legacy model config.{model_value} → {resolved}")
+                    return resolved
+                else:
+                    # NOT a config variable = media model, ignore for LLM selection
+                    logger.debug(f"[LOAD-MODEL] Ignoring media model '{model_value}' (not a config variable)")
+
     except Exception as e:
         logger.warning(f"[LOAD-MODEL] Failed to load model: {e}")
 
-    logger.info(f"[LOAD-MODEL] No model in config '{output_config_name}'")
+    logger.info(f"[LOAD-MODEL] No optimization_model in config '{output_config_name}'")
     return None
 
 

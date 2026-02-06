@@ -24,7 +24,7 @@
   },
   "meta": {
     "stage": "output",
-    "model": "CODING_MODEL",
+    "optimization_model": "CODING_MODEL",
     "backend": "dynamic",
     "backend_type": "config_model",
     "api_provider": "dynamic",

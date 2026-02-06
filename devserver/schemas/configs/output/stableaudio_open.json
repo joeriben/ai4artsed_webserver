@@ -14,7 +14,7 @@
   },
 
   "parameters": {
-    "OUTPUT_CHUNK": "output_audio_stableaudio",
+    "OUTPUT_CHUNK": "output_audio_stableaudio_diffusers",
     "NEGATIVE_PROMPT": "",
     "SECONDS": 47.6,
     "STEPS": 50,
@@ -31,7 +31,7 @@
 
   "meta": {
     "stage": "output",
-    "model": "stable-audio-open-1.0",
+    "media_model": "stable-audio-open-1.0",
     "model_file": "stable_audio_open_1.0.safetensors",
     "backend": "comfyui",
     "backend_type": "comfyui",
