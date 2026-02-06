@@ -127,8 +127,8 @@
             <span class="slider-label-text">Top-K</span>
             <span class="slider-value">{{ topk }}</span>
           </label>
-          <input type="range" class="audio-slider" v-model.number="topk" :min="10" :max="200" :step="10" />
-          <div class="slider-marks"><span>10</span><span>50</span><span>100</span><span>150</span><span>200</span></div>
+          <input type="range" class="audio-slider" v-model.number="topk" :min="10" :max="100" :step="5" />
+          <div class="slider-marks"><span>10</span><span>30</span><span>50</span><span>70</span><span>100</span></div>
         </div>
 
         <!-- CFG Scale -->
@@ -137,8 +137,8 @@
             <span class="slider-label-text">CFG Scale</span>
             <span class="slider-value">{{ cfgScale.toFixed(1) }}</span>
           </label>
-          <input type="range" class="audio-slider" v-model.number="cfgScale" :min="0.5" :max="5.0" :step="0.5" />
-          <div class="slider-marks"><span>0.5</span><span>1.5</span><span>2.5</span><span>3.5</span><span>5.0</span></div>
+          <input type="range" class="audio-slider" v-model.number="cfgScale" :min="0.5" :max="4.0" :step="0.25" />
+          <div class="slider-marks"><span>0.5</span><span>1.5</span><span>2.5</span><span>3.5</span><span>4.0</span></div>
         </div>
       </section>
 
