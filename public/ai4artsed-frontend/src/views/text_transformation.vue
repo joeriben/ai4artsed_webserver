@@ -111,7 +111,6 @@
             @stream-started="handleStreamStarted"
             @stream-complete="handleStreamComplete"
             @stream-error="handleStreamError"
-            @stage-complete="handleStageComplete"
             @blocked="handleBlocked"
             @wikipedia-lookup="handleWikipediaLookup"
             @copy="copyInterceptionResult"
@@ -341,13 +340,8 @@
             <span class="button-arrows button-arrows-right">>>></span>
           </button>
 
-          <!-- Granular Safety Badges -->
-          <transition-group name="fade" tag="div" class="safety-badges">
-            <div v-for="check in safetyChecks" :key="check" class="safety-badge">
-              <span class="badge-icon">✓</span>
-              <span class="badge-label">{{ badgeLabel(check) }}</span>
-            </div>
-          </transition-group>
+          <!-- Stage 3+4 Safety Badges (generation path) -->
+          <SafetyBadges v-if="safetyChecks.length > 0" :checks="safetyChecks" />
 
           <!-- LoRA Badge (Session 116) - shows configLoras before generation, activeLoras after -->
           <transition name="fade">
@@ -432,9 +426,9 @@ import { useDeviceId } from '@/composables/useDeviceId'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
+import SafetyBadges from '@/components/SafetyBadges.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
 import { useGenerationStream } from '@/composables/useGenerationStream'
-import { useSafetyEventStore } from '@/stores/safetyEvent'
 import { useI18n } from 'vue-i18n'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
@@ -560,12 +554,7 @@ const {
   reset: resetGenerationStream
 } = useGenerationStream()
 
-const safetyStore = useSafetyEventStore()
 const { t } = useI18n()
-
-function badgeLabel(check: string): string {
-  return t(`safetyBadges.${check}`, check)
-}
 
 const estimatedDurationSeconds = ref<string>('30')  // Stores duration from backend (30s default if optimization skipped)
 const activeLoras = ref<Array<{name: string, strength: number}>>([])
@@ -1387,18 +1376,9 @@ async function runOptimization() {
 
 // Streaming event handlers
 // Stage 1 safety complete — merge checks_passed into badges
-function handleStageComplete(data: any) {
-  console.log('[Stage1] Complete:', data)
-  if (data.checks_passed) {
-    safetyChecks.value = [...safetyChecks.value, ...data.checks_passed]
-  }
-}
-
-// Stage 1 safety blocked — open Träshy
-function handleBlocked(data: any) {
-  console.log('[Stage1] Blocked:', data)
+// Stage 1 safety blocked — reset loading state (safetyStore.reportBlock now handled by MediaInputBox)
+function handleBlocked(_data: any) {
   isInterceptionLoading.value = false
-  safetyStore.reportBlock(data.stage || 1, data.reason || data.message || 'Inhalt blockiert', [])
 }
 
 function handleStreamStarted() {
@@ -1628,7 +1608,7 @@ async function executePipeline() {
         setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
       }
     } else if (result.status === 'blocked') {
-      safetyStore.reportBlock(3, result.blocked_reason || 'Inhalt blockiert', result.found_terms || [])
+      // safetyStore.reportBlock now handled centrally in useGenerationStream
       generationProgress.value = 0
     } else {
       console.error('[Generation] Failed:', result.error)

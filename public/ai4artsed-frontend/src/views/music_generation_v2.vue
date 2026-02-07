@@ -160,13 +160,8 @@
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
 
-        <!-- Granular Safety Badges -->
-        <transition-group name="fade" tag="div" class="safety-badges">
-          <div v-for="check in safetyChecks" :key="check" class="safety-badge">
-            <span class="badge-icon">✓</span>
-            <span class="badge-label">{{ badgeLabel(check) }}</span>
-          </div>
-        </transition-group>
+        <!-- Safety Badges -->
+        <SafetyBadges v-if="safetyChecks.length > 0" :checks="safetyChecks" />
       </div>
 
       <!-- OUTPUT -->
@@ -199,16 +194,12 @@ import type { PageContext, FocusHint } from '@/composables/usePageContext'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
+import SafetyBadges from '@/components/SafetyBadges.vue'
 import MusicTagSelector from '@/components/MusicTagSelector.vue'
 import type { DimensionConfig } from '@/components/MusicTagSelector.vue'
 import { useI18n } from 'vue-i18n'
-import { useSafetyEventStore } from '@/stores/safetyEvent'
 
 const { t } = useI18n()
-
-function badgeLabel(check: string): string {
-  return t(`safetyBadges.${check}`, check)
-}
 
 // ============================================================================
 // Stores & Composables
@@ -328,7 +319,6 @@ const estimatedGenerationSeconds = ref(180)
 const outputAudio = ref<string | null>(null)
 const currentRunId = ref<string | null>(null)
 const safetyChecks = ref<string[]>([])
-const safetyStore = useSafetyEventStore()
 const isFavorited = ref(false)
 const audioLengthSeconds = ref(200)
 const temperature = ref(1.0)
@@ -869,53 +859,6 @@ onMounted(() => {
 .button-arrows {
   font-size: 0.8em;
   opacity: 0.7;
-}
-
-/* Granular Safety Badges */
-.safety-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  justify-content: center;
-  align-items: center;
-}
-
-.safety-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
-  background: rgba(76, 175, 80, 0.12);
-  border: 1px solid #4CAF50;
-  border-radius: 6px;
-  animation: badge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes badge-appear {
-  0% {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.badge-icon {
-  font-size: 0.75rem;
-  color: #4CAF50;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.badge-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #4CAF50;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
 }
 
 /* Transitions */

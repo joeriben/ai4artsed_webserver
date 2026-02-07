@@ -186,13 +186,8 @@
           <span class="button-arrows button-arrows-right">&gt;&gt;&gt;</span>
         </button>
 
-        <!-- Granular Safety Badges -->
-        <transition-group name="fade" tag="div" class="safety-badges">
-          <div v-for="check in safetyChecks" :key="check" class="safety-badge">
-            <span class="badge-icon">✓</span>
-            <span class="badge-label">{{ badgeLabel(check) }}</span>
-          </div>
-        </transition-group>
+        <!-- Stage 3+4 Safety Badges (generation path) -->
+        <SafetyBadges v-if="safetyChecks.length > 0" :checks="safetyChecks" />
       </div>
 
       <!-- OUTPUT BOX (Template Component) -->
@@ -238,12 +233,12 @@ import axios from 'axios'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
+import SafetyBadges from '@/components/SafetyBadges.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
 import { useGenerationStream } from '@/composables/useGenerationStream'
-import { useSafetyEventStore } from '@/stores/safetyEvent'
 import { useI18n } from 'vue-i18n'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
@@ -303,12 +298,7 @@ const {
   reset: resetGenerationStream
 } = useGenerationStream()
 
-const safetyStore = useSafetyEventStore()
 const { t } = useI18n()
-
-function badgeLabel(check: string): string {
-  return t(`safetyBadges.${check}`, check)
-}
 
 // Image Analysis
 const isAnalyzing = ref(false)
@@ -916,7 +906,7 @@ async function startGeneration() {
         setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
       }
     } else if (result.status === 'blocked') {
-      safetyStore.reportBlock(3, result.blocked_reason || 'Inhalt blockiert', result.found_terms || [])
+      // safetyStore.reportBlock now handled centrally in useGenerationStream
       generationProgress.value = 0
     } else {
       console.error('[Generation] Failed:', result.error)
@@ -1609,53 +1599,6 @@ watch(uploadedImagePath3, (newVal) => {
 .start-button:disabled .button-arrows {
   animation: none;
   opacity: 0.3;
-}
-
-/* Granular Safety Badges */
-.safety-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  justify-content: center;
-  align-items: center;
-}
-
-.safety-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
-  background: rgba(76, 175, 80, 0.12);
-  border: 1px solid #4CAF50;
-  border-radius: 6px;
-  animation: badge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes badge-appear {
-  0% {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.badge-icon {
-  font-size: 0.75rem;
-  color: #4CAF50;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.badge-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #4CAF50;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
 }
 
 /* Output box styles moved to MediaOutputBox.vue component */

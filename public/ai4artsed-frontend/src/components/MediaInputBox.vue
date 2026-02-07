@@ -55,6 +55,9 @@
       </div>
     </div>
 
+    <!-- Stage 1+2 Safety Badges (OO: rendered inside the box that owns the SSE stream) -->
+    <SafetyBadges v-if="checkedItems.length > 0" :checks="checkedItems" />
+
     <!-- Loading Overlay -->
     <div v-if="isLoading" class="preview-loading">
       <div class="spinner-large" :class="{ queued: queueStatus === 'waiting' }"></div>
@@ -91,6 +94,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
+import SafetyBadges from './SafetyBadges.vue'
+import { useSafetyEventStore } from '@/stores/safetyEvent'
+
+const safetyStore = useSafetyEventStore()
 
 // Template refs for parent access (like MediaOutputBox sectionRef)
 const inputBoxRef = ref<HTMLElement | null>(null)
@@ -103,6 +110,10 @@ const isStreamComplete = ref(false)
 const isFirstChunkReceived = ref(false)
 const chunkBuffer = ref<string[]>([])
 let bufferInterval: number | null = null
+
+// Safety badge state (Stage 1+2 badges rendered internally)
+const checkedItems = ref<string[]>([])
+const isBlocked = ref(false)
 
 // Queue state
 const queueStatus = ref<'idle' | 'waiting' | 'acquired'>('idle')
@@ -237,6 +248,8 @@ function startStreaming() {
   isStreamComplete.value = false
   isFirstChunkReceived.value = false
   chunkBuffer.value = []
+  checkedItems.value = []
+  isBlocked.value = false
   queueStatus.value = 'idle'
   queueMessage.value = ''
 
@@ -295,18 +308,22 @@ function startStreaming() {
   eventSource.value.addEventListener('stage_complete', (event) => {
     const data = JSON.parse(event.data)
     console.log('[MediaInputBox] Stage complete:', data)
+    // OO: extract checks_passed into internal badge state
+    if (data.checks_passed) {
+      checkedItems.value = [...checkedItems.value, ...data.checks_passed]
+    }
     emit('stage-complete', data)
   })
 
   eventSource.value.addEventListener('blocked', (event) => {
     const data = JSON.parse(event.data)
     console.log('[MediaInputBox] Blocked:', data)
-    emit('blocked', data)
-    // Close stream on block
-    if (eventSource.value) {
-      eventSource.value.close()
-      eventSource.value = null
-    }
+    // Mark as intentionally closed (prevents "Streaming-Fehler" alert)
+    isBlocked.value = true
+    // Centralized: report block to safetyStore (Trashy integration)
+    safetyStore.reportBlock(data.stage || 1, data.reason || data.message || 'Inhalt blockiert', data.found_terms || [])
+    emit('blocked', data)  // Views still need this for loading-state reset
+    closeStream()
   })
 
   eventSource.value.addEventListener('chunk', (event) => {
@@ -354,9 +371,9 @@ function startStreaming() {
   })
 
   eventSource.value.addEventListener('error', (event) => {
-    // Ignore error if stream already completed successfully
-    if (isStreamComplete.value) {
-      console.log('[MediaInputBox] Ignoring error after successful completion')
+    // Ignore error if stream already completed successfully or was intentionally blocked
+    if (isStreamComplete.value || isBlocked.value) {
+      console.log('[MediaInputBox] Ignoring error after', isBlocked.value ? 'block' : 'completion')
       return
     }
 

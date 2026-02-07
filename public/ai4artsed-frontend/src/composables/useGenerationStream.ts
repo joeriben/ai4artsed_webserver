@@ -15,6 +15,7 @@
  */
 
 import { ref } from 'vue'
+import { useSafetyEventStore } from '@/stores/safetyEvent'
 
 export interface GenerationParams {
   prompt: string
@@ -62,7 +63,10 @@ export interface GenerationResult {
 }
 
 export function useGenerationStream() {
+  const safetyStore = useSafetyEventStore()
+
   // Badge states
+  // TODO: showSafetyApprovedStamp and showTranslatedStamp are deprecated — kept for backward compat, unused in templates
   const showSafetyApprovedStamp = ref(false)
   const showTranslatedStamp = ref(false)
   const safetyChecks = ref<string[]>([])
@@ -200,6 +204,8 @@ export function useGenerationStream() {
       eventSource.addEventListener('blocked', (e: MessageEvent) => {
         const data = JSON.parse(e.data)
         console.log('[GENERATION-STREAM] Blocked:', data)
+        // Centralized: report block to safetyStore (Trashy integration)
+        safetyStore.reportBlock(3, data.reason || 'Inhalt blockiert', data.found_terms || [])
         eventSource.close()
         isExecuting.value = false
         currentStage.value = 'idle'
