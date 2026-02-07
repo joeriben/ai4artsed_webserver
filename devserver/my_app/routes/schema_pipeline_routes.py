@@ -756,7 +756,7 @@ def execute_stage2():
         schema_name = data.get('schema')
         input_text = data.get('input_text')
         execution_mode = data.get('execution_mode', 'eco')
-        safety_level = data.get('safety_level', 'kids')
+        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
         output_config = data.get('output_config')  # Optional
         user_language = data.get('user_language', 'en')
 
@@ -1143,7 +1143,7 @@ def execute_stage3_4():
         stage2_result = data.get('stage2_result')
         output_config = data.get('output_config')
         execution_mode = data.get('execution_mode', 'eco')
-        safety_level = data.get('safety_level', 'kids')
+        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
         run_id = data.get('run_id', generate_run_id())
         seed_override = data.get('seed')
 
@@ -1397,7 +1397,7 @@ def execute_pipeline_streaming(data: dict):
     schema_name = data.get('schema', DEFAULT_INTERCEPTION_CONFIG)
     input_text = data.get('input_text', '')
     context_prompt = data.get('context_prompt', '')
-    safety_level = data.get('safety_level', 'youth')
+    safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
     execution_mode = data.get('execution_mode', 'eco')
     device_id = data.get('device_id')  # Session 129: For folder structure
 
@@ -1911,7 +1911,7 @@ def safety_check():
             return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
 
         text = data.get('text', '')
-        safety_level = data.get('safety_level', 'youth')
+        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
         check_type = data.get('check_type', 'input')  # 'input' or 'output'
 
         if not text:
@@ -2136,7 +2136,7 @@ def execute_generation_streaming(data: dict):
     prompt = data.get('prompt', '')
     output_config = data.get('output_config')
     seed = data.get('seed')
-    safety_level = data.get('safety_level', 'youth')
+    safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
     alpha_factor = data.get('alpha_factor')
     input_image = data.get('input_image')
     input_image1 = data.get('input_image1')
@@ -2415,7 +2415,7 @@ def generation_endpoint():
         prompt = data.get('prompt', '')
         output_config = data.get('output_config')
         seed = data.get('seed')
-        safety_level = data.get('safety_level', 'youth')
+        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
         alpha_factor = data.get('alpha_factor')
         input_image = data.get('input_image')
         input_image1 = data.get('input_image1')
@@ -3173,7 +3173,7 @@ def legacy_workflow():
         output_config = data.get('output_config')
         seed = data.get('seed')
         alpha_factor = data.get('alpha_factor')
-        safety_level = data.get('safety_level', 'youth')
+        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
 
         # Additional workflow-specific parameters
         mode = data.get('mode')  # For partial_elimination
@@ -3443,7 +3443,7 @@ def interception_pipeline():
         schema_name = data.get('schema')
         input_text = data.get('input_text')
         execution_mode = data.get('execution_mode', 'eco')  # eco (local) or fast (cloud)
-        safety_level = data.get('safety_level', 'kids')  # kids (default), youth, or off
+        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
 
         # Phase 2: Multilingual context editing support
         context_prompt = data.get('context_prompt')  # Optional: user-edited meta-prompt

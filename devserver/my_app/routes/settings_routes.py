@@ -584,6 +584,16 @@ def change_password():
         return jsonify({"error": str(e)}), 500
 
 
+@settings_bp.route('/defaults', methods=['GET'])
+def get_defaults():
+    """Public: non-sensitive defaults for frontend initialization (no auth required)."""
+    return jsonify({
+        "DEFAULT_SAFETY_LEVEL": config.DEFAULT_SAFETY_LEVEL,
+        "DEFAULT_LANGUAGE": config.DEFAULT_LANGUAGE,
+        "UI_MODE": config.UI_MODE,
+    }), 200
+
+
 @settings_bp.route('/', methods=['GET'])
 @require_settings_auth
 def get_settings():

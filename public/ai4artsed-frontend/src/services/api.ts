@@ -382,6 +382,21 @@ export async function getModelAvailability(): Promise<ModelAvailabilityResponse>
 }
 
 // ============================================================================
+// PUBLIC DEFAULTS
+// ============================================================================
+
+export interface PublicDefaults {
+  DEFAULT_SAFETY_LEVEL: 'kids' | 'youth' | 'adult' | 'off'
+  DEFAULT_LANGUAGE: 'de' | 'en'
+  UI_MODE: string
+}
+
+export async function getPublicDefaults(): Promise<PublicDefaults> {
+  const response = await apiClient.get<PublicDefaults>('/api/settings/defaults')
+  return response.data
+}
+
+// ============================================================================
 // EXPORT DEFAULT (for convenience imports)
 // ============================================================================
 
