@@ -139,6 +139,11 @@
       "default": "[instrumental]",
       "description": "Lyrics or [instrumental] for instrumental tracks"
     },
+    "secondary_text": {
+      "node_id": "14",
+      "field": "inputs.lyrics",
+      "description": "Secondary text input from Canvas (lyrics for vocal tracks, replaces [instrumental])"
+    },
     "lyrics_strength": {
       "node_id": "14",
       "field": "inputs.lyrics_strength",

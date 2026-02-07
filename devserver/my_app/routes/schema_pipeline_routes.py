@@ -2540,7 +2540,8 @@ async def execute_stage4_generation_only(
     negative_prompt: str = None,
     sampler_name: str = None,
     scheduler: str = None,
-    denoise: float = None
+    denoise: float = None,
+    secondary_text: str = None
 ) -> dict:
     """
     Stage 4 ONLY: Media generation.
@@ -2664,6 +2665,10 @@ async def execute_stage4_generation_only(
             custom_params['scheduler'] = scheduler
         if denoise is not None:
             custom_params['denoise'] = denoise
+        # Secondary text input (Canvas dual-input: tags for HeartMuLa, lyrics for ACENet, negative prompt for images)
+        if secondary_text is not None:
+            custom_params['TEXT_2'] = secondary_text
+            custom_params['secondary_text'] = secondary_text
 
         # Extract LoRAs from interception config
         if interception_config:

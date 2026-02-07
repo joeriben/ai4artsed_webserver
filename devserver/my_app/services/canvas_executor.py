@@ -145,6 +145,7 @@ class CanvasWorkflowExecutor:
         self.results: Dict[str, Any] = {}
         self.collector_items: List[Dict[str, Any]] = []
         self.comparison_inputs: Dict[str, List[Dict[str, Any]]] = {}
+        self.generation_text_inputs: Dict[str, List[Dict[str, Any]]] = {}
         self.execution_trace: List[str] = []
         self.execution_count = 0
         self._final_result: Optional[Dict[str, Any]] = None
@@ -321,7 +322,7 @@ class CanvasWorkflowExecutor:
         elif node_type == 'quality':
             return self._execute_quality(node, node_id)
         elif node_type == 'generation':
-            return self._execute_generation(node, node_id, input_data)
+            return self._execute_generation(node, node_id, input_data, connection_label)
         elif node_type == 'evaluation':
             return self._execute_evaluation(node, node_id, input_data)
         elif node_type == 'image_evaluation':
@@ -595,7 +596,8 @@ class CanvasWorkflowExecutor:
         logger.info(f"[Canvas Executor] Quality: steps={steps}, cfg={cfg}")
         return output, 'quality', None
 
-    def _execute_generation(self, node: Dict[str, Any], node_id: str, input_data: Any) -> Tuple[Any, str, None]:
+    def _execute_generation(self, node: Dict[str, Any], node_id: str, input_data: Any,
+                             connection_label: Optional[str] = None) -> Tuple[Any, str, Optional[Dict[str, Any]]]:
         from my_app.routes.schema_pipeline_routes import execute_stage4_generation_only
         from config import DEFAULT_SAFETY_LEVEL
 
@@ -604,8 +606,57 @@ class CanvasWorkflowExecutor:
             self.results[node_id] = {'type': 'generation', 'output': None, 'error': 'No config'}
             return None, 'image', None
 
+        # --- Input accumulation (comparison_evaluator pattern) ---
+        parameter_types = {'seed', 'resolution', 'quality'}
+        expected_text = sum(
+            1 for inc in self.incoming.get(node_id, [])
+            if self.node_map.get(inc.get('source'), {}).get('type') not in parameter_types
+        )
+
+        if node_id not in self.generation_text_inputs:
+            self.generation_text_inputs[node_id] = []
+
+        # Accumulate text input from this call (skip parameter data)
+        if isinstance(input_data, str):
+            self.generation_text_inputs[node_id].append({
+                'label': connection_label,
+                'text': input_data
+            })
+
+        current_count = len(self.generation_text_inputs[node_id])
+        logger.info(f"[Canvas Executor] Generation: {current_count}/{expected_text} text inputs")
+
+        # Wait until all text inputs have been accumulated
+        if expected_text > 1 and current_count < expected_text:
+            return None, 'image', {'waiting': True}
+
+        # --- All inputs received: determine primary and secondary ---
+        text_inputs = self.generation_text_inputs[node_id]
+        prompt_data = None
+        secondary_text = None
+
+        if len(text_inputs) == 1:
+            prompt_data = text_inputs[0]['text']  # Single input → always primary
+        elif len(text_inputs) >= 2:
+            for ti in text_inputs:
+                if ti['label'] == 'input-1':
+                    prompt_data = ti['text']
+                elif ti['label'] == 'input-2':
+                    secondary_text = ti['text']
+            # Fallback if labels missing
+            if not prompt_data:
+                prompt_data = text_inputs[0]['text']
+                if len(text_inputs) > 1 and secondary_text is None:
+                    secondary_text = text_inputs[1]['text']
+
+        if secondary_text:
+            logger.info(f"[Canvas Executor] Generation: primary={len(prompt_data or '')} chars, secondary={len(secondary_text)} chars")
+
+        if not prompt_data:
+            self.results[node_id] = {'type': 'generation', 'output': None, 'error': 'No input'}
+            return None, 'image', None
+
         # Session 155: Ensure connected parameter nodes have executed (lazy dependency resolution)
-        # Generation is responsible for its own dependencies - OOP principle
         parameter_types_to_execute = ('seed', 'resolution', 'quality')
         for inc in self.incoming.get(node_id, []):
             source_id = inc.get('source')
@@ -642,29 +693,11 @@ class CanvasWorkflowExecutor:
                 generation_steps = quality_output.get('steps')
                 generation_cfg = quality_output.get('cfg')
 
-        # Debug: Log collected parameters
         logger.info(f"[Canvas Executor] Generation params: seed={generation_seed}, width={generation_width}, height={generation_height}, steps={generation_steps}, cfg={generation_cfg}")
 
         # Use run_seed if no connected seed node (for batch execution)
         if generation_seed is None and self.run_seed is not None:
             generation_seed = self.run_seed
-
-        # Get prompt from text connection (not parameter nodes)
-        prompt_data = input_data
-        parameter_types = {'seed', 'resolution', 'quality'}
-        if isinstance(input_data, (int, dict)) or input_data is None:
-            for inc in self.incoming.get(node_id, []):
-                source_id = inc.get('source')
-                source_node = self.node_map.get(source_id)
-                if source_node and source_node.get('type') not in parameter_types:
-                    source_result = self.results.get(source_id)
-                    if source_result and isinstance(source_result.get('output'), str):
-                        prompt_data = source_result['output']
-                        break
-
-        if not prompt_data or isinstance(prompt_data, (int, dict)):
-            self.results[node_id] = {'type': 'generation', 'output': None, 'error': 'No input'}
-            return None, 'image', None
 
         try:
             gen_result = asyncio.run(execute_stage4_generation_only(
@@ -672,11 +705,11 @@ class CanvasWorkflowExecutor:
                 safety_level=DEFAULT_SAFETY_LEVEL, run_id=self.run_id,
                 device_id=self.device_id,
                 seed=generation_seed,
-                # Session 151: Pass generation parameters
                 width=generation_width,
                 height=generation_height,
                 steps=generation_steps,
-                cfg=generation_cfg
+                cfg=generation_cfg,
+                secondary_text=secondary_text
             ))
             if gen_result['success']:
                 output = gen_result['media_output']

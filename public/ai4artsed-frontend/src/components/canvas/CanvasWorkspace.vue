@@ -210,6 +210,12 @@ function getNodeInputCenter(nodeId: string, label?: string): { x: number; y: num
     if (label === 'input-3') return getConnectorPosition(node, 'input-3')
   }
 
+  // Generation: dual input connectors (primary + secondary)
+  if (label && node.type === 'generation') {
+    if (label === 'input-1') return getConnectorPosition(node, 'input-1')
+    if (label === 'input-2') return getConnectorPosition(node, 'input-2')
+  }
+
   return getConnectorPosition(node, 'input')
 }
 

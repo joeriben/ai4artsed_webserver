@@ -113,11 +113,14 @@ const nodeLabel = computed(() => {
 })
 
 // Source nodes (input, image_input, seed, resolution, quality) have no input connector
-const hasInputConnector = computed(() => !['input', 'image_input', 'comparison_evaluator', 'seed', 'resolution', 'quality'].includes(props.node.type))
+// Generation and comparison_evaluator use their own multi-input connectors
+const hasInputConnector = computed(() => !['input', 'image_input', 'comparison_evaluator', 'generation', 'seed', 'resolution', 'quality'].includes(props.node.type))
 // Terminal nodes (collector, display) have no output connector
 const hasOutputConnector = computed(() => !['collector', 'display'].includes(props.node.type))
 // Session 147: Comparison evaluator has 3 numbered input connectors
 const hasMultipleInputConnectors = computed(() => props.node.type === 'comparison_evaluator')
+// Generation node has dual input connectors (primary prompt + optional secondary)
+const hasGenerationDualInput = computed(() => props.node.type === 'generation')
 
 // Node type checks
 const isInput = computed(() => props.node.type === 'input')
@@ -561,6 +564,28 @@ const nodeHeight = computed(() => {
         title="Input 3"
       >
         <span class="connector-label">3</span>
+      </div>
+    </template>
+
+    <!-- Generation: Dual input connectors (primary prompt + optional secondary tags/negative) -->
+    <template v-if="hasGenerationDualInput">
+      <div
+        class="connector input input-1"
+        :data-node-id="node.id"
+        data-connector="input-1"
+        @mouseup.stop="emit('end-connect-input-1')"
+        title="Primary (Prompt)"
+      >
+        <span class="connector-label">1</span>
+      </div>
+      <div
+        class="connector input input-2"
+        :data-node-id="node.id"
+        data-connector="input-2"
+        @mouseup.stop="emit('end-connect-input-2')"
+        title="Secondary (Tags/Negative)"
+      >
+        <span class="connector-label">2</span>
       </div>
     </template>
 

@@ -532,9 +532,9 @@ export const useCanvasStore = defineStore('canvas', () => {
       return false
     }
 
-    // Numbered inputs only valid for comparison_evaluator nodes
-    if (targetNode.type !== 'comparison_evaluator') {
-      console.warn(`[Canvas] Numbered inputs only valid for comparison_evaluator nodes`)
+    // Numbered inputs only valid for comparison_evaluator and generation nodes
+    if (targetNode.type !== 'comparison_evaluator' && targetNode.type !== 'generation') {
+      console.warn(`[Canvas] Numbered inputs only valid for comparison_evaluator and generation nodes`)
       cancelConnection()
       return false
     }
