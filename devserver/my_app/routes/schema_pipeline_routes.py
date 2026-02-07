@@ -3376,6 +3376,24 @@ def legacy_workflow():
                     except Exception as e:
                         logger.warning(f"[LEGACY-ENDPOINT] Composite failed: {e}")
 
+        elif output_value == 'diffusers_generated':
+            # Diffusers backend returns image data in metadata (Surrealizer, SD3.5 direct)
+            image_data_b64 = output_result.metadata.get('image_data')
+            if image_data_b64:
+                import base64
+                image_bytes = base64.b64decode(image_data_b64)
+                recorder.save_entity(
+                    entity_type='output_image',
+                    content=image_bytes,
+                    metadata={
+                        'config': output_config,
+                        'seed': result_seed,
+                        'format': 'png',
+                        'backend': 'diffusers'
+                    }
+                )
+                logger.info(f"[LEGACY-ENDPOINT] Saved diffusers image: {len(image_bytes)} bytes")
+
         duration_ms = (time.time() - start_time) * 1000
         logger.info(f"[LEGACY-ENDPOINT] Success in {duration_ms:.0f}ms")
 

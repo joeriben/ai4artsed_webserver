@@ -34,8 +34,6 @@
     "stage": "output",
     "model": "DEFAULT",
     "model_file": "flux2-dev.safetensors",
-    "backend": "comfyui",
-    "backend_type": "comfyui",
     "clip_models": [
       "mistral_3_small_flux2_fp8.safetensors",
       "clip_g.safetensors"

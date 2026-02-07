@@ -1,0 +1,24 @@
+{
+  "pipeline": "legacy_workflow_passthrough",
+  "name": {
+    "en": "Surrealization (Diffusers)",
+    "de": "Surrealisierung (Diffusers)"
+  },
+  "description": {
+    "en": "Surreal image generation via T5-CLIP alpha blending on Diffusers",
+    "de": "Surrealistische Bildgenerierung via T5-CLIP Alpha-Blending auf Diffusers"
+  },
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_surrealizer_diffusers"
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+  "meta": {
+    "stage": "output",
+    "backend": "diffusers",
+    "backend_type": "diffusers",
+    "requires_gpu": true
+  }
+}

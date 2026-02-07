@@ -286,7 +286,7 @@ async function executeWorkflow() {
     // No Stage 2/3 needed - legacy workflows handle prompt directly
     const response = await axios.post('/api/schema/pipeline/legacy', {
       prompt: inputText.value,
-      output_config: 'surrealization_legacy',
+      output_config: 'surrealization_diffusers',
       safety_level: 'open',
       alpha_factor: mappedAlpha.value,
       seed: currentSeed.value

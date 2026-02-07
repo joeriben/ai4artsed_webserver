@@ -1787,16 +1787,32 @@ class BackendRouter:
             # Generate image via Diffusers
             logger.info(f"[DIFFUSERS] Generating image: model={model_id}, steps={steps}, size={width}x{height}")
 
-            image_bytes = await backend.generate_image(
-                prompt=prompt,
-                model_id=model_id,
-                negative_prompt=negative_prompt,
-                width=width,
-                height=height,
-                steps=steps,
-                cfg_scale=cfg_scale,
-                seed=seed
-            )
+            # Surrealizer: T5-CLIP alpha fusion mode
+            alpha_factor = parameters.get('alpha_factor')
+            if alpha_factor is not None and diffusers_config.get('fusion_mode') == 't5_clip_alpha':
+                logger.info(f"[DIFFUSERS] Fusion mode: t5_clip_alpha, alpha={alpha_factor}")
+                image_bytes = await backend.generate_image_with_fusion(
+                    prompt=prompt,
+                    alpha_factor=float(alpha_factor),
+                    model_id=model_id,
+                    negative_prompt=negative_prompt,
+                    width=width,
+                    height=height,
+                    steps=steps,
+                    cfg_scale=cfg_scale,
+                    seed=seed
+                )
+            else:
+                image_bytes = await backend.generate_image(
+                    prompt=prompt,
+                    model_id=model_id,
+                    negative_prompt=negative_prompt,
+                    width=width,
+                    height=height,
+                    steps=steps,
+                    cfg_scale=cfg_scale,
+                    seed=seed
+                )
 
             if not image_bytes:
                 logger.error("[DIFFUSERS] Generation failed, falling back to ComfyUI")

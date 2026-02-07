@@ -1,0 +1,57 @@
+{
+  "name": "output_image_surrealizer_diffusers",
+  "type": "output_chunk",
+  "backend_type": "diffusers",
+  "media_type": "image",
+  "description": "Surrealizer via Diffusers - T5-CLIP alpha blending for surreal image generation",
+
+  "diffusers_config": {
+    "model_id": "stabilityai/stable-diffusion-3.5-large",
+    "pipeline_class": "StableDiffusion3Pipeline",
+    "fusion_mode": "t5_clip_alpha"
+  },
+
+  "input_mappings": {
+    "prompt": {
+      "source": "{{PREVIOUS_OUTPUT}}",
+      "description": "Text prompt - same text encoded differently by CLIP-L/G vs T5-XXL"
+    },
+    "alpha_factor": {
+      "default": 0,
+      "description": "T5-CLIP blend factor: -75 (CLIP-dominant/weird) to +75 (T5-dominant/crazy)"
+    },
+    "seed": {
+      "default": "random",
+      "description": "Seed for reproducibility"
+    },
+    "steps": {
+      "default": 25,
+      "description": "Number of sampling steps"
+    },
+    "cfg": {
+      "default": 5.5,
+      "description": "Classifier Free Guidance scale"
+    },
+    "width": {
+      "default": 1024,
+      "description": "Image width in pixels"
+    },
+    "height": {
+      "default": 1024,
+      "description": "Image height in pixels"
+    }
+  },
+
+  "output_mapping": {
+    "output_type": "image",
+    "format": "png",
+    "description": "Generated surreal PNG image"
+  },
+
+  "meta": {
+    "estimated_duration_seconds": "20-40",
+    "requires_gpu": true,
+    "gpu_vram_mb": 8000,
+    "notes": "Exploits different latent space characteristics of CLIP-L/G vs T5-XXL encoders. Same prompt text produces different embeddings in each encoder. Alpha controls the blend."
+  }
+}

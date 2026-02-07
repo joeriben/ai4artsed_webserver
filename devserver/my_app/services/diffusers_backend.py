@@ -338,6 +338,129 @@ class DiffusersImageGenerator:
             traceback.print_exc()
             return None
 
+    async def generate_image_with_fusion(
+        self,
+        prompt: str,
+        alpha_factor: float = 0.0,
+        model_id: str = "stabilityai/stable-diffusion-3.5-large",
+        negative_prompt: str = "",
+        width: int = 1024,
+        height: int = 1024,
+        steps: int = 25,
+        cfg_scale: float = 5.5,
+        seed: int = -1,
+        callback: Optional[Callable[[int, int, Any], None]] = None
+    ) -> Optional[bytes]:
+        """
+        Generate an image using T5-CLIP alpha blending (Surrealizer)
+
+        Same prompt is encoded differently by CLIP-L/G vs T5-XXL encoders.
+        Alpha controls the blend between these two interpretations.
+
+        Args:
+            prompt: Text prompt (same for both encoders)
+            alpha_factor: -75 to +75 (raw from UI slider)
+                -75 = CLIP-dominant (weird), 0 = balanced, +75 = T5-dominant (crazy)
+            model_id: SD3.5 model to use
+            negative_prompt: Negative prompt
+            width/height: Image dimensions
+            steps: Inference steps
+            cfg_scale: CFG scale
+            seed: Random seed (-1 for random)
+            callback: Step callback for progress
+
+        Returns:
+            PNG image bytes, or None on failure
+        """
+        try:
+            import torch
+            import io
+
+            # Ensure model is loaded
+            if model_id not in self._pipelines:
+                if not await self.load_model(model_id):
+                    return None
+
+            pipe = self._pipelines[model_id]
+
+            # Generate random seed if needed
+            if seed == -1:
+                import random
+                seed = random.randint(0, 2**32 - 1)
+
+            generator = torch.Generator(device=self.device).manual_seed(seed)
+
+            logger.info(f"[DIFFUSERS-FUSION] Generating: alpha={alpha_factor}, steps={steps}, size={width}x{height}, seed={seed}")
+
+            def _generate():
+                # Step 1: Encode CLIP-emphasized (prompt to CLIP-L and CLIP-G, empty to T5)
+                clip_result = pipe.encode_prompt(
+                    prompt=prompt,
+                    prompt_2=prompt,
+                    prompt_3="",
+                    max_sequence_length=512
+                )
+                clip_embeds, clip_negative, clip_pooled, clip_neg_pooled = clip_result
+
+                # Step 2: Encode T5-emphasized (empty to CLIP-L and CLIP-G, prompt to T5)
+                t5_result = pipe.encode_prompt(
+                    prompt="",
+                    prompt_2="",
+                    prompt_3=prompt,
+                    max_sequence_length=512
+                )
+                t5_embeds, t5_negative, t5_pooled, t5_neg_pooled = t5_result
+
+                # Step 3: Blend embeddings
+                # alpha_factor: -75 (CLIP-dominant) to +75 (T5-dominant)
+                t5_weight = (alpha_factor + 75.0) / 150.0  # 0.0 to 1.0
+                blended_embeds = torch.lerp(clip_embeds, t5_embeds, t5_weight)
+
+                logger.info(f"[DIFFUSERS-FUSION] Blending: t5_weight={t5_weight:.3f} (alpha={alpha_factor})")
+
+                # Step 4: Build generation kwargs
+                gen_kwargs = {
+                    "prompt_embeds": blended_embeds,
+                    "pooled_prompt_embeds": clip_pooled,
+                    "negative_prompt": negative_prompt if negative_prompt else None,
+                    "width": width,
+                    "height": height,
+                    "num_inference_steps": steps,
+                    "guidance_scale": cfg_scale,
+                    "generator": generator,
+                    "max_sequence_length": 512,
+                }
+
+                if callback:
+                    def step_callback(pipe, step, timestep, callback_kwargs):
+                        try:
+                            callback(step, steps, callback_kwargs.get("latents"))
+                        except Exception as e:
+                            logger.warning(f"[DIFFUSERS-FUSION] Callback error: {e}")
+                        return callback_kwargs
+
+                    gen_kwargs["callback_on_step_end"] = step_callback
+                    gen_kwargs["callback_on_step_end_tensor_inputs"] = ["latents"]
+
+                result = pipe(**gen_kwargs)
+                return result.images[0]
+
+            image = await asyncio.to_thread(_generate)
+
+            # Convert to PNG bytes
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            image_bytes = buffer.getvalue()
+
+            logger.info(f"[DIFFUSERS-FUSION] Generated image: {len(image_bytes)} bytes")
+            return image_bytes
+
+        except Exception as e:
+            logger.error(f"[DIFFUSERS-FUSION] Generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     async def generate_image_streaming(
         self,
         prompt: str,
