@@ -526,7 +526,7 @@ def execute_workflow():
         comparison_inputs = {}  # Session 147: {node_id: [{label, text, source}, ...]}
         execution_trace = []
         engine = PromptInterceptionEngine()
-        canvas_run_id = generate_run_id("canvas")
+        canvas_run_id = generate_run_id(suffix="canvas")
 
         # Session 149: Initialize CanvasRecorder for export
         # Get device_id from request if provided
@@ -1183,7 +1183,7 @@ def execute_workflow_stream():
 
                 # Initialize
                 engine = PromptInterceptionEngine()
-                canvas_run_id = generate_run_id("canvas")
+                canvas_run_id = generate_run_id(suffix="canvas")
                 device_id = data.get('device_id')
 
                 recorder = get_canvas_recorder(
@@ -1376,7 +1376,7 @@ def execute_batch():
             total_runs = count
             batch_mode = 'seed_variance'
 
-        batch_id = f"run_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}_canvas_batch"
+        batch_id = generate_run_id(suffix="canvas_batch")
 
         def generate():
             """Generator that yields SSE events for batch execution using CanvasWorkflowExecutor"""

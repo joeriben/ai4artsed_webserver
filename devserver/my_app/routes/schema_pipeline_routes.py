@@ -1685,7 +1685,7 @@ def execute_optimization_streaming(data: dict):
     output_config = data.get('output_config')  # Session 153: For model selection from output config
 
     # Generate run ID for logging (use param if available)
-    run_id = run_id_param or generate_run_id("opt")
+    run_id = run_id_param or generate_run_id(suffix="opt")
 
     logger.info(f"[OPTIMIZATION-STREAMING] Starting for run {run_id}")
     logger.info(f"[OPTIMIZATION-STREAMING] Schema: {schema_name}, Input length: {len(input_text)}")

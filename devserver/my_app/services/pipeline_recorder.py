@@ -921,9 +921,10 @@ class LivePipelineRecorder:
     # Media files are downloaded by the service and passed as binary data to recorder
 
 
-def generate_run_id(prefix: str = "run") -> str:
+def generate_run_id(suffix: str = None) -> str:
     """Single authority for run_id generation. Chronologically sortable."""
-    return f"{prefix}_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+    base = f"run_{int(time.time() * 1000)}_{os.urandom(3).hex()}"
+    return f"{base}_{suffix}" if suffix else base
 
 
 # Singleton management
