@@ -1905,11 +1905,14 @@ def safety_check():
 @schema_bp.route('/pipeline/safety/quick', methods=['POST'])
 def safety_check_quick():
     """
-    Safety check: fuzzy filters + SpaCy NER + LLM verification.
+    Safety check: fuzzy filters + SpaCy NER + LLM assessment.
 
     Used by MediaInputBox autonomous safety (on blur/paste).
     Phase 1: §86a fuzzy → instant block (no LLM).
-    Phase 2: Age-filter / DSGVO NER → if flagged, LLM verifies before blocking.
+    Phase 2: Age-filter / DSGVO NER → collect flags.
+    Phase 3: LLM assessment:
+      - kids/youth: ALWAYS runs (catches semantic violence/harm that wordlists miss)
+      - adult/off: only when fast filters flagged something
 
     Request Body: { "text": "Text to check" }
     Response: { "safe": bool, "checks_passed": [...], "error_message": str|null }
@@ -1957,29 +1960,41 @@ def safety_check_quick():
         elif spacy_ok:
             checks_passed.append('dsgvo_ner')
 
-        # Phase 3: LLM verification — only if fast filters flagged something
-        if flags:
-            flag_desc = "; ".join(
-                f"{name}: {', '.join(terms)}" for name, terms in flags
-            )
-            logger.info(f"[SAFETY-QUICK] Flags raised: {flag_desc} — asking LLM")
+        # Phase 3: LLM safety assessment
+        # For kids/youth: ALWAYS run LLM (fast filters can't catch semantic violence/harm)
+        # For adult/off: only run LLM when fast filters flagged something
+        needs_llm = bool(flags) or safety_level in ('kids', 'youth')
 
-            llm_safe = _safety_llm_verify(text, flags, http_requests)
+        if needs_llm:
+            if flags:
+                flag_desc = "; ".join(
+                    f"{name}: {', '.join(terms)}" for name, terms in flags
+                )
+                logger.info(f"[SAFETY-QUICK] Flags raised: {flag_desc} — asking LLM")
+            else:
+                logger.info(f"[SAFETY-QUICK] No flags, but safety_level={safety_level} — LLM general check")
+
+            llm_safe = _safety_llm_verify(text, flags, safety_level, http_requests)
 
             if llm_safe:
-                logger.info(f"[SAFETY-QUICK] LLM overruled flags — SAFE")
+                logger.info(f"[SAFETY-QUICK] LLM verdict: SAFE")
                 for name, _ in flags:
                     checks_passed.append(name)
                 checks_passed.append('llm_verify')
             else:
-                # LLM confirmed the flags — block
-                first_flag_name, first_flag_terms = flags[0]
-                label = 'Altersfilter' if first_flag_name == 'age_filter' else 'DSGVO'
-                logger.warning(f"[SAFETY-QUICK] LLM confirmed flags — BLOCKED")
+                # LLM says BLOCKED
+                if flags:
+                    first_flag_name, first_flag_terms = flags[0]
+                    label = 'Altersfilter' if first_flag_name == 'age_filter' else 'DSGVO'
+                    error_msg = f'{label}: {", ".join(first_flag_terms)}'
+                else:
+                    label = 'Altersfilter'
+                    error_msg = 'Inhalt nicht altersgerecht'
+                logger.warning(f"[SAFETY-QUICK] LLM verdict: BLOCKED — {error_msg}")
                 return jsonify({
                     'safe': False,
                     'checks_passed': checks_passed + [name for name, _ in flags] + ['llm_verify'],
-                    'error_message': f'{label}: {", ".join(first_flag_terms)}'
+                    'error_message': error_msg
                 })
 
         return jsonify({'safe': True, 'checks_passed': checks_passed, 'error_message': None})
@@ -1990,36 +2005,57 @@ def safety_check_quick():
         return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
 
 
-def _safety_llm_verify(text: str, flags: list, http_requests) -> bool:
+def _safety_llm_verify(text: str, flags: list, safety_level: str, http_requests) -> bool:
     """
-    Ask the safety LLM whether flagged content is actually unsafe.
+    Ask the safety LLM whether content is safe for the given audience.
+
+    Two modes:
+    - With flags: verify whether flagged content is genuinely problematic
+    - Without flags: general age-appropriateness assessment (for kids/youth)
 
     Returns True if SAFE, False if BLOCKED.
     Fail-open on error (returns True).
     """
-    flag_desc = "\n".join(
-        f"- {name}: {', '.join(terms)}" for name, terms in flags
-    )
+    audience = "Kinder (6-10 Jahre)" if safety_level == "kids" else "Jugendliche (11-16 Jahre)"
+
+    if flags:
+        flag_desc = "\n".join(
+            f"- {name}: {', '.join(terms)}" for name, terms in flags
+        )
+        user_content = f"Text: \"{text}\"\n\nFlags raised:\n{flag_desc}\n\nVerdict:"
+        system_content = (
+            f"You are a safety classifier for an educational art platform. Target audience: {audience}. "
+            "Fast filters have flagged potential issues in user text. Your job is to verify whether "
+            "the flagged content is genuinely problematic or a false positive.\n\n"
+            "Rules:\n"
+            "- age_filter flags: Block if genuinely age-inappropriate (violence, sexual, drugs, weapons). "
+            "Allow if harmless (e.g. fairy tales, place names, common expressions).\n"
+            "- dsgvo_ner flags: Block if text contains real personal data (full name + address, phone, email). "
+            "Allow if fictional characters, public figures in educational context, or place names without personal data.\n\n"
+            "Respond with exactly one word: SAFE or BLOCKED"
+        )
+    else:
+        user_content = f"Text: \"{text}\"\n\nVerdict:"
+        system_content = (
+            f"You are a safety classifier for an educational art platform. Target audience: {audience}. "
+            "Evaluate whether this text is appropriate as an image generation prompt for this audience.\n\n"
+            "BLOCK if the text describes or could generate:\n"
+            "- Violence, harm, destruction, suffering, death\n"
+            "- Sexual or suggestive content\n"
+            "- Weapons, drugs, alcohol\n"
+            "- Horror, gore, frightening imagery\n"
+            "- Discrimination, hate, cruelty\n\n"
+            "ALLOW if the text is:\n"
+            "- Educational, creative, artistic\n"
+            "- Nature, animals, landscapes\n"
+            "- Fairy tales, stories (without graphic violence)\n"
+            "- Abstract or harmless concepts\n\n"
+            "Respond with exactly one word: SAFE or BLOCKED"
+        )
 
     messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a safety classifier for an educational art platform used by children and youth. "
-                "Fast filters have flagged potential issues in user text. Your job is to verify whether "
-                "the flagged content is genuinely problematic or a false positive.\n\n"
-                "Rules:\n"
-                "- age_filter flags: Block if genuinely age-inappropriate (violence, sexual, drugs, weapons). "
-                "Allow if harmless (e.g. fairy tales, place names, common expressions).\n"
-                "- dsgvo_ner flags: Block if text contains real personal data (full name + address, phone, email). "
-                "Allow if fictional characters, public figures in educational context, or place names without personal data.\n\n"
-                "Respond with exactly one word: SAFE or BLOCKED"
-            )
-        },
-        {
-            "role": "user",
-            "content": f"Text: \"{text}\"\n\nFlags raised:\n{flag_desc}\n\nVerdict:"
-        }
+        {"role": "system", "content": system_content},
+        {"role": "user", "content": user_content}
     ]
 
     try:
