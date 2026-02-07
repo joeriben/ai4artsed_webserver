@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { getConfig, getConfigContext, getPublicDefaults, type ConfigMetadata } from '@/services/api'
+import { getConfig, getConfigContext, type ConfigMetadata } from '@/services/api'
 
 /**
  * Pinia Store for Phase 2 Pipeline Execution
@@ -9,7 +9,7 @@ import { getConfig, getConfigContext, getPublicDefaults, type ConfigMetadata } f
  * - Selected config for execution
  * - User input text
  * - Meta-prompt (context) with edit tracking
- * - Execution settings (mode, safety level)
+ * - Execution settings (mode)
  * - Multilingual meta-prompt loading based on user language
  *
  * Phase 2 - Multilingual Context Editing Implementation
@@ -38,15 +38,6 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
    * TODO: Remove in future cleanup.
    */
   const executionMode = ref<'eco' | 'fast' | 'best'>('eco')
-
-  /** Safety level (initialized from backend DEFAULT_SAFETY_LEVEL via initDefaults) */
-  const safetyLevel = ref<'kids' | 'youth' | 'adult'>('kids')
-
-  /** Backend default safety level (loaded once, used for clearAll reset) */
-  const _defaultSafetyLevel = ref<'kids' | 'youth' | 'adult'>('kids')
-
-  /** Whether backend defaults have been loaded */
-  const _defaultsLoaded = ref(false)
 
   /** Loading state */
   const isLoading = ref(false)
@@ -80,27 +71,6 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
   // ============================================================================
 
   /**
-   * Load backend defaults (safety level, etc.) — called once, idempotent.
-   */
-  async function initDefaults() {
-    if (_defaultsLoaded.value) return
-
-    try {
-      const defaults = await getPublicDefaults()
-      const level = defaults.DEFAULT_SAFETY_LEVEL as 'kids' | 'youth' | 'adult'
-      if (['kids', 'youth', 'adult'].includes(level)) {
-        _defaultSafetyLevel.value = level
-        safetyLevel.value = level
-        console.log(`[PipelineExecution] Safety level initialized from backend: ${level}`)
-      }
-    } catch (err) {
-      console.warn('[PipelineExecution] Failed to load defaults, using fallback "kids":', err)
-    } finally {
-      _defaultsLoaded.value = true
-    }
-  }
-
-  /**
    * Set selected config and load its metadata
    *
    * @param configId - Config ID from Phase 1 selection
@@ -108,9 +78,6 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
   async function setConfig(configId: string) {
     isLoading.value = true
     error.value = null
-
-    // Ensure backend defaults are loaded before first use
-    await initDefaults()
 
     console.log(`[PipelineExecution] setConfig called with configId: "${configId}"`)
 
@@ -224,13 +191,6 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
   }
 
   /**
-   * Set safety level
-   */
-  function setSafetyLevel(level: 'kids' | 'youth' | 'adult') {
-    safetyLevel.value = level
-  }
-
-  /**
    * Update transformed prompt (result of Stage 1+2)
    *
    * @param text - Transformed prompt text
@@ -258,7 +218,6 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
     originalMetaPrompt.value = ''
     transformedPrompt.value = ''
     executionMode.value = 'eco'
-    safetyLevel.value = _defaultSafetyLevel.value
     error.value = null
     console.log('[PipelineExecution] State cleared')
   }
@@ -275,7 +234,6 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
     originalMetaPrompt: computed(() => originalMetaPrompt.value),
     transformedPrompt: computed(() => transformedPrompt.value),
     executionMode: computed(() => executionMode.value),
-    safetyLevel: computed(() => safetyLevel.value),
     isLoading: computed(() => isLoading.value),
     error: computed(() => error.value),
 
@@ -292,7 +250,6 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
     updateTransformedPrompt,
     clearTransformedPrompt,
     setExecutionMode,
-    setSafetyLevel,
     clearAll
   }
 })

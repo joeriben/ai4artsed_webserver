@@ -81,6 +81,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useCurrentSession } from '../composables/useCurrentSession'
 import { usePageContextStore } from '../stores/pageContext'
+import { useSafetyEventStore } from '../stores/safetyEvent'
 import { DEFAULT_FOCUS_HINT } from '../composables/usePageContext'
 import trashyIcon from '../assets/trashy-icon.png'
 
@@ -124,6 +125,9 @@ const { currentSession } = useCurrentSession()
 // Using Pinia store instead of inject (works across component tree siblings)
 const pageContextStore = usePageContextStore()
 const route = useRoute()
+
+// Safety event store — auto-expand Träshy when safety blocks occur
+const safetyStore = useSafetyEventStore()
 
 // Build draft context string for LLM
 const draftContextString = computed(() => {
@@ -440,6 +444,51 @@ watch(
         messageIdCounter = 0
       }
     }
+  }
+)
+
+// Watch for safety block events — auto-expand Träshy and explain
+watch(
+  () => safetyStore.pendingBlock,
+  async (block) => {
+    if (!block) return
+
+    const event = safetyStore.consume()
+    if (!event) return
+
+    console.log('[ChatOverlay] Safety block received:', event)
+
+    // Build pedagogical explanation based on block type
+    let explanation: string
+    const reason = event.reason || ''
+
+    if (reason.includes('§86a')) {
+      explanation = 'Dein Prompt wurde blockiert, weil er Symbole oder Begriffe enthält, die nach deutschem Recht (§86a StGB) verboten sind. Diese Regel schützt uns alle vor Hass und Gewalt. Versuche es mit einem anderen Thema!'
+    } else if (reason.includes('DSGVO') || reason.includes('Persönliche Daten')) {
+      explanation = 'Dein Prompt wurde blockiert, weil er persönliche Daten enthält (z.B. echte Namen oder Adressen). Das ist durch die Datenschutzgrundverordnung (DSGVO) geschützt. Verwende stattdessen Phantasienamen!'
+    } else if (reason.includes('Kids-Filter') || reason.includes('Kinder-Schutzfilter')) {
+      explanation = 'Dein Prompt wurde vom Kinder-Schutzfilter blockiert. Manche Begriffe sind für Kinder nicht geeignet, weil sie erschreckend oder verstörend sein können. Versuche, deine Idee mit freundlicheren Worten zu beschreiben!'
+    } else if (reason.includes('Youth-Filter') || reason.includes('Jugendschutzfilter')) {
+      explanation = 'Dein Prompt wurde vom Jugendschutzfilter blockiert. Manche Inhalte sind auch für Jugendliche nicht geeignet. Versuche, deine Idee anders zu formulieren!'
+    } else {
+      explanation = 'Dein Prompt wurde vom Sicherheitssystem blockiert. Das System schützt dich vor ungeeigneten Inhalten. Versuche es mit einer anderen Formulierung!'
+    }
+
+    // Auto-expand Träshy
+    if (!isExpanded.value) {
+      isExpanded.value = true
+      await nextTick()
+    }
+
+    // Add assistant message with explanation
+    messages.value.push({
+      id: messageIdCounter++,
+      role: 'assistant',
+      content: explanation
+    })
+
+    await nextTick()
+    scrollToBottom()
   }
 )
 </script>

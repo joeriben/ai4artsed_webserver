@@ -160,14 +160,13 @@
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
 
-        <transition name="fade">
-          <div v-if="showSafetyStamp" class="safety-stamp">
-            <div class="stamp-inner">
-              <div class="stamp-icon">✓</div>
-              <div class="stamp-text">Safety<br/>Approved</div>
-            </div>
+        <!-- Granular Safety Badges -->
+        <transition-group name="fade" tag="div" class="safety-badges">
+          <div v-for="check in safetyChecks" :key="check" class="safety-badge">
+            <span class="badge-icon">✓</span>
+            <span class="badge-label">{{ badgeLabel(check) }}</span>
           </div>
-        </transition>
+        </transition-group>
       </div>
 
       <!-- OUTPUT -->
@@ -203,8 +202,13 @@ import MediaInputBox from '@/components/MediaInputBox.vue'
 import MusicTagSelector from '@/components/MusicTagSelector.vue'
 import type { DimensionConfig } from '@/components/MusicTagSelector.vue'
 import { useI18n } from 'vue-i18n'
+import { useSafetyEventStore } from '@/stores/safetyEvent'
 
 const { t } = useI18n()
+
+function badgeLabel(check: string): string {
+  return t(`safetyBadges.${check}`, check)
+}
 
 // ============================================================================
 // Stores & Composables
@@ -323,7 +327,8 @@ const generationProgress = ref(0)
 const estimatedGenerationSeconds = ref(180)
 const outputAudio = ref<string | null>(null)
 const currentRunId = ref<string | null>(null)
-const showSafetyStamp = ref(false)
+const safetyChecks = ref<string[]>([])
+const safetyStore = useSafetyEventStore()
 const isFavorited = ref(false)
 const audioLengthSeconds = ref(200)
 const temperature = ref(1.0)
@@ -414,7 +419,6 @@ async function runLyricsAction(action: 'expand' | 'refine') {
   lyricsStreamParams.value = {
     schema: action === 'expand' ? 'lyrics_from_theme' : 'lyrics_refinement',
     input_text: lyricsInput.value,
-    safety_level: pipelineStore.safetyLevel,
     device_id: deviceId,
     enable_streaming: true
   }
@@ -451,7 +455,6 @@ async function suggestTagsFromLyrics() {
     const response = await axios.post('/api/schema/pipeline/interception', {
       schema: 'tag_suggestion_from_lyrics',
       input_text: effectiveLyrics.value,
-      safety_level: pipelineStore.safetyLevel,
       device_id: deviceId
     })
 
@@ -516,7 +519,7 @@ async function runSingleGeneration() {
   isGenerating.value = true
   outputAudio.value = null
   generationProgress.value = 0
-  showSafetyStamp.value = true
+  safetyChecks.value = ['§86a', 'age_filter', 'dsgvo_ner']
 
   const finalLyrics = effectiveLyrics.value
   const finalTags = compiledTags.value
@@ -533,7 +536,6 @@ async function runSingleGeneration() {
       schema: 'heartmula',
       input_text: finalLyrics,
       output_config: 'heartmula_standard',
-      safety_level: pipelineStore.safetyLevel,
       device_id: deviceId,
       custom_placeholders: {
         TEXT_1: finalLyrics,
@@ -560,7 +562,7 @@ async function runSingleGeneration() {
     clearInterval(progressInterval)
     generationProgress.value = 100
     isGenerating.value = false
-    showSafetyStamp.value = false
+    safetyChecks.value = []
 
     nextTick(() => {
       if (outputSectionRef.value) {
@@ -869,47 +871,51 @@ onMounted(() => {
   opacity: 0.7;
 }
 
-/* Safety Stamp */
-.safety-stamp {
-  position: absolute;
-  right: 0;
-  animation: stamp-appear 0.4s ease-out;
-}
-
-@keyframes stamp-appear {
-  from {
-    transform: scale(0) rotate(-20deg);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1) rotate(0);
-    opacity: 1;
-  }
-}
-
-.stamp-inner {
+/* Granular Safety Badges */
+.safety-badges {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: rgba(34, 197, 94, 0.2);
-  border: 2px solid #22c55e;
-  border-radius: 8px;
-  transform: rotate(-5deg);
 }
 
-.stamp-icon {
-  font-size: 1.5rem;
-  color: #22c55e;
+.safety-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid #4CAF50;
+  border-radius: 6px;
+  animation: badge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.stamp-text {
-  font-size: 0.7rem;
+@keyframes badge-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.badge-icon {
+  font-size: 0.75rem;
+  color: #4CAF50;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.badge-label {
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #22c55e;
-  text-align: center;
+  color: #4CAF50;
   text-transform: uppercase;
-  line-height: 1.2;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 /* Transitions */

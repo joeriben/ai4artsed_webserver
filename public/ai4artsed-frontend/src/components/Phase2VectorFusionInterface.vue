@@ -299,8 +299,7 @@ async function handleSplit() {
     const request: PipelineExecuteRequest = {
       schema: props.configId,
       input_text: userInput.value,
-      execution_mode: props.executionMode,
-      safety_level: props.safetyLevel
+      execution_mode: props.executionMode
     }
 
     const response = await executePipeline(request)
@@ -387,7 +386,6 @@ async function generateImage(partA: string, partB: string, alpha: number) {
     schema: outputConfig,
     input_text: `${partA} + ${partB}`, // Backend requires input_text even with custom_placeholders
     execution_mode: props.executionMode,
-    safety_level: props.safetyLevel,
     custom_placeholders: {
       PART_A: partA,
       PART_B: partB,

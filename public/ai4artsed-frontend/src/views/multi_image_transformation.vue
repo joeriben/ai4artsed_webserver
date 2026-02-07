@@ -186,25 +186,13 @@
           <span class="button-arrows button-arrows-right">&gt;&gt;&gt;</span>
         </button>
 
-        <!-- Safety Stamp (next to button, not on image) -->
-        <transition name="fade">
-          <div v-if="showSafetyApprovedStamp" class="safety-stamp">
-            <div class="stamp-inner">
-              <div class="stamp-icon">✓</div>
-              <div class="stamp-text">Safety<br/>Approved</div>
-            </div>
+        <!-- Granular Safety Badges -->
+        <transition-group name="fade" tag="div" class="safety-badges">
+          <div v-for="check in safetyChecks" :key="check" class="safety-badge">
+            <span class="badge-icon">✓</span>
+            <span class="badge-label">{{ badgeLabel(check) }}</span>
           </div>
-        </transition>
-
-        <!-- Translated Badge - appears when Stage 3 actually translated the prompt -->
-        <transition name="fade">
-          <div v-if="showTranslatedStamp" class="translated-stamp">
-            <div class="stamp-inner">
-              <div class="stamp-icon">→ EN</div>
-              <div class="stamp-text">Translated</div>
-            </div>
-          </div>
-        </transition>
+        </transition-group>
       </div>
 
       <!-- OUTPUT BOX (Template Component) -->
@@ -255,6 +243,8 @@ import { useAppClipboard } from '@/composables/useAppClipboard'
 import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
 import { useGenerationStream } from '@/composables/useGenerationStream'
+import { useSafetyEventStore } from '@/stores/safetyEvent'
+import { useI18n } from 'vue-i18n'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
@@ -306,11 +296,19 @@ const fullscreenImage = ref<string | null>(null)
 const {
   showSafetyApprovedStamp,
   showTranslatedStamp,
+  safetyChecks,
   generationProgress,
   currentStage,
   executeWithStreaming,
   reset: resetGenerationStream
 } = useGenerationStream()
+
+const safetyStore = useSafetyEventStore()
+const { t } = useI18n()
+
+function badgeLabel(check: string): string {
+  return t(`safetyBadges.${check}`, check)
+}
 
 // Image Analysis
 const isAnalyzing = ref(false)
@@ -918,10 +916,10 @@ async function startGeneration() {
         setTimeout(() => scrollDownOnly(pipelineSectionRef.value?.sectionRef, 'start'), 150)
       }
     } else if (result.status === 'blocked') {
-      alert(`Inhalt blockiert: ${result.blocked_reason}`)
+      safetyStore.reportBlock(3, result.blocked_reason || 'Inhalt blockiert', result.found_terms || [])
       generationProgress.value = 0
     } else {
-      alert(`Generation fehlgeschlagen: ${result.error}`)
+      console.error('[Generation] Failed:', result.error)
       generationProgress.value = 0
     }
   } catch (error: any) {
@@ -930,7 +928,6 @@ async function startGeneration() {
     }
     stopWatcher()
     console.error('[Generation] Error:', error)
-    alert('Fehler bei der Generierung: ' + error.message)
     generationProgress.value = 0
   } finally {
     isPipelineExecuting.value = false
@@ -1614,77 +1611,51 @@ watch(uploadedImagePath3, (newVal) => {
   opacity: 0.3;
 }
 
-/* Safety Approved Stamp */
-.safety-stamp {
+/* Granular Safety Badges */
+.safety-badges {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   justify-content: center;
   align-items: center;
 }
 
-.stamp-inner {
-  display: flex;
+.safety-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
-  background: rgba(76, 175, 80, 0.15);
-  border: 2px solid #4CAF50;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
-  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid #4CAF50;
+  border-radius: 6px;
+  animation: badge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes stamp-appear {
+@keyframes badge-appear {
   0% {
     opacity: 0;
-    transform: scale(0.5) rotate(-10deg);
+    transform: scale(0.7);
   }
   100% {
     opacity: 1;
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
   }
 }
 
-.stamp-icon {
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
+.badge-icon {
+  font-size: 0.75rem;
   color: #4CAF50;
   font-weight: bold;
   line-height: 1;
 }
 
-.stamp-text {
-  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
-  font-weight: 700;
+.badge-label {
+  font-size: 0.65rem;
+  font-weight: 600;
   color: #4CAF50;
-  text-align: center;
-  line-height: 1.2;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Translated Badge - Teal color scheme (Session 148) */
-.translated-stamp {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.translated-stamp .stamp-inner {
-  background: rgba(0, 150, 136, 0.15);
-  border-color: #009688;
-  box-shadow: 0 0 20px rgba(0, 150, 136, 0.3);
-}
-
-.translated-stamp .stamp-icon {
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
-  font-weight: 700;
-  color: #009688;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.translated-stamp .stamp-text {
-  color: #009688;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 /* Output box styles moved to MediaOutputBox.vue component */

@@ -329,7 +329,6 @@ async function executeWorkflow() {
       prompt1: prompt1.value,
       prompt2: prompt2.value,
       output_config: 'split_and_combine_legacy',
-      safety_level: 'off',
       combination_type: combinationType.value,
       seed: currentSeed.value
     })

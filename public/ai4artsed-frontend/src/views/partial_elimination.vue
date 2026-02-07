@@ -439,7 +439,6 @@ async function executeWorkflow() {
     const response = await axios.post('/api/schema/pipeline/legacy', {
       prompt: inputText.value,
       output_config: 'partial_elimination_legacy',
-      safety_level: 'open',
       mode: eliminationMode.value,
       seed: currentSeed.value,
       encoder_type: encoderType.value,

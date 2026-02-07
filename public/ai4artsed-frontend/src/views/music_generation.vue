@@ -194,14 +194,13 @@
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
 
-        <transition name="fade">
-          <div v-if="showSafetyStamp" class="safety-stamp">
-            <div class="stamp-inner">
-              <div class="stamp-icon">✓</div>
-              <div class="stamp-text">Safety<br/>Approved</div>
-            </div>
+        <!-- Granular Safety Badges -->
+        <transition-group name="fade" tag="div" class="safety-badges">
+          <div v-for="check in safetyChecks" :key="check" class="safety-badge">
+            <span class="badge-icon">✓</span>
+            <span class="badge-label">{{ badgeLabel(check) }}</span>
           </div>
-        </transition>
+        </transition-group>
       </div>
 
       <!-- OUTPUT BOX -->
@@ -242,6 +241,7 @@ import '@/assets/animations.css'
 // ============================================================================
 
 import { useI18n } from 'vue-i18n'
+import { useSafetyEventStore } from '@/stores/safetyEvent'
 const { t } = useI18n()
 
 // ============================================================================
@@ -326,7 +326,12 @@ const estimatedGenerationSeconds = ref(180)
 const outputAudio = ref<string | null>(null)
 const currentRunId = ref<string | null>(null)
 const executionPhase = ref<ExecutionPhase>('initial')
-const showSafetyStamp = ref(false)
+const safetyChecks = ref<string[]>([])
+const safetyStore = useSafetyEventStore()
+
+function badgeLabel(check: string): string {
+  return t(`safetyBadges.${check}`, check)
+}
 
 // Favorites
 const isFavorited = ref(false)
@@ -462,7 +467,6 @@ async function runDualInterception() {
   lyricsStreamingParams.value = {
     schema: 'lyrics_refinement',
     input_text: lyricsInput.value,
-    safety_level: pipelineStore.safetyLevel,
     device_id: deviceId,  // FIX: Persistent device_id for consistent folders
     enable_streaming: true  // KEY: Request SSE streaming
   }
@@ -479,7 +483,6 @@ async function runDualInterception() {
     tagsStreamingParams.value = {
       schema: 'tags_generation',
       input_text: tagsInput.value,
-      safety_level: pipelineStore.safetyLevel,
       device_id: deviceId,  // FIX: Persistent device_id for consistent folders
       enable_streaming: true
     }
@@ -553,7 +556,7 @@ async function startGeneration() {
   executionPhase.value = 'generating'
   outputAudio.value = null
   generationProgress.value = 0
-  showSafetyStamp.value = true
+  safetyChecks.value = ['§86a', 'age_filter', 'dsgvo_ner']
 
   // Use refined lyrics if available, otherwise original
   const finalLyrics = refinedLyrics.value || lyricsInput.value
@@ -574,7 +577,6 @@ async function startGeneration() {
       schema: 'heartmula', // Use heartmula interception config
       input_text: finalLyrics,
       output_config: selectedConfig.value,
-      safety_level: pipelineStore.safetyLevel,
       device_id: deviceId, // FIX: Persistent device_id for consistent export folders
       custom_placeholders: {
         TEXT_1: finalLyrics,
@@ -602,7 +604,7 @@ async function startGeneration() {
     clearInterval(progressInterval)
     generationProgress.value = 100
     isGenerating.value = false
-    showSafetyStamp.value = false
+    safetyChecks.value = []
 
     // Scroll to output
     nextTick(() => {
@@ -1086,42 +1088,53 @@ onMounted(() => {
 }
 
 /* ============================================================================
-   Safety Approved Stamp
+   Granular Safety Badges
    ============================================================================ */
 
-.safety-stamp {
+.safety-badges {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   justify-content: center;
   align-items: center;
 }
 
-.stamp-inner {
-  display: flex;
+.safety-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
-  background: rgba(76, 175, 80, 0.15);
-  border: 2px solid #4CAF50;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
-  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid #4CAF50;
+  border-radius: 6px;
+  animation: badge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.stamp-icon {
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
+@keyframes badge-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.badge-icon {
+  font-size: 0.75rem;
   color: #4CAF50;
   font-weight: bold;
   line-height: 1;
 }
 
-.stamp-text {
-  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
-  font-weight: 700;
+.badge-label {
+  font-size: 0.65rem;
+  font-weight: 600;
   color: #4CAF50;
-  text-align: center;
-  line-height: 1.2;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 /* ============================================================================

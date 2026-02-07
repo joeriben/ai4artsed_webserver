@@ -309,6 +309,16 @@ const messages = {
         showLess: 'Weniger anzeigen'
       }
     },
+    safetyBadges: {
+      '§86a': '§86a',
+      age_filter: 'Altersfilter',
+      dsgvo_ner: 'DSGVO',
+      dsgvo_llm: 'DSGVO',
+      translation: '\u2192 EN',
+      fast_filter: 'Inhalt',
+      llm_context_check: 'Inhalt (LLM)',
+      disabled: '\u2014'
+    },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantische Vektorfusion',
       infoDescription: 'Dieser Workflow fusioniert zwei Prompts auf der Ebene semantischer Vektoren. Das Ergebnis ist keine einfache Mischung, sondern eine tiefere mathematische Verbindung der Bedeutungsräume.',
@@ -815,6 +825,16 @@ const messages = {
         showMore: 'Learn more',
         showLess: 'Show less'
       }
+    },
+    safetyBadges: {
+      '§86a': '§86a',
+      age_filter: 'Age Filter',
+      dsgvo_ner: 'GDPR',
+      dsgvo_llm: 'GDPR',
+      translation: '\u2192 EN',
+      fast_filter: 'Content',
+      llm_context_check: 'Content (LLM)',
+      disabled: '\u2014'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantic Vector Fusion',

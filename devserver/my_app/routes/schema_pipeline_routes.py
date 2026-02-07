@@ -753,10 +753,12 @@ def execute_stage2():
                 'error': 'JSON-Request erwartet'
             }), 400
 
+        from config import DEFAULT_SAFETY_LEVEL as _default_safety
+
         schema_name = data.get('schema')
         input_text = data.get('input_text')
         execution_mode = data.get('execution_mode', 'eco')
-        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
+        safety_level = _default_safety
         output_config = data.get('output_config')  # Optional
         user_language = data.get('user_language', 'en')
 
@@ -777,7 +779,7 @@ def execute_stage2():
         # Initialize engine
         init_schema_engine()
 
-        # Load config
+        # Load config (note: 'config' here is a schema config, not the config module)
         config = pipeline_executor.config_loader.get_config(schema_name)
         if not config:
             return jsonify({
@@ -839,7 +841,7 @@ def execute_stage2():
         logger.info(f"[OLLAMA-QUEUE] Stage 2 Endpoint: Waiting for queue slot...")
         with ollama_queue_semaphore:
             logger.info(f"[OLLAMA-QUEUE] Stage 2 Endpoint: Acquired slot, executing Stage 1")
-            is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+            is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
                 input_text,
                 safety_level,
                 execution_mode,
@@ -855,7 +857,8 @@ def execute_stage2():
                 'success': False,
                 'error': error_message,
                 'blocked_at_stage': 1,
-                'safety_level': safety_level
+                'safety_level': safety_level,
+                'checks_passed': checks_passed
             }), 403
 
         logger.info(f"[STAGE2-ENDPOINT] Stage 1 completed: Safety passed")
@@ -1143,7 +1146,7 @@ def execute_stage3_4():
         stage2_result = data.get('stage2_result')
         output_config = data.get('output_config')
         execution_mode = data.get('execution_mode', 'eco')
-        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
+        safety_level = config.DEFAULT_SAFETY_LEVEL
         run_id = data.get('run_id', generate_run_id())
         seed_override = data.get('seed')
 
@@ -1391,13 +1394,13 @@ def execute_pipeline_streaming(data: dict):
     import time
     import os
     import requests
-    from config import OLLAMA_API_BASE_URL, STAGE2_INTERCEPTION_MODEL, DEFAULT_INTERCEPTION_CONFIG
+    from config import OLLAMA_API_BASE_URL, STAGE2_INTERCEPTION_MODEL, DEFAULT_INTERCEPTION_CONFIG, DEFAULT_SAFETY_LEVEL
 
     # Extract parameters
     schema_name = data.get('schema', DEFAULT_INTERCEPTION_CONFIG)
     input_text = data.get('input_text', '')
     context_prompt = data.get('context_prompt', '')
-    safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
+    safety_level = DEFAULT_SAFETY_LEVEL
     execution_mode = data.get('execution_mode', 'eco')
     device_id = data.get('device_id')  # Session 129: For folder structure
 
@@ -1496,7 +1499,7 @@ def execute_pipeline_streaming(data: dict):
             })
             yield ''
             
-            is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+            is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
                 input_text,
                 safety_level,
                 execution_mode,
@@ -1515,7 +1518,8 @@ def execute_pipeline_streaming(data: dict):
                 'stage': 1,
                 'reason': error_message,
                 'message': error_message,
-                'run_id': run_id
+                'run_id': run_id,
+                'checks_passed': checks_passed
             })
             yield ''
             return  # STOP - no Stage 2
@@ -1524,7 +1528,8 @@ def execute_pipeline_streaming(data: dict):
         yield generate_sse_event('stage_complete', {
             'stage': 1,
             'text': checked_text,
-            'duration_ms': stage1_time
+            'duration_ms': stage1_time,
+            'checks_passed': checks_passed
         })
         yield ''
 
@@ -1901,7 +1906,6 @@ def safety_check():
     Request Body:
     {
         "text": "Text to check",
-        "safety_level": "kids" | "youth" | "open",
         "check_type": "input" | "output"  # input=Stage1 (§86a), output=Stage3 (content)
     }
     """
@@ -1911,7 +1915,7 @@ def safety_check():
             return jsonify({'status': 'error', 'error': 'JSON-Request erwartet'}), 400
 
         text = data.get('text', '')
-        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
+        safety_level = config.DEFAULT_SAFETY_LEVEL
         check_type = data.get('check_type', 'input')  # 'input' or 'output'
 
         if not text:
@@ -1924,7 +1928,7 @@ def safety_check():
 
         if check_type == 'input':
             # Stage 1 style: §86a check on user input
-            is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+            is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
                 text,
                 safety_level,
                 'eco',  # execution_mode
@@ -1935,7 +1939,8 @@ def safety_check():
                 'status': 'success',
                 'safe': is_safe,
                 'checked_text': checked_text,
-                'error_message': error_message
+                'error_message': error_message,
+                'checks_passed': checks_passed
             })
 
         else:  # check_type == 'output'
@@ -2136,7 +2141,7 @@ def execute_generation_streaming(data: dict):
     prompt = data.get('prompt', '')
     output_config = data.get('output_config')
     seed = data.get('seed')
-    safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
+    safety_level = config.DEFAULT_SAFETY_LEVEL
     alpha_factor = data.get('alpha_factor')
     input_image = data.get('input_image')
     input_image1 = data.get('input_image1')
@@ -2237,16 +2242,22 @@ def execute_generation_streaming(data: dict):
                 'stage': 3,
                 'reason': safety_result.get('abort_reason', 'Content blocked by safety check'),
                 'found_terms': safety_result.get('found_terms', []),
-                'run_id': run_id
+                'run_id': run_id,
+                'checks_passed': ['translation', safety_result.get('method', 'llm_context_check')]
             })
             yield ''
             return
 
         # Stage 3 complete - send badge trigger event
         logger.info(f"[GENERATION-STREAMING] Stage 3 PASSED, was_translated={was_translated}")
+        stage3_checks = ['translation'] if was_translated else []
+        stage3_method = safety_result.get('method', 'fast_filter')
+        if stage3_method != 'disabled':
+            stage3_checks.append(stage3_method)
         yield generate_sse_event('stage3_complete', {
             'safe': True,
-            'was_translated': was_translated
+            'was_translated': was_translated,
+            'checks_passed': stage3_checks
         })
         yield ''
 
@@ -2415,7 +2426,7 @@ def generation_endpoint():
         prompt = data.get('prompt', '')
         output_config = data.get('output_config')
         seed = data.get('seed')
-        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
+        safety_level = config.DEFAULT_SAFETY_LEVEL
         alpha_factor = data.get('alpha_factor')
         input_image = data.get('input_image')
         input_image1 = data.get('input_image1')
@@ -2556,7 +2567,7 @@ async def execute_stage4_generation_only(
     Args:
         prompt: Ready-to-use prompt (already translated to English if needed)
         output_config: Config ID (e.g., 'sd35_large')
-        safety_level: 'kids', 'youth', 'open', or 'off' (for metadata only)
+        safety_level: 'kids', 'youth', 'adult', or 'off' (for metadata only)
         run_id: Run identifier (required)
         seed: Optional seed (generates random if None)
         recorder: Optional LivePipelineRecorder instance (creates new if None)
@@ -2982,7 +2993,7 @@ async def execute_generation_stage4(
     Args:
         prompt: Input prompt for generation (German or English)
         output_config: Config ID (e.g., 'sd35_large')
-        safety_level: 'kids', 'youth', 'open', or 'off'
+        safety_level: 'kids', 'youth', 'adult', or 'off'
         seed: Optional seed (generates random if None)
         recorder: Optional LivePipelineRecorder instance (creates new if None)
         run_id: Optional run_id (creates new if None)
@@ -3156,7 +3167,7 @@ def legacy_workflow():
         "output_config": "surrealization_legacy",
         "seed": 123456,
         "alpha_factor": 0,  # Surrealizer-specific
-        "safety_level": "youth"  # kids, youth, or open
+        "safety_level": "youth"  # controlled by backend config.DEFAULT_SAFETY_LEVEL
     }
     """
     import time
@@ -3173,7 +3184,7 @@ def legacy_workflow():
         output_config = data.get('output_config')
         seed = data.get('seed')
         alpha_factor = data.get('alpha_factor')
-        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
+        safety_level = config.DEFAULT_SAFETY_LEVEL
 
         # Additional workflow-specific parameters
         mode = data.get('mode')  # For partial_elimination
@@ -3202,7 +3213,7 @@ def legacy_workflow():
         # ====================================================================
         logger.info(f"[LEGACY-ENDPOINT] Stage 1: Safety check (level: {safety_level})")
 
-        is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+        is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
             prompt,
             safety_level,
             'eco',
@@ -3214,7 +3225,8 @@ def legacy_workflow():
             return jsonify({
                 'status': 'blocked',
                 'stage': 1,
-                'reason': error_message
+                'reason': error_message,
+                'checks_passed': checks_passed
             }), 403
 
         logger.info(f"[LEGACY-ENDPOINT] Stage 1 PASSED")
@@ -3458,10 +3470,12 @@ def interception_pipeline():
                 }
             )
 
+        from config import DEFAULT_SAFETY_LEVEL as _default_safety
+
         schema_name = data.get('schema')
         input_text = data.get('input_text')
         execution_mode = data.get('execution_mode', 'eco')  # eco (local) or fast (cloud)
-        safety_level = data.get('safety_level', config.DEFAULT_SAFETY_LEVEL)
+        safety_level = _default_safety
 
         # Phase 2: Multilingual context editing support
         context_prompt = data.get('context_prompt')  # Optional: user-edited meta-prompt
@@ -3680,7 +3694,7 @@ def interception_pipeline():
                 logger.info(f"[OLLAMA-QUEUE] Unified Pipeline: Waiting for queue slot...")
                 with ollama_queue_semaphore:
                     logger.info(f"[OLLAMA-QUEUE] Unified Pipeline: Acquired slot, executing Stage 1")
-                    is_safe, checked_text, error_message = asyncio.run(execute_stage1_gpt_oss_unified(
+                    is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
                         input_text,
                         safety_level,
                         execution_mode,
@@ -3719,7 +3733,8 @@ def interception_pipeline():
                         'error': error_message,
                         'metadata': {
                             'stage': 'pre_interception',
-                            'safety_codes': ['§86a']  # Blocked by GPT-OSS §86a StGB check
+                            'safety_codes': ['§86a'],  # Blocked by GPT-OSS §86a StGB check
+                            'checks_passed': checks_passed
                         }
                     }), 403
 

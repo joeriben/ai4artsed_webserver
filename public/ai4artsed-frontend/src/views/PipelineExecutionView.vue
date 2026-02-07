@@ -100,11 +100,6 @@
             <option value="fast">{{ $t('executionModes.fast') }}</option>
             <option value="best">{{ $t('executionModes.best') }}</option>
           </select>
-          <select v-model="localSafetyLevel" class="setting-select">
-            <option value="kids">{{ $t('safetyLevels.kids') }}</option>
-            <option value="youth">{{ $t('safetyLevels.youth') }}</option>
-            <option value="adult">{{ $t('safetyLevels.adult') }}</option>
-          </select>
         </div>
       </div>
     </div>
@@ -150,7 +145,6 @@ const localUserInput = ref('')
 const localMetaPrompt = ref('')
 // DEPRECATED (Session 65): execution_mode no longer affects backend. TODO: Remove in cleanup.
 const localExecutionMode = ref<'eco' | 'fast' | 'best'>('eco')
-const localSafetyLevel = ref<'kids' | 'youth' | 'adult'>('kids')
 
 const isLoading = ref(false)
 const isExecuting = ref(false)
@@ -203,7 +197,6 @@ async function initializeView() {
   localUserInput.value = pipelineStore.userInput
   localMetaPrompt.value = pipelineStore.metaPrompt
   localExecutionMode.value = pipelineStore.executionMode
-  localSafetyLevel.value = pipelineStore.safetyLevel
 
   isLoading.value = false
 }
@@ -234,7 +227,6 @@ watch(localUserInput, (newValue) => pipelineStore.updateUserInput(newValue))
 watch(localMetaPrompt, (newValue) => pipelineStore.updateMetaPrompt(newValue))
 // DEPRECATED (Session 65): execution_mode no longer affects backend. TODO: Remove in cleanup.
 watch(localExecutionMode, (newValue) => pipelineStore.setExecutionMode(newValue))
-watch(localSafetyLevel, (newValue) => pipelineStore.setSafetyLevel(newValue))
 
 // ============================================================================
 // METHODS
@@ -256,7 +248,6 @@ async function handleExecute() {
       input_text: pipelineStore.userInput,
       user_language: userPreferences.language,
       execution_mode: pipelineStore.executionMode,
-      safety_level: pipelineStore.safetyLevel,
       // Include context_prompt if modified
       ...(pipelineStore.metaPromptModified && {
         context_prompt: pipelineStore.metaPrompt,

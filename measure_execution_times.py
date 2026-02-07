@@ -59,7 +59,6 @@ def measure_config_execution(config_id: str, num_runs: int = 3) -> dict:
         payload = {
             "user_input": TEST_PROMPT,
             "config_id": config_id,
-            "safety_level": "open",  # Use open for testing
         }
 
         # Measure execution time

@@ -682,12 +682,54 @@
 }
 
 /* Safety Approved Stamp */
-.safety-stamp {
+/* Granular Safety Badges */
+.safety-badges {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   justify-content: center;
   align-items: center;
 }
 
+.safety-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid #4CAF50;
+  border-radius: 6px;
+  animation: badge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badge-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.badge-icon {
+  font-size: 0.75rem;
+  color: #4CAF50;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.badge-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #4CAF50;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* Legacy stamp-inner/stamp-text used by LoRA and Wikipedia badges */
 .stamp-inner {
   display: flex;
   align-items: center;
@@ -813,45 +855,7 @@
   font-size: 0.85em;
 }
 
-/* ============================================================================
-   Translated Badge - Teal color scheme (Stage 3 translation indicator)
-   ============================================================================ */
-
-.translated-stamp {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.translated-stamp .stamp-inner {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.8rem, 2.5vw, 1.2rem);
-  background: rgba(0, 150, 136, 0.15);
-  border: 2px solid #009688;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0, 150, 136, 0.3);
-  animation: stamp-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.translated-stamp .stamp-icon {
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.translated-stamp .stamp-text {
-  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
-  font-weight: 700;
-  color: #009688;
-  text-align: center;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+/* Translated stamp removed — now part of granular safety badges */
 
 /* ============================================================================
    Phase 2b: Horizontal Pipeline

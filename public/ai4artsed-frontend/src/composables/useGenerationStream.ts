@@ -20,7 +20,6 @@ export interface GenerationParams {
   prompt: string
   output_config: string
   seed?: number | null
-  safety_level?: string
   input_text?: string
   context_prompt?: string
   interception_result?: string
@@ -66,6 +65,7 @@ export function useGenerationStream() {
   // Badge states
   const showSafetyApprovedStamp = ref(false)
   const showTranslatedStamp = ref(false)
+  const safetyChecks = ref<string[]>([])
 
   // Progress state
   const generationProgress = ref(0)
@@ -86,9 +86,6 @@ export function useGenerationStream() {
     // Optional params
     if (params.seed !== null && params.seed !== undefined) {
       queryParams.set('seed', String(params.seed))
-    }
-    if (params.safety_level) {
-      queryParams.set('safety_level', params.safety_level)
     }
     if (params.input_text) {
       queryParams.set('input_text', params.input_text)
@@ -186,7 +183,12 @@ export function useGenerationStream() {
         const data = JSON.parse(e.data)
         console.log('[GENERATION-STREAM] Stage 3 complete:', data)
 
-        // Trigger badges
+        // Merge Stage 3 checks into safety badges
+        if (data.checks_passed) {
+          safetyChecks.value = [...safetyChecks.value, ...data.checks_passed]
+        }
+
+        // Trigger legacy badges
         if (data.safe) {
           showSafetyApprovedStamp.value = true
         }
@@ -274,6 +276,7 @@ export function useGenerationStream() {
   function reset() {
     showSafetyApprovedStamp.value = false
     showTranslatedStamp.value = false
+    safetyChecks.value = []
     generationProgress.value = 0
     isExecuting.value = false
     currentStage.value = 'idle'
@@ -283,6 +286,7 @@ export function useGenerationStream() {
     // Badge states
     showSafetyApprovedStamp,
     showTranslatedStamp,
+    safetyChecks,
 
     // Progress states
     generationProgress,

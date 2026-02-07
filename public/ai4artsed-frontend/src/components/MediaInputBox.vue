@@ -163,6 +163,8 @@ const emit = defineEmits<{
   'stream-complete': [data: any]
   'stream-error': [error: string]
   'wikipedia-lookup': [data: { status: string; terms: Array<{ term: string; lang: string; title: string; url: string; success: boolean }> }]  // Session 139: Wikipedia lookup events (Session 136: with real URLs)
+  'stage-complete': [data: any]  // Stage 1 safety complete (with checks_passed)
+  'blocked': [data: any]  // Stage 1 safety blocked
 }>()
 
 // Expose refs for parent access (like MediaOutputBox)
@@ -287,6 +289,24 @@ function startStreaming() {
       })
     }
     emit('wikipedia-lookup', data)
+  })
+
+  // Forward stage_complete and blocked events (Stage 1 safety results)
+  eventSource.value.addEventListener('stage_complete', (event) => {
+    const data = JSON.parse(event.data)
+    console.log('[MediaInputBox] Stage complete:', data)
+    emit('stage-complete', data)
+  })
+
+  eventSource.value.addEventListener('blocked', (event) => {
+    const data = JSON.parse(event.data)
+    console.log('[MediaInputBox] Blocked:', data)
+    emit('blocked', data)
+    // Close stream on block
+    if (eventSource.value) {
+      eventSource.value.close()
+      eventSource.value = null
+    }
   })
 
   eventSource.value.addEventListener('chunk', (event) => {

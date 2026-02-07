@@ -331,7 +331,6 @@ async function executeWorkflow() {
     const response = await axios.post('/api/schema/pipeline/legacy', {
       prompt: inputText.value,
       output_config: selectedOutputConfig.value,
-      safety_level: 'open',
       alpha_factor: mappedAlpha.value,
       seed: currentSeed.value
     })

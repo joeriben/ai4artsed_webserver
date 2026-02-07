@@ -59,7 +59,6 @@ export interface PipelineExecuteRequest {
   user_input?: string // Original user input (for Phase 2 media generation)
   user_language?: 'de' | 'en'
   execution_mode?: 'eco' | 'fast' | 'best' // DEPRECATED (Session 65): Ignored by backend. TODO: Remove.
-  safety_level?: 'kids' | 'youth' | 'adult'
   context_prompt?: string // Optional: user-edited meta-prompt
   context_language?: 'de' | 'en' // Language of context_prompt
   custom_placeholders?: Record<string, string> // Optional: custom placeholder values for multi-stage workflows
@@ -128,7 +127,6 @@ export interface TransformRequest {
   input_text: string
   user_language: 'de' | 'en'
   execution_mode?: 'eco' | 'fast' | 'best' // DEPRECATED (Session 65): Ignored by backend. TODO: Remove.
-  safety_level?: 'kids' | 'youth' | 'adult'
   context_prompt?: string // Optional: user-edited meta-prompt
   context_language?: 'de' | 'en' // Language of context_prompt
   output_config?: string // Optional: Media type selection for Stage 2 optimization (Session 58)
@@ -379,21 +377,6 @@ export async function getModelAvailability(): Promise<ModelAvailabilityResponse>
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
-}
-
-// ============================================================================
-// PUBLIC DEFAULTS
-// ============================================================================
-
-export interface PublicDefaults {
-  DEFAULT_SAFETY_LEVEL: 'kids' | 'youth' | 'adult' | 'off'
-  DEFAULT_LANGUAGE: 'de' | 'en'
-  UI_MODE: string
-}
-
-export async function getPublicDefaults(): Promise<PublicDefaults> {
-  const response = await apiClient.get<PublicDefaults>('/api/settings/defaults')
-  return response.data
 }
 
 // ============================================================================
