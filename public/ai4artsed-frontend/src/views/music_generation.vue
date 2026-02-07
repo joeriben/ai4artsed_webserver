@@ -8,6 +8,7 @@
       <section class="input-section" ref="inputSectionRef">
         <!-- Lyrics Input (TEXT_1) -->
         <MediaInputBox
+          ref="lyricsBoxRef"
           icon="💡"
           :label="$t('musicGen.lyricsLabel')"
           :placeholder="$t('musicGen.lyricsPlaceholder')"
@@ -24,6 +25,7 @@
 
         <!-- Tags Input (TEXT_2) -->
         <MediaInputBox
+          ref="tagsBoxRef"
           icon="📋"
           :label="$t('musicGen.tagsLabel')"
           :placeholder="$t('musicGen.tagsPlaceholder')"
@@ -43,8 +45,8 @@
       <div class="start-button-container">
         <button
           class="start-button"
-          :class="{ disabled: !lyricsInput }"
-          :disabled="!lyricsInput"
+          :class="{ disabled: !lyricsInput || lyricsBoxRef?.isCheckingSafety || tagsBoxRef?.isCheckingSafety }"
+          :disabled="!lyricsInput || lyricsBoxRef?.isCheckingSafety || tagsBoxRef?.isCheckingSafety"
           @click="runDualInterception()"
         >
           <span class="button-arrows button-arrows-left">>>></span>
@@ -184,8 +186,8 @@
       <div class="start-button-container">
         <button
           class="start-button"
-          :class="{ disabled: !canGenerate }"
-          :disabled="!canGenerate"
+          :class="{ disabled: !canGenerate || lyricsBoxRef?.isCheckingSafety || tagsBoxRef?.isCheckingSafety }"
+          :disabled="!canGenerate || lyricsBoxRef?.isCheckingSafety || tagsBoxRef?.isCheckingSafety"
           @click="startGeneration()"
           ref="startButtonRef"
         >
@@ -194,8 +196,6 @@
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
 
-        <!-- Safety Badges -->
-        <SafetyBadges v-if="safetyChecks.length > 0" :checks="safetyChecks" />
       </div>
 
       <!-- OUTPUT BOX -->
@@ -229,7 +229,6 @@ import type { PageContext, FocusHint } from '@/composables/usePageContext'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
-import SafetyBadges from '@/components/SafetyBadges.vue'
 import '@/assets/animations.css'
 
 // ============================================================================
@@ -268,6 +267,8 @@ const pipelineStore = usePipelineExecutionStore()
 // Refs
 const mainContainerRef = ref<HTMLElement | null>(null)
 const inputSectionRef = ref<HTMLElement | null>(null)
+const lyricsBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
+const tagsBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
 const interceptionSectionRef = ref<HTMLElement | null>(null)
 const startButtonRef = ref<HTMLButtonElement | null>(null)
 const outputSectionRef = ref<InstanceType<typeof MediaOutputBox> | null>(null)
@@ -321,7 +322,6 @@ const estimatedGenerationSeconds = ref(180)
 const outputAudio = ref<string | null>(null)
 const currentRunId = ref<string | null>(null)
 const executionPhase = ref<ExecutionPhase>('initial')
-const safetyChecks = ref<string[]>([])
 // Favorites
 const isFavorited = ref(false)
 
@@ -545,8 +545,6 @@ async function startGeneration() {
   executionPhase.value = 'generating'
   outputAudio.value = null
   generationProgress.value = 0
-  safetyChecks.value = ['§86a', 'age_filter', 'dsgvo_ner']
-
   // Use refined lyrics if available, otherwise original
   const finalLyrics = refinedLyrics.value || lyricsInput.value
 
@@ -593,7 +591,6 @@ async function startGeneration() {
     clearInterval(progressInterval)
     generationProgress.value = 100
     isGenerating.value = false
-    safetyChecks.value = []
 
     // Scroll to output
     nextTick(() => {

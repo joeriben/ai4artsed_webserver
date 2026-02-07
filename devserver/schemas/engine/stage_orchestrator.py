@@ -17,6 +17,52 @@ import time as _time
 logger = logging.getLogger(__name__)
 
 # ============================================================================
+# FUZZY MATCHING: Levenshtein distance for typo-resilient filter lists
+# ============================================================================
+
+def _levenshtein(s1: str, s2: str) -> int:
+    """Simple Levenshtein distance (stdlib-only, no dependencies)"""
+    if len(s1) < len(s2):
+        return _levenshtein(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+    prev_row = list(range(len(s2) + 1))
+    for i, c1 in enumerate(s1):
+        curr_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            curr_row.append(min(
+                prev_row[j + 1] + 1,   # insertion
+                curr_row[j] + 1,        # deletion
+                prev_row[j] + (c1 != c2)  # substitution
+            ))
+        prev_row = curr_row
+    return prev_row[-1]
+
+
+def _fuzzy_contains(text_lower: str, term: str, max_distance: int = 2) -> bool:
+    """Check if any word/phrase in text fuzzy-matches term within Levenshtein distance"""
+    term_len = len(term)
+    words = text_lower.split()
+
+    if ' ' in term:
+        # Multi-word term (e.g., "heil hitler"): check word combinations
+        term_word_count = len(term.split())
+        for i in range(len(words)):
+            for j in range(i + 1, min(i + term_word_count + 1, len(words) + 1)):
+                combo = ' '.join(words[i:j])
+                if abs(len(combo) - term_len) <= max_distance:
+                    if _levenshtein(combo, term) <= max_distance:
+                        return True
+    else:
+        # Single-word term: check each word individually
+        for word in words:
+            if abs(len(word) - term_len) <= max_distance:
+                if _levenshtein(word, term) <= max_distance:
+                    return True
+    return False
+
+
+# ============================================================================
 # SPACY NER: DSGVO Personal Data Detection
 # ============================================================================
 
@@ -190,8 +236,9 @@ def load_bilingual_86a_terms() -> List[str]:
 
 def fast_filter_bilingual_86a(text: str) -> Tuple[bool, List[str]]:
     """
-    Fast bilingual string-matching for critical §86a terms (~0.001s)
-    Works on both German (pre-translation) and English (post-translation) text
+    Fuzzy bilingual matching for critical §86a terms (~1-5ms)
+    Uses Levenshtein distance for terms >= 6 chars to catch misspellings.
+    Works on both German (pre-translation) and English (post-translation) text.
 
     Returns:
         (has_terms, found_terms) - True if §86a critical terms found
@@ -202,13 +249,24 @@ def fast_filter_bilingual_86a(text: str) -> Tuple[bool, List[str]]:
         return (False, [])
 
     text_lower = text.lower()
-    found_terms = [term for term in terms_list if term.lower() in text_lower]
+    found_terms = []
+    for term in terms_list:
+        term_lower = term.lower()
+        if len(term_lower) >= 6:
+            # Long unambiguous terms: fuzzy match (catches svastika, hakenkreutz, etc.)
+            if _fuzzy_contains(text_lower, term_lower, max_distance=2):
+                found_terms.append(term)
+        else:
+            # Short terms: exact substring match only (too many false positives otherwise)
+            if term_lower in text_lower:
+                found_terms.append(term)
 
     return (len(found_terms) > 0, found_terms)
 
 def fast_filter_check(prompt: str, safety_level: str) -> Tuple[bool, List[str]]:
     """
-    Fast string-matching against filter lists (~0.001s)
+    Fuzzy matching against filter lists (~1-5ms)
+    Uses Levenshtein distance for terms >= 6 chars to catch misspellings.
 
     Returns:
         (has_terms, found_terms) - True if problematic terms found
@@ -221,7 +279,17 @@ def fast_filter_check(prompt: str, safety_level: str) -> Tuple[bool, List[str]]:
         return (False, [])
 
     prompt_lower = prompt.lower()
-    found_terms = [term for term in terms_list if term.lower() in prompt_lower]
+    found_terms = []
+    for term in terms_list:
+        term_lower = term.lower()
+        if len(term_lower) >= 6:
+            # Long unambiguous terms: fuzzy match
+            if _fuzzy_contains(prompt_lower, term_lower, max_distance=2):
+                found_terms.append(term)
+        else:
+            # Short terms: exact substring match only
+            if term_lower in prompt_lower:
+                found_terms.append(term)
 
     return (len(found_terms) > 0, found_terms)
 

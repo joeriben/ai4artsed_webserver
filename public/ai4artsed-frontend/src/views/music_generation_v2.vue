@@ -10,6 +10,7 @@
 
         <!-- Lyrics Input -->
         <MediaInputBox
+          ref="lyricsBoxRef"
           icon="💡"
           :label="$t('musicGenV2.lyricsInput')"
           :placeholder="$t('musicGenV2.lyricsPlaceholder')"
@@ -27,7 +28,7 @@
           <button
             class="action-chip"
             :class="{ active: activeLyricsAction === 'expand', disabled: !lyricsInput }"
-            :disabled="!lyricsInput || isLyricsProcessing"
+            :disabled="!lyricsInput || isLyricsProcessing || lyricsBoxRef?.isCheckingSafety"
             @click="runLyricsAction('expand')"
           >
             {{ $t('musicGenV2.themeToLyrics') }}
@@ -35,7 +36,7 @@
           <button
             class="action-chip"
             :class="{ active: activeLyricsAction === 'refine', disabled: !lyricsInput }"
-            :disabled="!lyricsInput || isLyricsProcessing"
+            :disabled="!lyricsInput || isLyricsProcessing || lyricsBoxRef?.isCheckingSafety"
             @click="runLyricsAction('refine')"
           >
             {{ $t('musicGenV2.refineLyrics') }}
@@ -151,8 +152,8 @@
         </div>
         <button
           class="start-button"
-          :class="{ disabled: !canGenerate }"
-          :disabled="!canGenerate"
+          :class="{ disabled: !canGenerate || lyricsBoxRef?.isCheckingSafety }"
+          :disabled="!canGenerate || lyricsBoxRef?.isCheckingSafety"
           @click="startGeneration"
         >
           <span class="button-arrows button-arrows-left">>>></span>
@@ -160,8 +161,6 @@
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
 
-        <!-- Safety Badges -->
-        <SafetyBadges v-if="safetyChecks.length > 0" :checks="safetyChecks" />
       </div>
 
       <!-- OUTPUT -->
@@ -194,7 +193,6 @@ import type { PageContext, FocusHint } from '@/composables/usePageContext'
 import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
-import SafetyBadges from '@/components/SafetyBadges.vue'
 import MusicTagSelector from '@/components/MusicTagSelector.vue'
 import type { DimensionConfig } from '@/components/MusicTagSelector.vue'
 import { useI18n } from 'vue-i18n'
@@ -318,7 +316,6 @@ const generationProgress = ref(0)
 const estimatedGenerationSeconds = ref(180)
 const outputAudio = ref<string | null>(null)
 const currentRunId = ref<string | null>(null)
-const safetyChecks = ref<string[]>([])
 const isFavorited = ref(false)
 const audioLengthSeconds = ref(200)
 const temperature = ref(1.0)
@@ -338,6 +335,7 @@ const audioLengthDisplay = computed(() => {
 // ============================================================================
 
 const mainContainerRef = ref<HTMLElement | null>(null)
+const lyricsBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
 const outputSectionRef = ref<InstanceType<typeof MediaOutputBox> | null>(null)
 
 // ============================================================================
@@ -509,8 +507,6 @@ async function runSingleGeneration() {
   isGenerating.value = true
   outputAudio.value = null
   generationProgress.value = 0
-  safetyChecks.value = ['§86a', 'age_filter', 'dsgvo_ner']
-
   const finalLyrics = effectiveLyrics.value
   const finalTags = compiledTags.value
 
@@ -552,7 +548,6 @@ async function runSingleGeneration() {
     clearInterval(progressInterval)
     generationProgress.value = 100
     isGenerating.value = false
-    safetyChecks.value = []
 
     nextTick(() => {
       if (outputSectionRef.value) {

@@ -55,9 +55,6 @@
       </div>
     </div>
 
-    <!-- Stage 1+2 Safety Badges (OO: rendered inside the box that owns the SSE stream) -->
-    <SafetyBadges v-if="checkedItems.length > 0" :checks="checkedItems" />
-
     <!-- Loading Overlay -->
     <div v-if="isLoading" class="preview-loading">
       <div class="spinner-large" :class="{ queued: queueStatus === 'waiting' }"></div>
@@ -75,6 +72,7 @@
       @input="handleInput"
       @focus="handleFocus"
       @blur="handleBlur"
+      @paste="handlePaste"
       :placeholder="placeholder"
       :rows="rows"
       :disabled="disabled"
@@ -94,7 +92,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
-import SafetyBadges from './SafetyBadges.vue'
 import { useSafetyEventStore } from '@/stores/safetyEvent'
 
 const safetyStore = useSafetyEventStore()
@@ -111,9 +108,9 @@ const isFirstChunkReceived = ref(false)
 const chunkBuffer = ref<string[]>([])
 let bufferInterval: number | null = null
 
-// Safety badge state (Stage 1+2 badges rendered internally)
-const checkedItems = ref<string[]>([])
-const isBlocked = ref(false)
+// Autonomous safety state (fuzzy filter + NER + LLM on blur/paste)
+const safetyResult = ref<{ safe: boolean; checks: string[]; error?: string } | null>(null)
+const isCheckingSafety = ref(false)
 
 // Queue state
 const queueStatus = ref<'idle' | 'waiting' | 'acquired'>('idle')
@@ -174,14 +171,14 @@ const emit = defineEmits<{
   'stream-complete': [data: any]
   'stream-error': [error: string]
   'wikipedia-lookup': [data: { status: string; terms: Array<{ term: string; lang: string; title: string; url: string; success: boolean }> }]  // Session 139: Wikipedia lookup events (Session 136: with real URLs)
-  'stage-complete': [data: any]  // Stage 1 safety complete (with checks_passed)
-  'blocked': [data: any]  // Stage 1 safety blocked
 }>()
 
 // Expose refs for parent access (like MediaOutputBox)
 defineExpose({
   inputBoxRef,
-  textareaRef
+  textareaRef,
+  safetyResult,
+  isCheckingSafety
 })
 
 // Computed Properties
@@ -205,10 +202,58 @@ function handleFocus() {
   emit('focus')
 }
 
-// Session 130: Emit blur event for prompt logging
+// Session 130: Emit blur event for prompt logging + autonomous safety check
 function handleBlur(event: Event) {
   const target = event.target as HTMLTextAreaElement
   emit('blur', target.value)
+  checkSafety()
+}
+
+// Paste handler: check safety after pasted content is applied
+function handlePaste() {
+  nextTick(() => checkSafety())
+}
+
+// Autonomous safety check (called on blur + paste — NOT on stream-complete)
+// "Guilty until proven innocent": clears value immediately, restores only if safe.
+// This prevents race conditions where a click fires before the async check returns.
+async function checkSafety() {
+  const text = props.value?.trim()
+  if (!text || props.inputType !== 'text' || props.disabled) return
+
+  isCheckingSafety.value = true
+  const savedText = text
+
+  // Immediately withdraw content — parent sees '' until check passes
+  emit('update:value', '')
+
+  try {
+    const baseUrl = import.meta.env.DEV ? 'http://localhost:17802' : ''
+    const res = await fetch(`${baseUrl}/api/schema/pipeline/safety/quick`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: savedText })
+    })
+    const data = await res.json()
+    safetyResult.value = {
+      safe: data.safe,
+      checks: data.checks_passed || [],
+      error: data.error_message || undefined
+    }
+    if (data.safe) {
+      // Passed — restore content
+      emit('update:value', savedText)
+    } else {
+      // Blocked — content stays empty, Trashy explains why
+      safetyStore.reportBlock(1, data.error_message || 'Inhalt blockiert', [])
+    }
+  } catch {
+    // Network error → fail-open, restore content
+    emit('update:value', savedText)
+    safetyResult.value = { safe: true, checks: [] }
+  } finally {
+    isCheckingSafety.value = false
+  }
 }
 
 function handleImageUpload(data: any) {
@@ -248,8 +293,7 @@ function startStreaming() {
   isStreamComplete.value = false
   isFirstChunkReceived.value = false
   chunkBuffer.value = []
-  checkedItems.value = []
-  isBlocked.value = false
+  safetyResult.value = null
   queueStatus.value = 'idle'
   queueMessage.value = ''
 
@@ -304,28 +348,6 @@ function startStreaming() {
     emit('wikipedia-lookup', data)
   })
 
-  // Forward stage_complete and blocked events (Stage 1 safety results)
-  eventSource.value.addEventListener('stage_complete', (event) => {
-    const data = JSON.parse(event.data)
-    console.log('[MediaInputBox] Stage complete:', data)
-    // OO: extract checks_passed into internal badge state
-    if (data.checks_passed) {
-      checkedItems.value = [...checkedItems.value, ...data.checks_passed]
-    }
-    emit('stage-complete', data)
-  })
-
-  eventSource.value.addEventListener('blocked', (event) => {
-    const data = JSON.parse(event.data)
-    console.log('[MediaInputBox] Blocked:', data)
-    // Mark as intentionally closed (prevents "Streaming-Fehler" alert)
-    isBlocked.value = true
-    // Centralized: report block to safetyStore (Trashy integration)
-    safetyStore.reportBlock(data.stage || 1, data.reason || data.message || 'Inhalt blockiert', data.found_terms || [])
-    emit('blocked', data)  // Views still need this for loading-state reset
-    closeStream()
-  })
-
   eventSource.value.addEventListener('chunk', (event) => {
     const data = JSON.parse(event.data)
     console.log('[MediaInputBox] Chunk received:', data.chunk_count, 'text:', data.text_chunk)
@@ -364,6 +386,8 @@ function startStreaming() {
           emit('update:value', streamedValue.value)
         }
         emit('stream-complete', data)
+        // System-generated text is safe by definition — no checkSafety() here.
+        // Safety only runs on user actions (blur, paste).
         stopBufferProcessor()
         clearInterval(checkBufferComplete)
       }
@@ -371,9 +395,9 @@ function startStreaming() {
   })
 
   eventSource.value.addEventListener('error', (event) => {
-    // Ignore error if stream already completed successfully or was intentionally blocked
-    if (isStreamComplete.value || isBlocked.value) {
-      console.log('[MediaInputBox] Ignoring error after', isBlocked.value ? 'block' : 'completion')
+    // Ignore error if stream already completed successfully
+    if (isStreamComplete.value) {
+      console.log('[MediaInputBox] Ignoring error after completion')
       return
     }
 

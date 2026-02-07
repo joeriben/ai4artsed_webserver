@@ -8,6 +8,7 @@
         <section class="input-context-section" ref="inputSectionRef">
           <!-- Input Bubble -->
           <MediaInputBox
+            ref="inputBoxRef"
             icon="💡"
             :label="$t('textTransform.inputLabel')"
             :placeholder="$t('textTransform.inputPlaceholder')"
@@ -24,6 +25,7 @@
 
           <!-- Context Bubble -->
           <MediaInputBox
+            ref="contextBoxRef"
             icon="📋"
             :label="$t('textTransform.contextLabel')"
             :placeholder="$t('textTransform.contextPlaceholder')"
@@ -44,8 +46,8 @@
         <div class="start-button-container">
           <button
             class="start-button"
-            :class="{ disabled: !inputText }"
-            :disabled="!inputText"
+            :class="{ disabled: !inputText || inputBoxRef?.isCheckingSafety || contextBoxRef?.isCheckingSafety }"
+            :disabled="!inputText || inputBoxRef?.isCheckingSafety || contextBoxRef?.isCheckingSafety"
             @click="runInterception()"
           >
             <span class="button-arrows button-arrows-left">>>></span>
@@ -111,7 +113,6 @@
             @stream-started="handleStreamStarted"
             @stream-complete="handleStreamComplete"
             @stream-error="handleStreamError"
-            @blocked="handleBlocked"
             @wikipedia-lookup="handleWikipediaLookup"
             @copy="copyInterceptionResult"
             @paste="pasteInterceptionResult"
@@ -572,6 +573,8 @@ const startButtonRef = ref<HTMLElement | null>(null)
 const pipelineSectionRef = ref<any>(null) // MediaOutputBox component instance
 const categorySectionRef = ref<HTMLElement | null>(null)
 const inputSectionRef = ref<HTMLElement | null>(null)
+const inputBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
+const contextBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
 const interceptionSectionRef = ref<HTMLElement | null>(null)
 const optimizationSectionRef = ref<HTMLElement | null>(null)
 
@@ -1375,12 +1378,6 @@ async function runOptimization() {
 }
 
 // Streaming event handlers
-// Stage 1 safety complete — merge checks_passed into badges
-// Stage 1 safety blocked — reset loading state (safetyStore.reportBlock now handled by MediaInputBox)
-function handleBlocked(_data: any) {
-  isInterceptionLoading.value = false
-}
-
 function handleStreamStarted() {
   console.log('[Stream] First chunk received, hiding spinner')
   isInterceptionLoading.value = false  // Hide spinner, show typewriter effect

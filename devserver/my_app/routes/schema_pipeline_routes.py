@@ -25,7 +25,10 @@ from schemas.engine.stage_orchestrator import (
     execute_stage1_gpt_oss_unified,
     execute_stage3_safety,
     execute_stage3_safety_code,
-    build_safety_message
+    build_safety_message,
+    fast_filter_bilingual_86a,
+    fast_filter_check,
+    fast_dsgvo_check
 )
 
 # Execution History Tracking (OLD - DEPRECATED in Session 29)
@@ -1388,7 +1391,7 @@ def execute_pipeline_streaming(data: dict):
     Architecture: DevServer = Smart Orchestrator | Frontend = Dumb Display
 
     Stages:
-        Stage 1: Safety Check (ALWAYS FIRST, synchronous ~8s)
+        Stage 1: Safety Check — handled autonomously by MediaInputBox via /safety/quick
         Stage 2: Interception (streaming, character-by-character)
     """
     import time
@@ -1411,7 +1414,7 @@ def execute_pipeline_streaming(data: dict):
     logger.info(f"[UNIFIED-STREAMING] Schema: {schema_name}, Safety: {safety_level}, Mode: {execution_mode}, Device: {device_id}")
 
     # Initialize recorder for export functionality
-    from config import JSON_STORAGE_DIR, STAGE1_TEXT_MODEL, STAGE2_INTERCEPTION_MODEL
+    from config import JSON_STORAGE_DIR, STAGE2_INTERCEPTION_MODEL
     recorder = get_recorder(
         run_id=run_id,
         config_name=schema_name,
@@ -1422,8 +1425,8 @@ def execute_pipeline_streaming(data: dict):
     )
 
     # Track LLM models used at each stage
+    # NOTE: Stage 1 safety is now handled by MediaInputBox via /safety/quick (no LLM)
     recorder.metadata['models_used'] = {
-        'stage1_safety': STAGE1_TEXT_MODEL,
         'stage2_interception': STAGE2_INTERCEPTION_MODEL
     }
     recorder._save_metadata()
@@ -1442,103 +1445,13 @@ def execute_pipeline_streaming(data: dict):
         yield generate_sse_event('connected', {
             'run_id': run_id,
             'schema': schema_name,
-            'stages': 2
+            'stages': 1
         })
         yield ''  # Force flush
 
-        # ====================================================================
-        # STAGE 1: SAFETY CHECK (ALWAYS FIRST, synchronous)
-        # ====================================================================
-        yield generate_sse_event('stage_start', {
-            'stage': 1,
-            'name': 'Sicherheitsprüfung',
-            'description': '§86a StGB Check'
-        })
-        yield ''
-
-        logger.info(f"[UNIFIED-STREAMING] Stage 1: Running safety check")
-
-        stage1_start = time.time()
-        
-        # OLLAMA QUEUE: Wrap Stage 1 execution with feedback loop
-        logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Entering queue...")
-        
-        queue_start = time.time()
-        acquired = False
-        
-        # Send initial waiting event
-        yield generate_sse_event('queue_status', {
-            'status': 'waiting',
-            'message': 'Warte auf freien Slot in der Verarbeitung...',
-            'run_id': run_id,
-            'wait_time_ms': 0
-        })
-        yield ''
-        
-        while not acquired:
-            acquired = ollama_queue_semaphore.acquire(blocking=False)
-            if not acquired:
-                wait_ms = int((time.time() - queue_start) * 1000)
-                time.sleep(1)
-                yield generate_sse_event('queue_status', {
-                    'status': 'waiting',
-                    'message': f'Warte auf freien Slot... ({int(wait_ms/1000)}s)',
-                    'run_id': run_id,
-                    'wait_time_ms': wait_ms
-                })
-                yield ''
-        
-        try:
-            logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Acquired slot after {(time.time() - queue_start):.2f}s")
-            
-            # Send acquired event
-            yield generate_sse_event('queue_status', {
-                'status': 'acquired',
-                'message': 'Verarbeitung gestartet',
-                'run_id': run_id
-            })
-            yield ''
-            
-            is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
-                input_text,
-                safety_level,
-                execution_mode,
-                pipeline_executor
-            ))
-        finally:
-            ollama_queue_semaphore.release()
-            logger.info(f"[OLLAMA-QUEUE] Stream {run_id}: Released slot")
-
-        stage1_time = (time.time() - stage1_start) * 1000  # ms
-
-        if not is_safe:
-            # BLOCKED by Stage 1 - DevServer decides to abort
-            logger.warning(f"[UNIFIED-STREAMING] Stage 1 BLOCKED for run {run_id}")
-            yield generate_sse_event('blocked', {
-                'stage': 1,
-                'reason': error_message,
-                'message': error_message,
-                'run_id': run_id,
-                'checks_passed': checks_passed
-            })
-            yield ''
-            return  # STOP - no Stage 2
-
-        logger.info(f"[UNIFIED-STREAMING] Stage 1 PASSED for run {run_id}")
-        yield generate_sse_event('stage_complete', {
-            'stage': 1,
-            'text': checked_text,
-            'duration_ms': stage1_time,
-            'checks_passed': checks_passed
-        })
-        yield ''
-
-        # Save safety result to prompting_process subfolder
-        recorder.save_to_prompting_process('safety', json.dumps({
-            'passed': True,
-            'level': safety_level,
-            'duration_ms': stage1_time
-        }, indent=2))
+        # NOTE: Stage 1 safety is now handled autonomously by each MediaInputBox
+        # (2+1-Phasen-Safety via /api/schema/pipeline/safety/quick on blur/stream-complete).
+        # The streaming pipeline starts directly with interception.
 
         # ====================================================================
         # STAGE 2: INTERCEPTION (Character-by-Character Streaming)
@@ -1572,7 +1485,7 @@ def execute_pipeline_streaming(data: dict):
         def run_pipeline():
             result_holder[0] = asyncio.run(pipeline_executor.execute_pipeline(
                 config_name=schema_name,
-                input_text=checked_text,
+                input_text=input_text,
                 user_input=input_text,
                 execution_mode=execution_mode,
                 safety_level=safety_level,
@@ -1987,6 +1900,154 @@ def safety_check():
     except Exception as e:
         logger.error(f"[SAFETY-ENDPOINT] Error: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@schema_bp.route('/pipeline/safety/quick', methods=['POST'])
+def safety_check_quick():
+    """
+    Safety check: fuzzy filters + SpaCy NER + LLM verification.
+
+    Used by MediaInputBox autonomous safety (on blur/paste).
+    Phase 1: §86a fuzzy → instant block (no LLM).
+    Phase 2: Age-filter / DSGVO NER → if flagged, LLM verifies before blocking.
+
+    Request Body: { "text": "Text to check" }
+    Response: { "safe": bool, "checks_passed": [...], "error_message": str|null }
+    """
+    import requests as http_requests
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
+
+        text = data.get('text', '').strip()
+        if not text:
+            return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
+
+        safety_level = config.DEFAULT_SAFETY_LEVEL
+        checks_passed = []
+
+        # Phase 1a: §86a fuzzy filter — instant block, no LLM needed
+        has_86a, found_86a = fast_filter_bilingual_86a(text)
+        if has_86a:
+            logger.warning(f"[SAFETY-QUICK] §86a BLOCKED: {found_86a[:3]}")
+            return jsonify({
+                'safe': False,
+                'checks_passed': ['§86a'],
+                'error_message': f'§86a StGB: {", ".join(found_86a[:3])}'
+            })
+        checks_passed.append('§86a')
+
+        # Collect flags from fast filters for potential LLM verification
+        flags = []
+
+        # Phase 1b: Age-appropriate filter (if applicable)
+        if safety_level not in ('off', 'adult'):
+            has_age, found_age = fast_filter_check(text, safety_level)
+            if has_age:
+                flags.append(('age_filter', found_age[:3]))
+            else:
+                checks_passed.append('age_filter')
+
+        # Phase 2: DSGVO SpaCy NER
+        has_pii, found_pii, spacy_ok = fast_dsgvo_check(text)
+        if spacy_ok and has_pii:
+            flags.append(('dsgvo_ner', found_pii[:3]))
+        elif spacy_ok:
+            checks_passed.append('dsgvo_ner')
+
+        # Phase 3: LLM verification — only if fast filters flagged something
+        if flags:
+            flag_desc = "; ".join(
+                f"{name}: {', '.join(terms)}" for name, terms in flags
+            )
+            logger.info(f"[SAFETY-QUICK] Flags raised: {flag_desc} — asking LLM")
+
+            llm_safe = _safety_llm_verify(text, flags, http_requests)
+
+            if llm_safe:
+                logger.info(f"[SAFETY-QUICK] LLM overruled flags — SAFE")
+                for name, _ in flags:
+                    checks_passed.append(name)
+                checks_passed.append('llm_verify')
+            else:
+                # LLM confirmed the flags — block
+                first_flag_name, first_flag_terms = flags[0]
+                label = 'Altersfilter' if first_flag_name == 'age_filter' else 'DSGVO'
+                logger.warning(f"[SAFETY-QUICK] LLM confirmed flags — BLOCKED")
+                return jsonify({
+                    'safe': False,
+                    'checks_passed': checks_passed + [name for name, _ in flags] + ['llm_verify'],
+                    'error_message': f'{label}: {", ".join(first_flag_terms)}'
+                })
+
+        return jsonify({'safe': True, 'checks_passed': checks_passed, 'error_message': None})
+
+    except Exception as e:
+        logger.error(f"[SAFETY-QUICK] Error: {e}")
+        # Fail-open on error
+        return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
+
+
+def _safety_llm_verify(text: str, flags: list, http_requests) -> bool:
+    """
+    Ask the safety LLM whether flagged content is actually unsafe.
+
+    Returns True if SAFE, False if BLOCKED.
+    Fail-open on error (returns True).
+    """
+    flag_desc = "\n".join(
+        f"- {name}: {', '.join(terms)}" for name, terms in flags
+    )
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a safety classifier for an educational art platform used by children and youth. "
+                "Fast filters have flagged potential issues in user text. Your job is to verify whether "
+                "the flagged content is genuinely problematic or a false positive.\n\n"
+                "Rules:\n"
+                "- age_filter flags: Block if genuinely age-inappropriate (violence, sexual, drugs, weapons). "
+                "Allow if harmless (e.g. fairy tales, place names, common expressions).\n"
+                "- dsgvo_ner flags: Block if text contains real personal data (full name + address, phone, email). "
+                "Allow if fictional characters, public figures in educational context, or place names without personal data.\n\n"
+                "Respond with exactly one word: SAFE or BLOCKED"
+            )
+        },
+        {
+            "role": "user",
+            "content": f"Text: \"{text}\"\n\nFlags raised:\n{flag_desc}\n\nVerdict:"
+        }
+    ]
+
+    try:
+        ollama_url = config.OLLAMA_API_BASE_URL
+        payload = {
+            "model": config.SAFETY_MODEL,
+            "messages": messages,
+            "stream": False,
+            "options": {
+                "temperature": 0.0,
+                "num_predict": 10
+            }
+        }
+
+        response = http_requests.post(f"{ollama_url}/api/chat", json=payload, timeout=30)
+
+        if response.status_code == 200:
+            result = response.json()
+            content = result["message"]["content"].strip().upper()
+            logger.info(f"[SAFETY-QUICK-LLM] Model response: {content}")
+            return "SAFE" in content
+        else:
+            logger.error(f"[SAFETY-QUICK-LLM] API Error: {response.status_code}")
+            return True  # Fail-open
+
+    except Exception as e:
+        logger.error(f"[SAFETY-QUICK-LLM] Error: {e}")
+        return True  # Fail-open
 
 
 @schema_bp.route('/pipeline/translate', methods=['POST'])
