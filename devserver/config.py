@@ -131,6 +131,9 @@ ANALYSIS_MODEL = "local/llama3.2-vision:latest"
 TRANSLATION_MODEL = GPT_OSS_MODEL  # GPT-OSS replaces mistral-nemo
 SAFETY_MODEL = GPT_OSS_MODEL
 
+# Post-Generation VLM Safety Check (runs after Stage 4, before 'complete' event)
+VLM_SAFETY_MODEL = "qwen3-vl:2b"  # Local VLM for post-generation image safety check
+
 # Stage 5: Image Analysis (Reflexions-Stage) - Post-Generation Analysis
 IMAGE_ANALYSIS_MODEL = "local/llama3.2-vision:latest"  # Reuses existing LLaVA model for pedagogical image analysis
 

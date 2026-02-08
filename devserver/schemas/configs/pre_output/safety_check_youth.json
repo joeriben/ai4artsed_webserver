@@ -1,9 +1,15 @@
 {
-  "name": "safety_check_youth",
-  "description": "Pre-Output: Safety Check für Jugendliche (Youth Filter - moderat)",
-  "pipeline": "text_transformation",
-  "chunks": ["safety_check_youth"],
+  "name": {
+    "en": "Pre-Output: Safety Check for Youth",
+    "de": "Vor-Ausgabe: Sicherheitsprüfung für Jugendliche"
+  },
+  "description": {
+    "en": "Pre-Output: Safety check for youth (moderate filter)",
+    "de": "Pre-Output: Safety Check für Jugendliche (Youth Filter - moderat)"
+  },
+  "pipeline": "safety_check",
   "parameters": {
+    "SAFETY_CHUNK": "safety_check_youth",
     "temperature": 0.1,
     "top_p": 0.9,
     "keep_alive": "10m"

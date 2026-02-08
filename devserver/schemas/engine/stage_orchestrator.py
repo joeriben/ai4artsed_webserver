@@ -78,10 +78,6 @@ _SPACY_MODEL_NAMES = [
     'xx_ent_wiki_sm',    # Multilingual fallback (catches foreign names)
 ]
 
-# Regex patterns for DSGVO-relevant data that SpaCy doesn't catch
-_EMAIL_REGEX = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b')
-_PHONE_REGEX = re.compile(r'(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,5}\)?[-.\s]?\d{3,}[-.\s]?\d{2,}')
-_ADDRESS_REGEX = re.compile(r'\b(?:[A-ZÄÖÜ][a-zäöüß]+(?:straße|str\.|weg|gasse|allee|platz|ring|damm|ufer))\s+\d+\b', re.IGNORECASE)
 
 def _load_spacy_models() -> List:
     """Load all SpaCy NER models (called once, cached)"""
@@ -117,19 +113,19 @@ def _load_spacy_models() -> List:
 
 def fast_dsgvo_check(text: str) -> Tuple[bool, List[str], bool]:
     """
-    Fast DSGVO personal data check using SpaCy NER + regex (~12-60ms)
+    Fast DSGVO personal name check using SpaCy NER (~12-60ms)
 
     Runs ALL loaded language models over the text and unions results.
     Reason: A Turkish name in German text needs the multilingual model.
 
-    Detects:
+    Detects ONLY:
     - PER: Person names (first + last name combinations)
-    - LOC with house numbers: Addresses
-    - Email addresses (regex)
-    - Phone numbers (regex)
+
+    Addresses, emails, phone numbers are NOT checked here — they are
+    not DSGVO-relevant without an associated personal name.
 
     Returns:
-        (has_personal_data, found_entities, spacy_available) - True if DSGVO-relevant data found
+        (has_personal_name, found_names, spacy_available)
     """
     models = _load_spacy_models()
 
@@ -148,32 +144,14 @@ def fast_dsgvo_check(text: str) -> Tuple[bool, List[str], bool]:
                     # Only flag multi-word names (first + last) — single words are too common
                     if ' ' in ent.text.strip():
                         found_entities.add(f"Name: {ent.text.strip()}")
-                elif ent.label_ == 'LOC':
-                    # Check if it's an address (LOC + house number nearby)
-                    context = text[max(0, ent.start_char - 5):ent.end_char + 10]
-                    if re.search(r'\d+', context):
-                        found_entities.add(f"Adresse: {ent.text.strip()}")
         except Exception as e:
             logger.debug(f"[SPACY] Error with model {model_name}: {e}")
-
-    # Regex checks (language-independent)
-    for match in _EMAIL_REGEX.finditer(text):
-        found_entities.add(f"Email: {match.group()}")
-
-    for match in _PHONE_REGEX.finditer(text):
-        # Filter out short numbers (year numbers, dimensions, etc.)
-        digits_only = re.sub(r'\D', '', match.group())
-        if len(digits_only) >= 7:
-            found_entities.add(f"Telefon: {match.group()}")
-
-    for match in _ADDRESS_REGEX.finditer(text):
-        found_entities.add(f"Adresse: {match.group()}")
 
     check_time = _time.time() - check_start
     entity_list = sorted(found_entities)
 
     if entity_list:
-        logger.info(f"[DSGVO-NER] Found {len(entity_list)} entities in {check_time*1000:.1f}ms: {entity_list[:3]}")
+        logger.info(f"[DSGVO-NER] Found {len(entity_list)} names in {check_time*1000:.1f}ms: {entity_list[:3]}")
     else:
         logger.debug(f"[DSGVO-NER] Clean ({check_time*1000:.1f}ms)")
 
@@ -747,8 +725,11 @@ async def execute_stage3_safety(
     pipeline_executor
 ) -> Dict[str, Any]:
     """
-    Execute Stage 3: Pre-Output Safety Check
-    Hybrid: Fast string-match → LLM verification if terms found
+    Execute Stage 3: Pre-Output Safety Check (Jugendschutz)
+
+    1. Translate to English (always)
+    2. §86a fast-filter (instant block)
+    3. LLM safety check (ALWAYS for kids/youth — wordlists can't catch semantic harm)
 
     Args:
         prompt: Prompt to check before media generation
@@ -760,12 +741,10 @@ async def execute_stage3_safety(
     Returns:
         {
             "safe": bool,
-            "method": "fast_filter" | "llm_context_check",
+            "method": "disabled" | "86a_filter" | "llm_safety_check" | "llm_check_failed",
             "abort_reason": str | None,
             "positive_prompt": str | None,
-            "negative_prompt": str | None,
-            "found_terms": list | None,
-            "false_positive": bool | None
+            "negative_prompt": str | None
         }
     """
     import time
@@ -798,35 +777,30 @@ async def execute_stage3_safety(
             "negative_prompt": ""
         }
 
-    # STEP 2: HYBRID APPROACH: Fast string-match first
-    start_time = time.time()
-    has_terms, found_terms = fast_filter_check(translated_prompt, safety_level)
-    fast_check_time = time.time() - start_time
-
-    if not has_terms:
-        # FAST PATH: No problematic terms → instantly safe (95% of requests)
-        logger.info(f"[STAGE3-SAFETY] PASSED (fast-path, {fast_check_time*1000:.1f}ms)")
+    # STEP 2: §86a fast-filter — instant block (no LLM needed)
+    has_86a, found_86a = fast_filter_bilingual_86a(translated_prompt)
+    if has_86a:
+        logger.warning(f"[STAGE3-SAFETY] §86a BLOCKED: {found_86a[:3]}")
         return {
-            "safe": True,
-            "method": "fast_filter",
-            "abort_reason": None,
-            "positive_prompt": translated_prompt,
-            "negative_prompt": "",
-            "model_used": None,
-            "backend_type": None,
-            "execution_time": translate_time + fast_check_time
+            "safe": False,
+            "method": "86a_filter",
+            "abort_reason": f'§86a StGB: {", ".join(found_86a[:3])}',
+            "positive_prompt": None,
+            "negative_prompt": None,
+            "execution_time": time.time() - translate_start
         }
 
-    # SLOW PATH: Terms found → LLM context verification (prevents false positives)
-    logger.info(f"[STAGE3-SAFETY] found terms {found_terms[:3]}... → LLM context check (fast: {fast_check_time*1000:.1f}ms)")
-
-    # Determine which safety check config to use (just safety_check, not translate)
+    # STEP 3: ALWAYS run LLM safety check for kids/youth
+    # Semantic violence/harm cannot be caught by wordlists alone —
+    # "Wesen sind feindselig zueinander und fügen einander Schaden zu"
+    # passes all fast-filters but generates harmful imagery for children.
     safety_check_config = f'pre_output/safety_check_{safety_level}'
 
+    logger.info(f"[STAGE3-SAFETY] Running LLM safety check ({safety_level})")
     llm_start_time = time.time()
     result = await pipeline_executor.execute_pipeline(
         safety_check_config,
-        translated_prompt,  # Use already-translated prompt
+        translated_prompt,
         execution_mode=execution_mode
     )
     llm_check_time = time.time() - llm_start_time
@@ -843,37 +817,31 @@ async def execute_stage3_safety(
                     break
 
     if result.success:
-        # Parse JSON output
         safety_data = parse_preoutput_json(result.final_output)
 
         if not safety_data.get('safe', True):
-            # UNSAFE: LLM confirmed it's problematic in context
             abort_reason = safety_data.get('abort_reason', 'Content blocked by safety filter')
             logger.warning(f"[STAGE3-SAFETY] BLOCKED by LLM: {abort_reason} (llm: {llm_check_time:.1f}s)")
 
             return {
                 "safe": False,
-                "method": "llm_context_check",
+                "method": "llm_safety_check",
                 "abort_reason": abort_reason,
                 "positive_prompt": None,
                 "negative_prompt": None,
-                "found_terms": found_terms,
                 "model_used": model_used,
                 "backend_type": backend_type,
                 "execution_time": llm_check_time
             }
         else:
-            # SAFE: False positive (e.g., "CD player", "dark chocolate")
-            logger.info(f"[STAGE3-SAFETY] PASSED (LLM verified false positive, llm: {llm_check_time:.1f}s)")
+            logger.info(f"[STAGE3-SAFETY] PASSED (LLM, {llm_check_time:.1f}s)")
 
             return {
                 "safe": True,
-                "method": "llm_context_check",
+                "method": "llm_safety_check",
                 "abort_reason": None,
                 "positive_prompt": translated_prompt,
                 "negative_prompt": safety_data.get('negative_prompt', ''),
-                "found_terms": found_terms,
-                "false_positive": True,
                 "model_used": model_used,
                 "backend_type": backend_type,
                 "execution_time": translate_time + llm_check_time

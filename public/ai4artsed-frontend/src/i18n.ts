@@ -311,12 +311,15 @@ const messages = {
     },
     safetyBadges: {
       '§86a': '§86a',
+      '86a_filter': '§86a',
       age_filter: 'Altersfilter',
       dsgvo_ner: 'DSGVO',
       dsgvo_llm: 'DSGVO',
       translation: '\u2192 EN',
       fast_filter: 'Inhalt',
       llm_context_check: 'Inhalt (LLM)',
+      llm_safety_check: 'Jugendschutz',
+      llm_check_failed: 'Pr\u00FCfung fehlgeschlagen',
       disabled: '\u2014'
     },
     splitCombine: {
@@ -828,12 +831,15 @@ const messages = {
     },
     safetyBadges: {
       '§86a': '§86a',
+      '86a_filter': '§86a',
       age_filter: 'Age Filter',
       dsgvo_ner: 'GDPR',
       dsgvo_llm: 'GDPR',
       translation: '\u2192 EN',
       fast_filter: 'Content',
       llm_context_check: 'Content (LLM)',
+      llm_safety_check: 'Youth Protection',
+      llm_check_failed: 'Check Failed',
       disabled: '\u2014'
     },
     splitCombine: {

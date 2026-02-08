@@ -1,9 +1,15 @@
 {
-  "name": "safety_check_kids",
-  "description": "Pre-Output: Safety Check für Kinder (Kids Filter - streng)",
-  "pipeline": "text_transformation",
-  "chunks": ["safety_check_kids"],
+  "name": {
+    "en": "Pre-Output: Safety Check for Kids",
+    "de": "Vor-Ausgabe: Sicherheitsprüfung für Kinder"
+  },
+  "description": {
+    "en": "Pre-Output: Safety check for children (strict filter)",
+    "de": "Pre-Output: Safety Check für Kinder (Kids Filter - streng)"
+  },
+  "pipeline": "safety_check",
   "parameters": {
+    "SAFETY_CHUNK": "safety_check_kids",
     "temperature": 0.1,
     "top_p": 0.9,
     "keep_alive": "10m"

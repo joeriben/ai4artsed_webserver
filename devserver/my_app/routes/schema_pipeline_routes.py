@@ -10,6 +10,7 @@ import threading
 import json
 import uuid
 import config  # Session 154: For CODING_MODEL resolution in _load_model_from_output_config
+import requests  # For direct Ollama calls (DSGVO LLM verification)
 
 # Schema-Engine importieren
 import sys
@@ -1902,23 +1903,84 @@ def safety_check():
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
+def _llm_verify_person_name(text: str, ner_entities: list) -> bool:
+    """
+    LLM verification for SpaCy NER PER-entity hits.
+
+    SpaCy NER produces false positives (e.g. "visuell faszinierend" → PER).
+    This function asks the local LLM whether the detected entities are real
+    personal names before blocking.
+
+    Args:
+        text: The original user text
+        ner_entities: List of NER-detected entity strings (e.g. ["Name: visuell faszinierend"])
+
+    Returns:
+        True if LLM confirms real person name(s), False if false positive.
+        On error: False (fail-open — NER false positive is more likely than real name).
+    """
+    # Extract just the name parts from "Name: ..." format
+    names = [e.replace("Name: ", "") for e in ner_entities]
+    names_str = ", ".join(names)
+
+    prompt = (
+        f"SpaCy NER hat im folgenden Text diese Entitäten als Personennamen (PER) erkannt: {names_str}\n\n"
+        f"Text: \"{text}\"\n\n"
+        f"Handelt es sich bei den erkannten Entitäten um echte Personennamen "
+        f"(Vor- und/oder Nachname einer realen oder fiktiven Person)?\n"
+        f"Adjektive, Beschreibungen, Orte oder allgemeine Wörter sind KEINE Personennamen.\n"
+        f"Fiktive Figuren (z.B. Humpty Dumpty, Harry Potter) sind KEINE echten Personennamen im DSGVO-Sinne.\n\n"
+        f"Antwort NUR mit JA oder NEIN."
+    )
+
+    try:
+        import time
+        start = time.time()
+        response = requests.post(
+            f"{config.OLLAMA_API_BASE_URL}/api/generate",
+            json={
+                "model": config.SAFETY_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "keep_alive": "10m",
+                "options": {"temperature": 0.0, "num_predict": 10}
+            },
+            timeout=30
+        )
+        response.raise_for_status()
+        result = response.json().get("response", "").strip().upper()
+        duration_ms = (time.time() - start) * 1000
+
+        is_real_name = result.startswith("JA")
+        logger.info(
+            f"[DSGVO-LLM-VERIFY] entities={names_str} → LLM={result!r} → "
+            f"{'REAL NAME' if is_real_name else 'FALSE POSITIVE'} ({duration_ms:.0f}ms)"
+        )
+        return is_real_name
+
+    except Exception as e:
+        logger.warning(f"[DSGVO-LLM-VERIFY] LLM verification failed: {e} — fail-open (allowing)")
+        return False
+
+
 @schema_bp.route('/pipeline/safety/quick', methods=['POST'])
 def safety_check_quick():
     """
-    Safety check: fuzzy filters + SpaCy NER + LLM assessment.
+    Quick safety check: §86a fast-filter + DSGVO NER→LLM-verify.
 
     Used by MediaInputBox autonomous safety (on blur/paste).
-    Phase 1: §86a fuzzy → instant block (no LLM).
-    Phase 2: Age-filter / DSGVO NER → collect flags.
-    Phase 3: LLM assessment:
-      - kids/youth: ALWAYS runs (catches semantic violence/harm that wordlists miss)
-      - adult/off: only when fast filters flagged something
+    This endpoint handles ONLY:
+    - §86a: Nazi symbols/slogans (instant block, fast-filter)
+    - DSGVO: Personal names — SpaCy NER trigger → LLM verification before block
+
+    Flow: §86a fast-filter → SpaCy NER → (if PER hit) LLM verify → block/allow
+
+    Jugendschutz (age-appropriate content) is handled by Stage 3 LLM,
+    NOT here — semantic violence/harm cannot be caught by wordlists.
 
     Request Body: { "text": "Text to check" }
     Response: { "safe": bool, "checks_passed": [...], "error_message": str|null }
     """
-    import requests as http_requests
-
     try:
         data = request.get_json()
         if not data:
@@ -1928,10 +1990,9 @@ def safety_check_quick():
         if not text:
             return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
 
-        safety_level = config.DEFAULT_SAFETY_LEVEL
         checks_passed = []
 
-        # Phase 1a: §86a fuzzy filter — instant block, no LLM needed
+        # STEP 1: §86a fast-filter — instant block
         has_86a, found_86a = fast_filter_bilingual_86a(text)
         if has_86a:
             logger.warning(f"[SAFETY-QUICK] §86a BLOCKED: {found_86a[:3]}")
@@ -1942,60 +2003,23 @@ def safety_check_quick():
             })
         checks_passed.append('§86a')
 
-        # Collect flags from fast filters for potential LLM verification
-        flags = []
-
-        # Phase 1b: Age-appropriate filter (if applicable)
-        if safety_level not in ('off', 'adult'):
-            has_age, found_age = fast_filter_check(text, safety_level)
-            if has_age:
-                flags.append(('age_filter', found_age[:3]))
-            else:
-                checks_passed.append('age_filter')
-
-        # Phase 2: DSGVO SpaCy NER
+        # STEP 2: DSGVO SpaCy NER — only personal names (PER)
+        # NER is a fast trigger; on hit, LLM verifies before blocking
         has_pii, found_pii, spacy_ok = fast_dsgvo_check(text)
         if spacy_ok and has_pii:
-            flags.append(('dsgvo_ner', found_pii[:3]))
-        elif spacy_ok:
-            checks_passed.append('dsgvo_ner')
-
-        # Phase 3: LLM safety assessment
-        # For kids/youth: ALWAYS run LLM (fast filters can't catch semantic violence/harm)
-        # For adult/off: only run LLM when fast filters flagged something
-        needs_llm = bool(flags) or safety_level in ('kids', 'youth')
-
-        if needs_llm:
-            if flags:
-                flag_desc = "; ".join(
-                    f"{name}: {', '.join(terms)}" for name, terms in flags
-                )
-                logger.info(f"[SAFETY-QUICK] Flags raised: {flag_desc} — asking LLM")
-            else:
-                logger.info(f"[SAFETY-QUICK] No flags, but safety_level={safety_level} — LLM general check")
-
-            llm_safe = _safety_llm_verify(text, flags, safety_level, http_requests)
-
-            if llm_safe:
-                logger.info(f"[SAFETY-QUICK] LLM verdict: SAFE")
-                for name, _ in flags:
-                    checks_passed.append(name)
-                checks_passed.append('llm_verify')
-            else:
-                # LLM says BLOCKED
-                if flags:
-                    first_flag_name, first_flag_terms = flags[0]
-                    label = 'Altersfilter' if first_flag_name == 'age_filter' else 'DSGVO'
-                    error_msg = f'{label}: {", ".join(first_flag_terms)}'
-                else:
-                    label = 'Altersfilter'
-                    error_msg = 'Inhalt nicht altersgerecht'
-                logger.warning(f"[SAFETY-QUICK] LLM verdict: BLOCKED — {error_msg}")
+            # NER triggered — LLM verification to avoid false positives
+            logger.info(f"[SAFETY-QUICK] NER triggered: {found_pii[:3]} — verifying with LLM")
+            if _llm_verify_person_name(text, found_pii):
+                logger.warning(f"[SAFETY-QUICK] DSGVO BLOCKED (LLM confirmed): {found_pii[:3]}")
                 return jsonify({
                     'safe': False,
-                    'checks_passed': checks_passed + [name for name, _ in flags] + ['llm_verify'],
-                    'error_message': error_msg
+                    'checks_passed': checks_passed + ['dsgvo_ner', 'dsgvo_llm_verify'],
+                    'error_message': f'DSGVO: {", ".join(found_pii[:3])}'
                 })
+            else:
+                logger.info(f"[SAFETY-QUICK] NER false positive (LLM rejected): {found_pii[:3]}")
+        if spacy_ok:
+            checks_passed.append('dsgvo_ner')
 
         return jsonify({'safe': True, 'checks_passed': checks_passed, 'error_message': None})
 
@@ -2003,87 +2027,6 @@ def safety_check_quick():
         logger.error(f"[SAFETY-QUICK] Error: {e}")
         # Fail-open on error
         return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
-
-
-def _safety_llm_verify(text: str, flags: list, safety_level: str, http_requests) -> bool:
-    """
-    Ask the safety LLM whether content is safe for the given audience.
-
-    Two modes:
-    - With flags: verify whether flagged content is genuinely problematic
-    - Without flags: general age-appropriateness assessment (for kids/youth)
-
-    Returns True if SAFE, False if BLOCKED.
-    Fail-open on error (returns True).
-    """
-    audience = "Kinder (6-10 Jahre)" if safety_level == "kids" else "Jugendliche (11-16 Jahre)"
-
-    if flags:
-        flag_desc = "\n".join(
-            f"- {name}: {', '.join(terms)}" for name, terms in flags
-        )
-        user_content = f"Text: \"{text}\"\n\nFlags raised:\n{flag_desc}\n\nVerdict:"
-        system_content = (
-            f"You are a safety classifier for an educational art platform. Target audience: {audience}. "
-            "Fast filters have flagged potential issues in user text. Your job is to verify whether "
-            "the flagged content is genuinely problematic or a false positive.\n\n"
-            "Rules:\n"
-            "- age_filter flags: Block if genuinely age-inappropriate (violence, sexual, drugs, weapons). "
-            "Allow if harmless (e.g. fairy tales, place names, common expressions).\n"
-            "- dsgvo_ner flags: Block if text contains real personal data (full name + address, phone, email). "
-            "Allow if fictional characters, public figures in educational context, or place names without personal data.\n\n"
-            "Respond with exactly one word: SAFE or BLOCKED"
-        )
-    else:
-        user_content = f"Text: \"{text}\"\n\nVerdict:"
-        system_content = (
-            f"You are a safety classifier for an educational art platform. Target audience: {audience}. "
-            "Evaluate whether this text is appropriate as an image generation prompt for this audience.\n\n"
-            "BLOCK if the text describes or could generate:\n"
-            "- Violence, harm, destruction, suffering, death\n"
-            "- Sexual or suggestive content\n"
-            "- Weapons, drugs, alcohol\n"
-            "- Horror, gore, frightening imagery\n"
-            "- Discrimination, hate, cruelty\n\n"
-            "ALLOW if the text is:\n"
-            "- Educational, creative, artistic\n"
-            "- Nature, animals, landscapes\n"
-            "- Fairy tales, stories (without graphic violence)\n"
-            "- Abstract or harmless concepts\n\n"
-            "Respond with exactly one word: SAFE or BLOCKED"
-        )
-
-    messages = [
-        {"role": "system", "content": system_content},
-        {"role": "user", "content": user_content}
-    ]
-
-    try:
-        ollama_url = config.OLLAMA_API_BASE_URL
-        payload = {
-            "model": config.SAFETY_MODEL,
-            "messages": messages,
-            "stream": False,
-            "options": {
-                "temperature": 0.0,
-                "num_predict": 10
-            }
-        }
-
-        response = http_requests.post(f"{ollama_url}/api/chat", json=payload, timeout=30)
-
-        if response.status_code == 200:
-            result = response.json()
-            content = result["message"]["content"].strip().upper()
-            logger.info(f"[SAFETY-QUICK-LLM] Model response: {content}")
-            return "SAFE" in content
-        else:
-            logger.error(f"[SAFETY-QUICK-LLM] API Error: {response.status_code}")
-            return True  # Fail-open
-
-    except Exception as e:
-        logger.error(f"[SAFETY-QUICK-LLM] Error: {e}")
-        return True  # Fail-open
 
 
 @schema_bp.route('/pipeline/translate', methods=['POST'])
@@ -2208,6 +2151,99 @@ def log_prompt_change():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# POST-GENERATION VLM SAFETY CHECK
+# Analyzes generated images with a local Vision-Language Model (qwen3-vl:2b)
+# to catch unsafe content that text-based checks cannot predict.
+# ============================================================================
+
+def _vlm_safety_check_image(recorder, safety_level: str) -> tuple:
+    """
+    Post-generation image safety check using a local VLM via Ollama.
+
+    Reads the generated image from the recorder, sends it to Ollama's
+    qwen3-vl:2b model with an age-appropriate safety prompt, and parses
+    the response for "safe" or "unsafe".
+
+    Args:
+        recorder: LivePipelineRecorder with saved output_image entity
+        safety_level: 'kids' or 'youth' (only these trigger VLM check)
+
+    Returns:
+        (is_safe: bool, reason: str)
+        Fail-open: returns (True, '') on any error.
+    """
+    import base64
+
+    vlm_prompts = {
+        'kids': (
+            'Is the image free of violence, nudity, unsettling, scaring, '
+            'potentially traumatizing, or other content unsafe or unhealthy '
+            'for children age 6-12 years? Provide a clear decision: "safe" or "unsafe".'
+        ),
+        'youth': (
+            'Is the image free of violence, nudity, unsettling, scaring, '
+            'potentially traumatizing, or other content unsafe or unhealthy '
+            'for teenagers age 14-18 years? Provide a clear decision: "safe" or "unsafe".'
+        ),
+    }
+
+    try:
+        # Find image file from recorder entities
+        image_path = recorder.get_entity_path('output_image')
+        if not image_path or not image_path.exists():
+            logger.warning("[VLM-SAFETY] No output_image entity found — skipping check")
+            return (True, '')
+
+        # Read and base64-encode the image
+        image_bytes = image_path.read_bytes()
+        image_b64 = base64.b64encode(image_bytes).decode('utf-8')
+
+        # Build Ollama /api/chat request
+        prompt_text = vlm_prompts.get(safety_level)
+        if not prompt_text:
+            return (True, '')
+
+        ollama_url = f"{config.OLLAMA_API_BASE_URL}/api/chat"
+        payload = {
+            'model': config.VLM_SAFETY_MODEL,
+            'messages': [{
+                'role': 'user',
+                'content': prompt_text,
+                'images': [image_b64]
+            }],
+            'stream': False,
+            'options': {
+                'temperature': 0.0,
+                'num_predict': 2000
+            },
+            'keep_alive': '10m'
+        }
+
+        logger.info(f"[VLM-SAFETY] Checking image ({len(image_bytes)} bytes) with {config.VLM_SAFETY_MODEL} for safety_level={safety_level}")
+
+        response = requests.post(ollama_url, json=payload, timeout=60)
+        response.raise_for_status()
+
+        response_json = response.json()
+        message = response_json.get('message', {})
+
+        # qwen3 uses thinking mode: answer may be in 'content' or 'thinking'
+        content = message.get('content', '').lower().strip()
+        thinking = message.get('thinking', '').lower().strip()
+        combined = content or thinking
+        logger.info(f"[VLM-SAFETY] Model response: content={content!r}, thinking={thinking[:200]!r}")
+
+        if 'unsafe' in combined:
+            return (False, f"VLM safety check ({config.VLM_SAFETY_MODEL}): image flagged as unsafe for {safety_level}")
+        return (True, '')
+
+    except Exception as e:
+        # Fail-open: VLM failure should never block generation
+        logger.warning(f"[VLM-SAFETY] Error during check (fail-open): {e}")
+        return (True, '')
 
 
 # ============================================================================
@@ -2420,6 +2456,20 @@ def execute_generation_streaming(data: dict):
             raise Exception(result.get('error', 'Generation failed'))
 
         logger.info(f"[GENERATION-STREAMING] Stage 4 complete: {result['media_output']}")
+
+        # POST-GENERATION VLM SAFETY CHECK (images only, kids/youth only)
+        if media_type == 'image' and safety_level in ('kids', 'youth'):
+            vlm_safe, vlm_reason = _vlm_safety_check_image(recorder, safety_level)
+            if not vlm_safe:
+                logger.warning(f"[GENERATION-STREAMING] VLM safety BLOCKED for run {run_id}: {vlm_reason}")
+                yield generate_sse_event('blocked', {
+                    'stage': 'vlm_safety',
+                    'reason': vlm_reason,
+                    'run_id': run_id,
+                    'checks_passed': ['stage3', 'stage4', 'vlm_image_check']
+                })
+                yield ''
+                return
 
         # Send completion event
         yield generate_sse_event('complete', {

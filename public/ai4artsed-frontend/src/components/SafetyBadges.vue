@@ -1,7 +1,11 @@
 <template>
   <transition-group name="badge-fade" tag="div" class="safety-badges">
-    <div v-for="check in checks" :key="check" class="safety-badge">
-      <span class="badge-icon">✓</span>
+    <div v-for="check in checks" :key="check"
+         :class="['safety-badge', isErrorBadge(check) ? 'safety-badge--error' : '']">
+      <img v-if="isErrorBadge(check)"
+           src="@/assets/icons/dangerous_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"
+           class="badge-icon-svg badge-icon-svg--error" alt="" />
+      <span v-else class="badge-icon">&#x2713;</span>
       <span class="badge-label">{{ badgeLabel(check) }}</span>
     </div>
   </transition-group>
@@ -15,6 +19,15 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
+
+const ERROR_BADGES = new Set([
+  'llm_check_failed',
+  '86a_filter'
+])
+
+function isErrorBadge(check: string): boolean {
+  return ERROR_BADGES.has(check)
+}
 
 function badgeLabel(check: string): string {
   return t(`safetyBadges.${check}`, check)
@@ -41,6 +54,11 @@ function badgeLabel(check: string): string {
   animation: badge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.safety-badge--error {
+  background: rgba(244, 67, 54, 0.12);
+  border-color: #F44336;
+}
+
 @keyframes badge-appear {
   0% {
     opacity: 0;
@@ -59,6 +77,12 @@ function badgeLabel(check: string): string {
   line-height: 1;
 }
 
+.badge-icon-svg {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) saturate(100%) invert(40%) sepia(90%) saturate(1000%) hue-rotate(340deg);
+}
+
 .badge-label {
   font-size: 0.65rem;
   font-weight: 600;
@@ -66,6 +90,10 @@ function badgeLabel(check: string): string {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   white-space: nowrap;
+}
+
+.safety-badge--error .badge-label {
+  color: #F44336;
 }
 
 /* Transition classes */
