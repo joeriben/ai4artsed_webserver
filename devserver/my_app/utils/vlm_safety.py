@@ -80,7 +80,7 @@ def vlm_safety_check(image_path: str | Path, safety_level: str) -> tuple[bool, s
         content = message.get('content', '').lower().strip()
         thinking = message.get('thinking', '').lower().strip()
         combined = content or thinking
-        logger.info(f"[VLM-SAFETY] Model response: content={content!r}, thinking={thinking[:200]!r}")
+        logger.info(f"[VLM-SAFETY] Model response: content={content!r}, thinking={thinking!r}")
 
         if 'unsafe' in combined:
             return (False, f"VLM safety check ({config.VLM_SAFETY_MODEL}): image flagged as unsafe for {safety_level}")
