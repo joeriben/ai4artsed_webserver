@@ -411,12 +411,12 @@ class DiffusersImageGenerator:
                 )
                 t5_embeds, t5_negative, t5_pooled, t5_neg_pooled = t5_result
 
-                # Step 3: Blend embeddings
-                # alpha_factor: -75 (CLIP-dominant) to +75 (T5-dominant)
-                t5_weight = (alpha_factor + 75.0) / 150.0  # 0.0 to 1.0
-                blended_embeds = torch.lerp(clip_embeds, t5_embeds, t5_weight)
+                # Step 3: Blend embeddings using direct alpha (extrapolation!)
+                # Original ComfyUI node: (1-α)*CLIP + α*T5
+                # α=0: pure CLIP | α=1: pure T5 | α=20: surreal extrapolation
+                blended_embeds = (1.0 - alpha_factor) * clip_embeds + alpha_factor * t5_embeds
 
-                logger.info(f"[DIFFUSERS-FUSION] Blending: t5_weight={t5_weight:.3f} (alpha={alpha_factor})")
+                logger.info(f"[DIFFUSERS-FUSION] Blending: alpha={alpha_factor} (extrapolation={'yes' if abs(alpha_factor) > 1 else 'no'})")
 
                 # Step 4: Build generation kwargs
                 gen_kwargs = {
