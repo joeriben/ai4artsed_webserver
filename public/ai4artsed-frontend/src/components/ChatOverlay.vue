@@ -83,6 +83,7 @@ import { useCurrentSession } from '../composables/useCurrentSession'
 import { usePageContextStore } from '../stores/pageContext'
 import { useSafetyEventStore } from '../stores/safetyEvent'
 import { DEFAULT_FOCUS_HINT } from '../composables/usePageContext'
+import { useI18n } from 'vue-i18n'
 import trashyIcon from '../assets/trashy-icon.png'
 
 interface Message {
@@ -90,6 +91,8 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
 }
+
+const { t } = useI18n()
 
 // State
 const isExpanded = ref(false)
@@ -463,17 +466,17 @@ watch(
     const reason = event.reason || ''
 
     if (reason.includes('VLM') || event.stage === 'vlm_safety') {
-      explanation = 'Dein Prompt war in Ordnung, aber das erzeugte Bild wurde von einer Bildanalyse-KI als ungeeignet eingestuft. Das kann passieren — die Bildgenerierung ist nicht immer vorhersagbar. Versuche es einfach nochmal, jede Generierung ist anders!'
+      explanation = t('safetyBlocked.vlm')
     } else if (reason.includes('§86a')) {
-      explanation = 'Dein Prompt wurde blockiert, weil er Symbole oder Begriffe enthält, die nach deutschem Recht (§86a StGB) verboten sind. Diese Regel schützt uns alle vor Hass und Gewalt. Versuche es mit einem anderen Thema!'
+      explanation = t('safetyBlocked.para86a')
     } else if (reason.includes('DSGVO') || reason.includes('Persönliche Daten')) {
-      explanation = 'Dein Prompt wurde blockiert, weil er persönliche Daten enthält (z.B. echte Namen oder Adressen). Das ist durch die Datenschutzgrundverordnung (DSGVO) geschützt. Verwende stattdessen Phantasienamen!'
+      explanation = t('safetyBlocked.dsgvo')
     } else if (reason.includes('Kids-Filter') || reason.includes('Kinder-Schutzfilter')) {
-      explanation = 'Dein Prompt wurde vom Kinder-Schutzfilter blockiert. Manche Begriffe sind für Kinder nicht geeignet, weil sie erschreckend oder verstörend sein können. Versuche, deine Idee mit freundlicheren Worten zu beschreiben!'
+      explanation = t('safetyBlocked.kids')
     } else if (reason.includes('Youth-Filter') || reason.includes('Jugendschutzfilter')) {
-      explanation = 'Dein Prompt wurde vom Jugendschutzfilter blockiert. Manche Inhalte sind auch für Jugendliche nicht geeignet. Versuche, deine Idee anders zu formulieren!'
+      explanation = t('safetyBlocked.youth')
     } else {
-      explanation = 'Dein Prompt wurde vom Sicherheitssystem blockiert. Das System schützt dich vor ungeeigneten Inhalten. Versuche es mit einer anderen Formulierung!'
+      explanation = t('safetyBlocked.generic')
     }
 
     // Auto-expand Träshy
