@@ -1,8 +1,8 @@
 {
   "pipeline": "legacy_workflow_passthrough",
   "name": {
-    "en": "Surrealization (Legacy)",
-    "de": "Surrealisierung (Legacy)"
+    "en": "Hallucination (Legacy)",
+    "de": "Halluzination (Legacy)"
   },
   "description": {
     "en": "Complex surrealist image generation using legacy ComfyUI workflow. This workflow cannot be decomposed into DevServer's chunk system due to its intricate node connections and custom processing logic.",

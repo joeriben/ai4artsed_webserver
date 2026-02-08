@@ -360,12 +360,17 @@ const messages = {
       outerLabel: 'Äußerer Bereich eliminiert'
     },
     surrealizer: {
-      infoTitle: 'Surrealizer - Dual-Encoder Fusion',
-      infoDescription: 'Dieser Workflow nutzt zwei verschiedene Text-Encoder (CLIP und T5) und verschmilzt ihre Outputs. Jeder Encoder "versteht" Text anders - CLIP durch Bild-Text-Paare, T5 durch reine Sprachmodellierung.',
+      infoTitle: 'Hallucinator — Extrapolation jenseits des Bekannten',
+      infoDescription: 'Zwei KI-"Gehirne" lesen deinen Text: CLIP-L versteht Sprache durch Bilder, T5 versteht sie rein sprachlich. Der Regler mischt nicht einfach zwischen beiden — er schiebt das Bild weit über das hinaus, was T5 allein erzeugen würde. Die KI muss dann Vektoren interpretieren, die sie im Training nie gesehen hat. Das Ergebnis: KI-Halluzinationen — Bilder, die kein Prompt direkt erzeugen könnte.',
       purposeTitle: 'Pädagogischer Zweck',
-      purposeText: 'Erkunde die verschiedenen "Weltbilder" unterschiedlicher KI-Architekturen. Wie verändert sich die visuelle Interpretation je nach Encoder-Gewichtung?',
-      techTitle: 'Technische Details',
-      techText: 'Modell: SD3.5 Large | Encoder: Separate CLIP-L + T5-XXL (für Dual-Fusion)'
+      purposeText: 'Erkunde, was passiert, wenn eine KI über die Grenzen ihres Trainings hinaus "denken" muss. Bei α=0 siehst du ein normales Bild. Schiebst du den Regler nach rechts, wandert das Bild in unerforschten Vektorraum — die KI halluziniert auf ästhetisch überraschende Weise.',
+      techTitle: 'Wie es funktioniert',
+      techText: 'SD3.5 Large | CLIP-L (77 Tokens, visuell) + T5-XXL (512 Tokens, sprachlich) | Erste 77 Tokens: (1-α)·CLIP-L + α·T5 | Rest: reines T5 (semantischer Anker) | Sweet Spot: α = 15–35',
+      sliderLabel: 'Extrapolation (α)',
+      sliderNormal: 'normal',
+      sliderSurreal: 'halluziniert',
+      sliderReverse: 'invers',
+      sliderExtreme: 'extrem'
     },
     musicGeneration: {
       infoTitle: 'Musik-Generierung',
@@ -890,12 +895,17 @@ const messages = {
       outerLabel: 'Outer range eliminated'
     },
     surrealizer: {
-      infoTitle: 'Surrealizer - Dual-Encoder Fusion',
-      infoDescription: 'This workflow uses two different text encoders (CLIP and T5) and fuses their outputs. Each encoder "understands" text differently - CLIP through image-text pairs, T5 through pure language modeling.',
+      infoTitle: 'Hallucinator — Extrapolation Beyond the Known',
+      infoDescription: 'Two AI "brains" read your text: CLIP-L understands language through images, T5 understands it purely linguistically. The slider doesn\'t simply blend between them — it pushes the image far beyond what T5 alone would produce. The AI must then interpret vectors it has never encountered during training. The result: AI hallucinations — images that no prompt could directly produce.',
       purposeTitle: 'Pedagogical Purpose',
-      purposeText: 'Explore the different "worldviews" of different AI architectures. How does the visual interpretation change depending on encoder weighting?',
-      techTitle: 'Technical Details',
-      techText: 'Model: SD3.5 Large | Encoder: Separate CLIP-L + T5-XXL (for dual fusion)'
+      purposeText: 'Explore what happens when an AI is forced to "think" beyond the limits of its training. At α=0 you see a normal image. Push the slider right, and the image drifts into unexplored vector space — the AI hallucinates in aesthetically surprising ways.',
+      techTitle: 'How It Works',
+      techText: 'SD3.5 Large | CLIP-L (77 tokens, visual) + T5-XXL (512 tokens, linguistic) | First 77 tokens: (1-α)·CLIP-L + α·T5 | Remainder: pure T5 (semantic anchor) | Sweet spot: α = 15–35',
+      sliderLabel: 'Extrapolation (α)',
+      sliderNormal: 'normal',
+      sliderSurreal: 'hallucinating',
+      sliderReverse: 'reverse',
+      sliderExtreme: 'extreme'
     },
     musicGeneration: {
       infoTitle: 'Music Generation',

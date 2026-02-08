@@ -1,12 +1,12 @@
 {
   "pipeline": "legacy_workflow_passthrough",
   "name": {
-    "en": "Surrealization (Diffusers)",
-    "de": "Surrealisierung (Diffusers)"
+    "en": "Hallucination (Diffusers)",
+    "de": "Halluzination (Diffusers)"
   },
   "description": {
-    "en": "Surreal image generation via T5-CLIP alpha blending on Diffusers",
-    "de": "Surrealistische Bildgenerierung via T5-CLIP Alpha-Blending auf Diffusers"
+    "en": "Surreal image generation via CLIP-L/T5 token-level extrapolation on Diffusers. Alpha controls how far the embedding is pushed beyond the T5 encoder's representation.",
+    "de": "Surrealistische Bildgenerierung via CLIP-L/T5 Token-Level-Extrapolation auf Diffusers. Alpha steuert, wie weit das Embedding über die T5-Encoder-Repräsentation hinaus geschoben wird."
   },
   "parameters": {
     "OUTPUT_CHUNK": "output_image_surrealizer_diffusers"

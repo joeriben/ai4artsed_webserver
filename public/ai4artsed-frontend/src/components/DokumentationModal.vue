@@ -391,24 +391,24 @@
                   : 'These experiments work at the mathematical level of AI models. They show how language and meaning are translated into vectors – and what happens when we manipulate these vectors.' }}</p>
 
                 <div class="experiment-card surrealizer">
-                  <h3>Surrealizer</h3>
+                  <h3>Hallucinator</h3>
                   <div class="experiment-what">
                     <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
                     <p>{{ currentLanguage === 'de'
-                      ? 'Bildgenerierungsmodelle wie Stable Diffusion verwenden Text-Encoder, um deinen Prompt zu "verstehen". SD3.5 hat zwei verschiedene Encoder: CLIP (trainiert auf Bild-Text-Paaren) und T5 (trainiert nur auf Text). Normalerweise werden beide kombiniert. Der Surrealizer lässt dich die Gewichtung verändern.'
-                      : 'Image generation models like Stable Diffusion use text encoders to "understand" your prompt. SD3.5 has two different encoders: CLIP (trained on image-text pairs) and T5 (trained only on text). Normally both are combined. The Surrealizer lets you change the weighting.' }}</p>
+                      ? 'Dein Prompt wird von zwei verschiedenen KI-"Gehirnen" gelesen: CLIP-L (trainiert auf Bild-Text-Paaren, "denkt" visuell) und T5 (trainiert auf reinem Text, "denkt" sprachlich). Bei α=0 siehst du ein normales CLIP-Bild. Aber der Regler mischt nicht einfach zwischen beiden — er extrapoliert: Bei α=20 wird das Embedding 19× über die T5-Interpretation hinaus geschoben, in einen mathematischen Raum, den das Modell im Training nie gesehen hat.'
+                      : 'Your prompt is read by two different AI "brains": CLIP-L (trained on image-text pairs, "thinks" visually) and T5 (trained on pure text, "thinks" linguistically). At α=0 you see a normal CLIP image. But the slider doesn\'t simply blend between them — it extrapolates: at α=20, the embedding is pushed 19× beyond T5\'s interpretation, into a mathematical space the model never encountered during training.' }}</p>
                   </div>
                   <div class="experiment-why">
-                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das interessant?' : 'Why is this interesting?' }}</strong>
+                    <strong>{{ currentLanguage === 'de' ? 'Warum werden die Bilder surreal?' : 'Why do images become surreal?' }}</strong>
                     <p>{{ currentLanguage === 'de'
-                      ? 'CLIP "denkt" visuell – es assoziiert Worte mit Bildern, die es gesehen hat. T5 "denkt" sprachlich – es versteht grammatische und semantische Strukturen. Wenn du die Balance verschiebst, siehst du: Derselbe Text erzeugt völlig andere Bilder, je nachdem wie er "verstanden" wird.'
-                      : 'CLIP "thinks" visually – it associates words with images it has seen. T5 "thinks" linguistically – it understands grammatical and semantic structures. When you shift the balance, you see: The same text creates completely different images depending on how it\'s "understood".' }}</p>
+                      ? 'Das Modell muss Vektoren interpretieren, die weit außerhalb seiner Trainingsdaten liegen. Es "halluziniert" auf ästhetisch überraschende Weise — Formen, Farben und Strukturen entstehen, die kein direkter Prompt erzeugen könnte. Gleichzeitig bleiben die restlichen T5-Tokens (ab Token 78) unverändert und wirken als semantischer Anker: Das Bild bleibt mit deinem Text verbunden, auch wenn die visuelle Darstellung surreal wird.'
+                      : 'The model must interpret vectors that lie far outside its training data. It "hallucinates" in aesthetically surprising ways — shapes, colors, and structures emerge that no direct prompt could produce. Meanwhile, the remaining T5 tokens (from token 78 onward) stay unchanged, acting as a semantic anchor: the image stays connected to your text even as the visual representation becomes surreal.' }}</p>
                   </div>
                   <div class="experiment-example">
-                    <strong>{{ currentLanguage === 'de' ? 'Beispiel:' : 'Example:' }}</strong>
+                    <strong>{{ currentLanguage === 'de' ? 'Bereiche:' : 'Ranges:' }}</strong>
                     {{ currentLanguage === 'de'
-                      ? '"Ein Vogel aus Glas" – CLIP-dominant zeigt eher einen gläsernen Vogel (visuell bekannt), T5-dominant interpretiert die Metapher freier und erzeugt abstraktere Ergebnisse.'
-                      : '"A bird made of glass" – CLIP-dominant shows more of a glass bird (visually known), T5-dominant interprets the metaphor more freely and creates more abstract results.' }}
+                      ? 'α=0: normales Bild (nur CLIP-L) | α=1: reines T5 (noch normal) | α=15–35: surrealer Sweet Spot (Extrapolation) | α>50: extreme Verzerrung | Negative Werte: Extrapolation in Gegenrichtung'
+                      : 'α=0: normal image (CLIP-L only) | α=1: pure T5 (still normal) | α=15–35: surreal sweet spot (extrapolation) | α>50: extreme distortion | Negative values: extrapolation in reverse direction' }}
                   </div>
                 </div>
 

@@ -36,19 +36,19 @@
           @clear="clearInputText"
         />
 
-        <!-- Surrealisierung Slider -->
+        <!-- Extrapolation Slider -->
         <div class="section-card">
           <div class="card-header">
             <span class="card-icon">🎚️</span>
-            <span class="card-label">Surrealisierung</span>
+            <span class="card-label">{{ t('surrealizer.sliderLabel') }}</span>
           </div>
           <div class="slider-container">
             <div class="slider-labels">
-              <span class="slider-label-left">very weird</span>
-              <span class="slider-label-mid-left">weird</span>
-              <span class="slider-label-center">normal</span>
-              <span class="slider-label-mid-right">crazy</span>
-              <span class="slider-label-right">really crazy</span>
+              <span class="slider-label-left">{{ t('surrealizer.sliderExtreme') }}</span>
+              <span class="slider-label-mid-left">{{ t('surrealizer.sliderReverse') }}</span>
+              <span class="slider-label-center">{{ t('surrealizer.sliderNormal') }}</span>
+              <span class="slider-label-mid-right">{{ t('surrealizer.sliderSurreal') }}</span>
+              <span class="slider-label-right">{{ t('surrealizer.sliderExtreme') }}</span>
             </div>
             <div class="slider-wrapper">
               <input
@@ -59,7 +59,7 @@
                 class="slider"
               />
             </div>
-            <div class="slider-value">{{ alphaFaktor }}</div>
+            <div class="slider-value">α = {{ alphaFaktor }}</div>
           </div>
         </div>
 
@@ -70,7 +70,7 @@
           :disabled="!canExecute"
           @click="executeWorkflow"
         >
-          <span class="button-text">{{ isExecuting ? 'Surrealisiere...' : 'Surrealisieren' }}</span>
+          <span class="button-text">{{ isExecuting ? 'Halluziniere...' : 'Halluzinieren' }}</span>
         </button>
       </section>
 

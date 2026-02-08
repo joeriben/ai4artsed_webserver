@@ -3,7 +3,7 @@
   "type": "output_chunk",
   "backend_type": "diffusers",
   "media_type": "image",
-  "description": "Surrealizer via Diffusers - T5-CLIP alpha blending for surreal image generation",
+  "description": "Surrealizer via Diffusers — token-level CLIP-L/T5 extrapolation. First 77 tokens: (1-α)*CLIP-L + α*T5. Tokens 78+: pure T5 (semantic anchor). Surreal sweet spot: α=15-35.",
 
   "diffusers_config": {
     "model_id": "stabilityai/stable-diffusion-3.5-large",
@@ -14,11 +14,11 @@
   "input_mappings": {
     "prompt": {
       "source": "{{PREVIOUS_OUTPUT}}",
-      "description": "Text prompt - same text encoded differently by CLIP-L/G vs T5-XXL"
+      "description": "Text prompt — encoded separately by CLIP-L (77 tokens, visual) and T5-XXL (512 tokens, linguistic)"
     },
     "alpha_factor": {
       "default": 0,
-      "description": "T5-CLIP blend factor: -75 (CLIP-dominant/weird) to +75 (T5-dominant/crazy)"
+      "description": "Extrapolation factor: 0=pure CLIP-L (normal), 1=pure T5, 15-35=surreal sweet spot (extrapolation past T5), negative=reverse direction. Formula: (1-α)*CLIP-L + α*T5 on first 77 tokens."
     },
     "seed": {
       "default": "random",
@@ -52,6 +52,6 @@
     "estimated_duration_seconds": "20-40",
     "requires_gpu": true,
     "gpu_vram_mb": 8000,
-    "notes": "Exploits different latent space characteristics of CLIP-L/G vs T5-XXL encoders. Same prompt text produces different embeddings in each encoder. Alpha controls the blend."
+    "notes": "Token-level fusion matching the ComfyUI ai4artsed_t5_clip_fusion node. CLIP-L (768d, padded to 4096d) and T5-XXL (4096d) encode independently. First 77 tokens are LERP'd with alpha (enabling extrapolation at α>1). Remaining T5 tokens appended unchanged as semantic anchor. At α=20: embedding = -19*CLIP-L + 20*T5, pushing 19x past T5 into unexplored vector space."
   }
 }

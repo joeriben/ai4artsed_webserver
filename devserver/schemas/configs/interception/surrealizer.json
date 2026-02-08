@@ -2,12 +2,12 @@
   "pipeline": "surrealizer",
   "instruction_type": "surrealizer",
   "name": {
-    "en": "Surrealizer",
-    "de": "Surrealisierer"
+    "en": "Hallucinator",
+    "de": "Hallucinator"
   },
   "description": {
-    "en": "Transform your ideas into surreal artworks using advanced T5-CLIP vector interpolation. Your text prompt is directly fed into a specialized ComfyUI workflow for dreamlike, unexpected image compositions.",
-    "de": "Verwandle deine Ideen in surrealistische Kunstwerke mit fortgeschrittener T5-CLIP-Vektor-Interpolation. Dein Text-Prompt wird direkt in einen spezialisierten ComfyUI-Workflow für traumhafte, unerwartete Bildkompositionen eingespeist."
+    "en": "Two AI 'brains' (CLIP and T5) each read your text — the slider pushes the image far beyond what either would normally produce, into unexplored territory where surreal, dreamlike compositions emerge.",
+    "de": "Zwei KI-'Gehirne' (CLIP und T5) lesen deinen Text — der Regler schiebt das Bild weit über das hinaus, was beide normalerweise erzeugen würden, in unerforschtes Terrain, in dem surrealistische, traumhafte Kompositionen entstehen."
   },
   "category": {
     "de": "Forschung",
@@ -17,8 +17,8 @@
     "research"
   ],
   "context": {
-    "en": "The Surrealizer uses a legacy ComfyUI workflow with T5-CLIP token-level manipulation to create surreal image compositions. Your prompt is passed directly to the workflow without Stage 2 transformation.",
-    "de": "Der Surrealisierer verwendet einen Legacy-ComfyUI-Workflow mit T5-CLIP-Token-Level-Manipulation, um surrealistische Bildkompositionen zu erstellen. Dein Prompt wird ohne Stage-2-Transformation direkt an den Workflow übergeben."
+    "en": "The Hallucinator encodes your prompt separately through CLIP-L (visual encoder, 77 tokens) and T5-XXL (language encoder, 512 tokens). The first 77 tokens are extrapolated between the two encoders using the alpha value — at alpha=20, the embedding is pushed 19x past T5 into unexplored vector space. The remaining T5 tokens are kept unchanged as a semantic anchor. Stage 2 is skipped to preserve your original prompt.",
+    "de": "Der Hallucinator kodiert deinen Prompt getrennt durch CLIP-L (visueller Encoder, 77 Tokens) und T5-XXL (Sprach-Encoder, 512 Tokens). Die ersten 77 Tokens werden mit dem Alpha-Wert zwischen den beiden Encodern extrapoliert — bei Alpha=20 wird das Embedding 19x über T5 hinaus in unerforschten Vektorraum geschoben. Die restlichen T5-Tokens bleiben unverändert als semantischer Anker. Stage 2 wird übersprungen, um deinen Original-Prompt zu erhalten."
   },
   "parameters": {
     "temperature": 0.0,
@@ -35,7 +35,7 @@
     "skip_stage2": true,
     "backend": "none",
     "workflow_type": "passthrough",
-    "note": "Surrealizer config for legacy surrealization workflow. Stage 2 is skipped to preserve original prompt.",
+    "note": "Surrealizer config. Stage 2 skipped to preserve original prompt for token-level CLIP-L/T5 extrapolation.",
     "system_config": false,
     "wikipedia": true
   },
@@ -52,18 +52,18 @@
       "surreal",
       "research",
       "experimental",
-      "legacy",
       "T5-CLIP",
-      "vector interpolation",
+      "extrapolation",
+      "dual-encoder",
       "advanced"
     ],
     "de": [
       "surreal",
       "forschung",
       "experimentell",
-      "legacy",
       "T5-CLIP",
-      "Vektor-Interpolation",
+      "Extrapolation",
+      "Dual-Encoder",
       "fortgeschritten"
     ]
   },
@@ -72,7 +72,7 @@
     "min_age": 12,
     "complexity": "intermediate",
     "requires": [
-      "ComfyUI backend"
+      "Diffusers backend with SD3.5"
     ]
   }
 }

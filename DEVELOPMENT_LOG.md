@@ -1,5 +1,87 @@
 # Development Log
 
+## Session 162 - Hallucinator: Diffusers Token-Level Fusion + Rename
+**Date:** 2026-02-08
+**Focus:** Fix broken Diffusers embedding fusion, document the complete technical mechanism, rename Surrealizer → Hallucinator
+**Status:** COMPLETE
+
+### Problems
+
+1. **Broken embedding fusion:** The Diffusers backend blended joint SD3 embeddings instead of individual encoder outputs, destroying the CLIP signal at high alpha values (α=10 already extreme, α=25 white/blank).
+2. **Inaccurate explanations:** User-facing text described "interpolation" and "weighting" — the actual mechanism is extrapolation into unexplored vector space, producing AI hallucinations.
+3. **Misleading name:** "Surrealizer" implies stylistic surrealism. The effect is genuine AI hallucination from out-of-distribution vectors.
+
+### Root Causes
+
+1. **Joint vs. individual embeddings:** `pipe.encode_prompt()` returns all three encoders (CLIP-L + CLIP-G + T5) concatenated. Blending two such tensors (one with CLIP active/T5 empty, other reversed) pushes CLIP embeddings toward negative of the prompt (`-19·CLIP(prompt) + 20·CLIP("")`) instead of extrapolating between encoder spaces.
+2. **Outdated references:** Configs still mentioned "legacy ComfyUI workflow", "interpolation", "vector interpolation".
+
+### Technical Analysis: How the Hallucinator Works
+
+**SD3.5 has two text encoders relevant to the Hallucinator:**
+- **CLIP-L** (77 tokens, 768-dim): Trained on image-text pairs. Maps text to visual features.
+- **T5-XXL** (512 tokens, 4096-dim): Trained on text-only tasks. Maps text to linguistic structure.
+
+**The fusion formula (first 77 tokens):**
+```
+fused = (1 - α) · CLIP-L_padded + α · T5
+```
+
+At α=20: `fused = -19·CLIP-L + 20·T5` — the embedding is pushed 19× past T5's representation, into a region of the 4096-dimensional space that the diffusion model never encountered during training. The model must interpret these out-of-distribution vectors, producing genuine hallucinations.
+
+**The semantic anchor (tokens 78-512):**
+The remaining T5 tokens are appended unchanged. These keep the image thematically connected to the prompt even as the first 77 tokens push into hallucinatory territory.
+
+**Why extrapolation, not interpolation, matters:**
+- Interpolation (0≤α≤1): Smooth blend between two valid representations → mild variations
+- Extrapolation (α>1): Pushes PAST both representations → out-of-distribution vectors → hallucination
+- The "sweet spot" α=15-35 pushes far enough for visual surprise but not so far that the model loses all coherence
+
+### Fixes Applied
+
+**1. Token-level fusion (diffusers_backend.py)**
+- Replaced `pipe.encode_prompt()` calls with individual encoder access: `pipe._get_clip_prompt_embeds()` and `pipe._get_t5_prompt_embeds()`
+- CLIP-L (768d) padded to T5 dimension (4096d)
+- First 77 tokens: LERP with alpha (enabling extrapolation)
+- Remaining T5 tokens: appended unchanged (semantic anchor)
+- Negative prompt fused with same alpha (matching ComfyUI workflow)
+- All 4 embedding tensors passed to pipeline, bypassing `encode_prompt()` entirely
+
+**2. Comprehensive documentation rewrite**
+- All config descriptions: "interpolation" → "extrapolation", removed "legacy ComfyUI" references
+- i18n (DE+EN): Explained mechanism accessibly — two AI "brains", extrapolation beyond training data, hallucination
+- DokumentationModal: Rewritten with "Why do images become surreal?" section explaining out-of-distribution vectors
+- Architecture Part 22: Added complete Diffusers backend section with code, failed approach analysis, design decisions
+- Development Decisions: Full technical rationale for individual-encoder approach vs joint-embedding blending
+
+**3. Rename Surrealizer → Hallucinator (display name only)**
+- All user-facing names: "Surrealizer/Surrealisierer" → "Hallucinator"
+- Config names: "Surrealization" → "Hallucination/Halluzination"
+- Button: "Surrealisieren" → "Halluzinieren"
+- Slider labels: i18n'd ("extrem", "invers", "normal", "halluziniert", "extrem")
+- Internal IDs unchanged: `surrealizer` (config, pipeline, route, Vue filename)
+
+### Files Modified
+- `devserver/my_app/services/diffusers_backend.py` — `generate_image_with_fusion()` rewritten with `_fuse_prompt()` helper
+- `devserver/schemas/configs/interception/surrealizer.json` — name, description, context, tags, audience
+- `devserver/schemas/configs/output/surrealization_diffusers.json` — name, description
+- `devserver/schemas/configs/output/surrealization_legacy.json` — name
+- `devserver/schemas/chunks/output_image_surrealizer_diffusers.json` — description, alpha_factor docs, meta.notes
+- `public/ai4artsed-frontend/src/i18n.ts` — DE+EN surrealizer section rewritten + slider keys
+- `public/ai4artsed-frontend/src/views/surrealizer.vue` — i18n'd slider labels, button text, α display
+- `public/ai4artsed-frontend/src/components/DokumentationModal.vue` — Hallucinator explanation card
+- `docs/ARCHITECTURE PART 22 - Legacy-Workflow-Architecture.md` — Diffusers backend section, technical analysis
+- `docs/DEVELOPMENT_DECISIONS.md` — Three decisions documented
+
+### Key Learnings
+- `pipe.encode_prompt()` returns **joint** SD3 embeddings (all 3 encoders concatenated). You CANNOT extrapolate between encoder spaces by blending two joint embeddings — you must access individual encoders.
+- The surreal/hallucinatory effect comes specifically from **extrapolation** (α>1), not interpolation. At α=20, the model interprets vectors 19× past T5's representation — genuine out-of-distribution inference.
+- The remaining T5 tokens (78+) act as a semantic anchor. Without them, the image loses all connection to the prompt.
+- Private methods `_get_clip_prompt_embeds()` and `_get_t5_prompt_embeds()` are stable in diffusers v0.36.0 and provide exactly the individual encoder access needed.
+- "Hallucinator" is more technically precise than "Surrealizer" — the effect is the model hallucinating from out-of-distribution vectors, not imitating surrealist art style.
+
+---
+
 ## Session 161 - Post-Generation VLM Safety Check + Safety Architecture Clarification
 **Date:** 2026-02-07
 **Focus:** Close the gap between text-based safety checks and actual image content using local VLM (qwen3-vl:2b)

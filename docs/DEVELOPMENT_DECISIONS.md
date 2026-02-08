@@ -29,6 +29,63 @@
 
 ---
 
+## 🔬 HALLUCINATOR: Diffusers Backend + Token-Level CLIP-L/T5 Extrapolation (2026-02-08)
+
+**Status:** ✅ IMPLEMENTED
+**Session:** 162
+
+### Decision 1: Migrate from joint-embedding blending to individual-encoder token-level fusion
+
+**The Hallucinator's surreal effect comes from extrapolating BETWEEN two different text encoder representations, not from blending joint SD3 embeddings.**
+
+### Problem (vorher)
+
+The Diffusers backend used `pipe.encode_prompt()` which returns **joint SD3 embeddings** — all three text encoders (CLIP-L + CLIP-G + T5) concatenated into one tensor `(1, 589, 4096)`. Blending two such tensors (one with CLIP active/T5 empty, one with CLIP empty/T5 active) had a destructive effect:
+
+```
+At α=20, CLIP region: -19 * CLIP(prompt) + 20 * CLIP("")
+→ Pushes CLIP embeddings toward huge NEGATIVE values of the prompt
+→ DESTROYS the signal instead of extrapolating between encoder spaces
+→ α=10 already extreme, α=25 white/blank image
+```
+
+### Lösung (nachher)
+
+Access individual text encoders via `pipe._get_clip_prompt_embeds()` and `pipe._get_t5_prompt_embeds()`, replicating the original ComfyUI `ai4artsed_t5_clip_fusion` node exactly:
+
+1. CLIP-L encodes prompt independently → (1, 77, 768)
+2. T5-XXL encodes prompt independently → (1, 512, 4096)
+3. Pad CLIP-L to 4096d (zero-padded)
+4. LERP first 77 tokens: `(1-α)·CLIP-L + α·T5` (extrapolation at α>1)
+5. Append remaining T5 tokens (78-512) unchanged → semantic anchor
+6. Same fusion for negative prompt, all 4 tensors bypass `encode_prompt()`
+
+**At α=20:** `fused[0:77] = -19·CLIP-L + 20·T5` — pushes 19× past T5 into unexplored vector space. The model hallucinates because it must interpret out-of-distribution vectors.
+
+### Decision 2: CLIP-L only in fused tokens, CLIP-G only for pooled
+
+The original ComfyUI workflow loads only `clip_l.safetensors` and `t5xxl_enconly.safetensors` — CLIP-G is not used in the fusion. We match this exactly:
+- **Fused tokens:** CLIP-L (768d, zero-padded to 4096d) vs T5 (native 4096d)
+- **Pooled output:** CLIP-L + CLIP-G concatenated (standard SD3 requirement)
+- **Rationale:** Proven to work at α=15-35 in ComfyUI. Including CLIP-G would change extrapolation dynamics (dims 768-2047 would also participate).
+
+### Decision 3: Rename "Surrealizer" → "Hallucinator" (display name only)
+
+The effect is technically **AI hallucination** (model interpreting vectors outside its training distribution), not stylistic surrealism. Renamed all user-facing text; internal IDs (`surrealizer`, file names, routes) kept unchanged to avoid breaking changes.
+
+### Betroffene Dateien
+- `devserver/my_app/services/diffusers_backend.py` — `generate_image_with_fusion()` rewritten
+- `devserver/schemas/configs/interception/surrealizer.json` — description, context, name, tags
+- `devserver/schemas/configs/output/surrealization_diffusers.json` — name, description
+- `devserver/schemas/configs/output/surrealization_legacy.json` — name
+- `devserver/schemas/chunks/output_image_surrealizer_diffusers.json` — description, alpha docs, notes
+- `public/ai4artsed-frontend/src/i18n.ts` — DE+EN: new explanations, slider labels
+- `public/ai4artsed-frontend/src/views/surrealizer.vue` — i18n'd slider labels, button text
+- `public/ai4artsed-frontend/src/components/DokumentationModal.vue` — rewritten explanation
+- `docs/ARCHITECTURE PART 22` — Diffusers backend section, technical analysis
+
+---
+
 ## 🛡️ SAFETY: Post-Generation VLM Image Check + Safety-Architektur Klarstellung (2026-02-07)
 
 **Status:** ✅ IMPLEMENTED
