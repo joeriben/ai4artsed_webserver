@@ -1993,13 +1993,14 @@ def safety_check_quick():
                 return jsonify({'safe': True, 'checks_passed': ['vlm_skipped'], 'error_message': None})
 
             from my_app.utils.vlm_safety import vlm_safety_check
-            is_safe, reason = vlm_safety_check(image_path, safety_level)
+            is_safe, reason, description = vlm_safety_check(image_path, safety_level)
             if not is_safe:
                 logger.warning(f"[SAFETY-QUICK] VLM image BLOCKED: {reason}")
                 return jsonify({
                     'safe': False,
                     'checks_passed': ['vlm_image_check'],
-                    'error_message': reason
+                    'error_message': reason,
+                    'vlm_description': description
                 })
             return jsonify({'safe': True, 'checks_passed': ['vlm_image_check'], 'error_message': None})
 
@@ -2188,15 +2189,15 @@ def _vlm_safety_check_image(recorder, safety_level: str) -> tuple:
         safety_level: 'kids' or 'youth' (only these trigger VLM check)
 
     Returns:
-        (is_safe: bool, reason: str)
-        Fail-open: returns (True, '') on any error.
+        (is_safe: bool, reason: str, description: str)
+        Fail-open: returns (True, '', '') on any error.
     """
     from my_app.utils.vlm_safety import vlm_safety_check
 
     image_path = recorder.get_entity_path('output_image')
     if not image_path or not image_path.exists():
         logger.warning("[VLM-SAFETY] No output_image entity found — skipping check")
-        return (True, '')
+        return (True, '', '')
 
     return vlm_safety_check(image_path, safety_level)
 
@@ -2414,12 +2415,13 @@ def execute_generation_streaming(data: dict):
 
         # POST-GENERATION VLM SAFETY CHECK (images only, kids/youth only)
         if media_type == 'image' and safety_level in ('kids', 'youth'):
-            vlm_safe, vlm_reason = _vlm_safety_check_image(recorder, safety_level)
+            vlm_safe, vlm_reason, vlm_description = _vlm_safety_check_image(recorder, safety_level)
             if not vlm_safe:
                 logger.warning(f"[GENERATION-STREAMING] VLM safety BLOCKED for run {run_id}: {vlm_reason}")
                 yield generate_sse_event('blocked', {
                     'stage': 'vlm_safety',
                     'reason': vlm_reason,
+                    'vlm_description': vlm_description,
                     'run_id': run_id,
                     'checks_passed': ['stage3', 'stage4', 'vlm_image_check']
                 })

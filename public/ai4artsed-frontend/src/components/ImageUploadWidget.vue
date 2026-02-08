@@ -227,7 +227,7 @@ async function processFile(file: File) {
           previewUrl.value = props.initialImage || null
           uploadInfo.value = null
           if (fileInput.value) fileInput.value.value = ''
-          safetyStore.reportBlock('vlm_input', safetyData.error_message || t('safetyBlocked.inputImage'), [])
+          safetyStore.reportBlock('vlm_input', safetyData.error_message || t('safetyBlocked.inputImage'), [], safetyData.vlm_description)
           return
         }
       } catch {

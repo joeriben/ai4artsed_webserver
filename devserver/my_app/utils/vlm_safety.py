@@ -28,26 +28,27 @@ VLM_PROMPTS = {
 }
 
 
-def vlm_safety_check(image_path: str | Path, safety_level: str) -> tuple[bool, str]:
+def vlm_safety_check(image_path: str | Path, safety_level: str) -> tuple[bool, str, str]:
     """
-    Check image safety via qwen3-vl. Returns (is_safe, reason). Fail-open.
+    Check image safety via qwen3-vl. Returns (is_safe, reason, description). Fail-open.
 
     Args:
         image_path: Path to the image file on disk.
         safety_level: 'kids' or 'youth' (only these trigger VLM check).
 
     Returns:
-        (is_safe, reason) — (True, '') on safe or error (fail-open).
+        (is_safe, reason, description) — description is the VLM's image analysis.
+        (True, '', '') on safe or error (fail-open).
     """
     try:
         image_path = Path(image_path)
         if not image_path.exists():
             logger.warning("[VLM-SAFETY] Image file not found — skipping check")
-            return (True, '')
+            return (True, '', '')
 
         prompt_text = VLM_PROMPTS.get(safety_level)
         if not prompt_text:
-            return (True, '')
+            return (True, '', '')
 
         image_bytes = image_path.read_bytes()
         image_b64 = base64.b64encode(image_bytes).decode('utf-8')
@@ -82,11 +83,14 @@ def vlm_safety_check(image_path: str | Path, safety_level: str) -> tuple[bool, s
         combined = content or thinking
         logger.info(f"[VLM-SAFETY] Model response: content={content!r}, thinking={thinking!r}")
 
+        # Use thinking as image description (it contains the VLM's analysis)
+        description = message.get('thinking', '').strip()
+
         if 'unsafe' in combined:
-            return (False, f"VLM safety check ({config.VLM_SAFETY_MODEL}): image flagged as unsafe for {safety_level}")
-        return (True, '')
+            return (False, f"VLM safety check ({config.VLM_SAFETY_MODEL}): image flagged as unsafe for {safety_level}", description)
+        return (True, '', description)
 
     except Exception as e:
         # Fail-open: VLM failure should never block
         logger.warning(f"[VLM-SAFETY] Error during check (fail-open): {e}")
-        return (True, '')
+        return (True, '', '')

@@ -329,7 +329,8 @@ const messages = {
       kids: 'Dein Prompt wurde vom Kinder-Schutzfilter blockiert. Manche Begriffe sind f\u00FCr Kinder nicht geeignet, weil sie erschreckend oder verst\u00F6rend sein k\u00F6nnen. Versuche, deine Idee mit freundlicheren Worten zu beschreiben!',
       youth: 'Dein Prompt wurde vom Jugendschutzfilter blockiert. Manche Inhalte sind auch f\u00FCr Jugendliche nicht geeignet. Versuche, deine Idee anders zu formulieren!',
       generic: 'Dein Prompt wurde vom Sicherheitssystem blockiert. Das System sch\u00FCtzt dich vor ungeeigneten Inhalten. Versuche es mit einer anderen Formulierung!',
-      inputImage: 'Das hochgeladene Bild wurde von einer Bildanalyse-KI als ungeeignet eingestuft. Bitte verwende ein anderes Bild.'
+      inputImage: 'Das hochgeladene Bild wurde von einer Bildanalyse-KI als ungeeignet eingestuft. Bitte verwende ein anderes Bild.',
+      vlmSaw: 'Die Bild-KI sah'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantische Vektorfusion',
@@ -858,7 +859,8 @@ const messages = {
       kids: 'Your prompt was blocked by the child safety filter. Some terms are not suitable for children because they can be scary or disturbing. Try describing your idea with friendlier words!',
       youth: 'Your prompt was blocked by the youth protection filter. Some content is not suitable for teenagers either. Try rephrasing your idea!',
       generic: 'Your prompt was blocked by the safety system. The system protects you from unsuitable content. Try a different wording!',
-      inputImage: 'The uploaded image was flagged as unsuitable by an image analysis AI. Please use a different image.'
+      inputImage: 'The uploaded image was flagged as unsuitable by an image analysis AI. Please use a different image.',
+      vlmSaw: 'The image AI saw'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantic Vector Fusion',
