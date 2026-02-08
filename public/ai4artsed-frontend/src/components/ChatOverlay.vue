@@ -462,7 +462,9 @@ watch(
     let explanation: string
     const reason = event.reason || ''
 
-    if (reason.includes('§86a')) {
+    if (reason.includes('VLM') || event.stage === 'vlm_safety') {
+      explanation = 'Dein Prompt war in Ordnung, aber das erzeugte Bild wurde von einer Bildanalyse-KI als ungeeignet eingestuft. Das kann passieren — die Bildgenerierung ist nicht immer vorhersagbar. Versuche es einfach nochmal, jede Generierung ist anders!'
+    } else if (reason.includes('§86a')) {
       explanation = 'Dein Prompt wurde blockiert, weil er Symbole oder Begriffe enthält, die nach deutschem Recht (§86a StGB) verboten sind. Diese Regel schützt uns alle vor Hass und Gewalt. Versuche es mit einem anderen Thema!'
     } else if (reason.includes('DSGVO') || reason.includes('Persönliche Daten')) {
       explanation = 'Dein Prompt wurde blockiert, weil er persönliche Daten enthält (z.B. echte Namen oder Adressen). Das ist durch die Datenschutzgrundverordnung (DSGVO) geschützt. Verwende stattdessen Phantasienamen!'

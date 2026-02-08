@@ -2,9 +2,9 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useSafetyEventStore = defineStore('safetyEvent', () => {
-  const pendingBlock = ref<{ stage: number; reason: string; foundTerms: string[] } | null>(null)
+  const pendingBlock = ref<{ stage: number | string; reason: string; foundTerms: string[] } | null>(null)
 
-  function reportBlock(stage: number, reason: string, foundTerms: string[] = []) {
+  function reportBlock(stage: number | string, reason: string, foundTerms: string[] = []) {
     pendingBlock.value = { stage, reason, foundTerms }
   }
 

@@ -205,7 +205,7 @@ export function useGenerationStream() {
         const data = JSON.parse(e.data)
         console.log('[GENERATION-STREAM] Blocked:', data)
         // Centralized: report block to safetyStore (Trashy integration)
-        safetyStore.reportBlock(3, data.reason || 'Inhalt blockiert', data.found_terms || [])
+        safetyStore.reportBlock(data.stage || 3, data.reason || 'Inhalt blockiert', data.found_terms || [])
         eventSource.close()
         isExecuting.value = false
         currentStage.value = 'idle'
