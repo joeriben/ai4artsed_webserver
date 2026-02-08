@@ -504,6 +504,29 @@ watch(
     scrollToBottom()
   }
 )
+
+// Watch for VLM analysis events (safe images) — add context without auto-expanding
+watch(
+  () => safetyStore.pendingAnalysis,
+  async (analysis) => {
+    if (!analysis) return
+
+    const event = safetyStore.consumeAnalysis()
+    if (!event || !event.description) return
+
+    // Add as quiet context message (no auto-expand)
+    messages.value.push({
+      id: messageIdCounter++,
+      role: 'assistant',
+      content: `*${t('safetyBlocked.vlmSaw')}: "${event.description}"*`
+    })
+
+    if (isExpanded.value) {
+      await nextTick()
+      scrollToBottom()
+    }
+  }
+)
 </script>
 
 <style scoped>

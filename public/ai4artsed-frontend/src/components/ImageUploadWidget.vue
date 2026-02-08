@@ -230,6 +230,10 @@ async function processFile(file: File) {
           safetyStore.reportBlock('vlm_input', safetyData.error_message || t('safetyBlocked.inputImage'), [], safetyData.vlm_description)
           return
         }
+        // Safe: inform Trashy about what the VLM saw
+        if (safetyData.vlm_description) {
+          safetyStore.reportAnalysis(safetyData.vlm_description, true)
+        }
       } catch {
         // Fail-open: network error → proceed normally
       }

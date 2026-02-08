@@ -2002,7 +2002,7 @@ def safety_check_quick():
                     'error_message': reason,
                     'vlm_description': description
                 })
-            return jsonify({'safe': True, 'checks_passed': ['vlm_image_check'], 'error_message': None})
+            return jsonify({'safe': True, 'checks_passed': ['vlm_image_check'], 'error_message': None, 'vlm_description': description})
 
         # TEXT MODE: §86a fast-filter + DSGVO NER
         text = data.get('text', '').strip()
