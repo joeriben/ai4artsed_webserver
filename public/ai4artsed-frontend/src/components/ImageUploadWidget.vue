@@ -222,11 +222,12 @@ async function processFile(file: File) {
         })
         const safetyData = await safetyRes.json()
         if (!safetyData.safe) {
-          previewUrl.value = null
+          // Clear local widget state only — parent was never notified of
+          // this upload (no image-uploaded emit), so no image-removed needed.
+          previewUrl.value = props.initialImage || null
           uploadInfo.value = null
           if (fileInput.value) fileInput.value.value = ''
           safetyStore.reportBlock('vlm_input', safetyData.error_message || t('safetyBlocked.inputImage'), [])
-          emit('image-removed')
           return
         }
       } catch {
