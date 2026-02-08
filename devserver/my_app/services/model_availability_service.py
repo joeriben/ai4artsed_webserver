@@ -277,6 +277,10 @@ class ModelAvailabilityService:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
 
+            # Skip hidden configs (incomplete stubs)
+            if config_data.get("display", {}).get("hidden"):
+                return True
+
             # Check if this is a ComfyUI backend
             backend_type = config_data.get("meta", {}).get("backend_type")
             if backend_type and backend_type != "comfyui":

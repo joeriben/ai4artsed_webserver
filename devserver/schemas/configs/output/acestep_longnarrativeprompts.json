@@ -35,7 +35,8 @@
     "color": "#FF9800",
     "category": "sound",
     "difficulty": 3,
-    "order": 100
+    "order": 100,
+    "hidden": true
   },
   "tags": {
     "en": [],

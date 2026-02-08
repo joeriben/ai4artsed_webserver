@@ -63,6 +63,7 @@
       "1024x2048",
       "2048x1024"
     ],
+    "fallback_chunk": "output_image_flux2",
     "notes": "Flux 2 Dev uses Mistral Small 3.1 as single text encoder. Direct Diffusers inference for maximum speed."
   }
 }

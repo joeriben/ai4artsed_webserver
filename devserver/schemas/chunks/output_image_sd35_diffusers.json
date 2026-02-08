@@ -63,6 +63,7 @@
       "1024x1024",
       "1280x1280"
     ],
+    "fallback_chunk": "output_image_sd35_large",
     "notes": "Direct Diffusers inference provides full control over the pipeline. Supports live preview streaming via step callbacks. Useful for development and single-user scenarios.",
     "features": [
       "Live preview: See image evolve step-by-step",

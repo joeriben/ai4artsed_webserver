@@ -163,7 +163,7 @@ class DiffusersImageGenerator:
             # Load in thread to avoid blocking event loop
             def _load():
                 kwargs = {
-                    "torch_dtype": self._get_torch_dtype(),
+                    "dtype": self._get_torch_dtype(),
                     "use_safetensors": True
                 }
                 # Only set cache_dir if explicitly configured

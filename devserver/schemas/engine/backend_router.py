@@ -1753,6 +1753,8 @@ class BackendRouter:
             # Check if Diffusers backend is enabled
             if not DIFFUSERS_ENABLED:
                 logger.warning(f"[DIFFUSERS] Backend disabled in config, falling back to ComfyUI")
+                if chunk.get('meta', {}).get('fallback_chunk'):
+                    return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, "Backend disabled in config")
                 return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
 
             backend = get_diffusers_backend()
@@ -1760,6 +1762,8 @@ class BackendRouter:
             # Check availability (torch, diffusers, GPU)
             if not await backend.is_available():
                 logger.warning(f"[DIFFUSERS] Backend not available, falling back to ComfyUI")
+                if chunk.get('meta', {}).get('fallback_chunk'):
+                    return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, "Backend not available (missing packages or GPU)")
                 return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
 
             # Extract parameters from chunk config
@@ -1816,6 +1820,8 @@ class BackendRouter:
 
             if not image_bytes:
                 logger.error("[DIFFUSERS] Generation failed, falling back to ComfyUI")
+                if chunk.get('meta', {}).get('fallback_chunk'):
+                    return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, "Generation returned empty result")
                 return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
 
             # Return with binary image data
@@ -1846,6 +1852,8 @@ class BackendRouter:
 
             # Fallback to ComfyUI on error
             logger.info(f"[DIFFUSERS] Falling back to ComfyUI due to error")
+            if chunk.get('meta', {}).get('fallback_chunk'):
+                return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, f"Exception: {str(e)}")
             return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
 
     async def _process_heartmula_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
