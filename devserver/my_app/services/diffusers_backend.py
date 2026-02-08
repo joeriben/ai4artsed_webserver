@@ -352,17 +352,21 @@ class DiffusersImageGenerator:
         callback: Optional[Callable[[int, int, Any], None]] = None
     ) -> Optional[bytes]:
         """
-        Generate an image using T5-CLIP alpha blending (Surrealizer)
+        Generate an image using T5-CLIP token-level fusion (Surrealizer)
 
-        Same prompt is encoded differently by CLIP-L/G vs T5-XXL encoders.
-        Alpha controls the blend between these two interpretations.
+        Replicates the ComfyUI ai4artsed_t5_clip_fusion node behavior:
+        - CLIP-L and T5-XXL encode the prompt independently
+        - First 77 tokens are LERP'd: (1-alpha)*CLIP-L + alpha*T5
+        - Remaining T5 tokens (78+) are appended unchanged as semantic anchor
+        - Alpha enables extrapolation: at alpha=20, embeddings are pushed
+          19x past T5 in the CLIP→T5 direction, creating surreal distortion
 
         Args:
-            prompt: Text prompt (same for both encoders)
+            prompt: Text prompt
             alpha_factor: -75 to +75 (raw from UI slider)
-                -75 = CLIP-dominant (weird), 0 = balanced, +75 = T5-dominant (crazy)
+                0 = pure CLIP-L, 1 = pure T5, 15-35 = surreal sweet spot
             model_id: SD3.5 model to use
-            negative_prompt: Negative prompt
+            negative_prompt: Negative prompt (fused with same alpha)
             width/height: Image dimensions
             steps: Inference steps
             cfg_scale: CFG scale
@@ -374,6 +378,7 @@ class DiffusersImageGenerator:
         """
         try:
             import torch
+            import torch.nn.functional as F
             import io
 
             # Ensure model is loaded
@@ -382,6 +387,11 @@ class DiffusersImageGenerator:
                     return None
 
             pipe = self._pipelines[model_id]
+
+            # Guard: verify individual encoder methods are available
+            if not hasattr(pipe, '_get_clip_prompt_embeds') or not hasattr(pipe, '_get_t5_prompt_embeds'):
+                logger.error("[DIFFUSERS-FUSION] Pipeline missing _get_clip_prompt_embeds or _get_t5_prompt_embeds")
+                return None
 
             # Generate random seed if needed
             if seed == -1:
@@ -392,37 +402,65 @@ class DiffusersImageGenerator:
 
             logger.info(f"[DIFFUSERS-FUSION] Generating: alpha={alpha_factor}, steps={steps}, size={width}x{height}, seed={seed}")
 
+            def _fuse_prompt(text: str):
+                """Fuse CLIP-L and T5 embeddings for a single prompt.
+
+                Replicates the ComfyUI ai4artsed_t5_clip_fusion node:
+                - LERP first 77 tokens between CLIP-L and T5
+                - Append remaining T5 tokens unchanged
+
+                Returns: (fused_embeds, pooled_embeds)
+                """
+                device = pipe._execution_device
+
+                # Individual encoder outputs
+                clip_l_embeds, clip_l_pooled = pipe._get_clip_prompt_embeds(
+                    prompt=text, device=device, num_images_per_prompt=1, clip_model_index=0
+                )
+                _, clip_g_pooled = pipe._get_clip_prompt_embeds(
+                    prompt=text, device=device, num_images_per_prompt=1, clip_model_index=1
+                )
+                t5_embeds = pipe._get_t5_prompt_embeds(
+                    prompt=text, num_images_per_prompt=1, max_sequence_length=512, device=device
+                )
+
+                # Pad CLIP-L (768d) to T5 dimension (4096d)
+                clip_l_padded = F.pad(clip_l_embeds, (0, t5_embeds.shape[-1] - clip_l_embeds.shape[-1]))
+
+                # LERP first 77 tokens: (1-α)*CLIP-L + α*T5
+                interp_len = min(clip_l_padded.shape[1], t5_embeds.shape[1])
+                fused_part = (1.0 - alpha_factor) * clip_l_padded[:, :interp_len, :] + alpha_factor * t5_embeds[:, :interp_len, :]
+
+                # Append remaining T5 tokens unchanged (semantic anchor)
+                t5_remainder = t5_embeds[:, interp_len:, :]
+                fused_embeds = torch.cat([fused_part, t5_remainder], dim=1)
+
+                # Pooled: standard CLIP-L + CLIP-G (SD3 requirement)
+                pooled = torch.cat([clip_l_pooled, clip_g_pooled], dim=-1)
+
+                return fused_embeds, pooled
+
             def _generate():
-                # Step 1: Encode CLIP-emphasized (prompt to CLIP-L and CLIP-G, empty to T5)
-                clip_result = pipe.encode_prompt(
-                    prompt=prompt,
-                    prompt_2=prompt,
-                    prompt_3="",
-                    max_sequence_length=512
+                # Fuse positive prompt
+                pos_embeds, pos_pooled = _fuse_prompt(prompt)
+
+                # Fuse negative prompt (same alpha — matches ComfyUI workflow)
+                neg_text = negative_prompt if negative_prompt else ""
+                neg_embeds, neg_pooled = _fuse_prompt(neg_text)
+
+                logger.info(
+                    f"[DIFFUSERS-FUSION] Token-level fusion: alpha={alpha_factor}, "
+                    f"LERP first {min(77, pos_embeds.shape[1])} tokens, "
+                    f"appending {max(0, pos_embeds.shape[1] - 77)} T5 anchor tokens, "
+                    f"shape={pos_embeds.shape}"
                 )
-                clip_embeds, clip_negative, clip_pooled, clip_neg_pooled = clip_result
 
-                # Step 2: Encode T5-emphasized (empty to CLIP-L and CLIP-G, prompt to T5)
-                t5_result = pipe.encode_prompt(
-                    prompt="",
-                    prompt_2="",
-                    prompt_3=prompt,
-                    max_sequence_length=512
-                )
-                t5_embeds, t5_negative, t5_pooled, t5_neg_pooled = t5_result
-
-                # Step 3: Blend embeddings using direct alpha (extrapolation!)
-                # Original ComfyUI node: (1-α)*CLIP + α*T5
-                # α=0: pure CLIP | α=1: pure T5 | α=20: surreal extrapolation
-                blended_embeds = (1.0 - alpha_factor) * clip_embeds + alpha_factor * t5_embeds
-
-                logger.info(f"[DIFFUSERS-FUSION] Blending: alpha={alpha_factor} (extrapolation={'yes' if abs(alpha_factor) > 1 else 'no'})")
-
-                # Step 4: Build generation kwargs
+                # Build generation kwargs — all 4 embedding tensors bypass encode_prompt
                 gen_kwargs = {
-                    "prompt_embeds": blended_embeds,
-                    "pooled_prompt_embeds": clip_pooled,
-                    "negative_prompt": negative_prompt if negative_prompt else None,
+                    "prompt_embeds": pos_embeds,
+                    "negative_prompt_embeds": neg_embeds,
+                    "pooled_prompt_embeds": pos_pooled,
+                    "negative_pooled_prompt_embeds": neg_pooled,
                     "width": width,
                     "height": height,
                     "num_inference_steps": steps,
