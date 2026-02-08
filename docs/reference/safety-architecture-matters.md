@@ -546,3 +546,47 @@ See: `/docs/terminal-savings/GPT-OSS safety check - hard fail.txt`
 
 **Bottom Line for AI4ArtsEd:**
 Student prompt without explicit critical/educational framing = NOT protected.
+
+---
+
+## Appendix C: Post-Generation VLM Safety Check (Session 161, 2026-02-07)
+
+### Problem
+
+Text-based safety checks (Stage 1 + Stage 3) analyze the **prompt text**, but cannot predict what the image generator actually produces. A harmless prompt can generate disturbing content — a gap in the safety architecture.
+
+### Solution: Local VLM Analysis
+
+After Stage 4 generates an image, a local Vision-Language Model (qwen3-vl:2b) analyzes the actual image before it reaches the frontend.
+
+**Implementation:** `_vlm_safety_check_image()` in `schema_pipeline_routes.py`
+
+**Flow:**
+```
+Stage 4 complete → image saved to recorder
+  ↓
+media_type == 'image' AND safety_level in ('kids', 'youth')?
+  → no:  COMPLETE (no check for code/audio/video or adult/off)
+  → yes: VLM check via Ollama /api/chat (qwen3-vl:2b)
+    → "safe":   SSE 'complete'
+    → "unsafe": SSE 'blocked' (stage: 'vlm_safety')
+    → error:    fail-open → SSE 'complete'
+```
+
+**Empirically tested prompts:**
+- Kids (6-12): "Is the image free of violence, nudity, unsettling, scaring, potentially traumatizing, or other content unsafe or unhealthy for children age 6-12 years?"
+- Youth (14-18): Same prompt adapted for teenagers age 14-18
+
+**Technical note — qwen3 thinking mode:**
+qwen3-vl uses thinking mode by default. The safety analysis appears in `message.thinking`, the final decision in `message.content`. Both fields are checked for the "unsafe" keyword. `num_predict: 500` is needed to complete thinking + produce answer.
+
+### Safety Architecture Overview (as of Session 161)
+
+| Layer | What | When | Where | Model |
+|---|---|---|---|---|
+| §86a StGB | Nazi/Terror symbols | ALWAYS | Stage 1 | GPT-OSS:20b |
+| DSGVO NER | Personal data | ALWAYS | Stage 1 | SpaCy (de_core_news_lg + xx_ent_wiki_sm) |
+| Jugendschutz (text) | Age-inappropriate prompts | kids/youth | Stage 1 + Stage 3 | GPT-OSS:20b |
+| Jugendschutz (visual) | Age-inappropriate images | kids/youth | Post-Stage-4 | qwen3-vl:2b |
+
+**Design principle:** Each layer addresses a distinct concern. §86a is criminal law, DSGVO is data protection, Jugendschutz is pedagogical. They are independent and non-redundant.

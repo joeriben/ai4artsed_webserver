@@ -1,5 +1,57 @@
 # Development Log
 
+## Session 161 - Post-Generation VLM Safety Check + Safety Architecture Clarification
+**Date:** 2026-02-07
+**Focus:** Close the gap between text-based safety checks and actual image content using local VLM (qwen3-vl:2b)
+**Status:** COMPLETE
+
+### Problems
+
+1. **Text-based safety checks can't predict image content**: Stage 1+3 check the prompt text, but a harmless prompt can produce a disturbing image. No post-generation content verification existed.
+2. **Safety architecture lacked clarity**: DSGVO, §86a StGB, and Jugendschutz were conceptually mixed — different concerns that need to be independently understood.
+
+### Root Causes
+
+1. **No visual verification layer**: The pipeline went directly from Stage 4 output to SSE `complete` event without inspecting the generated image.
+2. **"Safety" was treated as one thing**: DSGVO (data protection), §86a (criminal law), and Jugendschutz (age-appropriate content) are three independent legal/pedagogical concerns with different triggers, scopes, and safety levels.
+
+### Fixes Applied
+
+**Feature: Post-Generation VLM Safety Check**
+- Added `VLM_SAFETY_MODEL = "qwen3-vl:2b"` to `config.py:135`
+- Added `_vlm_safety_check_image()` to `schema_pipeline_routes.py:2162` — reads image from recorder, base64-encodes, sends to Ollama /api/chat with age-appropriate prompt
+- Inserted VLM check in `execute_generation_streaming()` between Stage 4 success and `complete` SSE event
+- Only triggers for `media_type == 'image'` AND `safety_level in ('kids', 'youth')`
+- Fail-open on any error (VLM unavailability never blocks generation)
+- SSE event: `blocked` with `stage: 'vlm_safety'` when image flagged as unsafe
+
+**qwen3-vl Thinking Mode Fix**
+- qwen3-vl:2b returns analysis in `message.thinking` field, not `message.content`
+- `num_predict: 500` needed (100 tokens = thinking cut off mid-sentence, empty content)
+- Code checks both `content` and `thinking` fields for "unsafe" keyword
+
+**Documentation: Safety Architecture Clarification**
+- Updated architecture docs, design decisions, dev log, Träshy knowledge base
+- Documented three independent safety concerns: §86a, DSGVO, Jugendschutz
+- Documented VLM check as post-Stage-4 layer
+
+### Files Modified
+- `devserver/config.py:135` — `VLM_SAFETY_MODEL` config variable
+- `devserver/my_app/routes/schema_pipeline_routes.py:2162` — `_vlm_safety_check_image()` function
+- `devserver/my_app/routes/schema_pipeline_routes.py:2455` — VLM check insertion in streaming flow
+- `docs/ARCHITECTURE PART 01 - 4-Stage Orchestration Flow.md` — Post-4 VLM check in stage table + flow diagram
+- `docs/DEVELOPMENT_DECISIONS.md` — Safety architecture decisions
+- `devserver/trashy_interface_reference.txt` — Section 8 rewritten with layered safety explanation
+- `docs/reference/safety-architecture-matters.md` — VLM appendix
+
+### Key Learnings
+- qwen3 models use "thinking mode" by default — response splits into `message.thinking` (reasoning) and `message.content` (answer). Low `num_predict` exhausts tokens during thinking, leaving `content` empty
+- Safety is not monolithic: §86a is **criminal law** (always on), DSGVO is **data protection** (always on), Jugendschutz is **pedagogical** (configurable per safety_level)
+- Text safety checks (pre-generation) and VLM checks (post-generation) complement each other: Stage 1+3 = fast guard at the door, VLM = quality control at the exit
+- Open question: Video generation needs similar post-generation check (not yet implemented)
+
+---
+
 ## Session 160 - Music Gen V2 LLM Functions + Wikipedia Opt-In Refactor
 **Date:** 2026-02-06
 **Focus:** Fix broken LLM functions in music_generation_v2.vue + architectural refactor of Wikipedia research from opt-out to opt-in

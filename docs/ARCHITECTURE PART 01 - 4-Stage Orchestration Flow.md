@@ -845,20 +845,49 @@ export function useGenerationStream() {
 
 | Stage | Function | Endpoint | SSE Event |
 |-------|----------|----------|-----------|
-| Stage 1 | Safety Check (§86a) | `/interception` | `stage_start/complete (stage: 1)` |
+| Stage 1 | Safety Check (§86a + DSGVO + Jugendschutz) | `/interception` | `stage_start/complete (stage: 1)` |
 | Stage 2 | Prompt Interception | `/interception` | `stage_start/complete (stage: 2)` |
 | Stage 3 | Translation + Safety | `/generation` | `stage3_start/complete` |
 | Stage 4 | Media Generation | `/generation` | `stage4_start/complete` |
+| Post-4 | VLM Image Safety (kids/youth only) | `/generation` | `blocked (stage: vlm_safety)` |
 
 **Endpoint Bundling (by design):**
 - `/interception` = Stage 1 + Stage 2 (input processing)
-- `/generation` = Stage 3 + Stage 4 (output generation)
+- `/generation` = Stage 3 + Stage 4 + post-generation VLM check (output generation)
 
 **Clean Internal Separation:**
 - `execute_stage1_gpt_oss_unified()` - Stage 1
 - `execute_pipeline()` (via PipelineExecutor) - Stage 2
 - `execute_stage3_safety()` - Stage 3
 - `execute_stage4_generation_only()` - Stage 4
+- `_vlm_safety_check_image()` - Post-Stage-4 VLM check
+
+#### Post-Generation VLM Safety Check (Session 161)
+
+Text-based safety checks (Stage 1 + Stage 3) analyze the **prompt**, but cannot predict what the image generator actually produces. A harmless prompt can generate disturbing content. The VLM safety check closes this gap:
+
+```
+Stage 4 complete (image saved to disk)
+  ↓
+media_type == 'image' AND safety_level in ('kids', 'youth')?
+  ↓ no  → COMPLETE (no VLM check for code/audio/video or adult/off)
+  ↓ yes
+VLM Safety Check (qwen3-vl:2b via Ollama):
+  - Load image from recorder entity (output_image)
+  - Base64-encode → Ollama /api/chat
+  - Age-appropriate prompt (kids: 6-12, youth: 14-18)
+  - Parse response (content + thinking field) for "safe"/"unsafe"
+  ↓ "safe"  → SSE 'complete' (normal flow)
+  ↓ "unsafe" → SSE 'blocked' (stage: 'vlm_safety')
+  ↓ error   → fail-open → SSE 'complete'
+```
+
+**Key design decisions:**
+- **Fail-open**: VLM errors never block generation (availability > false negatives)
+- **kids/youth only**: adult/off levels skip the check
+- **images only**: code, audio, video are not checked (future: video VLM check)
+- **qwen3 thinking mode**: Response may be in `message.thinking` instead of `message.content` — both fields are checked
+- **Complements, not replaces**: Stage 1+3 remain as fast pre-generation guards
 
 ### 4.6 Design Decisions
 

@@ -29,6 +29,56 @@
 
 ---
 
+## 🛡️ SAFETY: Post-Generation VLM Image Check + Safety-Architektur Klarstellung (2026-02-07)
+
+**Status:** ✅ IMPLEMENTED
+**Session:** 161
+
+### Decision 1: Post-Generation VLM Safety Check
+
+**Text-basierte Safety-Checks können nicht vorhersagen, was ein Bildgenerator tatsächlich erzeugt. Lösung: Das generierte Bild mit einem lokalen Vision-Language-Model (qwen3-vl:2b) analysieren, bevor es ans Frontend geht.**
+
+### Problem (vorher)
+
+Stage 1 und Stage 3 prüfen den **Prompt-Text** — aber ein harmloser Prompt ("visuell faszinierende Szene im Wald") kann ein verstörendes Bild produzieren. Es gab keine Prüfung des **tatsächlich generierten Bildes**.
+
+### Lösung (nachher)
+
+- `_vlm_safety_check_image()` in `schema_pipeline_routes.py` — direkte Ollama-Call nach Stage 4
+- Liest Bild aus `recorder.get_entity_path('output_image')`, base64-encoded
+- Empirisch getestete Prompts für kids (6-12) und youth (14-18)
+- Nur für `media_type == 'image'` und `safety_level in ('kids', 'youth')`
+- Fail-open bei Fehler (VLM-Ausfall blockt nicht)
+- `VLM_SAFETY_MODEL = "qwen3-vl:2b"` in `config.py`
+
+### Decision 2: Safety bedeutet verschiedenes an verschiedenen Stellen
+
+Die Safety-Architektur hat **drei unabhängige Schutzebenen** mit unterschiedlichen Zielen:
+
+| Schutzebene | Was wird geschützt | Wann aktiv | Wo |
+|---|---|---|---|
+| **§86a StGB** | Vor illegalen Inhalten (Nazi-Symbole, Terror) | IMMER (auch adult) | Stage 1 |
+| **DSGVO** | Vor Verarbeitung persönlicher Daten | IMMER (auch adult) | Stage 1 (SpaCy NER) |
+| **Jugendschutz** | Vor alters-unangemessenen Inhalten | kids/youth only | Stage 1 + 3 + VLM |
+
+**Wichtig:** DSGVO-Safety ≠ Jugendschutz. §86a ist strafrechtlich, DSGVO ist datenschutzrechtlich, Jugendschutz ist pädagogisch. Alle drei koexistieren.
+
+### Technische Erkenntnisse: qwen3-vl Thinking Mode
+
+- qwen3-vl:2b nutzt standardmäßig Thinking Mode
+- Antwort landet in `message.thinking`, nicht `message.content`
+- `num_predict` muss hoch genug sein (500) für Thinking + Antwort
+- Code prüft beide Felder (`content` und `thinking`)
+
+### Betroffene Dateien
+- `devserver/config.py` — `VLM_SAFETY_MODEL` Variable
+- `devserver/my_app/routes/schema_pipeline_routes.py` — `_vlm_safety_check_image()` + Insertion in Streaming-Flow
+
+### Offene Frage
+- Video-Generierung: VLM-Check für Videos noch nicht implementiert (media_type != 'image' wird übersprungen)
+
+---
+
 ## 📚 WIKIPEDIA: Opt-In per Config statt Opt-Out per Request (2026-02-06)
 
 **Status:** ✅ IMPLEMENTED

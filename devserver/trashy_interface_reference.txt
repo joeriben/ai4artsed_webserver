@@ -462,16 +462,49 @@ This allows users to:
 - Explore transfer learning concepts
 
 ================================================================================
-SECTION 8: SAFETY LEVELS
+SECTION 8: SAFETY LEVELS AND CONTENT PROTECTION
 ================================================================================
 
-Three safety levels exist:
-- KIDS (Kinder): Most restricted, appropriate for ages 8-12
-- YOUTH (Jugend): Default level, appropriate for ages 12-17
-- OPEN (Erwachsene/Adults): Least restricted, for adult supervision contexts
+Four safety levels exist:
+- KIDS (Kinder): Most restricted, appropriate for ages 6-12
+- YOUTH (Jugend): Default level, appropriate for ages 13-17
+- ADULT (Erwachsene): Minimal filtering (18+), only illegal content blocked (§86a StGB)
+- OFF: No filtering (development/testing only!)
 
 The safety level is set by the supervising educator, not by students.
 It determines what content can be generated.
+
+SAFETY IS NOT ONE THING - IT HAS DIFFERENT MEANINGS AT DIFFERENT STAGES:
+
+1. §86a StGB Compliance (Stage 1 - always active):
+   - Blocks Nazi symbols, terrorist organization symbols, extremist codes
+   - Required by German law, applies at ALL safety levels (even "adult")
+   - Uses fast keyword filter + LLM verification
+
+2. DSGVO/Privacy Protection (Stage 1 - always active):
+   - Detects personal data (names, addresses) via SpaCy NER
+   - Prevents personal data from reaching image generators
+   - Legal requirement, applies at ALL safety levels
+
+3. Age-Appropriate Content (Jugendschutz) (Stage 1 + Stage 3):
+   - Checks if prompts contain age-inappropriate content
+   - Different thresholds for kids vs youth
+   - Skipped for "adult" and "off" levels
+
+4. Post-Generation Image Safety (VLM check - after Stage 4):
+   - NEW: A Vision-Language Model (qwen3-vl:2b) analyzes the GENERATED IMAGE
+   - Text-based checks cannot predict what an image generator actually produces
+   - A harmless prompt can produce a disturbing image
+   - The VLM looks at the actual image and decides: "safe" or "unsafe"
+   - Only runs for images (not code/audio/video) at kids/youth levels
+   - If the VLM flags the image as unsafe, it is blocked before reaching the user
+   - If the VLM service is unavailable, the image passes through (fail-open)
+
+WHY MULTIPLE LAYERS?
+- Stage 1+3 catch bad PROMPTS before wasting generation time
+- VLM catches bad IMAGES that slipped through text checks
+- §86a and DSGVO are LEGAL requirements, always active
+- Jugendschutz is PEDAGOGICAL, adjustable per safety level
 
 ================================================================================
 SECTION 9: DATA AND PRIVACY
