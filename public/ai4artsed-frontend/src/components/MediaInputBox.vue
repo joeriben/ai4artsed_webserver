@@ -215,24 +215,20 @@ function handlePaste() {
 }
 
 // Autonomous safety check (called on blur + paste — NOT on stream-complete)
-// "Guilty until proven innocent": clears value immediately, restores only if safe.
-// This prevents race conditions where a click fires before the async check returns.
+// "Innocent until proven guilty": text stays visible, only cleared if blocked.
+// Backend safety checks (Stage 1 + Stage 3 + VLM) are the actual security boundary.
 async function checkSafety() {
   const text = props.value?.trim()
   if (!text || props.inputType !== 'text' || props.disabled) return
 
   isCheckingSafety.value = true
-  const savedText = text
-
-  // Immediately withdraw content — parent sees '' until check passes
-  emit('update:value', '')
 
   try {
     const baseUrl = import.meta.env.DEV ? 'http://localhost:17802' : ''
     const res = await fetch(`${baseUrl}/api/schema/pipeline/safety/quick`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: savedText })
+      body: JSON.stringify({ text })
     })
     const data = await res.json()
     safetyResult.value = {
@@ -240,16 +236,13 @@ async function checkSafety() {
       checks: data.checks_passed || [],
       error: data.error_message || undefined
     }
-    if (data.safe) {
-      // Passed — restore content
-      emit('update:value', savedText)
-    } else {
-      // Blocked — content stays empty, Trashy explains why
+    if (!data.safe) {
+      // Blocked — clear content, Trashy explains why
+      emit('update:value', '')
       safetyStore.reportBlock(1, data.error_message || 'Inhalt blockiert', [])
     }
   } catch {
-    // Network error → fail-open, restore content
-    emit('update:value', savedText)
+    // Network error → fail-open, keep content
     safetyResult.value = { safe: true, checks: [] }
   } finally {
     isCheckingSafety.value = false
