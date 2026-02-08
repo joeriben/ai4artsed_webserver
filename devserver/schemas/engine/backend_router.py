@@ -1793,10 +1793,12 @@ class BackendRouter:
 
             # Surrealizer: T5-CLIP alpha fusion mode
             alpha_factor = parameters.get('alpha_factor')
+            t5_prompt = parameters.get('t5_prompt')
             if alpha_factor is not None and diffusers_config.get('fusion_mode') == 't5_clip_alpha':
-                logger.info(f"[DIFFUSERS] Fusion mode: t5_clip_alpha, alpha={alpha_factor}")
+                logger.info(f"[DIFFUSERS] Fusion mode: t5_clip_alpha, alpha={alpha_factor}, t5_expanded={t5_prompt is not None}")
                 image_bytes = await backend.generate_image_with_fusion(
                     prompt=prompt,
+                    t5_prompt=t5_prompt,
                     alpha_factor=float(alpha_factor),
                     model_id=model_id,
                     negative_prompt=negative_prompt,

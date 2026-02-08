@@ -36,6 +36,26 @@
           @clear="clearInputText"
         />
 
+        <!-- T5 Prompt Expansion Toggle (directly under input) -->
+        <div class="expand-toggle-row">
+          <label class="expand-toggle">
+            <input type="checkbox" v-model="expandPrompt" />
+            <span class="expand-toggle-label">{{ t('surrealizer.expandLabel') }}</span>
+          </label>
+          <div v-if="expandPrompt && isShortPrompt" class="expand-hint">
+            {{ t('surrealizer.expandHint', { count: estimatedTokens }) }}
+          </div>
+        </div>
+
+        <!-- T5 Expansion Result (shown after generation) -->
+        <div v-if="expandedT5Text" class="expand-result-box">
+          <div class="expand-result-header">
+            <span class="expand-result-icon">T5</span>
+            <span class="expand-result-label">{{ t('surrealizer.expandResultLabel') }}</span>
+          </div>
+          <div class="expand-result-text">{{ expandedT5Text }}</div>
+        </div>
+
         <!-- Extrapolation Slider -->
         <div class="section-card">
           <div class="card-header">
@@ -44,22 +64,24 @@
           </div>
           <div class="slider-container">
             <div class="slider-labels">
-              <span class="slider-label-left">{{ t('surrealizer.sliderExtreme') }}</span>
-              <span class="slider-label-mid-left">{{ t('surrealizer.sliderReverse') }}</span>
+              <span class="slider-label-left">{{ t('surrealizer.sliderExtremeWeird') }}</span>
+              <span class="slider-label-mid-left">{{ t('surrealizer.sliderWeird') }}</span>
               <span class="slider-label-center">{{ t('surrealizer.sliderNormal') }}</span>
-              <span class="slider-label-mid-right">{{ t('surrealizer.sliderSurreal') }}</span>
-              <span class="slider-label-right">{{ t('surrealizer.sliderExtreme') }}</span>
+              <span class="slider-label-mid-right">{{ t('surrealizer.sliderCrazy') }}</span>
+              <span class="slider-label-right">{{ t('surrealizer.sliderExtremeCrazy') }}</span>
             </div>
             <div class="slider-wrapper">
               <input
                 type="range"
                 min="-75"
                 max="75"
+                step="0.1"
                 v-model.number="alphaFaktor"
                 class="slider"
               />
             </div>
             <div class="slider-value">α = {{ alphaFaktor }}</div>
+            <div class="slider-hint">{{ t('surrealizer.sliderHint') }}</div>
           </div>
         </div>
 
@@ -70,7 +92,7 @@
           :disabled="!canExecute"
           @click="executeWorkflow"
         >
-          <span class="button-text">{{ isExecuting ? 'Halluziniere...' : 'Halluzinieren' }}</span>
+          <span class="button-text">{{ isExecuting && expandPrompt ? t('surrealizer.expandActive') : isExecuting ? 'Generiere...' : 'Ausführen' }}</span>
         </button>
       </section>
 
@@ -169,6 +191,10 @@ const previousPrompt = ref('')  // Track previous prompt
 const previousAlpha = ref<number>(0)  // Track previous alpha value
 const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
 
+// T5 prompt expansion
+const expandPrompt = ref(false)
+const expandedT5Text = ref('')
+
 // Image analysis state (for Stage 5)
 const isAnalyzing = ref(false)
 const imageAnalysis = ref<{
@@ -215,6 +241,10 @@ const canExecute = computed(() => {
   return inputText.value.trim().length > 0 && !isExecuting.value
 })
 
+const wordCount = computed(() => inputText.value.trim().split(/\s+/).filter(w => w).length)
+const estimatedTokens = computed(() => Math.round(wordCount.value * 1.3))
+const isShortPrompt = computed(() => wordCount.value > 0 && wordCount.value < 40)
+
 const hasOutputs = computed(() => {
   return outputs.value.length > 0
 })
@@ -242,9 +272,10 @@ async function executeWorkflow() {
   outputs.value = []
   primaryOutput.value = null
   generationProgress.value = 0
+  expandedT5Text.value = ''
 
-  // Progress simulation (60 seconds for surrealization)
-  const durationSeconds = 60 * 0.9
+  // Progress simulation (60s base + 10s if expanding prompt)
+  const durationSeconds = (expandPrompt.value ? 70 : 60) * 0.9
   const targetProgress = 98
   const updateInterval = 100
   const totalUpdates = (durationSeconds * 1000) / updateInterval
@@ -288,10 +319,16 @@ async function executeWorkflow() {
       prompt: inputText.value,
       output_config: 'surrealization_diffusers',
       alpha_factor: mappedAlpha.value,
-      seed: currentSeed.value
+      seed: currentSeed.value,
+      expand_prompt: expandPrompt.value
     })
 
     if (response.data.status === 'success') {
+      // Capture T5 expansion text if returned
+      if (response.data.t5_expansion) {
+        expandedT5Text.value = response.data.t5_expansion
+      }
+
       // Get run_id to fetch all entities
       const runId = response.data.run_id
 
@@ -851,6 +888,104 @@ function extractInsights(analysisText: string): string[] {
   color: rgba(59, 130, 246, 0.95); /* Blue color matching thumb */
   margin-top: 0.5rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Algorithm hint below slider value */
+.slider-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 0.25rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  line-height: 1.4;
+}
+
+/* ============================================================================
+   T5 Expand Toggle
+   ============================================================================ */
+
+.expand-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.expand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.expand-toggle:hover {
+  border-color: rgba(102, 126, 234, 0.4);
+}
+
+.expand-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+.expand-toggle-label {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.expand-hint {
+  font-size: 0.8rem;
+  color: rgba(102, 126, 234, 0.8);
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+  line-height: 1.4;
+}
+
+.expand-result-box {
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.expand-result-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.expand-result-icon {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(102, 126, 234, 0.95);
+  background: rgba(102, 126, 234, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  letter-spacing: 0.05em;
+}
+
+.expand-result-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.expand-result-text {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  max-height: 10rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
 }
 
 /* ============================================================================

@@ -3288,6 +3288,7 @@ def legacy_workflow():
         output_config = data.get('output_config')
         seed = data.get('seed')
         alpha_factor = data.get('alpha_factor')
+        expand_prompt = data.get('expand_prompt', False)
         safety_level = config.DEFAULT_SAFETY_LEVEL
 
         # Additional workflow-specific parameters
@@ -3335,6 +3336,39 @@ def legacy_workflow():
 
         logger.info(f"[LEGACY-ENDPOINT] Stage 1 PASSED")
 
+        # ====================================================================
+        # T5 PROMPT EXPANSION (optional, user-controlled)
+        # ====================================================================
+        t5_prompt = None
+        if expand_prompt:
+            try:
+                from schemas.engine.prompt_interception_engine import (
+                    PromptInterceptionEngine, PromptInterceptionRequest
+                )
+                T5_EXPANSION_INSTRUCTION = (
+                    "Expand this prompt into a rich narrative paragraph (~200 words). "
+                    "Add: mood, atmosphere, sensory details, emotional depth, spatial context, associations. "
+                    "Do NOT repeat the original prompt — only add new content that enriches and deepens it. "
+                    "Write in the same language as the input. Output ONLY the expansion text, nothing else."
+                )
+                engine = PromptInterceptionEngine()
+                pi_request = PromptInterceptionRequest(
+                    input_prompt=prompt,
+                    input_context='',
+                    style_prompt=T5_EXPANSION_INSTRUCTION,
+                    task_instruction='',
+                    model=config.STAGE2_INTERCEPTION_MODEL,
+                    debug=False
+                )
+                pi_response = asyncio.run(engine.process_request(pi_request))
+                if pi_response.success and pi_response.output_str:
+                    t5_prompt = prompt + " " + pi_response.output_str.strip()
+                    logger.info(f"[LEGACY-ENDPOINT] T5 expansion: {len(prompt)} → {len(t5_prompt)} chars")
+                else:
+                    logger.warning(f"[LEGACY-ENDPOINT] T5 expansion failed, using original: {pi_response.error}")
+            except Exception as e:
+                logger.warning(f"[LEGACY-ENDPOINT] T5 expansion error (fail-open): {e}")
+
         # Generate run_id
         run_id = generate_run_id()
 
@@ -3355,6 +3389,8 @@ def legacy_workflow():
 
         # Build custom params for workflow injection
         custom_params = {}
+        if t5_prompt is not None:
+            custom_params['t5_prompt'] = t5_prompt
         if alpha_factor is not None:
             custom_params['alpha_factor'] = alpha_factor
         if mode is not None:
@@ -3513,7 +3549,7 @@ def legacy_workflow():
         duration_ms = (time.time() - start_time) * 1000
         logger.info(f"[LEGACY-ENDPOINT] Success in {duration_ms:.0f}ms")
 
-        return jsonify({
+        response_data = {
             'status': 'success',
             'media_output': {
                 'media_type': 'image',
@@ -3523,7 +3559,11 @@ def legacy_workflow():
             },
             'run_id': run_id,
             'duration_ms': duration_ms
-        })
+        }
+        if t5_prompt is not None:
+            response_data['t5_expansion'] = t5_prompt
+
+        return jsonify(response_data)
 
     except Exception as e:
         logger.error(f"[LEGACY-ENDPOINT] Error: {e}")

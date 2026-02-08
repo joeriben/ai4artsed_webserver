@@ -341,6 +341,7 @@ class DiffusersImageGenerator:
     async def generate_image_with_fusion(
         self,
         prompt: str,
+        t5_prompt: Optional[str] = None,
         alpha_factor: float = 0.0,
         model_id: str = "stabilityai/stable-diffusion-3.5-large",
         negative_prompt: str = "",
@@ -362,7 +363,8 @@ class DiffusersImageGenerator:
           19x past T5 in the CLIP→T5 direction, creating surreal distortion
 
         Args:
-            prompt: Text prompt
+            prompt: Text prompt (used for CLIP-L encoding)
+            t5_prompt: Optional expanded prompt for T5 encoding (None = use prompt)
             alpha_factor: -75 to +75 (raw from UI slider)
                 0 = pure CLIP-L, 1 = pure T5, 15-35 = surreal sweet spot
             model_id: SD3.5 model to use
@@ -400,12 +402,14 @@ class DiffusersImageGenerator:
 
             generator = torch.Generator(device=self.device).manual_seed(seed)
 
-            logger.info(f"[DIFFUSERS-FUSION] Generating: alpha={alpha_factor}, steps={steps}, size={width}x{height}, seed={seed}")
+            logger.info(f"[DIFFUSERS-FUSION] Generating: alpha={alpha_factor}, steps={steps}, size={width}x{height}, seed={seed}, t5_expanded={t5_prompt is not None}")
 
-            def _fuse_prompt(text: str):
+            def _fuse_prompt(clip_text: str, t5_text: str):
                 """Fuse CLIP-L and T5 embeddings for a single prompt.
 
                 Replicates the ComfyUI ai4artsed_t5_clip_fusion node:
+                - CLIP-L encodes clip_text (original user prompt)
+                - T5 encodes t5_text (expanded prompt, or original if no expansion)
                 - LERP first 77 tokens between CLIP-L and T5
                 - Append remaining T5 tokens unchanged
 
@@ -413,15 +417,17 @@ class DiffusersImageGenerator:
                 """
                 device = pipe._execution_device
 
-                # Individual encoder outputs
+                # CLIP-L encodes original user prompt
                 clip_l_embeds, clip_l_pooled = pipe._get_clip_prompt_embeds(
-                    prompt=text, device=device, num_images_per_prompt=1, clip_model_index=0
+                    prompt=clip_text, device=device, num_images_per_prompt=1, clip_model_index=0
                 )
                 _, clip_g_pooled = pipe._get_clip_prompt_embeds(
-                    prompt=text, device=device, num_images_per_prompt=1, clip_model_index=1
+                    prompt=clip_text, device=device, num_images_per_prompt=1, clip_model_index=1
                 )
+
+                # T5 encodes expanded prompt (or original if no expansion)
                 t5_embeds = pipe._get_t5_prompt_embeds(
-                    prompt=text, num_images_per_prompt=1, max_sequence_length=512, device=device
+                    prompt=t5_text, num_images_per_prompt=1, max_sequence_length=512, device=device
                 )
 
                 # Pad CLIP-L (768d) to T5 dimension (4096d)
@@ -441,12 +447,15 @@ class DiffusersImageGenerator:
                 return fused_embeds, pooled
 
             def _generate():
-                # Fuse positive prompt
-                pos_embeds, pos_pooled = _fuse_prompt(prompt)
+                # Effective T5 prompt: expanded if provided, else original
+                effective_t5_prompt = t5_prompt if t5_prompt else prompt
 
-                # Fuse negative prompt (same alpha — matches ComfyUI workflow)
+                # Fuse positive prompt (CLIP-L gets original, T5 gets expanded)
+                pos_embeds, pos_pooled = _fuse_prompt(prompt, effective_t5_prompt)
+
+                # Fuse negative prompt (no expansion — same text for both)
                 neg_text = negative_prompt if negative_prompt else ""
-                neg_embeds, neg_pooled = _fuse_prompt(neg_text)
+                neg_embeds, neg_pooled = _fuse_prompt(neg_text, neg_text)
 
                 logger.info(
                     f"[DIFFUSERS-FUSION] Token-level fusion: alpha={alpha_factor}, "
