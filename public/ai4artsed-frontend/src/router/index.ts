@@ -120,6 +120,12 @@ const router = createRouter({
       // Test page for GPU visualization animations
       component: () => import('../views/AnimationTestView.vue'),
     },
+    {
+      path: '/dev/pixel-editor',
+      name: 'pixel-editor',
+      // Dev tool: visual pixel template editor for Bits & Pixels animation
+      component: () => import('../views/PixelTemplateEditorView.vue'),
+    },
   ],
 })
 

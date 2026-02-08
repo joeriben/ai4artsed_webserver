@@ -92,7 +92,7 @@
           :disabled="!canExecute"
           @click="executeWorkflow"
         >
-          <span class="button-text">{{ isExecuting && expandPrompt ? t('surrealizer.expandActive') : isExecuting ? 'Generiere...' : 'Ausführen' }}</span>
+          <span class="button-text">{{ isExecuting && isExpanding ? t('surrealizer.expandActive') : isExecuting ? 'Generiere...' : 'Ausführen' }}</span>
         </button>
       </section>
 
@@ -194,6 +194,7 @@ const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
 // T5 prompt expansion
 const expandPrompt = ref(false)
 const expandedT5Text = ref('')
+const isExpanding = ref(false)  // True only during an active LLM expansion call
 
 // Image analysis state (for Stage 5)
 const isAnalyzing = ref(false)
@@ -272,10 +273,14 @@ async function executeWorkflow() {
   outputs.value = []
   primaryOutput.value = null
   generationProgress.value = 0
-  expandedT5Text.value = ''
+
+  // Only expand if: checkbox on AND (no existing expansion OR prompt changed)
+  const promptChanged = inputText.value !== previousPrompt.value
+  const needsExpansion = expandPrompt.value && (!expandedT5Text.value || promptChanged)
+  isExpanding.value = needsExpansion
 
   // Progress simulation (60s base + 10s if expanding prompt)
-  const durationSeconds = (expandPrompt.value ? 70 : 60) * 0.9
+  const durationSeconds = (needsExpansion ? 70 : 60) * 0.9
   const targetProgress = 98
   const updateInterval = 100
   const totalUpdates = (durationSeconds * 1000) / updateInterval
@@ -320,7 +325,7 @@ async function executeWorkflow() {
       output_config: 'surrealization_diffusers',
       alpha_factor: mappedAlpha.value,
       seed: currentSeed.value,
-      expand_prompt: expandPrompt.value
+      expand_prompt: needsExpansion
     })
 
     if (response.data.status === 'success') {
@@ -360,6 +365,7 @@ async function executeWorkflow() {
     alert(`Fehler: ${errorMessage}`)
   } finally {
     isExecuting.value = false
+    isExpanding.value = false
   }
 }
 

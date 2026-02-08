@@ -23,9 +23,14 @@ Usage:
 """
 
 import logging
+import warnings
 from typing import Optional, Dict, Any, Callable, AsyncGenerator
 from pathlib import Path
 import asyncio
+
+# Suppress noisy HuggingFace tokenizer deprecation warnings
+warnings.filterwarnings("ignore", message=".*add_prefix_space.*")
+warnings.filterwarnings("ignore", message=".*slow tokenizers.*")
 
 logger = logging.getLogger(__name__)
 
@@ -163,8 +168,9 @@ class DiffusersImageGenerator:
             # Load in thread to avoid blocking event loop
             def _load():
                 kwargs = {
-                    "dtype": self._get_torch_dtype(),
-                    "use_safetensors": True
+                    "torch_dtype": self._get_torch_dtype(),
+                    "use_safetensors": True,
+                    "low_cpu_mem_usage": True,  # Stream weights directly, skip CPU staging
                 }
                 # Only set cache_dir if explicitly configured
                 if self.cache_dir:
@@ -246,7 +252,7 @@ class DiffusersImageGenerator:
         width: int = 1024,
         height: int = 1024,
         steps: int = 25,
-        cfg_scale: float = 5.5,
+        cfg_scale: float = 4.5,
         seed: int = -1,
         callback: Optional[Callable[[int, int, Any], None]] = None,
         **kwargs
@@ -348,7 +354,7 @@ class DiffusersImageGenerator:
         width: int = 1024,
         height: int = 1024,
         steps: int = 25,
-        cfg_scale: float = 5.5,
+        cfg_scale: float = 4.5,
         seed: int = -1,
         callback: Optional[Callable[[int, int, Any], None]] = None
     ) -> Optional[bytes]:

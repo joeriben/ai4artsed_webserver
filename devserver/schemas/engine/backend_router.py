@@ -1671,7 +1671,7 @@ class BackendRouter:
             width = int(parameters.get('width') or input_mappings.get('width', {}).get('default', 1024))
             height = int(parameters.get('height') or input_mappings.get('height', {}).get('default', 1024))
             steps = int(parameters.get('steps') or input_mappings.get('steps', {}).get('default', 25))
-            cfg_scale = float(parameters.get('cfg') or input_mappings.get('cfg', {}).get('default', 5.5))
+            cfg_scale = float(parameters.get('cfg') or input_mappings.get('cfg', {}).get('default', 4.5))
             negative_prompt = parameters.get('negative_prompt') or input_mappings.get('negative_prompt', {}).get('default', '')
 
             # Seed handling
@@ -1777,7 +1777,7 @@ class BackendRouter:
             width = int(parameters.get('width') or input_mappings.get('width', {}).get('default', 1024))
             height = int(parameters.get('height') or input_mappings.get('height', {}).get('default', 1024))
             steps = int(parameters.get('steps') or input_mappings.get('steps', {}).get('default', 25))
-            cfg_scale = float(parameters.get('cfg') or input_mappings.get('cfg', {}).get('default', 5.5))
+            cfg_scale = float(parameters.get('cfg') or input_mappings.get('cfg', {}).get('default', 4.5))
             negative_prompt = parameters.get('negative_prompt') or input_mappings.get('negative_prompt', {}).get('default', '')
 
             # Seed handling

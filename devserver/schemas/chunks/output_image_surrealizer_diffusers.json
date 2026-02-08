@@ -18,7 +18,7 @@
     },
     "alpha_factor": {
       "default": 0,
-      "description": "Extrapolation factor: 0=pure CLIP-L (normal), 1=pure T5, 15-35=surreal sweet spot (extrapolation past T5), negative=reverse direction. Formula: (1-α)*CLIP-L + α*T5 on first 77 tokens."
+      "description": "Extrapolation factor: 0=pure CLIP-L (normal), 1=pure T5, 15-35=surreal sweet spot (extrapolation past T5). Negative α: CLIP-L amplified, T5 negated — upper 3328 dimensions (CLIP-L zero-padding) get inverted T5 vectors, cross-attention patterns flip. Formula: (1-α)*CLIP-L + α*T5 on first 77 tokens."
     },
     "seed": {
       "default": "random",
@@ -29,7 +29,7 @@
       "description": "Number of sampling steps"
     },
     "cfg": {
-      "default": 5.5,
+      "default": 4.5,
       "description": "Classifier Free Guidance scale"
     },
     "width": {
@@ -52,6 +52,6 @@
     "estimated_duration_seconds": "20-40",
     "requires_gpu": true,
     "gpu_vram_mb": 8000,
-    "notes": "Token-level fusion matching the ComfyUI ai4artsed_t5_clip_fusion node. CLIP-L (768d, padded to 4096d) and T5-XXL (4096d) encode independently. First 77 tokens are LERP'd with alpha (enabling extrapolation at α>1). Remaining T5 tokens appended unchanged as semantic anchor. At α=20: embedding = -19*CLIP-L + 20*T5, pushing 19x past T5 into unexplored vector space."
+    "notes": "Token-level fusion matching the ComfyUI ai4artsed_t5_clip_fusion node. CLIP-L (768d, padded to 4096d) and T5-XXL (4096d) encode independently. First 77 tokens are LERP'd with alpha (enabling extrapolation at α>1). Remaining T5 tokens appended unchanged as semantic anchor. At α=20: embedding = -19*CLIP-L + 20*T5, pushing 19x past T5 into unexplored vector space. At α=-10: 11*CLIP-L + (-10)*T5 — CLIP-L amplified, T5 inverted. Because CLIP-L only fills 768/4096 dims (rest zero-padded), negative alpha produces inverted T5 in the upper 3328 dims, flipping cross-attention patterns. Qualitatively different hallucinations: positive = linguistic, negative = visual with disrupted semantics."
   }
 }

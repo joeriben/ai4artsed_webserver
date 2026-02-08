@@ -407,8 +407,116 @@
                   <div class="experiment-example">
                     <strong>{{ currentLanguage === 'de' ? 'Bereiche:' : 'Ranges:' }}</strong>
                     {{ currentLanguage === 'de'
-                      ? 'α=0: normales Bild (nur CLIP-L) | α=1: reines T5 (noch normal) | α=15–35: surrealer Sweet Spot (Extrapolation) | α>50: extreme Verzerrung | Negative Werte: Extrapolation in Gegenrichtung'
-                      : 'α=0: normal image (CLIP-L only) | α=1: pure T5 (still normal) | α=15–35: surreal sweet spot (extrapolation) | α>50: extreme distortion | Negative values: extrapolation in reverse direction' }}
+                      ? 'α=0: normales Bild (nur CLIP-L) | α=1: reines T5 (noch normal) | α=15–35: surrealer Sweet Spot (Extrapolation) | α>50: extreme Verzerrung'
+                      : 'α=0: normal image (CLIP-L only) | α=1: pure T5 (still normal) | α=15–35: surreal sweet spot (extrapolation) | α>50: extreme distortion' }}
+                  </div>
+                  <div class="experiment-negative">
+                    <strong>{{ currentLanguage === 'de' ? 'Negative α — die Gegenrichtung:' : 'Negative α — the reverse direction:' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Bei negativem α wird CLIP-L verstärkt und T5 negiert. Bei α=-10 ergibt die Formel: 11·CLIP-L + (-10)·T5. Der Effekt geht tiefer als "weniger T5": Weil CLIP-L nur 768 von 4096 Dimensionen füllt (der Rest ist Nullen), werden in den oberen 3328 Dimensionen die T5-Vektoren invertiert. In der Cross-Attention des Transformers kehrt das die Aufmerksamkeitsmuster um — Textteile, die normalerweise am wichtigsten wären, werden ignoriert, unwichtige dominieren. Das Ergebnis: visuell getriebene Halluzinationen mit gestörter Semantik, qualitativ anders als positive Extrapolation.'
+                      : 'With negative α, CLIP-L is amplified and T5 is negated. At α=-10 the formula yields: 11·CLIP-L + (-10)·T5. The effect goes deeper than "less T5": because CLIP-L only fills 768 of 4096 dimensions (the rest are zeros), the upper 3328 dimensions get inverted T5 vectors. In the transformer\'s cross-attention, this inverts the attention patterns — text tokens that would normally be most important are ignored, while insignificant ones dominate. The result: visually driven hallucinations with disrupted semantics, qualitatively different from positive extrapolation.' }}</p>
+                  </div>
+
+                  <!-- Deep Dive: Mathematics -->
+                  <button class="deep-dive-toggle" @click="showHallucinatorMath = !showHallucinatorMath">
+                    {{ currentLanguage === 'de' ? '📐 Die Mathematik im Detail' : '📐 The Mathematics in Detail' }}
+                    <span class="toggle-arrow">{{ showHallucinatorMath ? '▲' : '▼' }}</span>
+                  </button>
+
+                  <div v-if="showHallucinatorMath" class="deep-dive-content">
+                    <!-- Section 1: Two Worlds -->
+                    <h4>{{ currentLanguage === 'de' ? 'CLIP-L vs T5-XXL: Zwei verschiedene "Welten"' : 'CLIP-L vs T5-XXL: Two Different "Worlds"' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Stell dir den Embedding-Raum als einen hochdimensionalen Raum vor. Jeder Encoder bildet denselben Text auf einen anderen Punkt in diesem Raum ab:'
+                      : 'Imagine the embedding space as a high-dimensional space. Each encoder maps the same text to a different point in this space:' }}</p>
+                    <pre class="math-diagram">Prompt: "Ein Haus am See"
+
+CLIP-L → Punkt C = [0.3, -0.7, 0.1, ...]  (768 Dimensionen)
+T5-XXL → Punkt T = [0.5, -0.2, 0.8, ...]  (4096 Dimensionen)</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Warum sind die Punkte verschieden? CLIP-L wurde mit Bild-Text-Paaren trainiert (kontrastives Lernen). Es "denkt" visuell: "Was für ein Bild passt zu diesem Text?" T5-XXL wurde als Sprach-Modell trainiert. Es "denkt" semantisch-linguistisch: "Was bedeutet dieser Text?"'
+                      : 'Why are the points different? CLIP-L was trained on image-text pairs (contrastive learning). It "thinks" visually: "What image fits this text?" T5-XXL was trained as a language model. It "thinks" semantically-linguistically: "What does this text mean?"' }}</p>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Dasselbe Wort "Haus" aktiviert in CLIP-L andere Neuronen als in T5. CLIP-L hat gelernt, dass "Haus" korreliert mit bestimmten visuellen Features (Dach-Form, Fenster, Wände). T5 hat gelernt, dass "Haus" in Beziehung steht zu "Gebäude", "Wohnung", "Heim", "Architektur".'
+                      : 'The same word "house" activates different neurons in CLIP-L than in T5. CLIP-L learned that "house" correlates with certain visual features (roof shape, windows, walls). T5 learned that "house" relates to "building", "apartment", "home", "architecture".' }}</p>
+
+                    <!-- Section 2: LERP Geometry -->
+                    <h4>{{ currentLanguage === 'de' ? 'Die LERP-Formel geometrisch' : 'The LERP Formula Geometrically' }}</h4>
+                    <pre class="math-diagram">fused(α) = (1 - α) · C + α · T</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Das ist eine parametrische Gerade durch C und T im Embedding-Raum:'
+                      : 'This is a parametric line through C and T in the embedding space:' }}</p>
+                    <pre class="math-diagram">α = 0.0  →  Punkt C (reines CLIP-L, "visuell-literal")
+α = 0.5  →  Mittelpunkt zwischen C und T
+α = 1.0  →  Punkt T (reines T5, "semantisch-linguistisch")
+
+       C ────────────── T
+       α=0    α=0.5    α=1</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Bis hier ist es Interpolation — wir bleiben zwischen zwei bekannten Punkten. Das Modell hat für beide Punkte gelernt, sinnvolle Bilder zu produzieren. Die Ergebnisse sind "normal".'
+                      : 'Up to here it\'s interpolation — we stay between two known points. The model learned to produce sensible images for both points. The results are "normal".' }}</p>
+
+                    <!-- Section 3: Extrapolation -->
+                    <h4>{{ currentLanguage === 'de' ? 'Was passiert bei α > 1? Extrapolation!' : 'What happens at α > 1? Extrapolation!' }}</h4>
+                    <pre class="math-diagram">α = 20  →  fused = (1 - 20) · C + 20 · T = -19·C + 20·T</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Geometrisch: Wir gehen durch T hindurch und 19× so weit darüber hinaus:'
+                      : 'Geometrically: we pass through T and go 19× further beyond:' }}</p>
+                    <pre class="math-diagram">   C ──────── T ──────────────────────────────────── α=20
+   ← bekannt →←          terra incognita              →</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Der Punkt bei α=20 liegt 19 Mal weiter von T entfernt als T von C. Dieses Gebiet hat das Diffusion-Modell während des Trainings nie gesehen. Es muss trotzdem etwas daraus generieren — und das Ergebnis ist surreal, weil:'
+                      : 'The point at α=20 lies 19 times further from T than T is from C. The diffusion model never saw this region during training. It must still generate something from it — and the result is surreal because:' }}</p>
+                    <div class="math-list">
+                      <p>{{ currentLanguage === 'de'
+                        ? '1. Feature-Verstärkung: Was T5 anders "sieht" als CLIP-L wird massiv verstärkt. Wenn T5 "Haus" stärker mit "Geborgenheit" assoziiert als CLIP-L, wird bei α=20 die Geborgenheits-Dimension 19× übertrieben.'
+                        : '1. Feature amplification: What T5 "sees" differently from CLIP-L gets massively amplified. If T5 associates "house" more strongly with "coziness" than CLIP-L, the coziness dimension gets exaggerated 19×.' }}</p>
+                      <p>{{ currentLanguage === 'de'
+                        ? '2. Feature-Unterdrückung: Was CLIP-L betont und T5 nicht, wird negiert (Faktor -19). Visuelle Literalität wird aktiv unterdrückt.'
+                        : '2. Feature suppression: What CLIP-L emphasizes and T5 doesn\'t gets negated (factor -19). Visual literalness is actively suppressed.' }}</p>
+                      <p>{{ currentLanguage === 'de'
+                        ? '3. Nicht-Linearität des Decoders: Der DiT-Decoder wurde trainiert, Embeddings in einem bestimmten Bereich zu verarbeiten. Out-of-distribution-Inputs erzeugen unvorhersehbare, aber kohärente Artefakte — ähnlich wie DeepDream, aber gesteuert.'
+                        : '3. Decoder non-linearity: The DiT decoder was trained to process embeddings within a certain range. Out-of-distribution inputs produce unpredictable but coherent artifacts — similar to DeepDream, but steered.' }}</p>
+                    </div>
+
+                    <!-- Section 4: Token Level -->
+                    <h4>{{ currentLanguage === 'de' ? 'Warum Token-Level statt Global?' : 'Why Token-Level Instead of Global?' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Die Fusion passiert pro Token, nicht über den ganzen Embedding-Vektor:'
+                      : 'The fusion happens per token, not across the entire embedding vector:' }}</p>
+                    <pre class="math-diagram">Token 1 ("Ein"):   fused[1] = (1-α)·CLIP_L[1] + α·T5[1]
+Token 2 ("Haus"):  fused[2] = (1-α)·CLIP_L[2] + α·T5[2]
+Token 3 ("am"):    fused[3] = (1-α)·CLIP_L[3] + α·T5[3]
+Token 4 ("See"):   fused[4] = (1-α)·CLIP_L[4] + α·T5[4]
+...
+Token 78-512:      reines T5 (semantischer Anker)</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Das ist entscheidend, weil jedes Token eine andere Diskrepanz zwischen CLIP und T5 hat: "Haus" → große Diskrepanz (visuell vs. semantisch sehr unterschiedlich) → starker Halluzinations-Effekt. "am" → kleine Diskrepanz (Funktionswort, beide Encoder ähnlich) → wenig Effekt.'
+                      : 'This is crucial because each token has a different discrepancy between CLIP and T5: "house" → large discrepancy (visual vs. semantic very different) → strong hallucination effect. "at" → small discrepancy (function word, both encoders similar) → little effect.' }}</p>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Die Tokens 78–512 (reines T5) dienen als semantischer Anker — sie geben dem Modell genug "normalen" Kontext, damit das Bild nicht komplett ins Chaos abdriftet.'
+                      : 'Tokens 78–512 (pure T5) serve as a semantic anchor — they give the model enough "normal" context so the image doesn\'t drift into complete chaos.' }}</p>
+
+                    <!-- Section 5: Ranges -->
+                    <h4>{{ currentLanguage === 'de' ? 'Die Grenzbereiche' : 'The Boundary Ranges' }}</h4>
+                    <pre class="math-diagram">α &lt; -30     → Blackout (Embedding zu weit von allem → Rauschen)
+α ≈ -4..-1  → Reines CLIP-L (T5-Einfluss ausgelöscht)
+α ≈ 0..1    → Normaler Mix beider Encoder
+α ≈ 2..7    → T5-dominant, beginnt "seltsam" zu werden
+α ≈ 15..35  → Sweet Spot: Surreal, aber noch bildlich kohärent
+α > 75      → Blackout (zu weit extrapoliert → numerischer Overflow)</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Der Sweet Spot bei 15–35 entsteht, weil: Genug Struktur überlebt, um ein erkennbares Bild zu produzieren. Genug Verzerrung da ist, um unerwartete Assoziationen zu erzeugen. Und die T5-Tokens 78–512 als Stabilisator wirken.'
+                      : 'The sweet spot at 15–35 exists because: enough structure survives to produce a recognizable image, enough distortion exists to create unexpected associations, and T5 tokens 78–512 act as a stabilizer.' }}</p>
+
+                    <!-- Section 6: Analogy -->
+                    <h4>{{ currentLanguage === 'de' ? 'Analogie' : 'Analogy' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Stell dir vor, du bittest zwei Künstler, "ein Haus am See" zu malen: CLIP-L malt ein fotografisch-realistisches Bild. T5 malt ein Bild, das die Bedeutung von "Haus am See" einfängt — Ruhe, Wasser, Schutz.'
+                      : 'Imagine you ask two artists to paint "a house by a lake": CLIP-L paints a photographically realistic image. T5 paints an image that captures the meaning of "house by a lake" — tranquility, water, shelter.' }}</p>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Bei α=0 siehst du CLIP-Ls Bild. Bei α=1 siehst du T5s Bild. Bei α=20 extrapolierst du: "Wenn der Unterschied zwischen beiden SO ist, wie sähe es aus, wenn man diesen Unterschied 20× verstärkt?" — und bekommst etwas, das keiner der beiden Künstler je gemalt hätte.'
+                      : 'At α=0 you see CLIP-L\'s painting. At α=1 you see T5\'s painting. At α=20 you extrapolate: "If the difference between both is THIS, what would it look like if you amplified that difference 20×?" — and you get something neither artist would ever have painted.' }}</p>
                   </div>
                 </div>
 
@@ -642,6 +750,7 @@ const emit = defineEmits<{
 }>()
 
 const activeTab = ref('welcome')
+const showHallucinatorMath = ref(false)
 
 const tabs = [
   { id: 'welcome', labelDe: 'Willkommen', labelEn: 'Welcome' },
@@ -1339,6 +1448,105 @@ onUnmounted(() => {
   color: #81C784;
   font-style: normal;
   margin-right: 0.5rem;
+}
+
+.experiment-negative {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(147, 51, 234, 0.1);
+  border-left: 3px solid rgba(147, 51, 234, 0.5);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.experiment-negative strong {
+  color: rgba(180, 130, 240, 0.95);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.experiment-negative p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Deep Dive Toggle */
+.deep-dive-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: rgba(59, 130, 246, 0.95);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.deep-dive-toggle:hover {
+  background: rgba(59, 130, 246, 0.25);
+}
+
+.toggle-arrow {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* Deep Dive Content */
+.deep-dive-content {
+  margin-top: 0.75rem;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+}
+
+.deep-dive-content h4 {
+  color: rgba(59, 130, 246, 0.95);
+  font-size: 1rem;
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+.deep-dive-content h4:first-child {
+  margin-top: 0;
+}
+
+.deep-dive-content p {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.7;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.math-diagram {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: rgba(180, 220, 255, 0.9);
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.math-list {
+  padding-left: 0.5rem;
+  border-left: 2px solid rgba(59, 130, 246, 0.3);
+  margin: 0.5rem 0;
+}
+
+.math-list p {
+  font-size: 0.85rem;
+  margin: 0.4rem 0;
 }
 
 /* Disclaimer */
