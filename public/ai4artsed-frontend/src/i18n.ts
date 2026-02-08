@@ -328,7 +328,8 @@ const messages = {
       dsgvo: 'Dein Prompt wurde blockiert, weil er pers\u00F6nliche Daten enth\u00E4lt (z.B. echte Namen oder Adressen). Das ist durch die Datenschutzgrundverordnung (DSGVO) gesch\u00FCtzt. Verwende stattdessen Phantasienamen!',
       kids: 'Dein Prompt wurde vom Kinder-Schutzfilter blockiert. Manche Begriffe sind f\u00FCr Kinder nicht geeignet, weil sie erschreckend oder verst\u00F6rend sein k\u00F6nnen. Versuche, deine Idee mit freundlicheren Worten zu beschreiben!',
       youth: 'Dein Prompt wurde vom Jugendschutzfilter blockiert. Manche Inhalte sind auch f\u00FCr Jugendliche nicht geeignet. Versuche, deine Idee anders zu formulieren!',
-      generic: 'Dein Prompt wurde vom Sicherheitssystem blockiert. Das System sch\u00FCtzt dich vor ungeeigneten Inhalten. Versuche es mit einer anderen Formulierung!'
+      generic: 'Dein Prompt wurde vom Sicherheitssystem blockiert. Das System sch\u00FCtzt dich vor ungeeigneten Inhalten. Versuche es mit einer anderen Formulierung!',
+      inputImage: 'Das hochgeladene Bild wurde von einer Bildanalyse-KI als ungeeignet eingestuft. Bitte verwende ein anderes Bild.'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantische Vektorfusion',
@@ -856,7 +857,8 @@ const messages = {
       dsgvo: 'Your prompt was blocked because it contains personal data (e.g. real names or addresses). This is protected by the General Data Protection Regulation (GDPR). Use fictional names instead!',
       kids: 'Your prompt was blocked by the child safety filter. Some terms are not suitable for children because they can be scary or disturbing. Try describing your idea with friendlier words!',
       youth: 'Your prompt was blocked by the youth protection filter. Some content is not suitable for teenagers either. Try rephrasing your idea!',
-      generic: 'Your prompt was blocked by the safety system. The system protects you from unsuitable content. Try a different wording!'
+      generic: 'Your prompt was blocked by the safety system. The system protects you from unsuitable content. Try a different wording!',
+      inputImage: 'The uploaded image was flagged as unsuitable by an image analysis AI. Please use a different image.'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantic Vector Fusion',

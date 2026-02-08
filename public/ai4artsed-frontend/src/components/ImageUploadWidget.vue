@@ -94,9 +94,14 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
+import { useSafetyEventStore } from '@/stores/safetyEvent'
 // DEPRECATED 2025-12-15: SimpleMaskEditor not actively used (text-guided editing sufficient)
 // import SimpleMaskEditor from './SimpleMaskEditor.vue'
+
+const { t } = useI18n()
+const safetyStore = useSafetyEventStore()
 
 // Props
 interface Props {
@@ -208,6 +213,26 @@ async function processFile(file: File) {
     })
 
     if (response.data.success) {
+      // VLM safety check for uploaded image (kids/youth only, fail-open)
+      try {
+        const safetyRes = await fetch('/api/schema/pipeline/safety/quick', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_path: response.data.image_path })
+        })
+        const safetyData = await safetyRes.json()
+        if (!safetyData.safe) {
+          previewUrl.value = null
+          uploadInfo.value = null
+          if (fileInput.value) fileInput.value.value = ''
+          safetyStore.reportBlock('vlm_input', safetyData.error_message || t('safetyBlocked.inputImage'), [])
+          emit('image-removed')
+          return
+        }
+      } catch {
+        // Fail-open: network error → proceed normally
+      }
+
       uploadInfo.value = response.data
 
       emit('image-uploaded', {

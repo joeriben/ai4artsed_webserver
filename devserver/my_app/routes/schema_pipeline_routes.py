@@ -1966,19 +1966,18 @@ def _llm_verify_person_name(text: str, ner_entities: list) -> bool:
 @schema_bp.route('/pipeline/safety/quick', methods=['POST'])
 def safety_check_quick():
     """
-    Quick safety check: §86a fast-filter + DSGVO NER→LLM-verify.
+    Quick safety check for text (§86a + DSGVO) and uploaded images (VLM).
 
-    Used by MediaInputBox autonomous safety (on blur/paste).
-    This endpoint handles ONLY:
-    - §86a: Nazi symbols/slogans (instant block, fast-filter)
-    - DSGVO: Personal names — SpaCy NER trigger → LLM verification before block
+    Used by MediaInputBox autonomous safety (on blur/paste) and
+    ImageUploadWidget (after upload).
 
-    Flow: §86a fast-filter → SpaCy NER → (if PER hit) LLM verify → block/allow
+    Text mode (field: "text"):
+        §86a fast-filter → SpaCy NER → (if PER hit) LLM verify → block/allow
 
-    Jugendschutz (age-appropriate content) is handled by Stage 3 LLM,
-    NOT here — semantic violence/harm cannot be caught by wordlists.
+    Image mode (field: "image_path"):
+        VLM safety check via Ollama (kids/youth only, fail-open)
 
-    Request Body: { "text": "Text to check" }
+    Request Body: { "text": "..." } or { "image_path": "/path/to/uploaded.png" }
     Response: { "safe": bool, "checks_passed": [...], "error_message": str|null }
     """
     try:
@@ -1986,6 +1985,25 @@ def safety_check_quick():
         if not data:
             return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
 
+        # IMAGE MODE: VLM safety check for uploaded images
+        image_path = data.get('image_path', '').strip()
+        if image_path:
+            safety_level = config.DEFAULT_SAFETY_LEVEL
+            if safety_level not in ('kids', 'youth'):
+                return jsonify({'safe': True, 'checks_passed': ['vlm_skipped'], 'error_message': None})
+
+            from my_app.utils.vlm_safety import vlm_safety_check
+            is_safe, reason = vlm_safety_check(image_path, safety_level)
+            if not is_safe:
+                logger.warning(f"[SAFETY-QUICK] VLM image BLOCKED: {reason}")
+                return jsonify({
+                    'safe': False,
+                    'checks_passed': ['vlm_image_check'],
+                    'error_message': reason
+                })
+            return jsonify({'safe': True, 'checks_passed': ['vlm_image_check'], 'error_message': None})
+
+        # TEXT MODE: §86a fast-filter + DSGVO NER
         text = data.get('text', '').strip()
         if not text:
             return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
@@ -2163,9 +2181,7 @@ def _vlm_safety_check_image(recorder, safety_level: str) -> tuple:
     """
     Post-generation image safety check using a local VLM via Ollama.
 
-    Reads the generated image from the recorder, sends it to Ollama's
-    qwen3-vl:2b model with an age-appropriate safety prompt, and parses
-    the response for "safe" or "unsafe".
+    Delegates to vlm_safety.vlm_safety_check() helper.
 
     Args:
         recorder: LivePipelineRecorder with saved output_image entity
@@ -2175,75 +2191,14 @@ def _vlm_safety_check_image(recorder, safety_level: str) -> tuple:
         (is_safe: bool, reason: str)
         Fail-open: returns (True, '') on any error.
     """
-    import base64
+    from my_app.utils.vlm_safety import vlm_safety_check
 
-    vlm_prompts = {
-        'kids': (
-            'Is the image free of violence, nudity, unsettling, scaring, '
-            'potentially traumatizing, or other content unsafe or unhealthy '
-            'for children age 6-12 years? Provide a clear decision: "safe" or "unsafe".'
-        ),
-        'youth': (
-            'Is the image free of violence, nudity, unsettling, scaring, '
-            'potentially traumatizing, or other content unsafe or unhealthy '
-            'for teenagers age 14-18 years? Provide a clear decision: "safe" or "unsafe".'
-        ),
-    }
-
-    try:
-        # Find image file from recorder entities
-        image_path = recorder.get_entity_path('output_image')
-        if not image_path or not image_path.exists():
-            logger.warning("[VLM-SAFETY] No output_image entity found — skipping check")
-            return (True, '')
-
-        # Read and base64-encode the image
-        image_bytes = image_path.read_bytes()
-        image_b64 = base64.b64encode(image_bytes).decode('utf-8')
-
-        # Build Ollama /api/chat request
-        prompt_text = vlm_prompts.get(safety_level)
-        if not prompt_text:
-            return (True, '')
-
-        ollama_url = f"{config.OLLAMA_API_BASE_URL}/api/chat"
-        payload = {
-            'model': config.VLM_SAFETY_MODEL,
-            'messages': [{
-                'role': 'user',
-                'content': prompt_text,
-                'images': [image_b64]
-            }],
-            'stream': False,
-            'options': {
-                'temperature': 0.0,
-                'num_predict': 2000
-            },
-            'keep_alive': '10m'
-        }
-
-        logger.info(f"[VLM-SAFETY] Checking image ({len(image_bytes)} bytes) with {config.VLM_SAFETY_MODEL} for safety_level={safety_level}")
-
-        response = requests.post(ollama_url, json=payload, timeout=60)
-        response.raise_for_status()
-
-        response_json = response.json()
-        message = response_json.get('message', {})
-
-        # qwen3 uses thinking mode: answer may be in 'content' or 'thinking'
-        content = message.get('content', '').lower().strip()
-        thinking = message.get('thinking', '').lower().strip()
-        combined = content or thinking
-        logger.info(f"[VLM-SAFETY] Model response: content={content!r}, thinking={thinking[:200]!r}")
-
-        if 'unsafe' in combined:
-            return (False, f"VLM safety check ({config.VLM_SAFETY_MODEL}): image flagged as unsafe for {safety_level}")
+    image_path = recorder.get_entity_path('output_image')
+    if not image_path or not image_path.exists():
+        logger.warning("[VLM-SAFETY] No output_image entity found — skipping check")
         return (True, '')
 
-    except Exception as e:
-        # Fail-open: VLM failure should never block generation
-        logger.warning(f"[VLM-SAFETY] Error during check (fail-open): {e}")
-        return (True, '')
+    return vlm_safety_check(image_path, safety_level)
 
 
 # ============================================================================

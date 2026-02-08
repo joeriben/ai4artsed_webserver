@@ -465,7 +465,9 @@ watch(
     let explanation: string
     const reason = event.reason || ''
 
-    if (reason.includes('VLM') || event.stage === 'vlm_safety') {
+    if (event.stage === 'vlm_input') {
+      explanation = t('safetyBlocked.inputImage')
+    } else if (reason.includes('VLM') || event.stage === 'vlm_safety') {
       explanation = t('safetyBlocked.vlm')
     } else if (reason.includes('§86a')) {
       explanation = t('safetyBlocked.para86a')
