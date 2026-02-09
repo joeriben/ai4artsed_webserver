@@ -29,8 +29,12 @@
       "description": "Number of sampling steps"
     },
     "cfg": {
-      "default": 4.5,
+      "default": 5.5,
       "description": "Classifier Free Guidance scale"
+    },
+    "negative_prompt": {
+      "default": "watermark",
+      "description": "Negative prompt — fused with same alpha as positive (matches original ComfyUI workflow)"
     },
     "width": {
       "default": 1024,

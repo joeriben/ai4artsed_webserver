@@ -1,5 +1,56 @@
 # Development Log
 
+## Session 163 - Hallucinator: Exact ComfyUI Replication + Configurable Parameters
+**Date:** 2026-02-09
+**Focus:** Fix fundamentally broken Diffusers fusion by exact replication of original ComfyUI CLIP flow; add configurable negative prompt and CFG
+
+### The Problem — Why This Was So Difficult
+
+The Diffusers Hallucinator produced incoherent collage-like images instead of the original's surreal-but-coherent output. Fixing it required **three separate rounds of investigation** because the root causes were non-obvious and layered:
+
+**Round 1 — Wrong diagnosis (CLIP-G in embedding):**
+Initial analysis incorrectly concluded that CLIP-G was missing from the fusion embedding. This was based on comparing standard SD3 encoding (which uses CLIP-L+G) with our code. Fix: added CLIP-G to the fusion. Result: **made it worse** — more visual anchoring = less surreal.
+
+**Round 2 — Reading the actual ComfyUI source (the breakthrough):**
+Deep dive into the original ComfyUI workflow JSON + sd3_clip.py source revealed the truth: the original loads **only clip_l.safetensors** via a separate CLIPLoader. This means:
+- SD3ClipModel is instantiated with `clip_g=None`
+- `encode_token_weights()` produces `g_pooled = torch.zeros((1, 1280))`
+- The **pooled output** is 768d real + 1280d **ZEROS** — not real CLIP-G
+
+This was the critical insight: **real CLIP-G pooled gives the DiT strong visual anchoring that actively fights the extrapolation**. The zeroed CLIP-G pooled is not a bug — it's what enables the surreal effect. The pooled output conditions the timestep embedding, providing global guidance to the generation. With real CLIP-G, the model "knows" what a normal image should look like and resists the extrapolated conditioning.
+
+**Round 3 — The negative prompt:**
+Even after fixing the pooled output, images were still collage-like. Investigation revealed the **negative prompt was empty** (`""`). The original ComfyUI workflow uses `"watermark"` as negative, also fused with the same alpha. At α=17.6, an empty-string negative produces extrapolated special-token garbage as the CFG reference point, corrupting the entire generation.
+
+### Lessons for Future Deconstructive Workflows
+
+1. **Never assume standard encoding matches custom workflows.** The original Surrealizer intentionally degrades the encoding (CLIP-L only, no CLIP-G) to create its effect. Standard "best practice" (using all encoders) destroys the artistic intent.
+
+2. **Pooled output is as important as the main embedding.** For SD3, pooled conditions the timestep embedding — it's a global steering signal. Zeroing parts of it changes the generation character fundamentally.
+
+3. **Read the original ComfyUI node graph AND the ComfyUI source code.** The workflow JSON shows which nodes connect, but understanding the actual tensor shapes requires reading `sd3_clip.py:encode_token_weights()` and understanding what happens when individual encoders are None.
+
+4. **The negative prompt matters enormously in the extrapolated regime.** CFG subtracts negative from positive predictions. Both are extrapolated with the same alpha, so they're in the same "scale space". The semantic content of the negative determines what the image pushes AWAY from — a powerful creative parameter.
+
+5. **Seed logic must track ALL user-adjustable parameters.** Keep seed stable when any parameter changes (for comparability), new seed only when nothing changed (user wants variation).
+
+### Changes Made
+
+1. **`diffusers_backend.py`**: Exact ComfyUI replication — CLIP-L only, pooled = CLIP-L(768d) + zeros(1280d), no CLIP-G anywhere
+2. **`output_image_surrealizer_diffusers.json`**: Added `negative_prompt` default "watermark", CFG 5.5
+3. **`schema_pipeline_routes.py`**: Pass `negative_prompt` and `cfg` through legacy endpoint
+4. **`surrealizer.vue`**: Configurable negative prompt + CFG in collapsible "Weitere Einstellungen"; fixed seed logic to track all parameters
+5. **`i18n.ts`**: DE/EN strings for new controls with explanations; fixed `|` pipe pluralization bug (use `{'|'}`)
+6. **`DEVELOPMENT_DECISIONS.md`**: Corrected pooled output description (was incorrectly claiming real CLIP-G)
+7. **`ARCHITECTURE PART 25`**: Updated code example and design decisions to reflect no-CLIP-G-anywhere approach
+
+### Key References
+- Original fusion node: `/SwarmUI/dlbackend/ComfyUI/custom_nodes/ai4artsed_comfyui/ai4artsed_t5_clip_fusion.py`
+- SD3 CLIP encoding: `/SwarmUI/dlbackend/ComfyUI/comfy/text_encoders/sd3_clip.py` (SD3ClipModel.encode_token_weights)
+- Original workflow: `devserver/schemas/chunks/legacy_surrealization.json` (Node 54: CLIPLoader clip_l, Node 18: CLIPLoader t5xxl)
+
+---
+
 ## Session 162 - Hallucinator: Diffusers Token-Level Fusion + Rename
 **Date:** 2026-02-08
 **Focus:** Fix broken Diffusers embedding fusion, document the complete technical mechanism, rename Surrealizer → Hallucinator

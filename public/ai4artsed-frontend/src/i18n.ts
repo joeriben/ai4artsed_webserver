@@ -376,7 +376,12 @@ const messages = {
       expandLabel: 'Prompt für T5 erweitern',
       expandHint: 'Dein Prompt hat wenige Wörter (~{count} CLIP-Tokens). Für optimale Halluzinationen kann die KI den T5-Kontext narrativ erweitern.',
       expandActive: 'Erweitere Prompt...',
-      expandResultLabel: 'T5-Erweiterung (nur für T5-Encoder)'
+      expandResultLabel: 'T5-Erweiterung (nur für T5-Encoder)',
+      advancedLabel: 'Weitere Einstellungen',
+      negativeLabel: 'Negativ-Prompt',
+      negativeHint: 'Wird mit gleichem α extrapoliert. Bestimmt, woVON das Bild weg-extrapoliert wird — verschiedene Negativ-Prompts erzeugen grundlegend verschiedene Bildästhetiken.',
+      cfgLabel: 'CFG Scale',
+      cfgHint: 'Classifier-Free Guidance: Stärke des Prompt-Einflusses. Höher = stärkerer Effekt, weniger Variation.'
     },
     musicGeneration: {
       infoTitle: 'Musik-Generierung',
@@ -917,7 +922,12 @@ const messages = {
       expandLabel: 'Expand prompt for T5',
       expandHint: 'Your prompt has few words (~{count} CLIP tokens). For optimal hallucinations, the AI can narratively expand the T5 context.',
       expandActive: 'Expanding prompt...',
-      expandResultLabel: 'T5 expansion (T5 encoder only)'
+      expandResultLabel: 'T5 expansion (T5 encoder only)',
+      advancedLabel: 'Advanced Settings',
+      negativeLabel: 'Negative Prompt',
+      negativeHint: 'Extrapolated with the same α. Determines what the image extrapolates AWAY from — different negatives produce fundamentally different aesthetics.',
+      cfgLabel: 'CFG Scale',
+      cfgHint: 'Classifier-Free Guidance: strength of prompt influence. Higher = stronger effect, less variation.'
     },
     musicGeneration: {
       infoTitle: 'Music Generation',

@@ -3291,6 +3291,10 @@ def legacy_workflow():
         expand_prompt = data.get('expand_prompt', False)
         safety_level = config.DEFAULT_SAFETY_LEVEL
 
+        # Hallucinator-specific parameters
+        negative_prompt = data.get('negative_prompt')
+        cfg = data.get('cfg')
+
         # Additional workflow-specific parameters
         mode = data.get('mode')  # For partial_elimination
         prompt1 = data.get('prompt1')  # For split_and_combine
@@ -3393,6 +3397,10 @@ def legacy_workflow():
             custom_params['t5_prompt'] = t5_prompt
         if alpha_factor is not None:
             custom_params['alpha_factor'] = alpha_factor
+        if negative_prompt is not None:
+            custom_params['negative_prompt'] = negative_prompt
+        if cfg is not None:
+            custom_params['cfg'] = cfg
         if mode is not None:
             custom_params['mode'] = mode
         if prompt1 is not None:

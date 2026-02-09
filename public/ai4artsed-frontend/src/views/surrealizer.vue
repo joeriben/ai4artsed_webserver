@@ -85,6 +85,30 @@
           </div>
         </div>
 
+        <!-- Advanced Settings (collapsible) -->
+        <div class="section-card">
+          <div class="card-header clickable" @click="advancedExpanded = !advancedExpanded">
+            <span class="card-icon">⚙️</span>
+            <span class="card-label">{{ t('surrealizer.advancedLabel') }}</span>
+            <span class="info-toggle">{{ advancedExpanded ? '▲' : '▼' }}</span>
+          </div>
+          <div v-if="advancedExpanded" class="advanced-settings">
+            <div class="setting-row">
+              <label class="setting-label">{{ t('surrealizer.negativeLabel') }}</label>
+              <input type="text" v-model="negativePrompt" class="negative-input" />
+              <div class="setting-hint">{{ t('surrealizer.negativeHint') }}</div>
+            </div>
+            <div class="setting-row">
+              <label class="setting-label">{{ t('surrealizer.cfgLabel') }}</label>
+              <div class="cfg-slider-row">
+                <input type="range" min="1" max="15" step="0.1" v-model.number="cfgScale" class="cfg-slider" />
+                <span class="cfg-value">{{ cfgScale.toFixed(1) }}</span>
+              </div>
+              <div class="setting-hint">{{ t('surrealizer.cfgHint') }}</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Execute Button -->
         <button
           class="execute-button"
@@ -186,10 +210,17 @@ const fullscreenImage = ref<string | null>(null)
 const generationProgress = ref(0)
 const primaryOutput = ref<WorkflowOutput | null>(null)
 
-// Seed management for iterative experimentation
-const previousPrompt = ref('')  // Track previous prompt
-const previousAlpha = ref<number>(0)  // Track previous alpha value
-const currentSeed = ref<number | null>(null)  // Current seed (null = first run)
+// Seed management: stable when any parameter changes, new seed on repeated identical run
+const previousPrompt = ref('')
+const previousAlpha = ref<number>(0)
+const previousCfg = ref<number>(5.5)
+const previousNegative = ref('watermark')
+const currentSeed = ref<number | null>(null)
+
+// Advanced settings
+const negativePrompt = ref('watermark')
+const cfgScale = ref(5.5)
+const advancedExpanded = ref(false)
 
 // T5 prompt expansion
 const expandPrompt = ref(false)
@@ -296,27 +327,28 @@ async function executeWorkflow() {
   }, updateInterval)
 
   try {
-    // Intelligent seed logic
+    // Seed logic: keep seed when parameters change, new seed when nothing changed
     const promptChanged = inputText.value !== previousPrompt.value
     const alphaChanged = alphaFaktor.value !== previousAlpha.value
+    const cfgChanged = cfgScale.value !== previousCfg.value
+    const negativeChanged = negativePrompt.value !== previousNegative.value
 
-    if (promptChanged || alphaChanged) {
-      // Prompt OR alpha changed → Keep same seed (user wants to see parameter variation)
-      if (currentSeed.value === null) {
-        // First run → Use default seed
-        currentSeed.value = 123456789
-        console.log('[Seed Logic] First run → Default seed:', currentSeed.value)
-      } else {
-        console.log('[Seed Logic] Prompt or alpha changed → Keeping seed:', currentSeed.value)
-      }
-      // Update tracking variables
-      previousPrompt.value = inputText.value
-      previousAlpha.value = alphaFaktor.value
-    } else {
-      // Prompt AND alpha unchanged → New random seed (user wants different variation)
+    if (currentSeed.value === null) {
+      // First run
       currentSeed.value = Math.floor(Math.random() * 2147483647)
-      console.log('[Seed Logic] No changes → New random seed:', currentSeed.value)
+      console.log('[Seed Logic] First run → seed:', currentSeed.value)
+    } else if (promptChanged || alphaChanged || cfgChanged || negativeChanged) {
+      // Any parameter changed → keep seed for comparability
+      console.log('[Seed Logic] Parameter changed → keeping seed:', currentSeed.value)
+    } else {
+      // Nothing changed → user wants a new variation
+      currentSeed.value = Math.floor(Math.random() * 2147483647)
+      console.log('[Seed Logic] No changes → new seed:', currentSeed.value)
     }
+    previousPrompt.value = inputText.value
+    previousAlpha.value = alphaFaktor.value
+    previousCfg.value = cfgScale.value
+    previousNegative.value = negativePrompt.value
 
     // Lab Architecture: /legacy = Stage 1 (Safety) + Direct ComfyUI workflow
     // No Stage 2/3 needed - legacy workflows handle prompt directly
@@ -325,7 +357,9 @@ async function executeWorkflow() {
       output_config: 'surrealization_diffusers',
       alpha_factor: mappedAlpha.value,
       seed: currentSeed.value,
-      expand_prompt: needsExpansion
+      expand_prompt: needsExpansion,
+      negative_prompt: negativePrompt.value,
+      cfg: cfgScale.value
     })
 
     if (response.data.status === 'success') {
@@ -903,6 +937,88 @@ function extractInsights(analysisText: string): string[] {
   color: rgba(255, 255, 255, 0.45);
   margin-top: 0.25rem;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  line-height: 1.4;
+}
+
+/* ============================================================================
+   Advanced Settings
+   ============================================================================ */
+
+.clickable {
+  cursor: pointer;
+}
+
+.advanced-settings {
+  padding: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.setting-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.negative-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.negative-input:focus {
+  border-color: rgba(99, 102, 241, 0.6);
+}
+
+.cfg-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cfg-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, rgba(99, 102, 241, 0.3), rgba(99, 102, 241, 0.6));
+  border-radius: 2px;
+  outline: none;
+}
+
+.cfg-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+}
+
+.cfg-value {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.setting-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
   line-height: 1.4;
 }
 

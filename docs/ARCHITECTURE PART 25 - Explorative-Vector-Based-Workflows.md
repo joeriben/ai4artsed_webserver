@@ -187,32 +187,31 @@ Uses individual SD3 pipeline text encoders directly (bypasses `encode_prompt()`)
 
 ```python
 def _fuse_prompt(text: str):
-    # 1. CLIP-L only (77 tokens × 768d)
+    # 1. CLIP-L only (77 tokens × 768d) — NO CLIP-G anywhere
     clip_l_embeds, clip_l_pooled = pipe._get_clip_prompt_embeds(text, clip_model_index=0)
-    # 2. CLIP-G (only for pooled output — standard SD3 requirement)
-    _, clip_g_pooled = pipe._get_clip_prompt_embeds(text, clip_model_index=1)
-    # 3. T5-XXL (512 tokens × 4096d, padded to max_sequence_length)
+    # 2. T5-XXL (512 tokens × 4096d, padded to max_sequence_length)
     t5_embeds = pipe._get_t5_prompt_embeds(text, max_sequence_length=512)
 
-    # 4. Pad CLIP-L to T5 dimension: [CLIP-L₇₆₈ | zeros₃₃₂₈] → (1, 77, 4096)
-    clip_l_padded = F.pad(clip_l_embeds, (0, t5_embeds.shape[-1] - clip_l_embeds.shape[-1]))
+    # 3. Pad CLIP-L to T5 dimension: [CLIP-L₇₆₈ | zeros₃₃₂₈] → (1, 77, 4096)
+    clip_padded = F.pad(clip_l_embeds, (0, 4096 - clip_l_embeds.shape[-1]))
+
+    # 4. Pooled: CLIP-L real + CLIP-G zeros (matches CLIPLoader(clip_l) behavior)
+    pooled = F.pad(clip_l_pooled, (0, 1280))   # (1, 2048): 768d real + 1280d zeros
 
     # 5. LERP first 77 tokens (THE CORE FORMULA)
-    interp_len = min(clip_l_padded.shape[1], t5_embeds.shape[1])
-    fused_part = (1.0 - alpha) * clip_l_padded[:, :interp_len, :] + alpha * t5_embeds[:, :interp_len, :]
+    interp_len = min(77, clip_padded.shape[1])
+    fused_part = (1.0 - alpha) * clip_padded[:, :interp_len, :] + alpha * t5_embeds[:, :interp_len, :]
 
     # 6. Append remaining T5 tokens unchanged (semantic anchor)
     t5_remainder = t5_embeds[:, interp_len:, :]
     fused_embeds = torch.cat([fused_part, t5_remainder], dim=1)  # (1, 512, 4096)
 
-    # 7. Pooled: standard CLIP-L + CLIP-G
-    pooled = torch.cat([clip_l_pooled, clip_g_pooled], dim=-1)   # (1, 2048)
     return fused_embeds, pooled
 ```
 
 **Key design decisions (Diffusers backend):**
 
-1. **CLIP-L only in fused tokens (no CLIP-G):** Matches the original ComfyUI workflow which only loads `clip_l.safetensors`. CLIP-G is used only for pooled output.
+1. **CLIP-L only — no CLIP-G anywhere:** Matches the original ComfyUI workflow which loads only `clip_l.safetensors`. CLIP-G is absent from both fused tokens AND pooled output. Real CLIP-G pooled would give the DiT visual anchoring that fights extrapolation.
 2. **Output shape (1, 512, 4096) instead of standard (1, 589, 4096):** The SD3 transformer uses flexible attention — any sequence length works. 512 = 77 fused + 435 T5 anchor tokens.
 3. **Private method `_get_clip_prompt_embeds`:** Stable in diffusers v0.36.0, protected by `hasattr` guard.
 4. **Negative prompt fused with same alpha:** Matches ComfyUI workflow (both fusion nodes receive the same alpha). All 4 embedding tensors passed to pipeline, fully bypassing `encode_prompt()`.

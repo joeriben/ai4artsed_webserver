@@ -62,12 +62,12 @@ Access individual text encoders via `pipe._get_clip_prompt_embeds()` and `pipe._
 
 **At α=20:** `fused[0:77] = -19·CLIP-L + 20·T5` — pushes 19× past T5 into unexplored vector space. The model hallucinates because it must interpret out-of-distribution vectors.
 
-### Decision 2: CLIP-L only in fused tokens, CLIP-G only for pooled
+### Decision 2: CLIP-L only — no CLIP-G anywhere in the fusion
 
-The original ComfyUI workflow loads only `clip_l.safetensors` and `t5xxl_enconly.safetensors` — CLIP-G is not used in the fusion. We match this exactly:
+The original ComfyUI workflow loads only `clip_l.safetensors` and `t5xxl_enconly.safetensors` — CLIP-G is absent from both embedding AND pooled output. We match this exactly:
 - **Fused tokens:** CLIP-L (768d, zero-padded to 4096d) vs T5 (native 4096d)
-- **Pooled output:** CLIP-L + CLIP-G concatenated (standard SD3 requirement)
-- **Rationale:** Proven to work at α=15-35 in ComfyUI. Including CLIP-G would change extrapolation dynamics (dims 768-2047 would also participate).
+- **Pooled output:** CLIP-L real (768d) + zeros (1280d) = 2048d — NO real CLIP-G pooled
+- **Rationale:** Real CLIP-G pooled gives the DiT strong visual anchoring that fights extrapolation → incoherent results. The zeroed CLIP-G in pooled is essential for the surreal effect.
 
 ### Decision 3: Rename "Surrealizer" → "Hallucinator" (display name only)
 
