@@ -1,0 +1,24 @@
+{
+  "pipeline": "legacy_workflow_passthrough",
+  "name": {
+    "en": "Attention Cartography (Diffusers)",
+    "de": "Attention Cartography (Diffusers)"
+  },
+  "description": {
+    "en": "Image generation with cross-attention map extraction. Shows which prompt tokens influence which image regions at different layers and timesteps.",
+    "de": "Bildgenerierung mit Cross-Attention-Map-Extraktion. Zeigt, welche Prompt-Tokens welche Bildbereiche in verschiedenen Layern und Zeitschritten beeinflussen."
+  },
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_attention_cartography_diffusers"
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+  "meta": {
+    "stage": "output",
+    "backend": "diffusers",
+    "backend_type": "diffusers",
+    "requires_gpu": true
+  }
+}

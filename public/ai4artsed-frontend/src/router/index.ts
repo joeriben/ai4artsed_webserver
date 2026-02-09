@@ -103,6 +103,12 @@ const router = createRouter({
       component: () => import('../views/music_generation_unified.vue'),
     },
     {
+      path: '/latent-lab',
+      name: 'latent-lab',
+      // Latent Lab: Deconstructive platform for vector/latent space exploration
+      component: () => import('../views/latent_lab.vue'),
+    },
+    {
       path: '/music-generation-simple',
       name: 'music-generation-simple',
       // Direct access to V1 (Simple) for testing

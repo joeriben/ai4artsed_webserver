@@ -442,6 +442,36 @@ const messages = {
       customTags: 'Eigene Tags',
       customTagsPlaceholder: 'z.B. acoustic,dreamy,summer_vibes'
     },
+    latentLab: {
+      tabs: {
+        attention: 'Attention Cartography',
+        probing: 'Feature Probing',
+        algebra: 'Concept Algebra',
+        fusion: 'Encoder Fusion',
+        archaeology: 'Denoising Archaeology'
+      },
+      comingSoon: 'Dieses Tool wird in einer zukünftigen Version implementiert.',
+      attention: {
+        infoTitle: 'Attention Cartography — Welches Wort steuert welche Bildregion?',
+        infoDescription: 'Für jedes Token im Prompt zeigt eine Heatmap-Überlagerung auf dem generierten Bild, WO im Bild dieses Token den größten Einfluss hatte. So wird sichtbar, wie das Modell semantische Konzepte räumlich verteilt.',
+        techTitle: 'Wie es funktioniert',
+        techText: 'SD3.5 verwendet einen MMDiT (Multimodal Diffusion Transformer) mit Joint Attention: Bild- und Text-Tokens bearbeiten sich gegenseitig in 24 Transformer-Blöcken. Wir ersetzen den Standard-SDPA-Prozessor durch einen manuellen Softmax(QK^T/√d)-Prozessor an 3 ausgewählten Blöcken (Early/Mid/Late), um die Text→Bild-Attention-Submatrix zu extrahieren. Die Maps haben 64×64 Auflösung (Patch-Grid) und werden per bilinearer Interpolation auf die Bildauflösung hochskaliert.',
+        promptPlaceholder: 'z.B. A red house by a blue lake under green trees',
+        generate: 'Generieren + Analyse',
+        generating: 'Bild wird generiert und Attention wird extrahiert...',
+        emptyHint: 'Gib einen Prompt ein und klicke auf Generieren, um die Attention-Karten des Modells zu visualisieren.',
+        advancedLabel: 'Erweiterte Einstellungen',
+        negativeLabel: 'Negativ-Prompt',
+        stepsLabel: 'Steps',
+        cfgLabel: 'CFG',
+        seedLabel: 'Seed',
+        tokensLabel: 'Tokens',
+        timestepLabel: 'Zeitschritt',
+        step: 'Step',
+        layerLabel: 'Layer',
+        opacityLabel: 'Heatmap'
+      }
+    },
     edutainment: {
       ui: {
         didYouKnow: '🤔 Wusstest du?',
@@ -987,6 +1017,36 @@ const messages = {
       selectModel: 'Model',
       customTags: 'Custom Tags',
       customTagsPlaceholder: 'e.g. acoustic,dreamy,summer_vibes'
+    },
+    latentLab: {
+      tabs: {
+        attention: 'Attention Cartography',
+        probing: 'Feature Probing',
+        algebra: 'Concept Algebra',
+        fusion: 'Encoder Fusion',
+        archaeology: 'Denoising Archaeology'
+      },
+      comingSoon: 'This tool will be implemented in a future version.',
+      attention: {
+        infoTitle: 'Attention Cartography — Which word steers which image region?',
+        infoDescription: 'For each token in the prompt, a heatmap overlay on the generated image shows WHERE in the image that token had the most influence. This reveals how the model spatially distributes semantic concepts.',
+        techTitle: 'How it works',
+        techText: 'SD3.5 uses an MMDiT (Multimodal Diffusion Transformer) with joint attention: image and text tokens attend to each other across 24 transformer blocks. We replace the default SDPA processor with a manual softmax(QK^T/√d) processor at 3 selected blocks (Early/Mid/Late) to extract the text→image attention submatrix. Maps are 64×64 resolution (patch grid), upscaled to image resolution via bilinear interpolation.',
+        promptPlaceholder: 'e.g. A red house by a blue lake under green trees',
+        generate: 'Generate + Analyze',
+        generating: 'Generating image and extracting attention...',
+        emptyHint: 'Enter a prompt and click Generate to visualize the model\'s attention maps.',
+        advancedLabel: 'Advanced Settings',
+        negativeLabel: 'Negative Prompt',
+        stepsLabel: 'Steps',
+        cfgLabel: 'CFG',
+        seedLabel: 'Seed',
+        tokensLabel: 'Tokens',
+        timestepLabel: 'Timestep',
+        step: 'Step',
+        layerLabel: 'Layer',
+        opacityLabel: 'Heatmap'
+      }
     },
     edutainment: {
       ui: {

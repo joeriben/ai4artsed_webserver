@@ -1791,6 +1791,58 @@ class BackendRouter:
             # Generate image via Diffusers
             logger.info(f"[DIFFUSERS] Generating image: model={model_id}, steps={steps}, size={width}x{height}")
 
+            # Attention Cartography mode: capture attention maps during generation
+            if diffusers_config.get('attention_mode'):
+                capture_layers_param = parameters.get('capture_layers') or diffusers_config.get('capture_layers', [3, 9, 17])
+                capture_every_n = int(parameters.get('capture_every_n_steps') or diffusers_config.get('capture_every_n_steps', 5))
+
+                logger.info(f"[DIFFUSERS] Attention cartography mode: layers={capture_layers_param}, every_n={capture_every_n}")
+                attention_result = await backend.generate_image_with_attention(
+                    prompt=prompt,
+                    model_id=model_id,
+                    negative_prompt=negative_prompt,
+                    width=width,
+                    height=height,
+                    steps=steps,
+                    cfg_scale=cfg_scale,
+                    seed=seed,
+                    capture_layers=capture_layers_param,
+                    capture_every_n_steps=capture_every_n,
+                )
+
+                if not attention_result:
+                    logger.error("[DIFFUSERS] Attention generation failed, falling back to ComfyUI")
+                    if chunk.get('meta', {}).get('fallback_chunk'):
+                        return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, "Attention generation returned empty result")
+                    return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+
+                return BackendResponse(
+                    success=True,
+                    content="diffusers_attention_generated",
+                    metadata={
+                        'chunk_name': chunk_name,
+                        'media_type': 'image',
+                        'backend': 'diffusers',
+                        'model_id': model_id,
+                        'seed': attention_result['seed'],
+                        'image_data': attention_result['image_base64'],
+                        'attention_data': {
+                            'tokens': attention_result['tokens'],
+                            'attention_maps': attention_result['attention_maps'],
+                            'spatial_resolution': attention_result['spatial_resolution'],
+                            'image_resolution': attention_result['image_resolution'],
+                            'capture_layers': attention_result['capture_layers'],
+                            'capture_steps': attention_result['capture_steps'],
+                        },
+                        'parameters': {
+                            'width': width,
+                            'height': height,
+                            'steps': steps,
+                            'cfg_scale': cfg_scale
+                        }
+                    }
+                )
+
             # Surrealizer: T5-CLIP alpha fusion mode
             alpha_factor = parameters.get('alpha_factor')
             t5_prompt = parameters.get('t5_prompt')

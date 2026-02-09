@@ -1,0 +1,57 @@
+{
+  "pipeline": "latent_lab",
+  "instruction_type": "latent_exploration",
+  "name": {
+    "en": "Latent Lab",
+    "de": "Latent Lab"
+  },
+  "description": {
+    "en": "Deconstructive platform for exploring vector and latent spaces. Reveals how generative models construct meaning internally through attention maps, feature probing, concept algebra, and more.",
+    "de": "Dekonstruktive Plattform zur Erforschung von Vektor- und Latenträumen. Zeigt, wie generative Modelle intern Bedeutung konstruieren — durch Attention Maps, Feature Probing, Concept Algebra und mehr."
+  },
+  "category": {
+    "de": "Forschung",
+    "en": "Research"
+  },
+  "properties": [
+    "explore"
+  ],
+  "context": {
+    "en": "Latent Lab provides tools for deconstructing generative model internals: attention cartography, feature probing, concept algebra, encoder fusion, and denoising archaeology.",
+    "de": "Das Latent Lab bietet Werkzeuge zur Dekonstruktion generativer Modell-Interna: Attention Cartography, Feature Probing, Concept Algebra, Encoder Fusion und Denoising Archaeology."
+  },
+  "parameters": {
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "max_tokens": 1
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+  "meta": {
+    "stage": "interception",
+    "skip_stage2": true,
+    "backend": "diffusers",
+    "workflow_type": "passthrough",
+    "output_config": "attention_cartography_diffusers",
+    "system_config": false
+  },
+  "display": {
+    "icon": "🔬",
+    "color": "#00BCD4",
+    "category": "research",
+    "difficulty": 4,
+    "order": 60,
+    "hidden": false
+  },
+  "tags": {
+    "en": ["research", "attention", "vectors", "latent space", "deconstruction"],
+    "de": ["Forschung", "Attention", "Vektoren", "Latentraum", "Dekonstruktion"]
+  },
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 14,
+    "complexity": "advanced"
+  }
+}

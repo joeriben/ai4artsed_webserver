@@ -529,6 +529,205 @@ class DiffusersImageGenerator:
             traceback.print_exc()
             return None
 
+    async def generate_image_with_attention(
+        self,
+        prompt: str,
+        model_id: str = "stabilityai/stable-diffusion-3.5-large",
+        negative_prompt: str = "",
+        width: int = 1024,
+        height: int = 1024,
+        steps: int = 25,
+        cfg_scale: float = 4.5,
+        seed: int = -1,
+        capture_layers: Optional[list] = None,
+        capture_every_n_steps: int = 5,
+        callback: Optional[Callable[[int, int, Any], None]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate an image with attention map capture for Attention Cartography.
+
+        Installs custom attention processors on selected transformer blocks,
+        generates the image, collects text→image attention maps at specified
+        timesteps and layers, then restores original processors.
+
+        Args:
+            prompt: Positive prompt
+            model_id: Model to use
+            negative_prompt: Negative prompt
+            width/height: Image dimensions
+            steps: Number of inference steps
+            cfg_scale: CFG scale
+            seed: Random seed (-1 for random)
+            capture_layers: Transformer block indices to capture (default: [3, 9, 17])
+            capture_every_n_steps: Capture attention every N steps
+            callback: Step callback for progress
+
+        Returns:
+            Dict with keys:
+            - image_base64: base64 encoded PNG
+            - tokens: list of token strings
+            - attention_maps: {step_N: {layer_M: [[...]]}}
+            - spatial_resolution: [h, w] of attention map grid
+            - image_resolution: [h, w] of generated image
+            - seed: actual seed used
+        """
+        try:
+            import torch
+            import io
+            import base64
+
+            from my_app.services.attention_processors_sd3 import (
+                AttentionMapStore,
+                install_attention_capture,
+                restore_attention_processors,
+            )
+
+            if capture_layers is None:
+                capture_layers = [3, 9, 17]
+
+            # Ensure model is loaded
+            if model_id not in self._pipelines:
+                if not await self.load_model(model_id):
+                    return None
+
+            pipe = self._pipelines[model_id]
+
+            # Generate random seed if needed
+            if seed == -1:
+                import random
+                seed = random.randint(0, 2**32 - 1)
+
+            generator = torch.Generator(device=self.device).manual_seed(seed)
+
+            # Compute which steps to capture
+            capture_steps = list(range(0, steps, capture_every_n_steps))
+            if (steps - 1) not in capture_steps:
+                capture_steps.append(steps - 1)
+
+            # Create attention store
+            store = AttentionMapStore(
+                capture_layers=capture_layers,
+                capture_steps=capture_steps,
+            )
+
+            logger.info(
+                f"[DIFFUSERS-ATTENTION] Generating: steps={steps}, size={width}x{height}, "
+                f"seed={seed}, capture_layers={capture_layers}, capture_steps={capture_steps}"
+            )
+
+            def _generate():
+                # Install attention capture processors
+                original_processors = install_attention_capture(pipe, store, capture_layers)
+
+                try:
+                    # Step callback to update store's current_step
+                    def step_callback(pipe_instance, step, timestep, callback_kwargs):
+                        store.current_step = step
+                        if callback:
+                            try:
+                                callback(step, steps, callback_kwargs.get("latents"))
+                            except Exception as e:
+                                logger.warning(f"[DIFFUSERS-ATTENTION] Callback error: {e}")
+                        return callback_kwargs
+
+                    gen_kwargs = {
+                        "prompt": prompt,
+                        "negative_prompt": negative_prompt if negative_prompt else None,
+                        "width": width,
+                        "height": height,
+                        "num_inference_steps": steps,
+                        "guidance_scale": cfg_scale,
+                        "generator": generator,
+                        "callback_on_step_end": step_callback,
+                        "callback_on_step_end_tensor_inputs": ["latents"],
+                    }
+
+                    # SD3.5: Set max_sequence_length for T5
+                    if hasattr(pipe, 'tokenizer_3'):
+                        gen_kwargs["max_sequence_length"] = 512
+
+                    result = pipe(**gen_kwargs)
+                    return result.images[0]
+                finally:
+                    # Always restore original processors
+                    restore_attention_processors(pipe, original_processors, capture_layers)
+
+            image = await asyncio.to_thread(_generate)
+
+            # Convert image to base64
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+            # Tokenize prompt to get token list
+            tokens = self._tokenize_prompt(pipe, prompt)
+
+            # Compute spatial resolution (patch grid)
+            # SD3.5 uses 2x2 patches → 1024/16 = 64 spatial positions per axis
+            patch_size = 2  # SD3 latent patch size
+            vae_scale = 8   # VAE downscale factor
+            spatial_h = height // (vae_scale * patch_size)
+            spatial_w = width // (vae_scale * patch_size)
+
+            result = {
+                "image_base64": image_base64,
+                "tokens": tokens,
+                "attention_maps": store.maps,
+                "spatial_resolution": [spatial_h, spatial_w],
+                "image_resolution": [height, width],
+                "seed": seed,
+                "capture_layers": capture_layers,
+                "capture_steps": capture_steps,
+            }
+
+            logger.info(
+                f"[DIFFUSERS-ATTENTION] Generated with attention: "
+                f"{len(store.maps)} timesteps captured, "
+                f"tokens={len(tokens)}, spatial={spatial_h}x{spatial_w}"
+            )
+            return result
+
+        except Exception as e:
+            logger.error(f"[DIFFUSERS-ATTENTION] Generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def _tokenize_prompt(self, pipe, prompt: str) -> list:
+        """Tokenize a prompt and return human-readable token strings.
+
+        Uses the CLIP tokenizer (tokenizer_1) for display-friendly tokens,
+        since CLIP tokens map cleanly to words/subwords.
+        """
+        try:
+            tokenizer = pipe.tokenizer  # CLIP-L tokenizer
+            if tokenizer is None and hasattr(pipe, 'tokenizer_2'):
+                tokenizer = pipe.tokenizer_2  # CLIP-G
+            if tokenizer is None:
+                return [prompt]  # Fallback: return whole prompt
+
+            encoded = tokenizer(
+                prompt,
+                padding=False,
+                truncation=True,
+                max_length=77,
+                return_tensors=None,
+            )
+            token_ids = encoded['input_ids']
+
+            # Decode each token individually, skip special tokens
+            tokens = []
+            for tid in token_ids:
+                decoded = tokenizer.decode([tid], skip_special_tokens=True).strip()
+                if decoded:
+                    tokens.append(decoded)
+
+            return tokens if tokens else [prompt]
+
+        except Exception as e:
+            logger.warning(f"[DIFFUSERS-ATTENTION] Tokenization failed: {e}")
+            return prompt.split()
+
     async def generate_image_streaming(
         self,
         prompt: str,
