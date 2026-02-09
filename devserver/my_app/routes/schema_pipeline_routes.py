@@ -3554,6 +3554,24 @@ def legacy_workflow():
                 )
                 logger.info(f"[LEGACY-ENDPOINT] Saved diffusers image: {len(image_bytes)} bytes")
 
+        elif output_value == 'diffusers_attention_generated':
+            # Latent Lab: Attention Cartography — image + attention maps
+            image_data_b64 = output_result.metadata.get('image_data')
+            if image_data_b64:
+                import base64
+                image_bytes = base64.b64decode(image_data_b64)
+                recorder.save_entity(
+                    entity_type='output_image',
+                    content=image_bytes,
+                    metadata={
+                        'config': output_config,
+                        'seed': result_seed,
+                        'format': 'png',
+                        'backend': 'diffusers_attention'
+                    }
+                )
+                logger.info(f"[LEGACY-ENDPOINT] Saved attention cartography image: {len(image_bytes)} bytes")
+
         duration_ms = (time.time() - start_time) * 1000
         logger.info(f"[LEGACY-ENDPOINT] Success in {duration_ms:.0f}ms")
 
@@ -3570,6 +3588,11 @@ def legacy_workflow():
         }
         if t5_prompt is not None:
             response_data['t5_expansion'] = t5_prompt
+
+        # Latent Lab: Include attention data in response
+        attention_data = output_result.metadata.get('attention_data') if output_result.metadata else None
+        if attention_data:
+            response_data['attention_data'] = attention_data
 
         return jsonify(response_data)
 

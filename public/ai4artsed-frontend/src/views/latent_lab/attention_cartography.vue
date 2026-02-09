@@ -254,69 +254,45 @@ async function generate() {
 
     if (response.data.status === 'success') {
       const runId = response.data.run_id
-      if (runId) {
-        await fetchAttentionResult(runId)
+      const mediaOutput = response.data.media_output
+
+      // Load the generated image from the media URL
+      if (runId && mediaOutput?.url) {
+        const imgResponse = await axios.get(mediaOutput.url, { responseType: 'blob' })
+        const reader = new FileReader()
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = () => {
+            const result = reader.result as string
+            resolve(result.split(',')[1])
+          }
+          reader.readAsDataURL(imgResponse.data)
+        })
+        imageData.value = await base64Promise
+        actualSeed.value = mediaOutput.seed || 0
+      }
+
+      // Attention data is included directly in the response
+      const attData = response.data.attention_data
+      if (attData) {
+        tokens.value = attData.tokens || []
+        attentionMaps.value = attData.attention_maps || {}
+        spatialResolution.value = attData.spatial_resolution || [64, 64]
+        captureLayers.value = attData.capture_layers || [3, 9, 17]
+        captureSteps.value = attData.capture_steps || []
+        totalSteps.value = steps.value
+
+        // Auto-select first token
+        if (tokens.value.length > 0) {
+          selectedTokens.value = [0]
+        }
       }
     } else {
-      errorMessage.value = response.data.message || 'Generation failed'
+      errorMessage.value = response.data.error || response.data.message || 'Generation failed'
     }
   } catch (err: any) {
-    errorMessage.value = err.response?.data?.message || err.message || 'Network error'
+    errorMessage.value = err.response?.data?.error || err.message || 'Network error'
   } finally {
     isGenerating.value = false
-  }
-}
-
-async function fetchAttentionResult(runId: string) {
-  try {
-    // Fetch entities metadata
-    const entitiesResponse = await axios.get(`/api/pipeline/${runId}/entities`)
-    const entities = entitiesResponse.data.entities || []
-
-    // Find the image entity with attention data
-    const imageEntity = entities.find((e: any) =>
-      e.type === 'output_image' || e.type === 'image'
-    )
-
-    if (imageEntity) {
-      // Fetch the actual image
-      const imageUrl = `/api/media/image/${runId}`
-      const imgResponse = await axios.get(imageUrl, { responseType: 'blob' })
-      const reader = new FileReader()
-      const base64Promise = new Promise<string>((resolve) => {
-        reader.onload = () => {
-          const result = reader.result as string
-          resolve(result.split(',')[1])
-        }
-        reader.readAsDataURL(imgResponse.data)
-      })
-      imageData.value = await base64Promise
-    }
-
-    // Fetch attention data from run metadata
-    const metadataResponse = await axios.get(`/api/pipeline/${runId}/metadata`)
-    const metadata = metadataResponse.data
-
-    // Attention data is in the entity metadata or run metadata
-    const attData = metadata?.attention_data
-      || entities.find((e: any) => e.attention_data)?.attention_data
-
-    if (attData) {
-      tokens.value = attData.tokens || []
-      attentionMaps.value = attData.attention_maps || {}
-      spatialResolution.value = attData.spatial_resolution || [64, 64]
-      captureLayers.value = attData.capture_layers || [3, 9, 17]
-      captureSteps.value = attData.capture_steps || []
-      totalSteps.value = steps.value
-      actualSeed.value = metadata?.seed || 0
-
-      // Auto-select first token
-      if (tokens.value.length > 0) {
-        selectedTokens.value = [0]
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch attention result:', err)
   }
 }
 
