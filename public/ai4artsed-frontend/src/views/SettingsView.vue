@@ -62,6 +62,9 @@
         <button @click="$router.push('/animation-test')" class="action-btn" style="margin-top: 10px;">
           ▶️ Minigame Preview öffnen
         </button>
+        <button @click="$router.push('/dev/pixel-editor')" class="action-btn" style="margin-top: 10px; margin-left: 10px;">
+          🎨 Pixel Template Editor
+        </button>
         <p class="help" style="margin-top: 10px; font-size: 12px; color: #888;">
           Enthält: Pixel-Animation, Eisberg-Schmelzen, Wald-Spiel, <strong>Seltene Erden</strong>
         </p>
