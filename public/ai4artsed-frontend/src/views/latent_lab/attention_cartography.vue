@@ -340,8 +340,9 @@ function renderHeatmap() {
   for (let tIdx = 0; tIdx < selectedTokens.value.length; tIdx++) {
     const tokenIdx = selectedTokens.value[tIdx]
     if (tokenIdx === undefined) continue
-    const color = tokenColors[tIdx % tokenColors.length]
-    if (!color) continue
+    const colorArr = tokenColors[tIdx % tokenColors.length]
+    if (!colorArr) continue
+    const color: [number, number, number] = [colorArr[0] ?? 0, colorArr[1] ?? 0, colorArr[2] ?? 0]
 
     // Extract attention values for this token: one value per spatial position
     const attnValues: number[] = []
