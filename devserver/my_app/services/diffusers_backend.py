@@ -411,12 +411,12 @@ class DiffusersImageGenerator:
             logger.info(f"[DIFFUSERS-FUSION] Generating: alpha={alpha_factor}, steps={steps}, size={width}x{height}, seed={seed}, t5_expanded={t5_prompt is not None}")
 
             def _fuse_prompt(clip_text: str, t5_text: str):
-                """Fuse CLIP-L and T5 embeddings for a single prompt.
+                """Fuse CLIP and T5 embeddings for a single prompt.
 
                 Replicates the ComfyUI ai4artsed_t5_clip_fusion node:
-                - CLIP-L encodes clip_text (original user prompt)
-                - T5 encodes t5_text (expanded prompt, or original if no expansion)
-                - LERP first 77 tokens between CLIP-L and T5
+                - CLIP-L (768d) + CLIP-G (1280d) encode clip_text → combined 2048d, padded to 4096d
+                - T5 encodes t5_text (expanded prompt, or original if no expansion) → 4096d
+                - LERP first 77 tokens between combined CLIP and T5
                 - Append remaining T5 tokens unchanged
 
                 Returns: (fused_embeds, pooled_embeds)
@@ -427,7 +427,7 @@ class DiffusersImageGenerator:
                 clip_l_embeds, clip_l_pooled = pipe._get_clip_prompt_embeds(
                     prompt=clip_text, device=device, num_images_per_prompt=1, clip_model_index=0
                 )
-                _, clip_g_pooled = pipe._get_clip_prompt_embeds(
+                clip_g_embeds, clip_g_pooled = pipe._get_clip_prompt_embeds(
                     prompt=clip_text, device=device, num_images_per_prompt=1, clip_model_index=1
                 )
 
@@ -436,12 +436,13 @@ class DiffusersImageGenerator:
                     prompt=t5_text, num_images_per_prompt=1, max_sequence_length=512, device=device
                 )
 
-                # Pad CLIP-L (768d) to T5 dimension (4096d)
-                clip_l_padded = F.pad(clip_l_embeds, (0, t5_embeds.shape[-1] - clip_l_embeds.shape[-1]))
+                # CLIP-L (768d) + CLIP-G (1280d) = 2048d → pad to T5 dimension (4096d)
+                clip_combined = torch.cat([clip_l_embeds, clip_g_embeds], dim=-1)
+                clip_padded = F.pad(clip_combined, (0, t5_embeds.shape[-1] - clip_combined.shape[-1]))
 
-                # LERP first 77 tokens: (1-α)*CLIP-L + α*T5
-                interp_len = min(clip_l_padded.shape[1], t5_embeds.shape[1])
-                fused_part = (1.0 - alpha_factor) * clip_l_padded[:, :interp_len, :] + alpha_factor * t5_embeds[:, :interp_len, :]
+                # LERP first 77 tokens: (1-α)*CLIP + α*T5
+                interp_len = min(clip_padded.shape[1], t5_embeds.shape[1])
+                fused_part = (1.0 - alpha_factor) * clip_padded[:, :interp_len, :] + alpha_factor * t5_embeds[:, :interp_len, :]
 
                 # Append remaining T5 tokens unchanged (semantic anchor)
                 t5_remainder = t5_embeds[:, interp_len:, :]
@@ -456,7 +457,7 @@ class DiffusersImageGenerator:
                 # Effective T5 prompt: expanded if provided, else original
                 effective_t5_prompt = t5_prompt if t5_prompt else prompt
 
-                # Fuse positive prompt (CLIP-L gets original, T5 gets expanded)
+                # Fuse positive prompt (CLIP-L+G gets original, T5 gets expanded)
                 pos_embeds, pos_pooled = _fuse_prompt(prompt, effective_t5_prompt)
 
                 # Fuse negative prompt (no expansion — same text for both)
