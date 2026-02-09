@@ -263,7 +263,7 @@ async function generate() {
         const base64Promise = new Promise<string>((resolve) => {
           reader.onload = () => {
             const result = reader.result as string
-            resolve(result.split(',')[1])
+            resolve(result.split(',')[1] ?? '')
           }
           reader.readAsDataURL(imgResponse.data)
         })
@@ -339,13 +339,16 @@ function renderHeatmap() {
   // For each selected token, create a colored heatmap and composite
   for (let tIdx = 0; tIdx < selectedTokens.value.length; tIdx++) {
     const tokenIdx = selectedTokens.value[tIdx]
+    if (tokenIdx === undefined) continue
     const color = tokenColors[tIdx % tokenColors.length]
+    if (!color) continue
 
     // Extract attention values for this token: one value per spatial position
     const attnValues: number[] = []
     for (let i = 0; i < spatialH * spatialW; i++) {
-      if (layerData[i] && layerData[i][tokenIdx] !== undefined) {
-        attnValues.push(layerData[i][tokenIdx])
+      const row = layerData[i]
+      if (row && row[tokenIdx] !== undefined) {
+        attnValues.push(row[tokenIdx])
       } else {
         attnValues.push(0)
       }
@@ -366,7 +369,7 @@ function renderHeatmap() {
     for (let y = 0; y < spatialH; y++) {
       for (let x = 0; x < spatialW; x++) {
         const idx = y * spatialW + x
-        const intensity = normalized[idx]
+        const intensity = normalized[idx] ?? 0
         const pixIdx = idx * 4
         imgDataTmp.data[pixIdx] = color[0]
         imgDataTmp.data[pixIdx + 1] = color[1]
