@@ -1828,6 +1828,7 @@ class BackendRouter:
                         'image_data': attention_result['image_base64'],
                         'attention_data': {
                             'tokens': attention_result['tokens'],
+                            'word_groups': attention_result.get('word_groups', []),
                             'attention_maps': attention_result['attention_maps'],
                             'spatial_resolution': attention_result['spatial_resolution'],
                             'image_resolution': attention_result['image_resolution'],

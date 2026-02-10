@@ -76,28 +76,26 @@
         ></canvas>
       </div>
 
-      <!-- Token Chips -->
+      <!-- Token Chips (grouped by word) -->
       <div class="token-section">
         <div class="token-label">{{ t('latentLab.attention.tokensLabel') }}</div>
         <div class="token-hint">{{ t('latentLab.attention.tokensHint') }}</div>
         <div class="token-chips">
-          <button
-            v-for="(token, idx) in tokens"
-            :key="idx"
-            class="token-chip"
-            :class="{
-              selected: selectedTokens.includes(idx),
-              [`color-${selectedTokenColorIndex(idx) % 8}`]: selectedTokens.includes(idx)
-            }"
-            @click="toggleToken(idx)"
+          <div
+            v-for="(group, gIdx) in wordGroups"
+            :key="gIdx"
+            class="word-group"
+            :class="{ selected: isWordSelected(group), [`color-${selectedWordColorIndex(group) % 8}`]: isWordSelected(group) }"
+            @click="toggleWord(group)"
           >
             <span
-              v-if="selectedTokens.includes(idx)"
+              v-if="isWordSelected(group)"
               class="color-dot"
-              :style="{ background: tokenColorCSS(selectedTokenColorIndex(idx)) }"
+              :style="{ background: tokenColorCSS(selectedWordColorIndex(group)) }"
             ></span>
-            {{ token }}
-          </button>
+            <span class="word-text">{{ wordLabel(group) }}</span>
+            <span v-if="group.length > 1" class="subtoken-hint">({{ group.length }})</span>
+          </div>
         </div>
       </div>
 
@@ -206,6 +204,7 @@ const errorMessage = ref('')
 // Result data
 const imageData = ref('')
 const tokens = ref<string[]>([])
+const wordGroups = ref<number[][]>([])  // [[0,1], [2], [3,4]] — subtoken indices per word
 const attentionMaps = ref<Record<string, Record<string, number[][]>>>({})
 const spatialResolution = ref<[number, number]>([64, 64])
 const captureLayers = ref<number[]>([3, 9, 17])
@@ -213,8 +212,8 @@ const captureSteps = ref<number[]>([])
 const totalSteps = ref(25)
 const actualSeed = ref(0)
 
-// Interaction state
-const selectedTokens = ref<number[]>([])
+// Interaction state — selectedWords stores indices into wordGroups (not token indices)
+const selectedWords = ref<number[]>([])
 const selectedStep = ref(0)
 const selectedLayerIdx = ref(1) // Default: mid layer
 const heatmapOpacity = ref(0.6)
@@ -242,25 +241,34 @@ const tokenColors = [
   [180, 0, 255],   // purple
 ]
 
-// Get the position of a token in the selectedTokens array (for color assignment)
-function selectedTokenColorIndex(tokenIdx: number): number {
-  return selectedTokens.value.indexOf(tokenIdx)
+// Word-level helpers
+function wordLabel(group: number[]): string {
+  return group.map(i => tokens.value[i] ?? '').join('')
 }
 
-// CSS color string for a given selection index
+function isWordSelected(group: number[]): boolean {
+  const gIdx = wordGroups.value.indexOf(group)
+  return selectedWords.value.includes(gIdx)
+}
+
+function selectedWordColorIndex(group: number[]): number {
+  const gIdx = wordGroups.value.indexOf(group)
+  return selectedWords.value.indexOf(gIdx)
+}
+
 function tokenColorCSS(selIdx: number): string {
   const c = tokenColors[selIdx % tokenColors.length]
   return c ? `rgb(${c[0]}, ${c[1]}, ${c[2]})` : 'white'
 }
 
-function toggleToken(idx: number) {
-  const pos = selectedTokens.value.indexOf(idx)
+function toggleWord(group: number[]) {
+  const gIdx = wordGroups.value.indexOf(group)
+  const pos = selectedWords.value.indexOf(gIdx)
   if (pos >= 0) {
-    selectedTokens.value.splice(pos, 1)
+    selectedWords.value.splice(pos, 1)
   } else {
-    selectedTokens.value.push(idx)
+    selectedWords.value.push(gIdx)
   }
-  // Trigger re-render immediately (array mutation may not trigger deep watch)
   nextTick(() => renderHeatmap())
 }
 
@@ -271,8 +279,9 @@ async function generate() {
   errorMessage.value = ''
   imageData.value = ''
   tokens.value = []
+  wordGroups.value = []
   attentionMaps.value = {}
-  selectedTokens.value = []
+  selectedWords.value = []
 
   try {
     const response = await axios.post('/api/schema/pipeline/legacy', {
@@ -293,6 +302,7 @@ async function generate() {
           imageData.value = attData.image_base64
         }
         tokens.value = attData.tokens || []
+        wordGroups.value = attData.word_groups || []
         attentionMaps.value = attData.attention_maps || {}
         spatialResolution.value = attData.spatial_resolution || [64, 64]
         captureLayers.value = attData.capture_layers || [3, 9, 17]
@@ -317,9 +327,9 @@ async function generate() {
           imageBase64Length: attData.image_base64?.length,
         })
 
-        // Auto-select first token
-        if (tokens.value.length > 0) {
-          selectedTokens.value = [0]
+        // Auto-select first word
+        if (wordGroups.value.length > 0) {
+          selectedWords.value = [0]
         }
       } else {
         errorMessage.value = 'No attention data in response'
@@ -339,20 +349,16 @@ function onImageLoad() {
 }
 
 // Watch for changes that should trigger heatmap re-render
-// deep: true needed because selectedTokens is mutated in-place (splice/push)
-watch([selectedTokens, selectedStep, selectedLayerIdx, heatmapOpacity], () => {
+// deep: true needed because selectedWords is mutated in-place (splice/push)
+watch([selectedWords, selectedStep, selectedLayerIdx, heatmapOpacity], () => {
   nextTick(() => renderHeatmap())
 }, { deep: true })
 
 function renderHeatmap() {
   const canvas = heatmapCanvas.value
   const img = imageRef.value
-  if (!canvas || !img || !imageData.value) {
-    console.log('[AC] renderHeatmap early return:', { canvas: !!canvas, img: !!img, hasImage: !!imageData.value })
-    return
-  }
-  if (selectedTokens.value.length === 0) {
-    // Clear canvas if no tokens selected
+  if (!canvas || !img || !imageData.value) return
+  if (selectedWords.value.length === 0) {
     const ctx = canvas.getContext('2d')
     if (ctx) {
       canvas.width = img.naturalWidth
@@ -366,66 +372,45 @@ function renderHeatmap() {
   const stepKey = `step_${captureSteps.value[selectedStep.value] ?? 0}`
   const layerKey = `layer_${captureLayers.value[selectedLayerIdx.value] ?? 9}`
   const stepData = attentionMaps.value[stepKey]
-  if (!stepData) {
-    console.warn('[AC] No step data for key:', stepKey, 'available:', Object.keys(attentionMaps.value))
-    return
-  }
+  if (!stepData) return
   const layerData = stepData[layerKey]
-  if (!layerData) {
-    console.warn('[AC] No layer data for key:', layerKey, 'available:', Object.keys(stepData))
-    return
-  }
+  if (!layerData) return
 
-  console.log('[AC] Rendering heatmap:', {
-    stepKey, layerKey,
-    imgSize: `${img.naturalWidth}x${img.naturalHeight}`,
-    spatial: `${spatialH}x${spatialW}`,
-    selectedTokens: selectedTokens.value,
-    layerRows: layerData.length,
-    layerCols: layerData[0]?.length,
-  })
-
-  // layerData shape: [image_tokens, text_tokens] = [spatialH*spatialW, num_tokens]
   canvas.width = img.naturalWidth
   canvas.height = img.naturalHeight
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  // For each selected token, create a colored heatmap and composite
-  for (let tIdx = 0; tIdx < selectedTokens.value.length; tIdx++) {
-    const tokenIdx = selectedTokens.value[tIdx]
-    if (tokenIdx === undefined) continue
-    const colorArr = tokenColors[tIdx % tokenColors.length]
+  // For each selected word, sum attention across all its subtokens
+  for (let wIdx = 0; wIdx < selectedWords.value.length; wIdx++) {
+    const wordIdx = selectedWords.value[wIdx]
+    if (wordIdx === undefined) continue
+    const group = wordGroups.value[wordIdx]
+    if (!group) continue
+    const colorArr = tokenColors[wIdx % tokenColors.length]
     if (!colorArr) continue
     const color: [number, number, number] = [colorArr[0] ?? 0, colorArr[1] ?? 0, colorArr[2] ?? 0]
 
-    // Extract attention values for this token: one value per spatial position
-    const attnValues: number[] = []
-    for (let i = 0; i < spatialH * spatialW; i++) {
-      const row = layerData[i]
-      if (row && row[tokenIdx] !== undefined) {
-        attnValues.push(row[tokenIdx])
-      } else {
-        attnValues.push(0)
+    // Sum attention across all subtokens of this word
+    const numPixels = spatialH * spatialW
+    const attnValues = new Float64Array(numPixels)
+    for (const tokenIdx of group) {
+      for (let i = 0; i < numPixels; i++) {
+        const row = layerData[i]
+        if (row && row[tokenIdx] !== undefined) {
+          attnValues[i] += row[tokenIdx]
+        }
       }
     }
 
     // Normalize to [0, 1]
-    const maxVal = Math.max(...attnValues, 1e-8)
-    const normalized = attnValues.map(v => v / maxVal)
-
-    if (tIdx === 0) {
-      console.log('[AC] Token', tokenIdx, `"${tokens.value[tokenIdx]}"`, {
-        attnValuesCount: attnValues.length,
-        maxVal,
-        minVal: Math.min(...attnValues),
-        nonZeroCount: attnValues.filter(v => v > 0).length,
-      })
+    let maxVal = 1e-8
+    for (let i = 0; i < numPixels; i++) {
+      if (attnValues[i] > maxVal) maxVal = attnValues[i]
     }
 
-    // Create temporary canvas for bilinear upscaling
+    // Render to temporary canvas at patch resolution, then upscale
     const tmpCanvas = document.createElement('canvas')
     tmpCanvas.width = spatialW
     tmpCanvas.height = spatialH
@@ -433,23 +418,19 @@ function renderHeatmap() {
     if (!tmpCtx) continue
 
     const imgDataTmp = tmpCtx.createImageData(spatialW, spatialH)
-    for (let y = 0; y < spatialH; y++) {
-      for (let x = 0; x < spatialW; x++) {
-        const idx = y * spatialW + x
-        const intensity = normalized[idx] ?? 0
-        const pixIdx = idx * 4
-        imgDataTmp.data[pixIdx] = color[0]
-        imgDataTmp.data[pixIdx + 1] = color[1]
-        imgDataTmp.data[pixIdx + 2] = color[2]
-        imgDataTmp.data[pixIdx + 3] = Math.floor(intensity * 200)
-      }
+    for (let i = 0; i < numPixels; i++) {
+      const intensity = attnValues[i] / maxVal
+      const pixIdx = i * 4
+      imgDataTmp.data[pixIdx] = color[0]
+      imgDataTmp.data[pixIdx + 1] = color[1]
+      imgDataTmp.data[pixIdx + 2] = color[2]
+      imgDataTmp.data[pixIdx + 3] = Math.floor(intensity * 200)
     }
     tmpCtx.putImageData(imgDataTmp, 0, 0)
 
-    // Upscale with bilinear interpolation (canvas imageSmoothingEnabled)
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    ctx.globalCompositeOperation = tIdx === 0 ? 'source-over' : 'lighter'
+    ctx.globalCompositeOperation = wIdx === 0 ? 'source-over' : 'lighter'
     ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height)
   }
 }
@@ -701,9 +682,12 @@ function renderHeatmap() {
   border-radius: 50%;
   margin-right: 4px;
   vertical-align: middle;
+  flex-shrink: 0;
 }
 
-.token-chip {
+.word-group {
+  display: inline-flex;
+  align-items: center;
   padding: 0.3rem 0.6rem;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -715,24 +699,34 @@ function renderHeatmap() {
   font-family: 'Fira Code', 'Consolas', monospace;
 }
 
-.token-chip:hover {
+.word-group:hover {
   background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
-.token-chip.selected {
+.word-group.selected {
   border-color: currentColor;
   font-weight: 600;
 }
 
-.token-chip.color-0.selected { color: #ff4444; background: rgba(255, 68, 68, 0.15); }
-.token-chip.color-1.selected { color: #44aaff; background: rgba(68, 170, 255, 0.15); }
-.token-chip.color-2.selected { color: #44ff88; background: rgba(68, 255, 136, 0.15); }
-.token-chip.color-3.selected { color: #ffcc00; background: rgba(255, 204, 0, 0.15); }
-.token-chip.color-4.selected { color: #ff44ff; background: rgba(255, 68, 255, 0.15); }
-.token-chip.color-5.selected { color: #ff8800; background: rgba(255, 136, 0, 0.15); }
-.token-chip.color-6.selected { color: #00ffff; background: rgba(0, 255, 255, 0.15); }
-.token-chip.color-7.selected { color: #b844ff; background: rgba(184, 68, 255, 0.15); }
+.word-text {
+  white-space: nowrap;
+}
+
+.subtoken-hint {
+  font-size: 0.6rem;
+  opacity: 0.5;
+  margin-left: 3px;
+}
+
+.word-group.color-0.selected { color: #ff4444; background: rgba(255, 68, 68, 0.15); }
+.word-group.color-1.selected { color: #44aaff; background: rgba(68, 170, 255, 0.15); }
+.word-group.color-2.selected { color: #44ff88; background: rgba(68, 255, 136, 0.15); }
+.word-group.color-3.selected { color: #ffcc00; background: rgba(255, 204, 0, 0.15); }
+.word-group.color-4.selected { color: #ff44ff; background: rgba(255, 68, 255, 0.15); }
+.word-group.color-5.selected { color: #ff8800; background: rgba(255, 136, 0, 0.15); }
+.word-group.color-6.selected { color: #00ffff; background: rgba(0, 255, 255, 0.15); }
+.word-group.color-7.selected { color: #b844ff; background: rgba(184, 68, 255, 0.15); }
 
 /* Controls */
 .controls-section {

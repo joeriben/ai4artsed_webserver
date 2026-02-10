@@ -610,6 +610,7 @@ class DiffusersImageGenerator:
             # JSON from ~300MB to ~10MB.
             token_column_indices = None
             tokens = []
+            word_groups = []  # [[0,1], [2], [3,4]] — subtoken indices per word
             tokenizer = pipe.tokenizer  # CLIP-L
             if tokenizer is not None:
                 encoded = tokenizer(
@@ -618,13 +619,25 @@ class DiffusersImageGenerator:
                 )
                 token_ids = encoded['input_ids']
                 token_column_indices = []
+                current_group = []
                 for pos, tid in enumerate(token_ids):
-                    if tid not in tokenizer.all_special_ids:
-                        token_column_indices.append(pos)
-                        tokens.append(tokenizer.decode([tid]).strip())
+                    if tid in tokenizer.all_special_ids:
+                        continue
+                    token_idx = len(tokens)
+                    token_column_indices.append(pos)
+                    # CLIP uses GPT-2 BPE: word-initial tokens decode with leading space
+                    decoded_raw = tokenizer.decode([tid])
+                    is_word_start = decoded_raw.startswith(' ') or token_idx == 0
+                    tokens.append(decoded_raw.strip())
+                    if is_word_start and current_group:
+                        word_groups.append(current_group)
+                        current_group = []
+                    current_group.append(token_idx)
+                if current_group:
+                    word_groups.append(current_group)
                 logger.info(
-                    f"[DIFFUSERS-ATTENTION] CLIP-L tokens: {len(tokens)} words, "
-                    f"columns: {token_column_indices}"
+                    f"[DIFFUSERS-ATTENTION] CLIP-L: {len(tokens)} subtokens, "
+                    f"{len(word_groups)} words, groups={word_groups}"
                 )
 
             # Create attention store
@@ -708,6 +721,7 @@ class DiffusersImageGenerator:
             result = {
                 "image_base64": image_base64,
                 "tokens": tokens,
+                "word_groups": word_groups,
                 "attention_maps": store.maps,
                 "spatial_resolution": [spatial_h, spatial_w],
                 "image_resolution": [height, width],
