@@ -308,16 +308,10 @@ const features = [
   align-items: center;
   gap: 1rem;
   padding: 3rem 0 2rem;
-  opacity: 0.8;
-  transition: opacity 0.3s;
-}
-
-.funding:hover {
-  opacity: 1;
 }
 
 .funding-logo {
-  height: 80px;
+  height: 104px;
   width: auto;
 }
 

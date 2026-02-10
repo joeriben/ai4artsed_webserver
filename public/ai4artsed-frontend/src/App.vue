@@ -7,10 +7,10 @@
           <a href="https://www.ucdcae.fau.de/" target="_blank" rel="noopener noreferrer" class="header-logo-link">
             <img src="/logos/unesco_chair.png" alt="UNESCO Chair" class="header-logo" />
           </a>
+          <span class="app-title">AI4ARTSED - AI LAB</span>
           <a href="https://kubi-meta.de/ai4artsed" target="_blank" rel="noopener noreferrer" class="header-logo-link">
             <img src="/logos/ai4artsed_logo.jpg" alt="AI4ArtsEd" class="header-logo header-logo-round" />
           </a>
-          <span class="app-title">AI4ARTSED - AI LAB</span>
         </div>
 
         <div class="header-center">
