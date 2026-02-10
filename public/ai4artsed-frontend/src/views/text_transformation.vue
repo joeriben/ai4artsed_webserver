@@ -705,7 +705,7 @@ const chunkMetadata = ref<Record<string, any>>({})
 const configIdToChunkName: Record<string, string> = {
   'sd35_large': 'sd35_large',
   'qwen': 'qwen',
-  'flux2': 'flux2',
+  'flux2': 'flux2_fp8',
   'gemini_3_pro_image': 'gemini_3_pro',
   // 'gpt_image_1': 'gpt_image_1',
   'p5js_code': 'p5js',
