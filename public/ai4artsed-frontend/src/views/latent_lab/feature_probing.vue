@@ -29,7 +29,6 @@
 
     <!-- Input Section -->
     <div class="input-section">
-      <!-- Prompt A -->
       <MediaInputBox
         icon="lightbulb"
         :label="t('latentLab.probing.promptALabel')"
@@ -41,8 +40,6 @@
         :disabled="isGenerating"
         :show-actions="false"
       />
-
-      <!-- Prompt B -->
       <MediaInputBox
         icon="clipboard"
         :label="t('latentLab.probing.promptBLabel')"
@@ -109,31 +106,20 @@
     <!-- Side-by-Side Image Comparison (always visible) -->
     <div class="comparison-section" :class="{ disabled: !hasAnalysis && !isGenerating }">
       <div class="image-pair">
-        <!-- Original (Prompt A) -->
         <div class="image-panel">
           <div class="panel-label">{{ t('latentLab.probing.originalLabel') }}</div>
           <div class="image-frame" :class="{ empty: !originalImage }">
-            <img
-              v-if="originalImage"
-              :src="`data:image/png;base64,${originalImage}`"
-              class="result-image"
-            />
+            <img v-if="originalImage" :src="`data:image/png;base64,${originalImage}`" class="result-image" />
             <div v-else-if="isAnalyzing" class="image-placeholder">
               <div class="progress-spinner"></div>
               <p>{{ t('latentLab.probing.analyzing') }}</p>
             </div>
           </div>
         </div>
-
-        <!-- Modified (Transfer from Prompt B) -->
         <div class="image-panel">
           <div class="panel-label">{{ t('latentLab.probing.modifiedLabel') }}</div>
           <div class="image-frame" :class="{ empty: !modifiedImage }">
-            <img
-              v-if="modifiedImage"
-              :src="`data:image/png;base64,${modifiedImage}`"
-              class="result-image"
-            />
+            <img v-if="modifiedImage" :src="`data:image/png;base64,${modifiedImage}`" class="result-image" />
             <div v-else-if="isTransferring" class="image-placeholder">
               <div class="progress-spinner"></div>
               <p>{{ t('latentLab.probing.transferring') }}</p>
@@ -145,7 +131,6 @@
         </div>
       </div>
 
-      <!-- Transfer Button -->
       <button
         class="generate-btn transfer-btn"
         :disabled="!hasAnalysis || isTransferring || selectedDimCount === 0"
@@ -155,7 +140,6 @@
         <span v-else>{{ t('latentLab.probing.transferBtn') }} ({{ selectedDimCount }})</span>
       </button>
 
-      <!-- Seed display -->
       <div v-if="actualSeed !== null" class="seed-display">
         Seed: {{ actualSeed }}
       </div>
@@ -163,146 +147,77 @@
 
     <!-- Dimension Analysis Section (always visible, disabled before analysis) -->
     <div class="analysis-section" :class="{ disabled: !hasAnalysis }">
-      <!-- Prominent list header -->
+      <!-- Slider label -->
+      <div class="slider-label">{{ t('latentLab.probing.sliderLabel') }}</div>
+
+      <!-- Unified slider: visual fills + all handles in one track -->
+      <div class="unified-slider">
+        <div class="slider-track">
+          <div v-for="(range, rIdx) in ranges" :key="`fill-${rIdx}`"
+            class="slider-fill" :class="`range-color-${rIdx}`"
+            :style="fillStyle(range)">
+          </div>
+        </div>
+        <template v-for="(range, rIdx) in ranges" :key="`handles-${rIdx}`">
+          <input type="range" class="slider-handle" :class="`handle-color-${rIdx}`"
+            :style="{ zIndex: rIdx * 2 + 1 }" min="1" :max="nonzeroDimCount || 1" step="1"
+            v-model.number="range.from" :disabled="!hasAnalysis" @input="clampRange(rIdx)" />
+          <input type="range" class="slider-handle" :class="`handle-color-${rIdx}`"
+            :style="{ zIndex: rIdx * 2 + 2 }" min="1" :max="nonzeroDimCount || 1" step="1"
+            v-model.number="range.to" :disabled="!hasAnalysis" @input="clampRange(rIdx)" />
+        </template>
+      </div>
+
+      <!-- Ranges row: all number fields in one horizontal line -->
+      <div class="ranges-row">
+        <div v-for="(range, rIdx) in ranges" :key="`rg-${rIdx}`" class="range-group" :class="`range-color-${rIdx}`">
+          <span class="range-tag">{{ rIdx + 1 }}</span>
+          <input type="number" v-model.number="range.from" :min="1" :max="range.to || 1" class="range-input"
+            :disabled="!hasAnalysis" @change="clampRange(rIdx)" @focus="($event.target as HTMLInputElement).select()" />
+          <span class="range-sep">&ndash;</span>
+          <input type="number" v-model.number="range.to" :min="range.from" :max="nonzeroDimCount || 0" class="range-input"
+            :disabled="!hasAnalysis" @change="clampRange(rIdx)" @focus="($event.target as HTMLInputElement).select()" />
+          <button v-if="ranges.length > 1" class="remove-btn" @click="removeRange(rIdx)" :disabled="!hasAnalysis">&times;</button>
+        </div>
+        <button v-if="ranges.length < MAX_RANGES" class="mini-btn add-btn" :disabled="!hasAnalysis" @click="addRange">+</button>
+        <div class="selection-actions">
+          <button class="mini-btn" @click="selectAll" :disabled="!hasAnalysis">{{ t('latentLab.probing.selectAll') }}</button>
+          <button class="mini-btn" @click="selectNone" :disabled="!hasAnalysis">{{ t('latentLab.probing.selectNone') }}</button>
+        </div>
+      </div>
+
+      <!-- Prominent list header — directly above the dimension list -->
       <div class="analysis-list-header">
         <h3 class="list-title">
           {{ t('latentLab.probing.listTitle', { count: nonzeroDimCount }) }}
         </h3>
         <p class="list-subtitle">
-          {{ t('latentLab.probing.selectionDesc', { count: selectedDimCount, from: rankFrom, to: rankTo, total: nonzeroDimCount }) }}
+          {{ t('latentLab.probing.selectionDesc', { count: selectedDimCount, ranges: selectionRangesText, total: nonzeroDimCount }) }}
         </p>
       </div>
 
-      <!-- Slider label -->
-      <div class="slider-label">{{ t('latentLab.probing.sliderLabel') }}</div>
-
-      <!-- Visual Range Bar (shows both ranges) -->
-      <div class="dimension-bar-visual">
-        <div class="dimension-bar-track">
-          <div class="dimension-bar-fill range-1"
-            :style="{
-              left: nonzeroDimCount > 0 ? ((rankFrom - 1) / nonzeroDimCount * 100) + '%' : '0%',
-              width: nonzeroDimCount > 0 ? ((rankTo - rankFrom + 1) / nonzeroDimCount * 100) + '%' : '0%'
-            }">
-          </div>
-          <div v-if="showRange2" class="dimension-bar-fill range-2"
-            :style="{
-              left: nonzeroDimCount > 0 ? ((rankFrom2 - 1) / nonzeroDimCount * 100) + '%' : '0%',
-              width: nonzeroDimCount > 0 ? ((rankTo2 - rankFrom2 + 1) / nonzeroDimCount * 100) + '%' : '0%'
-            }">
-          </div>
-        </div>
-      </div>
-
-      <!-- Range 1: Dual Handle Slider -->
-      <div class="range-block">
-        <div class="range-block-label">{{ t('latentLab.probing.range1Label') }}</div>
-        <div class="dual-slider-container">
-          <input type="range" min="1" :max="nonzeroDimCount || 1" step="1"
-            v-model.number="rankFrom"
-            class="slider-track slider-start"
-            :disabled="!hasAnalysis"
-            @input="clampStart" />
-          <input type="range" min="1" :max="nonzeroDimCount || 1" step="1"
-            v-model.number="rankTo"
-            class="slider-track slider-end"
-            :disabled="!hasAnalysis"
-            @input="clampEnd" />
-        </div>
-        <div class="range-display">
-          <div class="range-field">
-            <label>{{ t('latentLab.probing.rankFromLabel') }}</label>
-            <input type="number" v-model.number="rankFrom" :min="1" :max="rankTo || 1" class="range-input"
-              :disabled="!hasAnalysis"
-              @change="clampStart" @focus="($event.target as HTMLInputElement).select()" />
-          </div>
-          <span class="range-separator">–</span>
-          <div class="range-field">
-            <label>{{ t('latentLab.probing.rankToLabel') }}</label>
-            <input type="number" v-model.number="rankTo" :min="rankFrom" :max="nonzeroDimCount || 0" class="range-input"
-              :disabled="!hasAnalysis"
-              @change="clampEnd" @focus="($event.target as HTMLInputElement).select()" />
-          </div>
-          <div class="selection-actions">
-            <button class="mini-btn" @click="selectAll" :disabled="!hasAnalysis">{{ t('latentLab.probing.selectAll') }}</button>
-            <button class="mini-btn" @click="selectNone" :disabled="!hasAnalysis">{{ t('latentLab.probing.selectNone') }}</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Add Range 2 Button -->
-      <button v-if="!showRange2" class="mini-btn add-range-btn" :disabled="!hasAnalysis" @click="addRange2">
-        + {{ t('latentLab.probing.addRange') }}
-      </button>
-
-      <!-- Range 2: Dual Handle Slider (optional) -->
-      <div v-if="showRange2" class="range-block range-block-2">
-        <div class="range-block-label">
-          {{ t('latentLab.probing.range2Label') }}
-          <button class="mini-btn remove-range-btn" @click="removeRange2">&times;</button>
-        </div>
-        <div class="dual-slider-container">
-          <input type="range" min="1" :max="nonzeroDimCount || 1" step="1"
-            v-model.number="rankFrom2"
-            class="slider-track slider-start"
-            :disabled="!hasAnalysis"
-            @input="clampStart2" />
-          <input type="range" min="1" :max="nonzeroDimCount || 1" step="1"
-            v-model.number="rankTo2"
-            class="slider-track slider-end"
-            :disabled="!hasAnalysis"
-            @input="clampEnd2" />
-        </div>
-        <div class="range-display">
-          <div class="range-field">
-            <label>{{ t('latentLab.probing.rankFromLabel') }}</label>
-            <input type="number" v-model.number="rankFrom2" :min="1" :max="rankTo2 || 1" class="range-input"
-              :disabled="!hasAnalysis"
-              @change="clampStart2" @focus="($event.target as HTMLInputElement).select()" />
-          </div>
-          <span class="range-separator">–</span>
-          <div class="range-field">
-            <label>{{ t('latentLab.probing.rankToLabel') }}</label>
-            <input type="number" v-model.number="rankTo2" :min="rankFrom2" :max="nonzeroDimCount || 0" class="range-input"
-              :disabled="!hasAnalysis"
-              @change="clampEnd2" @focus="($event.target as HTMLInputElement).select()" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Sort toggle + column headers -->
+      <!-- Sort toggle -->
       <div class="dim-list-controls" v-if="displayDims.length > 0">
         <button class="mini-btn sort-btn" @click="toggleSort">
           {{ sortAscending ? t('latentLab.probing.sortAsc') : t('latentLab.probing.sortDesc') }}
         </button>
       </div>
 
-      <!-- Dimension Bars with checkboxes -->
+      <!-- Dimension Bars -->
       <div class="dimension-bars" v-if="displayDims.length > 0">
-        <div
-          v-for="(dim, idx) in sortedDisplayDims"
-          :key="dim.index"
-          class="dim-row"
-          :class="{ 'in-range-1': inRange1(dim.rank), 'in-range-2': inRange2(dim.rank) }"
-          @click="toggleDim(dim.rank)"
-        >
-          <label class="dim-checkbox" @click.stop>
-            <input type="checkbox" :checked="isInRange(dim.rank)" @change="toggleDim(dim.rank)" />
+        <div v-for="dim in sortedDisplayDims" :key="dim.index" class="dim-row" :class="dimRowClass(dim.rank)">
+          <label class="dim-checkbox">
+            <input type="checkbox" :checked="isInAnyRange(dim.rank)" @click.prevent />
           </label>
           <span class="dim-rank">{{ dim.rank + 1 }}</span>
           <span class="dim-index">d{{ dim.index }}</span>
           <div class="dim-bar-container">
-            <div
-              class="dim-bar"
-              :style="{ width: `${(dim.value / maxDiffValue) * 100}%` }"
-              :class="{ 'in-range-1': inRange1(dim.rank), 'in-range-2': inRange2(dim.rank) }"
-            ></div>
+            <div class="dim-bar" :style="{ width: `${(dim.value / maxDiffValue) * 100}%` }" :class="dimRowClass(dim.rank)"></div>
           </div>
           <span class="dim-value">{{ dim.value.toFixed(3) }}</span>
         </div>
       </div>
 
-      <!-- No difference message -->
       <div class="no-diff-message" v-if="analysisComplete && displayDims.length === 0">
         <p>{{ t('latentLab.probing.noDifference') }}</p>
       </div>
@@ -327,6 +242,9 @@ import type { PageContext, FocusHint } from '@/composables/usePageContext'
 const { t } = useI18n()
 const pageContextStore = usePageContextStore()
 
+// Constants
+const MAX_RANGES = 4
+
 // Encoder options
 type EncoderId = 'all' | 'clip_l' | 'clip_g' | 't5'
 const encoders: { id: EncoderId; labelKey: string }[] = [
@@ -335,6 +253,12 @@ const encoders: { id: EncoderId; labelKey: string }[] = [
   { id: 'clip_g', labelKey: 'encoderClipG' },
   { id: 't5', labelKey: 'encoderT5' },
 ]
+
+// Range type
+interface RangeSelection {
+  from: number
+  to: number
+}
 
 // State
 const promptA = ref('')
@@ -355,13 +279,9 @@ const originalImage = ref('')
 const modifiedImage = ref('')
 const actualSeed = ref<number | null>(null)
 const topDims = ref<{ index: number; value: number }[]>([])
-// Range 1
-const rankFrom = ref(1)
-const rankTo = ref(0)
-// Range 2 (optional, additive)
-const showRange2 = ref(false)
-const rankFrom2 = ref(1)
-const rankTo2 = ref(0)
+
+// Ranges (up to MAX_RANGES)
+const ranges = ref<RangeSelection[]>([{ from: 1, to: 0 }])
 
 // Computed
 const isGenerating = computed(() => isAnalyzing.value || isTransferring.value)
@@ -370,113 +290,92 @@ const maxDiffValue = computed(() => {
   if (topDims.value.length === 0) return 1
   return topDims.value[0]?.value ?? 1
 })
-// Only show dimensions with nonzero difference
 const displayDims = computed(() => topDims.value.filter(d => d.value > 1e-6))
 const nonzeroDimCount = computed(() => displayDims.value.length)
-// displayDims with original rank preserved, optionally reversed
 const sortedDisplayDims = computed(() => {
   const withRank = displayDims.value.map((d, idx) => ({ ...d, rank: idx }))
   return sortAscending.value ? [...withRank].reverse() : withRank
 })
 
-// Derive selected dimensions from union of both rank ranges
+// Selected dimensions from union of all ranges
 const selectedDims = computed(() => {
   const dims = new Set<number>()
-  const addRange = (from: number, to: number) => {
-    const f = Math.max(0, from - 1)
-    const t = Math.min(displayDims.value.length, to)
-    for (let i = f; i < t; i++) {
+  for (const range of ranges.value) {
+    if (range.to < range.from) continue
+    const f = Math.max(0, range.from - 1)
+    const end = Math.min(displayDims.value.length, range.to)
+    for (let i = f; i < end; i++) {
       dims.add(displayDims.value[i]!.index)
     }
-  }
-  addRange(rankFrom.value, rankTo.value)
-  if (showRange2.value) {
-    addRange(rankFrom2.value, rankTo2.value)
   }
   return dims
 })
 const selectedDimCount = computed(() => selectedDims.value.size)
 
-function inRange1(idx: number): boolean {
-  return idx >= rankFrom.value - 1 && idx < rankTo.value
+// Human-readable range description for i18n
+const selectionRangesText = computed(() => {
+  const active = ranges.value.filter(r => r.to >= r.from)
+  if (active.length === 0) return '\u2013'
+  return active.map(r => `${r.from}\u2013${r.to}`).join(', ')
+})
+
+// Range color assignment for a given rank (0-based)
+function rangeColorIndex(rank: number): number {
+  for (let rIdx = 0; rIdx < ranges.value.length; rIdx++) {
+    const r = ranges.value[rIdx]!
+    if (rank >= r.from - 1 && rank < r.to) return rIdx
+  }
+  return -1
 }
 
-function inRange2(idx: number): boolean {
-  return showRange2.value && idx >= rankFrom2.value - 1 && idx < rankTo2.value
+function isInAnyRange(rank: number): boolean {
+  return rangeColorIndex(rank) >= 0
 }
 
-function isInRange(idx: number): boolean {
-  return inRange1(idx) || inRange2(idx)
+function dimRowClass(rank: number): string {
+  const idx = rangeColorIndex(rank)
+  return idx >= 0 ? `in-range in-range-${idx}` : ''
 }
 
-function clampStart() {
-  if (rankFrom.value < 1) rankFrom.value = 1
-  if (rankFrom.value > rankTo.value) rankFrom.value = rankTo.value
+function fillStyle(range: RangeSelection): Record<string, string> {
+  if (nonzeroDimCount.value <= 0 || range.to < range.from) return { left: '0%', width: '0%' }
+  const left = (range.from - 1) / nonzeroDimCount.value * 100
+  const width = (range.to - range.from + 1) / nonzeroDimCount.value * 100
+  return { left: `${left}%`, width: `${width}%` }
 }
 
-function clampEnd() {
-  if (rankTo.value < rankFrom.value) rankTo.value = rankFrom.value
-  if (rankTo.value > nonzeroDimCount.value) rankTo.value = nonzeroDimCount.value
+function clampRange(rIdx: number) {
+  const r = ranges.value[rIdx]!
+  if (r.from < 1) r.from = 1
+  if (r.to > nonzeroDimCount.value) r.to = nonzeroDimCount.value
+  if (r.from > r.to && r.to > 0) r.from = r.to
 }
 
-function clampStart2() {
-  if (rankFrom2.value < 1) rankFrom2.value = 1
-  if (rankFrom2.value > rankTo2.value) rankFrom2.value = rankTo2.value
-}
-
-function clampEnd2() {
-  if (rankTo2.value < rankFrom2.value) rankTo2.value = rankFrom2.value
-  if (rankTo2.value > nonzeroDimCount.value) rankTo2.value = nonzeroDimCount.value
-}
-
-function selectAll() {
-  rankFrom.value = 1
-  rankTo.value = nonzeroDimCount.value
-  if (showRange2.value) {
-    showRange2.value = false
-    rankFrom2.value = 1
-    rankTo2.value = 0
+function addRange() {
+  if (ranges.value.length < MAX_RANGES) {
+    ranges.value.push({ from: 1, to: 0 })
   }
 }
 
+function removeRange(rIdx: number) {
+  if (ranges.value.length > 1) {
+    ranges.value.splice(rIdx, 1)
+  }
+}
+
+function selectAll() {
+  ranges.value = [{ from: 1, to: nonzeroDimCount.value }]
+}
+
 function selectNone() {
-  rankFrom.value = 1
-  rankTo.value = 0
-  rankFrom2.value = 1
-  rankTo2.value = 0
-}
-
-function addRange2() {
-  showRange2.value = true
-  // Default: no selection, user positions it
-  rankFrom2.value = 1
-  rankTo2.value = 0
-}
-
-function removeRange2() {
-  showRange2.value = false
-  rankFrom2.value = 1
-  rankTo2.value = 0
+  for (const r of ranges.value) {
+    r.from = 1
+    r.to = 0
+  }
 }
 
 function toggleSort() {
   sortAscending.value = !sortAscending.value
-}
-
-function toggleDim(rankIdx: number) {
-  // Expand or contract range 1 to include/exclude this rank
-  const rank1based = rankIdx + 1
-  if (inRange1(rankIdx)) {
-    if (rank1based === rankFrom.value) rankFrom.value++
-    else if (rank1based === rankTo.value) rankTo.value--
-  } else if (inRange2(rankIdx)) {
-    if (rank1based === rankFrom2.value) rankFrom2.value++
-    else if (rank1based === rankTo2.value) rankTo2.value--
-  } else {
-    // Expand nearest range
-    if (rank1based < rankFrom.value) rankFrom.value = rank1based
-    else if (rank1based > rankTo.value) rankTo.value = rank1based
-  }
 }
 
 async function analyze() {
@@ -489,11 +388,7 @@ async function analyze() {
   topDims.value = []
   analysisComplete.value = false
   actualSeed.value = null
-  rankFrom.value = 1
-  rankTo.value = 0
-  showRange2.value = false
-  rankFrom2.value = 1
-  rankTo2.value = 0
+  ranges.value = [{ from: 1, to: 0 }]
 
   try {
     const baseUrl = import.meta.env.DEV ? 'http://localhost:17802' : ''
@@ -517,7 +412,6 @@ async function analyze() {
 
         actualSeed.value = response.data.media_output?.seed ?? null
 
-        // Build top dims list from probing data (already sorted by magnitude)
         const dims = probData.top_dims || []
         const vals = probData.top_values || []
         topDims.value = dims.map((dimIdx: number, i: number) => ({
@@ -526,7 +420,8 @@ async function analyze() {
         }))
 
         // Default: select all nonzero dimensions
-        rankTo.value = topDims.value.filter((d: { value: number }) => d.value > 1e-6).length
+        const nonzero = topDims.value.filter((d: { value: number }) => d.value > 1e-6).length
+        ranges.value = [{ from: 1, to: nonzero }]
 
         analysisComplete.value = true
       } else {
@@ -612,24 +507,10 @@ onUnmounted(() => {
   padding: 1.5rem 1.5rem 3rem;
 }
 
-/* Page Header — same as Attention Cartography */
-.page-header {
-  margin-bottom: 1.5rem;
-}
-
-.page-title {
-  color: #00BCD4;
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-}
-
-.page-subtitle {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  margin: 0 0 0.75rem;
-}
+/* === Page Header === */
+.page-header { margin-bottom: 1.5rem; }
+.page-title { color: #00BCD4; font-size: 1.2rem; font-weight: 700; margin: 0 0 0.5rem; }
+.page-subtitle { color: rgba(255, 255, 255, 0.7); font-size: 0.95rem; line-height: 1.6; margin: 0 0 0.75rem; }
 
 .explanation-details {
   background: rgba(0, 188, 212, 0.06);
@@ -637,7 +518,6 @@ onUnmounted(() => {
   border-radius: 10px;
   overflow: hidden;
 }
-
 .explanation-details summary {
   padding: 0.65rem 1rem;
   color: rgba(0, 188, 212, 0.8);
@@ -645,74 +525,20 @@ onUnmounted(() => {
   cursor: pointer;
   user-select: none;
 }
+.explanation-details summary:hover { color: #00BCD4; }
+.explanation-body { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.explanation-section h4 { color: rgba(255, 255, 255, 0.85); font-size: 0.85rem; margin: 0 0 0.25rem; }
+.explanation-section p { color: rgba(255, 255, 255, 0.6); font-size: 0.82rem; line-height: 1.6; margin: 0; }
+.explanation-tech { background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 0.75rem; }
+.explanation-tech p { font-size: 0.78rem; }
 
-.explanation-details summary:hover {
-  color: #00BCD4;
-}
+/* === Input Section === */
+.input-section { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
 
-.explanation-body {
-  padding: 0 1rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.explanation-section h4 {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.85rem;
-  margin: 0 0 0.25rem;
-}
-
-.explanation-section p {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.82rem;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.explanation-tech {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  padding: 0.75rem;
-}
-
-.explanation-tech p {
-  font-size: 0.78rem;
-}
-
-/* Input Section */
-.input-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-/* Action Row (Encoder + Analyze) */
-.action-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.control-group {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
-}
-
-.control-label {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
-  flex-shrink: 0;
-}
-
-.layer-toggles {
-  display: flex;
-  gap: 0.35rem;
-}
+.action-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.control-group { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
+.control-label { color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; flex-shrink: 0; }
+.layer-toggles { display: flex; gap: 0.35rem; }
 
 .layer-btn {
   padding: 0.35rem 0.75rem;
@@ -724,17 +550,8 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-
-.layer-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.layer-btn.active {
-  background: rgba(0, 188, 212, 0.2);
-  border-color: rgba(0, 188, 212, 0.5);
-  color: #00BCD4;
-}
+.layer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.layer-btn.active { background: rgba(0, 188, 212, 0.2); border-color: rgba(0, 188, 212, 0.5); color: #00BCD4; }
 
 .generate-btn {
   padding: 0.75rem 1.5rem;
@@ -749,26 +566,15 @@ onUnmounted(() => {
   white-space: nowrap;
   min-height: 42px;
 }
-
-.generate-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
-}
-
-.generate-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.generate-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3); }
+.generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .transfer-btn {
   margin-top: 1rem;
   width: 100%;
   background: linear-gradient(135deg, #7C4DFF, #651FFF);
 }
-
-.transfer-btn:hover:not(:disabled) {
-  box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
-}
+.transfer-btn:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3); }
 
 .spinner {
   display: inline-block;
@@ -779,38 +585,13 @@ onUnmounted(() => {
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Advanced Settings */
-.advanced-settings {
-  margin-top: 0.25rem;
-}
-
-.advanced-settings summary {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
-  cursor: pointer;
-  padding: 0.25rem 0;
-}
-
-.settings-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.settings-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
-}
-
+.advanced-settings { margin-top: 0.25rem; }
+.advanced-settings summary { color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; cursor: pointer; padding: 0.25rem 0; }
+.settings-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; }
+.settings-grid label { display: flex; flex-direction: column; gap: 0.25rem; color: rgba(255, 255, 255, 0.5); font-size: 0.75rem; }
 .setting-input {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -819,41 +600,17 @@ onUnmounted(() => {
   color: white;
   font-size: 0.85rem;
 }
+.setting-small { width: 80px; }
 
-.setting-small {
-  width: 80px;
-}
-
-/* Disabled state for sections before analysis */
+/* === Disabled state === */
 .comparison-section.disabled,
-.analysis-section.disabled {
-  opacity: 0.35;
-  pointer-events: none;
-}
+.analysis-section.disabled { opacity: 0.35; pointer-events: none; }
 
-/* Comparison Section (side-by-side images) */
-.comparison-section {
-  margin-bottom: 1.5rem;
-}
-
-.image-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.image-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.panel-label {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+/* === Comparison Section === */
+.comparison-section { margin-bottom: 1.5rem; }
+.image-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.image-panel { display: flex; flex-direction: column; gap: 0.35rem; }
+.panel-label { color: rgba(255, 255, 255, 0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
 
 .image-frame {
   border-radius: 12px;
@@ -865,41 +622,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
 }
+.image-frame.empty { border-style: dashed; border-color: rgba(255, 255, 255, 0.15); }
+.result-image { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.image-frame.empty {
-  border-style: dashed;
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.result-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.image-placeholder {
-  text-align: center;
-  color: rgba(0, 188, 212, 0.7);
-  padding: 2rem;
-}
-
-.image-placeholder p {
-  font-size: 0.85rem;
-  margin-top: 0.75rem;
-}
-
-.image-placeholder-hint {
-  text-align: center;
-  padding: 2rem 1.5rem;
-}
-
-.image-placeholder-hint p {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 0.8rem;
-  line-height: 1.5;
-  margin: 0;
-}
+.image-placeholder { text-align: center; color: rgba(0, 188, 212, 0.7); padding: 2rem; }
+.image-placeholder p { font-size: 0.85rem; margin-top: 0.75rem; }
+.image-placeholder-hint { text-align: center; padding: 2rem 1.5rem; }
+.image-placeholder-hint p { color: rgba(255, 255, 255, 0.3); font-size: 0.8rem; line-height: 1.5; margin: 0; }
 
 .progress-spinner {
   width: 32px;
@@ -918,12 +647,9 @@ onUnmounted(() => {
   font-family: 'Fira Code', 'Consolas', monospace;
 }
 
-/* Analysis Section */
-.analysis-section {
-  margin-top: 1rem;
-}
+/* === Analysis Section === */
+.analysis-section { margin-top: 1rem; }
 
-/* Prominent list header */
 .analysis-list-header {
   background: rgba(124, 77, 255, 0.08);
   border: 1px solid rgba(124, 77, 255, 0.2);
@@ -931,79 +657,206 @@ onUnmounted(() => {
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
+.list-title { color: rgba(255, 255, 255, 0.9); font-size: 1rem; font-weight: 700; margin: 0 0 0.25rem; }
+.list-subtitle { color: rgba(124, 77, 255, 0.85); font-size: 0.85rem; margin: 0; }
 
-.list-title {
-  color: rgba(255, 255, 255, 0.9);
+.slider-label { color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; margin-bottom: 0.25rem; }
+
+/* === Unified Slider (all handles in one track) === */
+.unified-slider {
+  position: relative;
+  height: 40px;
+  margin: 0.5rem 0;
+}
+
+.slider-track {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.slider-fill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 8px;
+  transition: left 0.1s ease, width 0.1s ease;
+}
+
+.slider-fill.range-color-0 {
+  background: linear-gradient(135deg, rgba(124, 77, 255, 0.5), rgba(101, 31, 255, 0.5));
+  box-shadow: 0 0 6px rgba(124, 77, 255, 0.3);
+}
+.slider-fill.range-color-1 {
+  background: linear-gradient(135deg, rgba(0, 188, 212, 0.5), rgba(0, 151, 167, 0.5));
+  box-shadow: 0 0 6px rgba(0, 188, 212, 0.3);
+}
+.slider-fill.range-color-2 {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.5), rgba(245, 124, 0, 0.5));
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.3);
+}
+.slider-fill.range-color-3 {
+  background: linear-gradient(135deg, rgba(102, 187, 106, 0.5), rgba(67, 160, 71, 0.5));
+  box-shadow: 0 0 6px rgba(102, 187, 106, 0.3);
+}
+
+/* Handle inputs — overlaid on the track */
+.slider-handle {
+  position: absolute;
+  width: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  height: 20px;
+}
+
+.slider-handle::-webkit-slider-runnable-track {
+  height: 20px;
+  background: transparent;
+  border-radius: 10px;
+}
+.slider-handle::-moz-range-track {
+  height: 20px;
+  background: transparent;
+  border-radius: 10px;
+}
+
+/* Common thumb base */
+.slider-handle::-webkit-slider-thumb {
+  pointer-events: all;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid white;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease;
+}
+.slider-handle::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.slider-handle::-webkit-slider-thumb:active { cursor: grabbing; }
+
+.slider-handle::-moz-range-thumb {
+  pointer-events: all;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid white;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Per-range handle colors */
+.handle-color-0::-webkit-slider-thumb { background: linear-gradient(135deg, #7C4DFF, #651FFF); }
+.handle-color-0::-moz-range-thumb { background: linear-gradient(135deg, #7C4DFF, #651FFF); }
+.handle-color-1::-webkit-slider-thumb { background: linear-gradient(135deg, #00BCD4, #0097A7); }
+.handle-color-1::-moz-range-thumb { background: linear-gradient(135deg, #00BCD4, #0097A7); }
+.handle-color-2::-webkit-slider-thumb { background: linear-gradient(135deg, #FF9800, #F57C00); }
+.handle-color-2::-moz-range-thumb { background: linear-gradient(135deg, #FF9800, #F57C00); }
+.handle-color-3::-webkit-slider-thumb { background: linear-gradient(135deg, #66BB6A, #43A047); }
+.handle-color-3::-moz-range-thumb { background: linear-gradient(135deg, #66BB6A, #43A047); }
+
+/* === Ranges Row (number fields in one line) === */
+.ranges-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.range-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.range-group + .range-group {
+  margin-left: 0.15rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.range-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.range-color-0 .range-tag { background: #7C4DFF; }
+.range-color-1 .range-tag { background: #00BCD4; }
+.range-color-2 .range-tag { background: #FF9800; }
+.range-color-3 .range-tag { background: #66BB6A; }
+
+.range-input {
+  width: 65px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.3rem 0.4rem;
+  color: white;
+  font-size: 0.8rem;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  text-align: center;
+}
+
+.range-sep {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.9rem;
+}
+
+.remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+.remove-btn:hover { color: #ef5350; border-color: rgba(244, 67, 54, 0.3); }
+
+.add-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1rem;
   font-weight: 700;
-  margin: 0 0 0.25rem;
-}
-
-.list-subtitle {
-  color: rgba(124, 77, 255, 0.85);
-  font-size: 0.85rem;
-  margin: 0;
-}
-
-.slider-label {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
-  margin-bottom: 0.25rem;
 }
 
 .selection-actions {
   display: flex;
   gap: 0.35rem;
   margin-left: auto;
-}
-
-/* Range blocks */
-.range-block {
-  margin-bottom: 0.5rem;
-}
-
-.range-block-label {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
-  margin-bottom: 0.15rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.range-block-2 .dimension-bar-fill,
-.range-block-2 .dual-slider-container input[type="range"]::-webkit-slider-thumb {
-  background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
-}
-
-.add-range-btn {
-  margin-bottom: 0.75rem;
-}
-
-.remove-range-btn {
-  padding: 0 0.35rem;
-  font-size: 0.85rem;
-  line-height: 1;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.remove-range-btn:hover {
-  color: #ef5350;
-  border-color: rgba(244, 67, 54, 0.3);
-}
-
-.dim-list-controls {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.35rem;
-}
-
-.sort-btn {
-  font-size: 0.7rem;
 }
 
 .mini-btn {
@@ -1016,169 +869,14 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.15s ease;
 }
+.mini-btn:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+.mini-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.mini-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
+/* Sort controls */
+.dim-list-controls { display: flex; align-items: center; margin-bottom: 0.35rem; }
+.sort-btn { font-size: 0.7rem; }
 
-/* Visual Range Bar */
-.dimension-bar-visual {
-  margin-bottom: 0.25rem;
-}
-
-.dimension-bar-track {
-  height: 20px;
-  background: rgba(30, 30, 30, 0.8);
-  border-radius: 10px;
-  position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  overflow: hidden;
-}
-
-.dimension-bar-fill {
-  position: absolute;
-  top: 2px;
-  bottom: 2px;
-  border-radius: 8px;
-  transition: all 0.1s ease;
-}
-
-.dimension-bar-fill.range-1 {
-  background: linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%);
-  box-shadow: 0 0 8px rgba(124, 77, 255, 0.4);
-}
-
-.dimension-bar-fill.range-2 {
-  background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
-  box-shadow: 0 0 8px rgba(0, 188, 212, 0.4);
-}
-
-/* Dual Handle Slider (pattern from partial_elimination) */
-.dual-slider-container {
-  position: relative;
-  height: 32px;
-  margin: 0.5rem 0;
-}
-
-.dual-slider-container input[type="range"] {
-  position: absolute;
-  width: 100%;
-  height: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-}
-
-.dual-slider-container .slider-start {
-  z-index: 1;
-}
-
-.dual-slider-container .slider-end {
-  z-index: 2;
-}
-
-.dual-slider-container input[type="range"]::-webkit-slider-runnable-track {
-  height: 8px;
-  background: transparent;
-  border-radius: 4px;
-}
-
-.dual-slider-container input[type="range"]::-moz-range-track {
-  height: 8px;
-  background: transparent;
-  border-radius: 4px;
-}
-
-.dual-slider-container input[type="range"]::-webkit-slider-thumb {
-  pointer-events: all;
-  -webkit-appearance: none;
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  background: linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%);
-  border: 2px solid white;
-  border-radius: 50%;
-  cursor: grab;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  transition: transform 0.15s ease;
-}
-
-.dual-slider-container input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 3px 10px rgba(124, 77, 255, 0.5);
-}
-
-.dual-slider-container input[type="range"]::-webkit-slider-thumb:active {
-  cursor: grabbing;
-}
-
-.dual-slider-container input[type="range"]::-moz-range-thumb {
-  pointer-events: all;
-  width: 22px;
-  height: 22px;
-  background: linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%);
-  border: 2px solid white;
-  border-radius: 50%;
-  cursor: grab;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-
-/* Range Display (number fields) */
-.range-display {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.range-field {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.range-field label {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.7rem;
-}
-
-.range-input {
-  width: 75px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  padding: 0.35rem 0.5rem;
-  color: white;
-  font-size: 0.9rem;
-  font-family: 'Fira Code', 'Consolas', monospace;
-  text-align: center;
-}
-
-.range-separator {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 1.2rem;
-  padding-bottom: 0.3rem;
-}
-
-/* Selection Description */
-.selection-description {
-  color: rgba(124, 77, 255, 0.85);
-  font-size: 0.85rem;
-  line-height: 1.5;
-  margin: 0 0 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: rgba(124, 77, 255, 0.08);
-  border-radius: 8px;
-  border-left: 3px solid rgba(124, 77, 255, 0.4);
-}
-
-/* Dimension Bars */
+/* === Dimension Bars === */
 .dimension-bars {
   display: flex;
   flex-direction: column;
@@ -1198,29 +896,14 @@ onUnmounted(() => {
   opacity: 0.35;
 }
 
-.dim-row.in-range-1,
-.dim-row.in-range-2 {
-  opacity: 1;
-}
+.dim-row.in-range { opacity: 1; }
+.dim-row.in-range-0 { background: rgba(124, 77, 255, 0.06); }
+.dim-row.in-range-1 { background: rgba(0, 188, 212, 0.06); }
+.dim-row.in-range-2 { background: rgba(255, 152, 0, 0.06); }
+.dim-row.in-range-3 { background: rgba(102, 187, 106, 0.06); }
 
-.dim-row.in-range-1 {
-  background: rgba(124, 77, 255, 0.06);
-}
-
-.dim-row.in-range-2 {
-  background: rgba(0, 188, 212, 0.06);
-}
-
-.dim-checkbox {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.dim-checkbox input {
-  accent-color: #7C4DFF;
-  cursor: pointer;
-}
+.dim-checkbox { display: flex; align-items: center; cursor: default; }
+.dim-checkbox input { accent-color: #7C4DFF; cursor: default; }
 
 .dim-rank {
   color: rgba(255, 255, 255, 0.3);
@@ -1229,14 +912,10 @@ onUnmounted(() => {
   min-width: 35px;
   text-align: right;
 }
-
-.dim-row.in-range-1 .dim-rank {
-  color: rgba(124, 77, 255, 0.6);
-}
-
-.dim-row.in-range-2 .dim-rank {
-  color: rgba(0, 188, 212, 0.6);
-}
+.dim-row.in-range-0 .dim-rank { color: rgba(124, 77, 255, 0.6); }
+.dim-row.in-range-1 .dim-rank { color: rgba(0, 188, 212, 0.6); }
+.dim-row.in-range-2 .dim-rank { color: rgba(255, 152, 0, 0.6); }
+.dim-row.in-range-3 .dim-rank { color: rgba(102, 187, 106, 0.6); }
 
 .dim-index {
   color: rgba(255, 255, 255, 0.4);
@@ -1260,14 +939,10 @@ onUnmounted(() => {
   border-radius: 2px;
   transition: background 0.15s ease;
 }
-
-.dim-bar.in-range-1 {
-  background: rgba(124, 77, 255, 0.5);
-}
-
-.dim-bar.in-range-2 {
-  background: rgba(0, 188, 212, 0.5);
-}
+.dim-bar.in-range-0 { background: rgba(124, 77, 255, 0.5); }
+.dim-bar.in-range-1 { background: rgba(0, 188, 212, 0.5); }
+.dim-bar.in-range-2 { background: rgba(255, 152, 0, 0.5); }
+.dim-bar.in-range-3 { background: rgba(102, 187, 106, 0.5); }
 
 .dim-value {
   color: rgba(255, 255, 255, 0.35);
@@ -1276,26 +951,10 @@ onUnmounted(() => {
   min-width: 50px;
   text-align: right;
 }
+.dim-row.in-range .dim-value { color: rgba(255, 255, 255, 0.6); }
 
-.dim-row.in-range-1 .dim-value,
-.dim-row.in-range-2 .dim-value {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* States */
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 0.95rem;
-}
-
-.no-diff-message {
-  text-align: center;
-  padding: 2rem;
-  color: rgba(255, 193, 7, 0.7);
-  font-size: 0.9rem;
-}
+/* === States === */
+.no-diff-message { text-align: center; padding: 2rem; color: rgba(255, 193, 7, 0.7); font-size: 0.9rem; }
 
 .error-display {
   margin-top: 1rem;
@@ -1309,29 +968,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
 }
+.dismiss-btn { background: none; border: none; color: rgba(244, 67, 54, 0.6); font-size: 1.2rem; cursor: pointer; }
 
-.dismiss-btn {
-  background: none;
-  border: none;
-  color: rgba(244, 67, 54, 0.6);
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-/* Responsive */
+/* === Responsive === */
 @media (max-width: 640px) {
-  .image-pair {
-    grid-template-columns: 1fr;
-  }
-
-  .action-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .control-group {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  .image-pair { grid-template-columns: 1fr; }
+  .action-row { flex-direction: column; align-items: stretch; }
+  .control-group { flex-direction: column; align-items: flex-start; }
 }
 </style>
