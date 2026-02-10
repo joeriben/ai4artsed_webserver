@@ -320,12 +320,14 @@ const selectionRangesText = computed(() => {
 })
 
 // Range color assignment for a given rank (0-based)
+// Returns the LAST matching range so later-added ranges dominate in overlaps
 function rangeColorIndex(rank: number): number {
+  let result = -1
   for (let rIdx = 0; rIdx < ranges.value.length; rIdx++) {
     const r = ranges.value[rIdx]!
-    if (rank >= r.from - 1 && rank < r.to) return rIdx
+    if (rank >= r.from - 1 && rank < r.to) result = rIdx
   }
-  return -1
+  return result
 }
 
 function isInAnyRange(rank: number): boolean {
