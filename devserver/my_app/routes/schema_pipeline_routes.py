@@ -3589,9 +3589,13 @@ def legacy_workflow():
         if t5_prompt is not None:
             response_data['t5_expansion'] = t5_prompt
 
-        # Latent Lab: Include attention data in response
+        # Latent Lab: Include attention data + image_base64 in response
         attention_data = output_result.metadata.get('attention_data') if output_result.metadata else None
         if attention_data:
+            # Include image_base64 directly so frontend doesn't need a separate media fetch
+            image_b64 = output_result.metadata.get('image_data')
+            if image_b64:
+                attention_data['image_base64'] = image_b64
             response_data['attention_data'] = attention_data
 
         return jsonify(response_data)

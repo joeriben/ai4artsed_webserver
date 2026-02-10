@@ -604,10 +604,34 @@ class DiffusersImageGenerator:
             if (steps - 1) not in capture_steps:
                 capture_steps.append(steps - 1)
 
+            # Pre-compute CLIP-L token positions for attention map truncation.
+            # SD3.5's encoder_hidden_states has ~589 text columns (77 CLIP + 512 T5).
+            # We only need columns for actual word tokens (not BOS/EOS/PAD), reducing
+            # JSON from ~300MB to ~10MB.
+            token_column_indices = None
+            tokens = []
+            tokenizer = pipe.tokenizer  # CLIP-L
+            if tokenizer is not None:
+                encoded = tokenizer(
+                    prompt, padding=False, truncation=True,
+                    max_length=77, return_tensors=None,
+                )
+                token_ids = encoded['input_ids']
+                token_column_indices = []
+                for pos, tid in enumerate(token_ids):
+                    if tid not in tokenizer.all_special_ids:
+                        token_column_indices.append(pos)
+                        tokens.append(tokenizer.decode([tid]).strip())
+                logger.info(
+                    f"[DIFFUSERS-ATTENTION] CLIP-L tokens: {len(tokens)} words, "
+                    f"columns: {token_column_indices}"
+                )
+
             # Create attention store
             store = AttentionMapStore(
                 capture_layers=capture_layers,
                 capture_steps=capture_steps,
+                text_column_indices=token_column_indices,
             )
 
             logger.info(
@@ -621,8 +645,11 @@ class DiffusersImageGenerator:
 
                 try:
                     # Step callback to update store's current_step
+                    # IMPORTANT: callback_on_step_end fires AFTER step N completes.
+                    # We set current_step = step + 1 so the NEXT forward pass sees the right step.
+                    # Step 0's forward pass uses the initial current_step=0 (set below).
                     def step_callback(pipe_instance, step, timestep, callback_kwargs):
-                        store.current_step = step
+                        store.current_step = step + 1
                         if callback:
                             try:
                                 callback(step, steps, callback_kwargs.get("latents"))
@@ -659,8 +686,7 @@ class DiffusersImageGenerator:
             image.save(buffer, format="PNG")
             image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-            # Tokenize prompt to get token list
-            tokens = self._tokenize_prompt(pipe, prompt)
+            # tokens already computed above (pre-generation CLIP-L tokenization)
 
             # Compute spatial resolution (patch grid)
             # SD3.5 uses 2x2 patches → 1024/16 = 64 spatial positions per axis
@@ -668,6 +694,16 @@ class DiffusersImageGenerator:
             vae_scale = 8   # VAE downscale factor
             spatial_h = height // (vae_scale * patch_size)
             spatial_w = width // (vae_scale * patch_size)
+
+            # Log attention map dimensions for debugging
+            map_sample_key = next(iter(store.maps), None)
+            if map_sample_key:
+                layer_sample = next(iter(store.maps[map_sample_key].values()), None)
+                if layer_sample:
+                    logger.info(
+                        f"[DIFFUSERS-ATTENTION] Map shape: [{len(layer_sample)}×{len(layer_sample[0]) if layer_sample else 0}] "
+                        f"(image_tokens × text_tokens)"
+                    )
 
             result = {
                 "image_base64": image_base64,

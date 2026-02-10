@@ -41,6 +41,12 @@ class AttentionMapStore:
     num_text_tokens: int = 0
     num_image_tokens: int = 0
 
+    # Optional: indices of text columns to keep (e.g., CLIP-L word token positions)
+    # If set, only these columns are stored, dramatically reducing JSON size.
+    # Example: for "a house by the lake", CLIP-L tokenizes as [BOS, a, house, by, the, lake, EOS, PAD...]
+    # text_column_indices would be [1, 2, 3, 4, 5] (skipping BOS/EOS/PAD)
+    text_column_indices: Optional[List[int]] = None
+
     def should_capture(self, layer_idx: int) -> bool:
         """Check if we should capture attention at this layer/step."""
         return (
@@ -60,6 +66,12 @@ class AttentionMapStore:
 
         if step_key not in self.maps:
             self.maps[step_key] = {}
+
+        # Truncate to only the relevant text token columns (huge JSON size reduction)
+        if self.text_column_indices is not None:
+            import torch
+            indices = torch.tensor(self.text_column_indices, device=attention_map.device)
+            attention_map = attention_map[:, indices]
 
         # Convert to list for JSON serialization (float32 → Python float)
         self.maps[step_key][layer_key] = attention_map.cpu().float().tolist()

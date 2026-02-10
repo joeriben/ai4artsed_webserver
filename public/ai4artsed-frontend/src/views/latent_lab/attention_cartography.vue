@@ -253,38 +253,44 @@ async function generate() {
     })
 
     if (response.data.status === 'success') {
-      const runId = response.data.run_id
-      const mediaOutput = response.data.media_output
-
-      // Load the generated image from the media URL
-      if (runId && mediaOutput?.url) {
-        const imgResponse = await axios.get(mediaOutput.url, { responseType: 'blob' })
-        const reader = new FileReader()
-        const base64Promise = new Promise<string>((resolve) => {
-          reader.onload = () => {
-            const result = reader.result as string
-            resolve(result.split(',')[1] ?? '')
-          }
-          reader.readAsDataURL(imgResponse.data)
-        })
-        imageData.value = await base64Promise
-        actualSeed.value = mediaOutput.seed || 0
-      }
-
-      // Attention data is included directly in the response
+      // Attention data (including image_base64) is included directly in the response
       const attData = response.data.attention_data
       if (attData) {
+        // Use image_base64 directly — no separate media fetch needed
+        if (attData.image_base64) {
+          imageData.value = attData.image_base64
+        }
         tokens.value = attData.tokens || []
         attentionMaps.value = attData.attention_maps || {}
         spatialResolution.value = attData.spatial_resolution || [64, 64]
         captureLayers.value = attData.capture_layers || [3, 9, 17]
         captureSteps.value = attData.capture_steps || []
         totalSteps.value = steps.value
+        actualSeed.value = attData.seed || response.data.media_output?.seed || 0
+
+        // Diagnostic logging
+        const mapKeys = Object.keys(attData.attention_maps || {})
+        const firstStep = mapKeys[0]
+        const firstLayerKeys = firstStep ? Object.keys(attData.attention_maps[firstStep]) : []
+        const sampleMap = firstStep && firstLayerKeys[0] ? attData.attention_maps[firstStep][firstLayerKeys[0]] : null
+        console.log('[AC] Attention data received:', {
+          tokens: attData.tokens,
+          captureSteps: attData.capture_steps,
+          captureLayers: attData.capture_layers,
+          mapStepKeys: mapKeys,
+          mapLayerKeys: firstLayerKeys,
+          sampleMapRows: sampleMap?.length,
+          sampleMapCols: sampleMap?.[0]?.length,
+          spatialRes: attData.spatial_resolution,
+          imageBase64Length: attData.image_base64?.length,
+        })
 
         // Auto-select first token
         if (tokens.value.length > 0) {
           selectedTokens.value = [0]
         }
+      } else {
+        errorMessage.value = 'No attention data in response'
       }
     } else {
       errorMessage.value = response.data.error || response.data.message || 'Generation failed'
@@ -301,14 +307,18 @@ function onImageLoad() {
 }
 
 // Watch for changes that should trigger heatmap re-render
+// Use nextTick to ensure the canvas DOM element exists after v-if="imageData" re-renders
 watch([selectedTokens, selectedStep, selectedLayerIdx, heatmapOpacity], () => {
-  renderHeatmap()
+  nextTick(() => renderHeatmap())
 })
 
 function renderHeatmap() {
   const canvas = heatmapCanvas.value
   const img = imageRef.value
-  if (!canvas || !img || !imageData.value) return
+  if (!canvas || !img || !imageData.value) {
+    console.log('[AC] renderHeatmap early return:', { canvas: !!canvas, img: !!img, hasImage: !!imageData.value })
+    return
+  }
   if (selectedTokens.value.length === 0) {
     // Clear canvas if no tokens selected
     const ctx = canvas.getContext('2d')
@@ -324,9 +334,24 @@ function renderHeatmap() {
   const stepKey = `step_${captureSteps.value[selectedStep.value] ?? 0}`
   const layerKey = `layer_${captureLayers.value[selectedLayerIdx.value] ?? 9}`
   const stepData = attentionMaps.value[stepKey]
-  if (!stepData) return
+  if (!stepData) {
+    console.warn('[AC] No step data for key:', stepKey, 'available:', Object.keys(attentionMaps.value))
+    return
+  }
   const layerData = stepData[layerKey]
-  if (!layerData) return
+  if (!layerData) {
+    console.warn('[AC] No layer data for key:', layerKey, 'available:', Object.keys(stepData))
+    return
+  }
+
+  console.log('[AC] Rendering heatmap:', {
+    stepKey, layerKey,
+    imgSize: `${img.naturalWidth}x${img.naturalHeight}`,
+    spatial: `${spatialH}x${spatialW}`,
+    selectedTokens: selectedTokens.value,
+    layerRows: layerData.length,
+    layerCols: layerData[0]?.length,
+  })
 
   // layerData shape: [image_tokens, text_tokens] = [spatialH*spatialW, num_tokens]
   canvas.width = img.naturalWidth
@@ -358,6 +383,15 @@ function renderHeatmap() {
     // Normalize to [0, 1]
     const maxVal = Math.max(...attnValues, 1e-8)
     const normalized = attnValues.map(v => v / maxVal)
+
+    if (tIdx === 0) {
+      console.log('[AC] Token', tokenIdx, `"${tokens.value[tokenIdx]}"`, {
+        attnValuesCount: attnValues.length,
+        maxVal,
+        minVal: Math.min(...attnValues),
+        nonZeroCount: attnValues.filter(v => v > 0).length,
+      })
+    }
 
     // Create temporary canvas for bilinear upscaling
     const tmpCanvas = document.createElement('canvas')
