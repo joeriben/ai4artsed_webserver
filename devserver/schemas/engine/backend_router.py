@@ -1874,10 +1874,8 @@ class BackendRouter:
                 )
 
             if not image_bytes:
-                logger.error("[DIFFUSERS] Generation failed, falling back to ComfyUI")
-                if chunk.get('meta', {}).get('fallback_chunk'):
-                    return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, "Generation returned empty result")
-                return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+                logger.error("[DIFFUSERS] Generation failed, falling back to SwarmUI simple API")
+                return await self._process_image_chunk_simple(chunk_name, prompt, parameters, chunk)
 
             # Return with binary image data
             import base64
@@ -1905,11 +1903,9 @@ class BackendRouter:
             import traceback
             traceback.print_exc()
 
-            # Fallback to ComfyUI on error
-            logger.info(f"[DIFFUSERS] Falling back to ComfyUI due to error")
-            if chunk.get('meta', {}).get('fallback_chunk'):
-                return await self._fallback_to_comfyui(chunk, chunk_name, prompt, parameters, f"Exception: {str(e)}")
-            return await self._process_workflow_chunk(chunk_name, prompt, parameters, chunk)
+            # Fallback to SwarmUI simple API (same path as pre-diffusers)
+            logger.info(f"[DIFFUSERS] Falling back to SwarmUI simple API due to error")
+            return await self._process_image_chunk_simple(chunk_name, prompt, parameters, chunk)
 
     async def _process_heartmula_chunk(self, chunk_name: str, prompt: str, parameters: Dict[str, Any], chunk: Dict[str, Any]) -> BackendResponse:
         """Process music generation using HeartMuLa (heartlib)
