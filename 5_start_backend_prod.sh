@@ -52,6 +52,10 @@ echo ""
 # Override PORT via environment variable
 export PORT=17801
 
+# Point to shared AI tools directory (SwarmUI, heartlib, etc.)
+# Required when production is on a different partition than dev
+export AI_TOOLS_BASE=/home/joerissen/ai
+
 # Enable browser caching for production (configs/models cached for 5min)
 export DISABLE_API_CACHE=false
 

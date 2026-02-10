@@ -8,7 +8,7 @@ from pathlib import Path
 
 # Base paths (defined early because used throughout config)
 _SERVER_BASE = Path(__file__).parent.parent  # devserver parent = ai4artsed_development
-_AI_TOOLS_BASE = _SERVER_BASE.parent  # ai4artsed_development parent = ai/
+_AI_TOOLS_BASE = Path(os.environ.get("AI_TOOLS_BASE", str(_SERVER_BASE.parent)))  # overridable for production on separate partition
 
 # ============================================================================
 # ============================================================================
@@ -58,11 +58,11 @@ UI_MODE = "youth"  # ADMIN: Change to "kids", "youth", or "expert"
 #   - Allows: Artistic nudity, mature themes
 #   - Use for: Art education, professional contexts
 #
-# "off": No content filtering (DEVELOPMENT ONLY)
+# "research": No content filtering — for research/advanced use (16+)
 #   - No automatic blocking
-#   - Only use for testing/debugging!
+#   - Canvas and Latent Lab require this level
 #
-DEFAULT_SAFETY_LEVEL = "youth"  # ADMIN: Change to "kids", "youth", "adult", or "off"
+DEFAULT_SAFETY_LEVEL = "youth"  # ADMIN: Change to "kids", "youth", "adult", or "research"
 
 # ----------------------------------------------------------------------------
 # 2b. DEFAULT INTERCEPTION CONFIG
@@ -605,7 +605,7 @@ SAFETY_NEGATIVE_TERMS = {
         # Explicit illegal content
         "child", "minor", "underage",
     ],
-    "off": []  # Development/testing only - NO filtering
+    "research": []  # Research/advanced use - NO filtering
 }
 
 # Backwards compatibility
