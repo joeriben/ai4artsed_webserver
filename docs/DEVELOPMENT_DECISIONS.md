@@ -29,6 +29,38 @@
 
 ---
 
+## 🏠 LANDING PAGE RESTRUCTURE: Feature-Dashboard + Kontextuelle Preset-Auswahl (2026-02-10)
+
+**Kontext:** Die Plattform ist über ihren ursprünglichen Einstiegspunkt (`/select` = PropertyQuadrantsView) hinausgewachsen. Diese Seite zeigte Interception-Presets als Einstiegserlebnis — aber Canvas, HeartMuLa, Surrealizer und Latent Lab nutzen gar keine Interception-Presets. Zwei verschiedene Anliegen ("Welches Feature?" vs. "Welcher Interception-Stil?") waren auf einer Seite vermischt.
+
+**Entscheidung:**
+1. **Neue Landing Page** (`/`) als Feature-Dashboard mit 6 Karten (Text-Transformation, Bild-Transformation, Bildfusion, Musikgenerierung, Canvas Workflow, Latent Lab) — informiert über das Forschungsprojekt UND leitet zu den Features
+2. **Preset-Auswahl wird kontextuell**: InterceptionPresetOverlay als Fullscreen-Bubble-Overlay, nur in den Views die es betrifft (text/image/multi-image transformation), ausgelöst durch Icon-Button in der Context-MediaInputBox
+3. **`/select` komplett entfernt** — kein Redirect, einfach weg. Das Bubble-Visual lebt exklusiv im Overlay weiter
+4. **Header-Reihenfolge** didaktisch: einfach→komplex (Text → Bild → Multi-Bild → Musik → Canvas → Latent Lab)
+
+**Begründung:**
+- Feature-Auswahl ≠ Preset-Auswahl — zwei verschiedene Entscheidungsebenen, die getrennt gehören
+- Presets sind nur für Interception-Pipelines relevant (text_transformation, text_transformation_recursive) — andere Modi (Musik, Canvas, Latent Lab) haben eigene Konfigurationslogik
+- Landing Page gibt Forschungskontext (BMBFSFJ-Förderung, pädagogischer Zweck) — wichtig für Workshop-Teilnehmer und externe Besucher
+- Staggered Preview-Rotation (±800ms Jitter pro Karte) vermeidet uniformes Umschalten
+
+**Alternativen verworfen:**
+- ❌ `/select` als Redirect auf `/` behalten → unnötige Altlast
+- ❌ Preset-Overlay global verfügbar → macht keinen Sinn in Musik/Canvas/Latent Lab
+- ❌ Composable aus PropertyCanvas extrahieren → PropertyCanvas wird toter Code (kein Route mehr)
+
+**Betroffene Dateien:**
+- `src/views/LandingView.vue` (NEU)
+- `src/components/InterceptionPresetOverlay.vue` (NEU)
+- `src/components/MediaInputBox.vue` (showPresetButton Prop)
+- `src/views/text_transformation.vue`, `image_transformation.vue`, `multi_image_transformation.vue` (Overlay-Verdrahtung)
+- `src/App.vue` (Header-Icons: Reihenfolge, Latent Lab Mikroskop, LoRA Papagei)
+- `src/router/index.ts` (Route-Änderungen)
+- `src/i18n.ts` (landing + presetOverlay + multiImage Keys)
+
+---
+
 ## 🔬 HALLUCINATOR: Diffusers Backend + Token-Level CLIP-L/T5 Extrapolation (2026-02-08)
 
 **Status:** ✅ IMPLEMENTED

@@ -57,6 +57,8 @@
           :rows="6"
           :is-filled="!!contextPrompt"
           :is-required="!contextPrompt"
+          :show-preset-button="true"
+          @open-preset-selector="showPresetOverlay = true"
           @copy="copyContextPrompt"
           @paste="pasteContextPrompt"
           @clear="clearContextPrompt"
@@ -223,6 +225,13 @@
       </Transition>
     </Teleport>
 
+    <!-- Interception Preset Selection Overlay -->
+    <InterceptionPresetOverlay
+      :visible="showPresetOverlay"
+      @close="showPresetOverlay = false"
+      @preset-selected="handlePresetSelected"
+    />
+
   </div>
 </template>
 
@@ -234,6 +243,7 @@ import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import SafetyBadges from '@/components/SafetyBadges.vue'
+import InterceptionPresetOverlay from '@/components/InterceptionPresetOverlay.vue'
 import { usePipelineExecutionStore } from '@/stores/pipelineExecution'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 import { useDeviceId } from '@/composables/useDeviceId'
@@ -262,6 +272,7 @@ const uploadedImageId3 = ref<string | undefined>(undefined)
 
 // Form inputs
 const contextPrompt = ref('')
+const showPresetOverlay = ref(false)
 const selectedCategory = ref<string | null>('image')  // Default: image (only option for multi-image)
 const selectedConfig = ref<string | null>('qwen_2511_multi')  // Default: qwen (only multi-image model)
 const hoveredConfigId = ref<string | null>(null)  // For hover cards
@@ -971,6 +982,12 @@ function clearContextPrompt() {
   contextPrompt.value = ''
   sessionStorage.removeItem('i2i_context_prompt')
   console.log('[I2I] Context prompt cleared')
+}
+
+function handlePresetSelected(payload: { configId: string; context: string; configName: string }) {
+  contextPrompt.value = payload.context
+  sessionStorage.setItem('i2i_context_prompt', payload.context)
+  console.log(`[MultiI2I] Preset selected: ${payload.configName} (${payload.configId})`)
 }
 
 // ============================================================================

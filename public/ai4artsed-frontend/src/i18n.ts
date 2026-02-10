@@ -157,6 +157,40 @@ const messages = {
       result: 'Ergebnis',
       generatedMedia: 'Erzeugtes Bild'
     },
+    landing: {
+      subtitle: 'Pädagogisch-künstlerische Experimentierplattform für den kreativen Einsatz von KI in der kulturellen Bildung',
+      research: 'KI verändert Gesellschaft und Arbeitswelt. Dieses Forschungsprojekt sondiert Chancen, Bedingungen und Grenzen des pädagogischen Einsatzes von KI in kulturell diversitätssensiblen Settings der Kulturellen Bildung.',
+      features: {
+        textTransformation: {
+          title: 'Text-Transformation',
+          description: 'Perspektivwechsel durch KI — dein Prompt wird durch künstlerisch-pädagogische Linsen zu Bild, Video und Sound transformiert.'
+        },
+        imageTransformation: {
+          title: 'Bild-Transformation',
+          description: 'Bilder durch verschiedene Modelle und Perspektiven in neue Bilder und Videos verwandeln.'
+        },
+        multiImage: {
+          title: 'Bildfusion',
+          description: 'Mehrere Bilder kombinieren und durch KI-Modelle zu neuen Bild-Kompositionen verschmelzen.'
+        },
+        canvas: {
+          title: 'Canvas Workflow',
+          description: 'Visuelle Workflow-Komposition — Module per Drag & Drop zu eigenen KI-Pipelines verbinden.'
+        },
+        music: {
+          title: 'Musikgenerierung',
+          description: 'KI-gestützte Musikerzeugung mit Lyrics, Tags und stilistischer Steuerung.'
+        },
+        latentLab: {
+          title: 'Latent Lab',
+          description: 'Vektorraum-Forschung — Surrealisierung, Dimensionselimination, Embedding-Interpolation.'
+        }
+      }
+    },
+    presetOverlay: {
+      title: 'Perspektive wählen',
+      close: 'Schließen'
+    },
     nav: {
       about: 'Über das Projekt',
       impressum: 'Impressum',
@@ -798,6 +832,40 @@ const messages = {
       yourInput: 'Your input',
       result: 'Result',
       generatedMedia: 'Generated image'
+    },
+    landing: {
+      subtitle: 'Pedagogical-artistic experimentation platform for the creative use of AI in cultural education',
+      research: 'AI is transforming society and the world of work. This research project explores opportunities, conditions, and limits of the pedagogical use of AI in culturally diversity-sensitive settings of cultural education.',
+      features: {
+        textTransformation: {
+          title: 'Text Transformation',
+          description: 'Perspective shift through AI — your prompt is transformed through artistic-pedagogical lenses into image, video, and sound.'
+        },
+        imageTransformation: {
+          title: 'Image Transformation',
+          description: 'Transform images through different models and perspectives into new images and videos.'
+        },
+        multiImage: {
+          title: 'Image Fusion',
+          description: 'Combine multiple images and merge them into new image compositions through AI models.'
+        },
+        canvas: {
+          title: 'Canvas Workflow',
+          description: 'Visual workflow composition — connect modules via drag & drop into custom AI pipelines.'
+        },
+        music: {
+          title: 'Music Generation',
+          description: 'AI-powered music creation with lyrics, tags, and stylistic control.'
+        },
+        latentLab: {
+          title: 'Latent Lab',
+          description: 'Vector space research — surrealization, dimension elimination, embedding interpolation.'
+        }
+      }
+    },
+    presetOverlay: {
+      title: 'Choose Perspective',
+      close: 'Close'
     },
     nav: {
       about: 'About',

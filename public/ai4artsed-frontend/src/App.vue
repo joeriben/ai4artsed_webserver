@@ -37,13 +37,6 @@
                 </svg>
               </span>
             </router-link>
-            <router-link to="/canvas" class="mode-button" active-class="active" title="Canvas Workflow">
-              <span class="mode-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor">
-                  <path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/>
-                </svg>
-              </span>
-            </router-link>
             <router-link to="/music-generation" class="mode-button" active-class="active" title="Music Generation">
               <span class="mode-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
@@ -51,10 +44,17 @@
                 </svg>
               </span>
             </router-link>
+            <router-link to="/canvas" class="mode-button" active-class="active" title="Canvas Workflow">
+              <span class="mode-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor">
+                  <path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/>
+                </svg>
+              </span>
+            </router-link>
             <router-link to="/latent-lab" class="mode-button" active-class="active" title="Latent Lab">
               <span class="mode-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
-                  <path d="M480-80q-83 0-141.5-58.5T280-280q0-48 21-89.5t59-70.5v-320q0-50 35-85t85-35q50 0 85 35t35 85v320q38 29 59 70.5t21 89.5q0 83-58.5 141.5T480-80Zm-40-440h80v-40h-40v-40h40v-80h-40v-40h40v-40q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v220Z"/>
+                  <path d="M200-120v-80h200v-80q-83 0-141.5-58.5T200-480q0-61 33.5-111t90.5-73q8-34 35.5-55t62.5-21l-22-62 38-14-14-36 76-28 12 38 38-14 110 300-38 14 14 38-76 28-12-38-38 14-24-66q-15 14-34.5 21t-39.5 5q-22-2-41-13.5T338-582q-27 16-42.5 43T280-480q0 50 35 85t85 35h320v80H520v80h240v80H200Zm346-458 36-14-68-188-38 14 70 188Zm-126-22q17 0 28.5-11.5T460-640q0-17-11.5-28.5T420-680q-17 0-28.5 11.5T380-640q0 17 11.5 28.5T420-600Zm126 22Zm-126-62Zm0 0Z"/>
                 </svg>
               </span>
             </router-link>
@@ -74,8 +74,8 @@
               </svg>
             </button>
             <router-link to="/training" class="nav-link" title="LoRA Training">
-              <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
-                <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v200h-80v-200H200v560h280v80H200Zm360-280 120 160 120-160H560Zm80 280v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80ZM200-200v-560 560Z"/>
+              <svg xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 87.5 121.26" fill="currentColor">
+                <g transform="translate(-53.85 -72.62)"><path d="M140.15 80.88c-3.78-9.98-29.01-15.44-38.8 10.78 30.9-4-14.24 39.34-21.73 64.88 1.22 10.36 1.58 21.85 4.87 29.55l1.87-3.05c.64 4.43 1.64 8.32 3.55 10.84l4.67-37.91c13.54-8.2 30.28-22.21 27.5-39.81 2.84-5.28 6.52-9.45 5.7-19.45-.23-2.42 2.14-6.09 3.57-9.3 0 0-2.76-5.06 8.8-6.53"/><path d="M139.97 82.26c2.6 4.36 1.94 12.14-5.57 14.72 2.21-6.04-.12-6.46-2.28-11.07 2.05-3.12 4.86-3.7 7.85-3.65"/><path d="M131.98 87.82c1.4 1.68 2.5 3.53 2.78 5.84a8.7 8.7 0 0 1-6.1 1.35 23 23 0 0 0 3.32-7.19"/><circle cx="127.69" cy="79.08" r="3.23" fill="white"/><path d="M99.38 93.15C84.64 95.65 76.6 134 75.55 150.62c-1.58 7.6-5.04 16.22-4.07 22.4 2.44.64 4.58-.86 6.7-2.4l-1.07-15.45c8.98-21.52 49.21-67.3 22.27-62.02"/><ellipse cx="112.66" cy="142.52" rx="3.11" ry="3.95"/><ellipse cx="106.91" cy="145.99" rx="3.11" ry="3.95"/><path d="M134.6 129.63c-5.54 2.46-12.32 6.24-17.82 8.78 1.17.95 1 2.3.6 3.88 6.04-2.62 12.77-6.65 18.9-9.19zm-64.53 33.76c-4.21 2.56-12.1 12.58-16.22 15.34l2.4.86c5.08-3.74 7.44-7.8 12.76-10.03z"/></g>
               </svg>
             </router-link>
             <router-link to="/settings" class="nav-link" :title="$t('nav.settings')">

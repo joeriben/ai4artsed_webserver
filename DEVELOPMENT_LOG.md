@@ -1,5 +1,54 @@
 # Development Log
 
+## Session 164 - Landing Page Restructure + Preset Selection Overlay
+**Date:** 2026-02-10
+**Focus:** Replace outdated `/select` bubble page with proper landing page; move interception preset selection into contextual overlay
+
+### Problem
+The platform outgrew its original entry point (`/select` = PropertyQuadrantsView). That page showed interception presets as the entry experience, but Canvas, HeartMuLa, Surrealizer, and Latent Lab don't use interception presets at all. Users were confused: "what feature do I want?" was conflated with "which interception style?".
+
+### Changes
+
+**New Landing Page (`LandingView.vue`)**
+- Feature-dashboard with 6 cards: Text-Transformation, Image-Transformation, Bildfusion, Musikgenerierung, Canvas Workflow, Latent Lab
+- Each card: rotating preview images (staggered per-card timing with ±800ms jitter), accent color, icon, description
+- Hero section with research context (i18n DE/EN)
+- Funding footer (BMBFSFJ logo + kubi-meta link)
+- Route: `/` → LandingView (replaces old `/select`)
+
+**InterceptionPresetOverlay (`InterceptionPresetOverlay.vue`)**
+- Fullscreen bubble overlay reusing PropertyBubble component
+- Triggered by icon button on Context-MediaInputBox (only in text/image/multi-image transformation views)
+- Filters to `text_transformation` + `text_transformation_recursive` pipelines only (no music/latent-lab modes)
+- On selection: loads config context, populates prompt, closes overlay
+- Explicit square container via CSS `--square-size` for guaranteed circular bubbles
+
+**Header Updates**
+- Mode ordering: didactic simple→complex (Text → Image → Multi-Image → Music → Canvas → Latent Lab)
+- Latent Lab: Material Symbols `biotech` (microscope) icon
+- LoRA Training: Parrot SVG icon (from qubodup) with `fill="currentColor"`
+
+**Router**
+- `/select` route removed entirely (no redirect)
+- `/home` route removed
+- Auth guard updated: `property-selection` → `landing`
+
+**Preview Images**
+- All large screenshots resized to 480px JPEG (quality 82) for fast loading
+- Total preview assets: ~1MB (down from ~40MB+ originals)
+
+### Files Changed
+- `src/views/LandingView.vue` — NEW
+- `src/components/InterceptionPresetOverlay.vue` — NEW
+- `src/components/MediaInputBox.vue` — showPresetButton prop + emit
+- `src/views/text_transformation.vue` — overlay wiring
+- `src/views/image_transformation.vue` — overlay wiring
+- `src/views/multi_image_transformation.vue` — overlay wiring
+- `src/App.vue` — header icon updates (order, Latent Lab icon, parrot)
+- `src/router/index.ts` — route changes
+- `src/i18n.ts` — landing + presetOverlay + multiImage keys (DE/EN)
+- `public/config-previews/` — resized preview images
+
 ## Session 163 - Hallucinator: Exact ComfyUI Replication + Configurable Parameters
 **Date:** 2026-02-09
 **Focus:** Fix fundamentally broken Diffusers fusion by exact replication of original ComfyUI CLIP flow; add configurable negative prompt and CFG

@@ -34,6 +34,8 @@
             :rows="6"
             :is-filled="!!contextPrompt"
             :is-required="!contextPrompt"
+            :show-preset-button="true"
+            @open-preset-selector="showPresetOverlay = true"
             @copy="copyContextPrompt"
             @paste="pasteContextPrompt"
             @clear="clearContextPrompt"
@@ -413,6 +415,13 @@
       </Transition>
     </Teleport>
 
+    <!-- Interception Preset Selection Overlay -->
+    <InterceptionPresetOverlay
+      :visible="showPresetOverlay"
+      @close="showPresetOverlay = false"
+      @preset-selected="handlePresetSelected"
+    />
+
   </div>
 </template>
 
@@ -428,6 +437,7 @@ import axios from 'axios'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import SafetyBadges from '@/components/SafetyBadges.vue'
+import InterceptionPresetOverlay from '@/components/InterceptionPresetOverlay.vue'
 import { useCurrentSession } from '@/composables/useCurrentSession'
 import { useGenerationStream } from '@/composables/useGenerationStream'
 import { useI18n } from 'vue-i18n'
@@ -494,6 +504,7 @@ const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 const inputText = ref('')
 const contextPrompt = ref('')
 const focusedField = ref<'input' | 'context' | 'interception' | 'optimization' | null>(null)
+const showPresetOverlay = ref(false)
 const selectedCategory = ref<string | null>(null)
 const selectedConfig = ref<string | null>(null)
 
@@ -1186,6 +1197,12 @@ function clearContextPrompt() {
   contextPrompt.value = ''
   sessionStorage.removeItem('t2i_context_prompt')
   console.log('[T2I] Context prompt cleared')
+}
+
+function handlePresetSelected(payload: { configId: string; context: string; configName: string }) {
+  contextPrompt.value = payload.context
+  sessionStorage.setItem('t2i_context_prompt', payload.context)
+  console.log(`[T2I] Preset selected: ${payload.configName} (${payload.configId})`)
 }
 
 function copyInterceptionResult() {

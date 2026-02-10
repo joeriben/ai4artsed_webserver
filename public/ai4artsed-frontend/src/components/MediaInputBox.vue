@@ -37,6 +37,11 @@
       </span>
       <span class="bubble-label">{{ label }}</span>
       <div v-if="showActions" class="bubble-actions">
+        <button v-if="showPresetButton" @click="$emit('open-preset-selector')" class="action-btn preset-btn" title="Perspektive wählen">
+          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+            <path d="M480-60q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T520-180q0-17-11.5-28.5T480-220q-17 0-28.5 11.5T440-180q0 17 11.5 28.5T480-140Zm-260-70q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm520 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm-520-80q17 0 28.5-11.5T260-330q0-17-11.5-28.5T220-370q-17 0-28.5 11.5T180-330q0 17 11.5 28.5T220-290Zm520 0q17 0 28.5-11.5T780-330q0-17-11.5-28.5T740-370q-17 0-28.5 11.5T700-330q0 17 11.5 28.5T740-290ZM220-510q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm520 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm-520-80q17 0 28.5-11.5T260-630q0-17-11.5-28.5T220-670q-17 0-28.5 11.5T180-630q0 17 11.5 28.5T220-590Zm520 0q17 0 28.5-11.5T780-630q0-17-11.5-28.5T740-670q-17 0-28.5 11.5T700-630q0 17 11.5 28.5T740-590Zm-260-70q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T520-780q0-17-11.5-28.5T480-820q-17 0-28.5 11.5T440-780q0 17 11.5 28.5T480-740Z"/>
+          </svg>
+        </button>
         <button v-if="showCopy" @click="$emit('copy')" class="action-btn" title="Kopieren">
           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
             <path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/>
@@ -135,6 +140,7 @@ interface Props {
   showClear?: boolean
   initialImage?: string
   disabled?: boolean
+  showPresetButton?: boolean
   // Streaming props
   enableStreaming?: boolean
   streamUrl?: string
@@ -155,7 +161,8 @@ const props = withDefaults(defineProps<Props>(), {
   showPaste: true,
   showClear: true,
   initialImage: undefined,
-  disabled: false
+  disabled: false,
+  showPresetButton: false
 })
 
 const emit = defineEmits<{
@@ -167,6 +174,7 @@ const emit = defineEmits<{
   'blur': [value: string]  // Session 130: Emit when textarea loses focus
   'image-uploaded': [data: any]  // Changed: Accept full data object from ImageUploadWidget
   'image-removed': []
+  'open-preset-selector': []
   'stream-started': []  // Emitted on first chunk (to hide loading spinner)
   'stream-complete': [data: any]
   'stream-error': [error: string]
@@ -547,6 +555,15 @@ onUnmounted(() => {
 
 .action-btn:hover {
   opacity: 0.8;
+}
+
+.action-btn.preset-btn {
+  opacity: 0.6;
+  color: rgba(156, 39, 176, 0.9);
+}
+
+.action-btn.preset-btn:hover {
+  opacity: 1;
 }
 
 .action-btn svg {
