@@ -466,10 +466,17 @@ const messages = {
         cfgLabel: 'CFG',
         seedLabel: 'Seed',
         tokensLabel: 'Tokens',
+        tokensHint: 'Klicke auf ein oder mehrere Wörter, um zu sehen, welche Bildregion dieses Wort beeinflusst hat. Mehrere Wörter werden farblich getrennt überlagert.',
         timestepLabel: 'Zeitschritt',
+        timestepHint: 'Während der Bilderzeugung (25 Schritte) verschiebt sich die Attention. Frühe Schritte legen die grobe Struktur fest, späte die Details.',
         step: 'Step',
-        layerLabel: 'Layer',
-        opacityLabel: 'Heatmap'
+        layerLabel: 'Tiefe',
+        layerHint: 'Der Transformer hat 24 Schichten. Frühe Schichten erfassen globale Komposition, mittlere semantische Zuordnung, späte feine Details.',
+        layerEarly: 'Früh (Komposition)',
+        layerMid: 'Mitte (Semantik)',
+        layerLate: 'Spät (Detail)',
+        opacityLabel: 'Heatmap',
+        opacityHint: 'Stärke der farbigen Überlagerung auf dem Bild.'
       }
     },
     edutainment: {
@@ -1042,10 +1049,17 @@ const messages = {
         cfgLabel: 'CFG',
         seedLabel: 'Seed',
         tokensLabel: 'Tokens',
+        tokensHint: 'Click one or more words to see which image region that word influenced. Multiple words are shown as color-coded overlays.',
         timestepLabel: 'Timestep',
+        timestepHint: 'During image generation (25 steps), attention shifts. Early steps define rough structure, late steps refine details.',
         step: 'Step',
-        layerLabel: 'Layer',
-        opacityLabel: 'Heatmap'
+        layerLabel: 'Depth',
+        layerHint: 'The transformer has 24 layers. Early layers capture global composition, middle layers semantic assignment, late layers fine details.',
+        layerEarly: 'Early (Composition)',
+        layerMid: 'Mid (Semantics)',
+        layerLate: 'Late (Detail)',
+        opacityLabel: 'Heatmap',
+        opacityHint: 'Strength of the colored overlay on the image.'
       }
     },
     edutainment: {

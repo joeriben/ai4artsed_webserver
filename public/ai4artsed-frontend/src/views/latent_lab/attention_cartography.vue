@@ -79,6 +79,7 @@
       <!-- Token Chips -->
       <div class="token-section">
         <div class="token-label">{{ t('latentLab.attention.tokensLabel') }}</div>
+        <div class="token-hint">{{ t('latentLab.attention.tokensHint') }}</div>
         <div class="token-chips">
           <button
             v-for="(token, idx) in tokens"
@@ -86,10 +87,15 @@
             class="token-chip"
             :class="{
               selected: selectedTokens.includes(idx),
-              [`color-${idx % 8}`]: selectedTokens.includes(idx)
+              [`color-${selectedTokenColorIndex(idx) % 8}`]: selectedTokens.includes(idx)
             }"
             @click="toggleToken(idx)"
           >
+            <span
+              v-if="selectedTokens.includes(idx)"
+              class="color-dot"
+              :style="{ background: tokenColorCSS(selectedTokenColorIndex(idx)) }"
+            ></span>
             {{ token }}
           </button>
         </div>
@@ -98,51 +104,60 @@
       <!-- Controls -->
       <div class="controls-section">
         <!-- Timestep Slider -->
-        <div class="control-row">
-          <label class="control-label">{{ t('latentLab.attention.timestepLabel') }}</label>
-          <div class="slider-container">
-            <input
-              type="range"
-              v-model.number="selectedStep"
-              :min="0"
-              :max="captureSteps.length - 1"
-              :step="1"
-              class="control-slider"
-            />
-            <span class="slider-value">{{ t('latentLab.attention.step') }} {{ captureSteps[selectedStep] ?? 0 }} / {{ totalSteps }}</span>
+        <div class="control-group">
+          <div class="control-row">
+            <label class="control-label">{{ t('latentLab.attention.timestepLabel') }}</label>
+            <div class="slider-container">
+              <input
+                type="range"
+                v-model.number="selectedStep"
+                :min="0"
+                :max="captureSteps.length - 1"
+                :step="1"
+                class="control-slider"
+              />
+              <span class="slider-value">{{ t('latentLab.attention.step') }} {{ captureSteps[selectedStep] ?? 0 }} / {{ totalSteps }}</span>
+            </div>
           </div>
+          <div class="control-hint">{{ t('latentLab.attention.timestepHint') }}</div>
         </div>
 
         <!-- Layer Toggle -->
-        <div class="control-row">
-          <label class="control-label">{{ t('latentLab.attention.layerLabel') }}</label>
-          <div class="layer-toggles">
-            <button
-              v-for="(layer, idx) in captureLayers"
-              :key="layer"
-              class="layer-btn"
-              :class="{ active: selectedLayerIdx === idx }"
-              @click="selectedLayerIdx = idx"
-            >
-              {{ layerLabels[idx] }}
-            </button>
+        <div class="control-group">
+          <div class="control-row">
+            <label class="control-label">{{ t('latentLab.attention.layerLabel') }}</label>
+            <div class="layer-toggles">
+              <button
+                v-for="(layer, idx) in captureLayers"
+                :key="layer"
+                class="layer-btn"
+                :class="{ active: selectedLayerIdx === idx }"
+                @click="selectedLayerIdx = idx"
+              >
+                {{ layerLabels[idx] }}
+              </button>
+            </div>
           </div>
+          <div class="control-hint">{{ t('latentLab.attention.layerHint') }}</div>
         </div>
 
         <!-- Opacity Slider -->
-        <div class="control-row">
-          <label class="control-label">{{ t('latentLab.attention.opacityLabel') }}</label>
-          <div class="slider-container">
-            <input
-              type="range"
-              v-model.number="heatmapOpacity"
-              min="0"
-              max="1"
-              step="0.05"
-              class="control-slider"
-            />
-            <span class="slider-value">{{ Math.round(heatmapOpacity * 100) }}%</span>
+        <div class="control-group">
+          <div class="control-row">
+            <label class="control-label">{{ t('latentLab.attention.opacityLabel') }}</label>
+            <div class="slider-container">
+              <input
+                type="range"
+                v-model.number="heatmapOpacity"
+                min="0"
+                max="1"
+                step="0.05"
+                class="control-slider"
+              />
+              <span class="slider-value">{{ Math.round(heatmapOpacity * 100) }}%</span>
+            </div>
           </div>
+          <div class="control-hint">{{ t('latentLab.attention.opacityHint') }}</div>
         </div>
       </div>
 
@@ -172,7 +187,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 
@@ -209,7 +224,11 @@ const imageRef = ref<HTMLImageElement | null>(null)
 const heatmapCanvas = ref<HTMLCanvasElement | null>(null)
 const imageContainerRef = ref<HTMLDivElement | null>(null)
 
-const layerLabels = ['Early', 'Mid', 'Late']
+const layerLabels = computed(() => [
+  t('latentLab.attention.layerEarly'),
+  t('latentLab.attention.layerMid'),
+  t('latentLab.attention.layerLate'),
+])
 
 // Color palette for multi-token heatmaps (8 distinct colors)
 const tokenColors = [
@@ -223,6 +242,17 @@ const tokenColors = [
   [180, 0, 255],   // purple
 ]
 
+// Get the position of a token in the selectedTokens array (for color assignment)
+function selectedTokenColorIndex(tokenIdx: number): number {
+  return selectedTokens.value.indexOf(tokenIdx)
+}
+
+// CSS color string for a given selection index
+function tokenColorCSS(selIdx: number): string {
+  const c = tokenColors[selIdx % tokenColors.length]
+  return c ? `rgb(${c[0]}, ${c[1]}, ${c[2]})` : 'white'
+}
+
 function toggleToken(idx: number) {
   const pos = selectedTokens.value.indexOf(idx)
   if (pos >= 0) {
@@ -230,6 +260,8 @@ function toggleToken(idx: number) {
   } else {
     selectedTokens.value.push(idx)
   }
+  // Trigger re-render immediately (array mutation may not trigger deep watch)
+  nextTick(() => renderHeatmap())
 }
 
 async function generate() {
@@ -307,10 +339,10 @@ function onImageLoad() {
 }
 
 // Watch for changes that should trigger heatmap re-render
-// Use nextTick to ensure the canvas DOM element exists after v-if="imageData" re-renders
+// deep: true needed because selectedTokens is mutated in-place (splice/push)
 watch([selectedTokens, selectedStep, selectedLayerIdx, heatmapOpacity], () => {
   nextTick(() => renderHeatmap())
-})
+}, { deep: true })
 
 function renderHeatmap() {
   const canvas = heatmapCanvas.value
@@ -644,15 +676,31 @@ function renderHeatmap() {
 .token-label {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.75rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.token-hint {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
 }
 
 .token-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+}
+
+.color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
 }
 
 .token-chip {
@@ -691,7 +739,20 @@ function renderHeatmap() {
   margin-top: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.control-hint {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  padding-left: calc(80px + 1rem);
 }
 
 .control-row {
