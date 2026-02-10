@@ -4,6 +4,12 @@
     <header class="app-header">
       <div class="header-content">
         <div class="header-left">
+          <a href="https://www.ucdcae.fau.de/" target="_blank" rel="noopener noreferrer" class="header-logo-link">
+            <img src="/logos/unesco_chair.png" alt="UNESCO Chair" class="header-logo" />
+          </a>
+          <a href="https://kubi-meta.de/ai4artsed" target="_blank" rel="noopener noreferrer" class="header-logo-link">
+            <img src="/logos/ai4artsed_logo.jpg" alt="AI4ArtsEd" class="header-logo header-logo-round" />
+          </a>
           <span class="app-title">AI4ARTSED - AI LAB</span>
         </div>
 
@@ -98,13 +104,6 @@
 
     <ChatOverlay />
     <FooterGallery />
-
-    <!-- Permanent BMBFSFJ Funding Logo -->
-    <div class="funding-logo-fixed">
-      <a href="https://www.bmfsfj.de/" target="_blank" rel="noopener noreferrer">
-        <img src="/logos/BMBFSFJ_logo.png" alt="Gefördert vom BMFSFJ" />
-      </a>
-    </div>
 
     <!-- Modals -->
     <AboutModal v-model="showAbout" />
@@ -223,7 +222,30 @@ html, body {
 
 .header-left {
   display: flex;
+  align-items: center;
+  gap: 0.5rem;
   justify-content: flex-start;
+}
+
+.header-logo-link {
+  display: flex;
+  align-items: center;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.header-logo-link:hover {
+  opacity: 1;
+}
+
+.header-logo {
+  height: 28px;
+  width: auto;
+  border-radius: 3px;
+}
+
+.header-logo-round {
+  border-radius: 50%;
 }
 
 .header-center {
@@ -355,35 +377,6 @@ html, body {
   overflow: auto;
 }
 
-/* Permanent Funding Logo - Fixed Bottom Right, above collapsed favorites bar */
-.funding-logo-fixed {
-  position: fixed;
-  bottom: calc(var(--footer-collapsed-height) + var(--layout-gap-small));
-  right: 1rem;
-  z-index: 900;
-  background: white;
-  padding: 0.5rem;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.funding-logo-fixed:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-}
-
-.funding-logo-fixed a {
-  display: block;
-  line-height: 0;
-}
-
-.funding-logo-fixed img {
-  width: var(--funding-logo-width);
-  height: auto;
-  display: block;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .app-header {
@@ -426,14 +419,5 @@ html, body {
     height: 28px;
   }
 
-  .funding-logo-fixed {
-    bottom: calc(var(--footer-collapsed-height-mobile) + var(--layout-gap-small));
-    right: 0.75rem;
-    padding: 0.4rem;
-  }
-
-  .funding-logo-fixed img {
-    width: var(--funding-logo-width-mobile);
-  }
 }
 </style>

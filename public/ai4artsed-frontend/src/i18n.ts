@@ -163,7 +163,7 @@ const messages = {
       features: {
         textTransformation: {
           title: 'Text-Transformation',
-          description: 'Perspektivwechsel durch KI — dein Prompt wird durch künstlerisch-pädagogische Linsen zu Bild, Video und Sound transformiert.'
+          description: 'Perspektivwechsel durch KI: Finde und verändere Deine Ideen durch künstlerische Haltungen und Verfremdungen.'
         },
         imageTransformation: {
           title: 'Bild-Transformation',
@@ -179,7 +179,7 @@ const messages = {
         },
         music: {
           title: 'Musikgenerierung',
-          description: 'KI-gestützte Musikerzeugung mit Lyrics, Tags und stilistischer Steuerung.'
+          description: 'Experimentiere mit Musik, Sound und Lyrics.'
         },
         latentLab: {
           title: 'Latent Lab',

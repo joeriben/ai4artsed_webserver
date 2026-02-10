@@ -306,9 +306,9 @@ const features = [
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 2rem 0 1rem;
-  opacity: 0.6;
+  gap: 1rem;
+  padding: 3rem 0 2rem;
+  opacity: 0.8;
   transition: opacity 0.3s;
 }
 
@@ -317,7 +317,7 @@ const features = [
 }
 
 .funding-logo {
-  height: 60px;
+  height: 80px;
   width: auto;
 }
 
