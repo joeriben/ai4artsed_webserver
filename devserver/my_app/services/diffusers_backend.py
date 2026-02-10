@@ -750,6 +750,303 @@ class DiffusersImageGenerator:
             traceback.print_exc()
             return None
 
+    async def generate_image_with_probing(
+        self,
+        prompt_a: str,
+        prompt_b: str,
+        encoder: str = "t5",
+        transfer_dims: list = None,
+        negative_prompt: str = "",
+        width: int = 1024,
+        height: int = 1024,
+        steps: int = 25,
+        cfg_scale: float = 4.5,
+        seed: int = -1,
+        model_id: str = "stabilityai/stable-diffusion-3.5-large",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Feature Probing: analyze embedding differences between two prompts
+        and optionally transfer selected dimensions.
+
+        Phase 1 (transfer_dims=None): Encode both prompts, compute difference
+        vector, generate image A. Returns image + probing analysis data.
+
+        Phase 2 (transfer_dims provided): Copy selected dimensions from B→A,
+        generate image with modified embedding (same seed for comparison).
+
+        Args:
+            prompt_a: Base prompt
+            prompt_b: Comparison prompt
+            encoder: Which encoder to probe ("clip_l", "clip_g", "t5")
+            transfer_dims: Dimension indices to transfer (None = analysis only)
+            negative_prompt: Negative prompt
+            width/height: Image dimensions
+            steps: Inference steps
+            cfg_scale: CFG scale
+            seed: Random seed (-1 for random)
+            model_id: Model to use
+
+        Returns:
+            Dict with image_base64, probing_data, seed
+        """
+        try:
+            import torch
+            import torch.nn.functional as F
+            import io
+            import base64
+            from my_app.services.embedding_analyzer import (
+                compute_dimension_differences,
+                apply_dimension_transfer,
+            )
+
+            # Ensure model is loaded
+            if model_id not in self._pipelines:
+                if not await self.load_model(model_id):
+                    return None
+
+            pipe = self._pipelines[model_id]
+
+            # Verify encoder access methods
+            if not hasattr(pipe, '_get_clip_prompt_embeds') or not hasattr(pipe, '_get_t5_prompt_embeds'):
+                logger.error("[DIFFUSERS-PROBING] Pipeline missing encoder methods")
+                return None
+
+            # Generate random seed if needed
+            if seed == -1:
+                import random
+                seed = random.randint(0, 2**32 - 1)
+
+            logger.info(
+                f"[DIFFUSERS-PROBING] encoder={encoder}, transfer={'yes' if transfer_dims else 'no'}, "
+                f"steps={steps}, size={width}x{height}, seed={seed}"
+            )
+
+            def _generate():
+                device = pipe._execution_device
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+
+                # --- Encode both prompts with the selected encoder ---
+                # _all_pooled_a/b only used for "all" mode
+                _all_pooled_a = _all_pooled_b = None
+
+                if encoder == "all":
+                    # Encode all three encoders for both prompts
+                    clip_l_a, clip_l_pooled_a = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=0
+                    )
+                    clip_g_a, clip_g_pooled_a = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=1
+                    )
+                    t5_a = pipe._get_t5_prompt_embeds(
+                        prompt=prompt_a, num_images_per_prompt=1,
+                        max_sequence_length=512, device=device
+                    )
+                    clip_l_b, clip_l_pooled_b = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_b, device=device, num_images_per_prompt=1, clip_model_index=0
+                    )
+                    clip_g_b, clip_g_pooled_b = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_b, device=device, num_images_per_prompt=1, clip_model_index=1
+                    )
+                    t5_b = pipe._get_t5_prompt_embeds(
+                        prompt=prompt_b, num_images_per_prompt=1,
+                        max_sequence_length=512, device=device
+                    )
+                    # Compose full prompt_embeds: [CLIP-L+CLIP-G padded to 4096, T5] along seq dim
+                    clip_combined_a = F.pad(torch.cat([clip_l_a, clip_g_a], dim=-1), (0, 4096 - 2048))
+                    clip_combined_b = F.pad(torch.cat([clip_l_b, clip_g_b], dim=-1), (0, 4096 - 2048))
+                    embed_a = torch.cat([clip_combined_a, t5_a], dim=1)  # [1, 77+512, 4096]
+                    embed_b = torch.cat([clip_combined_b, t5_b], dim=1)
+                    # Store composed pooled for interpolation during transfer
+                    _all_pooled_a = torch.cat([clip_l_pooled_a, clip_g_pooled_a], dim=-1)  # [1, 2048]
+                    _all_pooled_b = torch.cat([clip_l_pooled_b, clip_g_pooled_b], dim=-1)
+                    pooled_a = pooled_b = None
+                    embed_dim_name = "All Encoders (CLIP-L+CLIP-G+T5)"
+                elif encoder == "clip_l":
+                    embed_a, pooled_a = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=0
+                    )
+                    embed_b, pooled_b = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_b, device=device, num_images_per_prompt=1, clip_model_index=0
+                    )
+                    embed_dim_name = "CLIP-L (768d)"
+                elif encoder == "clip_g":
+                    embed_a, pooled_a = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=1
+                    )
+                    embed_b, pooled_b = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_b, device=device, num_images_per_prompt=1, clip_model_index=1
+                    )
+                    embed_dim_name = "CLIP-G (1280d)"
+                else:  # t5
+                    embed_a = pipe._get_t5_prompt_embeds(
+                        prompt=prompt_a, num_images_per_prompt=1,
+                        max_sequence_length=512, device=device
+                    )
+                    embed_b = pipe._get_t5_prompt_embeds(
+                        prompt=prompt_b, num_images_per_prompt=1,
+                        max_sequence_length=512, device=device
+                    )
+                    pooled_a = pooled_b = None
+                    embed_dim_name = "T5-XXL (4096d)"
+
+                logger.info(
+                    f"[DIFFUSERS-PROBING] Encoded: {embed_dim_name}, "
+                    f"A shape={embed_a.shape}, B shape={embed_b.shape}"
+                )
+
+                # --- Compute difference vector ---
+                diff_data = compute_dimension_differences(embed_a, embed_b)
+
+                # --- Build the prompt_embeds for generation ---
+                if transfer_dims is not None:
+                    # Phase 2: modify embed_a with selected dims from embed_b
+                    gen_embed = apply_dimension_transfer(embed_a, embed_b, transfer_dims)
+                    logger.info(f"[DIFFUSERS-PROBING] Transferred {len(transfer_dims)} dims from B→A")
+                else:
+                    # Phase 1: generate with original embed_a
+                    gen_embed = embed_a
+
+                # --- Prepare full embedding for SD3.5 pipeline ---
+                # SD3.5 expects prompt_embeds of shape [1, seq_len, 4096]
+                # composed of: CLIP-L(768) + CLIP-G(1280) padded to 4096, then T5(4096)
+                # concatenated along sequence dimension.
+                #
+                # "all" mode: gen_embed is already the full composed tensor
+                # Individual modes: compose from probed + non-probed encoders
+
+                if encoder == "all":
+                    # gen_embed is already full [1, 589, 4096] composed embedding
+                    prompt_embeds = gen_embed
+                    # Interpolate pooled based on transfer coverage
+                    if transfer_dims is not None and _all_pooled_a is not None:
+                        coverage = len(transfer_dims) / embed_a.shape[-1]
+                        pooled_embeds = (1.0 - coverage) * _all_pooled_a + coverage * _all_pooled_b
+                        logger.info(f"[DIFFUSERS-PROBING] All-mode pooled interpolation: coverage={coverage:.1%}")
+                    else:
+                        pooled_embeds = _all_pooled_a
+
+                elif encoder == "t5":
+                    # Get CLIP embeddings normally
+                    clip_l_embed, clip_l_pooled = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=0
+                    )
+                    clip_g_embed, clip_g_pooled = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=1
+                    )
+                    # CLIP embeddings combined: [1, 77, 768+1280] → padded to 4096
+                    clip_combined = torch.cat([clip_l_embed, clip_g_embed], dim=-1)  # [1, 77, 2048]
+                    clip_combined = F.pad(clip_combined, (0, 4096 - clip_combined.shape[-1]))  # [1, 77, 4096]
+
+                    # T5 is what we're probing — use gen_embed (original or modified)
+                    t5_embed = gen_embed  # [1, seq_len, 4096]
+
+                    # Combine: clip + t5
+                    prompt_embeds = torch.cat([clip_combined, t5_embed], dim=1)
+                    pooled_embeds = torch.cat([clip_l_pooled, clip_g_pooled], dim=-1)  # [1, 2048]
+
+                elif encoder == "clip_l":
+                    # Get CLIP-G and T5 normally
+                    clip_g_embed, clip_g_pooled = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=1
+                    )
+                    t5_embed = pipe._get_t5_prompt_embeds(
+                        prompt=prompt_a, num_images_per_prompt=1,
+                        max_sequence_length=512, device=device
+                    )
+
+                    # CLIP-L is what we're probing — use gen_embed (768d)
+                    clip_combined = torch.cat([gen_embed, clip_g_embed], dim=-1)  # [1, 77, 2048]
+                    clip_combined = F.pad(clip_combined, (0, 4096 - clip_combined.shape[-1]))  # [1, 77, 4096]
+
+                    prompt_embeds = torch.cat([clip_combined, t5_embed], dim=1)
+                    # Pooled: use original CLIP-L pooled (not modified — pooled is global, not per-dim)
+                    pooled_embeds = torch.cat([pooled_a, clip_g_pooled], dim=-1)
+
+                else:  # clip_g
+                    # Get CLIP-L and T5 normally
+                    clip_l_embed, clip_l_pooled = pipe._get_clip_prompt_embeds(
+                        prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=0
+                    )
+                    t5_embed = pipe._get_t5_prompt_embeds(
+                        prompt=prompt_a, num_images_per_prompt=1,
+                        max_sequence_length=512, device=device
+                    )
+
+                    # CLIP-G is what we're probing — use gen_embed (1280d)
+                    clip_combined = torch.cat([clip_l_embed, gen_embed], dim=-1)  # [1, 77, 2048]
+                    clip_combined = F.pad(clip_combined, (0, 4096 - clip_combined.shape[-1]))  # [1, 77, 4096]
+
+                    prompt_embeds = torch.cat([clip_combined, t5_embed], dim=1)
+                    pooled_embeds = torch.cat([clip_l_pooled, pooled_b if transfer_dims else pooled_a], dim=-1)
+
+                # --- Negative embeddings (encode normally) ---
+                neg_text = negative_prompt if negative_prompt else ""
+                neg_clip_l, neg_clip_l_pooled = pipe._get_clip_prompt_embeds(
+                    prompt=neg_text, device=device, num_images_per_prompt=1, clip_model_index=0
+                )
+                neg_clip_g, neg_clip_g_pooled = pipe._get_clip_prompt_embeds(
+                    prompt=neg_text, device=device, num_images_per_prompt=1, clip_model_index=1
+                )
+                neg_t5 = pipe._get_t5_prompt_embeds(
+                    prompt=neg_text, num_images_per_prompt=1,
+                    max_sequence_length=512, device=device
+                )
+                neg_clip_combined = torch.cat([neg_clip_l, neg_clip_g], dim=-1)
+                neg_clip_combined = F.pad(neg_clip_combined, (0, 4096 - neg_clip_combined.shape[-1]))
+                neg_prompt_embeds = torch.cat([neg_clip_combined, neg_t5], dim=1)
+                neg_pooled = torch.cat([neg_clip_l_pooled, neg_clip_g_pooled], dim=-1)
+
+                # --- Generate image ---
+                gen_kwargs = {
+                    "prompt_embeds": prompt_embeds,
+                    "negative_prompt_embeds": neg_prompt_embeds,
+                    "pooled_prompt_embeds": pooled_embeds,
+                    "negative_pooled_prompt_embeds": neg_pooled,
+                    "width": width,
+                    "height": height,
+                    "num_inference_steps": steps,
+                    "guidance_scale": cfg_scale,
+                    "generator": generator,
+                    "max_sequence_length": 512,
+                }
+
+                result = pipe(**gen_kwargs)
+                return result.images[0], diff_data
+
+            image, diff_data = await asyncio.to_thread(_generate)
+
+            # Convert to base64
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+            probing_data = {
+                'encoder': encoder,
+                'embed_dim': diff_data['embed_dim'],
+                **diff_data,
+            }
+
+            if transfer_dims is not None:
+                probing_data['transferred_dims'] = transfer_dims
+                probing_data['num_transferred'] = len(transfer_dims)
+
+            logger.info(
+                f"[DIFFUSERS-PROBING] Done: embed_dim={diff_data['embed_dim']}, "
+                f"top diff={diff_data['top_values'][:3] if diff_data['top_values'] else 'none'}"
+            )
+
+            return {
+                'image_base64': image_base64,
+                'probing_data': probing_data,
+                'seed': seed,
+            }
+
+        except Exception as e:
+            logger.error(f"[DIFFUSERS-PROBING] Generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     def _tokenize_prompt(self, pipe, prompt: str) -> list:
         """Tokenize a prompt and return human-readable token strings.
 

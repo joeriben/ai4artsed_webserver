@@ -17,12 +17,7 @@
 
     <!-- Conditional rendering of tab components -->
     <AttentionCartography v-if="activeTab === 'attention'" />
-    <div v-else-if="activeTab === 'probing'" class="placeholder-tab">
-      <div class="placeholder-content">
-        <h2>{{ t('latentLab.tabs.probing') }}</h2>
-        <p>{{ t('latentLab.comingSoon') }}</p>
-      </div>
-    </div>
+    <FeatureProbing v-else-if="activeTab === 'probing'" />
     <div v-else-if="activeTab === 'algebra'" class="placeholder-tab">
       <div class="placeholder-content">
         <h2>{{ t('latentLab.tabs.algebra') }}</h2>
@@ -48,6 +43,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AttentionCartography from './latent_lab/attention_cartography.vue'
+import FeatureProbing from './latent_lab/feature_probing.vue'
 
 const { t } = useI18n()
 

@@ -3295,6 +3295,11 @@ def legacy_workflow():
         negative_prompt = data.get('negative_prompt')
         cfg = data.get('cfg')
 
+        # Feature probing parameters
+        prompt_b = data.get('prompt_b')
+        probing_encoder = data.get('probing_encoder')
+        transfer_dims = data.get('transfer_dims')
+
         # Additional workflow-specific parameters
         mode = data.get('mode')  # For partial_elimination
         prompt1 = data.get('prompt1')  # For split_and_combine
@@ -3424,6 +3429,13 @@ def legacy_workflow():
             custom_params['outer_2_num'] = outer_2_num
         if encoder_type is not None:
             custom_params['encoder_type'] = encoder_type
+        # Feature probing parameters
+        if prompt_b is not None:
+            custom_params['prompt_b'] = prompt_b
+        if probing_encoder is not None:
+            custom_params['probing_encoder'] = probing_encoder
+        if transfer_dims is not None:
+            custom_params['transfer_dims'] = transfer_dims
 
         from schemas.engine.pipeline_executor import PipelineContext
         context_override = None
@@ -3572,6 +3584,24 @@ def legacy_workflow():
                 )
                 logger.info(f"[LEGACY-ENDPOINT] Saved attention cartography image: {len(image_bytes)} bytes")
 
+        elif output_value == 'diffusers_probing_generated':
+            # Latent Lab: Feature Probing — image + embedding analysis
+            image_data_b64 = output_result.metadata.get('image_data')
+            if image_data_b64:
+                import base64
+                image_bytes = base64.b64decode(image_data_b64)
+                recorder.save_entity(
+                    entity_type='output_image',
+                    content=image_bytes,
+                    metadata={
+                        'config': output_config,
+                        'seed': result_seed,
+                        'format': 'png',
+                        'backend': 'diffusers_probing'
+                    }
+                )
+                logger.info(f"[LEGACY-ENDPOINT] Saved feature probing image: {len(image_bytes)} bytes")
+
         duration_ms = (time.time() - start_time) * 1000
         logger.info(f"[LEGACY-ENDPOINT] Success in {duration_ms:.0f}ms")
 
@@ -3597,6 +3627,14 @@ def legacy_workflow():
             if image_b64:
                 attention_data['image_base64'] = image_b64
             response_data['attention_data'] = attention_data
+
+        # Latent Lab: Include probing data + image_base64 in response
+        probing_data = output_result.metadata.get('probing_data') if output_result.metadata else None
+        if probing_data:
+            image_b64 = output_result.metadata.get('image_data')
+            if image_b64:
+                probing_data['image_base64'] = image_b64
+            response_data['probing_data'] = probing_data
 
         return jsonify(response_data)
 

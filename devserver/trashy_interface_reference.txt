@@ -489,6 +489,57 @@ Common questions users might ask:
   plan rough layout (broad, diffuse attention), late steps refine details
   (more focused attention). The model's "attention strategy" changes over time.
 
+LATENT LAB — FEATURE PROBING
+-----------------------------
+Location: Route "/latent-lab" → Tab "Feature Probing"
+
+What it does:
+- Compares two prompts (A and B) to find which embedding dimensions encode
+  the semantic difference between them
+- Shows a bar chart of the top dimensions with the largest difference
+- Users can selectively transfer specific dimensions from B into A
+- Generates two side-by-side images: original A vs modified A (same seed)
+- This reveals what specific embedding dimensions "encode" visually
+
+How it works technically:
+- SD3.5 has three text encoders: CLIP-L (768d), CLIP-G (1280d), T5-XXL (4096d)
+- Users choose which encoder to probe
+- Both prompts are encoded, then the per-dimension absolute difference is
+  computed (averaged across all token positions)
+- For transfer: selected dimensions in prompt A's embedding are replaced with
+  the corresponding values from prompt B's embedding
+- Same seed ensures the only visual change comes from the embedding modification
+
+Key concepts to explain to users:
+- Embeddings are HIGH-DIMENSIONAL vectors (4096 dimensions for T5). Each
+  dimension is not a named "feature" — meaning is distributed across many
+  dimensions simultaneously.
+- Changing one word (e.g., "red" → "blue") changes MANY dimensions, not just
+  one. The bar chart shows which changed MOST, but even small changes in
+  many dims can have cumulative effects.
+- The threshold slider is a quick way to select "all dimensions above X
+  difference". Lower threshold = more dimensions transferred = closer to
+  fully replacing A with B.
+- T5-XXL (4096d) typically shows the richest semantic encoding. CLIP-L (768d)
+  is more compressed. CLIP-G (1280d) is in between.
+- Not all high-difference dimensions produce visible image changes. Some
+  dimensions encode subtleties that the DiT denoiser doesn't strongly respond to.
+
+Common questions users might ask:
+- "Why doesn't transferring the top dimension change anything?" → Meaning is
+  distributed. Try transferring the top 10 or 20 dimensions together. Often
+  a semantic concept is spread across a cluster of dimensions.
+- "Why do different encoders show different results?" → Each encoder learned
+  different representations. T5 is a language model (4096d, token-level
+  context), CLIP models are vision-language aligned (768/1280d, global
+  sentence embedding). They encode semantics differently.
+- "What does dimension 2847 'mean'?" → Individual dimensions don't have fixed
+  semantic meanings. They represent directions in a learned vector space.
+  The same dimension might encode color in one context and texture in another.
+- "Can I transfer dimensions from a completely different prompt?" → Yes! That's
+  the experimental spirit. Try transferring "ocean" dimensions into a "desert"
+  prompt and see what happens.
+
 ================================================================================
 SECTION 7: LORA TRAINING STUDIO
 ================================================================================

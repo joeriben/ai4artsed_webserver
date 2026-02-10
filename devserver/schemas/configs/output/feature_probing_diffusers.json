@@ -1,0 +1,24 @@
+{
+  "pipeline": "legacy_workflow_passthrough",
+  "name": {
+    "en": "Feature Probing (Diffusers)",
+    "de": "Feature Probing (Diffusers)"
+  },
+  "description": {
+    "en": "Embedding analysis with selective dimension transfer. Shows which dimensions encode which semantic differences between two prompts.",
+    "de": "Embedding-Analyse mit selektiver Dimensionsübertragung. Zeigt, welche Dimensionen welche semantischen Unterschiede zwischen zwei Prompts kodieren."
+  },
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_feature_probing_diffusers"
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+  "meta": {
+    "stage": "output",
+    "backend": "diffusers",
+    "backend_type": "diffusers",
+    "requires_gpu": true
+  }
+}

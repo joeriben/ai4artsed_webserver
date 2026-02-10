@@ -1844,6 +1844,55 @@ class BackendRouter:
                     }
                 )
 
+            # Feature Probing mode: analyze embedding differences between two prompts
+            if diffusers_config.get('feature_probing_mode'):
+                prompt_b = parameters.get('prompt_b', '')
+                probing_encoder = parameters.get('probing_encoder') or diffusers_config.get('probing_encoder', 't5')
+                transfer_dims = parameters.get('transfer_dims')
+
+                logger.info(f"[DIFFUSERS] Feature probing mode: encoder={probing_encoder}, transfer={'yes' if transfer_dims else 'no'}")
+                probing_result = await backend.generate_image_with_probing(
+                    prompt_a=prompt,
+                    prompt_b=prompt_b,
+                    encoder=probing_encoder,
+                    transfer_dims=transfer_dims,
+                    negative_prompt=negative_prompt,
+                    width=width,
+                    height=height,
+                    steps=steps,
+                    cfg_scale=cfg_scale,
+                    seed=seed,
+                    model_id=model_id,
+                )
+
+                if not probing_result:
+                    logger.error("[DIFFUSERS] Feature probing generation failed")
+                    return BackendResponse(
+                        success=False,
+                        content="Feature probing generation failed",
+                        metadata={'error': 'probing_generation_failed'}
+                    )
+
+                return BackendResponse(
+                    success=True,
+                    content="diffusers_probing_generated",
+                    metadata={
+                        'chunk_name': chunk_name,
+                        'media_type': 'image',
+                        'backend': 'diffusers',
+                        'model_id': model_id,
+                        'seed': probing_result['seed'],
+                        'image_data': probing_result['image_base64'],
+                        'probing_data': probing_result['probing_data'],
+                        'parameters': {
+                            'width': width,
+                            'height': height,
+                            'steps': steps,
+                            'cfg_scale': cfg_scale
+                        }
+                    }
+                )
+
             # Surrealizer: T5-CLIP alpha fusion mode
             alpha_factor = parameters.get('alpha_factor')
             t5_prompt = parameters.get('t5_prompt')
