@@ -66,6 +66,7 @@
         <img
           :src="`data:image/png;base64,${imageData}`"
           class="generated-image"
+          :class="{ grayscale: baseImageMode === 'bw', hidden: baseImageMode === 'off' }"
           ref="imageRef"
           @load="onImageLoad"
         />
@@ -157,6 +158,25 @@
           </div>
           <div class="control-hint">{{ t('latentLab.attention.opacityHint') }}</div>
         </div>
+
+        <!-- Base Image Mode -->
+        <div class="control-group">
+          <div class="control-row">
+            <label class="control-label">{{ t('latentLab.attention.baseImageLabel') }}</label>
+            <div class="layer-toggles">
+              <button
+                v-for="(mode, idx) in baseImageModes"
+                :key="mode"
+                class="layer-btn"
+                :class="{ active: baseImageMode === mode }"
+                @click="baseImageMode = mode"
+              >
+                {{ baseImageModeLabels[idx] }}
+              </button>
+            </div>
+          </div>
+          <div class="control-hint">{{ t('latentLab.attention.baseImageHint') }}</div>
+        </div>
       </div>
 
       <!-- Seed display -->
@@ -217,6 +237,14 @@ const selectedWords = ref<number[]>([])
 const selectedStep = ref(0)
 const selectedLayerIdx = ref(1) // Default: mid layer
 const heatmapOpacity = ref(0.6)
+const baseImageModes = ['color', 'bw', 'off'] as const
+type BaseImageMode = typeof baseImageModes[number]
+const baseImageMode = ref<BaseImageMode>('color')
+const baseImageModeLabels = computed(() => [
+  t('latentLab.attention.baseColor'),
+  t('latentLab.attention.baseBW'),
+  t('latentLab.attention.baseOff'),
+])
 
 // Refs
 const imageRef = ref<HTMLImageElement | null>(null)
@@ -399,7 +427,7 @@ function renderHeatmap() {
       for (let i = 0; i < numPixels; i++) {
         const row = layerData[i]
         if (row && row[tokenIdx] !== undefined) {
-          attnValues[i] += row[tokenIdx]
+          attnValues[i] = (attnValues[i] ?? 0) + row[tokenIdx]
         }
       }
     }
@@ -407,7 +435,8 @@ function renderHeatmap() {
     // Normalize to [0, 1]
     let maxVal = 1e-8
     for (let i = 0; i < numPixels; i++) {
-      if (attnValues[i] > maxVal) maxVal = attnValues[i]
+      const v = attnValues[i] ?? 0
+      if (v > maxVal) maxVal = v
     }
 
     // Render to temporary canvas at patch resolution, then upscale
@@ -419,7 +448,7 @@ function renderHeatmap() {
 
     const imgDataTmp = tmpCtx.createImageData(spatialW, spatialH)
     for (let i = 0; i < numPixels; i++) {
-      const intensity = attnValues[i] / maxVal
+      const intensity = (attnValues[i] ?? 0) / maxVal
       const pixIdx = i * 4
       imgDataTmp.data[pixIdx] = color[0]
       imgDataTmp.data[pixIdx + 1] = color[1]
@@ -638,6 +667,15 @@ function renderHeatmap() {
   display: block;
   width: 100%;
   height: auto;
+  transition: filter 0.3s ease;
+}
+
+.generated-image.grayscale {
+  filter: grayscale(1);
+}
+
+.generated-image.hidden {
+  opacity: 0;
 }
 
 .heatmap-overlay {

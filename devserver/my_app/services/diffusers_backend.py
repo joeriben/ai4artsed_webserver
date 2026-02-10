@@ -620,19 +620,26 @@ class DiffusersImageGenerator:
                 token_ids = encoded['input_ids']
                 token_column_indices = []
                 current_group = []
+                prev_raw = None
                 for pos, tid in enumerate(token_ids):
                     if tid in tokenizer.all_special_ids:
                         continue
                     token_idx = len(tokens)
                     token_column_indices.append(pos)
-                    # CLIP uses GPT-2 BPE: word-initial tokens decode with leading space
-                    decoded_raw = tokenizer.decode([tid])
-                    is_word_start = decoded_raw.startswith(' ') or token_idx == 0
-                    tokens.append(decoded_raw.strip())
+                    # CLIP BPE uses </w> suffix on word-FINAL subtokens
+                    # (NOT leading-space like GPT-2)
+                    raw = tokenizer.convert_ids_to_tokens(tid)
+                    is_word_start = (
+                        token_idx == 0
+                        or (prev_raw is not None and prev_raw.endswith('</w>'))
+                    )
+                    display = raw.replace('</w>', '')
+                    tokens.append(display)
                     if is_word_start and current_group:
                         word_groups.append(current_group)
                         current_group = []
                     current_group.append(token_idx)
+                    prev_raw = raw
                 if current_group:
                     word_groups.append(current_group)
                 logger.info(
