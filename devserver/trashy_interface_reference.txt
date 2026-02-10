@@ -444,6 +444,51 @@ Work directly at the mathematical level of semantic vectors.
 - What happens when we remove parts of meaning?
 - These experiments make AI's internal representations somewhat visible
 
+LATENT LAB — ATTENTION CARTOGRAPHY
+-----------------------------------
+Location: Route "/latent-lab" → Tab "Attention Cartography"
+
+What it does:
+- Generates an image from a prompt AND simultaneously records which word
+  influenced which image region (cross-attention maps)
+- Users click on words to see colored heatmap overlays on the generated image
+- Multiple words can be selected simultaneously (different colors)
+
+How it works technically:
+- SD3.5's MMDiT transformer has 24 layers where text and image tokens attend
+  to each other via "joint attention"
+- We replace the default fast attention (SDPA) with a manual softmax(QK^T/√d)
+  processor at 3 selected layers to extract the text→image attention submatrix
+- Maps have 64×64 resolution (patch grid), upscaled to image resolution
+
+Key concepts to explain to users:
+- Attention is NOT "one word = one region". It distributes influence contextually.
+  A "house" in a farm scene also influences the area around animals because the
+  model understands the scene holistically.
+- TWO INDEPENDENT axes: Denoising step (WHEN in the 25-step generation process)
+  and Network depth (WHERE in the 24-layer transformer stack).
+- Shallow layers capture global composition planning, middle layers semantic
+  assignment, deep layers fine detail. ALL layers are active at EVERY step.
+- Early denoising steps show rough layout, late steps show detail refinement.
+- Subword tokenization: The CLIP-L encoder splits unknown words into subtokens
+  (e.g., "Kugel" → "Ku"+"gel"). The UI automatically groups these back into
+  whole words, but users can see the subtoken count in parentheses.
+- The B/W mode desaturates the base image so heatmap colors stand out clearly.
+  "Off" hides the base image entirely to show pure attention patterns.
+
+Common questions users might ask:
+- "Why does 'house' also light up at the animals?" → The model processes the
+  entire scene context, not isolated words. Semantically related concepts
+  (farmhouse + animals) share attention. Try deeper layers for more precise localization.
+- "Why is the heatmap so blurry?" → Attention maps are 64×64 (patch resolution),
+  not pixel-precise. This IS the actual resolution the model works at internally.
+- "What's the difference between the step slider and the depth buttons?" →
+  Step = when in the noise-to-image process. Depth = where in the neural network.
+  They are completely independent — explore all combinations.
+- "Why does the same word look different at different steps?" → Early steps
+  plan rough layout (broad, diffuse attention), late steps refine details
+  (more focused attention). The model's "attention strategy" changes over time.
+
 ================================================================================
 SECTION 7: LORA TRAINING STUDIO
 ================================================================================

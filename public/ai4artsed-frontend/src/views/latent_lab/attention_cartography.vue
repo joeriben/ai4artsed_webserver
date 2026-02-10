@@ -1,16 +1,30 @@
 <template>
   <div class="attention-cartography">
-    <!-- Info Panel -->
-    <div class="info-panel" v-if="showInfo">
-      <div class="info-content">
-        <h3>{{ t('latentLab.attention.infoTitle') }}</h3>
-        <p>{{ t('latentLab.attention.infoDescription') }}</p>
-        <div class="info-tech">
-          <strong>{{ t('latentLab.attention.techTitle') }}</strong>
-          <p>{{ t('latentLab.attention.techText') }}</p>
+    <!-- Header (always visible) -->
+    <div class="page-header">
+      <h2 class="page-title">{{ t('latentLab.attention.headerTitle') }}</h2>
+      <p class="page-subtitle">{{ t('latentLab.attention.headerSubtitle') }}</p>
+      <details class="explanation-details">
+        <summary>{{ t('latentLab.attention.explanationToggle') }}</summary>
+        <div class="explanation-body">
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.attention.explainWhatTitle') }}</h4>
+            <p>{{ t('latentLab.attention.explainWhatText') }}</p>
+          </div>
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.attention.explainHowTitle') }}</h4>
+            <p>{{ t('latentLab.attention.explainHowText') }}</p>
+          </div>
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.attention.explainReadTitle') }}</h4>
+            <p>{{ t('latentLab.attention.explainReadText') }}</p>
+          </div>
+          <div class="explanation-section explanation-tech">
+            <h4>{{ t('latentLab.attention.techTitle') }}</h4>
+            <p>{{ t('latentLab.attention.techText') }}</p>
+          </div>
         </div>
-        <button class="info-close" @click="showInfo = false">&times;</button>
-      </div>
+      </details>
     </div>
 
     <!-- Input Section -->
@@ -32,7 +46,6 @@
           <span v-if="isGenerating" class="spinner"></span>
           <span v-else>{{ t('latentLab.attention.generate') }}</span>
         </button>
-        <button class="info-btn" @click="showInfo = !showInfo" :title="t('latentLab.attention.infoTitle')">?</button>
       </div>
 
       <!-- Advanced Settings (collapsible) -->
@@ -205,11 +218,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { usePageContextStore } from '@/stores/pageContext'
+import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 const { t } = useI18n()
+const route = useRoute()
+const pageContextStore = usePageContextStore()
 
 // State
 const promptText = ref('')
@@ -218,7 +236,6 @@ const steps = ref(25)
 const cfgScale = ref(4.5)
 const seed = ref(-1)
 const isGenerating = ref(false)
-const showInfo = ref(false)
 const errorMessage = ref('')
 
 // Result data
@@ -463,6 +480,32 @@ function renderHeatmap() {
     ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height)
   }
 }
+
+// ============================================================================
+// Träshy Page Context
+// ============================================================================
+const trashyFocusHint = computed<FocusHint>(() => {
+  if (isGenerating.value || imageData.value) {
+    return { x: 95, y: 85, anchor: 'bottom-right' }
+  }
+  return { x: 8, y: 95, anchor: 'bottom-left' }
+})
+
+const pageContext = computed<PageContext>(() => ({
+  activeViewType: 'attention_cartography',
+  pageContent: {
+    inputText: promptText.value
+  },
+  focusHint: trashyFocusHint.value
+}))
+
+watch(pageContext, (ctx) => {
+  pageContextStore.setPageContext(ctx)
+}, { immediate: true, deep: true })
+
+onUnmounted(() => {
+  pageContextStore.clearContext()
+})
 </script>
 
 <style scoped>
@@ -472,56 +515,72 @@ function renderHeatmap() {
   padding: 1.5rem 1.5rem 3rem;
 }
 
-/* Info Panel */
-.info-panel {
+/* Page Header */
+.page-header {
   margin-bottom: 1.5rem;
-  background: rgba(0, 188, 212, 0.08);
-  border: 1px solid rgba(0, 188, 212, 0.2);
-  border-radius: 12px;
-  padding: 1.25rem;
-  position: relative;
 }
 
-.info-content h3 {
+.page-title {
   color: #00BCD4;
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
 }
 
-.info-content p {
+.page-subtitle {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   line-height: 1.6;
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.75rem;
 }
 
-.info-tech {
+.explanation-details {
+  background: rgba(0, 188, 212, 0.06);
+  border: 1px solid rgba(0, 188, 212, 0.15);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.explanation-details summary {
+  padding: 0.65rem 1rem;
+  color: rgba(0, 188, 212, 0.8);
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.explanation-details summary:hover {
+  color: #00BCD4;
+}
+
+.explanation-body {
+  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.explanation-section h4 {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+  margin: 0 0 0.25rem;
+}
+
+.explanation-section p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.explanation-tech {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
   padding: 0.75rem;
-  margin-top: 0.5rem;
 }
 
-.info-tech strong {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
-}
-
-.info-tech p {
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0;
-}
-
-.info-close {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 1.2rem;
-  cursor: pointer;
+.explanation-tech p {
+  font-size: 0.78rem;
 }
 
 /* Input Section */
@@ -579,20 +638,6 @@ function renderHeatmap() {
 .generate-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.info-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 188, 212, 0.3);
-  background: rgba(0, 188, 212, 0.1);
-  color: #00BCD4;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin-top: 6px;
 }
 
 .spinner {
