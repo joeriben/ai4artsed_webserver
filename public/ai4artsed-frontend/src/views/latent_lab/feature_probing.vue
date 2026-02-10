@@ -106,8 +106,8 @@
       </details>
     </div>
 
-    <!-- Side-by-Side Image Comparison -->
-    <div class="comparison-section" v-if="originalImage || isGenerating">
+    <!-- Side-by-Side Image Comparison (always visible) -->
+    <div class="comparison-section" :class="{ disabled: !hasAnalysis && !isGenerating }">
       <div class="image-pair">
         <!-- Original (Prompt A) -->
         <div class="image-panel">
@@ -125,7 +125,7 @@
           </div>
         </div>
 
-        <!-- Modified (Transfer) -->
+        <!-- Modified (Transfer from Prompt B) -->
         <div class="image-panel">
           <div class="panel-label">{{ t('latentLab.probing.modifiedLabel') }}</div>
           <div class="image-frame" :class="{ empty: !modifiedImage }">
@@ -145,11 +145,10 @@
         </div>
       </div>
 
-      <!-- Transfer Button (directly under images) -->
+      <!-- Transfer Button -->
       <button
-        v-if="topDims.length > 0"
         class="generate-btn transfer-btn"
-        :disabled="isTransferring || selectedDimCount === 0"
+        :disabled="!hasAnalysis || isTransferring || selectedDimCount === 0"
         @click="transfer"
       >
         <span v-if="isTransferring" class="spinner"></span>
@@ -162,75 +161,151 @@
       </div>
     </div>
 
-    <!-- Dimension Analysis Section -->
-    <div class="analysis-section" v-if="topDims.length > 0">
-      <div class="analysis-header">
-        <h3 class="analysis-title">{{ t('latentLab.probing.dimLabel') }} (Top {{ visibleDims.length }} / {{ topDims.length }})</h3>
-        <div class="selection-info">
-          {{ selectedDimCount }} {{ t('latentLab.probing.selectedDims') }}
-          <button class="mini-btn" @click="selectAll">{{ t('latentLab.probing.selectAll') }}</button>
-          <button class="mini-btn" @click="selectNone">{{ t('latentLab.probing.selectNone') }}</button>
-        </div>
+    <!-- Dimension Analysis Section (always visible, disabled before analysis) -->
+    <div class="analysis-section" :class="{ disabled: !hasAnalysis }">
+      <!-- Prominent list header -->
+      <div class="analysis-list-header">
+        <h3 class="list-title">
+          {{ t('latentLab.probing.listTitle', { count: nonzeroDimCount }) }}
+        </h3>
+        <p class="list-subtitle">
+          {{ t('latentLab.probing.selectionDesc', { count: selectedDimCount, from: rankFrom, to: rankTo, total: nonzeroDimCount }) }}
+        </p>
       </div>
 
-      <!-- Threshold Slider -->
-      <div class="threshold-group">
-        <div class="control-row">
-          <label class="control-label">{{ t('latentLab.probing.thresholdLabel') }}</label>
-          <div class="slider-container">
-            <input
-              type="range"
-              v-model.number="threshold"
-              :min="0"
-              :max="maxDiffValue"
-              :step="maxDiffValue / 200"
-              class="control-slider"
-            />
-            <span class="slider-value">{{ threshold.toFixed(3) }}</span>
+      <!-- Slider label -->
+      <div class="slider-label">{{ t('latentLab.probing.sliderLabel') }}</div>
+
+      <!-- Visual Range Bar (shows both ranges) -->
+      <div class="dimension-bar-visual">
+        <div class="dimension-bar-track">
+          <div class="dimension-bar-fill range-1"
+            :style="{
+              left: nonzeroDimCount > 0 ? ((rankFrom - 1) / nonzeroDimCount * 100) + '%' : '0%',
+              width: nonzeroDimCount > 0 ? ((rankTo - rankFrom + 1) / nonzeroDimCount * 100) + '%' : '0%'
+            }">
+          </div>
+          <div v-if="showRange2" class="dimension-bar-fill range-2"
+            :style="{
+              left: nonzeroDimCount > 0 ? ((rankFrom2 - 1) / nonzeroDimCount * 100) + '%' : '0%',
+              width: nonzeroDimCount > 0 ? ((rankTo2 - rankFrom2 + 1) / nonzeroDimCount * 100) + '%' : '0%'
+            }">
           </div>
         </div>
-        <div class="control-hint">{{ t('latentLab.probing.thresholdHint') }}</div>
       </div>
 
-      <!-- Dimension Bars -->
-      <div class="dimension-bars">
+      <!-- Range 1: Dual Handle Slider -->
+      <div class="range-block">
+        <div class="range-block-label">{{ t('latentLab.probing.range1Label') }}</div>
+        <div class="dual-slider-container">
+          <input type="range" min="1" :max="nonzeroDimCount || 1" step="1"
+            v-model.number="rankFrom"
+            class="slider-track slider-start"
+            :disabled="!hasAnalysis"
+            @input="clampStart" />
+          <input type="range" min="1" :max="nonzeroDimCount || 1" step="1"
+            v-model.number="rankTo"
+            class="slider-track slider-end"
+            :disabled="!hasAnalysis"
+            @input="clampEnd" />
+        </div>
+        <div class="range-display">
+          <div class="range-field">
+            <label>{{ t('latentLab.probing.rankFromLabel') }}</label>
+            <input type="number" v-model.number="rankFrom" :min="1" :max="rankTo || 1" class="range-input"
+              :disabled="!hasAnalysis"
+              @change="clampStart" @focus="($event.target as HTMLInputElement).select()" />
+          </div>
+          <span class="range-separator">–</span>
+          <div class="range-field">
+            <label>{{ t('latentLab.probing.rankToLabel') }}</label>
+            <input type="number" v-model.number="rankTo" :min="rankFrom" :max="nonzeroDimCount || 0" class="range-input"
+              :disabled="!hasAnalysis"
+              @change="clampEnd" @focus="($event.target as HTMLInputElement).select()" />
+          </div>
+          <div class="selection-actions">
+            <button class="mini-btn" @click="selectAll" :disabled="!hasAnalysis">{{ t('latentLab.probing.selectAll') }}</button>
+            <button class="mini-btn" @click="selectNone" :disabled="!hasAnalysis">{{ t('latentLab.probing.selectNone') }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Range 2 Button -->
+      <button v-if="!showRange2" class="mini-btn add-range-btn" :disabled="!hasAnalysis" @click="addRange2">
+        + {{ t('latentLab.probing.addRange') }}
+      </button>
+
+      <!-- Range 2: Dual Handle Slider (optional) -->
+      <div v-if="showRange2" class="range-block range-block-2">
+        <div class="range-block-label">
+          {{ t('latentLab.probing.range2Label') }}
+          <button class="mini-btn remove-range-btn" @click="removeRange2">&times;</button>
+        </div>
+        <div class="dual-slider-container">
+          <input type="range" min="1" :max="nonzeroDimCount || 1" step="1"
+            v-model.number="rankFrom2"
+            class="slider-track slider-start"
+            :disabled="!hasAnalysis"
+            @input="clampStart2" />
+          <input type="range" min="1" :max="nonzeroDimCount || 1" step="1"
+            v-model.number="rankTo2"
+            class="slider-track slider-end"
+            :disabled="!hasAnalysis"
+            @input="clampEnd2" />
+        </div>
+        <div class="range-display">
+          <div class="range-field">
+            <label>{{ t('latentLab.probing.rankFromLabel') }}</label>
+            <input type="number" v-model.number="rankFrom2" :min="1" :max="rankTo2 || 1" class="range-input"
+              :disabled="!hasAnalysis"
+              @change="clampStart2" @focus="($event.target as HTMLInputElement).select()" />
+          </div>
+          <span class="range-separator">–</span>
+          <div class="range-field">
+            <label>{{ t('latentLab.probing.rankToLabel') }}</label>
+            <input type="number" v-model.number="rankTo2" :min="rankFrom2" :max="nonzeroDimCount || 0" class="range-input"
+              :disabled="!hasAnalysis"
+              @change="clampEnd2" @focus="($event.target as HTMLInputElement).select()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Sort toggle + column headers -->
+      <div class="dim-list-controls" v-if="displayDims.length > 0">
+        <button class="mini-btn sort-btn" @click="toggleSort">
+          {{ sortAscending ? t('latentLab.probing.sortAsc') : t('latentLab.probing.sortDesc') }}
+        </button>
+      </div>
+
+      <!-- Dimension Bars with checkboxes -->
+      <div class="dimension-bars" v-if="displayDims.length > 0">
         <div
-          v-for="(dim, idx) in visibleDims"
+          v-for="(dim, idx) in sortedDisplayDims"
           :key="dim.index"
           class="dim-row"
-          :class="{ selected: isDimSelected(dim.index) }"
-          @click="toggleDim(dim.index)"
+          :class="{ 'in-range-1': inRange1(dim.rank), 'in-range-2': inRange2(dim.rank) }"
+          @click="toggleDim(dim.rank)"
         >
-          <label class="dim-checkbox">
-            <input
-              type="checkbox"
-              :checked="isDimSelected(dim.index)"
-              @click.stop="toggleDim(dim.index)"
-            />
+          <label class="dim-checkbox" @click.stop>
+            <input type="checkbox" :checked="isInRange(dim.rank)" @change="toggleDim(dim.rank)" />
           </label>
-          <span class="dim-index">{{ dim.index }}</span>
+          <span class="dim-rank">{{ dim.rank + 1 }}</span>
+          <span class="dim-index">d{{ dim.index }}</span>
           <div class="dim-bar-container">
             <div
               class="dim-bar"
               :style="{ width: `${(dim.value / maxDiffValue) * 100}%` }"
-              :class="{ 'above-threshold': dim.value >= threshold }"
+              :class="{ 'in-range-1': inRange1(dim.rank), 'in-range-2': inRange2(dim.rank) }"
             ></div>
           </div>
           <span class="dim-value">{{ dim.value.toFixed(3) }}</span>
         </div>
       </div>
 
-      <div class="dim-hint">{{ t('latentLab.probing.dimHint') }}</div>
-    </div>
-
-    <!-- No difference message -->
-    <div class="no-diff-message" v-else-if="analysisComplete && topDims.length === 0">
-      <p>{{ t('latentLab.probing.noDifference') }}</p>
-    </div>
-
-    <!-- Empty State -->
-    <div class="empty-state" v-else-if="!isGenerating && !originalImage">
-      <p>{{ t('latentLab.probing.emptyHint') }}</p>
+      <!-- No difference message -->
+      <div class="no-diff-message" v-if="analysisComplete && displayDims.length === 0">
+        <p>{{ t('latentLab.probing.noDifference') }}</p>
+      </div>
     </div>
 
     <!-- Error Display -->
@@ -242,7 +317,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
@@ -273,66 +348,136 @@ const isAnalyzing = ref(false)
 const isTransferring = ref(false)
 const errorMessage = ref('')
 const analysisComplete = ref(false)
+const sortAscending = ref(false)
 
 // Result data
 const originalImage = ref('')
 const modifiedImage = ref('')
 const actualSeed = ref<number | null>(null)
 const topDims = ref<{ index: number; value: number }[]>([])
-const allDiffPerDim = ref<number[]>([])
-const selectedDims = ref<Set<number>>(new Set())
-const threshold = ref(0)
+// Range 1
+const rankFrom = ref(1)
+const rankTo = ref(0)
+// Range 2 (optional, additive)
+const showRange2 = ref(false)
+const rankFrom2 = ref(1)
+const rankTo2 = ref(0)
 
 // Computed
 const isGenerating = computed(() => isAnalyzing.value || isTransferring.value)
+const hasAnalysis = computed(() => displayDims.value.length > 0)
 const maxDiffValue = computed(() => {
   if (topDims.value.length === 0) return 1
   return topDims.value[0]?.value ?? 1
 })
-const selectedDimCount = computed(() => selectedDims.value.size)
-// Show max 50 bars in UI, but all dims are selectable via threshold
-const MAX_VISIBLE_BARS = 50
-const visibleDims = computed(() => topDims.value.slice(0, MAX_VISIBLE_BARS))
+// Only show dimensions with nonzero difference
+const displayDims = computed(() => topDims.value.filter(d => d.value > 1e-6))
+const nonzeroDimCount = computed(() => displayDims.value.length)
+// displayDims with original rank preserved, optionally reversed
+const sortedDisplayDims = computed(() => {
+  const withRank = displayDims.value.map((d, idx) => ({ ...d, rank: idx }))
+  return sortAscending.value ? [...withRank].reverse() : withRank
+})
 
-function isDimSelected(dimIndex: number): boolean {
-  return selectedDims.value.has(dimIndex)
+// Derive selected dimensions from union of both rank ranges
+const selectedDims = computed(() => {
+  const dims = new Set<number>()
+  const addRange = (from: number, to: number) => {
+    const f = Math.max(0, from - 1)
+    const t = Math.min(displayDims.value.length, to)
+    for (let i = f; i < t; i++) {
+      dims.add(displayDims.value[i]!.index)
+    }
+  }
+  addRange(rankFrom.value, rankTo.value)
+  if (showRange2.value) {
+    addRange(rankFrom2.value, rankTo2.value)
+  }
+  return dims
+})
+const selectedDimCount = computed(() => selectedDims.value.size)
+
+function inRange1(idx: number): boolean {
+  return idx >= rankFrom.value - 1 && idx < rankTo.value
 }
 
-function toggleDim(dimIndex: number) {
-  const next = new Set(selectedDims.value)
-  if (next.has(dimIndex)) {
-    next.delete(dimIndex)
-  } else {
-    next.add(dimIndex)
-  }
-  selectedDims.value = next
+function inRange2(idx: number): boolean {
+  return showRange2.value && idx >= rankFrom2.value - 1 && idx < rankTo2.value
+}
+
+function isInRange(idx: number): boolean {
+  return inRange1(idx) || inRange2(idx)
+}
+
+function clampStart() {
+  if (rankFrom.value < 1) rankFrom.value = 1
+  if (rankFrom.value > rankTo.value) rankFrom.value = rankTo.value
+}
+
+function clampEnd() {
+  if (rankTo.value < rankFrom.value) rankTo.value = rankFrom.value
+  if (rankTo.value > nonzeroDimCount.value) rankTo.value = nonzeroDimCount.value
+}
+
+function clampStart2() {
+  if (rankFrom2.value < 1) rankFrom2.value = 1
+  if (rankFrom2.value > rankTo2.value) rankFrom2.value = rankTo2.value
+}
+
+function clampEnd2() {
+  if (rankTo2.value < rankFrom2.value) rankTo2.value = rankFrom2.value
+  if (rankTo2.value > nonzeroDimCount.value) rankTo2.value = nonzeroDimCount.value
 }
 
 function selectAll() {
-  const next = new Set<number>()
-  // Use allDiffPerDim to include ALL dimensions with nonzero difference,
-  // not just the top-k visible in the bar chart
-  allDiffPerDim.value.forEach((diffVal, dimIndex) => {
-    if (diffVal > 1e-6) next.add(dimIndex)
-  })
-  selectedDims.value = next
+  rankFrom.value = 1
+  rankTo.value = nonzeroDimCount.value
+  if (showRange2.value) {
+    showRange2.value = false
+    rankFrom2.value = 1
+    rankTo2.value = 0
+  }
 }
 
 function selectNone() {
-  selectedDims.value = new Set()
+  rankFrom.value = 1
+  rankTo.value = 0
+  rankFrom2.value = 1
+  rankTo2.value = 0
 }
 
-// When threshold changes, auto-select ALL dimensions above threshold
-// (using full diff array, not just top-k visible bars)
-watch(threshold, (val) => {
-  const next = new Set<number>()
-  allDiffPerDim.value.forEach((diffVal, dimIndex) => {
-    if (diffVal >= val && diffVal > 1e-6) {
-      next.add(dimIndex)
-    }
-  })
-  selectedDims.value = next
-})
+function addRange2() {
+  showRange2.value = true
+  // Default: no selection, user positions it
+  rankFrom2.value = 1
+  rankTo2.value = 0
+}
+
+function removeRange2() {
+  showRange2.value = false
+  rankFrom2.value = 1
+  rankTo2.value = 0
+}
+
+function toggleSort() {
+  sortAscending.value = !sortAscending.value
+}
+
+function toggleDim(rankIdx: number) {
+  // Expand or contract range 1 to include/exclude this rank
+  const rank1based = rankIdx + 1
+  if (inRange1(rankIdx)) {
+    if (rank1based === rankFrom.value) rankFrom.value++
+    else if (rank1based === rankTo.value) rankTo.value--
+  } else if (inRange2(rankIdx)) {
+    if (rank1based === rankFrom2.value) rankFrom2.value++
+    else if (rank1based === rankTo2.value) rankTo2.value--
+  } else {
+    // Expand nearest range
+    if (rank1based < rankFrom.value) rankFrom.value = rank1based
+    else if (rank1based > rankTo.value) rankTo.value = rank1based
+  }
+}
 
 async function analyze() {
   if (!promptA.value.trim() || !promptB.value.trim() || isGenerating.value) return
@@ -342,10 +487,13 @@ async function analyze() {
   originalImage.value = ''
   modifiedImage.value = ''
   topDims.value = []
-  allDiffPerDim.value = []
-  selectedDims.value = new Set()
   analysisComplete.value = false
   actualSeed.value = null
+  rankFrom.value = 1
+  rankTo.value = 0
+  showRange2.value = false
+  rankFrom2.value = 1
+  rankTo2.value = 0
 
   try {
     const baseUrl = import.meta.env.DEV ? 'http://localhost:17802' : ''
@@ -369,7 +517,7 @@ async function analyze() {
 
         actualSeed.value = response.data.media_output?.seed ?? null
 
-        // Build top dims list from probing data
+        // Build top dims list from probing data (already sorted by magnitude)
         const dims = probData.top_dims || []
         const vals = probData.top_values || []
         topDims.value = dims.map((dimIdx: number, i: number) => ({
@@ -377,17 +525,8 @@ async function analyze() {
           value: vals[i] ?? 0,
         }))
 
-        allDiffPerDim.value = probData.diff_per_dim || []
-
-        // Set initial threshold to select ~half of returned dims
-        // Semantic concepts are distributed across hundreds of dimensions,
-        // so we need many dims selected by default to produce a visible change
-        const halfIdx = Math.floor(topDims.value.length / 2)
-        if (topDims.value.length > 0 && halfIdx > 0) {
-          threshold.value = topDims.value[halfIdx]?.value ?? 0
-        } else if (topDims.value.length > 0) {
-          threshold.value = 0
-        }
+        // Default: select all nonzero dimensions
+        rankTo.value = topDims.value.filter((d: { value: number }) => d.value > 1e-6).length
 
         analysisComplete.value = true
       } else {
@@ -685,6 +824,13 @@ onUnmounted(() => {
   width: 80px;
 }
 
+/* Disabled state for sections before analysis */
+.comparison-section.disabled,
+.analysis-section.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 /* Comparison Section (side-by-side images) */
 .comparison-section {
   margin-bottom: 1.5rem;
@@ -772,33 +918,92 @@ onUnmounted(() => {
   font-family: 'Fira Code', 'Consolas', monospace;
 }
 
-/* Analysis Section (bars) */
+/* Analysis Section */
 .analysis-section {
   margin-top: 1rem;
 }
 
-.analysis-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+/* Prominent list header */
+.analysis-list-header {
+  background: rgba(124, 77, 255, 0.08);
+  border: 1px solid rgba(124, 77, 255, 0.2);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
 }
 
-.analysis-title {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-  font-weight: 600;
+.list-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+
+.list-subtitle {
+  color: rgba(124, 77, 255, 0.85);
+  font-size: 0.85rem;
   margin: 0;
 }
 
-.selection-info {
-  color: rgba(255, 255, 255, 0.4);
+.slider-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+/* Range blocks */
+.range-block {
+  margin-bottom: 0.5rem;
+}
+
+.range-block-label {
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.75rem;
+  margin-bottom: 0.15rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.range-block-2 .dimension-bar-fill,
+.range-block-2 .dual-slider-container input[type="range"]::-webkit-slider-thumb {
+  background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
+}
+
+.add-range-btn {
+  margin-bottom: 0.75rem;
+}
+
+.remove-range-btn {
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.remove-range-btn:hover {
+  color: #ef5350;
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.dim-list-controls {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.sort-btn {
+  font-size: 0.7rem;
 }
 
 .mini-btn {
@@ -817,66 +1022,168 @@ onUnmounted(() => {
   color: white;
 }
 
-/* Threshold Slider */
-.threshold-group {
-  margin-bottom: 1rem;
+/* Visual Range Bar */
+.dimension-bar-visual {
+  margin-bottom: 0.25rem;
 }
 
-.control-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.dimension-bar-track {
+  height: 20px;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 10px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
 }
 
-.slider-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.dimension-bar-fill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 8px;
+  transition: all 0.1s ease;
 }
 
-.control-slider {
-  flex: 1;
+.dimension-bar-fill.range-1 {
+  background: linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%);
+  box-shadow: 0 0 8px rgba(124, 77, 255, 0.4);
+}
+
+.dimension-bar-fill.range-2 {
+  background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
+  box-shadow: 0 0 8px rgba(0, 188, 212, 0.4);
+}
+
+/* Dual Handle Slider (pattern from partial_elimination) */
+.dual-slider-container {
+  position: relative;
+  height: 32px;
+  margin: 0.5rem 0;
+}
+
+.dual-slider-container input[type="range"] {
+  position: absolute;
+  width: 100%;
+  height: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
+  background: transparent;
 }
 
-.control-slider::-webkit-slider-thumb {
+.dual-slider-container .slider-start {
+  z-index: 1;
+}
+
+.dual-slider-container .slider-end {
+  z-index: 2;
+}
+
+.dual-slider-container input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  background: transparent;
+  border-radius: 4px;
+}
+
+.dual-slider-container input[type="range"]::-moz-range-track {
+  height: 8px;
+  background: transparent;
+  border-radius: 4px;
+}
+
+.dual-slider-container input[type="range"]::-webkit-slider-thumb {
+  pointer-events: all;
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  background: #00BCD4;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%);
+  border: 2px solid white;
   border-radius: 50%;
-  cursor: pointer;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease;
 }
 
-.slider-value {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.75rem;
-  min-width: 55px;
-  text-align: right;
-  font-family: 'Fira Code', 'Consolas', monospace;
+.dual-slider-container input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 10px rgba(124, 77, 255, 0.5);
 }
 
-.control-hint {
-  color: rgba(255, 255, 255, 0.3);
+.dual-slider-container input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+.dual-slider-container input[type="range"]::-moz-range-thumb {
+  pointer-events: all;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%);
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Range Display (number fields) */
+.range-display {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.range-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.range-field label {
+  color: rgba(255, 255, 255, 0.4);
   font-size: 0.7rem;
-  line-height: 1.4;
-  margin-top: 0.25rem;
-  padding-left: calc(80px + 1rem);
+}
+
+.range-input {
+  width: 75px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  color: white;
+  font-size: 0.9rem;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  text-align: center;
+}
+
+.range-separator {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.2rem;
+  padding-bottom: 0.3rem;
+}
+
+/* Selection Description */
+.selection-description {
+  color: rgba(124, 77, 255, 0.85);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(124, 77, 255, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid rgba(124, 77, 255, 0.4);
 }
 
 /* Dimension Bars */
 .dimension-bars {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  max-height: 500px;
+  gap: 1px;
+  max-height: 600px;
   overflow-y: auto;
   padding-right: 0.5rem;
 }
@@ -884,19 +1191,24 @@ onUnmounted(() => {
 .dim-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
+  gap: 0.4rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
   transition: background 0.1s ease;
+  opacity: 0.35;
 }
 
-.dim-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+.dim-row.in-range-1,
+.dim-row.in-range-2 {
+  opacity: 1;
 }
 
-.dim-row.selected {
-  background: rgba(124, 77, 255, 0.1);
+.dim-row.in-range-1 {
+  background: rgba(124, 77, 255, 0.06);
+}
+
+.dim-row.in-range-2 {
+  background: rgba(0, 188, 212, 0.06);
 }
 
 .dim-checkbox {
@@ -910,9 +1222,25 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+.dim-rank {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.65rem;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  min-width: 35px;
+  text-align: right;
+}
+
+.dim-row.in-range-1 .dim-rank {
+  color: rgba(124, 77, 255, 0.6);
+}
+
+.dim-row.in-range-2 .dim-rank {
+  color: rgba(0, 188, 212, 0.6);
+}
+
 .dim-index {
   color: rgba(255, 255, 255, 0.4);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-family: 'Fira Code', 'Consolas', monospace;
   min-width: 45px;
   text-align: right;
@@ -920,36 +1248,38 @@ onUnmounted(() => {
 
 .dim-bar-container {
   flex: 1;
-  height: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 3px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .dim-bar {
   height: 100%;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-  transition: width 0.2s ease, background 0.2s ease;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  transition: background 0.15s ease;
 }
 
-.dim-bar.above-threshold {
+.dim-bar.in-range-1 {
   background: rgba(124, 77, 255, 0.5);
 }
 
+.dim-bar.in-range-2 {
+  background: rgba(0, 188, 212, 0.5);
+}
+
 .dim-value {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.65rem;
   font-family: 'Fira Code', 'Consolas', monospace;
   min-width: 50px;
   text-align: right;
 }
 
-.dim-hint {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 0.7rem;
-  margin-top: 0.5rem;
-  line-height: 1.4;
+.dim-row.in-range-1 .dim-value,
+.dim-row.in-range-2 .dim-value {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* States */
