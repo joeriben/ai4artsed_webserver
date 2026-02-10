@@ -2671,7 +2671,7 @@ async def execute_stage4_generation_only(
     Args:
         prompt: Ready-to-use prompt (already translated to English if needed)
         output_config: Config ID (e.g., 'sd35_large')
-        safety_level: 'kids', 'youth', 'adult', or 'off' (for metadata only)
+        safety_level: 'kids', 'youth', 'adult', or 'research' (for metadata only)
         run_id: Run identifier (required)
         seed: Optional seed (generates random if None)
         recorder: Optional LivePipelineRecorder instance (creates new if None)
@@ -3097,7 +3097,7 @@ async def execute_generation_stage4(
     Args:
         prompt: Input prompt for generation (German or English)
         output_config: Config ID (e.g., 'sd35_large')
-        safety_level: 'kids', 'youth', 'adult', or 'off'
+        safety_level: 'kids', 'youth', 'adult', or 'research'
         seed: Optional seed (generates random if None)
         recorder: Optional LivePipelineRecorder instance (creates new if None)
         run_id: Optional run_id (creates new if None)
@@ -4103,7 +4103,7 @@ def interception_pipeline():
         pipeline_def = pipeline_executor.config_loader.get_pipeline(config.pipeline_name)
         requires_stage3 = pipeline_def.requires_interception_prompt if pipeline_def else True  # Default True for safety
 
-        if requires_stage3 and safety_level != 'off' and isinstance(result.final_output, str):
+        if requires_stage3 and safety_level != 'research' and isinstance(result.final_output, str):
             logger.info(f"[4-STAGE] Stage 3: Post-Interception Safety Check (pipeline requires it)")
             # TODO: Implement Stage 3 safety check on result.final_output here
             # For now, this is a placeholder - actual implementation in future session
@@ -4232,7 +4232,7 @@ def interception_pipeline():
                 stage_3_blocked = False
 
                 # Skip Stage 3 ONLY if stage4_only=True (fast regeneration)
-                # Note: Stage 3 now includes translation, so it runs even if safety_level='off'
+                # Note: Stage 3 now includes translation, so it runs even if safety_level='research'
                 if not stage4_only:
                     tracker.set_stage(3)
                     recorder.set_state(3, "pre_output_safety")

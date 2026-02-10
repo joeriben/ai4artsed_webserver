@@ -423,6 +423,12 @@ def check_auth():
     return jsonify({"authenticated": authenticated}), 200
 
 
+@settings_bp.route('/safety-level', methods=['GET'])
+def get_safety_level():
+    """Public endpoint: returns current safety level for frontend feature gating."""
+    return jsonify({'safety_level': config.DEFAULT_SAFETY_LEVEL})
+
+
 @settings_bp.route('/gpu-info', methods=['GET'])
 def get_gpu_info():
     """

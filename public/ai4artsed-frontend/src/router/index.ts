@@ -81,6 +81,7 @@ const router = createRouter({
       name: 'canvas-workflow',
       // Session 129: Canvas workflow builder for parallel fan-out workflows
       component: () => import('../views/canvas_workflow.vue'),
+      meta: { requiresAdvanced: true },
     },
     {
       path: '/music-generation',
@@ -93,6 +94,7 @@ const router = createRouter({
       name: 'latent-lab',
       // Latent Lab: Deconstructive platform for vector/latent space exploration
       component: () => import('../views/latent_lab.vue'),
+      meta: { requiresAdvanced: true },
     },
     {
       path: '/music-generation-simple',
@@ -121,8 +123,9 @@ const router = createRouter({
   ],
 })
 
-// Check authentication for protected routes
+// Check authentication and advanced-mode guards
 router.beforeEach(async (to, from, next) => {
+  // Auth guard for settings
   if (to.meta.requiresAuth) {
     try {
       const response = await fetch('/api/settings/check-auth', {
@@ -140,9 +143,24 @@ router.beforeEach(async (to, from, next) => {
       console.error('Auth check failed:', e)
       next({ name: 'landing' })
     }
-  } else {
-    next()
+    return
   }
+
+  // Advanced-mode guard for Canvas and Latent Lab (prevents direct URL access at kids/youth)
+  if (to.meta.requiresAdvanced) {
+    const { useSafetyLevelStore } = await import('../stores/safetyLevel')
+    const store = useSafetyLevelStore()
+    // Wait for initial fetch if not loaded yet
+    if (!store.loaded) {
+      await store.fetchLevel()
+    }
+    if (!store.isAdvancedMode) {
+      next({ name: 'landing' })
+      return
+    }
+  }
+
+  next()
 })
 
 export default router

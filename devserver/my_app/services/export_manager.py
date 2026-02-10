@@ -72,7 +72,7 @@ class ExportManager:
         prompt = session_data.get('prompt', '')
         translated_prompt = session_data.get('translated_prompt', '')
         used_seed = session_data.get('used_seed', 'N/A')
-        safety_level = session_data.get('safety_level', 'off')
+        safety_level = session_data.get('safety_level', 'research')
         outputs = session_data.get('outputs', [])
         
         html_content = f"""<!DOCTYPE html>
@@ -255,7 +255,7 @@ class ExportManager:
     
     def auto_export_session(self, prompt_id: str, workflow_name: str, prompt_text: str,
                           translated_prompt: str = None, used_seed: int = None, 
-                          safety_level: str = 'off') -> bool:
+                          safety_level: str = 'research') -> bool:
         """
         Automatically export a session after successful completion
         

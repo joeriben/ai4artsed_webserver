@@ -16,9 +16,14 @@ app.use(i18n)
 // Initialize global user preferences and sync with i18n
 // Must be done after pinia and i18n are installed
 import { useUserPreferencesStore } from './stores/userPreferences'
+import { useSafetyLevelStore } from './stores/safetyLevel'
 import { watch } from 'vue'
 
 const userPreferences = useUserPreferencesStore()
+
+// Fetch safety level for feature gating (non-blocking)
+const safetyLevelStore = useSafetyLevelStore()
+safetyLevelStore.fetchLevel()
 
 // Initial sync with vue-i18n
 i18n.global.locale.value = userPreferences.language

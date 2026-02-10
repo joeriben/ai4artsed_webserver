@@ -187,6 +187,16 @@ const messages = {
         }
       }
     },
+    research: {
+      locked: 'Nur im Forschungsmodus verfügbar',
+      lockedHint: 'Erfordert Safety-Level „Erwachsene" oder „Forschung" (config.py)',
+      complianceTitle: 'Hinweis zum Forschungsmodus',
+      complianceWarning: 'Im Forschungsmodus sind keine Sicherheitsfilter für Prompts und generierte Bilder aktiv. Es können unerwartete oder unangemessene Ergebnisse entstehen.',
+      complianceAge: 'Dieser Modus ist nicht empfohlen für Personen unter 16 Jahren.',
+      complianceConfirm: 'Ich bestätige, dass ich die Hinweise verstanden habe',
+      complianceCancel: 'Abbrechen',
+      complianceProceed: 'Fortfahren'
+    },
     presetOverlay: {
       title: 'Perspektive wählen',
       close: 'Schließen'
@@ -862,6 +872,16 @@ const messages = {
           description: 'Vector space research — surrealization, dimension elimination, embedding interpolation.'
         }
       }
+    },
+    research: {
+      locked: 'Only available in research mode',
+      lockedHint: 'Requires safety level "Adult" or "Research" (config.py)',
+      complianceTitle: 'Research Mode Notice',
+      complianceWarning: 'In research mode, no safety filters are active for prompts or generated images. Unexpected or inappropriate results may occur.',
+      complianceAge: 'This mode is not recommended for persons under 16 years of age.',
+      complianceConfirm: 'I confirm that I have understood the notices',
+      complianceCancel: 'Cancel',
+      complianceProceed: 'Proceed'
     },
     presetOverlay: {
       title: 'Choose Perspective',

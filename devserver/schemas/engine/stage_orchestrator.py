@@ -501,7 +501,7 @@ async def execute_stage1_gpt_oss_unified(
 
     Args:
         text: Input text to safety-check (in original language)
-        safety_level: 'kids', 'youth', 'adult', or 'off'
+        safety_level: 'kids', 'youth', 'adult', or 'research'
         execution_mode: 'eco' or 'fast'
         pipeline_executor: PipelineExecutor instance
 
@@ -529,8 +529,8 @@ async def execute_stage1_gpt_oss_unified(
         return (False, text, error_message, ['§86a'])
 
     # ── STEP 2: Age-appropriate Fast-Filter (~0.001s) ──────────────────
-    # Skip for 'adult' and 'off' — only §86a and DSGVO apply
-    if safety_level not in ('off', 'adult'):
+    # Skip for 'adult' and 'research' — only §86a and DSGVO apply
+    if safety_level not in ('research', 'adult'):
         age_start = _time.time()
         has_age_terms, found_age_terms = fast_filter_check(text, safety_level)
         age_time = _time.time() - age_start
@@ -640,7 +640,7 @@ async def execute_stage1_gpt_oss_unified(
     # ── STEP 3: DSGVO SpaCy NER (~50-100ms) or LLM Fallback ──────────
     # Track which checks we've passed so far
     checks_passed = ['§86a']
-    if safety_level not in ('off', 'adult'):
+    if safety_level not in ('research', 'adult'):
         checks_passed.append('age_filter')
 
     dsgvo_start = _time.time()
@@ -733,7 +733,7 @@ async def execute_stage3_safety(
 
     Args:
         prompt: Prompt to check before media generation
-        safety_level: 'kids', 'youth', or 'off'
+        safety_level: 'kids', 'youth', or 'research'
         media_type: Type of media being generated (for logging)
         execution_mode: 'eco' or 'fast'
         pipeline_executor: PipelineExecutor instance
@@ -750,7 +750,7 @@ async def execute_stage3_safety(
     import time
 
     # STEP 1: ALWAYS translate first (regardless of safety path or level)
-    # Translation happens even if safety is 'off'
+    # Translation happens even if safety is 'research'
     translate_start = time.time()
     translate_result = await pipeline_executor.execute_pipeline(
         'pre_output/translation_en',  # Translation config (just translate chunk)
@@ -768,7 +768,7 @@ async def execute_stage3_safety(
         logger.warning(f"[STAGE3-TRANSLATION] Translation failed, using original prompt")
 
     # If safety is disabled or adult level, return translated prompt without safety check
-    if safety_level in ('off', 'adult'):
+    if safety_level in ('research', 'adult'):
         return {
             "safe": True,
             "method": "disabled",
@@ -876,7 +876,7 @@ async def execute_stage3_safety_code(
 
     Args:
         code: Generated code (JavaScript, Ruby, etc.)
-        safety_level: Safety level ('kids', 'youth', 'off')
+        safety_level: Safety level ('kids', 'youth', 'research')
         media_type: Media type ('code')
         execution_mode: Execution mode ('eco', 'fast')
         pipeline_executor: Pipeline executor for LLM calls
@@ -898,8 +898,8 @@ async def execute_stage3_safety_code(
 
     logger.info(f"[STAGE3-CODE] Safety check for code (level: {safety_level})")
 
-    # If safety is off or adult, skip all checks
-    if safety_level in ('off', 'adult'):
+    # If safety is research or adult, skip all checks
+    if safety_level in ('research', 'adult'):
         logger.info(f"[STAGE3-CODE] Safety level '{safety_level}' → allowing code")
         return {
             'safe': True,

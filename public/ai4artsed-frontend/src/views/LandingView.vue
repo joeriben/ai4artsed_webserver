@@ -15,9 +15,18 @@
           v-for="feature in features"
           :key="feature.id"
           class="feature-card"
+          :class="{ locked: feature.requiresAdvanced && !safetyStore.isAdvancedMode }"
           :style="{ '--feature-color': feature.color }"
-          @click="$router.push(feature.route)"
+          @click="handleFeatureClick(feature)"
         >
+          <!-- Lock overlay for gated features -->
+          <div v-if="feature.requiresAdvanced && !safetyStore.isAdvancedMode" class="lock-overlay">
+            <svg xmlns="http://www.w3.org/2000/svg" height="32" viewBox="0 -960 960 960" width="32" fill="currentColor">
+              <path d="M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm240-200q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80Z"/>
+            </svg>
+            <span class="lock-hint">{{ $t('research.lockedHint') }}</span>
+          </div>
+
           <!-- Preview images (staggered rotation per card) -->
           <div class="card-preview">
             <div
@@ -50,15 +59,64 @@
       </a>
     </section>
 
+    <!-- Research Compliance Dialog -->
+    <ResearchComplianceDialog
+      v-model="showComplianceDialog"
+      @confirmed="onComplianceConfirmed"
+    />
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted, onUnmounted } from 'vue'
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useSafetyLevelStore } from '../stores/safetyLevel'
+import ResearchComplianceDialog from '../components/ResearchComplianceDialog.vue'
+
+const router = useRouter()
+const safetyStore = useSafetyLevelStore()
+
+const showComplianceDialog = ref(false)
+const pendingRoute = ref('')
 
 // Per-card preview index with staggered timing (±800ms random offset)
 const previewIndices = reactive<Record<string, number>>({})
 const timers: number[] = []
+
+interface Feature {
+  id: string
+  route: string
+  color: string
+  titleKey: string
+  descriptionKey: string
+  iconSvg: string
+  previewImages: string[]
+  requiresAdvanced?: boolean
+}
+
+function handleFeatureClick(feature: Feature) {
+  // Locked: do nothing
+  if (feature.requiresAdvanced && !safetyStore.isAdvancedMode) return
+
+  // Research mode without confirmation: show dialog
+  if (feature.requiresAdvanced && safetyStore.isResearchMode && !safetyStore.researchConfirmed) {
+    pendingRoute.value = feature.route
+    showComplianceDialog.value = true
+    return
+  }
+
+  // Normal navigation
+  router.push(feature.route)
+}
+
+function onComplianceConfirmed() {
+  safetyStore.confirmResearch()
+  if (pendingRoute.value) {
+    router.push(pendingRoute.value)
+    pendingRoute.value = ''
+  }
+}
 
 onMounted(() => {
   features.forEach((feature) => {
@@ -76,7 +134,7 @@ onUnmounted(() => {
 })
 
 // Feature definitions with SVG icons from the header mode-selector
-const features = [
+const features: Feature[] = [
   {
     id: 'text-transformation',
     route: '/text-transformation',
@@ -146,6 +204,7 @@ const features = [
       '/config-previews/canvas_workflow_2.png',
       '/config-previews/canvas_workflow_3.png',
     ],
+    requiresAdvanced: true,
   },
   {
     id: 'latent-lab',
@@ -163,6 +222,7 @@ const features = [
       '/config-previews/latent_lab_6.jpg',
       '/config-previews/partial_elimination.png',
     ],
+    requiresAdvanced: true,
   },
 ]
 </script>
@@ -233,6 +293,44 @@ const features = [
   transform: translateY(-4px);
   border-color: var(--feature-color);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px color-mix(in srgb, var(--feature-color) 20%, transparent);
+}
+
+/* Locked state */
+.feature-card.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.feature-card.locked:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.lock-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.lock-overlay svg {
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.5rem;
+}
+
+.lock-hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 0 1rem;
+  line-height: 1.4;
 }
 
 /* Preview area */

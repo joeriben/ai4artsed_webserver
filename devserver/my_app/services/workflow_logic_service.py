@@ -471,8 +471,8 @@ class WorkflowLogicService:
         
         Args:
             workflow: Workflow definition
-            safety_level: Safety level ('off', 'youth', or 'kids')
-            
+            safety_level: Safety level ('research', 'youth', or 'kids')
+
         Returns:
             True if safety node was found and updated, False otherwise
         """
@@ -753,7 +753,7 @@ class WorkflowLogicService:
             mode: Execution mode ('eco' or 'fast')
             seed_mode: Seed control mode ('random', 'standard', or 'fixed')
             custom_seed: Custom seed value for 'fixed' mode
-            safety_level: Safety level ('off', 'youth', or 'kids')
+            safety_level: Safety level ('research', 'youth', or 'kids')
             input_negative_terms: Additional negative terms from user input
             hidden_commands: Hidden commands parsed from the prompt
             

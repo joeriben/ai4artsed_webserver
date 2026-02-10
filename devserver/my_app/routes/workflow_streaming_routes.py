@@ -39,7 +39,7 @@ def execute_workflow_stream():
             mode = data.get('mode', 'eco')
             seed_mode = data.get('seedMode', 'random')
             custom_seed = data.get('customSeed', None)
-            safety_level = data.get('safetyLevel', 'off')
+            safety_level = data.get('safetyLevel', 'research')
             input_negative_terms = normalize_negative_terms(data.get('inputNegativeTerms'))
             
             # New dual input parameters
