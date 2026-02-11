@@ -318,19 +318,18 @@ watch(categories, () => calculateCategoryPositions())
   pointer-events: all;
 }
 
-/* Config bubbles: aspect-ratio + overflow:hidden = Kreis */
+/* Config bubbles: calc(--square-size * 0.145) für width UND height = Kreis */
 .config-bubble {
   position: absolute;
-  width: 14.5%;
-  aspect-ratio: 1 / 1;
-  min-height: 0;
+  width: calc(var(--square-size) * 0.145);
+  height: calc(var(--square-size) * 0.145);
   border-radius: 50%;
   overflow: hidden;
   transform: translate(-50%, -50%);
   cursor: pointer;
   pointer-events: all;
   transition: all 0.3s ease;
-  font-size: clamp(0.5rem, 1.2vw + 0.3vh, 1rem);
+  font-size: calc(var(--square-size) * 0.02);
 }
 
 .config-bubble:hover {
@@ -372,8 +371,9 @@ watch(categories, () => calculateCategoryPositions())
   font-size: 0.9em;
   font-weight: 600;
   text-align: center;
-  padding: 0.3em 0.8em 0.5em;
+  padding: 0.3em 15% 0.6em;
   line-height: 1.3;
+  word-break: break-word;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;

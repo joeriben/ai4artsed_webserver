@@ -280,8 +280,9 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   text-align: center;
-  padding: 4px 10px 8px;
+  padding: 4px 15% 8px;
   line-height: 1.3;
+  word-break: break-word;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
