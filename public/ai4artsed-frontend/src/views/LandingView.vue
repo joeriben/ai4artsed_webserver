@@ -56,7 +56,8 @@
         </a>
       </div>
       <div class="project-logos">
-        <a href="https://kubi-meta.de/ai4artsed" target="_blank" rel="noopener noreferrer">
+        <a href="https://kubi-meta.de/ai4artsed" target="_blank" rel="noopener noreferrer" class="project-logo-link">
+          <span class="project-wordmark">AI4ArtsEd</span>
           <img src="/logos/ai4artsed_logo.jpg" alt="AI4ArtsEd" class="project-logo" />
         </a>
         <a href="https://comearts.eu" target="_blank" rel="noopener noreferrer">
@@ -436,6 +437,21 @@ const features: Feature[] = [
 
 .project-logo:hover {
   opacity: 1;
+}
+
+.project-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.project-wordmark {
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+  margin-right: 0.25rem;
 }
 
 /* Responsive */

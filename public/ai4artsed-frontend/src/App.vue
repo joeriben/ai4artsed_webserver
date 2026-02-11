@@ -4,13 +4,13 @@
     <header class="app-header">
       <div class="header-content">
         <div class="header-left">
-          <a href="https://www.fau.de/" target="_blank" rel="noopener noreferrer" class="header-logo-link">
-            <img src="/logos/fau_logo.png" alt="FAU Erlangen-Nürnberg" class="header-logo" />
-          </a>
           <a href="https://www.ucdcae.fau.de/" target="_blank" rel="noopener noreferrer" class="header-logo-link">
             <img src="/logos/unesco_chair.png" alt="UNESCO Chair" class="header-logo" />
           </a>
-          <span class="app-title" title="UNESCO Chair in Digital Culture and Arts in Education AI Lab">UCDCAE AI LAB</span>
+          <span class="app-title-wrapper">
+            <span class="app-title"><span style="color:#667eea">U</span><span style="color:#e91e63">C</span><span style="color:#7C4DFF">D</span><span style="color:#FF6F00">C</span><span style="color:#4CAF50">A</span><span style="color:#00BCD4">E</span> <span style="color:#667eea">A</span><span style="color:#e91e63">I</span> <span style="color:#7C4DFF">L</span><span style="color:#FF6F00">A</span><span style="color:#4CAF50">B</span></span>
+            <span class="app-title-tooltip"><span class="tooltip-highlight">UNESCO Chair in Digital Culture and Arts in Education</span> AI Lab</span>
+          </span>
         </div>
 
         <div class="header-center">
@@ -304,12 +304,45 @@ html, body {
   justify-content: flex-end;
 }
 
+.app-title-wrapper {
+  position: relative;
+  cursor: default;
+}
+
 .app-title {
   font-size: 1rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.app-title-tooltip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(30, 30, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.8);
+  z-index: 1001;
+}
+
+.app-title-wrapper:hover .app-title-tooltip {
+  display: block;
+}
+
+.tooltip-highlight {
+  color: #FF6F00;
+  font-weight: 600;
 }
 
 /* Header Right Reorganization */
