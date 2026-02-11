@@ -226,7 +226,7 @@ const tagDimensions: DimensionConfig[] = [
     label_en: 'Genre',
     color: '#e91e63',
     importance: 'high',
-    chips: ['pop', 'rock', 'jazz', 'classical', 'electronic', 'hip-hop', 'r&b', 'country', 'folk', 'metal', 'indie', 'blues', 'latin', 'reggae', 'funk', 'soul', 'dance', 'punk', 'ambient', 'gospel']
+    chips: ['pop', 'rock', 'jazz', 'classical', 'electronic', 'hip-hop', 'r&b', 'country', 'folk', 'metal', 'indie', 'blues', 'latin', 'reggae', 'funk', 'soul', 'dance', 'punk', 'ambient', 'gospel', 'afrobeat', 'k-pop', 'bollywood', 'bossa_nova', 'salsa', 'flamenco', 'qawwali', 'highlife', 'cumbia', 'tango', 'fado', 'samba', 'house', 'techno', 'trance', 'dubstep', 'drum_and_bass', 'synthwave', 'lo-fi', 'trap']
   },
   {
     name: 'timbre',
@@ -247,14 +247,14 @@ const tagDimensions: DimensionConfig[] = [
     label_de: 'Stimmung',
     label_en: 'Mood',
     color: '#ff9800',
-    chips: ['happy', 'sad', 'energetic', 'calm', 'romantic', 'melancholic', 'aggressive', 'dreamy', 'nostalgic', 'upbeat', 'dark', 'hopeful', 'playful', 'dramatic']
+    chips: ['happy', 'sad', 'energetic', 'calm', 'romantic', 'melancholic', 'aggressive', 'dreamy', 'nostalgic', 'upbeat', 'dark', 'hopeful', 'playful', 'dramatic', 'festive']
   },
   {
     name: 'instrument',
     label_de: 'Instrumente',
     label_en: 'Instruments',
     color: '#4caf50',
-    chips: ['piano', 'guitar', 'drums', 'bass', 'violin', 'saxophone', 'trumpet', 'synthesizer', 'flute', 'keyboard', 'cello', 'harmonica', 'organ', 'ukulele']
+    chips: ['piano', 'guitar', 'drums', 'bass', 'violin', 'saxophone', 'trumpet', 'synthesizer', 'flute', 'keyboard', 'cello', 'harmonica', 'organ', 'ukulele', 'sitar', 'tabla', 'koto', 'erhu', 'djembe', 'gamelan', 'oud', 'shamisen', 'didgeridoo', 'kalimba', 'guzheng', 'mbira', 'kora', 'steel_drum', 'saz', 'shakuhachi', 'darbuka', 'balafon', 'pipa']
   },
   {
     name: 'scene',
@@ -265,10 +265,10 @@ const tagDimensions: DimensionConfig[] = [
   },
   {
     name: 'region',
-    label_de: 'Region',
-    label_en: 'Region',
+    label_de: 'Region (UNESCO)',
+    label_en: 'Region (UNESCO)',
     color: '#795548',
-    chips: ['western', 'latin', 'asian', 'african', 'middle_eastern', 'nordic', 'caribbean', 'eastern_european']
+    chips: ['west_africa', 'east_africa', 'southern_africa', 'arab_world', 'south_asia', 'east_asia', 'southeast_asia', 'central_asia', 'northern_europe', 'southern_europe', 'eastern_europe', 'caribbean', 'south_america', 'north_america']
   },
   {
     name: 'topic',
@@ -462,7 +462,7 @@ function parseAndApplyTagSuggestions(text: string) {
     // Extract JSON from LLM response (may have surrounding text)
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      console.warn('[MusicGenV2] No JSON found in tag suggestion response')
+      console.warn('[MusicGenV2] No JSON found in tag suggestion response. Raw text:', text)
       return
     }
 
@@ -475,10 +475,25 @@ function parseAndApplyTagSuggestions(text: string) {
       knownChips[dim.name] = new Set(dim.chips)
     }
 
+    let totalSuggested = 0
+    let totalMatched = 0
+
     for (const [dimName, tags] of Object.entries(suggestions)) {
       if (!Array.isArray(tags) || !knownChips[dimName]) continue
-      // Only select tags that exist in our chip list
-      newSelection[dimName] = tags.filter(tag => knownChips[dimName]!.has(tag))
+      totalSuggested += tags.length
+      const matched = tags.filter(tag => knownChips[dimName]!.has(tag))
+      const dropped = tags.filter(tag => !knownChips[dimName]!.has(tag))
+      totalMatched += matched.length
+      if (dropped.length > 0) {
+        console.warn(`[MusicGenV2] ${dimName}: dropped unknown tags:`, dropped, '| matched:', matched)
+      }
+      newSelection[dimName] = matched
+    }
+
+    console.log(`[MusicGenV2] Tag suggestion: ${totalMatched}/${totalSuggested} tags matched`)
+
+    if (totalMatched === 0) {
+      console.warn('[MusicGenV2] No suggested tags matched known chips. Suggestions were:', suggestions)
     }
 
     selectedTags.value = newSelection

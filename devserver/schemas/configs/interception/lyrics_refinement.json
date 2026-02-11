@@ -1,13 +1,13 @@
 {
   "config_id": "lyrics_refinement",
   "pipeline": "text_transformation",
-  "description": "Refines song lyrics for better structure, rhythm, and poetic quality",
+  "description": "Adds song structure markers, line breaks, and minor polish to existing lyrics",
   "chunks": [
     {
       "chunk_name": "manipulate",
-      "prompt": "You are a professional songwriter. Refine the following song lyrics while PRESERVING the original words and meaning:\n\n{input_text}\n\nYour task:\n1. Keep the SAME words and phrases\n2. Improve structure with proper [Verse], [Chorus], [Bridge] markers if missing\n3. Adjust line breaks for better rhythm\n4. Small improvements to rhyme/meter WITHOUT changing the core text\n\nIMPORTANT: Do NOT rewrite the lyrics completely. Output ONLY the refined version with the SAME content.",
+      "prompt": "You are a song structure assistant. The user has written song lyrics or text. Your job is to ADD STRUCTURE to it — not rewrite it.\n\nINPUT TEXT:\n{input_text}\n\nYour task:\n1. Add [Verse], [Chorus], [Bridge], [Outro] markers where they naturally fit\n2. Break long blocks into singable lines (4-8 words per line works well)\n3. Identify repeated phrases or refrains and mark them as [Chorus]\n4. Minor polish: fix obvious typos, smooth awkward phrasing — but keep the author's words\n\nRULES:\n- Do NOT translate the text. Keep the SAME language as the input.\n- Do NOT substantially rewrite or replace the content.\n- Do NOT add new verses, ideas, or metaphors the author didn't write.\n- If the input is already well-structured, return it with minimal changes.\n\nOutput ONLY the structured lyrics. No commentary, no explanation.",
       "parameters": {
-        "temperature": 0.7,
+        "temperature": 0.5,
         "top_p": 0.9,
         "max_tokens": 1000
       }
