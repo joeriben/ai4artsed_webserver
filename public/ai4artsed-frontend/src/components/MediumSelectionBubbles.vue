@@ -123,7 +123,6 @@ function selectConfig(config: any) {
 }
 
 .bubbles-container {
-  --ms: min(100vw, 100vh);
   position: relative;
   width: 100%;
   height: 100%;
@@ -131,15 +130,16 @@ function selectConfig(config: any) {
 
 .config-bubble {
   position: absolute;
-  width: calc(var(--ms) * 0.18);
-  height: calc(var(--ms) * 0.18);
+  width: 18%;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
   border-radius: 50%;
   overflow: hidden;
   transform: translate(-50%, -50%);
   cursor: pointer;
   transition: all 0.3s ease;
   pointer-events: all;
-  font-size: calc(var(--ms) * 0.02);
+  font-size: clamp(0.5rem, 1.2vw + 0.3vh, 1.2rem);
 }
 
 .config-bubble:hover {
@@ -167,6 +167,7 @@ function selectConfig(config: any) {
   border: 3px solid #2196F3;
 }
 
+
 /* Preview image background */
 .preview-image {
   position: absolute;
@@ -180,27 +181,23 @@ function selectConfig(config: any) {
   background-color: #f0f0f0;
 }
 
-/* Text badge overlay */
+/* Schwarze Bande: volle Breite, Kreis-overflow clippt die Ecken */
 .text-badge {
   position: absolute;
-  bottom: 8%;
-  left: 5%;
-  right: 5%;
-  background: rgba(0, 0, 0, 0.85);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
   color: white;
-  font-size: 1em;
+  font-size: 0.9em;
   font-weight: 600;
   text-align: center;
-  padding: 0.5em 0.4em;
-  border-radius: 0;
+  padding: 0.3em 0.8em 0.5em;
   line-height: 1.3;
-  max-height: 30%;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Selection indicator */

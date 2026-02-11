@@ -306,12 +306,11 @@ onMounted(() => {
   */
 }
 
-/* Quadrat: --s ist die EINZIGE Größenquelle für alle Bubbles */
+/* Quadrat: min(70vw,70vh) skaliert; aspect-ratio erzwingt 1:1 */
 .cluster-wrapper {
-  --s: min(70vw, 70vh);
   position: relative;
-  width: var(--s);
-  height: var(--s);
+  width: min(70vw, 70vh);
+  aspect-ratio: 1 / 1;
 }
 
 /* Nur die Bubbles selbst sind klick-/draggable */
@@ -319,18 +318,19 @@ onMounted(() => {
   pointer-events: all;
 }
 
-/* Config Bubbles: width UND height aus derselben Variable = Quadrat = Kreis */
+/* Config Bubbles: aspect-ratio + overflow:hidden = Kreis */
 .property-config-bubble {
   position: absolute;
-  width: calc(var(--s) * 0.18);
-  height: calc(var(--s) * 0.18);
+  width: 18%;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
   border-radius: 50%;
   overflow: hidden;
   transform: translate(-50%, -50%);
   cursor: pointer;
   pointer-events: all;
   transition: all 0.3s ease;
-  font-size: calc(var(--s) * 0.02);
+  font-size: clamp(0.5rem, 1.2vw + 0.3vh, 1rem);
 }
 
 .property-config-bubble:hover {
@@ -348,6 +348,7 @@ onMounted(() => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
+
 /* Preview image background */
 .preview-image {
   position: absolute;
@@ -361,26 +362,23 @@ onMounted(() => {
   background-color: #f0f0f0; /* Fallback color if image fails */
 }
 
-/* Text badge: einzeilig, responsive, nie größer als 25% der Bubble */
+/* Schwarze Bande: volle Breite, Kreis-overflow clippt die Ecken */
 .text-badge {
   position: absolute;
-  bottom: 8%;
-  left: 5%;
-  right: 5%;
-  background: rgba(0, 0, 0, 0.75);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
   color: white;
-  font-size: 1em;
+  font-size: 0.9em;
   font-weight: 600;
   text-align: center;
-  padding: 0.3em 0.4em;
-  border-radius: 0;
-  line-height: 1.2;
-  max-height: 25%;
+  padding: 0.3em 0.8em 0.5em;
+  line-height: 1.3;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 /* Transitions for config bubbles */

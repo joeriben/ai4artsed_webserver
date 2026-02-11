@@ -91,14 +91,9 @@ const symbol = computed(() => props.symbolData?.symbol || '')
 const label = computed(() => props.symbolData?.label || props.property)
 const tooltip = computed(() => props.symbolData?.tooltip || '')
 
-// Bubble size: identical calc expression for width AND height = circle
-const BUBBLE_SIZE = 'calc(min(70vw, 70vh) * 0.12)'
-
 const bubbleStyle = computed(() => ({
   left: `${props.x}%`,
   top: `${props.y}%`,
-  width: BUBBLE_SIZE,
-  height: BUBBLE_SIZE,
   '--bubble-color': props.color,
   '--bubble-shadow': props.isSelected ? `0 0 20px ${props.color}` : 'none',
   cursor: isDragging.value ? 'grabbing' : 'grab'
@@ -228,9 +223,10 @@ function stopDragTouch(event: TouchEvent) {
 </script>
 
 <style scoped>
-/* Größe kommt primär aus inline-style, CSS hier als Fallback */
 .property-bubble {
   position: absolute;
+  width: 12%;
+  aspect-ratio: 1 / 1;
   min-width: 0;
   min-height: 0;
   overflow: hidden;

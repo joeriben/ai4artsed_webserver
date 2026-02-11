@@ -318,15 +318,19 @@ watch(categories, () => calculateCategoryPositions())
   pointer-events: all;
 }
 
-/* Config bubbles (same visual as PropertyCanvas) */
+/* Config bubbles: aspect-ratio + overflow:hidden = Kreis */
 .config-bubble {
   position: absolute;
   width: 14.5%;
   aspect-ratio: 1 / 1;
+  min-height: 0;
+  border-radius: 50%;
+  overflow: hidden;
   transform: translate(-50%, -50%);
   cursor: pointer;
   pointer-events: all;
   transition: all 0.3s ease;
+  font-size: clamp(0.5rem, 1.2vw + 0.3vh, 1rem);
 }
 
 .config-bubble:hover {
@@ -344,6 +348,7 @@ watch(categories, () => calculateCategoryPositions())
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
+
 .preview-image {
   position: absolute;
   top: 0;
@@ -356,26 +361,23 @@ watch(categories, () => calculateCategoryPositions())
   background-color: #f0f0f0;
 }
 
+/* Schwarze Bande: volle Breite, Kreis-overflow clippt die Ecken */
 .text-badge {
   position: absolute;
-  bottom: 8%;
-  left: 5%;
-  right: 5%;
-  background: rgba(0, 0, 0, 0.85);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
   color: white;
-  font-size: 14px;
+  font-size: 0.9em;
   font-weight: 600;
   text-align: center;
-  padding: 8px 6px;
-  border-radius: 0;
+  padding: 0.3em 0.8em 0.5em;
   line-height: 1.3;
-  max-height: 45px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Transitions */

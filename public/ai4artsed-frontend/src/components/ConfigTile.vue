@@ -269,27 +269,23 @@ onMounted(() => {
   background-repeat: no-repeat;
 }
 
-/* Text badge overlay (bottom) */
+/* Schwarze Bande: volle Breite, Kreis-overflow clippt die Ecken */
 .text-badge {
   position: absolute;
-  bottom: 8%;
-  left: 5%;
-  right: 5%;
-  background: rgba(0, 0, 0, 0.85);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
   color: white;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   text-align: center;
-  padding: 10px 6px;
-  border-radius: 10px;
+  padding: 4px 10px 8px;
   line-height: 1.3;
-  max-height: 45px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Long-press modal */
