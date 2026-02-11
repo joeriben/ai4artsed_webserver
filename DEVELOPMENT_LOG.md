@@ -1,5 +1,120 @@
 # Development Log
 
+## Session 168 - Rebranding: AI4ARTSED → UCDCAE AI LAB
+**Date:** 2026-02-11
+**Focus:** Institutional rebranding from single-project name to UNESCO Chair identity
+
+### Changes
+
+**Header (App.vue)**
+- FAU logo added (links to fau.de), placed left of UNESCO logo
+- AI4ArtsEd logo removed from header
+- Title: `AI4ARTSED - AI LAB` → `UCDCAE AI LAB` with tooltip showing full name
+- Browser tab title updated in `index.html`
+
+**Landing Page (LandingView.vue)**
+- Hero title: `AI4ArtsEd` → `UCDCAE AI LAB`
+- "KI verändert Gesellschaft..." research paragraph removed
+- Funding section: BMBFSFJ logo kept, AI4ArtsEd + COMeARTS project logos added below
+
+**About Modal (AboutModal.vue)**
+- Project logos (AI4ArtsEd + COMeARTS) added to funding section
+
+**i18n (DE + EN)**
+- `app.title`, `landing.subtitle`, `about.title`, `about.intro`, `legal.privacy.usage` updated
+- `landing.research` set to empty string
+
+**Backend: CORS Origins (config.py + __init__.py)**
+- Extracted hardcoded CORS origins list to `CORS_ALLOWED_ORIGINS` in `config.py`
+- Origins auto-generated from `PORT` variable (no more hardcoded port numbers)
+
+**Assets**
+- `fau_logo.png` (9.2 KB) — FAU Kernmarke
+- `comearts_logo.jpg` (122 KB) — COMeARTS project logo
+
+### Verification
+- `npm run type-check` → 0 Errors
+
+### Files Changed
+- `devserver/config.py` — `CORS_ALLOWED_ORIGINS`
+- `devserver/my_app/__init__.py` — Import + use `CORS_ALLOWED_ORIGINS`
+- `public/.../index.html` — Tab title
+- `public/.../src/App.vue` — Header logos + title
+- `public/.../src/components/AboutModal.vue` — Project logos
+- `public/.../src/i18n.ts` — All rebranded text (DE + EN)
+- `public/.../src/views/LandingView.vue` — Hero + funding section
+- `public/.../public/logos/fau_logo.png` — NEU
+- `public/.../public/logos/comearts_logo.jpg` — NEU
+
+---
+
+## Session 167 - Diffusers Backend: VRAM Management, FP8, RAM Safety
+**Date:** 2026-02-11
+**Focus:** Three-tier VRAM management, FP8 quantization for Flux2, RAM pre-checks
+
+### Changes
+
+**Three-Tier VRAM Management (`diffusers_backend.py`)**
+- GPU VRAM → CPU RAM → Disk memory hierarchy
+- `_load_model_sync()` handles 3 cases: GPU-resident, CPU-offloaded, cold-load from disk
+- `_offload_to_cpu()` / `_move_to_gpu()` for model swapping
+- `_ensure_vram_available()` eviction logic with refcount protection
+- Refcount `_model_in_use[model_id]` prevents eviction during inference
+
+**FP8 Quantization for Flux2**
+- Automatic disk caching of quantized models (`save_pretrained` after `.to(device)`)
+- Fixed peak RAM issue: moved `save_pretrained` after GPU transfer
+
+**RAM Safety**
+- Pre-check: verify enough system RAM before loading models
+- Graceful degradation when system RAM too low for CPU offload
+- Check remaining RAM *after* offload, not just model fit
+- Evict all GPU models before cold-loading a new model
+- Suppress noisy diffusers warnings during CPU offload
+
+**SD3.5 Turbo Schema**
+- New output config for SD3.5 Turbo (fewer steps, faster inference)
+
+### Files Changed
+- `devserver/my_app/services/diffusers_backend.py`
+- `devserver/schemas/chunks/output_image_flux2_diffusers.json`
+- `devserver/schemas/chunks/output_image_flux2_fp8.json`
+- `devserver/schemas/configs/output/flux2_fp8.json`
+- `devserver/schemas/engine/backend_router.py`
+
+---
+
+## Session 166 - Music Tag Diversification, License, Docs, Denoising Archaeology
+**Date:** 2026-02-11
+**Focus:** UNESCO-aligned music tags, bilingual license, Latent Lab denoising archaeology
+
+### Changes
+
+**Music Generation v2: Tag Diversification**
+- Added UNESCO-aligned regional instruments and genres
+- Global instrument and genre coverage beyond Western defaults
+- Fixed lyrics button behavior
+
+**UCDCAE AI Lab License v1.0**
+- Custom bilingual license (DE/EN)
+- Covers educational use, research exceptions, attribution requirements
+
+**Documentation**
+- Renamed "Workshop" tab to "Praxis" in docs
+- Added license and installation information
+
+**Latent Lab: Denoising Archaeology**
+- New tab: step-by-step visualization of the denoising process
+- Shows intermediate latent states during diffusion
+
+### Files Changed
+- `public/.../src/i18n.ts` — Music tags, rebranding (i18n texts)
+- `LICENSE` — NEU: UCDCAE AI Lab License v1.0
+- `docs/` — Workshop → Praxis rename, installation info
+- Latent Lab Vue components — Denoising Archaeology tab
+
+---
+
 ## Session 165 - Research-Level Gating + Latent Lab Architecture Docs
 **Date:** 2026-02-11
 **Focus:** Safety-level gating for Canvas & Latent Lab; rename `off` → `research`; architecture documentation
