@@ -287,7 +287,7 @@ class DiffusersImageGenerator:
                 kwargs = {
                     "torch_dtype": self._get_torch_dtype(),
                     "use_safetensors": True,
-                    "low_cpu_mem_usage": True,
+                    "low_cpu_mem_usage": not bool(quantization),  # Incompatible with TorchAoConfig
                 }
                 if self.cache_dir:
                     kwargs["cache_dir"] = str(self.cache_dir)
@@ -304,6 +304,7 @@ class DiffusersImageGenerator:
                         # Load pre-quantized model directly — no runtime quantization
                         logger.info(f"[DIFFUSERS] Loading pre-quantized model from {quantized_path}")
                         model_id = str(quantized_path)
+                        kwargs["use_safetensors"] = False  # torchao saves as .bin, not .safetensors
                     else:
                         # First load: quantize at runtime, will save after
                         if method == "torchao":
@@ -346,7 +347,7 @@ class DiffusersImageGenerator:
                     try:
                         logger.info(f"[DIFFUSERS] Saving quantized model to {quantized_path} ...")
                         quantized_path.mkdir(parents=True, exist_ok=True)
-                        pipe.save_pretrained(quantized_path)
+                        pipe.save_pretrained(quantized_path, safe_serialization=False)
                         logger.info(f"[DIFFUSERS] Quantized model saved — next load will skip quantization")
                     except Exception as e:
                         logger.warning(f"[DIFFUSERS] Failed to save quantized model: {e} (non-fatal)")
