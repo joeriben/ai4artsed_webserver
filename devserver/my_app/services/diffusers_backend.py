@@ -317,18 +317,9 @@ class DiffusersImageGenerator:
                             )
                             logger.info(f"[DIFFUSERS] First load — quantizing: bitsandbytes")
 
+                need_save_quantized = quantized_path and "quantization_config" in kwargs
+
                 pipe = PipelineClass.from_pretrained(model_id, **kwargs)
-
-                # Save quantized model to disk on first load (skip if loaded from cache)
-                if quantized_path and "quantization_config" in kwargs:
-                    try:
-                        logger.info(f"[DIFFUSERS] Saving quantized model to {quantized_path} ...")
-                        quantized_path.mkdir(parents=True, exist_ok=True)
-                        pipe.save_pretrained(quantized_path)
-                        logger.info(f"[DIFFUSERS] Quantized model saved — next load will skip quantization")
-                    except Exception as e:
-                        logger.warning(f"[DIFFUSERS] Failed to save quantized model: {e} (non-fatal)")
-
                 pipe = pipe.to(self.device)
 
                 if self.enable_attention_slicing:
@@ -349,6 +340,16 @@ class DiffusersImageGenerator:
                     f"[DIFFUSERS] Model loaded: {cache_key} "
                     f"(VRAM: {self._model_vram_mb[cache_key]:.0f}MB)"
                 )
+
+                # Save quantized model to disk AFTER .to(device) — CPU RAM is free now
+                if need_save_quantized:
+                    try:
+                        logger.info(f"[DIFFUSERS] Saving quantized model to {quantized_path} ...")
+                        quantized_path.mkdir(parents=True, exist_ok=True)
+                        pipe.save_pretrained(quantized_path)
+                        logger.info(f"[DIFFUSERS] Quantized model saved — next load will skip quantization")
+                    except Exception as e:
+                        logger.warning(f"[DIFFUSERS] Failed to save quantized model: {e} (non-fatal)")
                 return True
 
             except Exception as e:
