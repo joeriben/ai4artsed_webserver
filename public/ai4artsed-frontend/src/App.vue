@@ -8,7 +8,7 @@
             <img src="/logos/unesco_chair.png" alt="UNESCO Chair" class="header-logo" />
           </a>
           <span class="app-title-wrapper">
-            <span class="app-title"><span style="color:#667eea">U</span><span style="color:#e91e63">C</span><span style="color:#7C4DFF">D</span><span style="color:#FF6F00">C</span><span style="color:#4CAF50">A</span><span style="color:#00BCD4">E</span> <span style="color:#667eea">A</span><span style="color:#e91e63">I</span> <span style="color:#7C4DFF">L</span><span style="color:#FF6F00">A</span><span style="color:#4CAF50">B</span></span>
+            <span class="app-title">UCDCAE AI LAB</span>
             <span class="app-title-tooltip"><span class="tooltip-highlight">UNESCO Chair in Digital Culture and Arts in Education</span> AI Lab</span>
           </span>
         </div>
@@ -312,6 +312,7 @@ html, body {
 .app-title {
   font-size: 1rem;
   font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
   letter-spacing: 1px;
 }

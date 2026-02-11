@@ -3,7 +3,7 @@
 
     <!-- Hero Section -->
     <section class="hero">
-      <h1 class="hero-title">UCDCAE AI LAB</h1>
+      <h1 class="hero-title"><span style="color:#667eea">U</span><span style="color:#e91e63">C</span><span style="color:#7C4DFF">D</span><span style="color:#FF6F00">C</span><span style="color:#4CAF50">A</span><span style="color:#00BCD4">E</span> <span style="color:#667eea">A</span><span style="color:#e91e63">I</span> <span style="color:#7C4DFF">L</span><span style="color:#FF6F00">A</span><span style="color:#4CAF50">B</span></h1>
       <p class="hero-subtitle">{{ $t('landing.subtitle') }}</p>
     </section>
 
