@@ -1772,6 +1772,7 @@ class BackendRouter:
 
             model_id = diffusers_config.get('model_id', 'stabilityai/stable-diffusion-3.5-large')
             pipeline_class = diffusers_config.get('pipeline_class', 'StableDiffusion3Pipeline')
+            enable_cpu_offload = diffusers_config.get('enable_cpu_offload', False)
 
             # Get generation parameters
             width = int(parameters.get('width') or input_mappings.get('width', {}).get('default', 1024))
@@ -1921,6 +1922,7 @@ class BackendRouter:
                     cfg_scale=cfg_scale,
                     seed=seed,
                     pipeline_class=pipeline_class,
+                    enable_cpu_offload=enable_cpu_offload,
                 )
 
             if not image_bytes:

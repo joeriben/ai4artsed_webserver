@@ -218,7 +218,7 @@ class DiffusersImageGenerator:
             evict_id = candidates[0][0]
             self._offload_to_cpu(evict_id)
 
-    def _load_model_sync(self, model_id: str, pipeline_class: str = "StableDiffusion3Pipeline") -> bool:
+    def _load_model_sync(self, model_id: str, pipeline_class: str = "StableDiffusion3Pipeline", enable_cpu_offload: bool = False) -> bool:
         """
         Synchronous model loading with three-tier memory management.
         Thread-safe via _load_lock.
@@ -230,8 +230,8 @@ class DiffusersImageGenerator:
                 import torch
                 from config import DIFFUSERS_VRAM_RESERVE_MB, DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB
 
-                # Case 1: Already loaded and on GPU
-                if model_id in self._pipelines and self._model_device.get(model_id) == "cuda":
+                # Case 1: Already loaded and on GPU (or managed by cpu_offload)
+                if model_id in self._pipelines and self._model_device.get(model_id) in ("cuda", "cpu_offload"):
                     self._model_last_used[model_id] = time.time()
                     self._current_model = model_id
                     return True
@@ -275,7 +275,14 @@ class DiffusersImageGenerator:
                     kwargs["cache_dir"] = str(self.cache_dir)
 
                 pipe = PipelineClass.from_pretrained(model_id, **kwargs)
-                pipe = pipe.to(self.device)
+
+                if enable_cpu_offload:
+                    pipe.enable_model_cpu_offload()
+                    device_label = "cpu_offload"
+                    logger.info(f"[DIFFUSERS] Using model CPU offload (components move to GPU on demand)")
+                else:
+                    pipe = pipe.to(self.device)
+                    device_label = "cuda"
 
                 if self.enable_attention_slicing:
                     pipe.enable_attention_slicing()
@@ -283,7 +290,7 @@ class DiffusersImageGenerator:
                     pipe.enable_vae_tiling()
 
                 self._pipelines[model_id] = pipe
-                self._model_device[model_id] = "cuda"
+                self._model_device[model_id] = device_label
                 self._current_model = model_id
                 self._model_last_used[model_id] = time.time()
 
@@ -293,7 +300,7 @@ class DiffusersImageGenerator:
 
                 logger.info(
                     f"[DIFFUSERS] Model loaded: {model_id} "
-                    f"(VRAM: {self._model_vram_mb[model_id]:.0f}MB)"
+                    f"(device: {device_label}, VRAM: {self._model_vram_mb[model_id]:.0f}MB)"
                 )
                 return True
 
@@ -350,6 +357,7 @@ class DiffusersImageGenerator:
         self,
         model_id: str,
         pipeline_class: str = "StableDiffusion3Pipeline",
+        enable_cpu_offload: bool = False,
     ) -> bool:
         """
         Load a model into GPU memory (three-tier: GPU → CPU → Disk).
@@ -362,11 +370,12 @@ class DiffusersImageGenerator:
         Args:
             model_id: HuggingFace model ID or local path
             pipeline_class: Pipeline class to use
+            enable_cpu_offload: Use enable_model_cpu_offload() for models too large for VRAM
 
         Returns:
             True if loaded successfully
         """
-        return await asyncio.to_thread(self._load_model_sync, model_id, pipeline_class)
+        return await asyncio.to_thread(self._load_model_sync, model_id, pipeline_class, enable_cpu_offload)
 
     async def unload_model(self, model_id: Optional[str] = None) -> bool:
         """
@@ -420,6 +429,7 @@ class DiffusersImageGenerator:
         seed: int = -1,
         callback: Optional[Callable[[int, int, Any], None]] = None,
         pipeline_class: str = "StableDiffusion3Pipeline",
+        enable_cpu_offload: bool = False,
         **kwargs
     ) -> Optional[bytes]:
         """
@@ -446,7 +456,7 @@ class DiffusersImageGenerator:
             import io
 
             # Ensure model is loaded and on GPU
-            if not await self.load_model(model_id, pipeline_class):
+            if not await self.load_model(model_id, pipeline_class, enable_cpu_offload):
                 return None
 
             self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1

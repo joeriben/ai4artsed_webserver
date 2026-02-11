@@ -35,7 +35,7 @@
     "backend": "diffusers",
     "backend_type": "diffusers",
     "requires_gpu": true,
-    "gpu_vram_mb": 24000,
+    "gpu_vram_mb": 62000,
     "estimated_duration_seconds": "10-20",
     "recommended_resolution": "1024x1024",
     "supported_resolutions": [
