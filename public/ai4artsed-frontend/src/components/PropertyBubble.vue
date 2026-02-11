@@ -91,9 +91,13 @@ const symbol = computed(() => props.symbolData?.symbol || '')
 const label = computed(() => props.symbolData?.label || props.property)
 const tooltip = computed(() => props.symbolData?.tooltip || '')
 
+const BUBBLE_SIZE = 'calc(min(70vw, 70vh) * 0.12)'
+
 const bubbleStyle = computed(() => ({
   left: `${props.x}%`,
   top: `${props.y}%`,
+  width: BUBBLE_SIZE,
+  height: BUBBLE_SIZE,
   '--bubble-color': props.color,
   '--bubble-shadow': props.isSelected ? `0 0 20px ${props.color}` : 'none',
   cursor: isDragging.value ? 'grabbing' : 'grab'
