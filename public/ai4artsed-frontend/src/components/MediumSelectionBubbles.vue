@@ -123,6 +123,7 @@ function selectConfig(config: any) {
 }
 
 .bubbles-container {
+  --ms: min(100vw, 100vh);
   position: relative;
   width: 100%;
   height: 100%;
@@ -130,13 +131,15 @@ function selectConfig(config: any) {
 
 .config-bubble {
   position: absolute;
-  width: 18%;
-  aspect-ratio: 1 / 1;
+  width: calc(var(--ms) * 0.18);
+  height: calc(var(--ms) * 0.18);
+  border-radius: 50%;
+  overflow: hidden;
   transform: translate(-50%, -50%);
   cursor: pointer;
   transition: all 0.3s ease;
   pointer-events: all;
-  font-size: clamp(0.5rem, 1.2vw + 0.3vh, 1.2rem);
+  font-size: calc(var(--ms) * 0.02);
 }
 
 .config-bubble:hover {
@@ -159,7 +162,7 @@ function selectConfig(config: any) {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-.is-selected .bubble-content {
+.config-bubble.is-selected .bubble-content {
   box-shadow: 0 6px 30px rgba(33, 150, 243, 0.5);
   border: 3px solid #2196F3;
 }

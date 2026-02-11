@@ -91,9 +91,14 @@ const symbol = computed(() => props.symbolData?.symbol || '')
 const label = computed(() => props.symbolData?.label || props.property)
 const tooltip = computed(() => props.symbolData?.tooltip || '')
 
+// Bubble size: identical calc expression for width AND height = circle
+const BUBBLE_SIZE = 'calc(min(70vw, 70vh) * 0.12)'
+
 const bubbleStyle = computed(() => ({
-  left: `${props.x}%`,  // Percentage positioning
-  top: `${props.y}%`,   // Percentage positioning
+  left: `${props.x}%`,
+  top: `${props.y}%`,
+  width: BUBBLE_SIZE,
+  height: BUBBLE_SIZE,
   '--bubble-color': props.color,
   '--bubble-shadow': props.isSelected ? `0 0 20px ${props.color}` : 'none',
   cursor: isDragging.value ? 'grabbing' : 'grab'
@@ -223,13 +228,16 @@ function stopDragTouch(event: TouchEvent) {
 </script>
 
 <style scoped>
+/* Größe kommt primär aus inline-style, CSS hier als Fallback */
 .property-bubble {
   position: absolute;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: rgba(20, 20, 20, 0.9);
   border: 2px solid var(--bubble-color);
-  border-radius: 50%;  /* Circular frames */
+  border-radius: 50%;
   color: var(--bubble-color);
-  font-size: 16px;
   font-weight: 500;
   cursor: grab;
   transition: all 0.3s ease;
@@ -239,24 +247,20 @@ function stopDragTouch(event: TouchEvent) {
   display: flex;
   align-items: center;
   justify-content: center;
-
-  /* Responsive sizing: percentage of cluster-wrapper */
-  width: 12%;   /* 12% of cluster-wrapper width */
-  aspect-ratio: 1 / 1;  /* Keep circular */
 }
 
 .property-symbol {
-  font-size: clamp(1.5rem, 3vw, 2.5rem);  /* Responsive symbol size */
+  width: 60%;
+  height: 60%;
   line-height: 1;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .property-symbol svg {
-  width: clamp(32px, 6vw, 48px);
-  height: clamp(32px, 6vw, 48px);
+  width: 100%;
+  height: 100%;
 }
 
 .property-label {

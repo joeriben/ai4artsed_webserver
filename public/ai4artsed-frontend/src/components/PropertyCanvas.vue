@@ -306,15 +306,12 @@ onMounted(() => {
   */
 }
 
-/* Quadrat, das mit min(70vw, 70vh) skaliert */
+/* Quadrat: --s ist die EINZIGE Größenquelle für alle Bubbles */
 .cluster-wrapper {
+  --s: min(70vw, 70vh);
   position: relative;
-  width: min(70vw, 70vh);
-  aspect-ratio: 1 / 1;
-
-  /* Debug: Deaktiviert für Production */
-  /* border: 2px dashed rgba(255, 0, 0, 0.4); */
-  /* background: rgba(255, 0, 0, 0.03); */
+  width: var(--s);
+  height: var(--s);
 }
 
 /* Nur die Bubbles selbst sind klick-/draggable */
@@ -322,15 +319,18 @@ onMounted(() => {
   pointer-events: all;
 }
 
-/* Configuration Bubbles */
+/* Config Bubbles: width UND height aus derselben Variable = Quadrat = Kreis */
 .property-config-bubble {
   position: absolute;
-  width: 18%;
-  aspect-ratio: 1 / 1;
+  width: calc(var(--s) * 0.18);
+  height: calc(var(--s) * 0.18);
+  border-radius: 50%;
+  overflow: hidden;
   transform: translate(-50%, -50%);
   cursor: pointer;
   pointer-events: all;
   transition: all 0.3s ease;
+  font-size: calc(var(--s) * 0.02);
 }
 
 .property-config-bubble:hover {
@@ -361,25 +361,24 @@ onMounted(() => {
   background-color: #f0f0f0; /* Fallback color if image fails */
 }
 
-/* Text badge overlay (like in ConfigTile) */
+/* Text badge: einzeilig, responsive, nie größer als 25% der Bubble */
 .text-badge {
   position: absolute;
   bottom: 8%;
   left: 5%;
   right: 5%;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.75);
   color: white;
-  font-size: 14px;
+  font-size: 1em;
   font-weight: 600;
   text-align: center;
-  padding: 8px 6px;
+  padding: 0.3em 0.4em;
   border-radius: 0;
-  line-height: 1.3;
-  max-height: 45px;
+  line-height: 1.2;
+  max-height: 25%;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   backdrop-filter: blur(8px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
