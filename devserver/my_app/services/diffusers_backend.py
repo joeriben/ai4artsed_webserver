@@ -274,13 +274,18 @@ class DiffusersImageGenerator:
                 if self.cache_dir:
                     kwargs["cache_dir"] = str(self.cache_dir)
 
-                pipe = PipelineClass.from_pretrained(model_id, **kwargs)
-
                 if enable_cpu_offload:
+                    # Model too large for VRAM — use device_map to load components
+                    # directly to their target devices (GPU or CPU), avoiding full
+                    # RAM materialization. Then enable_model_cpu_offload() sets up
+                    # accelerate hooks to move components to GPU on demand.
+                    kwargs.pop("low_cpu_mem_usage", None)  # incompatible with device_map
+                    pipe = PipelineClass.from_pretrained(model_id, device_map="balanced", **kwargs)
                     pipe.enable_model_cpu_offload()
                     device_label = "cpu_offload"
                     logger.info(f"[DIFFUSERS] Using model CPU offload (components move to GPU on demand)")
                 else:
+                    pipe = PipelineClass.from_pretrained(model_id, **kwargs)
                     pipe = pipe.to(self.device)
                     device_label = "cuda"
 
