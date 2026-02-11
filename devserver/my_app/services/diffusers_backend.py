@@ -89,6 +89,20 @@ class DiffusersImageGenerator:
         }
         return dtype_map.get(self.torch_dtype_str, torch.float16)
 
+    def _resolve_transformer_class(self, pipeline_class: str):
+        """Resolve the transformer model class for a given pipeline."""
+        if pipeline_class == "Flux2Pipeline":
+            from diffusers import Flux2Transformer2DModel
+            return Flux2Transformer2DModel
+        elif pipeline_class == "FluxPipeline":
+            from diffusers import FluxTransformer2DModel
+            return FluxTransformer2DModel
+        elif pipeline_class == "StableDiffusion3Pipeline":
+            from diffusers import SD3Transformer2DModel
+            return SD3Transformer2DModel
+        else:
+            raise ValueError(f"No transformer class known for pipeline: {pipeline_class}")
+
     def _resolve_pipeline_class(self, pipeline_class: str):
         """Resolve pipeline class string to actual class."""
         if pipeline_class == "StableDiffusion3Pipeline":
@@ -287,13 +301,18 @@ class DiffusersImageGenerator:
                 kwargs = {
                     "torch_dtype": self._get_torch_dtype(),
                     "use_safetensors": True,
-                    "low_cpu_mem_usage": not bool(quantization),  # Incompatible with TorchAoConfig
+                    "low_cpu_mem_usage": True,
                 }
                 if self.cache_dir:
                     kwargs["cache_dir"] = str(self.cache_dir)
 
-                # Quantization: check for cached pre-quantized model on disk first
+                # Quantization: only quantize the transformer (the large component).
+                # Loading a pre-quantized transformer from disk cache avoids runtime
+                # quantization entirely on subsequent starts.
                 quantized_path = None
+                need_save_quantized = False
+                pre_quantized_transformer = None
+
                 if quantization:
                     method = quantization.get("method")
                     quant_type = quantization.get("quant_type", "float8_weight_only")
@@ -301,25 +320,30 @@ class DiffusersImageGenerator:
                     quantized_path = Path.home() / ".cache/huggingface/hub/quantized" / f"{model_name}--{quant_type}"
 
                     if quantized_path.exists() and any(quantized_path.iterdir()):
-                        # Load pre-quantized model directly — no runtime quantization
-                        logger.info(f"[DIFFUSERS] Loading pre-quantized model from {quantized_path}")
-                        model_id = str(quantized_path)
-                        kwargs["use_safetensors"] = False  # torchao saves as .bin, not .safetensors
-                    else:
-                        # First load: quantize at runtime, will save after
-                        if method == "torchao":
-                            from diffusers import TorchAoConfig
-                            kwargs["quantization_config"] = TorchAoConfig(quant_type)
-                            logger.info(f"[DIFFUSERS] First load — quantizing: torchao/{quant_type}")
-                        elif method == "bitsandbytes":
-                            from diffusers import BitsAndBytesConfig
-                            kwargs["quantization_config"] = BitsAndBytesConfig(
-                                **quantization.get("options", {})
-                            )
-                            logger.info(f"[DIFFUSERS] First load — quantizing: bitsandbytes")
+                        # Subsequent load: pre-quantized transformer from disk cache
+                        logger.info(f"[DIFFUSERS] Loading pre-quantized transformer from {quantized_path}")
+                        transformer_cls = self._resolve_transformer_class(pipeline_class)
+                        pre_quantized_transformer = transformer_cls.from_pretrained(
+                            quantized_path,
+                            torch_dtype=self._get_torch_dtype(),
+                            use_safetensors=False,  # torchao saves as .bin
+                        )
+                    elif method == "torchao":
+                        # First load: quantize transformer separately, then inject into pipeline
+                        from diffusers import TorchAoConfig
+                        logger.info(f"[DIFFUSERS] First load — quantizing transformer: torchao/{quant_type}")
+                        transformer_cls = self._resolve_transformer_class(pipeline_class)
+                        pre_quantized_transformer = transformer_cls.from_pretrained(
+                            model_id,
+                            subfolder="transformer",
+                            quantization_config=TorchAoConfig(quant_type),
+                            torch_dtype=self._get_torch_dtype(),
+                        )
+                        need_save_quantized = True
 
-                need_save_quantized = quantized_path and "quantization_config" in kwargs
-
+                # Load pipeline (with pre-quantized transformer if available)
+                if pre_quantized_transformer is not None:
+                    kwargs["transformer"] = pre_quantized_transformer
                 pipe = PipelineClass.from_pretrained(model_id, **kwargs)
                 pipe = pipe.to(self.device)
 
@@ -342,15 +366,15 @@ class DiffusersImageGenerator:
                     f"(VRAM: {self._model_vram_mb[cache_key]:.0f}MB)"
                 )
 
-                # Save quantized model to disk AFTER .to(device) — CPU RAM is free now
+                # Save quantized transformer to disk AFTER .to(device) — CPU RAM is free now
                 if need_save_quantized:
                     try:
-                        logger.info(f"[DIFFUSERS] Saving quantized model to {quantized_path} ...")
+                        logger.info(f"[DIFFUSERS] Saving quantized transformer to {quantized_path} ...")
                         quantized_path.mkdir(parents=True, exist_ok=True)
-                        pipe.save_pretrained(quantized_path, safe_serialization=False)
-                        logger.info(f"[DIFFUSERS] Quantized model saved — next load will skip quantization")
+                        pipe.transformer.save_pretrained(quantized_path, safe_serialization=False)
+                        logger.info(f"[DIFFUSERS] Quantized transformer saved — next load will skip quantization")
                     except Exception as e:
-                        logger.warning(f"[DIFFUSERS] Failed to save quantized model: {e} (non-fatal)")
+                        logger.warning(f"[DIFFUSERS] Failed to save quantized transformer: {e} (non-fatal)")
                 return True
 
             except Exception as e:
