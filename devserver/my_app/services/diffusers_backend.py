@@ -1325,12 +1325,9 @@ class DiffusersImageGenerator:
                                 processor = VaeImageProcessor()
                                 pil_image = processor.postprocess(decoded, output_type="pil")[0]
 
-                                # Resize to 512x512 thumbnail
-                                pil_image = pil_image.resize((512, 512))
-
-                                # Encode as JPEG quality 70
+                                # Encode as full-resolution JPEG q95
                                 buf = io.BytesIO()
-                                pil_image.save(buf, format="JPEG", quality=70)
+                                pil_image.save(buf, format="JPEG", quality=95)
                                 b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
 
                                 step_images.append({

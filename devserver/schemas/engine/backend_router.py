@@ -471,7 +471,12 @@ class BackendRouter:
             output_chunk_name = request.parameters.get('output_chunk')
 
             if output_chunk_name:
-                # Load chunk to check type
+                # Python chunks (new standard) bypass JSON type-routing
+                chunk_py_path = Path(__file__).parent.parent / "chunks" / f"{output_chunk_name}.py"
+                if chunk_py_path.exists():
+                    return await self._process_output_chunk(output_chunk_name, schema_output, request.parameters)
+
+                # Load JSON chunk to check type (legacy)
                 chunk = self._load_output_chunk(output_chunk_name)
 
                 if not chunk:
