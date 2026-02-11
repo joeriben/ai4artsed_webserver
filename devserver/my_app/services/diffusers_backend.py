@@ -118,18 +118,21 @@ class DiffusersImageGenerator:
     def _offload_to_cpu(self, model_id: str) -> None:
         """Move a pipeline from GPU to CPU RAM, or fully unload if RAM is tight."""
         import torch
+        from config import DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB
+
         vram_mb = self._model_vram_mb.get(model_id, 0)
 
-        # Estimate CPU RAM needed (fp16 VRAM ≈ fp16 RAM)
-        # Add 20% safety margin for PyTorch metadata overhead
-        estimated_ram_mb = vram_mb * 1.2
+        # Check: would enough RAM remain AFTER offloading for everything else?
+        # (from_pretrained() peak, OS buffers, Ollama, Python/Flask)
+        estimated_model_ram = vram_mb  # fp16 VRAM ≈ fp16 RAM
         available_ram = self._get_available_ram_mb()
+        remaining_after_offload = available_ram - estimated_model_ram
 
-        if available_ram < estimated_ram_mb:
-            # Not enough RAM → fully unload to prevent OOM
+        if remaining_after_offload < DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB:
+            # Not enough RAM would remain → fully unload to prevent OOM
             logger.warning(
-                f"[DIFFUSERS] Not enough RAM to offload {model_id} to CPU "
-                f"({available_ram:.0f}MB free, need {estimated_ram_mb:.0f}MB). "
+                f"[DIFFUSERS] Offloading {model_id} to CPU would leave only "
+                f"{remaining_after_offload:.0f}MB free (need {DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB}MB reserve). "
                 f"Fully unloading instead (next load will be from disk)."
             )
             del self._pipelines[model_id]
@@ -152,7 +155,10 @@ class DiffusersImageGenerator:
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
         self._model_device[model_id] = "cpu"
-        logger.info(f"[DIFFUSERS] Offloaded {model_id} to CPU ({vram_mb:.0f}MB VRAM freed, ~{estimated_ram_mb:.0f}MB RAM used)")
+        logger.info(
+            f"[DIFFUSERS] Offloaded {model_id} to CPU "
+            f"({vram_mb:.0f}MB VRAM freed, ~{remaining_after_offload:.0f}MB RAM remains free)"
+        )
 
     def _move_to_gpu(self, model_id: str) -> None:
         """Move a pipeline from CPU RAM back to GPU."""

@@ -346,6 +346,10 @@ DIFFUSERS_PRELOAD_MODELS = [
 ]
 # Minimum free VRAM (MB) to reserve for inference overhead (latents, VAE decode, scheduler)
 DIFFUSERS_VRAM_RESERVE_MB = int(os.environ.get("DIFFUSERS_VRAM_RESERVE_MB", "3072"))
+# Minimum free RAM (MB) that must remain AFTER offloading a model to CPU.
+# Covers: from_pretrained() peak (~2-4GB), OS buffers, Ollama, Python/Flask.
+# If offloading would leave less than this free, the model is fully unloaded instead.
+DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB = int(os.environ.get("DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB", "16384"))
 
 # Pre-compiled TensorRT models on HuggingFace (if available)
 DIFFUSERS_TENSORRT_MODELS = {
