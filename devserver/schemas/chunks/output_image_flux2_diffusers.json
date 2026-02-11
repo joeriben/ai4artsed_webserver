@@ -9,10 +9,6 @@
     "model_id": "black-forest-labs/FLUX.2-dev",
     "pipeline_class": "Flux2Pipeline",
     "torch_dtype": "bfloat16",
-    "quantization": {
-      "method": "torchao",
-      "quant_type": "float8_weight_only"
-    },
     "enable_attention_slicing": true,
     "enable_vae_tiling": false
   },
@@ -58,7 +54,7 @@
     "estimated_duration_seconds": "15",
     "quality_rating": 4,
     "requires_gpu": true,
-    "gpu_vram_mb": 12000,
+    "gpu_vram_mb": 24000,
     "model_file": "black-forest-labs/FLUX.2-dev (HuggingFace)",
     "recommended_resolution": "1024x1024",
     "supported_resolutions": [

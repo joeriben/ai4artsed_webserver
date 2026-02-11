@@ -33,11 +33,11 @@
   "meta": {
     "stage": "output",
     "model": "DEFAULT",
-    "model_file": "black-forest-labs/FLUX.2-dev (HuggingFace, runtime FP8)",
+    "model_file": "black-forest-labs/FLUX.2-dev (HuggingFace)",
     "backend": "diffusers",
     "backend_type": "diffusers",
     "requires_gpu": true,
-    "gpu_vram_mb": 12000,
+    "gpu_vram_mb": 24000,
     "estimated_duration_seconds": "10-20",
     "recommended_resolution": "1024x1024",
     "supported_resolutions": [
