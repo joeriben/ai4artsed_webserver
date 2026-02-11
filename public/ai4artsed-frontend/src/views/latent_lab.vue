@@ -24,12 +24,7 @@
         <p>{{ t('latentLab.comingSoon') }}</p>
       </div>
     </div>
-    <div v-else-if="activeTab === 'fusion'" class="placeholder-tab">
-      <div class="placeholder-content">
-        <h2>{{ t('latentLab.tabs.fusion') }}</h2>
-        <p>{{ t('latentLab.comingSoon') }}</p>
-      </div>
-    </div>
+    <Surrealizer v-else-if="activeTab === 'fusion'" />
     <DenoisingArchaeology v-else-if="activeTab === 'archaeology'" />
   </div>
 </template>
@@ -40,6 +35,7 @@ import { useI18n } from 'vue-i18n'
 import AttentionCartography from './latent_lab/attention_cartography.vue'
 import FeatureProbing from './latent_lab/feature_probing.vue'
 import DenoisingArchaeology from './latent_lab/denoising_archaeology.vue'
+import Surrealizer from './surrealizer.vue'
 
 const { t } = useI18n()
 
@@ -74,7 +70,7 @@ onMounted(() => {
 .latent-lab-page {
   min-height: 100vh;
   position: relative;
-  background: linear-gradient(135deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%);
+  background: transparent;
 }
 
 .tab-toggle-container {
@@ -94,7 +90,7 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
   border-radius: 12px;
-  border: 1px solid rgba(0, 188, 212, 0.15);
+  border: 1px solid rgba(102, 126, 234, 0.15);
 }
 
 .tab-btn {
@@ -117,9 +113,9 @@ onMounted(() => {
 }
 
 .tab-btn.active {
-  background: rgba(0, 188, 212, 0.25);
-  color: #00BCD4;
-  box-shadow: 0 2px 8px rgba(0, 188, 212, 0.2);
+  background: rgba(102, 126, 234, 0.25);
+  color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
 .placeholder-tab {

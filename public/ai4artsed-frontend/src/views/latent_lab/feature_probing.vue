@@ -29,28 +29,34 @@
 
     <!-- Input Section -->
     <div class="input-section">
-      <MediaInputBox
-        icon="lightbulb"
-        :label="t('latentLab.probing.promptALabel')"
-        :placeholder="t('latentLab.probing.promptAPlaceholder')"
-        v-model:value="promptA"
-        input-type="text"
-        :rows="2"
-        resize-type="auto"
-        :disabled="isGenerating"
-        :show-actions="false"
-      />
-      <MediaInputBox
-        icon="clipboard"
-        :label="t('latentLab.probing.promptBLabel')"
-        :placeholder="t('latentLab.probing.promptBPlaceholder')"
-        v-model:value="promptB"
-        input-type="text"
-        :rows="2"
-        resize-type="auto"
-        :disabled="isGenerating"
-        :show-actions="false"
-      />
+      <div class="input-pair">
+        <MediaInputBox
+          icon="lightbulb"
+          :label="t('latentLab.probing.promptALabel')"
+          :placeholder="t('latentLab.probing.promptAPlaceholder')"
+          v-model:value="promptA"
+          input-type="text"
+          :rows="2"
+          resize-type="auto"
+          :disabled="isGenerating"
+          @copy="copyPromptA"
+          @paste="pastePromptA"
+          @clear="clearPromptA"
+        />
+        <MediaInputBox
+          icon="clipboard"
+          :label="t('latentLab.probing.promptBLabel')"
+          :placeholder="t('latentLab.probing.promptBPlaceholder')"
+          v-model:value="promptB"
+          input-type="text"
+          :rows="2"
+          resize-type="auto"
+          :disabled="isGenerating"
+          @copy="copyPromptB"
+          @paste="pastePromptB"
+          @clear="clearPromptB"
+        />
+      </div>
 
       <!-- Encoder Toggle + Analyze Button -->
       <div class="action-row">
@@ -115,6 +121,9 @@
               <p>{{ t('latentLab.probing.analyzing') }}</p>
             </div>
           </div>
+          <button v-if="originalImage" class="download-btn" @click="downloadOriginal">
+            {{ t('latentLab.probing.downloadOriginal') }}
+          </button>
         </div>
         <div class="image-panel">
           <div class="panel-label">{{ t('latentLab.probing.modifiedLabel') }}</div>
@@ -128,6 +137,9 @@
               <p>{{ t('latentLab.probing.modifiedHint') }}</p>
             </div>
           </div>
+          <button v-if="modifiedImage" class="download-btn" @click="downloadModified">
+            {{ t('latentLab.probing.downloadModified') }}
+          </button>
         </div>
       </div>
 
@@ -236,11 +248,13 @@ import { ref, computed, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
+import { useAppClipboard } from '@/composables/useAppClipboard'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 const { t } = useI18n()
 const pageContextStore = usePageContextStore()
+const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 // Constants
 const MAX_RANGES = 4
@@ -380,6 +394,28 @@ function toggleSort() {
   sortAscending.value = !sortAscending.value
 }
 
+function copyPromptA() { copyToClipboard(promptA.value) }
+function pastePromptA() { promptA.value = pasteFromClipboard() }
+function clearPromptA() { promptA.value = '' }
+function copyPromptB() { copyToClipboard(promptB.value) }
+function pastePromptB() { promptB.value = pasteFromClipboard() }
+function clearPromptB() { promptB.value = '' }
+
+function downloadOriginal() {
+  if (!originalImage.value) return
+  const link = document.createElement('a')
+  link.href = `data:image/png;base64,${originalImage.value}`
+  link.download = `feature_probing_original_${actualSeed.value}.png`
+  link.click()
+}
+function downloadModified() {
+  if (!modifiedImage.value) return
+  const link = document.createElement('a')
+  link.href = `data:image/png;base64,${modifiedImage.value}`
+  link.download = `feature_probing_modified_${actualSeed.value}.png`
+  link.click()
+}
+
 async function analyze() {
   if (!promptA.value.trim() || !promptB.value.trim() || isGenerating.value) return
 
@@ -511,23 +547,23 @@ onUnmounted(() => {
 
 /* === Page Header === */
 .page-header { margin-bottom: 1.5rem; }
-.page-title { color: #00BCD4; font-size: 1.2rem; font-weight: 700; margin: 0 0 0.5rem; }
+.page-title { color: #667eea; font-size: 1.2rem; font-weight: 700; margin: 0 0 0.5rem; }
 .page-subtitle { color: rgba(255, 255, 255, 0.7); font-size: 0.95rem; line-height: 1.6; margin: 0 0 0.75rem; }
 
 .explanation-details {
-  background: rgba(0, 188, 212, 0.06);
-  border: 1px solid rgba(0, 188, 212, 0.15);
+  background: rgba(102, 126, 234, 0.06);
+  border: 1px solid rgba(102, 126, 234, 0.15);
   border-radius: 10px;
   overflow: hidden;
 }
 .explanation-details summary {
   padding: 0.65rem 1rem;
-  color: rgba(0, 188, 212, 0.8);
+  color: rgba(102, 126, 234, 0.8);
   font-size: 0.85rem;
   cursor: pointer;
   user-select: none;
 }
-.explanation-details summary:hover { color: #00BCD4; }
+.explanation-details summary:hover { color: #667eea; }
 .explanation-body { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
 .explanation-section h4 { color: rgba(255, 255, 255, 0.85); font-size: 0.85rem; margin: 0 0 0.25rem; }
 .explanation-section p { color: rgba(255, 255, 255, 0.6); font-size: 0.82rem; line-height: 1.6; margin: 0; }
@@ -536,6 +572,14 @@ onUnmounted(() => {
 
 /* === Input Section === */
 .input-section { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+
+.input-pair {
+  display: flex;
+  gap: clamp(1rem, 3vw, 2rem);
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 
 .action-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .control-group { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
@@ -553,11 +597,11 @@ onUnmounted(() => {
   transition: all 0.15s ease;
 }
 .layer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.layer-btn.active { background: rgba(0, 188, 212, 0.2); border-color: rgba(0, 188, 212, 0.5); color: #00BCD4; }
+.layer-btn.active { background: rgba(102, 126, 234, 0.2); border-color: rgba(102, 126, 234, 0.5); color: #667eea; }
 
 .generate-btn {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #00BCD4, #0097A7);
+  background: linear-gradient(135deg, #667eea, #764ba2);
   border: none;
   border-radius: 10px;
   color: white;
@@ -568,7 +612,7 @@ onUnmounted(() => {
   white-space: nowrap;
   min-height: 42px;
 }
-.generate-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3); }
+.generate-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
 .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .transfer-btn {
@@ -627,7 +671,7 @@ onUnmounted(() => {
 .image-frame.empty { border-style: dashed; border-color: rgba(255, 255, 255, 0.15); }
 .result-image { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.image-placeholder { text-align: center; color: rgba(0, 188, 212, 0.7); padding: 2rem; }
+.image-placeholder { text-align: center; color: rgba(102, 126, 234, 0.7); padding: 2rem; }
 .image-placeholder p { font-size: 0.85rem; margin-top: 0.75rem; }
 .image-placeholder-hint { text-align: center; padding: 2rem 1.5rem; }
 .image-placeholder-hint p { color: rgba(255, 255, 255, 0.3); font-size: 0.8rem; line-height: 1.5; margin: 0; }
@@ -635,8 +679,8 @@ onUnmounted(() => {
 .progress-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(0, 188, 212, 0.2);
-  border-top-color: #00BCD4;
+  border: 3px solid rgba(102, 126, 234, 0.2);
+  border-top-color: #667eea;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto;
@@ -972,10 +1016,40 @@ onUnmounted(() => {
 }
 .dismiss-btn { background: none; border: none; color: rgba(244, 67, 54, 0.6); font-size: 1.2rem; cursor: pointer; }
 
+.download-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+.download-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 /* === Responsive === */
+@media (max-width: 768px) {
+  .input-pair { flex-direction: column; }
+}
 @media (max-width: 640px) {
   .image-pair { grid-template-columns: 1fr; }
   .action-row { flex-direction: column; align-items: stretch; }
   .control-group { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<style>
+/* Force INPUT boxes (side-by-side) to have proper width — pattern from text_transformation */
+.feature-probing .input-pair .media-input-box {
+  flex: 0 1 480px !important;
+  width: 100% !important;
+  max-width: 480px !important;
 }
 </style>

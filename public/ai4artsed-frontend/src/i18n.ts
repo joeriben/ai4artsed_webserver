@@ -507,6 +507,7 @@ const messages = {
         explainReadText: 'Der Entrauschungsschritt-Regler zeigt, WANN im 25-schrittigen Erzeugungsprozess du die Attention betrachtest. Frühe Schritte zeigen die grobe Layoutplanung, späte die Detailzuordnung. Der Netzwerktiefe-Regler zeigt, WO im Transformer die Attention gemessen wird: Flache Schichten (nahe am Eingang) zeigen globale Kompositionsplanung, mittlere die semantische Zuordnung, tiefe die Feinabstimmung. Beide Achsen sind unabhängig — es lohnt sich, systematisch verschiedene Kombinationen zu erkunden.',
         techTitle: 'Technische Details',
         techText: 'SD3.5 verwendet einen MMDiT (Multimodal Diffusion Transformer) mit Joint Attention: Bild- und Text-Tokens bearbeiten sich gegenseitig in 24 Transformer-Blöcken. Wir ersetzen den Standard-SDPA-Prozessor durch einen manuellen Softmax(QK^T/√d)-Prozessor an 3 ausgewählten Blöcken, um die Text→Bild-Attention-Submatrix zu extrahieren. Die Maps haben 64x64 Auflösung (Patch-Grid) und werden per bilinearer Interpolation auf die Bildauflösung hochskaliert. Die Tokenisierung nutzt CLIP-L BPE — Subwort-Tokens werden automatisch zu ganzen Wörtern zusammengefasst.',
+        promptLabel: 'Prompt',
         promptPlaceholder: 'z.B. Ein Haus steht in einer Landschaft, umgeben von landwirtschaftlichen Flächen, Natur und Tieren. Es sind einige Menschen zu sehen.',
         generate: 'Generieren + Analyse',
         generating: 'Bild wird generiert und Attention wird extrahiert...',
@@ -532,7 +533,8 @@ const messages = {
         baseColor: 'Farbe',
         baseBW: 'S/W',
         baseOff: 'Aus',
-        baseImageHint: 'Farbe zeigt das Originalbild. S/W entsättigt es, damit Heatmap-Farben klar erkennbar sind. Aus blendet das Bild aus und zeigt nur die Attention-Karte.'
+        baseImageHint: 'Farbe zeigt das Originalbild. S/W entsättigt es, damit Heatmap-Farben klar erkennbar sind. Aus blendet das Bild aus und zeigt nur die Attention-Karte.',
+        download: 'Bild herunterladen'
       },
       probing: {
         headerTitle: 'Feature Probing — Welche Dimensionen kodieren was?',
@@ -579,7 +581,9 @@ const messages = {
         cfgLabel: 'CFG',
         seedLabel: 'Seed',
         selectAll: 'Alle',
-        selectNone: 'Keine'
+        selectNone: 'Keine',
+        downloadOriginal: 'Original herunterladen',
+        downloadModified: 'Modifiziert herunterladen'
       },
       archaeology: {
         headerTitle: 'Denoising Archaeology \u2014 Wie wird aus Rauschen ein Bild?',
@@ -593,6 +597,7 @@ const messages = {
         explainReadText: 'Fr\u00fche Schritte (1\u20138): Globale Komposition \u2014 Grundstruktur, Farbverteilung, Layoutplanung. Mittlere Schritte (9\u201317): Semantische Emergenz \u2014 Objekte werden erkennbar, Formen kristallisieren sich heraus. Sp\u00e4te Schritte (18\u201325): Detail-Verfeinerung \u2014 Texturen, Kanten, feine Muster. Die \u00dcberg\u00e4nge sind flie\u00dfend, aber die Phasen zeigen deutlich: Das Modell \u201eplant\u201c zuerst global und verfeinert dann lokal. Besonders aufschlussreich: Der allererste Schritt zeigt keine feink\u00f6rnigen Pixel, sondern farbige Flecken. Das liegt daran, dass das Rauschen im Latent-Raum (128\u00d7128 bei 16 Kan\u00e4len) erzeugt wird, nicht im Pixel-Raum. Der VAE \u00fcbersetzt jeden Latent-Pixel in einen ~8\u00d78-Pixel-Patch \u2014 selbst pures Gau\u00dfsches Rauschen wird dadurch zu zusammenh\u00e4ngenden Farbclustern. Das Modell \u201edenkt\u201c nie in einzelnen Pixeln, sondern immer in diesem komprimierten Raum.',
         techTitle: 'Technische Details',
         techText: 'SD3.5 Large verwendet Rectified Flow als Scheduler mit 25 Standardschritten. Bei jedem Schritt werden die aktuellen Latent-Vektoren durch den VAE dekodiert (1024\u00d71024 JPEG). Der VAE (Variational Autoencoder) \u00fcbersetzt den mathematischen Latent-Raum in Pixel. Die Latent-Darstellung ist 128\u00d7128 bei 16 Kan\u00e4len \u2014 jeder Latent-Pixel entspricht einem ~8\u00d78-Pixel-Patch im Bild. Deshalb zeigt schon der erste Schritt farbige Cluster statt feines Pixelrauschen: Der VAE interpretiert zuf\u00e4llige 16-dimensionale Vektoren als koh\u00e4rente Farbfl\u00e4chen.',
+        promptLabel: 'Prompt',
         promptPlaceholder: 'z.B. Ein Marktplatz in einer mittelalterlichen Stadt mit Menschen, Geb\u00e4uden und einem Brunnen',
         generate: 'Generieren',
         generating: 'Bild wird generiert \u2014 jeder Schritt wird aufgezeichnet...',
@@ -610,7 +615,8 @@ const messages = {
         phaseEarlyDesc: 'Globale Struktur und Farbverteilung entstehen',
         phaseMidDesc: 'Objekte und Formen werden erkennbar',
         phaseLateDesc: 'Texturen und feine Details werden gesch\u00e4rft',
-        finalImageLabel: 'Finales Bild (volle Aufl\u00f6sung)'
+        finalImageLabel: 'Finales Bild (volle Aufl\u00f6sung)',
+        download: 'Bild herunterladen'
       }
     },
     edutainment: {
@@ -1224,6 +1230,7 @@ const messages = {
         explainReadText: 'The denoising step slider shows WHEN in the 25-step generation process you are viewing attention. Early steps show rough layout planning, late steps show detail assignment. The network depth selector shows WHERE in the transformer attention is measured: shallow layers (near input) show global composition planning, middle layers semantic assignment, deep layers fine-tuning. Both axes are independent — it is worth systematically exploring different combinations.',
         techTitle: 'Technical details',
         techText: 'SD3.5 uses an MMDiT (Multimodal Diffusion Transformer) with joint attention: image and text tokens attend to each other across 24 transformer blocks. We replace the default SDPA processor with a manual softmax(QK^T/√d) processor at 3 selected blocks to extract the text→image attention submatrix. Maps are 64x64 resolution (patch grid), upscaled to image resolution via bilinear interpolation. Tokenization uses CLIP-L BPE — subword tokens are automatically combined into whole words.',
+        promptLabel: 'Prompt',
         promptPlaceholder: 'e.g. A house stands in a landscape, surrounded by farmland, nature and animals. Some people can be seen.',
         generate: 'Generate + Analyze',
         generating: 'Generating image and extracting attention...',
@@ -1249,7 +1256,8 @@ const messages = {
         baseColor: 'Color',
         baseBW: 'B/W',
         baseOff: 'Off',
-        baseImageHint: 'Color shows the original image. B/W desaturates it so heatmap colors stand out. Off hides the image entirely and shows only the attention map.'
+        baseImageHint: 'Color shows the original image. B/W desaturates it so heatmap colors stand out. Off hides the image entirely and shows only the attention map.',
+        download: 'Download Image'
       },
       probing: {
         headerTitle: 'Feature Probing — Which dimensions encode what?',
@@ -1296,7 +1304,9 @@ const messages = {
         cfgLabel: 'CFG',
         seedLabel: 'Seed',
         selectAll: 'All',
-        selectNone: 'None'
+        selectNone: 'None',
+        downloadOriginal: 'Download Original',
+        downloadModified: 'Download Modified'
       },
       archaeology: {
         headerTitle: 'Denoising Archaeology \u2014 How does noise become an image?',
@@ -1310,6 +1320,7 @@ const messages = {
         explainReadText: 'Early steps (1\u20138): Global composition \u2014 basic structure, color distribution, layout planning. Middle steps (9\u201317): Semantic emergence \u2014 objects become recognizable, shapes crystallize. Late steps (18\u201325): Detail refinement \u2014 textures, edges, fine patterns. The transitions are gradual, but the phases clearly show: the model first "plans" globally, then refines locally. Particularly revealing: The very first step does not show fine-grained pixels, but colorful patches. This is because the noise is generated in latent space (128\u00d7128 at 16 channels), not in pixel space. The VAE translates each latent pixel into an ~8\u00d78 pixel patch \u2014 even pure Gaussian noise becomes coherent color clusters. The model never "thinks" in individual pixels, but always in this compressed space.',
         techTitle: 'Technical details',
         techText: 'SD3.5 Large uses Rectified Flow as scheduler with 25 default steps. At each step, the current latent vectors are decoded through the VAE (1024\u00d71024 JPEG). The VAE (Variational Autoencoder) translates the mathematical latent space into pixels. The latent representation is 128\u00d7128 at 16 channels \u2014 each latent pixel corresponds to an ~8\u00d78 pixel patch in the image. This is why even the first step shows colorful clusters instead of fine pixel noise: the VAE interprets random 16-dimensional vectors as coherent color patches.',
+        promptLabel: 'Prompt',
         promptPlaceholder: 'e.g. A marketplace in a medieval town with people, buildings and a fountain',
         generate: 'Generate',
         generating: 'Generating image \u2014 recording every step...',
@@ -1327,7 +1338,8 @@ const messages = {
         phaseEarlyDesc: 'Global structure and color distribution emerge',
         phaseMidDesc: 'Objects and shapes become recognizable',
         phaseLateDesc: 'Textures and fine details are sharpened',
-        finalImageLabel: 'Final image (full resolution)'
+        finalImageLabel: 'Final image (full resolution)',
+        download: 'Download Image'
       }
     },
     edutainment: {

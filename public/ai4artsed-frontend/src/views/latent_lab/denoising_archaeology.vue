@@ -29,24 +29,27 @@
 
     <!-- Input Section -->
     <div class="input-section">
-      <div class="prompt-row">
-        <textarea
-          v-model="promptText"
-          class="prompt-input"
-          :placeholder="t('latentLab.archaeology.promptPlaceholder')"
-          rows="2"
-          :disabled="isGenerating"
-          @keydown.enter.ctrl="generate"
-        ></textarea>
-        <button
-          class="generate-btn"
-          :disabled="isGenerating || !promptText.trim()"
-          @click="generate"
-        >
-          <span v-if="isGenerating" class="spinner"></span>
-          <span v-else>{{ t('latentLab.archaeology.generate') }}</span>
-        </button>
-      </div>
+      <MediaInputBox
+        icon="lightbulb"
+        :label="t('latentLab.archaeology.promptLabel')"
+        :placeholder="t('latentLab.archaeology.promptPlaceholder')"
+        v-model:value="promptText"
+        input-type="text"
+        :rows="2"
+        resize-type="auto"
+        :disabled="isGenerating"
+        @copy="copyInputText"
+        @paste="pasteInputText"
+        @clear="clearInputText"
+      />
+      <button
+        class="generate-btn"
+        :disabled="isGenerating || !promptText.trim()"
+        @click="generate"
+      >
+        <span v-if="isGenerating" class="spinner"></span>
+        <span v-else>{{ t('latentLab.archaeology.generate') }}</span>
+      </button>
 
       <!-- Advanced Settings -->
       <details class="advanced-settings">
@@ -152,9 +155,12 @@
         </div>
       </div>
 
-      <!-- Seed display -->
-      <div class="seed-display">
-        Seed: {{ actualSeed }}
+      <!-- Seed + Download -->
+      <div class="seed-row">
+        <div class="seed-display">Seed: {{ actualSeed }}</div>
+        <button class="download-btn" @click="downloadImage">
+          {{ t('latentLab.archaeology.download') }}
+        </button>
       </div>
     </div>
 
@@ -181,11 +187,14 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
+import MediaInputBox from '@/components/MediaInputBox.vue'
+import { useAppClipboard } from '@/composables/useAppClipboard'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 const { t } = useI18n()
 const pageContextStore = usePageContextStore()
+const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 interface StepImage {
   step: number
@@ -282,6 +291,23 @@ watch(selectedStepIndex, (idx) => {
   }
 })
 
+function copyInputText() { copyToClipboard(promptText.value) }
+function pasteInputText() { promptText.value = pasteFromClipboard() }
+function clearInputText() { promptText.value = '' }
+
+function downloadImage() {
+  const isStepImage = selectedStepIndex.value < stepImages.value.length
+  const imgSrc = isStepImage
+    ? stepImages.value[selectedStepIndex.value]?.image_base64
+    : finalImage.value
+  if (!imgSrc) return
+  const format = isStepImage ? 'jpeg' : 'png'
+  const link = document.createElement('a')
+  link.href = `data:image/${format};base64,${imgSrc}`
+  link.download = `denoising_step_${selectedStepIndex.value}_seed_${actualSeed.value}.${format}`
+  link.click()
+}
+
 async function generate() {
   if (!promptText.value.trim() || isGenerating.value) return
 
@@ -362,7 +388,7 @@ onUnmounted(() => {
 }
 
 .page-title {
-  color: #00BCD4;
+  color: #667eea;
   font-size: 1.2rem;
   font-weight: 700;
   margin: 0 0 0.5rem;
@@ -376,22 +402,22 @@ onUnmounted(() => {
 }
 
 .explanation-details {
-  background: rgba(0, 188, 212, 0.06);
-  border: 1px solid rgba(0, 188, 212, 0.15);
+  background: rgba(102, 126, 234, 0.06);
+  border: 1px solid rgba(102, 126, 234, 0.15);
   border-radius: 10px;
   overflow: hidden;
 }
 
 .explanation-details summary {
   padding: 0.65rem 1rem;
-  color: rgba(0, 188, 212, 0.8);
+  color: rgba(102, 126, 234, 0.8);
   font-size: 0.85rem;
   cursor: pointer;
   user-select: none;
 }
 
 .explanation-details summary:hover {
-  color: #00BCD4;
+  color: #667eea;
 }
 
 .explanation-body {
@@ -427,39 +453,14 @@ onUnmounted(() => {
 /* Input Section */
 .input-section {
   margin-bottom: 1.5rem;
-}
-
-.prompt-row {
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
-  align-items: flex-start;
-}
-
-.prompt-input {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  color: white;
-  font-size: 0.95rem;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 48px;
-}
-
-.prompt-input:focus {
-  outline: none;
-  border-color: rgba(0, 188, 212, 0.5);
-}
-
-.prompt-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
 }
 
 .generate-btn {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #00BCD4, #0097A7);
+  background: linear-gradient(135deg, #667eea, #764ba2);
   border: none;
   border-radius: 10px;
   color: white;
@@ -473,7 +474,7 @@ onUnmounted(() => {
 
 .generate-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .generate-btn:disabled {
@@ -612,7 +613,7 @@ onUnmounted(() => {
   -webkit-appearance: none;
   width: 16px;
   height: 16px;
-  background: #00BCD4;
+  background: #667eea;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -676,7 +677,7 @@ onUnmounted(() => {
   overflow-x: auto;
   padding: 0.5rem 0;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 188, 212, 0.3) transparent;
+  scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
 }
 
 .filmstrip-scroll::-webkit-scrollbar {
@@ -684,7 +685,7 @@ onUnmounted(() => {
 }
 
 .filmstrip-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 188, 212, 0.3);
+  background: rgba(102, 126, 234, 0.3);
   border-radius: 3px;
 }
 
@@ -704,8 +705,8 @@ onUnmounted(() => {
 }
 
 .filmstrip-item.selected {
-  border-color: #00BCD4;
-  box-shadow: 0 0 8px rgba(0, 188, 212, 0.4);
+  border-color: #667eea;
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
 }
 
 .filmstrip-item.selected.phase-early {
@@ -749,11 +750,33 @@ onUnmounted(() => {
   font-family: 'Fira Code', 'Consolas', monospace;
 }
 
-.seed-display {
+.seed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 0.75rem;
+}
+
+.seed-display {
   color: rgba(255, 255, 255, 0.3);
   font-size: 0.7rem;
   font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+.download-btn {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.download-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 /* Empty / Progress / Error States */
@@ -767,14 +790,14 @@ onUnmounted(() => {
 .progress-state {
   text-align: center;
   padding: 3rem 2rem;
-  color: rgba(0, 188, 212, 0.7);
+  color: rgba(102, 126, 234, 0.7);
 }
 
 .progress-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(0, 188, 212, 0.2);
-  border-top-color: #00BCD4;
+  border: 3px solid rgba(102, 126, 234, 0.2);
+  border-top-color: #667eea;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 1rem;
