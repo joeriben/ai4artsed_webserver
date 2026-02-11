@@ -3300,6 +3300,12 @@ def legacy_workflow():
         probing_encoder = data.get('probing_encoder')
         transfer_dims = data.get('transfer_dims')
 
+        # Concept algebra parameters
+        prompt_c = data.get('prompt_c')
+        algebra_encoder = data.get('algebra_encoder')
+        scale_sub = data.get('scale_sub')
+        scale_add = data.get('scale_add')
+
         # Additional workflow-specific parameters
         mode = data.get('mode')  # For partial_elimination
         prompt1 = data.get('prompt1')  # For split_and_combine
@@ -3436,6 +3442,15 @@ def legacy_workflow():
             custom_params['probing_encoder'] = probing_encoder
         if transfer_dims is not None:
             custom_params['transfer_dims'] = transfer_dims
+        # Concept algebra parameters
+        if prompt_c is not None:
+            custom_params['prompt_c'] = prompt_c
+        if algebra_encoder is not None:
+            custom_params['algebra_encoder'] = algebra_encoder
+        if scale_sub is not None:
+            custom_params['scale_sub'] = scale_sub
+        if scale_add is not None:
+            custom_params['scale_add'] = scale_add
 
         from schemas.engine.pipeline_executor import PipelineContext
         context_override = None
@@ -3602,6 +3617,24 @@ def legacy_workflow():
                 )
                 logger.info(f"[LEGACY-ENDPOINT] Saved feature probing image: {len(image_bytes)} bytes")
 
+        elif output_value == 'diffusers_algebra_generated':
+            # Latent Lab: Concept Algebra — reference + result images
+            result_image_b64 = output_result.metadata.get('result_image')
+            if result_image_b64:
+                import base64
+                image_bytes = base64.b64decode(result_image_b64)
+                recorder.save_entity(
+                    entity_type='output_image',
+                    content=image_bytes,
+                    metadata={
+                        'config': output_config,
+                        'seed': result_seed,
+                        'format': 'png',
+                        'backend': 'diffusers_algebra'
+                    }
+                )
+                logger.info(f"[LEGACY-ENDPOINT] Saved concept algebra image: {len(image_bytes)} bytes")
+
         elif output_value == 'diffusers_archaeology_generated':
             # Latent Lab: Denoising Archaeology — image + step snapshots
             image_data_b64 = output_result.metadata.get('image_data')
@@ -3653,6 +3686,18 @@ def legacy_workflow():
             if image_b64:
                 probing_data['image_base64'] = image_b64
             response_data['probing_data'] = probing_data
+
+        # Latent Lab: Include algebra data (reference + result images) in response
+        algebra_data = output_result.metadata.get('algebra_data') if output_result.metadata else None
+        if algebra_data:
+            reference_b64 = output_result.metadata.get('reference_image')
+            result_b64 = output_result.metadata.get('result_image')
+            if reference_b64:
+                algebra_data['reference_image'] = reference_b64
+            if result_b64:
+                algebra_data['result_image'] = result_b64
+            algebra_data['seed'] = result_seed
+            response_data['algebra_data'] = algebra_data
 
         # Latent Lab: Include archaeology data + image_base64 in response
         archaeology_data = output_result.metadata.get('archaeology_data') if output_result.metadata else None

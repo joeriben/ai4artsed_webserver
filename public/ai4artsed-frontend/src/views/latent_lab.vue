@@ -18,12 +18,7 @@
     <!-- Conditional rendering of tab components -->
     <AttentionCartography v-if="activeTab === 'attention'" />
     <FeatureProbing v-else-if="activeTab === 'probing'" />
-    <div v-else-if="activeTab === 'algebra'" class="placeholder-tab">
-      <div class="placeholder-content">
-        <h2>{{ t('latentLab.tabs.algebra') }}</h2>
-        <p>{{ t('latentLab.comingSoon') }}</p>
-      </div>
-    </div>
+    <ConceptAlgebra v-else-if="activeTab === 'algebra'" />
     <Surrealizer v-else-if="activeTab === 'fusion'" />
     <DenoisingArchaeology v-else-if="activeTab === 'archaeology'" />
   </div>
@@ -34,6 +29,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AttentionCartography from './latent_lab/attention_cartography.vue'
 import FeatureProbing from './latent_lab/feature_probing.vue'
+import ConceptAlgebra from './latent_lab/concept_algebra.vue'
 import DenoisingArchaeology from './latent_lab/denoising_archaeology.vue'
 import Surrealizer from './surrealizer.vue'
 

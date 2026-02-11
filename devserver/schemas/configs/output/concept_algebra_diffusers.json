@@ -1,0 +1,24 @@
+{
+  "pipeline": "legacy_workflow_passthrough",
+  "name": {
+    "en": "Concept Algebra (Diffusers)",
+    "de": "Konzept-Algebra (Diffusers)"
+  },
+  "description": {
+    "en": "Vector arithmetic on text embeddings: A - B + C.",
+    "de": "Vektor-Arithmetik auf Text-Embeddings: A - B + C."
+  },
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_concept_algebra_diffusers"
+  },
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+  "meta": {
+    "stage": "output",
+    "backend": "diffusers",
+    "backend_type": "diffusers",
+    "requires_gpu": true
+  }
+}

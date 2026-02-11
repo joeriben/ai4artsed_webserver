@@ -1248,6 +1248,258 @@ class DiffusersImageGenerator:
             traceback.print_exc()
             return None
 
+    async def generate_image_with_algebra(
+        self,
+        prompt_a: str,
+        prompt_b: str,
+        prompt_c: str,
+        encoder: str = "all",
+        scale_sub: float = 1.0,
+        scale_add: float = 1.0,
+        negative_prompt: str = "",
+        width: int = 1024,
+        height: int = 1024,
+        steps: int = 25,
+        cfg_scale: float = 4.5,
+        seed: int = -1,
+        model_id: str = "stabilityai/stable-diffusion-3.5-large",
+        generate_reference: bool = True,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Concept Algebra: A - scale_sub*B + scale_add*C on text encoder embeddings.
+
+        Inspired by Mikolov's word2vec analogies (King - Man + Woman = Queen),
+        applied to SD3.5 text encoder embeddings for image generation.
+
+        Args:
+            prompt_a: Base concept (e.g. "King on a throne")
+            prompt_b: Concept to subtract (e.g. "Man")
+            prompt_c: Concept to add (e.g. "Woman")
+            encoder: Which encoder(s) to apply algebra on ("all", "clip_l", "clip_g", "t5")
+            scale_sub: Scaling factor for subtraction
+            scale_add: Scaling factor for addition
+            negative_prompt: Negative prompt
+            width/height: Image dimensions
+            steps: Inference steps
+            cfg_scale: CFG scale
+            seed: Random seed (-1 for random)
+            model_id: Model to use
+            generate_reference: Also generate image with original embed_a
+
+        Returns:
+            Dict with reference_image, result_image, algebra_data, seed
+        """
+        try:
+            import torch
+            import torch.nn.functional as F
+            import io
+            import base64
+            from my_app.services.embedding_analyzer import apply_concept_algebra
+
+            if not await self.load_model(model_id):
+                return None
+
+            self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1
+            try:
+                self._model_last_used[model_id] = time.time()
+                pipe = self._pipelines[model_id]
+
+                if not hasattr(pipe, '_get_clip_prompt_embeds') or not hasattr(pipe, '_get_t5_prompt_embeds'):
+                    logger.error("[DIFFUSERS-ALGEBRA] Pipeline missing encoder methods")
+                    return None
+
+                if seed == -1:
+                    import random
+                    seed = random.randint(0, 2**32 - 1)
+
+                logger.info(
+                    f"[DIFFUSERS-ALGEBRA] encoder={encoder}, scale_sub={scale_sub}, scale_add={scale_add}, "
+                    f"steps={steps}, size={width}x{height}, seed={seed}"
+                )
+
+                def _encode_prompt(prompt_text, device):
+                    """Encode a single prompt with the selected encoder."""
+                    if encoder == "all":
+                        clip_l, clip_l_pooled = pipe._get_clip_prompt_embeds(
+                            prompt=prompt_text, device=device, num_images_per_prompt=1, clip_model_index=0
+                        )
+                        clip_g, clip_g_pooled = pipe._get_clip_prompt_embeds(
+                            prompt=prompt_text, device=device, num_images_per_prompt=1, clip_model_index=1
+                        )
+                        t5 = pipe._get_t5_prompt_embeds(
+                            prompt=prompt_text, num_images_per_prompt=1,
+                            max_sequence_length=512, device=device
+                        )
+                        clip_combined = F.pad(torch.cat([clip_l, clip_g], dim=-1), (0, 4096 - 2048))
+                        embed = torch.cat([clip_combined, t5], dim=1)
+                        pooled = torch.cat([clip_l_pooled, clip_g_pooled], dim=-1)
+                        return embed, pooled
+                    elif encoder == "clip_l":
+                        embed, pooled = pipe._get_clip_prompt_embeds(
+                            prompt=prompt_text, device=device, num_images_per_prompt=1, clip_model_index=0
+                        )
+                        return embed, pooled
+                    elif encoder == "clip_g":
+                        embed, pooled = pipe._get_clip_prompt_embeds(
+                            prompt=prompt_text, device=device, num_images_per_prompt=1, clip_model_index=1
+                        )
+                        return embed, pooled
+                    else:  # t5
+                        embed = pipe._get_t5_prompt_embeds(
+                            prompt=prompt_text, num_images_per_prompt=1,
+                            max_sequence_length=512, device=device
+                        )
+                        return embed, None
+
+                def _compose_full_embedding(gen_embed, gen_pooled, device):
+                    """Compose probed encoder embedding into full SD3.5 format."""
+                    if encoder == "all":
+                        return gen_embed, gen_pooled
+                    elif encoder == "t5":
+                        clip_l_e, clip_l_p = pipe._get_clip_prompt_embeds(
+                            prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=0
+                        )
+                        clip_g_e, clip_g_p = pipe._get_clip_prompt_embeds(
+                            prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=1
+                        )
+                        clip_combined = F.pad(torch.cat([clip_l_e, clip_g_e], dim=-1), (0, 4096 - 2048))
+                        prompt_embeds = torch.cat([clip_combined, gen_embed], dim=1)
+                        pooled_embeds = torch.cat([clip_l_p, clip_g_p], dim=-1)
+                        return prompt_embeds, pooled_embeds
+                    elif encoder == "clip_l":
+                        clip_g_e, clip_g_p = pipe._get_clip_prompt_embeds(
+                            prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=1
+                        )
+                        t5_e = pipe._get_t5_prompt_embeds(
+                            prompt=prompt_a, num_images_per_prompt=1,
+                            max_sequence_length=512, device=device
+                        )
+                        clip_combined = F.pad(torch.cat([gen_embed, clip_g_e], dim=-1), (0, 4096 - 2048))
+                        prompt_embeds = torch.cat([clip_combined, t5_e], dim=1)
+                        pooled_embeds = torch.cat([gen_pooled, clip_g_p], dim=-1)
+                        return prompt_embeds, pooled_embeds
+                    else:  # clip_g
+                        clip_l_e, clip_l_p = pipe._get_clip_prompt_embeds(
+                            prompt=prompt_a, device=device, num_images_per_prompt=1, clip_model_index=0
+                        )
+                        t5_e = pipe._get_t5_prompt_embeds(
+                            prompt=prompt_a, num_images_per_prompt=1,
+                            max_sequence_length=512, device=device
+                        )
+                        clip_combined = F.pad(torch.cat([clip_l_e, gen_embed], dim=-1), (0, 4096 - 2048))
+                        prompt_embeds = torch.cat([clip_combined, t5_e], dim=1)
+                        pooled_embeds = torch.cat([clip_l_p, gen_pooled], dim=-1)
+                        return prompt_embeds, pooled_embeds
+
+                def _build_negative_embeds(device):
+                    """Build negative prompt embeddings."""
+                    neg_text = negative_prompt if negative_prompt else ""
+                    neg_clip_l, neg_clip_l_pooled = pipe._get_clip_prompt_embeds(
+                        prompt=neg_text, device=device, num_images_per_prompt=1, clip_model_index=0
+                    )
+                    neg_clip_g, neg_clip_g_pooled = pipe._get_clip_prompt_embeds(
+                        prompt=neg_text, device=device, num_images_per_prompt=1, clip_model_index=1
+                    )
+                    neg_t5 = pipe._get_t5_prompt_embeds(
+                        prompt=neg_text, num_images_per_prompt=1,
+                        max_sequence_length=512, device=device
+                    )
+                    neg_clip_combined = F.pad(torch.cat([neg_clip_l, neg_clip_g], dim=-1), (0, 4096 - 2048))
+                    neg_prompt_embeds = torch.cat([neg_clip_combined, neg_t5], dim=1)
+                    neg_pooled = torch.cat([neg_clip_l_pooled, neg_clip_g_pooled], dim=-1)
+                    return neg_prompt_embeds, neg_pooled
+
+                def _generate_image(prompt_embeds, pooled_embeds, neg_prompt_embeds, neg_pooled, generator):
+                    """Generate a single image from pre-computed embeddings."""
+                    gen_kwargs = {
+                        "prompt_embeds": prompt_embeds,
+                        "negative_prompt_embeds": neg_prompt_embeds,
+                        "pooled_prompt_embeds": pooled_embeds,
+                        "negative_pooled_prompt_embeds": neg_pooled,
+                        "width": width,
+                        "height": height,
+                        "num_inference_steps": steps,
+                        "guidance_scale": cfg_scale,
+                        "generator": generator,
+                        "max_sequence_length": 512,
+                    }
+                    result = pipe(**gen_kwargs)
+                    return result.images[0]
+
+                def _image_to_base64(image):
+                    """Convert PIL image to base64 PNG string."""
+                    buffer = io.BytesIO()
+                    image.save(buffer, format="PNG")
+                    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+                def _generate():
+                    device = pipe._execution_device
+                    generator_ref = torch.Generator(device=self.device).manual_seed(seed)
+                    generator_res = torch.Generator(device=self.device).manual_seed(seed)
+
+                    # Encode all three prompts with selected encoder
+                    embed_a, pooled_a = _encode_prompt(prompt_a, device)
+                    embed_b, pooled_b = _encode_prompt(prompt_b, device)
+                    embed_c, pooled_c = _encode_prompt(prompt_c, device)
+
+                    logger.info(
+                        f"[DIFFUSERS-ALGEBRA] Encoded: A={embed_a.shape}, B={embed_b.shape}, C={embed_c.shape}"
+                    )
+
+                    # Apply concept algebra
+                    embed_result, l2_dist = apply_concept_algebra(
+                        embed_a, embed_b, embed_c, scale_sub, scale_add
+                    )
+
+                    # Pooled algebra (same operation)
+                    if pooled_a is not None and pooled_b is not None and pooled_c is not None:
+                        pooled_result = pooled_a - scale_sub * pooled_b + scale_add * pooled_c
+                    else:
+                        pooled_result = pooled_a
+
+                    # Build negative embeddings (shared for both generations)
+                    neg_prompt_embeds, neg_pooled = _build_negative_embeds(device)
+
+                    # Generate reference image (prompt A, same seed)
+                    reference_b64 = None
+                    if generate_reference:
+                        ref_prompt_embeds, ref_pooled = _compose_full_embedding(embed_a, pooled_a, device)
+                        ref_image = _generate_image(ref_prompt_embeds, ref_pooled, neg_prompt_embeds, neg_pooled, generator_ref)
+                        reference_b64 = _image_to_base64(ref_image)
+                        logger.info("[DIFFUSERS-ALGEBRA] Reference image generated")
+
+                    # Generate result image (algebra embedding, same seed)
+                    res_prompt_embeds, res_pooled = _compose_full_embedding(embed_result, pooled_result, device)
+                    res_image = _generate_image(res_prompt_embeds, res_pooled, neg_prompt_embeds, neg_pooled, generator_res)
+                    result_b64 = _image_to_base64(res_image)
+                    logger.info("[DIFFUSERS-ALGEBRA] Result image generated")
+
+                    return reference_b64, result_b64, l2_dist
+
+                reference_b64, result_b64, l2_dist = await asyncio.to_thread(_generate)
+
+                return {
+                    'reference_image': reference_b64,
+                    'result_image': result_b64,
+                    'algebra_data': {
+                        'encoder': encoder,
+                        'operation': 'A - scale_sub*B + scale_add*C',
+                        'scale_sub': scale_sub,
+                        'scale_add': scale_add,
+                        'l2_distance': l2_dist,
+                    },
+                    'seed': seed,
+                }
+
+            finally:
+                self._model_in_use[model_id] -= 1
+
+        except Exception as e:
+            logger.error(f"[DIFFUSERS-ALGEBRA] Generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     async def generate_image_with_archaeology(
         self,
         prompt: str,

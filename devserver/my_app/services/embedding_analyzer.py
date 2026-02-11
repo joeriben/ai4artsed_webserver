@@ -1,9 +1,8 @@
 """
-Embedding Analyzer — Feature Probing utilities
+Embedding Analyzer — Feature Probing & Concept Algebra utilities
 
 Pure tensor operations for analyzing and manipulating text encoder embeddings.
-Used by Feature Probing (Latent Lab Tab 2) to identify which embedding dimensions
-encode specific semantic differences between two prompts.
+Used by Feature Probing (Latent Lab Tab 2) and Concept Algebra (Latent Lab Tab 3).
 """
 
 import logging
@@ -86,3 +85,36 @@ def apply_dimension_transfer(embed_a: Tensor, embed_b: Tensor, dims: list) -> Te
     )
 
     return result
+
+
+def apply_concept_algebra(
+    embed_a: Tensor,
+    embed_b: Tensor,
+    embed_c: Tensor,
+    scale_sub: float = 1.0,
+    scale_add: float = 1.0,
+) -> tuple[Tensor, float]:
+    """Concept Algebra: result = A - scale_sub * B + scale_add * C
+
+    Mikolov analogy: embed("King") - embed("Man") + embed("Woman") ≈ embed("Queen")
+    Applied to text encoder embeddings for image generation.
+
+    Args:
+        embed_a: [1, seq_len, embed_dim] base embedding
+        embed_b: [1, seq_len, embed_dim] embedding to subtract
+        embed_c: [1, seq_len, embed_dim] embedding to add
+        scale_sub: scaling factor for subtraction (default 1.0)
+        scale_add: scaling factor for addition (default 1.0)
+
+    Returns:
+        (result_embedding, l2_distance_from_a)
+    """
+    result = embed_a - scale_sub * embed_b + scale_add * embed_c
+    l2_dist = (result - embed_a).norm(p=2).item()
+
+    logger.info(
+        f"[CONCEPT-ALGEBRA] A - {scale_sub}*B + {scale_add}*C, "
+        f"L2(result, A)={l2_dist:.4f}, shapes: A={embed_a.shape}, B={embed_b.shape}, C={embed_c.shape}"
+    )
+
+    return result, l2_dist

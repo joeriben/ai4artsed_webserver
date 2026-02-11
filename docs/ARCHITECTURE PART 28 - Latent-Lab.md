@@ -14,6 +14,58 @@ The Latent Lab (`/latent-lab`) consolidates all deconstructive, vector-space-bas
 
 ---
 
+## Scientific Foundation
+
+The Latent Lab tools are grounded in six lines of research:
+
+### Vector Arithmetic in Embedding Spaces
+- **Mikolov, T. et al. (2013).** "Distributed Representations of Words and Phrases and their Compositionality." NeurIPS.
+  DOI: [10.48550/arXiv.1310.4546](https://doi.org/10.48550/arXiv.1310.4546)
+  — The foundational paper establishing vector arithmetic for word embeddings ("King − Man + Woman = Queen"). Demonstrates that learned embedding spaces encode semantic relationships as linear directions, enabling algebraic concept manipulation. **Basis for: Concept Algebra tab.**
+
+### Representation Engineering
+- **Zou, A. et al. (2023).** "Representation Engineering: A Top-Down Approach to AI Transparency." arXiv.
+  DOI: [10.48550/arXiv.2310.01405](https://doi.org/10.48550/arXiv.2310.01405)
+  — Reading and steering model behavior through manipulation of internal representations. Establishes that neural network activations encode interpretable, manipulable concepts. **Basis for: Feature Probing tab (dimension transfer).**
+
+### Probing / Feature Attribution
+- **Belinkov, Y. (2022).** "Probing Classifiers: Promises, Shortcomings, and Advances." Computational Linguistics (MIT Press).
+  DOI: [10.1162/coli_a_00422](https://doi.org/10.1162/coli_a_00422)
+  — Systematic survey of probing methods for understanding what information neural representations encode. **Basis for: Feature Probing tab (analysis phase).**
+
+- **Bau, D. et al. (2020).** "Rewriting a Deep Generative Model." ECCV 2020 (Springer).
+  DOI: [10.1007/978-3-030-58452-8_21](https://doi.org/10.1007/978-3-030-58452-8_21)
+  — Targeted rewriting of individual features in generative models. Shows that single directions in representation space control specific visual concepts. **Basis for: Feature Probing tab (targeted dimension transfer).**
+
+### Attention in Diffusion Models
+- **Hertz, A. et al. (2022).** "Prompt-to-Prompt Image Editing with Cross Attention Control." ICLR 2023.
+  DOI: [10.48550/arXiv.2208.01626](https://doi.org/10.48550/arXiv.2208.01626)
+  — The key paper for attention manipulation in diffusion models. Shows that cross-attention layers control the spatial relationship between prompt tokens and image regions. **Basis for: Attention Cartography tab.**
+
+### Latent Space Semantics in Diffusion
+- **Kwon, M. et al. (2023).** "Diffusion Models Already Have a Semantic Latent Space." ICLR 2023.
+  DOI: [10.48550/arXiv.2210.10960](https://doi.org/10.48550/arXiv.2210.10960)
+  — Demonstrates that intermediate activations (h-space) in diffusion models carry semantic meaning. Early steps establish composition, middle steps form semantics, late steps refine detail. **Basis for: Denoising Archaeology tab.**
+
+### Compositional Concept Algebra in Diffusion
+- **Liu, N. et al. (2022).** "Compositional Visual Generation with Composable Diffusion Models." ECCV 2022 (Springer).
+  DOI: [10.1007/978-3-031-19803-8_12](https://doi.org/10.1007/978-3-031-19803-8_12)
+  — Mathematical composition of concepts in diffusion models. Demonstrates that score functions (and by extension, conditioning embeddings) can be algebraically combined. **Basis for: Concept Algebra tab.**
+
+### Mapping: Paper → Latent Lab Tab
+
+| Paper | Tab | Operation |
+|-------|-----|-----------|
+| Mikolov 2013 | Concept Algebra | A - B + C embedding arithmetic |
+| Liu 2022 | Concept Algebra | Composable concept diffusion |
+| Zou 2023 | Feature Probing | Representation reading + steering |
+| Belinkov 2022 | Feature Probing | Probing what embeddings encode |
+| Bau 2020 | Feature Probing | Rewriting specific features |
+| Hertz 2022 | Attention Cartography | Cross-attention map analysis |
+| Kwon 2023 | Denoising Archaeology | Semantic phases in denoising |
+
+---
+
 ## Architecture
 
 ### Frontend: Tab Container
@@ -26,7 +78,7 @@ The Latent Lab is a lightweight shell that renders child components based on the
 |-----|-----------|--------|---------|
 | Attention Cartography | `latent_lab/attention_cartography.vue` | Implemented | Token→Region attention heatmaps |
 | Feature Probing | `latent_lab/feature_probing.vue` | Implemented | Embedding dimension analysis + transfer |
-| Concept Algebra | — | Planned | Vector arithmetic (A - B + C) |
+| Concept Algebra | `latent_lab/concept_algebra.vue` | Implemented | Vector arithmetic (A - B + C) |
 | Encoder Fusion | — | Planned | Cross-encoder interpolation |
 | Denoising Archaeology | — | Planned | Step-by-step denoising visualization |
 
@@ -170,6 +222,7 @@ kids  <  youth  <  adult  <  research
 | `views/latent_lab.vue` | Tab container |
 | `views/latent_lab/attention_cartography.vue` | Attention heatmaps |
 | `views/latent_lab/feature_probing.vue` | Dimension analysis + transfer |
+| `views/latent_lab/concept_algebra.vue` | Vector arithmetic (A - B + C) |
 | `stores/safetyLevel.ts` | Safety level store (feature gating) |
 | `components/ResearchComplianceDialog.vue` | Research compliance modal |
 | `views/LandingView.vue` | Feature card gating |
@@ -178,9 +231,9 @@ kids  <  youth  <  adult  <  research
 ### Backend
 | File | Purpose |
 |------|---------|
-| `services/diffusers_backend.py` | `generate_image_with_attention()`, `generate_image_with_probing()` |
+| `services/diffusers_backend.py` | `generate_image_with_attention()`, `generate_image_with_probing()`, `generate_image_with_algebra()` |
 | `services/attention_processors_sd3.py` | Custom attention capture |
-| `services/embedding_analyzer.py` | Dimension difference + transfer |
+| `services/embedding_analyzer.py` | Dimension difference + transfer + concept algebra |
 | `routes/settings_routes.py` | `/api/settings/safety-level` endpoint |
 | `config.py` | `DEFAULT_SAFETY_LEVEL`, `SAFETY_FILTERS` |
 
@@ -191,7 +244,9 @@ kids  <  youth  <  adult  <  research
 | `schemas/configs/interception/latent_lab.json` | UI metadata (icon, category) |
 | `schemas/configs/output/attention_cartography_diffusers.json` | Attention Cartography output config |
 | `schemas/configs/output/feature_probing_diffusers.json` | Feature Probing output config |
+| `schemas/configs/output/concept_algebra_diffusers.json` | Concept Algebra output config |
 | `schemas/configs/output/denoising_archaeology_diffusers.json` | Denoising Archaeology output config |
+| `schemas/chunks/output_image_concept_algebra_diffusers.py` | Concept Algebra Python chunk |
 
 ---
 
@@ -235,6 +290,34 @@ along the slider.
 **Performance:** 25 VAE decodes × ~50ms = +1.25s overhead. 25 thumbnails × ~80KB +
 final PNG ~1.5MB = ~3.5MB total response.
 
+## 4. Concept Algebra
+
+**Question:** "What happens when you apply word2vec-style vector arithmetic to image generation embeddings?"
+
+**Scientific Foundation:** Mikolov, T. et al. (2013). "Distributed Representations of Words and Phrases and their Compositionality." NeurIPS. DOI: 10.48550/arXiv.1310.4546
+— Demonstrated that embedding spaces encode semantic relationships as linear directions: vec("King") − vec("Man") + vec("Woman") ≈ vec("Queen").
+
+Liu, N. et al. (2022). "Compositional Visual Generation with Composable Diffusion Models." ECCV. DOI: 10.1007/978-3-031-19803-8_12
+— Extended algebraic composition to diffusion model conditioning.
+
+**Backend:** `DiffusersImageGenerator.generate_image_with_algebra()` (diffusers_backend.py)
+
+**Mechanism:**
+1. Encode three prompts (A, B, C) with selected text encoder(s)
+2. Compute: embed_result = embed_A − scale_sub × embed_B + scale_add × embed_C
+3. Same arithmetic on pooled embeddings
+4. Generate reference image with embed_A (same seed)
+5. Generate result image with embed_result
+
+**Key Files:**
+- `devserver/schemas/chunks/output_image_concept_algebra_diffusers.py` — Python chunk
+- `devserver/schemas/configs/output/concept_algebra_diffusers.json` — Output config
+- `devserver/my_app/services/diffusers_backend.py` — `generate_image_with_algebra()`
+- `devserver/my_app/services/embedding_analyzer.py` — `apply_concept_algebra()`
+- `public/ai4artsed-frontend/src/views/latent_lab/concept_algebra.vue` — Frontend
+
+**Frontend:** Three-prompt input (A = base, B = subtract, C = add), encoder selector (All/CLIP-L/CLIP-G/T5), formula visualization (A − B + C = ?), side-by-side comparison (reference vs. result), L2 distance display, scale controls for subtraction/addition intensity.
+
 ---
 
 ## Python Chunk Dict-Return Extension (Generic)
@@ -270,6 +353,6 @@ eventually migrate from name-based detection to dict returns.
 
 ---
 
-**Document Status:** Active (2026-02-11)
+**Document Status:** Active (2026-02-12)
 **Maintainer:** AI4ArtsEd Development Team
-**Last Updated:** Session 167 (Denoising Archaeology, dict-return extension)
+**Last Updated:** Session 168 (Concept Algebra, Scientific Foundation)
