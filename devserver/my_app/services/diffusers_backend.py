@@ -103,20 +103,56 @@ class DiffusersImageGenerator:
         else:
             raise ValueError(f"Unknown pipeline class: {pipeline_class}")
 
+    @staticmethod
+    def _get_available_ram_mb() -> float:
+        """Get available system RAM in MB (Linux only)."""
+        try:
+            with open('/proc/meminfo') as f:
+                for line in f:
+                    if line.startswith('MemAvailable:'):
+                        return int(line.split()[1]) / 1024  # kB → MB
+        except Exception:
+            pass
+        return float('inf')  # Can't determine → assume enough
+
     def _offload_to_cpu(self, model_id: str) -> None:
-        """Move a pipeline from GPU to CPU RAM (keeps it loaded for fast reload)."""
+        """Move a pipeline from GPU to CPU RAM, or fully unload if RAM is tight."""
         import torch
-        pipe = self._pipelines[model_id]
         vram_mb = self._model_vram_mb.get(model_id, 0)
-        # Suppress HuggingFace "float16 cannot run on cpu" warnings — we only
-        # store on CPU, never run inference there
+
+        # Estimate CPU RAM needed (fp16 VRAM ≈ fp16 RAM)
+        # Add 20% safety margin for PyTorch metadata overhead
+        estimated_ram_mb = vram_mb * 1.2
+        available_ram = self._get_available_ram_mb()
+
+        if available_ram < estimated_ram_mb:
+            # Not enough RAM → fully unload to prevent OOM
+            logger.warning(
+                f"[DIFFUSERS] Not enough RAM to offload {model_id} to CPU "
+                f"({available_ram:.0f}MB free, need {estimated_ram_mb:.0f}MB). "
+                f"Fully unloading instead (next load will be from disk)."
+            )
+            del self._pipelines[model_id]
+            self._model_device.pop(model_id, None)
+            self._model_last_used.pop(model_id, None)
+            self._model_vram_mb.pop(model_id, None)
+            self._model_in_use.pop(model_id, None)
+            if self._current_model == model_id:
+                self._current_model = None
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            logger.info(f"[DIFFUSERS] Fully unloaded {model_id} ({vram_mb:.0f}MB VRAM freed)")
+            return
+
+        # Enough RAM → offload to CPU for fast reload
+        pipe = self._pipelines[model_id]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=".*cannot run with.*cpu.*device.*")
             pipe.to("cpu")
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
         self._model_device[model_id] = "cpu"
-        logger.info(f"[DIFFUSERS] Offloaded {model_id} to CPU ({vram_mb:.0f}MB freed)")
+        logger.info(f"[DIFFUSERS] Offloaded {model_id} to CPU ({vram_mb:.0f}MB VRAM freed, ~{estimated_ram_mb:.0f}MB RAM used)")
 
     def _move_to_gpu(self, model_id: str) -> None:
         """Move a pipeline from CPU RAM back to GPU."""
