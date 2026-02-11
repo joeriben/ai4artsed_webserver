@@ -108,7 +108,11 @@ class DiffusersImageGenerator:
         import torch
         pipe = self._pipelines[model_id]
         vram_mb = self._model_vram_mb.get(model_id, 0)
-        pipe.to("cpu")
+        # Suppress HuggingFace "float16 cannot run on cpu" warnings — we only
+        # store on CPU, never run inference there
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*cannot run with.*cpu.*device.*")
+            pipe.to("cpu")
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
         self._model_device[model_id] = "cpu"
@@ -159,10 +163,12 @@ class DiffusersImageGenerator:
                 break
 
             if not candidates:
-                logger.warning(
-                    f"[DIFFUSERS] Cannot free VRAM: {free_mb:.0f}MB free, "
-                    f"need {target_mb:.0f}MB, no evictable models"
-                )
+                # Don't warn when target is inf (= "evict all") and GPU is already clear
+                if target_mb != float('inf'):
+                    logger.warning(
+                        f"[DIFFUSERS] Cannot free VRAM: {free_mb:.0f}MB free, "
+                        f"need {target_mb:.0f}MB, no evictable models"
+                    )
                 break
 
             # Evict least recently used
