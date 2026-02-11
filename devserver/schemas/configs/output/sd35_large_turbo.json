@@ -1,0 +1,74 @@
+{
+  "pipeline": "single_text_media_generation",
+  "name": {
+    "en": "Stable Diffusion 3.5 Large Turbo",
+    "de": "Stable Diffusion 3.5 Large Turbo"
+  },
+  "description": {
+    "en": "Fast image generation using SD3.5 Large Turbo - 4-step distilled model for near-instant results",
+    "de": "Schnelle Bildgenerierung mit SD3.5 Large Turbo - 4-Schritt-destilliertes Modell für nahezu sofortige Ergebnisse"
+  },
+  "category": {
+    "en": "Image Generation",
+    "de": "Bildgenerierung"
+  },
+
+  "parameters": {
+    "OUTPUT_CHUNK": "output_image_sd35_turbo_diffusers",
+    "NEGATIVE_PROMPT": "",
+    "WIDTH": 1024,
+    "HEIGHT": 1024,
+    "STEPS": 4,
+    "CFG": 0.0,
+    "SEED": "random",
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 512
+  },
+
+  "media_preferences": {
+    "default_output": "image",
+    "supported_types": ["image"]
+  },
+
+  "meta": {
+    "stage": "output",
+    "model": "DEFAULT",
+    "model_file": "stabilityai/stable-diffusion-3.5-large-turbo (HuggingFace)",
+    "backend": "diffusers",
+    "backend_type": "diffusers",
+    "requires_gpu": true,
+    "gpu_vram_mb": 8000,
+    "estimated_duration_seconds": "3-5",
+    "recommended_resolution": "1024x1024",
+    "supported_resolutions": [
+      "512x512",
+      "768x768",
+      "1024x1024",
+      "1280x1280",
+      "1024x768",
+      "768x1024"
+    ],
+    "notes": "Adversarial Diffusion Distillation from SD3.5 Large. 4 steps, CFG 0.0. Same MMDiT architecture and text encoders.",
+    "version": "1.0"
+  },
+
+  "display": {
+    "icon": "⚡",
+    "color": "#FFB347",
+    "category": "image_generation",
+    "difficulty": 1,
+    "order": 5
+  },
+
+  "tags": {
+    "en": ["image", "stable-diffusion", "fast", "turbo", "sd3.5", "diffusers"],
+    "de": ["bild", "stable-diffusion", "schnell", "turbo", "sd3.5", "diffusers"]
+  },
+
+  "audience": {
+    "workshop_suitable": true,
+    "min_age": 10,
+    "complexity": "beginner"
+  }
+}

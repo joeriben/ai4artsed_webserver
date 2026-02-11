@@ -228,7 +228,7 @@ class DiffusersImageGenerator:
         with self._load_lock:
             try:
                 import torch
-                from config import DIFFUSERS_VRAM_RESERVE_MB
+                from config import DIFFUSERS_VRAM_RESERVE_MB, DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB
 
                 # Case 1: Already loaded and on GPU
                 if model_id in self._pipelines and self._model_device.get(model_id) == "cuda":
@@ -252,7 +252,18 @@ class DiffusersImageGenerator:
 
                 PipelineClass = self._resolve_pipeline_class(pipeline_class)
 
-                logger.info(f"[DIFFUSERS] Loading model from disk: {model_id}")
+                # Pre-check: enough system RAM for from_pretrained()?
+                # Refuses to load if free RAM < reserve, preventing OOM kill.
+                available_ram = self._get_available_ram_mb()
+                logger.info(f"[DIFFUSERS] Loading model from disk: {model_id} (system RAM free: {available_ram:.0f}MB)")
+                if available_ram < DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB:
+                    logger.error(
+                        f"[DIFFUSERS] Not enough system RAM to load {model_id}: "
+                        f"{available_ram:.0f}MB free, need at least {DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB}MB. "
+                        f"Free memory by stopping other services or increase system RAM."
+                    )
+                    return False
+
                 vram_before = torch.cuda.memory_allocated(0) if torch.cuda.is_available() else 0
 
                 kwargs = {
