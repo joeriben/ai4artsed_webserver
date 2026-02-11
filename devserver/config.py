@@ -79,6 +79,15 @@ HOST = "0.0.0.0"
 PORT = 17802  # Development: 17802, Production: 17801
 THREADS = 8
 
+# CORS: Allowed origins for cross-origin requests
+# Development origins are auto-generated from PORT; add production domains here
+CORS_ALLOWED_ORIGINS = [
+    f'http://localhost:{PORT}',
+    f'http://127.0.0.1:{PORT}',
+    'http://localhost:5173',           # Vite dev server
+    'https://lab.ai4artsed.org',       # Production domain
+]
+
 # ----------------------------------------------------------------------------
 # 4. LANGUAGE
 # ----------------------------------------------------------------------------

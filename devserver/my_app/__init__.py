@@ -6,7 +6,7 @@ import os
 from flask import Flask, request
 from flask_cors import CORS
 
-from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR, DISABLE_API_CACHE, CACHE_STRATEGY, ENABLE_LEGACY_MIGRATION
+from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR, DISABLE_API_CACHE, CACHE_STRATEGY, ENABLE_LEGACY_MIGRATION, CORS_ALLOWED_ORIGINS
 
 
 def _run_startup_migration():
@@ -150,7 +150,7 @@ def create_app():
     # Must explicitly set origins when using credentials (cannot use wildcard)
     CORS(app,
          supports_credentials=True,
-         origins=['http://localhost:17802', 'http://127.0.0.1:17802', 'http://localhost:5173', 'https://lab.ai4artsed.org'],
+         origins=CORS_ALLOWED_ORIGINS,
          allow_headers=['Content-Type'],
          expose_headers=['Set-Cookie'])
 

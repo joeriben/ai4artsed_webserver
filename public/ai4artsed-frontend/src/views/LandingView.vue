@@ -3,9 +3,8 @@
 
     <!-- Hero Section -->
     <section class="hero">
-      <h1 class="hero-title">AI4ArtsEd</h1>
+      <h1 class="hero-title">UCDCAE AI LAB</h1>
       <p class="hero-subtitle">{{ $t('landing.subtitle') }}</p>
-      <p class="hero-research">{{ $t('landing.research') }}</p>
     </section>
 
     <!-- Feature Cards Grid -->
@@ -51,12 +50,19 @@
 
     <!-- Funding -->
     <section class="funding">
-      <a href="https://www.bmfsfj.de/" target="_blank" rel="noopener noreferrer">
-        <img src="/logos/BMBFSFJ_logo.png" :alt="$t('about.funding.title')" class="funding-logo" />
-      </a>
-      <a href="https://kubi-meta.de/ai4artsed" target="_blank" rel="noopener noreferrer" class="project-link">
-        kubi-meta.de/ai4artsed
-      </a>
+      <div class="funding-row">
+        <a href="https://www.bmfsfj.de/" target="_blank" rel="noopener noreferrer">
+          <img src="/logos/BMBFSFJ_logo.png" :alt="$t('about.funding.title')" class="funding-logo" />
+        </a>
+      </div>
+      <div class="project-logos">
+        <a href="https://kubi-meta.de/ai4artsed" target="_blank" rel="noopener noreferrer">
+          <img src="/logos/ai4artsed_logo.jpg" alt="AI4ArtsEd" class="project-logo" />
+        </a>
+        <a href="https://comearts.eu" target="_blank" rel="noopener noreferrer">
+          <img src="/logos/comearts_logo.jpg" alt="COMeARTS" class="project-logo" />
+        </a>
+      </div>
     </section>
 
     <!-- Research Compliance Dialog -->
@@ -413,14 +419,23 @@ const features: Feature[] = [
   width: auto;
 }
 
-.project-link {
-  color: rgba(255, 255, 255, 0.4);
-  text-decoration: none;
-  font-size: 0.85rem;
+.project-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
 }
 
-.project-link:hover {
-  color: rgba(255, 255, 255, 0.7);
+.project-logo {
+  height: 60px;
+  width: auto;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.project-logo:hover {
+  opacity: 1;
 }
 
 /* Responsive */

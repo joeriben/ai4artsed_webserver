@@ -59,6 +59,14 @@
                   <img src="/logos/BMBFSFJ_logo.png" alt="BMBFSFJ" />
                 </a>
               </div>
+              <div class="project-logos">
+                <a href="https://kubi-meta.de/ai4artsed" target="_blank" rel="noopener noreferrer">
+                  <img src="/logos/ai4artsed_logo.jpg" alt="AI4ArtsEd" class="project-logo-img" />
+                </a>
+                <a href="https://comearts.eu" target="_blank" rel="noopener noreferrer">
+                  <img src="/logos/comearts_logo.jpg" alt="COMeARTS" class="project-logo-img" />
+                </a>
+              </div>
             </section>
           </div>
         </div>
@@ -241,6 +249,19 @@ a:hover {
   background: white;
   padding: 1rem;
   border-radius: 8px;
+}
+
+.project-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.project-logo-img {
+  max-height: 60px;
+  width: auto;
 }
 
 /* Modal Fade Transition */
