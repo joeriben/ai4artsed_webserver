@@ -339,6 +339,14 @@ DIFFUSERS_DEVICE = os.environ.get("DIFFUSERS_DEVICE", "cuda")  # cuda, cpu
 DIFFUSERS_ENABLE_ATTENTION_SLICING = os.environ.get("DIFFUSERS_ENABLE_ATTENTION_SLICING", "true").lower() == "true"
 DIFFUSERS_ENABLE_VAE_TILING = os.environ.get("DIFFUSERS_ENABLE_VAE_TILING", "false").lower() == "true"
 
+# Models to preload into VRAM at startup (background thread, in priority order)
+# Format: list of (model_id, pipeline_class) tuples
+DIFFUSERS_PRELOAD_MODELS = [
+    ("stabilityai/stable-diffusion-3.5-large", "StableDiffusion3Pipeline"),
+]
+# Minimum free VRAM (MB) to reserve for inference overhead (latents, VAE decode, scheduler)
+DIFFUSERS_VRAM_RESERVE_MB = int(os.environ.get("DIFFUSERS_VRAM_RESERVE_MB", "3072"))
+
 # Pre-compiled TensorRT models on HuggingFace (if available)
 DIFFUSERS_TENSORRT_MODELS = {
     "sd35_large": "stabilityai/stable-diffusion-3.5-large-tensorrt",

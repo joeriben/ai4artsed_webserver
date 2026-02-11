@@ -240,4 +240,14 @@ def create_app():
     # Run legacy folder migration on startup if enabled
     _run_startup_migration()
 
-    return app    
+    # Launch diffusers model preloading in background
+    from config import DIFFUSERS_ENABLED, DIFFUSERS_PRELOAD_MODELS
+    if DIFFUSERS_ENABLED and DIFFUSERS_PRELOAD_MODELS:
+        import threading
+        def _preload_diffusers():
+            from my_app.services.diffusers_backend import get_diffusers_backend
+            backend = get_diffusers_backend()
+            backend.warmup()
+        threading.Thread(target=_preload_diffusers, daemon=True, name="diffusers-warmup").start()
+
+    return app
