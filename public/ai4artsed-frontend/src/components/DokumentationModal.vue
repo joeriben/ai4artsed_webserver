@@ -631,18 +631,41 @@ Token 78-512:      reines T5 (semantischer Anker)</pre>
                   </ul>
                 </div>
 
+                <div class="workshop-card license">
+                  <h3>{{ currentLanguage === 'de' ? 'Lizenz und Urheberschaft' : 'License and Authorship' }}</h3>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Diese Software ist ein wissenschaftliches Werk von Prof. Dr. Benjamin Jörissen (UNESCO Chair in Digital Culture and Arts in Education, Friedrich-Alexander-Universität Erlangen-Nürnberg). Sie verkörpert bildungstheoretische Forschungsergebnisse in Software-Form.'
+                    : 'This software is an academic work by Prof. Dr. Benjamin Jörissen (UNESCO Chair in Digital Culture and Arts in Education, Friedrich-Alexander-Universität Erlangen-Nürnberg). It embodies educational-theoretical research in software form.' }}</p>
+                  <p><strong>{{ currentLanguage === 'de' ? 'Source Available' : 'Source Available' }}</strong> — {{ currentLanguage === 'de'
+                    ? 'Der Quellcode ist frei einsehbar und die Software steht nicht-kommerziellen Bildungseinrichtungen kostenlos zur Verfügung. Modifikation und Redistribution bedürfen der schriftlichen Genehmigung des Urhebers. Kommerzielle Nutzung ist nach Vereinbarung möglich.'
+                    : 'The source code is freely accessible and the software is available free of charge to non-commercial educational institutions. Modification and redistribution require the author\'s written permission. Commercial use is available by agreement.' }}</p>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Die vollständige Lizenz findet sich im Repository als LICENSE.md (UCDCAE AI Lab License v1.0).'
+                    : 'The complete license can be found in the repository as LICENSE.md (UCDCAE AI Lab License v1.0).' }}</p>
+                </div>
+
+                <div class="workshop-card installation">
+                  <h3>{{ currentLanguage === 'de' ? 'Installation und Betrieb' : 'Installation and Operation' }}</h3>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'AI4ArtsEd ist ein komplexes System mit mehreren Komponenten (Backend, Frontend, LLM-Anbindung, Bildgenerierung, Sicherheitssystem). Die Installation erfordert Erfahrung mit Python, Node.js, GPU-Konfiguration und KI-Modellen.'
+                    : 'AI4ArtsEd is a complex system with multiple components (backend, frontend, LLM integration, image generation, safety system). Installation requires experience with Python, Node.js, GPU configuration, and AI models.' }}</p>
+                  <p><strong>{{ currentLanguage === 'de'
+                    ? 'Der Einsatz eines KI-Coding-Agenten (z.B. Claude Code) wird dringend empfohlen'
+                    : 'The use of an AI coding agent (e.g. Claude Code) is highly recommended' }}</strong> — {{ currentLanguage === 'de'
+                    ? 'sowohl für die initiale Installation als auch für Konfiguration und Wartung.'
+                    : 'both for initial installation and for configuration and maintenance.' }}</p>
+                </div>
+
                 <div class="contact-box">
                   <h3>{{ currentLanguage === 'de' ? 'Kontakt' : 'Contact' }}</h3>
                   <p>{{ currentLanguage === 'de'
                     ? 'Für Fragen zur Nutzung in Bildungskontexten:'
                     : 'For questions about use in educational contexts:' }}</p>
                   <a href="mailto:vanessa.baumann@fau.de">vanessa.baumann@fau.de</a>
-                </div>
-
-                <div class="disclaimer">
-                  <p>{{ currentLanguage === 'de'
-                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
-                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
+                  <p style="margin-top: 0.5rem">{{ currentLanguage === 'de'
+                    ? 'Für Lizenzfragen, kommerzielle Anfragen und Autorisierungen:'
+                    : 'For license inquiries, commercial requests, and authorizations:' }}</p>
+                  <a href="mailto:benjamin.joerissen@fau.de">benjamin.joerissen@fau.de</a>
                 </div>
               </section>
             </div>
@@ -756,7 +779,7 @@ const tabs = [
   { id: 'welcome', labelDe: 'Willkommen', labelEn: 'Welcome' },
   { id: 'start', labelDe: 'Anleitung', labelEn: 'Guide' },
   { id: 'pedagogy', labelDe: 'Pädagogik', labelEn: 'Pedagogy' },
-  { id: 'workshop', labelDe: 'Workshop', labelEn: 'Workshop' },
+  { id: 'workshop', labelDe: 'Praxis', labelEn: 'Practice' },
   { id: 'experiments', labelDe: 'Experimente', labelEn: 'Experiments' },
   { id: 'canvas', labelDe: 'Canvas', labelEn: 'Canvas' }
 ]
