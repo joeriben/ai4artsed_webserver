@@ -83,7 +83,7 @@
 
                 <div class="step-card">
                   <div class="step-header">
-                    <h3>{{ currentLanguage === 'de' ? 'Regeln wählen' : 'Choose Rules' }}</h3>
+                    <h3>{{ currentLanguage === 'de' ? 'Kreative Hilfestellung und Unterstützung' : 'Creative Guidance and Support' }}</h3>
                   </div>
                   <div class="step-image-display">
                     <svg xmlns="http://www.w3.org/2000/svg" height="60" viewBox="0 -960 960 960" width="60" fill="currentColor" class="select-vue-icon">
@@ -91,11 +91,8 @@
                     </svg>
                   </div>
                   <p>{{ currentLanguage === 'de'
-                    ? 'Auf der Eingangsseite siehst du in der Mitte "Du bestimmst!" – das ist der Ausgangspunkt mit einer LEEREN Regel-Box. Alles drum herum sind Anregungen: vorgefertigte Regeln, die du als Inspiration nutzen oder direkt verwenden kannst. Die ausgewählten Regeln werden in alle drei Modi übernommen.'
-                    : 'On the start page you see "Your Call!" in the center – this is the starting point with an EMPTY rules box. Everything around it are suggestions: pre-made rules you can use as inspiration or directly. The selected rules are applied to all three modes.' }}</p>
-                  <p class="note">{{ currentLanguage === 'de'
-                    ? 'Wichtig: Eine Text-KI wird später deine Idee (WAS) mit diesen Regeln (WIE) verarbeiten und einen erweiterten Prompt erzeugen. Das Ergebnis kannst du direkt in der Box verändern, durch erneutes "Start"-Klicken neu generieren lassen, oder per Copy & Paste in die Prompt-Box einfügen und von dort aus weiterarbeiten.'
-                    : 'Important: A text AI will later process your idea (WHAT) with these rules (HOW) and create an expanded prompt. You can edit the result directly in the box, regenerate it by clicking "Start" again, or copy & paste it into the prompt box to continue working from there.' }}</p>
+                    ? 'In manchen Eingabefeldern siehst Du dieses Icon. Es führt Dich zu Inspirationen und Ideen für künstlerische Positionen und Materialien, Stimmungen, Verrücktheiten, und auch auf Nachhaltigkeit bezogenen Regeln zur Transformation von kreativen Ideen.'
+                    : 'In some input fields you will see this icon. It leads you to inspirations and ideas for artistic positions and materials, moods, craziness, and also sustainability-related rules for transforming creative ideas.' }}</p>
                 </div>
 
                 <div class="step-card">
