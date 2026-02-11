@@ -1,5 +1,52 @@
 # Development Log
 
+## Session 165 - Research-Level Gating + Latent Lab Architecture Docs
+**Date:** 2026-02-11
+**Focus:** Safety-level gating for Canvas & Latent Lab; rename `off` → `research`; architecture documentation
+
+### Problem
+Canvas und Latent Lab nutzen direkte Pipeline-Aufrufe ohne vollständige Safety-Stages. Statt Safety in jeden experimentellen Endpoint nachzurüsten (was den dekonstruktiven Charakter zerstören würde), wird der Zugang gegated.
+
+### Changes
+
+**Backend: Safety-Level Rename `off` → `research`**
+- ~25 Stellen in 6 Dateien: `config.py`, `schema_pipeline_routes.py`, `stage_orchestrator.py`, `workflow_logic_service.py`, `export_manager.py`, `workflow_streaming_routes.py`
+- Neuer öffentlicher Endpoint: `GET /api/settings/safety-level`
+- `testfiles/` bewusst nicht geändert (Build-Artefakte)
+
+**Frontend: Feature-Gating**
+- `stores/safetyLevel.ts` (NEU): Pinia-Store mit `fetchLevel()`, `isAdvancedMode`, `isResearchMode`, `researchConfirmed`
+- `components/ResearchComplianceDialog.vue` (NEU): Compliance-Modal mit Warnung, Altershinweis, Checkbox
+- `views/LandingView.vue`: Canvas + Latent Lab Cards mit `requiresAdvanced: true`, Locked-State (Opacity 0.4, Schloss-Icon)
+- `router/index.ts`: `meta: { requiresAdvanced: true }` + Navigation Guard
+- `main.ts`: Safety-Level-Fetch beim App-Start
+- `i18n.ts`: `research.*` Keys (DE + EN)
+
+**Dokumentation**
+- `docs/DEVELOPMENT_DECISIONS.md`: Zwei neue Entscheidungen (Research-Level-Gating, Latent Lab als konsolidierter Modus, Diffusers als Introspection-Plattform)
+- `docs/ARCHITECTURE PART 28 - Latent-Lab.md` (NEU): Vollständige Architektur-Dokumentation mit Attention Cartography, Feature Probing, Legacy-Workflows, Hallucinator-Abgrenzung, Research-Level-Gating
+
+### Verification
+- `npm run type-check` → 0 Errors
+- `grep -r "'off'" devserver/my_app devserver/schemas/engine devserver/config.py` → 0 Treffer
+
+### Files Changed
+- `devserver/config.py` — `off` → `research`
+- `devserver/my_app/routes/schema_pipeline_routes.py` — 4× rename
+- `devserver/schemas/engine/stage_orchestrator.py` — 8× rename
+- `devserver/my_app/services/workflow_logic_service.py` — 2× rename
+- `devserver/my_app/services/export_manager.py` — 2× rename
+- `devserver/my_app/routes/workflow_streaming_routes.py` — 1× rename
+- `devserver/my_app/routes/settings_routes.py` — neuer Endpoint
+- `public/.../stores/safetyLevel.ts` — NEU
+- `public/.../components/ResearchComplianceDialog.vue` — NEU
+- `public/.../views/LandingView.vue` — Feature-Gating
+- `public/.../router/index.ts` — Guard + Meta
+- `public/.../main.ts` — Store-Init
+- `public/.../i18n.ts` — research.* Keys
+- `docs/DEVELOPMENT_DECISIONS.md` — 2 neue Entscheidungen
+- `docs/ARCHITECTURE PART 28 - Latent-Lab.md` — NEU
+
 ## Session 164 - Landing Page Restructure + Preset Selection Overlay
 **Date:** 2026-02-10
 **Focus:** Replace outdated `/select` bubble page with proper landing page; move interception preset selection into contextual overlay

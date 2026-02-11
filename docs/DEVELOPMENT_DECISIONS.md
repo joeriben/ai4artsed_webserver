@@ -29,6 +29,96 @@
 
 ---
 
+## 🔐 RESEARCH-LEVEL-GATING: Canvas & Latent Lab hinter Safety-Level-Gate (2026-02-11)
+
+**Kontext:** Canvas und Latent Lab nutzen direkte Pipeline-Aufrufe ohne vollständige 4-Stage-Safety (Stage 2 wird übersprungen, Stage 1/3 sind optional). Statt Safety in jeden experimentellen Endpoint nachzurüsten, wird der Zugang gegated: Diese Features sind nur ab Safety-Level `adult` verfügbar.
+
+**Entscheidungen:**
+
+### Decision 1: Safety-Level `off` → `research` umbenennen
+
+Das alte Label `off` suggerierte "Development only / kaputt" — tatsächlich ist es ein bewusster Research-Modus für Erwachsene (16+). Neuer Name `research` kommuniziert den Zweck klarer. Hierarchie: `kids` < `youth` < `adult` < `research`.
+
+**Betroffene Dateien:** `config.py`, `schema_pipeline_routes.py`, `stage_orchestrator.py`, `workflow_logic_service.py`, `export_manager.py`, `workflow_streaming_routes.py` — insgesamt ~25 Stellen (Vergleiche, Docstrings, Default-Werte).
+
+### Decision 2: Feature-Gating statt Endpoint-Sicherung
+
+**Problem:** Canvas und Latent Lab operieren absichtlich ohne Stage-2-Interception und mit optionaler Safety. Vollständige Safety nachzurüsten würde den pädagogisch-dekonstruktiven Charakter zerstören (z.B. Partial Elimination benötigt unverfälschte Vektoren).
+
+**Lösung:** Zugangs-Gating auf Frontend-Ebene:
+- `kids`/`youth` → Cards sichtbar aber deaktiviert (Opacity 0.4, Schloss-Icon, kein Klick)
+- `adult` → Normal klickbar (adult hat eigene §86a + DSGVO Safety-Stages)
+- `research` → Compliance-Dialog pro Session, dann klickbar
+
+**Transparenz-Prinzip:** Locked Cards werden angezeigt, nicht ausgeblendet — Nutzer sehen, dass es mehr gibt, und verstehen warum es gesperrt ist.
+
+### Decision 3: Session-basierte Compliance-Bestätigung (nur `research`)
+
+Bei Safety-Level `research` müssen Nutzer pro Browser-Session eine Compliance-Bestätigung abgeben (Warnung: keine Filter aktiv, Altersempfehlung 16+). Die Bestätigung ist ein `ref` (kein `localStorage`) — Reset bei Page-Reload.
+
+**Begründung:** `adult`-Level hat noch §86a + DSGVO Safety-Stages aktiv, daher kein Compliance-Dialog nötig. Nur `research` (= komplett ungefiltert) erfordert bewusste Bestätigung.
+
+### Decision 4: Öffentlicher Safety-Level-Endpoint
+
+`GET /api/settings/safety-level` — ohne Auth, da der Safety-Level kein Geheimnis ist (er bestimmt nur, welche Features sichtbar sind, nicht welche Daten zugänglich sind). Frontend-Store (`safetyLevel.ts`) fetcht beim App-Start und cached im Pinia-Store.
+
+**Alternativen verworfen:**
+- ❌ Safety in Latent-Lab-Endpoints nachrüsten → zerstört wissenschaftlichen Charakter
+- ❌ Features komplett ausblenden statt locken → Nutzer wissen nicht, was es gibt
+- ❌ Compliance per localStorage → zu persistent, Session-Reset ist bewusste Entscheidung
+- ❌ Compliance auch für `adult` → unnötig, adult hat eigene Safety-Stages
+
+**Betroffene Dateien:**
+- Backend: `config.py`, `settings_routes.py`, `schema_pipeline_routes.py`, `stage_orchestrator.py`, `workflow_logic_service.py`, `export_manager.py`, `workflow_streaming_routes.py`
+- Frontend: `stores/safetyLevel.ts` (NEU), `components/ResearchComplianceDialog.vue` (NEU), `views/LandingView.vue`, `router/index.ts`, `main.ts`, `i18n.ts`
+
+---
+
+## 🧪 LATENT LAB: Dekonstruktive Configs zu einem Modus zusammengefasst (2026-02-11)
+
+**Kontext:** Die Plattform hatte mehrere separate dekonstruktive Workflows:
+- **Hallucinator** (ehemals Surrealizer) — CLIP-L/T5 Extrapolation
+- **Split & Combine** — Semantische Vektorfusion zweier Prompts
+- **Partial Elimination** — Dimensionselimination im Vektorraum
+- **Attention Cartography** — Cross-Attention Visualisierung
+- **Feature Probing** — Embedding-Dimensionsanalyse + selektiver Transfer
+
+Diese waren teils als eigenständige Views (`/surrealizer`), teils als Legacy-ComfyUI-Workflows, teils gar nicht über die UI erreichbar. Es fehlte ein konzeptueller Rahmen.
+
+**Entscheidung: Ein "Latent Lab" als Forschungsmodus**
+
+Alle dekonstruktiven, vektorraumbasierten Operationen werden unter `/latent-lab` als Tab-basierter Modus zusammengefasst. Das Latent Lab ist kein produktives Generierungstool, sondern ein Forschungsinstrument für:
+1. **Attention Cartography** — Welche Tokens beeinflussen welche Bildregionen?
+2. **Feature Probing** — Welche Embedding-Dimensionen kodieren welche Semantik?
+3. **Concept Algebra** — Vektorarithmetik im Embedding-Raum (planned)
+4. **Encoder Fusion** — Encoder-übergreifende Interpolation (planned)
+5. **Denoising Archaeology** — Schichtweise Denoising-Analyse (planned)
+
+**Begründung:**
+- Gemeinsamer konzeptueller Rahmen: "Was passiert im Inneren des Modells?"
+- Gemeinsames Safety-Profil: Stage-2-Bypass, da Prompts unverfälscht bleiben müssen
+- Gemeinsame Zielgruppe: Fortgeschrittene Nutzer (→ `adult`/`research` Safety-Level)
+- Klare Abgrenzung von produktiven Modi (Text/Bild/Musik-Transformation)
+
+**Diffusers als flexible Plattform:**
+
+Die Migration von ComfyUI-Workflows zu Diffusers (begonnen mit dem Hallucinator, Session 162) ermöglicht tiefere Modell-Introspektion. Diffusers bietet:
+- Direkten Zugriff auf individuelle Text-Encoder (`pipe._get_clip_prompt_embeds()`, `pipe._get_t5_prompt_embeds()`)
+- Hot-swappable Attention-Prozessoren (Custom `AttentionCaptureProcessor` statt SDPA)
+- Tensor-Operationen ohne Workflow-Overhead (Embedding-Manipulation, Dimensionsanalyse)
+- Programmierbare Pipeline-Schritte (Denoising-Loop Introspection)
+
+ComfyUI ist node-graph-basiert — perfekt für "normales" Generieren, aber schlecht für Introspection, weil die internen Tensoren zwischen Nodes nicht sichtbar sind. Diffusers gibt programmatischen Zugriff auf alle Zwischenschritte.
+
+**Hallucinator bleibt separat:** Der Hallucinator (`/surrealizer`) bleibt als eigenständige View bestehen — er ist das am meisten genutzte dekonstruktive Tool und hat einen eigenen kreativen Workflow (Alpha-Slider-Exploration). Integration ins Latent Lab ist für die Zukunft vorgesehen.
+
+**Alternativen verworfen:**
+- ❌ Jedes dekonstruktive Tool als eigene Top-Level-Route → zu viele Einträge in Navigation
+- ❌ Alles in ComfyUI belassen → keine Tensor-Introspektion möglich
+- ❌ Hallucinator sofort in Latent Lab integrieren → zu großer Umbau, eigenständiger Workflow
+
+---
+
 ## 🏠 LANDING PAGE RESTRUCTURE: Feature-Dashboard + Kontextuelle Preset-Auswahl (2026-02-10)
 
 **Kontext:** Die Plattform ist über ihren ursprünglichen Einstiegspunkt (`/select` = PropertyQuadrantsView) hinausgewachsen. Diese Seite zeigte Interception-Presets als Einstiegserlebnis — aber Canvas, HeartMuLa, Surrealizer und Latent Lab nutzen gar keine Interception-Presets. Zwei verschiedene Anliegen ("Welches Feature?" vs. "Welcher Interception-Stil?") waren auf einer Seite vermischt.
