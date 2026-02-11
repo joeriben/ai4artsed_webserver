@@ -158,7 +158,7 @@ const messages = {
       generatedMedia: 'Erzeugtes Bild'
     },
     landing: {
-      subtitle: 'Pädagogisch-künstlerische Experimentierplattform des UNESCO Chair in Digital Culture and Arts in Education für den explorativen Einsatz von KI in der kulturellen Bildung',
+      subtitle: 'Pädagogisch-künstlerische Experimentierplattform des UNESCO Chair in Digital Culture and Arts in Education für den explorativen Einsatz von KI in der kulturell-ästhetischen Medienbildung',
       research: '',
       features: {
         textTransformation: {
@@ -229,7 +229,7 @@ const messages = {
     },
     about: {
       title: 'Über das UCDCAE AI LAB',
-      intro: 'Das UCDCAE AI LAB ist eine pädagogisch-künstlerische Experimentierplattform des UNESCO Chair in Digital Culture and Arts in Education für den explorativen Einsatz von Künstlicher Intelligenz in der kulturellen Bildung. Es wurde im Rahmen der Projekte AI4ArtsEd und COMeARTS entwickelt.',
+      intro: 'Das UCDCAE AI LAB ist eine pädagogisch-künstlerische Experimentierplattform des UNESCO Chair in Digital Culture and Arts in Education für den explorativen Einsatz von Künstlicher Intelligenz in der kulturell-ästhetischen Medienbildung. Es wurde im Rahmen der Projekte AI4ArtsEd und COMeARTS entwickelt.',
       project: {
         title: 'Das Projekt',
         description: 'KI verändert Gesellschaft und Arbeitswelt; sie wird zunehmend Thema der Bildung. Das Projekt sondiert Chancen, Bedingungen und Grenzen des pädagogischen Einsatzes künstlicher Intelligenz (KI) in kulturell diversitätssensiblen Settings der Kulturellen Bildung (KuBi).',
@@ -875,7 +875,7 @@ const messages = {
       generatedMedia: 'Generated image'
     },
     landing: {
-      subtitle: 'Pedagogical-artistic experimentation platform of the UNESCO Chair in Digital Culture and Arts in Education for the explorative use of AI in cultural education',
+      subtitle: 'Pedagogical-artistic experimentation platform of the UNESCO Chair in Digital Culture and Arts in Education for the explorative use of AI in cultural-aesthetic media education',
       research: '',
       features: {
         textTransformation: {
@@ -946,7 +946,7 @@ const messages = {
     },
     about: {
       title: 'About the UCDCAE AI LAB',
-      intro: 'The UCDCAE AI LAB is a pedagogical-artistic experimentation platform of the UNESCO Chair in Digital Culture and Arts in Education for the explorative use of artificial intelligence in cultural education. It was developed within the AI4ArtsEd and COMeARTS projects.',
+      intro: 'The UCDCAE AI LAB is a pedagogical-artistic experimentation platform of the UNESCO Chair in Digital Culture and Arts in Education for the explorative use of artificial intelligence in cultural-aesthetic media education. It was developed within the AI4ArtsEd and COMeARTS projects.',
       project: {
         title: 'The Project',
         description: 'AI is transforming society and the world of work; it is increasingly becoming a subject of education. The project explores opportunities, conditions, and limits of the pedagogical use of artificial intelligence (AI) in culturally diversity-sensitive settings of cultural education.',
