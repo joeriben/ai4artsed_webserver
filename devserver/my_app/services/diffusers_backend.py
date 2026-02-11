@@ -127,30 +127,41 @@ class DiffusersImageGenerator:
         elapsed = time.monotonic() - t0
         logger.info(f"[DIFFUSERS] Moved {model_id} to GPU from CPU ({elapsed:.1f}s)")
 
-    def _ensure_vram_available(self) -> None:
-        """Evict LRU models from GPU until enough free VRAM is available."""
+    def _ensure_vram_available(self, required_mb: float = 0) -> None:
+        """Evict LRU models from GPU until enough free VRAM is available.
+
+        Args:
+            required_mb: Minimum free VRAM needed. If 0, uses DIFFUSERS_VRAM_RESERVE_MB.
+                         For cold loads (unknown model size), pass float('inf') to evict
+                         all evictable models.
+        """
         import torch
         from config import DIFFUSERS_VRAM_RESERVE_MB
+
+        target_mb = required_mb if required_mb > 0 else DIFFUSERS_VRAM_RESERVE_MB
 
         while True:
             if not torch.cuda.is_available():
                 break
-            free_mb = (torch.cuda.get_device_properties(0).total_memory
-                       - torch.cuda.memory_allocated(0)) / (1024 * 1024)
-            if free_mb >= DIFFUSERS_VRAM_RESERVE_MB:
-                break
 
-            # Find LRU model on GPU that is not in use
+            # Find evictable models on GPU
             candidates = [
                 (mid, self._model_last_used.get(mid, 0))
                 for mid in self._pipelines
                 if self._model_device.get(mid) == "cuda"
                 and self._model_in_use.get(mid, 0) <= 0
             ]
+
+            # Check if we have enough free VRAM
+            free_mb = (torch.cuda.get_device_properties(0).total_memory
+                       - torch.cuda.memory_allocated(0)) / (1024 * 1024)
+            if free_mb >= target_mb:
+                break
+
             if not candidates:
                 logger.warning(
                     f"[DIFFUSERS] Cannot free VRAM: {free_mb:.0f}MB free, "
-                    f"need {DIFFUSERS_VRAM_RESERVE_MB}MB, no evictable models"
+                    f"need {target_mb:.0f}MB, no evictable models"
                 )
                 break
 
@@ -169,6 +180,7 @@ class DiffusersImageGenerator:
         with self._load_lock:
             try:
                 import torch
+                from config import DIFFUSERS_VRAM_RESERVE_MB
 
                 # Case 1: Already loaded and on GPU
                 if model_id in self._pipelines and self._model_device.get(model_id) == "cuda":
@@ -178,7 +190,8 @@ class DiffusersImageGenerator:
 
                 # Case 2: Loaded but on CPU → move to GPU (~1s)
                 if model_id in self._pipelines and self._model_device.get(model_id) == "cpu":
-                    self._ensure_vram_available()
+                    needed = self._model_vram_mb.get(model_id, 0) + DIFFUSERS_VRAM_RESERVE_MB
+                    self._ensure_vram_available(required_mb=needed)
                     self._move_to_gpu(model_id)
                     self._model_last_used[model_id] = time.time()
                     self._current_model = model_id
@@ -186,7 +199,8 @@ class DiffusersImageGenerator:
                     return True
 
                 # Case 3: Not loaded → full load from disk (~10s)
-                self._ensure_vram_available()
+                # Evict all evictable models — we don't know the new model's size
+                self._ensure_vram_available(required_mb=float('inf'))
 
                 PipelineClass = self._resolve_pipeline_class(pipeline_class)
 
