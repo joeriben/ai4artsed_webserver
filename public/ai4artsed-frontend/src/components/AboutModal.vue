@@ -61,8 +61,8 @@
               </div>
               <div class="project-logos">
                 <a href="https://kubi-meta.de/ai4artsed" target="_blank" rel="noopener noreferrer" class="project-logo-link">
-                  <span class="project-wordmark">AI4ArtsEd</span>
-                  <img src="/logos/ai4artsed_logo.jpg" alt="AI4ArtsEd" class="project-logo-img" />
+                  <img src="/logos/ai4artsed_wordmark.png" alt="AI4ArtsEd" class="project-wordmark-img" />
+                  <img src="/logos/ai4artsed_logo.jpg" alt="" class="project-logo-img" />
                 </a>
                 <a href="https://comearts.eu" target="_blank" rel="noopener noreferrer">
                   <img src="/logos/comearts_logo.jpg" alt="COMeARTS" class="project-logo-img" />
@@ -269,15 +269,12 @@ a:hover {
   display: flex;
   align-items: center;
   text-decoration: none;
+  gap: 0;
 }
 
-.project-wordmark {
-  font-size: 1.4rem;
-  font-weight: 700;
-  font-style: italic;
-  color: #4a4a4a;
-  line-height: 1;
-  margin-right: 0.25rem;
+.project-wordmark-img {
+  max-height: 60px;
+  width: auto;
 }
 
 /* Modal Fade Transition */
