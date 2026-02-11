@@ -1772,6 +1772,7 @@ class BackendRouter:
 
             model_id = diffusers_config.get('model_id', 'stabilityai/stable-diffusion-3.5-large')
             pipeline_class = diffusers_config.get('pipeline_class', 'StableDiffusion3Pipeline')
+            quantization = diffusers_config.get('quantization')
 
             # Get generation parameters
             width = int(parameters.get('width') or input_mappings.get('width', {}).get('default', 1024))
@@ -1919,7 +1920,9 @@ class BackendRouter:
                     height=height,
                     steps=steps,
                     cfg_scale=cfg_scale,
-                    seed=seed
+                    seed=seed,
+                    pipeline_class=pipeline_class,
+                    quantization=quantization,
                 )
 
             if not image_bytes:

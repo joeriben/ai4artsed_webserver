@@ -1,12 +1,12 @@
 {
   "pipeline": "single_text_media_generation",
   "name": {
-    "en": "Flux 2 Dev (FP8 Fast)",
-    "de": "Flux 2 Dev (FP8 Schnell)"
+    "en": "Flux 2 Dev (Diffusers)",
+    "de": "Flux 2 Dev (Diffusers)"
   },
   "description": {
-    "en": "Fast image generation using Flux 2 Dev FP8 quantized - half the VRAM, same quality",
-    "de": "Schnelle Bildgenerierung mit Flux 2 Dev FP8 quantisiert - halber VRAM, gleiche Qualität"
+    "en": "Flux 2 Dev via HuggingFace Diffusers - Direct inference with runtime FP8 quantization",
+    "de": "Flux 2 Dev via HuggingFace Diffusers - Direkte Inferenz mit Runtime-FP8-Quantisierung"
   },
   "category": {
     "en": "Image Generation",
@@ -20,8 +20,6 @@
     "HEIGHT": 1024,
     "STEPS": 20,
     "CFG": 1,
-    "SAMPLER": "euler",
-    "SCHEDULER": "normal",
     "SEED": "random"
   },
 
@@ -46,21 +44,21 @@
       "1024x2048",
       "2048x1024"
     ],
-    "notes": "Runtime FP8 quantization via torchao - ~50% less VRAM than full model. Uses same base model as Flux 2 Dev.",
+    "notes": "Flux 2 Dev with Mistral text encoder. Runtime FP8 quantization via torchao (~12GB VRAM). Falls back to ComfyUI if Diffusers unavailable.",
     "version": "1.0"
   },
 
   "display": {
     "icon": "⚡",
-    "color": "#FFB347",
+    "color": "#FF6B35",
     "category": "image_generation",
-    "difficulty": 1,
-    "order": 21
+    "difficulty": 2,
+    "order": 22
   },
 
   "tags": {
-    "en": ["image", "flux", "flux2", "fp8", "fast", "diffusers"],
-    "de": ["bild", "flux", "flux2", "fp8", "schnell", "diffusers"]
+    "en": ["image", "flux", "flux2", "diffusers", "fp8", "mistral"],
+    "de": ["bild", "flux", "flux2", "diffusers", "fp8", "mistral"]
   },
 
   "audience": {

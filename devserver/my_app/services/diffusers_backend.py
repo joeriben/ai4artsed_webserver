@@ -218,31 +218,49 @@ class DiffusersImageGenerator:
             evict_id = candidates[0][0]
             self._offload_to_cpu(evict_id)
 
-    def _load_model_sync(self, model_id: str, pipeline_class: str = "StableDiffusion3Pipeline") -> bool:
+    def _load_model_sync(
+        self,
+        model_id: str,
+        pipeline_class: str = "StableDiffusion3Pipeline",
+        quantization: Optional[Dict] = None,
+    ) -> bool:
         """
         Synchronous model loading with three-tier memory management.
         Thread-safe via _load_lock.
 
+        Args:
+            model_id: HuggingFace model ID or local path
+            pipeline_class: Pipeline class string
+            quantization: Optional dict with "method" and options, e.g.
+                {"method": "torchao", "quant_type": "float8_weight_only"}
+
         Returns True if model is ready on GPU.
         """
+        # Cache key includes quantization suffix so quantized and unquantized
+        # variants of the same model can coexist
+        cache_key = model_id
+        if quantization:
+            q_suffix = quantization.get("quant_type") or quantization.get("method", "q")
+            cache_key = f"{model_id}::{q_suffix}"
+
         with self._load_lock:
             try:
                 import torch
                 from config import DIFFUSERS_VRAM_RESERVE_MB, DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB
 
                 # Case 1: Already loaded and on GPU
-                if model_id in self._pipelines and self._model_device.get(model_id) == "cuda":
-                    self._model_last_used[model_id] = time.time()
-                    self._current_model = model_id
+                if cache_key in self._pipelines and self._model_device.get(cache_key) == "cuda":
+                    self._model_last_used[cache_key] = time.time()
+                    self._current_model = cache_key
                     return True
 
                 # Case 2: Loaded but on CPU → move to GPU (~1s)
-                if model_id in self._pipelines and self._model_device.get(model_id) == "cpu":
-                    needed = self._model_vram_mb.get(model_id, 0) + DIFFUSERS_VRAM_RESERVE_MB
+                if cache_key in self._pipelines and self._model_device.get(cache_key) == "cpu":
+                    needed = self._model_vram_mb.get(cache_key, 0) + DIFFUSERS_VRAM_RESERVE_MB
                     self._ensure_vram_available(required_mb=needed)
-                    self._move_to_gpu(model_id)
-                    self._model_last_used[model_id] = time.time()
-                    self._current_model = model_id
+                    self._move_to_gpu(cache_key)
+                    self._model_last_used[cache_key] = time.time()
+                    self._current_model = cache_key
                     # _model_vram_mb already set from initial cold load (Case 3)
                     return True
 
@@ -274,7 +292,43 @@ class DiffusersImageGenerator:
                 if self.cache_dir:
                     kwargs["cache_dir"] = str(self.cache_dir)
 
+                # Quantization: check for cached pre-quantized model on disk first
+                quantized_path = None
+                if quantization:
+                    method = quantization.get("method")
+                    quant_type = quantization.get("quant_type", "float8_weight_only")
+                    model_name = model_id.replace("/", "--")
+                    quantized_path = Path.home() / ".cache/huggingface/hub/quantized" / f"{model_name}--{quant_type}"
+
+                    if quantized_path.exists() and any(quantized_path.iterdir()):
+                        # Load pre-quantized model directly — no runtime quantization
+                        logger.info(f"[DIFFUSERS] Loading pre-quantized model from {quantized_path}")
+                        model_id = str(quantized_path)
+                    else:
+                        # First load: quantize at runtime, will save after
+                        if method == "torchao":
+                            from diffusers import TorchAoConfig
+                            kwargs["quantization_config"] = TorchAoConfig(quant_type)
+                            logger.info(f"[DIFFUSERS] First load — quantizing: torchao/{quant_type}")
+                        elif method == "bitsandbytes":
+                            from diffusers import BitsAndBytesConfig
+                            kwargs["quantization_config"] = BitsAndBytesConfig(
+                                **quantization.get("options", {})
+                            )
+                            logger.info(f"[DIFFUSERS] First load — quantizing: bitsandbytes")
+
                 pipe = PipelineClass.from_pretrained(model_id, **kwargs)
+
+                # Save quantized model to disk on first load (skip if loaded from cache)
+                if quantized_path and "quantization_config" in kwargs:
+                    try:
+                        logger.info(f"[DIFFUSERS] Saving quantized model to {quantized_path} ...")
+                        quantized_path.mkdir(parents=True, exist_ok=True)
+                        pipe.save_pretrained(quantized_path)
+                        logger.info(f"[DIFFUSERS] Quantized model saved — next load will skip quantization")
+                    except Exception as e:
+                        logger.warning(f"[DIFFUSERS] Failed to save quantized model: {e} (non-fatal)")
+
                 pipe = pipe.to(self.device)
 
                 if self.enable_attention_slicing:
@@ -282,23 +336,23 @@ class DiffusersImageGenerator:
                 if self.enable_vae_tiling:
                     pipe.enable_vae_tiling()
 
-                self._pipelines[model_id] = pipe
-                self._model_device[model_id] = "cuda"
-                self._current_model = model_id
-                self._model_last_used[model_id] = time.time()
+                self._pipelines[cache_key] = pipe
+                self._model_device[cache_key] = "cuda"
+                self._current_model = cache_key
+                self._model_last_used[cache_key] = time.time()
 
                 # Measure VRAM used by this model
                 vram_after = torch.cuda.memory_allocated(0) if torch.cuda.is_available() else 0
-                self._model_vram_mb[model_id] = (vram_after - vram_before) / (1024 * 1024)
+                self._model_vram_mb[cache_key] = (vram_after - vram_before) / (1024 * 1024)
 
                 logger.info(
-                    f"[DIFFUSERS] Model loaded: {model_id} "
-                    f"(VRAM: {self._model_vram_mb[model_id]:.0f}MB)"
+                    f"[DIFFUSERS] Model loaded: {cache_key} "
+                    f"(VRAM: {self._model_vram_mb[cache_key]:.0f}MB)"
                 )
                 return True
 
             except Exception as e:
-                logger.error(f"[DIFFUSERS] Failed to load model {model_id}: {e}")
+                logger.error(f"[DIFFUSERS] Failed to load model {cache_key}: {e}")
                 import traceback
                 traceback.print_exc()
                 return False
@@ -349,7 +403,8 @@ class DiffusersImageGenerator:
     async def load_model(
         self,
         model_id: str,
-        pipeline_class: str = "StableDiffusion3Pipeline"
+        pipeline_class: str = "StableDiffusion3Pipeline",
+        quantization: Optional[Dict] = None,
     ) -> bool:
         """
         Load a model into GPU memory (three-tier: GPU → CPU → Disk).
@@ -362,11 +417,12 @@ class DiffusersImageGenerator:
         Args:
             model_id: HuggingFace model ID or local path
             pipeline_class: Pipeline class to use
+            quantization: Optional quantization config dict
 
         Returns:
             True if loaded successfully
         """
-        return await asyncio.to_thread(self._load_model_sync, model_id, pipeline_class)
+        return await asyncio.to_thread(self._load_model_sync, model_id, pipeline_class, quantization)
 
     async def unload_model(self, model_id: Optional[str] = None) -> bool:
         """
@@ -419,6 +475,8 @@ class DiffusersImageGenerator:
         cfg_scale: float = 4.5,
         seed: int = -1,
         callback: Optional[Callable[[int, int, Any], None]] = None,
+        pipeline_class: str = "StableDiffusion3Pipeline",
+        quantization: Optional[Dict] = None,
         **kwargs
     ) -> Optional[bytes]:
         """
@@ -434,6 +492,8 @@ class DiffusersImageGenerator:
             cfg_scale: CFG scale
             seed: Random seed (-1 for random)
             callback: Step callback for progress (step, total_steps, latents)
+            pipeline_class: Pipeline class string (e.g. "Flux2Pipeline")
+            quantization: Optional quantization config dict
             **kwargs: Additional pipeline arguments
 
         Returns:
@@ -443,14 +503,20 @@ class DiffusersImageGenerator:
             import torch
             import io
 
+            # Build cache key matching _load_model_sync
+            cache_key = model_id
+            if quantization:
+                q_suffix = quantization.get("quant_type") or quantization.get("method", "q")
+                cache_key = f"{model_id}::{q_suffix}"
+
             # Ensure model is loaded and on GPU
-            if not await self.load_model(model_id):
+            if not await self.load_model(model_id, pipeline_class, quantization):
                 return None
 
-            self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1
+            self._model_in_use[cache_key] = self._model_in_use.get(cache_key, 0) + 1
             try:
-                self._model_last_used[model_id] = time.time()
-                pipe = self._pipelines[model_id]
+                self._model_last_used[cache_key] = time.time()
+                pipe = self._pipelines[cache_key]
 
                 # Generate random seed if needed
                 if seed == -1:
@@ -505,7 +571,7 @@ class DiffusersImageGenerator:
                 return image_bytes
 
             finally:
-                self._model_in_use[model_id] -= 1
+                self._model_in_use[cache_key] -= 1
 
         except Exception as e:
             logger.error(f"[DIFFUSERS] Generation error: {e}")
