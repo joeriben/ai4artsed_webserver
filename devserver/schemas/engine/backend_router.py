@@ -2354,6 +2354,20 @@ class BackendRouter:
             # Call execute() with parameters
             result = await module.execute(**parameters)
 
+            # Python chunks can return structured dicts (not just bytes)
+            if isinstance(result, dict):
+                content_marker = result.pop('content_marker', f"{chunk_name}_generated")
+                logger.info(f"[PYTHON-CHUNK] Dict return with marker: {content_marker}")
+                return BackendResponse(
+                    success=True,
+                    content=content_marker,
+                    metadata={
+                        "chunk_type": "python",
+                        "chunk_name": chunk_name,
+                        **result
+                    }
+                )
+
             # Result should be bytes (audio/image/video data)
             if not isinstance(result, bytes):
                 logger.warning(f"[PYTHON-CHUNK] execute() returned {type(result)}, expected bytes")

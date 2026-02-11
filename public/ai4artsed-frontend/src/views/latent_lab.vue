@@ -30,12 +30,7 @@
         <p>{{ t('latentLab.comingSoon') }}</p>
       </div>
     </div>
-    <div v-else-if="activeTab === 'archaeology'" class="placeholder-tab">
-      <div class="placeholder-content">
-        <h2>{{ t('latentLab.tabs.archaeology') }}</h2>
-        <p>{{ t('latentLab.comingSoon') }}</p>
-      </div>
-    </div>
+    <DenoisingArchaeology v-else-if="activeTab === 'archaeology'" />
   </div>
 </template>
 
@@ -44,6 +39,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AttentionCartography from './latent_lab/attention_cartography.vue'
 import FeatureProbing from './latent_lab/feature_probing.vue'
+import DenoisingArchaeology from './latent_lab/denoising_archaeology.vue'
 
 const { t } = useI18n()
 

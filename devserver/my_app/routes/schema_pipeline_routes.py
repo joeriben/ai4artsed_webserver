@@ -3602,6 +3602,24 @@ def legacy_workflow():
                 )
                 logger.info(f"[LEGACY-ENDPOINT] Saved feature probing image: {len(image_bytes)} bytes")
 
+        elif output_value == 'diffusers_archaeology_generated':
+            # Latent Lab: Denoising Archaeology — image + step snapshots
+            image_data_b64 = output_result.metadata.get('image_data')
+            if image_data_b64:
+                import base64
+                image_bytes = base64.b64decode(image_data_b64)
+                recorder.save_entity(
+                    entity_type='output_image',
+                    content=image_bytes,
+                    metadata={
+                        'config': output_config,
+                        'seed': result_seed,
+                        'format': 'png',
+                        'backend': 'diffusers_archaeology'
+                    }
+                )
+                logger.info(f"[LEGACY-ENDPOINT] Saved denoising archaeology image: {len(image_bytes)} bytes")
+
         duration_ms = (time.time() - start_time) * 1000
         logger.info(f"[LEGACY-ENDPOINT] Success in {duration_ms:.0f}ms")
 
@@ -3635,6 +3653,14 @@ def legacy_workflow():
             if image_b64:
                 probing_data['image_base64'] = image_b64
             response_data['probing_data'] = probing_data
+
+        # Latent Lab: Include archaeology data + image_base64 in response
+        archaeology_data = output_result.metadata.get('archaeology_data') if output_result.metadata else None
+        if archaeology_data:
+            image_b64 = output_result.metadata.get('image_data')
+            if image_b64:
+                archaeology_data['image_base64'] = image_b64
+            response_data['archaeology_data'] = archaeology_data
 
         return jsonify(response_data)
 

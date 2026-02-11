@@ -3,7 +3,7 @@ import { createI18n } from 'vue-i18n'
 const messages = {
   de: {
     app: {
-      title: 'AI4ArtsEd DevServer',
+      title: 'UCDCAE AI LAB',
       subtitle: 'Kreative KI-Transformationen'
     },
     form: {
@@ -158,8 +158,8 @@ const messages = {
       generatedMedia: 'Erzeugtes Bild'
     },
     landing: {
-      subtitle: 'Pädagogisch-künstlerische Experimentierplattform für den kreativen Einsatz von KI in der kulturellen Bildung',
-      research: 'KI verändert Gesellschaft und Arbeitswelt. Dieses Forschungsprojekt sondiert Chancen, Bedingungen und Grenzen des pädagogischen Einsatzes von KI in kulturell diversitätssensiblen Settings der Kulturellen Bildung.',
+      subtitle: 'Pädagogisch-künstlerische Experimentierplattform des UNESCO Chair in Digital Culture and Arts in Education für den explorativen Einsatz von KI in der kulturellen Bildung',
+      research: '',
       features: {
         textTransformation: {
           title: 'Text-Transformation',
@@ -228,8 +228,8 @@ const messages = {
       editNameHint: '(doppelklicken zum Bearbeiten)'
     },
     about: {
-      title: 'Über AI4ArtsEd',
-      intro: 'AI4ArtsEd ist eine pädagogisch-künstlerische Experimentierplattform für den kreativen Einsatz von Künstlicher Intelligenz in der kulturellen Bildung.',
+      title: 'Über das UCDCAE AI LAB',
+      intro: 'Das UCDCAE AI LAB ist eine pädagogisch-künstlerische Experimentierplattform des UNESCO Chair in Digital Culture and Arts in Education für den explorativen Einsatz von Künstlicher Intelligenz in der kulturellen Bildung. Es wurde im Rahmen der Projekte AI4ArtsEd und COMeARTS entwickelt.',
       project: {
         title: 'Das Projekt',
         description: 'KI verändert Gesellschaft und Arbeitswelt; sie wird zunehmend Thema der Bildung. Das Projekt sondiert Chancen, Bedingungen und Grenzen des pädagogischen Einsatzes künstlicher Intelligenz (KI) in kulturell diversitätssensiblen Settings der Kulturellen Bildung (KuBi).',
@@ -273,7 +273,7 @@ const messages = {
       privacy: {
         title: 'Datenschutzerklärung',
         notice: 'Hinweis: Generierte Inhalte werden zu Forschungszwecken auf dem Server gespeichert. Es werden keine User- oder IP-Daten erfasst. Hochgeladene Bilder werden nicht gespeichert.',
-        usage: 'Die Nutzung dieser Plattform ist ausschließlich eingetragenen Kooperationspartnern des AI4ArtsEd-Projekts erlaubt. Es gelten die in diesem Rahmen vereinbarten datenschutzbezogenen Absprachen. Haben Sie hierzu Fragen, melden Sie sich bitte bei vanessa.baumann@fau.de.'
+        usage: 'Die Nutzung dieser Plattform ist ausschließlich eingetragenen Kooperationspartnern des UCDCAE AI LAB erlaubt. Es gelten die in diesem Rahmen vereinbarten datenschutzbezogenen Absprachen. Haben Sie hierzu Fragen, melden Sie sich bitte bei vanessa.baumann@fau.de.'
       }
     },
     docs: {
@@ -580,6 +580,37 @@ const messages = {
         seedLabel: 'Seed',
         selectAll: 'Alle',
         selectNone: 'Keine'
+      },
+      archaeology: {
+        headerTitle: 'Denoising Archaeology \u2014 Wie wird aus Rauschen ein Bild?',
+        headerSubtitle: 'Beobachte jeden einzelnen Entrauschungsschritt. Diffusionsmodelle arbeiten nicht links-nach-rechts, sondern gleichzeitig \u00fcberall \u2014 von groben Formen zu feinen Details.',
+        explanationToggle: 'Ausf\u00fchrliche Erkl\u00e4rung anzeigen',
+        explainWhatTitle: 'Was zeigt dieses Tool?',
+        explainWhatText: 'Ein Diffusionsmodell erzeugt ein Bild, indem es schrittweise Rauschen entfernt. Dabei entsteht das Bild nicht wie beim Zeichnen von links nach rechts \u2014 stattdessen arbeitet das Modell an ALLEN Bildregionen gleichzeitig. In den ersten Schritten entstehen grobe Strukturen: Wo ist oben, wo unten? Wo ist der Horizont? In den mittleren Schritten kommen semantische Inhalte: Objekte, Formen, Farben. Die letzten Schritte verfeinern Texturen und Details. Dieses Tool macht jeden einzelnen Schritt sichtbar.',
+        explainHowTitle: 'Wie benutze ich das Tool?',
+        explainHowText: 'Gib einen Prompt ein und klicke auf Generieren. Das Modell erzeugt 25 Zwischenbilder (eins pro Entrauschungsschritt). Diese erscheinen als Filmstreifen unten. Klicke auf ein Thumbnail oder benutze den Zeitregler, um jeden Schritt in voller Gr\u00f6\u00dfe zu betrachten. Vergleiche fr\u00fche und sp\u00e4te Schritte: Wann \u201ewei\u00df\u201c das Modell, was es zeichnet?',
+        explainReadTitle: 'Was verraten die drei Phasen?',
+        explainReadText: 'Fr\u00fche Schritte (1\u20138): Globale Komposition \u2014 Grundstruktur, Farbverteilung, Layoutplanung. Mittlere Schritte (9\u201317): Semantische Emergenz \u2014 Objekte werden erkennbar, Formen kristallisieren sich heraus. Sp\u00e4te Schritte (18\u201325): Detail-Verfeinerung \u2014 Texturen, Kanten, feine Muster. Die \u00dcberg\u00e4nge sind flie\u00dfend, aber die Phasen zeigen deutlich: Das Modell \u201eplant\u201c zuerst global und verfeinert dann lokal.',
+        techTitle: 'Technische Details',
+        techText: 'SD3.5 Large verwendet Rectified Flow als Scheduler mit 25 Standardschritten. Bei jedem Schritt werden die aktuellen Latent-Vektoren durch den VAE dekodiert (512\u00d7512 JPEG). Der VAE (Variational Autoencoder) \u00fcbersetzt den mathematischen Latent-Raum in Pixel. Die Latent-Darstellung ist 128\u00d7128 bei 16 Kan\u00e4len \u2014 weit entfernt vom endg\u00fcltigen Bild, aber der VAE macht sie sichtbar.',
+        promptPlaceholder: 'z.B. Ein Marktplatz in einer mittelalterlichen Stadt mit Menschen, Geb\u00e4uden und einem Brunnen',
+        generate: 'Generieren',
+        generating: 'Bild wird generiert \u2014 jeder Schritt wird aufgezeichnet...',
+        emptyHint: 'Gib einen Prompt ein und klicke auf Generieren, um den Entrauschungsprozess zu visualisieren.',
+        advancedLabel: 'Erweiterte Einstellungen',
+        negativeLabel: 'Negativ-Prompt',
+        stepsLabel: 'Steps',
+        cfgLabel: 'CFG',
+        seedLabel: 'Seed',
+        filmstripLabel: 'Entrauschungs-Filmstreifen',
+        timelineLabel: 'Schritt',
+        phaseEarly: 'Komposition',
+        phaseMid: 'Semantik',
+        phaseLate: 'Detail',
+        phaseEarlyDesc: 'Globale Struktur und Farbverteilung entstehen',
+        phaseMidDesc: 'Objekte und Formen werden erkennbar',
+        phaseLateDesc: 'Texturen und feine Details werden gesch\u00e4rft',
+        finalImageLabel: 'Finales Bild (volle Aufl\u00f6sung)'
       }
     },
     edutainment: {
@@ -689,7 +720,7 @@ const messages = {
   },
   en: {
     app: {
-      title: 'AI4ArtsEd DevServer',
+      title: 'UCDCAE AI LAB',
       subtitle: 'Creative AI Transformations'
     },
     form: {
@@ -844,8 +875,8 @@ const messages = {
       generatedMedia: 'Generated image'
     },
     landing: {
-      subtitle: 'Pedagogical-artistic experimentation platform for the creative use of AI in cultural education',
-      research: 'AI is transforming society and the world of work. This research project explores opportunities, conditions, and limits of the pedagogical use of AI in culturally diversity-sensitive settings of cultural education.',
+      subtitle: 'Pedagogical-artistic experimentation platform of the UNESCO Chair in Digital Culture and Arts in Education for the explorative use of AI in cultural education',
+      research: '',
       features: {
         textTransformation: {
           title: 'Text Transformation',
@@ -914,8 +945,8 @@ const messages = {
       editNameHint: '(double-click to edit)'
     },
     about: {
-      title: 'About AI4ArtsEd',
-      intro: 'AI4ArtsEd is a pedagogical-artistic experimentation platform for the creative use of artificial intelligence in cultural education.',
+      title: 'About the UCDCAE AI LAB',
+      intro: 'The UCDCAE AI LAB is a pedagogical-artistic experimentation platform of the UNESCO Chair in Digital Culture and Arts in Education for the explorative use of artificial intelligence in cultural education. It was developed within the AI4ArtsEd and COMeARTS projects.',
       project: {
         title: 'The Project',
         description: 'AI is transforming society and the world of work; it is increasingly becoming a subject of education. The project explores opportunities, conditions, and limits of the pedagogical use of artificial intelligence (AI) in culturally diversity-sensitive settings of cultural education.',
@@ -959,7 +990,7 @@ const messages = {
       privacy: {
         title: 'Privacy Policy',
         notice: 'Notice: Generated content is stored on the server for research purposes. No user or IP data is collected. Uploaded images are not stored.',
-        usage: 'Use of this platform is exclusively permitted for registered cooperation partners of the AI4ArtsEd project. The data protection agreements made in this context apply. If you have any questions, please contact vanessa.baumann@fau.de.'
+        usage: 'Use of this platform is exclusively permitted for registered cooperation partners of the UCDCAE AI LAB. The data protection agreements made in this context apply. If you have any questions, please contact vanessa.baumann@fau.de.'
       }
     },
     docs: {
@@ -1266,6 +1297,37 @@ const messages = {
         seedLabel: 'Seed',
         selectAll: 'All',
         selectNone: 'None'
+      },
+      archaeology: {
+        headerTitle: 'Denoising Archaeology \u2014 How does noise become an image?',
+        headerSubtitle: 'Observe every single denoising step. Diffusion models don\'t draw left-to-right \u2014 they work everywhere simultaneously, from rough shapes to fine detail.',
+        explanationToggle: 'Show detailed explanation',
+        explainWhatTitle: 'What does this tool show?',
+        explainWhatText: 'A diffusion model creates an image by progressively removing noise. Unlike drawing from left to right, the model works on ALL image regions simultaneously. In the first steps, rough structures emerge: Where is up, where is down? Where is the horizon? In the middle steps, semantic content appears: objects, shapes, colors. The final steps refine textures and details. This tool makes every single step visible.',
+        explainHowTitle: 'How do I use this tool?',
+        explainHowText: 'Enter a prompt and click Generate. The model produces 25 intermediate images (one per denoising step). These appear as a filmstrip below. Click a thumbnail or use the timeline slider to view each step at full size. Compare early and late steps: When does the model "know" what it is drawing?',
+        explainReadTitle: 'What do the three phases reveal?',
+        explainReadText: 'Early steps (1\u20138): Global composition \u2014 basic structure, color distribution, layout planning. Middle steps (9\u201317): Semantic emergence \u2014 objects become recognizable, shapes crystallize. Late steps (18\u201325): Detail refinement \u2014 textures, edges, fine patterns. The transitions are gradual, but the phases clearly show: the model first "plans" globally, then refines locally.',
+        techTitle: 'Technical details',
+        techText: 'SD3.5 Large uses Rectified Flow as scheduler with 25 default steps. At each step, the current latent vectors are decoded through the VAE (512x512 JPEG). The VAE (Variational Autoencoder) translates the mathematical latent space into pixels. The latent representation is 128x128 at 16 channels \u2014 far from the final image, but the VAE makes it visible.',
+        promptPlaceholder: 'e.g. A marketplace in a medieval town with people, buildings and a fountain',
+        generate: 'Generate',
+        generating: 'Generating image \u2014 recording every step...',
+        emptyHint: 'Enter a prompt and click Generate to visualize the denoising process.',
+        advancedLabel: 'Advanced Settings',
+        negativeLabel: 'Negative Prompt',
+        stepsLabel: 'Steps',
+        cfgLabel: 'CFG',
+        seedLabel: 'Seed',
+        filmstripLabel: 'Denoising Filmstrip',
+        timelineLabel: 'Step',
+        phaseEarly: 'Composition',
+        phaseMid: 'Semantics',
+        phaseLate: 'Detail',
+        phaseEarlyDesc: 'Global structure and color distribution emerge',
+        phaseMidDesc: 'Objects and shapes become recognizable',
+        phaseLateDesc: 'Textures and fine details are sharpened',
+        finalImageLabel: 'Final image (full resolution)'
       }
     },
     edutainment: {

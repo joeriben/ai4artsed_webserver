@@ -191,9 +191,85 @@ kids  <  youth  <  adult  <  research
 | `schemas/configs/interception/latent_lab.json` | UI metadata (icon, category) |
 | `schemas/configs/output/attention_cartography_diffusers.json` | Attention Cartography output config |
 | `schemas/configs/output/feature_probing_diffusers.json` | Feature Probing output config |
+| `schemas/configs/output/denoising_archaeology_diffusers.json` | Denoising Archaeology output config |
+
+---
+
+## 3. Denoising Archaeology
+
+### 3. Denoising Archaeology
+
+**Question:** "How does noise become an image? What emerges at which step?"
+
+**Scientific Foundation:** Kwon, M. et al. (2023). "Diffusion Models Already Have a Semantic
+Latent Space." ICLR 2023. DOI: 10.48550/arXiv.2210.10960
+— Shows that intermediate activations (h-space) in diffusion models carry semantic meaning.
+Early steps establish composition, middle steps form semantics, late steps refine detail.
+
+**Backend:** Python chunk `output_image_denoising_archaeology_diffusers.py` →
+`DiffusersImageGenerator.generate_image_with_archaeology()` (diffusers_backend.py)
+
+**Mechanism:**
+1. Standard SD3.5 generation with `callback_on_step_end` at every step
+2. At each callback: VAE-decode current latents to 512×512 JPEG (quality 70) thumbnail
+3. After generation: collect all step thumbnails + full-resolution final PNG
+4. Return as structured dict via Python chunk's `execute()` → dict return path
+
+**Three Educational Phases:**
+| Phase | Steps (of 25) | Description | Color |
+|-------|---------------|-------------|-------|
+| Composition | 1–8 | Global structure, color distribution, layout | #FF9800 (orange) |
+| Semantics | 9–17 | Objects become recognizable, shapes crystallize | #00BCD4 (cyan) |
+| Detail | 18–25 | Textures, edges, fine patterns | #4CAF50 (green) |
+
+**Key Files:**
+- `devserver/schemas/chunks/output_image_denoising_archaeology_diffusers.py` — Python chunk
+- `devserver/schemas/configs/output/denoising_archaeology_diffusers.json` — Output config
+- `devserver/my_app/services/diffusers_backend.py` — `generate_image_with_archaeology()`
+- `public/ai4artsed-frontend/src/views/latent_lab/denoising_archaeology.vue` — Frontend
+
+**Frontend:** Prompt input → Generate → Filmstrip of 25 step thumbnails + timeline slider +
+full-size viewer with phase indicator badge. Phase markers (Composition/Semantics/Detail)
+along the slider.
+
+**Performance:** 25 VAE decodes × ~50ms = +1.25s overhead. 25 thumbnails × ~80KB +
+final PNG ~1.5MB = ~3.5MB total response.
+
+---
+
+## Python Chunk Dict-Return Extension (Generic)
+
+**Motivation:** `_execute_python_chunk()` (backend_router.py) originally only supported
+`bytes` returns from `execute()`. The router guessed the media type from the chunk's
+filename prefix (`output_music_*` → audio, else → raw bytes). This doesn't scale for
+chunks that return structured data (multiple images, analysis results, metadata).
+
+**Extension:** If `execute()` returns a `dict`, the router uses it directly:
+- `dict['content_marker']` → `BackendResponse.content` (route dispatch key)
+- Remaining dict entries → spread into `BackendResponse.metadata`
+- `chunk_type: "python"` added automatically
+
+**Backwards compatible:** Chunks returning `bytes` work unchanged.
+
+**Location:** `devserver/schemas/engine/backend_router.py`, method `_execute_python_chunk()`,
+after `result = await module.execute(**parameters)`.
+
+**Example (Denoising Archaeology):**
+```python
+# In chunk execute():
+return {
+    'content_marker': 'diffusers_archaeology_generated',
+    'image_data': base64_png,
+    'archaeology_data': {'step_images': [...], 'total_steps': 25, 'seed': 42}
+}
+# Router creates: BackendResponse(content='diffusers_archaeology_generated', metadata={...})
+```
+
+**Future benefit:** Any Python chunk can return structured output. HeartMuLa could
+eventually migrate from name-based detection to dict returns.
 
 ---
 
 **Document Status:** Active (2026-02-11)
 **Maintainer:** AI4ArtsEd Development Team
-**Last Updated:** Session 165 (Research-level gating, architecture documentation)
+**Last Updated:** Session 167 (Denoising Archaeology, dict-return extension)

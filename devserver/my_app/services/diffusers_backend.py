@@ -1298,6 +1298,147 @@ class DiffusersImageGenerator:
             traceback.print_exc()
             return None
 
+    async def generate_image_with_archaeology(
+        self,
+        prompt: str,
+        model_id: str = "stabilityai/stable-diffusion-3.5-large",
+        negative_prompt: str = "",
+        width: int = 1024,
+        height: int = 1024,
+        steps: int = 25,
+        cfg_scale: float = 4.5,
+        seed: int = -1,
+        capture_every_n: int = 1,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate image with step-by-step denoising visualization.
+
+        At each sampling step, VAE-decodes the current latents into a 512x512
+        JPEG thumbnail. Returns all step thumbnails plus the full-resolution
+        final image.
+
+        Args:
+            prompt: Text prompt
+            model_id: Model to use
+            negative_prompt: Negative prompt
+            width: Image width
+            height: Image height
+            steps: Number of sampling steps
+            cfg_scale: CFG scale
+            seed: Random seed (-1 for random)
+            capture_every_n: Capture every N steps (1 = every step)
+
+        Returns:
+            Dict with image_base64, step_images, seed, total_steps; or None on failure
+        """
+        try:
+            import torch
+            import io
+            import base64
+
+            if not await self.load_model(model_id):
+                return None
+
+            self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1
+            try:
+                self._model_last_used[model_id] = time.time()
+                pipe = self._pipelines[model_id]
+
+                if seed == -1:
+                    import random
+                    seed = random.randint(0, 2**32 - 1)
+
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+
+                logger.info(
+                    f"[DIFFUSERS-ARCHAEOLOGY] Generating: prompt={prompt[:80]!r}, "
+                    f"steps={steps}, seed={seed}, capture_every_n={capture_every_n}"
+                )
+
+                step_images = []
+
+                def _generate():
+                    from diffusers.image_processor import VaeImageProcessor
+
+                    def step_callback(pipe_instance, step, timestep, callback_kwargs):
+                        if capture_every_n > 1 and step % capture_every_n != 0:
+                            return callback_kwargs
+
+                        try:
+                            latents = callback_kwargs.get("latents")
+                            if latents is not None:
+                                with torch.no_grad():
+                                    decoded = pipe_instance.vae.decode(
+                                        latents / pipe_instance.vae.config.scaling_factor
+                                    ).sample
+
+                                processor = VaeImageProcessor()
+                                pil_image = processor.postprocess(decoded, output_type="pil")[0]
+
+                                # Resize to 512x512 thumbnail
+                                pil_image = pil_image.resize((512, 512))
+
+                                # Encode as JPEG quality 70
+                                buf = io.BytesIO()
+                                pil_image.save(buf, format="JPEG", quality=70)
+                                b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+                                step_images.append({
+                                    'step': step,
+                                    'timestep': float(timestep),
+                                    'image_base64': b64,
+                                })
+                        except Exception as e:
+                            logger.warning(f"[DIFFUSERS-ARCHAEOLOGY] Step {step} capture failed: {e}")
+
+                        return callback_kwargs
+
+                    gen_kwargs = {
+                        "prompt": prompt,
+                        "negative_prompt": negative_prompt if negative_prompt else None,
+                        "width": width,
+                        "height": height,
+                        "num_inference_steps": steps,
+                        "guidance_scale": cfg_scale,
+                        "generator": generator,
+                        "callback_on_step_end": step_callback,
+                        "callback_on_step_end_tensor_inputs": ["latents"],
+                    }
+
+                    if hasattr(pipe, 'tokenizer_3'):
+                        gen_kwargs["max_sequence_length"] = 512
+
+                    result = pipe(**gen_kwargs)
+                    return result.images[0]
+
+                image = await asyncio.to_thread(_generate)
+
+                # Final image as full-resolution PNG base64
+                buffer = io.BytesIO()
+                image.save(buffer, format="PNG")
+                image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+                logger.info(
+                    f"[DIFFUSERS-ARCHAEOLOGY] Done: {len(step_images)} step images captured, "
+                    f"final PNG {len(buffer.getvalue())} bytes"
+                )
+
+                return {
+                    'image_base64': image_base64,
+                    'step_images': step_images,
+                    'seed': seed,
+                    'total_steps': steps,
+                }
+
+            finally:
+                self._model_in_use[model_id] -= 1
+
+        except Exception as e:
+            logger.error(f"[DIFFUSERS-ARCHAEOLOGY] Generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     def _tokenize_prompt(self, pipe, prompt: str) -> list:
         """Tokenize a prompt and return human-readable token strings.
 
