@@ -24,10 +24,10 @@
             <!-- Welcome Tab -->
             <div v-if="activeTab === 'welcome'" class="tab-content">
               <section class="info-section">
-                <h3>{{ currentLanguage === 'de' ? 'Was ist AI4ArtsEd?' : 'What is AI4ArtsEd?' }}</h3>
+                <h3>{{ currentLanguage === 'de' ? 'Was ist das UCDCAE AI LAB?' : 'What is the UCDCAE AI LAB?' }}</h3>
                 <p>{{ currentLanguage === 'de'
-                  ? 'AI4ArtsEd ist eine pädagogisch-wissenschaftliche Experimentierplattform. Sie wurde entwickelt, um den kritischen und kreativen Umgang mit generativer KI in der kulturellen Bildung zu erforschen.'
-                  : 'AI4ArtsEd is a pedagogical-scientific experimentation platform. It was developed to explore critical and creative engagement with generative AI in cultural education.' }}</p>
+                  ? 'Das UCDCAE AI LAB ist eine pädagogisch-künstlerische Experimentierplattform des UNESCO Chair in Digital Culture and Arts in Education. Sie wurde entwickelt, um den kritischen und kreativen Umgang mit generativer KI in der kulturell-ästhetischen Medienbildung zu erforschen.'
+                  : 'The UCDCAE AI LAB is a pedagogical-artistic experimentation platform of the UNESCO Chair in Digital Culture and Arts in Education. It was developed to explore critical and creative engagement with generative AI in cultural-aesthetic media education.' }}</p>
               </section>
 
               <section class="info-section">
@@ -579,8 +579,8 @@ Token 78-512:      reines T5 (semantischer Anker)</pre>
 
                 <div class="workshop-intro">
                   <p>{{ currentLanguage === 'de'
-                    ? 'AI4ArtsEd ist für den Einsatz in Workshops und Unterricht konzipiert. Hier einige Hinweise für die Begleitung.'
-                    : 'AI4ArtsEd is designed for use in workshops and teaching. Here are some tips for facilitation.' }}</p>
+                    ? 'Das UCDCAE AI LAB ist für den Einsatz in Workshops und Unterricht konzipiert. Hier einige Hinweise für die Begleitung.'
+                    : 'The UCDCAE AI LAB is designed for use in workshops and teaching. Here are some tips for facilitation.' }}</p>
                 </div>
 
                 <div class="workshop-card">
@@ -647,8 +647,8 @@ Token 78-512:      reines T5 (semantischer Anker)</pre>
                 <div class="workshop-card installation">
                   <h3>{{ currentLanguage === 'de' ? 'Installation und Betrieb' : 'Installation and Operation' }}</h3>
                   <p>{{ currentLanguage === 'de'
-                    ? 'AI4ArtsEd ist ein komplexes System mit mehreren Komponenten (Backend, Frontend, LLM-Anbindung, Bildgenerierung, Sicherheitssystem). Die Installation erfordert Erfahrung mit Python, Node.js, GPU-Konfiguration und KI-Modellen.'
-                    : 'AI4ArtsEd is a complex system with multiple components (backend, frontend, LLM integration, image generation, safety system). Installation requires experience with Python, Node.js, GPU configuration, and AI models.' }}</p>
+                    ? 'Das UCDCAE AI LAB ist ein komplexes System mit mehreren Komponenten (Backend, Frontend, LLM-Anbindung, Bildgenerierung, Sicherheitssystem). Die Installation erfordert Erfahrung mit Python, Node.js, GPU-Konfiguration und KI-Modellen.'
+                    : 'The UCDCAE AI LAB is a complex system with multiple components (backend, frontend, LLM integration, image generation, safety system). Installation requires experience with Python, Node.js, GPU configuration, and AI models.' }}</p>
                   <p><strong>{{ currentLanguage === 'de'
                     ? 'Der Einsatz eines KI-Coding-Agenten (z.B. Claude Code) wird dringend empfohlen'
                     : 'The use of an AI coding agent (e.g. Claude Code) is highly recommended' }}</strong> — {{ currentLanguage === 'de'
