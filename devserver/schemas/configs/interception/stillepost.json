@@ -1,5 +1,5 @@
 {
-  "pipeline": "text_transformation_recursive",
+  "pipeline": "text_transformation",
   "instruction_type": "artistic_transformation",
   "name": {
     "en": "Telephone",
@@ -17,16 +17,13 @@
     "semantics"
   ],
   "context": {
-    "en": "Translate the following text to {{TARGET_LANGUAGE}}.\n\nImportant rules:\n- Translate naturally and idiomatically\n- Do not add any commentaries, explanations, or error messages\n- Only output the translated text\n- Preserve the general meaning and tone\n\nText to translate:",
-    "de": "Übersetze den folgenden Text ins {{TARGET_LANGUAGE}}.\n\nWichtige Regeln:\n- Übersetze natürlich und idiomatisch\n- Füge keine Kommentare, Erklärungen oder Fehlermeldungen hinzu\n- Gib nur den übersetzten Text aus\n- Bewahre die allgemeine Bedeutung und den Ton\n\nZu übersetzender Text:"
+    "de": "Übersetze den Input nacheinander in 8 zufällig ausgewählte Sprachen aus unterschiedlichen Kontinenten (Stille-Post-Spiel). Übersetze am Ende das Ergebnis in die Ausgangssprache.",
+    "en": "Translate the input sequentially through 8 randomly chosen languages from different continents (telephone game). At the end, translate the result back into the original language."
   },
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,
-    "max_tokens": 2048,
-    "iterations": 8,
-    "use_random_languages": true,
-    "final_language": "en"
+    "max_tokens": 2048
   },
   "media_preferences": {
     "default_output": "text",
