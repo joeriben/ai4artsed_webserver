@@ -131,10 +131,12 @@ import AboutModal from './components/AboutModal.vue'
 import DokumentationModal from './components/DokumentationModal.vue'
 import ImpressumModal from './components/ImpressumModal.vue'
 import SettingsAuthModal from './components/SettingsAuthModal.vue'
+import { useUserPreferencesStore } from './stores/userPreferences'
 
 const { locale, t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const userPreferences = useUserPreferencesStore()
 const currentLanguage = computed(() => locale.value)
 const showAbout = ref(false)
 const showDokumentation = ref(false)
@@ -142,7 +144,8 @@ const showImpressum = ref(false)
 const showSettingsAuth = ref(false)
 
 function toggleLanguage() {
-  locale.value = locale.value === 'de' ? 'en' : 'de'
+  userPreferences.toggleLanguage()
+  // main.ts watcher syncs userPreferences.language → locale automatically
 }
 
 function openAbout() {

@@ -1,5 +1,106 @@
 # Development Log
 
+## Session 172 - The Flux2 Diffusers Saga: Why `from_pretrained()` Can't Load 106GB
+**Date:** 2026-02-11 to 2026-02-12
+**Focus:** Attempted to run FLUX.2-dev via HuggingFace Diffusers instead of ComfyUI. Failed after 6+ attempts. Root cause: architectural limitation of `from_pretrained()`.
+
+### The Goal
+Run Flux2 via Diffusers backend to enable dev+prod servers in parallel on a single RTX PRO 6000 Blackwell (96GB VRAM). The assumption: FP8 quantization would halve VRAM usage from ~24GB to ~12GB.
+
+### The Assumption Was Wrong
+FLUX.2-dev is not a ~24GB model. Actual sizes measured from HuggingFace cache:
+
+| Component | BF16 on Disk | Shards |
+|---|---|---|
+| Transformer | **61 GB** | 7 × ~9GB |
+| Text Encoder (Mistral Small 3.1 24B) | **45 GB** | 10 × ~4.5GB |
+| VAE | 321 MB | 1 |
+| **Total** | **~106 GB** | |
+
+The GPU has 96GB VRAM — enough for each component individually, but not both simultaneously (61+45=106 > 96).
+
+### Attempt 1: Runtime FP8 Quantization (`TorchAoConfig`)
+- Added `TorchAoConfig("float8_weight_only")` to `from_pretrained()`
+- **Result:** OOM crash. 64GB RAM + 71GB swap completely full → Fedora kernel OOM kill → system reboot
+- **Why:** Runtime quantization via torchao bypasses safetensors mmap. Instead of lazy-loading from SSD, the entire model is materialized in anonymous CPU memory for quantization. 106GB anonymous memory > 135GB total virtual memory (with OS overhead).
+
+### Attempt 2: `low_cpu_mem_usage=False`
+- Research agent claimed `low_cpu_mem_usage=True` was incompatible with TorchAoConfig
+- Setting to `False` loads EVERYTHING at once instead of shard-by-shard
+- **Result:** Made it worse. Same OOM crash.
+
+### Attempt 3: Component-Level Quantization
+- Load transformer separately with TorchAoConfig, inject into pipeline
+- **Result:** Same OOM crash. The transformer alone is 61GB — quantizing it still requires full materialization.
+
+### Full Revert (Commit `cd928cf`)
+All quantization code removed. Pipeline_class bug fix and chunk consolidation preserved.
+
+### Attempt 4: `enable_model_cpu_offload()` (Commit `1402b96`)
+- Insight: Both components fit individually in 96GB VRAM. Use `enable_model_cpu_offload()` to load one at a time.
+- **Result:** Never reached. `from_pretrained()` loads ALL 106GB to CPU RAM first, then `enable_model_cpu_offload()` sets up hooks. But the loading itself crashes at component 3/5 with only 19GB free RAM (SD3.5 was offloaded to CPU, consuming 28GB).
+
+### Attempt 5: `device_map="balanced"` (Commit `f04f080`)
+- Hypothesis: `device_map` in `from_pretrained()` loads components directly to GPU/CPU targets via safetensors mmap, bypassing full RAM materialization.
+- **Result:** Same OOM crash at "Loading pipeline components: 40% 2/5". `from_pretrained()` still materializes everything in CPU RAM regardless of `device_map`.
+
+### Attempt 6: Auto-Detection Fix + Full Unload (Commit `54f64ee`)
+- Discovered the auto-detection in `backend_router.py` was routing `flux2` (ComfyUI config) through Diffusers without `enable_cpu_offload` flag.
+- Added full model unload (not just CPU offload) before large model loads.
+- Also added `enable_cpu_offload: True` to auto-detection map.
+- **Result:** Still crashed — the fundamental `from_pretrained()` limitation remained.
+
+### The Root Cause
+**`DiffusionPipeline.from_pretrained()` is architecturally incapable of loading a 106GB model on a 64GB RAM system.** It creates anonymous CPU tensors for every parameter, regardless of `low_cpu_mem_usage`, `device_map`, or `use_safetensors`. The mmap from safetensors is only used during the read — the data is copied into regular (non-evictable) memory.
+
+ComfyUI works because it uses `safetensors.safe_open(device="cuda")` to load each tensor individually, directly to GPU. The page cache pages are file-backed and immediately evictable. No intermediate anonymous CPU memory is ever allocated for the full model.
+
+**This is not a configuration problem. It is a design limitation of `from_pretrained()`.**
+
+### The Solution: ComfyUI (Commits `62f323b`, `182b162`)
+- Removed Flux2 from Diffusers auto-detection map
+- Set `requires_workflow: true` on Flux2 ComfyUI chunk (was `false`, causing fallback to SwarmUI simple API which defaults to SD3.5)
+- Flux2 now routes through ComfyUI workflow with `flux2_dev_fp8mixed.safetensors` checkpoint
+- **Result:** Works. 18 seconds generation, VLM safety check passes.
+
+### Collateral Fixes
+- **`pipeline_class` bug fix:** `generate_image()` was not passing `pipeline_class` to `load_model()`, causing Flux2 to load with wrong `StableDiffusion3Pipeline` on cold start
+- **Chunk consolidation:** Deleted redundant `output_image_flux2_fp8.json` chunk. Both output configs (`flux2_diffusers`, `flux2_fp8`) now point to single `output_image_flux2_diffusers` chunk (1-chunk:N-configs principle)
+- **`enable_cpu_offload` infrastructure:** Parameter chain added to `_load_model_sync()` → `load_model()` → `generate_image()`. Useful for future models that are large but fit component-wise in RAM.
+- **Full model unload before large loads:** When loading a `cpu_offload` model, all cached models are fully freed from CPU RAM (not just offloaded from GPU).
+- **LICENSE cleanup:** Removed old `LICENSE` file (1.6KB plaintext). `LICENSE.md` (19.8KB, bilingual DE/EN, §1-§10) is the canonical license. Fixes GitHub showing two license tabs.
+
+### Git Chaos
+- Committed LICENSE removal directly on `main` instead of `develop` (had to cherry-pick to develop)
+- Remote `origin/main` had diverged (LICENSE edit via GitHub web UI) → required force push
+- Deploy script failed twice due to diverged histories
+
+### Commits (Session 172)
+1. `eac30c1` feat(diffusers): FP8 quantization with automatic disk caching for Flux2
+2. `b3076d8` fix(diffusers): Move save_pretrained after .to(device) to reduce peak RAM
+3. `c2c06ff` fix(diffusers): Fix OOM crash — low_cpu_mem_usage incompatible with TorchAoConfig
+4. `deda3fd` fix(diffusers): Component-level quantization to prevent OOM crash
+5. `cd928cf` revert(diffusers): Remove FP8 runtime quantization — causes OOM on 64GB systems
+6. `1402b96` feat(diffusers): Use enable_model_cpu_offload() for Flux2
+7. `f04f080` fix(diffusers): Use device_map="balanced" for cpu_offload
+8. `54f64ee` fix(diffusers): Add enable_cpu_offload to auto-detection + fully unload models
+9. `62f323b` fix(router): Remove Flux2 from Diffusers auto-detection — route through ComfyUI
+10. `182b162` fix(flux2): Set requires_workflow=true — Flux2 uses full ComfyUI workflow
+11. `61ccf97` chore: Remove old LICENSE — LICENSE.md is the canonical license file
+
+### Lessons Learned
+1. **Know your model size before writing code.** 106GB ≠ 24GB. `du -shL` on the HF cache would have revealed this in 10 seconds.
+2. **`from_pretrained()` always materializes in CPU RAM.** No combination of flags (`device_map`, `low_cpu_mem_usage`, `use_safetensors`) changes this. For models larger than system RAM, diffusers cannot load them.
+3. **ComfyUI's architecture is fundamentally different:** Per-tensor `safe_open(device="cuda")` with manual model management vs. diffusers' monolithic `from_pretrained()` pipeline approach.
+4. **Auto-detection maps must mirror chunk configs.** Hardcoded model config in `backend_router.py` duplicated and diverged from chunk JSON configs — classic DRY violation.
+5. **`requires_workflow: false` on a chunk with a full ComfyUI workflow** silently routes to SwarmUI simple API, which uses a default model. No error, just wrong output.
+6. **CPU offload ≠ RAM savings during loading.** `enable_model_cpu_offload()` only helps during inference (components move to GPU on demand). It cannot help if the model doesn't fit in RAM during `from_pretrained()`.
+
+### Open: Future Diffusers Approach
+The `flux2_diffusers` and `flux2_fp8` output configs remain as stubs. If HuggingFace improves `from_pretrained()` to support true streaming/mmap loading (or if the system gets 128GB+ RAM), these configs are ready. The `enable_cpu_offload` infrastructure in `diffusers_backend.py` is in place.
+
+---
+
 ## Session 171 - Safety System: Testing, Bug Fixes, DSGVO LLM Verification
 **Date:** 2026-02-12
 **Focus:** Comprehensive safety system testing (26 test cases), 2 critical bugs found and fixed, test report

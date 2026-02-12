@@ -81,3 +81,4 @@ Frontend visualisiert, was die Pipeline strukturiert.
    - ALWAYS use `devserver-architecture-expert` agent for questions about the system
    - Read relevant documentation BEFORE making architectural decisions or code changes
 6. **VUE TYPE CHECK**: When programming Vue pages, ALWAYS run `npm run type-check` and fix any type errors before considering the task complete
+7. **NO COLORED BACKGROUNDS**: All page backgrounds MUST be black (`#0a0a0a`). Blue gradients, colored gradients, or any non-black backgrounds are FORBIDDEN. This has been violated repeatedly — do not introduce them.

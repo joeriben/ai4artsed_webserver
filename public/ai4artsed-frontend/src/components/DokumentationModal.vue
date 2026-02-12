@@ -517,47 +517,165 @@ Token 78-512:      reines T5 (semantischer Anker)</pre>
                   </div>
                 </div>
 
-                <div class="experiment-card split-combine">
-                  <h3>Split & Combine</h3>
+                <!-- Attention Cartography -->
+                <div class="experiment-card attention-cartography">
+                  <h3>Attention Cartography</h3>
                   <div class="experiment-what">
                     <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
                     <p>{{ currentLanguage === 'de'
-                      ? 'Jeder Begriff wird vom Text-Encoder in einen hochdimensionalen Vektor übersetzt (ca. 2000 Dimensionen). Diese Vektoren kann man mathematisch addieren, subtrahieren oder mischen. Split & Combine nimmt zwei Konzepte und verschmilzt ihre Vektoren.'
-                      : 'Each concept is translated by the text encoder into a high-dimensional vector (about 2000 dimensions). These vectors can be mathematically added, subtracted, or mixed. Split & Combine takes two concepts and merges their vectors.' }}</p>
+                      ? 'Das Modell liest den Prompt nicht wie eine Bauanleitung ab. Stattdessen verteilt ein Mechanismus namens "Attention" den Einfluss jedes Wortes auf verschiedene Bildregionen. Dieses Tool macht diese Verteilung sichtbar: Klicke auf ein Wort und eine Heatmap zeigt, welche Bildregionen dieses Wort am stärksten beeinflusst hat.'
+                      : 'The model does not read the prompt like a set of instructions. Instead, a mechanism called "attention" distributes the influence of each word across different image regions. This tool makes that distribution visible: click on a word and a heatmap shows which image regions that word influenced most.' }}</p>
                   </div>
                   <div class="experiment-why">
-                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das interessant?' : 'Why is this interesting?' }}</strong>
+                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das aufschlussreich?' : 'Why is this revealing?' }}</strong>
                     <p>{{ currentLanguage === 'de'
-                      ? 'Das Ergebnis ist NICHT dasselbe wie "Katze und Architektur" als Prompt zu schreiben. Bei der Vektormischung entstehen Hybride auf einer tieferen Bedeutungsebene – oft mit überraschenden, unmöglichen Kombinationen, die sprachlich nicht beschreibbar wären.'
-                      : 'The result is NOT the same as writing "cat and architecture" as a prompt. Vector mixing creates hybrids at a deeper meaning level – often with surprising, impossible combinations that couldn\'t be described linguistically.' }}</p>
+                      ? 'Ein "Haus" in einer Bauernhof-Szene beeinflusst nicht nur die Haus-Region, sondern auch Tiere und Felder — das Modell versteht die Szene als Ganzes. Die Heatmaps sind absichtlich nicht scharf begrenzt: Das zeigt, dass das Modell Konzepte kontextuell verarbeitet, nicht isoliert.'
+                      : 'A "house" in a farm scene influences not just the house region, but also animals and fields — the model understands the scene as a whole. The heatmaps are intentionally not sharp-edged: this shows that the model processes concepts contextually, not in isolation.' }}</p>
                   </div>
                   <div class="experiment-example">
-                    <strong>{{ currentLanguage === 'de' ? 'Beispiel:' : 'Example:' }}</strong>
+                    <strong>{{ currentLanguage === 'de' ? 'Zwei unabhängige Achsen:' : 'Two independent axes:' }}</strong>
                     {{ currentLanguage === 'de'
-                      ? '"Ozean" + "Wüste" auf Vektorebene ergibt nicht "Strand" – sondern visuelle Hybride aus Wellen und Sand, die keine reale Entsprechung haben.'
-                      : '"Ocean" + "desert" at vector level doesn\'t yield "beach" – but visual hybrids of waves and sand that have no real-world equivalent.' }}
+                      ? 'Entrauschungsschritt (WANN: früh = grobe Layoutplanung, spät = Detailzuordnung) und Netzwerktiefe (WO im Transformer: flach = Komposition, mittel = Semantik, tief = Feinabstimmung). Systematisch verschiedene Kombinationen erkunden!'
+                      : 'Denoising step (WHEN: early = rough layout planning, late = detail assignment) and network depth (WHERE in the transformer: shallow = composition, middle = semantics, deep = fine-tuning). Systematically explore different combinations!' }}
+                  </div>
+
+                  <button class="deep-dive-toggle" @click="showAttentionMath = !showAttentionMath">
+                    {{ currentLanguage === 'de' ? '📐 Technische Details' : '📐 Technical Details' }}
+                    <span class="toggle-arrow">{{ showAttentionMath ? '▲' : '▼' }}</span>
+                  </button>
+
+                  <div v-if="showAttentionMath" class="deep-dive-content">
+                    <h4>{{ currentLanguage === 'de' ? 'MMDiT Joint Attention' : 'MMDiT Joint Attention' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'SD3.5 verwendet einen MMDiT (Multimodal Diffusion Transformer) mit Joint Attention: Bild- und Text-Tokens bearbeiten sich gegenseitig in 24 Transformer-Blöcken. Wir ersetzen den Standard-SDPA-Prozessor durch einen manuellen Softmax(QK^T/√d)-Prozessor an 3 ausgewählten Blöcken, um die Text→Bild-Attention-Submatrix zu extrahieren.'
+                      : 'SD3.5 uses an MMDiT (Multimodal Diffusion Transformer) with joint attention: image and text tokens attend to each other across 24 transformer blocks. We replace the default SDPA processor with a manual softmax(QK^T/√d) processor at 3 selected blocks to extract the text→image attention submatrix.' }}</p>
+
+                    <h4>{{ currentLanguage === 'de' ? 'Auflösung und Tokenisierung' : 'Resolution and Tokenization' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Die Attention-Maps haben 64×64 Auflösung (Patch-Grid des DiT) und werden per bilinearer Interpolation auf die Bildauflösung (1024×1024) hochskaliert. Die Tokenisierung nutzt CLIP-L BPE — Subwort-Tokens werden automatisch zu ganzen Wörtern zusammengefasst, damit die Darstellung intuitiv bleibt.'
+                      : 'Attention maps are 64×64 resolution (DiT patch grid), upscaled to image resolution (1024×1024) via bilinear interpolation. Tokenization uses CLIP-L BPE — subword tokens are automatically combined into whole words for intuitive display.' }}</p>
                   </div>
                 </div>
 
-                <div class="experiment-card partial-elimination">
-                  <h3>Partial Elimination</h3>
+                <!-- Feature Probing -->
+                <div class="experiment-card feature-probing">
+                  <h3>Feature Probing</h3>
                   <div class="experiment-what">
                     <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
                     <p>{{ currentLanguage === 'de'
-                      ? 'Du gibst einen Begriff ein und wählst Dimensionen des Vektors aus, die auf Null gesetzt werden. Der Rest wird zur Bildgenerierung verwendet. So kannst du "Teile der Bedeutung" entfernen und beobachten, was übrig bleibt.'
-                      : 'You enter a concept and select dimensions of the vector to set to zero. The rest is used for image generation. This way you can "remove parts of meaning" and observe what remains.' }}</p>
+                      ? 'Vergleiche zwei Prompts (z.B. "rotes Haus" vs. "blaues Haus") und finde heraus, welche Embedding-Dimensionen den semantischen Unterschied kodieren. Ein Balkendiagramm zeigt die Dimensionen sortiert nach Differenzgröße. Dann kannst du gezielt einzelne Dimensionen von Prompt B in Prompt A übertragen — mit dem gleichen Seed, für einen fairen Vergleich.'
+                      : 'Compare two prompts (e.g. "red house" vs. "blue house") and discover which embedding dimensions encode the semantic difference. A bar chart shows dimensions sorted by difference magnitude. Then you can selectively transfer individual dimensions from prompt B into prompt A — with the same seed, for a fair comparison.' }}</p>
                   </div>
                   <div class="experiment-why">
-                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das interessant?' : 'Why is this interesting?' }}</strong>
+                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das aufschlussreich?' : 'Why is this revealing?' }}</strong>
                     <p>{{ currentLanguage === 'de'
-                      ? 'Niemand weiß genau, was in welcher Dimension eines Vektors "gespeichert" ist. Durch systematisches Eliminieren kannst du entdecken: Welche Dimensionen sind für "Farbe" zuständig? Welche für "Form"? Die Ergebnisse sind oft überraschend und zeigen die Grenzen unseres Verständnisses.'
-                      : 'Nobody knows exactly what\'s "stored" in which dimension of a vector. By systematically eliminating, you can discover: Which dimensions are responsible for "color"? Which for "shape"? The results are often surprising and show the limits of our understanding.' }}</p>
+                      ? 'Niemand weiß, was in Dimension 742 "gespeichert" ist. Durch die gezielte Übertragung einzelner Dimensionen wird sichtbar, was sie kodieren — Farbe? Form? Abstrakte Konzepte? Aber Vorsicht: Embeddings sind verteilt — oft braucht es mehrere Dimensionen zusammen, um eine sichtbare Änderung zu bewirken.'
+                      : 'Nobody knows what\'s "stored" in dimension 742. By selectively transferring individual dimensions, you can see what they encode — color? Shape? Abstract concepts? But note: embeddings are distributed — often multiple dimensions together are needed to produce a visible change.' }}</p>
+                  </div>
+                  <div class="experiment-example">
+                    <strong>{{ currentLanguage === 'de' ? 'Encoder wählbar:' : 'Encoder selectable:' }}</strong>
+                    {{ currentLanguage === 'de'
+                      ? 'CLIP-L (768 Dimensionen, visuell trainiert), CLIP-G (1280 Dim., visuell-semantisch) oder T5-XXL (4096 Dim., rein sprachlich). Jeder Encoder kodiert andere Aspekte — die gleiche Dimension kann in verschiedenen Encodern völlig unterschiedliche Semantik tragen.'
+                      : 'CLIP-L (768 dimensions, visually trained), CLIP-G (1280 dims, visual-semantic) or T5-XXL (4096 dims, purely linguistic). Each encoder encodes different aspects — the same dimension can carry completely different semantics in different encoders.' }}
+                  </div>
+
+                  <button class="deep-dive-toggle" @click="showProbingMath = !showProbingMath">
+                    {{ currentLanguage === 'de' ? '📐 Technische Details' : '📐 Technical Details' }}
+                    <span class="toggle-arrow">{{ showProbingMath ? '▲' : '▼' }}</span>
+                  </button>
+
+                  <div v-if="showProbingMath" class="deep-dive-content">
+                    <h4>{{ currentLanguage === 'de' ? 'Drei Text-Encoder' : 'Three Text Encoders' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'SD3.5 nutzt drei parallele Text-Encoder: CLIP-L (768d, kontrastiv auf Bild-Text-Paaren trainiert), CLIP-G (1280d, visuell-semantisch, OpenCLIP ViT-bigG) und T5-XXL (4096d, rein sprachlich). Du kannst jeden einzeln proben oder alle zusammen.'
+                      : 'SD3.5 uses three parallel text encoders: CLIP-L (768d, contrastively trained on image-text pairs), CLIP-G (1280d, visual-semantic, OpenCLIP ViT-bigG) and T5-XXL (4096d, purely linguistic). You can probe each individually or all together.' }}</p>
+
+                    <h4>{{ currentLanguage === 'de' ? 'Differenz-Berechnung' : 'Difference Computation' }}</h4>
+                    <pre class="math-diagram">diff[d] = mean(abs(B[t,d] - A[t,d]), dim=tokens)</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Die Differenz wird als mittlere absolute Abweichung über alle Token-Positionen berechnet. Die Übertragung ersetzt die ausgewählten Dimensionen in ALLEN Token-Positionen gleichzeitig — nicht nur an einer Stelle.'
+                      : 'The difference is computed as mean absolute deviation across all token positions. The transfer replaces selected dimensions across ALL token positions simultaneously — not just at one position.' }}</p>
+                  </div>
+                </div>
+
+                <!-- Concept Algebra -->
+                <div class="experiment-card concept-algebra">
+                  <h3>Concept Algebra</h3>
+                  <div class="experiment-what">
+                    <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Vektor-Arithmetik auf Bild-Embeddings: A − B + C = ? Inspiriert von der berühmten Word2Vec-Analogie (König − Mann + Frau ≈ Königin), aber auf ganze Prompt-Embeddings und Bildgenerierung übertragen. Drei Prompts werden kodiert und algebraisch kombiniert.'
+                      : 'Vector arithmetic on image embeddings: A − B + C = ? Inspired by the famous word2vec analogy (King − Man + Woman ≈ Queen), but applied to entire prompt embeddings and image generation. Three prompts are encoded and algebraically combined.' }}</p>
+                  </div>
+                  <div class="experiment-why">
+                    <strong>{{ currentLanguage === 'de' ? 'Warum ist das anders als ein Negativ-Prompt?' : 'Why is this different from a negative prompt?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Fundamental anders! Ein Negativ-Prompt steuert den Entrauschungsprozess bei JEDEM der 25 Schritte weg von B — das Modell entscheidet schrittweise, wie es "nicht B" interpretiert. Concept Algebra dagegen berechnet einen neuen Vektor VOR der Bildgenerierung: Die Subtraktion passiert im Embedding-Raum, nicht im Diffusionsprozess. Eine chirurgische Operation im Bedeutungsraum statt einer schrittweisen Vermeidungsstrategie.'
+                      : 'Fundamentally different! A negative prompt steers the denoising process away from B at EVERY one of the 25 steps — the model decides step by step how to interpret "not B". Concept Algebra instead computes a new vector BEFORE image generation: the subtraction happens in embedding space, not in the diffusion process. A surgical operation in meaning-space rather than a step-by-step avoidance strategy.' }}</p>
                   </div>
                   <div class="experiment-example">
                     <strong>{{ currentLanguage === 'de' ? 'Beispiel:' : 'Example:' }}</strong>
                     {{ currentLanguage === 'de'
-                      ? 'Entferne Dimensionen 100-200 von "roter Apfel" – verliert er seine Röte? Seine Rundheit? Oder etwas ganz anderes? Das Experimentieren zeigt: Bedeutung ist nicht so organisiert, wie wir intuitiv annehmen.'
-                      : 'Remove dimensions 100-200 from "red apple" – does it lose its redness? Its roundness? Or something completely different? Experimenting shows: Meaning is not organized the way we intuitively assume.' }}
+                      ? '"Sonnenuntergang am Strand" − "Strand" + "Berge" ≈ "Sonnenuntergang über Bergen". Skalierungsregler steuern die Intensität der Subtraktion und Addition (0–3). Die L2-Distanz zeigt, wie weit sich das Ergebnis vom Original entfernt hat.'
+                      : '"Sunset at the beach" − "Beach" + "Mountains" ≈ "Sunset over mountains". Scale sliders control the intensity of subtraction and addition (0–3). The L2 distance shows how far the result has moved from the original.' }}
+                  </div>
+
+                  <button class="deep-dive-toggle" @click="showAlgebraMath = !showAlgebraMath">
+                    {{ currentLanguage === 'de' ? '📐 Die Mathematik im Detail' : '📐 The Mathematics in Detail' }}
+                    <span class="toggle-arrow">{{ showAlgebraMath ? '▲' : '▼' }}</span>
+                  </button>
+
+                  <div v-if="showAlgebraMath" class="deep-dive-content">
+                    <h4>{{ currentLanguage === 'de' ? 'Die Formel' : 'The Formula' }}</h4>
+                    <pre class="math-diagram">Ergebnis = A − Skalierung₁ × B + Skalierung₂ × C</pre>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Bei Skalierung 1.0 wird B vollständig subtrahiert und C vollständig addiert. Bei 0.5 nur zur Hälfte. Werte über 1.0 verstärken den Effekt. Die Operation wird auf den gewählten Encoder-Embeddings durchgeführt: CLIP-L (768d), CLIP-G (1280d), T5-XXL (4096d) oder alle zusammen (589 Tokens × 4096d). Dieselbe Operation wird auch auf die Pooled Embeddings (2048d) angewendet.'
+                      : 'At scale 1.0, B is fully subtracted and C fully added. At 0.5, only half. Values above 1.0 amplify the effect. The operation is performed on the selected encoder embeddings: CLIP-L (768d), CLIP-G (1280d), T5-XXL (4096d), or all combined (589 tokens × 4096d). The same operation is also applied to pooled embeddings (2048d).' }}</p>
+
+                    <h4>{{ currentLanguage === 'de' ? 'Ist die Operation kommutativ?' : 'Is the operation commutative?' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Nein. Die Subtraktion von B und die Addition von C finden relativ zum Vektor A statt. "König − Mann" entfernt die "männlichen" Richtungen aus dem König-Vektor, "+ Frau" ergänzt die "weiblichen" Richtungen — das Ergebnis liegt nahe "Königin". Dass das funktioniert, zeigt: Semantische Beziehungen sind im Vektorraum als konsistente lineare Richtungen kodiert.'
+                      : 'No. Subtraction of B and addition of C happen relative to vector A. "King − Man" removes the "male" directions from the King vector, "+ Woman" adds the "female" directions — the result lands near "Queen". That this works shows: semantic relationships are encoded as consistent linear directions in vector space.' }}</p>
+                  </div>
+                </div>
+
+                <!-- Denoising Archaeology -->
+                <div class="experiment-card denoising-archaeology">
+                  <h3>Denoising Archaeology</h3>
+                  <div class="experiment-what">
+                    <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Jeder der 25 Entrauschungsschritte wird als Bild sichtbar gemacht. Ein Filmstreifen zeigt die komplette Entstehung, ein Timeline-Regler ermöglicht das Durchblättern. Diffusionsmodelle arbeiten nicht links-nach-rechts wie ein Zeichner — sie arbeiten überall gleichzeitig, von groben Strukturen zu feinen Details.'
+                      : 'Every one of the 25 denoising steps is made visible as an image. A filmstrip shows the complete creation process, a timeline slider allows browsing. Diffusion models don\'t work left-to-right like a drawer — they work everywhere simultaneously, from rough structures to fine details.' }}</p>
+                  </div>
+                  <div class="experiment-why">
+                    <strong>{{ currentLanguage === 'de' ? 'Was verraten die drei Phasen?' : 'What do the three phases reveal?' }}</strong>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Frühe Schritte (1–8): Globale Komposition — Grundstruktur, Farbverteilung, Layoutplanung. Mittlere Schritte (9–17): Semantische Emergenz — Objekte werden erkennbar, Formen kristallisieren sich heraus. Späte Schritte (18–25): Detail-Verfeinerung — Texturen, Kanten, feine Muster. Das Modell "plant" zuerst global und verfeinert dann lokal.'
+                      : 'Early steps (1–8): Global composition — basic structure, color distribution, layout planning. Middle steps (9–17): Semantic emergence — objects become recognizable, shapes crystallize. Late steps (18–25): Detail refinement — textures, edges, fine patterns. The model first "plans" globally, then refines locally.' }}</p>
+                  </div>
+                  <div class="experiment-example">
+                    <strong>{{ currentLanguage === 'de' ? 'Überraschend:' : 'Surprising:' }}</strong>
+                    {{ currentLanguage === 'de'
+                      ? 'Der allererste Schritt zeigt keine feinen Pixel, sondern farbige Cluster. Das liegt daran, dass das Rauschen im Latent-Raum (128×128 bei 16 Kanälen) erzeugt wird, nicht im Pixel-Raum. Der VAE übersetzt jeden Latent-Pixel in einen ~8×8-Pixel-Patch — selbst pures Gaußsches Rauschen wird dadurch zu zusammenhängenden Farbclustern.'
+                      : 'The very first step shows not fine pixels, but colorful clusters. This is because the noise is generated in latent space (128×128 at 16 channels), not in pixel space. The VAE translates each latent pixel into an ~8×8 pixel patch — even pure Gaussian noise becomes coherent color clusters.' }}
+                  </div>
+
+                  <button class="deep-dive-toggle" @click="showArchaeologyMath = !showArchaeologyMath">
+                    {{ currentLanguage === 'de' ? '📐 Technische Details' : '📐 Technical Details' }}
+                    <span class="toggle-arrow">{{ showArchaeologyMath ? '▲' : '▼' }}</span>
+                  </button>
+
+                  <div v-if="showArchaeologyMath" class="deep-dive-content">
+                    <h4>{{ currentLanguage === 'de' ? 'Rectified Flow' : 'Rectified Flow' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'SD3.5 Large verwendet Rectified Flow als Scheduler mit 25 Standardschritten. Bei jedem Schritt werden die aktuellen Latent-Vektoren durch den VAE dekodiert (1024×1024 JPEG). Der VAE (Variational Autoencoder) übersetzt den mathematischen Latent-Raum in Pixel.'
+                      : 'SD3.5 Large uses Rectified Flow as scheduler with 25 default steps. At each step, the current latent vectors are decoded through the VAE (1024×1024 JPEG). The VAE (Variational Autoencoder) translates the mathematical latent space into pixels.' }}</p>
+
+                    <h4>{{ currentLanguage === 'de' ? 'Latent-Raum' : 'Latent Space' }}</h4>
+                    <p>{{ currentLanguage === 'de'
+                      ? 'Die Latent-Darstellung ist 128×128 bei 16 Kanälen — jeder Latent-Pixel entspricht einem ~8×8-Pixel-Patch im Bild. Das Modell "denkt" nie in einzelnen Pixeln, sondern immer in diesem komprimierten Raum. Deshalb zeigt schon der erste Schritt kohärente Farbflächen statt feines Pixelrauschen.'
+                      : 'The latent representation is 128×128 at 16 channels — each latent pixel corresponds to an ~8×8 pixel patch in the image. The model never "thinks" in individual pixels, but always in this compressed space. This is why even the first step shows coherent color patches instead of fine pixel noise.' }}</p>
                   </div>
                 </div>
 
@@ -755,6 +873,10 @@ const emit = defineEmits<{
 
 const activeTab = ref('welcome')
 const showHallucinatorMath = ref(false)
+const showAttentionMath = ref(false)
+const showProbingMath = ref(false)
+const showAlgebraMath = ref(false)
+const showArchaeologyMath = ref(false)
 
 const tabs = [
   { id: 'welcome', labelDe: 'Willkommen', labelEn: 'Welcome' },
@@ -1203,11 +1325,19 @@ onUnmounted(() => {
   border-left: 3px solid #9C27B0;
 }
 
-.experiment-card.split-combine {
+.experiment-card.attention-cartography {
   border-left: 3px solid #2196F3;
 }
 
-.experiment-card.partial-elimination {
+.experiment-card.feature-probing {
+  border-left: 3px solid #4CAF50;
+}
+
+.experiment-card.concept-algebra {
+  border-left: 3px solid #FF9800;
+}
+
+.experiment-card.denoising-archaeology {
   border-left: 3px solid #FF5722;
 }
 
