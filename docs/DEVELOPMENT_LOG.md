@@ -6573,6 +6573,23 @@ The 2-field switch makes this **pedagogically visible**: Students consciously ch
 
 ---
 
+## Session 171c (2026-02-12): Bilingual Age Filter Terms + Canvas Safety Audit
+
+**Date:** 2026-02-12
+**Status:** COMPLETE
+**Branch:** develop
+
+### Problem
+Kids/youth age filter only contained English terms ("nude", "naked"). Fast-filter runs on German input BEFORE translation → "nackte Menschen" never matched. §86a filter was already bilingual, but age filter was not.
+
+### Changes
+- **youth_kids_safety_filters.json**: Added German equivalents for kids (27 terms → ~95) and youth (17 → ~24) filter lists. Key additions: nackt, Nacktheit, Gewalt, Mord, Folter, sexuell, pornografisch, etc.
+
+### Audit Finding: Canvas Routes
+Canvas routes (`/api/canvas/execute`, `/execute-stream`, `/execute-batch`) have **zero safety enforcement**. Users can bypass all filters through Canvas workflows. Fix deferred — Canvas is a research tool, not primary student interface.
+
+---
+
 ## Session 171b (2026-02-12): Critical — Server-Side Safety Gate for Streaming Pipeline
 
 **Date:** 2026-02-12

@@ -20,7 +20,13 @@
         "fangs", "claws", "teeth", "bite",
         "haunted", "creepy", "eerie", "sinister", "dark", "macabre",
         "nude", "naked", "nsfw", "sexual", "rape", "pornographic",
-        "genital", "abuse"
+        "genital", "abuse",
+        "Gewalt", "Mord", "Folter", "Blut", "blutig", "Verstümmelung",
+        "Selbstmord", "Suizid", "Selbstverletzung",
+        "Horror", "gruselig", "erschreckend", "Albtraum", "verstörend",
+        "Dämon", "Skelett", "Totenkopf",
+        "nackt", "Nacktheit", "sexuell", "Vergewaltigung", "pornografisch",
+        "Genitalien", "Missbrauch"
       ]
     },
 
@@ -32,7 +38,9 @@
         "cruelty", "sadistic",
         "pornographic", "sexual", "nsfw", "rape", "abuse",
         "genitals", "penis", "vagina",
-        "self-harm", "suicide", "cutting"
+        "self-harm", "suicide", "cutting",
+        "pornografisch", "sexuell", "Vergewaltigung", "Missbrauch",
+        "Genitalien", "Selbstverletzung", "Suizid"
       ]
     }
   },
