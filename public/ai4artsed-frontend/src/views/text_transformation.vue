@@ -1099,8 +1099,8 @@ onMounted(async () => {
       await pipelineStore.setConfig(configId)
       console.log('[T2I] Config loaded:', pipelineStore.selectedConfig?.id)
 
-      // STEP 2: Load meta-prompt for German
-      await pipelineStore.loadMetaPromptForLanguage('de')
+      // STEP 2: Load meta-prompt for current language
+      await pipelineStore.loadMetaPromptForLanguage(currentLanguage.value)
       console.log('[T2I] Meta-prompt loaded:', pipelineStore.metaPrompt?.substring(0, 50))
 
       // STEP 3: Overwrite ONLY context (NOT input!)
