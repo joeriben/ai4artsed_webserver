@@ -1,5 +1,54 @@
 # Development Log
 
+## Session 169 - Latent Lab: Concept Algebra Implementation + UI Fixes
+**Date:** 2026-02-12
+**Focus:** Full implementation of Concept Algebra tab (A − B + C vector arithmetic on embeddings), then UI fixes based on first user testing
+
+### Changes
+
+**Backend: Concept Algebra Pipeline**
+- `embedding_analyzer.py` — `apply_concept_algebra()`: tensor arithmetic (result = A − scale_sub×B + scale_add×C) with L2 distance metric
+- `diffusers_backend.py` — `generate_image_with_algebra()`: encodes 3 prompts via SD3.5 triple encoder, applies algebra, generates reference + result images with same seed
+- `output_image_concept_algebra_diffusers.py` — Python chunk (Stage 4) calling `backend.generate_image_with_algebra()` directly
+- `concept_algebra_diffusers.json` — Output config routing to Python chunk
+- `pipeline_executor.py` — Added `algebra_data`, `reference_image`, `result_image` to metadata whitelist
+- `schema_pipeline_routes.py` — Extract `prompt_c`, `algebra_encoder`, `scale_sub`, `scale_add` from request, forward via `custom_params`, handle `diffusers_algebra_generated` response
+
+**Frontend: Concept Algebra Tab**
+- `concept_algebra.vue` — Full Vue component: 3 MediaInputBox inputs (A/B/C), encoder selector (All/CLIP-L/CLIP-G/T5), formula visualization, side-by-side image comparison, advanced settings (seed/cfg/steps/negative/scales), PageContext for Trashy
+- `latent_lab.vue` — Added ConceptAlgebra tab import + conditional rendering
+
+**i18n (DE + EN)**
+- ~35 new `latentLab.algebra.*` keys: headers, explanations (what/how/read/tech), labels, placeholders
+- `explainHowText`: detailed comparison of Concept Algebra vs. negative prompting
+- `explainReadText`: commutativity explanation + King−Man+Woman analogy
+
+**Architecture Documentation**
+- `ARCHITECTURE PART 28 - Latent-Lab.md` — Scientific Foundation section (7 papers + DOIs), Concept Algebra section (mechanism, key files, frontend)
+
+### UI Fixes (post-testing, commit 99f27d4)
+- **Icons**: `icon="minus"` → `icon="−"` (U+2212), `icon="plus"` → `icon="＋"` (U+FF0B) — Unicode fallback in MediaInputBox
+- **Seed field**: `setting-small` (80px) → `setting-seed` (14ch) — zoom-safe width
+- **Side-by-side layout**: `flex: 0 1 480px` → `flex: 1 1 0` — prevents wrapping within 1000px container
+- **Explanation text**: Extended `explainReadText` (DE+EN) with commutativity, vector space linearity, and why simple addition works
+
+### Verification
+- `npm run type-check` → 0 Errors
+
+### Files Changed
+- `devserver/my_app/services/embedding_analyzer.py` — `apply_concept_algebra()`
+- `devserver/my_app/services/diffusers_backend.py` — `generate_image_with_algebra()`
+- `devserver/schemas/chunks/output_image_concept_algebra_diffusers.py` — Python chunk
+- `devserver/schemas/configs/output/concept_algebra_diffusers.json` — Output config
+- `devserver/schemas/engine/pipeline_executor.py` — Metadata whitelist
+- `devserver/my_app/routes/schema_pipeline_routes.py` — Request extraction + response handling
+- `public/.../src/views/latent_lab/concept_algebra.vue` — NEU
+- `public/.../src/views/latent_lab.vue` — Tab integration
+- `public/.../src/i18n.ts` — Algebra keys (DE+EN)
+- `docs/ARCHITECTURE PART 28 - Latent-Lab.md` — Scientific Foundation + Concept Algebra docs
+
+---
+
 ## Session 168 - Rebranding: AI4ARTSED → UCDCAE AI LAB
 **Date:** 2026-02-11
 **Focus:** Institutional rebranding from single-project name to UNESCO Chair identity
