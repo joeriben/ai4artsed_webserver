@@ -163,8 +163,14 @@ def llm_verify_person_name(text: str, ner_entities: list) -> bool:
     LLM verification for SpaCy NER PER-entity hits.
 
     SpaCy NER produces false positives (e.g. "Agrarische Funktionszone" → PER,
-    "muted earth tones:1.1" → PER). This function asks the local LLM whether
+    "muted earth tones:1.1" → PER). This function asks the LLM whether
     the detected entities are real personal names before blocking.
+
+    Routes to the correct provider based on STAGE1_TEXT_MODEL prefix:
+    - local/* or no prefix → Ollama /api/generate
+    - mistral/* → Mistral API /v1/chat/completions
+    - anthropic/* → Anthropic API /v1/messages
+    - openai/* → OpenAI API /v1/chat/completions
 
     Args:
         text: The original user text
@@ -182,30 +188,34 @@ def llm_verify_person_name(text: str, ner_entities: list) -> bool:
     names_str = ", ".join(names)
 
     prompt = (
-        f"SpaCy NER hat im folgenden Text diese Entitäten als Personennamen (PER) erkannt: {names_str}\n\n"
-        f"Text: \"{text}\"\n\n"
-        f"Handelt es sich bei den erkannten Entitäten um echte Personennamen "
-        f"(Vor- und/oder Nachname einer realen oder fiktiven Person)?\n"
-        f"Adjektive, Beschreibungen, Orte oder allgemeine Wörter sind KEINE Personennamen.\n"
-        f"Fiktive Figuren (z.B. Humpty Dumpty, Harry Potter) sind KEINE echten Personennamen im DSGVO-Sinne.\n\n"
-        f"Antwort NUR mit JA oder NEIN."
+        f"Die folgenden Wörter wurden per NER als mögliche Personennamen erkannt: {names_str}\n\n"
+        f"Originaltext: \"{text}\"\n\n"
+        f"Sind diese Wörter echte Personennamen (real existierender Menschen)?\n"
+        f"- \"Angela Merkel\" → JA (reale Person)\n"
+        f"- \"Paul Obermeier\" → JA (klingt wie ein realer Personenname)\n"
+        f"- \"Agrarische Funktionszone\" → NEIN (kein Personenname)\n"
+        f"- \"Harry Potter\" → NEIN (fiktive Figur, kein DSGVO-Schutz)\n"
+        f"- \"muted earth tones\" → NEIN (Beschreibung, kein Name)\n\n"
+        f"Antworte NUR mit JA oder NEIN."
     )
+
+    model = config.STAGE1_TEXT_MODEL
 
     try:
         start = _time.time()
-        response = requests.post(
-            f"{config.OLLAMA_API_BASE_URL}/api/generate",
-            json={
-                "model": config.SAFETY_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "keep_alive": "10m",
-                "options": {"temperature": 0.0, "num_predict": 10}
-            },
-            timeout=30
-        )
-        response.raise_for_status()
-        result = response.json().get("response", "").strip().upper()
+
+        if model.startswith("mistral/"):
+            result = _llm_call_mistral(prompt, model)
+        elif model.startswith("anthropic/"):
+            result = _llm_call_anthropic(prompt, model)
+        elif model.startswith("openai/"):
+            result = _llm_call_openai(prompt, model)
+        else:
+            # local/* or bare model name → Ollama
+            ollama_model = model.replace("local/", "") if model.startswith("local/") else model
+            result = _llm_call_ollama(prompt, ollama_model)
+
+        result = result.strip().upper()
         duration_ms = (_time.time() - start) * 1000
 
         is_real_name = result.startswith("JA")
@@ -218,6 +228,98 @@ def llm_verify_person_name(text: str, ner_entities: list) -> bool:
     except Exception as e:
         logger.warning(f"[DSGVO-LLM-VERIFY] LLM verification failed: {e} — fail-open (allowing)")
         return False
+
+
+def _llm_call_ollama(prompt: str, model: str) -> str:
+    """Synchronous Ollama /api/generate call."""
+    import requests
+    import config
+    response = requests.post(
+        f"{config.OLLAMA_API_BASE_URL}/api/generate",
+        json={"model": model, "prompt": prompt, "stream": False,
+              "keep_alive": "10m", "options": {"temperature": 0.0, "num_predict": 10}},
+        timeout=30
+    )
+    response.raise_for_status()
+    return response.json().get("response", "")
+
+
+def _llm_call_mistral(prompt: str, model: str) -> str:
+    """Synchronous Mistral API call."""
+    import requests
+    api_url = "https://api.mistral.ai/v1/chat/completions"
+    api_key = _read_api_key("mistral.key", "MISTRAL_API_KEY")
+    if not api_key:
+        raise RuntimeError("Mistral API key not configured")
+    api_model = model.replace("mistral/", "")
+    response = requests.post(
+        api_url,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={"model": api_model, "messages": [{"role": "user", "content": prompt}],
+              "temperature": 0.0, "max_tokens": 10},
+        timeout=30
+    )
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"]
+
+
+def _llm_call_anthropic(prompt: str, model: str) -> str:
+    """Synchronous Anthropic API call."""
+    import requests
+    api_url = "https://api.anthropic.com/v1/messages"
+    api_key = _read_api_key("anthropic.key", "ANTHROPIC_API_KEY")
+    if not api_key:
+        raise RuntimeError("Anthropic API key not configured")
+    api_model = model.replace("anthropic/", "")
+    response = requests.post(
+        api_url,
+        headers={"x-api-key": api_key, "content-type": "application/json",
+                 "anthropic-version": "2023-06-01"},
+        json={"model": api_model, "max_tokens": 10,
+              "messages": [{"role": "user", "content": prompt}]},
+        timeout=30
+    )
+    response.raise_for_status()
+    return response.json()["content"][0]["text"]
+
+
+def _llm_call_openai(prompt: str, model: str) -> str:
+    """Synchronous OpenAI API call."""
+    import requests
+    api_url = "https://api.openai.com/v1/chat/completions"
+    api_key = _read_api_key("openai.key", "OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OpenAI API key not configured")
+    api_model = model.replace("openai/", "")
+    response = requests.post(
+        api_url,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={"model": api_model, "messages": [{"role": "user", "content": prompt}],
+              "temperature": 0.0, "max_tokens": 10},
+        timeout=30
+    )
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"]
+
+
+def _read_api_key(key_file: str, env_var: str) -> Optional[str]:
+    """Read API key from file or environment variable."""
+    import os
+    # 1. Environment variable
+    key = os.environ.get(env_var, "")
+    if key:
+        return key
+    # 2. Key file in devserver/
+    try:
+        path = Path(__file__).parent.parent.parent / key_file
+        if path.exists():
+            for line in path.read_text().strip().split('\n'):
+                line = line.strip()
+                if line and not line.startswith('#') and not line.startswith('//'):
+                    return line
+    except Exception:
+        pass
+    return None
 
 
 # ============================================================================
