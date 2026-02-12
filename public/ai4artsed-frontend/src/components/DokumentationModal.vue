@@ -380,12 +380,12 @@
             </div>
 
             <!-- Experiments Tab -->
-            <div v-if="activeTab === 'experiments'" class="tab-content">
+            <div v-if="activeTab === 'research'" class="tab-content">
               <section class="experiments-section">
-                <h2>{{ currentLanguage === 'de' ? 'Experimentelle Workflows' : 'Experimental Workflows' }}</h2>
+                <h2>Latent Lab</h2>
                 <p class="section-intro">{{ currentLanguage === 'de'
-                  ? 'Diese Experimente arbeiten auf der mathematischen Ebene der KI-Modelle. Sie zeigen, wie Sprache und Bedeutung in Vektoren übersetzt werden – und was passiert, wenn wir diese Vektoren manipulieren.'
-                  : 'These experiments work at the mathematical level of AI models. They show how language and meaning are translated into vectors – and what happens when we manipulate these vectors.' }}</p>
+                  ? 'Das Latent Lab arbeitet auf der mathematischen Ebene der KI-Modelle. Es zeigt, wie Sprache und Bedeutung in Vektoren übersetzt werden – und was passiert, wenn wir diese Vektoren manipulieren.'
+                  : 'The Latent Lab works at the mathematical level of AI models. It shows how language and meaning are translated into vectors – and what happens when we manipulate these vectors.' }}</p>
 
                 <div class="experiment-card surrealizer">
                   <h3>Hallucinator</h3>
@@ -561,10 +561,75 @@ Token 78-512:      reines T5 (semantischer Anker)</pre>
                   </div>
                 </div>
 
-                <div class="disclaimer">
+              </section>
+
+              <section class="canvas-section">
+                <div class="canvas-header">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 0 24 24" width="48" fill="currentColor" class="canvas-header-icon">
+                    <path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/>
+                  </svg>
+                  <div>
+                    <h2>{{ currentLanguage === 'de' ? 'Canvas Workflow System' : 'Canvas Workflow System' }}</h2>
+                    <p class="section-intro">{{ currentLanguage === 'de'
+                      ? 'Canvas ist eine visuelle Forschungs-Workbench für die systematische Erkundung generativer KI.'
+                      : 'Canvas is a visual research workbench for systematic exploration of generative AI.' }}</p>
+                  </div>
+                </div>
+
+                <div class="canvas-card paradigm">
+                  <h3>{{ currentLanguage === 'de' ? 'Lehrforschung' : 'Exploratory Research' }}</h3>
                   <p>{{ currentLanguage === 'de'
-                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
-                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
+                    ? 'Canvas ist für gemeinsames Erforschen in Workshops, Unterricht oder zur Professionalisierung konzipiert. Anders als technische Systeme wie ComfyUI oder Max/MSP verzichtet Canvas bewusst auf tiefe technische Parametrierung – dafür macht es strukturelle Komplexität sichtbar und erforschbar.'
+                    : 'Canvas is designed for collaborative exploration in workshops, teaching, or professional development. Unlike technical systems like ComfyUI or Max/MSP, Canvas deliberately avoids deep technical parameterization – instead, it makes structural complexity visible and explorable.' }}</p>
+                </div>
+
+                <div class="canvas-card interception">
+                  <h3>{{ currentLanguage === 'de' ? 'Prompt Interception' : 'Prompt Interception' }}</h3>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Konventionelle KI-Interfaces machen Nutzende zu Befehlsgebenden, die zugleich der Maschinenlogik unterworfen sind. Prompt Interception bricht dieses Muster auf: Das LLM bringt Neues und Unwägbarkeiten in den Prozess ein. Nutzende und KI erzeugen gemeinsam neue Feedback-Loops. Die Maschine dient dem kreativen Werden – nicht umgekehrt.'
+                    : 'Conventional AI interfaces turn users into commanders who are simultaneously subjected to machine logic. Prompt Interception breaks this pattern: The LLM introduces novelty and unpredictability into the process. Users and AI create new feedback loops together. The machine serves creative becoming – not vice versa.' }}</p>
+                  <p class="pragmatic-note">{{ currentLanguage === 'de'
+                    ? 'Pragmatisch ermöglicht Interception auch komplexere Prompts – wesentlich für echte KI-Erkundung. Einfache Prompts erzeugen notwendig klischeehafte Outputs. Erst mit angemessen komplexen Prompts lassen sich Biases, aber auch interessante Eigenheiten des Systems systematisch erfahren.'
+                    : 'Pragmatically, Interception also enables more complex prompts – essential for genuine AI exploration. Simple prompts necessarily produce clichéd outputs. Only with appropriately complex prompts can biases, but also interesting system characteristics, be systematically experienced.' }}</p>
+                </div>
+
+                <div class="canvas-card recursive">
+                  <h3>{{ currentLanguage === 'de' ? 'Rekursiv-reflexive Workflows' : 'Recursive-Reflexive Workflows' }}</h3>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Ein Novum, das wir von keiner anderen genAI-Plattform kennen: Evaluation-Nodes können Feedback an andere Nodes zurückgeben. Der Workflow wird rekursiv durchlaufen, bis nutzerdefinierte Kriterien erfüllt sind. So entstehen experimentelle Setups zur Erforschung von:'
+                    : 'A novelty we don\'t know from any other genAI platform: Evaluation nodes can feed back to other nodes. The workflow runs recursively until user-defined criteria are met. This enables experimental setups for researching:' }}</p>
+                  <ul>
+                    <li>{{ currentLanguage === 'de' ? 'Biases in Modellen' : 'Biases in models' }}</li>
+                    <li>{{ currentLanguage === 'de' ? 'Normiertheit vs. "Kreativität"' : 'Normativity vs. "creativity"' }}</li>
+                    <li>{{ currentLanguage === 'de' ? 'Ethische Bewertung von LLM-Outputs' : 'Ethical assessment of LLM outputs' }}</li>
+                    <li>{{ currentLanguage === 'de' ? 'Vergleichende Analysen mit Massenoutput' : 'Comparative analyses with mass output' }}</li>
+                  </ul>
+                </div>
+
+                <div class="canvas-card nodes">
+                  <h3>{{ currentLanguage === 'de' ? 'Verfügbare Node-Typen' : 'Available Node Types' }}</h3>
+                  <div class="node-grid">
+                    <div class="node-item"><span class="node-color" style="background: #3b82f6;"></span><strong>Input</strong> – {{ currentLanguage === 'de' ? 'Texteingabe' : 'Text input' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Interception</strong> – {{ currentLanguage === 'de' ? 'Pädagogische Transformation' : 'Pedagogical transformation' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Random Prompt</strong> – {{ currentLanguage === 'de' ? 'LLM-generierte Inhalte' : 'LLM-generated content' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Translation</strong> – {{ currentLanguage === 'de' ? 'Sprachübersetzung' : 'Language translation' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Model Adaption</strong> – {{ currentLanguage === 'de' ? 'Prompt-Optimierung' : 'Prompt optimization' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #10b981;"></span><strong>Generation</strong> – {{ currentLanguage === 'de' ? 'Medienerzeugung' : 'Media generation' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #f97316;"></span><strong>Evaluation</strong> – {{ currentLanguage === 'de' ? 'LLM-Bewertung mit Verzweigung' : 'LLM evaluation with branching' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #f97316;"></span><strong>Comparison</strong> – {{ currentLanguage === 'de' ? 'Vergleicht mehrere Inputs' : 'Compares multiple inputs' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #06b6d4;"></span><strong>Preview</strong> – {{ currentLanguage === 'de' ? 'Zwischenergebnis-Vorschau' : 'Intermediate result preview' }}</div>
+                    <div class="node-item"><span class="node-color" style="background: #06b6d4;"></span><strong>Collector</strong> – {{ currentLanguage === 'de' ? 'Sammelt alle Outputs' : 'Collects all outputs' }}</div>
+                  </div>
+                </div>
+
+                <div class="canvas-card target-groups">
+                  <h3>{{ currentLanguage === 'de' ? 'Zielgruppen' : 'Target Groups' }}</h3>
+                  <ul>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Ältere Kinder (ab 12 J.)' : 'Older children (12+)' }}</strong> – {{ currentLanguage === 'de' ? 'Strukturierte KI-Erkundung in Bildungssettings' : 'Structured AI exploration in educational settings' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Pädagog:innen' : 'Educators' }}</strong> – {{ currentLanguage === 'de' ? 'Professionalisierung durch Verständnis von genAI' : 'Professional development through understanding genAI' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Forschende' : 'Researchers' }}</strong> – {{ currentLanguage === 'de' ? 'Systematische Untersuchung von Modellverhalten' : 'Systematic investigation of model behavior' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Kulturelle Bildung' : 'Cultural education' }}</strong> – {{ currentLanguage === 'de' ? 'Workshop-Settings für kritische KI-Literacy' : 'Workshop settings for critical AI literacy' }}</li>
+                  </ul>
                 </div>
               </section>
             </div>
@@ -684,85 +749,6 @@ Token 78-512:      reines T5 (semantischer Anker)</pre>
               </section>
             </div>
 
-            <!-- Canvas Tab -->
-            <div v-if="activeTab === 'canvas'" class="tab-content">
-              <section class="canvas-section">
-                <div class="canvas-header">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 0 24 24" width="48" fill="currentColor" class="canvas-header-icon">
-                    <path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/>
-                  </svg>
-                  <div>
-                    <h2>{{ currentLanguage === 'de' ? 'Canvas Workflow System' : 'Canvas Workflow System' }}</h2>
-                    <p class="section-intro">{{ currentLanguage === 'de'
-                      ? 'Canvas ist eine visuelle Forschungs-Workbench für die systematische Erkundung generativer KI.'
-                      : 'Canvas is a visual research workbench for systematic exploration of generative AI.' }}</p>
-                  </div>
-                </div>
-
-                <div class="canvas-card paradigm">
-                  <h3>{{ currentLanguage === 'de' ? 'Lehrforschung' : 'Exploratory Research' }}</h3>
-                  <p>{{ currentLanguage === 'de'
-                    ? 'Canvas ist für gemeinsames Erforschen in Workshops, Unterricht oder zur Professionalisierung konzipiert. Anders als technische Systeme wie ComfyUI oder Max/MSP verzichtet Canvas bewusst auf tiefe technische Parametrierung – dafür macht es strukturelle Komplexität sichtbar und erforschbar.'
-                    : 'Canvas is designed for collaborative exploration in workshops, teaching, or professional development. Unlike technical systems like ComfyUI or Max/MSP, Canvas deliberately avoids deep technical parameterization – instead, it makes structural complexity visible and explorable.' }}</p>
-                </div>
-
-                <div class="canvas-card interception">
-                  <h3>{{ currentLanguage === 'de' ? 'Prompt Interception' : 'Prompt Interception' }}</h3>
-                  <p>{{ currentLanguage === 'de'
-                    ? 'Konventionelle KI-Interfaces machen Nutzende zu Befehlsgebenden, die zugleich der Maschinenlogik unterworfen sind. Prompt Interception bricht dieses Muster auf: Das LLM bringt Neues und Unwägbarkeiten in den Prozess ein. Nutzende und KI erzeugen gemeinsam neue Feedback-Loops. Die Maschine dient dem kreativen Werden – nicht umgekehrt.'
-                    : 'Conventional AI interfaces turn users into commanders who are simultaneously subjected to machine logic. Prompt Interception breaks this pattern: The LLM introduces novelty and unpredictability into the process. Users and AI create new feedback loops together. The machine serves creative becoming – not vice versa.' }}</p>
-                  <p class="pragmatic-note">{{ currentLanguage === 'de'
-                    ? 'Pragmatisch ermöglicht Interception auch komplexere Prompts – wesentlich für echte KI-Erkundung. Einfache Prompts erzeugen notwendig klischeehafte Outputs. Erst mit angemessen komplexen Prompts lassen sich Biases, aber auch interessante Eigenheiten des Systems systematisch erfahren.'
-                    : 'Pragmatically, Interception also enables more complex prompts – essential for genuine AI exploration. Simple prompts necessarily produce clichéd outputs. Only with appropriately complex prompts can biases, but also interesting system characteristics, be systematically experienced.' }}</p>
-                </div>
-
-                <div class="canvas-card recursive">
-                  <h3>{{ currentLanguage === 'de' ? 'Rekursiv-reflexive Workflows' : 'Recursive-Reflexive Workflows' }}</h3>
-                  <p>{{ currentLanguage === 'de'
-                    ? 'Ein Novum, das wir von keiner anderen genAI-Plattform kennen: Evaluation-Nodes können Feedback an andere Nodes zurückgeben. Der Workflow wird rekursiv durchlaufen, bis nutzerdefinierte Kriterien erfüllt sind. So entstehen experimentelle Setups zur Erforschung von:'
-                    : 'A novelty we don\'t know from any other genAI platform: Evaluation nodes can feed back to other nodes. The workflow runs recursively until user-defined criteria are met. This enables experimental setups for researching:' }}</p>
-                  <ul>
-                    <li>{{ currentLanguage === 'de' ? 'Biases in Modellen' : 'Biases in models' }}</li>
-                    <li>{{ currentLanguage === 'de' ? 'Normiertheit vs. "Kreativität"' : 'Normativity vs. "creativity"' }}</li>
-                    <li>{{ currentLanguage === 'de' ? 'Ethische Bewertung von LLM-Outputs' : 'Ethical assessment of LLM outputs' }}</li>
-                    <li>{{ currentLanguage === 'de' ? 'Vergleichende Analysen mit Massenoutput' : 'Comparative analyses with mass output' }}</li>
-                  </ul>
-                </div>
-
-                <div class="canvas-card nodes">
-                  <h3>{{ currentLanguage === 'de' ? 'Verfügbare Node-Typen' : 'Available Node Types' }}</h3>
-                  <div class="node-grid">
-                    <div class="node-item"><span class="node-color" style="background: #3b82f6;"></span><strong>Input</strong> – {{ currentLanguage === 'de' ? 'Texteingabe' : 'Text input' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Interception</strong> – {{ currentLanguage === 'de' ? 'Pädagogische Transformation' : 'Pedagogical transformation' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Random Prompt</strong> – {{ currentLanguage === 'de' ? 'LLM-generierte Inhalte' : 'LLM-generated content' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Translation</strong> – {{ currentLanguage === 'de' ? 'Sprachübersetzung' : 'Language translation' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Model Adaption</strong> – {{ currentLanguage === 'de' ? 'Prompt-Optimierung' : 'Prompt optimization' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #10b981;"></span><strong>Generation</strong> – {{ currentLanguage === 'de' ? 'Medienerzeugung' : 'Media generation' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #f97316;"></span><strong>Evaluation</strong> – {{ currentLanguage === 'de' ? 'LLM-Bewertung mit Verzweigung' : 'LLM evaluation with branching' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #f97316;"></span><strong>Comparison</strong> – {{ currentLanguage === 'de' ? 'Vergleicht mehrere Inputs' : 'Compares multiple inputs' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #06b6d4;"></span><strong>Preview</strong> – {{ currentLanguage === 'de' ? 'Zwischenergebnis-Vorschau' : 'Intermediate result preview' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #06b6d4;"></span><strong>Collector</strong> – {{ currentLanguage === 'de' ? 'Sammelt alle Outputs' : 'Collects all outputs' }}</div>
-                  </div>
-                </div>
-
-                <div class="canvas-card target-groups">
-                  <h3>{{ currentLanguage === 'de' ? 'Zielgruppen' : 'Target Groups' }}</h3>
-                  <ul>
-                    <li><strong>{{ currentLanguage === 'de' ? 'Ältere Kinder (ab 12 J.)' : 'Older children (12+)' }}</strong> – {{ currentLanguage === 'de' ? 'Strukturierte KI-Erkundung in Bildungssettings' : 'Structured AI exploration in educational settings' }}</li>
-                    <li><strong>{{ currentLanguage === 'de' ? 'Pädagog:innen' : 'Educators' }}</strong> – {{ currentLanguage === 'de' ? 'Professionalisierung durch Verständnis von genAI' : 'Professional development through understanding genAI' }}</li>
-                    <li><strong>{{ currentLanguage === 'de' ? 'Forschende' : 'Researchers' }}</strong> – {{ currentLanguage === 'de' ? 'Systematische Untersuchung von Modellverhalten' : 'Systematic investigation of model behavior' }}</li>
-                    <li><strong>{{ currentLanguage === 'de' ? 'Kulturelle Bildung' : 'Cultural education' }}</strong> – {{ currentLanguage === 'de' ? 'Workshop-Settings für kritische KI-Literacy' : 'Workshop settings for critical AI literacy' }}</li>
-                  </ul>
-                </div>
-
-                <div class="disclaimer">
-                  <p>{{ currentLanguage === 'de'
-                    ? '📝 Diese Dokumentation wurde automatisch generiert (Claude Code, Januar 2026).'
-                    : '📝 This documentation was automatically generated (Claude Code, January 2026).' }}</p>
-                </div>
-              </section>
-            </div>
-
           </div>
 
         </div>
@@ -794,8 +780,7 @@ const tabs = [
   { id: 'start', labelDe: 'Anleitung', labelEn: 'Guide' },
   { id: 'pedagogy', labelDe: 'Pädagogik', labelEn: 'Pedagogy' },
   { id: 'workshop', labelDe: 'Praxiseinsatz', labelEn: 'Practical Use' },
-  { id: 'experiments', labelDe: 'Experimente', labelEn: 'Experiments' },
-  { id: 'canvas', labelDe: 'Canvas', labelEn: 'Canvas' }
+  { id: 'research', labelDe: 'Forschung', labelEn: 'Research' }
 ]
 
 function closeModal() {
