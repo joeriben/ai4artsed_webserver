@@ -606,30 +606,11 @@ Token 78-512:      reines T5 (semantischer Anker)</pre>
                   </ul>
                 </div>
 
-                <div class="canvas-card nodes">
-                  <h3>{{ currentLanguage === 'de' ? 'Verfügbare Node-Typen' : 'Available Node Types' }}</h3>
-                  <div class="node-grid">
-                    <div class="node-item"><span class="node-color" style="background: #3b82f6;"></span><strong>Input</strong> – {{ currentLanguage === 'de' ? 'Texteingabe' : 'Text input' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Interception</strong> – {{ currentLanguage === 'de' ? 'Pädagogische Transformation' : 'Pedagogical transformation' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Random Prompt</strong> – {{ currentLanguage === 'de' ? 'LLM-generierte Inhalte' : 'LLM-generated content' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Translation</strong> – {{ currentLanguage === 'de' ? 'Sprachübersetzung' : 'Language translation' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #8b5cf6;"></span><strong>Model Adaption</strong> – {{ currentLanguage === 'de' ? 'Prompt-Optimierung' : 'Prompt optimization' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #10b981;"></span><strong>Generation</strong> – {{ currentLanguage === 'de' ? 'Medienerzeugung' : 'Media generation' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #f97316;"></span><strong>Evaluation</strong> – {{ currentLanguage === 'de' ? 'LLM-Bewertung mit Verzweigung' : 'LLM evaluation with branching' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #f97316;"></span><strong>Comparison</strong> – {{ currentLanguage === 'de' ? 'Vergleicht mehrere Inputs' : 'Compares multiple inputs' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #06b6d4;"></span><strong>Preview</strong> – {{ currentLanguage === 'de' ? 'Zwischenergebnis-Vorschau' : 'Intermediate result preview' }}</div>
-                    <div class="node-item"><span class="node-color" style="background: #06b6d4;"></span><strong>Collector</strong> – {{ currentLanguage === 'de' ? 'Sammelt alle Outputs' : 'Collects all outputs' }}</div>
-                  </div>
-                </div>
-
                 <div class="canvas-card target-groups">
                   <h3>{{ currentLanguage === 'de' ? 'Zielgruppen' : 'Target Groups' }}</h3>
-                  <ul>
-                    <li><strong>{{ currentLanguage === 'de' ? 'Ältere Kinder (ab 12 J.)' : 'Older children (12+)' }}</strong> – {{ currentLanguage === 'de' ? 'Strukturierte KI-Erkundung in Bildungssettings' : 'Structured AI exploration in educational settings' }}</li>
-                    <li><strong>{{ currentLanguage === 'de' ? 'Pädagog:innen' : 'Educators' }}</strong> – {{ currentLanguage === 'de' ? 'Professionalisierung durch Verständnis von genAI' : 'Professional development through understanding genAI' }}</li>
-                    <li><strong>{{ currentLanguage === 'de' ? 'Forschende' : 'Researchers' }}</strong> – {{ currentLanguage === 'de' ? 'Systematische Untersuchung von Modellverhalten' : 'Systematic investigation of model behavior' }}</li>
-                    <li><strong>{{ currentLanguage === 'de' ? 'Kulturelle Bildung' : 'Cultural education' }}</strong> – {{ currentLanguage === 'de' ? 'Workshop-Settings für kritische KI-Literacy' : 'Workshop settings for critical AI literacy' }}</li>
-                  </ul>
+                  <p>{{ currentLanguage === 'de'
+                    ? 'Verfügbar nur bei Safety "Erwachsene" aufgrund — aus technischen Gründen — unvorhersehbarer Text- und Bildergebnisse. Verwendung mit Personen unter 18 auf eigenes Risiko und unter strenger Aufsicht.'
+                    : 'Available only at Safety "Adult" due to — for technical reasons — unpredictable text and image results. Use with persons under 18 at your own risk and under strict supervision.' }}</p>
                 </div>
               </section>
             </div>
