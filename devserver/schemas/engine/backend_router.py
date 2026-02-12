@@ -637,18 +637,8 @@ class BackendRouter:
                 'pipeline_class': 'StableDiffusion3Pipeline',
                 'torch_dtype': 'float16'
             },
-            'flux2': {
-                'model_id': 'black-forest-labs/FLUX.2-dev',
-                'pipeline_class': 'Flux2Pipeline',
-                'torch_dtype': 'bfloat16',
-                'enable_cpu_offload': True
-            },
-            'flux2_fp8': {
-                'model_id': 'black-forest-labs/FLUX.2-dev',
-                'pipeline_class': 'Flux2Pipeline',
-                'torch_dtype': 'bfloat16',
-                'enable_cpu_offload': True
-            }
+            # Flux2 NOT auto-detected: 106GB BF16 model exceeds from_pretrained() RAM limits.
+            # Use ComfyUI (config 'flux2') or explicit diffusers chunk (config 'flux2_diffusers').
         }
 
         chunk_lower = chunk_name.lower()
