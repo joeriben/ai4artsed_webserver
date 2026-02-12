@@ -640,12 +640,14 @@ class BackendRouter:
             'flux2': {
                 'model_id': 'black-forest-labs/FLUX.2-dev',
                 'pipeline_class': 'Flux2Pipeline',
-                'torch_dtype': 'bfloat16'
+                'torch_dtype': 'bfloat16',
+                'enable_cpu_offload': True
             },
             'flux2_fp8': {
-                'model_id': 'silveroxides/FLUX.2-dev-fp8_scaled',
+                'model_id': 'black-forest-labs/FLUX.2-dev',
                 'pipeline_class': 'Flux2Pipeline',
-                'torch_dtype': 'bfloat16'
+                'torch_dtype': 'bfloat16',
+                'enable_cpu_offload': True
             }
         }
 

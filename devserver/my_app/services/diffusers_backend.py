@@ -250,6 +250,22 @@ class DiffusersImageGenerator:
                 # Evict all evictable models — we don't know the new model's size
                 self._ensure_vram_available(required_mb=float('inf'))
 
+                # For cpu_offload models: fully unload ALL cached models from CPU RAM
+                # to maximize available memory (these models need 100GB+ RAM during loading)
+                if enable_cpu_offload:
+                    for mid in list(self._pipelines.keys()):
+                        if self._model_in_use.get(mid, 0) <= 0:
+                            logger.info(f"[DIFFUSERS] Fully unloading {mid} from CPU RAM for large model load")
+                            del self._pipelines[mid]
+                            self._model_device.pop(mid, None)
+                            self._model_last_used.pop(mid, None)
+                            self._model_vram_mb.pop(mid, None)
+                            self._model_in_use.pop(mid, None)
+                    if self._current_model and self._current_model not in self._pipelines:
+                        self._current_model = None
+                    torch.cuda.empty_cache()
+                    import gc; gc.collect()
+
                 PipelineClass = self._resolve_pipeline_class(pipeline_class)
 
                 # Pre-check: enough system RAM for from_pretrained()?
