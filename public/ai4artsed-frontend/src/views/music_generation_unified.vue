@@ -56,7 +56,7 @@ onMounted(() => {
 }
 
 .music-unified-page.mode-advanced {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #0a0a0a;
 }
 
 .mode-toggle-container {
