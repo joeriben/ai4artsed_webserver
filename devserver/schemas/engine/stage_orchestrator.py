@@ -158,27 +158,27 @@ def fast_dsgvo_check(text: str) -> Tuple[bool, List[str], bool]:
     return (len(entity_list) > 0, entity_list, True)
 
 
-def llm_verify_person_name(text: str, ner_entities: list) -> bool:
+def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
     """
     LLM verification for SpaCy NER PER-entity hits.
 
     SpaCy NER produces false positives (e.g. "Agrarische Funktionszone" → PER,
-    "muted earth tones:1.1" → PER). This function asks the LLM whether
+    "muted earth tones:1.1" → PER). This function asks a LOCAL LLM whether
     the detected entities are real personal names before blocking.
 
-    Routes to the correct provider based on STAGE1_TEXT_MODEL prefix:
-    - local/* or no prefix → Ollama /api/generate
-    - mistral/* → Mistral API /v1/chat/completions
-    - anthropic/* → Anthropic API /v1/messages
-    - openai/* → OpenAI API /v1/chat/completions
+    IMPORTANT: Always local (Ollama) — NEVER external APIs.
+    Personal names must not leave the local system (DSGVO).
+
+    Model selection: STAGE1_TEXT_MODEL if local, else SAFETY_MODEL fallback.
 
     Args:
         text: The original user text
         ner_entities: List of NER-detected entity strings (e.g. ["Name: Agrarische Funktionszone"])
 
     Returns:
-        True if LLM confirms real person name(s), False if false positive.
-        On error: False (fail-open — NER false positive is more likely than real name).
+        True if LLM confirms real person name(s).
+        False if LLM rejects (false positive).
+        None if LLM unavailable or returns empty (fail-closed).
     """
     import requests
     import config
@@ -199,24 +199,37 @@ def llm_verify_person_name(text: str, ner_entities: list) -> bool:
         f"Antworte NUR mit JA oder NEIN."
     )
 
+    # Resolve local Ollama model: prefer STAGE1_TEXT_MODEL if local, else SAFETY_MODEL
     model = config.STAGE1_TEXT_MODEL
+    if model.startswith(("mistral/", "anthropic/", "openai/", "openrouter/")):
+        model = config.SAFETY_MODEL
+        logger.debug(f"[DSGVO-LLM-VERIFY] STAGE1_TEXT_MODEL is external, using SAFETY_MODEL: {model}")
+    # Strip local/ prefix for Ollama
+    ollama_model = model.replace("local/", "") if model.startswith("local/") else model
 
     try:
         start = _time.time()
-
-        if model.startswith("mistral/"):
-            result = _llm_call_mistral(prompt, model)
-        elif model.startswith("anthropic/"):
-            result = _llm_call_anthropic(prompt, model)
-        elif model.startswith("openai/"):
-            result = _llm_call_openai(prompt, model)
-        else:
-            # local/* or bare model name → Ollama
-            ollama_model = model.replace("local/", "") if model.startswith("local/") else model
-            result = _llm_call_ollama(prompt, ollama_model)
-
-        result = result.strip().upper()
+        response = requests.post(
+            f"{config.OLLAMA_API_BASE_URL}/api/generate",
+            json={
+                "model": ollama_model,
+                "prompt": prompt,
+                "stream": False,
+                "keep_alive": "10m",
+                "options": {"temperature": 0.0, "num_predict": 10}
+            },
+            timeout=30
+        )
+        response.raise_for_status()
+        result = response.json().get("response", "").strip().upper()
         duration_ms = (_time.time() - start) * 1000
+
+        if not result:
+            logger.error(
+                f"[DSGVO-LLM-VERIFY] entities={names_str} → LLM ({ollama_model}) returned EMPTY "
+                f"({duration_ms:.0f}ms) — fail-closed"
+            )
+            return None
 
         is_real_name = result.startswith("JA")
         logger.info(
@@ -226,100 +239,8 @@ def llm_verify_person_name(text: str, ner_entities: list) -> bool:
         return is_real_name
 
     except Exception as e:
-        logger.warning(f"[DSGVO-LLM-VERIFY] LLM verification failed: {e} — fail-open (allowing)")
-        return False
-
-
-def _llm_call_ollama(prompt: str, model: str) -> str:
-    """Synchronous Ollama /api/generate call."""
-    import requests
-    import config
-    response = requests.post(
-        f"{config.OLLAMA_API_BASE_URL}/api/generate",
-        json={"model": model, "prompt": prompt, "stream": False,
-              "keep_alive": "10m", "options": {"temperature": 0.0, "num_predict": 10}},
-        timeout=30
-    )
-    response.raise_for_status()
-    return response.json().get("response", "")
-
-
-def _llm_call_mistral(prompt: str, model: str) -> str:
-    """Synchronous Mistral API call."""
-    import requests
-    api_url = "https://api.mistral.ai/v1/chat/completions"
-    api_key = _read_api_key("mistral.key", "MISTRAL_API_KEY")
-    if not api_key:
-        raise RuntimeError("Mistral API key not configured")
-    api_model = model.replace("mistral/", "")
-    response = requests.post(
-        api_url,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={"model": api_model, "messages": [{"role": "user", "content": prompt}],
-              "temperature": 0.0, "max_tokens": 10},
-        timeout=30
-    )
-    response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
-
-
-def _llm_call_anthropic(prompt: str, model: str) -> str:
-    """Synchronous Anthropic API call."""
-    import requests
-    api_url = "https://api.anthropic.com/v1/messages"
-    api_key = _read_api_key("anthropic.key", "ANTHROPIC_API_KEY")
-    if not api_key:
-        raise RuntimeError("Anthropic API key not configured")
-    api_model = model.replace("anthropic/", "")
-    response = requests.post(
-        api_url,
-        headers={"x-api-key": api_key, "content-type": "application/json",
-                 "anthropic-version": "2023-06-01"},
-        json={"model": api_model, "max_tokens": 10,
-              "messages": [{"role": "user", "content": prompt}]},
-        timeout=30
-    )
-    response.raise_for_status()
-    return response.json()["content"][0]["text"]
-
-
-def _llm_call_openai(prompt: str, model: str) -> str:
-    """Synchronous OpenAI API call."""
-    import requests
-    api_url = "https://api.openai.com/v1/chat/completions"
-    api_key = _read_api_key("openai.key", "OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OpenAI API key not configured")
-    api_model = model.replace("openai/", "")
-    response = requests.post(
-        api_url,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={"model": api_model, "messages": [{"role": "user", "content": prompt}],
-              "temperature": 0.0, "max_tokens": 10},
-        timeout=30
-    )
-    response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
-
-
-def _read_api_key(key_file: str, env_var: str) -> Optional[str]:
-    """Read API key from file or environment variable."""
-    import os
-    # 1. Environment variable
-    key = os.environ.get(env_var, "")
-    if key:
-        return key
-    # 2. Key file in devserver/
-    try:
-        path = Path(__file__).parent.parent.parent / key_file
-        if path.exists():
-            for line in path.read_text().strip().split('\n'):
-                line = line.strip()
-                if line and not line.startswith('#') and not line.startswith('//'):
-                    return line
-    except Exception:
-        pass
-    return None
+        logger.error(f"[DSGVO-LLM-VERIFY] LLM verification failed ({ollama_model}): {e} — fail-closed")
+        return None
 
 
 # ============================================================================
@@ -820,7 +741,17 @@ async def execute_stage1_gpt_oss_unified(
         # NER triggered — LLM verification to avoid false positives
         # (SpaCy flags technical terms like "Agrarische Funktionszone" or "muted earth tones:1.1")
         logger.info(f"[STAGE1] DSGVO NER triggered: {found_entities[:3]} — verifying with LLM")
-        if llm_verify_person_name(text, found_entities):
+        verify_result = llm_verify_person_name(text, found_entities)
+        if verify_result is None:
+            # LLM unavailable — fail-closed
+            error_message = (
+                "Sicherheitssystem (Ollama) reagiert nicht, daher kann keine weitere "
+                "Verarbeitung erfolgen. Bitte den Systemadministrator kontaktieren."
+            )
+            checks_passed.append('dsgvo_ner')
+            logger.error(f"[STAGE1] BLOCKED — LLM verification unavailable (fail-closed)")
+            return (False, text, error_message, checks_passed)
+        elif verify_result:
             # LLM confirmed real names → BLOCK
             entities_str = ', '.join(found_entities[:5])
             error_message = (

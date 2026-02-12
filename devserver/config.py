@@ -134,11 +134,14 @@ STAGE4_LEGACY_MODEL = LOCAL_DEFAULT_MODEL                 # For legacy workflow 
 CHAT_HELPER_MODEL = LOCAL_DEFAULT_MODEL                   # Chat overlay: Interactive help system
 CODING_MODEL = "mistral/codestral-latest"                 # Code generation (Tone.js, p5.js) - specialized for precise syntax
 
+# Local Safety Model (Ollama only — DSGVO: personal data must never leave local system)
+# Available safety models: llama-guard3:1b, llama-guard3:latest, llama-guard3:8b, gpt-OSS:20b, gpt-OSS:120b
+SAFETY_MODEL = "gpt-OSS:20b"
+
 # Legacy Model Configuration
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama
 ANALYSIS_MODEL = "local/llama3.2-vision:latest"
 TRANSLATION_MODEL = GPT_OSS_MODEL  # GPT-OSS replaces mistral-nemo
-SAFETY_MODEL = GPT_OSS_MODEL
 
 # Post-Generation VLM Safety Check (runs after Stage 4, before 'complete' event)
 VLM_SAFETY_MODEL = "qwen3-vl:2b"  # Local VLM for post-generation image safety check

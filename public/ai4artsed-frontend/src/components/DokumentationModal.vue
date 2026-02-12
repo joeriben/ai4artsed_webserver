@@ -612,8 +612,25 @@ Token 78-512:      reines T5 (semantischer Anker)</pre>
                 <div class="workshop-card safety">
                   <h3>{{ currentLanguage === 'de' ? 'Sicherheitsstufen' : 'Safety Levels' }}</h3>
                   <p>{{ currentLanguage === 'de'
-                    ? 'Es gibt drei Stufen: Kinder, Jugend und Erwachsene. Sie bestimmen, welche Inhalte generiert werden können. Die Stufe wird von der betreuenden Person in den Einstellungen festgelegt.'
-                    : 'There are three levels: Kids, Youth, and Adults. They determine what content can be generated. The level is set by the supervising person in the settings.' }}</p>
+                    ? 'Das Sicherheitssystem adressiert drei unabhängige Anliegen: §86a StGB (Strafrecht — verbotene Symbole), DSGVO (Datenschutz — Personennamen), und Jugendschutz (altersgerechte Inhalte). Die Stufe wird von der betreuenden Person in den Einstellungen festgelegt.'
+                    : 'The safety system addresses three independent concerns: §86a StGB (criminal law — prohibited symbols), GDPR (data protection — personal names), and youth protection (age-appropriate content). The level is set by the supervising person in the settings.' }}</p>
+                  <ul>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Kinder (8–12)' : 'Kids (8–12)' }}</strong> — {{ currentLanguage === 'de'
+                      ? 'Alle Filter aktiv: §86a, DSGVO, Jugendschutz (Kinder-Parameter), KI-Bildanalyse'
+                      : 'All filters active: §86a, GDPR, youth protection (kids parameters), AI image analysis' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Jugend (13–17)' : 'Youth (13–17)' }}</strong> — {{ currentLanguage === 'de'
+                      ? 'Alle Filter aktiv: §86a, DSGVO, Jugendschutz (Youth-Parameter), KI-Bildanalyse'
+                      : 'All filters active: §86a, GDPR, youth protection (youth parameters), AI image analysis' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Erwachsene' : 'Adults' }}</strong> — {{ currentLanguage === 'de'
+                      ? '§86a und DSGVO aktiv. Kein Jugendschutz, keine Bildanalyse. Für Erwachsenenbildung und universitäre Kontexte.'
+                      : '§86a and GDPR active. No youth protection, no image analysis. For adult and university education.' }}</li>
+                    <li><strong>{{ currentLanguage === 'de' ? 'Forschung' : 'Research' }}</strong> — {{ currentLanguage === 'de'
+                      ? 'KEINE Filter aktiv. Ausschließlich für autorisierte Forschungseinrichtungen (siehe LICENSE.md §3(e)). Ungefilterte Ausgaben dürfen niemals Lernenden präsentiert werden.'
+                      : 'NO filters active. Exclusively for authorized research institutions (see LICENSE.md §3(e)). Unfiltered outputs must never be presented to learners.' }}</li>
+                  </ul>
+                  <p style="margin-top: 8px;"><em>{{ currentLanguage === 'de'
+                    ? 'Die DSGVO-Prüfung (Personennamen) läuft immer lokal über Ollama — Daten verlassen nie das System.'
+                    : 'The GDPR check (personal names) always runs locally via Ollama — data never leaves the system.' }}</em></p>
                 </div>
 
                 <div class="workshop-card">
@@ -776,7 +793,7 @@ const tabs = [
   { id: 'welcome', labelDe: 'Willkommen', labelEn: 'Welcome' },
   { id: 'start', labelDe: 'Anleitung', labelEn: 'Guide' },
   { id: 'pedagogy', labelDe: 'Pädagogik', labelEn: 'Pedagogy' },
-  { id: 'workshop', labelDe: 'Praxis', labelEn: 'Practice' },
+  { id: 'workshop', labelDe: 'Praxiseinsatz', labelEn: 'Practical Use' },
   { id: 'experiments', labelDe: 'Experimente', labelEn: 'Experiments' },
   { id: 'canvas', labelDe: 'Canvas', labelEn: 'Canvas' }
 ]

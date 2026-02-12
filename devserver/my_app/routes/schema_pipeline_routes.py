@@ -1973,7 +1973,16 @@ def safety_check_quick():
         if spacy_ok and has_pii:
             # NER triggered — LLM verification to avoid false positives
             logger.info(f"[SAFETY-QUICK] NER triggered: {found_pii[:3]} — verifying with LLM")
-            if llm_verify_person_name(text, found_pii):
+            verify_result = llm_verify_person_name(text, found_pii)
+            if verify_result is None:
+                # LLM unavailable — fail-closed
+                logger.error(f"[SAFETY-QUICK] LLM verification unavailable — fail-closed")
+                return jsonify({
+                    'safe': False,
+                    'checks_passed': checks_passed + ['dsgvo_ner'],
+                    'error_message': 'Sicherheitssystem (Ollama) reagiert nicht, daher kann keine weitere Verarbeitung erfolgen. Bitte den Systemadministrator kontaktieren.'
+                })
+            elif verify_result:
                 logger.warning(f"[SAFETY-QUICK] DSGVO BLOCKED (LLM confirmed): {found_pii[:3]}")
                 return jsonify({
                     'safe': False,

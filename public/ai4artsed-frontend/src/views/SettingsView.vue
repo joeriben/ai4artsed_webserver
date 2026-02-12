@@ -127,6 +127,29 @@
         </table>
       </div>
 
+      <!-- Safety Model (local Ollama only) -->
+      <div class="section">
+        <h2>Local Safety Model</h2>
+        <p class="help">DSGVO-NER Verification: Lokal via Ollama (Personennamen verlassen nie das System)</p>
+        <table class="config-table">
+          <tbody>
+            <tr>
+              <td class="label-cell">Safety Model</td>
+              <td class="value-cell">
+                <select v-model="settings.SAFETY_MODEL">
+                  <option value="llama-guard3:1b">llama-guard3:1b (schnell, minimal)</option>
+                  <option value="llama-guard3:latest">llama-guard3:latest</option>
+                  <option value="llama-guard3:8b">llama-guard3:8b</option>
+                  <option value="gpt-OSS:20b">gpt-OSS:20b (Standard)</option>
+                  <option value="gpt-OSS:120b">gpt-OSS:120b (beste Qualität)</option>
+                </select>
+                <span class="help-text">Nur lokale Safety-Modelle (Ollama)</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <!-- DSGVO Warning -->
       <div v-if="hasDsgvoWarning" class="section dsgvo-warning">
         <h2>⚠️ DSGVO Warning</h2>

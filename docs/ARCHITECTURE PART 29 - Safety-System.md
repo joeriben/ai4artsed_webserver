@@ -156,6 +156,12 @@ Only 2 SpaCy models loaded (prevents cross-language false positives):
 
 Looks for `PER` (person) entities. On hit → `llm_verify_person_name()` for false-positive reduction.
 
+**CRITICAL: Local-only LLM verification.** The `llm_verify_person_name()` function ALWAYS runs via local Ollama — never external APIs. Sending detected personal names to Mistral/Anthropic/OpenAI for verification would itself be a DSGVO violation. Model: `config.SAFETY_MODEL` (configurable in Settings UI, default: `gpt-OSS:20b`).
+
+**Fail-closed:** If the local LLM returns an empty response or is unavailable, the system blocks with an admin-contact error message. Safety verification must never fail-open.
+
+**Available safety models:** `llama-guard3:1b`, `llama-guard3:latest`, `llama-guard3:8b`, `gpt-OSS:20b`, `gpt-OSS:120b`.
+
 **Lesson learned:** Running all 12 SpaCy models causes cross-language confusion (e.g., `en_core_web_lg` flags "Der Eiffelturm" as PERSON).
 
 ### 4.4 VLM Image Analysis
