@@ -113,6 +113,11 @@ def reload_user_settings():
 
         logging.info(f"[CONFIG] {count} user settings applied successfully")
 
+        # Normalize legacy safety level values
+        if getattr(config, 'DEFAULT_SAFETY_LEVEL', '') == 'off':
+            config.DEFAULT_SAFETY_LEVEL = 'research'
+            logging.info("[CONFIG] Normalized safety level 'off' → 'research'")
+
     except Exception as e:
         logging.error(f"[CONFIG] Error loading user settings: {e}")
 

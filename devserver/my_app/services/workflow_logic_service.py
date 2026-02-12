@@ -741,7 +741,7 @@ class WorkflowLogicService:
     
     def prepare_workflow(self, workflow_name: str, prompt: str, aspect_ratio: str, mode: str, 
                         seed_mode: str = "random", custom_seed: Optional[int] = None,
-                        safety_level: str = "off", input_negative_terms: str = "",
+                        safety_level: str = "research", input_negative_terms: str = "",
                         hidden_commands: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Prepare a workflow for execution
@@ -797,7 +797,7 @@ class WorkflowLogicService:
         
         # Apply safety level if safety node exists (failsafe)
         safety_applied = self.apply_safety_level(workflow, safety_level)
-        if safety_applied and safety_level != "off":
+        if safety_applied and safety_level != "research":
             status_updates.append(f"Sicherheitsstufe '{safety_level}' aktiviert.")
         
         # Enhance negative prompts if we have any terms to add

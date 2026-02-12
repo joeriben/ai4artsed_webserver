@@ -4219,3 +4219,35 @@ The system embodies **workshop pedagogy**: balancing personal agency with collec
 
 The 2-field switch makes this **pedagogically visible**: Students consciously choose between personal work and collaborative exploration, making the social dimension of creative AI work explicit.
 
+---
+
+## Session 170 (2026-02-12): Safety-Level Centralization
+
+### Decision: Rename "off" to "research" + LICENSE.md §3(e) Research Clause
+
+**Problem:** The canonical safety level value `"research"` (in `config.py`) was sent as `"off"` by the Settings dropdown. This value matched none of the conditionals in the backend, causing undefined behavior.
+
+**Solution:**
+1. Frontend sends `"research"` (not `"off"`)
+2. Backend normalizes legacy `"off"` → `"research"` on config load
+3. Four canonical levels: `kids`, `youth`, `adult`, `research`
+
+**Safety Level Architecture (definitive):**
+
+| Level | §86a StGB | DSGVO/NER | Age Filter | VLM Image | Stage 3 | Use Case |
+|-------|-----------|-----------|------------|-----------|---------|----------|
+| kids | Yes | Yes | Yes (kids) | Yes | Yes | Primary education (8-12) |
+| youth | Yes | Yes | Yes (youth) | Yes | Yes | Secondary education (13-17) |
+| adult | Yes | Yes | No | No | No | Adult/university education |
+| research | No | No | No | No | No | Authorized research institutions |
+
+**Key distinction adult vs. research:**
+- `adult` still enforces §86a (criminal law) and DSGVO (data protection) — these are legal obligations, not pedagogical choices
+- `research` disables everything — only for institutions studying AI safety behavior itself
+
+**Legal integration:** Research mode restrictions codified in LICENSE.md §3(e) — requires institutional affiliation, documented purpose, ethical oversight. Violation triggers license termination (§7) and constitutes scientific integrity impairment (§4, §14 UrhG).
+
+**Architecture doc:** See `ARCHITECTURE PART 29 - Safety-System.md` for complete technical reference.
+
+**Affected files:** See DEVELOPMENT_LOG.md Session 170.
+

@@ -787,7 +787,7 @@ class ExportManager:
             ET.SubElement(session, "timestamp").text = session_data["timestamp"]
             ET.SubElement(session, "workflow").text = session_data["workflow_name"].replace('.json', '')
             ET.SubElement(session, "seed").text = str(session_data.get("used_seed", "N/A"))
-            ET.SubElement(session, "safety_level").text = session_data.get("safety_level", "off")
+            ET.SubElement(session, "safety_level").text = session_data.get("safety_level", "research")
             
             # Add prompts
             prompts = ET.SubElement(session, "prompts")
@@ -851,7 +851,7 @@ class ExportManager:
                 ('Timestamp', session_data["timestamp"]),
                 ('Workflow', session_data["workflow_name"]),
                 ('Seed', str(session_data.get("used_seed", "N/A"))),
-                ('Filter-Status', session_data.get("safety_level", "off")),
+                ('Filter-Status', session_data.get("safety_level", "research")),
                 ('Export Date', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             ]
             

@@ -68,6 +68,21 @@ Kommerzielle Nutzung der Software ist nicht pauschal untersagt, bedarf jedoch ei
 **(d) Namensnennung:**
 Bei jeder Nutzung gemäß §2 und bei jeder genehmigten kommerziellen Nutzung gemäß §3(c) ist der Urheber und die Bezeichnung „AI Lab des UNESCO Chair in Digital Culture and Arts in Education" in angemessener Form zu nennen.
 
+**(e) Pädagogisches Sicherheitssystem und Forschungsmodus:**
+
+Die Software enthält ein mehrstufiges Sicherheitssystem zum Schutz von Lernenden, insbesondere von Kindern und Jugendlichen. Dieses System umfasst strafrechtliche Filter (§86a StGB), datenschutzrechtliche Prüfungen (DSGVO), altersgerechte Inhaltsfilterung sowie KI-gestützte Inhaltsanalyse. Die Sicherheitsstufen der Software sind: **Kids** (8–12), **Youth** (13–17), **Adult** und **Research**.
+
+Der **Forschungsmodus** (Research) deaktiviert sämtliche Sicherheitsmechanismen. Seine Aktivierung ist ausschließlich unter folgenden Bedingungen zulässig:
+
+1. Der Betreiber ist eine anerkannte Forschungseinrichtung im Sinne von §1 („Nicht-kommerzielle Bildungseinrichtung") oder eine vergleichbare wissenschaftliche Institution.
+2. Die Nutzung dient einem dokumentierten wissenschaftlichen Forschungszweck — etwa der Untersuchung von KI-Sicherheitsmechanismen, der Evaluierung von Modellverhalten, der Analyse von Bias in generativen Ausgaben oder der pädagogischen Forschung zu Inhaltsfilterung.
+3. Die Forschung erfolgt, sofern für den Forschungsbereich zutreffend, unter Aufsicht einer Ethikkommission oder eines vergleichbaren institutionellen Gremiums.
+4. Ungefilterte Ausgaben aus dem Forschungsmodus dürfen **niemals** Minderjährigen oder Lernenden in einem Bildungskontext präsentiert werden.
+
+Die Nutzung des Forschungsmodus zur Umgehung der Sicherheitsmechanismen für nicht-wissenschaftliche Zwecke, zur Erzeugung rechtswidriger Inhalte oder zur Erstellung von Trainingsdaten für Modelle, die schädliche Inhalte generieren sollen, ist untersagt und stellt einen Verstoß gegen diese Lizenz im Sinne von §7 dar.
+
+Die zweckwidrige Deaktivierung des Sicherheitssystems stellt darüber hinaus eine Beeinträchtigung der wissenschaftlichen Integrität der Software im Sinne von §4 dar.
+
 ---
 
 ## §4 — SCHUTZ DER WISSENSCHAFTLICHEN INTEGRITÄT
@@ -194,6 +209,21 @@ Commercial use of the software is not categorically prohibited but requires a se
 
 **(d) Attribution:**
 Any use pursuant to Section 2 and any approved commercial use pursuant to Section 3(c) must credit the author and include the designation "AI Lab of the UNESCO Chair in Digital Culture and Arts in Education" in an appropriate manner.
+
+**(e) Pedagogical Safety System and Research Mode:**
+
+The software contains a multi-stage safety system designed to protect learners, particularly children and young people. This system comprises criminal law filters (§86a StGB), data protection checks (GDPR/DSGVO), age-appropriate content filtering, and AI-assisted content analysis. The safety levels of the software are: **Kids** (ages 8–12), **Youth** (ages 13–17), **Adult**, and **Research**.
+
+The **Research mode** disables all safety mechanisms. Its activation is permitted exclusively under the following conditions:
+
+1. The operator is a recognized research institution within the meaning of Section 1 ("Non-commercial educational institution") or a comparable scientific institution.
+2. The use serves a documented scientific research purpose — such as studying AI safety mechanisms, evaluating model behavior, analyzing bias in generative outputs, or conducting pedagogical research on content filtering.
+3. Where applicable to the research domain, the research is conducted under the oversight of an ethics committee, institutional review board (IRB), or equivalent institutional body.
+4. Unfiltered outputs generated in Research mode must **never** be presented to minors or to learners in an educational setting.
+
+Using Research mode to circumvent safety mechanisms for non-scientific purposes, to generate content that violates applicable law, or to create training data for models intended to produce harmful content is prohibited and constitutes a breach of this license within the meaning of Section 7.
+
+The improper deactivation of the safety system furthermore constitutes an impairment of the scientific integrity of the software within the meaning of Section 4.
 
 ---
 

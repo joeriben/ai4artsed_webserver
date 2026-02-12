@@ -62,7 +62,10 @@
 | 23 | LoRA Training Studio | Custom style training |
 | 24 | SwarmUI Integration | Auto-recovery & health checks |
 | 25 | Watermarking & Content Credentials | AI provenance tracking |
-| **26** | **Canvas Workflow System** | Visual node-based workflow builder (NEW) |
+| 26 | Canvas Workflow System | Visual node-based workflow builder |
+| 27 | VRAM Management & Model Preloading | Three-tier GPU/CPU/disk memory |
+| 28 | Latent Lab | Explorative vector-based workflows |
+| **29** | **Safety System** | Levels, filters, enforcement points, legal basis (AUTHORITATIVE) |
 
 ---
 

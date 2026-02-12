@@ -30,9 +30,9 @@ async def main():
     result_youth = await executor.execute_pipeline('dada', test_input, execution_mode='eco', safety_level='youth')
     print(f"   Blocked: {result_youth.metadata.get('stage_3_blocked', False) if result_youth.metadata else False}")
 
-    # Test 3: Off (should NOT run Stage 3 at all)
-    print("\n3. safety_level='off' (Stage 3 should be skipped)")
-    result_off = await executor.execute_pipeline('dada', test_input, execution_mode='eco', safety_level='off')
+    # Test 3: Research (should NOT run Stage 3 at all)
+    print("\n3. safety_level='research' (Stage 3 should be skipped)")
+    result_off = await executor.execute_pipeline('dada', test_input, execution_mode='eco', safety_level='research')
     print(f"   Has Stage 3 metadata: {'stage_3_blocked' in (result_off.metadata or {})}")
     print(f"   Output exists: {bool(result_off.final_output)}")
 

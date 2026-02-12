@@ -6572,3 +6572,76 @@ The 2-field switch makes this **pedagogically visible**: Students consciously ch
 - *(Pending)* Modal Pedagogy Tab - "Zusammenarbeiten" section
 
 ---
+
+## Session 170 (2026-02-12): Safety-Level Centralization + LICENSE.md Research Clause
+
+**Date:** 2026-02-12
+**Status:** COMPLETE
+**Branch:** develop
+
+### Objective
+
+Centralize safety-level handling: rename legacy `"off"` to canonical `"research"`, fix frontend/backend mismatch, add research mode restrictions to LICENSE.md, create dedicated safety architecture document.
+
+### Problem
+
+The canonical safety level value is `"research"` (config.py), but the Settings dropdown sent `"off"` (SettingsView.vue). This value landed in `user_settings.json`, was loaded as `config.DEFAULT_SAFETY_LEVEL`, and then matched NONE of the conditionals (`== 'research'`, `in ('research', 'adult')`, etc.) — meaning safety checks were neither properly skipped nor properly executed.
+
+### Work Completed
+
+#### Round 1 (uncommitted from prior session)
+- Stage 1 `research` early-return in `stage_orchestrator.py`
+- LLM verification for DSGVO NER false positives
+- `"off"` → `"research"` string rename in 5 backend files
+
+#### Round 2 (this session)
+
+**Fix A — Frontend dropdown:** `SettingsView.vue` `value="off"` → `value="research"` + descriptive info boxes per safety level (red warning for Research mode)
+
+**Fix B — i18n labels:** Added `research: 'Forschung'` (DE) and `research: 'Research'` (EN) to `safetyLevels`
+
+**Fix C — Config normalization:** `__init__.py` normalizes legacy `"off"` → `"research"` on config load
+
+**Fix D — SAFETY-QUICK text skip:** `schema_pipeline_routes.py` skips text checks for `research` only (adult still gets §86a + DSGVO)
+
+**Fix E — user_settings.json:** `"off"` → `"research"`
+
+**License — §3(e):** Research mode clause integrated into LICENSE.md (DE + EN) — requires institutional affiliation, documented research purpose, ethical oversight, prohibits exposure to minors. Violation = license termination (§7) + scientific integrity impairment (§4).
+
+**Architecture — PART 29:** Created `ARCHITECTURE PART 29 - Safety-System.md` — comprehensive safety architecture document covering all levels, enforcement points, detection mechanisms, configuration, and legal integration.
+
+### Safety Level Matrix (as implemented)
+
+| Level | §86a | DSGVO | Age Filter | VLM Image | Stage 3 |
+|-------|------|-------|------------|-----------|---------|
+| kids | yes | yes | yes (kids) | yes | yes |
+| youth | yes | yes | yes (youth) | yes | yes |
+| adult | yes | yes | no | no | no |
+| research | no | no | no | no | no |
+
+### Files Modified
+
+**Backend:**
+- `devserver/my_app/__init__.py` — Legacy normalization
+- `devserver/my_app/routes/schema_pipeline_routes.py` — SAFETY-QUICK research skip + prior refactoring
+- `devserver/my_app/routes/workflow_streaming_routes.py` — off→research rename
+- `devserver/my_app/services/export_manager.py` — off→research rename
+- `devserver/my_app/services/workflow_logic_service.py` — off→research rename
+- `devserver/schemas/engine/stage_orchestrator.py` — research early-return, LLM NER verification
+- `devserver/testfiles/test_hybrid_quick.py` — off→research in tests
+- `devserver/testfiles/test_hybrid_stage1.py` — off→research in tests
+- `devserver/testfiles/test_safety_levels.py` — off→research in tests
+- `devserver/user_settings.json` — off→research
+
+**Frontend:**
+- `public/ai4artsed-frontend/src/views/SettingsView.vue` — dropdown + info boxes
+- `public/ai4artsed-frontend/src/i18n.ts` — research label (DE+EN)
+
+**Docs & Legal:**
+- `LICENSE.md` — §3(e) research mode clause (DE+EN)
+- `docs/ARCHITECTURE PART 29 - Safety-System.md` — NEW
+- `docs/DEVELOPMENT_DECISIONS.md` — Safety centralization decision
+- `docs/DEVELOPMENT_LOG.md` — This session
+- `docs/00_MAIN_DOCUMENTATION_INDEX.md` — Added Part 29
+
+---

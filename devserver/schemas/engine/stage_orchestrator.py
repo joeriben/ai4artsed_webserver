@@ -158,6 +158,68 @@ def fast_dsgvo_check(text: str) -> Tuple[bool, List[str], bool]:
     return (len(entity_list) > 0, entity_list, True)
 
 
+def llm_verify_person_name(text: str, ner_entities: list) -> bool:
+    """
+    LLM verification for SpaCy NER PER-entity hits.
+
+    SpaCy NER produces false positives (e.g. "Agrarische Funktionszone" → PER,
+    "muted earth tones:1.1" → PER). This function asks the local LLM whether
+    the detected entities are real personal names before blocking.
+
+    Args:
+        text: The original user text
+        ner_entities: List of NER-detected entity strings (e.g. ["Name: Agrarische Funktionszone"])
+
+    Returns:
+        True if LLM confirms real person name(s), False if false positive.
+        On error: False (fail-open — NER false positive is more likely than real name).
+    """
+    import requests
+    import config
+
+    # Extract just the name parts from "Name: ..." format
+    names = [e.replace("Name: ", "") for e in ner_entities]
+    names_str = ", ".join(names)
+
+    prompt = (
+        f"SpaCy NER hat im folgenden Text diese Entitäten als Personennamen (PER) erkannt: {names_str}\n\n"
+        f"Text: \"{text}\"\n\n"
+        f"Handelt es sich bei den erkannten Entitäten um echte Personennamen "
+        f"(Vor- und/oder Nachname einer realen oder fiktiven Person)?\n"
+        f"Adjektive, Beschreibungen, Orte oder allgemeine Wörter sind KEINE Personennamen.\n"
+        f"Fiktive Figuren (z.B. Humpty Dumpty, Harry Potter) sind KEINE echten Personennamen im DSGVO-Sinne.\n\n"
+        f"Antwort NUR mit JA oder NEIN."
+    )
+
+    try:
+        start = _time.time()
+        response = requests.post(
+            f"{config.OLLAMA_API_BASE_URL}/api/generate",
+            json={
+                "model": config.SAFETY_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "keep_alive": "10m",
+                "options": {"temperature": 0.0, "num_predict": 10}
+            },
+            timeout=30
+        )
+        response.raise_for_status()
+        result = response.json().get("response", "").strip().upper()
+        duration_ms = (_time.time() - start) * 1000
+
+        is_real_name = result.startswith("JA")
+        logger.info(
+            f"[DSGVO-LLM-VERIFY] entities={names_str} → LLM={result!r} → "
+            f"{'REAL NAME' if is_real_name else 'FALSE POSITIVE'} ({duration_ms:.0f}ms)"
+        )
+        return is_real_name
+
+    except Exception as e:
+        logger.warning(f"[DSGVO-LLM-VERIFY] LLM verification failed: {e} — fail-open (allowing)")
+        return False
+
+
 # ============================================================================
 # HYBRID SAFETY: Fast String-Matching + LLM Context Verification
 # ============================================================================
@@ -510,6 +572,11 @@ async def execute_stage1_gpt_oss_unified(
     """
     total_start = _time.time()
 
+    # ── Research mode: skip ALL safety checks ─────────────────────────
+    if safety_level == 'research':
+        logger.info(f"[STAGE1] SKIPPED (safety_level=research)")
+        return (True, text, None, [])
+
     # ── STEP 1: §86a Fast-Filter (bilingual, ~0.001s) ──────────────────
     # §86a violations are unambiguous — no LLM context check needed
     s86a_start = _time.time()
@@ -648,21 +715,29 @@ async def execute_stage1_gpt_oss_unified(
     dsgvo_time = _time.time() - dsgvo_start
 
     if spacy_available and has_personal_data:
-        # SpaCy found personal data → BLOCK
-        entities_str = ', '.join(found_entities[:5])
-        error_message = (
-            f"⚠️ Dein Prompt wurde blockiert\n\n"
-            f"GRUND: DSGVO - Persönliche Daten erkannt\n\n"
-            f"Folgende persönliche Daten wurden in deinem Prompt gefunden:\n"
-            f"{entities_str}\n\n"
-            f"WARUM DIESE REGEL?\n"
-            f"Der Schutz persönlicher Daten (DSGVO) verbietet die Verarbeitung von Namen, "
-            f"Adressen und Kontaktdaten ohne Einwilligung.\n"
-            f"Bitte verwende Phantasienamen oder beschreibe Personen ohne echte Namen."
-        )
-        checks_passed.append('dsgvo_ner')
-        logger.warning(f"[STAGE1] BLOCKED DSGVO: {found_entities[:3]} ({dsgvo_time*1000:.1f}ms)")
-        return (False, text, error_message, checks_passed)
+        # NER triggered — LLM verification to avoid false positives
+        # (SpaCy flags technical terms like "Agrarische Funktionszone" or "muted earth tones:1.1")
+        logger.info(f"[STAGE1] DSGVO NER triggered: {found_entities[:3]} — verifying with LLM")
+        if llm_verify_person_name(text, found_entities):
+            # LLM confirmed real names → BLOCK
+            entities_str = ', '.join(found_entities[:5])
+            error_message = (
+                f"⚠️ Dein Prompt wurde blockiert\n\n"
+                f"GRUND: DSGVO - Persönliche Daten erkannt\n\n"
+                f"Folgende persönliche Daten wurden in deinem Prompt gefunden:\n"
+                f"{entities_str}\n\n"
+                f"WARUM DIESE REGEL?\n"
+                f"Der Schutz persönlicher Daten (DSGVO) verbietet die Verarbeitung von Namen, "
+                f"Adressen und Kontaktdaten ohne Einwilligung.\n"
+                f"Bitte verwende Phantasienamen oder beschreibe Personen ohne echte Namen."
+            )
+            checks_passed.append('dsgvo_ner')
+            checks_passed.append('dsgvo_llm_verify')
+            logger.warning(f"[STAGE1] BLOCKED DSGVO (LLM confirmed): {found_entities[:3]} ({dsgvo_time*1000:.1f}ms)")
+            return (False, text, error_message, checks_passed)
+        else:
+            # False positive (LLM rejected) → allow
+            logger.info(f"[STAGE1] DSGVO NER false positive (LLM rejected): {found_entities[:3]}")
 
     elif spacy_available and not has_personal_data:
         # SpaCy clean → SAFE

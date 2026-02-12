@@ -27,7 +27,8 @@ const messages = {
     safetyLevels: {
       kids: 'Kinder',
       youth: 'Jugend',
-      adult: 'Erwachsene'
+      adult: 'Erwachsene',
+      research: 'Forschung'
     },
     stages: {
       pipeline_starting: 'Pipeline startet',
@@ -790,7 +791,8 @@ const messages = {
     safetyLevels: {
       kids: 'Kids',
       youth: 'Youth',
-      adult: 'Adults'
+      adult: 'Adults',
+      research: 'Research'
     },
     stages: {
       pipeline_starting: 'Pipeline Starting',

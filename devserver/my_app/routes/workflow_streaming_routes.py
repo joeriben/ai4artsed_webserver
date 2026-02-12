@@ -142,7 +142,7 @@ def execute_workflow_stream():
                                 export_info["prompt"],
                                 export_info.get("translated_prompt"),
                                 export_info.get("used_seed"),
-                                export_info.get("safety_level", "off")
+                                export_info.get("safety_level", "research")
                             )
                             del current_app.pending_exports[prompt_id]
                         

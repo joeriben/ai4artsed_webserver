@@ -93,9 +93,25 @@
                   <option value="kids">Kids</option>
                   <option value="youth">Youth</option>
                   <option value="adult">Adult</option>
-                  <option value="off">Off</option>
+                  <option value="research">Research</option>
                 </select>
-                <span class="help-text">Content filtering level</span>
+
+                <div v-if="settings.DEFAULT_SAFETY_LEVEL === 'kids'" class="info-box info-box-success" style="margin-top: 8px; padding: 8px 12px;">
+                  <strong style="margin-bottom: 4px;">Kinder (8-12)</strong>
+                  <p style="margin: 2px 0;">Alle Filter aktiv: §86a, DSGVO, Jugendschutz (altersgerechte Parameter), VLM-Bildcheck</p>
+                </div>
+                <div v-else-if="settings.DEFAULT_SAFETY_LEVEL === 'youth'" class="info-box info-box-success" style="margin-top: 8px; padding: 8px 12px;">
+                  <strong style="margin-bottom: 4px;">Jugend (13-17)</strong>
+                  <p style="margin: 2px 0;">Alle Filter aktiv: §86a, DSGVO, Jugendschutz (Youth-Parameter), VLM-Bildcheck</p>
+                </div>
+                <div v-else-if="settings.DEFAULT_SAFETY_LEVEL === 'adult'" class="info-box" style="margin-top: 8px; padding: 8px 12px; border-color: #ff9800;">
+                  <strong style="margin-bottom: 4px;">Erwachsene</strong>
+                  <p style="margin: 2px 0;">§86a + DSGVO aktiv. Kein Jugendschutz, kein VLM-Bildcheck.</p>
+                </div>
+                <div v-else-if="settings.DEFAULT_SAFETY_LEVEL === 'research'" class="info-box" style="margin-top: 8px; padding: 8px 12px; border-color: #c62828; border-left: 4px solid #c62828; background: #ffebee;">
+                  <strong style="margin-bottom: 4px; color: #c62828;">Forschungsmodus</strong>
+                  <p style="margin: 2px 0;">KEINE Sicherheitsfilter aktiv. Ausschließlich zur Nutzung durch Forschungseinrichtungen im Rahmen wissenschaftlicher Forschungsprojekte zulässig.</p>
+                </div>
               </td>
             </tr>
             <tr>

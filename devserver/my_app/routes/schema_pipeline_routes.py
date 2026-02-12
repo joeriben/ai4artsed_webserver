@@ -29,7 +29,8 @@ from schemas.engine.stage_orchestrator import (
     build_safety_message,
     fast_filter_bilingual_86a,
     fast_filter_check,
-    fast_dsgvo_check
+    fast_dsgvo_check,
+    llm_verify_person_name
 )
 
 # Execution History Tracking (OLD - DEPRECATED in Session 29)
@@ -435,7 +436,7 @@ async def execute_stage2_interception(
         input_text: User input text (already safety-checked in Stage 1)
         config: Loaded interception config object
         execution_mode: "eco" or "fast"
-        safety_level: "kids", "youth", or "off"
+        safety_level: "kids", "youth", "adult", or "research"
         tracker: Optional execution tracker
         user_input: Optional original user input text (before safety check)
 
@@ -501,7 +502,7 @@ async def execute_stage2_with_optimization_SINGLE_RUN_VERSION(
         input_text: User input text (already safety-checked in Stage 1)
         config: Loaded interception config object
         execution_mode: "eco" or "fast"
-        safety_level: "kids", "youth", or "off"
+        safety_level: "kids", "youth", "adult", or "research"
         output_config: Optional output config name for optimization (e.g., "sd35_large")
         media_preferences: Optional media preferences from config
         tracker: Optional execution tracker
@@ -621,7 +622,7 @@ async def execute_stage2_with_optimization(
         input_text: User input text (already safety-checked in Stage 1)
         config: Loaded interception config object
         execution_mode: "eco" or "fast"
-        safety_level: "kids", "youth", or "off"
+        safety_level: "kids", "youth", "adult", or "research"
         output_config: Optional output config name for optimization (e.g., "sd35_large")
         media_preferences: Optional media preferences from config
         tracker: Optional execution tracker
@@ -1903,66 +1904,6 @@ def safety_check():
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
-def _llm_verify_person_name(text: str, ner_entities: list) -> bool:
-    """
-    LLM verification for SpaCy NER PER-entity hits.
-
-    SpaCy NER produces false positives (e.g. "visuell faszinierend" → PER).
-    This function asks the local LLM whether the detected entities are real
-    personal names before blocking.
-
-    Args:
-        text: The original user text
-        ner_entities: List of NER-detected entity strings (e.g. ["Name: visuell faszinierend"])
-
-    Returns:
-        True if LLM confirms real person name(s), False if false positive.
-        On error: False (fail-open — NER false positive is more likely than real name).
-    """
-    # Extract just the name parts from "Name: ..." format
-    names = [e.replace("Name: ", "") for e in ner_entities]
-    names_str = ", ".join(names)
-
-    prompt = (
-        f"SpaCy NER hat im folgenden Text diese Entitäten als Personennamen (PER) erkannt: {names_str}\n\n"
-        f"Text: \"{text}\"\n\n"
-        f"Handelt es sich bei den erkannten Entitäten um echte Personennamen "
-        f"(Vor- und/oder Nachname einer realen oder fiktiven Person)?\n"
-        f"Adjektive, Beschreibungen, Orte oder allgemeine Wörter sind KEINE Personennamen.\n"
-        f"Fiktive Figuren (z.B. Humpty Dumpty, Harry Potter) sind KEINE echten Personennamen im DSGVO-Sinne.\n\n"
-        f"Antwort NUR mit JA oder NEIN."
-    )
-
-    try:
-        import time
-        start = time.time()
-        response = requests.post(
-            f"{config.OLLAMA_API_BASE_URL}/api/generate",
-            json={
-                "model": config.SAFETY_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "keep_alive": "10m",
-                "options": {"temperature": 0.0, "num_predict": 10}
-            },
-            timeout=30
-        )
-        response.raise_for_status()
-        result = response.json().get("response", "").strip().upper()
-        duration_ms = (time.time() - start) * 1000
-
-        is_real_name = result.startswith("JA")
-        logger.info(
-            f"[DSGVO-LLM-VERIFY] entities={names_str} → LLM={result!r} → "
-            f"{'REAL NAME' if is_real_name else 'FALSE POSITIVE'} ({duration_ms:.0f}ms)"
-        )
-        return is_real_name
-
-    except Exception as e:
-        logger.warning(f"[DSGVO-LLM-VERIFY] LLM verification failed: {e} — fail-open (allowing)")
-        return False
-
-
 @schema_bp.route('/pipeline/safety/quick', methods=['POST'])
 def safety_check_quick():
     """
@@ -2009,6 +1950,10 @@ def safety_check_quick():
         if not text:
             return jsonify({'safe': True, 'checks_passed': [], 'error_message': None})
 
+        # Research mode: skip ALL safety checks (text + image)
+        if config.DEFAULT_SAFETY_LEVEL == 'research':
+            return jsonify({'safe': True, 'checks_passed': ['safety_skip'], 'error_message': None})
+
         checks_passed = []
 
         # STEP 1: §86a fast-filter — instant block
@@ -2028,7 +1973,7 @@ def safety_check_quick():
         if spacy_ok and has_pii:
             # NER triggered — LLM verification to avoid false positives
             logger.info(f"[SAFETY-QUICK] NER triggered: {found_pii[:3]} — verifying with LLM")
-            if _llm_verify_person_name(text, found_pii):
+            if llm_verify_person_name(text, found_pii):
                 logger.warning(f"[SAFETY-QUICK] DSGVO BLOCKED (LLM confirmed): {found_pii[:3]}")
                 return jsonify({
                     'safe': False,
