@@ -1955,6 +1955,7 @@ def safety_check_quick():
             return jsonify({'safe': True, 'checks_passed': ['safety_skip'], 'error_message': None})
 
         checks_passed = []
+        safety_level = config.DEFAULT_SAFETY_LEVEL
 
         # STEP 1: §86a fast-filter — instant block
         has_86a, found_86a = fast_filter_bilingual_86a(text)
@@ -1967,7 +1968,20 @@ def safety_check_quick():
             })
         checks_passed.append('§86a')
 
-        # STEP 2: DSGVO SpaCy NER — only personal names (PER)
+        # STEP 2: Age-appropriate fast-filter (kids/youth only)
+        if safety_level in ('kids', 'youth'):
+            has_age_terms, found_age_terms = fast_filter_check(text, safety_level)
+            if has_age_terms:
+                filter_name = 'Kids-Filter' if safety_level == 'kids' else 'Youth-Filter'
+                logger.warning(f"[SAFETY-QUICK] {filter_name} BLOCKED: {found_age_terms[:3]}")
+                return jsonify({
+                    'safe': False,
+                    'checks_passed': checks_passed + ['age_filter'],
+                    'error_message': f'{filter_name}: {", ".join(found_age_terms[:3])}'
+                })
+            checks_passed.append('age_filter')
+
+        # STEP 3: DSGVO SpaCy NER — only personal names (PER)
         # NER is a fast trigger; on hit, LLM verifies before blocking
         has_pii, found_pii, spacy_ok = fast_dsgvo_check(text)
         if spacy_ok and has_pii:

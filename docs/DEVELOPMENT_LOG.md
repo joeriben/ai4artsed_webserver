@@ -6573,6 +6573,25 @@ The 2-field switch makes this **pedagogically visible**: Students consciously ch
 
 ---
 
+## Session 171b (2026-02-12): Critical — Age Filter Missing from SAFETY-QUICK + Guard Model Fix
+
+**Date:** 2026-02-12
+**Status:** COMPLETE
+**Branch:** develop
+
+### Problem
+1. **Age-appropriate filter completely missing from streaming path**: Stage 1 was removed from unified streaming pipeline (handled by SAFETY-QUICK), but SAFETY-QUICK only did §86a + DSGVO. Result: "nackte Menschen" passed through kids/youth without any block.
+2. **llama-guard unusable for DSGVO NER verification**: Guard models classify general safety categories (S1-S13), not "is this a real person name?". "Amber Wood" (material description) flagged as `unsafe S8 → REAL NAME`.
+
+### Changes
+- **schema_pipeline_routes.py**: Added age-appropriate fast-filter (Step 2) to SAFETY-QUICK between §86a and DSGVO. Runs for kids/youth only. Uses same `fast_filter_check()` as Stage 1.
+- **stage_orchestrator.py**: Guard models (llama-guard*) now auto-fallback to `gpt-OSS:20b` for DSGVO NER verification. Removed guard-specific prompt/interpretation code. Added "Amber Wood → NEIN" to few-shot examples.
+
+### Key Insight
+SAFETY-QUICK replaced Stage 1 in the streaming pipeline but was never updated to include the age-appropriate filter. This created an invisible gap where youth protection was entirely absent from the primary user flow.
+
+---
+
 ## Session 171 (2026-02-12): Safety Model Fixes — Persistence, Ollama API, Träshy Messages
 
 **Date:** 2026-02-12
