@@ -375,7 +375,8 @@ const messages = {
       youth: 'Dein Prompt wurde vom Jugendschutzfilter blockiert. Manche Inhalte sind auch f\u00FCr Jugendliche nicht geeignet. Versuche, deine Idee anders zu formulieren!',
       generic: 'Dein Prompt wurde vom Sicherheitssystem blockiert. Das System sch\u00FCtzt dich vor ungeeigneten Inhalten. Versuche es mit einer anderen Formulierung!',
       inputImage: 'Das hochgeladene Bild wurde von einer Bildanalyse-KI als ungeeignet eingestuft. Bitte verwende ein anderes Bild.',
-      vlmSaw: 'Die Bild-KI sah'
+      vlmSaw: 'Die Bild-KI sah',
+      systemUnavailable: 'Das Sicherheitssystem (Ollama) reagiert nicht, daher kann keine weitere Verarbeitung erfolgen. Bitte den Systemadministrator kontaktieren.'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantische Vektorfusion',
@@ -1139,7 +1140,8 @@ const messages = {
       youth: 'Your prompt was blocked by the youth protection filter. Some content is not suitable for teenagers either. Try rephrasing your idea!',
       generic: 'Your prompt was blocked by the safety system. The system protects you from unsuitable content. Try a different wording!',
       inputImage: 'The uploaded image was flagged as unsuitable by an image analysis AI. Please use a different image.',
-      vlmSaw: 'The image AI saw'
+      vlmSaw: 'The image AI saw',
+      systemUnavailable: 'The safety system (Ollama) is not responding, so no further processing is possible. Please contact the system administrator.'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantic Vector Fusion',

@@ -187,18 +187,6 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
     names = [e.replace("Name: ", "") for e in ner_entities]
     names_str = ", ".join(names)
 
-    prompt = (
-        f"Die folgenden Wörter wurden per NER als mögliche Personennamen erkannt: {names_str}\n\n"
-        f"Originaltext: \"{text}\"\n\n"
-        f"Sind diese Wörter echte Personennamen (real existierender Menschen)?\n"
-        f"- \"Angela Merkel\" → JA (reale Person)\n"
-        f"- \"Paul Obermeier\" → JA (klingt wie ein realer Personenname)\n"
-        f"- \"Agrarische Funktionszone\" → NEIN (kein Personenname)\n"
-        f"- \"Harry Potter\" → NEIN (fiktive Figur, kein DSGVO-Schutz)\n"
-        f"- \"muted earth tones\" → NEIN (Beschreibung, kein Name)\n\n"
-        f"Antworte NUR mit JA oder NEIN."
-    )
-
     # Resolve local Ollama model: prefer STAGE1_TEXT_MODEL if local, else SAFETY_MODEL
     model = config.STAGE1_TEXT_MODEL
     if model.startswith(("mistral/", "anthropic/", "openai/", "openrouter/")):
@@ -207,21 +195,43 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
     # Strip local/ prefix for Ollama
     ollama_model = model.replace("local/", "") if model.startswith("local/") else model
 
+    is_guard_model = ollama_model.startswith("llama-guard")
+
+    if is_guard_model:
+        # llama-guard: frame as PII safety check, model returns "safe" or "unsafe\nS..."
+        messages = [{"role": "user", "content": f"Ich möchte Bilder von {names_str} generieren."}]
+        num_predict = 50
+    else:
+        # General-purpose models (gpt-OSS, etc.): JA/NEIN question
+        prompt = (
+            f"Die folgenden Wörter wurden per NER als mögliche Personennamen erkannt: {names_str}\n\n"
+            f"Originaltext: \"{text}\"\n\n"
+            f"Sind diese Wörter echte Personennamen (real existierender Menschen)?\n"
+            f"- \"Angela Merkel\" → JA (reale Person)\n"
+            f"- \"Paul Obermeier\" → JA (klingt wie ein realer Personenname)\n"
+            f"- \"Agrarische Funktionszone\" → NEIN (kein Personenname)\n"
+            f"- \"Harry Potter\" → NEIN (fiktive Figur, kein DSGVO-Schutz)\n"
+            f"- \"muted earth tones\" → NEIN (Beschreibung, kein Name)\n\n"
+            f"Antworte NUR mit JA oder NEIN."
+        )
+        messages = [{"role": "user", "content": prompt}]
+        num_predict = 10
+
     try:
         start = _time.time()
         response = requests.post(
-            f"{config.OLLAMA_API_BASE_URL}/api/generate",
+            f"{config.OLLAMA_API_BASE_URL}/api/chat",
             json={
                 "model": ollama_model,
-                "prompt": prompt,
+                "messages": messages,
                 "stream": False,
                 "keep_alive": "10m",
-                "options": {"temperature": 0.0, "num_predict": 10}
+                "options": {"temperature": 0.0, "num_predict": num_predict}
             },
             timeout=30
         )
         response.raise_for_status()
-        result = response.json().get("response", "").strip().upper()
+        result = response.json().get("message", {}).get("content", "").strip()
         duration_ms = (_time.time() - start) * 1000
 
         if not result:
@@ -231,11 +241,19 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
             )
             return None
 
-        is_real_name = result.startswith("JA")
-        logger.info(
-            f"[DSGVO-LLM-VERIFY] entities={names_str} → LLM={result!r} → "
-            f"{'REAL NAME' if is_real_name else 'FALSE POSITIVE'} ({duration_ms:.0f}ms)"
-        )
+        if is_guard_model:
+            # llama-guard: "safe" → false positive, "unsafe" → real name (PII concern)
+            is_real_name = result.lower().startswith("unsafe")
+            logger.info(
+                f"[DSGVO-LLM-VERIFY] entities={names_str} → guard={result!r} → "
+                f"{'REAL NAME' if is_real_name else 'FALSE POSITIVE'} ({duration_ms:.0f}ms)"
+            )
+        else:
+            is_real_name = result.upper().startswith("JA")
+            logger.info(
+                f"[DSGVO-LLM-VERIFY] entities={names_str} → LLM={result!r} → "
+                f"{'REAL NAME' if is_real_name else 'FALSE POSITIVE'} ({duration_ms:.0f}ms)"
+            )
         return is_real_name
 
     except Exception as e:

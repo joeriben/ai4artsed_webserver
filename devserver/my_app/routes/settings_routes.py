@@ -612,6 +612,7 @@ def get_settings():
             "CHAT_HELPER_MODEL": config.CHAT_HELPER_MODEL,
             "IMAGE_ANALYSIS_MODEL": config.IMAGE_ANALYSIS_MODEL,
             "CODING_MODEL": config.CODING_MODEL,
+            "SAFETY_MODEL": config.SAFETY_MODEL,
 
             # API Configuration
             "LLM_PROVIDER": config.LLM_PROVIDER,

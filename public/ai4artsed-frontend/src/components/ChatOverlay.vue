@@ -483,6 +483,8 @@ watch(
       explanation = t('safetyBlocked.kids')
     } else if (reason.includes('Youth-Filter') || reason.includes('Jugendschutzfilter')) {
       explanation = t('safetyBlocked.youth')
+    } else if (reason.includes('reagiert nicht') || reason.includes('not responding') || reason.includes('Systemadministrator')) {
+      explanation = t('safetyBlocked.systemUnavailable')
     } else {
       explanation = t('safetyBlocked.generic')
     }

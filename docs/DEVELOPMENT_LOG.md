@@ -6573,6 +6573,32 @@ The 2-field switch makes this **pedagogically visible**: Students consciously ch
 
 ---
 
+## Session 171 (2026-02-12): Safety Model Fixes — Persistence, Ollama API, Träshy Messages
+
+**Date:** 2026-02-12
+**Status:** COMPLETE
+**Branch:** develop
+
+### Problem
+Three issues with SAFETY_MODEL after Session 170 implementation:
+1. Settings dropdown didn't persist — SAFETY_MODEL missing from `get_settings()` response
+2. llama-guard models returned empty — wrong Ollama API format (`/api/generate` vs `/api/chat`)
+3. gpt-OSS:20b intermittently returned empty — same `/api/generate` template issue
+4. Träshy showed generic block message instead of "Sicherheitssystem reagiert nicht" for fail-closed
+
+### Changes
+- **settings_routes.py**: Added `SAFETY_MODEL` to `get_settings()` response
+- **stage_orchestrator.py**: Switched `llm_verify_person_name()` from `/api/generate` to `/api/chat`
+  - llama-guard models: PII-framed user message, interprets `safe`/`unsafe`
+  - gpt-OSS models: JA/NEIN prompt via messages array
+- **i18n.ts**: Added `safetyBlocked.systemUnavailable` key (DE + EN)
+- **ChatOverlay.vue**: Detect "reagiert nicht" in reason → show system unavailable message
+
+### Key Insight
+Ollama `/api/generate` sends raw text without applying the model's chat template. Many models (including gpt-OSS) require the template for proper response generation. `/api/chat` applies templates automatically.
+
+---
+
 ## Session 170 (2026-02-12): Safety-Level Centralization + LICENSE.md Research Clause
 
 **Date:** 2026-02-12
