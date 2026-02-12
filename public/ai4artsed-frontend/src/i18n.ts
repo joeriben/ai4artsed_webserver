@@ -159,7 +159,8 @@ const messages = {
       generatedMedia: 'Erzeugtes Bild'
     },
     landing: {
-      subtitle: 'Pädagogisch-künstlerische Experimentierplattform des UNESCO Chair in Digital Culture and Arts in Education für den explorativen Einsatz von generativer KI in der kulturell-ästhetischen Medienbildung',
+      subtitlePrefix: 'Pädagogisch-künstlerische Experimentierplattform des',
+      subtitleSuffix: 'für den explorativen Einsatz von generativer KI in der kulturell-ästhetischen Medienbildung',
       research: '',
       features: {
         textTransformation: {
@@ -924,7 +925,8 @@ const messages = {
       generatedMedia: 'Generated image'
     },
     landing: {
-      subtitle: 'Pedagogical-artistic experimentation platform of the UNESCO Chair in Digital Culture and Arts in Education for the explorative use of generative AI in cultural-aesthetic media education',
+      subtitlePrefix: 'Pedagogical-artistic experimentation platform of the',
+      subtitleSuffix: 'for the explorative use of generative AI in cultural-aesthetic media education',
       research: '',
       features: {
         textTransformation: {

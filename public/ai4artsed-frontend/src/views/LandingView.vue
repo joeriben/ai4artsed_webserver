@@ -4,7 +4,7 @@
     <!-- Hero Section -->
     <section class="hero">
       <h1 class="hero-title"><span style="color:#667eea">U</span><span style="color:#e91e63">C</span><span style="color:#7C4DFF">D</span><span style="color:#FF6F00">C</span><span style="color:#4CAF50">A</span><span style="color:#00BCD4">E</span> <span style="color:#667eea">A</span><span style="color:#e91e63">I</span> <span style="color:#7C4DFF">L</span><span style="color:#FF6F00">A</span><span style="color:#4CAF50">B</span></h1>
-      <p class="hero-subtitle">{{ $t('landing.subtitle') }}</p>
+      <p class="hero-subtitle">{{ $t('landing.subtitlePrefix') }} <span class="ucdcae-fullname"><span style="color:#667eea">U</span>NESCO <span style="color:#e91e63">C</span>hair in <span style="color:#7C4DFF">D</span>igital <span style="color:#FF6F00">C</span>ulture and <span style="color:#4CAF50">A</span>rts in <span style="color:#00BCD4">E</span>ducation</span> {{ $t('landing.subtitleSuffix') }}</p>
     </section>
 
     <!-- Feature Cards Grid -->
@@ -264,6 +264,10 @@ const features: Feature[] = [
   color: rgba(255, 255, 255, 0.7);
   margin: 0 0 1rem 0;
   line-height: 1.5;
+}
+
+.ucdcae-fullname {
+  font-weight: 600;
 }
 
 .hero-research {

@@ -403,7 +403,6 @@ function startStreaming() {
       eventSource.value = null
     }
     stopBufferProcessor()
-    isStreaming.value = false
     safetyStore.reportBlock(data.stage || 'safety', data.reason || 'Inhalt blockiert', data.found_terms || [])
     emit('stream-complete', { blocked: true, reason: data.reason })
   })
