@@ -1,5 +1,35 @@
 # Development Log
 
+## Session 170 - UCDCAE Branding + Bugfix
+**Date:** 2026-02-12
+**Focus:** Visual connection between UCDCAE acronym and full name on landing page, plus type error fix
+
+### Changes
+
+**Landing Page: Colored Initials (LandingView.vue)**
+- Full name "UNESCO Chair in Digital Culture and Arts in Education" now shows initial letters in UCDCAE color scheme
+- U=#667eea, C=#e91e63, D=#7C4DFF, C=#FF6F00, A=#4CAF50, E=#00BCD4
+- Function words ("in", "and") remain uncolored
+- Full name styled with `font-weight: 600` for subtle emphasis
+
+**i18n: Subtitle Split (DE + EN)**
+- `landing.subtitle` → `landing.subtitlePrefix` + `landing.subtitleSuffix`
+- Chair name rendered inline with colored spans (language-independent)
+
+**Bugfix: MediaInputBox TS2304 (MediaInputBox.vue)**
+- Removed vestigial `isStreaming.value = false` in `blocked` event handler
+- Ref was never declared — EventSource close + stopBufferProcessor already handle cleanup
+
+### Verification
+- `npm run type-check` → 0 Errors
+
+### Files Changed
+- `public/.../src/views/LandingView.vue` — Colored initials + CSS
+- `public/.../src/i18n.ts` — Subtitle split (DE+EN)
+- `public/.../src/components/MediaInputBox.vue` — Remove dead isStreaming reference
+
+---
+
 ## Session 169 - Latent Lab: Concept Algebra Implementation + UI Fixes
 **Date:** 2026-02-12
 **Focus:** Full implementation of Concept Algebra tab (A − B + C vector arithmetic on embeddings), then UI fixes based on first user testing
