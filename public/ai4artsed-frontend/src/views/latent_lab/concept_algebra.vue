@@ -54,7 +54,7 @@
       <!-- Prompt B and C (side by side) -->
       <div class="input-pair">
         <MediaInputBox
-          icon="minus"
+          icon="−"
           :label="t('latentLab.algebra.promptBLabel')"
           :placeholder="t('latentLab.algebra.promptBPlaceholder')"
           v-model:value="promptB"
@@ -67,7 +67,7 @@
           @clear="clearPromptB"
         />
         <MediaInputBox
-          icon="plus"
+          icon="＋"
           :label="t('latentLab.algebra.promptCLabel')"
           :placeholder="t('latentLab.algebra.promptCPlaceholder')"
           v-model:value="promptC"
@@ -126,7 +126,7 @@
           </label>
           <label>
             {{ t('latentLab.algebra.seedLabel') }}
-            <input v-model.number="seed" type="number" min="-1" class="setting-input setting-small" />
+            <input v-model.number="seed" type="number" min="-1" class="setting-input setting-seed" />
           </label>
           <label>
             {{ t('latentLab.algebra.scaleSubLabel') }}
@@ -457,6 +457,7 @@ onUnmounted(() => {
   font-size: 0.85rem;
 }
 .setting-small { width: 80px; }
+.setting-seed { width: 14ch; }
 
 /* === Disabled state === */
 .comparison-section.disabled { opacity: 0.35; pointer-events: none; }
@@ -572,7 +573,7 @@ onUnmounted(() => {
   max-width: 960px !important;
 }
 .concept-algebra .input-pair .media-input-box {
-  flex: 0 1 480px !important;
+  flex: 1 1 0 !important;
   width: 100% !important;
   max-width: 480px !important;
 }
