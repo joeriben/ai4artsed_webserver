@@ -1,5 +1,42 @@
 # Development Log
 
+## Session 171 - Safety System: Testing, Bug Fixes, DSGVO LLM Verification
+**Date:** 2026-02-12
+**Focus:** Comprehensive safety system testing (26 test cases), 2 critical bugs found and fixed, test report
+
+### Bugs Found & Fixed
+
+**Bug A: DSGVO LLM Verification broken for thinking models**
+- `llm_verify_person_name()` used `num_predict: 10` — gpt-OSS:20b thinking mode exhausted all tokens in `thinking` field, `content` always empty → fail-closed on every NER detection
+- Few-shot examples in prompt confused model into classifying all examples instead of answering
+- Fix: Simplified prompt (rules only, no examples), `num_predict: 500`, `timeout: 60`
+- Verified: "Angela Merkel" → JA (block), "Der Eiffelturm" → NEIN (pass), "Paul Meier" → JA (block)
+
+**Bug B: Fuzzy matching false positives on short terms**
+- Levenshtein `max_distance=2` for terms ≥6 chars → 33% error rate on 6-char words
+- "Potter" matched "Folter", "wurde" matched "murder", "gebaut" matched "Gewalt"
+- Fix: Graduated threshold — `max_distance=1` for 6-7 char terms, `=2` for 8+ chars
+- Unit tested: all false positives eliminated, true matches preserved
+
+**i18n context resolution refactor**
+- `resolve_context_language()` added to `config_loader.py`
+- Context kept as raw dict through pipeline, resolved at point of use
+- Fixes crash when interception configs use multilingual context `{en:..., de:...}`
+
+### Test Report
+- `docs/TEST_REPORT_Safety_System_Session171.md` — 26 test cases across 3 safety levels
+- §86a, age filter (DE+EN), DSGVO NER + LLM verification, research/adult/kids mode switching
+
+### Files Changed
+- `devserver/schemas/engine/stage_orchestrator.py` — DSGVO prompt, num_predict, fuzzy distance
+- `devserver/schemas/engine/config_loader.py` — `resolve_context_language()`, context passthrough
+- `devserver/schemas/engine/chunk_builder.py` — Use `resolve_context_language()` for instruction text
+- `devserver/my_app/routes/schema_pipeline_routes.py` — Use `resolve_context_language()` in optimization
+- `devserver/testfiles/test_refactored_system.py` — Adapt to dict context
+- `docs/TEST_REPORT_Safety_System_Session171.md` — Comprehensive test report
+
+---
+
 ## Session 170 - UCDCAE Branding + Bugfix
 **Date:** 2026-02-12
 **Focus:** Visual connection between UCDCAE acronym and full name on landing page, plus type error fix

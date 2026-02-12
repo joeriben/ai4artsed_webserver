@@ -567,8 +567,9 @@ async def execute_stage2_with_optimization_SINGLE_RUN_VERSION(
     if optimization_instruction:
         logger.info(f"[STAGE2-OPT] Appending optimization instruction to pipeline context")
 
-        # Get original context
-        original_context = config.context if hasattr(config, 'context') and config.context else ""
+        # Get original context (resolve i18n dict to string)
+        from schemas.engine.config_loader import resolve_context_language
+        original_context = resolve_context_language(config.context) if hasattr(config, 'context') else ""
         new_context = original_context + "\n\n" + optimization_instruction
 
         # Create modified config using dataclasses.replace()

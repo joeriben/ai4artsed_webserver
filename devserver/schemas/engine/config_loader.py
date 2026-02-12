@@ -10,6 +10,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def resolve_context_language(context, language=None):
+    """Resolve context to string — handles both str and {en:..., de:...} dict."""
+    if context is None:
+        return ''
+    if isinstance(context, str):
+        return context
+    if isinstance(context, dict):
+        if language is None:
+            from config import DEFAULT_LANGUAGE
+            language = DEFAULT_LANGUAGE
+        return context.get(language, context.get('en', ''))
+    return str(context)
+
+
 @dataclass
 class Pipeline:
     """Pipeline definition (structural template - NO content)"""
@@ -37,7 +52,7 @@ class Config:
     display_name: Dict[str, str]  # Multilingual names {"en": "...", "de": "..."}
     description: Dict[str, str]  # Multilingual descriptions
     category: Optional[Dict[str, str]] = None
-    context: Optional[str] = None
+    context: Optional[Any] = None  # str or Dict[str, str] for i18n
     parameters: Optional[Dict[str, Any]] = None
     media_preferences: Optional[Dict[str, Any]] = None
     meta: Optional[Dict[str, Any]] = None
@@ -50,7 +65,7 @@ class ResolvedConfig:
     description: Dict[str, str]
     pipeline_name: str
     chunks: List[str]
-    context: Optional[str]
+    context: Optional[Any]  # str or Dict[str, str] for i18n
     parameters: Dict[str, Any]
     media_preferences: Optional[Dict[str, Any]]
     meta: Dict[str, Any]
@@ -247,15 +262,9 @@ class ConfigLoader:
 
             logger.debug(f"Creating Config object for {config_name}")
 
-            # Handle multilingual context (same as description)
-            json_context = data.get('context')
-            if isinstance(json_context, dict):
-                # Multilingual context - select based on DEFAULT_LANGUAGE
-                from config import DEFAULT_LANGUAGE
-                context = json_context.get(DEFAULT_LANGUAGE, json_context.get('en', ''))
-            else:
-                # Plain string context (backwards compatible)
-                context = json_context
+            # Pass through context as-is (str or {en:..., de:...} dict)
+            # Language resolution happens at point of use via resolve_context_language()
+            context = data.get('context')
 
             # Auto-inject meta.owner field
             meta = data.get('meta', {})

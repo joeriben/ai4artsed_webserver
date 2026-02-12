@@ -204,15 +204,13 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
         logger.debug(f"[DSGVO-LLM-VERIFY] Guard model unsuitable for NER verify, using gpt-OSS:20b")
 
     prompt = (
-        f"Die folgenden Wörter wurden per NER als mögliche Personennamen erkannt: {names_str}\n\n"
+        f"Sind folgende Wörter echte Personennamen real existierender Menschen?\n\n"
+        f"Wörter: {names_str}\n"
         f"Originaltext: \"{text}\"\n\n"
-        f"Sind diese Wörter echte Personennamen (real existierender Menschen)?\n"
-        f"- \"Angela Merkel\" → JA (reale Person)\n"
-        f"- \"Paul Obermeier\" → JA (klingt wie ein realer Personenname)\n"
-        f"- \"Agrarische Funktionszone\" → NEIN (kein Personenname)\n"
-        f"- \"Harry Potter\" → NEIN (fiktive Figur, kein DSGVO-Schutz)\n"
-        f"- \"muted earth tones\" → NEIN (Beschreibung, kein Name)\n"
-        f"- \"Amber Wood\" → NEIN (Beschreibung/Material, kein Personenname)\n\n"
+        f"Regeln:\n"
+        f"- Reale Personen (Politiker, Prominente, Alltagsnamen) = JA\n"
+        f"- Fiktive Figuren (Harry Potter, Sherlock Holmes) = NEIN\n"
+        f"- Beschreibungen, Materialien, Orte = NEIN\n\n"
         f"Antworte NUR mit JA oder NEIN."
     )
     messages = [{"role": "user", "content": prompt}]
@@ -226,12 +224,13 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
                 "messages": messages,
                 "stream": False,
                 "keep_alive": "10m",
-                "options": {"temperature": 0.0, "num_predict": 10}
+                "options": {"temperature": 0.0, "num_predict": 500}
             },
-            timeout=30
+            timeout=60
         )
         response.raise_for_status()
-        result = response.json().get("message", {}).get("content", "").strip()
+        msg = response.json().get("message", {})
+        result = msg.get("content", "").strip()
         duration_ms = (_time.time() - start) * 1000
 
         if not result:
@@ -326,8 +325,9 @@ def fast_filter_bilingual_86a(text: str) -> Tuple[bool, List[str]]:
     for term in terms_list:
         term_lower = term.lower()
         if len(term_lower) >= 6:
-            # Long unambiguous terms: fuzzy match (catches svastika, hakenkreutz, etc.)
-            if _fuzzy_contains(text_lower, term_lower, max_distance=2):
+            # Fuzzy match: distance=1 for 6-7 char terms, distance=2 for 8+ chars
+            max_dist = 1 if len(term_lower) < 8 else 2
+            if _fuzzy_contains(text_lower, term_lower, max_distance=max_dist):
                 found_terms.append(term)
         else:
             # Short terms: exact substring match only (too many false positives otherwise)
@@ -356,8 +356,10 @@ def fast_filter_check(prompt: str, safety_level: str) -> Tuple[bool, List[str]]:
     for term in terms_list:
         term_lower = term.lower()
         if len(term_lower) >= 6:
-            # Long unambiguous terms: fuzzy match
-            if _fuzzy_contains(prompt_lower, term_lower, max_distance=2):
+            # Fuzzy match: distance=1 for 6-7 char terms, distance=2 for 8+ chars
+            # (distance=2 on 6-char words gives 33% error rate → false positives like "Potter"→"Folter")
+            max_dist = 1 if len(term_lower) < 8 else 2
+            if _fuzzy_contains(prompt_lower, term_lower, max_distance=max_dist):
                 found_terms.append(term)
         else:
             # Short terms: exact substring match only

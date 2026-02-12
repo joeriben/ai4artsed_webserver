@@ -225,7 +225,8 @@ class ChunkBuilder:
             raise ValueError(f"Template '{chunk_name}' nicht gefunden")
 
         # Get instruction text from config context (former metaprompt)
-        instruction_text = resolved_config.context or ''
+        from .config_loader import resolve_context_language
+        instruction_text = resolve_context_language(resolved_config.context)
 
         # INSTRUCTION-TYPE SYSTEM: Get TASK_INSTRUCTION for prompt interception
         task_instruction = self._get_task_instruction(resolved_config, pipeline)

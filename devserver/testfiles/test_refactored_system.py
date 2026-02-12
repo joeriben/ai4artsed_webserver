@@ -36,7 +36,9 @@ def test_config_loader():
         print(f"  - {config_name}")
         print(f"    Pipeline: {resolved.pipeline_name}")
         print(f"    Chunks: {resolved.chunks}")
-        print(f"    Context: {resolved.context[:60] if resolved.context else 'N/A'}...")
+        from schemas.engine.config_loader import resolve_context_language
+        ctx_str = resolve_context_language(resolved.context)
+        print(f"    Context: {ctx_str[:60] if ctx_str else 'N/A'}...")
         print(f"    Display: {resolved.display_name.get('en', 'N/A')}")
 
     return True
