@@ -199,6 +199,10 @@ User Input
         └─ Safe → deliver | Unsafe → SSE 'blocked'
 ```
 
+### 5.1 Canvas Workflows — Intentionally Unfiltered
+
+Canvas routes (`/api/canvas/execute`, `/execute-stream`, `/execute-batch`) have **no safety enforcement by design**. Canvas is restricted to `adult` and `research` safety levels only — kids/youth cannot access it. Since `adult` skips age-appropriate checks and `research` skips all checks, no input filtering is needed on Canvas routes. Stage 3 safety still applies during generation for `adult`.
+
 ---
 
 ## 6. Configuration

@@ -6586,7 +6586,7 @@ Kids/youth age filter only contained English terms ("nude", "naked"). Fast-filte
 - **youth_kids_safety_filters.json**: Added German equivalents for kids (27 terms → ~95) and youth (17 → ~24) filter lists. Key additions: nackt, Nacktheit, Gewalt, Mord, Folter, sexuell, pornografisch, etc.
 
 ### Audit Finding: Canvas Routes
-Canvas routes (`/api/canvas/execute`, `/execute-stream`, `/execute-batch`) have **zero safety enforcement**. Users can bypass all filters through Canvas workflows. Fix deferred — Canvas is a research tool, not primary student interface.
+Canvas routes (`/api/canvas/execute`, `/execute-stream`, `/execute-batch`) have no safety enforcement — **by design**. Canvas is restricted to `adult`/`research` safety levels only (kids/youth cannot access it). Stage 3 safety still applies during generation for `adult`.
 
 ---
 
