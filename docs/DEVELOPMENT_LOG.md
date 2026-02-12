@@ -6573,22 +6573,23 @@ The 2-field switch makes this **pedagogically visible**: Students consciously ch
 
 ---
 
-## Session 171b (2026-02-12): Critical — Age Filter Missing from SAFETY-QUICK + Guard Model Fix
+## Session 171b (2026-02-12): Critical — Server-Side Safety Gate for Streaming Pipeline
 
 **Date:** 2026-02-12
 **Status:** COMPLETE
 **Branch:** develop
 
 ### Problem
-1. **Age-appropriate filter completely missing from streaming path**: Stage 1 was removed from unified streaming pipeline (handled by SAFETY-QUICK), but SAFETY-QUICK only did §86a + DSGVO. Result: "nackte Menschen" passed through kids/youth without any block.
+1. **No server-side safety in streaming pipeline**: Stage 1 was removed and replaced by SAFETY-QUICK (frontend pre-check on blur/paste). But SAFETY-QUICK is not guaranteed to run (page refresh, cached text, Enter without blur). Result: "nackte Menschen" with kids safety level passed through with no block at all.
 2. **llama-guard unusable for DSGVO NER verification**: Guard models classify general safety categories (S1-S13), not "is this a real person name?". "Amber Wood" (material description) flagged as `unsafe S8 → REAL NAME`.
 
 ### Changes
-- **schema_pipeline_routes.py**: Added age-appropriate fast-filter (Step 2) to SAFETY-QUICK between §86a and DSGVO. Runs for kids/youth only. Uses same `fast_filter_check()` as Stage 1.
-- **stage_orchestrator.py**: Guard models (llama-guard*) now auto-fallback to `gpt-OSS:20b` for DSGVO NER verification. Removed guard-specific prompt/interpretation code. Added "Amber Wood → NEIN" to few-shot examples.
+- **schema_pipeline_routes.py**: Added server-side safety gate in streaming pipeline BEFORE Stage 2: §86a fast-filter + age-appropriate filter (kids/youth) + DSGVO NER. Sends SSE `blocked` event on hit. Also added age filter to SAFETY-QUICK as defense-in-depth.
+- **MediaInputBox.vue**: Added `blocked` event listener for SSE — closes stream, reports to safetyStore (Träshy), emits stream-complete with blocked flag.
+- **stage_orchestrator.py**: Guard models (llama-guard*) auto-fallback to `gpt-OSS:20b` for DSGVO NER. Added "Amber Wood → NEIN" to few-shot examples.
 
 ### Key Insight
-SAFETY-QUICK replaced Stage 1 in the streaming pipeline but was never updated to include the age-appropriate filter. This created an invisible gap where youth protection was entirely absent from the primary user flow.
+SAFETY-QUICK is a frontend convenience (UX feedback on blur), NOT a security boundary. The server must enforce safety independently — the streaming pipeline is now the authoritative gate. Defense-in-depth: SAFETY-QUICK catches early, streaming gate catches everything else.
 
 ---
 

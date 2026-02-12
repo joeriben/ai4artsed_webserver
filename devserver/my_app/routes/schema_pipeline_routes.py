@@ -1427,7 +1427,6 @@ def execute_pipeline_streaming(data: dict):
     )
 
     # Track LLM models used at each stage
-    # NOTE: Stage 1 safety is now handled by MediaInputBox via /safety/quick (no LLM)
     recorder.metadata['models_used'] = {
         'stage2_interception': STAGE2_INTERCEPTION_MODEL
     }
@@ -1451,9 +1450,50 @@ def execute_pipeline_streaming(data: dict):
         })
         yield ''  # Force flush
 
-        # NOTE: Stage 1 safety is now handled autonomously by each MediaInputBox
-        # (2+1-Phasen-Safety via /api/schema/pipeline/safety/quick on blur/stream-complete).
-        # The streaming pipeline starts directly with interception.
+        # ====================================================================
+        # STAGE 1: SERVER-SIDE SAFETY GATE (fast-filters, no LLM)
+        # ====================================================================
+        # SAFETY-QUICK runs on blur/paste in the frontend, but is NOT guaranteed
+        # (e.g. page refresh, cached text, Enter without blur). This server-side
+        # check is the authoritative safety gate — it MUST run before Stage 2.
+        if safety_level != 'research':
+            # §86a fast-filter
+            has_86a, found_86a = fast_filter_bilingual_86a(input_text)
+            if has_86a:
+                logger.warning(f"[UNIFIED-STREAMING] §86a BLOCKED: {found_86a[:3]}")
+                yield generate_sse_event('blocked', {
+                    'stage': 'safety',
+                    'reason': f'§86a StGB: {", ".join(found_86a[:3])}'
+                })
+                yield ''
+                return
+
+            # Age-appropriate fast-filter (kids/youth only)
+            if safety_level in ('kids', 'youth'):
+                has_age, found_age = fast_filter_check(input_text, safety_level)
+                if has_age:
+                    filter_name = 'Kids-Filter' if safety_level == 'kids' else 'Youth-Filter'
+                    logger.warning(f"[UNIFIED-STREAMING] {filter_name} BLOCKED: {found_age[:3]}")
+                    yield generate_sse_event('blocked', {
+                        'stage': 'safety',
+                        'reason': f'{filter_name}: {", ".join(found_age[:3])}'
+                    })
+                    yield ''
+                    return
+
+            # DSGVO NER check
+            has_pii, found_pii, spacy_ok = fast_dsgvo_check(input_text)
+            if spacy_ok and has_pii:
+                verify_result = llm_verify_person_name(input_text, found_pii)
+                if verify_result is None or verify_result:
+                    reason = 'Sicherheitssystem (Ollama) reagiert nicht' if verify_result is None else f'DSGVO: {", ".join(found_pii[:3])}'
+                    logger.warning(f"[UNIFIED-STREAMING] DSGVO BLOCKED: {reason}")
+                    yield generate_sse_event('blocked', {
+                        'stage': 'safety',
+                        'reason': reason
+                    })
+                    yield ''
+                    return
 
         # ====================================================================
         # STAGE 2: INTERCEPTION (Character-by-Character Streaming)

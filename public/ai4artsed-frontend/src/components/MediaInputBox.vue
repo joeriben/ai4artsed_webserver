@@ -395,6 +395,19 @@ function startStreaming() {
     }, 50)  // Check every 50ms
   })
 
+  eventSource.value.addEventListener('blocked', (event) => {
+    const data = JSON.parse(event.data)
+    console.log('[MediaInputBox] Stream BLOCKED by safety:', data)
+    if (eventSource.value) {
+      eventSource.value.close()
+      eventSource.value = null
+    }
+    stopBufferProcessor()
+    isStreaming.value = false
+    safetyStore.reportBlock(data.stage || 'safety', data.reason || 'Inhalt blockiert', data.found_terms || [])
+    emit('stream-complete', { blocked: true, reason: data.reason })
+  })
+
   eventSource.value.addEventListener('error', (event) => {
     // Ignore error if stream already completed successfully
     if (isStreamComplete.value) {
