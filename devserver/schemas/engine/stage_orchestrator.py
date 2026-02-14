@@ -233,6 +233,18 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
         result = msg.get("content", "").strip()
         duration_ms = (_time.time() - start) * 1000
 
+        # Thinking model fallback: gpt-OSS puts reasoning in 'thinking', answer in 'content'.
+        # Under VRAM pressure, 'content' may be empty — extract JA/NEIN from 'thinking'.
+        if not result:
+            thinking = msg.get("thinking", "").strip()
+            if thinking:
+                logger.info(f"[DSGVO-LLM-VERIFY] content empty, checking thinking field ({len(thinking)} chars)")
+                thinking_upper = thinking.upper()
+                if thinking_upper.rstrip().endswith("NEIN") or "\nNEIN" in thinking_upper:
+                    result = "NEIN"
+                elif thinking_upper.rstrip().endswith("JA") or "\nJA" in thinking_upper:
+                    result = "JA"
+
         if not result:
             logger.error(
                 f"[DSGVO-LLM-VERIFY] entities={names_str} → LLM ({ollama_model}) returned EMPTY "
