@@ -14,7 +14,6 @@
               v-for="tab in tabs"
               :key="tab.id"
               :class="['tab-button', { active: activeTab === tab.id, 'tab-icon': tab.type === 'icon' || tab.type === 'img' }]"
-              :style="tab.type === 'icon' || tab.type === 'img' ? { '--mode-color': (tab as IconTab | ImgTab).color, '--mode-color-bg': (tab as IconTab | ImgTab).color + '33' } as any : undefined"
               :data-tooltip="tab.type === 'icon' ? (currentLanguage === 'de' ? (tab as IconTab).tooltipDe : (tab as IconTab).tooltipEn) : tab.type === 'img' ? (currentLanguage === 'de' ? (tab as ImgTab).tooltipDe : (tab as ImgTab).tooltipEn) : undefined"
               @click="activeTab = tab.id"
             >
@@ -101,25 +100,25 @@ const tabs: DocTab[] = [
   { type: 'text', id: 'welcome', labelDe: 'Über', labelEn: 'About' },
   { type: 'text', id: 'principles', labelDe: 'Prinzipien', labelEn: 'Principles' },
   { type: 'icon', id: 'guide-text', tooltipDe: 'Text-Transformation', tooltipEn: 'Text Transformation',
-    color: '#667eea', svgViewBox: '0 -960 960 960',
+    color: 'rgba(255, 255, 255, 0.7)', svgViewBox: '0 -960 960 960',
     svgPath: 'M160-200v-80h528l-42-42 56-56 138 138-138 138-56-56 42-42H160Zm116-200 164-440h80l164 440h-76l-38-112H392l-40 112h-76Zm138-176h132l-64-182h-4l-64 182Z' },
   { type: 'icon', id: 'guide-image', tooltipDe: 'Bild-Transformation', tooltipEn: 'Image Transformation',
-    color: '#e91e63', svgViewBox: '0 -960 960 960',
+    color: 'rgba(255, 255, 255, 0.7)', svgViewBox: '0 -960 960 960',
     svgPath: 'M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z' },
   { type: 'icon', id: 'guide-multi', tooltipDe: 'Bildfusion', tooltipEn: 'Image Fusion',
-    color: '#7C4DFF', svgViewBox: '0 -960 960 960',
+    color: 'rgba(255, 255, 255, 0.7)', svgViewBox: '0 -960 960 960',
     svgPath: 'M120-840h320v320H120v-320Zm80 80v160-160Zm320-80h320v320H520v-320Zm80 80v160-160ZM120-440h320v320H120v-320Zm80 80v160-160Zm440-80h80v120h120v80H720v120h-80v-120H520v-80h120v-120Zm-40-320v160h160v-160H600Zm-400 0v160h160v-160H200Zm0 400v160h160v-160H200Z' },
   { type: 'icon', id: 'guide-music', tooltipDe: 'Musikgenerierung', tooltipEn: 'Music Generation',
-    color: '#FF6F00', svgViewBox: '0 -960 960 960',
+    color: 'rgba(255, 255, 255, 0.7)', svgViewBox: '0 -960 960 960',
     svgPath: 'M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z' },
   { type: 'icon', id: 'guide-canvas', tooltipDe: 'Canvas Workflow', tooltipEn: 'Canvas Workflow',
-    color: '#4CAF50', svgViewBox: '0 0 24 24',
+    color: 'rgba(255, 255, 255, 0.7)', svgViewBox: '0 0 24 24',
     svgPath: 'M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z' },
   { type: 'icon', id: 'guide-latentlab', tooltipDe: 'Latent Lab', tooltipEn: 'Latent Lab',
-    color: '#00BCD4', svgViewBox: '0 -960 960 960',
+    color: 'rgba(255, 255, 255, 0.7)', svgViewBox: '0 -960 960 960',
     svgPath: 'M200-120v-80h200v-80q-83 0-141.5-58.5T200-480q0-61 33.5-111t90.5-73q8-34 35.5-55t62.5-21l-22-62 38-14-14-36 76-28 12 38 38-14 110 300-38 14 14 38-76 28-12-38-38 14-24-66q-15 14-34.5 21t-39.5 5q-22-2-41-13.5T338-582q-27 16-42.5 43T280-480q0 50 35 85t85 35h320v80H520v80h240v80H200Zm346-458 36-14-68-188-38 14 70 188Zm-126-22q17 0 28.5-11.5T460-640q0-17-11.5-28.5T420-680q-17 0-28.5 11.5T380-640q0 17 11.5 28.5T420-600Zm126 22Zm-126-62Zm0 0Z' },
   { type: 'img', id: 'guide-training', tooltipDe: 'LoRA Training', tooltipEn: 'LoRA Training',
-    color: '#22c55e', imgSrc: loraParrotSvg },
+    color: 'rgba(255, 255, 255, 0.7)', imgSrc: loraParrotSvg },
   { type: 'text', id: 'workshop', labelDe: 'Praxiseinsatz', labelEn: 'Practical Use' },
   { type: 'text', id: 'license', labelDe: 'Lizenz', labelEn: 'License' },
 ]
@@ -268,22 +267,20 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   position: relative;
-  color: var(--mode-color, rgba(255, 255, 255, 0.7));
+  color: rgba(255, 255, 255, 0.5);
   border-color: rgba(255, 255, 255, 0.15);
-  opacity: 0.7;
 }
 
 .tab-button.tab-icon:hover {
-  opacity: 1;
-  background: var(--mode-color-bg);
-  border-color: var(--mode-color);
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .tab-button.tab-icon.active {
-  opacity: 1;
-  background: var(--mode-color-bg);
-  border-color: var(--mode-color);
-  color: var(--mode-color);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* CSS Tooltip for icon tabs */
