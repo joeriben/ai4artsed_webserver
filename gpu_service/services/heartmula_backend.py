@@ -317,22 +317,20 @@ class HeartMuLaMusicGenerator:
             return None
 
 
-# Singleton instance — returns HTTP client for shared GPU service
-_backend = None
+# Singleton instance
+_backend: Optional[HeartMuLaMusicGenerator] = None
 
 
-def get_heartmula_backend():
+def get_heartmula_backend() -> HeartMuLaMusicGenerator:
     """
-    Get HeartMuLa backend (shared GPU service client).
+    Get HeartMuLa backend singleton
 
-    Returns a HeartMuLaClient that calls the GPU service via HTTP REST.
-    The HeartMuLaClient has the same async API as HeartMuLaMusicGenerator,
-    so all callers (backend_router.py, chunk files) work without changes.
+    Returns:
+        HeartMuLaMusicGenerator instance
     """
     global _backend
     if _backend is None:
-        from my_app.services.heartmula_client import HeartMuLaClient
-        _backend = HeartMuLaClient()
+        _backend = HeartMuLaMusicGenerator()
     return _backend
 
 

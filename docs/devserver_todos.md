@@ -1,6 +1,30 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-14
 **Context:** Current priorities and active TODOs
+
+---
+
+## 🟡 WIP: source_view in Favorites für korrektes Restore-Routing
+
+**Status:** 🟡 **IMPLEMENTIERT, FUNKTIONIERT NOCH NICHT** - Debugging nötig
+**Datum:** 2026-02-14
+**Priority:** MEDIUM
+
+### Was wurde gemacht
+- `source_view` Feld im gesamten Stack hinzugefügt: Frontend Store → API → JSON → Restore-Logik
+- Alle 5 Views übergeben ihren Route-Pfad beim Favorisieren
+- Backend speichert `source_view` in favorites.json und nutzt es im Restore-Handler
+- Surrealizer hat Restore-Watcher bekommen
+- Fallback-Heuristik für alte Favorites ohne `source_view` bleibt erhalten
+
+### Was noch nicht funktioniert
+- Restore-Routing nutzt `source_view` noch nicht korrekt (Debugging nötig)
+- Mögliche Ursachen: FooterGallery-Routing, Watcher-Timing, oder Backend-Datenfluss
+
+### Betroffene Dateien
+- `src/stores/favorites.ts` — `source_view` in Interface + `addFavorite`/`toggleFavorite`
+- `favorites_routes.py` — POST speichert `source_view`, Restore liest es
+- Alle 5 Views: text_transformation, image_transformation, surrealizer, music_generation, music_generation_v2
 
 ---
 

@@ -193,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
@@ -237,16 +237,47 @@ const l2Distance = ref<number | null>(null)
 // Computed
 const hasResult = computed(() => !!resultImage.value)
 
+// Session persistence — restore on mount
+onMounted(() => {
+  const sa = sessionStorage
+  const s = (k: string) => sa.getItem(k)
+  if (s('lat_lab_ca_promptA')) promptA.value = s('lat_lab_ca_promptA')!
+  if (s('lat_lab_ca_promptB')) promptB.value = s('lat_lab_ca_promptB')!
+  if (s('lat_lab_ca_promptC')) promptC.value = s('lat_lab_ca_promptC')!
+  const enc = s('lat_lab_ca_encoder')
+  if (enc && ['all', 'clip_l', 'clip_g', 't5'].includes(enc)) selectedEncoder.value = enc as EncoderId
+  if (s('lat_lab_ca_negative')) negativePrompt.value = s('lat_lab_ca_negative')!
+  if (s('lat_lab_ca_steps')) steps.value = parseFloat(s('lat_lab_ca_steps')!) || 25
+  if (s('lat_lab_ca_cfg')) cfgScale.value = parseFloat(s('lat_lab_ca_cfg')!) || 4.5
+  if (s('lat_lab_ca_seed')) seed.value = parseFloat(s('lat_lab_ca_seed')!) ?? -1
+  if (s('lat_lab_ca_scaleSub')) scaleSub.value = parseFloat(s('lat_lab_ca_scaleSub')!) || 1.0
+  if (s('lat_lab_ca_scaleAdd')) scaleAdd.value = parseFloat(s('lat_lab_ca_scaleAdd')!) || 1.0
+})
+
+// Session persistence — save on change
+watch(promptA, v => sessionStorage.setItem('lat_lab_ca_promptA', v))
+watch(promptB, v => sessionStorage.setItem('lat_lab_ca_promptB', v))
+watch(promptC, v => sessionStorage.setItem('lat_lab_ca_promptC', v))
+watch(selectedEncoder, v => sessionStorage.setItem('lat_lab_ca_encoder', v))
+watch([negativePrompt, steps, cfgScale, seed, scaleSub, scaleAdd], () => {
+  sessionStorage.setItem('lat_lab_ca_negative', negativePrompt.value)
+  sessionStorage.setItem('lat_lab_ca_steps', String(steps.value))
+  sessionStorage.setItem('lat_lab_ca_cfg', String(cfgScale.value))
+  sessionStorage.setItem('lat_lab_ca_seed', String(seed.value))
+  sessionStorage.setItem('lat_lab_ca_scaleSub', String(scaleSub.value))
+  sessionStorage.setItem('lat_lab_ca_scaleAdd', String(scaleAdd.value))
+})
+
 // Clipboard helpers
 function copyPromptA() { copyToClipboard(promptA.value) }
 function pastePromptA() { promptA.value = pasteFromClipboard() }
-function clearPromptA() { promptA.value = '' }
+function clearPromptA() { promptA.value = ''; sessionStorage.removeItem('lat_lab_ca_promptA') }
 function copyPromptB() { copyToClipboard(promptB.value) }
 function pastePromptB() { promptB.value = pasteFromClipboard() }
-function clearPromptB() { promptB.value = '' }
+function clearPromptB() { promptB.value = ''; sessionStorage.removeItem('lat_lab_ca_promptB') }
 function copyPromptC() { copyToClipboard(promptC.value) }
 function pastePromptC() { promptC.value = pasteFromClipboard() }
-function clearPromptC() { promptC.value = '' }
+function clearPromptC() { promptC.value = ''; sessionStorage.removeItem('lat_lab_ca_promptC') }
 
 function downloadReference() {
   if (!referenceImage.value) return

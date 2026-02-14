@@ -38,11 +38,14 @@
 
         <!-- T5 Prompt Expansion Toggle (directly under input) -->
         <div class="expand-toggle-row">
-          <label class="expand-toggle">
+          <label class="expand-toggle" :class="{ suggest: isShortPrompt && !expandPrompt }">
             <input type="checkbox" v-model="expandPrompt" />
             <span class="expand-toggle-label">{{ t('surrealizer.expandLabel') }}</span>
           </label>
-          <div v-if="expandPrompt && isShortPrompt" class="expand-hint">
+          <div v-if="isShortPrompt && !expandPrompt" class="expand-suggest">
+            {{ t('surrealizer.expandSuggest') }}
+          </div>
+          <div v-else-if="expandPrompt && isShortPrompt" class="expand-hint">
             {{ t('surrealizer.expandHint', { count: estimatedTokens }) }}
           </div>
         </div>
@@ -122,6 +125,8 @@
           :is-analyzing="isAnalyzing"
           :show-analysis="showAnalysis"
           :analysis-data="imageAnalysis"
+          :run-id="currentRunId"
+          :is-favorited="isFavorited"
           forward-button-title="Weiterreichen zu Bild-Transformation"
           @save="saveMedia"
           @print="printImage"
@@ -130,6 +135,7 @@
           @analyze="analyzeImage"
           @image-click="showImageFullscreen"
           @close-analysis="showAnalysis = false"
+          @toggle-favorite="toggleFavorite"
         />
       </section>
     </div>
@@ -147,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -155,7 +161,9 @@ import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
+import { useFavoritesStore } from '@/stores/favorites'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
@@ -193,6 +201,12 @@ const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 // Router for navigation
 const router = useRouter()
 
+// Favorites support
+const favoritesStore = useFavoritesStore()
+const deviceId = useDeviceId()
+const currentRunId = ref<string | null>(null)
+const isFavorited = computed(() => currentRunId.value ? favoritesStore.isFavorited(currentRunId.value) : false)
+
 const inputText = ref('')
 const alphaFaktor = ref<number>(0)  // Slider (-75 to +75), default 0 = normal/balanced
 const isExecuting = ref(false)
@@ -225,6 +239,26 @@ const imageAnalysis = ref<{
   success: boolean
 } | null>(null)
 const showAnalysis = ref(false)
+
+// Session persistence — restore on mount
+onMounted(() => {
+  const sa = sessionStorage
+  const s = (k: string) => sa.getItem(k)
+  if (s('lat_lab_ef_prompt')) inputText.value = s('lat_lab_ef_prompt')!
+  if (s('lat_lab_ef_alpha')) alphaFaktor.value = parseFloat(s('lat_lab_ef_alpha')!) || 0
+  if (s('lat_lab_ef_negative')) negativePrompt.value = s('lat_lab_ef_negative')!
+  if (s('lat_lab_ef_cfg')) cfgScale.value = parseFloat(s('lat_lab_ef_cfg')!) || 5.5
+  if (s('lat_lab_ef_expand')) expandPrompt.value = s('lat_lab_ef_expand') === 'true'
+})
+
+// Session persistence — save on change
+watch(inputText, v => sessionStorage.setItem('lat_lab_ef_prompt', v))
+watch([alphaFaktor, negativePrompt, cfgScale, expandPrompt], () => {
+  sessionStorage.setItem('lat_lab_ef_alpha', String(alphaFaktor.value))
+  sessionStorage.setItem('lat_lab_ef_negative', negativePrompt.value)
+  sessionStorage.setItem('lat_lab_ef_cfg', String(cfgScale.value))
+  sessionStorage.setItem('lat_lab_ef_expand', String(expandPrompt.value))
+})
 
 // Page Context for Träshy (Session 133)
 const pageContextStore = usePageContextStore()
@@ -361,6 +395,7 @@ async function executeWorkflow() {
       const runId = response.data.run_id
 
       if (runId) {
+        currentRunId.value = runId
         clearInterval(progressInterval)
         generationProgress.value = 100
 
@@ -498,12 +533,18 @@ function pasteInputText() {
 
 function clearInputText() {
   inputText.value = ''
+  sessionStorage.removeItem('lat_lab_ef_prompt')
   console.log('[Direct] Input cleared')
 }
 
 // ============================================================================
 // Media Actions (Universal for all media types)
 // ============================================================================
+
+async function toggleFavorite() {
+  if (!currentRunId.value) return
+  await favoritesStore.toggleFavorite(currentRunId.value, 'image', deviceId, 'anonymous', 'surrealizer')
+}
 
 function saveMedia() {
   // TODO: Implement save/bookmark feature for all media types
@@ -672,6 +713,28 @@ function extractInsights(analysisText: string): string[] {
     analysisText.toLowerCase().includes(kw.toLowerCase())
   )
 }
+
+// ============================================================================
+// Restore from Favorites
+// ============================================================================
+
+watch(() => favoritesStore.pendingRestoreData, (restoreData) => {
+  if (!restoreData) return
+
+  console.log('[Surrealizer Restore] Processing:', Object.keys(restoreData))
+
+  if (restoreData.input_text) {
+    inputText.value = restoreData.input_text
+  }
+
+  // Restore surrealizer-specific parameters from current_state
+  const state = restoreData.current_state || {}
+  if (state.alpha_factor !== undefined) alphaFaktor.value = Number(state.alpha_factor)
+  if (state.negative_prompt !== undefined) negativePrompt.value = String(state.negative_prompt)
+  if (state.cfg !== undefined) cfgScale.value = Number(state.cfg)
+
+  favoritesStore.setRestoreData(null)
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -998,6 +1061,16 @@ function extractInsights(analysisText: string): string[] {
   border-color: rgba(102, 126, 234, 0.4);
 }
 
+.expand-toggle.suggest {
+  border-color: rgba(102, 126, 234, 0.45);
+  animation: suggest-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes suggest-pulse {
+  0%, 100% { border-color: rgba(102, 126, 234, 0.45); box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+  50% { border-color: rgba(102, 126, 234, 0.7); box-shadow: 0 0 8px 0 rgba(102, 126, 234, 0.15); }
+}
+
 .expand-toggle input[type="checkbox"] {
   width: 18px;
   height: 18px;
@@ -1008,6 +1081,13 @@ function extractInsights(analysisText: string): string[] {
 .expand-toggle-label {
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.expand-suggest {
+  font-size: 0.78rem;
+  color: rgba(102, 126, 234, 0.7);
+  padding: 0 0.25rem;
+  line-height: 1.4;
 }
 
 .expand-hint {

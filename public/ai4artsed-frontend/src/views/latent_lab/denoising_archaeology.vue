@@ -187,7 +187,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
@@ -294,9 +294,29 @@ watch(selectedStepIndex, (idx) => {
   }
 })
 
+// Session persistence — restore on mount
+onMounted(() => {
+  const sa = sessionStorage
+  const s = (k: string) => sa.getItem(k)
+  if (s('lat_lab_da_prompt')) promptText.value = s('lat_lab_da_prompt')!
+  if (s('lat_lab_da_negative')) negativePrompt.value = s('lat_lab_da_negative')!
+  if (s('lat_lab_da_steps')) steps.value = parseFloat(s('lat_lab_da_steps')!) || 25
+  if (s('lat_lab_da_cfg')) cfgScale.value = parseFloat(s('lat_lab_da_cfg')!) || 4.5
+  if (s('lat_lab_da_seed')) seed.value = parseFloat(s('lat_lab_da_seed')!) ?? -1
+})
+
+// Session persistence — save on change
+watch(promptText, v => sessionStorage.setItem('lat_lab_da_prompt', v))
+watch([negativePrompt, steps, cfgScale, seed], () => {
+  sessionStorage.setItem('lat_lab_da_negative', negativePrompt.value)
+  sessionStorage.setItem('lat_lab_da_steps', String(steps.value))
+  sessionStorage.setItem('lat_lab_da_cfg', String(cfgScale.value))
+  sessionStorage.setItem('lat_lab_da_seed', String(seed.value))
+})
+
 function copyInputText() { copyToClipboard(promptText.value) }
 function pasteInputText() { promptText.value = pasteFromClipboard() }
-function clearInputText() { promptText.value = '' }
+function clearInputText() { promptText.value = ''; sessionStorage.removeItem('lat_lab_da_prompt') }
 
 function downloadImage() {
   const isStepImage = selectedStepIndex.value < stepImages.value.length

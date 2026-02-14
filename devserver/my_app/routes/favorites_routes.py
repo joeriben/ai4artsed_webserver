@@ -209,6 +209,7 @@ def add_favorite():
         device_id = body.get('device_id')  # Session 145: Per-user favorites
         user_id = body.get('user_id', 'anonymous')
         user_note = body.get('user_note', '')
+        source_view = body.get('source_view')  # Vue route path for correct restore routing
 
         # Session 145: Debug logging
         logger.info(f"[FAVORITES] POST Request Body: {body}")
@@ -250,7 +251,8 @@ def add_favorite():
             'thumbnail_url': _get_thumbnail_url(run_id, media_type),
             'media_type': media_type,
             'user_id': user_id,
-            'user_note': user_note
+            'user_note': user_note,
+            'source_view': source_view
         }
 
         # Add to beginning of list (most recent first)
@@ -435,19 +437,22 @@ def get_restore_data(run_id: str):
 
         restore_data['media_outputs'] = media_outputs
 
-        # Determine target view based on input type (not schema name)
-        # Check if there's an input_image entity → i2i, otherwise → t2i
-        has_input_image = any(
-            entity.get('type') == 'input_image'
-            for entity in entities
-        )
+        # Determine target view: use stored source_view if available, else heuristic
+        data = _load_favorites()
+        fav_entry = next((f for f in data.get('favorites', []) if f.get('run_id') == run_id), None)
 
-        if has_input_image:
-            # Image-to-image transformation
-            restore_data['target_view'] = 'image-transformation'
+        if fav_entry and fav_entry.get('source_view'):
+            restore_data['target_view'] = fav_entry['source_view']
         else:
-            # Text-to-image/media transformation (default)
-            restore_data['target_view'] = 'text-transformation'
+            # Fallback heuristic for old favorites without source_view
+            has_input_image = any(
+                entity.get('type') == 'input_image'
+                for entity in entities
+            )
+            if has_input_image:
+                restore_data['target_view'] = 'image-transformation'
+            else:
+                restore_data['target_view'] = 'text-transformation'
 
         logger.info(f"[FAVORITES] Successfully retrieved restore data for: {run_id}")
 

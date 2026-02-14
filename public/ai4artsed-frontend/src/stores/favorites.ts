@@ -27,6 +27,7 @@ export interface FavoriteItem {
   media_type: 'image' | 'audio' | 'video' | 'music' | 'text' | '3d' | 'midi' | 'p5' | 'sonicpi'
   user_id: string
   user_note: string
+  source_view?: string  // Vue route path, e.g. 'surrealizer', 'text-transformation'
   // Enriched by backend
   exists?: boolean
   schema?: string
@@ -195,7 +196,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
     runId: string,
     mediaType: FavoriteItem['media_type'],
     deviceId: string,
-    userId: string = 'anonymous'
+    userId: string = 'anonymous',
+    sourceView?: string
   ): Promise<boolean> {
     error.value = null
 
@@ -208,6 +210,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       media_type: mediaType,
       user_id: userId,
       user_note: '',
+      source_view: sourceView,
       exists: true
     }
 
@@ -220,7 +223,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
         run_id: runId,
         media_type: mediaType,
         device_id: deviceId,  // Session 145
-        user_id: userId
+        user_id: userId,
+        source_view: sourceView
       })
 
       // Update with server response
@@ -295,12 +299,13 @@ export const useFavoritesStore = defineStore('favorites', () => {
     runId: string,
     mediaType: FavoriteItem['media_type'],
     deviceId: string,
-    userId: string = 'anonymous'
+    userId: string = 'anonymous',
+    sourceView?: string
   ): Promise<boolean> {
     if (isFavorited(runId)) {
       return removeFavorite(runId, deviceId)
     } else {
-      return addFavorite(runId, mediaType, deviceId, userId)
+      return addFavorite(runId, mediaType, deviceId, userId, sourceView)
     }
   }
 

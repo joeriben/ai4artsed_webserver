@@ -376,6 +376,15 @@ HEARTMULA_VERSION = os.environ.get("HEARTMULA_VERSION", "3B")
 HEARTMULA_LAZY_LOAD = os.environ.get("HEARTMULA_LAZY_LOAD", "true").lower() == "true"
 HEARTMULA_DEVICE = os.environ.get("HEARTMULA_DEVICE", "cuda")  # cuda, cpu
 
+# ============================================================================
+# GPU SERVICE (Shared Diffusers + HeartMuLa inference)
+# ============================================================================
+# When GPU_SERVICE_URL is set, Flask backends use the shared GPU service
+# instead of loading models in-process. This avoids double VRAM usage
+# when both dev (17802) and prod (17801) backends run simultaneously.
+#
+GPU_SERVICE_URL = os.environ.get("GPU_SERVICE_URL", "http://localhost:17803")
+GPU_SERVICE_TIMEOUT = int(os.environ.get("GPU_SERVICE_TIMEOUT", "300"))  # 5 min for long generations
 
 # Feature Flags
 ENABLE_VALIDATION_PIPELINE = True

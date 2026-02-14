@@ -578,7 +578,7 @@ async function runSingleGeneration() {
 
 async function saveMedia() {
   if (outputAudio.value && currentRunId.value) {
-    const success = await favoritesStore.addFavorite(currentRunId.value, 'music', deviceId)
+    const success = await favoritesStore.addFavorite(currentRunId.value, 'music', deviceId, 'anonymous', 'music-generation')
     if (success) isFavorited.value = true
   }
 }

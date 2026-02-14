@@ -1,0 +1,44 @@
+"""
+GPU Service Flask Application Factory
+
+Creates the Flask app with CORS for localhost and registers all route blueprints.
+"""
+
+import logging
+from flask import Flask
+from flask_cors import CORS
+
+logger = logging.getLogger(__name__)
+
+
+def create_app():
+    """Create and configure the GPU service Flask app."""
+    app = Flask(__name__)
+
+    # CORS for localhost only (dev 17802, prod 17801, frontend 5173)
+    # Note: Primary callers are Flask backends via Python requests (no CORS needed),
+    # but we enable it for debugging with curl/browser tools.
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": [
+                "http://localhost:17801",
+                "http://localhost:17802",
+                "http://localhost:5173",
+                "http://127.0.0.1:17801",
+                "http://127.0.0.1:17802",
+                "http://127.0.0.1:5173",
+            ]
+        }
+    })
+
+    # Register route blueprints
+    from routes.health_routes import health_bp
+    from routes.diffusers_routes import diffusers_bp
+    from routes.heartmula_routes import heartmula_bp
+
+    app.register_blueprint(health_bp)
+    app.register_blueprint(diffusers_bp)
+    app.register_blueprint(heartmula_bp)
+
+    logger.info("[GPU-SERVICE] Flask app created with all route blueprints")
+    return app
