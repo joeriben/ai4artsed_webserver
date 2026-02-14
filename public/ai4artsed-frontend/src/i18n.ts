@@ -358,6 +358,35 @@ const messages = {
       placeholders: {
         projectName: 'z.B. Unser Schulgebäude',
         triggerWords: 'z.B. unser_schulgebaeude, schulhof, klassenzimmer'
+      },
+      labels: {
+        projectName: 'Projektname',
+        triggerWords: 'Trigger-Wörter',
+        triggerHelp: 'Kommagetrennte Tags. Erstes = Haupt-Trigger, Rest = zusätzliche Tags pro Bild.',
+        images: 'Trainingsbilder (10–50 empfohlen)',
+        dropZone: 'Bilder hierher ziehen oder klicken',
+        imagesSelected: '{count} Bilder ausgewählt',
+        logs: 'Trainings-Log',
+        waiting: 'Warte auf Trainingsstart...'
+      },
+      buttons: {
+        start: 'Training starten',
+        stop: 'Stopp',
+        inProgress: 'Training läuft...',
+        delete: 'Projektdaten löschen (DSGVO)',
+        cancel: 'Abbrechen'
+      },
+      vram: {
+        title: 'GPU VRAM Prüfung',
+        checking: 'Prüfe VRAM...',
+        used: 'belegt',
+        free: 'frei',
+        notEnough: 'Nicht genügend freier VRAM für das Training (benötigt {gb} GB).',
+        clearQuestion: 'VRAM freigeben um fortzufahren?',
+        enough: 'Genügend VRAM für das Training verfügbar.',
+        clearing: 'Gebe VRAM frei...',
+        newFree: 'Neu verfügbar',
+        clearBtn: 'ComfyUI + Ollama VRAM freigeben'
       }
     },
     safetyBadges: {
@@ -1129,6 +1158,35 @@ const messages = {
       placeholders: {
         projectName: 'e.g. Our School Building',
         triggerWords: 'e.g. our_school_building, schoolyard, classroom'
+      },
+      labels: {
+        projectName: 'Project Name',
+        triggerWords: 'Trigger Words',
+        triggerHelp: 'Comma-separated tags. First = primary trigger, rest = additional tags per image.',
+        images: 'Training Images (10–50 recommended)',
+        dropZone: 'Click or drop images here',
+        imagesSelected: '{count} images selected',
+        logs: 'Training Logs',
+        waiting: 'Waiting for training to start...'
+      },
+      buttons: {
+        start: 'Start Training',
+        stop: 'Stop',
+        inProgress: 'Training in Progress...',
+        delete: 'Delete Project Files (GDPR)',
+        cancel: 'Cancel'
+      },
+      vram: {
+        title: 'GPU VRAM Check',
+        checking: 'Checking VRAM...',
+        used: 'used',
+        free: 'free',
+        notEnough: 'Not enough free VRAM for training (need {gb} GB).',
+        clearQuestion: 'Clear VRAM to continue?',
+        enough: 'Enough VRAM available for training.',
+        clearing: 'Clearing VRAM...',
+        newFree: 'New free',
+        clearBtn: 'Clear ComfyUI + Ollama VRAM'
       }
     },
     safetyBadges: {

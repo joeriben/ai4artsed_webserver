@@ -31,10 +31,10 @@
     <!-- VRAM Confirmation Dialog -->
     <div v-if="showVramDialog" class="vram-dialog-overlay">
       <div class="vram-dialog">
-        <h2>GPU VRAM Check</h2>
+        <h2>{{ t('training.vram.title') }}</h2>
 
         <div v-if="vramLoading" class="vram-loading">
-          Checking VRAM...
+          {{ t('training.vram.checking') }}
         </div>
 
         <div v-else-if="vramInfo" class="vram-info">
@@ -46,34 +46,34 @@
             ></div>
           </div>
           <div class="vram-stats">
-            <span>{{ vramInfo.used_gb }} GB / {{ vramInfo.total_gb }} GB used</span>
-            <span class="vram-free">{{ vramInfo.free_gb }} GB free</span>
+            <span>{{ vramInfo.used_gb }} GB / {{ vramInfo.total_gb }} GB {{ t('training.vram.used') }}</span>
+            <span class="vram-free">{{ vramInfo.free_gb }} GB {{ t('training.vram.free') }}</span>
           </div>
 
           <div v-if="!vramInfo.can_train" class="vram-warning">
-            Not enough free VRAM for training (need {{ vramInfo.min_required_gb }} GB).
+            {{ t('training.vram.notEnough', { gb: vramInfo.min_required_gb }) }}
             <br>
-            <strong>Clear VRAM to continue?</strong>
+            <strong>{{ t('training.vram.clearQuestion') }}</strong>
           </div>
 
           <div v-else class="vram-ok">
-            Enough VRAM available for training.
+            {{ t('training.vram.enough') }}
           </div>
 
           <div v-if="vramClearing" class="vram-clearing">
-            Clearing VRAM...
+            {{ t('training.vram.clearing') }}
           </div>
 
           <div v-if="vramClearResult" class="vram-clear-result">
             <div v-if="vramClearResult.comfyui">ComfyUI: {{ vramClearResult.comfyui }}</div>
             <div v-if="vramClearResult.ollama">Ollama: {{ vramClearResult.ollama }}</div>
-            <div v-if="vramClearResult.new_free_gb">New free: {{ vramClearResult.new_free_gb }} GB</div>
+            <div v-if="vramClearResult.new_free_gb">{{ t('training.vram.newFree') }}: {{ vramClearResult.new_free_gb }} GB</div>
           </div>
         </div>
 
         <div class="vram-dialog-buttons">
           <button v-if="!vramInfo?.can_train && !vramClearing" class="clear-btn" @click="clearVram">
-            Clear ComfyUI + Ollama VRAM
+            {{ t('training.vram.clearBtn') }}
           </button>
           <button
             v-if="vramInfo?.can_train || vramClearResult"
@@ -81,10 +81,10 @@
             @click="proceedWithTraining"
             :disabled="vramClearing"
           >
-            Start Training
+            {{ t('training.buttons.start') }}
           </button>
           <button class="cancel-btn" @click="cancelVramDialog" :disabled="vramClearing">
-            Cancel
+            {{ t('training.buttons.cancel') }}
           </button>
         </div>
       </div>
@@ -93,14 +93,14 @@
     <div class="grid-layout">
       <!-- Config Column -->
       <div class="column config-column">
-        <label>Project Name</label>
+        <label>{{ t('training.labels.projectName') }}</label>
         <input v-model="project_name" :placeholder="t('training.placeholders.projectName')" :disabled="is_training" />
 
-        <label>Trigger Words</label>
+        <label>{{ t('training.labels.triggerWords') }}</label>
         <input v-model="trigger_word" :placeholder="t('training.placeholders.triggerWords')" :disabled="is_training" />
-        <small>Comma-separated tags. First = primary trigger, rest = additional tags per image.</small>
+        <small>{{ t('training.labels.triggerHelp') }}</small>
 
-        <label>Training Images (10-50 recommended)</label>
+        <label>{{ t('training.labels.images') }}</label>
         <div
           class="drop-zone"
           @dragover.prevent
@@ -110,10 +110,10 @@
         >
           <input type="file" ref="fileInput" multiple @change="handleFileSelect" style="display: none" accept="image/*" />
           <div v-if="images.length === 0">
-            Click or Drop images here
+            {{ t('training.labels.dropZone') }}
           </div>
           <div v-else>
-            {{ images.length }} images selected
+            {{ t('training.labels.imagesSelected', { count: images.length }) }}
           </div>
         </div>
 
@@ -124,7 +124,7 @@
             :disabled="is_training || !canStart"
             :class="{ 'is-loading': is_training }"
           >
-            {{ is_training ? 'Training in Progress...' : 'Start Training' }}
+            {{ is_training ? t('training.buttons.inProgress') : t('training.buttons.start') }}
           </button>
 
           <button
@@ -132,7 +132,7 @@
             class="stop-btn"
             @click="stopTraining"
           >
-            Stop
+            {{ t('training.buttons.stop') }}
           </button>
         </div>
 
@@ -142,19 +142,19 @@
           class="delete-btn"
           @click="deleteProject"
         >
-          Delete Project Files (GDPR)
+          {{ t('training.buttons.delete') }}
         </button>
       </div>
 
       <!-- Log Column -->
       <div class="column log-column">
-        <label>Training Logs</label>
+        <label>{{ t('training.labels.logs') }}</label>
         <div class="terminal" ref="logContainer" @scroll="handleScroll">
           <div v-for="(line, index) in logs" :key="index" class="log-line">
             {{ line }}
           </div>
           <div v-if="logs.length === 0" class="log-placeholder">
-            Waiting for training to start...
+            {{ t('training.labels.waiting') }}
           </div>
         </div>
       </div>
