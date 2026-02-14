@@ -50,7 +50,7 @@ Jede natürliche oder juristische Person darf die Software herunterladen und den
 Nicht-kommerzielle Bildungseinrichtungen dürfen die Software installieren, konfigurieren und in ihren Bildungsangeboten einsetzen.
 
 **(c) Wissenschaftliche Referenz:**
-Jede Person darf die Software in wissenschaftlichen Publikationen referenzieren, zitieren und Auszüge zu Illustrationszwecken verwenden.
+Jede Person darf die Software in wissenschaftlichen Publikationen referenzieren, zitieren und Auszüge zu Illustrationszwecken verwenden und zu Forschungszwecken installieren, konfigurieren und einsetzen.
 
 ---
 
@@ -192,7 +192,7 @@ Any natural or legal person may download the software and study its source code.
 Non-commercial educational institutions may install, configure, and use the software in their educational offerings.
 
 **(c) Academic reference:**
-Any person may reference and cite the software in academic publications and use excerpts for purposes of illustration.
+Any person may reference and cite the software in academic publications, use excerpts for purposes of illustration, and install, configure, and use the software for research purposes.
 
 ---
 
