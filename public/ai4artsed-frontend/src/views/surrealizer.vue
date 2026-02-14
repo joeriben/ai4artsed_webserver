@@ -38,11 +38,14 @@
 
         <!-- T5 Prompt Expansion Toggle (directly under input) -->
         <div class="expand-toggle-row">
-          <label class="expand-toggle">
+          <label class="expand-toggle" :class="{ suggest: isShortPrompt && !expandPrompt }">
             <input type="checkbox" v-model="expandPrompt" />
             <span class="expand-toggle-label">{{ t('surrealizer.expandLabel') }}</span>
           </label>
-          <div v-if="expandPrompt && isShortPrompt" class="expand-hint">
+          <div v-if="isShortPrompt && !expandPrompt" class="expand-suggest">
+            {{ t('surrealizer.expandSuggest') }}
+          </div>
+          <div v-else-if="expandPrompt && isShortPrompt" class="expand-hint">
             {{ t('surrealizer.expandHint', { count: estimatedTokens }) }}
           </div>
         </div>
@@ -1036,6 +1039,16 @@ function extractInsights(analysisText: string): string[] {
   border-color: rgba(102, 126, 234, 0.4);
 }
 
+.expand-toggle.suggest {
+  border-color: rgba(102, 126, 234, 0.45);
+  animation: suggest-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes suggest-pulse {
+  0%, 100% { border-color: rgba(102, 126, 234, 0.45); box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+  50% { border-color: rgba(102, 126, 234, 0.7); box-shadow: 0 0 8px 0 rgba(102, 126, 234, 0.15); }
+}
+
 .expand-toggle input[type="checkbox"] {
   width: 18px;
   height: 18px;
@@ -1046,6 +1059,13 @@ function extractInsights(analysisText: string): string[] {
 .expand-toggle-label {
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.expand-suggest {
+  font-size: 0.78rem;
+  color: rgba(102, 126, 234, 0.7);
+  padding: 0 0.25rem;
+  line-height: 1.4;
 }
 
 .expand-hint {
