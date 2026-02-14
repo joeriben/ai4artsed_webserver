@@ -1,5 +1,42 @@
 # Development Log
 
+## Session 173 - Fix Feature Probing "Backend error: None" + Remove CPU Offloading
+**Date:** 2026-02-14
+**Focus:** Feature Probing failed with `"Backend error: None"` — actual exception was masked. Root cause: broken CPU offloading layer from Session 149-172.
+
+### Problem
+Feature Probing returned `None` on failure, which `backend_router.py` turned into `"Backend error: None"` — no actual exception visible. The underlying failures were caused by the CPU offloading layer (`_offload_to_cpu`, `_move_to_gpu`, `device_map="balanced"`) added for Flux2 in Sessions 149-172, which corrupted pipeline state.
+
+### Solution (Two Phases)
+
+**Phase 1: Error propagation** — `generate_image_with_probing()` now returns `{'error': str}` dicts instead of `None`. `backend_router.py` checks for error dicts and propagates the actual error message via `BackendResponse.error`.
+
+**Phase 2: Remove CPU offloading layer** — Removed the entire three-tier memory system (GPU→CPU→Disk), keeping only the multi-model GPU cache with LRU eviction. Models are either on GPU or not loaded. Eviction = full `del` + `torch.cuda.empty_cache()`.
+
+### What was removed (-214 lines)
+- `_offload_to_cpu()`, `_move_to_gpu()`, `_model_device` dict, `_get_available_ram_mb()`
+- `enable_cpu_offload` parameter, `device_map="balanced"` code path
+- `DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB` (16GB RAM check that silently blocked loading)
+- `DIFFUSERS_PRELOAD_MODELS` + warmup thread in `__init__.py`
+
+### What was kept
+- `_pipelines` dict (GPU cache), `_model_last_used` (LRU), `_model_vram_mb`, `_model_in_use` (refcount), `_load_lock`
+- `_ensure_vram_available()` (simplified: always-delete eviction)
+- `_load_model_sync()` (simplified: 2 cases instead of 3)
+
+### Files changed
+- `devserver/my_app/services/diffusers_backend.py` — core simplification
+- `devserver/schemas/engine/backend_router.py` — error propagation, remove `enable_cpu_offload`
+- `devserver/my_app/__init__.py` — remove warmup thread
+- `devserver/config.py` — remove `DIFFUSERS_PRELOAD_MODELS`, `DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB`
+- `devserver/schemas/chunks/output_image_flux2_diffusers.json` — remove `enable_cpu_offload`
+- `docs/ARCHITECTURE PART 27` — rewritten to reflect simplified design
+
+### Result
+Feature Probing works. Error messages now show actual exceptions instead of "None".
+
+---
+
 ## Session 172 - The Flux2 Diffusers Saga: Why `from_pretrained()` Can't Load 106GB
 **Date:** 2026-02-11 to 2026-02-12
 **Focus:** Attempted to run FLUX.2-dev via HuggingFace Diffusers instead of ComfyUI. Failed after 6+ attempts. Root cause: architectural limitation of `from_pretrained()`.
