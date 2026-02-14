@@ -326,9 +326,11 @@ def _call_ollama_chat(messages: list, model: str, temperature: float, max_tokens
 
         if response.status_code == 200:
             result = response.json()
-            content = result["message"]["content"]
-            logger.info(f"[CHAT] Ollama Success: {len(content)} chars")
-            return content
+            message = result.get("message", {})
+            content = message.get("content", "").strip()
+            thinking = message.get("thinking", "").strip()
+            logger.info(f"[CHAT] Ollama: content={len(content)} chars, thinking={len(thinking)} chars")
+            return {"content": content, "thinking": thinking or None}
         else:
             error_msg = f"API Error: {response.status_code}\n{response.text}"
             logger.error(f"[CHAT] Ollama Error: {error_msg}")
@@ -376,12 +378,14 @@ def _call_openrouter_chat(messages: list, model: str, temperature: float, max_to
         raise
 
 
-def call_chat_helper(messages: list, temperature: float = 0.7, max_tokens: int = 500):
+def call_chat_helper(messages: list, temperature: float = 0.7, max_tokens: int = 500) -> dict:
     """
     Call the configured chat helper model based on provider prefix.
 
     Model is loaded from user_settings.json with fallback to CHAT_HELPER_MODEL from config.py.
     This allows runtime configuration via Settings UI.
+
+    Returns dict: {"content": str, "thinking": str|None}
     """
     model_string = get_user_setting("CHAT_HELPER_MODEL", default=CHAT_HELPER_MODEL)
     logger.info(f"[CHAT] Using model: {model_string}")
@@ -389,37 +393,41 @@ def call_chat_helper(messages: list, temperature: float = 0.7, max_tokens: int =
     if model_string.startswith("bedrock/"):
         model = model_string[len("bedrock/"):]
         logger.info(f"[CHAT] Calling Bedrock with model: {model}")
-        return _call_bedrock_chat(messages, model, temperature, max_tokens)
+        result = _call_bedrock_chat(messages, model, temperature, max_tokens)
 
     elif model_string.startswith("mistral/"):
         model = model_string[len("mistral/"):]
         logger.info(f"[CHAT] Calling Mistral with model: {model}")
-        return _call_mistral_chat(messages, model, temperature, max_tokens)
+        result = _call_mistral_chat(messages, model, temperature, max_tokens)
 
     # OpenRouter-compatible providers
     elif model_string.startswith("anthropic/"):
         model = model_string[len("anthropic/"):]
         logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
-        return _call_openrouter_chat(messages, model, temperature, max_tokens)
+        result = _call_openrouter_chat(messages, model, temperature, max_tokens)
 
     elif model_string.startswith("openai/"):
         model = model_string[len("openai/"):]
         logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
-        return _call_openrouter_chat(messages, model, temperature, max_tokens)
+        result = _call_openrouter_chat(messages, model, temperature, max_tokens)
 
     elif model_string.startswith("openrouter/"):
         model = model_string[len("openrouter/"):]
         logger.info(f"[CHAT] Calling OpenRouter with model: {model}")
-        return _call_openrouter_chat(messages, model, temperature, max_tokens)
+        result = _call_openrouter_chat(messages, model, temperature, max_tokens)
 
     elif model_string.startswith("local/"):
         model = model_string[len("local/"):]
         logger.info(f"[CHAT] Calling Ollama with model: {model}")
-        return _call_ollama_chat(messages, model, temperature, max_tokens)
+        result = _call_ollama_chat(messages, model, temperature, max_tokens)
 
     else:
-        # Unknown prefix
         raise Exception(f"Unknown model prefix in '{model_string}'. Supported: local/, bedrock/, mistral/, anthropic/, openai/, openrouter/")
+
+    # Normalize: Ollama returns dict, other providers return plain strings
+    if isinstance(result, str):
+        return {"content": result, "thinking": None}
+    return result
 
 
 def load_session_context(run_id: str) -> dict:
@@ -607,13 +615,15 @@ def chat():
         # Session 133 DEBUG: Log user message to see if draft context is prepended
         logger.info(f"[CHAT-DEBUG] User message preview: {user_message[:200]}..." if len(user_message) > 200 else f"[CHAT-DEBUG] User message: {user_message}")
 
-        assistant_reply = call_chat_helper(
+        result = call_chat_helper(
             messages=messages,
             temperature=0.7,
             max_tokens=500  # Keep responses concise
         )
+        assistant_reply = result["content"]
+        assistant_thinking = result.get("thinking")
 
-        # Save to history (if run_id provided)
+        # Save to history (if run_id provided) — content only, thinking is ephemeral
         if run_id:
             timestamp = datetime.utcnow().isoformat()
             history.append({
@@ -630,6 +640,7 @@ def chat():
 
         return jsonify({
             "reply": assistant_reply,
+            "thinking": assistant_thinking,
             "context_used": context_used,
             "run_id": run_id
         })

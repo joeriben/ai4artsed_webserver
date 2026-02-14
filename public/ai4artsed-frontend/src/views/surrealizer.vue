@@ -86,28 +86,19 @@
         </div>
 
         <!-- Advanced Settings (collapsible) -->
-        <div class="section-card">
-          <div class="card-header clickable" @click="advancedExpanded = !advancedExpanded">
-            <span class="card-icon">⚙️</span>
-            <span class="card-label">{{ t('surrealizer.advancedLabel') }}</span>
-            <span class="info-toggle">{{ advancedExpanded ? '▲' : '▼' }}</span>
+        <details class="advanced-settings">
+          <summary>{{ t('surrealizer.advancedLabel') }}</summary>
+          <div class="settings-grid">
+            <label>
+              {{ t('surrealizer.negativeLabel') }}
+              <input v-model="negativePrompt" type="text" class="setting-input" />
+            </label>
+            <label>
+              {{ t('surrealizer.cfgLabel') }}
+              <input v-model.number="cfgScale" type="number" min="1" max="15" step="0.1" class="setting-input setting-small" />
+            </label>
           </div>
-          <div v-if="advancedExpanded" class="advanced-settings">
-            <div class="setting-row">
-              <label class="setting-label">{{ t('surrealizer.negativeLabel') }}</label>
-              <input type="text" v-model="negativePrompt" class="negative-input" />
-              <div class="setting-hint">{{ t('surrealizer.negativeHint') }}</div>
-            </div>
-            <div class="setting-row">
-              <label class="setting-label">{{ t('surrealizer.cfgLabel') }}</label>
-              <div class="cfg-slider-row">
-                <input type="range" min="1" max="15" step="0.1" v-model.number="cfgScale" class="cfg-slider" />
-                <span class="cfg-value">{{ cfgScale.toFixed(1) }}</span>
-              </div>
-              <div class="setting-hint">{{ t('surrealizer.cfgHint') }}</div>
-            </div>
-          </div>
-        </div>
+        </details>
 
         <!-- Execute Button -->
         <button
@@ -220,8 +211,6 @@ const currentSeed = ref<number | null>(null)
 // Advanced settings
 const negativePrompt = ref('watermark')
 const cfgScale = ref(5.5)
-const advancedExpanded = ref(false)
-
 // T5 prompt expansion
 const expandPrompt = ref(false)
 const expandedT5Text = ref('')
@@ -941,85 +930,46 @@ function extractInsights(analysisText: string): string[] {
 }
 
 /* ============================================================================
-   Advanced Settings
+   Advanced Settings (Latent Lab Standard)
    ============================================================================ */
 
-.clickable {
-  cursor: pointer;
-}
-
 .advanced-settings {
-  padding: 1rem 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
+  margin-top: 0.75rem;
 }
 
-.setting-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.setting-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.negative-input {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
-  color: #fff;
-  font-size: 0.9rem;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.negative-input:focus {
-  border-color: rgba(99, 102, 241, 0.6);
-}
-
-.cfg-slider-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.cfg-slider {
-  flex: 1;
-  height: 4px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: linear-gradient(to right, rgba(99, 102, 241, 0.3), rgba(99, 102, 241, 0.6));
-  border-radius: 2px;
-  outline: none;
-}
-
-.cfg-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #6366f1;
+.advanced-settings summary {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
   cursor: pointer;
+  padding: 0.25rem 0;
 }
 
-.cfg-value {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-  min-width: 2.5rem;
-  text-align: right;
+.settings-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
-.setting-hint {
+.settings-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  line-height: 1.4;
+}
+
+.setting-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  color: white;
+  font-size: 0.85rem;
+}
+
+.setting-small {
+  width: 80px;
 }
 
 /* ============================================================================

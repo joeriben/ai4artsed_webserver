@@ -351,17 +351,8 @@ DIFFUSERS_DEVICE = os.environ.get("DIFFUSERS_DEVICE", "cuda")  # cuda, cpu
 DIFFUSERS_ENABLE_ATTENTION_SLICING = os.environ.get("DIFFUSERS_ENABLE_ATTENTION_SLICING", "true").lower() == "true"
 DIFFUSERS_ENABLE_VAE_TILING = os.environ.get("DIFFUSERS_ENABLE_VAE_TILING", "false").lower() == "true"
 
-# Models to preload into VRAM at startup (background thread, in priority order)
-# Format: list of (model_id, pipeline_class) tuples
-DIFFUSERS_PRELOAD_MODELS = [
-    ("stabilityai/stable-diffusion-3.5-large", "StableDiffusion3Pipeline"),
-]
 # Minimum free VRAM (MB) to reserve for inference overhead (latents, VAE decode, scheduler)
 DIFFUSERS_VRAM_RESERVE_MB = int(os.environ.get("DIFFUSERS_VRAM_RESERVE_MB", "3072"))
-# Minimum free RAM (MB) that must remain AFTER offloading a model to CPU.
-# Covers: from_pretrained() peak (~2-4GB), OS buffers, Ollama, Python/Flask.
-# If offloading would leave less than this free, the model is fully unloaded instead.
-DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB = int(os.environ.get("DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB", "16384"))
 
 # Pre-compiled TensorRT models on HuggingFace (if available)
 DIFFUSERS_TENSORRT_MODELS = {

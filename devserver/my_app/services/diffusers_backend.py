@@ -27,7 +27,6 @@ import threading
 import time
 import warnings
 from typing import Optional, Dict, Any, Callable, AsyncGenerator
-from pathlib import Path
 import asyncio
 
 # Suppress noisy HuggingFace tokenizer deprecation warnings
@@ -66,16 +65,13 @@ class DiffusersImageGenerator:
         self.enable_attention_slicing = DIFFUSERS_ENABLE_ATTENTION_SLICING
         self.enable_vae_tiling = DIFFUSERS_ENABLE_VAE_TILING
 
-        # Loaded pipelines (lazy-loaded, cached)
+        # Multi-model GPU cache with LRU eviction
         self._pipelines: Dict[str, Any] = {}
         self._current_model: Optional[str] = None
-
-        # Three-tier memory management (GPU VRAM → CPU RAM → Disk)
-        self._model_device: Dict[str, str] = {}       # "cuda" or "cpu"
         self._model_last_used: Dict[str, float] = {}  # timestamp for LRU
         self._model_vram_mb: Dict[str, float] = {}    # measured per-model VRAM
         self._model_in_use: Dict[str, int] = {}       # refcount (eviction guard)
-        self._load_lock = threading.Lock()             # serialize load/offload
+        self._load_lock = threading.Lock()             # serialize load/evict
 
         logger.info(f"[DIFFUSERS] Initialized: cache={self.cache_dir}, tensorrt={self.use_tensorrt}, device={self.device}")
 
@@ -103,78 +99,10 @@ class DiffusersImageGenerator:
         else:
             raise ValueError(f"Unknown pipeline class: {pipeline_class}")
 
-    @staticmethod
-    def _get_available_ram_mb() -> float:
-        """Get available system RAM in MB (Linux only)."""
-        try:
-            with open('/proc/meminfo') as f:
-                for line in f:
-                    if line.startswith('MemAvailable:'):
-                        return int(line.split()[1]) / 1024  # kB → MB
-        except Exception:
-            pass
-        return float('inf')  # Can't determine → assume enough
-
-    def _offload_to_cpu(self, model_id: str) -> None:
-        """Move a pipeline from GPU to CPU RAM, or fully unload if RAM is tight."""
-        import torch
-        from config import DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB
-
-        vram_mb = self._model_vram_mb.get(model_id, 0)
-
-        # Check: would enough RAM remain AFTER offloading for everything else?
-        # (from_pretrained() peak, OS buffers, Ollama, Python/Flask)
-        estimated_model_ram = vram_mb  # fp16 VRAM ≈ fp16 RAM
-        available_ram = self._get_available_ram_mb()
-        remaining_after_offload = available_ram - estimated_model_ram
-
-        if remaining_after_offload < DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB:
-            # Not enough RAM would remain → fully unload to prevent OOM
-            logger.warning(
-                f"[DIFFUSERS] Offloading {model_id} to CPU would leave only "
-                f"{remaining_after_offload:.0f}MB free (need {DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB}MB reserve). "
-                f"Fully unloading instead (next load will be from disk)."
-            )
-            del self._pipelines[model_id]
-            self._model_device.pop(model_id, None)
-            self._model_last_used.pop(model_id, None)
-            self._model_vram_mb.pop(model_id, None)
-            self._model_in_use.pop(model_id, None)
-            if self._current_model == model_id:
-                self._current_model = None
-            torch.cuda.empty_cache()
-            torch.cuda.synchronize()
-            logger.info(f"[DIFFUSERS] Fully unloaded {model_id} ({vram_mb:.0f}MB VRAM freed)")
-            return
-
-        # Enough RAM → offload to CPU for fast reload
-        pipe = self._pipelines[model_id]
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message=".*cannot run with.*cpu.*device.*")
-            pipe.to("cpu")
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
-        self._model_device[model_id] = "cpu"
-        logger.info(
-            f"[DIFFUSERS] Offloaded {model_id} to CPU "
-            f"({vram_mb:.0f}MB VRAM freed, ~{remaining_after_offload:.0f}MB RAM remains free)"
-        )
-
-    def _move_to_gpu(self, model_id: str) -> None:
-        """Move a pipeline from CPU RAM back to GPU."""
-        t0 = time.monotonic()
-        pipe = self._pipelines[model_id]
-        pipe.to(self.device)
-        if self.enable_attention_slicing:
-            pipe.enable_attention_slicing()
-        if self.enable_vae_tiling:
-            pipe.enable_vae_tiling()
-        self._model_device[model_id] = "cuda"
-        elapsed = time.monotonic() - t0
-        logger.info(f"[DIFFUSERS] Moved {model_id} to GPU from CPU ({elapsed:.1f}s)")
-
     def _ensure_vram_available(self, required_mb: float = 0) -> None:
         """Evict LRU models from GPU until enough free VRAM is available.
+
+        Models are fully deleted (not offloaded to CPU). Next use reloads from disk.
 
         Args:
             required_mb: Minimum free VRAM needed. If 0, uses DIFFUSERS_VRAM_RESERVE_MB.
@@ -190,22 +118,20 @@ class DiffusersImageGenerator:
             if not torch.cuda.is_available():
                 break
 
-            # Find evictable models on GPU
-            candidates = [
-                (mid, self._model_last_used.get(mid, 0))
-                for mid in self._pipelines
-                if self._model_device.get(mid) == "cuda"
-                and self._model_in_use.get(mid, 0) <= 0
-            ]
-
             # Check if we have enough free VRAM
             free_mb = (torch.cuda.get_device_properties(0).total_memory
                        - torch.cuda.memory_allocated(0)) / (1024 * 1024)
             if free_mb >= target_mb:
                 break
 
+            # Find evictable models (not currently in use)
+            candidates = [
+                (mid, self._model_last_used.get(mid, 0))
+                for mid in self._pipelines
+                if self._model_in_use.get(mid, 0) <= 0
+            ]
+
             if not candidates:
-                # Don't warn when target is inf (= "evict all") and GPU is already clear
                 if target_mb != float('inf'):
                     logger.warning(
                         f"[DIFFUSERS] Cannot free VRAM: {free_mb:.0f}MB free, "
@@ -213,14 +139,21 @@ class DiffusersImageGenerator:
                     )
                 break
 
-            # Evict least recently used
-            candidates.sort(key=lambda x: x[1])
-            evict_id = candidates[0][0]
-            self._offload_to_cpu(evict_id)
+            # Evict least recently used — full delete
+            evict_id = min(candidates, key=lambda x: x[1])[0]
+            vram_mb = self._model_vram_mb.get(evict_id, 0)
+            del self._pipelines[evict_id]
+            self._model_last_used.pop(evict_id, None)
+            self._model_vram_mb.pop(evict_id, None)
+            self._model_in_use.pop(evict_id, None)
+            if self._current_model == evict_id:
+                self._current_model = None
+            torch.cuda.empty_cache()
+            logger.info(f"[DIFFUSERS] Evicted {evict_id} ({vram_mb:.0f}MB VRAM freed)")
 
-    def _load_model_sync(self, model_id: str, pipeline_class: str = "StableDiffusion3Pipeline", enable_cpu_offload: bool = False) -> bool:
+    def _load_model_sync(self, model_id: str, pipeline_class: str = "StableDiffusion3Pipeline") -> bool:
         """
-        Synchronous model loading with three-tier memory management.
+        Synchronous model loading with GPU cache + LRU eviction.
         Thread-safe via _load_lock.
 
         Returns True if model is ready on GPU.
@@ -228,57 +161,19 @@ class DiffusersImageGenerator:
         with self._load_lock:
             try:
                 import torch
-                from config import DIFFUSERS_VRAM_RESERVE_MB, DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB
 
-                # Case 1: Already loaded and on GPU (or managed by cpu_offload)
-                if model_id in self._pipelines and self._model_device.get(model_id) in ("cuda", "cpu_offload"):
+                # Case 1: Already on GPU → reuse
+                if model_id in self._pipelines:
                     self._model_last_used[model_id] = time.time()
                     self._current_model = model_id
                     return True
 
-                # Case 2: Loaded but on CPU → move to GPU (~1s)
-                if model_id in self._pipelines and self._model_device.get(model_id) == "cpu":
-                    needed = self._model_vram_mb.get(model_id, 0) + DIFFUSERS_VRAM_RESERVE_MB
-                    self._ensure_vram_available(required_mb=needed)
-                    self._move_to_gpu(model_id)
-                    self._model_last_used[model_id] = time.time()
-                    self._current_model = model_id
-                    # _model_vram_mb already set from initial cold load (Case 3)
-                    return True
-
-                # Case 3: Not loaded → full load from disk (~10s)
-                # Evict all evictable models — we don't know the new model's size
+                # Case 2: Not loaded → evict if needed, load from disk
                 self._ensure_vram_available(required_mb=float('inf'))
-
-                # For cpu_offload models: fully unload ALL cached models from CPU RAM
-                # to maximize available memory (these models need 100GB+ RAM during loading)
-                if enable_cpu_offload:
-                    for mid in list(self._pipelines.keys()):
-                        if self._model_in_use.get(mid, 0) <= 0:
-                            logger.info(f"[DIFFUSERS] Fully unloading {mid} from CPU RAM for large model load")
-                            del self._pipelines[mid]
-                            self._model_device.pop(mid, None)
-                            self._model_last_used.pop(mid, None)
-                            self._model_vram_mb.pop(mid, None)
-                            self._model_in_use.pop(mid, None)
-                    if self._current_model and self._current_model not in self._pipelines:
-                        self._current_model = None
-                    torch.cuda.empty_cache()
-                    import gc; gc.collect()
 
                 PipelineClass = self._resolve_pipeline_class(pipeline_class)
 
-                # Pre-check: enough system RAM for from_pretrained()?
-                # Refuses to load if free RAM < reserve, preventing OOM kill.
-                available_ram = self._get_available_ram_mb()
-                logger.info(f"[DIFFUSERS] Loading model from disk: {model_id} (system RAM free: {available_ram:.0f}MB)")
-                if available_ram < DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB:
-                    logger.error(
-                        f"[DIFFUSERS] Not enough system RAM to load {model_id}: "
-                        f"{available_ram:.0f}MB free, need at least {DIFFUSERS_RAM_RESERVE_AFTER_OFFLOAD_MB}MB. "
-                        f"Free memory by stopping other services or increase system RAM."
-                    )
-                    return False
+                logger.info(f"[DIFFUSERS] Loading model from disk: {model_id}")
 
                 vram_before = torch.cuda.memory_allocated(0) if torch.cuda.is_available() else 0
 
@@ -290,20 +185,8 @@ class DiffusersImageGenerator:
                 if self.cache_dir:
                     kwargs["cache_dir"] = str(self.cache_dir)
 
-                if enable_cpu_offload:
-                    # Model too large for VRAM — use device_map to load components
-                    # directly to their target devices (GPU or CPU), avoiding full
-                    # RAM materialization. Then enable_model_cpu_offload() sets up
-                    # accelerate hooks to move components to GPU on demand.
-                    kwargs.pop("low_cpu_mem_usage", None)  # incompatible with device_map
-                    pipe = PipelineClass.from_pretrained(model_id, device_map="balanced", **kwargs)
-                    pipe.enable_model_cpu_offload()
-                    device_label = "cpu_offload"
-                    logger.info(f"[DIFFUSERS] Using model CPU offload (components move to GPU on demand)")
-                else:
-                    pipe = PipelineClass.from_pretrained(model_id, **kwargs)
-                    pipe = pipe.to(self.device)
-                    device_label = "cuda"
+                pipe = PipelineClass.from_pretrained(model_id, **kwargs)
+                pipe = pipe.to(self.device)
 
                 if self.enable_attention_slicing:
                     pipe.enable_attention_slicing()
@@ -311,7 +194,6 @@ class DiffusersImageGenerator:
                     pipe.enable_vae_tiling()
 
                 self._pipelines[model_id] = pipe
-                self._model_device[model_id] = device_label
                 self._current_model = model_id
                 self._model_last_used[model_id] = time.time()
 
@@ -321,7 +203,7 @@ class DiffusersImageGenerator:
 
                 logger.info(
                     f"[DIFFUSERS] Model loaded: {model_id} "
-                    f"(device: {device_label}, VRAM: {self._model_vram_mb[model_id]:.0f}MB)"
+                    f"(VRAM: {self._model_vram_mb[model_id]:.0f}MB)"
                 )
                 return True
 
@@ -378,25 +260,21 @@ class DiffusersImageGenerator:
         self,
         model_id: str,
         pipeline_class: str = "StableDiffusion3Pipeline",
-        enable_cpu_offload: bool = False,
     ) -> bool:
         """
-        Load a model into GPU memory (three-tier: GPU → CPU → Disk).
+        Load a model into GPU memory with LRU cache.
 
-        Handles all three cases:
         - Already on GPU: updates last_used timestamp (instant)
-        - On CPU RAM: moves to GPU (~1s)
-        - Not loaded: loads from disk (~10s)
+        - Not loaded: evicts LRU models, loads from disk (~10s)
 
         Args:
             model_id: HuggingFace model ID or local path
             pipeline_class: Pipeline class to use
-            enable_cpu_offload: Use enable_model_cpu_offload() for models too large for VRAM
 
         Returns:
             True if loaded successfully
         """
-        return await asyncio.to_thread(self._load_model_sync, model_id, pipeline_class, enable_cpu_offload)
+        return await asyncio.to_thread(self._load_model_sync, model_id, pipeline_class)
 
     async def unload_model(self, model_id: Optional[str] = None) -> bool:
         """
@@ -418,7 +296,6 @@ class DiffusersImageGenerator:
             import torch
 
             del self._pipelines[model_id]
-            self._model_device.pop(model_id, None)
             self._model_last_used.pop(model_id, None)
             self._model_vram_mb.pop(model_id, None)
             self._model_in_use.pop(model_id, None)
@@ -450,7 +327,6 @@ class DiffusersImageGenerator:
         seed: int = -1,
         callback: Optional[Callable[[int, int, Any], None]] = None,
         pipeline_class: str = "StableDiffusion3Pipeline",
-        enable_cpu_offload: bool = False,
         **kwargs
     ) -> Optional[bytes]:
         """
@@ -477,7 +353,7 @@ class DiffusersImageGenerator:
             import io
 
             # Ensure model is loaded and on GPU
-            if not await self.load_model(model_id, pipeline_class, enable_cpu_offload):
+            if not await self.load_model(model_id, pipeline_class):
                 return None
 
             self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1
@@ -1013,7 +889,7 @@ class DiffusersImageGenerator:
 
             # Ensure model is loaded and on GPU
             if not await self.load_model(model_id):
-                return None
+                return {'error': f'Model loading failed for {model_id}'}
 
             self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1
             try:
@@ -1023,7 +899,7 @@ class DiffusersImageGenerator:
                 # Verify encoder access methods
                 if not hasattr(pipe, '_get_clip_prompt_embeds') or not hasattr(pipe, '_get_t5_prompt_embeds'):
                     logger.error("[DIFFUSERS-PROBING] Pipeline missing encoder methods")
-                    return None
+                    return {'error': 'Pipeline missing _get_clip_prompt_embeds or _get_t5_prompt_embeds'}
 
                 # Generate random seed if needed
                 if seed == -1:
@@ -1262,7 +1138,7 @@ class DiffusersImageGenerator:
             logger.error(f"[DIFFUSERS-PROBING] Generation error: {e}")
             import traceback
             traceback.print_exc()
-            return None
+            return {'error': str(e)}
 
     async def generate_image_with_algebra(
         self,
@@ -1799,33 +1675,6 @@ class DiffusersImageGenerator:
             logger.error(f"[DIFFUSERS] Streaming error: {e}")
             yield {"type": "error", "message": str(e)}
 
-    def warmup(self) -> None:
-        """
-        Preload models into VRAM (called from background thread at startup).
-
-        Iterates DIFFUSERS_PRELOAD_MODELS and loads each into GPU memory.
-        Failures are logged but never crash the server.
-        """
-        from config import DIFFUSERS_PRELOAD_MODELS
-
-        if not DIFFUSERS_PRELOAD_MODELS:
-            return
-
-        logger.info(f"[DIFFUSERS-WARMUP] Preloading {len(DIFFUSERS_PRELOAD_MODELS)} model(s)...")
-
-        for model_id, pipeline_class in DIFFUSERS_PRELOAD_MODELS:
-            try:
-                t0 = time.monotonic()
-                success = self._load_model_sync(model_id, pipeline_class)
-                elapsed = time.monotonic() - t0
-                if success:
-                    logger.info(f"[DIFFUSERS-WARMUP] Preloaded {model_id} ({elapsed:.1f}s)")
-                else:
-                    logger.warning(f"[DIFFUSERS-WARMUP] Failed to preload {model_id}")
-            except Exception as e:
-                logger.error(f"[DIFFUSERS-WARMUP] Error preloading {model_id}: {e}")
-
-        logger.info("[DIFFUSERS-WARMUP] Preloading complete")
 
 
 # Singleton instance

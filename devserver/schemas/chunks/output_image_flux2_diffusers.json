@@ -9,7 +9,6 @@
     "model_id": "black-forest-labs/FLUX.2-dev",
     "pipeline_class": "Flux2Pipeline",
     "torch_dtype": "bfloat16",
-    "enable_cpu_offload": true,
     "enable_attention_slicing": true,
     "enable_vae_tiling": false
   },

@@ -346,6 +346,7 @@ const messages = {
     training: {
       info: {
         title: 'Hinweis zum LoRA-Training',
+        studioDescription: 'Trainiere eigene LoRA-Modelle für Stable Diffusion 3.5 Large mit deinen Bildern.',
         description: 'Dieses eingebaute Training ist für schnelle Tests gedacht.',
         limitations: 'Einschränkungen',
         limitationDuration: 'Training dauert 1-3 Stunden',
@@ -353,6 +354,39 @@ const messages = {
         limitationConfig: 'Begrenzte Konfigurationsmöglichkeiten',
         showMore: 'Mehr erfahren',
         showLess: 'Weniger anzeigen'
+      },
+      placeholders: {
+        projectName: 'z.B. Unser Schulgebäude',
+        triggerWords: 'z.B. unser_schulgebaeude, schulhof, klassenzimmer'
+      },
+      labels: {
+        projectName: 'Projektname',
+        triggerWords: 'Trigger-Wörter',
+        triggerHelp: 'Kommagetrennte Tags. Erstes = Haupt-Trigger, Rest = zusätzliche Tags pro Bild.',
+        images: 'Trainingsbilder (10–50 empfohlen)',
+        dropZone: 'Bilder hierher ziehen oder klicken',
+        imagesSelected: '{count} Bilder ausgewählt',
+        logs: 'Trainings-Log',
+        waiting: 'Warte auf Trainingsstart...'
+      },
+      buttons: {
+        start: 'Training starten',
+        stop: 'Stopp',
+        inProgress: 'Training läuft...',
+        delete: 'Projektdaten löschen (DSGVO)',
+        cancel: 'Abbrechen'
+      },
+      vram: {
+        title: 'GPU VRAM Prüfung',
+        checking: 'Prüfe VRAM...',
+        used: 'belegt',
+        free: 'frei',
+        notEnough: 'Nicht genügend freier VRAM für das Training (benötigt {gb} GB).',
+        clearQuestion: 'VRAM freigeben um fortzufahren?',
+        enough: 'Genügend VRAM für das Training verfügbar.',
+        clearing: 'Gebe VRAM frei...',
+        newFree: 'Neu verfügbar',
+        clearBtn: 'ComfyUI + Ollama VRAM freigeben'
       }
     },
     safetyBadges: {
@@ -1112,6 +1146,7 @@ const messages = {
     training: {
       info: {
         title: 'About LoRA Training',
+        studioDescription: 'Train custom LoRA models for Stable Diffusion 3.5 Large with your own images.',
         description: 'This built-in training is designed for quick tests.',
         limitations: 'Limitations',
         limitationDuration: 'Training takes 1-3 hours',
@@ -1119,6 +1154,39 @@ const messages = {
         limitationConfig: 'Limited configuration options',
         showMore: 'Learn more',
         showLess: 'Show less'
+      },
+      placeholders: {
+        projectName: 'e.g. Our School Building',
+        triggerWords: 'e.g. our_school_building, schoolyard, classroom'
+      },
+      labels: {
+        projectName: 'Project Name',
+        triggerWords: 'Trigger Words',
+        triggerHelp: 'Comma-separated tags. First = primary trigger, rest = additional tags per image.',
+        images: 'Training Images (10–50 recommended)',
+        dropZone: 'Click or drop images here',
+        imagesSelected: '{count} images selected',
+        logs: 'Training Logs',
+        waiting: 'Waiting for training to start...'
+      },
+      buttons: {
+        start: 'Start Training',
+        stop: 'Stop',
+        inProgress: 'Training in Progress...',
+        delete: 'Delete Project Files (GDPR)',
+        cancel: 'Cancel'
+      },
+      vram: {
+        title: 'GPU VRAM Check',
+        checking: 'Checking VRAM...',
+        used: 'used',
+        free: 'free',
+        notEnough: 'Not enough free VRAM for training (need {gb} GB).',
+        clearQuestion: 'Clear VRAM to continue?',
+        enough: 'Enough VRAM available for training.',
+        clearing: 'Clearing VRAM...',
+        newFree: 'New free',
+        clearBtn: 'Clear ComfyUI + Ollama VRAM'
       }
     },
     safetyBadges: {

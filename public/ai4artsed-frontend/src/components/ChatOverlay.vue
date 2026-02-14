@@ -39,7 +39,15 @@
           :key="msg.id"
           :class="['message', msg.role]"
         >
-          <div class="message-content">{{ msg.content }}</div>
+          <div class="message-content">
+            <div v-if="msg.content">{{ msg.content }}</div>
+            <div v-else-if="msg.thinking" class="thinking-no-answer">Keine Antwort erhalten.</div>
+            <div v-if="msg.thinking" class="thinking-toggle" @click="toggleThinking(msg.id)">
+              <span class="thinking-arrow">{{ expandedThinking.has(msg.id) ? '\u25BE' : '\u25B8' }}</span>
+              <span class="thinking-label">Thinking</span>
+            </div>
+            <div v-if="msg.thinking && expandedThinking.has(msg.id)" class="thinking-text">{{ msg.thinking }}</div>
+          </div>
         </div>
 
         <!-- Loading Indicator -->
@@ -90,6 +98,7 @@ interface Message {
   id: number
   role: 'user' | 'assistant'
   content: string
+  thinking?: string | null
 }
 
 const { t } = useI18n()
@@ -100,6 +109,14 @@ const isLoading = ref(false)
 const inputMessage = ref('')
 const messages = ref<Message[]>([])
 let messageIdCounter = 0
+const expandedThinking = ref(new Set<number>())
+
+function toggleThinking(messageId: number) {
+  const s = new Set(expandedThinking.value)
+  if (s.has(messageId)) s.delete(messageId)
+  else s.add(messageId)
+  expandedThinking.value = s
+}
 
 // Drag state
 const isDragging = ref(false)
@@ -392,12 +409,14 @@ async function sendMessage() {
     })
 
     const assistantReply = response.data.reply
+    const assistantThinking = response.data.thinking || null
 
     // Add assistant response to UI
     messages.value.push({
       id: messageIdCounter++,
       role: 'assistant',
-      content: assistantReply
+      content: assistantReply,
+      thinking: assistantThinking
     })
 
     // Scroll to bottom
@@ -740,6 +759,51 @@ watch(
   line-height: 1.4;
   word-wrap: break-word;
   white-space: pre-wrap;
+}
+
+/* Thinking (collapsible inside message bubble) */
+.thinking-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  margin-bottom: 0.4rem;
+  user-select: none;
+}
+
+.thinking-toggle:hover .thinking-label {
+  color: #bbb;
+}
+
+.thinking-arrow {
+  font-size: 0.7rem;
+  color: #666;
+}
+
+.thinking-label {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #777;
+  transition: color 0.15s;
+}
+
+.thinking-text {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #888;
+  line-height: 1.4;
+  padding: 0.4rem 0.5rem;
+  margin-top: 0.3rem;
+  border-left: 2px solid #444;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.thinking-no-answer {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #999;
+  margin-bottom: 0.3rem;
 }
 
 .message.user .message-content {

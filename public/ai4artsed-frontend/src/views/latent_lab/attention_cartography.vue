@@ -69,23 +69,25 @@
           </label>
           <label>
             {{ t('latentLab.attention.seedLabel') }}
-            <input v-model.number="seed" type="number" min="-1" class="setting-input setting-small" />
+            <input v-model.number="seed" type="number" min="-1" class="setting-input setting-seed" />
           </label>
         </div>
       </details>
     </div>
 
     <!-- Main Visualization -->
-    <div class="visualization-section" v-if="imageData">
+    <div class="visualization-section" :class="{ 'is-disabled': !imageData }">
       <!-- Image with heatmap overlay -->
       <div class="image-container" ref="imageContainerRef">
         <img
+          v-if="imageData"
           :src="`data:image/png;base64,${imageData}`"
           class="generated-image"
           :class="{ grayscale: baseImageMode === 'bw', hidden: baseImageMode === 'off' }"
           ref="imageRef"
           @load="onImageLoad"
         />
+        <div v-else class="placeholder-image"></div>
         <canvas
           ref="heatmapCanvas"
           class="heatmap-overlay"
@@ -204,8 +206,8 @@
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div class="empty-state" v-else-if="!isGenerating">
+    <!-- Empty State Hint (shown over disabled visualization) -->
+    <div class="empty-state-overlay" v-if="!imageData && !isGenerating">
       <p>{{ t('latentLab.attention.emptyHint') }}</p>
     </div>
 
@@ -690,6 +692,10 @@ onUnmounted(() => {
   width: 80px;
 }
 
+.setting-seed {
+  width: 14ch;
+}
+
 /* Visualization */
 .visualization-section {
   margin-top: 1rem;
@@ -928,11 +934,26 @@ onUnmounted(() => {
 }
 
 /* Empty / Progress / Error States */
-.empty-state {
+.visualization-section.is-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.placeholder-image {
+  width: 100%;
+  aspect-ratio: 1/1;
+  max-width: 512px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.empty-state-overlay {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 2rem;
   color: rgba(255, 255, 255, 0.3);
   font-size: 0.95rem;
+  margin-top: -2rem;
 }
 
 .progress-state {
