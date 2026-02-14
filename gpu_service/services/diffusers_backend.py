@@ -659,7 +659,7 @@ class DiffusersImageGenerator:
             import io
             import base64
 
-            from my_app.services.attention_processors_sd3 import (
+            from services.attention_processors_sd3 import (
                 AttentionMapStore,
                 install_attention_capture,
                 restore_attention_processors,
@@ -882,7 +882,7 @@ class DiffusersImageGenerator:
             import torch.nn.functional as F
             import io
             import base64
-            from my_app.services.embedding_analyzer import (
+            from services.embedding_analyzer import (
                 compute_dimension_differences,
                 apply_dimension_transfer,
             )
@@ -1186,7 +1186,7 @@ class DiffusersImageGenerator:
             import torch.nn.functional as F
             import io
             import base64
-            from my_app.services.embedding_analyzer import apply_concept_algebra
+            from services.embedding_analyzer import apply_concept_algebra
 
             if not await self.load_model(model_id):
                 return None
@@ -1677,22 +1677,20 @@ class DiffusersImageGenerator:
 
 
 
-# Singleton instance — returns HTTP client for shared GPU service
-_backend = None
+# Singleton instance
+_backend: Optional[DiffusersImageGenerator] = None
 
 
-def get_diffusers_backend():
+def get_diffusers_backend() -> DiffusersImageGenerator:
     """
-    Get Diffusers backend (shared GPU service client).
+    Get Diffusers backend singleton
 
-    Returns a DiffusersClient that calls the GPU service via HTTP REST.
-    The DiffusersClient has the same async API as DiffusersImageGenerator,
-    so all callers (backend_router.py, chunk files) work without changes.
+    Returns:
+        DiffusersImageGenerator instance
     """
     global _backend
     if _backend is None:
-        from my_app.services.diffusers_client import DiffusersClient
-        _backend = DiffusersClient()
+        _backend = DiffusersImageGenerator()
     return _backend
 
 

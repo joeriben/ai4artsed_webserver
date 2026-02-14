@@ -1,0 +1,258 @@
+"""
+GPU Service Diffusers Routes
+
+REST endpoints for all Diffusers generation methods.
+Each endpoint maps 1:1 to a DiffusersImageGenerator method.
+"""
+
+import asyncio
+import base64
+import logging
+from flask import Blueprint, request, jsonify
+
+logger = logging.getLogger(__name__)
+
+diffusers_bp = Blueprint('diffusers', __name__)
+
+
+def _run_async(coro):
+    """Run an async coroutine from sync Flask context."""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
+def _get_backend():
+    from services.diffusers_backend import get_diffusers_backend
+    return get_diffusers_backend()
+
+
+@diffusers_bp.route('/api/diffusers/available', methods=['GET'])
+def available():
+    """Check if Diffusers backend is available."""
+    try:
+        from config import DIFFUSERS_ENABLED
+        if not DIFFUSERS_ENABLED:
+            return jsonify({"available": False, "reason": "disabled"})
+        backend = _get_backend()
+        is_available = _run_async(backend.is_available())
+        return jsonify({"available": is_available})
+    except Exception as e:
+        return jsonify({"available": False, "reason": str(e)})
+
+
+@diffusers_bp.route('/api/diffusers/gpu_info', methods=['GET'])
+def gpu_info():
+    """Get GPU memory information."""
+    backend = _get_backend()
+    info = _run_async(backend.get_gpu_info())
+    return jsonify(info)
+
+
+@diffusers_bp.route('/api/diffusers/unload', methods=['POST'])
+def unload():
+    """Unload a model from GPU."""
+    data = request.get_json(silent=True) or {}
+    model_id = data.get('model_id')
+    backend = _get_backend()
+    result = _run_async(backend.unload_model(model_id))
+    return jsonify({"success": result})
+
+
+@diffusers_bp.route('/api/diffusers/generate', methods=['POST'])
+def generate():
+    """Standard image generation.
+
+    Returns: { success, image_base64, seed }
+    """
+    data = request.get_json()
+    if not data or 'prompt' not in data:
+        return jsonify({"success": False, "error": "prompt required"}), 400
+
+    backend = _get_backend()
+    image_bytes = _run_async(backend.generate_image(
+        prompt=data['prompt'],
+        model_id=data.get('model_id', 'stabilityai/stable-diffusion-3.5-large'),
+        negative_prompt=data.get('negative_prompt', ''),
+        width=int(data.get('width', 1024)),
+        height=int(data.get('height', 1024)),
+        steps=int(data.get('steps', 25)),
+        cfg_scale=float(data.get('cfg_scale', 4.5)),
+        seed=int(data.get('seed', -1)),
+        pipeline_class=data.get('pipeline_class', 'StableDiffusion3Pipeline'),
+    ))
+
+    if image_bytes is None:
+        return jsonify({"success": False, "error": "Generation failed"}), 500
+
+    return jsonify({
+        "success": True,
+        "image_base64": base64.b64encode(image_bytes).decode('utf-8'),
+    })
+
+
+@diffusers_bp.route('/api/diffusers/generate/fusion', methods=['POST'])
+def generate_fusion():
+    """T5-CLIP fusion generation (Surrealizer).
+
+    Returns: { success, image_base64 }
+    """
+    data = request.get_json()
+    if not data or 'prompt' not in data:
+        return jsonify({"success": False, "error": "prompt required"}), 400
+
+    backend = _get_backend()
+    image_bytes = _run_async(backend.generate_image_with_fusion(
+        prompt=data['prompt'],
+        t5_prompt=data.get('t5_prompt'),
+        alpha_factor=float(data.get('alpha_factor', 0.0)),
+        model_id=data.get('model_id', 'stabilityai/stable-diffusion-3.5-large'),
+        negative_prompt=data.get('negative_prompt', ''),
+        width=int(data.get('width', 1024)),
+        height=int(data.get('height', 1024)),
+        steps=int(data.get('steps', 25)),
+        cfg_scale=float(data.get('cfg_scale', 4.5)),
+        seed=int(data.get('seed', -1)),
+    ))
+
+    if image_bytes is None:
+        return jsonify({"success": False, "error": "Fusion generation failed"}), 500
+
+    return jsonify({
+        "success": True,
+        "image_base64": base64.b64encode(image_bytes).decode('utf-8'),
+    })
+
+
+@diffusers_bp.route('/api/diffusers/generate/attention', methods=['POST'])
+def generate_attention():
+    """Attention cartography generation.
+
+    Returns: { success, image_base64, tokens, word_groups, attention_maps,
+               spatial_resolution, image_resolution, seed, capture_layers, capture_steps }
+    """
+    data = request.get_json()
+    if not data or 'prompt' not in data:
+        return jsonify({"success": False, "error": "prompt required"}), 400
+
+    backend = _get_backend()
+    result = _run_async(backend.generate_image_with_attention(
+        prompt=data['prompt'],
+        model_id=data.get('model_id', 'stabilityai/stable-diffusion-3.5-large'),
+        negative_prompt=data.get('negative_prompt', ''),
+        width=int(data.get('width', 1024)),
+        height=int(data.get('height', 1024)),
+        steps=int(data.get('steps', 25)),
+        cfg_scale=float(data.get('cfg_scale', 4.5)),
+        seed=int(data.get('seed', -1)),
+        capture_layers=data.get('capture_layers'),
+        capture_every_n_steps=int(data.get('capture_every_n_steps', 5)),
+    ))
+
+    if result is None:
+        return jsonify({"success": False, "error": "Attention generation failed"}), 500
+
+    result["success"] = True
+    return jsonify(result)
+
+
+@diffusers_bp.route('/api/diffusers/generate/probing', methods=['POST'])
+def generate_probing():
+    """Feature probing generation.
+
+    Returns: { success, image_base64, probing_data, seed } or { error }
+    """
+    data = request.get_json()
+    if not data or 'prompt_a' not in data or 'prompt_b' not in data:
+        return jsonify({"success": False, "error": "prompt_a and prompt_b required"}), 400
+
+    backend = _get_backend()
+    result = _run_async(backend.generate_image_with_probing(
+        prompt_a=data['prompt_a'],
+        prompt_b=data['prompt_b'],
+        encoder=data.get('encoder', 't5'),
+        transfer_dims=data.get('transfer_dims'),
+        negative_prompt=data.get('negative_prompt', ''),
+        width=int(data.get('width', 1024)),
+        height=int(data.get('height', 1024)),
+        steps=int(data.get('steps', 25)),
+        cfg_scale=float(data.get('cfg_scale', 4.5)),
+        seed=int(data.get('seed', -1)),
+        model_id=data.get('model_id', 'stabilityai/stable-diffusion-3.5-large'),
+    ))
+
+    if result is None:
+        return jsonify({"success": False, "error": "Probing generation failed"}), 500
+
+    if 'error' in result:
+        return jsonify({"success": False, "error": result['error']}), 500
+
+    result["success"] = True
+    return jsonify(result)
+
+
+@diffusers_bp.route('/api/diffusers/generate/algebra', methods=['POST'])
+def generate_algebra():
+    """Concept algebra generation.
+
+    Returns: { success, reference_image, result_image, algebra_data, seed }
+    """
+    data = request.get_json()
+    if not data or 'prompt_a' not in data:
+        return jsonify({"success": False, "error": "prompt_a required"}), 400
+
+    backend = _get_backend()
+    result = _run_async(backend.generate_image_with_algebra(
+        prompt_a=data['prompt_a'],
+        prompt_b=data.get('prompt_b', ''),
+        prompt_c=data.get('prompt_c', ''),
+        encoder=data.get('encoder', 'all'),
+        scale_sub=float(data.get('scale_sub', 1.0)),
+        scale_add=float(data.get('scale_add', 1.0)),
+        negative_prompt=data.get('negative_prompt', ''),
+        width=int(data.get('width', 1024)),
+        height=int(data.get('height', 1024)),
+        steps=int(data.get('steps', 25)),
+        cfg_scale=float(data.get('cfg_scale', 4.5)),
+        seed=int(data.get('seed', -1)),
+        model_id=data.get('model_id', 'stabilityai/stable-diffusion-3.5-large'),
+        generate_reference=data.get('generate_reference', True),
+    ))
+
+    if result is None:
+        return jsonify({"success": False, "error": "Algebra generation failed"}), 500
+
+    result["success"] = True
+    return jsonify(result)
+
+
+@diffusers_bp.route('/api/diffusers/generate/archaeology', methods=['POST'])
+def generate_archaeology():
+    """Denoising archaeology generation.
+
+    Returns: { success, image_base64, step_images, seed, total_steps }
+    """
+    data = request.get_json()
+    if not data or 'prompt' not in data:
+        return jsonify({"success": False, "error": "prompt required"}), 400
+
+    backend = _get_backend()
+    result = _run_async(backend.generate_image_with_archaeology(
+        prompt=data['prompt'],
+        model_id=data.get('model_id', 'stabilityai/stable-diffusion-3.5-large'),
+        negative_prompt=data.get('negative_prompt', ''),
+        width=int(data.get('width', 1024)),
+        height=int(data.get('height', 1024)),
+        steps=int(data.get('steps', 25)),
+        cfg_scale=float(data.get('cfg_scale', 4.5)),
+        seed=int(data.get('seed', -1)),
+        capture_every_n=int(data.get('capture_every_n', 1)),
+    ))
+
+    if result is None:
+        return jsonify({"success": False, "error": "Archaeology generation failed"}), 500
+
+    result["success"] = True
+    return jsonify(result)
