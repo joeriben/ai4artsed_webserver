@@ -250,7 +250,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
@@ -401,12 +401,37 @@ function toggleSort() {
   sortAscending.value = !sortAscending.value
 }
 
+// Session persistence — restore on mount
+onMounted(() => {
+  const sa = sessionStorage
+  const s = (k: string) => sa.getItem(k)
+  if (s('lat_lab_fp_promptA')) promptA.value = s('lat_lab_fp_promptA')!
+  if (s('lat_lab_fp_promptB')) promptB.value = s('lat_lab_fp_promptB')!
+  const enc = s('lat_lab_fp_encoder')
+  if (enc && ['all', 'clip_l', 'clip_g', 't5'].includes(enc)) selectedEncoder.value = enc as EncoderId
+  if (s('lat_lab_fp_negative')) negativePrompt.value = s('lat_lab_fp_negative')!
+  if (s('lat_lab_fp_steps')) steps.value = parseFloat(s('lat_lab_fp_steps')!) || 25
+  if (s('lat_lab_fp_cfg')) cfgScale.value = parseFloat(s('lat_lab_fp_cfg')!) || 4.5
+  if (s('lat_lab_fp_seed')) seed.value = parseFloat(s('lat_lab_fp_seed')!) ?? -1
+})
+
+// Session persistence — save on change
+watch(promptA, v => sessionStorage.setItem('lat_lab_fp_promptA', v))
+watch(promptB, v => sessionStorage.setItem('lat_lab_fp_promptB', v))
+watch(selectedEncoder, v => sessionStorage.setItem('lat_lab_fp_encoder', v))
+watch([negativePrompt, steps, cfgScale, seed], () => {
+  sessionStorage.setItem('lat_lab_fp_negative', negativePrompt.value)
+  sessionStorage.setItem('lat_lab_fp_steps', String(steps.value))
+  sessionStorage.setItem('lat_lab_fp_cfg', String(cfgScale.value))
+  sessionStorage.setItem('lat_lab_fp_seed', String(seed.value))
+})
+
 function copyPromptA() { copyToClipboard(promptA.value) }
 function pastePromptA() { promptA.value = pasteFromClipboard() }
-function clearPromptA() { promptA.value = '' }
+function clearPromptA() { promptA.value = ''; sessionStorage.removeItem('lat_lab_fp_promptA') }
 function copyPromptB() { copyToClipboard(promptB.value) }
 function pastePromptB() { promptB.value = pasteFromClipboard() }
-function clearPromptB() { promptB.value = '' }
+function clearPromptB() { promptB.value = ''; sessionStorage.removeItem('lat_lab_fp_promptB') }
 
 function downloadOriginal() {
   if (!originalImage.value) return

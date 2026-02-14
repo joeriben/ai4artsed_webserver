@@ -147,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -225,6 +225,26 @@ const imageAnalysis = ref<{
   success: boolean
 } | null>(null)
 const showAnalysis = ref(false)
+
+// Session persistence — restore on mount
+onMounted(() => {
+  const sa = sessionStorage
+  const s = (k: string) => sa.getItem(k)
+  if (s('lat_lab_ef_prompt')) inputText.value = s('lat_lab_ef_prompt')!
+  if (s('lat_lab_ef_alpha')) alphaFaktor.value = parseFloat(s('lat_lab_ef_alpha')!) || 0
+  if (s('lat_lab_ef_negative')) negativePrompt.value = s('lat_lab_ef_negative')!
+  if (s('lat_lab_ef_cfg')) cfgScale.value = parseFloat(s('lat_lab_ef_cfg')!) || 5.5
+  if (s('lat_lab_ef_expand')) expandPrompt.value = s('lat_lab_ef_expand') === 'true'
+})
+
+// Session persistence — save on change
+watch(inputText, v => sessionStorage.setItem('lat_lab_ef_prompt', v))
+watch([alphaFaktor, negativePrompt, cfgScale, expandPrompt], () => {
+  sessionStorage.setItem('lat_lab_ef_alpha', String(alphaFaktor.value))
+  sessionStorage.setItem('lat_lab_ef_negative', negativePrompt.value)
+  sessionStorage.setItem('lat_lab_ef_cfg', String(cfgScale.value))
+  sessionStorage.setItem('lat_lab_ef_expand', String(expandPrompt.value))
+})
 
 // Page Context for Träshy (Session 133)
 const pageContextStore = usePageContextStore()
@@ -498,6 +518,7 @@ function pasteInputText() {
 
 function clearInputText() {
   inputText.value = ''
+  sessionStorage.removeItem('lat_lab_ef_prompt')
   console.log('[Direct] Input cleared')
 }
 

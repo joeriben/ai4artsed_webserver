@@ -226,7 +226,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
@@ -328,9 +328,29 @@ function toggleWord(group: number[]) {
   nextTick(() => renderHeatmap())
 }
 
+// Session persistence — restore on mount
+onMounted(() => {
+  const sa = sessionStorage
+  const s = (k: string) => sa.getItem(k)
+  if (s('lat_lab_ac_prompt')) promptText.value = s('lat_lab_ac_prompt')!
+  if (s('lat_lab_ac_negative')) negativePrompt.value = s('lat_lab_ac_negative')!
+  if (s('lat_lab_ac_steps')) steps.value = parseFloat(s('lat_lab_ac_steps')!) || 25
+  if (s('lat_lab_ac_cfg')) cfgScale.value = parseFloat(s('lat_lab_ac_cfg')!) || 4.5
+  if (s('lat_lab_ac_seed')) seed.value = parseFloat(s('lat_lab_ac_seed')!) ?? -1
+})
+
+// Session persistence — save on change
+watch(promptText, v => sessionStorage.setItem('lat_lab_ac_prompt', v))
+watch([negativePrompt, steps, cfgScale, seed], () => {
+  sessionStorage.setItem('lat_lab_ac_negative', negativePrompt.value)
+  sessionStorage.setItem('lat_lab_ac_steps', String(steps.value))
+  sessionStorage.setItem('lat_lab_ac_cfg', String(cfgScale.value))
+  sessionStorage.setItem('lat_lab_ac_seed', String(seed.value))
+})
+
 function copyInputText() { copyToClipboard(promptText.value) }
 function pasteInputText() { promptText.value = pasteFromClipboard() }
-function clearInputText() { promptText.value = '' }
+function clearInputText() { promptText.value = ''; sessionStorage.removeItem('lat_lab_ac_prompt') }
 
 function downloadImage() {
   if (!imageData.value) return
