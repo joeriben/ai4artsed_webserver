@@ -3406,6 +3406,23 @@ def legacy_workflow():
             base_path=JSON_STORAGE_DIR
         )
 
+        # Save input text as entity (needed for favorites restore)
+        recorder.save_entity(
+            entity_type='input',
+            content=prompt,
+            metadata={'source': 'legacy_endpoint'}
+        )
+
+        # Store workflow parameters in current_state for restore
+        recorder.metadata['current_state'].update({
+            'alpha_factor': alpha_factor,
+            'negative_prompt': negative_prompt,
+            'cfg': cfg,
+            'expand_prompt': expand_prompt,
+            'output_config': output_config,
+        })
+        recorder._save_metadata()
+
         # Seed logic
         import random
         if seed is None:
