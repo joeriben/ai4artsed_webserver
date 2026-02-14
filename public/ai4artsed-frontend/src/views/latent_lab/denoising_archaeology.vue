@@ -76,17 +76,20 @@
     </div>
 
     <!-- Visualization -->
-    <div class="visualization-section" v-if="stepImages.length > 0">
+    <div class="visualization-section" :class="{ 'is-disabled': stepImages.length === 0 }">
       <!-- Full-size viewer -->
       <div class="viewer-container">
-        <img
-          :src="currentImageSrc"
-          class="viewer-image"
-          :alt="currentStepLabel"
-        />
-        <div class="phase-badge" :style="{ background: currentPhaseColor }">
-          {{ currentPhaseLabel }}
-        </div>
+        <template v-if="stepImages.length > 0">
+          <img
+            :src="currentImageSrc"
+            class="viewer-image"
+            :alt="currentStepLabel"
+          />
+          <div class="phase-badge" :style="{ background: currentPhaseColor }">
+            {{ currentPhaseLabel }}
+          </div>
+        </template>
+        <div v-else class="placeholder-image"></div>
       </div>
 
       <!-- Phase description -->
@@ -164,8 +167,8 @@
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div class="empty-state" v-else-if="!isGenerating">
+    <!-- Empty State Hint (shown over disabled visualization) -->
+    <div class="empty-state-overlay" v-if="stepImages.length === 0 && !isGenerating">
       <p>{{ t('latentLab.archaeology.emptyHint') }}</p>
     </div>
 
@@ -780,11 +783,26 @@ onUnmounted(() => {
 }
 
 /* Empty / Progress / Error States */
-.empty-state {
+.visualization-section.is-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.placeholder-image {
+  width: 100%;
+  aspect-ratio: 1/1;
+  max-width: 512px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.empty-state-overlay {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 2rem;
   color: rgba(255, 255, 255, 0.3);
   font-size: 0.95rem;
+  margin-top: -2rem;
 }
 
 .progress-state {
