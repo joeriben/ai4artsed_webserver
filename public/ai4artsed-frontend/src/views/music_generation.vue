@@ -617,7 +617,9 @@ async function saveMedia() {
     const success = await favoritesStore.addFavorite(
       currentRunId.value,
       'music',
-      deviceId
+      deviceId,
+      'anonymous',
+      'music-generation'
     )
     if (success) {
       isFavorited.value = true

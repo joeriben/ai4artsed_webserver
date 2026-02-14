@@ -543,7 +543,7 @@ function clearInputText() {
 
 async function toggleFavorite() {
   if (!currentRunId.value) return
-  await favoritesStore.toggleFavorite(currentRunId.value, 'image', deviceId)
+  await favoritesStore.toggleFavorite(currentRunId.value, 'image', deviceId, 'anonymous', 'surrealizer')
 }
 
 function saveMedia() {
@@ -713,6 +713,28 @@ function extractInsights(analysisText: string): string[] {
     analysisText.toLowerCase().includes(kw.toLowerCase())
   )
 }
+
+// ============================================================================
+// Restore from Favorites
+// ============================================================================
+
+watch(() => favoritesStore.pendingRestoreData, (restoreData) => {
+  if (!restoreData) return
+
+  console.log('[Surrealizer Restore] Processing:', Object.keys(restoreData))
+
+  if (restoreData.input_text) {
+    inputText.value = restoreData.input_text
+  }
+
+  // Restore surrealizer-specific parameters from current_state
+  const state = restoreData.current_state || {}
+  if (state.alpha_factor !== undefined) alphaFaktor.value = Number(state.alpha_factor)
+  if (state.negative_prompt !== undefined) negativePrompt.value = String(state.negative_prompt)
+  if (state.cfg !== undefined) cfgScale.value = Number(state.cfg)
+
+  favoritesStore.setRestoreData(null)
+}, { immediate: true })
 </script>
 
 <style scoped>
