@@ -49,7 +49,7 @@ Jede natürliche oder juristische Person darf die Software herunterladen und den
 **(b) Nutzung zu nicht-kommerziellen Bildungszwecken:**
 Nicht-kommerzielle Bildungseinrichtungen dürfen die Software installieren, konfigurieren und in ihren Bildungsangeboten einsetzen.
 
-**(c) Wissenschaftliche Referenz:**
+**(c) Nutzung zu nicht-kommerziellen wissenschaftlichen Zwecken:**
 Jede Person darf die Software in wissenschaftlichen Publikationen referenzieren, zitieren und Auszüge zu Illustrationszwecken verwenden und zu Forschungszwecken installieren, konfigurieren und einsetzen.
 
 ---

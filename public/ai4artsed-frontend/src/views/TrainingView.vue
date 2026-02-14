@@ -2,8 +2,7 @@
   <div class="training-container">
     <h1>LoRA Training Studio</h1>
     <p class="description">
-      Train custom Styles for Stable Diffusion 3.5 Large.
-      Optimized for NVIDIA RTX 6000 Ada (96GB).
+      {{ t('training.info.studioDescription') }}
     </p>
 
     <!-- Training Info Box -->
@@ -95,10 +94,10 @@
       <!-- Config Column -->
       <div class="column config-column">
         <label>Project Name</label>
-        <input v-model="project_name" placeholder="e.g. yoruba_heritage" :disabled="is_training" />
+        <input v-model="project_name" placeholder="z.B. unsere_schule" :disabled="is_training" />
 
         <label>Trigger Words</label>
-        <input v-model="trigger_word" placeholder="e.g. bj, portrait, man" :disabled="is_training" />
+        <input v-model="trigger_word" placeholder="z.B. unsere_schule, schulhof, klassenzimmer" :disabled="is_training" />
         <small>Comma-separated tags. First = primary trigger, rest = additional tags per image.</small>
 
         <label>Training Images (10-50 recommended)</label>

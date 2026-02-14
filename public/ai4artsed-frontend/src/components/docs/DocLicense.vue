@@ -45,7 +45,7 @@
         <p>Unter den Bedingungen dieser Lizenz gewährt der Urheber ein unentgeltliches, nicht-exklusives, nicht-übertragbares Recht zu:</p>
         <p><strong>(a) Download und Studium:</strong> Jede natürliche oder juristische Person darf die Software herunterladen und den Quellcode studieren.</p>
         <p><strong>(b) Nutzung zu nicht-kommerziellen Bildungszwecken:</strong> Nicht-kommerzielle Bildungseinrichtungen dürfen die Software installieren, konfigurieren und in ihren Bildungsangeboten einsetzen.</p>
-        <p><strong>(c) Wissenschaftliche Referenz:</strong> Jede Person darf die Software in wissenschaftlichen Publikationen referenzieren, zitieren und Auszüge zu Illustrationszwecken verwenden und zu Forschungszwecken installieren, konfigurieren und einsetzen.</p>
+        <p><strong>(c) Nutzung zu nicht-kommerziellen wissenschaftlichen Zwecken:</strong> Jede Person darf die Software in wissenschaftlichen Publikationen referenzieren, zitieren und Auszüge zu Illustrationszwecken verwenden und zu Forschungszwecken installieren, konfigurieren und einsetzen.</p>
       </div>
 
       <div class="license-section">

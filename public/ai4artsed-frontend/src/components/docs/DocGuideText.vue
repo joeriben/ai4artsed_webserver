@@ -33,8 +33,31 @@
         <h3>{{ currentLanguage === 'de' ? 'Medien und Modelle wählen' : 'Choose Media and Models' }}</h3>
       </div>
       <p>{{ currentLanguage === 'de'
-        ? 'Die Plattform ist multimodal: Du kannst nicht nur Bilder erzeugen, sondern auch Audio und Musik. Wähle ein Ausgabemedium und dann ein Modell. Das Spannende: Du kannst denselben Prompt mit verschiedenen Modellen ausprobieren – innerhalb eines Mediums oder sogar medienübergreifend. So lernst du, wie unterschiedlich Modelle auf dieselbe Eingabe reagieren.'
-        : 'The platform is multimodal: You can generate not only images, but also audio and music. Choose an output medium and then a model. The exciting part: You can try the same prompt with different models – within one medium or even across media. This way you learn how differently models react to the same input.' }}</p>
+        ? 'Die Plattform ist multimodal: Du kannst nicht nur Bilder erzeugen, sondern auch Video, Audio, Musik und generativen Code. Wähle ein Ausgabemedium und dann ein Modell. Welche Modelle verfügbar sind, hängt vom jeweiligen System und den angebundenen Backends ab.'
+        : 'The platform is multimodal: You can generate not only images, but also video, audio, music, and generative code. Choose an output medium and then a model. Which models are available depends on the specific system and its connected backends.' }}</p>
+      <div class="mode-list">
+        <div class="mode-item">
+          <strong>{{ currentLanguage === 'de' ? 'Bildmodelle' : 'Image Models' }}</strong>
+          <p>{{ currentLanguage === 'de'
+            ? 'Z.B. Stable Diffusion 3.5 (lokal), GPT Image, Gemini, QWEN (Cloud-APIs). Verschiedene Modelle erzeugen aus demselben Prompt sehr unterschiedliche Ergebnisse – ein guter Ausgangspunkt für vergleichende Erkundung.'
+            : 'E.g. Stable Diffusion 3.5 (local), GPT Image, Gemini, QWEN (cloud APIs). Different models produce very different results from the same prompt – a good starting point for comparative exploration.' }}</p>
+        </div>
+        <div class="mode-item">
+          <strong>{{ currentLanguage === 'de' ? 'Video- und Audio-Modelle' : 'Video and Audio Models' }}</strong>
+          <p>{{ currentLanguage === 'de'
+            ? 'Erzeugen szenische Bewegtbilder bzw. Klänge und Musik aus Textbeschreibungen.'
+            : 'Generate scenic moving images or sounds and music from text descriptions.' }}</p>
+        </div>
+        <div class="mode-item">
+          <strong>p5.js / Tone.js</strong>
+          <p>{{ currentLanguage === 'de'
+            ? 'Hier erzeugt das LLM ausführbaren Code, der visuelle (p5.js) oder auditive (Tone.js) Ergebnisse generiert. Die Ergebnisse sind algorithmische Kompositionen: geometrische Formen, Muster, Animationen oder synthetische Klanglandschaften – in der Tradition generativer Computerkunst, wie sie seit den 1960er Jahren existiert. Der Unterschied: Statt den Code selbst zu schreiben, beschreibst du, was entstehen soll, und das LLM übersetzt deine Beschreibung in lauffähigen Code. Die Bilder und Klänge entstehen dann live im Browser.'
+            : 'Here the LLM generates executable code that produces visual (p5.js) or auditive (Tone.js) results. The results are algorithmic compositions: geometric shapes, patterns, animations, or synthetic soundscapes – in the tradition of generative computer art, which has existed since the 1960s. The difference: instead of writing the code yourself, you describe what should emerge, and the LLM translates your description into runnable code. The images and sounds are then created live in the browser.' }}</p>
+        </div>
+      </div>
+      <p class="note">{{ currentLanguage === 'de'
+        ? 'Probiere denselben Prompt mit verschiedenen Modellen aus – innerhalb eines Mediums oder medienübergreifend. So lernst du, wie unterschiedlich Modelle auf dieselbe Eingabe reagieren.'
+        : 'Try the same prompt with different models – within one medium or across media. This way you learn how differently models react to the same input.' }}</p>
     </div>
 
     <div class="step-card">
@@ -43,32 +66,20 @@
         <h3>{{ currentLanguage === 'de' ? 'Modell-Adaption (je nach Modell)' : 'Model Adaption (depending on model)' }}</h3>
       </div>
       <p>{{ currentLanguage === 'de'
-        ? 'Nicht alle Modelle brauchen denselben Prompt-Stil:'
-        : 'Not all models need the same prompt style:' }}</p>
+        ? 'Manche Modelle brauchen eine Adaption des Prompts, andere nicht. Das System erkennt das automatisch und zeigt dir den adaptierten Prompt an, wenn einer erzeugt wurde:'
+        : 'Some models need a prompt adaption, others don\'t. The system detects this automatically and shows you the adapted prompt when one was generated:' }}</p>
       <div class="mode-list">
         <div class="mode-item">
-          <strong>Stable Diffusion 3.5</strong>
+          <strong>{{ currentLanguage === 'de' ? 'Mit Adaption' : 'With adaption' }}</strong>
           <p>{{ currentLanguage === 'de'
-            ? 'BRAUCHT Adaption: Der Prompt wird in "klassischen" Prompt-Stil umgewandelt (Stichworte, Gewichtungen). Hier kannst du lernen, wie traditionelles Prompting funktioniert.'
-            : 'NEEDS adaption: The prompt is converted to "classic" prompt style (keywords, weightings). Here you can learn how traditional prompting works.' }}</p>
+            ? 'Stable Diffusion 3.5 braucht "klassischen" Prompt-Stil (Stichworte, Gewichtungen). Video- und Audio-Modelle erhalten szenische bzw. auditive Beschreibungen. Schaue genau hin und passe sie an deine Vorstellungen an.'
+            : 'Stable Diffusion 3.5 needs "classic" prompt style (keywords, weightings). Video and audio models receive scenic or auditive descriptions. Look closely and adjust them to match your vision.' }}</p>
         </div>
         <div class="mode-item">
-          <strong>GPT Image, Gemini, QWEN</strong>
+          <strong>{{ currentLanguage === 'de' ? 'Ohne Adaption' : 'Without adaption' }}</strong>
           <p>{{ currentLanguage === 'de'
-            ? 'BRAUCHEN KEINE Adaption, weil sie selbst ein mächtiges Sprachmodul besitzen und natürliche Sprache direkt verstehen.'
-            : 'DON\'T NEED adaption because they have their own powerful language module and understand natural language directly.' }}</p>
-        </div>
-        <div class="mode-item">
-          <strong>{{ currentLanguage === 'de' ? 'Video- und Audio-Modelle' : 'Video and Audio Models' }}</strong>
-          <p>{{ currentLanguage === 'de'
-            ? 'Erhalten Adaption für szenische (Video) bzw. auditive (Sound/Musik) Beschreibungen.'
-            : 'Receive adaption for scenic (video) or auditive (sound/music) descriptions.' }}</p>
-        </div>
-        <div class="mode-item">
-          <strong>p5.js</strong>
-          <p>{{ currentLanguage === 'de'
-            ? 'Ein Sonderfall: Hier wird generativer Code erzeugt, keine Bilder. Die Adaption bereitet den Prompt für Code-Generierung vor.'
-            : 'A special case: Here generative code is created, not images. The adaption prepares the prompt for code generation.' }}</p>
+            ? 'GPT Image, Gemini, QWEN u.a. besitzen selbst ein mächtiges Sprachmodul und verstehen natürliche Sprache direkt.'
+            : 'GPT Image, Gemini, QWEN and others have their own powerful language module and understand natural language directly.' }}</p>
         </div>
       </div>
       <p class="note">{{ currentLanguage === 'de'

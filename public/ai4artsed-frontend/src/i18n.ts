@@ -346,6 +346,7 @@ const messages = {
     training: {
       info: {
         title: 'Hinweis zum LoRA-Training',
+        studioDescription: 'Trainiere eigene LoRA-Modelle für Stable Diffusion 3.5 Large mit deinen Bildern.',
         description: 'Dieses eingebaute Training ist für schnelle Tests gedacht.',
         limitations: 'Einschränkungen',
         limitationDuration: 'Training dauert 1-3 Stunden',
@@ -1112,6 +1113,7 @@ const messages = {
     training: {
       info: {
         title: 'About LoRA Training',
+        studioDescription: 'Train custom LoRA models for Stable Diffusion 3.5 Large with your own images.',
         description: 'This built-in training is designed for quick tests.',
         limitations: 'Limitations',
         limitationDuration: 'Training takes 1-3 hours',

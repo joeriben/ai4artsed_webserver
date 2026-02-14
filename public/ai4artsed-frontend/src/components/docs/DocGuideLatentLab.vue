@@ -5,8 +5,8 @@
       ? 'Das Latent Lab arbeitet auf der mathematischen Ebene der KI-Modelle. Es zeigt, wie Sprache und Bedeutung in Vektoren übersetzt werden \u2013 und was passiert, wenn wir diese Vektoren manipulieren.'
       : 'The Latent Lab works at the mathematical level of AI models. It shows how language and meaning are translated into vectors \u2013 and what happens when we manipulate these vectors.' }}</p>
     <p class="section-intro" style="opacity: 0.7; font-style: italic;">{{ currentLanguage === 'de'
-      ? 'Verf\u00fcgbar nur bei Sicherheitsstufe "Erwachsene" oder "Forschung" \u2014 aus technischen Gr\u00fcnden sind Text- und Bildergebnisse unvorhersehbar.'
-      : 'Available only at Safety Level "Adult" or "Research" \u2014 for technical reasons, text and image results are unpredictable.' }}</p>
+      ? 'Verfügbar nur bei Sicherheitsstufe "Erwachsene" oder "Forschung" \u2014 aus technischen Gründen sind Text- und Bildergebnisse unvorhersehbar. "Erwachsene" meint hier nicht "FSK 18", sondern verweist auf die Notwendigkeit mündiger Verantwortlichkeit der Bedienenden. Das kann auch bedeuten: zentral im Unterricht unter Aufsicht oder durch Lehrende bedient.'
+      : 'Available only at Safety Level "Adult" or "Research" \u2014 for technical reasons, text and image results are unpredictable. "Adult" here does not mean age-restricted content, but refers to the need for responsible, informed operation. This can also mean: used centrally in class under supervision or operated by teachers.' }}</p>
 
     <!-- Hallucinator -->
     <div class="experiment-card surrealizer">

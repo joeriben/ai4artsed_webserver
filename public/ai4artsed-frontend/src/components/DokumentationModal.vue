@@ -13,14 +13,15 @@
             <button
               v-for="tab in tabs"
               :key="tab.id"
-              :class="['tab-button', { active: activeTab === tab.id, 'tab-icon': tab.type === 'icon' }]"
-              :style="tab.type === 'icon' ? { '--mode-color': (tab as IconTab).color, '--mode-color-bg': (tab as IconTab).color + '33' } as any : undefined"
-              :data-tooltip="tab.type === 'icon' ? (currentLanguage === 'de' ? (tab as IconTab).tooltipDe : (tab as IconTab).tooltipEn) : undefined"
+              :class="['tab-button', { active: activeTab === tab.id, 'tab-icon': tab.type === 'icon' || tab.type === 'img' }]"
+              :style="tab.type === 'icon' || tab.type === 'img' ? { '--mode-color': (tab as IconTab | ImgTab).color, '--mode-color-bg': (tab as IconTab | ImgTab).color + '33' } as any : undefined"
+              :data-tooltip="tab.type === 'icon' ? (currentLanguage === 'de' ? (tab as IconTab).tooltipDe : (tab as IconTab).tooltipEn) : tab.type === 'img' ? (currentLanguage === 'de' ? (tab as ImgTab).tooltipDe : (tab as ImgTab).tooltipEn) : undefined"
               @click="activeTab = tab.id"
             >
               <template v-if="tab.type === 'text'">
                 {{ currentLanguage === 'de' ? (tab as TextTab).labelDe : (tab as TextTab).labelEn }}
               </template>
+              <img v-else-if="tab.type === 'img'" :src="(tab as ImgTab).imgSrc" width="20" height="20" />
               <svg v-else xmlns="http://www.w3.org/2000/svg" height="20" :viewBox="(tab as IconTab).svgViewBox" width="20" fill="currentColor">
                 <path :d="(tab as IconTab).svgPath" />
               </svg>
@@ -49,8 +50,11 @@ import DocGuideMulti from './docs/DocGuideMulti.vue'
 import DocGuideMusic from './docs/DocGuideMusic.vue'
 import DocGuideCanvas from './docs/DocGuideCanvas.vue'
 import DocGuideLatentLab from './docs/DocGuideLatentLab.vue'
+import DocGuideTraining from './docs/DocGuideTraining.vue'
 import DocWorkshop from './docs/DocWorkshop.vue'
 import DocLicense from './docs/DocLicense.vue'
+
+import loraParrotSvg from '../assets/icons/lora-parrot.svg'
 
 interface TextTab {
   type: 'text'
@@ -69,7 +73,16 @@ interface IconTab {
   svgViewBox: string
 }
 
-type DocTab = TextTab | IconTab
+interface ImgTab {
+  type: 'img'
+  id: string
+  tooltipDe: string
+  tooltipEn: string
+  color: string
+  imgSrc: string
+}
+
+type DocTab = TextTab | IconTab | ImgTab
 
 const props = defineProps<{
   modelValue: boolean
@@ -85,7 +98,7 @@ const emit = defineEmits<{
 const activeTab = ref('welcome')
 
 const tabs: DocTab[] = [
-  { type: 'text', id: 'welcome', labelDe: 'Willkommen', labelEn: 'Welcome' },
+  { type: 'text', id: 'welcome', labelDe: 'Über', labelEn: 'About' },
   { type: 'text', id: 'principles', labelDe: 'Prinzipien', labelEn: 'Principles' },
   { type: 'icon', id: 'guide-text', tooltipDe: 'Text-Transformation', tooltipEn: 'Text Transformation',
     color: '#667eea', svgViewBox: '0 -960 960 960',
@@ -105,6 +118,8 @@ const tabs: DocTab[] = [
   { type: 'icon', id: 'guide-latentlab', tooltipDe: 'Latent Lab', tooltipEn: 'Latent Lab',
     color: '#00BCD4', svgViewBox: '0 -960 960 960',
     svgPath: 'M200-120v-80h200v-80q-83 0-141.5-58.5T200-480q0-61 33.5-111t90.5-73q8-34 35.5-55t62.5-21l-22-62 38-14-14-36 76-28 12 38 38-14 110 300-38 14 14 38-76 28-12-38-38 14-24-66q-15 14-34.5 21t-39.5 5q-22-2-41-13.5T338-582q-27 16-42.5 43T280-480q0 50 35 85t85 35h320v80H520v80h240v80H200Zm346-458 36-14-68-188-38 14 70 188Zm-126-22q17 0 28.5-11.5T460-640q0-17-11.5-28.5T420-680q-17 0-28.5 11.5T380-640q0 17 11.5 28.5T420-600Zm126 22Zm-126-62Zm0 0Z' },
+  { type: 'img', id: 'guide-training', tooltipDe: 'LoRA Training', tooltipEn: 'LoRA Training',
+    color: '#22c55e', imgSrc: loraParrotSvg },
   { type: 'text', id: 'workshop', labelDe: 'Praxiseinsatz', labelEn: 'Practical Use' },
   { type: 'text', id: 'license', labelDe: 'Lizenz', labelEn: 'License' },
 ]
@@ -118,6 +133,7 @@ const tabComponents: Record<string, Component> = {
   'guide-music': DocGuideMusic,
   'guide-canvas': DocGuideCanvas,
   'guide-latentlab': DocGuideLatentLab,
+  'guide-training': DocGuideTraining,
   'workshop': DocWorkshop,
   'license': DocLicense,
 }
@@ -274,7 +290,7 @@ onUnmounted(() => {
 .tab-button.tab-icon::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
   padding: 4px 8px;

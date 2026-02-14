@@ -14,10 +14,10 @@
   </section>
 
   <section class="info-section">
-    <h3>{{ currentLanguage === 'de' ? 'Das LLM als Co-Akteur' : 'The LLM as Co-Actor' }}</h3>
+    <h3>{{ currentLanguage === 'de' ? 'Kulturelle Sensibilität und Biases' : 'Cultural Sensitivity and Biases' }}</h3>
     <p>{{ currentLanguage === 'de'
-      ? 'Ein zentrales Konzept: Das Sprachmodell (LLM) ist hier nicht nur ein Werkzeug, sondern ein Co-Akteur im kreativen Prozess. Es verarbeitet deine Eingabe auf Basis seiner Trainingsdaten und erzeugt etwas Neues. Das ist faszinierend, aber auch nicht unproblematisch – denn wir wissen nicht genau, wie und warum das Modell bestimmte Entscheidungen trifft.'
-      : 'A central concept: The language model (LLM) is not just a tool here, but a co-actor in the creative process. It processes your input based on its training data and generates something new. This is fascinating, but also not unproblematic – because we don\'t know exactly how and why the model makes certain decisions.' }}</p>
+      ? 'Ein zentrales Projektziel ist die kritische Erkundung generativer KI als Akteur in kulturellen, künstlerischen und gesellschaftlichen Zusammenhängen. Generative Modelle sind nicht neutral – sie tragen kulturelle, soziale, genderbezogene und ethnische Biases in sich, die aus ihren Trainingsdaten stammen. Diese Verzerrungen müssen sichtbar gemacht und kritisch untersucht werden, um zu verstehen, um welche Art von Akteur es sich bei generativer KI eigentlich handelt.'
+      : 'A central project goal is the critical exploration of generative AI as an actor in cultural, artistic, and societal contexts. Generative models are not neutral – they carry cultural, social, gender-related, and ethnic biases inherited from their training data. These distortions must be made visible and critically examined in order to understand what kind of actor generative AI actually is.' }}</p>
   </section>
 
   <section class="info-section">

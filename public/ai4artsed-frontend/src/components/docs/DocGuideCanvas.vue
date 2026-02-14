@@ -11,12 +11,9 @@
           : 'Canvas is a visual research workbench for systematic exploration of generative AI.' }}</p>
       </div>
     </div>
-
-    <div class="canvas-card" style="border-left: 3px solid #06b6d4; margin-bottom: 1rem;">
-      <p><em>{{ currentLanguage === 'de'
-        ? 'Verfügbar ab Safety-Level "Erwachsene".'
-        : 'Available from Safety Level "Adult".' }}</em></p>
-    </div>
+    <p class="section-intro" style="opacity: 0.7; font-style: italic;">{{ currentLanguage === 'de'
+      ? 'Verfügbar nur bei Sicherheitsstufe "Erwachsene" oder "Forschung" \u2014 aus technischen Gründen sind Text- und Bildergebnisse unvorhersehbar. "Erwachsene" meint hier nicht "FSK 18", sondern verweist auf die Notwendigkeit mündiger Verantwortlichkeit der Bedienenden. Das kann auch bedeuten: zentral im Unterricht unter Aufsicht oder durch Lehrende bedient.'
+      : 'Available only at Safety Level "Adult" or "Research" \u2014 for technical reasons, text and image results are unpredictable. "Adult" here does not mean age-restricted content, but refers to the need for responsible, informed operation. This can also mean: used centrally in class under supervision or operated by teachers.' }}</p>
 
     <div class="canvas-card paradigm">
       <h3>{{ currentLanguage === 'de' ? 'Lehrforschung' : 'Exploratory Research' }}</h3>
@@ -48,11 +45,11 @@
       </ul>
     </div>
 
-    <div class="canvas-card target-groups">
-      <h3>{{ currentLanguage === 'de' ? 'Zielgruppen' : 'Target Groups' }}</h3>
+    <div class="canvas-card" style="border-left: 3px solid #FF6F00;">
+      <h3>{{ currentLanguage === 'de' ? 'Multimodalität' : 'Multimodality' }}</h3>
       <p>{{ currentLanguage === 'de'
-        ? 'Verfügbar nur bei Safety "Erwachsene" aufgrund — aus technischen Gründen — unvorhersehbarer Text- und Bildergebnisse. Verwendung mit Personen unter 18 auf eigenes Risiko und unter strenger Aufsicht.'
-        : 'Available only at Safety "Adult" due to — for technical reasons — unpredictable text and image results. Use with persons under 18 at your own risk and under strict supervision.' }}</p>
+        ? 'Canvas-Workflows können verschiedene Medientypen miteinander verbinden. Bilder lassen sich nach eigenen Kriterien interpretieren und in Musik oder Sound umwandeln. Ebenso können mit demselben Prompt Bild, Musik und Sound zugleich erzeugt werden. So entstehen multimodale Erkundungen, in denen visuelle und auditive Ergebnisse aufeinander bezogen und verglichen werden können.'
+        : 'Canvas workflows can connect different media types. Images can be interpreted according to your own criteria and converted into music or sound. Likewise, a single prompt can generate image, music, and sound simultaneously. This enables multimodal explorations where visual and auditive results can be related and compared to each other.' }}</p>
     </div>
   </section>
 </template>

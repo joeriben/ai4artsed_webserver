@@ -13,8 +13,8 @@
       <div class="example-box">
         <strong>{{ currentLanguage === 'de' ? 'Beispiel:' : 'Example:' }}</strong>
         {{ currentLanguage === 'de'
-          ? 'WAS: "Ein Frühstückstisch" → WIE: "aus Kinderperspektive" vs. "im Bauhaus-Stil" → völlig unterschiedliche Ergebnisse'
-          : 'WHAT: "A breakfast table" → HOW: "from child\'s perspective" vs. "in Bauhaus style" → completely different results' }}
+          ? 'WAS: "Ein Baum" → WIE: "aus der Perspektive seiner Wurzeln, das Verborgene sichtbar machend" vs. "nur durch Licht und Schatten im Gegenlicht beschrieben" → dasselbe Thema, völlig andere Bilder'
+          : 'WHAT: "A tree" → HOW: "from the perspective of its roots, making the hidden visible" vs. "described only through light and shadow in backlight" → same subject, completely different images' }}
       </div>
     </div>
 
@@ -26,12 +26,6 @@
       <p>{{ currentLanguage === 'de'
         ? 'Konventionelle KI-Interfaces machen Nutzende zu Befehlsgebenden, die zugleich der Maschinenlogik unterworfen sind. Prompt Interception bricht dieses Muster: Das LLM ist kein Werkzeug, das tut was du willst – es ist ein Co-Akteur, der Neues und Unwägbarkeiten in den Prozess einbringt. Es interpretiert, wählt aus, ergänzt. Das Ergebnis trägt deine Handschrift UND die des Modells. Die Maschine dient deinem kreativen Werden – nicht umgekehrt.'
         : 'Conventional AI interfaces turn users into commanders who are simultaneously subjected to machine logic. Prompt Interception breaks this pattern: The LLM is not a tool that does what you want – it is a co-actor that introduces novelty and unpredictability into the process. It interprets, selects, adds. The result bears your signature AND that of the model. The machine serves your creative becoming – not vice versa.' }}</p>
-      <div class="tension-box">
-        <span class="tension-label">{{ currentLanguage === 'de' ? 'Spannung:' : 'Tension:' }}</span>
-        {{ currentLanguage === 'de'
-          ? 'Faszinierend, aber problematisch – wir wissen nicht, wie das Modell "entscheidet"'
-          : 'Fascinating, but problematic – we don\'t know how the model "decides"' }}
-      </div>
     </div>
 
     <div class="principle-card">
@@ -50,8 +44,8 @@
         <h3>{{ currentLanguage === 'de' ? 'Sichtbarkeit der Verarbeitung' : 'Visibility of Processing' }}</h3>
       </div>
       <p>{{ currentLanguage === 'de'
-        ? 'Jeder Zwischenschritt ist sichtbar: die transformierte Beschreibung, die Adaption, das Endergebnis. Du kannst eingreifen, verändern, zurückgehen. Die "Black Box" wird geöffnet.'
-        : 'Every intermediate step is visible: the transformed description, the adaption, the final result. You can intervene, change, go back. The "black box" is opened.' }}</p>
+        ? 'Jeder Zwischenschritt ist sichtbar: die transformierte Beschreibung, die Adaption, das Endergebnis. Du kannst eingreifen, verändern, zurückgehen.'
+        : 'Every intermediate step is visible: the transformed description, the adaption, the final result. You can intervene, change, go back.' }}</p>
     </div>
 
     <div class="principle-card">
@@ -73,11 +67,11 @@
     <div class="principle-card">
       <div class="principle-header">
         <span class="principle-number">6</span>
-        <h3>{{ currentLanguage === 'de' ? 'Pädagogische Begleitung' : 'Pedagogical Guidance' }}</h3>
+        <h3>{{ currentLanguage === 'de' ? 'Pädagogische Einbindung' : 'Pedagogical Integration' }}</h3>
       </div>
       <p>{{ currentLanguage === 'de'
-        ? 'Die Plattform entfaltet ihren vollen Wert durch reflektierende Begleitung. Sie ist ein Werkzeug für Lernprozesse, kein Selbstläufer. Die Fragen, die beim Experimentieren entstehen, sind oft wichtiger als die Bilder.'
-        : 'The platform unfolds its full value through reflective guidance. It is a tool for learning processes, not self-running. The questions that arise during experimentation are often more important than the images.' }}</p>
+        ? 'Die Plattform ist als Teil pädagogischer und künstlerischer Prozesse gedacht, nicht notwendig als deren Zentrum. Sie will vielfältige Zugänge ermöglichen, nicht kanalisieren – ob im Unterricht, im Workshop, in der freien Projektarbeit oder im Selbststudium.'
+        : 'The platform is designed as part of pedagogical and artistic processes, not necessarily as their center. It aims to enable diverse approaches, not to channel them – whether in class, in workshops, in independent project work, or in self-study.' }}</p>
     </div>
 
     <div class="principle-card">
@@ -86,8 +80,8 @@
         <h3>{{ currentLanguage === 'de' ? 'Wissen über die Welt' : 'Knowledge About the World' }}</h3>
       </div>
       <p>{{ currentLanguage === 'de'
-        ? 'Künstlerische Prozesse erfordern nicht nur ästhetisches Wissen, sondern auch Wissen über Sachverhalte in der Welt. Die KI recherchiert während der Transformation auf Wikipedia, um faktische Informationen zu finden – in über 70 Sprachen, passend zum jeweiligen Thema.'
-        : 'Artistic processes require not only aesthetic knowledge, but also knowledge about facts in the world. The AI researches Wikipedia during transformation to find factual information – in over 70 languages, appropriate to each topic.' }}</p>
+        ? 'Künstlerische Prozesse erfordern nicht nur ästhetisches Wissen, sondern auch Wissen über Sachverhalte in der Welt. Die KI recherchiert auf Wikipedia, um Informationen zu finden wenn sie über diese nicht selbst in hinreichendem Maße verfügt. Dieses Feature ist experimentell, aber interessant. Bisweilen wird der Prompt von der Recherche stark, manchmal kaum beeindruckt sein.'
+        : 'Artistic processes require not only aesthetic knowledge, but also knowledge about facts in the world. The AI researches Wikipedia to find information when it does not have sufficient knowledge of its own. This feature is experimental, but interesting. Sometimes the prompt will be strongly influenced by the research, sometimes barely at all.' }}</p>
       <div class="example-box">
         <strong>{{ currentLanguage === 'de' ? 'Das Wikipedia-Badge (W):' : 'The Wikipedia Badge (W):' }}</strong>
         {{ currentLanguage === 'de'
@@ -108,8 +102,8 @@
         <h3>{{ currentLanguage === 'de' ? 'Zusammenarbeiten' : 'Collaboration' }}</h3>
       </div>
       <p>{{ currentLanguage === 'de'
-        ? 'Das Favoriten-System ermöglicht zwei Arbeitsmodi: "Meine" zeigt nur deine eigenen Favoriten – eine persönliche Arbeitsfläche zum Iterieren, Vergleichen und Auswählen zwischen Entwürfen. "Alle" zeigt die Favoriten aller Workshop-Teilnehmenden – ein kollektiver Pool zum Teilen von Bildern und Prompts, gegenseitigem Inspirieren und gemeinsamen Weiterentwickeln.'
-        : 'The favorites system enables two working modes: "Mine" shows only your own favorites – a personal workspace for iterating, comparing, and selecting between drafts. "All" shows favorites from all workshop participants – a collective pool for sharing images and prompts, mutual inspiration, and collaborative development.' }}</p>
+        ? 'Das Favoriten-System am unteren Rand des Fensters ermöglicht zwei Arbeitsmodi: "Meine" zeigt nur deine eigenen Favoriten – eine persönliche Arbeitsfläche zum Iterieren, Vergleichen und Auswählen zwischen Entwürfen. Die individuellen "Mein"-Favoriten werden nach 24 Stunden gelöscht. "Alle" zeigt die Favoriten aller Workshop-Teilnehmenden – ein kollektiver Pool zum Teilen von Bildern und Prompts, gegenseitigem Inspirieren und gemeinsamen Weiterentwickeln.'
+        : 'The favorites system at the bottom of the window enables two working modes: "Mine" shows only your own favorites – a personal workspace for iterating, comparing, and selecting between drafts. Individual "Mine" favorites are deleted after 24 hours. "All" shows favorites from all workshop participants – a collective pool for sharing images and prompts, mutual inspiration, and collaborative development.' }}</p>
       <div class="example-box">
         <strong>{{ currentLanguage === 'de' ? 'Persönlich:' : 'Personal:' }}</strong>
         {{ currentLanguage === 'de'
@@ -119,7 +113,7 @@
       <div class="example-box">
         <strong>{{ currentLanguage === 'de' ? 'Kollaborativ:' : 'Collaborative:' }}</strong>
         {{ currentLanguage === 'de'
-          ? 'Sehe interessante Arbeiten von anderen, lade ihre kompletten Prompts und Einstellungen, verändere sie und entwickle eigene Varianten. Die "Wiederherstellen"-Funktion macht den kreativen Prozess transparent und teilbar.'
+          ? 'Sieh dir interessante Arbeiten von anderen, lade ihre kompletten Prompts und Einstellungen, verändere sie und entwickle eigene Varianten. Die "Wiederherstellen"-Funktion macht den kreativen Prozess transparent und teilbar.'
           : 'See interesting work from others, load their complete prompts and settings, modify them, and develop your own variations. The "Restore" function makes the creative process transparent and shareable.' }}
       </div>
       <div class="tension-box">
