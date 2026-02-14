@@ -354,6 +354,10 @@ const messages = {
         limitationConfig: 'Begrenzte Konfigurationsmöglichkeiten',
         showMore: 'Mehr erfahren',
         showLess: 'Weniger anzeigen'
+      },
+      placeholders: {
+        projectName: 'z.B. Unser Schulgebäude',
+        triggerWords: 'z.B. unser_schulgebaeude, schulhof, klassenzimmer'
       }
     },
     safetyBadges: {
@@ -1121,6 +1125,10 @@ const messages = {
         limitationConfig: 'Limited configuration options',
         showMore: 'Learn more',
         showLess: 'Show less'
+      },
+      placeholders: {
+        projectName: 'e.g. Our School Building',
+        triggerWords: 'e.g. our_school_building, schoolyard, classroom'
       }
     },
     safetyBadges: {

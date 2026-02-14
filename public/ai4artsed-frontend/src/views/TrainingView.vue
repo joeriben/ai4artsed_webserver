@@ -94,10 +94,10 @@
       <!-- Config Column -->
       <div class="column config-column">
         <label>Project Name</label>
-        <input v-model="project_name" placeholder="z.B. unsere_schule" :disabled="is_training" />
+        <input v-model="project_name" :placeholder="t('training.placeholders.projectName')" :disabled="is_training" />
 
         <label>Trigger Words</label>
-        <input v-model="trigger_word" placeholder="z.B. unsere_schule, schulhof, klassenzimmer" :disabled="is_training" />
+        <input v-model="trigger_word" :placeholder="t('training.placeholders.triggerWords')" :disabled="is_training" />
         <small>Comma-separated tags. First = primary trigger, rest = additional tags per image.</small>
 
         <label>Training Images (10-50 recommended)</label>
