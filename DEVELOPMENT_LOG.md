@@ -1,5 +1,49 @@
 # Development Log
 
+## Session 174 - Shared GPU Service (Diffusers + HeartMuLa)
+**Date:** 2026-02-14
+**Focus:** Avoid double VRAM usage when dev (17802) and prod (17801) backends run simultaneously.
+
+### Problem
+Both Flask backends loaded Diffusers models (SD3.5 ~10GB+) and HeartMuLa independently in-process, doubling GPU memory usage on the same machine.
+
+### Solution: GPU Service (Port 17803)
+Extracted all GPU-intensive inference into a standalone Flask/Waitress service at `gpu_service/`. Both dev and prod backends now call this service via HTTP REST instead of loading models themselves.
+
+**Architecture:**
+```
+Dev Backend (17802) ──┐
+                      ├── HTTP REST ──→ GPU Service (17803) ──→ [GPU VRAM]
+Prod Backend (17801) ─┘
+```
+
+**Key design**: `DiffusersClient` and `HeartMuLaClient` are drop-in replacements with identical async APIs. `get_diffusers_backend()` and `get_heartmula_backend()` now return HTTP clients. Zero changes to `backend_router.py` or chunk files.
+
+### New files
+- `gpu_service/` — Complete Flask service (server.py, config.py, app.py, routes/, services/)
+- `devserver/my_app/services/diffusers_client.py` — HTTP client for Diffusers (all 7 generation modes)
+- `devserver/my_app/services/heartmula_client.py` — HTTP client for HeartMuLa
+- `6_start_gpu_service.sh` — Startup script
+
+### Modified files
+- `devserver/config.py` — Added `GPU_SERVICE_URL`, `GPU_SERVICE_TIMEOUT`
+- `devserver/my_app/services/diffusers_backend.py` — Factory returns `DiffusersClient`
+- `devserver/my_app/services/heartmula_backend.py` — Factory returns `HeartMuLaClient`
+
+### Tested
+- Standard image generation (SD3.5 Large) via HTTP bridge
+- Feature Probing (Latent Lab) via HTTP bridge
+- HeartMuLa music generation via HTTP bridge
+- All working over internet (Cloudflare tunnel)
+- Fallback: if GPU service is down, `is_available()` returns False → ComfyUI fallback
+
+### Pending (Phase 4)
+- Remove original DiffusersImageGenerator class (1700 lines) from devserver (now duplicated in gpu_service)
+- Update ARCHITECTURE PART 27
+- Test remaining Latent Lab modes (Attention Cartography, Concept Algebra, Denoising Archaeology, Surrealizer)
+
+---
+
 ## Session 173 - Fix Feature Probing "Backend error: None" + Remove CPU Offloading
 **Date:** 2026-02-14
 **Focus:** Feature Probing failed with `"Backend error: None"` — actual exception was masked. Root cause: broken CPU offloading layer from Session 149-172.
