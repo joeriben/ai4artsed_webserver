@@ -1,5 +1,30 @@
 # Development Log
 
+## Session 175 - DSGVO LLM Verification: Thinking Model Fallback
+**Date:** 2026-02-15
+**Focus:** Fix gpt-OSS:20b returning empty `content` in DSGVO NER verification
+
+### Problem
+Music generation blocked by DSGVO safety check: SpaCy NER falsely flagged German lyrics phrases ("Ast zu Ast", "Jedes Lied") as person names. The LLM verification (gpt-OSS:20b) should reject these as false positives, but returned empty `content` → fail-closed → blocked.
+
+### Root Cause
+gpt-OSS:20b is a **thinking model** — it puts reasoning in `message.thinking` and the final answer in `message.content`. Under VRAM pressure (SD3.5 Large occupying 28.6GB of 32GB), the model sometimes puts all output into `thinking`, leaving `content` empty. The code only checked `content`.
+
+Direct Ollama curl test confirmed model works correctly (`content: "NEIN\nNEIN"`), proving this was a code-side issue, not a model issue.
+
+### Fix
+Added `thinking` field fallback to `llm_verify_person_name()` in `stage_orchestrator.py`: when `content` is empty, extract JA/NEIN from the `thinking` field. Same pattern already used by VLM safety check for qwen3-vl.
+
+### Modified files
+- `devserver/schemas/engine/stage_orchestrator.py` — thinking field fallback in `llm_verify_person_name()`
+- `docs/ARCHITECTURE PART 29 - Safety-System.md` — document thinking model behavior
+
+### Verified
+- "Ast zu Ast, Jedes Lied" → `safe: true` (NER false positive correctly rejected by LLM)
+- "Angela Merkel" → `safe: false` (real person correctly blocked by DSGVO)
+
+---
+
 ## Session 174 - Shared GPU Service (Diffusers + HeartMuLa)
 **Date:** 2026-02-14
 **Focus:** Avoid double VRAM usage when dev (17802) and prod (17801) backends run simultaneously.
