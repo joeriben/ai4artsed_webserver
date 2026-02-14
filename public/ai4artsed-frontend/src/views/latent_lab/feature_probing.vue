@@ -31,30 +31,36 @@
     <div class="input-section">
       <div class="input-pair">
         <MediaInputBox
-          icon="lightbulb"
+          icon="💡"
           :label="t('latentLab.probing.promptALabel')"
           :placeholder="t('latentLab.probing.promptAPlaceholder')"
           v-model:value="promptA"
           input-type="text"
           :rows="2"
           resize-type="auto"
+          :is-filled="!!promptA"
           :disabled="isGenerating"
           @copy="copyPromptA"
           @paste="pastePromptA"
           @clear="clearPromptA"
+          @focus="focusedField = 'promptA'"
+          @blur="() => {}"
         />
         <MediaInputBox
-          icon="clipboard"
+          icon="💡"
           :label="t('latentLab.probing.promptBLabel')"
           :placeholder="t('latentLab.probing.promptBPlaceholder')"
           v-model:value="promptB"
           input-type="text"
           :rows="2"
           resize-type="auto"
+          :is-filled="!!promptB"
           :disabled="isGenerating"
           @copy="copyPromptB"
           @paste="pastePromptB"
           @clear="clearPromptB"
+          @focus="focusedField = 'promptB'"
+          @blur="() => {}"
         />
       </div>
 
@@ -287,6 +293,7 @@ const isTransferring = ref(false)
 const errorMessage = ref('')
 const analysisComplete = ref(false)
 const sortAscending = ref(false)
+const focusedField = ref<string>('')
 
 // Result data
 const originalImage = ref('')
@@ -580,6 +587,7 @@ onUnmounted(() => {
   justify-content: center;
   flex-wrap: wrap;
 }
+
 
 .action-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .control-group { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
@@ -1046,9 +1054,8 @@ onUnmounted(() => {
 </style>
 
 <style>
-/* Force INPUT boxes (side-by-side) to have proper width — pattern from text_transformation */
 .feature-probing .input-pair .media-input-box {
-  flex: 0 1 480px !important;
+  flex: 1 1 0 !important;
   width: 100% !important;
   max-width: 480px !important;
 }
