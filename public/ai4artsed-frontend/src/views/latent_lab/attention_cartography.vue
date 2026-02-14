@@ -69,7 +69,7 @@
           </label>
           <label>
             {{ t('latentLab.attention.seedLabel') }}
-            <input v-model.number="seed" type="number" min="-1" class="setting-input setting-small" />
+            <input v-model.number="seed" type="number" min="-1" class="setting-input setting-seed" />
           </label>
         </div>
       </details>
@@ -690,6 +690,10 @@ onUnmounted(() => {
 
 .setting-small {
   width: 80px;
+}
+
+.setting-seed {
+  width: 14ch;
 }
 
 /* Visualization */
