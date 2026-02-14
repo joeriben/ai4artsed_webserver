@@ -10,7 +10,7 @@
     "pipeline_class": "StableDiffusion3Pipeline",
     "attention_mode": true,
     "capture_layers": [3, 9, 17],
-    "capture_every_n_steps": 5
+    "capture_every_n_steps": 1
   },
 
   "input_mappings": {

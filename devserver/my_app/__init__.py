@@ -5,6 +5,7 @@ import logging
 import os
 from flask import Flask, request
 from flask_cors import CORS
+from flask_compress import Compress
 
 from config import LOG_LEVEL, LOG_FORMAT, PUBLIC_DIR, DISABLE_API_CACHE, CACHE_STRATEGY, ENABLE_LEGACY_MIGRATION, CORS_ALLOWED_ORIGINS
 
@@ -158,6 +159,9 @@ def create_app():
          origins=CORS_ALLOWED_ORIGINS,
          allow_headers=['Content-Type'],
          expose_headers=['Set-Cookie'])
+
+    # gzip/brotli compression for large responses (e.g. attention_maps: 50MB → ~3MB)
+    Compress(app)
 
     # Environment-based API caching strategy
     @app.after_request

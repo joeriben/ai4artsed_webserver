@@ -73,8 +73,14 @@ class AttentionMapStore:
             indices = torch.tensor(self.text_column_indices, device=attention_map.device)
             attention_map = attention_map[:, indices]
 
-        # Convert to list for JSON serialization (float32 → Python float)
-        self.maps[step_key][layer_key] = attention_map.cpu().float().tolist()
+        # Quantize to integers for compact JSON serialization.
+        # Full float32 precision produces ~21 chars per value ("0.001500000013038516"),
+        # integers produce ~2-4 chars ("15"). Frontend normalizes to max anyway,
+        # so absolute scale doesn't matter — only relative proportions.
+        # 126MB → ~15MB JSON, then gzip brings it to ~2-3MB.
+        import torch
+        quantized = (attention_map * 10000).round().to(torch.int32)
+        self.maps[step_key][layer_key] = quantized.cpu().tolist()
 
     def clear(self):
         """Clear all stored maps."""

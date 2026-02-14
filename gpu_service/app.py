@@ -7,6 +7,7 @@ Creates the Flask app with CORS for localhost and registers all route blueprints
 import logging
 from flask import Flask
 from flask_cors import CORS
+from flask_compress import Compress
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,9 @@ def create_app():
             ]
         }
     })
+
+    # gzip/brotli compression for large responses (attention_maps etc.)
+    Compress(app)
 
     # Register route blueprints
     from routes.health_routes import health_bp
