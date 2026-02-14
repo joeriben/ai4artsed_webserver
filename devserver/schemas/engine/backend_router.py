@@ -1769,7 +1769,6 @@ class BackendRouter:
 
             model_id = diffusers_config.get('model_id', 'stabilityai/stable-diffusion-3.5-large')
             pipeline_class = diffusers_config.get('pipeline_class', 'StableDiffusion3Pipeline')
-            enable_cpu_offload = diffusers_config.get('enable_cpu_offload', False)
 
             # Get generation parameters
             width = int(parameters.get('width') or input_mappings.get('width', {}).get('default', 1024))
@@ -1863,12 +1862,13 @@ class BackendRouter:
                     model_id=model_id,
                 )
 
-                if not probing_result:
-                    logger.error("[DIFFUSERS] Feature probing generation failed")
+                if not probing_result or (isinstance(probing_result, dict) and 'error' in probing_result):
+                    error_detail = probing_result.get('error', 'unknown') if isinstance(probing_result, dict) else 'empty result'
+                    logger.error(f"[DIFFUSERS] Feature probing failed: {error_detail}")
                     return BackendResponse(
                         success=False,
                         content="Feature probing generation failed",
-                        metadata={'error': 'probing_generation_failed'}
+                        error=f"Feature probing: {error_detail}",
                     )
 
                 return BackendResponse(
@@ -1919,7 +1919,6 @@ class BackendRouter:
                     cfg_scale=cfg_scale,
                     seed=seed,
                     pipeline_class=pipeline_class,
-                    enable_cpu_offload=enable_cpu_offload,
                 )
 
             if not image_bytes:
