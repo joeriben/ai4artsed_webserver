@@ -122,6 +122,8 @@
           :is-analyzing="isAnalyzing"
           :show-analysis="showAnalysis"
           :analysis-data="imageAnalysis"
+          :run-id="currentRunId"
+          :is-favorited="isFavorited"
           forward-button-title="Weiterreichen zu Bild-Transformation"
           @save="saveMedia"
           @print="printImage"
@@ -130,6 +132,7 @@
           @analyze="analyzeImage"
           @image-click="showImageFullscreen"
           @close-analysis="showAnalysis = false"
+          @toggle-favorite="toggleFavorite"
         />
       </section>
     </div>
@@ -155,7 +158,9 @@ import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
+import { useFavoritesStore } from '@/stores/favorites'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
@@ -192,6 +197,12 @@ const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 // Router for navigation
 const router = useRouter()
+
+// Favorites support
+const favoritesStore = useFavoritesStore()
+const deviceId = useDeviceId()
+const currentRunId = ref<string | null>(null)
+const isFavorited = computed(() => currentRunId.value ? favoritesStore.isFavorited(currentRunId.value) : false)
 
 const inputText = ref('')
 const alphaFaktor = ref<number>(0)  // Slider (-75 to +75), default 0 = normal/balanced
@@ -381,6 +392,7 @@ async function executeWorkflow() {
       const runId = response.data.run_id
 
       if (runId) {
+        currentRunId.value = runId
         clearInterval(progressInterval)
         generationProgress.value = 100
 
@@ -525,6 +537,11 @@ function clearInputText() {
 // ============================================================================
 // Media Actions (Universal for all media types)
 // ============================================================================
+
+async function toggleFavorite() {
+  if (!currentRunId.value) return
+  await favoritesStore.toggleFavorite(currentRunId.value, 'image', deviceId)
+}
 
 function saveMedia() {
   // TODO: Implement save/bookmark feature for all media types
