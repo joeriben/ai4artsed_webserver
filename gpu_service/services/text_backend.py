@@ -615,17 +615,14 @@ class TextBackend:
                 seed = random.randint(0, 2**32 - 1)
             torch.manual_seed(seed)
 
-            # Convert boost/suppress tokens to IDs
-            boost_ids = set()
-            suppress_ids = set()
+            # Convert boost/suppress tokens to IDs (bare + space-prefixed + case variants)
+            boost_ids = self._resolve_token_ids(tokenizer, boost_tokens or [])
+            suppress_ids = self._resolve_token_ids(tokenizer, suppress_tokens or [])
 
-            for tok in (boost_tokens or []):
-                ids = tokenizer.encode(tok, add_special_tokens=False)
-                boost_ids.update(ids)
-
-            for tok in (suppress_tokens or []):
-                ids = tokenizer.encode(tok, add_special_tokens=False)
-                suppress_ids.update(ids)
+            if suppress_ids:
+                logger.info(f"[TEXT] Surgery: suppressing {len(suppress_ids)} token IDs for {len(suppress_tokens)} words")
+            if boost_ids:
+                logger.info(f"[TEXT] Surgery: boosting {len(boost_ids)} token IDs for {len(boost_tokens)} words")
 
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
             generated = inputs.input_ids.clone()
@@ -636,10 +633,10 @@ class TextBackend:
                     outputs = model(generated)
                     logits = outputs.logits[:, -1, :].float()  # float32 for stable softmax
 
-                    # Apply surgery
+                    # Apply surgery (additive boost — stable, no degeneration)
                     for tid in boost_ids:
                         if tid < logits.shape[-1]:
-                            logits[:, tid] *= boost_factor
+                            logits[:, tid] += boost_factor
                     for tid in suppress_ids:
                         if tid < logits.shape[-1]:
                             logits[:, tid] = -float('inf')
@@ -811,6 +808,28 @@ class TextBackend:
     # WISSENSCHAFTLICHE METHODEN (Session 177)
     # =========================================================================
 
+    def _resolve_token_ids(self, tokenizer, words: list) -> set:
+        """Resolve words to ALL matching token IDs (bare + space-prefixed + case variants).
+
+        BPE tokenizers encode " he" and "he" as different token IDs.
+        During generation, most tokens appear with a space prefix (▁he / Ġhe).
+        Without resolving both variants, suppress/boost targets the wrong IDs.
+        """
+        token_ids = set()
+        for word in words:
+            # Bare token
+            ids = tokenizer.encode(word, add_special_tokens=False)
+            token_ids.update(ids)
+            # Space-prefixed (most common in generated text)
+            ids_space = tokenizer.encode(" " + word, add_special_tokens=False)
+            token_ids.update(ids_space)
+            # Capitalized variant (if lowercase input)
+            if word[0].islower():
+                cap = word.capitalize()
+                token_ids.update(tokenizer.encode(cap, add_special_tokens=False))
+                token_ids.update(tokenizer.encode(" " + cap, add_special_tokens=False))
+        return token_ids
+
     def _get_decoder_layers(self, model):
         """Get decoder layers for various model architectures."""
         # LLaMA, Qwen, Mistral
@@ -944,11 +963,16 @@ class TextBackend:
                         seed = random.randint(0, 2**32 - 1)
 
                     # Register hook to add concept direction at target layer
-                    direction_gpu = concept_direction.to(model.device).unsqueeze(0).unsqueeze(0)
+                    # hidden_states has N+1 entries: [0]=embedding, [1..N]=decoder layers
+                    # decoder_layers has N entries: [0..N-1]
+                    # So hidden_states[layer_idx] corresponds to decoder_layers[layer_idx - 1]
+                    model_dtype = next(model.parameters()).dtype
+                    direction_gpu = concept_direction.to(device=model.device, dtype=model_dtype).unsqueeze(0).unsqueeze(0)
                     decoder_layers = self._get_decoder_layers(model)
+                    hook_layer_idx = layer_idx - 1
 
                     handle = None
-                    if decoder_layers and layer_idx < len(decoder_layers):
+                    if decoder_layers and 0 <= hook_layer_idx < len(decoder_layers):
                         def make_hook(dir_vec, strength):
                             def hook_fn(module, input, output):
                                 if isinstance(output, tuple):
@@ -956,12 +980,22 @@ class TextBackend:
                                 return output + strength * dir_vec
                             return hook_fn
 
-                        handle = decoder_layers[layer_idx].register_forward_hook(
+                        handle = decoder_layers[hook_layer_idx].register_forward_hook(
                             make_hook(direction_gpu, alpha)
+                        )
+                        logger.info(
+                            f"[TEXT] RepEng: Hook registered on decoder layer {hook_layer_idx}, "
+                            f"alpha={alpha}, direction_norm={concept_direction.norm():.4f}"
+                        )
+                    else:
+                        logger.warning(
+                            f"[TEXT] RepEng: Could not register hook — "
+                            f"decoder_layers={'found' if decoder_layers else 'None'}, "
+                            f"hook_layer_idx={hook_layer_idx}"
                         )
 
                     try:
-                        # Manipulated generation
+                        # Manipulated generation (hook active)
                         torch.manual_seed(seed)
                         gen_manip = model.generate(
                             test_inputs.input_ids,
@@ -991,6 +1025,9 @@ class TextBackend:
                     )
                     result["alpha"] = alpha
                     result["seed"] = seed
+
+                    if result["baseline_text"] == result["manipulated_text"]:
+                        logger.warning("[TEXT] RepEng: baseline == manipulated — hook may not be effective")
 
             return result
         finally:
