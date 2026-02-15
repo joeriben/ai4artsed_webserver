@@ -290,6 +290,20 @@
           <p class="science-text">{{ t('latentLab.textLab.compare.science') }}</p>
         </details>
 
+        <!-- Model A (from shared panel) -->
+        <div class="subsection model-a-panel">
+          <h4 class="subsection-title">{{ t('latentLab.textLab.compare.modelATitle') }}</h4>
+          <div class="model-status">
+            <span class="status-dot loaded"></span>
+            <span class="status-text">
+              <strong>{{ loadedModel!.model_id }}</strong>
+              ({{ loadedModel!.quantization }})
+              — {{ loadedModel!.vram_mb }}MB
+            </span>
+            <span class="model-a-hint">{{ t('latentLab.textLab.compare.modelAHint') }}</span>
+          </div>
+        </div>
+
         <!-- Model B Selector -->
         <div class="subsection model-b-panel">
           <h4 class="subsection-title">{{ t('latentLab.textLab.compare.modelBTitle') }}</h4>
@@ -1326,7 +1340,9 @@ onMounted(() => {
 .canvas-tooltip { position: absolute; background: rgba(0, 0, 0, 0.85); color: #fff; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-family: monospace; pointer-events: none; white-space: nowrap; z-index: 10; }
 .legend-text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); line-height: 1.6; }
 
-/* Model B Panel */
+/* Model A/B Panels */
+.model-a-panel { background: rgba(255, 255, 255, 0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.15); }
+.model-a-hint { font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); margin-left: auto; font-style: italic; }
 .model-b-panel { background: rgba(255, 255, 255, 0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); }
 
 /* Bias Results */
