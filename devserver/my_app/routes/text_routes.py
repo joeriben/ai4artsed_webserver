@@ -354,3 +354,84 @@ def compare_layers():
     if "error" in result:
         return jsonify(result), 500
     return jsonify(result)
+
+
+# =============================================================================
+# LLM Interpretation of Experiment Results
+# =============================================================================
+
+INTERPRETATION_SYSTEM_PROMPT = (
+    "Du analysierst Ergebnisse eines KI-Bias-Experiments für Jugendliche (13-17 Jahre). "
+    "Erkläre die beobachteten Muster sachlich und verständlich. 3-5 Sätze. "
+    "Keine Wertungen, keine Vereinfachungen — nur präzise Beobachtungen. "
+    "Antworte in der Sprache der Eingabe."
+)
+
+
+def _build_interpretation_prompt(results: dict, experiment_type: str) -> str:
+    """Format experiment results into a structured prompt for the LLM."""
+    parts = []
+
+    if experiment_type == "bias":
+        parts.append(f"Experiment: Bias-Archäologie ({results.get('bias_type', 'unknown')})")
+        parts.append(f"Prompt: \"{results.get('prompt', '')}\"")
+        parts.append(f"Modell: {results.get('model_id', 'unknown')}")
+
+        # Baseline
+        baseline = results.get("baseline", [])
+        if baseline:
+            parts.append("\nBaseline (keine Manipulation):")
+            for s in baseline:
+                parts.append(f"  Seed {s.get('seed')}: {s.get('text', '')}")
+
+        # Manipulation groups
+        for group in results.get("groups", []):
+            name = group.get("group_name", "")
+            mode = group.get("mode", "")
+            tokens = ", ".join(group.get("tokens", []))
+            parts.append(f"\nGruppe '{name}' ({mode}), Tokens: [{tokens}]:")
+            for s in group.get("samples", []):
+                parts.append(f"  Seed {s.get('seed')}: {s.get('text', '')}")
+
+    elif experiment_type == "repeng":
+        parts.append("Experiment: Representation Engineering")
+        parts.append(f"Erklärte Varianz: {results.get('explained_variance', 0):.1%}")
+        if results.get("baseline_text"):
+            parts.append(f"Baseline: {results['baseline_text']}")
+        if results.get("manipulated_text"):
+            parts.append(f"Manipuliert (α={results.get('alpha', 0)}): {results['manipulated_text']}")
+
+    elif experiment_type == "compare":
+        parts.append("Experiment: Vergleichende Modell-Archäologie")
+        ma = results.get("model_a", {})
+        mb = results.get("model_b", {})
+        parts.append(f"Modell A ({ma.get('model_id', '?')}): {ma.get('generated_text', '')}")
+        parts.append(f"Modell B ({mb.get('model_id', '?')}): {mb.get('generated_text', '')}")
+
+    parts.append("\nWas fällt an diesen Ergebnissen auf? Was zeigen sie über das Modellverhalten?")
+    return "\n".join(parts)
+
+
+@text_bp.route('/interpret', methods=['POST'])
+def interpret_results():
+    """LLM interpretation of experiment results (bias, repeng, compare)."""
+    data = request.get_json() or {}
+    results = data.get("results")
+    experiment_type = data.get("experiment_type")
+
+    if not results or not experiment_type:
+        return jsonify({"error": "results and experiment_type required"}), 400
+
+    prompt = _build_interpretation_prompt(results, experiment_type)
+
+    from my_app.routes.chat_routes import call_chat_helper
+    try:
+        messages = [
+            {"role": "system", "content": INTERPRETATION_SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
+        response = call_chat_helper(messages, temperature=0.5, max_tokens=400)
+        return jsonify({"interpretation": response["content"]})
+    except Exception as e:
+        logger.warning(f"[TEXT] Interpretation failed: {e}")
+        return jsonify({"error": str(e)}), 500

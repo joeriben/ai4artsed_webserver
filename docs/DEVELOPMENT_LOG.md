@@ -6708,3 +6708,133 @@ The canonical safety level value is `"research"` (config.py), but the Settings d
 - `docs/00_MAIN_DOCUMENTATION_INDEX.md` — Added Part 29
 
 ---
+
+## Session 175 (2026-02-14): Latent Text Lab — GPU Service Backend
+
+**Date:** 2026-02-14
+**Status:** COMPLETE
+**Branch:** develop
+
+### Problem
+
+The Latent Lab had deconstructive tools for image models (Attention Cartography, Feature Probing, Concept Algebra, Denoising Archaeology) but no tools for language models. Educators needed visibility into how LLMs work internally — biases, attention patterns, embedding structures, generation mechanics.
+
+### Changes
+
+**GPU Service — Core Backend:**
+- `gpu_service/services/text_backend.py` (NEW, ~1400 lines) — `TextBackend` class with:
+  - Model management with auto-quantization (bf16 → int8 → int4 based on VRAM)
+  - VRAM coordination via `VRAMBackend` protocol
+  - Architecture-aware layer access (LLaMA, GPT-2, Falcon)
+  - Dekonstruktive methods: embedding extraction, interpolation, attention maps, token surgery, streaming generation, layer analysis, seed variations
+
+**GPU Service — Routes:**
+- `gpu_service/routes/text_routes.py` (NEW) — REST + SSE endpoints for all TextBackend methods, `TEXT_ENABLED` guard
+
+**DevServer — Proxy Layer:**
+- `devserver/my_app/routes/text_routes.py` (NEW) — Stateless proxy to GPU Service
+- `devserver/my_app/services/text_client.py` (NEW) — HTTP client wrapping async/sync boundary
+- `devserver/my_app/__init__.py` — Registered `text_bp` blueprint
+
+### Key Insight
+
+DevServer → GPU Service proxy pattern (identical to Diffusers and HeartMuLa) keeps all VRAM-intensive operations in the GPU Service process. DevServer remains a lightweight orchestrator.
+
+---
+
+## Session 176 (2026-02-14): Latent Text Lab — Vue Frontend
+
+**Date:** 2026-02-14
+**Status:** COMPLETE
+**Branch:** develop
+
+### Problem
+
+Backend API existed but no frontend to use it. Needed a Vue component integrated into the existing Latent Lab tab container.
+
+### Changes
+
+- `public/ai4artsed-frontend/src/views/latent_lab/latent_text_lab.vue` (NEW, ~1060 lines) — Full Vue component with:
+  - Shared model management panel (presets, custom model ID, quantization, VRAM display)
+  - Tab navigation for 3 research tools (initially: generic tools before scientific refoundation)
+  - All API integrations via fetch
+  - CKA heatmap on `<canvas>` with interactive tooltip
+  - Responsive design, black background (#0a0a0a)
+
+- `public/ai4artsed-frontend/src/views/latent_lab.vue` — Added `textlab` tab
+- `public/ai4artsed-frontend/src/i18n.ts` — Full DE+EN translations for all Text Lab strings
+- `public/ai4artsed-frontend/src/router/index.ts` — Route already covered by `/latent-lab`
+
+### Key Insight
+
+Tab container in `latent_lab.vue` persists active tab in localStorage. New tabs just need a component import and tab entry — no routing changes needed.
+
+---
+
+## Session 177 (2026-02-15): Latent Text Lab — Scientific Refoundation + Bug Fixes
+
+**Date:** 2026-02-15
+**Status:** COMPLETE
+**Branch:** develop
+**Commits:** eaf3516, bf4afe8
+
+### Problem
+
+Initial Text Lab (Sessions 175-176) offered generic tools (Token Surgery, Embedding Interpolation, Attention Maps, Layer Analysis). Technically impressive but pedagogically unfocused — students didn't know *what* to investigate.
+
+### Changes
+
+**Scientific Refoundation — 3 research-based tabs replacing generic tools:**
+
+1. **Representation Engineering** (Zou 2023 + Li 2024) — Find concept directions via contrast pairs, manipulate generation with PyTorch forward hooks on decoder layers
+2. **Comparative Model Archaeology** (Belinkov 2022 + Olsson 2022) — Load 2 models, compute CKA similarity matrix, compare attention and generation
+3. **Bias Archaeology** (Zou 2023 + Bricken 2023) — Systematic bias probing with preset experiments (gender, sentiment, domain) and custom token manipulation
+
+**Bug Fixes (bf4afe8):**
+1. **RepEng off-by-one:** `hidden_states` has N+1 entries (includes input embedding), `decoder_layers` has N. Hook index now uses `layer_idx - 1`
+2. **Token resolution:** BPE tokenizers encode `" he"` and `"he"` as different IDs. New `_resolve_token_ids()` resolves bare + space-prefixed + capitalized variants
+3. **Boost degeneration:** Multiplicative (`logits *= factor`) → Additive (`logits += factor`) prevents softmax collapse
+
+**Files modified:**
+- `gpu_service/services/text_backend.py` — rep_engineering(), compare_models(), bias_probe(), _resolve_token_ids(), _get_decoder_layers()
+- `gpu_service/routes/text_routes.py` — /rep-engineering, /compare, /bias-probe endpoints
+- `devserver/my_app/routes/text_routes.py` — proxy endpoints
+- `devserver/my_app/services/text_client.py` — rep_engineering(), compare_models(), bias_probe() methods
+- `public/ai4artsed-frontend/src/views/latent_lab/latent_text_lab.vue` — Complete rewrite to 3 research tabs
+- `public/ai4artsed-frontend/src/i18n.ts` — All new tab translations
+
+### Key Insight
+
+Guided research with preset experiments (e.g., "suppress all gendered pronouns") is more pedagogically effective than open-ended manipulation. Each tab now has a clear research question, a defined experimental protocol, and references the underlying paper.
+
+---
+
+## Session 178 (2026-02-15): Bias Archaeology — LLM Interpretation + Documentation
+
+**Date:** 2026-02-15
+**Status:** COMPLETE
+**Branch:** develop
+
+### Problem
+
+Bias Archaeology (Tab 3) shows raw generation texts without explanation. Users see that masculine-suppression produces identical text to baseline but don't understand *why* (model uses "they" as default). Raw results need pedagogical interpretation.
+
+Additionally, the entire Latent Text Lab (Sessions 175-177) had no documentation in Architecture, Design Decisions, or Development Log.
+
+### Changes
+
+**LLM Interpretation:**
+- `devserver/my_app/routes/text_routes.py` — New `POST /api/text/interpret` endpoint with `_build_interpretation_prompt()` and pedagogical system prompt. Reuses `call_chat_helper()` from chat_routes.py (multi-provider: Ollama, Bedrock, Mistral, OpenRouter)
+- `public/ai4artsed-frontend/src/views/latent_lab/latent_text_lab.vue` — `interpretBiasResults()` async function, auto-called after bias results arrive. Loading spinner + interpretation text box + error fallback
+- `public/ai4artsed-frontend/src/i18n.ts` — 3 new keys (interpretationTitle, interpreting, interpretationError) in DE+EN
+
+**Documentation:**
+- `docs/ARCHITECTURE PART 28 - Latent-Lab.md` — Major expansion: Latent Text Lab section (~200 lines) covering scientific foundation (6 papers), architecture (data flow, model management), all 3 tabs (RepEng, Compare, Bias), interpretation endpoint, updated file reference
+- `docs/DEVELOPMENT_DECISIONS.md` — 5 new decisions: GPU-Service-Proxy, 3 wissenschaftliche Tabs, LLM-Interpretation, Token-Resolution, Additive Logit-Manipulation
+- `docs/DEVELOPMENT_LOG.md` — Sessions 175-178
+
+### Key Insight
+
+Interpretation runs on DevServer (pedagogical layer, `call_chat_helper`), NOT GPU Service (tensor layer). This preserves the architectural separation: GPU Service = raw computation, DevServer = pedagogical orchestration. Fail-open pattern ensures experiment results are never blocked by interpretation failures.
+
+---

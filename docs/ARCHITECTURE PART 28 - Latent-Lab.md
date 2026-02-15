@@ -353,6 +353,280 @@ eventually migrate from name-based detection to dict returns.
 
 ---
 
-**Document Status:** Active (2026-02-12)
+## Latent Text Lab — Dekonstruktive LLM-Introspektion
+
+### Overview
+
+The Latent Text Lab (`textlab` tab inside `/latent-lab`) extends the deconstructive paradigm from image models to large language models. Where the image-side tools (Attention Cartography, Feature Probing, etc.) expose the internals of Stable Diffusion 3.5, the Text Lab exposes the internals of decoder-only LLMs (LLaMA, GPT-2, Falcon, etc.).
+
+**Key Question:** "What biases, directions, and structures are encoded in a language model's weights?"
+
+The Text Lab does not produce finished text outputs — it runs controlled experiments that make invisible model behavior visible.
+
+### Scientific Foundation (Text-Side)
+
+Three additional research lines complement the image-side foundation:
+
+#### Representation Engineering (Text Domain)
+- **Zou, A. et al. (2023).** "Representation Engineering: A Top-Down Approach to AI Transparency." arXiv.
+  DOI: [10.48550/arXiv.2310.01405](https://doi.org/10.48550/arXiv.2310.01405)
+  — Concept directions in activation space via contrast pairs + PCA. Forward-hook manipulation steers generation without retraining. **Basis for: Tab 1 (Representation Engineering).**
+
+- **Li, K. et al. (2024).** "Inference-Time Intervention: Eliciting Truthful Answers from a Language Model." NeurIPS 2023.
+  DOI: [10.48550/arXiv.2306.03341](https://doi.org/10.48550/arXiv.2306.03341)
+  — Runtime injection of concept directions into decoder layers via forward hooks. **Basis for: Tab 1 (manipulation phase).**
+
+#### Probing & Comparative Archaeology
+- **Belinkov, Y. (2022).** "Probing Classifiers: Promises, Shortcomings, and Advances." Computational Linguistics (MIT Press).
+  DOI: [10.1162/coli_a_00422](https://doi.org/10.1162/coli_a_00422)
+  — Layer-wise probing of what information neural representations encode. **Basis for: Tab 2 (Comparative Model Archaeology).**
+
+- **Olsson, C. et al. (2022).** "In-Context Learning and Induction Heads." Anthropic Research.
+  DOI: [10.48550/arXiv.2209.11895](https://doi.org/10.48550/arXiv.2209.11895)
+  — Induction heads and mechanistic interpretability across model scales. **Basis for: Tab 2 (CKA comparison, attention analysis).**
+
+#### Bias and Monosemanticity
+- **Bricken, T. et al. (2023).** "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning." Anthropic Research.
+  — Individual neurons can encode interpretable features; systematic probing reveals latent biases. **Basis for: Tab 3 (Bias Archaeology).**
+
+#### Mapping: Paper → Text Lab Tab
+
+| Paper | Tab | Operation |
+|-------|-----|-----------|
+| Zou 2023 | Representation Engineering | Concept direction extraction via contrast pairs |
+| Li 2024 | Representation Engineering | Forward-hook manipulation of generation |
+| Belinkov 2022 | Comparative Model Archaeology | Layer-wise representation probing |
+| Olsson 2022 | Comparative Model Archaeology | CKA similarity, attention pattern analysis |
+| Bricken 2023 | Bias Archaeology | Systematic bias detection via token manipulation |
+
+### Architecture
+
+#### Data Flow
+
+```
+Frontend (latent_text_lab.vue)
+    │
+    │ POST /api/text/*
+    ▼
+DevServer text_routes.py (stateless proxy)
+    │
+    │ HTTP POST via TextClient
+    ▼
+GPU Service text_routes.py (port 17803)
+    │
+    ▼
+TextBackend (text_backend.py)
+    ├── Model management (load/unload/quantize)
+    ├── VRAM coordination (VRAMCoordinator protocol)
+    └── Dekonstruktive operations (PyTorch hooks, logit surgery)
+```
+
+**Key Design Principle:** DevServer is a stateless proxy. All model state (loaded models, VRAM tracking, LRU caches) lives exclusively in the GPU Service. This mirrors the architecture of the image-side Latent Lab tools, where Diffusers runs in the GPU Service.
+
+**Why not the 4-Stage Pipeline?** The Text Lab bypasses the standard orchestration pipeline (Stages 1–4) entirely. Like all Latent Lab tools, it requires unmanipulated access to model internals. Safety interception (Stage 2) or prompt translation (Stage 1) would destroy the experimental controls.
+
+#### Model Management
+
+Auto-quantization based on available VRAM:
+
+| Priority | Quantization | VRAM Multiplier | Quality |
+|----------|-------------|-----------------|---------|
+| 1 | bf16 | 1.0× | Best |
+| 2 | int8 | 0.5× | Good |
+| 3 | int4 | 0.3× | Acceptable |
+
+VRAM coordination via `VRAMBackend` protocol: before loading a model, the TextBackend requests VRAM from the shared `VRAMCoordinator`, which may trigger cross-backend eviction (e.g., evict a Diffusers model to make space for an LLM).
+
+### Endpoints
+
+All endpoints are defined twice — once in DevServer (`devserver/my_app/routes/text_routes.py`) as proxy, once in GPU Service (`gpu_service/routes/text_routes.py`) as implementation.
+
+| Endpoint | Method | Purpose | Backend Method |
+|----------|--------|---------|----------------|
+| `/api/text/models` | GET | List loaded models | `get_loaded_models()` |
+| `/api/text/presets` | GET | Available model presets | `get_presets()` |
+| `/api/text/load` | POST | Load model (auto-quant) | `load_model()` |
+| `/api/text/unload` | POST | Unload model | `unload_model()` |
+| `/api/text/embedding` | POST | Hidden state statistics | `get_prompt_embedding()` |
+| `/api/text/interpolate` | POST | Embedding interpolation | `interpolate_prompts()` |
+| `/api/text/attention` | POST | Attention map extraction | `get_attention_map()` |
+| `/api/text/rep-engineering` | POST | Representation Engineering | `rep_engineering()` |
+| `/api/text/compare` | POST | CKA model comparison | `compare_models()` |
+| `/api/text/bias-probe` | POST | Bias Archaeology | `bias_probe()` |
+| `/api/text/generate` | POST | Token-level logit surgery | `generate_with_token_surgery()` |
+| `/api/text/generate/stream` | POST/SSE | Streaming generation | `generate_streaming()` |
+| `/api/text/variations` | POST | Deterministic seed variations | `generate_variations()` |
+| `/api/text/layers` | POST | Layer-by-layer stats | `compare_layer_outputs()` |
+| `/api/text/interpret` | POST | LLM result interpretation | `call_chat_helper()` (DevServer only) |
+
+**Note:** `/api/text/interpret` is the only endpoint that does NOT proxy to the GPU Service. It calls the DevServer's `call_chat_helper()` (multi-provider LLM dispatch) to generate pedagogical interpretations of experiment results.
+
+### Tab 1: Representation Engineering (Zou 2023 + Li 2024)
+
+**Question:** "Can we find interpretable concept directions in activation space and use them to steer generation?"
+
+**Mechanism:**
+
+1. **Direction Finding** — User defines contrast pairs (e.g., "Paris is the capital of France" vs. "Paris is the capital of Germany"). For each pair:
+   - Extract hidden states at target layer (default: last)
+   - Compute difference vector: `pos_hidden - neg_hidden`
+   - PCA on all difference vectors → first principal component = concept direction
+   - Return: explained variance, per-pair projections, embedding dimensionality
+
+2. **Manipulation** — User enters a test prompt and alpha (manipulation strength):
+   - Register forward hook on target decoder layer
+   - Hook adds `alpha * direction` to the residual stream
+   - Generate baseline (no hook) + manipulated (with hook) using same seed
+   - Return both texts for comparison
+
+**Architecture-Aware Layer Access:**
+`_get_decoder_layers(model)` handles different LLM architectures:
+- LLaMA/Mistral: `model.model.layers`
+- GPT-2: `model.transformer.h`
+- Falcon: `model.transformer.h`
+
+**Bug Fix (Session 177):** Hidden states have N+1 entries (including input embedding) but decoder layers have N entries. Hook index must use `layer_idx - 1`.
+
+### Tab 2: Comparative Model Archaeology (Belinkov 2022 + Olsson 2022)
+
+**Question:** "How do two different models represent the same information internally?"
+
+**Mechanism:**
+
+1. Load two models simultaneously (Model A = primary, Model B = loaded separately)
+2. Feed same prompt through both
+3. Compute **Linear CKA** (Centered Kernel Alignment) similarity matrix between all layer pairs:
+   - Subsample to max 32 layers per model for tractability
+   - CKA measures representational similarity independent of dimensionality
+4. Extract attention patterns and layer-wise statistics (L2 norm, mean, std) from both
+5. Generate text from both with shared seed for behavioral comparison
+
+**Frontend:** CKA heatmap rendered on `<canvas>` with interactive tooltip (hover shows exact CKA value per layer pair). Side-by-side generation comparison.
+
+### Tab 3: Bias Archaeology (Zou 2023 + Bricken 2023)
+
+**Question:** "What happens when we systematically suppress or boost specific token categories?"
+
+**Preset Experiments:**
+
+| Type | Manipulation | What It Reveals |
+|------|-------------|-----------------|
+| Gender | Suppress all gendered pronouns (he/she/his/her/him/herself/himself) | Model's default gender assumptions |
+| Sentiment | Boost positive OR negative words separately | Strength of sentiment encoding |
+| Domain | Boost scientific OR poetic vocabulary | Register shift patterns |
+| Custom | User-defined boost/suppress token lists | Open-ended bias probing |
+
+**Mechanism:**
+
+1. Generate baseline samples (no manipulation, multiple seeds)
+2. For each group: resolve token IDs (bare + space-prefixed + capitalized variants via `_resolve_token_ids()`)
+3. Apply additive logit manipulation during generation:
+   - Boost: `logits[:, token_id] += factor`
+   - Suppress: `logits[:, token_id] = -inf`
+4. Generate manipulated samples with same seeds as baseline
+5. Return structured result: `{baseline: [...], groups: [{group_name, mode, tokens, samples}]}`
+
+**Bug Fix (Session 177):** Multiplicative boost (`logits *= factor`) caused softmax collapse → switched to additive (`logits += factor`).
+
+**Token Resolution:** BPE tokenizers encode `" he"` and `"he"` as different token IDs. `_resolve_token_ids()` resolves bare, space-prefixed (`" he"`), and capitalized (`"He"`, `" He"`) variants to ensure complete coverage.
+
+### LLM Interpretation (Session 178)
+
+**Question:** "The raw results show identical text for baseline and masculine-suppression — but why?"
+
+**Problem:** Bias Archaeology produces structured experiment results, but users (especially the 13–17 target audience) often cannot interpret why certain manipulations had no effect, or what patterns emerge across groups.
+
+**Solution:** After displaying bias results, the frontend automatically calls `POST /api/text/interpret` with the full result data. The DevServer formats the results into a structured prompt and calls `call_chat_helper()` (the multi-provider LLM dispatch used by the chat system) with a pedagogical system prompt:
+
+```
+System: "Du analysierst Ergebnisse eines KI-Bias-Experiments für Jugendliche (13-17 Jahre).
+Erkläre die beobachteten Muster sachlich und verständlich. 3-5 Sätze.
+Keine Wertungen, keine Vereinfachungen — nur präzise Beobachtungen.
+Antworte in der Sprache der Eingabe."
+```
+
+The `_build_interpretation_prompt()` function formats the experiment data (baseline samples, manipulation groups with tokens and modes, generated texts) into a structured text that the LLM can analyze. Supports `bias`, `repeng`, and `compare` experiment types.
+
+**Fail-Open:** If the interpretation call fails (LLM unavailable, timeout, error), the experiment results remain fully visible — only the interpretation box shows an error message. The experiment itself is never blocked.
+
+**Architecture Decision:** Interpretation runs on the DevServer, NOT the GPU Service. The chat helper model (e.g., Mistral Large via Ollama) is a DevServer concern (pedagogical layer), not a GPU inference concern. This keeps the GPU Service focused on tensor operations.
+
+### Frontend: `latent_text_lab.vue`
+
+**Location:** `public/ai4artsed-frontend/src/views/latent_lab/latent_text_lab.vue`
+
+**Tab Container Integration:**
+`latent_lab.vue` renders `LatentTextLab` when `activeTab === 'textlab'`. Active tab persists in `localStorage('latent_lab_tab')`.
+
+**Shared Model Panel:**
+All three tabs share a single model management panel (top of page). Loading a model makes it available across tabs. Model B (for comparison) is loaded separately within Tab 2.
+
+**Tab Structure:**
+
+| Tab | Component Section | Key Refs |
+|-----|------------------|----------|
+| Representation Engineering | `activeTab === 'repeng'` | `contrastPairs`, `repResult`, `repGenResult` |
+| Model Comparison | `activeTab === 'compare'` | `cmpResult`, `loadedModelB`, `ckaCanvas` |
+| Bias Archaeology | `activeTab === 'bias'` | `biasResult`, `biasInterpretation`, `biasInterpreting` |
+
+**CKA Heatmap:** Rendered directly on `<canvas>` via `drawCkaHeatmap()`. Cell color intensity = CKA value^0.7. Interactive tooltip on mousemove shows exact layer pair + CKA value.
+
+**Interpretation Box:** Automatically triggered after bias results arrive (`interpretBiasResults()` called in `runBiasProbe()`). Shows loading spinner → interpretation text → or error. Styled with subtle blue border to distinguish from raw results.
+
+---
+
+## Updated File Reference
+
+### Frontend — Image-Side Latent Lab
+| File | Purpose |
+|------|---------|
+| `views/latent_lab.vue` | Tab container (7 tabs) |
+| `views/latent_lab/attention_cartography.vue` | Attention heatmaps |
+| `views/latent_lab/feature_probing.vue` | Dimension analysis + transfer |
+| `views/latent_lab/concept_algebra.vue` | Vector arithmetic (A - B + C) |
+| `views/latent_lab/denoising_archaeology.vue` | Step-by-step denoising |
+| `stores/safetyLevel.ts` | Safety level store (feature gating) |
+| `components/ResearchComplianceDialog.vue` | Research compliance modal |
+| `views/LandingView.vue` | Feature card gating |
+| `router/index.ts` | Advanced-mode navigation guard |
+
+### Frontend — Latent Text Lab
+| File | Purpose |
+|------|---------|
+| `views/latent_lab/latent_text_lab.vue` | All 3 tabs + model management + CKA heatmap |
+
+### Backend — Image-Side Latent Lab
+| File | Purpose |
+|------|---------|
+| `devserver/my_app/services/diffusers_backend.py` | `generate_image_with_attention()`, `generate_image_with_probing()`, `generate_image_with_algebra()`, `generate_image_with_archaeology()` |
+| `devserver/my_app/services/attention_processors_sd3.py` | Custom attention capture |
+| `devserver/my_app/services/embedding_analyzer.py` | Dimension difference + transfer + concept algebra |
+
+### Backend — Latent Text Lab (DevServer proxy layer)
+| File | Purpose |
+|------|---------|
+| `devserver/my_app/routes/text_routes.py` | REST proxy + `/interpret` endpoint |
+| `devserver/my_app/services/text_client.py` | HTTP client to GPU Service |
+
+### Backend — Latent Text Lab (GPU Service execution)
+| File | Purpose |
+|------|---------|
+| `gpu_service/services/text_backend.py` | Core: model management, RepEng, CKA, bias probing, token surgery, VRAM coordination |
+| `gpu_service/routes/text_routes.py` | REST + SSE endpoints wrapping TextBackend |
+
+### Configs
+| File | Purpose |
+|------|---------|
+| `schemas/pipelines/latent_lab.json` | Passthrough pipeline (skip Stage 2) |
+| `schemas/configs/interception/latent_lab.json` | UI metadata (icon, category) |
+| `schemas/configs/output/attention_cartography_diffusers.json` | Attention Cartography output config |
+| `schemas/configs/output/feature_probing_diffusers.json` | Feature Probing output config |
+| `schemas/configs/output/concept_algebra_diffusers.json` | Concept Algebra output config |
+| `schemas/configs/output/denoising_archaeology_diffusers.json` | Denoising Archaeology output config |
+| `schemas/chunks/output_image_concept_algebra_diffusers.py` | Concept Algebra Python chunk |
+
+---
+
+**Document Status:** Active (2026-02-15)
 **Maintainer:** AI4ArtsEd Development Team
-**Last Updated:** Session 168 (Concept Algebra, Scientific Foundation)
+**Last Updated:** Session 178 (Latent Text Lab documentation, LLM interpretation)

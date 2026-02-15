@@ -288,12 +288,20 @@ class StableAudioGenerator:
         This enables CLIP image features (768d) to be injected directly
         as conditioning — the dimensional match with T5-Base is exact.
 
+        CRITICAL: When using pre-computed embeddings with CFG (guidance_scale > 1),
+        we must also provide negative_prompt_embeds as zeros. Otherwise the pipeline
+        encodes negative_prompt text via T5, and the CFG computation becomes:
+            output = T5("") + cfg * (CLIP_features - T5(""))
+        Since CLIP and T5 are different feature spaces, the subtraction is meaningless
+        and produces constant noise regardless of the input image.
+        With zeros: output = cfg * CLIP_features (correct).
+
         Args:
             prompt_embeds: Pre-computed conditioning tensor [B, seq, 768]
             attention_mask: Attention mask for embeddings [B, seq]
             seconds_start: Audio start time
             seconds_end: Audio end time (max 47.55)
-            negative_prompt: Text for negative conditioning (still encoded via T5)
+            negative_prompt: Ignored when prompt_embeds is provided (kept for API compat)
             steps: Number of inference steps
             cfg_scale: Classifier-free guidance scale
             seed: Seed for reproducibility (-1 = random)
@@ -321,13 +329,15 @@ class StableAudioGenerator:
                 generator = torch.Generator(device=self.device).manual_seed(seed)
 
                 # Move embeddings to device
-                prompt_embeds = prompt_embeds.to(
-                    device=self.device,
-                    dtype=self._pipeline.transformer.dtype,
-                )
+                xf_dtype = self._pipeline.transformer.dtype
+                prompt_embeds = prompt_embeds.to(device=self.device, dtype=xf_dtype)
 
                 if attention_mask is not None:
                     attention_mask = attention_mask.to(device=self.device)
+
+                # Zero negative embeddings: keeps CFG in the same feature space
+                negative_prompt_embeds = torch.zeros_like(prompt_embeds)
+                negative_attention_mask = torch.ones_like(attention_mask)
 
                 logger.info(
                     f"[STABLE-AUDIO] Generating from embeddings: "
@@ -340,7 +350,8 @@ class StableAudioGenerator:
                         result = self._pipeline(
                             prompt_embeds=prompt_embeds,
                             attention_mask=attention_mask,
-                            negative_prompt=negative_prompt if negative_prompt else None,
+                            negative_prompt_embeds=negative_prompt_embeds,
+                            negative_attention_mask=negative_attention_mask,
                             audio_start_in_s=seconds_start,
                             audio_end_in_s=seconds_end,
                             num_inference_steps=steps,
@@ -374,10 +385,11 @@ class StableAudioGenerator:
 
         try:
             # audio shape: [channels, samples] as numpy or tensor
+            # Pipeline outputs float16 when torch_dtype=float16 — soundfile needs float32
             if hasattr(audio, 'numpy'):
-                audio_np = audio.cpu().numpy()
+                audio_np = audio.cpu().float().numpy()
             elif hasattr(audio, 'cpu'):
-                audio_np = audio.cpu().numpy()
+                audio_np = audio.cpu().float().numpy()
             else:
                 audio_np = np.array(audio)
 

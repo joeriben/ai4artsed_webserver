@@ -407,8 +407,16 @@ class CrossAestheticGenerator:
     async def _cross_decode_image_to_audio(
         self, prompt, seed, image_model, image_steps, image_cfg, audio_duration
     ) -> Optional[bytes]:
-        """Image latents → Stable Audio VAE → audio."""
+        """Image latents → Stable Audio VAE → audio.
+
+        The Oobleck VAE expects temporally correlated latents (nearby frames similar).
+        After reshaping [1,16,128,128] → [1,64,4096], the 2D spatial correlations from
+        the image map partially to temporal correlations within each audio channel.
+        We apply 1D temporal smoothing so the VAE has structure to decode,
+        not just noise.
+        """
         import torch
+        import torch.nn.functional as F
         import numpy as np
 
         # Step 1: Generate image latents
@@ -461,9 +469,20 @@ class CrossAestheticGenerator:
 
         logger.info(f"[CROSS-AESTHETIC] Reshaped to audio latents: {list(audio_latents.shape)}")
 
-        # Step 3: Normalize to Stable Audio's latent distribution
-        # Z-score normalize, then scale to typical audio latent range
-        audio_latents = (audio_latents - audio_latents.mean()) / (audio_latents.std() + 1e-8)
+        # Step 3: Per-channel normalization + temporal smoothing
+        # Per-channel preserves inter-channel relationships (frequency bands)
+        for c in range(audio_latents.shape[1]):
+            ch = audio_latents[:, c, :]
+            audio_latents[:, c, :] = (ch - ch.mean()) / (ch.std() + 1e-8)
+
+        # 1D temporal smoothing: Oobleck VAE expects nearby frames to correlate
+        # kernel_size=15 creates ~3.5ms correlation windows at 4096 frames
+        kernel_size = 15
+        pad = kernel_size // 2
+        audio_latents = F.avg_pool1d(
+            F.pad(audio_latents, (pad, pad), mode='reflect'),
+            kernel_size=kernel_size, stride=1
+        )
 
         # Step 4: Decode with Stable Audio's VAE
         from services.stable_audio_backend import get_stable_audio_backend
@@ -504,8 +523,16 @@ class CrossAestheticGenerator:
     async def _cross_decode_audio_to_image(
         self, prompt, seed, audio_duration, audio_steps, audio_cfg
     ) -> Optional[bytes]:
-        """Audio latents → SD3.5 VAE → image."""
+        """Audio latents → SD3.5 VAE → image.
+
+        The SD3.5 VAE expects spatially correlated latents (neighboring pixels similar).
+        Audio latents [1,64,T] have temporal correlations (within channels) but when
+        reshaped to [1,16,128,128], the temporal axis maps to horizontal rows only.
+        We apply 2D Gaussian blur to introduce spatial correlation in both dimensions
+        so the VAE decodes structured patterns instead of noise.
+        """
         import torch
+        import torch.nn.functional as F
         import io
 
         # Step 1: Generate audio latents
@@ -548,7 +575,6 @@ class CrossAestheticGenerator:
         flat = audio_latents.reshape(1, -1)
 
         if flat.shape[1] < target_values:
-            # Pad with zeros if audio latents have fewer values
             padding = torch.zeros(1, target_values - flat.shape[1], device=flat.device, dtype=flat.dtype)
             flat = torch.cat([flat, padding], dim=1)
         elif flat.shape[1] > target_values:
@@ -556,8 +582,28 @@ class CrossAestheticGenerator:
 
         image_latents = flat.reshape(1, 16, 128, 128)
 
-        # Step 3: Normalize to SD3.5's latent distribution
-        image_latents = (image_latents - image_latents.mean()) / (image_latents.std() + 1e-8)
+        # Step 3: Per-channel normalization + 2D spatial smoothing
+        # Per-channel preserves cross-channel relationships (latent feature maps)
+        for c in range(image_latents.shape[1]):
+            ch = image_latents[:, c, :, :]
+            image_latents[:, c, :, :] = (ch - ch.mean()) / (ch.std() + 1e-8)
+
+        # 2D Gaussian blur: SD3.5 VAE expects spatial correlation between neighbors
+        # sigma=2.0 creates ~6px correlation radius in latent space (= ~48px in pixel space)
+        kernel_size = 9
+        sigma = 2.0
+        # Build 2D Gaussian kernel
+        x = torch.arange(kernel_size, device=image_latents.device, dtype=image_latents.dtype) - kernel_size // 2
+        gauss_1d = torch.exp(-0.5 * (x / sigma) ** 2)
+        gauss_2d = gauss_1d[:, None] * gauss_1d[None, :]
+        gauss_2d = gauss_2d / gauss_2d.sum()
+        # Apply per-channel: [1, C, H, W] → grouped conv
+        gauss_kernel = gauss_2d.expand(16, 1, kernel_size, kernel_size)
+        pad = kernel_size // 2
+        image_latents = F.conv2d(
+            F.pad(image_latents, (pad, pad, pad, pad), mode='reflect'),
+            gauss_kernel, groups=16
+        )
 
         # Apply SD3.5 VAE denormalization
         # SD3.5 VAE: scaling_factor=1.5305, shift_factor=0.0609

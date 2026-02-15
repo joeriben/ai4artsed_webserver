@@ -499,6 +499,17 @@
               <div class="sample-text">{{ s.text }}</div>
             </div>
           </div>
+
+          <!-- LLM Interpretation -->
+          <div class="bias-interpretation">
+            <h4 class="subsection-title">{{ t('latentLab.textLab.bias.interpretationTitle') }}</h4>
+            <div v-if="biasInterpreting" class="interpretation-loading">
+              <span class="spinner"></span>
+              <span class="interpretation-loading-text">{{ t('latentLab.textLab.bias.interpreting') }}</span>
+            </div>
+            <div v-else-if="biasInterpretation" class="interpretation-text">{{ biasInterpretation }}</div>
+            <div v-else-if="biasInterpretationError" class="interpretation-error">{{ t('latentLab.textLab.bias.interpretationError') }}</div>
+          </div>
         </div>
       </section>
     </template>
@@ -1005,12 +1016,40 @@ const biasMaxTokens = ref(50)
 const biasSeed = ref(42)
 const biasLoading = ref(false)
 const biasResult = ref<BiasResult | null>(null)
+const biasInterpretation = ref<string | null>(null)
+const biasInterpreting = ref(false)
+const biasInterpretationError = ref(false)
+
+async function interpretBiasResults(data: BiasResult) {
+  biasInterpretation.value = null
+  biasInterpretationError.value = false
+  biasInterpreting.value = true
+  try {
+    const resp = await fetch(`${apiBase}/api/text/interpret`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ results: data, experiment_type: 'bias' }),
+    })
+    const result = await resp.json()
+    if (result.error) {
+      biasInterpretationError.value = true
+    } else {
+      biasInterpretation.value = result.interpretation
+    }
+  } catch {
+    biasInterpretationError.value = true
+  } finally {
+    biasInterpreting.value = false
+  }
+}
 
 async function runBiasProbe() {
   if (!biasPrompt.value.trim() || !loadedModel.value || biasLoading.value) return
   biasLoading.value = true
   errorMessage.value = ''
   biasResult.value = null
+  biasInterpretation.value = null
+  biasInterpretationError.value = false
 
   const payload: Record<string, unknown> = {
     prompt: biasPrompt.value,
@@ -1040,6 +1079,7 @@ async function runBiasProbe() {
       showError(data.error)
     } else {
       biasResult.value = data
+      interpretBiasResults(data)
     }
   } catch {
     showError(t('latentLab.textLab.error.operationFailed'))
@@ -1206,6 +1246,13 @@ onMounted(() => {
 .bias-sample:last-child { margin-bottom: 0; }
 .sample-seed { font-family: monospace; font-size: 0.7rem; color: rgba(102, 126, 234, 0.6); }
 .sample-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin-top: 0.25rem; }
+
+/* Interpretation */
+.bias-interpretation { padding: 1rem; background: rgba(102, 126, 234, 0.05); border: 1px solid rgba(102, 126, 234, 0.15); border-radius: 8px; }
+.interpretation-loading { display: flex; align-items: center; gap: 0.75rem; }
+.interpretation-loading-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.4); font-style: italic; }
+.interpretation-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.75); line-height: 1.7; white-space: pre-wrap; }
+.interpretation-error { font-size: 0.8rem; color: rgba(255, 255, 255, 0.3); font-style: italic; }
 
 /* Responsive */
 @media (max-width: 768px) {

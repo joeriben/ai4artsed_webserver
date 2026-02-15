@@ -531,7 +531,8 @@ const messages = {
         algebra: 'Concept Algebra',
         fusion: 'Encoder Fusion',
         archaeology: 'Denoising Archaeology',
-        textlab: 'Latent Text Lab'
+        textlab: 'Latent Text Lab',
+        crossmodal: 'Crossmodal Lab'
       },
       comingSoon: 'Dieses Tool wird in einer zukünftigen Version implementiert.',
       attention: {
@@ -817,12 +818,47 @@ const messages = {
           sampleSeedLabel: 'Seed',
           genderDesc: 'Unterdr\u00fcckt alle geschlechtsspezifischen Pronomen und beobachtet, welche Defaults das Modell w\u00e4hlt.',
           sentimentDesc: 'Verst\u00e4rkt positive oder negative W\u00f6rter und misst, wie stark der gesamte Textfluss beeinflusst wird.',
-          domainDesc: 'Verst\u00e4rkt wissenschaftliches oder poetisches Vokabular und beobachtet Register-Verschiebungen.'
+          domainDesc: 'Verst\u00e4rkt wissenschaftliches oder poetisches Vokabular und beobachtet Register-Verschiebungen.',
+          interpretationTitle: 'Erl\u00e4uterung',
+          interpreting: 'Ergebnisse werden analysiert...',
+          interpretationError: 'Erl\u00e4uterung konnte nicht generiert werden'
         },
         error: {
           gpuUnreachable: 'GPU-Service nicht erreichbar. Ist er gestartet?',
           loadFailed: 'Modell konnte nicht geladen werden.',
           operationFailed: 'Operation fehlgeschlagen.'
+        }
+      },
+      crossmodal: {
+        headerTitle: 'Crossmodal Lab — Modalitaetsindifferenz',
+        headerSubtitle: 'Bild und Klang durch gemeinsame latente Raeume verbinden',
+        imageUpload: 'Bild hochladen',
+        prompt: 'Prompt',
+        duration: 'Dauer (s)',
+        steps: 'Schritte',
+        cfg: 'CFG',
+        direction: 'Richtung',
+        imageToAudio: 'Bild zu Audio',
+        audioToImage: 'Audio zu Bild',
+        generate: 'Generieren',
+        generating: 'Generiere...',
+        result: 'Ergebnis',
+        strategies: {
+          a: {
+            short: 'CLIP Bild als Audio-Konditionierung',
+            title: 'Strategie A: Bild zu Audio',
+            description: 'CLIP-Bildmerkmale werden direkt als Stable Audio-Konditionierung injiziert. Die Vision-Features (1024d) werden auf 768d projiziert, um die T5-Base-Dimension zu matchen.'
+          },
+          b: {
+            short: 'Gemeinsamer Noise-Seed',
+            title: 'Strategie B: Gemeinsamer Noise-Seed',
+            description: 'Gleicher Zufalls-Seed erzeugt Bild und Audio aus identischem Rauschen. Dieselbe Zufallsinitialisierung, interpretiert durch zwei verschiedene gelernte Dynamiken.'
+          },
+          c: {
+            short: 'Latent Cross-Decoding',
+            title: 'Strategie C: Latent Cross-Decoding',
+            description: 'Latente Repraesentation eines Modells wird vom VAE des anderen Modells decodiert. Erzwingt eine Neuinterpretation — Ergebnisse sind absichtlich chaotisch/glitchy.'
+          }
         }
       }
     },
@@ -928,38 +964,6 @@ const messages = {
         statsGpu: 'GPU',
         statsHealth: 'Umwelt',
         statsSludge: 'Schlamm entfernt'
-      }
-    },
-    crossAesthetic: {
-      title: 'Cross-Aesthetic Generation',
-      subtitle: 'Modalitaetsindifferenz: Bild und Klang durch gemeinsame latente Raeume verbinden',
-      imageUpload: 'Bild hochladen',
-      prompt: 'Prompt',
-      duration: 'Dauer (s)',
-      steps: 'Schritte',
-      cfg: 'CFG',
-      direction: 'Richtung',
-      imageToAudio: 'Bild zu Audio',
-      audioToImage: 'Audio zu Bild',
-      generate: 'Generieren',
-      generating: 'Generiere...',
-      result: 'Ergebnis',
-      strategies: {
-        a: {
-          short: 'CLIP Bild als Audio-Konditionierung',
-          title: 'Strategie A: Bild zu Audio',
-          description: 'CLIP-Bildmerkmale (768d) werden direkt als Stable Audio-Konditionierung injiziert. Die dimensionale Uebereinstimmung mit T5-Base ist exakt - keine Projektion noetig.'
-        },
-        b: {
-          short: 'Gemeinsamer Noise-Seed',
-          title: 'Strategie B: Gemeinsamer Noise-Seed',
-          description: 'Gleicher Zufalls-Seed erzeugt Bild und Audio aus identischem Rauschen. Dieselbe Zufallsinitialisierung, interpretiert durch zwei verschiedene gelernte Dynamiken.'
-        },
-        c: {
-          short: 'Latent Cross-Decoding',
-          title: 'Strategie C: Latent Cross-Decoding',
-          description: 'Latente Repraesentation eines Modells wird vom VAE des anderen Modells decodiert. Erzwingt eine Neuinterpretation - Ergebnisse sind absichtlich chaotisch/glitchy.'
-        }
       }
     }
   },
@@ -1493,7 +1497,8 @@ const messages = {
         algebra: 'Concept Algebra',
         fusion: 'Encoder Fusion',
         archaeology: 'Denoising Archaeology',
-        textlab: 'Latent Text Lab'
+        textlab: 'Latent Text Lab',
+        crossmodal: 'Crossmodal Lab'
       },
       comingSoon: 'This tool will be implemented in a future version.',
       attention: {
@@ -1779,12 +1784,47 @@ const messages = {
           sampleSeedLabel: 'Seed',
           genderDesc: 'Suppresses all gendered pronouns and observes which defaults the model chooses.',
           sentimentDesc: 'Boosts positive or negative words and measures how strongly the entire text flow is affected.',
-          domainDesc: 'Boosts scientific or poetic vocabulary and observes register shifts.'
+          domainDesc: 'Boosts scientific or poetic vocabulary and observes register shifts.',
+          interpretationTitle: 'Interpretation',
+          interpreting: 'Analyzing results...',
+          interpretationError: 'Could not generate interpretation'
         },
         error: {
           gpuUnreachable: 'GPU service unreachable. Is it running?',
           loadFailed: 'Failed to load model.',
           operationFailed: 'Operation failed.'
+        }
+      },
+      crossmodal: {
+        headerTitle: 'Crossmodal Lab — Modality Indifference',
+        headerSubtitle: 'Connecting image and sound through shared latent spaces',
+        imageUpload: 'Upload image',
+        prompt: 'Prompt',
+        duration: 'Duration (s)',
+        steps: 'Steps',
+        cfg: 'CFG',
+        direction: 'Direction',
+        imageToAudio: 'Image to Audio',
+        audioToImage: 'Audio to Image',
+        generate: 'Generate',
+        generating: 'Generating...',
+        result: 'Result',
+        strategies: {
+          a: {
+            short: 'CLIP image as audio conditioning',
+            title: 'Strategy A: Image to Audio',
+            description: 'CLIP image features are injected directly as Stable Audio conditioning. Vision features (1024d) are projected to 768d to match T5-Base dimension.'
+          },
+          b: {
+            short: 'Shared noise seed',
+            title: 'Strategy B: Shared Noise Seed',
+            description: 'Same random seed generates image and audio from identical noise. Same random initialization, interpreted by two different learned dynamics.'
+          },
+          c: {
+            short: 'Latent cross-decoding',
+            title: 'Strategy C: Latent Cross-Decoding',
+            description: 'Latent representation from one model decoded by the other model\'s VAE. Forces reinterpretation — results are intentionally chaotic/glitchy.'
+          }
         }
       }
     },
@@ -1890,38 +1930,6 @@ const messages = {
         statsGpu: 'GPU',
         statsHealth: 'Environment',
         statsSludge: 'Sludge removed'
-      }
-    },
-    crossAesthetic: {
-      title: 'Cross-Aesthetic Generation',
-      subtitle: 'Modality indifference: connecting image and sound through shared latent spaces',
-      imageUpload: 'Upload image',
-      prompt: 'Prompt',
-      duration: 'Duration (s)',
-      steps: 'Steps',
-      cfg: 'CFG',
-      direction: 'Direction',
-      imageToAudio: 'Image to Audio',
-      audioToImage: 'Audio to Image',
-      generate: 'Generate',
-      generating: 'Generating...',
-      result: 'Result',
-      strategies: {
-        a: {
-          short: 'CLIP image as audio conditioning',
-          title: 'Strategy A: Image to Audio',
-          description: 'CLIP image features (768d) are injected directly as Stable Audio conditioning. The dimensional match with T5-Base is exact — no projection needed.'
-        },
-        b: {
-          short: 'Shared noise seed',
-          title: 'Strategy B: Shared Noise Seed',
-          description: 'Same random seed generates image and audio from identical noise. Same random initialization, interpreted by two different learned dynamics.'
-        },
-        c: {
-          short: 'Latent cross-decoding',
-          title: 'Strategy C: Latent Cross-Decoding',
-          description: 'Latent representation from one model decoded by the other model\'s VAE. Forces reinterpretation — results are intentionally chaotic/glitchy.'
-        }
       }
     }
   }
