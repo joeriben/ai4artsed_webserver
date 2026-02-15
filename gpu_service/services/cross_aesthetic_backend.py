@@ -157,12 +157,17 @@ class CrossAestheticGenerator:
 
     async def _encode_image(self, image_bytes: bytes):
         """
-        Encode image with CLIP Vision → [1, 196, 768] penultimate hidden states.
+        Encode image with CLIP Vision → [1, 256, 768] features.
+
+        CLIP ViT-L/14 vision hidden states are 1024d. We project to 768d
+        via adaptive avg pooling on the feature dimension to match
+        Stable Audio's T5-Base conditioning space.
 
         Returns:
-            torch.Tensor of shape [1, 196, 768]
+            torch.Tensor of shape [1, 256, 768]
         """
         import torch
+        import torch.nn.functional as F
         from PIL import Image
         import io
 
@@ -181,10 +186,14 @@ class CrossAestheticGenerator:
             def _encode():
                 with torch.no_grad():
                     outputs = self._clip_model(pixel_values, output_hidden_states=True)
-                    # Penultimate hidden states: [1, 257, 768] (256 patches + CLS)
+                    # Penultimate hidden states: [1, 257, 1024] (256 patches + CLS)
                     hidden = outputs.hidden_states[-2]
-                    # Drop CLS token → [1, 256, 768]
-                    return hidden[:, 1:, :]
+                    # Drop CLS token → [1, 256, 1024]
+                    features = hidden[:, 1:, :]
+                    # Project 1024d → 768d via adaptive avg pool on feature dim
+                    # [1, 256, 1024] → pool last dim → [1, 256, 768]
+                    projected = F.adaptive_avg_pool1d(features, 768)
+                    return projected
 
             features = await asyncio.to_thread(_encode)
             logger.info(f"[CROSS-AESTHETIC] Image encoded: shape={list(features.shape)}")
@@ -208,10 +217,10 @@ class CrossAestheticGenerator:
         """
         Strategy A: Convert image to audio via CLIP → Stable Audio conditioning.
 
-        The 768d dimensional match between CLIP image features and
-        Stable Audio's T5-Base conditioning space enables direct injection.
+        CLIP ViT-L/14 vision features (1024d) are projected to 768d to match
+        Stable Audio's T5-Base conditioning space, then injected directly.
 
-        1. Encode image with CLIP Vision → [1, 256, 768]
+        1. Encode image with CLIP Vision → [1, 256, 1024] → project → [1, 256, 768]
         2. Adaptive pool to [1, 128, 768] (match T5 sequence length)
         3. Inject as Stable Audio conditioning (bypassing T5 encoding)
         4. Generate audio
@@ -229,7 +238,7 @@ class CrossAestheticGenerator:
                 return None
 
             # Step 2: Adaptive pool 256 patches → 128 tokens (match T5 seq length)
-            # [1, 256, 768] → transpose → pool → transpose → [1, 128, 768]
+            # [1, 256, 768] → [1, 768, 256] → pool → [1, 768, 128] → [1, 128, 768]
             pooled = F.adaptive_avg_pool1d(
                 clip_features.transpose(1, 2), 128
             ).transpose(1, 2)
