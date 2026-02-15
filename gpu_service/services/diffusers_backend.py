@@ -161,6 +161,9 @@ class DiffusersImageGenerator:
         elif pipeline_class == "Flux2Pipeline":
             from diffusers import Flux2Pipeline
             return Flux2Pipeline
+        elif pipeline_class == "WanPipeline":
+            from diffusers import WanPipeline
+            return WanPipeline
         else:
             raise ValueError(f"Unknown pipeline class: {pipeline_class}")
 
@@ -251,6 +254,18 @@ class DiffusersImageGenerator:
                 }
                 if self.cache_dir:
                     kwargs["cache_dir"] = str(self.cache_dir)
+
+                # WanPipeline requires float32 VAE loaded separately
+                if pipeline_class == "WanPipeline":
+                    from diffusers import AutoencoderKLWan
+                    kwargs["torch_dtype"] = torch.bfloat16
+                    vae_kwargs = {"torch_dtype": torch.float32}
+                    if self.cache_dir:
+                        vae_kwargs["cache_dir"] = str(self.cache_dir)
+                    vae = AutoencoderKLWan.from_pretrained(
+                        model_id, subfolder="vae", **vae_kwargs
+                    )
+                    kwargs["vae"] = vae
 
                 pipe = PipelineClass.from_pretrained(model_id, **kwargs)
                 pipe = pipe.to(self.device)
@@ -485,6 +500,109 @@ class DiffusersImageGenerator:
 
         except Exception as e:
             logger.error(f"[DIFFUSERS] Generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    async def generate_video(
+        self,
+        prompt: str,
+        model_id: str = "Wan-AI/Wan2.1-T2V-14B-Diffusers",
+        negative_prompt: str = "",
+        width: int = 1280,
+        height: int = 720,
+        num_frames: int = 81,
+        steps: int = 30,
+        cfg_scale: float = 5.0,
+        fps: int = 16,
+        seed: int = -1,
+        pipeline_class: str = "WanPipeline",
+        **kwargs
+    ) -> Optional[bytes]:
+        """
+        Generate a video using Diffusers (WanPipeline).
+
+        Args:
+            prompt: Positive prompt
+            model_id: Wan model to use (14B or 1.3B)
+            negative_prompt: Negative prompt
+            width: Video width
+            height: Video height
+            num_frames: Number of frames to generate
+            steps: Number of inference steps
+            cfg_scale: Guidance scale
+            fps: Frames per second for output MP4
+            seed: Random seed (-1 for random)
+            pipeline_class: Pipeline class string
+
+        Returns:
+            MP4 video bytes, or None on failure
+        """
+        try:
+            import torch
+
+            if not await self.load_model(model_id, pipeline_class):
+                return None
+
+            self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1
+            try:
+                self._model_last_used[model_id] = time.time()
+                pipe = self._pipelines[model_id]
+
+                if seed == -1:
+                    import random
+                    seed = random.randint(0, 2**32 - 1)
+
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+
+                logger.info(
+                    f"[DIFFUSERS] Generating video: steps={steps}, "
+                    f"size={width}x{height}, frames={num_frames}, seed={seed}"
+                )
+
+                def _generate():
+                    gen_kwargs = {
+                        "prompt": prompt,
+                        "negative_prompt": negative_prompt if negative_prompt else None,
+                        "width": width,
+                        "height": height,
+                        "num_frames": num_frames,
+                        "num_inference_steps": steps,
+                        "guidance_scale": cfg_scale,
+                        "generator": generator,
+                    }
+                    result = pipe(**gen_kwargs)
+                    if not hasattr(result, 'frames') or not result.frames:
+                        raise ValueError("Pipeline returned no video frames")
+                    return result.frames[0]
+
+                frames = await asyncio.to_thread(_generate)
+
+                # Convert frames to MP4 bytes via temp file
+                # (export_to_video only accepts file paths, not BytesIO)
+                import tempfile
+                import os
+                from diffusers.utils import export_to_video
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                    tmp_path = tmp.name
+                try:
+                    export_to_video(frames, tmp_path, fps=fps)
+                    with open(tmp_path, 'rb') as f:
+                        video_bytes = f.read()
+                finally:
+                    os.unlink(tmp_path)
+
+                logger.info(
+                    f"[DIFFUSERS] Generated video: {len(video_bytes)} bytes, "
+                    f"{num_frames} frames @ {fps}fps, seed={seed}"
+                )
+                return video_bytes
+
+            finally:
+                self._model_in_use[model_id] -= 1
+
+        except Exception as e:
+            logger.error(f"[DIFFUSERS] Video generation error: {e}")
             import traceback
             traceback.print_exc()
             return None

@@ -21,6 +21,7 @@
     <ConceptAlgebra v-else-if="activeTab === 'algebra'" />
     <Surrealizer v-else-if="activeTab === 'fusion'" />
     <DenoisingArchaeology v-else-if="activeTab === 'archaeology'" />
+    <LatentTextLab v-else-if="activeTab === 'textlab'" />
   </div>
 </template>
 
@@ -32,10 +33,11 @@ import FeatureProbing from './latent_lab/feature_probing.vue'
 import ConceptAlgebra from './latent_lab/concept_algebra.vue'
 import DenoisingArchaeology from './latent_lab/denoising_archaeology.vue'
 import Surrealizer from './surrealizer.vue'
+import LatentTextLab from './latent_lab/latent_text_lab.vue'
 
 const { t } = useI18n()
 
-type TabId = 'attention' | 'probing' | 'algebra' | 'fusion' | 'archaeology'
+type TabId = 'attention' | 'probing' | 'algebra' | 'fusion' | 'archaeology' | 'textlab'
 
 const STORAGE_KEY = 'latent_lab_tab'
 
@@ -45,6 +47,7 @@ const tabs: { id: TabId }[] = [
   { id: 'algebra' },
   { id: 'fusion' },
   { id: 'archaeology' },
+  { id: 'textlab' },
 ]
 
 const activeTab = ref<TabId>('attention')

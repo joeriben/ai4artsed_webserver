@@ -96,6 +96,10 @@ class OutputConfigSelector:
         """
         Select default Output-Config for given media type and execution mode
 
+        Supports two value formats:
+        - String: direct config name (backwards compatible)
+        - Dict: VRAM-tier mapping (e.g. {"vram_96": "...", "vram_32": "..."})
+
         Args:
             media_type: "image", "audio", "music", "video", "text"
             execution_mode: "eco" (local) or "fast" (cloud)
@@ -110,12 +114,48 @@ class OutputConfigSelector:
         modes = self.defaults[media_type]
         output_config = modes.get(execution_mode)
 
+        # Dict = VRAM-tier mapping
+        if isinstance(output_config, dict):
+            output_config = self._resolve_vram_tier_dict(output_config)
+
         if output_config:
             logger.info(f"[OUTPUT-CONFIG-SELECTOR] {media_type} + {execution_mode} → {output_config}")
         else:
             logger.warning(f"[OUTPUT-CONFIG-SELECTOR] No default for {media_type} + {execution_mode}")
 
         return output_config
+
+    def _resolve_vram_tier_dict(self, tier_dict: dict) -> Optional[str]:
+        """Resolve a VRAM-tier dict to a config name.
+
+        Matches the detected VRAM tier, falling through to lower tiers.
+        """
+        vram_tier = self._get_vram_tier()
+        tier_order = ["vram_96", "vram_48", "vram_32", "vram_24", "vram_16", "vram_8"]
+
+        try:
+            start_idx = tier_order.index(vram_tier)
+        except ValueError:
+            start_idx = len(tier_order) - 1
+
+        for tier in tier_order[start_idx:]:
+            if tier in tier_dict:
+                config_name = tier_dict[tier]
+                logger.info(f"[OUTPUT-CONFIG-SELECTOR] VRAM {vram_tier} → matched {tier} → {config_name}")
+                return config_name
+
+        return None
+
+    def _get_vram_tier(self) -> str:
+        """Get VRAM tier, cached after first detection."""
+        if not hasattr(self, '_vram_tier_cache'):
+            try:
+                from my_app.routes.settings_routes import detect_gpu_vram
+                result = detect_gpu_vram()
+                self._vram_tier_cache = result.get("vram_tier", "vram_8")
+            except Exception:
+                self._vram_tier_cache = "vram_8"
+        return self._vram_tier_cache
 
     def get_available_media_types(self) -> list:
         """Get list of supported media types"""
@@ -127,6 +167,8 @@ class OutputConfigSelector:
             return False
 
         output_config = self.defaults[media_type].get(execution_mode)
+        if isinstance(output_config, dict):
+            output_config = self._resolve_vram_tier_dict(output_config)
         return output_config is not None
 
     def get_supported_modes_for_media(self, media_type: str) -> list:
@@ -134,8 +176,16 @@ class OutputConfigSelector:
         if media_type not in self.defaults:
             return []
 
+        result = []
         modes = self.defaults[media_type]
-        return [mode for mode, config in modes.items() if not mode.startswith('_') and config is not None]
+        for mode, config in modes.items():
+            if mode.startswith('_'):
+                continue
+            if isinstance(config, dict):
+                config = self._resolve_vram_tier_dict(config)
+            if config is not None:
+                result.append(mode)
+        return result
 
 
 # Singleton instance

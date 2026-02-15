@@ -473,7 +473,7 @@ class TextBackend:
 
         try:
             inputs = tokenizer(text, return_tensors="pt").to(model.device)
-            tokens = tokenizer.convert_ids_to_tokens(inputs.input_ids[0])
+            raw_tokens = tokenizer.convert_ids_to_tokens(inputs.input_ids[0])
 
             with torch.no_grad():
                 outputs = model(**inputs)
@@ -488,21 +488,88 @@ class TextBackend:
                 if head is not None:
                     attn = attn[:, head:head+1, :, :]
                 attn = attn.mean(dim=1)  # Average over heads
-                attention_matrix = attn[0].cpu().tolist()
+                attn_matrix = attn[0]  # (seq, seq)
             else:
                 # Average over all layers and heads
                 stacked = torch.stack([a.float().mean(dim=1) for a in attentions])
-                attention_matrix = stacked.mean(dim=0)[0].cpu().tolist()
+                attn_matrix = stacked.mean(dim=0)[0]  # (seq, seq)
+
+            # --- Post-process: strip special tokens, merge subwords ---
+            special_ids = set()
+            if tokenizer.bos_token_id is not None:
+                special_ids.add(tokenizer.bos_token_id)
+            if tokenizer.eos_token_id is not None:
+                special_ids.add(tokenizer.eos_token_id)
+            if tokenizer.pad_token_id is not None:
+                special_ids.add(tokenizer.pad_token_id)
+
+            input_ids = inputs.input_ids[0].tolist()
+
+            # 1) Filter out special tokens
+            keep = [i for i, tid in enumerate(input_ids) if tid not in special_ids]
+            if len(keep) < len(raw_tokens):
+                attn_matrix = attn_matrix[keep][:, keep]
+                raw_tokens = [raw_tokens[i] for i in keep]
+
+            # 2) Merge subwords into whole words
+            # SentencePiece: word-start tokens begin with ▁ (U+2581)
+            # BPE (GPT-style): continuation tokens start with ## or Ġ
+            word_groups: list[list[int]] = []
+            word_labels: list[str] = []
+
+            for i, tok in enumerate(raw_tokens):
+                tok_str = str(tok)
+                is_word_start = (
+                    i == 0
+                    or tok_str.startswith('\u2581')  # SentencePiece ▁
+                    or tok_str.startswith('Ġ')       # GPT-2/BPE Ġ
+                    or (not tok_str.startswith('##') and i == 0)
+                )
+                # BPE continuation: ## prefix
+                is_continuation = tok_str.startswith('##')
+
+                if is_word_start and not is_continuation:
+                    word_groups.append([i])
+                    # Clean display: strip ▁ and Ġ prefix
+                    clean = tok_str.lstrip('\u2581').lstrip('Ġ')
+                    word_labels.append(clean if clean else tok_str)
+                else:
+                    if not word_groups:
+                        word_groups.append([i])
+                        word_labels.append(tok_str.lstrip('##'))
+                    else:
+                        word_groups[-1].append(i)
+                        # Append to current word label (strip ## prefix)
+                        suffix = tok_str.lstrip('##')
+                        word_labels[-1] += suffix
+
+            # Aggregate attention: sum columns (how much attention a word receives),
+            # average rows (how a word distributes its attention)
+            n_words = len(word_groups)
+            n_toks = attn_matrix.shape[0]
+            merged = torch.zeros(n_words, n_words, device=attn_matrix.device)
+
+            for wi, src_indices in enumerate(word_groups):
+                for wj, tgt_indices in enumerate(word_groups):
+                    # Average over source tokens, sum over target tokens
+                    block = attn_matrix[src_indices][:, tgt_indices]
+                    # Sum targets, then average sources
+                    merged[wi, wj] = block.sum(dim=1).mean(dim=0)
+
+            # Re-normalize rows to sum to 1
+            row_sums = merged.sum(dim=1, keepdim=True)
+            row_sums = row_sums.clamp(min=1e-8)
+            merged = merged / row_sums
 
             return {
                 "model_id": model_id,
                 "text": text,
-                "tokens": tokens,
+                "tokens": word_labels,
                 "num_layers": num_layers,
                 "num_heads": num_heads,
                 "layer_selected": layer,
                 "head_selected": head,
-                "attention_matrix": attention_matrix,
+                "attention_matrix": merged.cpu().tolist(),
             }
         finally:
             self._model_in_use[model_id] -= 1
@@ -636,6 +703,8 @@ class TextBackend:
 
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
             generated = inputs.input_ids.clone()
+            input_len = inputs.input_ids.shape[1]
+            prev_decoded = ""
 
             for i in range(max_new_tokens):
                 with torch.no_grad():
@@ -648,11 +717,17 @@ class TextBackend:
                     generated = torch.cat([generated, next_token], dim=-1)
 
                     token_id = next_token.item()
-                    token_text = tokenizer.decode([token_id])
+
+                    # Incremental decode preserves SentencePiece whitespace (▁)
+                    current_decoded = tokenizer.decode(
+                        generated[0][input_len:], skip_special_tokens=True
+                    )
+                    new_text = current_decoded[len(prev_decoded):]
+                    prev_decoded = current_decoded
 
                     yield {
                         "type": "token",
-                        "token": token_text,
+                        "token": new_text,
                         "token_id": token_id,
                         "step": i,
                     }
@@ -731,6 +806,515 @@ class TextBackend:
             }
         finally:
             self._model_in_use[model_id] -= 1
+
+    # =========================================================================
+    # WISSENSCHAFTLICHE METHODEN (Session 177)
+    # =========================================================================
+
+    def _get_decoder_layers(self, model):
+        """Get decoder layers for various model architectures."""
+        # LLaMA, Qwen, Mistral
+        if hasattr(model, 'model') and hasattr(model.model, 'layers'):
+            return list(model.model.layers)
+        # GPT-2, GPT-Neo
+        if hasattr(model, 'transformer') and hasattr(model.transformer, 'h'):
+            return list(model.transformer.h)
+        # Falcon
+        if hasattr(model, 'transformer') and hasattr(model.transformer, 'layers'):
+            return list(model.transformer.layers)
+        return None
+
+    async def rep_engineering(
+        self,
+        contrast_pairs: List[Dict[str, str]],
+        model_id: str,
+        target_layer: int = -1,
+        test_text: Optional[str] = None,
+        alpha: float = 1.0,
+        max_new_tokens: int = 50,
+        temperature: float = 0.7,
+        seed: int = -1
+    ) -> Dict[str, Any]:
+        """
+        Representation Engineering (Zou et al. 2023, Li et al. 2024).
+
+        Find concept directions in activation space via contrast pairs,
+        then manipulate generation by adding/subtracting these directions.
+
+        Args:
+            contrast_pairs: [{"positive": "...", "negative": "..."}, ...]
+            model_id: Model to use
+            target_layer: Which layer to extract/manipulate (-1 = last)
+            test_text: Optional text to project and manipulate
+            alpha: Manipulation strength (-3 to +3)
+            max_new_tokens: Max tokens for manipulated generation
+            temperature: Sampling temperature
+            seed: Random seed (-1 for random)
+
+        Returns:
+            Dict with concept direction info, projections, manipulated generation
+        """
+        import torch
+        import random
+
+        if not await self.load_model(model_id):
+            return {"error": f"Failed to load model {model_id}"}
+
+        model, tokenizer = self._models[model_id]
+        self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1
+
+        try:
+            # 1. Extract hidden states for all contrast pairs
+            differences = []
+            pair_projections = []
+            num_layers = None
+
+            for pair in contrast_pairs:
+                pos_inputs = tokenizer(pair["positive"], return_tensors="pt").to(model.device)
+                neg_inputs = tokenizer(pair["negative"], return_tensors="pt").to(model.device)
+
+                with torch.no_grad():
+                    pos_outputs = model(**pos_inputs)
+                    neg_outputs = model(**neg_inputs)
+
+                if num_layers is None:
+                    num_layers = len(pos_outputs.hidden_states)
+
+                layer_idx = target_layer if target_layer >= 0 else num_layers + target_layer
+                layer_idx = max(0, min(layer_idx, num_layers - 1))
+
+                # Mean pool over sequence
+                pos_hidden = pos_outputs.hidden_states[layer_idx].mean(dim=1).float()
+                neg_hidden = neg_outputs.hidden_states[layer_idx].mean(dim=1).float()
+
+                diff = (pos_hidden - neg_hidden).squeeze(0)  # [dim]
+                differences.append(diff)
+
+            # 2. PCA on differences → concept direction
+            diff_matrix = torch.stack(differences)  # [n_pairs, dim]
+            mean_diff = diff_matrix.mean(dim=0)
+
+            if len(differences) > 1:
+                centered = diff_matrix - mean_diff
+                U, S, Vh = torch.linalg.svd(centered, full_matrices=False)
+                concept_direction = Vh[0]  # first principal component
+                explained_variance = (S[0]**2 / (S**2).sum()).item()
+            else:
+                concept_direction = differences[0]
+                explained_variance = 1.0
+
+            # Normalize
+            concept_direction = concept_direction / concept_direction.norm()
+
+            # 3. Project each pair onto the direction
+            for i, pair in enumerate(contrast_pairs):
+                proj = torch.dot(differences[i], concept_direction).item()
+                pair_projections.append({
+                    "positive": pair["positive"],
+                    "negative": pair["negative"],
+                    "projection": proj,
+                })
+
+            result = {
+                "model_id": model_id,
+                "target_layer": layer_idx,
+                "num_layers": num_layers,
+                "embedding_dim": int(concept_direction.shape[0]),
+                "num_pairs": len(contrast_pairs),
+                "explained_variance": explained_variance,
+                "direction_norm": float(mean_diff.norm()),
+                "pair_projections": pair_projections,
+            }
+
+            # 4. If test text provided: project + manipulated generation
+            if test_text:
+                test_inputs = tokenizer(test_text, return_tensors="pt").to(model.device)
+
+                with torch.no_grad():
+                    test_outputs = model(**test_inputs)
+
+                test_hidden = test_outputs.hidden_states[layer_idx].mean(dim=1).float()
+                result["test_text"] = test_text
+                result["test_projection"] = torch.dot(
+                    test_hidden.squeeze(0), concept_direction
+                ).item()
+
+                if alpha != 0:
+                    if seed == -1:
+                        seed = random.randint(0, 2**32 - 1)
+
+                    # Register hook to add concept direction at target layer
+                    direction_gpu = concept_direction.to(model.device).unsqueeze(0).unsqueeze(0)
+                    decoder_layers = self._get_decoder_layers(model)
+
+                    handle = None
+                    if decoder_layers and layer_idx < len(decoder_layers):
+                        def make_hook(dir_vec, strength):
+                            def hook_fn(module, input, output):
+                                if isinstance(output, tuple):
+                                    return (output[0] + strength * dir_vec,) + output[1:]
+                                return output + strength * dir_vec
+                            return hook_fn
+
+                        handle = decoder_layers[layer_idx].register_forward_hook(
+                            make_hook(direction_gpu, alpha)
+                        )
+
+                    try:
+                        # Manipulated generation
+                        torch.manual_seed(seed)
+                        gen_manip = model.generate(
+                            test_inputs.input_ids,
+                            max_new_tokens=max_new_tokens,
+                            do_sample=True,
+                            temperature=temperature,
+                            pad_token_id=tokenizer.eos_token_id,
+                        )
+                        result["manipulated_text"] = tokenizer.decode(
+                            gen_manip[0], skip_special_tokens=True
+                        )
+                    finally:
+                        if handle:
+                            handle.remove()
+
+                    # Baseline generation (same seed, no hook)
+                    torch.manual_seed(seed)
+                    gen_base = model.generate(
+                        test_inputs.input_ids,
+                        max_new_tokens=max_new_tokens,
+                        do_sample=True,
+                        temperature=temperature,
+                        pad_token_id=tokenizer.eos_token_id,
+                    )
+                    result["baseline_text"] = tokenizer.decode(
+                        gen_base[0], skip_special_tokens=True
+                    )
+                    result["alpha"] = alpha
+                    result["seed"] = seed
+
+            return result
+        finally:
+            self._model_in_use[model_id] -= 1
+
+    async def compare_models(
+        self,
+        text: str,
+        model_id_a: str,
+        model_id_b: str,
+        max_new_tokens: int = 50,
+        temperature: float = 0.7,
+        seed: int = 42
+    ) -> Dict[str, Any]:
+        """
+        Comparative Model Archaeology (Belinkov 2022 + Olsson 2022).
+
+        Compare two models' internal representations on the same input:
+        layer-by-layer CKA alignment, attention patterns, generation.
+
+        Args:
+            text: Input text for both models
+            model_id_a: First model
+            model_id_b: Second model
+            max_new_tokens: Max tokens for generation comparison
+            temperature: Sampling temperature
+            seed: Shared seed for deterministic comparison
+
+        Returns:
+            Dict with similarity matrix, layer stats, attention, generations
+        """
+        import torch
+
+        if not await self.load_model(model_id_a):
+            return {"error": f"Failed to load model {model_id_a}"}
+        if not await self.load_model(model_id_b):
+            return {"error": f"Failed to load model {model_id_b}"}
+
+        model_a, tok_a = self._models[model_id_a]
+        model_b, tok_b = self._models[model_id_b]
+        self._model_in_use[model_id_a] = self._model_in_use.get(model_id_a, 0) + 1
+        self._model_in_use[model_id_b] = self._model_in_use.get(model_id_b, 0) + 1
+
+        try:
+            inputs_a = tok_a(text, return_tensors="pt").to(model_a.device)
+            inputs_b = tok_b(text, return_tensors="pt").to(model_b.device)
+
+            with torch.no_grad():
+                outputs_a = model_a(**inputs_a)
+                outputs_b = model_b(**inputs_b)
+
+            # Per-layer token-level representations for CKA
+            def linear_cka(X, Y):
+                """Linear CKA between [n, d1] and [n, d2] representations."""
+                X = X - X.mean(dim=0)
+                Y = Y - Y.mean(dim=0)
+                K = X @ X.T
+                L = Y @ Y.T
+                num = (K * L).sum()
+                denom = (K * K).sum().sqrt() * (L * L).sum().sqrt()
+                if denom < 1e-10:
+                    return 0.0
+                return (num / denom).clamp(0, 1).item()
+
+            # Align sequence lengths for CKA (use shorter)
+            seq_a = outputs_a.hidden_states[0].shape[1]
+            seq_b = outputs_b.hidden_states[0].shape[1]
+            min_seq = min(seq_a, seq_b)
+
+            n_a = len(outputs_a.hidden_states)
+            n_b = len(outputs_b.hidden_states)
+
+            # Compute CKA similarity matrix (subsample layers if too many)
+            max_layers_vis = 32
+            step_a = max(1, n_a // max_layers_vis)
+            step_b = max(1, n_b // max_layers_vis)
+            layer_indices_a = list(range(0, n_a, step_a))
+            layer_indices_b = list(range(0, n_b, step_b))
+
+            similarity_matrix = []
+            for i in layer_indices_a:
+                row = []
+                ha = outputs_a.hidden_states[i][0, :min_seq, :].float().cpu()
+                for j in layer_indices_b:
+                    hb = outputs_b.hidden_states[j][0, :min_seq, :].float().cpu()
+                    row.append(linear_cka(ha, hb))
+                similarity_matrix.append(row)
+
+            # Layer statistics
+            def layer_stats(outputs):
+                stats = []
+                for i, h in enumerate(outputs.hidden_states):
+                    hs = h[0].float()
+                    stats.append({
+                        "layer": i,
+                        "l2_norm": float(hs.norm()),
+                        "mean": float(hs.mean()),
+                        "std": float(hs.std()),
+                    })
+                return stats
+
+            # Attention patterns (last layer, averaged over heads)
+            def get_attention_tokens(outputs, tokenizer, input_ids):
+                attn = outputs.attentions[-1].float().mean(dim=1)[0]
+                tokens = tokenizer.convert_ids_to_tokens(input_ids[0])
+                return {
+                    "tokens": [str(t) for t in tokens],
+                    "attention": attn.cpu().tolist(),
+                }
+
+            attn_a = get_attention_tokens(outputs_a, tok_a, inputs_a.input_ids)
+            attn_b = get_attention_tokens(outputs_b, tok_b, inputs_b.input_ids)
+
+            # Generation comparison (same seed)
+            torch.manual_seed(seed)
+            gen_a = model_a.generate(
+                inputs_a.input_ids,
+                max_new_tokens=max_new_tokens,
+                do_sample=True,
+                temperature=temperature,
+                pad_token_id=tok_a.eos_token_id,
+            )
+            torch.manual_seed(seed)
+            gen_b = model_b.generate(
+                inputs_b.input_ids,
+                max_new_tokens=max_new_tokens,
+                do_sample=True,
+                temperature=temperature,
+                pad_token_id=tok_b.eos_token_id,
+            )
+
+            return {
+                "text": text,
+                "model_a": {
+                    "model_id": model_id_a,
+                    "num_layers": n_a,
+                    "dim": int(outputs_a.hidden_states[0].shape[-1]),
+                    "layer_stats": layer_stats(outputs_a),
+                    "attention": attn_a,
+                    "generated_text": tok_a.decode(gen_a[0], skip_special_tokens=True),
+                },
+                "model_b": {
+                    "model_id": model_id_b,
+                    "num_layers": n_b,
+                    "dim": int(outputs_b.hidden_states[0].shape[-1]),
+                    "layer_stats": layer_stats(outputs_b),
+                    "attention": attn_b,
+                    "generated_text": tok_b.decode(gen_b[0], skip_special_tokens=True),
+                },
+                "similarity_matrix": similarity_matrix,
+                "layer_indices_a": layer_indices_a,
+                "layer_indices_b": layer_indices_b,
+                "seed": seed,
+            }
+        finally:
+            self._model_in_use[model_id_a] -= 1
+            self._model_in_use[model_id_b] -= 1
+
+    async def bias_probe(
+        self,
+        prompt: str,
+        model_id: str,
+        bias_type: str = "gender",
+        custom_boost: Optional[List[str]] = None,
+        custom_suppress: Optional[List[str]] = None,
+        num_samples: int = 3,
+        max_new_tokens: int = 50,
+        temperature: float = 0.7,
+        seed: int = 42
+    ) -> Dict[str, Any]:
+        """
+        Bias Archaeology (Zou 2023 RepEng + Bricken 2023 Monosemanticity).
+
+        Systematic bias probing through controlled token manipulation.
+        Predefined experiments for gender, sentiment, and domain biases.
+
+        Args:
+            prompt: Input prompt
+            model_id: Model to use
+            bias_type: Preset type (gender, sentiment, domain)
+            custom_boost: Optional custom tokens to boost
+            custom_suppress: Optional custom tokens to suppress
+            num_samples: Number of samples per condition
+            max_new_tokens: Max tokens per generation
+            temperature: Sampling temperature
+            seed: Base seed for reproducibility
+
+        Returns:
+            Dict with baseline samples, per-group manipulated samples, statistics
+        """
+        BIAS_PRESETS = {
+            "gender": {
+                "description_key": "gender",
+                "mode": "suppress",
+                "groups": [
+                    {"name": "masculine", "tokens": [
+                        "he", "him", "his", "man", "boy", "male",
+                        "Mr", "father", "son", "brother", "He", "Him", "His"
+                    ]},
+                    {"name": "feminine", "tokens": [
+                        "she", "her", "hers", "woman", "girl", "female",
+                        "Ms", "Mrs", "mother", "daughter", "sister", "She", "Her"
+                    ]},
+                ],
+            },
+            "sentiment": {
+                "description_key": "sentiment",
+                "mode": "boost",
+                "groups": [
+                    {"name": "positive", "tokens": [
+                        "good", "great", "happy", "love", "beautiful",
+                        "wonderful", "excellent", "joy", "hope", "kind"
+                    ]},
+                    {"name": "negative", "tokens": [
+                        "bad", "terrible", "sad", "hate", "ugly",
+                        "horrible", "awful", "fear", "doom", "cruel"
+                    ]},
+                ],
+            },
+            "domain": {
+                "description_key": "domain",
+                "mode": "boost",
+                "groups": [
+                    {"name": "scientific", "tokens": [
+                        "hypothesis", "experiment", "data", "analysis",
+                        "empirical", "theory", "evidence", "methodology"
+                    ]},
+                    {"name": "poetic", "tokens": [
+                        "whisper", "dream", "shadow", "echo",
+                        "gentle", "eternal", "shimmer", "weave"
+                    ]},
+                ],
+            },
+        }
+
+        preset = BIAS_PRESETS.get(bias_type, BIAS_PRESETS["gender"])
+
+        # Custom tokens override
+        if custom_boost or custom_suppress:
+            groups = []
+            if custom_boost:
+                groups.append({"name": "custom_boost", "tokens": custom_boost})
+            if custom_suppress:
+                groups.append({"name": "custom_suppress", "tokens": custom_suppress})
+            preset = {
+                "description_key": "custom",
+                "mode": "mixed",
+                "groups": groups,
+            }
+
+        # Generate baseline samples
+        baseline_results = []
+        for i in range(num_samples):
+            result = await self.generate_with_token_surgery(
+                prompt=prompt,
+                model_id=model_id,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                seed=seed + i,
+            )
+            if "error" in result:
+                return result
+            baseline_results.append({
+                "seed": seed + i,
+                "text": result["new_text"],
+            })
+
+        # Generate manipulated samples per group
+        group_results = []
+        for group in preset["groups"]:
+            samples = []
+            for i in range(num_samples):
+                mode = preset["mode"]
+                is_suppress = (
+                    mode == "suppress" or
+                    "suppress" in group["name"]
+                )
+
+                if is_suppress:
+                    result = await self.generate_with_token_surgery(
+                        prompt=prompt,
+                        model_id=model_id,
+                        suppress_tokens=group["tokens"],
+                        max_new_tokens=max_new_tokens,
+                        temperature=temperature,
+                        seed=seed + i,
+                    )
+                else:
+                    result = await self.generate_with_token_surgery(
+                        prompt=prompt,
+                        model_id=model_id,
+                        boost_tokens=group["tokens"],
+                        boost_factor=2.5,
+                        max_new_tokens=max_new_tokens,
+                        temperature=temperature,
+                        seed=seed + i,
+                    )
+
+                if "error" in result:
+                    return result
+                samples.append({
+                    "seed": seed + i,
+                    "text": result["new_text"],
+                })
+
+            group_results.append({
+                "group_name": group["name"],
+                "tokens": group["tokens"],
+                "mode": "suppress" if (preset["mode"] == "suppress" or "suppress" in group["name"]) else "boost",
+                "samples": samples,
+            })
+
+        return {
+            "model_id": model_id,
+            "prompt": prompt,
+            "bias_type": bias_type,
+            "description_key": preset["description_key"],
+            "baseline": baseline_results,
+            "groups": group_results,
+            "num_samples": num_samples,
+            "temperature": temperature,
+            "max_new_tokens": max_new_tokens,
+            "base_seed": seed,
+        }
 
     async def generate_variations(
         self,

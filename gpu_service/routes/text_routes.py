@@ -413,6 +413,156 @@ def generate_variations():
     return jsonify(result)
 
 
+@text_bp.route('/rep-engineering', methods=['POST'])
+def rep_engineering():
+    """
+    Representation Engineering: find concept directions and manipulate generation.
+
+    Request:
+        {
+            "contrast_pairs": [
+                {"positive": "Paris is the capital of France", "negative": "Paris is the capital of Germany"},
+                ...
+            ],
+            "model_id": "...",
+            "target_layer": -1,
+            "test_text": "Berlin is the capital of...",
+            "alpha": 1.0,
+            "max_new_tokens": 50,
+            "temperature": 0.7,
+            "seed": -1
+        }
+    """
+    from config import TEXT_ENABLED
+    if not TEXT_ENABLED:
+        return jsonify({"error": "Text backend disabled"}), 503
+
+    data = request.get_json() or {}
+    contrast_pairs = data.get("contrast_pairs")
+    model_id = data.get("model_id")
+
+    if not contrast_pairs or not model_id:
+        return jsonify({"error": "contrast_pairs and model_id required"}), 400
+
+    if not isinstance(contrast_pairs, list) or len(contrast_pairs) < 1:
+        return jsonify({"error": "contrast_pairs must be a non-empty list"}), 400
+
+    for pair in contrast_pairs:
+        if not isinstance(pair, dict) or "positive" not in pair or "negative" not in pair:
+            return jsonify({"error": "Each pair must have 'positive' and 'negative' keys"}), 400
+
+    from services.text_backend import get_text_backend
+    backend = get_text_backend()
+
+    result = run_async(backend.rep_engineering(
+        contrast_pairs=contrast_pairs,
+        model_id=model_id,
+        target_layer=data.get("target_layer", -1),
+        test_text=data.get("test_text"),
+        alpha=data.get("alpha", 1.0),
+        max_new_tokens=data.get("max_new_tokens", 50),
+        temperature=data.get("temperature", 0.7),
+        seed=data.get("seed", -1),
+    ))
+
+    if "error" in result:
+        return jsonify(result), 500
+    return jsonify(result)
+
+
+@text_bp.route('/compare', methods=['POST'])
+def compare_models():
+    """
+    Compare two models' internal representations.
+
+    Request:
+        {
+            "text": "The quick brown fox",
+            "model_id_a": "...",
+            "model_id_b": "...",
+            "max_new_tokens": 50,
+            "temperature": 0.7,
+            "seed": 42
+        }
+    """
+    from config import TEXT_ENABLED
+    if not TEXT_ENABLED:
+        return jsonify({"error": "Text backend disabled"}), 503
+
+    data = request.get_json() or {}
+    text = data.get("text")
+    model_id_a = data.get("model_id_a")
+    model_id_b = data.get("model_id_b")
+
+    if not text or not model_id_a or not model_id_b:
+        return jsonify({"error": "text, model_id_a, and model_id_b required"}), 400
+
+    from services.text_backend import get_text_backend
+    backend = get_text_backend()
+
+    result = run_async(backend.compare_models(
+        text=text,
+        model_id_a=model_id_a,
+        model_id_b=model_id_b,
+        max_new_tokens=data.get("max_new_tokens", 50),
+        temperature=data.get("temperature", 0.7),
+        seed=data.get("seed", 42),
+    ))
+
+    if "error" in result:
+        return jsonify(result), 500
+    return jsonify(result)
+
+
+@text_bp.route('/bias-probe', methods=['POST'])
+def bias_probe():
+    """
+    Systematic bias probing through controlled token manipulation.
+
+    Request:
+        {
+            "prompt": "The doctor said",
+            "model_id": "...",
+            "bias_type": "gender",
+            "custom_boost": null,
+            "custom_suppress": null,
+            "num_samples": 3,
+            "max_new_tokens": 50,
+            "temperature": 0.7,
+            "seed": 42
+        }
+    """
+    from config import TEXT_ENABLED
+    if not TEXT_ENABLED:
+        return jsonify({"error": "Text backend disabled"}), 503
+
+    data = request.get_json() or {}
+    prompt = data.get("prompt")
+    model_id = data.get("model_id")
+
+    if not prompt or not model_id:
+        return jsonify({"error": "prompt and model_id required"}), 400
+
+    from services.text_backend import get_text_backend
+    backend = get_text_backend()
+
+    result = run_async(backend.bias_probe(
+        prompt=prompt,
+        model_id=model_id,
+        bias_type=data.get("bias_type", "gender"),
+        custom_boost=data.get("custom_boost"),
+        custom_suppress=data.get("custom_suppress"),
+        num_samples=data.get("num_samples", 3),
+        max_new_tokens=data.get("max_new_tokens", 50),
+        temperature=data.get("temperature", 0.7),
+        seed=data.get("seed", 42),
+    ))
+
+    if "error" in result:
+        return jsonify(result), 500
+    return jsonify(result)
+
+
 @text_bp.route('/layers', methods=['POST'])
 def compare_layers():
     """

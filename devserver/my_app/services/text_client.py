@@ -278,6 +278,92 @@ class TextClient:
         except Exception as e:
             yield {"type": "error", "message": str(e)}
 
+    # =========================================================================
+    # Wissenschaftliche Methoden (Session 177)
+    # =========================================================================
+
+    async def rep_engineering(
+        self,
+        contrast_pairs: List[Dict[str, str]],
+        model_id: str,
+        target_layer: int = -1,
+        test_text: Optional[str] = None,
+        alpha: float = 1.0,
+        max_new_tokens: int = 50,
+        temperature: float = 0.7,
+        seed: int = -1
+    ) -> Dict[str, Any]:
+        """Representation Engineering: concept directions via contrast pairs."""
+        import asyncio
+        data = {
+            "contrast_pairs": contrast_pairs,
+            "model_id": model_id,
+            "target_layer": target_layer,
+            "test_text": test_text,
+            "alpha": alpha,
+            "max_new_tokens": max_new_tokens,
+            "temperature": temperature,
+            "seed": seed,
+        }
+        result = await asyncio.to_thread(
+            self._post, '/api/text/rep-engineering', data, timeout=120
+        )
+        return result or {"error": "GPU service unreachable"}
+
+    async def compare_models(
+        self,
+        text: str,
+        model_id_a: str,
+        model_id_b: str,
+        max_new_tokens: int = 50,
+        temperature: float = 0.7,
+        seed: int = 42
+    ) -> Dict[str, Any]:
+        """Compare two models' internal representations."""
+        import asyncio
+        data = {
+            "text": text,
+            "model_id_a": model_id_a,
+            "model_id_b": model_id_b,
+            "max_new_tokens": max_new_tokens,
+            "temperature": temperature,
+            "seed": seed,
+        }
+        result = await asyncio.to_thread(
+            self._post, '/api/text/compare', data, timeout=180
+        )
+        return result or {"error": "GPU service unreachable"}
+
+    async def bias_probe(
+        self,
+        prompt: str,
+        model_id: str,
+        bias_type: str = "gender",
+        custom_boost: Optional[List[str]] = None,
+        custom_suppress: Optional[List[str]] = None,
+        num_samples: int = 3,
+        max_new_tokens: int = 50,
+        temperature: float = 0.7,
+        seed: int = 42
+    ) -> Dict[str, Any]:
+        """Systematic bias probing through controlled token manipulation."""
+        import asyncio
+        data = {
+            "prompt": prompt,
+            "model_id": model_id,
+            "bias_type": bias_type,
+            "custom_boost": custom_boost,
+            "custom_suppress": custom_suppress,
+            "num_samples": num_samples,
+            "max_new_tokens": max_new_tokens,
+            "temperature": temperature,
+            "seed": seed,
+        }
+        result = await asyncio.to_thread(
+            self._post, '/api/text/bias-probe', data, timeout=180
+        )
+        return result or {"error": "GPU service unreachable"}
+
     async def generate_variations(
         self,
         prompt: str,

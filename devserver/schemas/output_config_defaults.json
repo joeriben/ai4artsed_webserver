@@ -22,9 +22,16 @@
   },
 
   "video": {
-    "eco": null,
+    "eco": {
+      "vram_96": "wan21_t2v_14b_diffusers",
+      "vram_48": "wan21_t2v_14b_diffusers",
+      "vram_32": "wan21_t2v_1_3b_diffusers",
+      "vram_24": "wan21_t2v_1_3b_diffusers",
+      "vram_16": "wan21_t2v_1_3b_diffusers",
+      "vram_8": null
+    },
     "fast": null,
-    "_note": "Future: animatediff or similar for eco"
+    "_note": "eco=VRAM-tiered Wan 2.1 T2V (14B for 96/48GB, 1.3B for 32/24/16GB, disabled for 8GB)"
   },
 
   "text": {

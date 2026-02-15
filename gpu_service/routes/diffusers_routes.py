@@ -228,6 +228,40 @@ def generate_algebra():
     return jsonify(result)
 
 
+@diffusers_bp.route('/api/diffusers/generate/video', methods=['POST'])
+def generate_video():
+    """Text-to-video generation.
+
+    Returns: { success, video_base64, seed }
+    """
+    data = request.get_json()
+    if not data or 'prompt' not in data:
+        return jsonify({"success": False, "error": "prompt required"}), 400
+
+    backend = _get_backend()
+    video_bytes = _run_async(backend.generate_video(
+        prompt=data['prompt'],
+        model_id=data.get('model_id', 'Wan-AI/Wan2.1-T2V-14B-Diffusers'),
+        negative_prompt=data.get('negative_prompt', ''),
+        width=int(data.get('width', 1280)),
+        height=int(data.get('height', 720)),
+        num_frames=int(data.get('num_frames', 81)),
+        steps=int(data.get('steps', 30)),
+        cfg_scale=float(data.get('cfg_scale', 5.0)),
+        fps=int(data.get('fps', 16)),
+        seed=int(data.get('seed', -1)),
+        pipeline_class=data.get('pipeline_class', 'WanPipeline'),
+    ))
+
+    if video_bytes is None:
+        return jsonify({"success": False, "error": "Video generation failed"}), 500
+
+    return jsonify({
+        "success": True,
+        "video_base64": base64.b64encode(video_bytes).decode('utf-8'),
+    })
+
+
 @diffusers_bp.route('/api/diffusers/generate/archaeology', methods=['POST'])
 def generate_archaeology():
     """Denoising archaeology generation.

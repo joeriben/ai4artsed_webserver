@@ -121,9 +121,60 @@ def load_output_config_defaults():
 
     return _output_config_defaults
 
+_cached_vram_tier = None
+
+def _get_cached_vram_tier() -> str:
+    """Get VRAM tier, cached after first detection."""
+    global _cached_vram_tier
+    if _cached_vram_tier is None:
+        from my_app.routes.settings_routes import detect_gpu_vram
+        result = detect_gpu_vram()
+        _cached_vram_tier = result.get("vram_tier", "vram_8")
+        logger.info(f"[VRAM-TIER] Detected and cached: {_cached_vram_tier}")
+    return _cached_vram_tier
+
+
+def _resolve_vram_tier_dict(tier_dict: dict) -> str:
+    """Resolve a VRAM-tier dict to a config name.
+
+    Matches the current VRAM tier, falling through to lower tiers
+    if the exact tier has no entry.
+
+    Args:
+        tier_dict: e.g. {"vram_96": "wan21_t2v_14b_diffusers", "vram_32": "wan21_t2v_1_3b_diffusers"}
+
+    Returns:
+        Config name string or None
+    """
+    vram_tier = _get_cached_vram_tier()
+
+    # Ordered from highest to lowest
+    tier_order = ["vram_96", "vram_48", "vram_32", "vram_24", "vram_16", "vram_8"]
+
+    # Find the current tier's index
+    try:
+        start_idx = tier_order.index(vram_tier)
+    except ValueError:
+        start_idx = len(tier_order) - 1  # Default to lowest
+
+    # Try current tier, then fall through to lower tiers
+    for tier in tier_order[start_idx:]:
+        if tier in tier_dict:
+            config_name = tier_dict[tier]
+            logger.info(f"[VRAM-TIER] {vram_tier} → matched {tier} → {config_name}")
+            return config_name
+
+    logger.info(f"[VRAM-TIER] No matching tier for {vram_tier}")
+    return None
+
+
 def lookup_output_config(media_type: str, execution_mode: str = 'eco') -> str:
     """
     Lookup Output-Config name from output_config_defaults.json
+
+    Supports two value formats:
+    - String: direct config name (backwards compatible)
+    - Dict: VRAM-tier mapping (e.g. {"vram_96": "...", "vram_32": "..."})
 
     Args:
         media_type: image, audio, video, music, text
@@ -140,8 +191,12 @@ def lookup_output_config(media_type: str, execution_mode: str = 'eco') -> str:
 
     config_name = defaults[media_type].get(execution_mode)
 
+    # Dict = VRAM-tier mapping
+    if isinstance(config_name, dict):
+        config_name = _resolve_vram_tier_dict(config_name)
+
     # Filter out metadata keys that start with underscore
-    if config_name and not config_name.startswith('_'):
+    if config_name and not str(config_name).startswith('_'):
         logger.info(f"Output-Config lookup: {media_type}/{execution_mode} → {config_name}")
         return config_name
     else:
@@ -4603,8 +4658,39 @@ def interception_pipeline():
                                             'url': f'/api/media/runs/{run_id}/{saved_filename}'
                                         }
 
+                                    # Check for video data (video chunks)
+                                    elif output_result.metadata.get('video_data'):
+                                        video_data_b64 = output_result.metadata.get('video_data')
+                                        logger.info(f"[PYTHON-CHUNK-ROUTE] Video data found: {len(video_data_b64)} chars base64")
+                                        video_bytes = base64.b64decode(video_data_b64)
+                                        video_format = output_result.metadata.get('video_format', 'mp4')
+
+                                        saved_filename = recorder.save_entity(
+                                            entity_type='output_video',
+                                            content=video_bytes,
+                                            extension=f'.{video_format}',
+                                            metadata={
+                                                'config': output_config_name,
+                                                'backend': output_result.metadata.get('backend', 'unknown'),
+                                                'media_type': 'video',
+                                                'seed': seed,
+                                                'size_bytes': len(video_bytes),
+                                                'format': video_format
+                                            }
+                                        )
+                                        logger.info(f"[PYTHON-CHUNK-ROUTE] Video saved: {saved_filename}")
+                                        media_stored = True
+
+                                        media_output_data = {
+                                            'config': output_config_name,
+                                            'status': 'success',
+                                            'media_type': 'video',
+                                            'filename': saved_filename,
+                                            'url': f'/api/media/video/{run_id}'
+                                        }
+
                                     else:
-                                        logger.error(f"[PYTHON-CHUNK-ROUTE] No audio_data or image_data in metadata")
+                                        logger.error(f"[PYTHON-CHUNK-ROUTE] No audio_data, image_data, or video_data in metadata")
                                         media_stored = False
                                         media_output_data = {
                                             'config': output_config_name,
