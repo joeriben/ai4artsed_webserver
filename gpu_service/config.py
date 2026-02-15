@@ -42,6 +42,19 @@ HEARTMULA_VERSION = os.environ.get("HEARTMULA_VERSION", "3B")
 HEARTMULA_LAZY_LOAD = os.environ.get("HEARTMULA_LAZY_LOAD", "true").lower() == "true"
 HEARTMULA_DEVICE = os.environ.get("HEARTMULA_DEVICE", "cuda")
 
+# --- Stable Audio ---
+STABLE_AUDIO_ENABLED = os.environ.get("STABLE_AUDIO_ENABLED", "true").lower() == "true"
+STABLE_AUDIO_MODEL_ID = os.environ.get("STABLE_AUDIO_MODEL_ID", "stabilityai/stable-audio-open-1.0")
+STABLE_AUDIO_DEVICE = os.environ.get("STABLE_AUDIO_DEVICE", "cuda")
+STABLE_AUDIO_DTYPE = os.environ.get("STABLE_AUDIO_DTYPE", "float16")
+STABLE_AUDIO_LAZY_LOAD = os.environ.get("STABLE_AUDIO_LAZY_LOAD", "true").lower() == "true"
+STABLE_AUDIO_MAX_DURATION = 47.55  # seconds (model maximum)
+STABLE_AUDIO_SAMPLE_RATE = 44100
+
+# --- Cross-Aesthetic ---
+CROSS_AESTHETIC_ENABLED = os.environ.get("CROSS_AESTHETIC_ENABLED", "true").lower() == "true"
+CLIP_VISION_MODEL_ID = os.environ.get("CLIP_VISION_MODEL_ID", "openai/clip-vit-large-patch14")
+
 # --- Text/LLM (Latent Text Lab) ---
 TEXT_ENABLED = os.environ.get("TEXT_ENABLED", "true").lower() == "true"
 TEXT_DEVICE = os.environ.get("TEXT_DEVICE", "cuda")

@@ -1,0 +1,94 @@
+"""
+GPU Service Stable Audio Routes
+
+REST endpoints for Stable Audio Open generation.
+"""
+
+import asyncio
+import base64
+import logging
+from flask import Blueprint, request, jsonify
+
+logger = logging.getLogger(__name__)
+
+stable_audio_bp = Blueprint('stable_audio', __name__)
+
+
+def _run_async(coro):
+    """Run an async coroutine from sync Flask context."""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
+def _get_backend():
+    from services.stable_audio_backend import get_stable_audio_backend
+    return get_stable_audio_backend()
+
+
+@stable_audio_bp.route('/api/stable_audio/available', methods=['GET'])
+def available():
+    """Check if Stable Audio backend is available."""
+    try:
+        from config import STABLE_AUDIO_ENABLED
+        if not STABLE_AUDIO_ENABLED:
+            return jsonify({"available": False, "reason": "disabled"})
+        backend = _get_backend()
+        is_available = _run_async(backend.is_available())
+        return jsonify({"available": is_available})
+    except Exception as e:
+        return jsonify({"available": False, "reason": str(e)})
+
+
+@stable_audio_bp.route('/api/stable_audio/unload', methods=['POST'])
+def unload():
+    """Unload Stable Audio pipeline from GPU."""
+    backend = _get_backend()
+    result = _run_async(backend.unload_pipeline())
+    return jsonify({"success": result})
+
+
+@stable_audio_bp.route('/api/stable_audio/generate', methods=['POST'])
+def generate():
+    """Generate audio from text prompt.
+
+    Request JSON:
+        prompt: str (required)
+        duration_seconds: float (default 10.0, max 47.55)
+        negative_prompt: str (default "")
+        steps: int (default 100)
+        cfg_scale: float (default 7.0)
+        seed: int (default -1 = random)
+        output_format: str ("wav" or "mp3", default "wav")
+
+    Returns: { success, audio_base64, seed, duration_seconds, sample_rate }
+    """
+    data = request.get_json()
+    if not data or 'prompt' not in data:
+        return jsonify({"success": False, "error": "prompt required"}), 400
+
+    seed = int(data.get('seed', -1))
+
+    backend = _get_backend()
+    audio_bytes = _run_async(backend.generate_audio(
+        prompt=data['prompt'],
+        duration_seconds=float(data.get('duration_seconds', 10.0)),
+        negative_prompt=data.get('negative_prompt', ''),
+        steps=int(data.get('steps', 100)),
+        cfg_scale=float(data.get('cfg_scale', 7.0)),
+        seed=seed,
+        output_format=data.get('output_format', 'wav'),
+    ))
+
+    if audio_bytes is None:
+        return jsonify({"success": False, "error": "Audio generation failed"}), 500
+
+    return jsonify({
+        "success": True,
+        "audio_base64": base64.b64encode(audio_bytes).decode('utf-8'),
+        "seed": seed,
+        "duration_seconds": float(data.get('duration_seconds', 10.0)),
+        "sample_rate": backend.sample_rate,
+    })

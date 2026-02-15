@@ -97,6 +97,13 @@ const router = createRouter({
       meta: { requiresAdvanced: true },
     },
     {
+      path: '/cross-aesthetic',
+      name: 'cross-aesthetic',
+      // Cross-aesthetic generation: exploiting modality indifference
+      component: () => import('../views/cross_aesthetic.vue'),
+      meta: { requiresAdvanced: true },
+    },
+    {
       path: '/music-generation-simple',
       name: 'music-generation-simple',
       // Direct access to V1 (Simple) for testing

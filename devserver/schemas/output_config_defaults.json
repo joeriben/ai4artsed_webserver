@@ -10,9 +10,9 @@
   },
 
   "audio": {
-    "eco": null,
+    "eco": "stableaudio_open",
     "fast": null,
-    "_note": "Future: stable_audio for eco, stable_audio_api for fast"
+    "_note": "eco=local Stable Audio Open via Diffusers (GPU service)"
   },
 
   "music": {

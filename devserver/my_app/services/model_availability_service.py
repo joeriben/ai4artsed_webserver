@@ -107,9 +107,11 @@ class ModelAvailabilityService:
             return {
                 "diffusers": self._gpu_cache["diffusers_available"] or False,
                 "heartmula": self._gpu_cache["heartmula_available"] or False,
+                "stable_audio": self._gpu_cache.get("stable_audio_available") or False,
                 "gpu_service_reachable": bool(
                     self._gpu_cache["diffusers_available"]
                     or self._gpu_cache["heartmula_available"]
+                    or self._gpu_cache.get("stable_audio_available")
                 ),
             }
 
@@ -117,6 +119,7 @@ class ModelAvailabilityService:
         status = {
             "diffusers": False,
             "heartmula": False,
+            "stable_audio": False,
             "gpu_service_reachable": False,
         }
 
@@ -140,14 +143,25 @@ class ModelAvailabilityService:
         except Exception as e:
             logger.warning(f"[MODEL_AVAILABILITY] HeartMuLa check failed: {e}")
 
+        # Check Stable Audio via GPU service
+        try:
+            from my_app.services.stable_audio_client import StableAudioClient
+            client = StableAudioClient()
+            status["stable_audio"] = await client.is_available()
+            if status["stable_audio"]:
+                status["gpu_service_reachable"] = True
+        except Exception as e:
+            logger.warning(f"[MODEL_AVAILABILITY] Stable Audio check failed: {e}")
+
         # Update cache
         self._gpu_cache["diffusers_available"] = status["diffusers"]
         self._gpu_cache["heartmula_available"] = status["heartmula"]
+        self._gpu_cache["stable_audio_available"] = status.get("stable_audio", False)
         self._gpu_cache["timestamp"] = time.time()
 
         logger.info(
             f"[MODEL_AVAILABILITY] GPU status: diffusers={status['diffusers']}, "
-            f"heartmula={status['heartmula']}"
+            f"heartmula={status['heartmula']}, stable_audio={status['stable_audio']}"
         )
 
         return status
@@ -386,6 +400,12 @@ class ModelAvailabilityService:
                 gpu_status = await self.get_gpu_service_status()
                 available = gpu_status["heartmula"]
                 logger.info(f"[MODEL_AVAILABILITY] {config_id}: HeartMuLa backend, available={available}")
+                return available
+
+            elif backend_type == "stable_audio":
+                gpu_status = await self.get_gpu_service_status()
+                available = gpu_status.get("stable_audio", False)
+                logger.info(f"[MODEL_AVAILABILITY] {config_id}: Stable Audio backend, available={available}")
                 return available
 
             elif backend_type and backend_type not in ("comfyui", "comfyui_legacy"):
