@@ -251,6 +251,17 @@
               <div class="gen-text">{{ repGenResult.manipulated_text }}</div>
             </div>
           </div>
+
+          <!-- LLM Interpretation -->
+          <div v-if="repGenResult" class="bias-interpretation">
+            <h4 class="subsection-title">{{ t('latentLab.textLab.repeng.interpretationTitle') }}</h4>
+            <div v-if="repInterpreting" class="interpretation-loading">
+              <span class="spinner"></span>
+              <span class="interpretation-loading-text">{{ t('latentLab.textLab.repeng.interpreting') }}</span>
+            </div>
+            <div v-else-if="repInterpretation" class="interpretation-text">{{ repInterpretation }}</div>
+            <div v-else-if="repInterpretationError" class="interpretation-error">{{ t('latentLab.textLab.repeng.interpretationError') }}</div>
+          </div>
         </div>
       </section>
     </template>
@@ -375,6 +386,17 @@
                 <div class="gen-text">{{ cmpResult.model_b.generated_text }}</div>
               </div>
             </div>
+          </div>
+
+          <!-- LLM Interpretation -->
+          <div class="bias-interpretation">
+            <h4 class="subsection-title">{{ t('latentLab.textLab.compare.interpretationTitle') }}</h4>
+            <div v-if="cmpInterpreting" class="interpretation-loading">
+              <span class="spinner"></span>
+              <span class="interpretation-loading-text">{{ t('latentLab.textLab.compare.interpreting') }}</span>
+            </div>
+            <div v-else-if="cmpInterpretation" class="interpretation-text">{{ cmpInterpretation }}</div>
+            <div v-else-if="cmpInterpretationError" class="interpretation-error">{{ t('latentLab.textLab.compare.interpretationError') }}</div>
           </div>
         </div>
       </section>
@@ -681,6 +703,9 @@ const repMaxTokens = ref(50)
 const repSeed = ref(-1)
 const repGenerating = ref(false)
 const repGenResult = ref<RepResult | null>(null)
+const repInterpretation = ref<string | null>(null)
+const repInterpreting = ref(false)
+const repInterpretationError = ref(false)
 
 const hasValidPairs = computed(() =>
   contrastPairs.value.some(p => p.positive.trim() && p.negative.trim())
@@ -732,10 +757,35 @@ async function findDirection() {
   }
 }
 
+async function interpretRepEngResults(data: RepResult) {
+  repInterpretation.value = null
+  repInterpretationError.value = false
+  repInterpreting.value = true
+  try {
+    const resp = await fetch(`${apiBase}/api/text/interpret`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ results: data, experiment_type: 'repeng' }),
+    })
+    const result = await resp.json()
+    if (result.error) {
+      repInterpretationError.value = true
+    } else {
+      repInterpretation.value = result.interpretation
+    }
+  } catch {
+    repInterpretationError.value = true
+  } finally {
+    repInterpreting.value = false
+  }
+}
+
 async function runRepGeneration() {
   if (!repTestText.value.trim() || !loadedModel.value || repGenerating.value) return
   repGenerating.value = true
   errorMessage.value = ''
+  repInterpretation.value = null
+  repInterpretationError.value = false
 
   const validPairs = contrastPairs.value.filter(p => p.positive.trim() && p.negative.trim())
 
@@ -759,6 +809,7 @@ async function runRepGeneration() {
       showError(data.error)
     } else {
       repGenResult.value = data
+      interpretRepEngResults(data)
     }
   } catch {
     showError(t('latentLab.textLab.error.operationFailed'))
@@ -804,6 +855,9 @@ const cmpTemp = ref(0.7)
 const cmpMaxTokens = ref(50)
 const cmpLoading = ref(false)
 const cmpResult = ref<CompareResult | null>(null)
+const cmpInterpretation = ref<string | null>(null)
+const cmpInterpreting = ref(false)
+const cmpInterpretationError = ref(false)
 const ckaCanvas = ref<HTMLCanvasElement | null>(null)
 const ckaTooltip = ref('')
 const ckaTooltipStyle = ref<Record<string, string>>({})
@@ -844,10 +898,35 @@ async function loadModelB() {
   }
 }
 
+async function interpretCompareResults(data: CompareResult) {
+  cmpInterpretation.value = null
+  cmpInterpretationError.value = false
+  cmpInterpreting.value = true
+  try {
+    const resp = await fetch(`${apiBase}/api/text/interpret`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ results: data, experiment_type: 'compare' }),
+    })
+    const result = await resp.json()
+    if (result.error) {
+      cmpInterpretationError.value = true
+    } else {
+      cmpInterpretation.value = result.interpretation
+    }
+  } catch {
+    cmpInterpretationError.value = true
+  } finally {
+    cmpInterpreting.value = false
+  }
+}
+
 async function runComparison() {
   if (!cmpText.value.trim() || !loadedModel.value || !loadedModelB.value || cmpLoading.value) return
   cmpLoading.value = true
   errorMessage.value = ''
+  cmpInterpretation.value = null
+  cmpInterpretationError.value = false
   try {
     const resp = await fetch(`${apiBase}/api/text/compare`, {
       method: 'POST',
@@ -868,6 +947,7 @@ async function runComparison() {
       cmpResult.value = data
       await nextTick()
       drawCkaHeatmap()
+      interpretCompareResults(data)
     }
   } catch {
     showError(t('latentLab.textLab.error.operationFailed'))

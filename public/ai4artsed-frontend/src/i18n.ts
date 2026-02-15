@@ -759,7 +759,10 @@ const messages = {
           generating: 'Manipulierte Generierung l\u00e4uft...',
           baselineLabel: 'Baseline (ohne Manipulation)',
           manipulatedLabel: 'Manipuliert (\u03b1 = {alpha})',
-          projectionLabel: 'Projektion auf Konzept-Richtung'
+          projectionLabel: 'Projektion auf Konzept-Richtung',
+          interpretationTitle: 'Erl\u00e4uterung',
+          interpreting: 'Ergebnisse werden analysiert...',
+          interpretationError: 'Erl\u00e4uterung konnte nicht generiert werden'
         },
         compare: {
           title: 'Vergleichende Modell-Arch\u00e4ologie',
@@ -787,7 +790,10 @@ const messages = {
           modelALabel: 'Modell A',
           modelBLabel: 'Modell B',
           generationTitle: 'Generierungs-Vergleich (gleicher Seed)',
-          layerStatsTitle: 'Schicht-Statistiken'
+          layerStatsTitle: 'Schicht-Statistiken',
+          interpretationTitle: 'Erl\u00e4uterung',
+          interpreting: 'Ergebnisse werden analysiert...',
+          interpretationError: 'Erl\u00e4uterung konnte nicht generiert werden'
         },
         bias: {
           title: 'Bias-Arch\u00e4ologie',
@@ -1725,7 +1731,10 @@ const messages = {
           generating: 'Running manipulated generation...',
           baselineLabel: 'Baseline (no manipulation)',
           manipulatedLabel: 'Manipulated (\u03b1 = {alpha})',
-          projectionLabel: 'Projection onto concept direction'
+          projectionLabel: 'Projection onto concept direction',
+          interpretationTitle: 'Interpretation',
+          interpreting: 'Analyzing results...',
+          interpretationError: 'Could not generate interpretation'
         },
         compare: {
           title: 'Comparative Model Archaeology',
@@ -1753,7 +1762,10 @@ const messages = {
           modelALabel: 'Model A',
           modelBLabel: 'Model B',
           generationTitle: 'Generation Comparison (same seed)',
-          layerStatsTitle: 'Layer Statistics'
+          layerStatsTitle: 'Layer Statistics',
+          interpretationTitle: 'Interpretation',
+          interpreting: 'Analyzing results...',
+          interpretationError: 'Could not generate interpretation'
         },
         bias: {
           title: 'Bias Archaeology',
