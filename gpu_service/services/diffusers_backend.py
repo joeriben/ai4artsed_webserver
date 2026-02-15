@@ -73,7 +73,72 @@ class DiffusersImageGenerator:
         self._model_in_use: Dict[str, int] = {}       # refcount (eviction guard)
         self._load_lock = threading.Lock()             # serialize load/evict
 
+        # Register with VRAM coordinator for cross-backend eviction
+        self._register_with_coordinator()
+
         logger.info(f"[DIFFUSERS] Initialized: cache={self.cache_dir}, tensorrt={self.use_tensorrt}, device={self.device}")
+
+    def _register_with_coordinator(self):
+        """Register with VRAM coordinator for cross-backend eviction."""
+        try:
+            from services.vram_coordinator import get_vram_coordinator
+            coordinator = get_vram_coordinator()
+            coordinator.register_backend(self)
+            logger.info("[DIFFUSERS] Registered with VRAM coordinator")
+        except Exception as e:
+            logger.warning(f"[DIFFUSERS] Failed to register with VRAM coordinator: {e}")
+
+    # =========================================================================
+    # VRAMBackend Protocol Implementation
+    # =========================================================================
+
+    def get_backend_id(self) -> str:
+        """Unique identifier for this backend."""
+        return "diffusers"
+
+    def get_registered_models(self) -> list:
+        """Return list of models with VRAM info for coordinator."""
+        from services.vram_coordinator import EvictionPriority
+
+        return [
+            {
+                "model_id": mid,
+                "vram_mb": self._model_vram_mb.get(mid, 0),
+                "priority": EvictionPriority.NORMAL,
+                "last_used": self._model_last_used.get(mid, 0),
+                "in_use": self._model_in_use.get(mid, 0),
+            }
+            for mid in self._pipelines
+        ]
+
+    def evict_model(self, model_id: str) -> bool:
+        """Evict a specific model (called by coordinator)."""
+        return self._unload_model_sync(model_id)
+
+    def _unload_model_sync(self, model_id: str) -> bool:
+        """Synchronously unload a model from memory."""
+        import torch
+
+        if model_id not in self._pipelines:
+            return False
+
+        try:
+            del self._pipelines[model_id]
+            self._model_last_used.pop(model_id, None)
+            self._model_vram_mb.pop(model_id, None)
+            self._model_in_use.pop(model_id, None)
+
+            if self._current_model == model_id:
+                self._current_model = None
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+            logger.info(f"[DIFFUSERS] Unloaded model: {model_id}")
+            return True
+        except Exception as e:
+            logger.error(f"[DIFFUSERS] Error unloading {model_id}: {e}")
+            return False
 
     def _get_torch_dtype(self):
         """Get torch dtype from config string"""
@@ -100,31 +165,42 @@ class DiffusersImageGenerator:
             raise ValueError(f"Unknown pipeline class: {pipeline_class}")
 
     def _ensure_vram_available(self, required_mb: float = 0) -> None:
-        """Evict LRU models from GPU until enough free VRAM is available.
+        """Request VRAM via coordinator, triggering cross-backend eviction if needed.
 
-        Models are fully deleted (not offloaded to CPU). Next use reloads from disk.
+        The coordinator handles eviction across all backends (diffusers, text, heartmula).
 
         Args:
             required_mb: Minimum free VRAM needed. If 0, uses DIFFUSERS_VRAM_RESERVE_MB.
-                         For cold loads (unknown model size), pass float('inf') to evict
-                         all evictable models.
+                         For cold loads (unknown model size), pass float('inf') to request
+                         maximum available space.
         """
-        import torch
         from config import DIFFUSERS_VRAM_RESERVE_MB
 
         target_mb = required_mb if required_mb > 0 else DIFFUSERS_VRAM_RESERVE_MB
+
+        # Use coordinator for cross-backend eviction
+        try:
+            from services.vram_coordinator import get_vram_coordinator, EvictionPriority
+            coordinator = get_vram_coordinator()
+            coordinator.request_vram("diffusers", target_mb, EvictionPriority.NORMAL)
+        except Exception as e:
+            logger.warning(f"[DIFFUSERS] VRAM coordinator request failed: {e}")
+            # Fallback to local-only eviction
+            self._ensure_vram_available_local(target_mb)
+
+    def _ensure_vram_available_local(self, target_mb: float) -> None:
+        """Fallback: evict only own models (no cross-backend)."""
+        import torch
 
         while True:
             if not torch.cuda.is_available():
                 break
 
-            # Check if we have enough free VRAM
             free_mb = (torch.cuda.get_device_properties(0).total_memory
                        - torch.cuda.memory_allocated(0)) / (1024 * 1024)
             if free_mb >= target_mb:
                 break
 
-            # Find evictable models (not currently in use)
             candidates = [
                 (mid, self._model_last_used.get(mid, 0))
                 for mid in self._pipelines
@@ -139,17 +215,8 @@ class DiffusersImageGenerator:
                     )
                 break
 
-            # Evict least recently used — full delete
             evict_id = min(candidates, key=lambda x: x[1])[0]
-            vram_mb = self._model_vram_mb.get(evict_id, 0)
-            del self._pipelines[evict_id]
-            self._model_last_used.pop(evict_id, None)
-            self._model_vram_mb.pop(evict_id, None)
-            self._model_in_use.pop(evict_id, None)
-            if self._current_model == evict_id:
-                self._current_model = None
-            torch.cuda.empty_cache()
-            logger.info(f"[DIFFUSERS] Evicted {evict_id} ({vram_mb:.0f}MB VRAM freed)")
+            self._unload_model_sync(evict_id)
 
     def _load_model_sync(self, model_id: str, pipeline_class: str = "StableDiffusion3Pipeline") -> bool:
         """

@@ -41,3 +41,48 @@ HEARTMULA_MODEL_PATH = os.environ.get(
 HEARTMULA_VERSION = os.environ.get("HEARTMULA_VERSION", "3B")
 HEARTMULA_LAZY_LOAD = os.environ.get("HEARTMULA_LAZY_LOAD", "true").lower() == "true"
 HEARTMULA_DEVICE = os.environ.get("HEARTMULA_DEVICE", "cuda")
+
+# --- Text/LLM (Latent Text Lab) ---
+TEXT_ENABLED = os.environ.get("TEXT_ENABLED", "true").lower() == "true"
+TEXT_DEVICE = os.environ.get("TEXT_DEVICE", "cuda")
+TEXT_DEFAULT_DTYPE = os.environ.get("TEXT_DEFAULT_DTYPE", "bfloat16")
+TEXT_VRAM_RESERVE_MB = int(os.environ.get("TEXT_VRAM_RESERVE_MB", "2048"))
+
+# Model presets with VRAM estimates (bf16)
+# Used for auto-quantization decisions
+TEXT_MODEL_PRESETS = {
+    "tiny": {
+        "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "vram_gb": 2.5,
+        "description": "TinyLlama 1.1B - Fast iteration, limited capability"
+    },
+    "small": {
+        "id": "meta-llama/Llama-3.2-3B-Instruct",
+        "vram_gb": 7.0,
+        "description": "Llama 3.2 3B - Good balance of speed and quality"
+    },
+    "medium": {
+        "id": "meta-llama/Llama-3.2-8B-Instruct",
+        "vram_gb": 17.0,
+        "description": "Llama 3.2 8B - High quality, reasonable speed"
+    },
+    "large": {
+        "id": "meta-llama/Llama-3.1-70B-Instruct",
+        "vram_gb": 140.0,
+        "description": "Llama 3.1 70B - Best quality, requires quantization"
+    },
+    "qwen-72b": {
+        "id": "Qwen/Qwen2.5-72B-Instruct",
+        "vram_gb": 144.0,
+        "description": "Qwen 2.5 72B - Excellent multilingual, requires quantization"
+    },
+}
+
+# Quantization VRAM multipliers
+TEXT_QUANT_MULTIPLIERS = {
+    "bf16": 1.0,
+    "fp16": 1.0,
+    "int8": 0.5,
+    "int4": 0.25,
+    "nf4": 0.25,  # bitsandbytes NormalFloat4
+}

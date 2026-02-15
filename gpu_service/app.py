@@ -39,10 +39,12 @@ def create_app():
     from routes.health_routes import health_bp
     from routes.diffusers_routes import diffusers_bp
     from routes.heartmula_routes import heartmula_bp
+    from routes.text_routes import text_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(diffusers_bp)
     app.register_blueprint(heartmula_bp)
+    app.register_blueprint(text_bp)
 
     logger.info("[GPU-SERVICE] Flask app created with all route blueprints")
     return app
