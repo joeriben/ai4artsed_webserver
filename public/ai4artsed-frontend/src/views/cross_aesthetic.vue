@@ -186,7 +186,7 @@ function onImageUpload(event: Event) {
     const dataUrl = e.target?.result as string
     imagePreview.value = dataUrl
     // Extract base64 (strip data:image/xxx;base64, prefix)
-    imageBase64.value = dataUrl.split(',')[1]
+    imageBase64.value = dataUrl.split(',')[1] ?? ''
   }
   reader.readAsDataURL(file)
 }
