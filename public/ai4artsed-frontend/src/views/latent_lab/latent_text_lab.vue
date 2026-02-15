@@ -118,6 +118,13 @@
       <section class="tool-section">
         <h3 class="section-title">{{ t('latentLab.textLab.repeng.title') }}</h3>
         <p class="section-subtitle">{{ t('latentLab.textLab.repeng.subtitle') }}</p>
+
+        <!-- Experiment Guide -->
+        <div class="experiment-guide">
+          <p class="guide-text">{{ t('latentLab.textLab.repeng.guide') }}</p>
+          <p class="guide-hint">{{ t('latentLab.textLab.repeng.languageHint') }}</p>
+        </div>
+
         <details class="science-details">
           <summary class="science-toggle">Zou et al. 2023 + Li et al. 2024</summary>
           <p class="science-text">{{ t('latentLab.textLab.repeng.science') }}</p>
@@ -195,6 +202,11 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Expected Results Guide -->
+        <div v-if="repResult" class="experiment-guide">
+          <p class="guide-text">{{ t('latentLab.textLab.repeng.expectedResults') }}</p>
         </div>
 
         <!-- Test + Manipulation -->
@@ -688,7 +700,9 @@ interface RepResult {
 }
 
 const contrastPairs = ref([
-  { positive: '', negative: '' },
+  { positive: 'The capital of France is Paris', negative: 'The capital of France is Berlin' },
+  { positive: 'Water boils at 100 degrees Celsius', negative: 'Water boils at 50 degrees Celsius' },
+  { positive: 'The earth orbits the sun', negative: 'The sun orbits the earth' },
 ])
 const repTargetLayer = ref(-1)
 const repLayerCount = ref(32)
@@ -696,8 +710,8 @@ const repLoading = ref(false)
 const repResult = ref<RepResult | null>(null)
 
 // Test generation state
-const repTestText = ref('')
-const repAlpha = ref(1.0)
+const repTestText = ref('The capital of Germany is')
+const repAlpha = ref(-1.0)
 const repTemp = ref(0.7)
 const repMaxTokens = ref(50)
 const repSeed = ref(-1)
@@ -1326,6 +1340,11 @@ onMounted(() => {
 .bias-sample:last-child { margin-bottom: 0; }
 .sample-seed { font-family: monospace; font-size: 0.7rem; color: rgba(102, 126, 234, 0.6); }
 .sample-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin-top: 0.25rem; }
+
+/* Experiment Guide */
+.experiment-guide { padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; margin-bottom: 1rem; }
+.guide-text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.55); line-height: 1.7; }
+.guide-hint { font-size: 0.75rem; color: rgba(102, 126, 234, 0.6); margin-top: 0.5rem; font-style: italic; }
 
 /* Interpretation */
 .bias-interpretation { padding: 1rem; background: rgba(102, 126, 234, 0.05); border: 1px solid rgba(102, 126, 234, 0.15); border-radius: 8px; }
