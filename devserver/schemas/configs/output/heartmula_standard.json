@@ -27,6 +27,7 @@
   "meta": {
     "stage": "output",
     "backend": "heartmula",
+    "backend_type": "heartmula",
     "requires_dual_input": true,
     "supported_languages": ["en", "zh", "ja", "ko", "es"]
   },

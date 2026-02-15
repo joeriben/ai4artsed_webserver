@@ -345,10 +345,12 @@ export async function getPipelineStatus(runId: string): Promise<any> {
 }
 
 /**
- * Model Availability Check (Session 91+)
+ * Model Availability Check (Session 91+, extended Session 176)
  *
- * Queries backend to check which ComfyUI models are installed and available.
- * Backend queries ComfyUI's /object_info endpoint (authoritative source).
+ * Queries backend to check model/backend availability across all backends:
+ * - ComfyUI configs: checks /object_info for installed models
+ * - GPU service configs (Diffusers, HeartMuLa): checks GPU service endpoints
+ * - Cloud API configs: always available
  */
 export interface ModelAvailability {
   [configId: string]: boolean
@@ -358,6 +360,7 @@ export interface ModelAvailabilityResponse {
   status: 'success' | 'error'
   availability: ModelAvailability
   comfyui_reachable: boolean
+  gpu_service_reachable?: boolean
   cached?: boolean
   cache_age_seconds?: number
   error?: string
@@ -374,6 +377,7 @@ export async function getModelAvailability(): Promise<ModelAvailabilityResponse>
       status: 'error',
       availability: {},
       comfyui_reachable: false,
+      gpu_service_reachable: false,
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }

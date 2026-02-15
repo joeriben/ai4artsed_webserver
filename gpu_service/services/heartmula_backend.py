@@ -55,8 +55,59 @@ class HeartMuLaMusicGenerator:
         # Pipeline (lazy-loaded)
         self._pipeline = None
         self._is_loaded = False
+        self._vram_mb: float = 0  # Measured after loading
+        self._last_used: float = 0
+        self._in_use: int = 0
+
+        # Register with VRAM coordinator for cross-backend eviction
+        self._register_with_coordinator()
 
         logger.info(f"[HEARTMULA] Initialized: model_path={self.model_path}, version={self.version}, lazy_load={self.lazy_load}, device={self.device}")
+
+    def _register_with_coordinator(self):
+        """Register with VRAM coordinator for cross-backend eviction."""
+        try:
+            from services.vram_coordinator import get_vram_coordinator
+            coordinator = get_vram_coordinator()
+            coordinator.register_backend(self)
+            logger.info("[HEARTMULA] Registered with VRAM coordinator")
+        except Exception as e:
+            logger.warning(f"[HEARTMULA] Failed to register with VRAM coordinator: {e}")
+
+    # =========================================================================
+    # VRAMBackend Protocol Implementation
+    # =========================================================================
+
+    def get_backend_id(self) -> str:
+        """Unique identifier for this backend."""
+        return "heartmula"
+
+    def get_registered_models(self) -> list:
+        """Return list of models with VRAM info for coordinator."""
+        from services.vram_coordinator import EvictionPriority
+
+        if not self._is_loaded:
+            return []
+
+        return [
+            {
+                "model_id": f"heartmula-{self.version}",
+                "vram_mb": self._vram_mb,
+                "priority": EvictionPriority.NORMAL,
+                "last_used": self._last_used,
+                "in_use": self._in_use,
+            }
+        ]
+
+    def evict_model(self, model_id: str) -> bool:
+        """Evict the HeartMuLa model (called by coordinator)."""
+        import asyncio
+        # Run async unload in sync context
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(self.unload_pipeline())
+        finally:
+            loop.close()
 
     async def is_available(self) -> bool:
         """
@@ -135,9 +186,21 @@ class HeartMuLaMusicGenerator:
 
         try:
             import torch
+            import time
             from heartlib import HeartMuLaGenPipeline
 
+            # Request VRAM from coordinator (HeartMuLa ~7GB estimated)
+            try:
+                from services.vram_coordinator import get_vram_coordinator, EvictionPriority
+                coordinator = get_vram_coordinator()
+                coordinator.request_vram("heartmula", 7000, EvictionPriority.NORMAL)
+            except Exception as e:
+                logger.warning(f"[HEARTMULA] VRAM coordinator request failed: {e}")
+
             logger.info(f"[HEARTMULA] Loading pipeline from {self.model_path}...")
+
+            # Measure VRAM before loading
+            vram_before = torch.cuda.memory_allocated(0) if torch.cuda.is_available() else 0
 
             # Determine device configuration
             if self.device == "cuda" and torch.cuda.is_available():
@@ -170,10 +233,13 @@ class HeartMuLaMusicGenerator:
 
             self._pipeline = await asyncio.to_thread(_load)
             self._is_loaded = True
+            self._last_used = time.time()
 
-            # Get GPU info after loading
-            gpu_info = await self.get_gpu_info()
-            logger.info(f"[HEARTMULA] Pipeline loaded (VRAM: {gpu_info.get('allocated_gb', 'N/A')}GB)")
+            # Measure VRAM after loading
+            vram_after = torch.cuda.memory_allocated(0) if torch.cuda.is_available() else 0
+            self._vram_mb = (vram_after - vram_before) / (1024 * 1024)
+
+            logger.info(f"[HEARTMULA] Pipeline loaded (VRAM: {self._vram_mb:.0f}MB)")
 
             return True
 
@@ -200,6 +266,8 @@ class HeartMuLaMusicGenerator:
             del self._pipeline
             self._pipeline = None
             self._is_loaded = False
+            self._vram_mb = 0
+            self._in_use = 0
 
             # Force CUDA memory cleanup
             if torch.cuda.is_available():
@@ -244,6 +312,7 @@ class HeartMuLaMusicGenerator:
             import torch
             import tempfile
             import os
+            import time
 
             # Ensure pipeline is loaded
             if not self._is_loaded:
@@ -251,64 +320,73 @@ class HeartMuLaMusicGenerator:
                     logger.error("[HEARTMULA] Failed to load pipeline")
                     return None
 
-            # Handle seed
-            if seed is not None:
-                import random
-                random.seed(seed)
-                torch.manual_seed(seed)
-                if torch.cuda.is_available():
-                    torch.cuda.manual_seed(seed)
-
-            # Prepare input
-            input_data = {
-                "lyrics": lyrics,
-                "tags": tags
-            }
-
-            logger.info(f"[HEARTMULA] Generating music: lyrics={len(lyrics)} chars, tags={tags[:100]}...")
-            logger.info(f"[HEARTMULA] Parameters: temp={temperature}, topk={topk}, cfg={cfg_scale}, max_ms={max_audio_length_ms}")
-
-            # Create temporary file for output
-            suffix = f".{output_format}"
-            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_file:
-                save_path = tmp_file.name
+            # Mark as in-use (prevents eviction during generation)
+            self._in_use += 1
+            self._last_used = time.time()
 
             try:
-                # Generate in thread to avoid blocking
-                def _generate():
-                    with torch.no_grad():
-                        logger.info(f"[HEARTMULA-DEBUG] Calling pipeline with:")
-                        logger.info(f"  lyrics length: {len(lyrics)} chars")
-                        logger.info(f"  tags: '{tags}'")
-                        logger.info(f"  max_audio_length_ms: {max_audio_length_ms}")
-                        logger.info(f"  topk: {topk}, temp: {temperature}, cfg: {cfg_scale}")
+                # Handle seed
+                if seed is not None:
+                    import random
+                    random.seed(seed)
+                    torch.manual_seed(seed)
+                    if torch.cuda.is_available():
+                        torch.cuda.manual_seed(seed)
 
-                        self._pipeline(
-                            input_data,
-                            max_audio_length_ms=max_audio_length_ms,
-                            save_path=save_path,
-                            topk=topk,
-                            temperature=temperature,
-                            cfg_scale=cfg_scale
-                        )
+                # Prepare input
+                input_data = {
+                    "lyrics": lyrics,
+                    "tags": tags
+                }
 
-                await asyncio.to_thread(_generate)
+                logger.info(f"[HEARTMULA] Generating music: lyrics={len(lyrics)} chars, tags={tags[:100]}...")
+                logger.info(f"[HEARTMULA] Parameters: temp={temperature}, topk={topk}, cfg={cfg_scale}, max_ms={max_audio_length_ms}")
 
-                # Read generated audio
-                if os.path.exists(save_path):
-                    with open(save_path, 'rb') as f:
-                        audio_bytes = f.read()
+                # Create temporary file for output
+                suffix = f".{output_format}"
+                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_file:
+                    save_path = tmp_file.name
 
-                    logger.info(f"[HEARTMULA] Generated audio: {len(audio_bytes)} bytes")
-                    return audio_bytes
-                else:
-                    logger.error(f"[HEARTMULA] Output file not created: {save_path}")
-                    return None
+                try:
+                    # Generate in thread to avoid blocking
+                    def _generate():
+                        with torch.no_grad():
+                            logger.info(f"[HEARTMULA-DEBUG] Calling pipeline with:")
+                            logger.info(f"  lyrics length: {len(lyrics)} chars")
+                            logger.info(f"  tags: '{tags}'")
+                            logger.info(f"  max_audio_length_ms: {max_audio_length_ms}")
+                            logger.info(f"  topk: {topk}, temp: {temperature}, cfg: {cfg_scale}")
+
+                            self._pipeline(
+                                input_data,
+                                max_audio_length_ms=max_audio_length_ms,
+                                save_path=save_path,
+                                topk=topk,
+                                temperature=temperature,
+                                cfg_scale=cfg_scale
+                            )
+
+                    await asyncio.to_thread(_generate)
+
+                    # Read generated audio
+                    if os.path.exists(save_path):
+                        with open(save_path, 'rb') as f:
+                            audio_bytes = f.read()
+
+                        logger.info(f"[HEARTMULA] Generated audio: {len(audio_bytes)} bytes")
+                        return audio_bytes
+                    else:
+                        logger.error(f"[HEARTMULA] Output file not created: {save_path}")
+                        return None
+
+                finally:
+                    # Clean up temporary file
+                    if os.path.exists(save_path):
+                        os.unlink(save_path)
 
             finally:
-                # Clean up temporary file
-                if os.path.exists(save_path):
-                    os.unlink(save_path)
+                # Release in-use lock
+                self._in_use -= 1
 
         except Exception as e:
             logger.error(f"[HEARTMULA] Generation error: {e}")

@@ -163,6 +163,43 @@ priorities:
 
 ---
 
+#### Model Availability Detection (Session 176)
+
+**Problem:** Frontend Vue components check model availability before showing model selection. Previously only ComfyUI was checked — when SwarmUI was down, ALL models appeared unavailable, even Diffusers-based ones.
+
+**Solution:** `ModelAvailabilityService` checks each backend independently.
+
+**Endpoint:** `GET /api/models/availability`
+
+**File:** `devserver/my_app/services/model_availability_service.py`
+
+**Routing by `backend_type` (config's `meta.backend_type`):**
+
+| backend_type | Check Method | Source |
+|---|---|---|
+| `diffusers` | GPU service `GET /api/diffusers/available` | Port 17803 |
+| `heartmula` | GPU service `GET /api/heartmula/available` | Port 17803 |
+| `comfyui` / `comfyui_legacy` / `None` | ComfyUI `/object_info` model scan | Port 7821 |
+| `openai`, `openrouter`, `config_model` | Always available | Cloud/code-based |
+
+**Caching:** Both ComfyUI and GPU service results cached with 5-minute TTL (class-level dicts, shared across request-scoped instances). `?force_refresh=true` invalidates both caches.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "availability": {"flux2_diffusers": true, "sd35_large": true, "flux2": false},
+  "comfyui_reachable": false,
+  "gpu_service_reachable": true
+}
+```
+
+**Frontend:** `text_transformation.vue` and `image_transformation.vue` filter model bubbles by `availability[config_id] === true`. No frontend logic changes needed — correct filtering is automatic.
+
+**IMPORTANT:** Every output config MUST have `meta.backend_type` set. Configs without it default to ComfyUI check, which may be wrong at runtime.
+
+---
+
 #### HeartMuLa Backend (Session 156-157)
 
 **Model:** HeartMuLa 3B (heartlib), LLM + Audio Codec architecture

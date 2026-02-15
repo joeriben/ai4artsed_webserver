@@ -73,7 +73,72 @@ class DiffusersImageGenerator:
         self._model_in_use: Dict[str, int] = {}       # refcount (eviction guard)
         self._load_lock = threading.Lock()             # serialize load/evict
 
+        # Register with VRAM coordinator for cross-backend eviction
+        self._register_with_coordinator()
+
         logger.info(f"[DIFFUSERS] Initialized: cache={self.cache_dir}, tensorrt={self.use_tensorrt}, device={self.device}")
+
+    def _register_with_coordinator(self):
+        """Register with VRAM coordinator for cross-backend eviction."""
+        try:
+            from services.vram_coordinator import get_vram_coordinator
+            coordinator = get_vram_coordinator()
+            coordinator.register_backend(self)
+            logger.info("[DIFFUSERS] Registered with VRAM coordinator")
+        except Exception as e:
+            logger.warning(f"[DIFFUSERS] Failed to register with VRAM coordinator: {e}")
+
+    # =========================================================================
+    # VRAMBackend Protocol Implementation
+    # =========================================================================
+
+    def get_backend_id(self) -> str:
+        """Unique identifier for this backend."""
+        return "diffusers"
+
+    def get_registered_models(self) -> list:
+        """Return list of models with VRAM info for coordinator."""
+        from services.vram_coordinator import EvictionPriority
+
+        return [
+            {
+                "model_id": mid,
+                "vram_mb": self._model_vram_mb.get(mid, 0),
+                "priority": EvictionPriority.NORMAL,
+                "last_used": self._model_last_used.get(mid, 0),
+                "in_use": self._model_in_use.get(mid, 0),
+            }
+            for mid in self._pipelines
+        ]
+
+    def evict_model(self, model_id: str) -> bool:
+        """Evict a specific model (called by coordinator)."""
+        return self._unload_model_sync(model_id)
+
+    def _unload_model_sync(self, model_id: str) -> bool:
+        """Synchronously unload a model from memory."""
+        import torch
+
+        if model_id not in self._pipelines:
+            return False
+
+        try:
+            del self._pipelines[model_id]
+            self._model_last_used.pop(model_id, None)
+            self._model_vram_mb.pop(model_id, None)
+            self._model_in_use.pop(model_id, None)
+
+            if self._current_model == model_id:
+                self._current_model = None
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+            logger.info(f"[DIFFUSERS] Unloaded model: {model_id}")
+            return True
+        except Exception as e:
+            logger.error(f"[DIFFUSERS] Error unloading {model_id}: {e}")
+            return False
 
     def _get_torch_dtype(self):
         """Get torch dtype from config string"""
@@ -96,35 +161,49 @@ class DiffusersImageGenerator:
         elif pipeline_class == "Flux2Pipeline":
             from diffusers import Flux2Pipeline
             return Flux2Pipeline
+        elif pipeline_class == "WanPipeline":
+            from diffusers import WanPipeline
+            return WanPipeline
         else:
             raise ValueError(f"Unknown pipeline class: {pipeline_class}")
 
     def _ensure_vram_available(self, required_mb: float = 0) -> None:
-        """Evict LRU models from GPU until enough free VRAM is available.
+        """Request VRAM via coordinator, triggering cross-backend eviction if needed.
 
-        Models are fully deleted (not offloaded to CPU). Next use reloads from disk.
+        The coordinator handles eviction across all backends (diffusers, text, heartmula).
 
         Args:
             required_mb: Minimum free VRAM needed. If 0, uses DIFFUSERS_VRAM_RESERVE_MB.
-                         For cold loads (unknown model size), pass float('inf') to evict
-                         all evictable models.
+                         For cold loads (unknown model size), pass float('inf') to request
+                         maximum available space.
         """
-        import torch
         from config import DIFFUSERS_VRAM_RESERVE_MB
 
         target_mb = required_mb if required_mb > 0 else DIFFUSERS_VRAM_RESERVE_MB
+
+        # Use coordinator for cross-backend eviction
+        try:
+            from services.vram_coordinator import get_vram_coordinator, EvictionPriority
+            coordinator = get_vram_coordinator()
+            coordinator.request_vram("diffusers", target_mb, EvictionPriority.NORMAL)
+        except Exception as e:
+            logger.warning(f"[DIFFUSERS] VRAM coordinator request failed: {e}")
+            # Fallback to local-only eviction
+            self._ensure_vram_available_local(target_mb)
+
+    def _ensure_vram_available_local(self, target_mb: float) -> None:
+        """Fallback: evict only own models (no cross-backend)."""
+        import torch
 
         while True:
             if not torch.cuda.is_available():
                 break
 
-            # Check if we have enough free VRAM
             free_mb = (torch.cuda.get_device_properties(0).total_memory
                        - torch.cuda.memory_allocated(0)) / (1024 * 1024)
             if free_mb >= target_mb:
                 break
 
-            # Find evictable models (not currently in use)
             candidates = [
                 (mid, self._model_last_used.get(mid, 0))
                 for mid in self._pipelines
@@ -139,17 +218,8 @@ class DiffusersImageGenerator:
                     )
                 break
 
-            # Evict least recently used — full delete
             evict_id = min(candidates, key=lambda x: x[1])[0]
-            vram_mb = self._model_vram_mb.get(evict_id, 0)
-            del self._pipelines[evict_id]
-            self._model_last_used.pop(evict_id, None)
-            self._model_vram_mb.pop(evict_id, None)
-            self._model_in_use.pop(evict_id, None)
-            if self._current_model == evict_id:
-                self._current_model = None
-            torch.cuda.empty_cache()
-            logger.info(f"[DIFFUSERS] Evicted {evict_id} ({vram_mb:.0f}MB VRAM freed)")
+            self._unload_model_sync(evict_id)
 
     def _load_model_sync(self, model_id: str, pipeline_class: str = "StableDiffusion3Pipeline") -> bool:
         """
@@ -184,6 +254,18 @@ class DiffusersImageGenerator:
                 }
                 if self.cache_dir:
                     kwargs["cache_dir"] = str(self.cache_dir)
+
+                # WanPipeline requires float32 VAE loaded separately
+                if pipeline_class == "WanPipeline":
+                    from diffusers import AutoencoderKLWan
+                    kwargs["torch_dtype"] = torch.bfloat16
+                    vae_kwargs = {"torch_dtype": torch.float32}
+                    if self.cache_dir:
+                        vae_kwargs["cache_dir"] = str(self.cache_dir)
+                    vae = AutoencoderKLWan.from_pretrained(
+                        model_id, subfolder="vae", **vae_kwargs
+                    )
+                    kwargs["vae"] = vae
 
                 pipe = PipelineClass.from_pretrained(model_id, **kwargs)
                 pipe = pipe.to(self.device)
@@ -418,6 +500,109 @@ class DiffusersImageGenerator:
 
         except Exception as e:
             logger.error(f"[DIFFUSERS] Generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    async def generate_video(
+        self,
+        prompt: str,
+        model_id: str = "Wan-AI/Wan2.1-T2V-14B-Diffusers",
+        negative_prompt: str = "",
+        width: int = 1280,
+        height: int = 720,
+        num_frames: int = 81,
+        steps: int = 30,
+        cfg_scale: float = 5.0,
+        fps: int = 16,
+        seed: int = -1,
+        pipeline_class: str = "WanPipeline",
+        **kwargs
+    ) -> Optional[bytes]:
+        """
+        Generate a video using Diffusers (WanPipeline).
+
+        Args:
+            prompt: Positive prompt
+            model_id: Wan model to use (14B or 1.3B)
+            negative_prompt: Negative prompt
+            width: Video width
+            height: Video height
+            num_frames: Number of frames to generate
+            steps: Number of inference steps
+            cfg_scale: Guidance scale
+            fps: Frames per second for output MP4
+            seed: Random seed (-1 for random)
+            pipeline_class: Pipeline class string
+
+        Returns:
+            MP4 video bytes, or None on failure
+        """
+        try:
+            import torch
+
+            if not await self.load_model(model_id, pipeline_class):
+                return None
+
+            self._model_in_use[model_id] = self._model_in_use.get(model_id, 0) + 1
+            try:
+                self._model_last_used[model_id] = time.time()
+                pipe = self._pipelines[model_id]
+
+                if seed == -1:
+                    import random
+                    seed = random.randint(0, 2**32 - 1)
+
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+
+                logger.info(
+                    f"[DIFFUSERS] Generating video: steps={steps}, "
+                    f"size={width}x{height}, frames={num_frames}, seed={seed}"
+                )
+
+                def _generate():
+                    gen_kwargs = {
+                        "prompt": prompt,
+                        "negative_prompt": negative_prompt if negative_prompt else None,
+                        "width": width,
+                        "height": height,
+                        "num_frames": num_frames,
+                        "num_inference_steps": steps,
+                        "guidance_scale": cfg_scale,
+                        "generator": generator,
+                    }
+                    result = pipe(**gen_kwargs)
+                    if not hasattr(result, 'frames') or not result.frames:
+                        raise ValueError("Pipeline returned no video frames")
+                    return result.frames[0]
+
+                frames = await asyncio.to_thread(_generate)
+
+                # Convert frames to MP4 bytes via temp file
+                # (export_to_video only accepts file paths, not BytesIO)
+                import tempfile
+                import os
+                from diffusers.utils import export_to_video
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                    tmp_path = tmp.name
+                try:
+                    export_to_video(frames, tmp_path, fps=fps)
+                    with open(tmp_path, 'rb') as f:
+                        video_bytes = f.read()
+                finally:
+                    os.unlink(tmp_path)
+
+                logger.info(
+                    f"[DIFFUSERS] Generated video: {len(video_bytes)} bytes, "
+                    f"{num_frames} frames @ {fps}fps, seed={seed}"
+                )
+                return video_bytes
+
+            finally:
+                self._model_in_use[model_id] -= 1
+
+        except Exception as e:
+            logger.error(f"[DIFFUSERS] Video generation error: {e}")
             import traceback
             traceback.print_exc()
             return None

@@ -29,6 +29,89 @@
 
 ---
 
+## 🧠 LATENT TEXT LAB: Dekonstruktive LLM-Introspektion als GPU-Service-Proxy (2026-02-15)
+
+**Kontext:** Die Plattform hatte dekonstruktive Tools für Bildmodelle (Attention Cartography, Feature Probing, Concept Algebra, Denoising Archaeology), aber keine Werkzeuge für Sprachmodelle. Lehrkräfte und Schüler konnten nicht beobachten, wie LLMs intern funktionieren — welche Biases kodiert sind, wie verschiedene Modelle dieselbe Information repräsentieren, oder wie sich gezielte Manipulationen auswirken.
+
+### Decision 1: GPU-Service-Proxy statt In-Process-Execution
+
+**Problem:** LLM-Modelle (LLaMA-8B, Mistral) benötigen 4-20GB VRAM und müssen mit dem VRAM-Koordinator interagieren, der im GPU Service läuft.
+
+**Lösung:** DevServer → GPU Service HTTP-Proxy, identisch zum Muster bei Diffusers und HeartMuLa:
+- `text_routes.py` (DevServer) = stateless proxy, jeder Endpoint ruft `TextClient._post()` auf
+- `text_backend.py` (GPU Service) = alle Modelle, Tensoren, PyTorch-Hooks
+- `text_client.py` (DevServer) = HTTP-Client mit Timeout-Handling
+
+**Begründung:** DevServer ist der pädagogische Orchestrator, kein ML-Runtime. GPU-Inferenz gehört in den GPU Service — einheitlich für alle Modality (Bild, Musik, Text).
+
+**Alternative verworfen:**
+- ❌ LLM direkt im DevServer laden → VRAM-Koordination unmöglich, Prozessisolation verletzt
+
+### Decision 2: Drei wissenschaftlich fundierte Tabs statt freier Exploration
+
+**Problem:** Erste Prototypen (Session 175-176) boten generische Werkzeuge (Token Surgery, Embedding-Interpolation, Attention Maps). Das war technisch beeindruckend, aber pädagogisch undurchsichtig — Schüler wussten nicht, *was* sie damit untersuchen sollten.
+
+**Lösung (Session 177 — wissenschaftliche Neufundierung):**
+
+| Tab | Forschungsfrage | Paper |
+|-----|----------------|-------|
+| 1. Representation Engineering | "Kann man Konzept-Richtungen im Aktivierungsraum finden und Generation steuern?" | Zou 2023, Li 2024 |
+| 2. Vergleichende Modell-Archäologie | "Wie repräsentieren verschiedene Modelle dieselbe Information?" | Belinkov 2022, Olsson 2022 |
+| 3. Bias-Archäologie | "Welche systematischen Verzerrungen sind in den Gewichten kodiert?" | Zou 2023, Bricken 2023 |
+
+Jeder Tab hat eine klare Forschungsfrage, ein definiertes Experiment-Protokoll, und vordefinierte Presets. Die früheren generischen Tools (Token Surgery, Interpolation, Attention Maps, Layer Analysis) bleiben als API-Endpoints erhalten, werden aber nicht mehr als eigenständige UI-Elemente exponiert.
+
+**Begründung:**
+- Geführte Forschung statt offene Exploration (Zielgruppe 13-17 Jahre)
+- Preset-Experimente (Gender Bias, Sentiment, Domain) senken die Einstiegshürde
+- Jeder Tab referenziert explizit die zugrundeliegende Forschung (Dropdown mit Paper-Referenzen)
+
+### Decision 3: LLM-Interpretation statt Chat-Overlay
+
+**Problem:** Bias-Archäologie zeigt rohe Generierungstexte (Baseline vs. Manipulation). Jugendliche sehen z.B. dass masculine-Suppression identisch zur Baseline ist, verstehen aber nicht *warum* (weil das Modell "they" als Default verwendet).
+
+**Lösung:** Automatische LLM-Interpretation via `POST /api/text/interpret`:
+- Reuse von `call_chat_helper()` (multi-provider LLM dispatch aus `chat_routes.py`)
+- Pädagogischer System-Prompt (sachlich, 3-5 Sätze, Sprache der Eingabe)
+- Direkt unter den Ergebnissen, ohne User-Interaktion (kein Chat-Overlay, kein Button)
+- Fail-open: LLM-Fehler blockieren nie die Ergebnisanzeige
+
+**Interpretation läuft auf DevServer, NICHT GPU Service:**
+Die Interpretation nutzt das `CHAT_HELPER_MODEL` (z.B. Mistral Large via Ollama, Bedrock, OpenRouter) — das ist die pädagogische Schicht des DevServers. Der GPU Service bleibt für Tensor-Operationen reserviert.
+
+**Alternativen verworfen:**
+- ❌ Chat-Overlay (Träshy) → erfordert User-Interaktion, bricht den Experiment-Flow
+- ❌ GPU-Service-seitige Interpretation → vermischt Tensor-Ops und Pädagogik
+- ❌ Statische Erklärtexte → können nicht auf die tatsächlichen Ergebnisse eingehen
+
+### Decision 4: Token-Resolution mit Varianten
+
+**Problem:** BPE-Tokenizer kodieren `" he"` (mit Leerzeichen) und `"he"` (ohne) als verschiedene Token-IDs. Naive Token-Resolution (`tokenizer.encode("he")`) findet nur eine Variante → unvollständige Bias-Suppression.
+
+**Lösung:** `_resolve_token_ids(tokenizer, words)` im GPU-Service resolvet für jedes Wort drei Varianten:
+1. Bare: `"he"` → Token-ID 123
+2. Space-prefixed: `" he"` → Token-ID 456
+3. Capitalized: `"He"`, `" He"` → Token-IDs 789, 012
+
+Alle gefundenen IDs werden gesammelt und für Boost/Suppress verwendet.
+
+### Decision 5: Additive statt multiplikative Logit-Manipulation
+
+**Problem (Session 177 Bug):** Multiplikative Manipulation (`logits *= factor`) verursacht Softmax-Kollaps — ein Token mit hohem Logit dominiert komplett, die Verteilung wird zu einem Dirac-Delta.
+
+**Lösung:** Additive Manipulation (`logits += factor`). Verschiebt die Logits gleichmäßig, ohne die relative Skalierung zu zerstören. Suppression bleibt `-inf` (komplett blockieren).
+
+**Betroffene Dateien:**
+- `gpu_service/services/text_backend.py` — Core: TextBackend, _resolve_token_ids(), _get_decoder_layers()
+- `gpu_service/routes/text_routes.py` — REST endpoints (TEXT_ENABLED guard)
+- `devserver/my_app/routes/text_routes.py` — DevServer proxy + /interpret endpoint
+- `devserver/my_app/services/text_client.py` — HTTP client
+- `public/ai4artsed-frontend/src/views/latent_lab/latent_text_lab.vue` — Vue component (3 tabs)
+- `public/ai4artsed-frontend/src/i18n.ts` — DE+EN translations
+- `docs/ARCHITECTURE PART 28 - Latent-Lab.md` — Architecture documentation
+
+---
+
 ## 🔐 RESEARCH-LEVEL-GATING: Canvas & Latent Lab hinter Safety-Level-Gate (2026-02-11)
 
 **Kontext:** Canvas und Latent Lab nutzen direkte Pipeline-Aufrufe ohne vollständige 4-Stage-Safety (Stage 2 wird übersprungen, Stage 1/3 sind optional). Statt Safety in jeden experimentellen Endpoint nachzurüsten, wird der Zugang gegated: Diese Features sind nur ab Safety-Level `adult` verfügbar.

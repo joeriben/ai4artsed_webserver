@@ -1,11 +1,13 @@
 """
-Model Availability Service - API-Based Detection
+Model Availability Service - Multi-Backend Detection
 
-Queries ComfyUI's /object_info endpoint to determine which models are installed.
-This is the authoritative source - ComfyUI knows what models it has loaded.
+Checks model/backend availability across all generation backends:
+- ComfyUI: Queries /object_info for installed models
+- GPU Service (Diffusers, HeartMuLa): Queries availability endpoints on port 17803
+- Cloud APIs (OpenAI, OpenRouter): Always available (API-based)
 
-IMPORTANT: This replaces file-based detection which fundamentally cannot work
-because ModelPathResolver has incomplete knowledge of model locations.
+Each backend type is checked independently — ComfyUI being down does NOT
+prevent Diffusers configs from being reported as available.
 """
 
 import aiohttp
@@ -20,15 +22,25 @@ logger = logging.getLogger(__name__)
 
 class ModelAvailabilityService:
     """
-    Service to check ComfyUI model availability via API.
+    Service to check model/backend availability across all generation backends.
 
-    Uses ComfyUI's /object_info endpoint to get the authoritative list
-    of available models, then compares against config requirements.
+    - ComfyUI configs: Queries /object_info for installed models
+    - Diffusers/HeartMuLa configs: Queries GPU service availability endpoints
+    - Cloud API configs: Always marked available
     """
 
     # Cache for ComfyUI model queries (5-minute TTL)
     _cache: Dict[str, Any] = {
         "comfyui_models": None,
+        "timestamp": None,
+        "ttl_seconds": 300,  # 5 minutes
+        "last_reachable": False
+    }
+
+    # Cache for GPU service availability (same TTL)
+    _gpu_cache: Dict[str, Any] = {
+        "diffusers_available": None,
+        "heartmula_available": None,
         "timestamp": None,
         "ttl_seconds": 300  # 5 minutes
     }
@@ -62,6 +74,97 @@ class ModelAvailabilityService:
         if not self._cache["timestamp"]:
             return 0
         return int(time.time() - self._cache["timestamp"])
+
+    def _is_comfyui_reachable(self) -> bool:
+        """Check if the most recent ComfyUI query succeeded."""
+        return self._cache["last_reachable"]
+
+    def invalidate_caches(self):
+        """Invalidate all caches (ComfyUI + GPU service)."""
+        self._cache["timestamp"] = None
+        self._gpu_cache["timestamp"] = None
+
+    def _is_gpu_cache_valid(self) -> bool:
+        """Check if the cached GPU service data is still valid."""
+        if not self._gpu_cache["timestamp"]:
+            return False
+        elapsed = time.time() - self._gpu_cache["timestamp"]
+        return elapsed < self._gpu_cache["ttl_seconds"]
+
+    async def get_gpu_service_status(self, force_refresh: bool = False) -> Dict[str, Any]:
+        """
+        Query GPU service availability for Diffusers and HeartMuLa.
+
+        Returns:
+            {
+                "diffusers": True/False,
+                "heartmula": True/False,
+                "gpu_service_reachable": True/False
+            }
+        """
+        if not force_refresh and self._is_gpu_cache_valid():
+            logger.info(f"[MODEL_AVAILABILITY] Using cached GPU status")
+            return {
+                "diffusers": self._gpu_cache["diffusers_available"] or False,
+                "heartmula": self._gpu_cache["heartmula_available"] or False,
+                "stable_audio": self._gpu_cache.get("stable_audio_available") or False,
+                "gpu_service_reachable": bool(
+                    self._gpu_cache["diffusers_available"]
+                    or self._gpu_cache["heartmula_available"]
+                    or self._gpu_cache.get("stable_audio_available")
+                ),
+            }
+
+        logger.info("[MODEL_AVAILABILITY] Querying GPU service availability")
+        status = {
+            "diffusers": False,
+            "heartmula": False,
+            "stable_audio": False,
+            "gpu_service_reachable": False,
+        }
+
+        # Check Diffusers via GPU service
+        try:
+            from my_app.services.diffusers_client import DiffusersClient
+            client = DiffusersClient()
+            status["diffusers"] = await client.is_available()
+            if status["diffusers"]:
+                status["gpu_service_reachable"] = True
+        except Exception as e:
+            logger.warning(f"[MODEL_AVAILABILITY] Diffusers check failed: {e}")
+
+        # Check HeartMuLa via GPU service
+        try:
+            from my_app.services.heartmula_client import HeartMuLaClient
+            client = HeartMuLaClient()
+            status["heartmula"] = await client.is_available()
+            if status["heartmula"]:
+                status["gpu_service_reachable"] = True
+        except Exception as e:
+            logger.warning(f"[MODEL_AVAILABILITY] HeartMuLa check failed: {e}")
+
+        # Check Stable Audio via GPU service
+        try:
+            from my_app.services.stable_audio_client import StableAudioClient
+            client = StableAudioClient()
+            status["stable_audio"] = await client.is_available()
+            if status["stable_audio"]:
+                status["gpu_service_reachable"] = True
+        except Exception as e:
+            logger.warning(f"[MODEL_AVAILABILITY] Stable Audio check failed: {e}")
+
+        # Update cache
+        self._gpu_cache["diffusers_available"] = status["diffusers"]
+        self._gpu_cache["heartmula_available"] = status["heartmula"]
+        self._gpu_cache["stable_audio_available"] = status.get("stable_audio", False)
+        self._gpu_cache["timestamp"] = time.time()
+
+        logger.info(
+            f"[MODEL_AVAILABILITY] GPU status: diffusers={status['diffusers']}, "
+            f"heartmula={status['heartmula']}, stable_audio={status['stable_audio']}"
+        )
+
+        return status
 
     async def get_comfyui_models(self, force_refresh: bool = False) -> Dict[str, List[str]]:
         """
@@ -144,14 +247,17 @@ class ModelAvailabilityService:
                     # Update cache
                     self._cache["comfyui_models"] = models
                     self._cache["timestamp"] = time.time()
+                    self._cache["last_reachable"] = True
 
                     return models
 
         except aiohttp.ClientError as e:
             logger.error(f"[MODEL_AVAILABILITY] ComfyUI unreachable: {e}")
+            self._cache["last_reachable"] = False
             raise
         except Exception as e:
             logger.error(f"[MODEL_AVAILABILITY] Error querying ComfyUI: {e}")
+            self._cache["last_reachable"] = False
             raise
 
     def _extract_chunk_requirements(self, chunk_path: Path) -> List[Dict[str, str]]:
@@ -281,12 +387,33 @@ class ModelAvailabilityService:
             if config_data.get("display", {}).get("hidden"):
                 return True
 
-            # Check if this is a ComfyUI backend
+            # Route availability check by backend_type
             backend_type = config_data.get("meta", {}).get("backend_type")
-            if backend_type and backend_type != "comfyui":
-                # Non-ComfyUI backends (OpenAI, OpenRouter, etc.) are always available
-                logger.info(f"[MODEL_AVAILABILITY] {config_id}: Non-ComfyUI backend ({backend_type}), marking available")
+
+            if backend_type == "diffusers":
+                gpu_status = await self.get_gpu_service_status()
+                available = gpu_status["diffusers"]
+                logger.info(f"[MODEL_AVAILABILITY] {config_id}: Diffusers backend, available={available}")
+                return available
+
+            elif backend_type == "heartmula":
+                gpu_status = await self.get_gpu_service_status()
+                available = gpu_status["heartmula"]
+                logger.info(f"[MODEL_AVAILABILITY] {config_id}: HeartMuLa backend, available={available}")
+                return available
+
+            elif backend_type == "stable_audio":
+                gpu_status = await self.get_gpu_service_status()
+                available = gpu_status.get("stable_audio", False)
+                logger.info(f"[MODEL_AVAILABILITY] {config_id}: Stable Audio backend, available={available}")
+                return available
+
+            elif backend_type and backend_type not in ("comfyui", "comfyui_legacy"):
+                # Cloud APIs and code-based backends (openai, openrouter, config_model)
+                logger.info(f"[MODEL_AVAILABILITY] {config_id}: {backend_type} backend, marking available")
                 return True
+
+            # Fall through to ComfyUI check for backend_type == "comfyui", "comfyui_legacy", or None
 
             # Extract OUTPUT_CHUNK reference
             output_chunk = config_data.get("parameters", {}).get("OUTPUT_CHUNK")

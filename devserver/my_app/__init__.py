@@ -211,6 +211,8 @@ def create_app():
     from my_app.routes.favorites_routes import favorites_bp  # Session 127: Footer Gallery Favorites
     from my_app.routes.canvas_routes import canvas_bp  # Session 129: Canvas Workflow Builder
     from my_app.routes.dev_routes import dev_bp  # Dev tools: pixel template editor
+    from my_app.routes.text_routes import text_bp  # Session 176: Latent Text Lab
+    from my_app.routes.cross_aesthetic_routes import cross_aesthetic_bp  # Session 177: Cross-Aesthetic proxy
 
     # Register API blueprints FIRST (before static catch-all)
     app.register_blueprint(config_bp)
@@ -228,6 +230,8 @@ def create_app():
     app.register_blueprint(favorites_bp)  # Session 127: Footer Gallery Favorites
     app.register_blueprint(canvas_bp)  # Session 129: Canvas Workflow Builder: /api/canvas/*
     app.register_blueprint(dev_bp)  # Dev tools: /api/dev/*
+    app.register_blueprint(text_bp)  # Session 176: Latent Text Lab proxy: /api/text/*
+    app.register_blueprint(cross_aesthetic_bp)  # Session 177: Cross-Aesthetic proxy: /api/cross_aesthetic/*
 
     # Register static blueprint LAST (catch-all for SPA routing)
     app.register_blueprint(static_bp)

@@ -32,6 +32,7 @@
 
   "meta": {
     "stage": "output",
+    "backend_type": "comfyui",
     "model": "DEFAULT",
     "model_file": "flux2-dev.safetensors",
     "clip_models": [

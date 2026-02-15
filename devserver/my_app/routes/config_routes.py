@@ -3,7 +3,6 @@ Flask routes for configuration
 """
 import logging
 import asyncio
-import aiohttp
 from flask import Blueprint, jsonify, request
 
 from config import COMFYUI_PREFIX
@@ -30,7 +29,10 @@ def get_config():
 @config_bp.route('/api/models/availability', methods=['GET'])
 def get_model_availability():
     """
-    Check availability of ComfyUI models for all output configs.
+    Check availability of models across all backends (ComfyUI, GPU service, cloud APIs).
+
+    Each backend is checked independently — ComfyUI being down does NOT prevent
+    Diffusers/HeartMuLa configs from being reported as available.
 
     Query Parameters:
         force_refresh (bool): If true, bypass cache and query fresh
@@ -40,56 +42,40 @@ def get_model_availability():
         {
             "status": "success",
             "availability": {
-                "flux2": true,
-                "sd35_large": true,
-                "wan22_video": false
+                "flux2_diffusers": true,
+                "sd35_large": false,
+                "heartmula_standard": true
             },
-            "comfyui_reachable": true,
+            "comfyui_reachable": false,
+            "gpu_service_reachable": true,
             "cached": false,
             "cache_age_seconds": 0
-        }
-
-    Error Response (ComfyUI unreachable):
-        {
-            "status": "error",
-            "error": "ComfyUI not reachable: ...",
-            "availability": {},
-            "comfyui_reachable": false
         }
     """
     try:
         from my_app.services.model_availability_service import ModelAvailabilityService
 
-        # Check for force_refresh parameter
         force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
-
-        # Create service and run async check
         service = ModelAvailabilityService()
 
-        # Run async method in sync context
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            if force_refresh:
+                service.invalidate_caches()
             availability = loop.run_until_complete(service.check_all_configs())
+            gpu_status = loop.run_until_complete(service.get_gpu_service_status())
         finally:
             loop.close()
 
         return jsonify({
             "status": "success",
             "availability": availability,
-            "comfyui_reachable": True,
-            "cached": service._is_cache_valid(),
+            "comfyui_reachable": service._is_comfyui_reachable(),
+            "gpu_service_reachable": gpu_status.get("gpu_service_reachable", False),
+            "cached": service._is_cache_valid() or service._is_gpu_cache_valid(),
             "cache_age_seconds": service._get_cache_age()
         })
-
-    except aiohttp.ClientError as e:
-        logger.error(f"[MODEL_AVAILABILITY] ComfyUI unreachable: {e}")
-        return jsonify({
-            "status": "error",
-            "error": f"ComfyUI not reachable: {str(e)}",
-            "availability": {},
-            "comfyui_reachable": False
-        }), 503
 
     except Exception as e:
         logger.error(f"[MODEL_AVAILABILITY] Error checking model availability: {e}")
@@ -97,5 +83,6 @@ def get_model_availability():
             "status": "error",
             "error": str(e),
             "availability": {},
-            "comfyui_reachable": False
+            "comfyui_reachable": False,
+            "gpu_service_reachable": False
         }), 500

@@ -64,7 +64,7 @@
 | 25 | Watermarking & Content Credentials | AI provenance tracking |
 | 26 | Canvas Workflow System | Visual node-based workflow builder |
 | 27 | VRAM Management & Model Preloading | Three-tier GPU/CPU/disk memory |
-| 28 | Latent Lab | Explorative vector-based workflows |
+| 28 | Latent Lab | Deconstructive introspection: Image (Attention, Probing, Algebra, Denoising) + Text (RepEng, CKA, Bias Archaeology, LLM Interpretation) |
 | **29** | **Safety System** | Levels, filters, enforcement points, legal basis (AUTHORITATIVE) |
 
 ---

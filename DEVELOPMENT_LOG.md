@@ -1,5 +1,41 @@
 # Development Log
 
+## Session 176 - Model Availability: GPU Service Independence
+**Date:** 2026-02-15
+**Focus:** Break SwarmUI dependency for model availability — Diffusers configs must be reachable without ComfyUI running.
+
+### Problem
+Vue components (`text_transformation.vue`, `image_transformation.vue`) call `GET /api/models/availability` on mount to decide which model configs to show. The `ModelAvailabilityService` only queried ComfyUI's `/object_info` — non-ComfyUI backends (Diffusers, HeartMuLa) were blindly marked "always available" without checking the GPU service. When ComfyUI was down, the old code returned 503 with empty availability, hiding ALL models including Diffusers configs. Paradoxically, SwarmUI had to run for Diffusers models to appear.
+
+### Solution
+Each backend is now checked independently:
+- **Diffusers configs** → query GPU service `GET /api/diffusers/available`
+- **HeartMuLa configs** → query GPU service `GET /api/heartmula/available`
+- **ComfyUI configs** → existing `/object_info` check (unchanged)
+- **Cloud APIs** (OpenAI, OpenRouter) → always available (unchanged)
+
+GPU service status is cached with the same 5-minute TTL as ComfyUI. The API response now includes `gpu_service_reachable` alongside `comfyui_reachable`. The 503 error on ComfyUI failure is replaced with a 200 containing partial results.
+
+### Additional fixes
+- Added missing `backend_type` to 9 output configs (8× `"comfyui"`, 1× `"heartmula"`)
+- Switched `sd35_large` from ComfyUI to Diffusers primary (chunk `output_image_sd35_diffusers` already existed with ComfyUI fallback)
+- Fixed `force_refresh` query parameter (was read but never propagated to caches)
+- Added `comfyui_reachable` tracking flag (previously hardcoded `true`)
+
+### Modified files
+- `devserver/my_app/services/model_availability_service.py` — GPU cache, `get_gpu_service_status()`, per-backend routing
+- `devserver/my_app/routes/config_routes.py` — `gpu_service_reachable` in response, removed 503 handler
+- `devserver/schemas/configs/output/sd35_large.json` — Diffusers primary
+- `devserver/schemas/configs/output/*.json` (8 files) — added `backend_type`
+- `public/ai4artsed-frontend/src/services/api.ts` — TypeScript interface update
+
+### Verified
+- ComfyUI down + GPU service up → Diffusers/HeartMuLa configs `true`, ComfyUI configs `false`, `comfyui_reachable: false`, `gpu_service_reachable: true`
+- SD3.5 Large visible in text-transformation Vue without SwarmUI
+- `npm run type-check` passes
+
+---
+
 ## Session 175 - DSGVO LLM Verification: Thinking Model Fallback
 **Date:** 2026-02-15
 **Focus:** Fix gpt-OSS:20b returning empty `content` in DSGVO NER verification

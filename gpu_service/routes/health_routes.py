@@ -32,31 +32,33 @@ def health_check():
                 "free_gb": round(total - reserved, 2),
             }
 
-        # Get loaded models from diffusers backend
-        loaded_models = []
+        # Get VRAM coordinator status (includes all backends)
+        coordinator_status = {}
         try:
-            from services.diffusers_backend import get_diffusers_backend
-            backend = get_diffusers_backend()
-            loaded_models = list(backend._pipelines.keys())
-        except Exception:
-            pass
-
-        # Check HeartMuLa status
-        heartmula_loaded = False
-        try:
-            from services.heartmula_backend import get_heartmula_backend
-            hm = get_heartmula_backend()
-            heartmula_loaded = hm._is_loaded
-        except Exception:
-            pass
+            from services.vram_coordinator import get_vram_coordinator
+            coordinator = get_vram_coordinator()
+            coordinator_status = coordinator.get_status()
+        except Exception as e:
+            logger.warning(f"VRAM coordinator status failed: {e}")
 
         return jsonify({
             "status": "ok",
             "gpu": gpu_info,
-            "loaded_models": loaded_models,
-            "heartmula_loaded": heartmula_loaded,
+            "vram_coordinator": coordinator_status,
         })
 
     except Exception as e:
         logger.error(f"Health check error: {e}")
         return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@health_bp.route('/api/health/vram', methods=['GET'])
+def vram_status():
+    """Detailed VRAM status from coordinator."""
+    try:
+        from services.vram_coordinator import get_vram_coordinator
+        coordinator = get_vram_coordinator()
+        return jsonify(coordinator.get_status())
+    except Exception as e:
+        logger.error(f"VRAM status error: {e}")
+        return jsonify({"error": str(e)}), 500

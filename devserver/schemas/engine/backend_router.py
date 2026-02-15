@@ -2395,7 +2395,25 @@ class BackendRouter:
                     }
                 )
 
-            # For other chunks, return bytes as-is (images, video, etc.)
+            # For video chunks, return video data as base64 in metadata
+            if chunk_name.startswith('output_video_'):
+                import base64
+                backend_name = chunk_name.replace('output_video_', '')
+                return BackendResponse(
+                    success=True,
+                    content=f"{backend_name}_generated",
+                    metadata={
+                        "chunk_type": "python",
+                        "chunk_name": chunk_name,
+                        "media_type": "video",
+                        "backend": backend_name,
+                        "video_data": base64.b64encode(result).decode('utf-8'),
+                        "video_format": "mp4",
+                        "size_bytes": len(result)
+                    }
+                )
+
+            # For other chunks, return bytes as-is (images, etc.)
             return BackendResponse(
                 success=True,
                 content=result,
