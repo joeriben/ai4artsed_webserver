@@ -27,6 +27,7 @@
   },
   "meta": {
     "stage": "output",
+    "backend_type": "comfyui",
     "legacy_source": "workflows_legacy/sound/ai4artsed_StableAudio_2506291524.json",
     "extracted_date": "2025-10-19",
     "original_model": "local/gemma3:4b [local / $0.00]"

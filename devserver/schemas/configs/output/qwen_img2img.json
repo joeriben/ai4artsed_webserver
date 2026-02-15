@@ -76,6 +76,7 @@
 
   "meta": {
     "stage": "output",
+    "backend_type": "comfyui",
     "version": "1.0",
     "created": "2025-11-30",
     "last_updated": "2026-01-05",
