@@ -360,12 +360,34 @@ def compare_layers():
 # LLM Interpretation of Experiment Results
 # =============================================================================
 
-INTERPRETATION_SYSTEM_PROMPT = (
-    "Du analysierst Ergebnisse eines KI-Bias-Experiments für Jugendliche (13-17 Jahre). "
-    "Erkläre die beobachteten Muster sachlich und verständlich. 3-5 Sätze. "
-    "Keine Wertungen, keine Vereinfachungen — nur präzise Beobachtungen. "
-    "Antworte in der Sprache der Eingabe."
-)
+INTERPRETATION_SYSTEM_PROMPTS = {
+    "repeng": (
+        "Du erklärst Jugendlichen (13-17) das Ergebnis eines Representation-Engineering-Experiments. "
+        "Fokus auf den MECHANISMUS, nicht auf den Inhalt der generierten Texte. "
+        "Kernfrage: Hat die Richtungsumkehr das Modellverhalten verändert? "
+        "Wenn ja: Das Modell kodiert Wissen und Wahrheitstendenz GETRENNT — "
+        "die Richtung steuert, ob das Modell korrekt oder falsch antwortet, "
+        "ohne dass das Wissen selbst gelöscht wird. "
+        "Wenn nein (identische Outputs): Die extrahierte Richtung war zu schwach "
+        "oder kodiert nicht das Zielkonzept — mehr/bessere Kontrastpaare nötig. "
+        "3-5 Sätze, sachlich, kein Fachjargon. Antworte in der Sprache der Eingabe."
+    ),
+    "bias": (
+        "Du erklärst Jugendlichen (13-17) das Ergebnis eines Bias-Experiments. "
+        "Vergleiche Baseline mit den Manipulationsgruppen: "
+        "Was ändert sich, wenn bestimmte Tokens unterdrückt oder verstärkt werden? "
+        "Wenn sich nichts ändert: Erkläre warum (z.B. Modell nutzt geschlechtsneutrale Defaults). "
+        "Wenn sich etwas ändert: Welche Voreinstellungen des Modells werden sichtbar? "
+        "3-5 Sätze, sachlich, kein Fachjargon. Antworte in der Sprache der Eingabe."
+    ),
+    "compare": (
+        "Du erklärst Jugendlichen (13-17) den Vergleich zweier KI-Modelle. "
+        "Fokus: Wo liefern die Modelle ähnliche Ergebnisse, wo unterscheiden sie sich? "
+        "Was sagt das über die unterschiedliche 'Weltsicht' der Modelle? "
+        "Beachte Modellgröße, Trainingsunterschiede und die CKA-Ähnlichkeit. "
+        "3-5 Sätze, sachlich, kein Fachjargon. Antworte in der Sprache der Eingabe."
+    ),
+}
 
 
 def _build_interpretation_prompt(results: dict, experiment_type: str) -> str:
@@ -377,14 +399,12 @@ def _build_interpretation_prompt(results: dict, experiment_type: str) -> str:
         parts.append(f"Prompt: \"{results.get('prompt', '')}\"")
         parts.append(f"Modell: {results.get('model_id', 'unknown')}")
 
-        # Baseline
         baseline = results.get("baseline", [])
         if baseline:
             parts.append("\nBaseline (keine Manipulation):")
             for s in baseline:
                 parts.append(f"  Seed {s.get('seed')}: {s.get('text', '')}")
 
-        # Manipulation groups
         for group in results.get("groups", []):
             name = group.get("group_name", "")
             mode = group.get("mode", "")
@@ -393,13 +413,23 @@ def _build_interpretation_prompt(results: dict, experiment_type: str) -> str:
             for s in group.get("samples", []):
                 parts.append(f"  Seed {s.get('seed')}: {s.get('text', '')}")
 
+        parts.append("\nVergleiche Baseline mit den Gruppen. Was zeigt das über die Voreinstellungen des Modells?")
+
     elif experiment_type == "repeng":
-        parts.append("Experiment: Representation Engineering")
+        alpha = results.get('alpha', 0)
+        parts.append("Experiment: Representation Engineering — Wahrheitsrichtung invertieren")
+        parts.append(f"Kontrastpaare: {results.get('num_pairs', '?')} Paare (wahr vs. falsch)")
         parts.append(f"Erklärte Varianz: {results.get('explained_variance', 0):.1%}")
-        if results.get("baseline_text"):
-            parts.append(f"Baseline: {results['baseline_text']}")
-        if results.get("manipulated_text"):
-            parts.append(f"Manipuliert (α={results.get('alpha', 0)}): {results['manipulated_text']}")
+        parts.append(f"Manipulationsstärke: α = {alpha}")
+        parts.append(f"\nBaseline (α = 0, keine Manipulation):\n  {results.get('baseline_text', '')}")
+        parts.append(f"\nManipuliert (α = {alpha}):\n  {results.get('manipulated_text', '')}")
+
+        if results.get('baseline_text') == results.get('manipulated_text'):
+            parts.append("\nDie Texte sind IDENTISCH. Die Manipulation hatte keinen Effekt. Erkläre warum das passieren kann.")
+        else:
+            parts.append("\nDie Texte sind UNTERSCHIEDLICH. Erkläre, was die Richtungsumkehr bewirkt hat — "
+                         "nicht den Inhalt der Texte analysieren, sondern den Mechanismus: "
+                         "Warum kann das Modell 'falsch' antworten, obwohl es die richtige Antwort 'kennt'?")
 
     elif experiment_type == "compare":
         parts.append("Experiment: Vergleichende Modell-Archäologie")
@@ -407,8 +437,8 @@ def _build_interpretation_prompt(results: dict, experiment_type: str) -> str:
         mb = results.get("model_b", {})
         parts.append(f"Modell A ({ma.get('model_id', '?')}): {ma.get('generated_text', '')}")
         parts.append(f"Modell B ({mb.get('model_id', '?')}): {mb.get('generated_text', '')}")
+        parts.append("\nWorin unterscheiden sich die Antworten? Was sagt das über die Modelle?")
 
-    parts.append("\nWas fällt an diesen Ergebnissen auf? Was zeigen sie über das Modellverhalten?")
     return "\n".join(parts)
 
 
@@ -426,8 +456,9 @@ def interpret_results():
 
     from my_app.routes.chat_routes import call_chat_helper
     try:
+        system_prompt = INTERPRETATION_SYSTEM_PROMPTS.get(experiment_type, INTERPRETATION_SYSTEM_PROMPTS["bias"])
         messages = [
-            {"role": "system", "content": INTERPRETATION_SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ]
         response = call_chat_helper(messages, temperature=0.5, max_tokens=400)
