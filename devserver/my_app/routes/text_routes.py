@@ -364,12 +364,13 @@ INTERPRETATION_SYSTEM_PROMPTS = {
     "repeng": (
         "Du erklärst Jugendlichen (13-17) das Ergebnis eines Representation-Engineering-Experiments. "
         "Fokus auf den MECHANISMUS, nicht auf den Inhalt der generierten Texte. "
-        "Kernfrage: Hat die Richtungsumkehr das Modellverhalten verändert? "
-        "Wenn ja: Das Modell kodiert Wissen und Wahrheitstendenz GETRENNT — "
-        "die Richtung steuert, ob das Modell korrekt oder falsch antwortet, "
-        "ohne dass das Wissen selbst gelöscht wird. "
-        "Wenn nein (identische Outputs): Die extrahierte Richtung war zu schwach "
-        "oder kodiert nicht das Zielkonzept — mehr/bessere Kontrastpaare nötig. "
+        "WICHTIG: Beachte den α-Wert (alpha) genau! "
+        "α < 0 = Richtung wird INVERTIERT (Wahrheitstendenz umgekehrt → Modell sollte falsch antworten). "
+        "α > 0 = Richtung wird VERSTÄRKT (Wahrheitstendenz verstärkt → Modell sollte noch sicherer korrekt antworten). "
+        "α = 0 wäre keine Manipulation (kommt nicht vor). "
+        "Bei α > 0: Wenn sich wenig ändert, ist das ERWARTET — das Modell war schon korrekt, mehr Wahrheit ändert wenig. "
+        "Bei α < 0: Wenn sich etwas ändert, zeigt das dass Wissen und Wahrheitstendenz GETRENNT kodiert sind. "
+        "Bei identischen Outputs: Richtung war zu schwach oder kodiert nicht das Zielkonzept. "
         "3-5 Sätze, sachlich, kein Fachjargon. Antworte in der Sprache der Eingabe."
     ),
     "bias": (
@@ -417,19 +418,29 @@ def _build_interpretation_prompt(results: dict, experiment_type: str) -> str:
 
     elif experiment_type == "repeng":
         alpha = results.get('alpha', 0)
-        parts.append("Experiment: Representation Engineering — Wahrheitsrichtung invertieren")
+        if alpha < 0:
+            mode_desc = "invertiert (Wahrheitstendenz umgekehrt)"
+        elif alpha > 0:
+            mode_desc = "verstärkt (Wahrheitstendenz verstärkt)"
+        else:
+            mode_desc = "neutral"
+        parts.append(f"Experiment: Representation Engineering — Wahrheitsrichtung {mode_desc}")
         parts.append(f"Kontrastpaare: {results.get('num_pairs', '?')} Paare (wahr vs. falsch)")
         parts.append(f"Erklärte Varianz: {results.get('explained_variance', 0):.1%}")
-        parts.append(f"Manipulationsstärke: α = {alpha}")
+        parts.append(f"Manipulationsstärke: α = {alpha} ({'Invertierung' if alpha < 0 else 'Verstärkung'})")
         parts.append(f"\nBaseline (α = 0, keine Manipulation):\n  {results.get('baseline_text', '')}")
         parts.append(f"\nManipuliert (α = {alpha}):\n  {results.get('manipulated_text', '')}")
 
         if results.get('baseline_text') == results.get('manipulated_text'):
             parts.append("\nDie Texte sind IDENTISCH. Die Manipulation hatte keinen Effekt. Erkläre warum das passieren kann.")
+        elif alpha < 0:
+            parts.append("\nDie Texte sind UNTERSCHIEDLICH. Die Richtung wurde INVERTIERT (α < 0). "
+                         "Erkläre den Mechanismus: Warum antwortet das Modell jetzt falsch, obwohl es die Antwort 'kennt'? "
+                         "Nicht den Inhalt analysieren, sondern erklären dass Wissen und Wahrheitstendenz getrennt kodiert sind.")
         else:
-            parts.append("\nDie Texte sind UNTERSCHIEDLICH. Erkläre, was die Richtungsumkehr bewirkt hat — "
-                         "nicht den Inhalt der Texte analysieren, sondern den Mechanismus: "
-                         "Warum kann das Modell 'falsch' antworten, obwohl es die richtige Antwort 'kennt'?")
+            parts.append(f"\nDie Texte sind UNTERSCHIEDLICH. Die Richtung wurde VERSTÄRKT (α = {alpha}). "
+                         "Erkläre was sich geändert hat. Bei α > 0 ist wenig Änderung ERWARTET — "
+                         "wenn das Modell schon korrekt antwortet, bringt mehr Wahrheitstendenz wenig Neues.")
 
     elif experiment_type == "compare":
         parts.append("Experiment: Vergleichende Modell-Archäologie")
