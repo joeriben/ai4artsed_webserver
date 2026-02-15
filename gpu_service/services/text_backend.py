@@ -916,14 +916,17 @@ class TextBackend:
             if len(differences) > 1:
                 centered = diff_matrix - mean_diff
                 U, S, Vh = torch.linalg.svd(centered, full_matrices=False)
-                concept_direction = Vh[0]  # first principal component
+                # SVD returns unit-norm singular vectors — scale by singular value
+                # to preserve the actual magnitude of the concept encoding
+                concept_direction_raw = S[0] * Vh[0]
                 explained_variance = (S[0]**2 / (S**2).sum()).item()
             else:
-                concept_direction = differences[0]
+                concept_direction_raw = differences[0]
                 explained_variance = 1.0
 
-            # Normalize
-            concept_direction = concept_direction / concept_direction.norm()
+            # Normalized direction for projections (dot product comparisons)
+            direction_norm = concept_direction_raw.norm()
+            concept_direction = concept_direction_raw / direction_norm
 
             # 3. Project each pair onto the direction
             for i, pair in enumerate(contrast_pairs):
@@ -941,7 +944,7 @@ class TextBackend:
                 "embedding_dim": int(concept_direction.shape[0]),
                 "num_pairs": len(contrast_pairs),
                 "explained_variance": explained_variance,
-                "direction_norm": float(mean_diff.norm()),
+                "direction_norm": float(direction_norm),
                 "pair_projections": pair_projections,
             }
 
@@ -966,8 +969,9 @@ class TextBackend:
                     # hidden_states has N+1 entries: [0]=embedding, [1..N]=decoder layers
                     # decoder_layers has N entries: [0..N-1]
                     # So hidden_states[layer_idx] corresponds to decoder_layers[layer_idx - 1]
+                    # Use RAW direction (not normalized) — magnitude encodes concept strength
                     model_dtype = next(model.parameters()).dtype
-                    direction_gpu = concept_direction.to(device=model.device, dtype=model_dtype).unsqueeze(0).unsqueeze(0)
+                    direction_gpu = concept_direction_raw.to(device=model.device, dtype=model_dtype).unsqueeze(0).unsqueeze(0)
                     decoder_layers = self._get_decoder_layers(model)
                     hook_layer_idx = layer_idx - 1
 
@@ -985,7 +989,7 @@ class TextBackend:
                         )
                         logger.info(
                             f"[TEXT] RepEng: Hook registered on decoder layer {hook_layer_idx}, "
-                            f"alpha={alpha}, direction_norm={concept_direction.norm():.4f}"
+                            f"alpha={alpha}, raw_direction_norm={direction_norm:.4f}"
                         )
                     else:
                         logger.warning(
