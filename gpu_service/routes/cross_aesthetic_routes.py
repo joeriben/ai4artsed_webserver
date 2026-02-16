@@ -1,13 +1,16 @@
 """
-GPU Service Cross-Aesthetic Routes
+GPU Service Crossmodal Lab Routes
 
-REST endpoints for cross-aesthetic generation experiments.
-Implements three strategies exploiting the modality indifference of generative AI.
+REST endpoints for Crossmodal Lab v2:
+- /synth: Latent Audio Synth (T5 embedding manipulation)
+- /image_guided_audio: ImageBind gradient guidance (Phase 3)
+- /mmaudio: MMAudio image/text-to-audio (Phase 2, separate blueprint)
 """
 
 import asyncio
 import base64
 import logging
+import time
 from flask import Blueprint, request, jsonify
 
 logger = logging.getLogger(__name__)
@@ -23,35 +26,90 @@ def _run_async(coro):
         loop.close()
 
 
-def _get_backend():
-    from services.cross_aesthetic_backend import get_cross_aesthetic_backend
-    return get_cross_aesthetic_backend()
-
-
 @cross_aesthetic_bp.route('/api/cross_aesthetic/available', methods=['GET'])
 def available():
-    """Check if cross-aesthetic generation is available."""
+    """Check if crossmodal lab backends are available."""
     try:
-        from config import CROSS_AESTHETIC_ENABLED
-        if not CROSS_AESTHETIC_ENABLED:
-            return jsonify({"available": False, "reason": "disabled"})
-        return jsonify({"available": True})
+        from config import CROSS_AESTHETIC_ENABLED, STABLE_AUDIO_ENABLED
+        from config import IMAGEBIND_ENABLED, MMAUDIO_ENABLED
+
+        return jsonify({
+            "available": CROSS_AESTHETIC_ENABLED,
+            "backends": {
+                "synth": STABLE_AUDIO_ENABLED,
+                "imagebind_guidance": IMAGEBIND_ENABLED,
+                "mmaudio": MMAUDIO_ENABLED,
+            },
+        })
     except Exception as e:
-        return jsonify({"available": False, "reason": str(e)})
+        return jsonify({"available": False, "error": str(e)})
 
 
-@cross_aesthetic_bp.route('/api/cross_aesthetic/image_to_audio', methods=['POST'])
-def image_to_audio():
-    """Strategy A: CLIP image embeddings → Stable Audio conditioning.
+@cross_aesthetic_bp.route('/api/cross_aesthetic/synth', methods=['POST'])
+def synth():
+    """Latent Audio Synth: manipulate T5 embeddings and generate audio.
 
     Request JSON:
-        image_base64: str (required) - base64-encoded image
+        prompt_a: str (required) - Base text prompt
+        prompt_b: str (optional) - Second prompt for interpolation
+        alpha: float (default 0.5) - Interpolation factor (-2.0 to 3.0)
+        magnitude: float (default 1.0) - Global embedding scale (0.1-5.0)
+        noise_sigma: float (default 0.0) - Noise injection strength (0-1.0)
+        dimension_offsets: dict (optional) - {dim_idx: offset_value}
+        duration_seconds: float (default 1.0) - Audio duration (0.5-5.0)
+        steps: int (default 20) - Inference steps
+        cfg_scale: float (default 3.5) - CFG scale
+        seed: int (default -1) - Random seed
+
+    Returns: { success, audio_base64, embedding_stats, generation_time_ms, seed }
+    """
+    data = request.get_json()
+    if not data or 'prompt_a' not in data:
+        return jsonify({"success": False, "error": "prompt_a required"}), 400
+
+    from services.cross_aesthetic_backend import get_cross_aesthetic_backend
+    backend = get_cross_aesthetic_backend()
+
+    result = _run_async(backend.synth(
+        prompt_a=data['prompt_a'],
+        prompt_b=data.get('prompt_b'),
+        alpha=float(data.get('alpha', 0.5)),
+        magnitude=float(data.get('magnitude', 1.0)),
+        noise_sigma=float(data.get('noise_sigma', 0.0)),
+        dimension_offsets=data.get('dimension_offsets'),
+        duration_seconds=float(data.get('duration_seconds', 1.0)),
+        steps=int(data.get('steps', 20)),
+        cfg_scale=float(data.get('cfg_scale', 3.5)),
+        seed=int(data.get('seed', -1)),
+    ))
+
+    if result is None:
+        return jsonify({"success": False, "error": "Synth generation failed"}), 500
+
+    return jsonify({
+        "success": True,
+        "audio_base64": base64.b64encode(result["audio_bytes"]).decode('utf-8'),
+        "embedding_stats": result["embedding_stats"],
+        "generation_time_ms": result["generation_time_ms"],
+        "seed": result["seed"],
+    })
+
+
+@cross_aesthetic_bp.route('/api/cross_aesthetic/image_guided_audio', methods=['POST'])
+def image_guided_audio():
+    """ImageBind gradient guidance: image-guided audio generation.
+
+    Request JSON:
+        image_base64: str (required) - Base64-encoded image
+        prompt: str (optional) - Text basis conditioning
+        lambda_guidance: float (default 0.1) - Guidance strength
+        warmup_steps: int (default 10) - Gradient guidance steps
+        total_steps: int (default 50) - Total inference steps
         duration_seconds: float (default 10.0)
-        steps: int (default 100)
         cfg_scale: float (default 7.0)
         seed: int (default -1)
 
-    Returns: { success, audio_base64, seed, strategy_info }
+    Returns: { success, audio_base64, cosine_similarity, seed }
     """
     data = request.get_json()
     if not data or 'image_base64' not in data:
@@ -62,137 +120,27 @@ def image_to_audio():
     except Exception:
         return jsonify({"success": False, "error": "Invalid base64 image data"}), 400
 
-    seed = int(data.get('seed', -1))
-    duration = float(data.get('duration_seconds', 10.0))
+    from services.stable_audio_backend import get_stable_audio_backend
+    stable_audio = get_stable_audio_backend()
 
-    backend = _get_backend()
-    audio_bytes = _run_async(backend.image_to_audio(
+    result = _run_async(stable_audio.generate_audio_with_guidance(
         image_bytes=image_bytes,
-        duration_seconds=duration,
-        steps=int(data.get('steps', 100)),
+        prompt=data.get('prompt', ''),
+        lambda_guidance=float(data.get('lambda_guidance', 0.1)),
+        warmup_steps=int(data.get('warmup_steps', 10)),
+        total_steps=int(data.get('total_steps', 50)),
+        duration_seconds=float(data.get('duration_seconds', 10.0)),
         cfg_scale=float(data.get('cfg_scale', 7.0)),
-        seed=seed,
+        seed=int(data.get('seed', -1)),
     ))
 
-    if audio_bytes is None:
-        return jsonify({"success": False, "error": "Cross-aesthetic generation failed"}), 500
+    if result is None:
+        return jsonify({"success": False, "error": "Guided generation failed"}), 500
 
     return jsonify({
         "success": True,
-        "audio_base64": base64.b64encode(audio_bytes).decode('utf-8'),
-        "seed": seed,
-        "duration_seconds": duration,
-        "strategy_info": {
-            "strategy": "A",
-            "description": "CLIP image embeddings injected as Stable Audio conditioning",
-            "clip_model": backend.clip_model_id,
-            "embedding_flow": "image → CLIP [1,256,768] → pool [1,128,768] → Stable Audio DiT",
-        },
-    })
-
-
-@cross_aesthetic_bp.route('/api/cross_aesthetic/shared_seed', methods=['POST'])
-def shared_seed():
-    """Strategy B: Same noise seed → parallel image + audio generation.
-
-    Request JSON:
-        prompt: str (required)
-        seed: int (default 42)
-        image_params: dict (optional) - { model_id, width, height, steps, cfg_scale }
-        audio_params: dict (optional) - { duration_seconds, steps, cfg_scale }
-
-    Returns: { success, image_base64, audio_base64, seed, strategy_info }
-    """
-    data = request.get_json()
-    if not data or 'prompt' not in data:
-        return jsonify({"success": False, "error": "prompt required"}), 400
-
-    seed = int(data.get('seed', 42))
-    img_params = data.get('image_params', {})
-    aud_params = data.get('audio_params', {})
-
-    backend = _get_backend()
-    image_bytes, audio_bytes = _run_async(backend.shared_seed(
-        prompt=data['prompt'],
-        seed=seed,
-        image_model=img_params.get('model_id', 'stabilityai/stable-diffusion-3.5-large'),
-        image_width=int(img_params.get('width', 1024)),
-        image_height=int(img_params.get('height', 1024)),
-        image_steps=int(img_params.get('steps', 25)),
-        image_cfg=float(img_params.get('cfg_scale', 4.5)),
-        audio_duration=float(aud_params.get('duration_seconds', 10.0)),
-        audio_steps=int(aud_params.get('steps', 100)),
-        audio_cfg=float(aud_params.get('cfg_scale', 7.0)),
-    ))
-
-    if image_bytes is None and audio_bytes is None:
-        return jsonify({"success": False, "error": "Both generations failed"}), 500
-
-    result = {
-        "success": True,
-        "seed": seed,
-        "strategy_info": {
-            "strategy": "B",
-            "description": "Same noise seed, different learned dynamics",
-        },
-    }
-
-    if image_bytes:
-        result["image_base64"] = base64.b64encode(image_bytes).decode('utf-8')
-    if audio_bytes:
-        result["audio_base64"] = base64.b64encode(audio_bytes).decode('utf-8')
-
-    return jsonify(result)
-
-
-@cross_aesthetic_bp.route('/api/cross_aesthetic/cross_decode', methods=['POST'])
-def cross_decode():
-    """Strategy C: Generate in one modality, decode with the other's VAE.
-
-    Request JSON:
-        prompt: str (required)
-        direction: str ("image_to_audio" or "audio_to_image")
-        seed: int (default 42)
-        image_params: dict (optional) - { steps, cfg_scale }
-        audio_params: dict (optional) - { duration_seconds, steps, cfg_scale }
-
-    Returns: { success, output_base64, output_type, seed, strategy_info }
-    """
-    data = request.get_json()
-    if not data or 'prompt' not in data:
-        return jsonify({"success": False, "error": "prompt required"}), 400
-
-    direction = data.get('direction', 'image_to_audio')
-    seed = int(data.get('seed', 42))
-    img_params = data.get('image_params', {})
-    aud_params = data.get('audio_params', {})
-
-    backend = _get_backend()
-    output_bytes = _run_async(backend.cross_decode(
-        prompt=data['prompt'],
-        direction=direction,
-        seed=seed,
-        image_steps=int(img_params.get('steps', 25)),
-        image_cfg=float(img_params.get('cfg_scale', 4.5)),
-        audio_duration=float(aud_params.get('duration_seconds', 10.0)),
-        audio_steps=int(aud_params.get('steps', 100)),
-        audio_cfg=float(aud_params.get('cfg_scale', 7.0)),
-    ))
-
-    if output_bytes is None:
-        return jsonify({"success": False, "error": "Cross-decoding failed"}), 500
-
-    output_type = "audio" if direction == "image_to_audio" else "image"
-
-    return jsonify({
-        "success": True,
-        "output_base64": base64.b64encode(output_bytes).decode('utf-8'),
-        "output_type": output_type,
-        "seed": seed,
-        "strategy_info": {
-            "strategy": "C",
-            "description": f"Latent cross-decoding: {direction}",
-            "direction": direction,
-            "warning": "Experimental — output may be chaotic/glitchy (intentional)",
-        },
+        "audio_base64": base64.b64encode(result["audio_bytes"]).decode('utf-8'),
+        "cosine_similarity": result.get("cosine_similarity"),
+        "generation_time_ms": result.get("generation_time_ms"),
+        "seed": result["seed"],
     })

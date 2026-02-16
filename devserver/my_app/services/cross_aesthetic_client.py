@@ -1,19 +1,19 @@
 """
 Cross-Aesthetic HTTP Client — GPU Service Backend
 
-Calls the shared GPU service (port 17803) for cross-aesthetic generation.
-Three strategies: image→audio, shared seed, latent cross-decoding.
+Calls the shared GPU service (port 17803) for crossmodal generation.
+Crossmodal Lab v2: Latent Audio Synth, ImageBind Guidance, MMAudio.
 """
 
 import base64
 import logging
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
 
 class CrossAestheticClient:
-    """HTTP client for cross-aesthetic generation on the GPU service."""
+    """HTTP client for crossmodal generation on the GPU service."""
 
     def __init__(self):
         from config import GPU_SERVICE_URL, GPU_SERVICE_TIMEOUT
@@ -28,13 +28,13 @@ class CrossAestheticClient:
             resp.raise_for_status()
             return resp.json()
         except requests.ConnectionError:
-            logger.error(f"[CROSS-AESTHETIC-CLIENT] GPU service unreachable at {url}")
+            logger.error(f"[CROSSMODAL-CLIENT] GPU service unreachable at {url}")
             return None
         except requests.Timeout:
-            logger.error(f"[CROSS-AESTHETIC-CLIENT] Timeout after {self.timeout}s: {path}")
+            logger.error(f"[CROSSMODAL-CLIENT] Timeout after {self.timeout}s: {path}")
             return None
         except Exception as e:
-            logger.error(f"[CROSS-AESTHETIC-CLIENT] Request failed: {e}")
+            logger.error(f"[CROSSMODAL-CLIENT] Request failed: {e}")
             return None
 
     def _get(self, path: str) -> Optional[dict]:
@@ -45,7 +45,7 @@ class CrossAestheticClient:
             resp.raise_for_status()
             return resp.json()
         except Exception as e:
-            logger.error(f"[CROSS-AESTHETIC-CLIENT] GET failed: {e}")
+            logger.error(f"[CROSSMODAL-CLIENT] GET failed: {e}")
             return None
 
     async def is_available(self) -> bool:
@@ -56,26 +56,69 @@ class CrossAestheticClient:
         except Exception:
             return False
 
-    async def image_to_audio(
+    async def synth(
+        self,
+        prompt_a: str,
+        prompt_b: Optional[str] = None,
+        alpha: float = 0.5,
+        magnitude: float = 1.0,
+        noise_sigma: float = 0.0,
+        dimension_offsets: Optional[Dict[int, float]] = None,
+        duration_seconds: float = 1.0,
+        steps: int = 20,
+        cfg_scale: float = 3.5,
+        seed: int = -1,
+    ) -> Optional[Dict[str, Any]]:
+        """Latent Audio Synth: T5 embedding manipulation + Stable Audio generation."""
+        import asyncio
+
+        data: Dict[str, Any] = {
+            'prompt_a': prompt_a,
+            'alpha': alpha,
+            'magnitude': magnitude,
+            'noise_sigma': noise_sigma,
+            'duration_seconds': duration_seconds,
+            'steps': steps,
+            'cfg_scale': cfg_scale,
+            'seed': seed,
+        }
+        if prompt_b:
+            data['prompt_b'] = prompt_b
+        if dimension_offsets:
+            data['dimension_offsets'] = dimension_offsets
+
+        result = await asyncio.to_thread(self._post, '/api/cross_aesthetic/synth', data)
+        if result is None or not result.get('success'):
+            return None
+
+        return {
+            'audio_bytes': base64.b64decode(result['audio_base64']),
+            'embedding_stats': result.get('embedding_stats'),
+            'generation_time_ms': result.get('generation_time_ms'),
+            'seed': result.get('seed'),
+        }
+
+    async def image_guided_audio(
         self,
         image_bytes: bytes,
+        prompt: str = "",
+        lambda_guidance: float = 0.1,
+        warmup_steps: int = 10,
+        total_steps: int = 50,
         duration_seconds: float = 10.0,
-        steps: int = 100,
         cfg_scale: float = 7.0,
         seed: int = -1,
     ) -> Optional[Dict[str, Any]]:
-        """
-        Strategy A: CLIP image → Stable Audio conditioning.
-
-        Returns:
-            Dict with 'audio_bytes', 'seed', 'strategy_info' or None
-        """
+        """ImageBind gradient guidance: image-guided audio generation."""
         import asyncio
 
-        result = await asyncio.to_thread(self._post, '/api/cross_aesthetic/image_to_audio', {
+        result = await asyncio.to_thread(self._post, '/api/cross_aesthetic/image_guided_audio', {
             'image_base64': base64.b64encode(image_bytes).decode('utf-8'),
+            'prompt': prompt,
+            'lambda_guidance': lambda_guidance,
+            'warmup_steps': warmup_steps,
+            'total_steps': total_steps,
             'duration_seconds': duration_seconds,
-            'steps': steps,
             'cfg_scale': cfg_scale,
             'seed': seed,
         })
@@ -85,78 +128,43 @@ class CrossAestheticClient:
 
         return {
             'audio_bytes': base64.b64decode(result['audio_base64']),
+            'cosine_similarity': result.get('cosine_similarity'),
+            'generation_time_ms': result.get('generation_time_ms'),
             'seed': result.get('seed'),
-            'strategy_info': result.get('strategy_info'),
         }
 
-    async def shared_seed(
+    async def mmaudio(
         self,
-        prompt: str,
-        seed: int = 42,
-        image_params: Optional[Dict] = None,
-        audio_params: Optional[Dict] = None,
+        image_bytes: Optional[bytes] = None,
+        prompt: str = "",
+        negative_prompt: str = "",
+        duration_seconds: float = 8.0,
+        cfg_strength: float = 4.5,
+        num_steps: int = 25,
+        seed: int = -1,
     ) -> Optional[Dict[str, Any]]:
-        """
-        Strategy B: Same noise seed → image + audio.
-
-        Returns:
-            Dict with 'image_bytes', 'audio_bytes', 'seed', 'strategy_info' or None
-        """
+        """MMAudio: image/text to audio generation."""
         import asyncio
 
-        result = await asyncio.to_thread(self._post, '/api/cross_aesthetic/shared_seed', {
+        data: Dict[str, Any] = {
             'prompt': prompt,
+            'negative_prompt': negative_prompt,
+            'duration_seconds': duration_seconds,
+            'cfg_strength': cfg_strength,
+            'num_steps': num_steps,
             'seed': seed,
-            'image_params': image_params or {},
-            'audio_params': audio_params or {},
-        })
-
-        if result is None or not result.get('success'):
-            return None
-
-        output = {
-            'seed': result.get('seed'),
-            'strategy_info': result.get('strategy_info'),
         }
-        if 'image_base64' in result:
-            output['image_bytes'] = base64.b64decode(result['image_base64'])
-        if 'audio_base64' in result:
-            output['audio_bytes'] = base64.b64decode(result['audio_base64'])
+        if image_bytes:
+            data['image_base64'] = base64.b64encode(image_bytes).decode('utf-8')
 
-        return output
-
-    async def cross_decode(
-        self,
-        prompt: str,
-        direction: str = "image_to_audio",
-        seed: int = 42,
-        image_params: Optional[Dict] = None,
-        audio_params: Optional[Dict] = None,
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Strategy C: Latent cross-decoding.
-
-        Returns:
-            Dict with 'output_bytes', 'output_type', 'seed', 'strategy_info' or None
-        """
-        import asyncio
-
-        result = await asyncio.to_thread(self._post, '/api/cross_aesthetic/cross_decode', {
-            'prompt': prompt,
-            'direction': direction,
-            'seed': seed,
-            'image_params': image_params or {},
-            'audio_params': audio_params or {},
-        })
-
+        result = await asyncio.to_thread(self._post, '/api/cross_aesthetic/mmaudio', data)
         if result is None or not result.get('success'):
             return None
 
         return {
-            'output_bytes': base64.b64decode(result['output_base64']),
-            'output_type': result.get('output_type'),
+            'audio_bytes': base64.b64decode(result['audio_base64']),
+            'generation_time_ms': result.get('generation_time_ms'),
             'seed': result.get('seed'),
-            'strategy_info': result.get('strategy_info'),
         }
 
 
