@@ -268,6 +268,70 @@
           </template>
         </div>
       </details>
+
+      <!-- Dimension Explorer Section (collapsed by default) -->
+      <details class="dim-explorer-section">
+        <summary>{{ t('latentLab.crossmodal.synth.dimensions.section') }}</summary>
+        <div class="dim-explorer-content">
+          <p class="dim-hint">{{ t('latentLab.crossmodal.synth.dimensions.hint') }}</p>
+
+          <!-- Spectral Strip Canvas -->
+          <div class="spectral-strip-container">
+            <canvas
+              ref="spectralCanvasRef"
+              class="spectral-canvas"
+              @mousedown="onSpectralMouseDown"
+              @mousemove="onSpectralMouseMove"
+              @mouseup="onSpectralMouseUp"
+              @mouseleave="onSpectralMouseUp"
+              @contextmenu="onSpectralContextMenu"
+              @touchstart="onSpectralTouchStart"
+              @touchmove="onSpectralTouchMove"
+              @touchend="onSpectralTouchEnd"
+            />
+            <div v-if="!embeddingStats?.all_activations" class="spectral-empty">
+              {{ t('latentLab.crossmodal.synth.dimensions.hint') }}
+            </div>
+          </div>
+
+          <!-- Hover info + sort mode -->
+          <div class="dim-info-row">
+            <span v-if="hoveredDim" class="dim-hover-info">
+              d{{ hoveredDim.dim }}:
+              {{ t('latentLab.crossmodal.synth.dimensions.hoverActivation') }}={{ hoveredDim.activation.toFixed(4) }}
+              {{ t('latentLab.crossmodal.synth.dimensions.hoverOffset') }}={{ hoveredDim.offset.toFixed(2) }}
+            </span>
+            <span v-if="embeddingStats?.sort_mode" class="dim-sort-mode">
+              {{ embeddingStats.sort_mode === 'diff'
+                ? t('latentLab.crossmodal.synth.dimensions.sortDiff')
+                : t('latentLab.crossmodal.synth.dimensions.sortMagnitude') }}
+            </span>
+          </div>
+
+          <!-- Controls Row -->
+          <div class="dim-controls-row">
+            <div class="dim-control-group">
+              <label>{{ t('latentLab.crossmodal.synth.dimensions.selectTopN') }}</label>
+              <input
+                v-model.number="dimExplorerTopN"
+                type="number"
+                min="1"
+                max="768"
+                class="dim-topn-input"
+              />
+              <button class="dim-btn" @click="selectTopDims">
+                {{ t('latentLab.crossmodal.synth.dimensions.apply') }}
+              </button>
+            </div>
+            <button class="dim-btn dim-btn-reset" @click="resetAllOffsets">
+              {{ t('latentLab.crossmodal.synth.dimensions.resetAll') }}
+            </button>
+            <span class="dim-right-click-hint">
+              {{ t('latentLab.crossmodal.synth.dimensions.rightClickReset') }}
+            </span>
+          </div>
+        </div>
+      </details>
     </div>
 
     <!-- ===== Tab 2: MMAudio ===== -->
@@ -428,7 +492,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAudioLooper } from '@/composables/useAudioLooper'
 import { useWebMidi } from '@/composables/useWebMidi'
@@ -457,6 +521,8 @@ interface EmbeddingStats {
   mean: number
   std: number
   top_dimensions: Array<{ dim: number; value: number }>
+  all_activations?: Array<{ dim: number; value: number }>
+  sort_mode?: string
 }
 const embeddingStats = ref<EmbeddingStats | null>(null)
 
@@ -539,11 +605,225 @@ const guidance = reactive({
   seed: 42,
 })
 
+// ===== Dimension Explorer =====
+const dimensionOffsets = reactive<Record<number, number>>({})
+const dimExplorerTopN = ref(10)
+const spectralCanvasRef = ref<HTMLCanvasElement | null>(null)
+const hoveredDim = ref<{ dim: number; activation: number; offset: number } | null>(null)
+let isDragging = false
+
+const maxActivation = computed(() => {
+  const acts = embeddingStats.value?.all_activations
+  if (!acts?.length) return 1
+  return Math.max(...acts.map(a => Math.abs(a.value)), 0.001)
+})
+
+function drawSpectralStrip() {
+  const canvas = spectralCanvasRef.value
+  const acts = embeddingStats.value?.all_activations
+  if (!canvas || !acts?.length) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const dpr = window.devicePixelRatio || 1
+  const rect = canvas.getBoundingClientRect()
+  canvas.width = rect.width * dpr
+  canvas.height = rect.height * dpr
+  ctx.scale(dpr, dpr)
+
+  const w = rect.width
+  const h = rect.height
+  const centerY = h / 2
+  const barW = w / acts.length
+  const maxAct = maxActivation.value
+
+  // Clear
+  ctx.clearRect(0, 0, w, h)
+
+  // Zero-line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, centerY)
+  ctx.lineTo(w, centerY)
+  ctx.stroke()
+
+  // Draw bars
+  for (let i = 0; i < acts.length; i++) {
+    const entry = acts[i]!
+    const dim = entry.dim
+    const val = entry.value
+    const x = i * barW
+    const barH = (Math.abs(val) / maxAct) * (centerY - 2)
+
+    // Activation bar (muted green)
+    ctx.fillStyle = 'rgba(76, 175, 80, 0.35)'
+    if (val >= 0) {
+      ctx.fillRect(x, centerY - barH, Math.max(barW - 0.5, 0.5), barH)
+    } else {
+      ctx.fillRect(x, centerY, Math.max(barW - 0.5, 0.5), barH)
+    }
+
+    // Offset overlay (bright green)
+    const offset = dimensionOffsets[dim]
+    if (offset !== undefined && offset !== 0) {
+      const offsetH = (Math.abs(offset) / 3) * (centerY - 2)
+      ctx.fillStyle = 'rgba(102, 187, 106, 0.8)'
+      if (offset > 0) {
+        // Positive offset: draw upward from activation endpoint
+        const startY = val >= 0 ? centerY - barH : centerY
+        ctx.fillRect(x, startY - offsetH, Math.max(barW - 0.5, 0.5), offsetH)
+      } else {
+        // Negative offset: draw downward from activation endpoint
+        const startY = val >= 0 ? centerY : centerY + barH
+        ctx.fillRect(x, startY, Math.max(barW - 0.5, 0.5), offsetH)
+      }
+    }
+  }
+}
+
+function dimAtX(canvas: HTMLCanvasElement, clientX: number): number | null {
+  const acts = embeddingStats.value?.all_activations
+  if (!acts?.length) return null
+  const rect = canvas.getBoundingClientRect()
+  const x = clientX - rect.left
+  const idx = Math.floor(x / (rect.width / acts.length))
+  if (idx < 0 || idx >= acts.length) return null
+  return acts[idx]!.dim
+}
+
+function offsetAtY(canvas: HTMLCanvasElement, clientY: number): number {
+  const rect = canvas.getBoundingClientRect()
+  const centerY = rect.height / 2
+  const y = clientY - rect.top
+  // Drag up (above center) = positive offset, drag down = negative offset
+  const normalized = (centerY - y) / centerY
+  return Math.max(-3, Math.min(3, normalized * 3))
+}
+
+function onSpectralMouseDown(e: MouseEvent) {
+  if (e.button === 2) return // right-click handled by contextmenu
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+  isDragging = true
+  const dim = dimAtX(canvas, e.clientX)
+  if (dim !== null) {
+    const off = offsetAtY(canvas, e.clientY)
+    dimensionOffsets[dim] = off
+    drawSpectralStrip()
+  }
+}
+
+function onSpectralMouseMove(e: MouseEvent) {
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+
+  const acts = embeddingStats.value?.all_activations
+  if (!acts?.length) return
+
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const idx = Math.floor(x / (rect.width / acts.length))
+
+  // Update hover info
+  if (idx >= 0 && idx < acts.length) {
+    const entry = acts[idx]!
+    hoveredDim.value = {
+      dim: entry.dim,
+      activation: entry.value,
+      offset: dimensionOffsets[entry.dim] ?? 0,
+    }
+  } else {
+    hoveredDim.value = null
+  }
+
+  // Paint while dragging
+  if (isDragging) {
+    const dim = dimAtX(canvas, e.clientX)
+    if (dim !== null) {
+      const off = offsetAtY(canvas, e.clientY)
+      dimensionOffsets[dim] = off
+      drawSpectralStrip()
+    }
+  }
+}
+
+function onSpectralMouseUp() {
+  isDragging = false
+  hoveredDim.value = null
+}
+
+function onSpectralContextMenu(e: MouseEvent) {
+  e.preventDefault()
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+  const dim = dimAtX(canvas, e.clientX)
+  if (dim !== null && dim in dimensionOffsets) {
+    delete dimensionOffsets[dim]
+    drawSpectralStrip()
+  }
+}
+
+function onSpectralTouchStart(e: TouchEvent) {
+  const touch = e.touches[0]
+  if (!touch || e.touches.length !== 1) return
+  isDragging = true
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+  const dim = dimAtX(canvas, touch.clientX)
+  if (dim !== null) {
+    dimensionOffsets[dim] = offsetAtY(canvas, touch.clientY)
+    drawSpectralStrip()
+  }
+}
+
+function onSpectralTouchMove(e: TouchEvent) {
+  const touch = e.touches[0]
+  if (!touch || !isDragging || e.touches.length !== 1) return
+  e.preventDefault()
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+  const dim = dimAtX(canvas, touch.clientX)
+  if (dim !== null) {
+    dimensionOffsets[dim] = offsetAtY(canvas, touch.clientY)
+    drawSpectralStrip()
+  }
+}
+
+function onSpectralTouchEnd() {
+  isDragging = false
+}
+
+function selectTopDims() {
+  const acts = embeddingStats.value?.all_activations
+  if (!acts) return
+  const n = Math.min(dimExplorerTopN.value, acts.length)
+  for (let i = 0; i < n; i++) {
+    const entry = acts[i]!
+    if (!(entry.dim in dimensionOffsets)) {
+      dimensionOffsets[entry.dim] = 0
+    }
+  }
+  drawSpectralStrip()
+}
+
+function resetAllOffsets() {
+  Object.keys(dimensionOffsets).forEach(k => delete dimensionOffsets[Number(k)])
+  drawSpectralStrip()
+}
+
+// Redraw canvas when stats change
+watch(embeddingStats, () => {
+  nextTick(drawSpectralStrip)
+})
+
 /** Deterministic fingerprint of all generation-affecting synth params */
 function synthFingerprint(): string {
   return JSON.stringify([
     synth.promptA, synth.promptB, synth.alpha, synth.magnitude,
     synth.noise, synth.duration, synth.steps, synth.cfg, synth.seed,
+    dimensionOffsets,
   ])
 }
 
@@ -675,6 +955,14 @@ async function runSynth() {
     }
     if (synth.promptB.trim()) {
       body.prompt_b = synth.promptB
+    }
+    // Add non-zero dimension offsets
+    const nonZeroOffsets: Record<string, number> = {}
+    for (const [k, v] of Object.entries(dimensionOffsets)) {
+      if (v !== 0) nonZeroOffsets[k] = v
+    }
+    if (Object.keys(nonZeroOffsets).length > 0) {
+      body.dimension_offsets = nonZeroOffsets
     }
 
     const result = await apiPost('/api/cross_aesthetic/synth', body)
@@ -1449,5 +1737,137 @@ onUnmounted(() => {
   font-size: 0.6rem;
   color: rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
+}
+
+/* Dimension Explorer */
+.dim-explorer-section {
+  margin-top: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.6rem;
+}
+
+.dim-explorer-section summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.dim-explorer-content {
+  margin-top: 0.6rem;
+}
+
+.dim-hint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 0.5rem;
+}
+
+.spectral-strip-container {
+  position: relative;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.spectral-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  display: block;
+}
+
+.spectral-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+
+.dim-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 1.2rem;
+  margin-top: 0.3rem;
+  padding: 0 0.2rem;
+}
+
+.dim-hover-info {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+}
+
+.dim-sort-mode {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.dim-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dim-control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dim-control-group label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.dim-topn-input {
+  width: 3rem;
+  padding: 0.2rem 0.3rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.dim-btn {
+  padding: 0.25rem 0.6rem;
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  color: #4CAF50;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dim-btn:hover {
+  background: rgba(76, 175, 80, 0.25);
+}
+
+.dim-btn-reset {
+  background: rgba(255, 152, 0, 0.1);
+  border-color: rgba(255, 152, 0, 0.3);
+  color: #FF9800;
+}
+
+.dim-btn-reset:hover {
+  background: rgba(255, 152, 0, 0.2);
+}
+
+.dim-right-click-hint {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.2);
+  margin-left: auto;
 }
 </style>

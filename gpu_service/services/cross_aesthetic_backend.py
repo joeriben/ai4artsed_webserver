@@ -107,7 +107,7 @@ class CrossmodalLabBackend:
                 result_mask = torch.maximum(mask_a, mask_b)
 
             # Step 3: Compute embedding stats for visualization
-            stats = self._compute_stats(result_emb)
+            stats = self._compute_stats(result_emb, emb_a, emb_b)
 
             # Step 4: Generate audio
             duration_seconds = max(0.5, min(duration_seconds, 47.0))
@@ -188,18 +188,40 @@ class CrossmodalLabBackend:
 
         return result
 
-    def _compute_stats(self, embedding) -> Dict[str, Any]:
-        """Compute embedding statistics for frontend visualization."""
+    def _compute_stats(self, embedding, emb_a=None, emb_b=None) -> Dict[str, Any]:
+        """Compute embedding statistics for frontend visualization.
+
+        When emb_b is provided, all_activations are sorted by prompt A/B difference
+        (feature probing). Otherwise falls back to activation magnitude sorting.
+        """
         import torch
 
         emb = embedding.detach()
         mean_val = emb.mean().item()
         std_val = emb.std().item()
 
-        # Top dimensions by absolute mean activation
-        dim_means = emb.squeeze(0).mean(dim=0).abs()  # [768]
-        top_k = min(10, dim_means.shape[0])
-        top_vals, top_indices = dim_means.topk(top_k)
+        # Top dimensions by absolute mean activation (backward compat)
+        dim_means_abs = emb.squeeze(0).mean(dim=0).abs()  # [768]
+        top_k = min(10, dim_means_abs.shape[0])
+        top_vals, top_indices = dim_means_abs.topk(top_k)
+
+        # All 768 activations with diff-based or magnitude-based sorting
+        dim_means_signed = emb.squeeze(0).mean(dim=0)  # [768], signed
+
+        if emb_b is not None and emb_a is not None:
+            # Feature probing: sort by prompt A/B difference
+            diff = emb_a.detach().squeeze(0).mean(dim=0) - emb_b.detach().squeeze(0).mean(dim=0)
+            sort_order = diff.abs().argsort(descending=True)
+            sort_mode = "diff"
+        else:
+            # Single-prompt fallback: sort by activation magnitude
+            sort_order = dim_means_signed.abs().argsort(descending=True)
+            sort_mode = "magnitude"
+
+        all_activations = [
+            {"dim": int(idx), "value": round(float(dim_means_signed[idx].item()), 4)}
+            for idx in sort_order.tolist()
+        ]
 
         return {
             "mean": round(mean_val, 4),
@@ -208,6 +230,8 @@ class CrossmodalLabBackend:
                 {"dim": int(idx), "value": round(float(val), 4)}
                 for idx, val in zip(top_indices.tolist(), top_vals.tolist())
             ],
+            "all_activations": all_activations,
+            "sort_mode": sort_mode,
         }
 
 

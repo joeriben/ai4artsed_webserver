@@ -909,7 +909,20 @@ const messages = {
           crossfade: 'Crossfade',
           saveRaw: 'Raw speichern',
           saveLoop: 'Loop speichern',
-          embeddingStats: 'Embedding-Statistiken'
+          embeddingStats: 'Embedding-Statistiken',
+          dimensions: {
+            section: 'Dimensions-Explorer',
+            hint: 'Ziehe auf den Balken um Offsets zu setzen. Horizontal malen fuer mehrere Dimensionen.',
+            selectTopN: 'Top N auswaehlen',
+            apply: 'Anwenden',
+            resetAll: 'Alle zuruecksetzen',
+            hoverDim: 'Dimension',
+            hoverActivation: 'Aktivierung',
+            hoverOffset: 'Offset',
+            rightClickReset: 'Rechtsklick = zuruecksetzen',
+            sortDiff: 'Sortiert nach Prompt-Differenz',
+            sortMagnitude: 'Sortiert nach Aktivierung'
+          }
         },
         mmaudio: {
           imageUpload: 'Bild hochladen',
@@ -1950,7 +1963,20 @@ const messages = {
           crossfade: 'Crossfade',
           saveRaw: 'Save raw',
           saveLoop: 'Save loop',
-          embeddingStats: 'Embedding statistics'
+          embeddingStats: 'Embedding statistics',
+          dimensions: {
+            section: 'Dimension Explorer',
+            hint: 'Drag on bars to set offsets. Paint horizontally across multiple dimensions.',
+            selectTopN: 'Select Top N',
+            apply: 'Apply',
+            resetAll: 'Reset all',
+            hoverDim: 'Dimension',
+            hoverActivation: 'Activation',
+            hoverOffset: 'Offset',
+            rightClickReset: 'Right-click = reset',
+            sortDiff: 'Sorted by prompt difference',
+            sortMagnitude: 'Sorted by activation'
+          }
         },
         mmaudio: {
           imageUpload: 'Upload image',
