@@ -81,7 +81,7 @@
       <div class="params-row">
         <div class="param">
           <label>{{ t('latentLab.crossmodal.synth.duration') }}</label>
-          <input v-model.number="synth.duration" type="number" min="0.5" max="5" step="0.5" />
+          <input v-model.number="synth.duration" type="number" min="0.1" max="5" step="0.1" />
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.synth.steps') }}</label>
@@ -127,8 +127,8 @@
           <div class="slider-header">
             <label>{{ t('latentLab.crossmodal.synth.loopInterval') }}</label>
             <span class="slider-value">
-              {{ (looper.loopStartFrac.value * looper.bufferDuration.value).toFixed(2) }}s
-              – {{ (looper.loopEndFrac.value * looper.bufferDuration.value).toFixed(2) }}s
+              {{ (looper.loopStartFrac.value * looper.bufferDuration.value).toFixed(3) }}s
+              – {{ (looper.loopEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
             </span>
           </div>
           <div class="dual-range">
@@ -137,7 +137,7 @@
               :value="looper.loopStartFrac.value"
               min="0"
               max="1"
-              step="0.01"
+              step="0.001"
               class="range-start"
               @input="onLoopStartInput"
             />
@@ -146,7 +146,7 @@
               :value="looper.loopEndFrac.value"
               min="0"
               max="1"
-              step="0.01"
+              step="0.001"
               class="range-end"
               @input="onLoopEndInput"
             />
@@ -165,6 +165,19 @@
             @input="onTransposeInput"
           />
           <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
+        </div>
+        <!-- Crossfade duration -->
+        <div class="transpose-row">
+          <label>{{ t('latentLab.crossmodal.synth.crossfade') }}</label>
+          <input
+            type="range"
+            :value="looper.crossfadeMs.value"
+            min="10"
+            max="500"
+            step="10"
+            @input="onCrossfadeInput"
+          />
+          <span class="transpose-value">{{ looper.crossfadeMs.value }}ms</span>
         </div>
         <!-- Save buttons -->
         <div v-if="looper.hasAudio.value" class="save-row">
@@ -547,6 +560,11 @@ function onLoopStartInput(event: Event) {
 function onLoopEndInput(event: Event) {
   const val = parseFloat((event.target as HTMLInputElement).value)
   looper.setLoopEnd(val)
+}
+
+function onCrossfadeInput(event: Event) {
+  const val = parseInt((event.target as HTMLInputElement).value)
+  looper.setCrossfade(val)
 }
 
 function onMidiInputChange(event: Event) {

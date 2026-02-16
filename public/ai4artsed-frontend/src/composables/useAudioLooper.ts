@@ -1,86 +1,128 @@
 /**
  * Web Audio API looper composable for Crossmodal Lab Synth tab.
  *
- * Double-buffered AudioBufferSourceNode with equal-power crossfade,
- * loop toggle, pitch transposition via playbackRate, adjustable
- * loop interval, and raw/loop WAV export.
+ * - Equal-power crossfade (piecewise linearRamp following sin/cos curve)
+ *   for glitch-free buffer swaps
+ * - Loop-point micro-fade baked into buffer to eliminate phase discontinuity
+ * - Adjustable crossfade duration, loop interval, pitch transposition
+ * - Raw and loop-region WAV export
  *
- * AudioContext is created lazily on first play() call to satisfy
- * browser autoplay policy (requires user gesture).
+ * AudioContext is created lazily on first play() call (browser autoplay policy).
  *
- * Crossfade algorithm: Equal-power (constant energy) using sin/cos curves.
- * Based on Boris Smus, "Web Audio API" (O'Reilly, 2013), Chapter 3.
+ * Equal-power crossfade algorithm: sin²+cos²=1 constant-energy curve.
+ * Reference: Boris Smus, "Web Audio API" (O'Reilly, 2013), Chapter 3.
  * https://webaudioapi.com/book/Web_Audio_API_Boris_Smus_html/ch03.html
- * License: Creative Commons Attribution-NonCommercial-NoDerivs 3.0
+ * License: CC-BY-NC-ND 3.0
  */
 import { ref, readonly } from 'vue'
 
-const CROSSFADE_MS = 150
-const CURVE_RESOLUTION = 64
+// Number of linearRamp segments approximating the equal-power curve
+const EP_STEPS = 16
+// Fixed micro-fade at loop boundaries (samples) to kill phase-discontinuity clicks
+const LOOP_FADE_MS = 5
 
-// Pre-compute equal-power crossfade curves (sin²+cos²=1 guarantees constant energy)
-const fadeOutCurve = new Float32Array(CURVE_RESOLUTION)
-const fadeInCurve = new Float32Array(CURVE_RESOLUTION)
-for (let i = 0; i < CURVE_RESOLUTION; i++) {
-  const t = i / (CURVE_RESOLUTION - 1)
-  fadeOutCurve[i] = Math.cos(t * Math.PI * 0.5)
-  fadeInCurve[i] = Math.sin(t * Math.PI * 0.5)
+/**
+ * Schedule an equal-power fade on a GainNode using piecewise linearRamp.
+ * Each segment is natively per-sample smooth in the audio thread.
+ */
+function scheduleEqualPowerFade(
+  param: AudioParam,
+  startVal: number,
+  endVal: number,
+  startTime: number,
+  duration: number,
+  direction: 'in' | 'out',
+) {
+  param.cancelScheduledValues(startTime)
+  param.setValueAtTime(startVal, startTime)
+  for (let i = 1; i <= EP_STEPS; i++) {
+    const t = i / EP_STEPS
+    const curve = direction === 'out'
+      ? Math.cos(t * Math.PI * 0.5)
+      : Math.sin(t * Math.PI * 0.5)
+    // Scale: startVal→endVal following the curve shape
+    const val = direction === 'out'
+      ? startVal * curve
+      : endVal * curve
+    param.linearRampToValueAtTime(val, startTime + t * duration)
+  }
 }
 
 /**
- * Encode an AudioBuffer (or a slice of it) as a WAV Blob.
+ * Encode an AudioBuffer slice as 16-bit PCM WAV.
  */
 function encodeWav(buffer: AudioBuffer, startSample: number, endSample: number): Blob {
   const numChannels = buffer.numberOfChannels
   const sampleRate = buffer.sampleRate
   const length = endSample - startSample
-  const dataSize = length * numChannels * 2 // 16-bit PCM
-  const headerSize = 44
-  const arrayBuffer = new ArrayBuffer(headerSize + dataSize)
-  const view = new DataView(arrayBuffer)
+  const dataSize = length * numChannels * 2
+  const buf = new ArrayBuffer(44 + dataSize)
+  const v = new DataView(buf)
 
-  function writeString(offset: number, str: string) {
-    for (let i = 0; i < str.length; i++) {
-      view.setUint8(offset + i, str.charCodeAt(i))
-    }
-  }
+  function ws(o: number, s: string) { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)) }
 
-  writeString(0, 'RIFF')
-  view.setUint32(4, 36 + dataSize, true)
-  writeString(8, 'WAVE')
-  writeString(12, 'fmt ')
-  view.setUint32(16, 16, true)
-  view.setUint16(20, 1, true)
-  view.setUint16(22, numChannels, true)
-  view.setUint32(24, sampleRate, true)
-  view.setUint32(28, sampleRate * numChannels * 2, true)
-  view.setUint16(32, numChannels * 2, true)
-  view.setUint16(34, 16, true)
-  writeString(36, 'data')
-  view.setUint32(40, dataSize, true)
+  ws(0, 'RIFF'); v.setUint32(4, 36 + dataSize, true)
+  ws(8, 'WAVE'); ws(12, 'fmt ')
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true)
+  v.setUint16(22, numChannels, true); v.setUint32(24, sampleRate, true)
+  v.setUint32(28, sampleRate * numChannels * 2, true)
+  v.setUint16(32, numChannels * 2, true); v.setUint16(34, 16, true)
+  ws(36, 'data'); v.setUint32(40, dataSize, true)
 
   const channels: Float32Array[] = []
-  for (let ch = 0; ch < numChannels; ch++) {
-    channels.push(buffer.getChannelData(ch))
-  }
+  for (let ch = 0; ch < numChannels; ch++) channels.push(buffer.getChannelData(ch))
 
-  let offset = headerSize
+  let off = 44
   for (let i = startSample; i < endSample; i++) {
     for (let ch = 0; ch < numChannels; ch++) {
-      const sample = Math.max(-1, Math.min(1, channels[ch]![i]!))
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
-      offset += 2
+      const s = Math.max(-1, Math.min(1, channels[ch]![i]!))
+      v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true)
+      off += 2
     }
   }
+  return new Blob([buf], { type: 'audio/wav' })
+}
 
-  return new Blob([arrayBuffer], { type: 'audio/wav' })
+/**
+ * Create a buffer copy with micro-fade at loop boundaries to eliminate clicks.
+ */
+function applyLoopFade(
+  ac: AudioContext,
+  source: AudioBuffer,
+  loopStartSample: number,
+  loopEndSample: number,
+): AudioBuffer {
+  const copy = ac.createBuffer(source.numberOfChannels, source.length, source.sampleRate)
+  for (let ch = 0; ch < source.numberOfChannels; ch++) {
+    copy.getChannelData(ch).set(source.getChannelData(ch))
+  }
+
+  const loopLen = loopEndSample - loopStartSample
+  const fadeSamples = Math.min(
+    Math.floor(LOOP_FADE_MS / 1000 * source.sampleRate),
+    Math.floor(loopLen / 4), // never more than 25% of loop
+  )
+  if (fadeSamples < 2) return copy
+
+  for (let ch = 0; ch < copy.numberOfChannels; ch++) {
+    const data = copy.getChannelData(ch)
+    for (let i = 0; i < fadeSamples; i++) {
+      const t = i / fadeSamples
+      const gain = Math.sin(t * Math.PI * 0.5) // 0→1
+      // Fade-in at loop start
+      data[loopStartSample + i]! *= gain
+      // Fade-out at loop end (mirror)
+      data[loopEndSample - 1 - i]! *= gain
+    }
+  }
+  return copy
 }
 
 export function useAudioLooper() {
   let ctx: AudioContext | null = null
   let activeSource: AudioBufferSourceNode | null = null
   let activeGain: GainNode | null = null
-  let currentBuffer: AudioBuffer | null = null
+  let originalBuffer: AudioBuffer | null = null
   let rawBase64: string | null = null
 
   const isPlaying = ref(false)
@@ -90,6 +132,7 @@ export function useAudioLooper() {
   const loopEndFrac = ref(1)
   const bufferDuration = ref(0)
   const hasAudio = ref(false)
+  const crossfadeMs = ref(150)
 
   function ensureContext(): AudioContext {
     if (!ctx || ctx.state === 'closed') {
@@ -101,15 +144,15 @@ export function useAudioLooper() {
     return ctx
   }
 
-  function playbackRate(): number {
+  function currentPlaybackRate(): number {
     return Math.pow(2, transposeSemitones.value / 12)
   }
 
-  function applyLoopBounds(source: AudioBufferSourceNode) {
-    if (!source.buffer) return
-    const dur = source.buffer.duration
-    source.loopStart = loopStartFrac.value * dur
-    source.loopEnd = loopEndFrac.value * dur
+  function loopBoundsSamples(buf: AudioBuffer): [number, number] {
+    return [
+      Math.floor(loopStartFrac.value * buf.length),
+      Math.min(buf.length, Math.ceil(loopEndFrac.value * buf.length)),
+    ]
   }
 
   async function decodeBase64Wav(base64: string): Promise<AudioBuffer> {
@@ -122,46 +165,52 @@ export function useAudioLooper() {
     return ac.decodeAudioData(bytes.buffer)
   }
 
+  function createSource(ac: AudioContext, buffer: AudioBuffer): AudioBufferSourceNode {
+    const src = ac.createBufferSource()
+    src.buffer = buffer
+    src.loop = isLooping.value
+    src.playbackRate.value = currentPlaybackRate()
+    const dur = buffer.duration
+    src.loopStart = loopStartFrac.value * dur
+    src.loopEnd = loopEndFrac.value * dur
+    return src
+  }
+
   async function play(base64Wav: string) {
     const ac = ensureContext()
-    const buffer = await decodeBase64Wav(base64Wav)
-    currentBuffer = buffer
+    const decoded = await decodeBase64Wav(base64Wav)
+    originalBuffer = decoded
     rawBase64 = base64Wav
-    bufferDuration.value = buffer.duration
+    bufferDuration.value = decoded.duration
     hasAudio.value = true
+
+    const [ls, le] = loopBoundsSamples(decoded)
+    const processed = applyLoopFade(ac, decoded, ls, le)
 
     const newGain = ac.createGain()
     newGain.connect(ac.destination)
-
-    const newSource = ac.createBufferSource()
-    newSource.buffer = buffer
-    newSource.loop = isLooping.value
-    newSource.playbackRate.value = playbackRate()
-    applyLoopBounds(newSource)
+    const newSource = createSource(ac, processed)
     newSource.connect(newGain)
 
     const now = ac.currentTime
-    const fadeSec = CROSSFADE_MS / 1000
+    const fadeSec = crossfadeMs.value / 1000
 
-    if (activeSource && activeGain) {
-      // Equal-power crossfade: cos curve out, sin curve in
-      activeGain.gain.setValueAtTime(activeGain.gain.value, now)
-      activeGain.gain.setValueCurveAtTime(fadeOutCurve, now, fadeSec)
-
-      newGain.gain.setValueAtTime(0, now)
-      newGain.gain.setValueCurveAtTime(fadeInCurve, now, fadeSec)
+    if (activeSource && activeGain && isPlaying.value) {
+      // Equal-power crossfade: old out, new in
+      scheduleEqualPowerFade(activeGain.gain, activeGain.gain.value, 0, now, fadeSec, 'out')
+      scheduleEqualPowerFade(newGain.gain, 0, 1, now, fadeSec, 'in')
 
       const oldSource = activeSource
       const oldGain = activeGain
       setTimeout(() => {
         try { oldSource.stop() } catch { /* already stopped */ }
         oldGain.disconnect()
-      }, CROSSFADE_MS + 50)
+      }, crossfadeMs.value + 50)
     } else {
       newGain.gain.setValueAtTime(1, now)
     }
 
-    const offset = loopStartFrac.value * buffer.duration
+    const offset = loopStartFrac.value * processed.duration
     newSource.start(0, offset)
     newSource.onended = () => {
       if (newSource === activeSource) {
@@ -190,26 +239,30 @@ export function useAudioLooper() {
 
   function setLoop(on: boolean) {
     isLooping.value = on
-    if (activeSource) {
-      activeSource.loop = on
-    }
+    if (activeSource) activeSource.loop = on
   }
 
   function setTranspose(semitones: number) {
     transposeSemitones.value = semitones
-    if (activeSource) {
-      activeSource.playbackRate.value = playbackRate()
-    }
+    if (activeSource) activeSource.playbackRate.value = currentPlaybackRate()
   }
 
   function setLoopStart(frac: number) {
     loopStartFrac.value = Math.max(0, Math.min(frac, loopEndFrac.value - 0.01))
-    if (activeSource) applyLoopBounds(activeSource)
+    if (activeSource?.buffer) {
+      activeSource.loopStart = loopStartFrac.value * activeSource.buffer.duration
+    }
   }
 
   function setLoopEnd(frac: number) {
     loopEndFrac.value = Math.max(loopStartFrac.value + 0.01, Math.min(frac, 1))
-    if (activeSource) applyLoopBounds(activeSource)
+    if (activeSource?.buffer) {
+      activeSource.loopEnd = loopEndFrac.value * activeSource.buffer.duration
+    }
+  }
+
+  function setCrossfade(ms: number) {
+    crossfadeMs.value = Math.max(10, Math.min(ms, 500))
   }
 
   function exportRaw(): Blob | null {
@@ -223,17 +276,15 @@ export function useAudioLooper() {
   }
 
   function exportLoop(): Blob | null {
-    if (!currentBuffer) return null
-    const totalSamples = currentBuffer.length
-    const startSample = Math.floor(loopStartFrac.value * totalSamples)
-    const endSample = Math.ceil(loopEndFrac.value * totalSamples)
+    if (!originalBuffer) return null
+    const [startSample, endSample] = loopBoundsSamples(originalBuffer)
     if (endSample <= startSample) return null
-    return encodeWav(currentBuffer, startSample, endSample)
+    return encodeWav(originalBuffer, startSample, endSample)
   }
 
   function dispose() {
     stop()
-    currentBuffer = null
+    originalBuffer = null
     rawBase64 = null
     hasAudio.value = false
     if (ctx && ctx.state !== 'closed') {
@@ -249,6 +300,7 @@ export function useAudioLooper() {
     setTranspose,
     setLoopStart,
     setLoopEnd,
+    setCrossfade,
     exportRaw,
     exportLoop,
     dispose,
@@ -259,5 +311,6 @@ export function useAudioLooper() {
     loopEndFrac: readonly(loopEndFrac),
     bufferDuration: readonly(bufferDuration),
     hasAudio: readonly(hasAudio),
+    crossfadeMs: readonly(crossfadeMs),
   }
 }
