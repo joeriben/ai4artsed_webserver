@@ -706,7 +706,7 @@ function drawSpectralStrip() {
     // Offset overlay (bright green)
     const offset = dimensionOffsets[dim]
     if (offset !== undefined && offset !== 0) {
-      const offsetH = (Math.abs(offset) / 3) * (centerY - 2)
+      const offsetH = (Math.abs(offset) / maxAct) * (centerY - 2)
       ctx.fillStyle = 'rgba(102, 187, 106, 0.8)'
       if (offset > 0) {
         // Positive offset: draw upward from activation endpoint
@@ -737,7 +737,9 @@ function offsetAtY(canvas: HTMLCanvasElement, clientY: number): number {
   const y = clientY - rect.top
   // Drag up (above center) = positive offset, drag down = negative offset
   const normalized = (centerY - y) / centerY
-  return Math.max(-3, Math.min(3, normalized * 3))
+  // Use maxActivation as range so offsets are on the same scale as activation bars
+  const range = maxActivation.value
+  return Math.max(-range, Math.min(range, normalized * range))
 }
 
 function onSpectralMouseDown(e: MouseEvent) {
