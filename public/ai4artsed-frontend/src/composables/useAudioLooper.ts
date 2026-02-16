@@ -24,7 +24,16 @@ import { ref, readonly } from 'vue'
 // Constants
 // ═══════════════════════════════════════════════════════════════════
 
-const EP_STEPS = 16
+// Source-switching crossfade: pre-computed equal-power curves (sin/cos)
+const FADE_CURVE_LEN = 256
+const SCHEDULE_AHEAD = 0.005 // 5ms lookahead for scheduling safety
+const fadeInCurve = new Float32Array(FADE_CURVE_LEN)
+const fadeOutCurve = new Float32Array(FADE_CURVE_LEN)
+for (let i = 0; i < FADE_CURVE_LEN; i++) {
+  const t = i / (FADE_CURVE_LEN - 1)
+  fadeInCurve[i] = Math.sin(t * Math.PI * 0.5)
+  fadeOutCurve[i] = Math.cos(t * Math.PI * 0.5)
+}
 // OLA pitch shift
 const OLA_GRAIN_SIZE = 2048 // ~46ms at 44.1kHz
 const OLA_OVERLAP = 4       // 75% overlap → hop = grain/4
@@ -45,21 +54,6 @@ for (let i = 0; i < OLA_GRAIN_SIZE; i++) {
   hannWindow[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / OLA_GRAIN_SIZE))
 }
 
-function scheduleEqualPowerFade(
-  param: AudioParam, startVal: number, _endVal: number,
-  startTime: number, duration: number, direction: 'in' | 'out',
-) {
-  param.cancelScheduledValues(startTime)
-  param.setValueAtTime(startVal, startTime)
-  for (let i = 1; i <= EP_STEPS; i++) {
-    const t = i / EP_STEPS
-    const curve = direction === 'out'
-      ? Math.cos(t * Math.PI * 0.5)
-      : Math.sin(t * Math.PI * 0.5)
-    const val = direction === 'out' ? startVal * curve : 1 * curve
-    param.linearRampToValueAtTime(val, startTime + t * duration)
-  }
-}
 
 function encodeWav(buffer: AudioBuffer, startSample: number, endSample: number): Blob {
   const nc = buffer.numberOfChannels, sr = buffer.sampleRate
@@ -125,12 +119,16 @@ function optimizeLoopEndSample(
 }
 
 /**
- * Apply circular crossfade at loop boundaries + optional cross-correlation optimization.
+ * Loop crossfade: blend tail audio INTO head, then shorten loopEnd.
  *
- * Instead of just fading in/out at loop boundaries (which creates a volume dip),
- * this blends the tail of the loop INTO the head using equal-power crossfade.
- * When AudioBufferSourceNode wraps from loopEnd→loopStart, the transition is
- * seamless because loopStart already contains a mix of head + tail audio.
+ * AudioBufferSourceNode jumps instantly from loopEnd→loopStart (no built-in
+ * crossfade). We make this seamless by mixing the last N samples of the loop
+ * into the first N samples with equal-power crossfade, then moving loopEnd
+ * back by N so the raw tail is never played.
+ *
+ * After processing, the sample at new loopEnd-1 is original audio, and the
+ * sample at loopStart is almost pure tail audio — these are adjacent in the
+ * original buffer, so the wrap transition is continuous.
  */
 function applyLoopProcessing(
   ac: AudioContext, source: AudioBuffer,
@@ -150,27 +148,24 @@ function applyLoopProcessing(
   const loopLen = actualEnd - loopStart
   const fadeSamples = Math.min(
     Math.floor(crossfadeMs / 1000 * source.sampleRate),
-    Math.floor(loopLen / 4), // never more than 25% of loop
+    Math.floor(loopLen / 2), // max half the loop (prevents head/tail overlap)
   )
 
   if (fadeSamples >= 2) {
     for (let ch = 0; ch < copy.numberOfChannels; ch++) {
       const d = copy.getChannelData(ch)
-      // Circular crossfade: blend tail into head
-      // head region: [loopStart .. loopStart + fadeSamples]
-      // tail region: [actualEnd - fadeSamples .. actualEnd]
       for (let i = 0; i < fadeSamples; i++) {
-        const t = i / fadeSamples // 0→1
-        const gHead = Math.sin(t * Math.PI * 0.5) // 0→1 (fade in head)
-        const gTail = Math.cos(t * Math.PI * 0.5) // 1→0 (fade out tail)
+        const t = i / fadeSamples
+        const gHead = Math.sin(t * Math.PI * 0.5) // 0→1
+        const gTail = Math.cos(t * Math.PI * 0.5) // 1→0
         const headIdx = loopStart + i
         const tailIdx = actualEnd - fadeSamples + i
-        // Mix: at loop start, mostly tail; at fade end, mostly head
+        // Blend fading-out tail into fading-in head. Tail region left untouched.
         d[headIdx] = d[headIdx]! * gHead + d[tailIdx]! * gTail
-        // Also fade out the tail region so it doesn't pop when approaching loopEnd
-        d[tailIdx]! *= gHead // fade out toward end
       }
     }
+    // Shorten loop: tail samples are baked into head, never played directly
+    actualEnd -= fadeSamples
   }
 
   return { buffer: copy, optimizedEnd: actualEnd }
@@ -418,28 +413,33 @@ export function useAudioLooper() {
 
   function startSource(ac: AudioContext, playBuffer: AudioBuffer) {
     const newGain = ac.createGain()
+    newGain.gain.value = 0 // silent until fade-in
     newGain.connect(ac.destination)
     const newSource = createSource(ac, playBuffer)
     newSource.connect(newGain)
 
-    const now = ac.currentTime
+    const now = ac.currentTime + SCHEDULE_AHEAD
     const fadeSec = crossfadeMs.value / 1000
+    const offset = loopStartFrac.value * playBuffer.duration
 
     if (activeSource && activeGain && isPlaying.value) {
-      scheduleEqualPowerFade(activeGain.gain, activeGain.gain.value, 0, now, fadeSec, 'out')
-      scheduleEqualPowerFade(newGain.gain, 0, 1, now, fadeSec, 'in')
-      const oldSource = activeSource
-      const oldGain = activeGain
-      setTimeout(() => {
-        try { oldSource.stop() } catch { /* */ }
-        oldGain.disconnect()
-      }, crossfadeMs.value + 50)
+      // Fade out old source: scale curve from current gain to 0
+      const oldGainVal = activeGain.gain.value
+      const scaledOut = new Float32Array(FADE_CURVE_LEN)
+      for (let i = 0; i < FADE_CURVE_LEN; i++) scaledOut[i] = oldGainVal * fadeOutCurve[i]!
+      activeGain.gain.cancelScheduledValues(now)
+      activeGain.gain.setValueAtTime(oldGainVal, now)
+      activeGain.gain.setValueCurveAtTime(scaledOut, now + 0.001, fadeSec)
+      activeSource.stop(now + fadeSec + 0.05) // frame-accurate stop
+
+      // Fade in new source
+      newGain.gain.setValueAtTime(0, now)
+      newGain.gain.setValueCurveAtTime(fadeInCurve, now + 0.001, fadeSec)
     } else {
       newGain.gain.setValueAtTime(1, now)
     }
 
-    const offset = loopStartFrac.value * playBuffer.duration
-    newSource.start(0, offset)
+    newSource.start(now, offset)
     newSource.onended = () => {
       if (newSource === activeSource) {
         isPlaying.value = false
