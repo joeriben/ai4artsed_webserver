@@ -1,6 +1,54 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-16
 **Context:** Current priorities and active TODOs
+
+---
+
+## 📋 TODO: Crossmodal Lab — MMAudio + ImageBind installieren
+
+**Status:** 📋 **TODO** — Dependencies nicht installiert
+**Datum:** 2026-02-16
+**Priority:** MEDIUM (Synth-Tab funktioniert bereits, die anderen zwei brauchen externe Pakete)
+
+### Kontext
+
+Crossmodal Lab v2 hat drei Tabs: Latent Audio Synth, MMAudio, ImageBind Guidance.
+Synth funktioniert (nutzt nur Stable Audio Pipeline). MMAudio und ImageBind Guidance
+brauchen externe Pakete + Modell-Checkpoints, die noch nicht installiert sind.
+
+### MMAudio (CVPR 2025)
+
+```bash
+cd ~/ai && git clone https://github.com/hkchengrex/MMAudio
+cd MMAudio && ~/ai/ai4artsed_development/venv/bin/pip install -e .
+```
+
+Checkpoints (~6 GB total):
+- `mmaudio_large_44k_v2.pth` (3.9 GB)
+- `v1-44.pth` (1.2 GB, VAE)
+- BigVGAN 16kHz Vocoder (429 MB)
+- Synchformer (907 MB)
+- CLIP (auto-download ~1.7 GB)
+
+### ImageBind (Meta, 2023)
+
+```bash
+~/ai/ai4artsed_development/venv/bin/pip install imagebind-package
+```
+
+Oder via Git:
+```bash
+cd ~/ai && git clone https://github.com/facebookresearch/ImageBind
+cd ImageBind && ~/ai/ai4artsed_development/venv/bin/pip install -e .
+```
+
+Checkpoint: `imagebind_huge.pth` (~4.5 GB, auto-download)
+
+### Betroffene Dateien
+
+- `gpu_service/services/mmaudio_backend.py` — Import-Pfade ggf. anpassen nach Installation
+- `gpu_service/services/imagebind_backend.py` — Import-Pfade ggf. anpassen nach Installation
+- `gpu_service/config.py` — `MMAUDIO_REPO` Pfad pruefen
 
 ---
 

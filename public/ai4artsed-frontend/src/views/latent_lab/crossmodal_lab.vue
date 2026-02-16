@@ -101,11 +101,74 @@
         <button class="generate-btn" :disabled="!synth.promptA || generating" @click="runSynth">
           {{ generating ? t('latentLab.crossmodal.generating') : t('latentLab.crossmodal.generate') }}
         </button>
-        <label class="loop-toggle">
-          <input type="checkbox" v-model="synth.loop" />
-          {{ synth.loop ? t('latentLab.crossmodal.synth.loopOn') : t('latentLab.crossmodal.synth.loopOff') }}
-        </label>
+        <button class="loop-btn" :class="{ active: looper.isLooping.value }" @click="toggleLoop">
+          {{ looper.isLooping.value ? t('latentLab.crossmodal.synth.loopOn') : t('latentLab.crossmodal.synth.loopOff') }}
+        </button>
+        <button v-if="looper.isPlaying.value" class="stop-btn" @click="looper.stop()">
+          {{ t('latentLab.crossmodal.synth.stop') }}
+        </button>
       </div>
+
+      <!-- Looper Widget -->
+      <div v-if="looper.isPlaying.value || lastSynthBase64" class="looper-widget">
+        <div class="looper-status">
+          <span class="looper-indicator" :class="{ pulsing: looper.isPlaying.value }" />
+          <span class="looper-label">
+            {{ looper.isPlaying.value
+              ? (looper.isLooping.value ? t('latentLab.crossmodal.synth.looping') : t('latentLab.crossmodal.synth.playing'))
+              : t('latentLab.crossmodal.synth.stopped') }}
+          </span>
+        </div>
+        <div class="transpose-row">
+          <label>{{ t('latentLab.crossmodal.synth.transpose') }}</label>
+          <input
+            type="range"
+            :value="looper.transposeSemitones.value"
+            min="-24"
+            max="24"
+            step="1"
+            @input="onTransposeInput"
+          />
+          <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
+        </div>
+      </div>
+
+      <!-- MIDI Section (collapsed by default) -->
+      <details class="midi-section">
+        <summary>{{ t('latentLab.crossmodal.synth.midiSection') }}</summary>
+        <div class="midi-content">
+          <div v-if="!midi.isSupported.value" class="midi-unsupported">
+            {{ t('latentLab.crossmodal.synth.midiUnsupported') }}
+          </div>
+          <template v-else>
+            <div class="midi-input-select">
+              <label>{{ t('latentLab.crossmodal.synth.midiInput') }}</label>
+              <select
+                :value="midi.selectedInputId.value"
+                @change="onMidiInputChange"
+              >
+                <option :value="null">{{ t('latentLab.crossmodal.synth.midiNone') }}</option>
+                <option v-for="inp in midi.inputs.value" :key="inp.id" :value="inp.id">
+                  {{ inp.name }}
+                </option>
+              </select>
+            </div>
+            <div class="midi-mapping-table">
+              <h5>{{ t('latentLab.crossmodal.synth.midiMappings') }}</h5>
+              <table>
+                <tbody>
+                  <tr><td>CC1</td><td>{{ t('latentLab.crossmodal.synth.alpha') }}</td></tr>
+                  <tr><td>CC2</td><td>{{ t('latentLab.crossmodal.synth.magnitude') }}</td></tr>
+                  <tr><td>CC3</td><td>{{ t('latentLab.crossmodal.synth.noise') }}</td></tr>
+                  <tr><td>CC64</td><td>{{ t('latentLab.crossmodal.synth.loop') }}</td></tr>
+                  <tr><td>{{ t('latentLab.crossmodal.synth.midiNoteC3') }}</td><td>{{ t('latentLab.crossmodal.synth.midiGenerate') }}</td></tr>
+                  <tr><td>{{ t('latentLab.crossmodal.synth.midiPitch') }}</td><td>{{ t('latentLab.crossmodal.synth.transpose') }}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
+        </div>
+      </details>
     </div>
 
     <!-- ===== Tab 2: MMAudio ===== -->
@@ -231,14 +294,9 @@
 
       <div v-if="error" class="error-message">{{ error }}</div>
 
-      <div v-if="resultAudio" class="output-audio-container">
-        <audio
-          ref="audioEl"
-          :src="resultAudio"
-          controls
-          :loop="synth.loop && activeTab === 'synth'"
-          class="output-audio"
-        />
+      <!-- Standard audio player for MMAudio / Guidance tabs -->
+      <div v-if="resultAudio && activeTab !== 'synth'" class="output-audio-container">
+        <audio :src="resultAudio" controls class="output-audio" />
       </div>
 
       <div class="result-meta">
@@ -271,8 +329,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAudioLooper } from '@/composables/useAudioLooper'
+import { useWebMidi } from '@/composables/useWebMidi'
 
 const { t } = useI18n()
 
@@ -293,7 +353,6 @@ const resultAudio = ref('')
 const resultSeed = ref<number | null>(null)
 const generationTimeMs = ref<number | null>(null)
 const cosineSimilarity = ref<number | null>(null)
-const audioEl = ref<HTMLAudioElement | null>(null)
 
 interface EmbeddingStats {
   mean: number
@@ -305,6 +364,41 @@ const embeddingStats = ref<EmbeddingStats | null>(null)
 // Image upload (shared across MMAudio and Guidance)
 const imagePreview = ref('')
 const imageBase64 = ref('')
+
+// Last synth base64 for replay
+const lastSynthBase64 = ref('')
+
+// ===== Audio Looper =====
+const looper = useAudioLooper()
+
+// ===== Web MIDI =====
+const midi = useWebMidi()
+
+// MIDI reference note for transpose (C3 = 60)
+const MIDI_REF_NOTE = 60
+
+// Initialize MIDI
+midi.init()
+
+// MIDI CC mappings
+// CC1 → Alpha (-2 to 3)
+midi.mapCC(1, (v) => { synth.alpha = -2 + v * 5 })
+// CC2 → Magnitude (0.1 to 5)
+midi.mapCC(2, (v) => { synth.magnitude = 0.1 + v * 4.9 })
+// CC3 → Noise (0 to 1)
+midi.mapCC(3, (v) => { synth.noise = v })
+// CC64 → Loop toggle (sustain pedal: >0.5 = on)
+midi.mapCC(64, (v) => { looper.setLoop(v > 0.5) })
+
+// MIDI Note → Generate trigger + transpose
+midi.onNote((note, _velocity, on) => {
+  if (!on) return
+  const semitones = note - MIDI_REF_NOTE
+  looper.setTranspose(semitones)
+  if (!generating.value && synth.promptA) {
+    runSynth()
+  }
+})
 
 // Synth params
 const synth = reactive({
@@ -383,13 +477,36 @@ function base64ToDataUrl(b64: string, mime: string): string {
 
 function dimBarWidth(value: number): string {
   if (!embeddingStats.value?.top_dimensions?.length) return '0%'
-  const maxVal = embeddingStats.value.top_dimensions[0].value
+  const maxVal = embeddingStats.value.top_dimensions[0]?.value ?? 0
   return maxVal > 0 ? `${(value / maxVal) * 100}%` : '0%'
+}
+
+function formatTranspose(semitones: number): string {
+  if (semitones === 0) return '0'
+  return semitones > 0 ? `+${semitones}` : `${semitones}`
+}
+
+function toggleLoop() {
+  looper.setLoop(!looper.isLooping.value)
+}
+
+function onTransposeInput(event: Event) {
+  const val = parseInt((event.target as HTMLInputElement).value)
+  looper.setTranspose(val)
+}
+
+function onMidiInputChange(event: Event) {
+  const val = (event.target as HTMLSelectElement).value
+  midi.selectInput(val || null)
 }
 
 // ===== Synth =====
 async function runSynth() {
-  clearResults()
+  // Don't clear looper state — keep playing during generation
+  error.value = ''
+  resultSeed.value = null
+  generationTimeMs.value = null
+  embeddingStats.value = null
   generating.value = true
   try {
     const body: Record<string, unknown> = {
@@ -408,10 +525,14 @@ async function runSynth() {
 
     const result = await apiPost('/api/cross_aesthetic/synth', body)
     if (result.success) {
+      lastSynthBase64.value = result.audio_base64
       resultAudio.value = base64ToDataUrl(result.audio_base64, 'audio/wav')
       resultSeed.value = result.seed
       generationTimeMs.value = result.generation_time_ms
       embeddingStats.value = result.embedding_stats
+
+      // Feed into looper (crossfades if already playing)
+      await looper.play(result.audio_base64)
     } else {
       error.value = result.error || 'Synth generation failed'
     }
@@ -483,6 +604,10 @@ async function runGuidance() {
     generating.value = false
   }
 }
+
+onUnmounted(() => {
+  looper.dispose()
+})
 </script>
 
 <style scoped>
@@ -709,7 +834,8 @@ async function runGuidance() {
 .action-row {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .generate-btn {
@@ -733,17 +859,176 @@ async function runGuidance() {
   cursor: not-allowed;
 }
 
-.loop-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.loop-btn,
+.stop-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.loop-toggle input[type="checkbox"] {
+.loop-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.loop-btn.active {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #4CAF50;
+}
+
+.stop-btn {
+  background: rgba(255, 82, 82, 0.15);
+  border: 1px solid rgba(255, 82, 82, 0.3);
+  color: #ff5252;
+}
+
+.stop-btn:hover {
+  background: rgba(255, 82, 82, 0.25);
+}
+
+/* Looper widget */
+.looper-widget {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.looper-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.looper-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.looper-indicator.pulsing {
+  background: #4CAF50;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(76, 175, 80, 0.4); }
+  50% { opacity: 0.5; box-shadow: 0 0 8px rgba(76, 175, 80, 0.8); }
+}
+
+.looper-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.transpose-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.transpose-row label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.transpose-row input[type="range"] {
+  flex: 1;
   accent-color: #4CAF50;
+}
+
+.transpose-value {
+  font-size: 0.8rem;
+  color: #4CAF50;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+/* MIDI section */
+.midi-section {
+  margin-top: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.midi-section summary {
+  padding: 0.7rem 1rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.midi-section summary:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.midi-content {
+  padding: 1rem;
+}
+
+.midi-unsupported {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-style: italic;
+}
+
+.midi-input-select {
+  margin-bottom: 1rem;
+}
+
+.midi-input-select label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.3rem;
+}
+
+.midi-input-select select {
+  width: 100%;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.85rem;
+}
+
+.midi-mapping-table h5 {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.5rem;
+}
+
+.midi-mapping-table table {
+  width: 100%;
+  font-size: 0.75rem;
+  border-collapse: collapse;
+}
+
+.midi-mapping-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.midi-mapping-table td:first-child {
+  color: #4CAF50;
+  font-weight: 600;
+  width: 5rem;
 }
 
 /* Output area */
