@@ -54,7 +54,7 @@
             <label>{{ t('latentLab.crossmodal.synth.alpha') }}</label>
             <span class="slider-value">{{ synth.alpha.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="synth.alpha" min="-2" max="3" step="0.05" />
+          <input type="range" v-model.number="synth.alpha" min="-2" max="3" step="0.01" />
           <span class="slider-hint">{{ t('latentLab.crossmodal.synth.alphaHint') }}</span>
         </div>
 
@@ -118,7 +118,42 @@
               ? (looper.isLooping.value ? t('latentLab.crossmodal.synth.looping') : t('latentLab.crossmodal.synth.playing'))
               : t('latentLab.crossmodal.synth.stopped') }}
           </span>
+          <span v-if="looper.bufferDuration.value > 0" class="looper-duration">
+            {{ looper.bufferDuration.value.toFixed(2) }}s
+          </span>
         </div>
+        <!-- Loop Interval -->
+        <div class="loop-interval">
+          <div class="slider-header">
+            <label>{{ t('latentLab.crossmodal.synth.loopInterval') }}</label>
+            <span class="slider-value">
+              {{ (looper.loopStartFrac.value * looper.bufferDuration.value).toFixed(2) }}s
+              – {{ (looper.loopEndFrac.value * looper.bufferDuration.value).toFixed(2) }}s
+            </span>
+          </div>
+          <div class="dual-range">
+            <input
+              type="range"
+              :value="looper.loopStartFrac.value"
+              min="0"
+              max="1"
+              step="0.01"
+              class="range-start"
+              @input="onLoopStartInput"
+            />
+            <input
+              type="range"
+              :value="looper.loopEndFrac.value"
+              min="0"
+              max="1"
+              step="0.01"
+              class="range-end"
+              @input="onLoopEndInput"
+            />
+          </div>
+          <span class="slider-hint">{{ t('latentLab.crossmodal.synth.loopIntervalHint') }}</span>
+        </div>
+        <!-- Transpose -->
         <div class="transpose-row">
           <label>{{ t('latentLab.crossmodal.synth.transpose') }}</label>
           <input
@@ -130,6 +165,15 @@
             @input="onTransposeInput"
           />
           <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
+        </div>
+        <!-- Save buttons -->
+        <div v-if="looper.hasAudio.value" class="save-row">
+          <button class="save-btn" @click="saveRaw">
+            {{ t('latentLab.crossmodal.synth.saveRaw') }}
+          </button>
+          <button class="save-btn" @click="saveLoop">
+            {{ t('latentLab.crossmodal.synth.saveLoop') }}
+          </button>
         </div>
       </div>
 
@@ -495,9 +539,38 @@ function onTransposeInput(event: Event) {
   looper.setTranspose(val)
 }
 
+function onLoopStartInput(event: Event) {
+  const val = parseFloat((event.target as HTMLInputElement).value)
+  looper.setLoopStart(val)
+}
+
+function onLoopEndInput(event: Event) {
+  const val = parseFloat((event.target as HTMLInputElement).value)
+  looper.setLoopEnd(val)
+}
+
 function onMidiInputChange(event: Event) {
   const val = (event.target as HTMLSelectElement).value
   midi.selectInput(val || null)
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function saveRaw() {
+  const blob = looper.exportRaw()
+  if (blob) downloadBlob(blob, `synth_raw_${resultSeed.value ?? 0}.wav`)
+}
+
+function saveLoop() {
+  const blob = looper.exportLoop()
+  if (blob) downloadBlob(blob, `synth_loop_${resultSeed.value ?? 0}.wav`)
 }
 
 // ===== Synth =====
@@ -929,6 +1002,67 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.6);
 }
 
+.looper-duration {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Loop interval dual-range */
+.loop-interval {
+  margin-bottom: 0.8rem;
+}
+
+.dual-range {
+  position: relative;
+  height: 1.5rem;
+}
+
+.dual-range input[type="range"] {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  accent-color: #4CAF50;
+}
+
+.dual-range input[type="range"]::-webkit-slider-thumb {
+  pointer-events: auto;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4CAF50;
+  cursor: pointer;
+  border: none;
+}
+
+.dual-range input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4CAF50;
+  cursor: pointer;
+  border: none;
+}
+
+.dual-range input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.dual-range input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
 .transpose-row {
   display: flex;
   align-items: center;
@@ -953,6 +1087,29 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
   min-width: 2.5rem;
   text-align: right;
+}
+
+/* Save buttons */
+.save-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.save-btn {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.75rem;
+  border-radius: 5px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s;
+}
+
+.save-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 /* MIDI section */

@@ -898,6 +898,10 @@ const messages = {
           midiNoteC3: 'Note (C3 = Ref)',
           midiGenerate: 'Generieren + Transposition',
           midiPitch: 'Tonhoehe rel. C3',
+          loopInterval: 'Loop-Intervall',
+          loopIntervalHint: 'Start/Ende des Loop-Bereichs — verkuerze das Ende, um Stable Audios Fade-Out abzuschneiden',
+          saveRaw: 'Raw speichern',
+          saveLoop: 'Loop speichern',
           embeddingStats: 'Embedding-Statistiken'
         },
         mmaudio: {
@@ -1928,6 +1932,10 @@ const messages = {
           midiNoteC3: 'Note (C3 = Ref)',
           midiGenerate: 'Generate + Transpose',
           midiPitch: 'Pitch rel. C3',
+          loopInterval: 'Loop interval',
+          loopIntervalHint: 'Start/end of loop region — shorten end to trim Stable Audio fade-out',
+          saveRaw: 'Save raw',
+          saveLoop: 'Save loop',
           embeddingStats: 'Embedding statistics'
         },
         mmaudio: {
