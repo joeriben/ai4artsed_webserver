@@ -133,6 +133,9 @@ export function useAudioLooper() {
   const bufferDuration = ref(0)
   const hasAudio = ref(false)
   const crossfadeMs = ref(150)
+  const normalize = ref(false)
+  // Peak amplitude of the original (unmodified) buffer, for display
+  const peakAmplitude = ref(0)
 
   function ensureContext(): AudioContext {
     if (!ctx || ctx.state === 'closed') {
@@ -153,6 +156,30 @@ export function useAudioLooper() {
       Math.floor(loopStartFrac.value * buf.length),
       Math.min(buf.length, Math.ceil(loopEndFrac.value * buf.length)),
     ]
+  }
+
+  function measurePeak(buffer: AudioBuffer): number {
+    let peak = 0
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch)
+      for (let i = 0; i < data.length; i++) {
+        const abs = Math.abs(data[i]!)
+        if (abs > peak) peak = abs
+      }
+    }
+    return peak
+  }
+
+  function normalizeBuffer(buffer: AudioBuffer): void {
+    const peak = measurePeak(buffer)
+    if (peak < 0.001) return
+    const gain = 0.95 / peak
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch)
+      for (let i = 0; i < data.length; i++) {
+        data[i]! *= gain
+      }
+    }
   }
 
   async function decodeBase64Wav(base64: string): Promise<AudioBuffer> {
@@ -176,27 +203,23 @@ export function useAudioLooper() {
     return src
   }
 
-  async function play(base64Wav: string) {
-    const ac = ensureContext()
-    const decoded = await decodeBase64Wav(base64Wav)
-    originalBuffer = decoded
-    rawBase64 = base64Wav
-    bufferDuration.value = decoded.duration
-    hasAudio.value = true
+  function prepareBuffer(ac: AudioContext, source: AudioBuffer): AudioBuffer {
+    const [ls, le] = loopBoundsSamples(source)
+    const processed = applyLoopFade(ac, source, ls, le)
+    if (normalize.value) normalizeBuffer(processed)
+    return processed
+  }
 
-    const [ls, le] = loopBoundsSamples(decoded)
-    const processed = applyLoopFade(ac, decoded, ls, le)
-
+  function startSource(ac: AudioContext, playBuffer: AudioBuffer) {
     const newGain = ac.createGain()
     newGain.connect(ac.destination)
-    const newSource = createSource(ac, processed)
+    const newSource = createSource(ac, playBuffer)
     newSource.connect(newGain)
 
     const now = ac.currentTime
     const fadeSec = crossfadeMs.value / 1000
 
     if (activeSource && activeGain && isPlaying.value) {
-      // Equal-power crossfade: old out, new in
       scheduleEqualPowerFade(activeGain.gain, activeGain.gain.value, 0, now, fadeSec, 'out')
       scheduleEqualPowerFade(newGain.gain, 0, 1, now, fadeSec, 'in')
 
@@ -210,7 +233,7 @@ export function useAudioLooper() {
       newGain.gain.setValueAtTime(1, now)
     }
 
-    const offset = loopStartFrac.value * processed.duration
+    const offset = loopStartFrac.value * playBuffer.duration
     newSource.start(0, offset)
     newSource.onended = () => {
       if (newSource === activeSource) {
@@ -223,6 +246,27 @@ export function useAudioLooper() {
     activeSource = newSource
     activeGain = newGain
     isPlaying.value = true
+  }
+
+  async function play(base64Wav: string) {
+    const ac = ensureContext()
+    const decoded = await decodeBase64Wav(base64Wav)
+    originalBuffer = decoded
+    rawBase64 = base64Wav
+    bufferDuration.value = decoded.duration
+    hasAudio.value = true
+    peakAmplitude.value = measurePeak(decoded)
+
+    const processed = prepareBuffer(ac, decoded)
+    startSource(ac, processed)
+  }
+
+  /** Replay the last loaded buffer (after stop or loop-off playback ended). */
+  function replay() {
+    if (!originalBuffer) return
+    const ac = ensureContext()
+    const processed = prepareBuffer(ac, originalBuffer)
+    startSource(ac, processed)
   }
 
   function stop() {
@@ -265,6 +309,14 @@ export function useAudioLooper() {
     crossfadeMs.value = Math.max(10, Math.min(ms, 500))
   }
 
+  function setNormalize(on: boolean) {
+    normalize.value = on
+    // Re-start with normalized/unnormalized buffer if currently playing
+    if (originalBuffer && isPlaying.value) {
+      replay()
+    }
+  }
+
   function exportRaw(): Blob | null {
     if (!rawBase64) return null
     const binaryStr = atob(rawBase64)
@@ -295,12 +347,14 @@ export function useAudioLooper() {
 
   return {
     play,
+    replay,
     stop,
     setLoop,
     setTranspose,
     setLoopStart,
     setLoopEnd,
     setCrossfade,
+    setNormalize,
     exportRaw,
     exportLoop,
     dispose,
@@ -312,5 +366,7 @@ export function useAudioLooper() {
     bufferDuration: readonly(bufferDuration),
     hasAudio: readonly(hasAudio),
     crossfadeMs: readonly(crossfadeMs),
+    normalize: readonly(normalize),
+    peakAmplitude: readonly(peakAmplitude),
   }
 }

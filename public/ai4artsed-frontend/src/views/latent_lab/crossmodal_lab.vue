@@ -107,6 +107,9 @@
         <button v-if="looper.isPlaying.value" class="stop-btn" @click="looper.stop()">
           {{ t('latentLab.crossmodal.synth.stop') }}
         </button>
+        <button v-if="!looper.isPlaying.value && looper.hasAudio.value" class="play-btn" @click="looper.replay()">
+          {{ t('latentLab.crossmodal.synth.play') }}
+        </button>
       </div>
 
       <!-- Looper Widget -->
@@ -178,6 +181,16 @@
             @input="onCrossfadeInput"
           />
           <span class="transpose-value">{{ looper.crossfadeMs.value }}ms</span>
+        </div>
+        <!-- Normalize + Peak -->
+        <div class="normalize-row">
+          <label class="normalize-toggle">
+            <input type="checkbox" :checked="looper.normalize.value" @change="onNormalizeChange" />
+            {{ t('latentLab.crossmodal.synth.normalize') }}
+          </label>
+          <span v-if="looper.peakAmplitude.value > 0" class="peak-display">
+            {{ t('latentLab.crossmodal.synth.peak') }}: {{ looper.peakAmplitude.value.toFixed(3) }}
+          </span>
         </div>
         <!-- Save buttons -->
         <div v-if="looper.hasAudio.value" class="save-row">
@@ -565,6 +578,10 @@ function onLoopEndInput(event: Event) {
 function onCrossfadeInput(event: Event) {
   const val = parseInt((event.target as HTMLInputElement).value)
   looper.setCrossfade(val)
+}
+
+function onNormalizeChange(event: Event) {
+  looper.setNormalize((event.target as HTMLInputElement).checked)
 }
 
 function onMidiInputChange(event: Event) {
@@ -981,6 +998,21 @@ onUnmounted(() => {
   background: rgba(255, 82, 82, 0.25);
 }
 
+.play-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+}
+
+.play-btn:hover {
+  background: rgba(76, 175, 80, 0.25);
+}
+
 /* Looper widget */
 .looper-widget {
   padding: 1rem;
@@ -1105,6 +1137,34 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
   min-width: 2.5rem;
   text-align: right;
+}
+
+/* Normalize row */
+.normalize-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.normalize-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+
+.normalize-toggle input[type="checkbox"] {
+  accent-color: #4CAF50;
+}
+
+.peak-display {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Save buttons */
