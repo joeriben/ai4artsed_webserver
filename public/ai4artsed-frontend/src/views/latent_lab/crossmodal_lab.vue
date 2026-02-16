@@ -467,6 +467,9 @@ const imageBase64 = ref('')
 // Last synth base64 for replay
 const lastSynthBase64 = ref('')
 
+// Fingerprint of last successful synth generation (prevents redundant GPU calls)
+const lastSynthFingerprint = ref('')
+
 // ===== Audio Looper =====
 const looper = useAudioLooper()
 
@@ -489,13 +492,15 @@ midi.mapCC(3, (v) => { synth.noise = v })
 // CC64 → Loop toggle (sustain pedal: >0.5 = on)
 midi.mapCC(64, (v) => { looper.setLoop(v > 0.5) })
 
-// MIDI Note → Generate trigger + transpose
+// MIDI Note → Transpose (always) + Generate (only if params changed)
 midi.onNote((note, _velocity, on) => {
   if (!on) return
   const semitones = note - MIDI_REF_NOTE
   looper.setTranspose(semitones)
   if (!generating.value && synth.promptA) {
-    runSynth()
+    if (synthFingerprint() !== lastSynthFingerprint.value) {
+      runSynth()
+    }
   }
 })
 
@@ -533,6 +538,14 @@ const guidance = reactive({
   cfg: 7.0,
   seed: 42,
 })
+
+/** Deterministic fingerprint of all generation-affecting synth params */
+function synthFingerprint(): string {
+  return JSON.stringify([
+    synth.promptA, synth.promptB, synth.alpha, synth.magnitude,
+    synth.noise, synth.duration, synth.steps, synth.cfg, synth.seed,
+  ])
+}
 
 function clearResults() {
   error.value = ''
@@ -674,6 +687,7 @@ async function runSynth() {
 
       // Feed into looper (crossfades if already playing)
       await looper.play(result.audio_base64)
+      lastSynthFingerprint.value = synthFingerprint()
     } else {
       error.value = result.error || 'Synth generation failed'
     }

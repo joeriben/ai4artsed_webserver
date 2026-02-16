@@ -25,13 +25,15 @@ import { ref, readonly } from 'vue'
 // ═══════════════════════════════════════════════════════════════════
 
 const EP_STEPS = 16
-const LOOP_FADE_MS = 5
 // OLA pitch shift
 const OLA_GRAIN_SIZE = 2048 // ~46ms at 44.1kHz
 const OLA_OVERLAP = 4       // 75% overlap → hop = grain/4
 // Loop optimization
 const XCORR_WINDOW = 512    // comparison window (samples)
 const XCORR_SEARCH = 2000   // search radius (samples)
+// Pitch cache: pre-computed OLA buffers for instant MIDI response
+const PITCH_CACHE_LO = -36  // C1 relative to C3
+const PITCH_CACHE_HI = 24   // C6 relative to C3
 
 // ═══════════════════════════════════════════════════════════════════
 // DSP utilities (stateless, pure functions)
@@ -123,11 +125,17 @@ function optimizeLoopEndSample(
 }
 
 /**
- * Apply micro-fade at loop boundaries + optional cross-correlation optimization.
+ * Apply circular crossfade at loop boundaries + optional cross-correlation optimization.
+ *
+ * Instead of just fading in/out at loop boundaries (which creates a volume dip),
+ * this blends the tail of the loop INTO the head using equal-power crossfade.
+ * When AudioBufferSourceNode wraps from loopEnd→loopStart, the transition is
+ * seamless because loopStart already contains a mix of head + tail audio.
  */
 function applyLoopProcessing(
   ac: AudioContext, source: AudioBuffer,
-  loopStart: number, loopEnd: number, optimize: boolean,
+  loopStart: number, loopEnd: number,
+  optimize: boolean, crossfadeMs: number,
 ): { buffer: AudioBuffer; optimizedEnd: number } {
   const copy = ac.createBuffer(source.numberOfChannels, source.length, source.sampleRate)
   for (let ch = 0; ch < source.numberOfChannels; ch++) {
@@ -141,16 +149,26 @@ function applyLoopProcessing(
 
   const loopLen = actualEnd - loopStart
   const fadeSamples = Math.min(
-    Math.floor(LOOP_FADE_MS / 1000 * source.sampleRate),
-    Math.floor(loopLen / 4),
+    Math.floor(crossfadeMs / 1000 * source.sampleRate),
+    Math.floor(loopLen / 4), // never more than 25% of loop
   )
+
   if (fadeSamples >= 2) {
     for (let ch = 0; ch < copy.numberOfChannels; ch++) {
       const d = copy.getChannelData(ch)
+      // Circular crossfade: blend tail into head
+      // head region: [loopStart .. loopStart + fadeSamples]
+      // tail region: [actualEnd - fadeSamples .. actualEnd]
       for (let i = 0; i < fadeSamples; i++) {
-        const g = Math.sin((i / fadeSamples) * Math.PI * 0.5)
-        d[loopStart + i]! *= g
-        d[actualEnd - 1 - i]! *= g
+        const t = i / fadeSamples // 0→1
+        const gHead = Math.sin(t * Math.PI * 0.5) // 0→1 (fade in head)
+        const gTail = Math.cos(t * Math.PI * 0.5) // 1→0 (fade out tail)
+        const headIdx = loopStart + i
+        const tailIdx = actualEnd - fadeSamples + i
+        // Mix: at loop start, mostly tail; at fade end, mostly head
+        d[headIdx] = d[headIdx]! * gHead + d[tailIdx]! * gTail
+        // Also fade out the tail region so it doesn't pop when approaching loopEnd
+        d[tailIdx]! *= gHead // fade out toward end
       }
     }
   }
@@ -230,6 +248,10 @@ export function useAudioLooper() {
   let originalBuffer: AudioBuffer | null = null
   let rawBase64: string | null = null
 
+  // ── Pitch cache (pre-computed OLA buffers per semitone) ──
+  let pitchCache: Map<number, AudioBuffer> = new Map()
+  let pitchCacheGeneration = 0
+
   const isPlaying = ref(false)
   const isLooping = ref(true)
   const transposeSemitones = ref(0)
@@ -244,6 +266,7 @@ export function useAudioLooper() {
   const loopOptimize = ref(false)
   // Optimized loop end as fraction (for display, may differ from user's loopEndFrac)
   const optimizedEndFrac = ref(1)
+  const pitchCacheSize = ref(0)
 
   function ensureContext(): AudioContext {
     if (!ctx || ctx.state === 'closed') ctx = new AudioContext()
@@ -286,6 +309,68 @@ export function useAudioLooper() {
     }
   }
 
+  // ── Pitch cache management ──
+
+  function invalidatePitchCache() {
+    pitchCacheGeneration++
+    pitchCache = new Map()
+    pitchCacheSize.value = 0
+  }
+
+  /**
+   * Asynchronously pre-compute OLA-shifted buffers for all semitones in range.
+   * Iterates center-outward (0, ±1, ±2, ...) so common transpositions cache first.
+   * One semitone per setTimeout(fn, 0) frame to avoid blocking the UI thread.
+   */
+  function buildPitchCacheAsync(
+    ac: AudioContext, loopProcessed: AudioBuffer, generation: number,
+  ) {
+    // Build ordering: 0, +1, -1, +2, -2, ...
+    const semitones: number[] = [0]
+    for (let i = 1; i <= Math.max(PITCH_CACHE_HI, -PITCH_CACHE_LO); i++) {
+      if (i <= PITCH_CACHE_HI) semitones.push(i)
+      if (-i >= PITCH_CACHE_LO) semitones.push(-i)
+    }
+
+    let idx = 0
+    function processNext() {
+      if (pitchCacheGeneration !== generation) return
+      if (idx >= semitones.length) return
+
+      const st = semitones[idx++]!
+      if (!pitchCache.has(st)) {
+        let buf: AudioBuffer
+        if (st === 0) {
+          buf = ac.createBuffer(
+            loopProcessed.numberOfChannels, loopProcessed.length, loopProcessed.sampleRate,
+          )
+          for (let ch = 0; ch < loopProcessed.numberOfChannels; ch++) {
+            buf.getChannelData(ch).set(loopProcessed.getChannelData(ch))
+          }
+        } else {
+          buf = pitchShiftBuffer(ac, loopProcessed, st)
+        }
+        if (normalizeOn.value) normalizeBuffer(buf)
+        if (pitchCacheGeneration !== generation) return
+        pitchCache.set(st, buf)
+        pitchCacheSize.value = pitchCache.size
+      }
+      setTimeout(processNext, 0)
+    }
+    setTimeout(processNext, 0)
+  }
+
+  function rebuildPitchCache() {
+    if (!originalBuffer || !ctx) return
+    invalidatePitchCache()
+    const ac = ensureContext()
+    const [ls, le] = loopBoundsSamples(originalBuffer)
+    const { buffer: loopProcessed, optimizedEnd } =
+      applyLoopProcessing(ac, originalBuffer, ls, le, loopOptimize.value)
+    optimizedEndFrac.value = optimizedEnd / originalBuffer.length
+    buildPitchCacheAsync(ac, loopProcessed, pitchCacheGeneration)
+  }
+
   async function decodeBase64Wav(base64: string): Promise<AudioBuffer> {
     const ac = ensureContext()
     const bin = atob(base64)
@@ -309,15 +394,20 @@ export function useAudioLooper() {
   function prepareBuffer(ac: AudioContext, source: AudioBuffer): AudioBuffer {
     const [ls, le] = loopBoundsSamples(source)
 
-    // 1. Loop processing (micro-fade + optional optimization)
+    // 1. Loop processing (circular crossfade + optional optimization)
     const { buffer: loopProcessed, optimizedEnd } =
-      applyLoopProcessing(ac, source, ls, le, loopOptimize.value)
+      applyLoopProcessing(ac, source, ls, le, loopOptimize.value, crossfadeMs.value)
     optimizedEndFrac.value = optimizedEnd / source.length
 
-    // 2. OLA pitch shift (if in pitch mode and transposed)
+    // 2. OLA pitch shift (if in pitch mode)
     let processed = loopProcessed
-    if (transposeMode.value === 'pitch' && transposeSemitones.value !== 0) {
-      processed = pitchShiftBuffer(ac, loopProcessed, transposeSemitones.value)
+    if (transposeMode.value === 'pitch') {
+      const st = transposeSemitones.value
+      const cached = pitchCache.get(st)
+      if (cached) return cached // already OLA-shifted + normalized
+      if (st !== 0) {
+        processed = pitchShiftBuffer(ac, loopProcessed, st)
+      }
     }
 
     // 3. Normalize (if enabled)
@@ -371,7 +461,9 @@ export function useAudioLooper() {
     bufferDuration.value = decoded.duration
     hasAudio.value = true
     peakAmplitude.value = measurePeak(decoded)
+    invalidatePitchCache()
     startSource(ac, prepareBuffer(ac, decoded))
+    rebuildPitchCache()
   }
 
   function replay() {
@@ -397,8 +489,15 @@ export function useAudioLooper() {
       // Instant: just change playback rate
       if (activeSource) activeSource.playbackRate.value = rateForPlayback()
     } else {
-      // OLA: re-process buffer and crossfade
-      if (originalBuffer && isPlaying.value) replay()
+      // OLA: use cached buffer for instant response, fall back to live OLA
+      if (originalBuffer && isPlaying.value) {
+        const cached = pitchCache.get(semitones)
+        if (cached) {
+          startSource(ensureContext(), cached)
+        } else {
+          replay()
+        }
+      }
     }
   }
 
@@ -412,6 +511,7 @@ export function useAudioLooper() {
     if (activeSource?.buffer) {
       activeSource.loopStart = loopStartFrac.value * activeSource.buffer.duration
     }
+    rebuildPitchCache()
   }
 
   function setLoopEnd(frac: number) {
@@ -421,20 +521,25 @@ export function useAudioLooper() {
     if (activeSource?.buffer) {
       activeSource.loopEnd = loopEndFrac.value * activeSource.buffer.duration
     }
+    rebuildPitchCache()
   }
 
   function setCrossfade(ms: number) {
     crossfadeMs.value = Math.max(10, Math.min(ms, 500))
+    // Re-process buffer with new crossfade duration and crossfade to it
+    if (originalBuffer && isPlaying.value) replay()
   }
 
   function setNormalize(on: boolean) {
     normalizeOn.value = on
     if (originalBuffer && isPlaying.value) replay()
+    rebuildPitchCache()
   }
 
   function setLoopOptimize(on: boolean) {
     loopOptimize.value = on
     if (originalBuffer && isPlaying.value) replay()
+    rebuildPitchCache()
   }
 
   function exportRaw(): Blob | null {
@@ -454,6 +559,7 @@ export function useAudioLooper() {
 
   function dispose() {
     stop()
+    invalidatePitchCache()
     originalBuffer = null; rawBase64 = null; hasAudio.value = false
     if (ctx && ctx.state !== 'closed') ctx.close()
     ctx = null
@@ -478,5 +584,6 @@ export function useAudioLooper() {
     normalizeOn: readonly(normalizeOn),
     peakAmplitude: readonly(peakAmplitude),
     loopOptimize: readonly(loopOptimize),
+    pitchCacheSize: readonly(pitchCacheSize),
   }
 }
