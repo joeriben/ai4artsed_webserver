@@ -423,28 +423,18 @@ export function useAudioLooper() {
     const offset = loopStartFrac.value * playBuffer.duration
 
     if (activeSource && activeGain && isPlaying.value) {
-      // Fade out old source: scale curve from current gain to 0
+      // Fade out old source: cancel ALL prior events (including in-progress
+      // curves that block setValueAtTime), then linear ramp to 0.
+      // Linear ramp avoids setValueCurveAtTime ownership conflicts.
       const oldGainVal = activeGain.gain.value
-      const scaledOut = new Float32Array(FADE_CURVE_LEN)
-      for (let i = 0; i < FADE_CURVE_LEN; i++) scaledOut[i] = oldGainVal * fadeOutCurve[i]!
-      try {
-        activeGain.gain.cancelScheduledValues(0)
-        activeGain.gain.setValueAtTime(oldGainVal, now)
-        activeGain.gain.setValueCurveAtTime(scaledOut, now + 0.001, fadeSec)
-      } catch {
-        // Racing crossfade — force immediate silence
-        activeGain.gain.cancelScheduledValues(0)
-        activeGain.gain.value = 0
-      }
-      activeSource.stop(now + fadeSec + 0.05) // frame-accurate stop
+      activeGain.gain.cancelScheduledValues(0)
+      activeGain.gain.setValueAtTime(oldGainVal, now)
+      activeGain.gain.linearRampToValueAtTime(0, now + fadeSec)
+      activeSource.stop(now + fadeSec + 0.05)
 
-      // Fade in new source
-      try {
-        newGain.gain.setValueAtTime(0, now)
-        newGain.gain.setValueCurveAtTime(fadeInCurve, now + 0.001, fadeSec)
-      } catch {
-        newGain.gain.value = 1
-      }
+      // Fade in new source: fresh gain node, no prior events.
+      // fadeInCurve[0]=0, so it starts silent — no anchor needed.
+      newGain.gain.setValueCurveAtTime(fadeInCurve, now, fadeSec)
     } else {
       newGain.gain.setValueAtTime(1, now)
     }
