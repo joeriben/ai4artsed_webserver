@@ -799,6 +799,7 @@ function onSpectralTouchEnd() {
 function resetAllOffsets() {
   Object.keys(dimensionOffsets).forEach(k => delete dimensionOffsets[Number(k)])
   drawSpectralStrip()
+  runSynth()
 }
 
 // Redraw canvas when stats change
