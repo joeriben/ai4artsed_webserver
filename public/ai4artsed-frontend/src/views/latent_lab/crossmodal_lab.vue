@@ -310,20 +310,18 @@
 
           <!-- Controls Row -->
           <div class="dim-controls-row">
-            <div class="dim-control-group">
-              <label>{{ t('latentLab.crossmodal.synth.dimensions.selectTopN') }}</label>
-              <input
-                v-model.number="dimExplorerTopN"
-                type="number"
-                min="1"
-                max="768"
-                class="dim-topn-input"
-              />
-              <button class="dim-btn" @click="selectTopDims">
-                {{ t('latentLab.crossmodal.synth.dimensions.apply') }}
-              </button>
-            </div>
-            <button class="dim-btn dim-btn-reset" @click="resetAllOffsets">
+            <button
+              v-if="activeOffsetCount > 0"
+              class="dim-btn dim-btn-generate"
+              :disabled="generating"
+              @click="runSynth"
+            >
+              {{ t('latentLab.crossmodal.synth.dimensions.applyAndGenerate') }}
+            </button>
+            <span v-if="activeOffsetCount > 0" class="dim-offset-status">
+              {{ t('latentLab.crossmodal.synth.dimensions.activeOffsets', { count: activeOffsetCount }) }}
+            </span>
+            <button v-if="activeOffsetCount > 0" class="dim-btn dim-btn-reset" @click="resetAllOffsets">
               {{ t('latentLab.crossmodal.synth.dimensions.resetAll') }}
             </button>
             <span class="dim-right-click-hint">
@@ -607,10 +605,13 @@ const guidance = reactive({
 
 // ===== Dimension Explorer =====
 const dimensionOffsets = reactive<Record<number, number>>({})
-const dimExplorerTopN = ref(10)
 const spectralCanvasRef = ref<HTMLCanvasElement | null>(null)
 const hoveredDim = ref<{ dim: number; activation: number; offset: number } | null>(null)
 let isDragging = false
+
+const activeOffsetCount = computed(() =>
+  Object.values(dimensionOffsets).filter(v => v !== 0).length
+)
 
 const maxActivation = computed(() => {
   const acts = embeddingStats.value?.all_activations
@@ -793,19 +794,6 @@ function onSpectralTouchMove(e: TouchEvent) {
 
 function onSpectralTouchEnd() {
   isDragging = false
-}
-
-function selectTopDims() {
-  const acts = embeddingStats.value?.all_activations
-  if (!acts) return
-  const n = Math.min(dimExplorerTopN.value, acts.length)
-  for (let i = 0; i < n; i++) {
-    const entry = acts[i]!
-    if (!(entry.dim in dimensionOffsets)) {
-      dimensionOffsets[entry.dim] = 0
-    }
-  }
-  drawSpectralStrip()
 }
 
 function resetAllOffsets() {
@@ -1863,6 +1851,27 @@ onUnmounted(() => {
 
 .dim-btn-reset:hover {
   background: rgba(255, 152, 0, 0.2);
+}
+
+.dim-btn-generate {
+  background: rgba(76, 175, 80, 0.25);
+  border-color: rgba(76, 175, 80, 0.5);
+  font-weight: 500;
+}
+
+.dim-btn-generate:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.4);
+}
+
+.dim-btn-generate:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dim-offset-status {
+  font-size: 0.7rem;
+  color: #4CAF50;
+  font-variant-numeric: tabular-nums;
 }
 
 .dim-right-click-hint {

@@ -912,16 +912,15 @@ const messages = {
           embeddingStats: 'Embedding-Statistiken',
           dimensions: {
             section: 'Dimensions-Explorer',
-            hint: 'Ziehe auf den Balken um Offsets zu setzen. Horizontal malen fuer mehrere Dimensionen.',
-            selectTopN: 'Top N auswaehlen',
-            apply: 'Anwenden',
+            hint: 'Auf Balken ziehen = Offset setzen. Horizontal malen = mehrere Dimensionen.',
             resetAll: 'Alle zuruecksetzen',
-            hoverDim: 'Dimension',
             hoverActivation: 'Aktivierung',
             hoverOffset: 'Offset',
             rightClickReset: 'Rechtsklick = zuruecksetzen',
             sortDiff: 'Sortiert nach Prompt-Differenz',
-            sortMagnitude: 'Sortiert nach Aktivierung'
+            sortMagnitude: 'Sortiert nach Aktivierung',
+            activeOffsets: '{count} Offsets aktiv',
+            applyAndGenerate: 'Anwenden und neu generieren'
           }
         },
         mmaudio: {
@@ -1966,16 +1965,15 @@ const messages = {
           embeddingStats: 'Embedding statistics',
           dimensions: {
             section: 'Dimension Explorer',
-            hint: 'Drag on bars to set offsets. Paint horizontally across multiple dimensions.',
-            selectTopN: 'Select Top N',
-            apply: 'Apply',
+            hint: 'Drag on bars = set offset. Paint horizontally = multiple dimensions.',
             resetAll: 'Reset all',
-            hoverDim: 'Dimension',
             hoverActivation: 'Activation',
             hoverOffset: 'Offset',
             rightClickReset: 'Right-click = reset',
             sortDiff: 'Sorted by prompt difference',
-            sortMagnitude: 'Sorted by activation'
+            sortMagnitude: 'Sorted by activation',
+            activeOffsets: '{count} offsets active',
+            applyAndGenerate: 'Apply and regenerate'
           }
         },
         mmaudio: {
