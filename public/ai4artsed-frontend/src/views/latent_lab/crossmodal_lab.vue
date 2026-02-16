@@ -154,6 +154,15 @@
               @input="onLoopEndInput"
             />
           </div>
+          <div class="loop-options">
+            <label class="inline-toggle">
+              <input type="checkbox" :checked="looper.loopOptimize.value" @change="onOptimizeChange" />
+              {{ t('latentLab.crossmodal.synth.loopOptimize') }}
+            </label>
+            <span v-if="looper.loopOptimize.value" class="optimized-hint">
+              → {{ (looper.optimizedEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
+            </span>
+          </div>
           <span class="slider-hint">{{ t('latentLab.crossmodal.synth.loopIntervalHint') }}</span>
         </div>
         <!-- Transpose -->
@@ -168,6 +177,26 @@
             @input="onTransposeInput"
           />
           <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
+        </div>
+        <div class="transpose-mode-row">
+          <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'rate' }">
+            <input
+              type="radio"
+              value="rate"
+              :checked="looper.transposeMode.value === 'rate'"
+              @change="looper.setTransposeMode('rate')"
+            />
+            {{ t('latentLab.crossmodal.synth.modeRate') }}
+          </label>
+          <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'pitch' }">
+            <input
+              type="radio"
+              value="pitch"
+              :checked="looper.transposeMode.value === 'pitch'"
+              @change="looper.setTransposeMode('pitch')"
+            />
+            {{ t('latentLab.crossmodal.synth.modePitch') }}
+          </label>
         </div>
         <!-- Crossfade duration -->
         <div class="transpose-row">
@@ -185,7 +214,7 @@
         <!-- Normalize + Peak -->
         <div class="normalize-row">
           <label class="normalize-toggle">
-            <input type="checkbox" :checked="looper.normalize.value" @change="onNormalizeChange" />
+            <input type="checkbox" :checked="looper.normalizeOn.value" @change="onNormalizeChange" />
             {{ t('latentLab.crossmodal.synth.normalize') }}
           </label>
           <span v-if="looper.peakAmplitude.value > 0" class="peak-display">
@@ -582,6 +611,10 @@ function onCrossfadeInput(event: Event) {
 
 function onNormalizeChange(event: Event) {
   looper.setNormalize((event.target as HTMLInputElement).checked)
+}
+
+function onOptimizeChange(event: Event) {
+  looper.setLoopOptimize((event.target as HTMLInputElement).checked)
 }
 
 function onMidiInputChange(event: Event) {
@@ -1137,6 +1170,44 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
   min-width: 2.5rem;
   text-align: right;
+}
+
+/* Loop options / Transpose mode */
+.loop-options {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+
+.optimized-hint {
+  font-size: 0.7rem;
+  color: #4CAF50;
+  font-variant-numeric: tabular-nums;
+}
+
+.transpose-mode-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.inline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+
+.inline-toggle.active {
+  color: #4CAF50;
+}
+
+.inline-toggle input[type="checkbox"],
+.inline-toggle input[type="radio"] {
+  accent-color: #4CAF50;
 }
 
 /* Normalize row */
