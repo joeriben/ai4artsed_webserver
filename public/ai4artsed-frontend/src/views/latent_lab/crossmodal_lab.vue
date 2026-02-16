@@ -161,6 +161,12 @@
             >
               {{ t('latentLab.crossmodal.synth.dimensions.applyAndGenerate') }}
             </button>
+            <button class="dim-btn dim-btn-undo" :disabled="!canUndo" @click="undo" title="Ctrl+Z">
+              {{ t('latentLab.crossmodal.synth.dimensions.undo') }}
+            </button>
+            <button class="dim-btn dim-btn-undo" :disabled="!canRedo" @click="redo" title="Ctrl+Shift+Z">
+              {{ t('latentLab.crossmodal.synth.dimensions.redo') }}
+            </button>
             <span v-if="activeOffsetCount > 0" class="dim-offset-status">
               {{ t('latentLab.crossmodal.synth.dimensions.activeOffsets', { count: activeOffsetCount }) }}
             </span>
@@ -476,7 +482,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAudioLooper } from '@/composables/useAudioLooper'
 import { useWebMidi } from '@/composables/useWebMidi'
@@ -595,6 +601,47 @@ const spectralCanvasRef = ref<HTMLCanvasElement | null>(null)
 const hoveredDim = ref<{ dim: number; activation: number; offset: number } | null>(null)
 let isDragging = false
 
+// Undo/Redo history (snapshot per paint stroke)
+const MAX_HISTORY = 50
+const undoStack: Record<number, number>[] = []
+const redoStack: Record<number, number>[] = []
+const canUndo = ref(false)
+const canRedo = ref(false)
+
+function snapshotOffsets(): Record<number, number> {
+  return { ...dimensionOffsets }
+}
+
+function restoreOffsets(snapshot: Record<number, number>) {
+  Object.keys(dimensionOffsets).forEach(k => delete dimensionOffsets[Number(k)])
+  Object.assign(dimensionOffsets, snapshot)
+  drawSpectralStrip()
+}
+
+function pushUndo() {
+  undoStack.push(snapshotOffsets())
+  if (undoStack.length > MAX_HISTORY) undoStack.shift()
+  redoStack.length = 0
+  canUndo.value = undoStack.length > 0
+  canRedo.value = false
+}
+
+function undo() {
+  if (!undoStack.length) return
+  redoStack.push(snapshotOffsets())
+  restoreOffsets(undoStack.pop()!)
+  canUndo.value = undoStack.length > 0
+  canRedo.value = redoStack.length > 0
+}
+
+function redo() {
+  if (!redoStack.length) return
+  undoStack.push(snapshotOffsets())
+  restoreOffsets(redoStack.pop()!)
+  canUndo.value = undoStack.length > 0
+  canRedo.value = redoStack.length > 0
+}
+
 const activeOffsetCount = computed(() =>
   Object.values(dimensionOffsets).filter(v => v !== 0).length
 )
@@ -693,6 +740,7 @@ function onSpectralMouseDown(e: MouseEvent) {
   if (e.button === 2) return // right-click handled by contextmenu
   const canvas = spectralCanvasRef.value
   if (!canvas) return
+  pushUndo()
   isDragging = true
   const dim = dimAtX(canvas, e.clientX)
   if (dim !== null) {
@@ -747,6 +795,7 @@ function onSpectralContextMenu(e: MouseEvent) {
   if (!canvas) return
   const dim = dimAtX(canvas, e.clientX)
   if (dim !== null && dim in dimensionOffsets) {
+    pushUndo()
     delete dimensionOffsets[dim]
     drawSpectralStrip()
   }
@@ -755,6 +804,7 @@ function onSpectralContextMenu(e: MouseEvent) {
 function onSpectralTouchStart(e: TouchEvent) {
   const touch = e.touches[0]
   if (!touch || e.touches.length !== 1) return
+  pushUndo()
   isDragging = true
   const canvas = spectralCanvasRef.value
   if (!canvas) return
@@ -783,6 +833,7 @@ function onSpectralTouchEnd() {
 }
 
 function resetAllOffsets() {
+  pushUndo()
   Object.keys(dimensionOffsets).forEach(k => delete dimensionOffsets[Number(k)])
   drawSpectralStrip()
   runSynth()
@@ -1023,7 +1074,27 @@ async function runGuidance() {
   }
 }
 
+// Ctrl+Z / Ctrl+Shift+Z for dimension offsets undo/redo
+function onKeyDown(e: KeyboardEvent) {
+  if (activeTab.value !== 'synth') return
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault()
+    undo()
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+    e.preventDefault()
+    redo()
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+    e.preventDefault()
+    redo()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeyDown)
+})
+
 onUnmounted(() => {
+  window.removeEventListener('keydown', onKeyDown)
   looper.dispose()
 })
 </script>
@@ -1858,6 +1929,11 @@ onUnmounted(() => {
 
 .dim-btn-generate:disabled {
   opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dim-btn-undo:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
 

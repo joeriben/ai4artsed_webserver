@@ -920,7 +920,9 @@ const messages = {
             sortDiff: 'Sortiert nach Prompt-Differenz',
             sortMagnitude: 'Sortiert nach Aktivierung',
             activeOffsets: '{count} Offsets aktiv',
-            applyAndGenerate: 'Anwenden und neu generieren'
+            applyAndGenerate: 'Anwenden und neu generieren',
+            undo: 'Rueckgaengig',
+            redo: 'Wiederholen'
           }
         },
         mmaudio: {
@@ -1973,7 +1975,9 @@ const messages = {
             sortDiff: 'Sorted by prompt difference',
             sortMagnitude: 'Sorted by activation',
             activeOffsets: '{count} offsets active',
-            applyAndGenerate: 'Apply and regenerate'
+            applyAndGenerate: 'Apply and regenerate',
+            undo: 'Undo',
+            redo: 'Redo'
           }
         },
         mmaudio: {
