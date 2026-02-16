@@ -752,6 +752,7 @@ export function useAudioLooper() {
     setLoopStart, setLoopEnd, setLoopOptimize, setLoopPingPong,
     setCrossfade, setNormalize,
     exportRaw, exportLoop, dispose,
+    getOriginalBuffer: () => originalBuffer,
     isPlaying: readonly(isPlaying),
     isLooping: readonly(isLooping),
     transposeSemitones: readonly(transposeSemitones),
