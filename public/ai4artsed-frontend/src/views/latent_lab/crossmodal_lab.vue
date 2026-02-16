@@ -232,45 +232,8 @@
         </div>
       </div>
 
-      <!-- MIDI Section (collapsed by default) -->
-      <details class="midi-section">
-        <summary>{{ t('latentLab.crossmodal.synth.midiSection') }}</summary>
-        <div class="midi-content">
-          <div v-if="!midi.isSupported.value" class="midi-unsupported">
-            {{ t('latentLab.crossmodal.synth.midiUnsupported') }}
-          </div>
-          <template v-else>
-            <div class="midi-input-select">
-              <label>{{ t('latentLab.crossmodal.synth.midiInput') }}</label>
-              <select
-                :value="midi.selectedInputId.value"
-                @change="onMidiInputChange"
-              >
-                <option :value="null">{{ t('latentLab.crossmodal.synth.midiNone') }}</option>
-                <option v-for="inp in midi.inputs.value" :key="inp.id" :value="inp.id">
-                  {{ inp.name }}
-                </option>
-              </select>
-            </div>
-            <div class="midi-mapping-table">
-              <h5>{{ t('latentLab.crossmodal.synth.midiMappings') }}</h5>
-              <table>
-                <tbody>
-                  <tr><td>CC1</td><td>{{ t('latentLab.crossmodal.synth.alpha') }}</td></tr>
-                  <tr><td>CC2</td><td>{{ t('latentLab.crossmodal.synth.magnitude') }}</td></tr>
-                  <tr><td>CC3</td><td>{{ t('latentLab.crossmodal.synth.noise') }}</td></tr>
-                  <tr><td>CC64</td><td>{{ t('latentLab.crossmodal.synth.loop') }}</td></tr>
-                  <tr><td>{{ t('latentLab.crossmodal.synth.midiNoteC3') }}</td><td>{{ t('latentLab.crossmodal.synth.midiGenerate') }}</td></tr>
-                  <tr><td>{{ t('latentLab.crossmodal.synth.midiPitch') }}</td><td>{{ t('latentLab.crossmodal.synth.transpose') }}</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </template>
-        </div>
-      </details>
-
-      <!-- Dimension Explorer Section (collapsed by default) -->
-      <details class="dim-explorer-section">
+      <!-- Dimension Explorer Section (open by default) -->
+      <details class="dim-explorer-section" open>
         <summary>{{ t('latentLab.crossmodal.synth.dimensions.section') }}</summary>
         <div class="dim-explorer-content">
           <p class="dim-hint">{{ t('latentLab.crossmodal.synth.dimensions.hint') }}</p>
@@ -328,6 +291,43 @@
               {{ t('latentLab.crossmodal.synth.dimensions.rightClickReset') }}
             </span>
           </div>
+        </div>
+      </details>
+
+      <!-- MIDI Section (collapsed by default) -->
+      <details class="midi-section">
+        <summary>{{ t('latentLab.crossmodal.synth.midiSection') }}</summary>
+        <div class="midi-content">
+          <div v-if="!midi.isSupported.value" class="midi-unsupported">
+            {{ t('latentLab.crossmodal.synth.midiUnsupported') }}
+          </div>
+          <template v-else>
+            <div class="midi-input-select">
+              <label>{{ t('latentLab.crossmodal.synth.midiInput') }}</label>
+              <select
+                :value="midi.selectedInputId.value"
+                @change="onMidiInputChange"
+              >
+                <option :value="null">{{ t('latentLab.crossmodal.synth.midiNone') }}</option>
+                <option v-for="inp in midi.inputs.value" :key="inp.id" :value="inp.id">
+                  {{ inp.name }}
+                </option>
+              </select>
+            </div>
+            <div class="midi-mapping-table">
+              <h5>{{ t('latentLab.crossmodal.synth.midiMappings') }}</h5>
+              <table>
+                <tbody>
+                  <tr><td>CC1</td><td>{{ t('latentLab.crossmodal.synth.alpha') }}</td></tr>
+                  <tr><td>CC2</td><td>{{ t('latentLab.crossmodal.synth.magnitude') }}</td></tr>
+                  <tr><td>CC3</td><td>{{ t('latentLab.crossmodal.synth.noise') }}</td></tr>
+                  <tr><td>CC64</td><td>{{ t('latentLab.crossmodal.synth.loop') }}</td></tr>
+                  <tr><td>{{ t('latentLab.crossmodal.synth.midiNoteC3') }}</td><td>{{ t('latentLab.crossmodal.synth.midiGenerate') }}</td></tr>
+                  <tr><td>{{ t('latentLab.crossmodal.synth.midiPitch') }}</td><td>{{ t('latentLab.crossmodal.synth.transpose') }}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
         </div>
       </details>
     </div>
@@ -461,7 +461,7 @@
       </div>
 
       <div class="result-meta">
-        <span v-if="resultSeed !== null" class="meta-item">{{ t('latentLab.crossmodal.seed') }}: {{ resultSeed }}</span>
+        <span v-if="resultSeed !== null && activeTab !== 'synth'" class="meta-item">{{ t('latentLab.crossmodal.seed') }}: {{ resultSeed }}</span>
         <span v-if="generationTimeMs" class="meta-item">{{ t('latentLab.crossmodal.generationTime') }}: {{ generationTimeMs }}ms</span>
         <span v-if="cosineSimilarity !== null" class="meta-item">{{ t('latentLab.crossmodal.guidance.cosineSimilarity') }}: {{ cosineSimilarity.toFixed(4) }}</span>
       </div>
