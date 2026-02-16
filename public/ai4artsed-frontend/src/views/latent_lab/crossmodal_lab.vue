@@ -232,6 +232,10 @@
             <span v-if="looper.loopOptimize.value" class="optimized-hint">
               → {{ (looper.optimizedEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
             </span>
+            <label class="inline-toggle">
+              <input type="checkbox" :checked="looper.loopPingPong.value" :disabled="!looper.hasAudio.value" @change="onPingPongChange" />
+              {{ t('latentLab.crossmodal.synth.loopPingPong') }}
+            </label>
           </div>
           <span class="slider-hint">{{ t('latentLab.crossmodal.synth.loopIntervalHint') }}</span>
         </div>
@@ -934,6 +938,9 @@ function onNormalizeChange(event: Event) {
 
 function onOptimizeChange(event: Event) {
   looper.setLoopOptimize((event.target as HTMLInputElement).checked)
+}
+function onPingPongChange(event: Event) {
+  looper.setLoopPingPong((event.target as HTMLInputElement).checked)
 }
 
 function onMidiInputChange(event: Event) {

@@ -172,6 +172,40 @@ function applyLoopProcessing(
 }
 
 /**
+ * Create palindrome buffer for ping-pong looping.
+ * Forward: [loopStart ... loopEnd-1], Reverse: [loopEnd-2 ... loopStart+1].
+ * Endpoints are NOT doubled → seamless forward↔reverse transitions.
+ */
+function createPalindromeBuffer(
+  ac: AudioContext, source: AudioBuffer,
+  loopStart: number, loopEnd: number,
+): { buffer: AudioBuffer; palindromeEnd: number } {
+  const loopLen = loopEnd - loopStart
+  if (loopLen < 4) return { buffer: source, palindromeEnd: loopEnd }
+
+  const reverseLen = loopLen - 2
+  const newLen = source.length + reverseLen
+  const result = ac.createBuffer(source.numberOfChannels, newLen, source.sampleRate)
+
+  for (let ch = 0; ch < source.numberOfChannels; ch++) {
+    const src = source.getChannelData(ch)
+    const dst = result.getChannelData(ch)
+    // Copy everything up to loopEnd
+    for (let i = 0; i < loopEnd; i++) dst[i] = src[i]!
+    // Insert reversed loop (skip endpoints to avoid doubling)
+    for (let i = 0; i < reverseLen; i++) {
+      dst[loopEnd + i] = src[loopEnd - 2 - i]!
+    }
+    // Copy post-loop data (shifted)
+    for (let i = loopEnd; i < src.length; i++) {
+      dst[i + reverseLen] = src[i]!
+    }
+  }
+
+  return { buffer: result, palindromeEnd: loopEnd + reverseLen }
+}
+
+/**
  * OLA (Overlap-Add) pitch shift.
  * Time-stretches by 1/rate via different analysis/synthesis hops,
  * then resamples to original length → pitch shift without tempo change.
@@ -259,9 +293,14 @@ export function useAudioLooper() {
   const normalizeOn = ref(false)
   const peakAmplitude = ref(0)
   const loopOptimize = ref(false)
+  const loopPingPong = ref(false)
   // Optimized loop end as fraction (for display, may differ from user's loopEndFrac)
   const optimizedEndFrac = ref(1)
   const pitchCacheSize = ref(0)
+
+  // Internal loop bounds in seconds (decoupled from fractions when buffer length changes, e.g. palindrome)
+  let preparedLoopStartSec = 0
+  let preparedLoopEndSec = 0
 
   function ensureContext(): AudioContext {
     if (!ctx || ctx.state === 'closed') ctx = new AudioContext()
@@ -360,10 +399,25 @@ export function useAudioLooper() {
     invalidatePitchCache()
     const ac = ensureContext()
     const [ls, le] = loopBoundsSamples(originalBuffer)
-    const { buffer: loopProcessed, optimizedEnd } =
-      applyLoopProcessing(ac, originalBuffer, ls, le, loopOptimize.value, crossfadeMs.value)
-    optimizedEndFrac.value = optimizedEnd / originalBuffer.length
-    buildPitchCacheAsync(ac, loopProcessed, pitchCacheGeneration)
+
+    let baseBuffer: AudioBuffer
+    if (loopPingPong.value) {
+      let actualEnd = le
+      if (loopOptimize.value && originalBuffer.numberOfChannels > 0) {
+        actualEnd = optimizeLoopEndSample(originalBuffer.getChannelData(0), ls, le)
+      }
+      const copy = ac.createBuffer(originalBuffer.numberOfChannels, originalBuffer.length, originalBuffer.sampleRate)
+      for (let ch = 0; ch < originalBuffer.numberOfChannels; ch++) {
+        copy.getChannelData(ch).set(originalBuffer.getChannelData(ch))
+      }
+      baseBuffer = createPalindromeBuffer(ac, copy, ls, actualEnd).buffer
+    } else {
+      const { buffer: loopProcessed, optimizedEnd } =
+        applyLoopProcessing(ac, originalBuffer, ls, le, loopOptimize.value, crossfadeMs.value)
+      optimizedEndFrac.value = optimizedEnd / originalBuffer.length
+      baseBuffer = loopProcessed
+    }
+    buildPitchCacheAsync(ac, baseBuffer, pitchCacheGeneration)
   }
 
   async function decodeBase64Wav(base64: string): Promise<AudioBuffer> {
@@ -379,33 +433,55 @@ export function useAudioLooper() {
     src.buffer = buffer
     src.loop = isLooping.value
     src.playbackRate.value = rateForPlayback()
-    const dur = buffer.duration
-    // Use optimized end for loop bounds
-    src.loopStart = loopStartFrac.value * dur
-    src.loopEnd = optimizedEndFrac.value * dur
+    src.loopStart = preparedLoopStartSec
+    src.loopEnd = preparedLoopEndSec
     return src
   }
 
   function prepareBuffer(ac: AudioContext, source: AudioBuffer): AudioBuffer {
     const [ls, le] = loopBoundsSamples(source)
+    const sr = source.sampleRate
 
-    // 1. Loop processing (circular crossfade + optional optimization)
-    const { buffer: loopProcessed, optimizedEnd } =
-      applyLoopProcessing(ac, source, ls, le, loopOptimize.value, crossfadeMs.value)
-    optimizedEndFrac.value = optimizedEnd / source.length
+    let processed: AudioBuffer
 
-    // 2. OLA pitch shift (if in pitch mode)
-    let processed = loopProcessed
+    if (loopPingPong.value) {
+      // Ping-pong: palindrome handles transitions, no crossfade needed.
+      // Optionally optimize loop end first.
+      let actualEnd = le
+      if (loopOptimize.value && source.numberOfChannels > 0) {
+        actualEnd = optimizeLoopEndSample(source.getChannelData(0), ls, le)
+      }
+      const copy = ac.createBuffer(source.numberOfChannels, source.length, sr)
+      for (let ch = 0; ch < source.numberOfChannels; ch++) {
+        copy.getChannelData(ch).set(source.getChannelData(ch))
+      }
+      const { buffer: palindrome, palindromeEnd } =
+        createPalindromeBuffer(ac, copy, ls, actualEnd)
+      optimizedEndFrac.value = actualEnd / source.length // display: based on original
+      preparedLoopStartSec = ls / sr
+      preparedLoopEndSec = palindromeEnd / sr
+      processed = palindrome
+    } else {
+      // Normal forward loop: crossfade at boundary
+      const { buffer: loopProcessed, optimizedEnd } =
+        applyLoopProcessing(ac, source, ls, le, loopOptimize.value, crossfadeMs.value)
+      optimizedEndFrac.value = optimizedEnd / source.length
+      preparedLoopStartSec = ls / sr
+      preparedLoopEndSec = optimizedEnd / sr
+      processed = loopProcessed
+    }
+
+    // OLA pitch shift (if in pitch mode)
     if (transposeMode.value === 'pitch') {
       const st = transposeSemitones.value
       const cached = pitchCache.get(st)
       if (cached) return cached // already OLA-shifted + normalized
       if (st !== 0) {
-        processed = pitchShiftBuffer(ac, loopProcessed, st)
+        processed = pitchShiftBuffer(ac, processed, st)
       }
     }
 
-    // 3. Normalize (if enabled)
+    // Normalize (if enabled)
     if (normalizeOn.value) normalizeBuffer(processed)
 
     return processed
@@ -420,7 +496,7 @@ export function useAudioLooper() {
 
     const now = ac.currentTime + SCHEDULE_AHEAD
     const fadeSec = crossfadeMs.value / 1000
-    const offset = loopStartFrac.value * playBuffer.duration
+    const offset = preparedLoopStartSec
 
     if (activeSource && activeGain && isPlaying.value) {
       // Fade out old source: cancel ALL prior events (including in-progress
@@ -508,18 +584,18 @@ export function useAudioLooper() {
 
   function setLoopStart(frac: number) {
     loopStartFrac.value = Math.max(0, Math.min(frac, loopEndFrac.value - 0.01))
-    if (activeSource?.buffer) {
-      activeSource.loopStart = loopStartFrac.value * activeSource.buffer.duration
+    // For live updates without replay, approximate using original buffer duration
+    if (activeSource && originalBuffer) {
+      activeSource.loopStart = loopStartFrac.value * originalBuffer.duration
     }
     rebuildPitchCache()
   }
 
   function setLoopEnd(frac: number) {
     loopEndFrac.value = Math.max(loopStartFrac.value + 0.01, Math.min(frac, 1))
-    // Also update optimized end (without optimization, they're the same)
     optimizedEndFrac.value = loopEndFrac.value
-    if (activeSource?.buffer) {
-      activeSource.loopEnd = loopEndFrac.value * activeSource.buffer.duration
+    if (activeSource && originalBuffer) {
+      activeSource.loopEnd = loopEndFrac.value * originalBuffer.duration
     }
     rebuildPitchCache()
   }
@@ -538,6 +614,12 @@ export function useAudioLooper() {
 
   function setLoopOptimize(on: boolean) {
     loopOptimize.value = on
+    if (originalBuffer && isPlaying.value) replay()
+    rebuildPitchCache()
+  }
+
+  function setLoopPingPong(on: boolean) {
+    loopPingPong.value = on
     if (originalBuffer && isPlaying.value) replay()
     rebuildPitchCache()
   }
@@ -568,7 +650,7 @@ export function useAudioLooper() {
   return {
     play, replay, stop,
     setLoop, setTranspose, setTransposeMode,
-    setLoopStart, setLoopEnd, setLoopOptimize,
+    setLoopStart, setLoopEnd, setLoopOptimize, setLoopPingPong,
     setCrossfade, setNormalize,
     exportRaw, exportLoop, dispose,
     isPlaying: readonly(isPlaying),
@@ -584,6 +666,7 @@ export function useAudioLooper() {
     normalizeOn: readonly(normalizeOn),
     peakAmplitude: readonly(peakAmplitude),
     loopOptimize: readonly(loopOptimize),
+    loopPingPong: readonly(loopPingPong),
     pitchCacheSize: readonly(pitchCacheSize),
   }
 }
