@@ -1,16 +1,31 @@
 /**
  * Web Audio API looper composable for Crossmodal Lab Synth tab.
  *
- * Double-buffered AudioBufferSourceNode with crossfade on new audio,
- * loop toggle, pitch transposition via playbackRate, and adjustable
- * loop interval (loopStart/loopEnd) to trim fade-out tails.
+ * Double-buffered AudioBufferSourceNode with equal-power crossfade,
+ * loop toggle, pitch transposition via playbackRate, adjustable
+ * loop interval, and raw/loop WAV export.
  *
  * AudioContext is created lazily on first play() call to satisfy
  * browser autoplay policy (requires user gesture).
+ *
+ * Crossfade algorithm: Equal-power (constant energy) using sin/cos curves.
+ * Based on Boris Smus, "Web Audio API" (O'Reilly, 2013), Chapter 3.
+ * https://webaudioapi.com/book/Web_Audio_API_Boris_Smus_html/ch03.html
+ * License: Creative Commons Attribution-NonCommercial-NoDerivs 3.0
  */
 import { ref, readonly } from 'vue'
 
-const CROSSFADE_MS = 80
+const CROSSFADE_MS = 150
+const CURVE_RESOLUTION = 64
+
+// Pre-compute equal-power crossfade curves (sin²+cos²=1 guarantees constant energy)
+const fadeOutCurve = new Float32Array(CURVE_RESOLUTION)
+const fadeInCurve = new Float32Array(CURVE_RESOLUTION)
+for (let i = 0; i < CURVE_RESOLUTION; i++) {
+  const t = i / (CURVE_RESOLUTION - 1)
+  fadeOutCurve[i] = Math.cos(t * Math.PI * 0.5)
+  fadeInCurve[i] = Math.sin(t * Math.PI * 0.5)
+}
 
 /**
  * Encode an AudioBuffer (or a slice of it) as a WAV Blob.
@@ -30,22 +45,20 @@ function encodeWav(buffer: AudioBuffer, startSample: number, endSample: number):
     }
   }
 
-  // WAV header
   writeString(0, 'RIFF')
   view.setUint32(4, 36 + dataSize, true)
   writeString(8, 'WAVE')
   writeString(12, 'fmt ')
-  view.setUint32(16, 16, true) // PCM chunk size
-  view.setUint16(20, 1, true) // PCM format
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
   view.setUint16(22, numChannels, true)
   view.setUint32(24, sampleRate, true)
-  view.setUint32(28, sampleRate * numChannels * 2, true) // byte rate
-  view.setUint16(32, numChannels * 2, true) // block align
-  view.setUint16(34, 16, true) // bits per sample
+  view.setUint32(28, sampleRate * numChannels * 2, true)
+  view.setUint16(32, numChannels * 2, true)
+  view.setUint16(34, 16, true)
   writeString(36, 'data')
   view.setUint32(40, dataSize, true)
 
-  // Interleave channels as 16-bit PCM
   const channels: Float32Array[] = []
   for (let ch = 0; ch < numChannels; ch++) {
     channels.push(buffer.getChannelData(ch))
@@ -73,12 +86,9 @@ export function useAudioLooper() {
   const isPlaying = ref(false)
   const isLooping = ref(true)
   const transposeSemitones = ref(0)
-  // Loop interval as fraction of buffer duration (0..1)
   const loopStartFrac = ref(0)
   const loopEndFrac = ref(1)
-  // Actual buffer duration in seconds (readonly for UI)
   const bufferDuration = ref(0)
-  // Whether we have audio to export
   const hasAudio = ref(false)
 
   function ensureContext(): AudioContext {
@@ -134,17 +144,19 @@ export function useAudioLooper() {
     const fadeSec = CROSSFADE_MS / 1000
 
     if (activeSource && activeGain) {
+      // Equal-power crossfade: cos curve out, sin curve in
       activeGain.gain.setValueAtTime(activeGain.gain.value, now)
-      activeGain.gain.linearRampToValueAtTime(0, now + fadeSec)
+      activeGain.gain.setValueCurveAtTime(fadeOutCurve, now, fadeSec)
+
       newGain.gain.setValueAtTime(0, now)
-      newGain.gain.linearRampToValueAtTime(1, now + fadeSec)
+      newGain.gain.setValueCurveAtTime(fadeInCurve, now, fadeSec)
 
       const oldSource = activeSource
       const oldGain = activeGain
       setTimeout(() => {
         try { oldSource.stop() } catch { /* already stopped */ }
         oldGain.disconnect()
-      }, CROSSFADE_MS + 20)
+      }, CROSSFADE_MS + 50)
     } else {
       newGain.gain.setValueAtTime(1, now)
     }
@@ -200,7 +212,6 @@ export function useAudioLooper() {
     if (activeSource) applyLoopBounds(activeSource)
   }
 
-  /** Download the full raw WAV as received from the backend. */
   function exportRaw(): Blob | null {
     if (!rawBase64) return null
     const binaryStr = atob(rawBase64)
@@ -211,7 +222,6 @@ export function useAudioLooper() {
     return new Blob([bytes], { type: 'audio/wav' })
   }
 
-  /** Export the loop region (loopStart..loopEnd) as a WAV Blob. */
   function exportLoop(): Blob | null {
     if (!currentBuffer) return null
     const totalSamples = currentBuffer.length
