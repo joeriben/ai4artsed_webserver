@@ -427,14 +427,24 @@ export function useAudioLooper() {
       const oldGainVal = activeGain.gain.value
       const scaledOut = new Float32Array(FADE_CURVE_LEN)
       for (let i = 0; i < FADE_CURVE_LEN; i++) scaledOut[i] = oldGainVal * fadeOutCurve[i]!
-      activeGain.gain.cancelScheduledValues(now)
-      activeGain.gain.setValueAtTime(oldGainVal, now)
-      activeGain.gain.setValueCurveAtTime(scaledOut, now + 0.001, fadeSec)
+      try {
+        activeGain.gain.cancelScheduledValues(0)
+        activeGain.gain.setValueAtTime(oldGainVal, now)
+        activeGain.gain.setValueCurveAtTime(scaledOut, now + 0.001, fadeSec)
+      } catch {
+        // Racing crossfade — force immediate silence
+        activeGain.gain.cancelScheduledValues(0)
+        activeGain.gain.value = 0
+      }
       activeSource.stop(now + fadeSec + 0.05) // frame-accurate stop
 
       // Fade in new source
-      newGain.gain.setValueAtTime(0, now)
-      newGain.gain.setValueCurveAtTime(fadeInCurve, now + 0.001, fadeSec)
+      try {
+        newGain.gain.setValueAtTime(0, now)
+        newGain.gain.setValueCurveAtTime(fadeInCurve, now + 0.001, fadeSec)
+      } catch {
+        newGain.gain.value = 1
+      }
     } else {
       newGain.gain.setValueAtTime(1, now)
     }
