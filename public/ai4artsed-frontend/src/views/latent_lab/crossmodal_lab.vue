@@ -107,10 +107,81 @@
         <button v-if="looper.isPlaying.value" class="stop-btn" @click="looper.stop()">
           {{ t('latentLab.crossmodal.synth.stop') }}
         </button>
+        <button v-if="!looper.isPlaying.value && looper.hasAudio.value" class="play-btn" @click="looper.replay()">
+          {{ t('latentLab.crossmodal.synth.play') }}
+        </button>
       </div>
 
-      <!-- Looper Widget -->
-      <div v-if="looper.isPlaying.value || lastSynthBase64" class="looper-widget">
+      <!-- Dimension Explorer Section (open by default) -->
+      <details class="dim-explorer-section" open>
+        <summary>{{ t('latentLab.crossmodal.synth.dimensions.section') }}</summary>
+        <div class="dim-explorer-content">
+          <p class="dim-hint">{{ t('latentLab.crossmodal.synth.dimensions.hint') }}</p>
+
+          <!-- Spectral Strip Canvas -->
+          <div class="spectral-strip-container">
+            <canvas
+              ref="spectralCanvasRef"
+              class="spectral-canvas"
+              @mousedown="onSpectralMouseDown"
+              @mousemove="onSpectralMouseMove"
+              @mouseup="onSpectralMouseUp"
+              @mouseleave="onSpectralMouseUp"
+              @contextmenu="onSpectralContextMenu"
+              @touchstart="onSpectralTouchStart"
+              @touchmove="onSpectralTouchMove"
+              @touchend="onSpectralTouchEnd"
+            />
+            <div v-if="!embeddingStats?.all_activations" class="spectral-empty">
+              {{ t('latentLab.crossmodal.synth.dimensions.hint') }}
+            </div>
+          </div>
+
+          <!-- Hover info + sort mode -->
+          <div class="dim-info-row">
+            <span v-if="hoveredDim" class="dim-hover-info">
+              d{{ hoveredDim.dim }}:
+              {{ t('latentLab.crossmodal.synth.dimensions.hoverActivation') }}={{ hoveredDim.activation.toFixed(4) }}
+              {{ t('latentLab.crossmodal.synth.dimensions.hoverOffset') }}={{ hoveredDim.offset.toFixed(2) }}
+            </span>
+            <span v-if="embeddingStats?.sort_mode" class="dim-sort-mode">
+              {{ embeddingStats.sort_mode === 'diff'
+                ? t('latentLab.crossmodal.synth.dimensions.sortDiff')
+                : t('latentLab.crossmodal.synth.dimensions.sortMagnitude') }}
+            </span>
+          </div>
+
+          <!-- Controls Row -->
+          <div class="dim-controls-row">
+            <button
+              v-if="activeOffsetCount > 0"
+              class="dim-btn dim-btn-generate"
+              :disabled="generating"
+              @click="runSynth"
+            >
+              {{ t('latentLab.crossmodal.synth.dimensions.applyAndGenerate') }}
+            </button>
+            <button class="dim-btn dim-btn-undo" :disabled="!canUndo" @click="undo" title="Ctrl+Z">
+              {{ t('latentLab.crossmodal.synth.dimensions.undo') }}
+            </button>
+            <button class="dim-btn dim-btn-undo" :disabled="!canRedo" @click="redo" title="Ctrl+Shift+Z">
+              {{ t('latentLab.crossmodal.synth.dimensions.redo') }}
+            </button>
+            <span v-if="activeOffsetCount > 0" class="dim-offset-status">
+              {{ t('latentLab.crossmodal.synth.dimensions.activeOffsets', { count: activeOffsetCount }) }}
+            </span>
+            <button v-if="activeOffsetCount > 0" class="dim-btn dim-btn-reset" @click="resetAllOffsets">
+              {{ t('latentLab.crossmodal.synth.dimensions.resetAll') }}
+            </button>
+            <span class="dim-right-click-hint">
+              {{ t('latentLab.crossmodal.synth.dimensions.rightClickReset') }}
+            </span>
+          </div>
+        </div>
+      </details>
+
+      <!-- Looper Widget (always visible, disabled when no audio) -->
+      <div class="looper-widget" :class="{ disabled: !looper.hasAudio.value }">
         <div class="looper-status">
           <span class="looper-indicator" :class="{ pulsing: looper.isPlaying.value }" />
           <span class="looper-label">
@@ -139,6 +210,7 @@
               max="1"
               step="0.001"
               class="range-start"
+              :disabled="!looper.hasAudio.value"
               @input="onLoopStartInput"
             />
             <input
@@ -148,8 +220,18 @@
               max="1"
               step="0.001"
               class="range-end"
+              :disabled="!looper.hasAudio.value"
               @input="onLoopEndInput"
             />
+          </div>
+          <div class="loop-options">
+            <label class="inline-toggle">
+              <input type="checkbox" :checked="looper.loopOptimize.value" :disabled="!looper.hasAudio.value" @change="onOptimizeChange" />
+              {{ t('latentLab.crossmodal.synth.loopOptimize') }}
+            </label>
+            <span v-if="looper.loopOptimize.value" class="optimized-hint">
+              → {{ (looper.optimizedEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
+            </span>
           </div>
           <span class="slider-hint">{{ t('latentLab.crossmodal.synth.loopIntervalHint') }}</span>
         </div>
@@ -162,9 +244,32 @@
             min="-24"
             max="24"
             step="1"
+            :disabled="!looper.hasAudio.value"
             @input="onTransposeInput"
           />
           <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
+        </div>
+        <div class="transpose-mode-row">
+          <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'rate' }">
+            <input
+              type="radio"
+              value="rate"
+              :checked="looper.transposeMode.value === 'rate'"
+              :disabled="!looper.hasAudio.value"
+              @change="looper.setTransposeMode('rate')"
+            />
+            {{ t('latentLab.crossmodal.synth.modeRate') }}
+          </label>
+          <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'pitch' }">
+            <input
+              type="radio"
+              value="pitch"
+              :checked="looper.transposeMode.value === 'pitch'"
+              :disabled="!looper.hasAudio.value"
+              @change="looper.setTransposeMode('pitch')"
+            />
+            {{ t('latentLab.crossmodal.synth.modePitch') }}
+          </label>
         </div>
         <!-- Crossfade duration -->
         <div class="transpose-row">
@@ -175,16 +280,27 @@
             min="10"
             max="500"
             step="10"
+            :disabled="!looper.hasAudio.value"
             @input="onCrossfadeInput"
           />
           <span class="transpose-value">{{ looper.crossfadeMs.value }}ms</span>
         </div>
+        <!-- Normalize + Peak -->
+        <div class="normalize-row">
+          <label class="normalize-toggle">
+            <input type="checkbox" :checked="looper.normalizeOn.value" :disabled="!looper.hasAudio.value" @change="onNormalizeChange" />
+            {{ t('latentLab.crossmodal.synth.normalize') }}
+          </label>
+          <span v-if="looper.peakAmplitude.value > 0" class="peak-display">
+            {{ t('latentLab.crossmodal.synth.peak') }}: {{ looper.peakAmplitude.value.toFixed(3) }}
+          </span>
+        </div>
         <!-- Save buttons -->
-        <div v-if="looper.hasAudio.value" class="save-row">
-          <button class="save-btn" @click="saveRaw">
+        <div class="save-row">
+          <button class="save-btn" :disabled="!looper.hasAudio.value" @click="saveRaw">
             {{ t('latentLab.crossmodal.synth.saveRaw') }}
           </button>
-          <button class="save-btn" @click="saveLoop">
+          <button class="save-btn" :disabled="!looper.hasAudio.value" @click="saveLoop">
             {{ t('latentLab.crossmodal.synth.saveLoop') }}
           </button>
         </div>
@@ -345,14 +461,14 @@
       </button>
     </div>
 
-    <!-- ===== Output Area ===== -->
-    <div v-if="resultAudio || error || embeddingStats" class="output-area">
+    <!-- ===== Output Area (MMAudio / Guidance only — synth uses looper + explorer) ===== -->
+    <div v-if="error" class="output-area">
+      <div class="error-message">{{ error }}</div>
+    </div>
+    <div v-if="activeTab !== 'synth' && (resultAudio || cosineSimilarity !== null)" class="output-area">
       <h3>{{ t('latentLab.crossmodal.result') }}</h3>
 
-      <div v-if="error" class="error-message">{{ error }}</div>
-
-      <!-- Standard audio player for MMAudio / Guidance tabs -->
-      <div v-if="resultAudio && activeTab !== 'synth'" class="output-audio-container">
+      <div v-if="resultAudio" class="output-audio-container">
         <audio :src="resultAudio" controls class="output-audio" />
       </div>
 
@@ -361,32 +477,12 @@
         <span v-if="generationTimeMs" class="meta-item">{{ t('latentLab.crossmodal.generationTime') }}: {{ generationTimeMs }}ms</span>
         <span v-if="cosineSimilarity !== null" class="meta-item">{{ t('latentLab.crossmodal.guidance.cosineSimilarity') }}: {{ cosineSimilarity.toFixed(4) }}</span>
       </div>
-
-      <!-- Embedding stats (synth only) -->
-      <div v-if="embeddingStats" class="embedding-stats">
-        <h4>{{ t('latentLab.crossmodal.synth.embeddingStats') }}</h4>
-        <div class="stats-grid">
-          <span>Mean: {{ embeddingStats.mean }}</span>
-          <span>Std: {{ embeddingStats.std }}</span>
-        </div>
-        <div v-if="embeddingStats.top_dimensions" class="top-dims">
-          <div
-            v-for="dim in embeddingStats.top_dimensions"
-            :key="dim.dim"
-            class="dim-bar"
-          >
-            <span class="dim-label">d{{ dim.dim }}</span>
-            <div class="dim-fill" :style="{ width: dimBarWidth(dim.value) }" />
-            <span class="dim-value">{{ dim.value }}</span>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAudioLooper } from '@/composables/useAudioLooper'
 import { useWebMidi } from '@/composables/useWebMidi'
@@ -415,6 +511,8 @@ interface EmbeddingStats {
   mean: number
   std: number
   top_dimensions: Array<{ dim: number; value: number }>
+  all_activations?: Array<{ dim: number; value: number }>
+  sort_mode?: string
 }
 const embeddingStats = ref<EmbeddingStats | null>(null)
 
@@ -424,6 +522,9 @@ const imageBase64 = ref('')
 
 // Last synth base64 for replay
 const lastSynthBase64 = ref('')
+
+// Fingerprint of last successful synth generation (prevents redundant GPU calls)
+const lastSynthFingerprint = ref('')
 
 // ===== Audio Looper =====
 const looper = useAudioLooper()
@@ -447,13 +548,15 @@ midi.mapCC(3, (v) => { synth.noise = v })
 // CC64 → Loop toggle (sustain pedal: >0.5 = on)
 midi.mapCC(64, (v) => { looper.setLoop(v > 0.5) })
 
-// MIDI Note → Generate trigger + transpose
+// MIDI Note → Transpose (always) + Generate (only if params changed)
 midi.onNote((note, _velocity, on) => {
   if (!on) return
   const semitones = note - MIDI_REF_NOTE
   looper.setTranspose(semitones)
   if (!generating.value && synth.promptA) {
-    runSynth()
+    if (synthFingerprint() !== lastSynthFingerprint.value) {
+      runSynth()
+    }
   }
 })
 
@@ -491,6 +594,264 @@ const guidance = reactive({
   cfg: 7.0,
   seed: 42,
 })
+
+// ===== Dimension Explorer =====
+const dimensionOffsets = reactive<Record<number, number>>({})
+const spectralCanvasRef = ref<HTMLCanvasElement | null>(null)
+const hoveredDim = ref<{ dim: number; activation: number; offset: number } | null>(null)
+let isDragging = false
+
+// Undo/Redo history (snapshot per paint stroke)
+const MAX_HISTORY = 50
+const undoStack: Record<number, number>[] = []
+const redoStack: Record<number, number>[] = []
+const canUndo = ref(false)
+const canRedo = ref(false)
+
+function snapshotOffsets(): Record<number, number> {
+  return { ...dimensionOffsets }
+}
+
+function restoreOffsets(snapshot: Record<number, number>) {
+  Object.keys(dimensionOffsets).forEach(k => delete dimensionOffsets[Number(k)])
+  Object.assign(dimensionOffsets, snapshot)
+  drawSpectralStrip()
+}
+
+function pushUndo() {
+  undoStack.push(snapshotOffsets())
+  if (undoStack.length > MAX_HISTORY) undoStack.shift()
+  redoStack.length = 0
+  canUndo.value = undoStack.length > 0
+  canRedo.value = false
+}
+
+function undo() {
+  if (!undoStack.length) return
+  redoStack.push(snapshotOffsets())
+  restoreOffsets(undoStack.pop()!)
+  canUndo.value = undoStack.length > 0
+  canRedo.value = redoStack.length > 0
+}
+
+function redo() {
+  if (!redoStack.length) return
+  undoStack.push(snapshotOffsets())
+  restoreOffsets(redoStack.pop()!)
+  canUndo.value = undoStack.length > 0
+  canRedo.value = redoStack.length > 0
+}
+
+const activeOffsetCount = computed(() =>
+  Object.values(dimensionOffsets).filter(v => v !== 0).length
+)
+
+const maxActivation = computed(() => {
+  const acts = embeddingStats.value?.all_activations
+  if (!acts?.length) return 1
+  return Math.max(...acts.map(a => Math.abs(a.value)), 0.001)
+})
+
+function drawSpectralStrip() {
+  const canvas = spectralCanvasRef.value
+  const acts = embeddingStats.value?.all_activations
+  if (!canvas || !acts?.length) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const dpr = window.devicePixelRatio || 1
+  const rect = canvas.getBoundingClientRect()
+  canvas.width = rect.width * dpr
+  canvas.height = rect.height * dpr
+  ctx.scale(dpr, dpr)
+
+  const w = rect.width
+  const h = rect.height
+  const centerY = h / 2
+  const barW = w / acts.length
+  const maxAct = maxActivation.value
+
+  // Clear
+  ctx.clearRect(0, 0, w, h)
+
+  // Zero-line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, centerY)
+  ctx.lineTo(w, centerY)
+  ctx.stroke()
+
+  // Draw bars
+  for (let i = 0; i < acts.length; i++) {
+    const entry = acts[i]!
+    const dim = entry.dim
+    const val = entry.value
+    const x = i * barW
+    const barH = (Math.abs(val) / maxAct) * (centerY - 2)
+
+    // Activation bar (muted green)
+    ctx.fillStyle = 'rgba(76, 175, 80, 0.35)'
+    if (val >= 0) {
+      ctx.fillRect(x, centerY - barH, Math.max(barW - 0.5, 0.5), barH)
+    } else {
+      ctx.fillRect(x, centerY, Math.max(barW - 0.5, 0.5), barH)
+    }
+
+    // Offset overlay (bright green)
+    const offset = dimensionOffsets[dim]
+    if (offset !== undefined && offset !== 0) {
+      const offsetH = (Math.abs(offset) / 3) * (centerY - 2)
+      ctx.fillStyle = 'rgba(102, 187, 106, 0.8)'
+      if (offset > 0) {
+        // Positive offset: draw upward from activation endpoint
+        const startY = val >= 0 ? centerY - barH : centerY
+        ctx.fillRect(x, startY - offsetH, Math.max(barW - 0.5, 0.5), offsetH)
+      } else {
+        // Negative offset: draw downward from activation endpoint
+        const startY = val >= 0 ? centerY : centerY + barH
+        ctx.fillRect(x, startY, Math.max(barW - 0.5, 0.5), offsetH)
+      }
+    }
+  }
+}
+
+function dimAtX(canvas: HTMLCanvasElement, clientX: number): number | null {
+  const acts = embeddingStats.value?.all_activations
+  if (!acts?.length) return null
+  const rect = canvas.getBoundingClientRect()
+  const x = clientX - rect.left
+  const idx = Math.floor(x / (rect.width / acts.length))
+  if (idx < 0 || idx >= acts.length) return null
+  return acts[idx]!.dim
+}
+
+function offsetAtY(canvas: HTMLCanvasElement, clientY: number): number {
+  const rect = canvas.getBoundingClientRect()
+  const centerY = rect.height / 2
+  const y = clientY - rect.top
+  // Drag up (above center) = positive offset, drag down = negative offset
+  const normalized = (centerY - y) / centerY
+  return Math.max(-3, Math.min(3, normalized * 3))
+}
+
+function onSpectralMouseDown(e: MouseEvent) {
+  if (e.button === 2) return // right-click handled by contextmenu
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+  pushUndo()
+  isDragging = true
+  const dim = dimAtX(canvas, e.clientX)
+  if (dim !== null) {
+    const off = offsetAtY(canvas, e.clientY)
+    dimensionOffsets[dim] = off
+    drawSpectralStrip()
+  }
+}
+
+function onSpectralMouseMove(e: MouseEvent) {
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+
+  const acts = embeddingStats.value?.all_activations
+  if (!acts?.length) return
+
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const idx = Math.floor(x / (rect.width / acts.length))
+
+  // Update hover info
+  if (idx >= 0 && idx < acts.length) {
+    const entry = acts[idx]!
+    hoveredDim.value = {
+      dim: entry.dim,
+      activation: entry.value,
+      offset: dimensionOffsets[entry.dim] ?? 0,
+    }
+  } else {
+    hoveredDim.value = null
+  }
+
+  // Paint while dragging
+  if (isDragging) {
+    const dim = dimAtX(canvas, e.clientX)
+    if (dim !== null) {
+      const off = offsetAtY(canvas, e.clientY)
+      dimensionOffsets[dim] = off
+      drawSpectralStrip()
+    }
+  }
+}
+
+function onSpectralMouseUp() {
+  isDragging = false
+  hoveredDim.value = null
+}
+
+function onSpectralContextMenu(e: MouseEvent) {
+  e.preventDefault()
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+  const dim = dimAtX(canvas, e.clientX)
+  if (dim !== null && dim in dimensionOffsets) {
+    pushUndo()
+    delete dimensionOffsets[dim]
+    drawSpectralStrip()
+  }
+}
+
+function onSpectralTouchStart(e: TouchEvent) {
+  const touch = e.touches[0]
+  if (!touch || e.touches.length !== 1) return
+  pushUndo()
+  isDragging = true
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+  const dim = dimAtX(canvas, touch.clientX)
+  if (dim !== null) {
+    dimensionOffsets[dim] = offsetAtY(canvas, touch.clientY)
+    drawSpectralStrip()
+  }
+}
+
+function onSpectralTouchMove(e: TouchEvent) {
+  const touch = e.touches[0]
+  if (!touch || !isDragging || e.touches.length !== 1) return
+  e.preventDefault()
+  const canvas = spectralCanvasRef.value
+  if (!canvas) return
+  const dim = dimAtX(canvas, touch.clientX)
+  if (dim !== null) {
+    dimensionOffsets[dim] = offsetAtY(canvas, touch.clientY)
+    drawSpectralStrip()
+  }
+}
+
+function onSpectralTouchEnd() {
+  isDragging = false
+}
+
+function resetAllOffsets() {
+  pushUndo()
+  Object.keys(dimensionOffsets).forEach(k => delete dimensionOffsets[Number(k)])
+  drawSpectralStrip()
+  runSynth()
+}
+
+// Redraw canvas when stats change
+watch(embeddingStats, () => {
+  nextTick(drawSpectralStrip)
+})
+
+/** Deterministic fingerprint of all generation-affecting synth params */
+function synthFingerprint(): string {
+  return JSON.stringify([
+    synth.promptA, synth.promptB, synth.alpha, synth.magnitude,
+    synth.noise, synth.duration, synth.steps, synth.cfg, synth.seed,
+    dimensionOffsets,
+  ])
+}
 
 function clearResults() {
   error.value = ''
@@ -567,6 +928,14 @@ function onCrossfadeInput(event: Event) {
   looper.setCrossfade(val)
 }
 
+function onNormalizeChange(event: Event) {
+  looper.setNormalize((event.target as HTMLInputElement).checked)
+}
+
+function onOptimizeChange(event: Event) {
+  looper.setLoopOptimize((event.target as HTMLInputElement).checked)
+}
+
 function onMidiInputChange(event: Event) {
   const val = (event.target as HTMLSelectElement).value
   midi.selectInput(val || null)
@@ -613,6 +982,14 @@ async function runSynth() {
     if (synth.promptB.trim()) {
       body.prompt_b = synth.promptB
     }
+    // Add non-zero dimension offsets
+    const nonZeroOffsets: Record<string, number> = {}
+    for (const [k, v] of Object.entries(dimensionOffsets)) {
+      if (v !== 0) nonZeroOffsets[k] = v
+    }
+    if (Object.keys(nonZeroOffsets).length > 0) {
+      body.dimension_offsets = nonZeroOffsets
+    }
 
     const result = await apiPost('/api/cross_aesthetic/synth', body)
     if (result.success) {
@@ -624,6 +1001,7 @@ async function runSynth() {
 
       // Feed into looper (crossfades if already playing)
       await looper.play(result.audio_base64)
+      lastSynthFingerprint.value = synthFingerprint()
     } else {
       error.value = result.error || 'Synth generation failed'
     }
@@ -696,7 +1074,27 @@ async function runGuidance() {
   }
 }
 
+// Ctrl+Z / Ctrl+Shift+Z for dimension offsets undo/redo
+function onKeyDown(e: KeyboardEvent) {
+  if (activeTab.value !== 'synth') return
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault()
+    undo()
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+    e.preventDefault()
+    redo()
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+    e.preventDefault()
+    redo()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeyDown)
+})
+
 onUnmounted(() => {
+  window.removeEventListener('keydown', onKeyDown)
   looper.dispose()
 })
 </script>
@@ -981,6 +1379,21 @@ onUnmounted(() => {
   background: rgba(255, 82, 82, 0.25);
 }
 
+.play-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+}
+
+.play-btn:hover {
+  background: rgba(76, 175, 80, 0.25);
+}
+
 /* Looper widget */
 .looper-widget {
   padding: 1rem;
@@ -988,6 +1401,12 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   margin-bottom: 1rem;
+  transition: opacity 0.2s;
+}
+
+.looper-widget.disabled {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .looper-status {
@@ -1105,6 +1524,72 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
   min-width: 2.5rem;
   text-align: right;
+}
+
+/* Loop options / Transpose mode */
+.loop-options {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+
+.optimized-hint {
+  font-size: 0.7rem;
+  color: #4CAF50;
+  font-variant-numeric: tabular-nums;
+}
+
+.transpose-mode-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.inline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+
+.inline-toggle.active {
+  color: #4CAF50;
+}
+
+.inline-toggle input[type="checkbox"],
+.inline-toggle input[type="radio"] {
+  accent-color: #4CAF50;
+}
+
+/* Normalize row */
+.normalize-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.normalize-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+
+.normalize-toggle input[type="checkbox"] {
+  accent-color: #4CAF50;
+}
+
+.peak-display {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Save buttons */
@@ -1304,5 +1789,163 @@ onUnmounted(() => {
   font-size: 0.6rem;
   color: rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
+}
+
+/* Dimension Explorer */
+.dim-explorer-section {
+  margin-top: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.6rem;
+}
+
+.dim-explorer-section summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.dim-explorer-content {
+  margin-top: 0.6rem;
+}
+
+.dim-hint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 0.5rem;
+}
+
+.spectral-strip-container {
+  position: relative;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.spectral-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  display: block;
+}
+
+.spectral-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+
+.dim-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 1.2rem;
+  margin-top: 0.3rem;
+  padding: 0 0.2rem;
+}
+
+.dim-hover-info {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+}
+
+.dim-sort-mode {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.dim-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dim-control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dim-control-group label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.dim-topn-input {
+  width: 3rem;
+  padding: 0.2rem 0.3rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.dim-btn {
+  padding: 0.25rem 0.6rem;
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  color: #4CAF50;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dim-btn:hover {
+  background: rgba(76, 175, 80, 0.25);
+}
+
+.dim-btn-reset {
+  background: rgba(255, 152, 0, 0.1);
+  border-color: rgba(255, 152, 0, 0.3);
+  color: #FF9800;
+}
+
+.dim-btn-reset:hover {
+  background: rgba(255, 152, 0, 0.2);
+}
+
+.dim-btn-generate {
+  background: rgba(76, 175, 80, 0.25);
+  border-color: rgba(76, 175, 80, 0.5);
+  font-weight: 500;
+}
+
+.dim-btn-generate:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.4);
+}
+
+.dim-btn-generate:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dim-btn-undo:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.dim-offset-status {
+  font-size: 0.7rem;
+  color: #4CAF50;
+  font-variant-numeric: tabular-nums;
+}
+
+.dim-right-click-hint {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.2);
+  margin-left: auto;
 }
 </style>
