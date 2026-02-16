@@ -42,6 +42,7 @@ def create_app():
     from routes.text_routes import text_bp
     from routes.stable_audio_routes import stable_audio_bp
     from routes.cross_aesthetic_routes import cross_aesthetic_bp
+    from routes.mmaudio_routes import mmaudio_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(diffusers_bp)
@@ -49,6 +50,7 @@ def create_app():
     app.register_blueprint(text_bp)
     app.register_blueprint(stable_audio_bp)
     app.register_blueprint(cross_aesthetic_bp)
+    app.register_blueprint(mmaudio_bp)
 
     logger.info("[GPU-SERVICE] Flask app created with all route blueprints")
     return app

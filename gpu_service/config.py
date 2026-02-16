@@ -51,9 +51,18 @@ STABLE_AUDIO_LAZY_LOAD = os.environ.get("STABLE_AUDIO_LAZY_LOAD", "true").lower(
 STABLE_AUDIO_MAX_DURATION = 47.55  # seconds (model maximum)
 STABLE_AUDIO_SAMPLE_RATE = 44100
 
-# --- Cross-Aesthetic ---
+# --- Crossmodal Lab ---
 CROSS_AESTHETIC_ENABLED = os.environ.get("CROSS_AESTHETIC_ENABLED", "true").lower() == "true"
 CLIP_VISION_MODEL_ID = os.environ.get("CLIP_VISION_MODEL_ID", "openai/clip-vit-large-patch14")
+
+# ImageBind (gradient guidance)
+IMAGEBIND_ENABLED = os.environ.get("IMAGEBIND_ENABLED", "true").lower() == "true"
+IMAGEBIND_MODEL_ID = os.environ.get("IMAGEBIND_MODEL_ID", "facebook/imagebind-huge")
+
+# MMAudio (CVPR 2025 Video-to-Audio)
+MMAUDIO_ENABLED = os.environ.get("MMAUDIO_ENABLED", "true").lower() == "true"
+MMAUDIO_MODEL = os.environ.get("MMAUDIO_MODEL", "large_44k_v2")
+MMAUDIO_REPO = os.environ.get("MMAUDIO_REPO", str(_AI_TOOLS_BASE / "MMAudio"))
 
 # --- Text/LLM (Latent Text Lab) ---
 TEXT_ENABLED = os.environ.get("TEXT_ENABLED", "true").lower() == "true"

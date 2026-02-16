@@ -841,35 +841,93 @@ const messages = {
         }
       },
       crossmodal: {
-        headerTitle: 'Crossmodal Lab — Modalitaetsindifferenz',
-        headerSubtitle: 'Bild und Klang durch gemeinsame latente Raeume verbinden',
-        imageUpload: 'Bild hochladen',
-        prompt: 'Prompt',
-        duration: 'Dauer (s)',
-        steps: 'Schritte',
-        cfg: 'CFG',
-        direction: 'Richtung',
-        imageToAudio: 'Bild zu Audio',
-        audioToImage: 'Audio zu Bild',
+        headerTitle: 'Crossmodal Lab',
+        headerSubtitle: 'Klang aus latenten Raeumen: T5-Embedding-Manipulation, bildgesteuerte Audiogenerierung, crossmodaler Transfer',
         generate: 'Generieren',
         generating: 'Generiere...',
         result: 'Ergebnis',
-        strategies: {
-          a: {
-            short: 'CLIP Bild als Audio-Konditionierung',
-            title: 'Strategie A: Bild zu Audio',
-            description: 'CLIP-Bildmerkmale werden direkt als Stable Audio-Konditionierung injiziert. Die Vision-Features (1024d) werden auf 768d projiziert, um die T5-Base-Dimension zu matchen.'
+        seed: 'Seed',
+        generationTime: 'Generierungszeit',
+        tabs: {
+          synth: {
+            label: 'Latent Audio Synth',
+            short: 'T5-Embedding-Manipulation',
+            title: 'Latent Audio Synth',
+            description: 'Direkte Manipulation des T5-Conditioning-Raums (768d) fuer Stable Audio. Interpoliere zwischen Prompts, extrapoliere ueber den Prompt hinaus, skaliere Embeddings und injiziere Rauschen. Ultra-kurze Loops, nahezu Echtzeit.'
           },
-          b: {
-            short: 'Gemeinsamer Noise-Seed',
-            title: 'Strategie B: Gemeinsamer Noise-Seed',
-            description: 'Gleicher Zufalls-Seed erzeugt Bild und Audio aus identischem Rauschen. Dieselbe Zufallsinitialisierung, interpretiert durch zwei verschiedene gelernte Dynamiken.'
+          mmaudio: {
+            label: 'MMAudio',
+            short: 'Bild/Text zu Audio (CVPR 2025)',
+            title: 'MMAudio — Video/Image to Audio',
+            description: 'MMAudio (CVPR 2025) ist ein dediziertes crossmodales Modell, das auf beiden Modalitaeten trainiert wurde. 157M Parameter, generiert 8s Audio in ~1.2s. Genuiner crossmodaler Transfer statt naive Feature-Projektion.'
           },
-          c: {
-            short: 'Latent Cross-Decoding',
-            title: 'Strategie C: Latent Cross-Decoding',
-            description: 'Latente Repraesentation eines Modells wird vom VAE des anderen Modells decodiert. Erzwingt eine Neuinterpretation — Ergebnisse sind absichtlich chaotisch/glitchy.'
+          guidance: {
+            label: 'ImageBind Guidance',
+            short: 'Gradientenbasierte Bildsteuerung',
+            title: 'ImageBind Gradient Guidance',
+            description: 'Gradient-basierte Steuerung waehrend des Stable Audio Denoising-Prozesses. ImageBind liefert einen gemeinsamen 1024d-Raum fuer Bild und Audio — der Gradient der Cosine-Similarity lenkt die Audiogenerierung in Richtung des Bild-Embeddings.'
           }
+        },
+        synth: {
+          promptA: 'Prompt A (Basis)',
+          promptAPlaceholder: 'z.B. Meereswellen',
+          promptB: 'Prompt B (Optional, fuer Interpolation)',
+          promptBPlaceholder: 'z.B. Klaviermelodie',
+          alpha: 'Alpha (Interpolation)',
+          alphaHint: '0 = nur A, 1 = nur B, dazwischen = Mischung, >1 oder <0 = Extrapolation',
+          magnitude: 'Magnitude (Skalierung)',
+          magnitudeHint: 'Globale Skalierung des Embeddings (1.0 = unveraendert)',
+          noise: 'Rauschen',
+          noiseHint: 'Gauss-Rauschen auf dem Embedding (0 = kein Rauschen)',
+          duration: 'Dauer (s)',
+          steps: 'Schritte',
+          cfg: 'CFG',
+          loop: 'Loop-Wiedergabe',
+          loopOn: 'Loop An',
+          loopOff: 'Loop Aus',
+          stop: 'Stop',
+          looping: 'Loopt',
+          playing: 'Spielt',
+          stopped: 'Gestoppt',
+          transpose: 'Transposition (Halbtoene)',
+          midiSection: 'MIDI-Steuerung',
+          midiUnsupported: 'Web MIDI wird von diesem Browser nicht unterstuetzt.',
+          midiInput: 'MIDI-Eingang',
+          midiNone: '(keiner)',
+          midiMappings: 'CC-Zuordnungen',
+          midiNoteC3: 'Note (C3 = Ref)',
+          midiGenerate: 'Generieren + Transposition',
+          midiPitch: 'Tonhoehe rel. C3',
+          loopInterval: 'Loop-Intervall',
+          loopIntervalHint: 'Start/Ende des Loop-Bereichs — verkuerze das Ende, um Stable Audios Fade-Out abzuschneiden',
+          crossfade: 'Crossfade',
+          saveRaw: 'Raw speichern',
+          saveLoop: 'Loop speichern',
+          embeddingStats: 'Embedding-Statistiken'
+        },
+        mmaudio: {
+          imageUpload: 'Bild hochladen',
+          prompt: 'Text-Prompt',
+          promptPlaceholder: 'z.B. Knisterndes Lagerfeuer',
+          negativePrompt: 'Negativ-Prompt',
+          duration: 'Dauer (s)',
+          maxDuration: 'Max 8s (Modell-Limit)',
+          cfg: 'CFG',
+          steps: 'Schritte',
+          compareHint: 'Vergleiche: Nur Text vs. Bild + Text'
+        },
+        guidance: {
+          imageUpload: 'Bild hochladen',
+          prompt: 'Basis-Prompt (optional)',
+          promptPlaceholder: 'z.B. Umgebungsklanglandschaft',
+          lambda: 'Guidance-Staerke',
+          lambdaHint: 'Wie stark das Bild die Audiogenerierung steuert',
+          warmupSteps: 'Warmup-Schritte',
+          warmupHint: 'Gradient-Guidance nur in den ersten N Schritten',
+          totalSteps: 'Gesamt-Schritte',
+          duration: 'Dauer (s)',
+          cfg: 'CFG',
+          cosineSimilarity: 'Cosine-Similarity (Bild-Audio-Naehe)'
         }
       }
     },
@@ -1818,35 +1876,93 @@ const messages = {
         }
       },
       crossmodal: {
-        headerTitle: 'Crossmodal Lab — Modality Indifference',
-        headerSubtitle: 'Connecting image and sound through shared latent spaces',
-        imageUpload: 'Upload image',
-        prompt: 'Prompt',
-        duration: 'Duration (s)',
-        steps: 'Steps',
-        cfg: 'CFG',
-        direction: 'Direction',
-        imageToAudio: 'Image to Audio',
-        audioToImage: 'Audio to Image',
+        headerTitle: 'Crossmodal Lab',
+        headerSubtitle: 'Sound from latent spaces: T5 embedding manipulation, image-guided audio generation, crossmodal transfer',
         generate: 'Generate',
         generating: 'Generating...',
         result: 'Result',
-        strategies: {
-          a: {
-            short: 'CLIP image as audio conditioning',
-            title: 'Strategy A: Image to Audio',
-            description: 'CLIP image features are injected directly as Stable Audio conditioning. Vision features (1024d) are projected to 768d to match T5-Base dimension.'
+        seed: 'Seed',
+        generationTime: 'Generation time',
+        tabs: {
+          synth: {
+            label: 'Latent Audio Synth',
+            short: 'T5 embedding manipulation',
+            title: 'Latent Audio Synth',
+            description: 'Direct manipulation of Stable Audio\'s T5 conditioning space (768d). Interpolate between prompts, extrapolate beyond the prompt, scale embeddings and inject noise. Ultra-short loops, near real-time.'
           },
-          b: {
-            short: 'Shared noise seed',
-            title: 'Strategy B: Shared Noise Seed',
-            description: 'Same random seed generates image and audio from identical noise. Same random initialization, interpreted by two different learned dynamics.'
+          mmaudio: {
+            label: 'MMAudio',
+            short: 'Image/text to audio (CVPR 2025)',
+            title: 'MMAudio — Video/Image to Audio',
+            description: 'MMAudio (CVPR 2025) is a dedicated crossmodal model trained on both modalities. 157M parameters, generates 8s audio in ~1.2s. Genuine crossmodal transfer instead of naive feature projection.'
           },
-          c: {
-            short: 'Latent cross-decoding',
-            title: 'Strategy C: Latent Cross-Decoding',
-            description: 'Latent representation from one model decoded by the other model\'s VAE. Forces reinterpretation — results are intentionally chaotic/glitchy.'
+          guidance: {
+            label: 'ImageBind Guidance',
+            short: 'Gradient-based image guidance',
+            title: 'ImageBind Gradient Guidance',
+            description: 'Gradient-based steering during the Stable Audio denoising process. ImageBind provides a shared 1024d space for image and audio — the gradient of the cosine similarity guides audio generation towards the image embedding.'
           }
+        },
+        synth: {
+          promptA: 'Prompt A (Base)',
+          promptAPlaceholder: 'e.g. ocean waves',
+          promptB: 'Prompt B (Optional, for interpolation)',
+          promptBPlaceholder: 'e.g. piano melody',
+          alpha: 'Alpha (Interpolation)',
+          alphaHint: '0 = A only, 1 = B only, between = blend, >1 or <0 = extrapolation',
+          magnitude: 'Magnitude (Scaling)',
+          magnitudeHint: 'Global embedding scaling (1.0 = unchanged)',
+          noise: 'Noise',
+          noiseHint: 'Gaussian noise on embedding (0 = no noise)',
+          duration: 'Duration (s)',
+          steps: 'Steps',
+          cfg: 'CFG',
+          loop: 'Loop playback',
+          loopOn: 'Loop On',
+          loopOff: 'Loop Off',
+          stop: 'Stop',
+          looping: 'Looping',
+          playing: 'Playing',
+          stopped: 'Stopped',
+          transpose: 'Transpose (semitones)',
+          midiSection: 'MIDI Control',
+          midiUnsupported: 'Web MIDI is not supported by this browser.',
+          midiInput: 'MIDI Input',
+          midiNone: '(none)',
+          midiMappings: 'CC Mappings',
+          midiNoteC3: 'Note (C3 = Ref)',
+          midiGenerate: 'Generate + Transpose',
+          midiPitch: 'Pitch rel. C3',
+          loopInterval: 'Loop interval',
+          loopIntervalHint: 'Start/end of loop region — shorten end to trim Stable Audio fade-out',
+          crossfade: 'Crossfade',
+          saveRaw: 'Save raw',
+          saveLoop: 'Save loop',
+          embeddingStats: 'Embedding statistics'
+        },
+        mmaudio: {
+          imageUpload: 'Upload image',
+          prompt: 'Text prompt',
+          promptPlaceholder: 'e.g. crackling campfire',
+          negativePrompt: 'Negative prompt',
+          duration: 'Duration (s)',
+          maxDuration: 'Max 8s (model limit)',
+          cfg: 'CFG',
+          steps: 'Steps',
+          compareHint: 'Compare: Text only vs. Image + Text'
+        },
+        guidance: {
+          imageUpload: 'Upload image',
+          prompt: 'Base prompt (optional)',
+          promptPlaceholder: 'e.g. ambient soundscape',
+          lambda: 'Guidance strength',
+          lambdaHint: 'How strongly the image steers audio generation',
+          warmupSteps: 'Warmup steps',
+          warmupHint: 'Gradient guidance only during first N steps',
+          totalSteps: 'Total steps',
+          duration: 'Duration (s)',
+          cfg: 'CFG',
+          cosineSimilarity: 'Cosine similarity (image-audio proximity)'
         }
       }
     },

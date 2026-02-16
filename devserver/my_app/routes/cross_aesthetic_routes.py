@@ -1,14 +1,14 @@
 """
 Cross-Aesthetic Routes — DevServer proxy to GPU service
 
-Session 177: Thin JSON proxy for cross-aesthetic generation experiments.
-Frontend calls /api/cross_aesthetic/* → DevServer → GPU service (port 17803).
+Crossmodal Lab v2: Thin JSON proxy for crossmodal generation experiments.
+Frontend calls /api/cross_aesthetic/* -> DevServer -> GPU service (port 17803).
 
 Endpoints:
-- GET  /api/cross_aesthetic/available     - Health check
-- POST /api/cross_aesthetic/image_to_audio - Strategy A: CLIP image → audio
-- POST /api/cross_aesthetic/shared_seed    - Strategy B: Same noise seed
-- POST /api/cross_aesthetic/cross_decode   - Strategy C: Latent cross-decoding
+- GET  /api/cross_aesthetic/available          - Health check + backend status
+- POST /api/cross_aesthetic/synth              - Latent Audio Synth
+- POST /api/cross_aesthetic/image_guided_audio - ImageBind gradient guidance
+- POST /api/cross_aesthetic/mmaudio            - MMAudio image/text to audio
 """
 
 import logging
@@ -55,16 +55,16 @@ def available():
     return _proxy_get('/api/cross_aesthetic/available')
 
 
-@cross_aesthetic_bp.route('/image_to_audio', methods=['POST'])
-def image_to_audio():
-    return _proxy_post('/api/cross_aesthetic/image_to_audio')
+@cross_aesthetic_bp.route('/synth', methods=['POST'])
+def synth():
+    return _proxy_post('/api/cross_aesthetic/synth')
 
 
-@cross_aesthetic_bp.route('/shared_seed', methods=['POST'])
-def shared_seed():
-    return _proxy_post('/api/cross_aesthetic/shared_seed')
+@cross_aesthetic_bp.route('/image_guided_audio', methods=['POST'])
+def image_guided_audio():
+    return _proxy_post('/api/cross_aesthetic/image_guided_audio')
 
 
-@cross_aesthetic_bp.route('/cross_decode', methods=['POST'])
-def cross_decode():
-    return _proxy_post('/api/cross_aesthetic/cross_decode')
+@cross_aesthetic_bp.route('/mmaudio', methods=['POST'])
+def mmaudio():
+    return _proxy_post('/api/cross_aesthetic/mmaudio')
