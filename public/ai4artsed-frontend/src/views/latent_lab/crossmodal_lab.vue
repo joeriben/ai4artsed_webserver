@@ -112,126 +112,6 @@
         </button>
       </div>
 
-      <!-- Looper Widget -->
-      <div v-if="looper.isPlaying.value || lastSynthBase64" class="looper-widget">
-        <div class="looper-status">
-          <span class="looper-indicator" :class="{ pulsing: looper.isPlaying.value }" />
-          <span class="looper-label">
-            {{ looper.isPlaying.value
-              ? (looper.isLooping.value ? t('latentLab.crossmodal.synth.looping') : t('latentLab.crossmodal.synth.playing'))
-              : t('latentLab.crossmodal.synth.stopped') }}
-          </span>
-          <span v-if="looper.bufferDuration.value > 0" class="looper-duration">
-            {{ looper.bufferDuration.value.toFixed(2) }}s
-          </span>
-        </div>
-        <!-- Loop Interval -->
-        <div class="loop-interval">
-          <div class="slider-header">
-            <label>{{ t('latentLab.crossmodal.synth.loopInterval') }}</label>
-            <span class="slider-value">
-              {{ (looper.loopStartFrac.value * looper.bufferDuration.value).toFixed(3) }}s
-              – {{ (looper.loopEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
-            </span>
-          </div>
-          <div class="dual-range">
-            <input
-              type="range"
-              :value="looper.loopStartFrac.value"
-              min="0"
-              max="1"
-              step="0.001"
-              class="range-start"
-              @input="onLoopStartInput"
-            />
-            <input
-              type="range"
-              :value="looper.loopEndFrac.value"
-              min="0"
-              max="1"
-              step="0.001"
-              class="range-end"
-              @input="onLoopEndInput"
-            />
-          </div>
-          <div class="loop-options">
-            <label class="inline-toggle">
-              <input type="checkbox" :checked="looper.loopOptimize.value" @change="onOptimizeChange" />
-              {{ t('latentLab.crossmodal.synth.loopOptimize') }}
-            </label>
-            <span v-if="looper.loopOptimize.value" class="optimized-hint">
-              → {{ (looper.optimizedEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
-            </span>
-          </div>
-          <span class="slider-hint">{{ t('latentLab.crossmodal.synth.loopIntervalHint') }}</span>
-        </div>
-        <!-- Transpose -->
-        <div class="transpose-row">
-          <label>{{ t('latentLab.crossmodal.synth.transpose') }}</label>
-          <input
-            type="range"
-            :value="looper.transposeSemitones.value"
-            min="-24"
-            max="24"
-            step="1"
-            @input="onTransposeInput"
-          />
-          <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
-        </div>
-        <div class="transpose-mode-row">
-          <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'rate' }">
-            <input
-              type="radio"
-              value="rate"
-              :checked="looper.transposeMode.value === 'rate'"
-              @change="looper.setTransposeMode('rate')"
-            />
-            {{ t('latentLab.crossmodal.synth.modeRate') }}
-          </label>
-          <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'pitch' }">
-            <input
-              type="radio"
-              value="pitch"
-              :checked="looper.transposeMode.value === 'pitch'"
-              @change="looper.setTransposeMode('pitch')"
-            />
-            {{ t('latentLab.crossmodal.synth.modePitch') }}
-          </label>
-        </div>
-        <!-- Crossfade duration -->
-        <div class="transpose-row">
-          <label>{{ t('latentLab.crossmodal.synth.crossfade') }}</label>
-          <input
-            type="range"
-            :value="looper.crossfadeMs.value"
-            min="10"
-            max="500"
-            step="10"
-            @input="onCrossfadeInput"
-          />
-          <span class="transpose-value">{{ looper.crossfadeMs.value }}ms</span>
-        </div>
-        <!-- Normalize + Peak -->
-        <div class="normalize-row">
-          <label class="normalize-toggle">
-            <input type="checkbox" :checked="looper.normalizeOn.value" @change="onNormalizeChange" />
-            {{ t('latentLab.crossmodal.synth.normalize') }}
-          </label>
-          <span v-if="looper.peakAmplitude.value > 0" class="peak-display">
-            {{ t('latentLab.crossmodal.synth.peak') }}: {{ looper.peakAmplitude.value.toFixed(3) }}
-          </span>
-        </div>
-        <!-- Save buttons -->
-        <div v-if="looper.hasAudio.value" class="save-row">
-          <button class="save-btn" @click="saveRaw">
-            {{ t('latentLab.crossmodal.synth.saveRaw') }}
-          </button>
-          <button class="save-btn" @click="saveLoop">
-            {{ t('latentLab.crossmodal.synth.saveLoop') }}
-          </button>
-        </div>
-      </div>
-
       <!-- Dimension Explorer Section (open by default) -->
       <details class="dim-explorer-section" open>
         <summary>{{ t('latentLab.crossmodal.synth.dimensions.section') }}</summary>
@@ -293,6 +173,132 @@
           </div>
         </div>
       </details>
+
+      <!-- Looper Widget (always visible, disabled when no audio) -->
+      <div class="looper-widget" :class="{ disabled: !looper.hasAudio.value }">
+        <div class="looper-status">
+          <span class="looper-indicator" :class="{ pulsing: looper.isPlaying.value }" />
+          <span class="looper-label">
+            {{ looper.isPlaying.value
+              ? (looper.isLooping.value ? t('latentLab.crossmodal.synth.looping') : t('latentLab.crossmodal.synth.playing'))
+              : t('latentLab.crossmodal.synth.stopped') }}
+          </span>
+          <span v-if="looper.bufferDuration.value > 0" class="looper-duration">
+            {{ looper.bufferDuration.value.toFixed(2) }}s
+          </span>
+        </div>
+        <!-- Loop Interval -->
+        <div class="loop-interval">
+          <div class="slider-header">
+            <label>{{ t('latentLab.crossmodal.synth.loopInterval') }}</label>
+            <span class="slider-value">
+              {{ (looper.loopStartFrac.value * looper.bufferDuration.value).toFixed(3) }}s
+              – {{ (looper.loopEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
+            </span>
+          </div>
+          <div class="dual-range">
+            <input
+              type="range"
+              :value="looper.loopStartFrac.value"
+              min="0"
+              max="1"
+              step="0.001"
+              class="range-start"
+              :disabled="!looper.hasAudio.value"
+              @input="onLoopStartInput"
+            />
+            <input
+              type="range"
+              :value="looper.loopEndFrac.value"
+              min="0"
+              max="1"
+              step="0.001"
+              class="range-end"
+              :disabled="!looper.hasAudio.value"
+              @input="onLoopEndInput"
+            />
+          </div>
+          <div class="loop-options">
+            <label class="inline-toggle">
+              <input type="checkbox" :checked="looper.loopOptimize.value" :disabled="!looper.hasAudio.value" @change="onOptimizeChange" />
+              {{ t('latentLab.crossmodal.synth.loopOptimize') }}
+            </label>
+            <span v-if="looper.loopOptimize.value" class="optimized-hint">
+              → {{ (looper.optimizedEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
+            </span>
+          </div>
+          <span class="slider-hint">{{ t('latentLab.crossmodal.synth.loopIntervalHint') }}</span>
+        </div>
+        <!-- Transpose -->
+        <div class="transpose-row">
+          <label>{{ t('latentLab.crossmodal.synth.transpose') }}</label>
+          <input
+            type="range"
+            :value="looper.transposeSemitones.value"
+            min="-24"
+            max="24"
+            step="1"
+            :disabled="!looper.hasAudio.value"
+            @input="onTransposeInput"
+          />
+          <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
+        </div>
+        <div class="transpose-mode-row">
+          <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'rate' }">
+            <input
+              type="radio"
+              value="rate"
+              :checked="looper.transposeMode.value === 'rate'"
+              :disabled="!looper.hasAudio.value"
+              @change="looper.setTransposeMode('rate')"
+            />
+            {{ t('latentLab.crossmodal.synth.modeRate') }}
+          </label>
+          <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'pitch' }">
+            <input
+              type="radio"
+              value="pitch"
+              :checked="looper.transposeMode.value === 'pitch'"
+              :disabled="!looper.hasAudio.value"
+              @change="looper.setTransposeMode('pitch')"
+            />
+            {{ t('latentLab.crossmodal.synth.modePitch') }}
+          </label>
+        </div>
+        <!-- Crossfade duration -->
+        <div class="transpose-row">
+          <label>{{ t('latentLab.crossmodal.synth.crossfade') }}</label>
+          <input
+            type="range"
+            :value="looper.crossfadeMs.value"
+            min="10"
+            max="500"
+            step="10"
+            :disabled="!looper.hasAudio.value"
+            @input="onCrossfadeInput"
+          />
+          <span class="transpose-value">{{ looper.crossfadeMs.value }}ms</span>
+        </div>
+        <!-- Normalize + Peak -->
+        <div class="normalize-row">
+          <label class="normalize-toggle">
+            <input type="checkbox" :checked="looper.normalizeOn.value" :disabled="!looper.hasAudio.value" @change="onNormalizeChange" />
+            {{ t('latentLab.crossmodal.synth.normalize') }}
+          </label>
+          <span v-if="looper.peakAmplitude.value > 0" class="peak-display">
+            {{ t('latentLab.crossmodal.synth.peak') }}: {{ looper.peakAmplitude.value.toFixed(3) }}
+          </span>
+        </div>
+        <!-- Save buttons -->
+        <div class="save-row">
+          <button class="save-btn" :disabled="!looper.hasAudio.value" @click="saveRaw">
+            {{ t('latentLab.crossmodal.synth.saveRaw') }}
+          </button>
+          <button class="save-btn" :disabled="!looper.hasAudio.value" @click="saveLoop">
+            {{ t('latentLab.crossmodal.synth.saveLoop') }}
+          </button>
+        </div>
+      </div>
 
       <!-- MIDI Section (collapsed by default) -->
       <details class="midi-section">
@@ -449,41 +455,21 @@
       </button>
     </div>
 
-    <!-- ===== Output Area ===== -->
-    <div v-if="resultAudio || error || embeddingStats" class="output-area">
+    <!-- ===== Output Area (MMAudio / Guidance only — synth uses looper + explorer) ===== -->
+    <div v-if="error" class="output-area">
+      <div class="error-message">{{ error }}</div>
+    </div>
+    <div v-if="activeTab !== 'synth' && (resultAudio || cosineSimilarity !== null)" class="output-area">
       <h3>{{ t('latentLab.crossmodal.result') }}</h3>
 
-      <div v-if="error" class="error-message">{{ error }}</div>
-
-      <!-- Standard audio player for MMAudio / Guidance tabs -->
-      <div v-if="resultAudio && activeTab !== 'synth'" class="output-audio-container">
+      <div v-if="resultAudio" class="output-audio-container">
         <audio :src="resultAudio" controls class="output-audio" />
       </div>
 
       <div class="result-meta">
-        <span v-if="resultSeed !== null && activeTab !== 'synth'" class="meta-item">{{ t('latentLab.crossmodal.seed') }}: {{ resultSeed }}</span>
+        <span v-if="resultSeed !== null" class="meta-item">{{ t('latentLab.crossmodal.seed') }}: {{ resultSeed }}</span>
         <span v-if="generationTimeMs" class="meta-item">{{ t('latentLab.crossmodal.generationTime') }}: {{ generationTimeMs }}ms</span>
         <span v-if="cosineSimilarity !== null" class="meta-item">{{ t('latentLab.crossmodal.guidance.cosineSimilarity') }}: {{ cosineSimilarity.toFixed(4) }}</span>
-      </div>
-
-      <!-- Embedding stats (synth only) -->
-      <div v-if="embeddingStats" class="embedding-stats">
-        <h4>{{ t('latentLab.crossmodal.synth.embeddingStats') }}</h4>
-        <div class="stats-grid">
-          <span>Mean: {{ embeddingStats.mean }}</span>
-          <span>Std: {{ embeddingStats.std }}</span>
-        </div>
-        <div v-if="embeddingStats.top_dimensions" class="top-dims">
-          <div
-            v-for="dim in embeddingStats.top_dimensions"
-            :key="dim.dim"
-            class="dim-bar"
-          >
-            <span class="dim-label">d{{ dim.dim }}</span>
-            <div class="dim-fill" :style="{ width: dimBarWidth(dim.value) }" />
-            <span class="dim-value">{{ dim.value }}</span>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -1344,6 +1330,12 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   margin-bottom: 1rem;
+  transition: opacity 0.2s;
+}
+
+.looper-widget.disabled {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .looper-status {
