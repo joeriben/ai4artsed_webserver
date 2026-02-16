@@ -184,7 +184,7 @@ function applyLoopProcessing(
 function olaPitchShift(input: Float32Array, semitones: number): Float32Array {
   if (semitones === 0) return input
   const rate = Math.pow(2, semitones / 12)
-  const alpha = 1 / rate // time stretch factor
+  const alpha = rate // stretch longer → resample to original length → higher pitch
   const analysisHop = Math.floor(OLA_GRAIN_SIZE / OLA_OVERLAP)
   const synthesisHop = Math.max(1, Math.round(analysisHop * alpha))
   const inputLen = input.length
@@ -366,7 +366,7 @@ export function useAudioLooper() {
     const ac = ensureContext()
     const [ls, le] = loopBoundsSamples(originalBuffer)
     const { buffer: loopProcessed, optimizedEnd } =
-      applyLoopProcessing(ac, originalBuffer, ls, le, loopOptimize.value)
+      applyLoopProcessing(ac, originalBuffer, ls, le, loopOptimize.value, crossfadeMs.value)
     optimizedEndFrac.value = optimizedEnd / originalBuffer.length
     buildPitchCacheAsync(ac, loopProcessed, pitchCacheGeneration)
   }
