@@ -137,149 +137,133 @@ AI4ArtsEd implements **direct user manipulation of individual embedding dimensio
 
 #### 1. Dimension Difference Analysis (Feature Probing)
 
-**File:** `devserver/my_app/services/embedding_analyzer.py:23-54`
+**File:** `gpu_service/services/embedding_analyzer.py:15-59`
 
 ```python
-def compute_dimension_differences(embed_a, embed_b, encoder_name):
-    """
-    Compute per-dimension absolute difference between two embeddings.
+def compute_dimension_differences(embed_a: Tensor, embed_b: Tensor) -> dict:
+    """Per-dimension absolute difference, averaged across token positions.
+
+    Returns ALL dimensions sorted by magnitude (no arbitrary top-k cutoff).
 
     Args:
-        embed_a: [1, seq_len, dim] (e.g., CLIP-L: [1, 77, 768])
-        embed_b: [1, seq_len, dim]
-        encoder_name: 'clip_l', 'clip_g', 't5', or 'all'
+        embed_a: [1, seq_len, embed_dim] embedding from prompt A
+        embed_b: [1, seq_len, embed_dim] embedding from prompt B
 
     Returns:
-        diff_per_dim: [dim] — absolute difference averaged over tokens
-        top_dims: [N] — dimensions sorted by magnitude (descending)
+        dict with diff_per_dim, top_dims, top_values, embed_dim, total_l2, nonzero_dims
     """
-    # Average over sequence dimension (collapse tokens)
-    mean_a = torch.mean(embed_a, dim=1)  # [1, dim]
-    mean_b = torch.mean(embed_b, dim=1)  # [1, dim]
+    # Average absolute difference across token positions
+    diff = (embed_b - embed_a).abs().mean(dim=1).squeeze(0)  # [embed_dim]
+    total_l2 = (embed_b - embed_a).norm(p=2).item()
 
-    # Absolute difference per dimension
-    diff_per_dim = torch.abs(mean_b - mean_a).squeeze(0)  # [dim]
+    # Sort ALL dimensions by magnitude — no arbitrary cutoff
+    top = torch.topk(diff, k=diff.shape[0])
 
-    # Sort dimensions by discriminative power
-    top_dims = torch.argsort(diff_per_dim, descending=True)
-
-    return diff_per_dim, top_dims
+    return {
+        'diff_per_dim': diff.cpu().tolist(),
+        'top_dims': top.indices.cpu().tolist(),
+        'top_values': top.values.cpu().tolist(),
+        'embed_dim': diff.shape[0],
+        'total_l2': total_l2,
+        'nonzero_dims': int((diff > 1e-6).sum().item()),
+    }
 ```
 
 **Innovation:** No classifier training (unlike Belinkov 2022); direct difference is the signal.
 
 #### 2. Dimension Transfer (Feature Probing Phase 2)
 
-**File:** `devserver/my_app/services/embedding_analyzer.py:56-82`
+**File:** `gpu_service/services/embedding_analyzer.py:62-87`
 
 ```python
-def apply_dimension_transfer(embed_a, embed_b, transfer_dims):
-    """
-    Copy selected dimensions from embed_b into embed_a.
+def apply_dimension_transfer(embed_a: Tensor, embed_b: Tensor, dims: list) -> Tensor:
+    """Copy specific dimensions from embed_b into embed_a.
 
     Args:
-        embed_a: [1, seq_len, dim] — base embedding
-        embed_b: [1, seq_len, dim] — source embedding
-        transfer_dims: List[int] — dimensions to transfer
+        embed_a: [1, seq_len, embed_dim] base embedding
+        embed_b: [1, seq_len, embed_dim] source embedding
+        dims: list of dimension indices to transfer
 
     Returns:
-        embed_result: [1, seq_len, dim] — modified embedding
+        Modified embedding tensor (clone of embed_a with selected dims from embed_b)
     """
-    embed_result = embed_a.clone()
-
-    # Replace specified dimensions (across all token positions)
-    for dim in transfer_dims:
-        embed_result[:, :, dim] = embed_b[:, :, dim]
-
-    return embed_result
+    result = embed_a.clone()
+    result[:, :, dims] = embed_b[:, :, dims]  # Vectorized, no loop
+    return result
 ```
 
 **Innovation:** Transfer operates on frozen encoder outputs, not learned latent codes (unlike IRCAM RAVE).
 
 #### 3. Concept Algebra (A - B + C)
 
-**File:** `devserver/my_app/services/embedding_analyzer.py:114-148`
+**File:** `gpu_service/services/embedding_analyzer.py:90-120`
 
 ```python
-def apply_concept_algebra(embed_a, embed_b, embed_c,
-                         pooled_a, pooled_b, pooled_c,
-                         scale_sub=1.0, scale_add=1.0):
-    """
-    Apply vector arithmetic: result = A - scale_sub*B + scale_add*C
+def apply_concept_algebra(
+    embed_a: Tensor,
+    embed_b: Tensor,
+    embed_c: Tensor,
+    scale_sub: float = 1.0,
+    scale_add: float = 1.0,
+) -> tuple[Tensor, float]:
+    """Concept Algebra: result = A - scale_sub * B + scale_add * C
 
-    Implements Mikolov (2013) algebra on multi-token diffusion embeddings.
+    Mikolov analogy: embed("King") - embed("Man") + embed("Woman") ≈ embed("Queen")
+    Applied to text encoder embeddings for image generation.
 
     Args:
-        embed_*: [1, seq_len, 4096] — SD3.5 joint embeddings
-        pooled_*: [1, 2048] — Global semantic vectors
-        scale_sub: Subtraction intensity
-        scale_add: Addition intensity
+        embed_a: [1, seq_len, embed_dim] base embedding
+        embed_b: [1, seq_len, embed_dim] embedding to subtract
+        embed_c: [1, seq_len, embed_dim] embedding to add
+        scale_sub: scaling factor for subtraction (default 1.0)
+        scale_add: scaling factor for addition (default 1.0)
 
     Returns:
-        embed_result: [1, seq_len, 4096]
-        pooled_result: [1, 2048]
-        distance: L2 distance from embed_a
+        (result_embedding, l2_distance_from_a)
     """
-    # Arithmetic on sequence embeddings
-    embed_result = embed_a - (scale_sub * embed_b) + (scale_add * embed_c)
-
-    # Same operation on pooled
-    pooled_result = pooled_a - (scale_sub * pooled_b) + (scale_add * pooled_c)
-
-    # Measure displacement
-    distance = torch.norm(embed_result - embed_a).item()
-
-    return embed_result, pooled_result, distance
+    result = embed_a - scale_sub * embed_b + scale_add * embed_c
+    l2_dist = (result - embed_a).norm(p=2).item()
+    return result, l2_dist
 ```
 
-**Innovation:** Pre-diffusion embedding arithmetic (simpler than Liu 2022's during-diffusion score combination).
+**Innovation:** Pre-diffusion embedding arithmetic (simpler than Liu 2022's during-diffusion score combination). Note: pooled embedding algebra is handled separately by the calling route, not in this utility function.
 
 #### 4. CLIP-L/T5 Extrapolation (Hallucinator)
 
-**File:** `devserver/my_app/services/diffusers_backend.py:1843-1917`
+**File:** `gpu_service/services/diffusers_backend.py:678-733` (nested function inside `generate_image_with_fusion`)
 
 ```python
-def _fuse_prompt(self, text: str, alpha: float):
-    """
-    Token-level LERP between CLIP-L (768d) and T5-XXL (4096d).
+def _fuse_prompt(clip_text: str, t5_text: str):
+    """Exact replica of the ComfyUI Surrealizer CLIP flow.
+    alpha_factor captured from enclosing scope.
 
-    Formula (first 77 tokens):
-        fused = (1 - alpha) * CLIP-L_padded + alpha * T5
-
-    Remaining tokens (78-512): pure T5 (semantic anchor)
-
-    Args:
-        text: Prompt string
-        alpha: Extrapolation factor (-75 to +75)
-
-    Returns:
-        fused_embeds: [1, 512, 4096]
-        pooled: [1, 2048] (CLIP-L pooled + zeros)
+    CRITICAL: Original workflow loads ONLY clip_l — no CLIP-G.
+    The 768d/4096d asymmetry IS the feature that enables extrapolation.
     """
     # 1. Encode with CLIP-L only (NO CLIP-G)
-    clip_l_embeds, clip_l_pooled = self.sd3_pipeline._get_clip_prompt_embeds(
-        text, clip_model_index=0  # CLIP-L
+    clip_l_embeds, clip_l_pooled = pipe._get_clip_prompt_embeds(
+        prompt=clip_text, device=device, num_images_per_prompt=1, clip_model_index=0
     )  # [1, 77, 768]
 
-    # 2. Encode with T5-XXL
-    t5_embeds = self.sd3_pipeline._get_t5_prompt_embeds(
-        text, max_sequence_length=512
+    # 2. Zero-pad CLIP-L to 4096d (768d real + 3328d zeros, NO CLIP-G)
+    clip_padded = F.pad(clip_l_embeds, (0, 4096 - clip_l_embeds.shape[-1]))
+
+    # 3. Pooled: CLIP-L real (768d) + zeros (1280d) = [1, 2048]
+    pooled = F.pad(clip_l_pooled, (0, 1280))
+
+    # 4. Encode with T5-XXL
+    t5_embeds = pipe._get_t5_prompt_embeds(
+        prompt=t5_text, num_images_per_prompt=1, max_sequence_length=512, device=device
     )  # [1, 512, 4096]
 
-    # 3. Zero-pad CLIP-L to 4096d
-    clip_padded = F.pad(clip_l_embeds, (0, 4096 - 768))  # [1, 77, 4096]
+    # 5. LERP first 77 tokens (THE CORE FORMULA)
+    interp_len = min(77, clip_padded.shape[1])
+    fused_part = (1.0 - alpha_factor) * clip_padded[:, :interp_len, :] + \
+                  alpha_factor * t5_embeds[:, :interp_len, :]
 
-    # 4. LERP first 77 tokens (THE CORE FORMULA)
-    interp_len = 77
-    fused_part = (1.0 - alpha) * clip_padded[:, :interp_len, :] + \
-                  alpha * t5_embeds[:, :interp_len, :]
-
-    # 5. Append T5 remainder unchanged (semantic anchor)
+    # 6. Append T5 remainder unchanged (semantic anchor)
     t5_remainder = t5_embeds[:, interp_len:, :]
-    fused_embeds = torch.cat([fused_part, t5_remainder], dim=1)  # [1, 512, 4096]
-
-    # 6. Pooled: CLIP-L (768d) + zeros (1280d) = [1, 2048]
-    pooled = F.pad(clip_l_pooled, (0, 1280))
+    fused_embeds = torch.cat([fused_part, t5_remainder], dim=1)
 
     return fused_embeds, pooled
 ```
@@ -288,55 +272,42 @@ def _fuse_prompt(self, text: str, alpha: float):
 
 #### 5. Diff-Based Dimension Sorting (Latent Audio Synth)
 
-**File:** `gpu_service/services/cross_aesthetic_backend.py:175-210`
+**File:** `gpu_service/services/cross_aesthetic_backend.py:191-235`
 
 ```python
-def _compute_stats(self, result_emb, emb_a, emb_b=None):
+def _compute_stats(self, embedding, emb_a=None, emb_b=None) -> Dict[str, Any]:
+    """Compute embedding statistics for frontend visualization.
+
+    When emb_b is provided, all_activations are sorted by prompt A/B difference
+    (feature probing). Otherwise falls back to activation magnitude sorting.
     """
-    Compute embedding statistics with diff-based dimension sorting.
+    emb = embedding.detach()
+    mean_val = emb.mean().item()
+    std_val = emb.std().item()
 
-    If two prompts: sort by discriminative power (which dims differ most?)
-    If one prompt: sort by activation magnitude
+    # All activations with diff-based or magnitude-based sorting (PyTorch throughout)
+    dim_means_signed = emb.squeeze(0).mean(dim=0)  # [768], signed
 
-    Args:
-        result_emb: [1, seq, 768] — manipulated embedding
-        emb_a: [1, seq, 768] — prompt A embedding
-        emb_b: [1, seq, 768] or None — prompt B embedding
-
-    Returns:
-        {
-            'mean': float,
-            'std': float,
-            'all_activations': [{'dim': int, 'value': float}, ...],  # All 768
-            'sort_mode': 'diff' | 'magnitude'
-        }
-    """
-    # Mean over sequence dimension
-    mean_result = result_emb.mean(dim=1).squeeze(0).cpu().numpy()  # [768]
-
-    if emb_b is not None:
-        # Diff-based sorting: which dimensions distinguish A from B?
-        mean_a = emb_a.mean(dim=1).squeeze(0).cpu().numpy()
-        mean_b = emb_b.mean(dim=1).squeeze(0).cpu().numpy()
-        diff = np.abs(mean_a - mean_b)  # [768]
-        sort_order = np.argsort(-diff)  # Descending
-        sort_mode = 'diff'
+    if emb_b is not None and emb_a is not None:
+        # Feature probing: sort by prompt A/B difference
+        diff = emb_a.detach().squeeze(0).mean(dim=0) - emb_b.detach().squeeze(0).mean(dim=0)
+        sort_order = diff.abs().argsort(descending=True)
+        sort_mode = "diff"
     else:
-        # Magnitude sorting: which dimensions are most active?
-        sort_order = np.argsort(-np.abs(mean_result))
-        sort_mode = 'magnitude'
+        # Single-prompt fallback: sort by activation magnitude
+        sort_order = dim_means_signed.abs().argsort(descending=True)
+        sort_mode = "magnitude"
 
-    # Return all 768 dimensions, sorted
     all_activations = [
-        {'dim': int(sort_order[i]), 'value': float(mean_result[sort_order[i]])}
-        for i in range(768)
+        {"dim": int(idx), "value": round(float(dim_means_signed[idx].item()), 4)}
+        for idx in sort_order.tolist()
     ]
 
     return {
-        'mean': float(mean_result.mean()),
-        'std': float(mean_result.std()),
-        'all_activations': all_activations,
-        'sort_mode': sort_mode
+        "mean": round(mean_val, 4),
+        "std": round(std_val, 4),
+        "all_activations": all_activations,
+        "sort_mode": sort_mode,
     }
 ```
 
@@ -344,20 +315,20 @@ def _compute_stats(self, result_emb, emb_a, emb_b=None):
 
 ### File Locations (Code References)
 
-| Component | File | Lines | Purpose |
+| Component | File (gpu_service primary) | Lines | Purpose |
 |-----------|------|-------|---------|
-| **Feature Probing** | `devserver/my_app/services/embedding_analyzer.py` | 23-112 | Dimension difference + transfer |
-| **Concept Algebra** | `devserver/my_app/services/embedding_analyzer.py` | 114-148 | A - B + C vector arithmetic |
-| **Hallucinator** | `devserver/my_app/services/diffusers_backend.py` | 1843-1950 | CLIP-L/T5 extrapolation |
-| **Attention Cartography** | `devserver/my_app/services/diffusers_backend.py` | 560-752 | Cross-attention extraction |
-| **Denoising Archaeology** | `devserver/my_app/services/diffusers_backend.py` | 1674-1842 | Step-by-step VAE decoding |
-| **Dimension Explorer** | `gpu_service/services/cross_aesthetic_backend.py` | 55-250 | T5 embedding manipulation |
-| **RepEng (Text Lab)** | `gpu_service/services/text_backend.py` | 245-380 | PCA concept directions |
-| **Model Comparison** | `gpu_service/services/text_backend.py` | 382-510 | CKA similarity |
-| **Bias Archaeology** | `gpu_service/services/text_backend.py` | 512-698 | Token surgery |
-| **UI (Feature Probing)** | `public/ai4artsed-frontend/src/views/latent_lab/feature_probing.vue` | 1-650 | Bar chart + multi-range slider |
-| **UI (Dimension Explorer)** | `public/ai4artsed-frontend/src/views/latent_lab/crossmodal_lab.vue` | 400-850 | Canvas spectral strip (768 bars) |
-| **UI (Latent Text Lab)** | `public/ai4artsed-frontend/src/views/latent_lab/latent_text_lab.vue` | 1-1100 | RepEng + CKA + Bias tabs |
+| **Feature Probing** | `gpu_service/services/embedding_analyzer.py` | 15-87 | Dimension difference + transfer |
+| **Concept Algebra** | `gpu_service/services/embedding_analyzer.py` | 90-120 | A - B + C vector arithmetic |
+| **Hallucinator** | `gpu_service/services/diffusers_backend.py` | 610-790 | CLIP-L/T5 extrapolation (fusion) |
+| **Attention Cartography** | `gpu_service/services/diffusers_backend.py` | 800-990 | Cross-attention extraction |
+| **Denoising Archaeology** | `gpu_service/services/diffusers_backend.py` | 1580-1710 | Step-by-step VAE decoding |
+| **Dimension Explorer** | `gpu_service/services/cross_aesthetic_backend.py` | 55-235 | T5 embedding manipulation |
+| **RepEng (Text Lab)** | `gpu_service/services/text_backend.py` | 846-1039 | PCA concept directions |
+| **Model Comparison** | `gpu_service/services/text_backend.py` | 1040-1192 | CKA similarity |
+| **Bias Archaeology** | `gpu_service/services/text_backend.py` | 1193-1437 | Token surgery |
+| **UI (Feature Probing)** | `public/ai4artsed-frontend/src/views/latent_lab/feature_probing.vue` | 1-1088 | Bar chart + multi-range slider |
+| **UI (Dimension Explorer)** | `public/ai4artsed-frontend/src/views/latent_lab/crossmodal_lab.vue` | 1-2107 | Canvas spectral strip (768 bars) |
+| **UI (Latent Text Lab)** | `public/ai4artsed-frontend/src/views/latent_lab/latent_text_lab.vue` | 1-1383 | RepEng + CKA + Bias tabs |
 
 ### Performance Characteristics
 
