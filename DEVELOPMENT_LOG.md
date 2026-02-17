@@ -29,6 +29,18 @@
 ### Conclusion
 At ~521 KB initial load, the architecture is solid and well within reasonable territory (most popular sites ship 2-5 MB). Full route lazy-loading is correctly implemented. No immediate action required — these are future optimization candidates if device constraints become an issue.
 
+### Repo cleanup (same session)
+
+**Problem:** Repository carried ~194 non-essential files in git tracking — session handovers, archived docs, terminal saves, mockups, a nested ComfyUI git clone in `docs/reference/`, and 67 MB of config-preview originals deployed to `dist/`.
+
+**Changes:**
+- **Config-preview originals** (67 MB, 34 PNGs) moved from `public/.../originals_backup/` → `resources/config-preview-originals/` (gitignored). Next `npm run build` no longer copies them into `dist/`.
+- **docs/ cleaned up**: Untracked `sessions/`, `archive/`, `reference/`, `tmp/`, `terminal-savings/`, `experiments/`, `plans/`. Moved 21 root-level HANDOVER/SESSION files into `docs/sessions/` first.
+- **69 essential docs remain tracked**: Architecture (01-30), installation, analysis, dev log, decisions, todos, pedagogical concept, whitepaper, IP.
+- **`.gitignore` fixed**: Removed broken absolute-path rules (lines 75-79 were no-ops), removed duplicate entries, added `resources/` and 6 `docs/` subdirectories.
+
+All files remain on disk — only removed from git tracking.
+
 ---
 
 ## Session 176 - Model Availability: GPU Service Independence
