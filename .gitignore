@@ -71,13 +71,18 @@ devserver/pipeline_runs/  # LivePipelineRecorder output
 media_storage/            # Unified media storage output
 
 # -------------------------------------
-# Archives
-/home/joerissen/ai/ai4artsed_development/docs
-/home/joerissen/ai/ai4artsed_development/devserver/archive
-/home/joerissen/ai/ai4artsed_development/archive
-devserver/pipeline_runs/  # LivePipelineRecorder output
-media_storage/            # Unified media storage output
+# Source assets / design originals (large binaries, not deployed)
+resources/
 
+# -------------------------------------
+# Documentation: only track essential docs (architecture, decisions, todos)
+# Development history stays local, not in repo
+docs/sessions/
+docs/terminal-savings/
+docs/tmp/
+docs/experiments/
+docs/plans/
+docs/reference/
 
 # -------------------------------------
 # LoRA Training (Session 34+)
