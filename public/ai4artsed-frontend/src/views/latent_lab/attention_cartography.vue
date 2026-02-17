@@ -363,8 +363,22 @@ function toggleWord(group: number[]) {
 
 function selectEncoder(enc: 'clip_l' | 't5') {
   if (enc === selectedEncoder.value) return
+  // Collect labels of currently selected words before switching
+  const selectedLabels = selectedWords.value.map(gIdx => {
+    const group = activeWordGroups.value[gIdx]
+    return group ? wordLabel(group) : null
+  }).filter((l): l is string => l !== null)
   selectedEncoder.value = enc
-  selectedWords.value = []
+  // Re-select matching words in the target encoder by label text
+  const targetGroups = activeWordGroups.value
+  const newSelection: number[] = []
+  for (const label of selectedLabels) {
+    const idx = targetGroups.findIndex(g => wordLabel(g) === label)
+    if (idx >= 0 && !newSelection.includes(idx)) {
+      newSelection.push(idx)
+    }
+  }
+  selectedWords.value = newSelection
 }
 
 // Session persistence — restore on mount
