@@ -1,7 +1,7 @@
 /**
  * Web Audio API looper composable for Crossmodal Lab Synth tab.
  *
- * - Equal-power crossfade (piecewise linearRamp following sin/cos curve)
+ * - Linear crossfade (linearRampToValueAtTime — safe from AudioParam racing)
  * - Cross-correlation loop-point optimization for seamless oscillator-like loops
  * - WSOLA pitch shifting: transpose without tempo change
  * - Adjustable crossfade duration, loop interval, pitch transposition
@@ -24,16 +24,7 @@ import { ref, readonly } from 'vue'
 // Constants
 // ═══════════════════════════════════════════════════════════════════
 
-// Source-switching crossfade: pre-computed equal-power curves (sin/cos)
-const FADE_CURVE_LEN = 256
 const SCHEDULE_AHEAD = 0.005 // 5ms lookahead for scheduling safety
-const fadeInCurve = new Float32Array(FADE_CURVE_LEN)
-const fadeOutCurve = new Float32Array(FADE_CURVE_LEN)
-for (let i = 0; i < FADE_CURVE_LEN; i++) {
-  const t = i / (FADE_CURVE_LEN - 1)
-  fadeInCurve[i] = Math.sin(t * Math.PI * 0.5)
-  fadeOutCurve[i] = Math.cos(t * Math.PI * 0.5)
-}
 // WSOLA pitch shift
 const GRAIN_SIZE = 2048      // ~46ms at 44.1kHz
 const WSOLA_OVERLAP = 4      // 75% overlap → analysisHop = grain/4
@@ -445,7 +436,7 @@ export function useAudioLooper() {
   /**
    * Asynchronously pre-compute OLA-shifted buffers for all semitones in range.
    * Iterates center-outward (0, ±1, ±2, ...) so common transpositions cache first.
-   * One semitone per setTimeout(fn, 0) frame to avoid blocking the UI thread.
+   * Uses requestIdleCallback to yield to user input between computations.
    */
   function buildPitchCacheAsync(
     ac: AudioContext, loopProcessed: AudioBuffer, generation: number,
@@ -456,6 +447,12 @@ export function useAudioLooper() {
       if (i <= PITCH_CACHE_HI) semitones.push(i)
       if (-i >= PITCH_CACHE_LO) semitones.push(-i)
     }
+
+    // Schedule with requestIdleCallback to avoid blocking input events.
+    // Fallback to setTimeout(fn, 50) for browsers without rIC support.
+    const schedule = typeof requestIdleCallback === 'function'
+      ? (fn: () => void) => requestIdleCallback(fn, { timeout: 200 })
+      : (fn: () => void) => setTimeout(fn, 50)
 
     let idx = 0
     function processNext() {
@@ -480,9 +477,9 @@ export function useAudioLooper() {
         pitchCache.set(st, buf)
         pitchCacheSize.value = pitchCache.size
       }
-      setTimeout(processNext, 0)
+      schedule(processNext)
     }
-    setTimeout(processNext, 0)
+    schedule(processNext)
   }
 
   function rebuildPitchCache() {
@@ -594,18 +591,26 @@ export function useAudioLooper() {
     const isCrossfade = !!(oldSource && oldGain && isPlaying.value)
 
     if (isCrossfade && oldSource && oldGain) {
-      // Fade out old source: cancel ALL prior events (including in-progress
-      // curves that block setValueAtTime), then linear ramp to 0.
-      // Linear ramp avoids setValueCurveAtTime ownership conflicts.
-      const oldGainVal = oldGain.gain.value
-      oldGain.gain.cancelScheduledValues(0)
-      oldGain.gain.setValueAtTime(oldGainVal, now)
-      oldGain.gain.linearRampToValueAtTime(0, now + fadeSec)
-      oldSource.stop(now + fadeSec + 0.05)
+      if (fadeSec <= 0) {
+        // Instant switch: stop old immediately, start new at full volume
+        oldGain.gain.cancelScheduledValues(0)
+        oldGain.gain.setValueAtTime(0, now)
+        oldSource.stop(now + 0.01)
+        newGain.gain.setValueAtTime(1, now)
+      } else {
+        // Fade out old source: cancel ALL prior events then linear ramp to 0.
+        // Linear ramp (NOT setValueCurveAtTime) — curves take exclusive
+        // ownership of the AudioParam and block concurrent events.
+        const oldGainVal = oldGain.gain.value
+        oldGain.gain.cancelScheduledValues(0)
+        oldGain.gain.setValueAtTime(oldGainVal, now)
+        oldGain.gain.linearRampToValueAtTime(0, now + fadeSec)
+        oldSource.stop(now + fadeSec + 0.05)
 
-      // Fade in new source: fresh gain node, no prior events.
-      // fadeInCurve[0]=0, so it starts silent — no anchor needed.
-      newGain.gain.setValueCurveAtTime(fadeInCurve, now, fadeSec)
+        // Fade in new source: linear ramp from 0 to 1
+        newGain.gain.setValueAtTime(0, now)
+        newGain.gain.linearRampToValueAtTime(1, now + fadeSec)
+      }
     } else {
       newGain.gain.setValueAtTime(1, now)
     }
@@ -681,13 +686,16 @@ export function useAudioLooper() {
     if (originalBuffer && isPlaying.value) replay()
   }
 
+  let loopBoundsDebounce: ReturnType<typeof setTimeout> | null = null
+
   function setLoopStart(frac: number) {
     loopStartFrac.value = Math.max(0, Math.min(frac, loopEndFrac.value - 0.01))
-    // For live updates without replay, approximate using original buffer duration
+    // Instant audio update: approximate using original buffer duration
     if (activeSource && originalBuffer) {
       activeSource.loopStart = loopStartFrac.value * originalBuffer.duration
     }
-    rebuildPitchCache()
+    if (loopBoundsDebounce) clearTimeout(loopBoundsDebounce)
+    loopBoundsDebounce = setTimeout(() => rebuildPitchCache(), 150)
   }
 
   function setLoopEnd(frac: number) {
@@ -696,31 +704,47 @@ export function useAudioLooper() {
     if (activeSource && originalBuffer) {
       activeSource.loopEnd = loopEndFrac.value * originalBuffer.duration
     }
-    rebuildPitchCache()
+    if (loopBoundsDebounce) clearTimeout(loopBoundsDebounce)
+    loopBoundsDebounce = setTimeout(() => rebuildPitchCache(), 150)
   }
 
+  let crossfadeDebounce: ReturnType<typeof setTimeout> | null = null
+
   function setCrossfade(ms: number) {
-    crossfadeMs.value = Math.max(10, Math.min(ms, 500))
-    // Re-process buffer with new crossfade duration and crossfade to it
-    if (originalBuffer && isPlaying.value) replay()
+    crossfadeMs.value = Math.max(0, Math.min(ms, 500))
+    if (crossfadeDebounce) clearTimeout(crossfadeDebounce)
+    crossfadeDebounce = setTimeout(() => {
+      if (originalBuffer && isPlaying.value) replay()
+    }, 100)
   }
 
   function setNormalize(on: boolean) {
     normalizeOn.value = on
-    if (originalBuffer && isPlaying.value) replay()
-    rebuildPitchCache()
+    if (loopModeDebounce) clearTimeout(loopModeDebounce)
+    loopModeDebounce = setTimeout(() => {
+      if (originalBuffer && isPlaying.value) replay()
+      rebuildPitchCache()
+    }, 100)
   }
+
+  let loopModeDebounce: ReturnType<typeof setTimeout> | null = null
 
   function setLoopOptimize(on: boolean) {
     loopOptimize.value = on
-    if (originalBuffer && isPlaying.value) replay()
-    rebuildPitchCache()
+    if (loopModeDebounce) clearTimeout(loopModeDebounce)
+    loopModeDebounce = setTimeout(() => {
+      if (originalBuffer && isPlaying.value) replay()
+      rebuildPitchCache()
+    }, 100)
   }
 
   function setLoopPingPong(on: boolean) {
     loopPingPong.value = on
-    if (originalBuffer && isPlaying.value) replay()
-    rebuildPitchCache()
+    if (loopModeDebounce) clearTimeout(loopModeDebounce)
+    loopModeDebounce = setTimeout(() => {
+      if (originalBuffer && isPlaying.value) replay()
+      rebuildPitchCache()
+    }, 100)
   }
 
   function exportRaw(): Blob | null {

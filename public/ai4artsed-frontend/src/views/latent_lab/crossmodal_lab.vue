@@ -316,7 +316,7 @@
           <input
             type="range"
             :value="looper.crossfadeMs.value"
-            min="10"
+            min="0"
             max="500"
             step="10"
             :disabled="!looper.hasAudio.value"
@@ -598,18 +598,19 @@ midi.mapCC(64, (v) => { looper.setLoop(v > 0.5) })
 // CC5 → Wavetable scan position
 midi.mapCC(5, (v) => { wavetableScan.value = v; wavetableOsc.setScanPosition(v) })
 
-// MIDI Note → Transpose (always) + Generate (only if params changed)
+// MIDI Note → Transpose + auto-start playback (NEVER triggers generation)
 midi.onNote((note, _velocity, on) => {
   if (!on) return
   if (playbackMode.value === 'wavetable') {
     wavetableOsc.setFrequencyFromNote(note)
+    if (!wavetableOsc.isPlaying.value && wavetableOsc.hasFrames.value) {
+      wavetableOsc.start()
+    }
   } else {
     const semitones = note - MIDI_REF_NOTE
     looper.setTranspose(semitones)
-  }
-  if (!generating.value && synth.promptA) {
-    if (synthFingerprint() !== lastSynthFingerprint.value) {
-      runSynth()
+    if (!looper.isPlaying.value && looper.hasAudio.value) {
+      looper.replay()
     }
   }
 })

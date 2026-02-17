@@ -34,7 +34,7 @@ export function useWavetableOsc() {
   async function ensureWorklet(ac: AudioContext): Promise<void> {
     if (workletReady) return
     await ac.audioWorklet.addModule(
-      new URL('../audio/wavetable-processor.ts', import.meta.url),
+      new URL('../audio/wavetable-processor.js', import.meta.url),
     )
     workletReady = true
   }
