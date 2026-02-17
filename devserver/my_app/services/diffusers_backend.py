@@ -1338,15 +1338,12 @@ class DiffusersImageGenerator:
                         f"[DIFFUSERS-ALGEBRA] Encoded: A={embed_a.shape}, B={embed_b.shape}, C={embed_c.shape}"
                     )
 
-                    # Apply concept algebra
-                    embed_result, l2_dist = apply_concept_algebra(
-                        embed_a, embed_b, embed_c, scale_sub, scale_add
+                    # Apply concept algebra (token + pooled embeddings)
+                    embed_result, l2_dist, pooled_result = apply_concept_algebra(
+                        embed_a, embed_b, embed_c, scale_sub, scale_add,
+                        pooled_a, pooled_b, pooled_c,
                     )
-
-                    # Pooled algebra (same operation)
-                    if pooled_a is not None and pooled_b is not None and pooled_c is not None:
-                        pooled_result = pooled_a - scale_sub * pooled_b + scale_add * pooled_c
-                    else:
+                    if pooled_result is None:
                         pooled_result = pooled_a
 
                     # Build negative embeddings (shared for both generations)

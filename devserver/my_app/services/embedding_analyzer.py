@@ -6,6 +6,8 @@ Used by Feature Probing (Latent Lab Tab 2) and Concept Algebra (Latent Lab Tab 3
 """
 
 import logging
+from typing import Optional
+
 import torch
 from torch import Tensor
 
@@ -93,11 +95,15 @@ def apply_concept_algebra(
     embed_c: Tensor,
     scale_sub: float = 1.0,
     scale_add: float = 1.0,
-) -> tuple[Tensor, float]:
+    pooled_a: Optional[Tensor] = None,
+    pooled_b: Optional[Tensor] = None,
+    pooled_c: Optional[Tensor] = None,
+) -> tuple[Tensor, float, Optional[Tensor]]:
     """Concept Algebra: result = A - scale_sub * B + scale_add * C
 
     Mikolov analogy: embed("King") - embed("Man") + embed("Woman") ≈ embed("Queen")
     Applied to text encoder embeddings for image generation.
+    Same formula applied to both token embeddings and pooled embeddings.
 
     Args:
         embed_a: [1, seq_len, embed_dim] base embedding
@@ -105,16 +111,24 @@ def apply_concept_algebra(
         embed_c: [1, seq_len, embed_dim] embedding to add
         scale_sub: scaling factor for subtraction (default 1.0)
         scale_add: scaling factor for addition (default 1.0)
+        pooled_a: [1, pooled_dim] optional pooled embedding (SD3.5: 2048d)
+        pooled_b: [1, pooled_dim] optional pooled embedding
+        pooled_c: [1, pooled_dim] optional pooled embedding
 
     Returns:
-        (result_embedding, l2_distance_from_a)
+        (result_embedding, l2_distance_from_a, pooled_result_or_None)
     """
     result = embed_a - scale_sub * embed_b + scale_add * embed_c
     l2_dist = (result - embed_a).norm(p=2).item()
+
+    # Apply identical formula to pooled embeddings
+    pooled_result = None
+    if pooled_a is not None and pooled_b is not None and pooled_c is not None:
+        pooled_result = pooled_a - scale_sub * pooled_b + scale_add * pooled_c
 
     logger.info(
         f"[CONCEPT-ALGEBRA] A - {scale_sub}*B + {scale_add}*C, "
         f"L2(result, A)={l2_dist:.4f}, shapes: A={embed_a.shape}, B={embed_b.shape}, C={embed_c.shape}"
     )
 
-    return result, l2_dist
+    return result, l2_dist, pooled_result

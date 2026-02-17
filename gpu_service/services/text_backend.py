@@ -824,7 +824,7 @@ class TextBackend:
             ids_space = tokenizer.encode(" " + word, add_special_tokens=False)
             token_ids.update(ids_space)
             # Capitalized variant (if lowercase input)
-            if word[0].islower():
+            if word and word[0].islower():
                 cap = word.capitalize()
                 token_ids.update(tokenizer.encode(cap, add_special_tokens=False))
                 token_ids.update(tokenizer.encode(" " + cap, add_special_tokens=False))
