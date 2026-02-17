@@ -46,11 +46,11 @@ export function useWavetableOsc() {
     const mono = new Float32Array(len)
     for (let ch = 0; ch < nc; ch++) {
       const data = buffer.getChannelData(ch)
-      for (let i = 0; i < len; i++) mono[i] += data[i]!
+      for (let i = 0; i < len; i++) mono[i] = mono[i]! + data[i]!
     }
     if (nc > 1) {
       const scale = 1 / nc
-      for (let i = 0; i < len; i++) mono[i] *= scale
+      for (let i = 0; i < len; i++) mono[i] = mono[i]! * scale
     }
 
     // Chop into FRAME_SIZE frames
