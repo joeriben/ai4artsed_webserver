@@ -42,6 +42,25 @@
             <path d="M480-60q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T520-180q0-17-11.5-28.5T480-220q-17 0-28.5 11.5T440-180q0 17 11.5 28.5T480-140Zm-260-70q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm520 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm-520-80q17 0 28.5-11.5T260-330q0-17-11.5-28.5T220-370q-17 0-28.5 11.5T180-330q0 17 11.5 28.5T220-290Zm520 0q17 0 28.5-11.5T780-330q0-17-11.5-28.5T740-370q-17 0-28.5 11.5T700-330q0 17 11.5 28.5T740-290ZM220-510q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm520 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm-520-80q17 0 28.5-11.5T260-630q0-17-11.5-28.5T220-670q-17 0-28.5 11.5T180-630q0 17 11.5 28.5T220-590Zm520 0q17 0 28.5-11.5T780-630q0-17-11.5-28.5T740-670q-17 0-28.5 11.5T700-630q0 17 11.5 28.5T740-590Zm-260-70q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T520-780q0-17-11.5-28.5T480-820q-17 0-28.5 11.5T440-780q0 17 11.5 28.5T480-740Z"/>
           </svg>
         </button>
+        <button
+          v-if="showTranslate && inputType === 'text'"
+          @click="translateToEnglish"
+          class="action-btn translate-btn"
+          :class="{ translating: isTranslating }"
+          :disabled="isTranslating || !value.trim()"
+          title="Translate to English"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" class="union-jack">
+            <!-- Background (blue) -->
+            <rect width="60" height="30" fill="#012169"/>
+            <!-- Diagonals (white + red) -->
+            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" stroke-width="2"/>
+            <!-- Cross (white + red) -->
+            <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+            <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/>
+          </svg>
+        </button>
         <button v-if="showCopy" @click="$emit('copy')" class="action-btn" title="Kopieren">
           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
             <path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/>
@@ -117,6 +136,9 @@ let bufferInterval: number | null = null
 const safetyResult = ref<{ safe: boolean; checks: string[]; error?: string } | null>(null)
 const isCheckingSafety = ref(false)
 
+// Translation state
+const isTranslating = ref(false)
+
 // Queue state
 const queueStatus = ref<'idle' | 'waiting' | 'acquired'>('idle')
 const queueMessage = ref('')
@@ -138,6 +160,7 @@ interface Props {
   showCopy?: boolean
   showPaste?: boolean
   showClear?: boolean
+  showTranslate?: boolean
   initialImage?: string
   disabled?: boolean
   showPresetButton?: boolean
@@ -160,6 +183,7 @@ const props = withDefaults(defineProps<Props>(), {
   showCopy: true,
   showPaste: true,
   showClear: true,
+  showTranslate: true,
   initialImage: undefined,
   disabled: false,
   showPresetButton: false
@@ -220,6 +244,28 @@ function handleBlur(event: Event) {
 // Paste handler: check safety after pasted content is applied
 function handlePaste() {
   nextTick(() => checkSafety())
+}
+
+// Quick-translate: destructive in-place DE→EN translation via backend
+async function translateToEnglish() {
+  if (!props.value.trim() || isTranslating.value) return
+  isTranslating.value = true
+  try {
+    const baseUrl = import.meta.env.DEV ? 'http://localhost:17802' : ''
+    const res = await fetch(`${baseUrl}/api/schema/pipeline/translate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: props.value, target_language: 'en' })
+    })
+    const data = await res.json()
+    if (data.status === 'success' && data.translated_text) {
+      emit('update:value', data.translated_text)
+    }
+  } catch (e) {
+    console.warn('[MediaInputBox] Translation failed:', e)
+  } finally {
+    isTranslating.value = false
+  }
 }
 
 // Autonomous safety check (called on blur + paste — NOT on stream-complete)
@@ -581,6 +627,35 @@ onUnmounted(() => {
 .action-btn svg {
   width: 20px;
   height: 20px;
+}
+
+/* Translate (Union Jack) Button */
+.action-btn.translate-btn {
+  opacity: 0.5;
+  padding: 0.25rem 0.15rem;
+}
+
+.action-btn.translate-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.action-btn.translate-btn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.action-btn.translate-btn.translating {
+  animation: pulse-translate 1s ease-in-out infinite;
+}
+
+@keyframes pulse-translate {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.union-jack {
+  width: 20px;
+  height: 10px;
 }
 
 /* Textarea */
