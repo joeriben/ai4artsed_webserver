@@ -224,7 +224,26 @@
               @input="onLoopEndInput"
             />
           </div>
-          <div class="loop-options">
+          <!-- Playback mode selector -->
+          <div class="playback-mode-selector">
+            <button
+              class="mode-btn"
+              :class="{ active: playbackMode === 'loop' }"
+              @click="setPlaybackMode('loop')"
+            >{{ t('latentLab.crossmodal.synth.modeLoop') }}</button>
+            <button
+              class="mode-btn"
+              :class="{ active: playbackMode === 'pingpong' }"
+              @click="setPlaybackMode('pingpong')"
+            >{{ t('latentLab.crossmodal.synth.modePingPong') }}</button>
+            <button
+              class="mode-btn"
+              :class="{ active: playbackMode === 'wavetable' }"
+              :disabled="!wavetableSupported"
+              @click="setPlaybackMode('wavetable')"
+            >{{ t('latentLab.crossmodal.synth.modeWavetable') }}</button>
+          </div>
+          <div v-if="playbackMode !== 'wavetable'" class="loop-options">
             <label class="inline-toggle">
               <input type="checkbox" :checked="looper.loopOptimize.value" :disabled="!looper.hasAudio.value" @change="onOptimizeChange" />
               {{ t('latentLab.crossmodal.synth.loopOptimize') }}
@@ -233,7 +252,27 @@
               → {{ (looper.optimizedEndFrac.value * looper.bufferDuration.value).toFixed(3) }}s
             </span>
           </div>
-          <span class="slider-hint">{{ t('latentLab.crossmodal.synth.loopIntervalHint') }}</span>
+          <span v-if="playbackMode !== 'wavetable'" class="slider-hint">{{ t('latentLab.crossmodal.synth.loopIntervalHint') }}</span>
+        </div>
+        <!-- Wavetable scan slider -->
+        <div v-if="playbackMode === 'wavetable'" class="wavetable-controls">
+          <div class="transpose-row">
+            <label>{{ t('latentLab.crossmodal.synth.wavetableScan') }}</label>
+            <input
+              type="range"
+              :value="wavetableScan"
+              min="0"
+              max="1"
+              step="0.001"
+              :disabled="!wavetableOsc.hasFrames.value"
+              @input="onScanInput"
+            />
+            <span class="transpose-value">{{ wavetableScan.toFixed(3) }}</span>
+          </div>
+          <span class="slider-hint">{{ t('latentLab.crossmodal.synth.wavetableScanHint') }}</span>
+          <span v-if="wavetableOsc.frameCount.value > 0" class="wavetable-frame-count">
+            {{ t('latentLab.crossmodal.synth.wavetableFrames', { count: wavetableOsc.frameCount.value }) }}
+          </span>
         </div>
         <!-- Transpose -->
         <div class="transpose-row">
@@ -249,7 +288,7 @@
           />
           <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
         </div>
-        <div class="transpose-mode-row">
+        <div v-if="playbackMode !== 'wavetable'" class="transpose-mode-row">
           <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'rate' }">
             <input
               type="radio"
@@ -272,7 +311,7 @@
           </label>
         </div>
         <!-- Crossfade duration -->
-        <div class="transpose-row">
+        <div v-if="playbackMode !== 'wavetable'" class="transpose-row">
           <label>{{ t('latentLab.crossmodal.synth.crossfade') }}</label>
           <input
             type="range"
@@ -300,7 +339,7 @@
           <button class="save-btn" :disabled="!looper.hasAudio.value" @click="saveRaw">
             {{ t('latentLab.crossmodal.synth.saveRaw') }}
           </button>
-          <button class="save-btn" :disabled="!looper.hasAudio.value" @click="saveLoop">
+          <button v-if="playbackMode !== 'wavetable'" class="save-btn" :disabled="!looper.hasAudio.value" @click="saveLoop">
             {{ t('latentLab.crossmodal.synth.saveLoop') }}
           </button>
         </div>
@@ -333,6 +372,7 @@
                   <tr><td>CC1</td><td>{{ t('latentLab.crossmodal.synth.alpha') }}</td></tr>
                   <tr><td>CC2</td><td>{{ t('latentLab.crossmodal.synth.magnitude') }}</td></tr>
                   <tr><td>CC3</td><td>{{ t('latentLab.crossmodal.synth.noise') }}</td></tr>
+                  <tr><td>CC5</td><td>{{ t('latentLab.crossmodal.synth.midiScan') }}</td></tr>
                   <tr><td>CC64</td><td>{{ t('latentLab.crossmodal.synth.loop') }}</td></tr>
                   <tr><td>{{ t('latentLab.crossmodal.synth.midiNoteC3') }}</td><td>{{ t('latentLab.crossmodal.synth.midiGenerate') }}</td></tr>
                   <tr><td>{{ t('latentLab.crossmodal.synth.midiPitch') }}</td><td>{{ t('latentLab.crossmodal.synth.transpose') }}</td></tr>
@@ -485,6 +525,7 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAudioLooper } from '@/composables/useAudioLooper'
+import { useWavetableOsc } from '@/composables/useWavetableOsc'
 import { useWebMidi } from '@/composables/useWebMidi'
 
 const { t } = useI18n()
@@ -529,6 +570,13 @@ const lastSynthFingerprint = ref('')
 // ===== Audio Looper =====
 const looper = useAudioLooper()
 
+// ===== Wavetable Oscillator =====
+const wavetableOsc = useWavetableOsc()
+type PlaybackMode = 'loop' | 'pingpong' | 'wavetable'
+const playbackMode = ref<PlaybackMode>('loop')
+const wavetableScan = ref(0)
+const wavetableSupported = ref(typeof AudioWorkletNode !== 'undefined')
+
 // ===== Web MIDI =====
 const midi = useWebMidi()
 
@@ -547,12 +595,18 @@ midi.mapCC(2, (v) => { synth.magnitude = 0.1 + v * 4.9 })
 midi.mapCC(3, (v) => { synth.noise = v })
 // CC64 → Loop toggle (sustain pedal: >0.5 = on)
 midi.mapCC(64, (v) => { looper.setLoop(v > 0.5) })
+// CC5 → Wavetable scan position
+midi.mapCC(5, (v) => { wavetableScan.value = v; wavetableOsc.setScanPosition(v) })
 
 // MIDI Note → Transpose (always) + Generate (only if params changed)
 midi.onNote((note, _velocity, on) => {
   if (!on) return
-  const semitones = note - MIDI_REF_NOTE
-  looper.setTranspose(semitones)
+  if (playbackMode.value === 'wavetable') {
+    wavetableOsc.setFrequencyFromNote(note)
+  } else {
+    const semitones = note - MIDI_REF_NOTE
+    looper.setTranspose(semitones)
+  }
   if (!generating.value && synth.promptA) {
     if (synthFingerprint() !== lastSynthFingerprint.value) {
       runSynth()
@@ -702,7 +756,7 @@ function drawSpectralStrip() {
     // Offset overlay (bright green)
     const offset = dimensionOffsets[dim]
     if (offset !== undefined && offset !== 0) {
-      const offsetH = (Math.abs(offset) / 3) * (centerY - 2)
+      const offsetH = (Math.abs(offset) / maxAct) * (centerY - 2)
       ctx.fillStyle = 'rgba(102, 187, 106, 0.8)'
       if (offset > 0) {
         // Positive offset: draw upward from activation endpoint
@@ -733,7 +787,9 @@ function offsetAtY(canvas: HTMLCanvasElement, clientY: number): number {
   const y = clientY - rect.top
   // Drag up (above center) = positive offset, drag down = negative offset
   const normalized = (centerY - y) / centerY
-  return Math.max(-3, Math.min(3, normalized * 3))
+  // Use maxActivation as range so offsets are on the same scale as activation bars
+  const range = maxActivation.value
+  return Math.max(-range, Math.min(range, normalized * range))
 }
 
 function onSpectralMouseDown(e: MouseEvent) {
@@ -910,7 +966,11 @@ function toggleLoop() {
 
 function onTransposeInput(event: Event) {
   const val = parseInt((event.target as HTMLInputElement).value)
-  looper.setTranspose(val)
+  if (playbackMode.value === 'wavetable') {
+    wavetableOsc.setFrequencyFromNote(60 + val)
+  } else {
+    looper.setTranspose(val)
+  }
 }
 
 function onLoopStartInput(event: Event) {
@@ -935,6 +995,38 @@ function onNormalizeChange(event: Event) {
 function onOptimizeChange(event: Event) {
   looper.setLoopOptimize((event.target as HTMLInputElement).checked)
 }
+function onPingPongChange(event: Event) {
+  looper.setLoopPingPong((event.target as HTMLInputElement).checked)
+}
+
+async function setPlaybackMode(mode: PlaybackMode) {
+  playbackMode.value = mode
+  // Stop both engines
+  wavetableOsc.stop()
+  if (mode === 'wavetable') {
+    looper.stop()
+    looper.setLoopPingPong(false)
+    // Load frames and start if audio exists
+    const buf = looper.getOriginalBuffer()
+    if (buf) {
+      await wavetableOsc.loadFrames(buf)
+      await wavetableOsc.start()
+    }
+  } else {
+    looper.setLoopPingPong(mode === 'pingpong')
+    if (looper.hasAudio.value) looper.replay()
+  }
+}
+
+function onScanInput(event: Event) {
+  const val = parseFloat((event.target as HTMLInputElement).value)
+  wavetableScan.value = val
+  wavetableOsc.setScanPosition(val)
+}
+
+watch(wavetableScan, (v) => {
+  wavetableOsc.setScanPosition(v)
+})
 
 function onMidiInputChange(event: Event) {
   const val = (event.target as HTMLSelectElement).value
@@ -1002,6 +1094,16 @@ async function runSynth() {
       // Feed into looper (crossfades if already playing)
       await looper.play(result.audio_base64)
       lastSynthFingerprint.value = synthFingerprint()
+
+      // In wavetable mode, extract frames from the new buffer
+      if (playbackMode.value === 'wavetable') {
+        const buf = looper.getOriginalBuffer()
+        if (buf) {
+          await wavetableOsc.loadFrames(buf)
+          if (!wavetableOsc.isPlaying.value) await wavetableOsc.start()
+        }
+        looper.stop() // looper not needed in wavetable mode
+      }
     } else {
       error.value = result.error || 'Synth generation failed'
     }
@@ -1096,6 +1198,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
   looper.dispose()
+  wavetableOsc.dispose()
 })
 </script>
 
@@ -1947,5 +2050,58 @@ onUnmounted(() => {
   font-size: 0.6rem;
   color: rgba(255, 255, 255, 0.2);
   margin-left: auto;
+}
+
+/* Playback mode selector (segmented control) */
+.playback-mode-selector {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn:last-child {
+  border-right: none;
+}
+
+.mode-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mode-btn.active {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+  font-weight: 600;
+}
+
+.mode-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Wavetable controls */
+.wavetable-controls {
+  margin-bottom: 0.6rem;
+}
+
+.wavetable-frame-count {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  display: block;
+  margin-top: 0.2rem;
 }
 </style>
