@@ -356,6 +356,7 @@ export function useAudioLooper() {
   let activeGain: GainNode | null = null
   let originalBuffer: AudioBuffer | null = null
   let rawBase64: string | null = null
+  let destinationNode: AudioNode | null = null
 
   // ── Pitch cache (pre-computed OLA buffers per semitone) ──
   let pitchCache: Map<number, AudioBuffer> = new Map()
@@ -583,7 +584,7 @@ export function useAudioLooper() {
   function startSource(ac: AudioContext, playBuffer: AudioBuffer) {
     const newGain = ac.createGain()
     newGain.gain.value = 0 // silent until fade-in
-    newGain.connect(ac.destination)
+    newGain.connect(destinationNode ?? ac.destination)
     const newSource = createSource(ac, playBuffer)
     newSource.connect(newGain)
 
@@ -766,6 +767,22 @@ export function useAudioLooper() {
     return encodeWav(originalBuffer, s, e)
   }
 
+  function setDestination(node: AudioNode | null) {
+    destinationNode = node
+  }
+
+  function getContext(): AudioContext {
+    return ensureContext()
+  }
+
+  /** Hard stop + restart from loop start (no crossfade). For non-legato MIDI retrigger. */
+  function retrigger() {
+    if (!originalBuffer) return
+    stop()
+    const ac = ensureContext()
+    startSource(ac, prepareBuffer(ac, originalBuffer))
+  }
+
   function dispose() {
     stop()
     invalidatePitchCache()
@@ -775,8 +792,8 @@ export function useAudioLooper() {
   }
 
   return {
-    play, replay, stop,
-    setLoop, setTranspose, setTransposeMode,
+    play, replay, stop, retrigger,
+    setLoop, setTranspose, setTransposeMode, setDestination, getContext,
     setLoopStart, setLoopEnd, setLoopOptimize, setLoopPingPong,
     setCrossfade, setNormalize,
     exportRaw, exportLoop, dispose,

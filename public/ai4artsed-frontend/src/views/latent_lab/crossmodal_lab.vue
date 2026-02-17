@@ -379,6 +379,33 @@
                 </tbody>
               </table>
             </div>
+            <!-- ADSR Envelope -->
+            <div class="adsr-section">
+              <h5>{{ t('latentLab.crossmodal.synth.adsrTitle') }}</h5>
+              <span class="slider-hint">{{ t('latentLab.crossmodal.synth.adsrHint') }}</span>
+              <div class="adsr-grid">
+                <div class="adsr-slider">
+                  <label>{{ t('latentLab.crossmodal.synth.adsrAttack') }}</label>
+                  <input type="range" v-model.number="envelope.attackMs.value" min="0" max="1000" step="1" />
+                  <span class="adsr-value">{{ envelope.attackMs.value }}ms</span>
+                </div>
+                <div class="adsr-slider">
+                  <label>{{ t('latentLab.crossmodal.synth.adsrDecay') }}</label>
+                  <input type="range" v-model.number="envelope.decayMs.value" min="0" max="2000" step="1" />
+                  <span class="adsr-value">{{ envelope.decayMs.value }}ms</span>
+                </div>
+                <div class="adsr-slider">
+                  <label>{{ t('latentLab.crossmodal.synth.adsrSustain') }}</label>
+                  <input type="range" v-model.number="envelope.sustain.value" min="0" max="1" step="0.01" />
+                  <span class="adsr-value">{{ envelope.sustain.value.toFixed(2) }}</span>
+                </div>
+                <div class="adsr-slider">
+                  <label>{{ t('latentLab.crossmodal.synth.adsrRelease') }}</label>
+                  <input type="range" v-model.number="envelope.releaseMs.value" min="0" max="3000" step="1" />
+                  <span class="adsr-value">{{ envelope.releaseMs.value }}ms</span>
+                </div>
+              </div>
+            </div>
           </template>
         </div>
       </details>
@@ -526,6 +553,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from
 import { useI18n } from 'vue-i18n'
 import { useAudioLooper } from '@/composables/useAudioLooper'
 import { useWavetableOsc } from '@/composables/useWavetableOsc'
+import { useEnvelope } from '@/composables/useEnvelope'
 import { useWebMidi } from '@/composables/useWebMidi'
 
 const { t } = useI18n()
@@ -577,11 +605,32 @@ const playbackMode = ref<PlaybackMode>('loop')
 const wavetableScan = ref(0)
 const wavetableSupported = ref(typeof AudioWorkletNode !== 'undefined')
 
+// ===== ADSR Envelope =====
+const envelope = useEnvelope()
+let envelopeWired = false
+
+/** Lazily wire envelope GainNode between engines and AudioContext destination. */
+function wireEnvelope() {
+  if (envelopeWired) return
+  // Need an AudioContext — get it from whichever engine is active
+  const ac = playbackMode.value === 'wavetable'
+    ? wavetableOsc.getContext()
+    : looper.getContext()
+  const envNode = envelope.createNode(ac)
+  envNode.connect(ac.destination)
+  looper.setDestination(envNode)
+  wavetableOsc.setDestination(envNode)
+  envelopeWired = true
+}
+
 // ===== Web MIDI =====
 const midi = useWebMidi()
 
 // MIDI reference note for transpose (C3 = 60)
 const MIDI_REF_NOTE = 60
+
+// Monophonic note stack for last-note priority
+const heldNotes: number[] = []
 
 // Initialize MIDI
 midi.init()
@@ -598,19 +647,60 @@ midi.mapCC(64, (v) => { looper.setLoop(v > 0.5) })
 // CC5 → Wavetable scan position
 midi.mapCC(5, (v) => { wavetableScan.value = v; wavetableOsc.setScanPosition(v) })
 
-// MIDI Note → Transpose + auto-start playback (NEVER triggers generation)
-midi.onNote((note, _velocity, on) => {
-  if (!on) return
-  if (playbackMode.value === 'wavetable') {
-    wavetableOsc.setFrequencyFromNote(note)
-    if (!wavetableOsc.isPlaying.value && wavetableOsc.hasFrames.value) {
-      wavetableOsc.start()
+// MIDI Note → Monophonic synth with ADSR envelope (NEVER triggers generation)
+midi.onNote((note, velocity, on) => {
+  if (on) {
+    wireEnvelope()
+    const wasEmpty = heldNotes.length === 0
+    // Remove duplicate if re-pressed, then push to top
+    const idx = heldNotes.indexOf(note)
+    if (idx !== -1) heldNotes.splice(idx, 1)
+    heldNotes.push(note)
+
+    if (playbackMode.value === 'wavetable') {
+      wavetableOsc.setFrequencyFromNote(note)
+      if (wasEmpty) {
+        // Non-legato: retrigger engine + attack
+        if (!wavetableOsc.isPlaying.value && wavetableOsc.hasFrames.value) {
+          wavetableOsc.start()
+        }
+        envelope.triggerAttack(velocity)
+      }
+      // Legato: just pitch change, envelope continues at sustain
+    } else {
+      const semitones = note - MIDI_REF_NOTE
+      looper.setTranspose(semitones)
+      if (wasEmpty) {
+        // Non-legato: hard retrigger + attack
+        if (looper.hasAudio.value) looper.retrigger()
+        envelope.triggerAttack(velocity)
+      }
+      // Legato: just transpose, envelope continues at sustain
     }
   } else {
-    const semitones = note - MIDI_REF_NOTE
-    looper.setTranspose(semitones)
-    if (!looper.isPlaying.value && looper.hasAudio.value) {
-      looper.replay()
+    // Note-off: remove from stack
+    const idx = heldNotes.indexOf(note)
+    if (idx !== -1) heldNotes.splice(idx, 1)
+
+    if (heldNotes.length === 0) {
+      // Last note released: start release phase, stop engines after release
+      envelope.triggerRelease(() => {
+        if (heldNotes.length === 0) {
+          if (playbackMode.value === 'wavetable') {
+            wavetableOsc.stop()
+          } else {
+            looper.stop()
+          }
+        }
+      })
+    } else {
+      // Notes remaining: switch pitch to last held note
+      const lastNote = heldNotes[heldNotes.length - 1]!
+      if (playbackMode.value === 'wavetable') {
+        wavetableOsc.setFrequencyFromNote(lastNote)
+      } else {
+        looper.setTranspose(lastNote - MIDI_REF_NOTE)
+      }
     }
   }
 })
@@ -1002,6 +1092,8 @@ function onPingPongChange(event: Event) {
 
 async function setPlaybackMode(mode: PlaybackMode) {
   playbackMode.value = mode
+  // Non-MIDI mode switch: bypass envelope so gain=1
+  if (envelopeWired) envelope.bypass()
   // Stop both engines
   wavetableOsc.stop()
   if (mode === 'wavetable') {
@@ -1055,6 +1147,8 @@ function saveLoop() {
 
 // ===== Synth =====
 async function runSynth() {
+  // Non-MIDI playback: bypass envelope so gain=1
+  if (envelopeWired) envelope.bypass()
   // Don't clear looper state — keep playing during generation
   error.value = ''
   resultSeed.value = null
@@ -1198,6 +1292,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
+  envelope.dispose()
   looper.dispose()
   wavetableOsc.dispose()
 })
@@ -2104,5 +2199,53 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.35);
   display: block;
   margin-top: 0.2rem;
+}
+
+/* ADSR Envelope */
+.adsr-section {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.adsr-section h5 {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.3rem;
+}
+
+.adsr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1.2rem;
+  margin-top: 0.5rem;
+}
+
+.adsr-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.adsr-slider label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 1.5rem;
+  flex-shrink: 0;
+}
+
+.adsr-slider input[type="range"] {
+  flex: 1;
+  accent-color: #4CAF50;
+}
+
+.adsr-value {
+  font-size: 0.7rem;
+  color: #4CAF50;
+  font-variant-numeric: tabular-nums;
+  min-width: 3rem;
+  text-align: right;
+  flex-shrink: 0;
 }
 </style>
