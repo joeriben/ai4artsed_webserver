@@ -35,8 +35,8 @@ const CORR_SUBSAMPLE = 4     // subsample correlation for speed
 const XCORR_WINDOW = 512    // comparison window (samples)
 const XCORR_SEARCH = 2000   // search radius (samples)
 // Pitch cache: pre-computed WSOLA buffers for instant MIDI response
-const PITCH_CACHE_LO = -36  // C1 relative to C3
-const PITCH_CACHE_HI = 24   // C6 relative to C3
+const PITCH_CACHE_LO = -12  // C2 relative to C3
+const PITCH_CACHE_HI = 12   // C4 relative to C3
 
 // ═══════════════════════════════════════════════════════════════════
 // DSP utilities (stateless, pure functions)
@@ -485,6 +485,9 @@ export function useAudioLooper() {
   function rebuildPitchCache() {
     if (!originalBuffer || !ctx) return
     invalidatePitchCache()
+    // Pitch cache is only needed for OLA transpose mode.
+    // In 'rate' mode, pitch is handled by playbackRate — zero CPU cost.
+    if (transposeMode.value !== 'pitch') return
     const ac = ensureContext()
     const [ls, le] = loopBoundsSamples(originalBuffer)
 
@@ -684,6 +687,7 @@ export function useAudioLooper() {
   function setTransposeMode(mode: TransposeMode) {
     transposeMode.value = mode
     if (originalBuffer && isPlaying.value) replay()
+    if (mode === 'pitch') rebuildPitchCache()
   }
 
   let loopBoundsDebounce: ReturnType<typeof setTimeout> | null = null
@@ -718,6 +722,8 @@ export function useAudioLooper() {
     }, 100)
   }
 
+  let loopModeDebounce: ReturnType<typeof setTimeout> | null = null
+
   function setNormalize(on: boolean) {
     normalizeOn.value = on
     if (loopModeDebounce) clearTimeout(loopModeDebounce)
@@ -726,8 +732,6 @@ export function useAudioLooper() {
       rebuildPitchCache()
     }, 100)
   }
-
-  let loopModeDebounce: ReturnType<typeof setTimeout> | null = null
 
   function setLoopOptimize(on: boolean) {
     loopOptimize.value = on
