@@ -95,13 +95,37 @@
         ></canvas>
       </div>
 
+      <!-- Encoder Toggle -->
+      <div class="control-group encoder-toggle" v-if="hasT5Data">
+        <div class="control-row">
+          <label class="control-label">{{ t('latentLab.attention.encoderLabel') }}</label>
+          <div class="layer-toggles">
+            <button
+              class="layer-btn"
+              :class="{ active: selectedEncoder === 'clip_l' }"
+              @click="selectEncoder('clip_l')"
+            >
+              {{ t('latentLab.attention.encoderClipL') }}
+            </button>
+            <button
+              class="layer-btn"
+              :class="{ active: selectedEncoder === 't5' }"
+              @click="selectEncoder('t5')"
+            >
+              {{ t('latentLab.attention.encoderT5') }}
+            </button>
+          </div>
+        </div>
+        <div class="control-hint">{{ t('latentLab.attention.encoderHint') }}</div>
+      </div>
+
       <!-- Token Chips (grouped by word) -->
       <div class="token-section">
         <div class="token-label">{{ t('latentLab.attention.tokensLabel') }}</div>
         <div class="token-hint">{{ t('latentLab.attention.tokensHint') }}</div>
         <div class="token-chips">
           <div
-            v-for="(group, gIdx) in wordGroups"
+            v-for="(group, gIdx) in activeWordGroups"
             :key="gIdx"
             class="word-group"
             :class="{ selected: isWordSelected(group), [`color-${selectedWordColorIndex(group) % 8}`]: isWordSelected(group) }"
@@ -253,12 +277,21 @@ const errorMessage = ref('')
 const imageData = ref('')
 const tokens = ref<string[]>([])
 const wordGroups = ref<number[][]>([])  // [[0,1], [2], [3,4]] — subtoken indices per word
+const tokensT5 = ref<string[]>([])
+const wordGroupsT5 = ref<number[][]>([])
+const clipTokenCount = ref(0)
 const attentionMaps = ref<Record<string, Record<string, number[][]>>>({})
 const spatialResolution = ref<[number, number]>([64, 64])
 const captureLayers = ref<number[]>([3, 9, 17])
 const captureSteps = ref<number[]>([])
 const totalSteps = ref(25)
 const actualSeed = ref(0)
+
+// Encoder toggle
+const selectedEncoder = ref<'clip_l' | 't5'>('clip_l')
+const hasT5Data = computed(() => tokensT5.value.length > 0)
+const activeTokens = computed(() => selectedEncoder.value === 't5' ? tokensT5.value : tokens.value)
+const activeWordGroups = computed(() => selectedEncoder.value === 't5' ? wordGroupsT5.value : wordGroups.value)
 
 // Interaction state — selectedWords stores indices into wordGroups (not token indices)
 const selectedWords = ref<number[]>([])
@@ -299,16 +332,16 @@ const tokenColors = [
 
 // Word-level helpers
 function wordLabel(group: number[]): string {
-  return group.map(i => tokens.value[i] ?? '').join('')
+  return group.map(i => activeTokens.value[i] ?? '').join('')
 }
 
 function isWordSelected(group: number[]): boolean {
-  const gIdx = wordGroups.value.indexOf(group)
+  const gIdx = activeWordGroups.value.indexOf(group)
   return selectedWords.value.includes(gIdx)
 }
 
 function selectedWordColorIndex(group: number[]): number {
-  const gIdx = wordGroups.value.indexOf(group)
+  const gIdx = activeWordGroups.value.indexOf(group)
   return selectedWords.value.indexOf(gIdx)
 }
 
@@ -318,7 +351,7 @@ function tokenColorCSS(selIdx: number): string {
 }
 
 function toggleWord(group: number[]) {
-  const gIdx = wordGroups.value.indexOf(group)
+  const gIdx = activeWordGroups.value.indexOf(group)
   const pos = selectedWords.value.indexOf(gIdx)
   if (pos >= 0) {
     selectedWords.value.splice(pos, 1)
@@ -326,6 +359,12 @@ function toggleWord(group: number[]) {
     selectedWords.value.push(gIdx)
   }
   nextTick(() => renderHeatmap())
+}
+
+function selectEncoder(enc: 'clip_l' | 't5') {
+  if (enc === selectedEncoder.value) return
+  selectedEncoder.value = enc
+  selectedWords.value = []
 }
 
 // Session persistence — restore on mount
@@ -337,6 +376,8 @@ onMounted(() => {
   if (s('lat_lab_ac_steps')) steps.value = parseFloat(s('lat_lab_ac_steps')!) || 25
   if (s('lat_lab_ac_cfg')) cfgScale.value = parseFloat(s('lat_lab_ac_cfg')!) || 4.5
   if (s('lat_lab_ac_seed')) seed.value = parseFloat(s('lat_lab_ac_seed')!) ?? -1
+  const enc = s('lat_lab_ac_encoder')
+  if (enc === 'clip_l' || enc === 't5') selectedEncoder.value = enc
 })
 
 // Session persistence — save on change
@@ -347,6 +388,7 @@ watch([negativePrompt, steps, cfgScale, seed], () => {
   sessionStorage.setItem('lat_lab_ac_cfg', String(cfgScale.value))
   sessionStorage.setItem('lat_lab_ac_seed', String(seed.value))
 })
+watch(selectedEncoder, v => sessionStorage.setItem('lat_lab_ac_encoder', v))
 
 function copyInputText() { copyToClipboard(promptText.value) }
 function pasteInputText() { promptText.value = pasteFromClipboard() }
@@ -368,8 +410,12 @@ async function generate() {
   imageData.value = ''
   tokens.value = []
   wordGroups.value = []
+  tokensT5.value = []
+  wordGroupsT5.value = []
+  clipTokenCount.value = 0
   attentionMaps.value = {}
   selectedWords.value = []
+  selectedEncoder.value = 'clip_l'
 
   try {
     const response = await axios.post('/api/schema/pipeline/legacy', {
@@ -391,6 +437,9 @@ async function generate() {
         }
         tokens.value = attData.tokens || []
         wordGroups.value = attData.word_groups || []
+        tokensT5.value = attData.tokens_t5 || []
+        wordGroupsT5.value = attData.word_groups_t5 || []
+        clipTokenCount.value = attData.clip_token_count || 0
         attentionMaps.value = attData.attention_maps || {}
         spatialResolution.value = attData.spatial_resolution || [64, 64]
         captureLayers.value = attData.capture_layers || [3, 9, 17]
@@ -438,7 +487,7 @@ function onImageLoad() {
 
 // Watch for changes that should trigger heatmap re-render
 // deep: true needed because selectedWords is mutated in-place (splice/push)
-watch([selectedWords, selectedStep, selectedLayerIdx, heatmapOpacity], () => {
+watch([selectedWords, selectedStep, selectedLayerIdx, heatmapOpacity, selectedEncoder], () => {
   nextTick(() => renderHeatmap())
 }, { deep: true })
 
@@ -470,11 +519,14 @@ function renderHeatmap() {
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
+  // Column offset: T5 tokens start after CLIP-L tokens in the attention map
+  const columnOffset = selectedEncoder.value === 't5' ? clipTokenCount.value : 0
+
   // For each selected word, sum attention across all its subtokens
   for (let wIdx = 0; wIdx < selectedWords.value.length; wIdx++) {
     const wordIdx = selectedWords.value[wIdx]
     if (wordIdx === undefined) continue
-    const group = wordGroups.value[wordIdx]
+    const group = activeWordGroups.value[wordIdx]
     if (!group) continue
     const colorArr = tokenColors[wIdx % tokenColors.length]
     if (!colorArr) continue
@@ -486,8 +538,9 @@ function renderHeatmap() {
     for (const tokenIdx of group) {
       for (let i = 0; i < numPixels; i++) {
         const row = layerData[i]
-        if (row && row[tokenIdx] !== undefined) {
-          attnValues[i] = (attnValues[i] ?? 0) + row[tokenIdx]
+        const colIdx = tokenIdx + columnOffset
+        if (row && row[colIdx] !== undefined) {
+          attnValues[i] = (attnValues[i] ?? 0) + row[colIdx]
         }
       }
     }
@@ -752,6 +805,11 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Encoder Toggle */
+.encoder-toggle {
+  margin-top: 1rem;
 }
 
 /* Token Chips */

@@ -546,7 +546,7 @@ const messages = {
         explainReadTitle: 'Was verraten die zwei Regler?',
         explainReadText: 'Der Entrauschungsschritt-Regler zeigt, WANN im 25-schrittigen Erzeugungsprozess du die Attention betrachtest. Frühe Schritte zeigen die grobe Layoutplanung, späte die Detailzuordnung. Der Netzwerktiefe-Regler zeigt, WO im Transformer die Attention gemessen wird: Flache Schichten (nahe am Eingang) zeigen globale Kompositionsplanung, mittlere die semantische Zuordnung, tiefe die Feinabstimmung. Beide Achsen sind unabhängig — es lohnt sich, systematisch verschiedene Kombinationen zu erkunden.',
         techTitle: 'Technische Details',
-        techText: 'SD3.5 verwendet einen MMDiT (Multimodal Diffusion Transformer) mit Joint Attention: Bild- und Text-Tokens bearbeiten sich gegenseitig in 24 Transformer-Blöcken. Wir ersetzen den Standard-SDPA-Prozessor durch einen manuellen Softmax(QK^T/√d)-Prozessor an 3 ausgewählten Blöcken, um die Text→Bild-Attention-Submatrix zu extrahieren. Die Maps haben 64x64 Auflösung (Patch-Grid) und werden per bilinearer Interpolation auf die Bildauflösung hochskaliert. Die Tokenisierung nutzt CLIP-L BPE — Subwort-Tokens werden automatisch zu ganzen Wörtern zusammengefasst.',
+        techText: 'SD3.5 verwendet einen MMDiT (Multimodal Diffusion Transformer) mit Joint Attention: Bild- und Text-Tokens bearbeiten sich gegenseitig in 24 Transformer-Blöcken. Wir ersetzen den Standard-SDPA-Prozessor durch einen manuellen Softmax(QK^T/√d)-Prozessor an 3 ausgewählten Blöcken, um die Text→Bild-Attention-Submatrix zu extrahieren. Die Maps haben 64x64 Auflösung (Patch-Grid) und werden per bilinearer Interpolation auf die Bildauflösung hochskaliert. SD3.5 nutzt zwei Text-Encoder: CLIP-L (BPE, 77 Tokens) und T5-XXL (SentencePiece, 512 Tokens). Beide können hier umgeschaltet werden, um zu sehen, wie unterschiedliche Tokenisierungen die Attention beeinflussen.',
         promptLabel: 'Prompt',
         promptPlaceholder: 'z.B. Ein Haus steht in einer Landschaft, umgeben von landwirtschaftlichen Flächen, Natur und Tieren. Es sind einige Menschen zu sehen.',
         generate: 'Generieren + Analyse',
@@ -574,6 +574,10 @@ const messages = {
         baseBW: 'S/W',
         baseOff: 'Aus',
         baseImageHint: 'Farbe zeigt das Originalbild. S/W entsättigt es, damit Heatmap-Farben klar erkennbar sind. Aus blendet das Bild aus und zeigt nur die Attention-Karte.',
+        encoderLabel: 'Text-Encoder',
+        encoderClipL: 'CLIP-L (77 Tokens)',
+        encoderT5: 'T5-XXL (512 Tokens)',
+        encoderHint: 'SD3.5 nutzt zwei Text-Encoder mit unterschiedlicher Tokenisierung. CLIP-L verwendet BPE (Byte-Pair-Encoding), T5-XXL SentencePiece. Vergleiche, wie beide Encoder denselben Prompt verarbeiten und welche Bildregionen sie jeweils steuern.',
         download: 'Bild herunterladen'
       },
       probing: {
@@ -1609,7 +1613,7 @@ const messages = {
         explainReadTitle: 'What do the two sliders reveal?',
         explainReadText: 'The denoising step slider shows WHEN in the 25-step generation process you are viewing attention. Early steps show rough layout planning, late steps show detail assignment. The network depth selector shows WHERE in the transformer attention is measured: shallow layers (near input) show global composition planning, middle layers semantic assignment, deep layers fine-tuning. Both axes are independent — it is worth systematically exploring different combinations.',
         techTitle: 'Technical details',
-        techText: 'SD3.5 uses an MMDiT (Multimodal Diffusion Transformer) with joint attention: image and text tokens attend to each other across 24 transformer blocks. We replace the default SDPA processor with a manual softmax(QK^T/√d) processor at 3 selected blocks to extract the text→image attention submatrix. Maps are 64x64 resolution (patch grid), upscaled to image resolution via bilinear interpolation. Tokenization uses CLIP-L BPE — subword tokens are automatically combined into whole words.',
+        techText: 'SD3.5 uses an MMDiT (Multimodal Diffusion Transformer) with joint attention: image and text tokens attend to each other across 24 transformer blocks. We replace the default SDPA processor with a manual softmax(QK^T/√d) processor at 3 selected blocks to extract the text→image attention submatrix. Maps are 64x64 resolution (patch grid), upscaled to image resolution via bilinear interpolation. SD3.5 uses two text encoders: CLIP-L (BPE, 77 tokens) and T5-XXL (SentencePiece, 512 tokens). Both can be toggled here to see how different tokenization strategies affect attention.',
         promptLabel: 'Prompt',
         promptPlaceholder: 'e.g. A house stands in a landscape, surrounded by farmland, nature and animals. Some people can be seen.',
         generate: 'Generate + Analyze',
@@ -1637,6 +1641,10 @@ const messages = {
         baseBW: 'B/W',
         baseOff: 'Off',
         baseImageHint: 'Color shows the original image. B/W desaturates it so heatmap colors stand out. Off hides the image entirely and shows only the attention map.',
+        encoderLabel: 'Text Encoder',
+        encoderClipL: 'CLIP-L (77 Tokens)',
+        encoderT5: 'T5-XXL (512 Tokens)',
+        encoderHint: 'SD3.5 uses two text encoders with different tokenization. CLIP-L uses BPE (Byte-Pair Encoding), T5-XXL uses SentencePiece. Compare how both encoders process the same prompt and which image regions each one steers.',
         download: 'Download Image'
       },
       probing: {

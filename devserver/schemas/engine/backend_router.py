@@ -1826,6 +1826,9 @@ class BackendRouter:
                         'attention_data': {
                             'tokens': attention_result['tokens'],
                             'word_groups': attention_result.get('word_groups', []),
+                            'tokens_t5': attention_result.get('tokens_t5', []),
+                            'word_groups_t5': attention_result.get('word_groups_t5', []),
+                            'clip_token_count': attention_result.get('clip_token_count', 0),
                             'attention_maps': attention_result['attention_maps'],
                             'spatial_resolution': attention_result['spatial_resolution'],
                             'image_resolution': attention_result['image_resolution'],

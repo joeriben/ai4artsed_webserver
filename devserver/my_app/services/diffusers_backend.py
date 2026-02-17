@@ -732,11 +732,50 @@ class DiffusersImageGenerator:
                         f"{len(word_groups)} words, groups={word_groups}"
                     )
 
+                # T5-XXL tokenization (tokenizer_3 in SD3.5)
+                tokens_t5 = []
+                word_groups_t5 = []
+                t5_column_indices = []
+                tokenizer_t5 = getattr(pipe, 'tokenizer_3', None)
+                if tokenizer_t5 is not None:
+                    encoded_t5 = tokenizer_t5(
+                        prompt, padding=False, truncation=True,
+                        max_length=512, return_tensors=None,
+                    )
+                    t5_ids = encoded_t5['input_ids']
+                    pad_id = tokenizer_t5.pad_token_id
+                    eos_id = tokenizer_t5.eos_token_id
+                    current_group_t5 = []
+                    for pos, tid in enumerate(t5_ids):
+                        if tid == pad_id or tid == eos_id:
+                            continue
+                        t5_token_idx = len(tokens_t5)
+                        # T5 columns start at offset 77 in the combined encoder_hidden_states
+                        t5_column_indices.append(77 + pos)
+                        # SentencePiece uses ▁ (U+2581) prefix as word-START marker
+                        raw = tokenizer_t5.convert_ids_to_tokens(tid)
+                        is_word_start = raw.startswith('\u2581')
+                        display = raw.lstrip('\u2581')
+                        tokens_t5.append(display)
+                        if is_word_start and current_group_t5:
+                            word_groups_t5.append(current_group_t5)
+                            current_group_t5 = []
+                        current_group_t5.append(t5_token_idx)
+                    if current_group_t5:
+                        word_groups_t5.append(current_group_t5)
+                    logger.info(
+                        f"[DIFFUSERS-ATTENTION] T5-XXL: {len(tokens_t5)} subtokens, "
+                        f"{len(word_groups_t5)} words, groups={word_groups_t5}"
+                    )
+
+                # Combine CLIP-L + T5 column indices for the attention store
+                combined_column_indices = (token_column_indices or []) + t5_column_indices
+
                 # Create attention store
                 store = AttentionMapStore(
                     capture_layers=capture_layers,
                     capture_steps=capture_steps,
-                    text_column_indices=token_column_indices,
+                    text_column_indices=combined_column_indices if combined_column_indices else None,
                 )
 
                 logger.info(
@@ -814,6 +853,9 @@ class DiffusersImageGenerator:
                     "image_base64": image_base64,
                     "tokens": tokens,
                     "word_groups": word_groups,
+                    "tokens_t5": tokens_t5,
+                    "word_groups_t5": word_groups_t5,
+                    "clip_token_count": len(tokens),
                     "attention_maps": store.maps,
                     "spatial_resolution": [spatial_h, spatial_w],
                     "image_resolution": [height, width],
