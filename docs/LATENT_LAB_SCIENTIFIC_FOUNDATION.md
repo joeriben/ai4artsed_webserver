@@ -2,11 +2,13 @@
 
 **Ein Report über die theoretischen Grundlagen der dekonstruktiven KI-Introspektionswerkzeuge im UCDCAE AI LAB**
 
+> **Hinweis zur Erstellung:** Dieses Dokument wurde mit Unterstützung von KI (Claude, Anthropic) verfasst und anschließend von menschlichen Autor\*innen geprüft und überarbeitet. Die wissenschaftlichen Inhalte, Quellenangaben und Implementationsbeschreibungen wurden gegen den tatsächlichen Quellcode verifiziert.
+
 ---
 
 ## Executive Summary
 
-Das Latent Lab implementiert acht forschungsbasierte Werkzeuge zur Untersuchung generativer KI-Modelle, verteilt auf sieben Tabs. Die Werkzeuge basieren auf 20 wissenschaftlichen Publikationen aus den Bereichen Interpretability, Representation Learning und Mechanistic Analysis. Dieser Report dokumentiert die direkte Verbindung zwischen wissenschaftlicher Theorie und pädagogischer Implementation.
+Das Latent Lab implementiert acht forschungsbasierte Werkzeuge zur Untersuchung generativer KI-Modelle, verteilt auf sieben Tabs. Die Werkzeuge basieren auf 24 wissenschaftlichen Publikationen aus den Bereichen Interpretability, Representation Learning und Mechanistic Analysis. Dieser Report dokumentiert die direkte Verbindung zwischen wissenschaftlicher Theorie und pädagogischer Implementation.
 
 **Kernbeitrag:** Das Latent Lab übersetzt aktuelle Forschungsmethoden (2013-2025) in interaktive, visuell-explorative Werkzeuge. Die Implementation folgt dem Prinzip *Show, don't simplify* — komplexe Konzepte werden durch direkte Manipulation erfahrbar gemacht, nicht durch didaktische Reduktion verfälscht.
 
@@ -678,6 +680,12 @@ audio = stable_audio.generate(prompt_embeds=result)
 
 **Paedagogischer Wert:** Der "Dimensions Explorer" (768 manipulierbare Balken) macht die Embedding-Dimensionen als **klangliche Parameter** erfahrbar. Aenderungen einzelner Dimensionen erzeugen hoerbare Unterschiede — oder eben nicht, was wiederum die verteilte Natur der Repraesentationen demonstriert.
 
+**Gescheiterter Vorlaeufer — CLIP Vision → Audio (Strategie A):**
+
+Vor der aktuellen Implementation wurde ein direkterer Ansatz erprobt: CLIP ViT-L/14 Vision Hidden States (1024d) wurden per `F.adaptive_avg_pool1d` auf 768d projiziert und anstelle der T5-Conditioning in Stable Audio eingespeist. Die Hypothese war, dass visuelle Texturen (z.B. ein Waldbild) sich als klangliche Texturen manifestieren wuerden.
+
+**Ergebnis:** Das Verfahren produzierte ausschliesslich Rauschen. Die Dimensionsreduktion ohne gelernte Abbildung reicht nicht aus, um die semantische Struktur zwischen den Modalitaeten zu ueberbruecken — die T5-Conditioning von Stable Audio erwartet sprachlich strukturierte Embeddings, nicht visuelle Feature-Maps. Dieser Misserfolg motivierte die Hinwendung zu MMAudio (genuines crossmodales Training, Section 7.3) und ImageBind Gradient Guidance (gradientenbasierte Steuerung, Section 7.4).
+
 ### 7.3 MMAudio: Genuiner crossmodaler Transfer
 
 - **Cheng, H. K. et al. (2024): "MMAudio: Taming Multimodal Joint Training for High-Quality Video-to-Audio Synthesis"** (CVPR 2025)
@@ -722,25 +730,27 @@ Die Methode nutzt den **Gradienten** der ImageBind-Cosine-Similarity, um die Aud
 
 ## 8. Uebergreifende Diskussion: Forschung -> Paedagogik
 
-### 8.1 Designprinzipien
+### 8.1 Designziele
 
-**1. Wissenschaftliche Praezision ohne Vereinfachung**
+Die folgenden Prinzipien leiten die Entwicklung des Latent Lab. Ihre Umsetzung ist ein fortlaufender Prozess — nicht alle Werkzeuge erfuellen alle Ziele gleich gut.
 
-- Falsch: "Attention zeigt, wo das Modell hinschaut" — anthropomorphisiert
-- Richtig: "Attention zeigt, welche Token-Region-Paare hohe Query-Key-Aehnlichkeit aufweisen"
+**1. Wissenschaftliche Praezision ohne Vereinfachung (angestrebt)**
 
-**2. Interaktive Falsifikation statt Belehrung**
+- Vermeidung anthropomorphisierender Sprache (z.B. "Attention zeigt, wo das Modell hinschaut" -> "welche Token-Region-Paare hohe Query-Key-Aehnlichkeit aufweisen")
+- In der Praxis gelingt dies unterschiedlich gut: Die UI-Texte sind staerker vereinfacht als dieser Report
 
-- Nutzende koennen Hypothesen selbst testen:
-  - "Kodiert Dimension 42 Farbe?" -> Auswahl nur Dim 42 -> minimale Aenderung -> Hypothese widerlegt
+**2. Interaktive Falsifikation statt Belehrung (angestrebt)**
 
-**3. Visualisierung mathematischer Konzepte**
+- Nutzende sollen Hypothesen selbst testen koennen (z.B. "Kodiert Dimension 42 Farbe?" -> Auswahl nur Dim 42 -> minimale Aenderung -> Hypothese widerlegt)
+- Setzt voraus, dass Nutzende wissen, welche Hypothesen testbar sind — hier besteht noch Entwicklungsbedarf in der Nutzer-Fuehrung
+
+**3. Visualisierung mathematischer Konzepte (teilweise umgesetzt)**
 
 - CKA-Matrix: Heatmap mit interaktivem Tooltip statt Formel
 - Embedding-Differenzen: Balkendiagramm statt Zahlen-Tabelle
 - Denoising-Phasen: Farbkodierte Timeline statt statistischer Plots
 
-**4. Transparenz ueber Grenzen**
+**4. Transparenz ueber Grenzen (konsequent umgesetzt)**
 
 - Denoising Archaeology: "Die Phasen sind beobachtbare Muster, keine bewiesenen Gesetzmaessigkeiten"
 - Bias Archaeology: "Token-Suppression ist eine Proxy-Methode, keine direkte Feature-Manipulation"
@@ -758,31 +768,44 @@ Die Methode nutzt den **Gradienten** der ImageBind-Cosine-Similarity, um die Aud
 
 **Gemeinsamer Nenner:** Reduktion auf **interpretierbares Minimum**, nicht **publishable Maximum**.
 
-### 8.3 Paedagogische Innovationen ohne direktes Forschungs-Analogon
+---
 
-1. **Multi-Range Dimension Transfer (Feature Probing):**
-   - Forschung: Probing nutzt feste Dimension-Sets
-   - Latent Lab: Bis zu 4 konfigurierbare Bereiche gleichzeitig
-   - **Innovation:** Ermoeglicht Testen von "Top-100 vs. Rang 500-600" -> Konzepte verteilt ueber Dimensionen
+## 9. Verwandte Arbeiten
 
-2. **Timestep x Layer Grid (Attention Cartography):**
-   - Forschung: DAAM aggregiert ueber Timesteps
-   - Latent Lab: 25 Timesteps x 3 Layers = 75 Maps
-   - **Innovation:** Zeigt, dass Attention weder ueber die Zeit noch ueber die Netzwerktiefe statisch ist
+Das Latent Lab ist nicht die erste Plattform, die ML-Konzepte interaktiv zugaenglich macht. Die folgenden Projekte verfolgen verwandte Ziele mit unterschiedlichen Ansaetzen:
 
-3. **LLM-Interpretation (Text Lab):**
-   - Forschung: Results als Plots/Tabellen
-   - Latent Lab: Automatische paedagogische Einordnung via Meta-LLM
-   - **Innovation:** Schliesst "Interpretation Gap" fuer Nicht-Experten
+### Distill.pub (Olah et al. 2017-2020)
 
-4. **Drei-Strategien-Vergleich (Crossmodal Lab):**
-   - Forschung: Jede Methode isoliert evaluiert
-   - Latent Lab: Naive Projektion vs. Joint Training vs. Gradient Guidance nebeneinander
-   - **Innovation:** Macht die Konsequenzen verschiedener Transfer-Strategien unmittelbar hoerbar
+Interaktive visuelle Erklaerungen neuronaler Netze, publiziert als wissenschaftliches Journal. Artikel wie "Feature Visualization" (Olah 2017) und "Zoom In: Circuits" (Olah 2020) kombinieren Prosa, Visualisierungen und interaktive Elemente.
+
+**Naechstes Analogon zum Latent Lab**, aber mit einem wesentlichen Unterschied: Distill-Artikel sind **read-only Visualisierungen** — Nutzende betrachten vorberechnete Ergebnisse, manipulieren aber nicht selbst. Das Latent Lab erlaubt dagegen freie Eingaben und Echtzeit-Manipulation.
+
+### TensorFlow Playground (Smilkov et al. 2017)
+
+Interaktive Browser-Anwendung zum Training einfacher neuronaler Netze. Nutzende koennen Netzwerk-Architektur, Lernrate und Datensaetze konfigurieren und den Trainingsprozess in Echtzeit beobachten.
+
+**Staerken:** Direkte Manipulation, sofortiges Feedback, keine Installation noetig.
+**Unterschied:** Beschraenkt auf einfache Feedforward-Netze (2D-Klassifikation). Keine generativen Modelle, keine Embedding-Raeume, keine Diffusion.
+
+### GAN Lab (Kahng et al. 2019)
+
+Interaktive Visualisierung des GAN-Trainings. Zeigt Generator- und Discriminator-Verhalten auf 2D-Toy-Distributionen in Echtzeit.
+
+**Staerken:** Elegante Visualisierung des adversarialen Trainingsprozesses.
+**Unterschied:** 2D-Toy-Distributionen, kein Bezug zu produktiven generativen Modellen. Das Latent Lab arbeitet dagegen mit SD3.5, Stable Audio und LLMs in voller Groesse.
+
+### IRCAM-Differenzierung
+
+Die Werkzeuge des IRCAM (Max/MSP, AudioSculpt, RAVE, Latent Terrain) sind die relevanteste Vergleichsgruppe im Audio-Bereich. Die Differenzierung ist **kulturtheoretisch und paedagogisch**, nicht nur technisch:
+
+- **IRCAM:** Professionelle Produktionswerkzeuge in der Tradition der musique concrete. Ziel: kuenstlerische Klanggestaltung. Zielgruppe: Komponierende und Performer mit technischer Ausbildung.
+- **Latent Lab:** Paedagogische Introspektionswerkzeuge. Ziel: kritisches Verstaendnis von KI-Mechanismen. Zielgruppe: Lernende ab 13 Jahren ohne Vorkenntnisse.
+
+Beide manipulieren latente Raeume, aber mit fundamental verschiedenen **Teleologien**: IRCAM fragt "Was kann ich damit schaffen?", das Latent Lab fragt "Wie konstruiert die KI Bedeutung?". (Siehe INTELLECTUAL_PROPERTY.md, Section VII fuer eine ausfuehrliche Differenzierung.)
 
 ---
 
-## 9. Literaturverzeichnis
+## 10. Literaturverzeichnis
 
 ### Primaerliteratur (Direkt implementiert)
 
@@ -826,17 +849,27 @@ Die Methode nutzt den **Gradienten** der ImageBind-Cosine-Similarity, um die Aud
 
 18. **Esser, P., Kulal, S., Blattmann, A., et al. (2024).** "Scaling Rectified Flow Transformers for High-Resolution Image Synthesis." *International Conference on Machine Learning (ICML) 2024*. DOI: [10.48550/arXiv.2403.03206](https://doi.org/10.48550/arXiv.2403.03206)
 
+### Modelle (direkt verwendet)
+
+19. **Radford, A., Kim, J. W., Hallacy, C., et al. (2021).** "Learning Transferable Visual Models From Natural Language Supervision." *International Conference on Machine Learning (ICML)*. DOI: [10.48550/arXiv.2103.00020](https://doi.org/10.48550/arXiv.2103.00020)
+
+20. **Evans, Z., Parker, J. D., Carr, C. J., Zukowski, Z., Taylor, J., & Pons, J. (2024).** "Stable Audio Open." Stability AI. DOI: [10.48550/arXiv.2407.14358](https://doi.org/10.48550/arXiv.2407.14358)
+
+21. **Dhariwal, P. & Nichol, A. (2021).** "Diffusion Models Beat GANs on Image Synthesis." *Advances in Neural Information Processing Systems (NeurIPS)*. DOI: [10.48550/arXiv.2105.05233](https://doi.org/10.48550/arXiv.2105.05233)
+
 ### Sekundaerliteratur (Theoretischer Kontext)
 
-19. **Olah, C., Mordvintsev, A., & Schubert, L. (2017).** "Feature Visualization." *Distill*. DOI: [10.23915/distill.00007](https://doi.org/10.23915/distill.00007)
+22. **Olah, C., Mordvintsev, A., & Schubert, L. (2017).** "Feature Visualization." *Distill*. DOI: [10.23915/distill.00007](https://doi.org/10.23915/distill.00007)
 
-20. **Olah, C., Cammarata, N., Schubert, L., Goh, G., Petrov, M., & Carter, S. (2020).** "Zoom In: An Introduction to Circuits." *Distill*. DOI: [10.23915/distill.00024.001](https://doi.org/10.23915/distill.00024.001)
+23. **Olah, C., Cammarata, N., Schubert, L., Goh, G., Petrov, M., & Carter, S. (2020).** "Zoom In: An Introduction to Circuits." *Distill*. DOI: [10.23915/distill.00024.001](https://doi.org/10.23915/distill.00024.001)
+
+24. **Elhage, N., Nanda, N., Olsson, C., et al. (2021).** "A Mathematical Framework for Transformer Circuits." Anthropic Research. URL: https://transformer-circuits.pub/2021/framework/index.html
 
 ---
 
-## 10. Fazit: Bruecke zwischen Forschung und Bildung
+## 11. Fazit: Bruecke zwischen Forschung und Bildung
 
-Das Latent Lab uebersetzt 20 wissenschaftliche Publikationen (2013-2025) in interaktive Experimente. Die acht Werkzeuge decken verschiedene Dimensionen der KI-Interpretierbarkeit ab:
+Das Latent Lab uebersetzt 24 wissenschaftliche Publikationen (2013-2025) in interaktive Experimente. Die acht Werkzeuge decken verschiedene Dimensionen der KI-Interpretierbarkeit ab.
 
 **Kernleistungen:**
 
@@ -851,12 +884,12 @@ Das Latent Lab uebersetzt 20 wissenschaftliche Publikationen (2013-2025) in inte
 - **Circuit Discovery:** Automatische Identifikation von Computational Circuits (Elhage et al. 2021)
 - **Gradient-basierte Attribution:** GradCAM-artige Methoden fuer Diffusion (komplementaer zur Attention-Analyse)
 
-**Paedagogische Implikation:** Das Latent Lab zeigt, dass KI-Bildung nicht zwischen "Spielzeug-Demos" und "Forschungs-Code" waehlen muss — eine dritte Kategorie ist moeglich: **Forschungs-informierte, visuell-explorative Werkzeuge** fuer den Bildungskontext.
+**Einordnung (vgl. Section 9, Verwandte Arbeiten):** Bestehende Plattformen wie Distill.pub (read-only Visualisierungen), TensorFlow Playground (einfache Feedforward-Netze) und GAN Lab (2D-Toy-Distributionen) adressieren jeweils Teilaspekte. Das Latent Lab kombiniert **direkte Manipulation**, **produktive generative Modelle** und **paedagogische Zugaenglichkeit** — eine Kombination, die in den verglichenen Projekten nicht auftritt. Ob sich daraus eine eigenstaendige Kategorie von Bildungswerkzeugen ergibt, muss die weitere Entwicklung und Evaluation zeigen.
 
 ---
 
 **Dokumentstatus:** Wissenschaftlicher Report
-**Version:** 2.0 (kritisch revidiert)
+**Version:** 2.1 (Related Work, gescheiterte Experimente dokumentiert, Designziele als aspirativ formuliert)
 **Datum:** 2026-02-17
 **Autoren:** UCDCAE AI LAB Development Team
 **Lizenz:** CC BY-SA 4.0
