@@ -1,5 +1,36 @@
 # Development Log
 
+## Session 180 - Frontend Performance Analysis
+**Date:** 2026-02-17
+**Focus:** Audit what gets loaded when users access lab.ai4artsed.org — is the frontend bundle reasonable for weaker devices?
+
+### Findings
+
+**Architecture:** Pure client-side SPA (no SSR). All 23 routes use lazy loading via dynamic imports. The browser acts as a thin UI layer — all heavy computation (LLM, image/music generation, safety checks) stays on the backend/GPU service.
+
+**Initial page load (~521 KB):**
+- Main JS bundle (Vue, Router, Pinia, i18n, App shell): 469 KB
+- Main CSS: 36 KB
+- LandingView (lazy-loaded): ~12 KB
+- Favicon + HTML: ~5 KB
+
+**Route bundle sizes (lazy-loaded on navigation):**
+- Landing: 9.6 KB | Text transformation: 43 KB | Image transformation: 19 KB
+- Canvas workflow: 125 KB | Latent Lab: 120 KB | Settings: 526 KB (largest)
+- Most routes: 1-21 KB
+
+### Optimization opportunities (not urgent)
+1. **`public/config-previews/originals_backup/` (67 MB)** — deployed to dist but never served to users. Should be excluded from production builds.
+2. **i18n loaded eagerly (135 KB, 2137 lines)** — all DE+EN translations in a single `i18n.ts`, loaded regardless of active language. Could be split per language.
+3. **Modals in App.vue loaded eagerly** — ChatOverlay, FooterGallery, AboutModal mounted in global shell. Could be lazy-loaded on first open.
+4. **Settings page (526 KB)** — likely embeds full config editor with schemas. Could be code-split.
+5. **No manual vendor chunk splitting** — Vite uses automatic splitting only. Manual chunks for Vue/Router/Pinia would improve cache hit rates on repeat visits.
+
+### Conclusion
+At ~521 KB initial load, the architecture is solid and well within reasonable territory (most popular sites ship 2-5 MB). Full route lazy-loading is correctly implemented. No immediate action required — these are future optimization candidates if device constraints become an issue.
+
+---
+
 ## Session 176 - Model Availability: GPU Service Independence
 **Date:** 2026-02-15
 **Focus:** Break SwarmUI dependency for model availability — Diffusers configs must be reachable without ComfyUI running.

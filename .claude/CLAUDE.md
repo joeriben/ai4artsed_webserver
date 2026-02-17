@@ -51,7 +51,7 @@ Frontend visualisiert, was die Pipeline strukturiert.
 **Single Directory Approach:**
 - **Location**: `~/ai/ai4artsed_webserver/` (no /opt/ production directory)
 - **PORT Configuration**: config.py has PORT=17802 (default), production script exports PORT=17801
-- **Branch Strategy**: develop (work) → main (production)
+- **Branch Strategy**: develop (work) → main (production), always fast-forward merge (`git merge --ff-only develop` on main)
 - **Frontend Build**: `/dist` is gitignored, must be built locally before deployment
 - **No Merge Conflicts**: PORT override via environment variable, not hardcoded per branch
 
@@ -82,3 +82,4 @@ Frontend visualisiert, was die Pipeline strukturiert.
    - Read relevant documentation BEFORE making architectural decisions or code changes
 6. **VUE TYPE CHECK**: When programming Vue pages, ALWAYS run `npm run type-check` and fix any type errors before considering the task complete
 7. **NO COLORED BACKGROUNDS**: All page backgrounds MUST be black (`#0a0a0a`). Blue gradients, colored gradients, or any non-black backgrounds are FORBIDDEN. This has been violated repeatedly — do not introduce them.
+8. **GIT MERGE STRATEGY**: When merging develop→main, ALWAYS use `git merge --ff-only develop` (fast-forward only). This prevents merge-commit noise that causes "develop is N commits behind main". If ff-only fails, rebase develop onto main first.
