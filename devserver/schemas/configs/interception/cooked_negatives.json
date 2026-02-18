@@ -39,7 +39,7 @@
     "loras": [
       {
         "name": "sd3.5-large_cooked_negatives-000004.safetensors",
-        "strength": 0.7
+        "strength": 0.9
       }
     ],
     "wikipedia": true
