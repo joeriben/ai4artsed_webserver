@@ -1,7 +1,7 @@
 # ARCHITECTURE PART 29 — Safety System
 
 **Status:** Authoritative
-**Last Updated:** 2026-02-15 (Session 175)
+**Last Updated:** 2026-02-18 (Session 181)
 **Scope:** Complete safety architecture — levels, filters, enforcement points, legal basis
 
 ---
@@ -154,17 +154,23 @@ Only 2 SpaCy models loaded (prevents cross-language false positives):
 - `de_core_news_lg` — German NER
 - `xx_ent_wiki_sm` — Multilingual NER
 
-Looks for `PER` (person) entities. On hit → `llm_verify_person_name()` for false-positive reduction.
+**Two-layer false positive reduction:**
 
-**CRITICAL: Local-only LLM verification.** The `llm_verify_person_name()` function ALWAYS runs via local Ollama — never external APIs. Sending detected personal names to Mistral/Anthropic/OpenAI for verification would itself be a DSGVO violation. Model: `config.SAFETY_MODEL` (configurable in Settings UI, default: `gpt-OSS:20b`).
+1. **POS-tag pre-filter** (milliseconds, no LLM): SpaCy PER entities are checked for PROPN tokens. Entities consisting only of non-PROPN tokens (e.g. "Schräges Fenster" = ADJ+NOUN) are discarded immediately. This eliminates most SpaCy false positives before any LLM call.
 
-**Thinking model support:** gpt-OSS:20b uses thinking mode — reasoning in `message.thinking`, answer in `message.content`. Under VRAM pressure, `content` may be empty while the answer exists only in `thinking`. The code checks both fields: first `content`, then falls back to extracting JA/NEIN from `thinking`. `num_predict: 500` minimum.
+2. **LLM verification** (`llm_verify_person_name()`): Remaining PER entities (those with at least one PROPN token) are verified by a local LLM. The prompt asks: "Are these flagged words actually person names, or false positives?" Response: `SAFE` (false positive) or `UNSAFE` (actual name → block).
 
-**Fail-closed:** If neither `content` nor `thinking` yields a JA/NEIN answer, the system blocks with an admin-contact error message. Safety verification must never fail-open.
+**Dedicated model:** `config.DSGVO_VERIFY_MODEL` (configurable in Settings UI, default: `gpt-OSS:20b`). Must be a **general-purpose model** — guard models (llama-guard) classify content safety categories, not "is this a name?". Recommended VRAM-efficient options: qwen3:1.7b, gemma3:1b, qwen2.5:1.5b, llama3.2:1b.
 
-**Available safety models:** `llama-guard3:1b`, `llama-guard3:latest`, `llama-guard3:8b`, `gpt-OSS:20b`, `gpt-OSS:120b`.
+**CRITICAL: Local-only.** The `llm_verify_person_name()` function ALWAYS runs via local Ollama — never external APIs. Sending detected personal names to Mistral/Anthropic/OpenAI for verification would itself be a DSGVO violation.
 
-**Lesson learned:** Running all 12 SpaCy models causes cross-language confusion (e.g., `en_core_web_lg` flags "Der Eiffelturm" as PERSON).
+**Thinking model support:** Some models use thinking mode — reasoning in `message.thinking`, answer in `message.content`. Under VRAM pressure, `content` may be empty while the answer exists only in `thinking`. The code checks both fields: first `content`, then falls back to extracting SAFE/UNSAFE from `thinking`. `num_predict: 500` minimum.
+
+**Fail-closed:** If neither `content` nor `thinking` yields a SAFE/UNSAFE answer, the system blocks with an admin-contact error message. Safety verification must never fail-open.
+
+**Lesson learned (Session 175):** Running all 12 SpaCy models causes cross-language confusion (e.g., `en_core_web_lg` flags "Der Eiffelturm" as PERSON).
+
+**Lesson learned (Session 181):** The LLM prompt must ask "is this a person name?" (SAFE/UNSAFE), not "is this a real existing person?" (JA/NEIN). The latter blocks common names ("Karl Meier") while passing real professors ("Benjamin Jörissen"). Guard models are unsuitable — they answer "safe" because the text content is harmless, not because the entity is or isn't a name.
 
 ### 4.4 VLM Image Analysis
 
@@ -213,6 +219,8 @@ Canvas routes (`/api/canvas/execute`, `/execute-stream`, `/execute-batch`) have 
 
 ```python
 DEFAULT_SAFETY_LEVEL = 'kids'          # Default, overridden by user_settings.json
+SAFETY_MODEL = 'gpt-OSS:20b'          # Guard model for content safety (§86a, Jugendschutz)
+DSGVO_VERIFY_MODEL = 'gpt-OSS:20b'    # General-purpose model for NER verification (NOT guard)
 VLM_SAFETY_MODEL = 'qwen3-vl:2b'      # Ollama model for image checks
 STAGE1_TEXT_MODEL = '...'              # Model for Stage 1 LLM checks
 ```
@@ -269,6 +277,7 @@ The research mode restriction is codified in `LICENSE.md` §3(e):
 | 143 | 2026-01-27 | Fast-Filter-First architecture (no LLM for 95%+ cases) |
 | 161 | 2026-02-07 | VLM post-generation image check |
 | 170 | 2026-02-12 | Safety-level centralization ("off" → "research"), LICENSE.md §3(e) |
+| 181 | 2026-02-18 | DSGVO NER rewrite: POS-tag pre-filter, SAFE/UNSAFE prompt, dedicated DSGVO_VERIFY_MODEL |
 
 ---
 

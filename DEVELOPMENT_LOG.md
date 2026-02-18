@@ -1,5 +1,59 @@
 # Development Log
 
+## Session 181 - DSGVO NER Verification Rewrite
+**Date:** 2026-02-18
+**Focus:** Fix broken DSGVO-NER false positive filtering — wrong prompt, wrong model, missing POS-tag pre-filter
+
+### Problem
+
+The DSGVO-NER LLM verification produced inconsistent results:
+- "Benjamin Jörissen" (real professor) → LLM said "NEIN" (not a real person) → passed through
+- "Karl Meier" (generic name in creative context) → LLM said "JA" (real person) → blocked
+
+**Root causes:**
+1. **Wrong question**: Prompt asked "Sind diese Wörter echte Personennamen real existierender Menschen?" with rule "Alltagsnamen = JA" — every common name got blocked
+2. **JA/NEIN in German**: Language-dependent, double negation (NEIN = safe), error-prone
+3. **SpaCy tagger disabled**: POS tags unavailable, so false positives like "Schräges Fenster" (ADJ+NOUN tagged as PER) reached the LLM
+4. **Unauthorized model fallback**: Guard models (llama-guard) can't answer "is this a name?" but code silently fell back to hardcoded gpt-OSS:20b (20GB VRAM)
+
+### Changes
+
+**1. LLM Prompt rewrite** (`stage_orchestrator.py:206`)
+- New question: "Are these flagged words actually person names, or false positives?"
+- SAFE/UNSAFE output (English, language-independent, no double negation)
+- Rules: actual names (real or fictional) = UNSAFE, descriptions/materials/places = SAFE
+
+**2. SpaCy POS-tag pre-filter** (`stage_orchestrator.py:103,145-149`)
+- Enabled tagger (removed from `disable` list)
+- PER entities without PROPN tokens are filtered before LLM call
+- "Schräges Fenster" (ADJ+NOUN) → filtered in milliseconds, no LLM needed
+
+**3. Dedicated DSGVO_VERIFY_MODEL** (`config.py:142`)
+- New config value, separate from SAFETY_MODEL (guard) and STAGE1_TEXT_MODEL (may be external)
+- Must be general-purpose (not guard model), must be local (Ollama only)
+- Removed unauthorized hardcoded gpt-OSS:20b fallback
+
+**4. Settings UI** (`SettingsView.vue:130-162`)
+- Added DSGVO-Verify Model dropdown in "Local Safety Models" section
+- 6 options: qwen3:1.7b (recommended), gemma3:1b, qwen2.5:1.5b, llama3.2:1b, qwen3:0.6b, gpt-OSS:20b
+
+### Architecture insight
+
+Stage 1 safety has three independent steps, two of which may call an LLM:
+1. §86a fast-filter (keywords, no LLM)
+2. Age-filter → LLM context check on hit (guard model, fast)
+3. DSGVO NER → LLM verify on hit (general-purpose model, now configurable)
+
+The LLM verify's **only job** is filtering SpaCy false positives — not evaluating whether names are "safe" to use.
+
+### Files changed
+- `devserver/config.py` — DSGVO_VERIFY_MODEL
+- `devserver/schemas/engine/stage_orchestrator.py` — prompt, POS filter, model selection
+- `devserver/my_app/routes/settings_routes.py` — expose new setting
+- `public/ai4artsed-frontend/src/views/SettingsView.vue` — dropdown UI
+
+---
+
 ## Session 180 - Frontend Performance Analysis
 **Date:** 2026-02-17
 **Focus:** Audit what gets loaded when users access lab.ai4artsed.org — is the frontend bundle reasonable for weaker devices?
