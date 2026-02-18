@@ -613,6 +613,7 @@ def get_settings():
             "IMAGE_ANALYSIS_MODEL": config.IMAGE_ANALYSIS_MODEL,
             "CODING_MODEL": config.CODING_MODEL,
             "SAFETY_MODEL": config.SAFETY_MODEL,
+            "DSGVO_VERIFY_MODEL": config.DSGVO_VERIFY_MODEL,
 
             # API Configuration
             "LLM_PROVIDER": config.LLM_PROVIDER,

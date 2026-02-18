@@ -127,10 +127,10 @@
         </table>
       </div>
 
-      <!-- Safety Model (local Ollama only) -->
+      <!-- Safety Models (local Ollama only) -->
       <div class="section">
-        <h2>Local Safety Model</h2>
-        <p class="help">DSGVO-NER Verification: Lokal via Ollama (Personennamen verlassen nie das System)</p>
+        <h2>Local Safety Models</h2>
+        <p class="help">Lokal via Ollama — Personennamen und Safety-Checks verlassen nie das System</p>
         <table class="config-table">
           <tbody>
             <tr>
@@ -143,7 +143,21 @@
                   <option value="gpt-OSS:20b">gpt-OSS:20b (Standard)</option>
                   <option value="gpt-OSS:120b">gpt-OSS:120b (beste Qualität)</option>
                 </select>
-                <span class="help-text">Nur lokale Safety-Modelle (Ollama)</span>
+                <span class="help-text">Guard-Modell für Content-Safety (§86a, Jugendschutz)</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">DSGVO-Verify Model</td>
+              <td class="value-cell">
+                <select v-model="settings.DSGVO_VERIFY_MODEL">
+                  <option value="qwen3:1.7b">qwen3:1.7b (~1.5 GB VRAM, empfohlen)</option>
+                  <option value="gemma3:1b">gemma3:1b (~1.0 GB VRAM)</option>
+                  <option value="qwen2.5:1.5b">qwen2.5:1.5b (~1.2 GB VRAM)</option>
+                  <option value="llama3.2:1b">llama3.2:1b (~1.3 GB VRAM)</option>
+                  <option value="qwen3:0.6b">qwen3:0.6b (~0.6 GB VRAM, minimal)</option>
+                  <option value="gpt-OSS:20b">gpt-OSS:20b (20 GB VRAM)</option>
+                </select>
+                <span class="help-text">General-Purpose-Modell für DSGVO-NER-Verifikation (kein Guard-Modell)</span>
               </td>
             </tr>
           </tbody>

@@ -100,7 +100,7 @@ def _load_spacy_models() -> List:
 
     for model_name in _SPACY_MODEL_NAMES:
         try:
-            nlp = spacy.load(model_name, disable=['parser', 'tagger', 'lemmatizer', 'attribute_ruler'])
+            nlp = spacy.load(model_name, disable=['parser', 'lemmatizer', 'attribute_ruler'])
             models.append((model_name, nlp))
         except OSError:
             logger.debug(f"[SPACY] Model '{model_name}' not installed, skipping")
@@ -142,8 +142,15 @@ def fast_dsgvo_check(text: str) -> Tuple[bool, List[str], bool]:
             for ent in doc.ents:
                 if ent.label_ == 'PER':
                     # Only flag multi-word names (first + last) — single words are too common
-                    if ' ' in ent.text.strip():
-                        found_entities.add(f"Name: {ent.text.strip()}")
+                    if ' ' not in ent.text.strip():
+                        continue
+                    # POS-tag filter: real names have PROPN tokens.
+                    # False positives like "Schräges Fenster" are ADJ+NOUN.
+                    has_propn = any(tok.pos_ == 'PROPN' for tok in ent)
+                    if not has_propn:
+                        logger.debug(f"[DSGVO-NER] POS-filtered: '{ent.text}' ({[tok.pos_ for tok in ent]})")
+                        continue
+                    found_entities.add(f"Name: {ent.text.strip()}")
         except Exception as e:
             logger.debug(f"[SPACY] Error with model {model_name}: {e}")
 
@@ -189,10 +196,7 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
 
     # Resolve local Ollama model for DSGVO NER verification.
     # DSGVO: personal names must NEVER leave the local system — Ollama only.
-    model = config.SAFETY_MODEL
-    if model.startswith(("mistral/", "anthropic/", "openai/", "openrouter/")):
-        model = config.STAGE1_TEXT_MODEL
-        logger.debug(f"[DSGVO-LLM-VERIFY] SAFETY_MODEL is external, using STAGE1_TEXT_MODEL: {model}")
+    model = config.DSGVO_VERIFY_MODEL
     # Strip local/ prefix for Ollama
     ollama_model = model.replace("local/", "") if model.startswith("local/") else model
 

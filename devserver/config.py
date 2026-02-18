@@ -138,6 +138,10 @@ CODING_MODEL = "mistral/codestral-latest"                 # Code generation (Ton
 # Available safety models: llama-guard3:1b, llama-guard3:latest, llama-guard3:8b, gpt-OSS:20b, gpt-OSS:120b
 SAFETY_MODEL = "gpt-OSS:20b"
 
+# DSGVO NER Verification Model (Ollama only — verifies SpaCy NER hits are actual names)
+# Must be a general-purpose model, NOT a guard model (guard models classify content safety, not names)
+DSGVO_VERIFY_MODEL = "gpt-OSS:20b"
+
 # Legacy Model Configuration
 GPT_OSS_MODEL = "gpt-OSS:20b"  # openai/gpt-oss-safeguard-20b via Ollama
 ANALYSIS_MODEL = "local/llama3.2-vision:latest"
