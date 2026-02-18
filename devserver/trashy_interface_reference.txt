@@ -1,5 +1,5 @@
 AI4ARTSED KNOWLEDGE BASE FOR TRASHY - COMPREHENSIVE USER GUIDE
-Last updated: 2026-01-29
+Last updated: 2026-02-18
 
 ================================================================================
 SECTION 1: PLATFORM OVERVIEW
@@ -1058,6 +1058,77 @@ When users want to write their own rules:
 - Include specific prohibitions for what NOT to do
 - Specify output length and format
 - Ensure the rules work for ANY input (WAS), not just specific content
+
+================================================================================
+SECTION 16: EDUTAINMENT ANIMATIONS DURING GENERATION
+================================================================================
+
+While images or music are being generated, the platform shows one of several
+interactive edutainment animations. These are NOT just waiting screens — they have
+genuine pedagogical purpose: making the hidden environmental cost of AI visible.
+
+CORE IDEA
+---------
+Every AI generation consumes real energy and produces real CO2. The animations turn
+this abstract fact into something students can see, feel, and interact with. The
+platform reads real GPU power data (watts, temperature) and uses it to drive the
+animations — so they reflect actual resource consumption, not made-up numbers.
+
+THE THREE ACTIVE ANIMATIONS (randomly selected per generation)
+--------------------------------------------------------------
+
+1. FOREST MINI-GAME ("Bäume pflanzen")
+   - Students click to plant trees while waiting
+   - Factories automatically spawn and destroy trees — representing the pollution
+     caused by the GPU powering their generation
+   - Real-time stats: GPU power, tree count, total CO2 produced
+   - Key learning: A single tree absorbs about 2.5g CO2 per hour. The animation
+     shows how many minutes a tree would need to offset this one generation
+   - Pedagogical message: Even a single image has a measurable carbon footprint
+
+2. ICEBERG ANIMATION ("Arktisches Eis")
+   - Students draw icebergs on a canvas
+   - The icebergs melt proportionally to the GPU energy consumption
+   - Physics simulation: icebergs float, rotate, and shrink realistically
+   - Water temperature rises with accumulated CO2
+   - Key learning: CO2 emissions have a direct (if tiny) effect on polar ice.
+     The animation visualizes this relationship in an exaggerated but proportional way
+   - Pedagogical message: Computing is physical — it happens on real hardware that
+     produces real heat and real emissions
+
+3. GPU STATS ANIMATION ("Was passiert gerade?")
+   - Shows an animated sprite of the GPU "working hard"
+   - Real-time power gauge, temperature, energy consumption
+   - Comparison metric: "This generation used as much energy as X minutes of
+     smartphone use"
+   - Rising bubbles with AI facts
+   - Pedagogical message: Demystifies what happens "under the hood" — AI generation
+     is not magic, it is massive computation on specialized hardware
+
+PLANNED (currently disabled): RARE EARTH MINI-GAME
+   - Would visualize the mining of rare earth elements (Neodymium, Dysprosium,
+     Terbium) needed to build GPUs
+   - Conveyor belt transports minerals while sludge pollutes a lake
+   - Students click to clean up pollution
+   - Topic: The hidden supply chain behind the hardware
+
+HOW TO TALK ABOUT THIS WITH STUDENTS
+-------------------------------------
+- The animations are designed to spark discussion, not to guilt-trip anyone
+- "Did you notice the factory in the forest game? What do you think it represents?"
+- "How many trees would we need to plant to offset a whole class doing AI art?"
+- "Is it worth it? When is AI generation worthwhile, and when might simpler tools
+  be better?"
+- The point is AWARENESS, not prohibition. We use AI — but we should understand
+  what it costs
+
+TECHNICAL DETAILS (if students ask)
+------------------------------------
+- The platform reads real GPU stats via nvidia-smi every 2 seconds
+- CO2 is calculated using the German electricity grid average (~400g CO2/kWh)
+- Energy formula: GPU watts / 3600 = watt-hours per second of generation
+- All comparison metrics (trees, smartphones, ice) use published scientific data
+- If no GPU data is available, the animation uses realistic simulated values
 
 ================================================================================
 END OF KNOWLEDGE BASE
