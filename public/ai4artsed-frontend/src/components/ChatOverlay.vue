@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useCurrentSession } from '../composables/useCurrentSession'
@@ -134,6 +134,29 @@ if (savedPosition) {
   }
 }
 
+// Reactive viewport dimensions (makes overlayPositionStyle re-evaluate on resize)
+const viewportWidth = ref(window.innerWidth)
+const viewportHeight = ref(window.innerHeight)
+
+function onWindowResize() {
+  viewportWidth.value = window.innerWidth
+  viewportHeight.value = window.innerHeight
+
+  // Re-clamp saved position so Träshy stays in viewport
+  if (userPosition.value) {
+    const maxRight = viewportWidth.value - ICON_SIZE - CHAT_MIN_MARGIN
+    const maxBottom = viewportHeight.value - ICON_SIZE - CHAT_MIN_MARGIN
+    userPosition.value = {
+      right: Math.max(CHAT_MIN_MARGIN, Math.min(maxRight, userPosition.value.right)),
+      bottom: Math.max(CHAT_MIN_MARGIN, Math.min(maxBottom, userPosition.value.bottom))
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userPosition.value))
+  }
+}
+
+onMounted(() => window.addEventListener('resize', onWindowResize))
+onUnmounted(() => window.removeEventListener('resize', onWindowResize))
+
 // Refs
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputTextarea = ref<HTMLTextAreaElement | null>(null)
@@ -165,25 +188,25 @@ const ICON_SIZE = 100 // Maximum icon size (clamp max)
 const overlayPositionStyle = computed(() => {
   const hint = pageContextStore.currentFocusHint
   const style: Record<string, string> = {}
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
+  const vw = viewportWidth.value
+  const vh = viewportHeight.value
 
   if (isExpanded.value) {
     // EXPANDED: Chat window positioning (uses hint, not user position)
-    const chatHeight = Math.min(CHAT_HEIGHT, viewportHeight - 120)
+    const chatHeight = Math.min(CHAT_HEIGHT, vh - 120)
 
     // Horizontal: Convert hint.x to pixels and clamp
-    const requestedRight = ((100 - hint.x) / 100) * viewportWidth
+    const requestedRight = ((100 - hint.x) / 100) * vw
     const minRight = CHAT_MIN_MARGIN
-    const maxRight = viewportWidth - CHAT_WIDTH - CHAT_MIN_MARGIN
+    const maxRight = vw - CHAT_WIDTH - CHAT_MIN_MARGIN
     const clampedRight = Math.max(minRight, Math.min(maxRight, requestedRight))
     style.right = `${clampedRight}px`
     style.left = 'auto'
 
     // Vertical: Convert hint.y to pixels and clamp
-    const requestedTop = (hint.y / 100) * viewportHeight
+    const requestedTop = (hint.y / 100) * vh
     const minTop = CHAT_MIN_MARGIN
-    const maxTop = viewportHeight - chatHeight - CHAT_MIN_MARGIN
+    const maxTop = vh - chatHeight - CHAT_MIN_MARGIN
     const clampedTop = Math.max(minTop, Math.min(maxTop, requestedTop))
     style.top = `${clampedTop}px`
     style.bottom = 'auto'
@@ -194,23 +217,23 @@ const overlayPositionStyle = computed(() => {
     let finalBottom: number
 
     if (userPosition.value) {
-      // User has dragged Träshy - use their position (already clamped during drag)
-      finalRight = userPosition.value.right
-      finalBottom = userPosition.value.bottom
+      // User has dragged Träshy — re-clamp against current viewport
+      const maxRight = vw - ICON_SIZE - CHAT_MIN_MARGIN
+      const maxBottom = vh - ICON_SIZE - CHAT_MIN_MARGIN
+      finalRight = Math.max(CHAT_MIN_MARGIN, Math.min(maxRight, userPosition.value.right))
+      finalBottom = Math.max(CHAT_MIN_MARGIN, Math.min(maxBottom, userPosition.value.bottom))
     } else {
       // No user position - calculate from hint
-      const requestedRight = ((100 - hint.x) / 100) * viewportWidth
-      const requestedBottom = ((100 - hint.y) / 100) * viewportHeight
+      const requestedRight = ((100 - hint.x) / 100) * vw
+      const requestedBottom = ((100 - hint.y) / 100) * vh
 
       // Clamp horizontal: icon must not extend past left or right edge
-      const minRight = CHAT_MIN_MARGIN
-      const maxRight = viewportWidth - ICON_SIZE - CHAT_MIN_MARGIN
-      finalRight = Math.max(minRight, Math.min(maxRight, requestedRight))
+      const maxRight = vw - ICON_SIZE - CHAT_MIN_MARGIN
+      finalRight = Math.max(CHAT_MIN_MARGIN, Math.min(maxRight, requestedRight))
 
       // Clamp vertical: icon must not extend past top or bottom edge
-      const minBottom = CHAT_MIN_MARGIN
-      const maxBottom = viewportHeight - ICON_SIZE - CHAT_MIN_MARGIN
-      finalBottom = Math.max(minBottom, Math.min(maxBottom, requestedBottom))
+      const maxBottom = vh - ICON_SIZE - CHAT_MIN_MARGIN
+      finalBottom = Math.max(CHAT_MIN_MARGIN, Math.min(maxBottom, requestedBottom))
     }
 
     style.right = `${finalRight}px`
