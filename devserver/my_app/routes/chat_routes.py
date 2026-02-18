@@ -288,7 +288,7 @@ def _call_mistral_chat(messages: list, model: str, temperature: float, max_token
             "max_tokens": max_tokens
         }
 
-        response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+        response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=30)
 
         if response.status_code == 200:
             result = response.json()
