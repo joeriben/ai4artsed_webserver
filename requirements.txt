@@ -81,10 +81,11 @@ torchao>=0.9.0                   # Torch AO (quantization)
 # NLP / Safety (DSGVO NER Check)
 # ============================================================================
 spacy>=3.8.0             # NLP framework for named entity recognition (DSGVO check)
-# Language models are installed separately:
-#   python -m spacy download de_core_news_lg en_core_web_lg fr_core_news_lg es_core_news_lg
-#   python -m spacy download it_core_news_lg pt_core_news_lg nl_core_news_lg pl_core_news_lg
-#   python -m spacy download ru_core_news_lg zh_core_web_lg ja_core_news_lg xx_ent_wiki_sm
+# Required NER models (installed separately, NOT via pip):
+#   python -m spacy download de_core_news_lg    # German text (platform language)
+#   python -m spacy download xx_ent_wiki_sm     # Multilingual (names from any language in German text)
+# These 2 models cover the use case. Adding more (e.g. en_core_web_lg) causes
+# cross-language false positives — en model flags "Der Eiffelturm" as PERSON.
 
 # ============================================================================
 # Optional: Development/Testing

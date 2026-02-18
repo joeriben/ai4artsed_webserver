@@ -1,6 +1,22 @@
 # DevServer Implementation TODOs
-**Last Updated:** 2026-02-16
+**Last Updated:** 2026-02-18
 **Context:** Current priorities and active TODOs
+
+---
+
+## 📋 TODO: SpaCy Startup-Check + requirements.txt bereinigen
+
+**Status:** 📋 **TODO**
+**Datum:** 2026-02-18
+**Priority:** HIGH (Production war ohne SpaCy deployed → DSGVO-Schutz komplett deaktiviert)
+
+### Problem
+SpaCy ist in `requirements.txt`, aber `pip install -r requirements.txt` installiert nicht die NER-Modelle (`de_core_news_lg`, `xx_ent_wiki_sm`). Production lief ohne SpaCy → kein DSGVO-NER-Check → Namen gingen ungeprüft an externe APIs.
+
+### Aufgaben
+1. **Startup-Check** im Backend: Beim Start prüfen ob SpaCy + die 2 erforderlichen Modelle installiert sind. Fehlt was → klare Fehlermeldung (nicht nur Warning, sondern Abbruch oder rote Warnung)
+2. **requirements.txt bereinigen**: Kommentare zeigen noch die alten 12 Modelle — aktualisieren auf die 2 tatsächlich verwendeten (`de_core_news_lg`, `xx_ent_wiki_sm`)
+3. **Installationsskript oder Post-Install-Hook** für die SpaCy-Modelle (sie werden per `python -m spacy download` installiert, nicht per pip)
 
 ---
 
