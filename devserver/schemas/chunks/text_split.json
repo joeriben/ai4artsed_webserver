@@ -3,7 +3,7 @@
   "description": "Semantic text splitting - splits input into structured parts without transformation",
   "template": "{{CONTEXT}}\n\nInput:\n{{INPUT_TEXT}}",
   "backend_type": "ollama",
-  "model": "gpt-OSS:20b",
+  "model": "SAFETY_MODEL",
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,

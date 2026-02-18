@@ -188,30 +188,23 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
     names_str = ", ".join(names)
 
     # Resolve local Ollama model for DSGVO NER verification.
-    # Guard models (llama-guard) are UNSUITABLE — they classify general safety categories,
-    # not "is this a real person name?". Always use a general-purpose model.
-    model = config.STAGE1_TEXT_MODEL
+    # DSGVO: personal names must NEVER leave the local system — Ollama only.
+    model = config.SAFETY_MODEL
     if model.startswith(("mistral/", "anthropic/", "openai/", "openrouter/")):
-        # External model — fall back to SAFETY_MODEL
-        model = config.SAFETY_MODEL
-        logger.debug(f"[DSGVO-LLM-VERIFY] STAGE1_TEXT_MODEL is external, using SAFETY_MODEL: {model}")
+        model = config.STAGE1_TEXT_MODEL
+        logger.debug(f"[DSGVO-LLM-VERIFY] SAFETY_MODEL is external, using STAGE1_TEXT_MODEL: {model}")
     # Strip local/ prefix for Ollama
     ollama_model = model.replace("local/", "") if model.startswith("local/") else model
 
-    # Guard models can't answer "is this a real name?" — force gpt-OSS fallback
-    if ollama_model.startswith("llama-guard"):
-        ollama_model = "gpt-OSS:20b"
-        logger.debug(f"[DSGVO-LLM-VERIFY] Guard model unsuitable for NER verify, using gpt-OSS:20b")
-
     prompt = (
-        f"Sind folgende Wörter echte Personennamen real existierender Menschen?\n\n"
-        f"Wörter: {names_str}\n"
-        f"Originaltext: \"{text}\"\n\n"
-        f"Regeln:\n"
-        f"- Reale Personen (Politiker, Prominente, Alltagsnamen) = JA\n"
-        f"- Fiktive Figuren (Harry Potter, Sherlock Holmes) = NEIN\n"
-        f"- Beschreibungen, Materialien, Orte = NEIN\n\n"
-        f"Antworte NUR mit JA oder NEIN."
+        f"A text analysis system flagged the following words as person names. "
+        f"Are they actually person names, or false positives?\n\n"
+        f"Flagged words: {names_str}\n"
+        f"Original text: \"{text}\"\n\n"
+        f"Rules:\n"
+        f"- Actual person names (real or fictional) = UNSAFE\n"
+        f"- Descriptions, adjectives, materials, places, objects, technical terms = SAFE\n\n"
+        f"Answer ONLY with SAFE or UNSAFE."
     )
     messages = [{"role": "user", "content": prompt}]
 
@@ -234,16 +227,16 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
         duration_ms = (_time.time() - start) * 1000
 
         # Thinking model fallback: gpt-OSS puts reasoning in 'thinking', answer in 'content'.
-        # Under VRAM pressure, 'content' may be empty — extract JA/NEIN from 'thinking'.
+        # Under VRAM pressure, 'content' may be empty — extract SAFE/UNSAFE from 'thinking'.
         if not result:
             thinking = msg.get("thinking", "").strip()
             if thinking:
                 logger.info(f"[DSGVO-LLM-VERIFY] content empty, checking thinking field ({len(thinking)} chars)")
                 thinking_upper = thinking.upper()
-                if thinking_upper.rstrip().endswith("NEIN") or "\nNEIN" in thinking_upper:
-                    result = "NEIN"
-                elif thinking_upper.rstrip().endswith("JA") or "\nJA" in thinking_upper:
-                    result = "JA"
+                if "UNSAFE" in thinking_upper:
+                    result = "UNSAFE"
+                elif "SAFE" in thinking_upper:
+                    result = "SAFE"
 
         if not result:
             logger.error(
@@ -252,10 +245,12 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
             )
             return None
 
-        is_real_name = result.upper().startswith("JA")
+        result_upper = result.upper().strip()
+        # "UNSAFE" must be checked first — "SAFE" is a substring of "UNSAFE"
+        is_real_name = result_upper.startswith("UNSAFE")
         logger.info(
             f"[DSGVO-LLM-VERIFY] entities={names_str} → LLM={result!r} → "
-            f"{'REAL NAME' if is_real_name else 'FALSE POSITIVE'} ({duration_ms:.0f}ms)"
+            f"{'UNSAFE — real person identified' if is_real_name else 'SAFE'} ({duration_ms:.0f}ms)"
         )
         return is_real_name
 
