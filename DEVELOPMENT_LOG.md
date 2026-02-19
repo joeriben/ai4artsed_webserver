@@ -1,5 +1,58 @@
 # Development Log
 
+## Session 182 - Real Diffusers Progress for Edutainment Animations
+**Date:** 2026-02-19
+**Focus:** Replace faked time-based progress with real Diffusers step callbacks
+
+### Problem
+
+Edutainment animations (Forest, Iceberg, Pixel) showed a faked progress loop based on `estimatedSeconds` from output configs. The Diffusers backend already fires step callbacks (`step 5/25`) but this data had no path to the frontend.
+
+### Architecture: Polling Side-Channel (3 layers)
+
+```
+Diffusers callback → _generation_progress dict → GET /api/diffusers/progress
+  → DevServer proxy /api/settings/generation-progress → Frontend polls every 2s
+```
+
+No SSE changes. No threading complexity. Fail-open by design.
+
+### Changes
+
+**Layer 1: GPU Service** (`gpu_service/services/diffusers_backend.py`)
+- Added module-level `_generation_progress` dict + `get_generation_progress()` getter
+- Wired progress callbacks into all 5 generation methods: `generate_image()`, `generate_video()`, `generate_image_with_fusion()`, `generate_image_with_attention()`, `generate_image_with_archaeology()`
+- Each sets `active=True` before inference, updates `step/total_steps` per callback, sets `active=False` in `finally`
+
+**Layer 1b: GPU Service Route** (`gpu_service/routes/diffusers_routes.py`)
+- Added `GET /api/diffusers/progress` endpoint
+
+**Layer 2: DevServer Proxy** (`devserver/my_app/routes/settings_routes.py`)
+- Added `GET /api/settings/generation-progress` with 2s timeout, fail-open to `{step:0, total_steps:0, active:false}`
+
+**Layer 3: Frontend Composable** (`useAnimationProgress.ts`)
+- Added `backendProgress` ref + `fetchGenerationProgress()` polled every 2s alongside GPU stats
+- `animationLoop` uses real step progress when backend reports `active=true`
+- `hasSeenBackendProgress` latch: once real data is seen, progress holds at last value when inference finishes (no reset during VLM safety check)
+- Falls back to time-based loop for ComfyUI/HeartMuLa/GPU-service-down
+
+### Behavior Matrix
+
+| Backend | Progress behavior |
+|---------|------------------|
+| Diffusers | Real steps 0→100%, holds at 100% during safety check |
+| ComfyUI | Time-based loop 0→100→0→100 (unchanged) |
+| HeartMuLa | Time-based loop (unchanged) |
+| GPU service down | Time-based loop (unchanged) |
+
+### Files changed
+- `gpu_service/services/diffusers_backend.py` — progress dict, callbacks in all 5 methods
+- `gpu_service/routes/diffusers_routes.py` — progress endpoint
+- `devserver/my_app/routes/settings_routes.py` — proxy endpoint
+- `public/.../composables/useAnimationProgress.ts` — polling + real progress + hold latch
+
+---
+
 ## Session 181 - DSGVO NER Verification Rewrite
 **Date:** 2026-02-18
 **Focus:** Fix broken DSGVO-NER false positive filtering — wrong prompt, wrong model, missing POS-tag pre-filter
