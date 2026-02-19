@@ -18,6 +18,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+  },
   server: {
     host: '0.0.0.0',   // Listen on all network interfaces (WLAN + Cloudflare)
     port: 5173,

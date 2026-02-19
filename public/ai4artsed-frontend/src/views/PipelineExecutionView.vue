@@ -27,9 +27,9 @@
           </h1>
         </div>
         <div class="header-right">
-          <!-- Language toggle (optional) -->
+          <!-- Language toggle -->
           <button class="language-toggle" @click="userPreferences.toggleLanguage()">
-            {{ userPreferences.language === 'de' ? '🇩🇪' : '🇬🇧' }}
+            {{ userPreferences.language.toUpperCase() }}
           </button>
         </div>
       </div>

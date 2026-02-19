@@ -1,18 +1,19 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../i18n'
+
+const validCodes = SUPPORTED_LANGUAGES.map(l => l.code) as readonly string[]
 
 /**
  * Pinia Store for Global User Preferences
  *
  * Manages:
- * - Global language selection (de/en) for entire app
+ * - Global language selection for entire app
  * - Syncs with localStorage for persistence
  * - Syncs with vue-i18n locale for UI translations
  * - Used across all phases (Phase 1, 2, 3)
  *
  * Architecture Decision: Language selection is site-wide, not phase-specific
- *
- * Phase 2 - Multilingual Context Editing Implementation
  */
 export const useUserPreferencesStore = defineStore('userPreferences', () => {
   // ============================================================================
@@ -20,7 +21,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   // ============================================================================
 
   /** Current language (default: German) */
-  const language = ref<'de' | 'en'>('de')
+  const language = ref<SupportedLanguage>('de')
 
   // ============================================================================
   // INITIALIZATION
@@ -31,8 +32,8 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
    */
   function initializeLanguage() {
     const savedLanguage = localStorage.getItem('ai4artsed_language')
-    if (savedLanguage === 'en' || savedLanguage === 'de') {
-      language.value = savedLanguage
+    if (savedLanguage && validCodes.includes(savedLanguage)) {
+      language.value = savedLanguage as SupportedLanguage
     }
   }
 
@@ -41,23 +42,21 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   // ============================================================================
 
   /**
-   * Set language and sync with localStorage and vue-i18n
-   *
-   * @param newLanguage - Language code ('de' or 'en')
+   * Set language and sync with localStorage
    */
-  function setLanguage(newLanguage: 'de' | 'en') {
+  function setLanguage(newLanguage: SupportedLanguage) {
     language.value = newLanguage
     localStorage.setItem('ai4artsed_language', newLanguage)
-
     console.log(`[UserPreferences] Language set to: ${newLanguage}`)
   }
 
   /**
-   * Toggle between German and English
+   * Cycle to the next language in SUPPORTED_LANGUAGES
    */
   function toggleLanguage() {
-    const newLanguage = language.value === 'de' ? 'en' : 'de'
-    setLanguage(newLanguage)
+    const currentIndex = SUPPORTED_LANGUAGES.findIndex(l => l.code === language.value)
+    const nextIndex = (currentIndex + 1) % SUPPORTED_LANGUAGES.length
+    setLanguage(SUPPORTED_LANGUAGES[nextIndex]!.code)
   }
 
   // Initialize from localStorage
@@ -68,10 +67,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   // ============================================================================
 
   return {
-    // State (as computed for reactivity)
     language,
-
-    // Actions
     setLanguage,
     toggleLanguage
   }

@@ -1,5 +1,12 @@
 import { createI18n } from 'vue-i18n'
 
+export const SUPPORTED_LANGUAGES = [
+  { code: 'de', label: 'Deutsch' },
+  { code: 'en', label: 'English' },
+] as const
+
+export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number]['code']
+
 const messages = {
   de: {
     app: {

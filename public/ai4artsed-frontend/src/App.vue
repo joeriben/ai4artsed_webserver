@@ -88,9 +88,22 @@
                 <path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
               </svg>
             </router-link>
-            <button @click="toggleLanguage" class="nav-link lang-toggle" :title="$t('nav.language')">
-              {{ currentLanguage === 'de' ? 'EN' : 'DE' }}
-            </button>
+            <div class="lang-dropdown" ref="langDropdownRef">
+              <button @click="langMenuOpen = !langMenuOpen" class="nav-link lang-toggle" :title="$t('nav.language')">
+                {{ currentLanguage.toUpperCase() }} <span class="lang-caret">&#9662;</span>
+              </button>
+              <div v-if="langMenuOpen" class="lang-menu">
+                <button
+                  v-for="lang in SUPPORTED_LANGUAGES"
+                  :key="lang.code"
+                  class="lang-option"
+                  :class="{ active: currentLanguage === lang.code }"
+                  @click="selectLanguage(lang.code)"
+                >
+                  {{ lang.label }}
+                </button>
+              </div>
+            </div>
             <button @click="openImpressum" class="nav-link nav-link-text">{{ $t('nav.impressum') }}</button>
           </nav>
         </div>
@@ -124,7 +137,7 @@
  * Session 82: Added ChatOverlay global component for interactive LLM help
  * Session 86: Integrated return button into global header (always visible)
  */
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ChatOverlay from './components/ChatOverlay.vue'
@@ -135,6 +148,7 @@ import ImpressumModal from './components/ImpressumModal.vue'
 import SettingsAuthModal from './components/SettingsAuthModal.vue'
 import { useUserPreferencesStore } from './stores/userPreferences'
 import { useSafetyLevelStore } from './stores/safetyLevel'
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './i18n'
 
 const { locale, t } = useI18n()
 const safetyStore = useSafetyLevelStore()
@@ -148,10 +162,23 @@ const showDokumentation = ref(false)
 const showImpressum = ref(false)
 const showSettingsAuth = ref(false)
 
-function toggleLanguage() {
-  userPreferences.toggleLanguage()
-  // main.ts watcher syncs userPreferences.language → locale automatically
+// Language dropdown
+const langMenuOpen = ref(false)
+const langDropdownRef = ref<HTMLElement | null>(null)
+
+function selectLanguage(code: SupportedLanguage) {
+  userPreferences.setLanguage(code)
+  langMenuOpen.value = false
 }
+
+function handleClickOutside(e: MouseEvent) {
+  if (langDropdownRef.value && !langDropdownRef.value.contains(e.target as Node)) {
+    langMenuOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 function openAbout() {
   showAbout.value = true
@@ -381,10 +408,54 @@ html, body {
   border-color: rgba(76, 175, 80, 0.3);
 }
 
+.lang-dropdown {
+  position: relative;
+}
+
 .lang-toggle {
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.5px;
+  gap: 0.2rem;
+}
+
+.lang-caret {
+  font-size: 0.55rem;
+  opacity: 0.5;
+}
+
+.lang-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 1001;
+  min-width: 120px;
+}
+
+.lang-option {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lang-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lang-option.active {
+  color: #4CAF50;
 }
 
 .nav-link-text {
