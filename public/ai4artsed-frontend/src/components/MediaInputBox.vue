@@ -6,7 +6,7 @@
     loading: isLoading
   }">
     <!-- Header -->
-    <div class="bubble-header">
+    <div class="bubble-header" :title="tooltip">
       <span class="bubble-icon">
         <!-- Lightbulb / Idea -->
         <svg v-if="icon === '💡' || icon === 'lightbulb'" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
@@ -37,7 +37,7 @@
       </span>
       <span class="bubble-label">{{ label }}</span>
       <div v-if="showActions" class="bubble-actions">
-        <button v-if="showPresetButton" @click="$emit('open-preset-selector')" class="action-btn preset-btn" title="Perspektive wählen">
+        <button v-if="showPresetButton" @click="$emit('open-preset-selector')" class="action-btn preset-btn" :class="{ 'preset-suggesting': isRequired }" title="Perspektive wählen">
           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
             <path d="M480-60q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T520-180q0-17-11.5-28.5T480-220q-17 0-28.5 11.5T440-180q0 17 11.5 28.5T480-140Zm-260-70q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm520 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm-520-80q17 0 28.5-11.5T260-330q0-17-11.5-28.5T220-370q-17 0-28.5 11.5T180-330q0 17 11.5 28.5T220-290Zm520 0q17 0 28.5-11.5T780-330q0-17-11.5-28.5T740-370q-17 0-28.5 11.5T700-330q0 17 11.5 28.5T740-290ZM220-510q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm520 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm-520-80q17 0 28.5-11.5T260-630q0-17-11.5-28.5T220-670q-17 0-28.5 11.5T180-630q0 17 11.5 28.5T220-590Zm520 0q17 0 28.5-11.5T780-630q0-17-11.5-28.5T740-670q-17 0-28.5 11.5T700-630q0 17 11.5 28.5T740-590Zm-260-70q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T520-780q0-17-11.5-28.5T480-820q-17 0-28.5 11.5T440-780q0 17 11.5 28.5T480-740Z"/>
           </svg>
@@ -146,6 +146,7 @@ const queueMessage = ref('')
 interface Props {
   icon: string
   label: string
+  tooltip?: string
   placeholder?: string
   value: string
   inputType?: 'text' | 'image'
@@ -186,7 +187,8 @@ const props = withDefaults(defineProps<Props>(), {
   showTranslate: true,
   initialImage: undefined,
   disabled: false,
-  showPresetButton: false
+  showPresetButton: false,
+  tooltip: undefined
 })
 
 const emit = defineEmits<{
@@ -616,12 +618,30 @@ onUnmounted(() => {
 }
 
 .action-btn.preset-btn {
-  opacity: 0.6;
-  color: rgba(156, 39, 176, 0.9);
+  opacity: 1;
+  color: #FFB300;
+  filter: drop-shadow(0 0 4px rgba(255, 179, 0, 0.6));
+  margin-right: 30px;
+}
+
+.action-btn.preset-btn svg {
+  width: 30px;
+  height: 30px;
 }
 
 .action-btn.preset-btn:hover {
   opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 179, 0, 0.9));
+}
+
+/* Pulse when WIE-Box is empty — opacity only, like pulse-translate */
+.action-btn.preset-btn.preset-suggesting {
+  animation: preset-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes preset-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 .action-btn svg {

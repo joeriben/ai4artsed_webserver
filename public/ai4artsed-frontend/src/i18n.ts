@@ -341,9 +341,11 @@ const messages = {
       contextPlaceholder: 'z.B. Verwandle es in ein Ölgemälde... Mache es bunter... Füge einen Sonnenuntergang hinzu...'
     },
     textTransform: {
-      inputLabel: 'Deine Idee: Worum soll es gehen?',
+      inputLabel: 'Deine Idee = WAS?',
+      inputTooltip: 'Hier trägst Du ein, worum es gehen soll.',
       inputPlaceholder: 'z.B. Ein Fest in meiner Straße: ...',
-      contextLabel: 'Bestimme Regeln, Material, Besonderheiten',
+      contextLabel: 'Deine Regeln = WIE?',
+      contextTooltip: 'Hier trägst Du ein, wie Deine Idee dargestellt werden soll, oder klicke auf das Kreis-Symbol!',
       contextPlaceholder: 'z.B. Beschreibe alles so, wie es die Vögel auf den Bäumen wahrnehmen!',
       resultLabel: 'Idee + Regeln = Prompt',
       resultPlaceholder: 'Prompt erscheint nach Start-Klick (oder eigenen Text eingeben)',
@@ -1414,9 +1416,11 @@ const messages = {
       contextPlaceholder: 'e.g. Transform it into an oil painting... Make it more colorful... Add a sunset...'
     },
     textTransform: {
-      inputLabel: 'Your Idea: What should this be about?',
+      inputLabel: 'Your Idea = WHAT?',
+      inputTooltip: 'Enter what your creation should be about.',
       inputPlaceholder: 'e.g. A festival in my street: ...',
-      contextLabel: 'Define rules, materials, special features',
+      contextLabel: 'Your Rules = HOW?',
+      contextTooltip: 'Enter how your idea should be presented, or click the circle icon!',
       contextPlaceholder: 'e.g. Describe everything as the birds in the trees perceive it!',
       resultLabel: 'Idea + Rules = Prompt',
       resultPlaceholder: 'Prompt will appear after clicking start (or enter your own text)',
