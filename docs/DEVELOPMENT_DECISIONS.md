@@ -4334,3 +4334,30 @@ The 2-field switch makes this **pedagogically visible**: Students consciously ch
 
 **Affected files:** See DEVELOPMENT_LOG.md Session 170.
 
+---
+
+## Session 183 (2026-02-19): Tiered Translation — Auto for Kids, Optional for Youth+
+
+### Decision: Decouple Translation-for-Safety from Translation-for-Generation
+
+**Problem:** Stage 3 always auto-translated prompts to English before generation, regardless of safety level. This coupled two distinct purposes:
+1. **Safety** — llama-guard works better on English text
+2. **Generation quality** — models produce better results with English prompts
+
+Purpose 2 is a pedagogical problem: it prevents users from exploring how models react to their native language.
+
+**Solution:** Restructure `execute_stage3_safety()` to tier translation by safety level:
+
+| Level | Translation | Safety Check | Prompt to Model |
+|-------|------------|--------------|-----------------|
+| kids | Yes | Yes (on translated) | Translated (English) |
+| youth | Yes (internal) | Yes (on translated) | **Original language** |
+| adult | No | No | Original language |
+| research | No | No | Original language |
+
+**Key insight:** The existing `was_translated = positive_prompt != prompt` logic in `schema_pipeline_routes.py` automatically handles the frontend badge — shows for kids (translated != original), hidden for youth+ (original == original). Zero caller changes needed.
+
+**Bonus fix:** Fixed latent bug where §86a block's `execution_time` referenced undefined `translate_start` on cache hit (replaced with `translate_time`, always defined).
+
+**Affected file:** `devserver/schemas/engine/stage_orchestrator.py` (single function change)
+

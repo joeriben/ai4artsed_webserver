@@ -1,5 +1,33 @@
 # Development Log
 
+## Session 183 - Tiered Translation: Auto for Kids, Optional for Youth+
+**Date:** 2026-02-19
+**Focus:** Decouple translation-for-safety from translation-for-generation in Stage 3
+
+### Problem
+`execute_stage3_safety()` always auto-translated prompts to English before generation, coupling two purposes: safety (llama-guard works better on English) and generation quality (models produce better results with English). This prevented youth+ users from exploring how models react to their native language.
+
+### Changes
+**Single function change** in `devserver/schemas/engine/stage_orchestrator.py`:
+
+1. **Moved `research`/`adult` early-return before translation** — these levels now skip translation entirely and return the original prompt (previously wasted an LLM translation call)
+2. **Tiered prompt selection after safety passes** — `kids` gets auto-translated English prompt, `youth` gets original-language prompt back (safety still checked on translated text internally)
+3. **Fixed latent bug** — §86a block's `execution_time` referenced undefined `translate_start` on cache hit (replaced with `translate_time`)
+
+### Verification
+Tested all 4 safety levels with same German prompt:
+- **Kids**: Translated → safety check → English prompt to model, `was_translated=True`, badge shows
+- **Youth**: Translated internally → safety check → German prompt to model, `was_translated=False`, no badge
+- **Adult**: No translation, no safety → German prompt to model
+- **Research**: No translation, no safety → German prompt to model
+
+### Affected Files
+- `devserver/schemas/engine/stage_orchestrator.py` — `execute_stage3_safety()` restructured
+- `docs/ARCHITECTURE PART 29 - Safety-System.md` — Updated Stage 3 flow description
+- `docs/DEVELOPMENT_DECISIONS.md` — Decision documented
+
+---
+
 ## Session 182 - Real Diffusers Progress for Edutainment Animations
 **Date:** 2026-02-19
 **Focus:** Replace faked time-based progress with real Diffusers step callbacks

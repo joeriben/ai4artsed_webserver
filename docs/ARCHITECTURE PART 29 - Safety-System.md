@@ -94,9 +94,12 @@ youth/kids     → VLM safety check via Ollama
 **Function:** `execute_stage3_safety()`
 
 ```
-research/adult → Translation only (no safety LLM)
-youth/kids     → Translation + LLM semantic safety check
+research/adult → No translation, no safety — original prompt to model
+youth          → Translate internally (for safety LLM), return ORIGINAL prompt to model
+kids           → Translate (for safety LLM), return TRANSLATED prompt to model
 ```
+
+**Tiered translation** (Session 183): Translation-for-safety is decoupled from translation-for-generation. Youth+ users can explore how models react to their native language. The translate button in MediaInputBox remains available for manual use. Kids still get auto-translated English prompts for better model output quality.
 
 Stage 3 catches prompts that pass all fast-filters but would generate harmful imagery. Example: "Wesen sind feindselig zueinander und fügen einander Schaden zu" — passes keyword filters but generates harmful content for children.
 
@@ -278,6 +281,7 @@ The research mode restriction is codified in `LICENSE.md` §3(e):
 | 161 | 2026-02-07 | VLM post-generation image check |
 | 170 | 2026-02-12 | Safety-level centralization ("off" → "research"), LICENSE.md §3(e) |
 | 181 | 2026-02-18 | DSGVO NER rewrite: POS-tag pre-filter, SAFE/UNSAFE prompt, dedicated DSGVO_VERIFY_MODEL |
+| 183 | 2026-02-19 | Tiered translation: auto for kids, optional for youth+, none for adult/research |
 
 ---
 
