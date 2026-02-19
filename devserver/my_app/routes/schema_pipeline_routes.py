@@ -209,43 +209,40 @@ def lookup_output_config(media_type: str, execution_mode: str = 'eco') -> str:
 # ============================================================================
 
 def _load_optimization_instruction(output_config_name: str):
-    """Load optimization_instruction from output chunk meta."""
+    """Load optimization_instruction for a given output config.
+
+    Priority: output config meta > chunk meta (fallback).
+    """
     try:
-        # Ensure pipeline_executor is initialized
         if pipeline_executor is None:
             init_schema_engine()
 
-        logger.info(f"[LOAD-OPT] Loading optimization_instruction for config '{output_config_name}'")
-
         output_config_obj = pipeline_executor.config_loader.get_config(output_config_name)
-        logger.info(f"[LOAD-OPT] Config loaded: {output_config_obj is not None}")
 
+        # 1. Check output config meta first (authoritative)
+        if output_config_obj and hasattr(output_config_obj, 'meta'):
+            opt_inst = output_config_obj.meta.get('optimization_instruction')
+            if opt_inst:
+                logger.info(f"[LOAD-OPT] Found in output config meta for '{output_config_name}' ({len(opt_inst)} chars)")
+                return opt_inst
+
+        # 2. Fallback: load from chunk meta
         if output_config_obj and hasattr(output_config_obj, 'parameters'):
             output_chunk_name = output_config_obj.parameters.get('OUTPUT_CHUNK')
-            logger.info(f"[LOAD-OPT] OUTPUT_CHUNK name: '{output_chunk_name}'")
-
             if output_chunk_name:
                 import json
                 from pathlib import Path
                 chunk_file = Path(__file__).parent.parent.parent / "schemas" / "chunks" / f"{output_chunk_name}.json"
-                logger.info(f"[LOAD-OPT] Chunk file path: {chunk_file}")
-                logger.info(f"[LOAD-OPT] Chunk file exists: {chunk_file.exists()}")
-
                 if chunk_file.exists():
                     with open(chunk_file, 'r', encoding='utf-8') as f:
                         output_chunk = json.load(f)
-                    logger.info(f"[LOAD-OPT] Chunk loaded, has 'meta': {'meta' in output_chunk}")
-
                     if output_chunk and 'meta' in output_chunk:
                         opt_inst = output_chunk['meta'].get('optimization_instruction')
-                        logger.info(f"[LOAD-OPT] optimization_instruction found: {opt_inst is not None}")
                         if opt_inst:
-                            logger.info(f"[LOAD-OPT] optimization_instruction length: {len(opt_inst)}")
-                        return opt_inst
+                            logger.info(f"[LOAD-OPT] Found in chunk '{output_chunk_name}' meta for '{output_config_name}' ({len(opt_inst)} chars)")
+                            return opt_inst
     except Exception as e:
-        logger.warning(f"[LOAD-OPT] Failed to load optimization_instruction: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.warning(f"[LOAD-OPT] Failed to load optimization_instruction for '{output_config_name}': {e}")
 
     logger.warning(f"[LOAD-OPT] No optimization_instruction found for '{output_config_name}'")
     return None

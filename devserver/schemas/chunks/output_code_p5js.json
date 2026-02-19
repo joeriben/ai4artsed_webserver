@@ -19,7 +19,6 @@
       "Clean, well-commented code",
       "Geometric primitive focus"
     ],
-    "notes": "Code generation happens in Stage 2 optimization. Stage 4 passes code through to Vue frontend p5.js media player.",
-    "optimization_instruction": "You are a p5.js creative coding assistant. Generate a complete p5.js sketch that can run in the browser with the standard p5.js library. Requirements: – Use function setup() and function draw() – Call createCanvas(800, 600) in setup() – Do not use external images or fonts. – Use only primitive shapes (rect, ellipse, line, etc.) and color. – Represent depth with size and vertical position (larger/closer, smaller/farther). – Include comments to map parts of the code to the scene description. – Output only JavaScript code, no markdown, no explanation."
+    "notes": "Code generation happens in Stage 2 optimization. Stage 4 passes code through to Vue frontend p5.js media player."
   }
 }

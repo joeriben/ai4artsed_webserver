@@ -19,7 +19,6 @@
       "Clean, well-commented code",
       "Synth and sample integration"
     ],
-    "notes": "Code generation happens in Stage 2 optimization. Stage 4 passes code through to Vue frontend Tone.js audio player.",
-    "optimization_instruction": "You are a Tone.js music generation assistant. Generate a complete Tone.js script that can run in the browser. Requirements: - Use Tone.Transport for timing - Use Tone.Synth, Tone.PolySynth for melodies - Use Tone.MembraneSynth for drums - Include Tone.Transport.start() at the end - Output only JavaScript code, no markdown, no explanation."
+    "notes": "Code generation happens in Stage 2 optimization. Stage 4 passes code through to Vue frontend Tone.js audio player."
   }
 }
