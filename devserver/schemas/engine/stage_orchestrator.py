@@ -16,6 +16,10 @@ import time as _time
 
 logger = logging.getLogger(__name__)
 
+# Translation reuse: skip API call if prompt unchanged since last translation
+_last_untranslated: Optional[str] = None
+_last_translated: Optional[str] = None
+
 # ============================================================================
 # FUZZY MATCHING: Levenshtein distance for typo-resilient filter lists
 # ============================================================================
@@ -879,24 +883,33 @@ async def execute_stage3_safety(
         }
     """
     import time
+    global _last_untranslated, _last_translated
 
     # STEP 1: ALWAYS translate first (regardless of safety path or level)
     # Translation happens even if safety is 'research'
-    translate_start = time.time()
-    translate_result = await pipeline_executor.execute_pipeline(
-        'pre_output/translation_en',  # Translation config (just translate chunk)
-        prompt,
-        execution_mode=execution_mode
-    )
-    translate_time = time.time() - translate_start
-
-    if translate_result.success:
-        translated_prompt = translate_result.final_output
-        logger.info(f"[STAGE3-TRANSLATION] Translated in {translate_time:.2f}s: {translated_prompt[:150]}...")
+    # Skip API call if prompt unchanged since last translation
+    if prompt == _last_untranslated and _last_translated is not None:
+        translated_prompt = _last_translated
+        translate_time = 0
+        logger.info(f"[STAGE3-TRANSLATION] Reused (prompt unchanged): {translated_prompt[:150]}...")
     else:
-        # Translation failed - use original prompt
-        translated_prompt = prompt
-        logger.warning(f"[STAGE3-TRANSLATION] Translation failed, using original prompt")
+        translate_start = time.time()
+        translate_result = await pipeline_executor.execute_pipeline(
+            'pre_output/translation_en',  # Translation config (just translate chunk)
+            prompt,
+            execution_mode=execution_mode
+        )
+        translate_time = time.time() - translate_start
+
+        if translate_result.success:
+            translated_prompt = translate_result.final_output
+            _last_untranslated = prompt
+            _last_translated = translated_prompt
+            logger.info(f"[STAGE3-TRANSLATION] Translated in {translate_time:.2f}s: {translated_prompt[:150]}...")
+        else:
+            # Translation failed - use original prompt
+            translated_prompt = prompt
+            logger.warning(f"[STAGE3-TRANSLATION] Translation failed, using original prompt")
 
     # If safety is disabled or adult level, return translated prompt without safety check
     if safety_level in ('research', 'adult'):

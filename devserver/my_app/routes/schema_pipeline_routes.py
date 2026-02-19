@@ -102,6 +102,8 @@ def init_schema_engine():
 
         # Config Loader initialisieren (ohne Legacy-Services vorerst)
         pipeline_executor.config_loader.initialize(schemas_path)
+        pipeline_executor.backend_router.initialize()
+        pipeline_executor._initialized = True
 
         logger.info("Schema engine initialized")
 
