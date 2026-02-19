@@ -862,13 +862,25 @@ async def execute_stage3_safety(
     """
     Execute Stage 3: Pre-Output Safety Check (Jugendschutz)
 
-    1. Translate to English (always)
-    2. §86a fast-filter (instant block)
-    3. LLM safety check (ALWAYS for kids/youth — wordlists can't catch semantic harm)
+    Tiered translation behavior:
+    - research/adult: No translation, no safety check — original prompt to model
+    - kids: Translate to English, run safety, pass TRANSLATED prompt to model
+    - youth: Translate to English internally for safety check, pass ORIGINAL prompt to model
+
+    This decouples translation-for-safety from translation-for-generation.
+    Youth+ users can explore how models react to their native language.
+    The translate button in MediaInputBox remains available for manual use.
+
+    Steps:
+    1. research/adult → return original prompt immediately
+    2. Translate to English (for kids/youth safety check)
+    3. §86a fast-filter on translated text (instant block)
+    4. LLM safety check on translated text
+    5. Return: kids → translated prompt | youth → original prompt
 
     Args:
         prompt: Prompt to check before media generation
-        safety_level: 'kids', 'youth', or 'research'
+        safety_level: 'kids', 'youth', 'adult', or 'research'
         media_type: Type of media being generated (for logging)
         execution_mode: 'eco' or 'fast'
         pipeline_executor: PipelineExecutor instance
@@ -885,8 +897,17 @@ async def execute_stage3_safety(
     import time
     global _last_untranslated, _last_translated
 
-    # STEP 1: ALWAYS translate first (regardless of safety path or level)
-    # Translation happens even if safety is 'research'
+    # STEP 1: research/adult — no translation, no safety check
+    if safety_level in ('research', 'adult'):
+        return {
+            "safe": True,
+            "method": "disabled",
+            "abort_reason": None,
+            "positive_prompt": prompt,
+            "negative_prompt": ""
+        }
+
+    # STEP 2: Translate to English (for safety check on kids/youth)
     # Skip API call if prompt unchanged since last translation
     if prompt == _last_untranslated and _last_translated is not None:
         translated_prompt = _last_translated
@@ -911,17 +932,7 @@ async def execute_stage3_safety(
             translated_prompt = prompt
             logger.warning(f"[STAGE3-TRANSLATION] Translation failed, using original prompt")
 
-    # If safety is disabled or adult level, return translated prompt without safety check
-    if safety_level in ('research', 'adult'):
-        return {
-            "safe": True,
-            "method": "disabled",
-            "abort_reason": None,
-            "positive_prompt": translated_prompt,
-            "negative_prompt": ""
-        }
-
-    # STEP 2: §86a fast-filter — instant block (no LLM needed)
+    # STEP 3: §86a fast-filter — instant block (no LLM needed)
     has_86a, found_86a = fast_filter_bilingual_86a(translated_prompt)
     if has_86a:
         logger.warning(f"[STAGE3-SAFETY] §86a BLOCKED: {found_86a[:3]}")
@@ -931,10 +942,10 @@ async def execute_stage3_safety(
             "abort_reason": f'§86a StGB: {", ".join(found_86a[:3])}',
             "positive_prompt": None,
             "negative_prompt": None,
-            "execution_time": time.time() - translate_start
+            "execution_time": translate_time
         }
 
-    # STEP 3: ALWAYS run LLM safety check for kids/youth
+    # STEP 4: ALWAYS run LLM safety check for kids/youth
     # Semantic violence/harm cannot be caught by wordlists alone —
     # "Wesen sind feindselig zueinander und fügen einander Schaden zu"
     # passes all fast-filters but generates harmful imagery for children.
@@ -960,6 +971,11 @@ async def execute_stage3_safety(
                 if model_used and backend_type:
                     break
 
+    # STEP 5: Select generation prompt by safety level
+    # kids → auto-translated English (better model output, full guardrails)
+    # youth → original language (user explores model behavior, manual translate available)
+    generation_prompt = translated_prompt if safety_level == 'kids' else prompt
+
     if result.success:
         safety_data = parse_preoutput_json(result.final_output)
 
@@ -978,13 +994,13 @@ async def execute_stage3_safety(
                 "execution_time": llm_check_time
             }
         else:
-            logger.info(f"[STAGE3-SAFETY] PASSED (LLM, {llm_check_time:.1f}s)")
+            logger.info(f"[STAGE3-SAFETY] PASSED (LLM, {llm_check_time:.1f}s), using {'translated' if safety_level == 'kids' else 'original'} prompt for generation")
 
             return {
                 "safe": True,
                 "method": "llm_safety_check",
                 "abort_reason": None,
-                "positive_prompt": translated_prompt,
+                "positive_prompt": generation_prompt,
                 "negative_prompt": safety_data.get('negative_prompt', ''),
                 "model_used": model_used,
                 "backend_type": backend_type,
@@ -996,7 +1012,7 @@ async def execute_stage3_safety(
             "safe": True,
             "method": "llm_check_failed",
             "abort_reason": None,
-            "positive_prompt": translated_prompt,
+            "positive_prompt": generation_prompt,
             "negative_prompt": ""
         }
 
