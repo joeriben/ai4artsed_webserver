@@ -1,5 +1,41 @@
 # Development Log
 
+## Session 185 - i18n Batch 6: Infrastructure Code + LLM Meta-Prompts
+**Date:** 2026-02-20
+**Focus:** Final i18n sweep — convert remaining German strings in infrastructure code; convert LLM meta-prompts to English for better instruction adherence
+
+### Key Distinction Established
+**Meta-prompts are NOT i18n.** LLM system prompts are internal steering instructions written in the language that works best for the model (English). They must not be conflated with localized user-facing content. Bilingual Stage2 configs (`{'de': ..., 'en': ...}`) are a separate category — that IS localized content.
+
+All converted meta-prompts include language guards (`"Respond in the language of the input"`) to preserve output language adaptation.
+
+### Group A: Infrastructure Code (8 files)
+Docstrings, comments, log messages, fallback strings → English:
+- `devserver/schemas/__init__.py`, `devserver/schemas/engine/__init__.py` — module docstrings
+- `devserver/my_app/services/comfyui_client.py` — class docstring
+- `devserver/my_app/services/streaming_response.py` — SSE status messages
+- `devserver/schemas/engine/comfyui_workflow_generator.py` — all docstrings, comments, log messages
+- `devserver/my_app/utils/workflow_node_injection.py` — all comments
+- `devserver/my_app/routes/chat_routes.py` — fallback defaults (`unbekannt`→`unknown`, etc.)
+- `devserver/my_app/services/wikipedia_service.py` — disambiguation error message
+
+### Group B: LLM Meta-Prompts (3 files)
+- `devserver/my_app/routes/text_routes.py` — `INTERPRETATION_SYSTEM_PROMPTS` (repeng, bias, compare) + `_build_interpretation_prompt()` labels
+- `devserver/my_app/routes/canvas_routes.py` — comparison evaluator prompt
+- `devserver/my_app/services/canvas_executor.py` — same comparison evaluator prompt
+
+### Group C: Archive Files (gitignored)
+Changed on disk but not tracked by git (`**archive/` in `.gitignore`). No commit impact.
+
+### Verification
+- `ast.parse()` on all 11 files → OK
+- Träshy language guard already present (`chat_routes.py:43`, `:62`)
+
+### Commits
+- `e34c006` — `fix(i18n): Convert German strings in infrastructure code to English (Batch 6)`
+
+---
+
 ## Session 183 - Tiered Translation: Auto for Kids, Optional for Youth+
 **Date:** 2026-02-19
 **Focus:** Decouple translation-for-safety from translation-for-generation in Stage 3
