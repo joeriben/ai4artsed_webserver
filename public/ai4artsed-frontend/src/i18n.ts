@@ -414,7 +414,7 @@ const messages = {
     safetyBlocked: {
       vlm: 'Dein Prompt war in Ordnung, aber das erzeugte Bild wurde von einer Bildanalyse-KI als ungeeignet eingestuft. Das kann passieren \u2014 die Bildgenerierung ist nicht immer vorhersagbar. Versuche es einfach nochmal, jede Generierung ist anders!',
       para86a: 'Dein Prompt wurde blockiert, weil er Symbole oder Begriffe enth\u00E4lt, die nach deutschem Recht (\u00A786a StGB) verboten sind. Diese Regel sch\u00FCtzt uns alle vor Hass und Gewalt. Versuche es mit einem anderen Thema!',
-      dsgvo: 'Dein Prompt wurde blockiert, weil er pers\u00F6nliche Daten enth\u00E4lt (z.B. echte Namen oder Adressen). Das ist durch die Datenschutzgrundverordnung (DSGVO) gesch\u00FCtzt. Verwende stattdessen Phantasienamen!',
+      dsgvo: 'Dein Prompt wurde blockiert, weil er etwas enth\u00E4lt, das wie ein Personenname aussieht. Das ist durch die Datenschutzgrundverordnung (DSGVO) gesch\u00FCtzt. Verwende stattdessen Beschreibungen wie \"ein M\u00E4dchen\" oder \"ein alter Mann\" statt Namen.',
       kids: 'Dein Prompt wurde vom Kinder-Schutzfilter blockiert. Manche Begriffe sind f\u00FCr Kinder nicht geeignet, weil sie erschreckend oder verst\u00F6rend sein k\u00F6nnen. Versuche, deine Idee mit freundlicheren Worten zu beschreiben!',
       youth: 'Dein Prompt wurde vom Jugendschutzfilter blockiert. Manche Inhalte sind auch f\u00FCr Jugendliche nicht geeignet. Versuche, deine Idee anders zu formulieren!',
       generic: 'Dein Prompt wurde vom Sicherheitssystem blockiert. Das System sch\u00FCtzt dich vor ungeeigneten Inhalten. Versuche es mit einer anderen Formulierung!',
@@ -1491,7 +1491,7 @@ const messages = {
     safetyBlocked: {
       vlm: 'Your prompt was fine, but the generated image was flagged as unsuitable by an image analysis AI. This can happen \u2014 image generation is not always predictable. Just try again, every generation is different!',
       para86a: 'Your prompt was blocked because it contains symbols or terms that are prohibited under German law (\u00A786a StGB). This rule protects us all from hate and violence. Try a different topic!',
-      dsgvo: 'Your prompt was blocked because it contains personal data (e.g. real names or addresses). This is protected by the General Data Protection Regulation (GDPR). Use fictional names instead!',
+      dsgvo: 'Your prompt was blocked because it contains something that looks like a person\'s name. This is protected by the General Data Protection Regulation (GDPR). Use descriptions like \"a girl\" or \"an old man\" instead of names.',
       kids: 'Your prompt was blocked by the child safety filter. Some terms are not suitable for children because they can be scary or disturbing. Try describing your idea with friendlier words!',
       youth: 'Your prompt was blocked by the youth protection filter. Some content is not suitable for teenagers either. Try rephrasing your idea!',
       generic: 'Your prompt was blocked by the safety system. The system protects you from unsuitable content. Try a different wording!',
