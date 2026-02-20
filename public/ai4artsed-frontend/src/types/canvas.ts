@@ -96,31 +96,31 @@ export interface InterceptionPresetConfig {
 
 /** Interception Presets - labels only, context loaded from backend on selection */
 export const INTERCEPTION_PRESETS: Record<InterceptionPreset, InterceptionPresetConfig> = {
-  user_defined: { label: { en: 'Your Call!', de: 'Du bestimmst!' } },
-  analog_photography_1870s: { label: { en: 'Daguerreotype', de: 'Daguerreotypie' } },
-  analog_photography_1970s: { label: { en: 'Analog Photography', de: 'Analogfotografie' } },
-  analogue_copy: { label: { en: 'Analogue Copy', de: 'Analoge Kopie' } },
-  bauhaus: { label: { en: 'Bauhaus', de: 'Bauhaus' } },
-  clichefilter_v2: { label: { en: 'De-Kitsch', de: 'Entkitscher' } },
-  confucianliterati: { label: { en: 'Literati', de: 'Literati' } },
-  cooked_negatives: { label: { en: 'Cooked Negatives', de: 'Gekochte Filmnegative' } },
-  digital_photography: { label: { en: 'Digital Photography', de: 'Digitalfotografie' } },
-  forceful: { label: { en: 'Forceful', de: 'kraftvoll' } },
-  hunkydoryharmonizer: { label: { en: 'Sweetener', de: 'Verniedlicher' } },
-  jugendsprache: { label: { en: 'Slang', de: 'Jugendslang' } },
-  mad_world: { label: { en: 'mad world', de: 'verrückt' } },
-  one_world: { label: { en: 'One World', de: 'Eine Welt' } },
-  overdrive: { label: { en: 'Amplifier', de: 'Übertreiber!' } },
-  p5js_simplifier: { label: { en: 'Listifier', de: 'Auflister' } },
-  tonejs_composer: { label: { en: 'Music Composer', de: 'Musikkomponist' } },
-  piglatin: { label: { en: 'Word Game', de: 'Sprachspiel' } },
-  planetarizer: { label: { en: 'Planetarizer', de: 'Planetarisierer' } },
-  renaissance: { label: { en: 'Renaissance', de: 'Renaissance' } },
-  sensitive: { label: { en: 'Sensitive', de: 'sensibel' } },
-  stillepost: { label: { en: 'Telephone', de: 'Stille Post' } },
-  technicaldrawing: { label: { en: 'Technical', de: 'Technisch' } },
-  tellastory: { label: { en: 'Your Story', de: 'Deine Geschichte' } },
-  theopposite: { label: { en: 'On the Contrary!', de: 'Im Gegenteil!' } }
+  user_defined: { label: { en: 'Your Call!', de: 'Du bestimmst!', tr: 'Sen Karar Ver!' } },
+  analog_photography_1870s: { label: { en: 'Daguerreotype', de: 'Daguerreotypie', tr: 'Dagerotipi' } },
+  analog_photography_1970s: { label: { en: 'Analog Photography', de: 'Analogfotografie', tr: 'Analog Fotoğrafçılık' } },
+  analogue_copy: { label: { en: 'Analogue Copy', de: 'Analoge Kopie', tr: 'Analog Kopya' } },
+  bauhaus: { label: { en: 'Bauhaus', de: 'Bauhaus', tr: 'Bauhaus' } },
+  clichefilter_v2: { label: { en: 'De-Kitsch', de: 'Entkitscher', tr: 'Kiç Filtresi' } },
+  confucianliterati: { label: { en: 'Literati', de: 'Literati', tr: 'Literati' } },
+  cooked_negatives: { label: { en: 'Cooked Negatives', de: 'Gekochte Filmnegative', tr: 'Pişmiş Negatifler' } },
+  digital_photography: { label: { en: 'Digital Photography', de: 'Digitalfotografie', tr: 'Dijital Fotoğrafçılık' } },
+  forceful: { label: { en: 'Forceful', de: 'kraftvoll', tr: 'Güçlü' } },
+  hunkydoryharmonizer: { label: { en: 'Sweetener', de: 'Verniedlicher', tr: 'Tatlandırıcı' } },
+  jugendsprache: { label: { en: 'Slang', de: 'Jugendslang', tr: 'Gençlik Argosu' } },
+  mad_world: { label: { en: 'mad world', de: 'verrückt', tr: 'çılgın dünya' } },
+  one_world: { label: { en: 'One World', de: 'Eine Welt', tr: 'Tek Dünya' } },
+  overdrive: { label: { en: 'Amplifier', de: 'Übertreiber!', tr: 'Abartmacı!' } },
+  p5js_simplifier: { label: { en: 'Listifier', de: 'Auflister', tr: 'Listeleyici' } },
+  tonejs_composer: { label: { en: 'Music Composer', de: 'Musikkomponist', tr: 'Müzik Bestecisi' } },
+  piglatin: { label: { en: 'Word Game', de: 'Sprachspiel', tr: 'Kelime Oyunu' } },
+  planetarizer: { label: { en: 'Planetarizer', de: 'Planetarisierer', tr: 'Gezegenleştirici' } },
+  renaissance: { label: { en: 'Renaissance', de: 'Renaissance', tr: 'Rönesans' } },
+  sensitive: { label: { en: 'Sensitive', de: 'sensibel', tr: 'Duyarlı' } },
+  stillepost: { label: { en: 'Telephone', de: 'Stille Post', tr: 'Kulaktan Kulağa' } },
+  technicaldrawing: { label: { en: 'Technical', de: 'Technisch', tr: 'Teknik' } },
+  tellastory: { label: { en: 'Your Story', de: 'Deine Geschichte', tr: 'Senin Hikayen' } },
+  theopposite: { label: { en: 'On the Contrary!', de: 'Im Gegenteil!', tr: 'Tam Tersine!' } }
 }
 
 // ============================================================================
@@ -144,24 +144,24 @@ export interface ImageEvaluationPresetConfig {
 /** Image Evaluation Presets - labels only, prompts loaded from backend config.py */
 export const IMAGE_EVALUATION_PRESETS: Record<ImageEvaluationPreset, ImageEvaluationPresetConfig> = {
   bildwissenschaftlich: {
-    label: { en: 'Art Historical (Panofsky)', de: 'Kunsthistorisch (Panofsky)' },
-    description: { en: '4-stage iconological method', de: '4-stufige ikonologische Methode' }
+    label: { en: 'Art Historical (Panofsky)', de: 'Kunsthistorisch (Panofsky)', tr: 'Sanat Tarihi (Panofsky)' },
+    description: { en: '4-stage iconological method', de: '4-stufige ikonologische Methode', tr: '4 aşamalı ikonolojik yöntem' }
   },
   bildungstheoretisch: {
-    label: { en: 'Educational Theory', de: 'Bildungstheoretisch' },
-    description: { en: 'Jörissen/Marotzki framework', de: 'Jörissen/Marotzki Framework' }
+    label: { en: 'Educational Theory', de: 'Bildungstheoretisch', tr: 'Eğitim Teorisi' },
+    description: { en: 'Jörissen/Marotzki framework', de: 'Jörissen/Marotzki Framework', tr: 'Jörissen/Marotzki çerçevesi' }
   },
   ethisch: {
-    label: { en: 'Ethical', de: 'Ethisch' },
-    description: { en: 'Ethical analysis', de: 'Ethische Analyse' }
+    label: { en: 'Ethical', de: 'Ethisch', tr: 'Etik' },
+    description: { en: 'Ethical analysis', de: 'Ethische Analyse', tr: 'Etik analiz' }
   },
   kritisch: {
-    label: { en: 'Critical/Decolonial', de: 'Kritisch/Dekolonial' },
-    description: { en: 'Critical media studies', de: 'Kritische Medienwissenschaft' }
+    label: { en: 'Critical/Decolonial', de: 'Kritisch/Dekolonial', tr: 'Eleştirel/Dekolonyal' },
+    description: { en: 'Critical media studies', de: 'Kritische Medienwissenschaft', tr: 'Eleştirel medya çalışmaları' }
   },
   custom: {
-    label: { en: 'Custom', de: 'Eigene Anweisung' },
-    description: { en: 'Define your own analysis prompt', de: 'Eigenen Analyse-Prompt definieren' }
+    label: { en: 'Custom', de: 'Eigene Anweisung', tr: 'Özel Talimat' },
+    description: { en: 'Define your own analysis prompt', de: 'Eigenen Analyse-Prompt definieren', tr: 'Kendi analiz komutunuzu tanımlayın' }
   }
 }
 
@@ -217,8 +217,8 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'input',
     type: 'input',
-    label: { en: 'Input Prompt', de: 'Eingabe-Prompt' },
-    description: { en: 'Text input source', de: 'Text-Eingabequelle' },
+    label: { en: 'Input Prompt', de: 'Eingabe-Prompt', tr: 'Giriş Komutu' },
+    description: { en: 'Text input source', de: 'Text-Eingabequelle', tr: 'Metin giriş kaynağı' },
     color: '#3b82f6', // blue
     icon: 'edit_square_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
@@ -228,8 +228,8 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'image_input',
     type: 'image_input',
-    label: { en: 'Image Input', de: 'Bild-Eingabe' },
-    description: { en: 'Upload image as source', de: 'Bild als Quelle hochladen' },
+    label: { en: 'Image Input', de: 'Bild-Eingabe', tr: 'Görsel Girişi' },
+    description: { en: 'Upload image as source', de: 'Bild als Quelle hochladen', tr: 'Kaynak olarak görsel yükle' },
     color: '#0ea5e9', // sky blue
     icon: 'add_photo_alternate_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
@@ -239,10 +239,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'random_prompt',
     type: 'random_prompt',
-    label: { en: 'Random Prompt', de: 'Zufalls-Prompt' },
+    label: { en: 'Random Prompt', de: 'Zufalls-Prompt', tr: 'Rastgele Komut' },
     description: {
       en: 'Generate creative content via LLM with presets',
-      de: 'Generiert kreative Inhalte via LLM mit Presets'
+      de: 'Generiert kreative Inhalte via LLM mit Presets',
+      tr: 'Ön ayarlarla LLM aracılığıyla yaratıcı içerik üret'
     },
     color: '#ec4899', // pink
     icon: 'shuffle_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -252,10 +253,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'interception',
     type: 'interception',
-    label: { en: 'Interception', de: 'Interception' },
+    label: { en: 'Interception', de: 'Interception', tr: 'Interception' },
     description: {
       en: 'Pedagogical transformation with LLM selection',
-      de: 'Pädagogische Transformation mit LLM-Auswahl'
+      de: 'Pädagogische Transformation mit LLM-Auswahl',
+      tr: 'LLM seçimiyle pedagojik dönüşüm'
     },
     color: '#8b5cf6', // purple
     icon: 'cognition_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -265,10 +267,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'translation',
     type: 'translation',
-    label: { en: 'Translation', de: 'Übersetzung' },
+    label: { en: 'Translation', de: 'Übersetzung', tr: 'Çeviri' },
     description: {
       en: 'Language translation with custom prompt + LLM',
-      de: 'Sprachübersetzung mit eigenem Prompt + LLM'
+      de: 'Sprachübersetzung mit eigenem Prompt + LLM',
+      tr: 'Özel komut + LLM ile dil çevirisi'
     },
     color: '#f59e0b', // amber
     icon: 'language_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -279,10 +282,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'model_adaption',
     type: 'model_adaption',
-    label: { en: 'Model Adaption', de: 'Modell-Adaption' },
+    label: { en: 'Model Adaption', de: 'Modell-Adaption', tr: 'Model Adaptasyonu' },
     description: {
       en: 'Adapt prompt for media model (SD3.5, Flux, Video, Audio)',
-      de: 'Prompt für Medienmodell anpassen (SD3.5, Flux, Video, Audio)'
+      de: 'Prompt für Medienmodell anpassen (SD3.5, Flux, Video, Audio)',
+      tr: 'Medya modeli için komutu uyarla (SD3.5, Flux, Video, Ses)'
     },
     color: '#14b8a6', // teal
     icon: 'tune_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -292,10 +296,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'generation',
     type: 'generation',
-    label: { en: 'Generation', de: 'Generierung' },
+    label: { en: 'Generation', de: 'Generierung', tr: 'Üretim' },
     description: {
       en: 'Media generation (image, audio, video)',
-      de: 'Mediengenerierung (Bild, Audio, Video)'
+      de: 'Mediengenerierung (Bild, Audio, Video)',
+      tr: 'Medya üretimi (görsel, ses, video)'
     },
     color: '#10b981', // emerald
     icon: 'brush_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -305,10 +310,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'collector',
     type: 'collector',
-    label: { en: 'Media Output', de: 'Medienausgabe' },
+    label: { en: 'Media Output', de: 'Medienausgabe', tr: 'Medya Çıktısı' },
     description: {
       en: 'Collects and displays outputs (media + text)',
-      de: 'Sammelt und zeigt Ausgaben (Medien + Text)'
+      de: 'Sammelt und zeigt Ausgaben (Medien + Text)',
+      tr: 'Çıktıları toplar ve gösterir (medya + metin)'
     },
     color: '#06b6d4', // cyan
     icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -319,10 +325,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'evaluation',
     type: 'evaluation',
-    label: { en: 'Evaluation', de: 'Bewertung' },
+    label: { en: 'Evaluation', de: 'Bewertung', tr: 'Değerlendirme' },
     description: {
       en: 'LLM-based evaluation with optional branching',
-      de: 'LLM-basierte Bewertung mit optionaler Verzweigung'
+      de: 'LLM-basierte Bewertung mit optionaler Verzweigung',
+      tr: 'İsteğe bağlı dallanma ile LLM tabanlı değerlendirme'
     },
     color: '#f59e0b', // amber
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -333,10 +340,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'image_evaluation',
     type: 'image_evaluation',
-    label: { en: 'Image Analysis', de: 'Bild-Analyse' },
+    label: { en: 'Image Analysis', de: 'Bild-Analyse', tr: 'Görsel Analizi' },
     description: {
       en: 'Vision-LLM analysis of images',
-      de: 'Vision-LLM Analyse von Bildern'
+      de: 'Vision-LLM Analyse von Bildern',
+      tr: 'Görsellerin Vision-LLM analizi'
     },
     color: '#dc2626', // red
     icon: 'imagesmode_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -347,10 +355,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'display',
     type: 'display',
-    label: { en: 'Preview', de: 'Vorschau' },
+    label: { en: 'Preview', de: 'Vorschau', tr: 'Önizleme' },
     description: {
       en: 'Preview text or media inline (tap/observer, no output)',
-      de: 'Vorschau von Text oder Medien inline (Tap/Observer, kein Output)'
+      de: 'Vorschau von Text oder Medien inline (Tap/Observer, kein Output)',
+      tr: 'Metin veya medyayı satır içi önizle (gözlemci, çıktı yok)'
     },
     color: '#10b981', // green
     icon: 'info_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -361,10 +370,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'comparison_evaluator',
     type: 'comparison_evaluator',
-    label: { en: 'Comparison', de: 'Vergleich' },
+    label: { en: 'Comparison', de: 'Vergleich', tr: 'Karşılaştırma' },
     description: {
       en: 'Compare multiple text inputs with LLM analysis',
-      de: 'Vergleiche mehrere Text-Inputs mit LLM-Analyse'
+      de: 'Vergleiche mehrere Text-Inputs mit LLM-Analyse',
+      tr: 'LLM analizi ile birden fazla metin girdisini karşılaştır'
     },
     color: '#f97316', // orange
     icon: 'analyze.svg',
@@ -375,10 +385,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'seed',
     type: 'seed',
-    label: { en: 'Seed', de: 'Seed' },
+    label: { en: 'Seed', de: 'Seed', tr: 'Seed' },
     description: {
       en: 'Control seed for reproducible media generation',
-      de: 'Seed für reproduzierbare Mediengenerierung'
+      de: 'Seed für reproduzierbare Mediengenerierung',
+      tr: 'Tekrarlanabilir medya üretimi için seed kontrolü'
     },
     color: '#6366f1', // indigo
     icon: 'potted_plant_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -389,10 +400,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'resolution',
     type: 'resolution',
-    label: { en: 'Resolution', de: 'Auflösung' },
+    label: { en: 'Resolution', de: 'Auflösung', tr: 'Çözünürlük' },
     description: {
       en: 'Set width and height for image generation (ComfyUI only)',
-      de: 'Breite und Höhe für Bildgenerierung (nur ComfyUI)'
+      de: 'Breite und Höhe für Bildgenerierung (nur ComfyUI)',
+      tr: 'Görsel üretimi için genişlik ve yükseklik ayarla (yalnızca ComfyUI)'
     },
     color: '#0ea5e9', // sky blue
     icon: 'display_settings_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -403,10 +415,11 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'quality',
     type: 'quality',
-    label: { en: 'Quality', de: 'Qualität' },
+    label: { en: 'Quality', de: 'Qualität', tr: 'Kalite' },
     description: {
       en: 'Set steps and CFG for generation quality (ComfyUI only)',
-      de: 'Steps und CFG für Generierungsqualität (nur ComfyUI)'
+      de: 'Steps und CFG für Generierungsqualität (nur ComfyUI)',
+      tr: 'Üretim kalitesi için adım ve CFG ayarla (yalnızca ComfyUI)'
     },
     color: '#84cc16', // lime
     icon: 'display_settings_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -770,7 +783,7 @@ export interface RandomPromptPresetConfig {
 /** Random Prompt Presets with system prompts */
 export const RANDOM_PROMPT_PRESETS: Record<RandomPromptPreset, RandomPromptPresetConfig> = {
   clean_image: {
-    label: { en: 'Scenic Description', de: 'Szenische Beschreibung' },
+    label: { en: 'Scenic Description', de: 'Szenische Beschreibung', tr: 'Sahne Açıklaması' },
     systemPrompt: `You are an inventive creative. Your task is to invent a vivid, detailed image prompt.
 
 IMPORTANT - Generate CLEAN, MEDIA-NEUTRAL images:
@@ -789,7 +802,7 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER.`,
     userPromptTemplate: 'Generate a creative image prompt.'
   },
   photo: {
-    label: { en: 'Photo Prompt', de: 'Foto-Prompt' },
+    label: { en: 'Photo Prompt', de: 'Foto-Prompt', tr: 'Fotoğraf Komutu' },
     systemPrompt: `You are an inventive creative. Your task is to invent a REALISTIC photographic image prompt.
 
 Think globally. Avoid cultural clichés. Avoid "retro" style descriptions.
@@ -801,7 +814,7 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER.`,
     userPromptTemplate: 'Generate a creative photographic image prompt.'
   },
   artform: {
-    label: { en: 'Artform Transformation', de: 'Kunstform-Transformation' },
+    label: { en: 'Artform Transformation', de: 'Kunstform-Transformation', tr: 'Sanat Formu Dönüşümü' },
     systemPrompt: `You generate artform transformation instructions from an artist practice perspective.
 
 IMPORTANT: NEVER use "in the style of" - instead frame as artistic practice, technique, or creative process.
@@ -822,7 +835,7 @@ Output ONLY the transformation instruction, nothing else.`,
     userPromptTemplate: 'Generate a creative artform transformation instruction.'
   },
   instruction: {
-    label: { en: 'Creative Instruction', de: 'Kreative Anweisung' },
+    label: { en: 'Creative Instruction', de: 'Kreative Anweisung', tr: 'Yaratıcı Talimat' },
     systemPrompt: `You generate creative transformation instructions.
 Your output is a single instruction that transforms content in an unusual, creative way.
 Examples: nature language, theatrical play, nostalgic robot voice, rhythmic rap, animal fable, alien explanation, philosophical versions (Wittgenstein, Heidegger, Adorno), ancient manuscript, bedtime story for post-human child, internal monologue of a tree, forgotten folk song lyrics, spy messages, protest chant, underwater civilization dialect, extinct animal conversation, dream sequence, poetic weather forecast, love letter to future generation, etc.
@@ -831,7 +844,7 @@ Output ONLY the transformation instruction, nothing else.`,
     userPromptTemplate: 'Generate a creative transformation instruction.'
   },
   language: {
-    label: { en: 'Language Suggestion', de: 'Sprach-Vorschlag' },
+    label: { en: 'Language Suggestion', de: 'Sprach-Vorschlag', tr: 'Dil Önerisi' },
     systemPrompt: `You suggest a random language from around the world.
 Choose from major world languages, regional languages, or less common languages.
 Consider: European, Asian, African, Indigenous American, Pacific languages.
