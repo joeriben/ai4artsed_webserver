@@ -420,7 +420,9 @@ const messages = {
       generic: 'Dein Prompt wurde vom Sicherheitssystem blockiert. Das System sch\u00FCtzt dich vor ungeeigneten Inhalten. Versuche es mit einer anderen Formulierung!',
       inputImage: 'Das hochgeladene Bild wurde von einer Bildanalyse-KI als ungeeignet eingestuft. Bitte verwende ein anderes Bild.',
       vlmSaw: 'Die Bild-KI sah',
-      systemUnavailable: 'Das Sicherheitssystem (Ollama) reagiert nicht, daher kann keine weitere Verarbeitung erfolgen. Bitte den Systemadministrator kontaktieren.'
+      systemUnavailable: 'Das Sicherheitssystem (Ollama) reagiert nicht, daher kann keine weitere Verarbeitung erfolgen. Bitte den Systemadministrator kontaktieren.',
+      suggestionLoading: 'Moment, ich habe eine Idee...',
+      suggestionError: 'Ich konnte gerade keinen Vorschlag generieren. Versuch es einfach nochmal anders!'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantische Vektorfusion',
@@ -1495,7 +1497,9 @@ const messages = {
       generic: 'Your prompt was blocked by the safety system. The system protects you from unsuitable content. Try a different wording!',
       inputImage: 'The uploaded image was flagged as unsuitable by an image analysis AI. Please use a different image.',
       vlmSaw: 'The image AI saw',
-      systemUnavailable: 'The safety system (Ollama) is not responding, so no further processing is possible. Please contact the system administrator.'
+      systemUnavailable: 'The safety system (Ollama) is not responding, so no further processing is possible. Please contact the system administrator.',
+      suggestionLoading: 'Hang on, I have an idea...',
+      suggestionError: 'I couldn\'t generate a suggestion right now. Just try again with different words!'
     },
     splitCombine: {
       infoTitle: 'Split & Combine - Semantic Vector Fusion',

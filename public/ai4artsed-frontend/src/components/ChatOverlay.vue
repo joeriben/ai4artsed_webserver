@@ -531,6 +531,10 @@ watch(
       explanation = t('safetyBlocked.generic')
     }
 
+    // Detect if this is an age-appropriate block (kids/youth)
+    const isAgeBlock = reason.includes('Kids-Filter') || reason.includes('Kinder-Schutzfilter')
+      || reason.includes('Youth-Filter') || reason.includes('Jugendschutzfilter')
+
     // Auto-expand Träshy
     if (!isExpanded.value) {
       isExpanded.value = true
@@ -546,8 +550,65 @@ watch(
 
     await nextTick()
     scrollToBottom()
+
+    // For age-appropriate blocks: generate a creative alternative suggestion
+    const userInput = pageContextStore.pageContent.inputText
+    if (isAgeBlock && userInput) {
+      await generateSafetySuggestion(userInput, reason)
+    }
   }
 )
+
+/**
+ * Generate a creative alternative suggestion via LLM when a kids/youth safety block occurs.
+ * Two-step: immediately shows a loading message, then replaces it with the LLM response.
+ */
+async function generateSafetySuggestion(userInput: string, blockReason: string) {
+  // Step 1: Show loading message immediately
+  const loadingId = messageIdCounter++
+  messages.value.push({
+    id: loadingId,
+    role: 'assistant',
+    content: t('safetyBlocked.suggestionLoading')
+  })
+
+  await nextTick()
+  scrollToBottom()
+
+  try {
+    // Step 2: Call /api/chat WITHOUT run_id (general mode, no history persistence)
+    const suggestionPrompt = `The user tried to generate an image with this prompt: "${userInput}"
+This was blocked by a safety filter (reason: ${blockReason}).
+Suggest ONE creative alternative prompt that keeps the user's core idea but avoids the problematic aspect. Be brief (1-2 sentences). Do NOT reveal what was blocked or why. Just offer the alternative as a friendly suggestion. Respond in the language of the user's prompt.`
+
+    const response = await axios.post('/api/chat', {
+      message: suggestionPrompt
+    })
+
+    // Replace loading message in-place
+    const idx = messages.value.findIndex(m => m.id === loadingId)
+    if (idx !== -1) {
+      messages.value[idx] = {
+        ...messages.value[idx],
+        content: response.data.reply
+      }
+    }
+  } catch (error) {
+    console.error('[ChatOverlay] Error generating safety suggestion:', error)
+
+    // Replace loading message with error
+    const idx = messages.value.findIndex(m => m.id === loadingId)
+    if (idx !== -1) {
+      messages.value[idx] = {
+        ...messages.value[idx],
+        content: t('safetyBlocked.suggestionError')
+      }
+    }
+  }
+
+  await nextTick()
+  scrollToBottom()
+}
 
 // Watch for VLM analysis events (safe images) — add context without auto-expanding
 watch(
