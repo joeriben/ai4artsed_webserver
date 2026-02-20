@@ -743,7 +743,7 @@ class CanvasWorkflowExecutor:
         if not eval_input:
             self.results[node_id] = {
                 'type': 'evaluation',
-                'outputs': {'passthrough': '', 'commented': '', 'commentary': ''},
+                'outputs': {'pass': '', 'fail': '', 'commentary': ''},
                 'metadata': {'binary': None, 'score': None, 'active_path': None},
                 'error': 'No input'
             }
@@ -763,7 +763,7 @@ class CanvasWorkflowExecutor:
         if not response.success:
             self.results[node_id] = {
                 'type': 'evaluation',
-                'outputs': {'passthrough': '', 'commented': '', 'commentary': ''},
+                'outputs': {'pass': '', 'fail': '', 'commentary': ''},
                 'metadata': {'binary': None, 'score': None, 'active_path': None},
                 'error': response.error
             }
@@ -791,13 +791,13 @@ class CanvasWorkflowExecutor:
             score = None
 
         binary_result = score >= 5.0 if score is not None else False
-        active_path = 'passthrough' if binary_result else 'commented'
+        active_path = 'pass' if binary_result else 'fail'
         passthrough_text = eval_input
         commented_text = f"{eval_input}\n\nFEEDBACK: {commentary}"
 
         self.results[node_id] = {
             'type': 'evaluation',
-            'outputs': {'passthrough': passthrough_text, 'commented': commented_text, 'commentary': commentary},
+            'outputs': {'pass': passthrough_text, 'fail': commented_text, 'commentary': commentary},
             'metadata': {'binary': binary_result, 'score': score, 'active_path': active_path},
             'error': None, 'model': response.model_used
         }
@@ -917,15 +917,30 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
             return []
 
         # For evaluation nodes: filter based on score
+        # Labels 'pass'/'fail'/'feedback'/'commentary' are evaluation routing labels.
+        # Any other label (e.g. 'input-1') is a target-side port identifier and
+        # should follow the pass path (the normal forward direction).
         if node_type == 'evaluation' and metadata:
+            EVAL_ROUTING_LABELS = {'passthrough', 'pass', 'commented', 'fail', 'feedback', 'commentary'}
             active_path = metadata.get('active_path')
+            is_pass = active_path in ('passthrough', 'pass')
             filtered = []
             for conn in next_conns:
                 label = conn.get('label')
-                if not label or label == 'commentary' or label == active_path:
+                if not label:
                     filtered.append(conn)
-                elif label == 'feedback' and active_path == 'commented':
+                elif label not in EVAL_ROUTING_LABELS:
+                    # Target-side label (e.g. "input-1") — follow on pass path
+                    if is_pass:
+                        filtered.append(conn)
+                elif label == 'commentary':
                     filtered.append(conn)
+                elif label in ('passthrough', 'pass'):
+                    if is_pass:
+                        filtered.append(conn)
+                elif label in ('commented', 'fail', 'feedback'):
+                    if not is_pass:
+                        filtered.append(conn)
             next_conns = filtered
 
         result = []
@@ -959,12 +974,13 @@ Strukturiere deine Antwort klar und beziehe dich auf die Text-Nummern."""
                 conn_label = conn.get('label')
                 if conn_label == 'commentary':
                     trace_data = self.results[node_id]['outputs']['commentary']
-                elif conn_label == 'passthrough':
-                    trace_data = self.results[node_id]['outputs']['passthrough']
-                elif conn_label in ['commented', 'feedback']:
-                    trace_data = self.results[node_id]['outputs']['commented']
+                elif conn_label in ('passthrough', 'pass'):
+                    trace_data = self.results[node_id]['outputs']['pass']
+                elif conn_label in ('commented', 'fail', 'feedback'):
+                    trace_data = self.results[node_id]['outputs']['fail']
                 else:
-                    trace_data = output_data
+                    # Target-side label (e.g. "input-1"): use pass output
+                    trace_data = self.results[node_id]['outputs']['pass']
             else:
                 trace_data = output_data
 
