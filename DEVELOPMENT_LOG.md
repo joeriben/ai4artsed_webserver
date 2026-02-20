@@ -21,6 +21,14 @@
 ### Verification
 Adding a 3rd language to `SUPPORTED_LANGUAGES` now requires only: (1) add translations to i18n.ts message object, (2) add language entry to `SUPPORTED_LANGUAGES` array. All type lookups, config name resolution, and backend safety messages automatically fall back to English.
 
+### Turkish (tr) — First 3rd Language Added
+- **1071 keys** fully translated (Sonnet agent, not Opus — translation doesn't need reasoning)
+- `LocalizedString` type fixed: `Record<SupportedLanguage, string>` → `{ en: string; [key: string]: string }` — otherwise adding `'tr'` would require `tr` key in every existing object literal
+- Additional type fixes: `ConfigContextResponse.context` → `Record<string, string>`, `NoMatchState.vue` prop → `SupportedLanguage`, `createI18n` locale cast
+- Infrastructure proof: adding Turkish required **1 line** in SUPPORTED_LANGUAGES + translations. Zero code changes.
+- KVKK (Turkish GDPR equivalent) used instead of DSGVO/GDPR in safety messages
+- `npm run type-check` passes, `fallbackLocale: 'en'` handles any missing tr keys
+
 ## Session 185 - i18n Batch 6: Infrastructure Code + LLM Meta-Prompts
 **Date:** 2026-02-20
 **Focus:** Final i18n sweep — convert remaining German strings in infrastructure code; convert LLM meta-prompts to English for better instruction adherence
