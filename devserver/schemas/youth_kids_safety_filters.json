@@ -22,9 +22,13 @@
         "nude", "naked", "nsfw", "sexual", "rape", "pornographic",
         "genital", "abuse",
         "Gewalt", "Mord", "Folter", "Blut", "blutig", "Verstümmelung",
+        "töten", "tötet", "erschlagen", "erschlägt", "erstechen", "ersticht",
+        "ermorden", "ermordet", "umbringen", "schlachten",
+        "Tod", "Leiche", "Hinrichtung", "Gemetzel",
+        "verletzen", "Verletzung", "Schmerz", "Wunde",
         "Selbstmord", "Suizid", "Selbstverletzung",
         "Horror", "gruselig", "erschreckend", "Albtraum", "verstörend",
-        "Dämon", "Skelett", "Totenkopf",
+        "Dämon", "Skelett", "Totenkopf", "Vampir", "Werwolf", "Zombie",
         "nackt", "Nacktheit", "sexuell", "Vergewaltigung", "pornografisch",
         "Genitalien", "Missbrauch"
       ]
@@ -47,7 +51,7 @@
 
   "categories": {
     "kids": {
-      "violence": ["violence", "violent", "execution", "killing", "murder", "death", "corpse", "torture", "pain", "suffering", "injury", "wound", "bleeding", "slaughter", "carnage", "butcher"],
+      "violence": ["violence", "violent", "execution", "killing", "murder", "death", "corpse", "torture", "pain", "suffering", "injury", "wound", "bleeding", "slaughter", "carnage", "butcher", "Gewalt", "Mord", "Folter", "töten", "tötet", "erschlagen", "erschlägt", "erstechen", "ersticht", "ermorden", "ermordet", "umbringen", "schlachten", "Tod", "Leiche", "Hinrichtung", "Gemetzel", "verletzen", "Verletzung", "Schmerz", "Wunde"],
       "gore": ["blood", "bloody", "gore", "gory", "mutilation", "dismemberment", "limbs", "severed", "decapitation", "entrails", "intestines", "organs", "flesh"],
       "psychological_distress": ["despair", "suicide", "suicidal", "self-harm", "depression"],
       "horror": ["horror", "scary", "frightening", "terror", "nightmare", "disturbing", "demon", "zombie", "skeleton", "skull", "evil"],

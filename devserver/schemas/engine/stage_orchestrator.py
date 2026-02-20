@@ -267,6 +267,101 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
         return None
 
 
+def llm_verify_age_filter_context(text: str, found_terms: list, safety_level: str) -> Optional[bool]:
+    """
+    LLM context verification for age-filter fast-filter hits.
+
+    The fast filter catches terms like "erschlägt" or "Tod" but can't
+    distinguish violent context ("Ritter erschlägt Bauern") from benign
+    context ("König schlägt zum Ritter", "Tod ist ein Kartenspiel").
+
+    Uses DSGVO_VERIFY_MODEL (general-purpose, local) — NOT guard models
+    (they classify content, not context).
+
+    Args:
+        text: The original user text
+        found_terms: List of filter terms that matched
+        safety_level: 'kids' or 'youth'
+
+    Returns:
+        True if LLM confirms content is inappropriate (block).
+        False if LLM says benign context (allow).
+        None if LLM unavailable (fail-closed).
+    """
+    import requests
+    import config
+
+    terms_str = ", ".join(found_terms[:5])
+    age_desc = "children (ages 6-12)" if safety_level == 'kids' else "teenagers (ages 13-16)"
+
+    model = config.DSGVO_VERIFY_MODEL
+    ollama_model = model.replace("local/", "") if model.startswith("local/") else model
+
+    prompt = (
+        f"A safety filter flagged the following terms in a text that will be used "
+        f"as an image generation prompt for {age_desc}.\n\n"
+        f"Flagged terms: {terms_str}\n"
+        f"Full text: \"{text}\"\n\n"
+        f"Is this text ACTUALLY describing violence, harm, or age-inappropriate content?\n"
+        f"Or are the flagged terms used in a benign, peaceful, or metaphorical context?\n\n"
+        f"Examples:\n"
+        f"- \"Ein Ritter erschlägt einen Bauern\" = UNSAFE (actual violence)\n"
+        f"- \"Ein König schlägt einen Bauern zum Ritter\" = SAFE (knighting ceremony)\n"
+        f"- \"Ein freundlicher Vampir\" = SAFE (friendly character)\n"
+        f"- \"Tod und Verderben\" = UNSAFE (death and destruction)\n\n"
+        f"Answer ONLY with SAFE or UNSAFE."
+    )
+    messages = [{"role": "user", "content": prompt}]
+
+    try:
+        start = _time.time()
+        response = requests.post(
+            f"{config.OLLAMA_API_BASE_URL}/api/chat",
+            json={
+                "model": ollama_model,
+                "messages": messages,
+                "stream": False,
+                "keep_alive": "10m",
+                "options": {"temperature": 0.0, "num_predict": 500}
+            },
+            timeout=60
+        )
+        response.raise_for_status()
+        msg = response.json().get("message", {})
+        result = msg.get("content", "").strip()
+        duration_ms = (_time.time() - start) * 1000
+
+        # Thinking model fallback
+        if not result:
+            thinking = msg.get("thinking", "").strip()
+            if thinking:
+                logger.info(f"[AGE-LLM-VERIFY] content empty, checking thinking field ({len(thinking)} chars)")
+                thinking_upper = thinking.upper()
+                if "UNSAFE" in thinking_upper:
+                    result = "UNSAFE"
+                elif "SAFE" in thinking_upper:
+                    result = "SAFE"
+
+        if not result:
+            logger.error(
+                f"[AGE-LLM-VERIFY] terms={terms_str} → LLM ({ollama_model}) returned EMPTY "
+                f"({duration_ms:.0f}ms) — fail-closed"
+            )
+            return None
+
+        result_upper = result.upper().strip()
+        is_unsafe = result_upper.startswith("UNSAFE")
+        logger.info(
+            f"[AGE-LLM-VERIFY] terms={terms_str} → LLM={result!r} → "
+            f"{'UNSAFE — confirmed inappropriate' if is_unsafe else 'SAFE — false positive'} ({duration_ms:.0f}ms)"
+        )
+        return is_unsafe
+
+    except Exception as e:
+        logger.error(f"[AGE-LLM-VERIFY] LLM verification failed ({ollama_model}): {e} — fail-closed")
+        return None
+
+
 # ============================================================================
 # HYBRID SAFETY: Fast String-Matching + LLM Context Verification
 # ============================================================================
