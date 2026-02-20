@@ -37,7 +37,15 @@ brauchen externe Pakete + Modell-Checkpoints, die noch nicht installiert sind.
 - ImageBind: `~/ai/ImageBind` geklont, `--no-deps -e .` installiert + pytorchvideo
 - **WICHTIG**: Beide mit `--no-deps` installiert um torch 2.11.0.dev nightly zu schützen
 - torchcodec NICHT installiert (ABI-inkompatibel mit nightly, von MMAudio nicht gebraucht)
+- `mmaudio_backend.py` komplett umgeschrieben: Originaler Code nutzte nicht-existentes `load_model` — jetzt korrekte API (`get_my_mmaudio`, `FeaturesUtils`, `FlowMatching`, `eval_utils.generate`)
+- Production-Venv (`/run/media/joerissen/production/ai4artsed_production`) ebenfalls aktualisiert
 - Model-Checkpoints werden beim ersten Aufruf automatisch heruntergeladen
+
+### Offen
+- **MMAudio Checkpoints**: Synchformer (950 MB) + CLIP ViT-H-14 (3.95 GB) heruntergeladen. MMAudio-Weights (~3.9 GB) + VAE (~1.2 GB) stehen noch aus — Download über 5G-Verbindung mit 30 GB Datenlimit pausiert. **Bei Festnetz-Verbindung GPU Service neu starten, Weights laden automatisch nach.**
+- **ImageBind Checkpoint**: `imagebind_huge.pth` (~4.5 GB) lädt erst beim ersten Aufruf von Tab 3 (ImageBind Guidance). Ebenfalls auf Festnetz warten.
+- **Ollama VRAM-Konflikt**: Ollama belegt ~62 GB VRAM auch ohne aktive Modelle (KV-Cache Vorab-Allokation). Vor MMAudio-Nutzung `sudo systemctl restart ollama` nötig. Langfrist-Lösung: VRAM Coordinator um Ollama-Adapter erweitern (`keep_alive:0` API)
+- **Gesamter Download-Bedarf**: ~14.5 GB (MMAudio ~10 GB + ImageBind ~4.5 GB)
 
 ### MMAudio (CVPR 2025)
 
