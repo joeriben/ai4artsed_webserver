@@ -256,7 +256,7 @@ export async function getConfig(configId: string): Promise<ConfigMetadata> {
  */
 export interface ConfigContextResponse {
   config_id: string
-  context: string | { en: string; de: string }
+  context: string | Record<string, string>
 }
 
 export async function getConfigContext(configId: string): Promise<ConfigContextResponse> {

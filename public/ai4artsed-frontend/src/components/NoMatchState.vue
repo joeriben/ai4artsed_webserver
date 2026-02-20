@@ -68,6 +68,7 @@
 
 <script setup lang="ts">
 import type { ConfigMetadata } from '@/stores/configSelection'
+import type { SupportedLanguage } from '@/i18n'
 
 /**
  * NoMatchState - No-match state with suggestions
@@ -87,7 +88,7 @@ interface PartialMatch {
 interface Props {
   partialMatches: PartialMatch[]
   selectedPropertiesCount: number
-  currentLanguage: 'en' | 'de'
+  currentLanguage: SupportedLanguage
 }
 
 const props = defineProps<Props>()
