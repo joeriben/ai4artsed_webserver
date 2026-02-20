@@ -493,13 +493,13 @@ def parse_preoutput_json(output: str) -> Dict[str, Any]:
 
         return parsed
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse pre-output JSON: {e}\nOutput: {output[:200]}")
-        # Return safe default to allow continuation
+        logger.error(f"[SAFETY] Failed to parse pre-output (fail-closed): {e}\nOutput: {output[:200]}")
+        # FAIL-CLOSED: Unparseable safety output = block (never fail-open on safety)
         return {
-            "safe": True,
-            "positive_prompt": output,
-            "negative_prompt": "blurry, low quality, bad anatomy",
-            "abort_reason": None
+            "safe": False,
+            "positive_prompt": None,
+            "negative_prompt": None,
+            "abort_reason": "Safety check returned unparseable output (fail-closed)"
         }
 
 # ============================================================================
@@ -1007,13 +1007,13 @@ async def execute_stage3_safety(
                 "execution_time": translate_time + llm_check_time
             }
     else:
-        logger.warning(f"[STAGE3-SAFETY] LLM check failed: {result.error}, continuing (fail-open)")
+        logger.warning(f"[STAGE3-SAFETY] LLM check failed: {result.error}, BLOCKING (fail-closed)")
         return {
-            "safe": True,
+            "safe": False,
             "method": "llm_check_failed",
-            "abort_reason": None,
-            "positive_prompt": generation_prompt,
-            "negative_prompt": ""
+            "abort_reason": "Safety check failed (LLM error/timeout) — blocking as precaution",
+            "positive_prompt": None,
+            "negative_prompt": None
         }
 
 
