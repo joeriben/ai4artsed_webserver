@@ -52,6 +52,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { localized } from '@/i18n'
 
 const { t, locale } = useI18n()
 
@@ -80,7 +81,7 @@ const emit = defineEmits<{
 }>()
 
 function dimLabel(dim: DimensionConfig): string {
-  return locale.value === 'de' ? dim.label_de : dim.label_en
+  return localized({ de: dim.label_de, en: dim.label_en }, locale.value)
 }
 
 function isSelected(dimName: string, chip: string): boolean {

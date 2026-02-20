@@ -1,12 +1,13 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import type { SupportedLanguage, LocalizedString } from '@/i18n'
 
 // Type definitions
 export interface ConfigMetadata {
   id: string
-  name: { en: string; de: string }
-  description: { en: string; de: string }
-  short_description: { en: string; de: string }
+  name: LocalizedString
+  description: LocalizedString
+  short_description: LocalizedString
   properties: string[]
   pipeline: string
   media_preferences?: {
@@ -84,7 +85,7 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
   const symbolDataMap = ref<Map<string, SymbolData>>(new Map())
 
   /** Current language for labels/tooltips */
-  const currentLanguage = ref<'de' | 'en'>('de')
+  const currentLanguage = ref<SupportedLanguage>('de')
 
   /** Loading state */
   const isLoading = ref(false)
@@ -281,7 +282,7 @@ export const useConfigSelectionStore = defineStore('configSelection', () => {
   /**
    * Set current language for labels/tooltips (Session 40)
    */
-  function setLanguage(lang: 'de' | 'en') {
+  function setLanguage(lang: SupportedLanguage) {
     currentLanguage.value = lang
     // Reload configs to rebuild symbol data with new language
     if (symbolsEnabled.value) {

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { getConfig, getConfigContext, type ConfigMetadata } from '@/services/api'
+import type { SupportedLanguage } from '@/i18n'
 
 /**
  * Pinia Store for Phase 2 Pipeline Execution
@@ -104,7 +105,7 @@ export const usePipelineExecutionStore = defineStore('pipelineExecution', () => 
    *
    * @param language - User's selected language
    */
-  async function loadMetaPromptForLanguage(language: 'de' | 'en') {
+  async function loadMetaPromptForLanguage(language: SupportedLanguage) {
     if (!selectedConfig.value) {
       console.warn('[PipelineExecution] loadMetaPromptForLanguage: No config selected')
       return

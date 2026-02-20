@@ -31,6 +31,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import type { ConfigMetadata } from '@/stores/configSelection'
+import type { SupportedLanguage } from '@/i18n'
 
 /**
  * ConfigTile - Individual config tile component
@@ -48,7 +49,7 @@ interface Props {
   y: number
   isDimmed?: boolean // When no match
   selectedProperties: string[]
-  currentLanguage: 'en' | 'de'
+  currentLanguage: SupportedLanguage
 }
 
 const props = withDefaults(defineProps<Props>(), {

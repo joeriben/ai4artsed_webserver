@@ -548,19 +548,19 @@ def build_safety_message(codes: List[str], lang: str = 'de') -> str:
         with open(explanations_path, 'r', encoding='utf-8') as f:
             explanations = json.load(f)
 
-        base_msg = explanations['base_message'][lang]
-        hint_msg = explanations['hint_message'][lang]
+        base_msg = explanations['base_message'].get(lang, explanations['base_message']['en'])
+        hint_msg = explanations['hint_message'].get(lang, explanations['hint_message']['en'])
 
         # Build message from codes
         messages = []
         for code in codes:
             if code in explanations['codes']:
-                messages.append(f"• {explanations['codes'][code][lang]}")
+                messages.append(f"• {explanations['codes'][code].get(lang, explanations['codes'][code]['en'])}")
             else:
                 messages.append(f"• Code: {code}")
 
         if not messages:
-            return explanations['fallback'][lang]
+            return explanations['fallback'].get(lang, explanations['fallback']['en'])
 
         full_message = base_msg + "\n\n" + "\n".join(messages) + hint_msg
         return full_message

@@ -11,6 +11,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { OutputConfigSummary } from '@/types/canvas'
+import { localized } from '@/i18n'
 
 const { locale } = useI18n()
 
@@ -32,8 +33,8 @@ const filteredConfigs = computed(() => {
 
   const query = searchQuery.value.toLowerCase()
   return props.outputConfigs.filter(c => {
-    const name = locale.value === 'de' ? c.name.de : c.name.en
-    const desc = locale.value === 'de' ? c.description.de : c.description.en
+    const name = localized(c.name, locale.value)
+    const desc = localized(c.description, locale.value)
     return name.toLowerCase().includes(query) || desc.toLowerCase().includes(query)
   })
 })
@@ -43,11 +44,11 @@ const title = computed(() => {
 })
 
 function getName(config: OutputConfigSummary): string {
-  return locale.value === 'de' ? config.name.de : config.name.en
+  return localized(config.name, locale.value)
 }
 
 function getDescription(config: OutputConfigSummary): string {
-  return locale.value === 'de' ? config.description.de : config.description.en
+  return localized(config.description, locale.value)
 }
 
 function selectConfig(configId: string) {

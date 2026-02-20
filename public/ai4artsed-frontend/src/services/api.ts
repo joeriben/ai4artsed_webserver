@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance } from 'axios'
+import type { SupportedLanguage, LocalizedString } from '@/i18n'
 
 /**
  * Centralized API Service for AI4ArtsEd DevServer
@@ -18,9 +19,9 @@ import axios, { type AxiosInstance } from 'axios'
 /** Config metadata from /pipeline_configs_with_properties */
 export interface ConfigMetadata {
   id: string
-  name: { en: string; de: string }
-  description: { en: string; de: string }
-  short_description: { en: string; de: string }
+  name: LocalizedString
+  description: LocalizedString
+  short_description: LocalizedString
   properties: string[]
   pipeline: string
   media_preferences?: {
@@ -57,10 +58,10 @@ export interface PipelineExecuteRequest {
   schema: string
   input_text: string
   user_input?: string // Original user input (for Phase 2 media generation)
-  user_language?: 'de' | 'en'
+  user_language?: SupportedLanguage
   execution_mode?: 'eco' | 'fast' | 'best' // DEPRECATED (Session 65): Ignored by backend. TODO: Remove.
   context_prompt?: string // Optional: user-edited meta-prompt
-  context_language?: 'de' | 'en' // Language of context_prompt
+  context_language?: SupportedLanguage // Language of context_prompt
   custom_placeholders?: Record<string, string> // Optional: custom placeholder values for multi-stage workflows
   output_config?: string // Output config for Stage 4 media generation
   stage4_only?: boolean // Skip Stage 1-3, only execute Stage 4
@@ -125,10 +126,10 @@ export interface PipelineExecuteResponse {
 export interface TransformRequest {
   schema: string
   input_text: string
-  user_language: 'de' | 'en'
+  user_language: SupportedLanguage
   execution_mode?: 'eco' | 'fast' | 'best' // DEPRECATED (Session 65): Ignored by backend. TODO: Remove.
   context_prompt?: string // Optional: user-edited meta-prompt
-  context_language?: 'de' | 'en' // Language of context_prompt
+  context_language?: SupportedLanguage // Language of context_prompt
   output_config?: string // Optional: Media type selection for Stage 2 optimization (Session 58)
 }
 

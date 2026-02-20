@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NODE_TYPE_DEFINITIONS, type StageType, type NodeTypeDefinition } from '@/types/canvas'
+import { localized } from '@/i18n'
 
 const { locale } = useI18n()
 
@@ -56,11 +57,11 @@ function getNodeDef(type: StageType): NodeTypeDefinition | undefined {
 }
 
 function getLabel(def: NodeTypeDefinition): string {
-  return locale.value === 'de' ? def.label.de : def.label.en
+  return localized(def.label, locale.value)
 }
 
 function getDescription(def: NodeTypeDefinition): string {
-  return locale.value === 'de' ? def.description.de : def.description.en
+  return localized(def.description, locale.value)
 }
 
 function onDragStart(e: DragEvent, type: StageType) {

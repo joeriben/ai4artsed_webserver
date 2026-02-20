@@ -6,6 +6,7 @@
  *
  * Session 129: Phase 1 Implementation
  */
+import type { LocalizedString } from '@/i18n'
 
 // ============================================================================
 // NODE TYPES
@@ -90,7 +91,7 @@ export type InterceptionPreset =
 
 /** Interception Preset Config with labels */
 export interface InterceptionPresetConfig {
-  label: { en: string; de: string }
+  label: LocalizedString
 }
 
 /** Interception Presets - labels only, context loaded from backend on selection */
@@ -136,8 +137,8 @@ export type ImageEvaluationPreset =
 
 /** Image Evaluation Preset Config with labels */
 export interface ImageEvaluationPresetConfig {
-  label: { en: string; de: string }
-  description: { en: string; de: string }
+  label: LocalizedString
+  description: LocalizedString
 }
 
 /** Image Evaluation Presets - labels only, prompts loaded from backend config.py */
@@ -189,8 +190,8 @@ export type PhotoFilmType =
 export interface NodeTypeDefinition {
   id: string
   type: StageType
-  label: { en: string; de: string }
-  description: { en: string; de: string }
+  label: LocalizedString
+  description: LocalizedString
   color: string
   icon: string
   /** Whether this node type allows multiple instances */
@@ -660,8 +661,8 @@ export interface LLMModelSummary {
 /** Output/generation config summary (for palette selection) */
 export interface OutputConfigSummary {
   id: string
-  name: { en: string; de: string }
-  description: { en: string; de: string }
+  name: LocalizedString
+  description: LocalizedString
   icon: string
   color: string
   mediaType: 'image' | 'audio' | 'video' | 'music' | 'text'
@@ -761,7 +762,7 @@ export function createDefaultWorkflow(): CanvasWorkflow {
 
 /** Preset configuration for Random Prompt node */
 export interface RandomPromptPresetConfig {
-  label: { en: string; de: string }
+  label: LocalizedString
   systemPrompt: string
   userPromptTemplate: string
 }

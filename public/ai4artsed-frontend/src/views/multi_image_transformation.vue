@@ -250,6 +250,7 @@ import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
 import { useGenerationStream } from '@/composables/useGenerationStream'
 import { useI18n } from 'vue-i18n'
+import type { SupportedLanguage } from '@/i18n'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 // ============================================================================
@@ -309,7 +310,7 @@ const {
   reset: resetGenerationStream
 } = useGenerationStream()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 // Image Analysis
 const isAnalyzing = ref(false)
@@ -1121,7 +1122,7 @@ onMounted(async () => {
     try {
       // Load config and meta-prompt from backend
       await pipelineStore.setConfig(configId)
-      await pipelineStore.loadMetaPromptForLanguage('de')
+      await pipelineStore.loadMetaPromptForLanguage(locale.value as SupportedLanguage)
 
       // Overwrite ONLY context (unified with t2i pattern)
       const freshContext = pipelineStore.metaPrompt || ''

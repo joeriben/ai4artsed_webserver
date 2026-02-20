@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import StageModule from './StageModule.vue'
 import ConnectionLine from './ConnectionLine.vue'
 import type { CanvasNode, CanvasConnection, StageType, LLMModelSummary, OutputConfigSummary } from '@/types/canvas'
+import { localized } from '@/i18n'
 
 const { locale } = useI18n()
 
@@ -47,7 +48,7 @@ function getConfigInfo(configId: string | undefined): { name: string; mediaType:
   const config = props.outputConfigs.find(c => c.id === configId)
   if (!config) return undefined
   return {
-    name: locale.value === 'de' ? config.name.de : config.name.en,
+    name: localized(config.name, locale.value),
     mediaType: config.mediaType
   }
 }

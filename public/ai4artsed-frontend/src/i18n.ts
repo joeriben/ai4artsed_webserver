@@ -7,6 +7,14 @@ export const SUPPORTED_LANGUAGES = [
 
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number]['code']
 
+/** Localized string object — must always have 'en' as fallback */
+export type LocalizedString = Record<SupportedLanguage, string> & { en: string }
+
+/** Resolve a localized string for the given locale, falling back to English */
+export function localized(obj: Record<string, string>, locale: string): string {
+  return obj[locale] || obj.en || ''
+}
+
 const messages = {
   de: {
     app: {
@@ -71,10 +79,6 @@ const messages = {
       create: 'Kunst machen',
       playful: 'bisschen verrückt',
       serious: 'eher ernst'
-    },
-    language: {
-      switch: 'Sprache: Deutsch',
-      switchTo: 'Switch to English'
     },
     phase2: {
       title: 'Prompt-Eingabe',
@@ -1148,10 +1152,6 @@ const messages = {
       create: 'make art',
       playful: 'playful',
       serious: 'serious'
-    },
-    language: {
-      switch: 'Language: English',
-      switchTo: 'Zu Deutsch wechseln'
     },
     phase2: {
       title: 'Prompt Input',
