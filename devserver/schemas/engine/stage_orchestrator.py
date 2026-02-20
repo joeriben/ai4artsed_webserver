@@ -298,14 +298,13 @@ def llm_verify_age_filter_context(text: str, found_terms: list, safety_level: st
     ollama_model = model.replace("local/", "") if model.startswith("local/") else model
 
     prompt = (
-        f"A safety filter flagged the following terms in a text that will be used "
-        f"as an image generation prompt for {age_desc}.\n\n"
-        f"Flagged terms: {terms_str}\n"
-        f"Full text: \"{text}\"\n\n"
-        f"Is this text ACTUALLY describing violence, harm, or age-inappropriate content?\n"
-        f"Or are the flagged terms used in a benign, peaceful, or metaphorical context?\n\n"
+        f"The following text will be used as an image generation prompt for {age_desc}.\n\n"
+        f"Text: \"{text}\"\n\n"
+        f"Does this text describe violence, harm, death, sexual content, or anything "
+        f"inappropriate for {age_desc}?\n\n"
+        f"Evaluate the MEANING of the text, not individual words.\n\n"
         f"Examples:\n"
-        f"- \"Ein Ritter erschlägt einen Bauern\" = UNSAFE (actual violence)\n"
+        f"- \"Ein Ritter erschlägt einen Bauern\" = UNSAFE (violence)\n"
         f"- \"Ein König schlägt einen Bauern zum Ritter\" = SAFE (knighting ceremony)\n"
         f"- \"Ein freundlicher Vampir\" = SAFE (friendly character)\n"
         f"- \"Tod und Verderben\" = UNSAFE (death and destruction)\n\n"
