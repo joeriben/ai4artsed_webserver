@@ -11,9 +11,11 @@ Endpoints:
 - POST /api/cross_aesthetic/mmaudio            - MMAudio image/text to audio
 """
 
+import base64
 import logging
-import requests as http_requests
+from pathlib import Path
 
+import requests as http_requests
 from flask import Blueprint, request, jsonify
 
 logger = logging.getLogger(__name__)
@@ -35,10 +37,21 @@ def _proxy_get(path: str):
 
 
 def _proxy_post(path: str):
-    """Forward POST JSON to GPU service, return JSON response as-is."""
+    """Forward POST JSON to GPU service. Convert image_path to image_base64 if present."""
     from config import GPU_SERVICE_URL, GPU_SERVICE_TIMEOUT
     url = f"{GPU_SERVICE_URL.rstrip('/')}{path}"
     data = request.get_json() or {}
+
+    # Convert server-side image_path to base64 for GPU service
+    image_path = data.pop('image_path', None)
+    if image_path:
+        try:
+            img_bytes = Path(image_path).read_bytes()
+            data['image_base64'] = base64.b64encode(img_bytes).decode('ascii')
+        except Exception as e:
+            logger.warning(f"Failed to read image {image_path}: {e}")
+            return jsonify({"success": False, "error": f"Image read failed: {e}"}), 400
+
     try:
         resp = http_requests.post(url, json=data, timeout=GPU_SERVICE_TIMEOUT)
         return jsonify(resp.json()), resp.status_code

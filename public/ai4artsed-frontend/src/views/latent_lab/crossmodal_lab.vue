@@ -26,26 +26,28 @@
       <p class="tab-description">{{ t('latentLab.crossmodal.tabs.synth.description') }}</p>
 
       <!-- Prompt A -->
-      <div class="input-group">
-        <label>{{ t('latentLab.crossmodal.synth.promptA') }}</label>
-        <textarea
-          v-model="synth.promptA"
-          rows="2"
-          class="prompt-input"
-          :placeholder="t('latentLab.crossmodal.synth.promptAPlaceholder')"
-        />
-      </div>
+      <MediaInputBox
+        icon="💡"
+        :label="t('latentLab.crossmodal.synth.promptA')"
+        :placeholder="t('latentLab.crossmodal.synth.promptAPlaceholder')"
+        :value="synth.promptA"
+        @update:value="synth.promptA = $event"
+        :rows="2"
+        :isEmpty="!synth.promptA"
+        :isFilled="!!synth.promptA"
+      />
 
       <!-- Prompt B (optional) -->
-      <div class="input-group">
-        <label>{{ t('latentLab.crossmodal.synth.promptB') }}</label>
-        <textarea
-          v-model="synth.promptB"
-          rows="2"
-          class="prompt-input"
-          :placeholder="t('latentLab.crossmodal.synth.promptBPlaceholder')"
-        />
-      </div>
+      <MediaInputBox
+        icon="➕"
+        :label="t('latentLab.crossmodal.synth.promptB')"
+        :placeholder="t('latentLab.crossmodal.synth.promptBPlaceholder')"
+        :value="synth.promptB"
+        @update:value="synth.promptB = $event"
+        :rows="2"
+        :isEmpty="!synth.promptB"
+        :isFilled="!!synth.promptB"
+      />
 
       <!-- Sliders -->
       <div class="slider-group">
@@ -416,26 +418,36 @@
       <h3>{{ t('latentLab.crossmodal.tabs.mmaudio.title') }}</h3>
       <p class="tab-description">{{ t('latentLab.crossmodal.tabs.mmaudio.description') }}</p>
 
-      <div class="input-group">
-        <label>{{ t('latentLab.crossmodal.mmaudio.imageUpload') }}</label>
-        <input type="file" accept="image/*" @change="onImageUpload" class="file-input" />
-        <img v-if="imagePreview" :src="imagePreview" class="image-preview" />
-      </div>
+      <MediaInputBox
+        inputType="image"
+        icon="🖼️"
+        :label="t('latentLab.crossmodal.mmaudio.imageUpload')"
+        value=""
+        :initial-image="imagePreview"
+        @image-uploaded="handleImageUpload"
+      />
 
-      <div class="input-group">
-        <label>{{ t('latentLab.crossmodal.mmaudio.prompt') }}</label>
-        <textarea
-          v-model="mmaudio.prompt"
-          rows="2"
-          class="prompt-input"
-          :placeholder="t('latentLab.crossmodal.mmaudio.promptPlaceholder')"
-        />
-      </div>
+      <MediaInputBox
+        icon="💡"
+        :label="t('latentLab.crossmodal.mmaudio.prompt')"
+        :placeholder="t('latentLab.crossmodal.mmaudio.promptPlaceholder')"
+        :value="mmaudio.prompt"
+        @update:value="mmaudio.prompt = $event"
+        :rows="2"
+        :isEmpty="!mmaudio.prompt"
+        :isFilled="!!mmaudio.prompt"
+      />
 
-      <div class="input-group">
-        <label>{{ t('latentLab.crossmodal.mmaudio.negativePrompt') }}</label>
-        <input v-model="mmaudio.negativePrompt" type="text" class="text-input" />
-      </div>
+      <MediaInputBox
+        icon="📋"
+        :label="t('latentLab.crossmodal.mmaudio.negativePrompt')"
+        :value="mmaudio.negativePrompt"
+        @update:value="mmaudio.negativePrompt = $event"
+        :rows="2"
+        :isEmpty="!mmaudio.negativePrompt"
+        :isFilled="!!mmaudio.negativePrompt"
+        :showTranslate="false"
+      />
 
       <div class="params-row">
         <div class="param">
@@ -457,7 +469,7 @@
         </div>
       </div>
 
-      <button class="generate-btn" :disabled="(!mmaudio.prompt && !imageBase64) || generating" @click="runMMAudio">
+      <button class="generate-btn" :disabled="(!mmaudio.prompt && !imagePath) || generating" @click="runMMAudio">
         {{ generating ? t('latentLab.crossmodal.generating') : t('latentLab.crossmodal.generate') }}
       </button>
     </div>
@@ -467,21 +479,25 @@
       <h3>{{ t('latentLab.crossmodal.tabs.guidance.title') }}</h3>
       <p class="tab-description">{{ t('latentLab.crossmodal.tabs.guidance.description') }}</p>
 
-      <div class="input-group">
-        <label>{{ t('latentLab.crossmodal.guidance.imageUpload') }}</label>
-        <input type="file" accept="image/*" @change="onImageUpload" class="file-input" />
-        <img v-if="imagePreview" :src="imagePreview" class="image-preview" />
-      </div>
+      <MediaInputBox
+        inputType="image"
+        icon="🖼️"
+        :label="t('latentLab.crossmodal.guidance.imageUpload')"
+        value=""
+        :initial-image="imagePreview"
+        @image-uploaded="handleImageUpload"
+      />
 
-      <div class="input-group">
-        <label>{{ t('latentLab.crossmodal.guidance.prompt') }}</label>
-        <textarea
-          v-model="guidance.prompt"
-          rows="2"
-          class="prompt-input"
-          :placeholder="t('latentLab.crossmodal.guidance.promptPlaceholder')"
-        />
-      </div>
+      <MediaInputBox
+        icon="💡"
+        :label="t('latentLab.crossmodal.guidance.prompt')"
+        :placeholder="t('latentLab.crossmodal.guidance.promptPlaceholder')"
+        :value="guidance.prompt"
+        @update:value="guidance.prompt = $event"
+        :rows="2"
+        :isEmpty="!guidance.prompt"
+        :isFilled="!!guidance.prompt"
+      />
 
       <!-- Guidance sliders -->
       <div class="slider-group">
@@ -523,7 +539,7 @@
         </div>
       </div>
 
-      <button class="generate-btn" :disabled="!imageBase64 || generating" @click="runGuidance">
+      <button class="generate-btn" :disabled="!imagePath || generating" @click="runGuidance">
         {{ generating ? t('latentLab.crossmodal.generating') : t('latentLab.crossmodal.generate') }}
       </button>
     </div>
@@ -555,6 +571,7 @@ import { useAudioLooper } from '@/composables/useAudioLooper'
 import { useWavetableOsc } from '@/composables/useWavetableOsc'
 import { useEnvelope } from '@/composables/useEnvelope'
 import { useWebMidi } from '@/composables/useWebMidi'
+import MediaInputBox from '@/components/MediaInputBox.vue'
 
 const { t } = useI18n()
 
@@ -587,7 +604,7 @@ const embeddingStats = ref<EmbeddingStats | null>(null)
 
 // Image upload (shared across MMAudio and Guidance)
 const imagePreview = ref('')
-const imageBase64 = ref('')
+const imagePath = ref('')
 
 // Last synth base64 for replay
 const lastSynthBase64 = ref('')
@@ -1009,18 +1026,9 @@ function clearResults() {
   embeddingStats.value = null
 }
 
-function onImageUpload(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
-
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const dataUrl = e.target?.result as string
-    imagePreview.value = dataUrl
-    imageBase64.value = dataUrl.split(',')[1] ?? ''
-  }
-  reader.readAsDataURL(file)
+function handleImageUpload(data: any) {
+  imagePath.value = data.image_path
+  imagePreview.value = data.preview_url
 }
 
 async function apiPost(path: string, body: Record<string, unknown>) {
@@ -1222,8 +1230,8 @@ async function runMMAudio() {
       num_steps: mmaudio.steps,
       seed: mmaudio.seed,
     }
-    if (imageBase64.value) {
-      body.image_base64 = imageBase64.value
+    if (imagePath.value) {
+      body.image_path = imagePath.value
     }
 
     const result = await apiPost('/api/cross_aesthetic/mmaudio', body)
@@ -1247,7 +1255,7 @@ async function runGuidance() {
   generating.value = true
   try {
     const result = await apiPost('/api/cross_aesthetic/image_guided_audio', {
-      image_base64: imageBase64.value,
+      image_path: imagePath.value,
       prompt: guidance.prompt,
       lambda_guidance: guidance.lambda,
       warmup_steps: guidance.warmupSteps,
@@ -1383,54 +1391,6 @@ onUnmounted(() => {
   font-size: 0.85rem;
   margin-bottom: 1.5rem;
   line-height: 1.5;
-}
-
-/* Input groups */
-.input-group {
-  margin-bottom: 1rem;
-}
-
-.input-group label {
-  display: block;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 0.4rem;
-}
-
-.file-input {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
-}
-
-.image-preview {
-  margin-top: 0.5rem;
-  max-width: 200px;
-  max-height: 200px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.prompt-input,
-.text-input {
-  width: 100%;
-  padding: 0.8rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 0.9rem;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.text-input {
-  resize: none;
-}
-
-.prompt-input:focus,
-.text-input:focus {
-  outline: none;
-  border-color: rgba(76, 175, 80, 0.5);
 }
 
 /* Slider groups */
