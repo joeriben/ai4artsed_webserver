@@ -267,6 +267,12 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
         return None
 
 
+# Cache for age-filter LLM verification results (prevents inconsistent re-checks)
+# Key: (text, safety_level), Value: (result, timestamp)
+_AGE_VERIFY_CACHE: Dict[tuple, tuple] = {}
+_AGE_VERIFY_CACHE_TTL = 60  # seconds
+
+
 def llm_verify_age_filter_context(text: str, found_terms: list, safety_level: str) -> Optional[bool]:
     """
     LLM context verification for age-filter fast-filter hits.
@@ -274,6 +280,9 @@ def llm_verify_age_filter_context(text: str, found_terms: list, safety_level: st
     The fast filter catches terms like "erschlägt" or "Tod" but can't
     distinguish violent context ("Ritter erschlägt Bauern") from benign
     context ("König schlägt zum Ritter", "Tod ist ein Kartenspiel").
+
+    Results are cached for 60s to prevent inconsistent answers when
+    /safety/quick and [UNIFIED-STREAMING] check the same text.
 
     Uses DSGVO_VERIFY_MODEL (general-purpose, local) — NOT guard models
     (they classify content, not context).
@@ -290,6 +299,15 @@ def llm_verify_age_filter_context(text: str, found_terms: list, safety_level: st
     """
     import requests
     import config
+
+    # Cache lookup — prevents inconsistent re-checks within TTL
+    cache_key = (text.strip().lower(), safety_level)
+    now = _time.time()
+    if cache_key in _AGE_VERIFY_CACHE:
+        cached_result, cached_time = _AGE_VERIFY_CACHE[cache_key]
+        if now - cached_time < _AGE_VERIFY_CACHE_TTL:
+            logger.info(f"[AGE-LLM-VERIFY] Cache hit → {'UNSAFE' if cached_result else 'SAFE'} (age={now - cached_time:.0f}s)")
+            return cached_result
 
     terms_str = ", ".join(found_terms[:5])
     age_desc = "children (ages 6-12)" if safety_level == 'kids' else "teenagers (ages 13-16)"
@@ -354,6 +372,8 @@ def llm_verify_age_filter_context(text: str, found_terms: list, safety_level: st
             f"[AGE-LLM-VERIFY] terms={terms_str} → LLM={result!r} → "
             f"{'UNSAFE — confirmed inappropriate' if is_unsafe else 'SAFE — false positive'} ({duration_ms:.0f}ms)"
         )
+        # Cache result to prevent inconsistent re-checks
+        _AGE_VERIFY_CACHE[cache_key] = (is_unsafe, _time.time())
         return is_unsafe
 
     except Exception as e:
