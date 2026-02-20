@@ -47,6 +47,9 @@ class MMAudioBackend:
         self._model = None
         self._feature_utils = None
         self._net = None
+        self._fm = None
+        self._seq_cfg = None
+        self._model_config = None
         self._is_loaded = False
         self._vram_mb: float = 0
         self._last_used: float = 0
@@ -132,17 +135,41 @@ class MMAudioBackend:
             vram_before = torch.cuda.memory_allocated(0) if torch.cuda.is_available() else 0
 
             def _load_sync():
-                from mmaudio.eval_utils import ModelConfig, setup_eval_logging
+                from mmaudio.eval_utils import all_model_cfg, setup_eval_logging
                 from mmaudio.model.flow_matching import FlowMatching
-                from mmaudio.model.utils import load_model
+                from mmaudio.model.networks import get_my_mmaudio
+                from mmaudio.model.utils.features_utils import FeaturesUtils
 
                 setup_eval_logging()
-                model_config = ModelConfig(self.model_variant)
-                net, feature_utils = load_model(model_config, device='cuda')
-                net.eval()
-                return net, feature_utils, model_config
 
-            self._net, self._feature_utils, self._model_config = await asyncio.to_thread(_load_sync)
+                model_config = all_model_cfg[self.model_variant]
+                model_config.download_if_needed()
+                seq_cfg = model_config.seq_cfg
+
+                device = 'cuda'
+                dtype = torch.bfloat16
+
+                # Load network
+                net = get_my_mmaudio(model_config.model_name).to(device, dtype).eval()
+                net.load_weights(torch.load(model_config.model_path, map_location=device, weights_only=True))
+
+                # Flow matching solver
+                fm = FlowMatching(min_sigma=0, inference_mode='euler', num_steps=25)
+
+                # Feature extractors (CLIP, synchformer, VAE, vocoder)
+                feature_utils = FeaturesUtils(
+                    tod_vae_ckpt=model_config.vae_path,
+                    synchformer_ckpt=model_config.synchformer_ckpt,
+                    enable_conditions=True,
+                    mode=model_config.mode,
+                    bigvgan_vocoder_ckpt=model_config.bigvgan_16k_path,
+                    need_vae_encoder=False,
+                )
+                feature_utils = feature_utils.to(device, dtype).eval()
+
+                return net, feature_utils, model_config, seq_cfg, fm
+
+            self._net, self._feature_utils, self._model_config, self._seq_cfg, self._fm = await asyncio.to_thread(_load_sync)
             self._is_loaded = True
             self._last_used = time.time()
 
@@ -168,8 +195,12 @@ class MMAudioBackend:
 
             del self._net
             del self._feature_utils
+            del self._fm
             self._net = None
             self._feature_utils = None
+            self._fm = None
+            self._seq_cfg = None
+            self._model_config = None
             self._is_loaded = False
             self._vram_mb = 0
             self._in_use = 0
@@ -230,10 +261,10 @@ class MMAudioBackend:
 
         try:
             import torch
-            import torchaudio
+            import tempfile
             from PIL import Image
             import io
-            import numpy as np
+            from pathlib import Path
 
             duration_seconds = min(duration_seconds, 8.0)
             if seed == -1:
@@ -242,37 +273,47 @@ class MMAudioBackend:
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
             def _generate():
-                with torch.no_grad():
+                from mmaudio.eval_utils import generate, load_image
+
+                # Save image to temp file (MMAudio load_image expects a path)
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+                    image.save(f, format='PNG')
+                    tmp_path = Path(f.name)
+
+                try:
                     rng = torch.Generator(device='cuda')
                     rng.manual_seed(seed)
 
-                    # MMAudio expects video frames as tensor
-                    # For single image: duplicate to ~8fps * duration
-                    from torchvision import transforms
-                    transform = transforms.Compose([
-                        transforms.Resize((384, 384)),
-                        transforms.ToTensor(),
-                        transforms.Normalize(mean=[0.48145466, 0.4578275, 0.40821073],
-                                             std=[0.26862954, 0.26130258, 0.27577711]),
-                    ])
-                    frame = transform(image).unsqueeze(0).cuda()  # [1, 3, 384, 384]
-                    # Duplicate along time dim: [1, T, 3, 384, 384]
-                    num_frames = int(duration_seconds * 8)  # 8 fps
-                    video = frame.unsqueeze(1).expand(-1, num_frames, -1, -1, -1)
+                    # Load and preprocess image using MMAudio's own transforms
+                    image_info = load_image(tmp_path)
+                    clip_frames = image_info.clip_frames.unsqueeze(0)  # [1, 3, H, W]
 
-                    # Generate audio
-                    audios = self._net.generate(
-                        video=video,
-                        text=[prompt] if prompt else [''],
-                        negative_text=[negative_prompt] if negative_prompt else [''],
-                        duration=duration_seconds,
-                        cfg_strength=cfg_strength,
-                        num_steps=num_steps,
-                        rng=rng,
-                        feature_utils=self._feature_utils,
+                    # Update sequence lengths for the requested duration
+                    self._seq_cfg.duration = duration_seconds
+                    self._net.update_seq_lengths(
+                        self._seq_cfg.latent_seq_len,
+                        self._seq_cfg.clip_seq_len,
+                        self._seq_cfg.sync_seq_len,
                     )
 
-                    return audios  # [1, T_audio]
+                    # Use num_steps from request
+                    self._fm.num_steps = num_steps
+
+                    audios = generate(
+                        clip_frames,
+                        None,  # sync_frames not used for image input
+                        [prompt] if prompt else [''],
+                        negative_text=[negative_prompt] if negative_prompt else [''],
+                        feature_utils=self._feature_utils,
+                        net=self._net,
+                        fm=self._fm,
+                        rng=rng,
+                        cfg_strength=cfg_strength,
+                        image_input=True,
+                    )
+                    return audios.float().cpu()[0]  # [channels, T_audio]
+                finally:
+                    tmp_path.unlink(missing_ok=True)
 
             audio_tensor = await asyncio.to_thread(_generate)
 
@@ -343,22 +384,34 @@ class MMAudioBackend:
                 seed = random_mod.randint(0, 2**32 - 1)
 
             def _generate():
-                with torch.no_grad():
-                    rng = torch.Generator(device='cuda')
-                    rng.manual_seed(seed)
+                from mmaudio.eval_utils import generate
 
-                    audios = self._net.generate(
-                        video=None,
-                        text=[prompt],
-                        negative_text=[negative_prompt] if negative_prompt else [''],
-                        duration=duration_seconds,
-                        cfg_strength=cfg_strength,
-                        num_steps=num_steps,
-                        rng=rng,
-                        feature_utils=self._feature_utils,
-                    )
+                rng = torch.Generator(device='cuda')
+                rng.manual_seed(seed)
 
-                    return audios
+                # Update sequence lengths for the requested duration
+                self._seq_cfg.duration = duration_seconds
+                self._net.update_seq_lengths(
+                    self._seq_cfg.latent_seq_len,
+                    self._seq_cfg.clip_seq_len,
+                    self._seq_cfg.sync_seq_len,
+                )
+
+                # Use num_steps from request
+                self._fm.num_steps = num_steps
+
+                audios = generate(
+                    None,  # clip_video
+                    None,  # sync_video
+                    [prompt],
+                    negative_text=[negative_prompt] if negative_prompt else [''],
+                    feature_utils=self._feature_utils,
+                    net=self._net,
+                    fm=self._fm,
+                    rng=rng,
+                    cfg_strength=cfg_strength,
+                )
+                return audios.float().cpu()[0]
 
             audio_tensor = await asyncio.to_thread(_generate)
 
@@ -406,9 +459,12 @@ class MMAudioBackend:
             elif audio_np.ndim == 3:
                 audio_np = audio_np.squeeze(0).T
 
+            # Use model's native sample rate (44100 for 44k variants, 16000 for 16k)
+            sample_rate = self._seq_cfg.sampling_rate if self._seq_cfg else 44100
+
             import soundfile as sf
             buffer = io.BytesIO()
-            sf.write(buffer, audio_np, 44100, format="WAV")
+            sf.write(buffer, audio_np, sample_rate, format="WAV")
             buffer.seek(0)
             return buffer.getvalue()
 
