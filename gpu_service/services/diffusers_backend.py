@@ -32,6 +32,8 @@ import asyncio
 # Suppress noisy HuggingFace tokenizer deprecation warnings
 warnings.filterwarnings("ignore", message=".*add_prefix_space.*")
 warnings.filterwarnings("ignore", message=".*slow tokenizers.*")
+warnings.filterwarnings("ignore", message=".*torch_dtype.*is deprecated.*")
+warnings.filterwarnings("ignore", message=".*Token indices sequence length is longer than.*")
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +258,7 @@ class DiffusersImageGenerator:
                 vram_before = torch.cuda.memory_allocated(0) if torch.cuda.is_available() else 0
 
                 kwargs = {
-                    "torch_dtype": self._get_torch_dtype(),
+                    "dtype": self._get_torch_dtype(),
                     "use_safetensors": True,
                     "low_cpu_mem_usage": True,
                 }
@@ -266,8 +268,8 @@ class DiffusersImageGenerator:
                 # WanPipeline requires float32 VAE loaded separately
                 if pipeline_class == "WanPipeline":
                     from diffusers import AutoencoderKLWan
-                    kwargs["torch_dtype"] = torch.bfloat16
-                    vae_kwargs = {"torch_dtype": torch.float32}
+                    kwargs["dtype"] = torch.bfloat16
+                    vae_kwargs = {"dtype": torch.float32}
                     if self.cache_dir:
                         vae_kwargs["cache_dir"] = str(self.cache_dir)
                     vae = AutoencoderKLWan.from_pretrained(
@@ -486,9 +488,23 @@ class DiffusersImageGenerator:
                             "generator": generator,
                         }
 
-                        # SD3.5: Set max_sequence_length=512 for T5-XXL encoder
-                        if hasattr(pipe, 'tokenizer_3'):  # SD3 has tokenizer_3 for T5
+                        # SD3.5 triple encoder: CLIP-L (77t), CLIP-G (77t), T5-XXL (512t)
+                        if hasattr(pipe, 'tokenizer_3'):
                             gen_kwargs["max_sequence_length"] = 512
+                            # Explicit split: truncate for CLIP, full prompt for T5
+                            clip_tokenizer = pipe.tokenizer
+                            clip_tokens = clip_tokenizer(
+                                prompt, truncation=False, add_special_tokens=False
+                            )["input_ids"]
+                            if len(clip_tokens) > 75:  # 77 minus SOT/EOT
+                                gen_kwargs["prompt_3"] = prompt
+                                gen_kwargs["prompt"] = clip_tokenizer.decode(
+                                    clip_tokens[:75], skip_special_tokens=True
+                                )
+                                logger.info(
+                                    f"[DIFFUSERS] Prompt split: CLIP uses 75 of "
+                                    f"{len(clip_tokens)} tokens, T5-XXL uses full prompt"
+                                )
 
                         gen_kwargs["callback_on_step_end"] = step_callback
                         gen_kwargs["callback_on_step_end_tensor_inputs"] = ["latents"]
