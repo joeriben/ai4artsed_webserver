@@ -59,10 +59,6 @@ const emit = defineEmits<{
   'update-evaluation-type': [type: 'fairness' | 'creativity' | 'bias' | 'quality' | 'custom']
   'update-evaluation-prompt': [prompt: string]
   'update-output-type': [outputType: 'commentary' | 'score' | 'all']
-  'update-enable-branching': [enabled: boolean]
-  'update-branch-condition': [condition: 'binary' | 'threshold']
-  'update-threshold-value': [threshold: number]
-  'update-branch-labels': [trueLabel: string, falseLabel: string]
   'start-connect-labeled': [label: string]
   // Session 140: Random Prompt events
   'update-random-prompt-preset': [preset: string]
@@ -147,8 +143,6 @@ const isImageInput = computed(() => props.node.type === 'image_input')
 const isImageEvaluation = computed(() => props.node.type === 'image_evaluation')
 const needsLLM = computed(() => isInterception.value || isTranslation.value || isEvaluation.value || isRandomPrompt.value || isComparisonEvaluator.value)
 const hasCollectorOutput = computed(() => isCollector.value && props.collectorOutput && props.collectorOutput.length > 0)
-// Evaluation branching
-const hasBranching = computed(() => isEvaluation.value && props.node.enableBranching === true)
 // Feedback input for Interception/Translation (enables feedback loops)
 const hasFeedbackInput = computed(() => isInterception.value || isTranslation.value)
 
@@ -270,16 +264,6 @@ function onOutputTypeChange(event: Event) {
   emit('update-output-type', select.value as 'commentary' | 'score' | 'all')
 }
 
-function onEnableBranchingChange(event: Event) {
-  const checkbox = event.target as HTMLInputElement
-  emit('update-enable-branching', checkbox.checked)
-}
-
-function onBranchConditionChange(event: Event) {
-  const select = event.target as HTMLSelectElement
-  emit('update-branch-condition', select.value as 'binary' | 'threshold')
-}
-
 function getEvaluationPromptTemplate(evalType: string): string {
   const templates: Record<string, { en: string; de: string }> = {
     fairness: {
@@ -351,21 +335,6 @@ function onDisplayTitleChange(event: Event) {
 function onDisplayModeChange(event: Event) {
   const select = event.target as HTMLSelectElement
   emit('update-display-mode', select.value as 'popup' | 'inline' | 'toast')
-}
-
-function onThresholdChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  emit('update-threshold-value', parseFloat(input.value) || 0)
-}
-
-function onTrueLabelChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  emit('update-branch-labels', input.value, props.node.falseLabel || t('canvas.stage.branchFalseDefault'))
-}
-
-function onFalseLabelChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  emit('update-branch-labels', props.node.trueLabel || t('canvas.stage.branchTrueDefault'), input.value)
 }
 
 // Session 151: Parameter node handlers
@@ -1143,74 +1112,6 @@ const nodeHeight = computed(() => {
           </select>
         </div>
 
-        <!-- Enable Branching Checkbox -->
-        <div class="field-group">
-          <label class="field-checkbox">
-            <input
-              type="checkbox"
-              :checked="node.enableBranching || false"
-              @change="onEnableBranchingChange"
-              @mousedown.stop
-            />
-            <span>{{ $t('canvas.stage.evaluation.enableBranching') }}</span>
-          </label>
-        </div>
-
-        <!-- Conditional Branching UI -->
-        <template v-if="node.enableBranching">
-          <div class="branching-section">
-            <div class="field-group">
-              <label class="field-label">{{ $t('canvas.stage.evaluation.branchConditionLabel') }}</label>
-              <select
-                class="llm-select"
-                :value="node.branchCondition || 'binary'"
-                @change="onBranchConditionChange"
-                @mousedown.stop
-              >
-                <option value="binary">Binary (Pass/Fail)</option>
-                <option value="threshold">{{ $t('canvas.stage.evaluation.branchThresholdOption') }}</option>
-              </select>
-            </div>
-
-            <div v-if="node.branchCondition === 'threshold'" class="field-group">
-              <label class="field-label">{{ $t('canvas.stage.evaluation.thresholdLabel') }}</label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                step="0.1"
-                class="llm-select"
-                :value="node.thresholdValue || 5"
-                @input="onThresholdChange"
-                @mousedown.stop
-              />
-            </div>
-
-            <div class="field-group">
-              <label class="field-label">{{ $t('canvas.stage.evaluation.trueLabelFieldLabel') }}</label>
-              <input
-                type="text"
-                class="llm-select"
-                :value="node.trueLabel || $t('canvas.stage.evaluation.trueLabelDefault')"
-                :placeholder="$t('canvas.stage.evaluation.trueLabelPlaceholder')"
-                @input="onTrueLabelChange"
-                @mousedown.stop
-              />
-            </div>
-
-            <div class="field-group">
-              <label class="field-label">{{ $t('canvas.stage.evaluation.falseLabelFieldLabel') }}</label>
-              <input
-                type="text"
-                class="llm-select"
-                :value="node.falseLabel || $t('canvas.stage.evaluation.falseLabelDefault')"
-                :placeholder="$t('canvas.stage.evaluation.falseLabelPlaceholder')"
-                @input="onFalseLabelChange"
-                @mousedown.stop
-              />
-            </div>
-          </div>
-        </template>
       </template>
 
       <!-- IMAGE_EVALUATION NODE: Vision-LLM analysis (Session 152) -->
@@ -1306,9 +1207,9 @@ const nodeHeight = computed(() => {
       </template>
     </div>
 
-    <!-- Output connector (standard single output) -->
+    <!-- Output connector (standard single output, not for evaluation nodes which have 3 ports) -->
     <div
-      v-if="hasOutputConnector && !hasBranching"
+      v-if="hasOutputConnector && !isEvaluation"
       class="connector output"
       :data-node-id="node.id"
       data-connector="output"
@@ -1320,35 +1221,36 @@ const nodeHeight = computed(() => {
       <span class="bubble-content">{{ bubbleContent }}</span>
     </div>
 
-    <!-- Evaluation outputs: 3 separate text outputs (passthrough, commented, commentary) -->
-    <div v-if="isEvaluation && node.enableBranching" class="eval-outputs">
-      <div
-        class="connector output output-passthrough"
-        :data-node-id="node.id"
-        data-connector="output-passthrough"
-        @mousedown.stop="emit('start-connect-labeled', 'passthrough')"
-        :title="$t('canvas.stage.evaluation.connectorPassthrough')"
-      >
-        <span class="connector-label">P</span>
-      </div>
-      <div
-        class="connector output output-commented"
-        :data-node-id="node.id"
-        data-connector="output-commented"
-        @mousedown.stop="emit('start-connect-labeled', 'commented')"
-        :title="$t('canvas.stage.evaluation.connectorCommented')"
-      >
-        <span class="connector-label">C</span>
-      </div>
-      <div
-        class="connector output output-commentary"
-        :data-node-id="node.id"
-        data-connector="output-commentary"
-        @mousedown.stop="emit('start-connect-labeled', 'commentary')"
-        :title="$t('canvas.stage.evaluation.connectorCommentary')"
-      >
-        <span class="connector-label">→</span>
-      </div>
+    <!-- Evaluation outputs: 3 always-on output ports (pass, fail, commentary) -->
+    <div
+      v-if="isEvaluation"
+      class="connector output output-pass"
+      :data-node-id="node.id"
+      data-connector="output-pass"
+      @mousedown.stop="emit('start-connect-labeled', 'pass')"
+      title="Pass"
+    >
+      <span class="connector-label">&#x2713;</span>
+    </div>
+    <div
+      v-if="isEvaluation"
+      class="connector output output-fail"
+      :data-node-id="node.id"
+      data-connector="output-fail"
+      @mousedown.stop="emit('start-connect-labeled', 'fail')"
+      title="Fail"
+    >
+      <span class="connector-label">&#x2717;</span>
+    </div>
+    <div
+      v-if="isEvaluation"
+      class="connector output output-commentary"
+      :data-node-id="node.id"
+      data-connector="output-commentary"
+      @mousedown.stop="emit('start-connect-labeled', 'commentary')"
+      title="Commentary"
+    >
+      <span class="connector-label">&rarr;</span>
     </div>
 
     <!-- Resize handle (only for collector nodes) -->
@@ -2091,80 +1993,57 @@ const nodeHeight = computed(() => {
   background: #475569;
 }
 
-/* Session 134 Refactored: Unified evaluation node styles */
-.field-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  color: #e2e8f0;
-  user-select: none;
-}
-
-.field-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-.branching-section {
-  padding: 0.75rem;
-  background: rgba(239, 68, 68, 0.1);
-  border-radius: 4px;
-  border-left: 3px solid #ef4444;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* Evaluation outputs: 3 separate text outputs */
-.eval-outputs {
-  position: absolute;
-  right: -16px;
-  top: 16px;  /* Fixed position in header area */
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  z-index: 2;
-}
-
-.eval-outputs .connector {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  background: var(--node-color);
-  border: 2px solid #1e293b;
-  border-radius: 50%;
-  cursor: crosshair;
+/* Evaluation outputs: 3 always-on individual connectors (pass/fail/commentary) */
+.connector.output-pass {
+  right: -7px;
+  top: 24px;
+  transform: translateY(-50%);
+  background: #10b981; /* green - pass */
+  border-color: #10b981;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
 }
 
-.eval-outputs .connector-label {
-  font-size: 0.625rem;
+.connector.output-fail {
+  right: -7px;
+  top: 44px;
+  transform: translateY(-50%);
+  background: #f59e0b; /* amber - fail */
+  border-color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.connector.output-commentary {
+  right: -7px;
+  top: 64px;
+  transform: translateY(-50%);
+  background: #06b6d4; /* cyan - commentary */
+  border-color: #06b6d4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.connector.output-pass .connector-label,
+.connector.output-fail .connector-label,
+.connector.output-commentary .connector-label {
+  position: static;
+  left: auto;
+  font-size: 0.5rem;
   font-weight: 700;
   color: white;
   user-select: none;
   pointer-events: none;
+  line-height: 1;
 }
 
-.eval-outputs .output-passthrough {
-  background: #10b981; /* green - OK */
-}
-
-.eval-outputs .output-commented {
-  background: #f59e0b; /* amber - needs revision */
-}
-
-.eval-outputs .output-commentary {
-  background: #06b6d4; /* cyan - for display/control */
-}
-
-.eval-outputs .connector:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 10px currentColor;
+.connector.output-pass:hover,
+.connector.output-fail:hover,
+.connector.output-commentary:hover {
+  transform: translateY(-50%) scale(1.2);
+  box-shadow: 0 0 8px currentColor;
 }
 </style>

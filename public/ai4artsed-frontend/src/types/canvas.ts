@@ -96,31 +96,31 @@ export interface InterceptionPresetConfig {
 
 /** Interception Presets - labels only, context loaded from backend on selection */
 export const INTERCEPTION_PRESETS: Record<InterceptionPreset, InterceptionPresetConfig> = {
-  user_defined: { label: { en: 'Your Call!', de: 'Du bestimmst!', tr: 'Sen Karar Ver!' } },
-  analog_photography_1870s: { label: { en: 'Daguerreotype', de: 'Daguerreotypie', tr: 'Dagerotipi' } },
-  analog_photography_1970s: { label: { en: 'Analog Photography', de: 'Analogfotografie', tr: 'Analog Fotoğrafçılık' } },
-  analogue_copy: { label: { en: 'Analogue Copy', de: 'Analoge Kopie', tr: 'Analog Kopya' } },
-  bauhaus: { label: { en: 'Bauhaus', de: 'Bauhaus', tr: 'Bauhaus' } },
-  clichefilter_v2: { label: { en: 'De-Kitsch', de: 'Entkitscher', tr: 'Kiç Filtresi' } },
-  confucianliterati: { label: { en: 'Literati', de: 'Literati', tr: 'Literati' } },
-  cooked_negatives: { label: { en: 'Cooked Negatives', de: 'Gekochte Filmnegative', tr: 'Pişmiş Negatifler' } },
-  digital_photography: { label: { en: 'Digital Photography', de: 'Digitalfotografie', tr: 'Dijital Fotoğrafçılık' } },
-  forceful: { label: { en: 'Forceful', de: 'kraftvoll', tr: 'Güçlü' } },
-  hunkydoryharmonizer: { label: { en: 'Sweetener', de: 'Verniedlicher', tr: 'Tatlandırıcı' } },
-  jugendsprache: { label: { en: 'Slang', de: 'Jugendslang', tr: 'Gençlik Argosu' } },
-  mad_world: { label: { en: 'mad world', de: 'verrückt', tr: 'çılgın dünya' } },
-  one_world: { label: { en: 'One World', de: 'Eine Welt', tr: 'Tek Dünya' } },
-  overdrive: { label: { en: 'Amplifier', de: 'Übertreiber!', tr: 'Abartmacı!' } },
-  p5js_simplifier: { label: { en: 'Listifier', de: 'Auflister', tr: 'Listeleyici' } },
-  tonejs_composer: { label: { en: 'Music Composer', de: 'Musikkomponist', tr: 'Müzik Bestecisi' } },
-  piglatin: { label: { en: 'Word Game', de: 'Sprachspiel', tr: 'Kelime Oyunu' } },
-  planetarizer: { label: { en: 'Planetarizer', de: 'Planetarisierer', tr: 'Gezegenleştirici' } },
-  renaissance: { label: { en: 'Renaissance', de: 'Renaissance', tr: 'Rönesans' } },
-  sensitive: { label: { en: 'Sensitive', de: 'sensibel', tr: 'Duyarlı' } },
-  stillepost: { label: { en: 'Telephone', de: 'Stille Post', tr: 'Kulaktan Kulağa' } },
-  technicaldrawing: { label: { en: 'Technical', de: 'Technisch', tr: 'Teknik' } },
-  tellastory: { label: { en: 'Your Story', de: 'Deine Geschichte', tr: 'Senin Hikayen' } },
-  theopposite: { label: { en: 'On the Contrary!', de: 'Im Gegenteil!', tr: 'Tam Tersine!' } }
+  user_defined: { label: { en: 'Your Call!', de: 'Du bestimmst!', tr: 'Sen Karar Ver!', ko: '자유 선택!' } },
+  analog_photography_1870s: { label: { en: 'Daguerreotype', de: 'Daguerreotypie', tr: 'Dagerotipi', ko: '다게레오타입' } },
+  analog_photography_1970s: { label: { en: 'Analog Photography', de: 'Analogfotografie', tr: 'Analog Fotoğrafçılık', ko: '아날로그 사진' } },
+  analogue_copy: { label: { en: 'Analogue Copy', de: 'Analoge Kopie', tr: 'Analog Kopya', ko: '아날로그 복사' } },
+  bauhaus: { label: { en: 'Bauhaus', de: 'Bauhaus', tr: 'Bauhaus', ko: '바우하우스' } },
+  clichefilter_v2: { label: { en: 'De-Kitsch', de: 'Entkitscher', tr: 'Kiç Filtresi', ko: '키치 제거' } },
+  confucianliterati: { label: { en: 'Literati', de: 'Literati', tr: 'Literati', ko: '문인화' } },
+  cooked_negatives: { label: { en: 'Cooked Negatives', de: 'Gekochte Filmnegative', tr: 'Pişmiş Negatifler', ko: '가공된 네거티브' } },
+  digital_photography: { label: { en: 'Digital Photography', de: 'Digitalfotografie', tr: 'Dijital Fotoğrafçılık', ko: '디지털 사진' } },
+  forceful: { label: { en: 'Forceful', de: 'kraftvoll', tr: 'Güçlü', ko: '강렬한' } },
+  hunkydoryharmonizer: { label: { en: 'Sweetener', de: 'Verniedlicher', tr: 'Tatlandırıcı', ko: '감미료' } },
+  jugendsprache: { label: { en: 'Slang', de: 'Jugendslang', tr: 'Gençlik Argosu', ko: '청소년 은어' } },
+  mad_world: { label: { en: 'mad world', de: 'verrückt', tr: 'çılgın dünya', ko: '미친 세상' } },
+  one_world: { label: { en: 'One World', de: 'Eine Welt', tr: 'Tek Dünya', ko: '하나의 세계' } },
+  overdrive: { label: { en: 'Amplifier', de: 'Übertreiber!', tr: 'Abartmacı!', ko: '증폭기!' } },
+  p5js_simplifier: { label: { en: 'Listifier', de: 'Auflister', tr: 'Listeleyici', ko: '목록화' } },
+  tonejs_composer: { label: { en: 'Music Composer', de: 'Musikkomponist', tr: 'Müzik Bestecisi', ko: '음악 작곡가' } },
+  piglatin: { label: { en: 'Word Game', de: 'Sprachspiel', tr: 'Kelime Oyunu', ko: '말놀이' } },
+  planetarizer: { label: { en: 'Planetarizer', de: 'Planetarisierer', tr: 'Gezegenleştirici', ko: '행성화' } },
+  renaissance: { label: { en: 'Renaissance', de: 'Renaissance', tr: 'Rönesans', ko: '르네상스' } },
+  sensitive: { label: { en: 'Sensitive', de: 'sensibel', tr: 'Duyarlı', ko: '섬세한' } },
+  stillepost: { label: { en: 'Telephone', de: 'Stille Post', tr: 'Kulaktan Kulağa', ko: '전화 게임' } },
+  technicaldrawing: { label: { en: 'Technical', de: 'Technisch', tr: 'Teknik', ko: '기술적' } },
+  tellastory: { label: { en: 'Your Story', de: 'Deine Geschichte', tr: 'Senin Hikayen', ko: '너의 이야기' } },
+  theopposite: { label: { en: 'On the Contrary!', de: 'Im Gegenteil!', tr: 'Tam Tersine!', ko: '정반대로!' } }
 }
 
 // ============================================================================
@@ -144,24 +144,24 @@ export interface ImageEvaluationPresetConfig {
 /** Image Evaluation Presets - labels only, prompts loaded from backend config.py */
 export const IMAGE_EVALUATION_PRESETS: Record<ImageEvaluationPreset, ImageEvaluationPresetConfig> = {
   bildwissenschaftlich: {
-    label: { en: 'Art Historical (Panofsky)', de: 'Kunsthistorisch (Panofsky)', tr: 'Sanat Tarihi (Panofsky)' },
-    description: { en: '4-stage iconological method', de: '4-stufige ikonologische Methode', tr: '4 aşamalı ikonolojik yöntem' }
+    label: { en: 'Art Historical (Panofsky)', de: 'Kunsthistorisch (Panofsky)', tr: 'Sanat Tarihi (Panofsky)', ko: '미술사적 (파노프스키)' },
+    description: { en: '4-stage iconological method', de: '4-stufige ikonologische Methode', tr: '4 aşamalı ikonolojik yöntem', ko: '4단계 도상학적 방법' }
   },
   bildungstheoretisch: {
-    label: { en: 'Educational Theory', de: 'Bildungstheoretisch', tr: 'Eğitim Teorisi' },
-    description: { en: 'Jörissen/Marotzki framework', de: 'Jörissen/Marotzki Framework', tr: 'Jörissen/Marotzki çerçevesi' }
+    label: { en: 'Educational Theory', de: 'Bildungstheoretisch', tr: 'Eğitim Teorisi', ko: '교육 이론' },
+    description: { en: 'Jörissen/Marotzki framework', de: 'Jörissen/Marotzki Framework', tr: 'Jörissen/Marotzki çerçevesi', ko: 'Jörissen/Marotzki 프레임워크' }
   },
   ethisch: {
-    label: { en: 'Ethical', de: 'Ethisch', tr: 'Etik' },
-    description: { en: 'Ethical analysis', de: 'Ethische Analyse', tr: 'Etik analiz' }
+    label: { en: 'Ethical', de: 'Ethisch', tr: 'Etik', ko: '윤리적' },
+    description: { en: 'Ethical analysis', de: 'Ethische Analyse', tr: 'Etik analiz', ko: '윤리적 분석' }
   },
   kritisch: {
-    label: { en: 'Critical/Decolonial', de: 'Kritisch/Dekolonial', tr: 'Eleştirel/Dekolonyal' },
-    description: { en: 'Critical media studies', de: 'Kritische Medienwissenschaft', tr: 'Eleştirel medya çalışmaları' }
+    label: { en: 'Critical/Decolonial', de: 'Kritisch/Dekolonial', tr: 'Eleştirel/Dekolonyal', ko: '비판적/탈식민주의' },
+    description: { en: 'Critical media studies', de: 'Kritische Medienwissenschaft', tr: 'Eleştirel medya çalışmaları', ko: '비판적 미디어 연구' }
   },
   custom: {
-    label: { en: 'Custom', de: 'Eigene Anweisung', tr: 'Özel Talimat' },
-    description: { en: 'Define your own analysis prompt', de: 'Eigenen Analyse-Prompt definieren', tr: 'Kendi analiz komutunuzu tanımlayın' }
+    label: { en: 'Custom', de: 'Eigene Anweisung', tr: 'Özel Talimat', ko: '사용자 정의' },
+    description: { en: 'Define your own analysis prompt', de: 'Eigenen Analyse-Prompt definieren', tr: 'Kendi analiz komutunuzu tanımlayın', ko: '나만의 분석 프롬프트 정의' }
   }
 }
 
@@ -217,8 +217,8 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'input',
     type: 'input',
-    label: { en: 'Input Prompt', de: 'Eingabe-Prompt', tr: 'Giriş Komutu' },
-    description: { en: 'Text input source', de: 'Text-Eingabequelle', tr: 'Metin giriş kaynağı' },
+    label: { en: 'Input Prompt', de: 'Eingabe-Prompt', tr: 'Giriş Komutu', ko: '입력 프롬프트' },
+    description: { en: 'Text input source', de: 'Text-Eingabequelle', tr: 'Metin giriş kaynağı', ko: '텍스트 입력 소스' },
     color: '#3b82f6', // blue
     icon: 'edit_square_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: false,
@@ -228,8 +228,8 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'image_input',
     type: 'image_input',
-    label: { en: 'Image Input', de: 'Bild-Eingabe', tr: 'Görsel Girişi' },
-    description: { en: 'Upload image as source', de: 'Bild als Quelle hochladen', tr: 'Kaynak olarak görsel yükle' },
+    label: { en: 'Image Input', de: 'Bild-Eingabe', tr: 'Görsel Girişi', ko: '이미지 입력' },
+    description: { en: 'Upload image as source', de: 'Bild als Quelle hochladen', tr: 'Kaynak olarak görsel yükle', ko: '소스로 이미지 업로드' },
     color: '#0ea5e9', // sky blue
     icon: 'add_photo_alternate_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
     allowMultiple: true,
@@ -239,11 +239,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'random_prompt',
     type: 'random_prompt',
-    label: { en: 'Random Prompt', de: 'Zufalls-Prompt', tr: 'Rastgele Komut' },
+    label: { en: 'Random Prompt', de: 'Zufalls-Prompt', tr: 'Rastgele Komut', ko: '랜덤 프롬프트' },
     description: {
       en: 'Generate creative content via LLM with presets',
       de: 'Generiert kreative Inhalte via LLM mit Presets',
-      tr: 'Ön ayarlarla LLM aracılığıyla yaratıcı içerik üret'
+      tr: 'Ön ayarlarla LLM aracılığıyla yaratıcı içerik üret',
+      ko: '프리셋으로 LLM을 통해 창의적 콘텐츠 생성'
     },
     color: '#ec4899', // pink
     icon: 'shuffle_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -327,9 +328,9 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
     type: 'evaluation',
     label: { en: 'Evaluation', de: 'Bewertung', tr: 'Değerlendirme' },
     description: {
-      en: 'LLM-based evaluation with optional branching',
-      de: 'LLM-basierte Bewertung mit optionaler Verzweigung',
-      tr: 'İsteğe bağlı dallanma ile LLM tabanlı değerlendirme'
+      en: 'LLM-based evaluation with 3-way branching (pass/fail/commentary)',
+      de: 'LLM-basierte Bewertung mit 3-Wege-Verzweigung (Pass/Fail/Kommentar)',
+      tr: '3 yönlü dallanma ile LLM tabanlı değerlendirme (geçti/kaldı/yorum)'
     },
     color: '#f59e0b', // amber
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -478,16 +479,6 @@ export interface CanvasNode {
   evaluationPrompt?: string
   /** Output type for evaluation results (controls if score is requested) */
   outputType?: 'commentary' | 'score' | 'all'
-  /** Enable branching (fork) based on evaluation result */
-  enableBranching?: boolean
-  /** Branch condition type (only if enableBranching = true) */
-  branchCondition?: 'binary' | 'threshold'
-  /** Threshold value for threshold branching (0-10) */
-  thresholdValue?: number
-  /** Label for "true/pass" path */
-  trueLabel?: string
-  /** Label for "false/fail" path */
-  falseLabel?: string
 
   // === Feedback config (for Interception/Translation nodes) ===
   /** Maximum feedback iterations (default: 3) */

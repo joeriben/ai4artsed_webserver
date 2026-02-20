@@ -597,8 +597,28 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   /**
    * Load a workflow from JSON
+   * Includes migration for old connection label names
    */
   function loadWorkflow(data: CanvasWorkflow) {
+    // Migrate old evaluation connection labels: passthrough→pass, commented→fail
+    if (data.connections) {
+      for (const conn of data.connections) {
+        if (conn.label === 'passthrough') conn.label = 'pass'
+        else if (conn.label === 'commented') conn.label = 'fail'
+      }
+    }
+    // Strip removed branching fields from evaluation nodes
+    if (data.nodes) {
+      for (const node of data.nodes) {
+        if (node.type === 'evaluation') {
+          delete (node as any).enableBranching
+          delete (node as any).branchCondition
+          delete (node as any).thresholdValue
+          delete (node as any).trueLabel
+          delete (node as any).falseLabel
+        }
+      }
+    }
     workflow.value = data
     selectedNodeId.value = null
     connectingFromId.value = null

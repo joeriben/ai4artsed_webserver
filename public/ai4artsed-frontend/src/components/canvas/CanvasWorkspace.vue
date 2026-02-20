@@ -77,10 +77,6 @@ const emit = defineEmits<{
   'update-node-evaluation-type': [nodeId: string, type: 'fairness' | 'creativity' | 'bias' | 'quality' | 'custom']
   'update-node-evaluation-prompt': [nodeId: string, prompt: string]
   'update-node-output-type': [nodeId: string, outputType: 'commentary' | 'score' | 'all']
-  'update-node-enable-branching': [nodeId: string, enabled: boolean]
-  'update-node-branch-condition': [nodeId: string, condition: 'binary' | 'threshold']
-  'update-node-threshold-value': [nodeId: string, threshold: number]
-  'update-node-branch-labels': [nodeId: string, trueLabel: string, falseLabel: string]
   // Session 140: Random Prompt events
   'update-node-random-prompt-preset': [nodeId: string, preset: string]
   'update-node-random-prompt-model': [nodeId: string, model: string]
@@ -184,11 +180,10 @@ function getNodeOutputCenter(nodeId: string, label?: string): { x: number; y: nu
   const node = props.nodes.find(n => n.id === nodeId)
   if (!node) return { x: 0, y: 0 }
 
-  // For evaluation branching outputs, stack them in header area
-  if (label && node.type === 'evaluation' && node.enableBranching) {
+  // Evaluation always has 3 output ports: pass, fail, commentary
+  if (label && node.type === 'evaluation') {
     const width = getNodeWidth(node)
-    // Three outputs stacked starting from header: passthrough, commented, commentary
-    const outputIndex = label === 'passthrough' ? 0 : label === 'commented' ? 1 : 2
+    const outputIndex = label === 'pass' ? 0 : label === 'fail' ? 1 : 2
     const yOffset = HEADER_CONNECTOR_Y + outputIndex * 20
     return { x: node.x + width, y: node.y + yOffset }
   }
@@ -236,7 +231,7 @@ function getNodeFeedbackInputCenter(nodeId: string): { x: number; y: number } {
 const connectionPaths = computed(() => {
   return props.connections.map(conn => {
     // For evaluation outputs with labels, use the specific labeled connector
-    const outputLabel = ['passthrough', 'commented', 'commentary'].includes(conn.label || '')
+    const outputLabel = ['pass', 'fail', 'commentary'].includes(conn.label || '')
       ? conn.label
       : undefined
     const source = getNodeOutputCenter(conn.sourceId, outputLabel)
@@ -420,10 +415,6 @@ onUnmounted(() => {
       @update-evaluation-type="emit('update-node-evaluation-type', node.id, $event)"
       @update-evaluation-prompt="emit('update-node-evaluation-prompt', node.id, $event)"
       @update-output-type="emit('update-node-output-type', node.id, $event)"
-      @update-enable-branching="emit('update-node-enable-branching', node.id, $event)"
-      @update-branch-condition="emit('update-node-branch-condition', node.id, $event)"
-      @update-threshold-value="emit('update-node-threshold-value', node.id, $event)"
-      @update-branch-labels="(trueLabel, falseLabel) => emit('update-node-branch-labels', node.id, trueLabel, falseLabel)"
       @update-random-prompt-preset="emit('update-node-random-prompt-preset', node.id, $event)"
       @update-random-prompt-model="emit('update-node-random-prompt-model', node.id, $event)"
       @update-random-prompt-film-type="emit('update-node-random-prompt-film-type', node.id, $event)"

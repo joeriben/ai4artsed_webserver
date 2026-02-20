@@ -116,22 +116,6 @@ function handleUpdateNodeOutputType(nodeId: string, outputType: 'commentary' | '
   canvasStore.updateNode(nodeId, { outputType })
 }
 
-function handleUpdateNodeEnableBranching(nodeId: string, enabled: boolean) {
-  canvasStore.updateNode(nodeId, { enableBranching: enabled })
-}
-
-function handleUpdateNodeBranchCondition(nodeId: string, condition: 'binary' | 'threshold') {
-  canvasStore.updateNode(nodeId, { branchCondition: condition })
-}
-
-function handleUpdateNodeThresholdValue(nodeId: string, threshold: number) {
-  canvasStore.updateNode(nodeId, { thresholdValue: threshold })
-}
-
-function handleUpdateNodeBranchLabels(nodeId: string, trueLabel: string, falseLabel: string) {
-  canvasStore.updateNode(nodeId, { trueLabel, falseLabel })
-}
-
 // Session 140: Random Prompt node handlers
 function handleUpdateNodeRandomPromptPreset(nodeId: string, preset: string) {
   canvasStore.updateNode(nodeId, { randomPromptPreset: preset as RandomPromptPreset })
@@ -223,8 +207,8 @@ function handleUpdateNodeVisionModel(nodeId: string, model: string) {
   canvasStore.updateNode(nodeId, { visionModel: model })
 }
 
-function handleUpdateNodeImageEvaluationPreset(nodeId: string, preset: ImageEvaluationPreset) {
-  canvasStore.updateNode(nodeId, { imageEvaluationPreset: preset })
+function handleUpdateNodeImageEvaluationPreset(nodeId: string, preset: string) {
+  canvasStore.updateNode(nodeId, { imageEvaluationPreset: preset as ImageEvaluationPreset })
 }
 
 function handleUpdateNodeImageEvaluationPrompt(nodeId: string, prompt: string) {
@@ -503,10 +487,6 @@ onUnmounted(() => {
           @update-node-evaluation-type="handleUpdateNodeEvaluationType"
           @update-node-evaluation-prompt="handleUpdateNodeEvaluationPrompt"
           @update-node-output-type="handleUpdateNodeOutputType"
-          @update-node-enable-branching="handleUpdateNodeEnableBranching"
-          @update-node-branch-condition="handleUpdateNodeBranchCondition"
-          @update-node-threshold-value="handleUpdateNodeThresholdValue"
-          @update-node-branch-labels="handleUpdateNodeBranchLabels"
           @update-node-random-prompt-preset="handleUpdateNodeRandomPromptPreset"
           @update-node-random-prompt-model="handleUpdateNodeRandomPromptModel"
           @update-node-random-prompt-film-type="handleUpdateNodeRandomPromptFilmType"
