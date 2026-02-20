@@ -1238,9 +1238,9 @@ const nodeHeight = computed(() => {
       :data-node-id="node.id"
       data-connector="output-fail"
       @mousedown.stop="emit('start-connect-labeled', 'fail')"
-      title="Fail"
+      title="Fail / Feedback"
     >
-      <span class="connector-label">&#x2717;</span>
+      <span class="connector-label">FB</span>
     </div>
     <div
       v-if="isEvaluation"

@@ -20,10 +20,10 @@ SpaCy ist in `requirements.txt`, aber `pip install -r requirements.txt` installi
 
 ---
 
-## 📋 TODO: Crossmodal Lab — MMAudio + ImageBind installieren
+## ✅ DONE: Crossmodal Lab — MMAudio + ImageBind installieren
 
-**Status:** 📋 **TODO** — Dependencies nicht installiert
-**Datum:** 2026-02-16
+**Status:** ✅ **DONE** — Session 188 (2026-02-20)
+**Datum:** 2026-02-16 (erledigt 2026-02-20)
 **Priority:** MEDIUM (Synth-Tab funktioniert bereits, die anderen zwei brauchen externe Pakete)
 
 ### Kontext
@@ -31,6 +31,13 @@ SpaCy ist in `requirements.txt`, aber `pip install -r requirements.txt` installi
 Crossmodal Lab v2 hat drei Tabs: Latent Audio Synth, MMAudio, ImageBind Guidance.
 Synth funktioniert (nutzt nur Stable Audio Pipeline). MMAudio und ImageBind Guidance
 brauchen externe Pakete + Modell-Checkpoints, die noch nicht installiert sind.
+
+### Erledigt (Session 188)
+- MMAudio: `~/ai/MMAudio` geklont, `--no-deps -e .` installiert (torch-Schutz)
+- ImageBind: `~/ai/ImageBind` geklont, `--no-deps -e .` installiert + pytorchvideo
+- **WICHTIG**: Beide mit `--no-deps` installiert um torch 2.11.0.dev nightly zu schützen
+- torchcodec NICHT installiert (ABI-inkompatibel mit nightly, von MMAudio nicht gebraucht)
+- Model-Checkpoints werden beim ersten Aufruf automatisch heruntergeladen
 
 ### MMAudio (CVPR 2025)
 
