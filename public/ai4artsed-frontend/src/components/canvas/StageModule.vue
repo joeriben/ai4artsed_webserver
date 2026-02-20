@@ -1641,19 +1641,22 @@ const nodeHeight = computed(() => {
   background: var(--node-color);
 }
 
-/* Feedback input connector (for loops) */
+/* Feedback input connector (for loops) — filled red circle with FB label */
 .connector.feedback-input {
   right: -7px;
-  top: 44px;  /* Below main connector in header area */
+  top: 44px;  /* Below main output connector in header area */
   transform: translateY(-50%);
-  border-color: #f97316; /* Orange to distinguish from normal connectors */
+  background: #ef4444; /* red */
+  border-color: #ef4444;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .connector.feedback-input:hover {
-  background: #f97316;
+  background: #ef4444;
+  transform: translateY(-50%) scale(1.2);
+  box-shadow: 0 0 8px #ef4444;
 }
 
 /* Output bubble: shows data flowing through the node */
@@ -1705,14 +1708,12 @@ const nodeHeight = computed(() => {
 }
 
 .feedback-label {
-  font-size: 8px;
-  font-weight: bold;
-  color: #f97316;
-  pointer-events: none;
-}
-
-.connector.feedback-input:hover .feedback-label {
+  font-size: 0.5rem;
+  font-weight: 700;
   color: white;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
 }
 
 /* Collector node styles */
