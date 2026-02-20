@@ -3,7 +3,9 @@
   "instruction_type": "artistic_transformation",
   "name": {
     "en": "Your Call!",
-    "de": "Du bestimmst!"
+    "de": "Du bestimmst!",
+    "tr": "Sen Karar Ver!",
+    "ko": "네가 정해!"
   },
   "description": {
     "en": "When you make art, you decide what you want to use and how you want to do it. Here, you can tell the AI what to use and what rules to follow.",
@@ -18,7 +20,9 @@
   ],
   "context": {
     "en": "",
-    "de": ""
+    "de": "",
+    "tr": "",
+    "ko": ""
   },
   "parameters": {
     "temperature": 0.8,

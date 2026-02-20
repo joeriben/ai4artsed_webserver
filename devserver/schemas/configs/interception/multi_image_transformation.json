@@ -3,7 +3,9 @@
   "instruction_type": "multi_image_transformation",
   "name": {
     "en": "Multi-Image Transformation",
-    "de": "Mehrfach-Bild-Transformation"
+    "de": "Mehrfach-Bild-Transformation",
+    "tr": "Çoklu Görüntü Dönüşümü",
+    "ko": "다중 이미지 변환"
   },
   "description": {
     "en": "Fuse multiple images with AI guidance",

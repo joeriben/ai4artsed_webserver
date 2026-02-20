@@ -3,7 +3,9 @@
   "instruction_type": "surrealizer",
   "name": {
     "en": "Hallucinator",
-    "de": "Hallucinator"
+    "de": "Hallucinator",
+    "tr": "Hallucinator",
+    "ko": "Hallucinator"
   },
   "description": {
     "en": "Two AI 'brains' (CLIP and T5) each read your text — the slider pushes the image far beyond what either would normally produce, into unexplored territory where surreal, dreamlike compositions emerge.",
@@ -18,7 +20,9 @@
   ],
   "context": {
     "en": "The Hallucinator encodes your prompt separately through CLIP-L (visual encoder, 77 tokens, 768 dims padded to 4096) and T5-XXL (language encoder, 512 tokens, 4096 dims). First 77 tokens: (1-α)·CLIP-L + α·T5. Positive α extrapolates past T5 into linguistically driven hallucinations. Negative α amplifies CLIP-L and negates T5 — critically, the upper 3328 dimensions (where CLIP-L is zero-padded) receive inverted T5 vectors, flipping cross-attention patterns in the transformer and producing visually driven hallucinations with disrupted semantics. Remaining T5 tokens (78-512) unchanged as semantic anchor. Stage 2 skipped to preserve original prompt.",
-    "de": "Der Hallucinator kodiert deinen Prompt getrennt durch CLIP-L (visueller Encoder, 77 Tokens, 768 Dim. aufgefüllt auf 4096) und T5-XXL (Sprach-Encoder, 512 Tokens, 4096 Dim.). Erste 77 Tokens: (1-α)·CLIP-L + α·T5. Positives α extrapoliert über T5 hinaus → sprachlich getriebene Halluzinationen. Negatives α verstärkt CLIP-L und negiert T5 — entscheidend: In den oberen 3328 Dimensionen (CLIP-L dort nur Nullen) entstehen invertierte T5-Vektoren, die Cross-Attention-Muster im Transformer umkehren → visuell getriebene Halluzinationen mit gestörter Semantik. Restliche T5-Tokens (78-512) unverändert als semantischer Anker. Stage 2 wird übersprungen, um den Original-Prompt zu erhalten."
+    "de": "Der Hallucinator kodiert deinen Prompt getrennt durch CLIP-L (visueller Encoder, 77 Tokens, 768 Dim. aufgefüllt auf 4096) und T5-XXL (Sprach-Encoder, 512 Tokens, 4096 Dim.). Erste 77 Tokens: (1-α)·CLIP-L + α·T5. Positives α extrapoliert über T5 hinaus → sprachlich getriebene Halluzinationen. Negatives α verstärkt CLIP-L und negiert T5 — entscheidend: In den oberen 3328 Dimensionen (CLIP-L dort nur Nullen) entstehen invertierte T5-Vektoren, die Cross-Attention-Muster im Transformer umkehren → visuell getriebene Halluzinationen mit gestörter Semantik. Restliche T5-Tokens (78-512) unverändert als semantischer Anker. Stage 2 wird übersprungen, um den Original-Prompt zu erhalten.",
+    "tr": "Hallucinator, promptunuzu CLIP-L (görsel kodlayıcı, 77 token, 768 boyut 4096'ya doldurulmuş) ve T5-XXL (dil kodlayıcısı, 512 token, 4096 boyut) aracılığıyla ayrı ayrı kodlar. İlk 77 token: (1-α)·CLIP-L + α·T5. Pozitif α, T5'in ötesine dilsel olarak yönlendirilmiş halüsinasyonlara ekstrapolasyon yapar. Negatif α, CLIP-L'yi güçlendirir ve T5'i olumsuzlar — kritik olarak, üst 3328 boyut (CLIP-L'nin sıfırla doldurulduğu yer) ters çevrilmiş T5 vektörleri alır, transformerdaki çapraz dikkat kalıplarını tersine çevirir ve bozulmuş semantikle görsel olarak yönlendirilmiş halüsinasyonlar üretir. Kalan T5 tokenleri (78-512) semantik çapa olarak değişmez. Orijinal promptu korumak için Aşama 2 atlanır.",
+    "ko": "Hallucinator는 프롬프트를 CLIP-L(시각 인코더, 77 토큰, 768차원을 4096으로 패딩)과 T5-XXL(언어 인코더, 512 토큰, 4096차원)을 통해 별도로 인코딩합니다. 처음 77 토큰: (1-α)·CLIP-L + α·T5. 양수 α는 T5를 넘어 언어적으로 구동되는 환각으로 외삽합니다. 음수 α는 CLIP-L을 증폭하고 T5를 부정합니다 — 결정적으로 상위 3328 차원(CLIP-L이 제로 패딩된 곳)에 반전된 T5 벡터가 수신되어 트랜스포머의 교차 어텐션 패턴을 뒤집고 의미론이 교란된 시각적으로 구동되는 환각을 생성합니다. 나머지 T5 토큰(78-512)은 의미적 앵커로 변경되지 않습니다. 원본 프롬프트를 보존하기 위해 Stage 2는 건너뜁니다."
   },
   "parameters": {
     "temperature": 0.0,

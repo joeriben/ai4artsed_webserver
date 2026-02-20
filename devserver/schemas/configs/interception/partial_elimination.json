@@ -3,7 +3,9 @@
   "instruction_type": "partial_elimination",
   "name": {
     "en": "Partial Elimination",
-    "de": "Partielle Elimination"
+    "de": "Partielle Elimination",
+    "tr": "Kısmi Eleme",
+    "ko": "부분 제거"
   },
   "description": {
     "en": "What happens when we 'switch off' parts of the AI's understanding? This workflow creates three images: one normal, and two where we've removed different halves of the AI's internal representation of your prompt. By comparing them, you can see which semantic features (objects, colors, moods) are stored in which parts of the neural network's 'memory'.",

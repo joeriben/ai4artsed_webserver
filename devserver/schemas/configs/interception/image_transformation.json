@@ -3,7 +3,9 @@
   "instruction_type": "image_transformation",
   "name": {
     "en": "Image Transformation",
-    "de": "Bild-Transformation"
+    "de": "Bild-Transformation",
+    "tr": "Görüntü Dönüşümü",
+    "ko": "이미지 변환"
   },
   "description": {
     "en": "Transform images with AI-guided editing",

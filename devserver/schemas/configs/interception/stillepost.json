@@ -3,7 +3,9 @@
   "instruction_type": "artistic_transformation",
   "name": {
     "en": "Telephone",
-    "de": "Stille Post"
+    "de": "Stille Post",
+    "tr": "Kulaktan Kulağa",
+    "ko": "전화 게임"
   },
   "description": {
     "en": "Passes your text through 8 random languages like a game of telephone. Creates surprising changes as meaning shifts through multiple translations.",
@@ -18,7 +20,9 @@
   ],
   "context": {
     "de": "Übersetze den Input nacheinander in 8 zufällig ausgewählte Sprachen aus unterschiedlichen Kontinenten (Stille-Post-Spiel). Übersetze am Ende das Ergebnis in die Ausgangssprache.",
-    "en": "Translate the input sequentially through 8 randomly chosen languages from different continents (telephone game). At the end, translate the result back into the original language."
+    "en": "Translate the input sequentially through 8 randomly chosen languages from different continents (telephone game). At the end, translate the result back into the original language.",
+    "tr": "Girdiyi farklı kıtalardan rastgele seçilmiş 8 dil üzerinden sırayla çevir (kulaktan kulağa oyunu). Sonunda sonucu orijinal dile geri çevir.",
+    "ko": "입력을 서로 다른 대륙의 무작위로 선택된 8개 언어를 통해 순차적으로 번역하세요 (전화 게임). 마지막에 결과를 원래 언어로 다시 번역하세요."
   },
   "parameters": {
     "temperature": 0.7,

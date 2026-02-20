@@ -3,7 +3,9 @@
   "instruction_type": "music_generation",
   "name": {
     "en": "HeartMuLa Music",
-    "de": "HeartMuLa Musik"
+    "de": "HeartMuLa Musik",
+    "tr": "HeartMuLa Müzik",
+    "ko": "HeartMuLa 음악"
   },
   "description": {
     "en": "Generate music from lyrics and style tags using HeartMuLa AI. Supports English, Chinese, Japanese, Korean, and Spanish lyrics.",
@@ -18,7 +20,9 @@
   ],
   "context": {
     "en": "HeartMuLa generates music from structured lyrics with markers like [Verse], [Chorus], [Bridge] and comma-separated style tags describing genre, mood, tempo, and instruments.",
-    "de": "HeartMuLa generiert Musik aus strukturierten Lyrics mit Markern wie [Verse], [Chorus], [Bridge] und kommaseparierten Style-Tags für Genre, Stimmung, Tempo und Instrumente."
+    "de": "HeartMuLa generiert Musik aus strukturierten Lyrics mit Markern wie [Verse], [Chorus], [Bridge] und kommaseparierten Style-Tags für Genre, Stimmung, Tempo und Instrumente.",
+    "tr": "HeartMuLa, [Verse], [Chorus], [Bridge] gibi işaretçiler ve tür, ruh hali, tempo ve enstrümanları tanımlayan virgülle ayrılmış stil etiketleriyle yapılandırılmış sözlerden müzik üretir.",
+    "ko": "HeartMuLa는 [Verse], [Chorus], [Bridge]와 같은 마커와 장르, 분위기, 템포, 악기를 설명하는 쉼표로 구분된 스타일 태그가 포함된 구조화된 가사로부터 음악을 생성합니다."
   },
   "parameters": {
     "temperature": 1.0,

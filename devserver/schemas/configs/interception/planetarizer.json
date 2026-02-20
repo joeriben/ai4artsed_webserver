@@ -3,7 +3,9 @@
   "instruction_type": "artistic_transformation",
   "name": {
     "en": "Planetarizer",
-    "de": "Planeta\u00ADrisierer"
+    "de": "Planeta\u00ADrisierer",
+    "tr": "Gezegenselleştirici",
+    "ko": "행성화기"
   },
   "description": {
     "en": "Reimagines image prompts through planetary perspectives in the anthropocene. Deconstructs capitalist consumerist norms and challenges AI's inherent biases toward capitalist subjects and consumerist aesthetics.",
@@ -18,7 +20,9 @@
   ],
   "context": {
     "en": "Respond in the language of the input. You adopt the perspective of 'Planetary Thinking'. Generative AIs tend to depict objects in isolation and idealized form.\n\nYour task is to rewrite the input so that it no longer stands isolated, but is deeply entangled in its ecological and material contexts.\nShow the dependencies, consequences, or coexistence of humans, technology, and nature. Decide yourself how this entanglement becomes visible: whether through weather influences, biological interaction, traces of use, energy supply, or waste.\nThe goal is not dystopia, but a 'situated realism' that dissolves the separation between foreground object and environment background.",
-    "de": "Antworte in der Sprache des Inputs. Du nimmst die Perspektive des 'Planetarischen Denkens' ein. generative KIs tendieren dazu, Objekte isoliert und idealisiert darzustellen.\n\nDeine Aufgabe ist es, den Input so umzuschreiben, dass er nicht mehr isoliert steht, sondern tief in seine ökologischen und materiellen Zusammenhänge verstrickt ist.\nZeige die Abhängigkeiten, die Konsequenzen oder die Koexistenz von Mensch, Technik und Natur. Entscheide selbst, wie diese Verflechtung sichtbar wird: Sei es durch Wettereinflüsse, biologische Interaktion, Spuren der Nutzung, der Energieversorgung oder des Abfalls.\nZiel ist keine Dystopie, sondern ein 'situierter Realismus', der die Trennung zwischen Vordergrund-Objekt und Umwelt-Hintergrund aufhebt."
+    "de": "Antworte in der Sprache des Inputs. Du nimmst die Perspektive des 'Planetarischen Denkens' ein. generative KIs tendieren dazu, Objekte isoliert und idealisiert darzustellen.\n\nDeine Aufgabe ist es, den Input so umzuschreiben, dass er nicht mehr isoliert steht, sondern tief in seine ökologischen und materiellen Zusammenhänge verstrickt ist.\nZeige die Abhängigkeiten, die Konsequenzen oder die Koexistenz von Mensch, Technik und Natur. Entscheide selbst, wie diese Verflechtung sichtbar wird: Sei es durch Wettereinflüsse, biologische Interaktion, Spuren der Nutzung, der Energieversorgung oder des Abfalls.\nZiel ist keine Dystopie, sondern ein 'situierter Realismus', der die Trennung zwischen Vordergrund-Objekt und Umwelt-Hintergrund aufhebt.",
+    "tr": "Girdinin dilinde yanıt ver. 'Gezegensel Düşünce' perspektifini benimsiyorsun. Üretici yapay zekalar nesneleri izole ve idealize edilmiş biçimde tasvir etme eğilimindedir.\n\nGörevin, girdiyi artık izole durmayacak, aksine ekolojik ve maddi bağlamlarına derinden iç içe geçmiş olacak şekilde yeniden yazmaktır.\nİnsan, teknoloji ve doğanın bağımlılıklarını, sonuçlarını veya birlikte varoluşunu göster. Bu iç içe geçmişliğin nasıl görünür olacağına kendin karar ver: hava koşulları etkileri, biyolojik etkileşim, kullanım izleri, enerji temini veya atık yoluyla.\nHedef distopya değil, ön plan nesnesi ile çevre arka planı arasındaki ayrımı ortadan kaldıran 'konumlanmış bir gerçekçilik'tir.",
+    "ko": "입력의 언어로 응답하세요. '행성적 사고'의 관점을 채택합니다. 생성 AI는 객체를 고립되고 이상화된 형태로 묘사하는 경향이 있습니다.\n\n당신의 과제는 입력이 더 이상 고립되지 않고 생태적, 물질적 맥락에 깊이 얽혀 있도록 다시 쓰는 것입니다.\n인간, 기술, 자연의 의존성, 결과, 또는 공존을 보여주세요. 이 얽힘이 어떻게 가시화될지 스스로 결정하세요: 날씨 영향, 생물학적 상호작용, 사용 흔적, 에너지 공급, 또는 폐기물을 통해서.\n목표는 디스토피아가 아니라 전경 객체와 환경 배경 사이의 분리를 해소하는 '상황적 리얼리즘'입니다."
   },
   "parameters": {
     "temperature": 0.7,

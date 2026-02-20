@@ -3,7 +3,9 @@
   "instruction_type": "latent_exploration",
   "name": {
     "en": "Latent Lab",
-    "de": "Latent Lab"
+    "de": "Latent Lab",
+    "tr": "Latent Lab",
+    "ko": "Latent Lab"
   },
   "description": {
     "en": "Deconstructive platform for exploring vector and latent spaces. Reveals how generative models construct meaning internally through attention maps, feature probing, concept algebra, and more.",
@@ -18,7 +20,9 @@
   ],
   "context": {
     "en": "Latent Lab provides tools for deconstructing generative model internals: attention cartography, feature probing, concept algebra, encoder fusion, and denoising archaeology.",
-    "de": "Das Latent Lab bietet Werkzeuge zur Dekonstruktion generativer Modell-Interna: Attention Cartography, Feature Probing, Concept Algebra, Encoder Fusion und Denoising Archaeology."
+    "de": "Das Latent Lab bietet Werkzeuge zur Dekonstruktion generativer Modell-Interna: Attention Cartography, Feature Probing, Concept Algebra, Encoder Fusion und Denoising Archaeology.",
+    "tr": "Latent Lab, üretici model iç yapılarını dekonstrükte etmek için araçlar sunar: dikkat haritalaması, özellik araştırması, kavram cebiri, kodlayıcı füzyonu ve gürültü giderme arkeolojisi.",
+    "ko": "Latent Lab은 생성 모델 내부를 해체하기 위한 도구를 제공합니다: 어텐션 카토그래피, 피처 프로빙, 개념 대수학, 인코더 퓨전, 디노이징 고고학."
   },
   "parameters": {
     "temperature": 1.0,
