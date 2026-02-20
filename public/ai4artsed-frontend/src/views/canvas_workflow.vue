@@ -465,6 +465,7 @@ onUnmounted(() => {
           :collector-output="canvasStore.collectorOutput"
           :output-configs="canvasStore.outputConfigs"
           :active-node-id="canvasStore.activeNodeId"
+          :connecting-label="canvasStore.connectingLabel"
           @select-node="canvasStore.selectNode"
           @update-node-position="canvasStore.updateNodePosition"
           @delete-node="canvasStore.deleteNode"

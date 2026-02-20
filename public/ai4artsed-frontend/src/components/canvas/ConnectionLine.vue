@@ -14,35 +14,51 @@ const props = defineProps<{
   temporary?: boolean
   /** Whether this connection is selected/highlighted */
   selected?: boolean
+  /** Cable color (defaults to blue #3b82f6) */
+  color?: string
 }>()
 
 const emit = defineEmits<{
   'click': []
 }>()
 
+/** CSS custom property for cable color */
+const styleVars = computed(() => ({
+  '--conn-color': props.color || '#3b82f6',
+  '--conn-color-hover': props.color ? props.color : '#60a5fa'
+}))
+
 /**
  * Generate a smooth Bezier curve path between two points
+ * Handles both left-to-right (forward) and right-to-left (backward) cables
  */
 const pathD = computed(() => {
   const { x1, y1, x2, y2 } = props
 
-  // Calculate control points for a smooth curve
-  // The curve bends horizontally based on the distance between points
   const dx = Math.abs(x2 - x1)
-  const controlOffset = Math.min(dx * 0.5, 100) // Max control point offset of 100px
+  const controlOffset = Math.min(dx * 0.5, 100)
 
-  // Control points create a horizontal S-curve
-  const cx1 = x1 + controlOffset
-  const cy1 = y1
-  const cx2 = x2 - controlOffset
-  const cy2 = y2
+  if (x2 >= x1) {
+    // Forward cable: left-to-right S-curve
+    const cx1 = x1 + controlOffset
+    const cx2 = x2 - controlOffset
+    return `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`
+  } else {
+    // Backward cable: right-to-left — flip control point direction
+    const cx1 = x1 - controlOffset
+    const cx2 = x2 + controlOffset
+    return `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`
+  }
+})
 
-  return `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`
+/** Arrow indicator X position — accounts for cable direction */
+const arrowCx = computed(() => {
+  return props.x2 >= props.x1 ? props.x2 - 8 : props.x2 + 8
 })
 </script>
 
 <template>
-  <g class="connection-line" :class="{ temporary, selected }">
+  <g class="connection-line" :class="{ temporary, selected }" :style="styleVars">
     <!-- Invisible wider path for easier clicking -->
     <path
       v-if="!temporary"
@@ -59,7 +75,7 @@ const pathD = computed(() => {
     <!-- Arrow indicator at the end -->
     <circle
       v-if="!temporary"
-      :cx="x2 - 8"
+      :cx="arrowCx"
       :cy="y2"
       r="3"
       class="connection-arrow"
@@ -82,7 +98,7 @@ const pathD = computed(() => {
 
 .connection-path {
   fill: none;
-  stroke: #3b82f6;
+  stroke: var(--conn-color, #3b82f6);
   stroke-width: 2;
   pointer-events: stroke;
   cursor: pointer;
@@ -91,26 +107,26 @@ const pathD = computed(() => {
 
 .connection-line:hover .connection-path,
 .connection-line.selected .connection-path {
-  stroke: #60a5fa;
+  stroke: var(--conn-color-hover, #60a5fa);
   stroke-width: 3;
 }
 
 .connection-line.temporary .connection-path {
-  stroke: #3b82f6;
+  stroke: var(--conn-color, #3b82f6);
   stroke-dasharray: 5 5;
   opacity: 0.6;
   pointer-events: none;
 }
 
 .connection-arrow {
-  fill: #3b82f6;
+  fill: var(--conn-color, #3b82f6);
   pointer-events: none;
   transition: fill 0.15s;
 }
 
 .connection-line:hover .connection-arrow,
 .connection-line.selected .connection-arrow {
-  fill: #60a5fa;
+  fill: var(--conn-color-hover, #60a5fa);
 }
 
 .connection-line.temporary .connection-arrow {

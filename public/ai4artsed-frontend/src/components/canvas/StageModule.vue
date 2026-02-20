@@ -1221,34 +1221,34 @@ const nodeHeight = computed(() => {
       <span class="bubble-content">{{ bubbleContent }}</span>
     </div>
 
-    <!-- Evaluation outputs: 3 always-on output ports (pass, fail, commentary) -->
+    <!-- Evaluation outputs: pass + commentary on RIGHT, fail/FB on LEFT -->
     <div
       v-if="isEvaluation"
-      class="connector output output-pass"
+      class="connector output-pass"
       :data-node-id="node.id"
       data-connector="output-pass"
       @mousedown.stop="emit('start-connect-labeled', 'pass')"
-      title="Pass"
+      :title="$t('canvas.stage.evaluation.evalPassTitle')"
     >
       <span class="connector-label">&#x2713;</span>
     </div>
     <div
       v-if="isEvaluation"
-      class="connector output output-fail"
+      class="connector output-fail"
       :data-node-id="node.id"
       data-connector="output-fail"
       @mousedown.stop="emit('start-connect-labeled', 'fail')"
-      title="Fail / Feedback"
+      :title="$t('canvas.stage.evaluation.evalFailTitle')"
     >
       <span class="connector-label">FB</span>
     </div>
     <div
       v-if="isEvaluation"
-      class="connector output output-commentary"
+      class="connector output-commentary"
       :data-node-id="node.id"
       data-connector="output-commentary"
       @mousedown.stop="emit('start-connect-labeled', 'commentary')"
-      title="Commentary"
+      :title="$t('canvas.stage.evaluation.evalCommentaryTitle')"
     >
       <span class="connector-label">&rarr;</span>
     </div>
@@ -1994,7 +1994,7 @@ const nodeHeight = computed(() => {
   background: #475569;
 }
 
-/* Evaluation outputs: 3 always-on individual connectors (pass/fail/commentary) */
+/* Evaluation outputs: pass + commentary on RIGHT, fail/FB on LEFT */
 .connector.output-pass {
   right: -7px;
   top: 24px;
@@ -2007,11 +2007,11 @@ const nodeHeight = computed(() => {
 }
 
 .connector.output-fail {
-  right: -7px;
+  left: -7px;
   top: 44px;
   transform: translateY(-50%);
-  background: #f59e0b; /* amber - fail */
-  border-color: #f59e0b;
+  background: #ef4444; /* red - fail/feedback (backward channel) */
+  border-color: #ef4444;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2019,7 +2019,7 @@ const nodeHeight = computed(() => {
 
 .connector.output-commentary {
   right: -7px;
-  top: 64px;
+  top: 44px;
   transform: translateY(-50%);
   background: #06b6d4; /* cyan - commentary */
   border-color: #06b6d4;

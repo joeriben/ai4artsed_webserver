@@ -38,6 +38,8 @@ const props = defineProps<{
   outputConfigs?: OutputConfigSummary[]
   /** Session 135: Active node for bubble animation */
   activeNodeId?: string | null
+  /** Label of the connector being dragged (for color + position of temp connection) */
+  connectingLabel?: string | null
 }>()
 
 /**
@@ -180,12 +182,18 @@ function getNodeOutputCenter(nodeId: string, label?: string): { x: number; y: nu
   const node = props.nodes.find(n => n.id === nodeId)
   if (!node) return { x: 0, y: 0 }
 
-  // Evaluation always has 3 output ports: pass, fail, commentary
+  // Evaluation: pass + commentary on RIGHT, fail/FB on LEFT
   if (label && node.type === 'evaluation') {
     const width = getNodeWidth(node)
-    const outputIndex = label === 'pass' ? 0 : label === 'fail' ? 1 : 2
-    const yOffset = HEADER_CONNECTOR_Y + outputIndex * 20
-    return { x: node.x + width, y: node.y + yOffset }
+    if (label === 'pass') {
+      return { x: node.x + width, y: node.y + HEADER_CONNECTOR_Y }
+    } else if (label === 'fail') {
+      // FB port is on the LEFT side, below the input connector
+      return { x: node.x, y: node.y + HEADER_CONNECTOR_Y + 20 }
+    } else {
+      // commentary: right side, second position
+      return { x: node.x + width, y: node.y + HEADER_CONNECTOR_Y + 20 }
+    }
   }
 
   return getConnectorPosition(node, 'output')
@@ -241,12 +249,18 @@ const connectionPaths = computed(() => {
       ? getNodeFeedbackInputCenter(conn.targetId)
       : getNodeInputCenter(conn.targetId, conn.label)
 
+    // Red for backward cables (fail, feedback), blue (default) for forward
+    const color = (conn.label === 'fail' || conn.label === 'feedback')
+      ? '#ef4444'
+      : undefined
+
     return {
       ...conn,
       x1: source.x,
       y1: source.y,
       x2: target.x,
-      y2: target.y
+      y2: target.y,
+      color
     }
   })
 })
@@ -256,12 +270,17 @@ const connectionPaths = computed(() => {
  */
 const tempConnection = computed(() => {
   if (!props.connectingFromId) return null
-  const source = getNodeOutputCenter(props.connectingFromId)
+  const label = props.connectingLabel || undefined
+  const source = getNodeOutputCenter(props.connectingFromId, label)
+  const color = (label === 'fail' || label === 'feedback')
+    ? '#ef4444'
+    : undefined
   return {
     x1: source.x,
     y1: source.y,
     x2: props.mousePosition.x,
-    y2: props.mousePosition.y
+    y2: props.mousePosition.y,
+    color
   }
 })
 
@@ -371,6 +390,7 @@ onUnmounted(() => {
         :y1="conn.y1"
         :x2="conn.x2"
         :y2="conn.y2"
+        :color="conn.color"
         @click="emit('delete-connection', conn.sourceId, conn.targetId)"
       />
 
@@ -381,6 +401,7 @@ onUnmounted(() => {
         :y1="tempConnection.y1"
         :x2="tempConnection.x2"
         :y2="tempConnection.y2"
+        :color="tempConnection.color"
         temporary
       />
     </svg>

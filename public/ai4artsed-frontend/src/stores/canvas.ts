@@ -1175,6 +1175,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     executionResults: computed(() => executionResults.value),
     collectorOutput: computed(() => collectorOutput.value),
     activeNodeId: computed(() => activeNodeId.value),  // Session 135: For bubble animation
+    connectingLabel: computed(() => connectingLabel.value),  // For cable color during drag
     currentProgress: computed(() => currentProgress.value),  // Session 141: SSE streaming progress
     totalNodes: computed(() => totalNodes.value),  // Session 141: Total nodes count
     completedNodes: computed(() => completedNodes.value),  // Session 141: Completed nodes count
