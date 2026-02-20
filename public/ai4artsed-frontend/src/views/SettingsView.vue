@@ -121,6 +121,7 @@
                   <option value="de">{{ $t('settings.general.germanDe') }}</option>
                   <option value="en">{{ $t('settings.general.englishEn') }}</option>
                   <option value="tr">{{ $t('settings.general.turkishTr') }}</option>
+                  <option value="ko">{{ $t('settings.general.koreanKo') }}</option>
                 </select>
               </td>
             </tr>

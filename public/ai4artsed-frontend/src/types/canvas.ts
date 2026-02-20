@@ -254,11 +254,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'interception',
     type: 'interception',
-    label: { en: 'Interception', de: 'Interception', tr: 'Interception' },
+    label: { en: 'Interception', de: 'Interception', tr: 'Interception', ko: '인터셉션' },
     description: {
       en: 'Pedagogical transformation with LLM selection',
       de: 'Pädagogische Transformation mit LLM-Auswahl',
-      tr: 'LLM seçimiyle pedagojik dönüşüm'
+      tr: 'LLM seçimiyle pedagojik dönüşüm',
+      ko: 'LLM 선택을 통한 교육적 변환'
     },
     color: '#8b5cf6', // purple
     icon: 'cognition_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -268,11 +269,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'translation',
     type: 'translation',
-    label: { en: 'Translation', de: 'Übersetzung', tr: 'Çeviri' },
+    label: { en: 'Translation', de: 'Übersetzung', tr: 'Çeviri', ko: '번역' },
     description: {
       en: 'Language translation with custom prompt + LLM',
       de: 'Sprachübersetzung mit eigenem Prompt + LLM',
-      tr: 'Özel komut + LLM ile dil çevirisi'
+      tr: 'Özel komut + LLM ile dil çevirisi',
+      ko: '사용자 정의 프롬프트 + LLM으로 언어 번역'
     },
     color: '#f59e0b', // amber
     icon: 'language_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -283,11 +285,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'model_adaption',
     type: 'model_adaption',
-    label: { en: 'Model Adaption', de: 'Modell-Adaption', tr: 'Model Adaptasyonu' },
+    label: { en: 'Model Adaption', de: 'Modell-Adaption', tr: 'Model Adaptasyonu', ko: '모델 적응' },
     description: {
       en: 'Adapt prompt for media model (SD3.5, Flux, Video, Audio)',
       de: 'Prompt für Medienmodell anpassen (SD3.5, Flux, Video, Audio)',
-      tr: 'Medya modeli için komutu uyarla (SD3.5, Flux, Video, Ses)'
+      tr: 'Medya modeli için komutu uyarla (SD3.5, Flux, Video, Ses)',
+      ko: '미디어 모델에 맞게 프롬프트 조정 (SD3.5, Flux, 비디오, 오디오)'
     },
     color: '#14b8a6', // teal
     icon: 'tune_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -297,11 +300,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'generation',
     type: 'generation',
-    label: { en: 'Generation', de: 'Generierung', tr: 'Üretim' },
+    label: { en: 'Generation', de: 'Generierung', tr: 'Üretim', ko: '생성' },
     description: {
       en: 'Media generation (image, audio, video)',
       de: 'Mediengenerierung (Bild, Audio, Video)',
-      tr: 'Medya üretimi (görsel, ses, video)'
+      tr: 'Medya üretimi (görsel, ses, video)',
+      ko: '미디어 생성 (이미지, 오디오, 비디오)'
     },
     color: '#10b981', // emerald
     icon: 'brush_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -311,11 +315,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'collector',
     type: 'collector',
-    label: { en: 'Media Output', de: 'Medienausgabe', tr: 'Medya Çıktısı' },
+    label: { en: 'Media Output', de: 'Medienausgabe', tr: 'Medya Çıktısı', ko: '미디어 출력' },
     description: {
       en: 'Collects and displays outputs (media + text)',
       de: 'Sammelt und zeigt Ausgaben (Medien + Text)',
-      tr: 'Çıktıları toplar ve gösterir (medya + metin)'
+      tr: 'Çıktıları toplar ve gösterir (medya + metin)',
+      ko: '출력 수집 및 표시 (미디어 + 텍스트)'
     },
     color: '#06b6d4', // cyan
     icon: 'gallery_thumbnail_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -326,11 +331,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'evaluation',
     type: 'evaluation',
-    label: { en: 'Evaluation', de: 'Bewertung', tr: 'Değerlendirme' },
+    label: { en: 'Evaluation', de: 'Bewertung', tr: 'Değerlendirme', ko: '평가' },
     description: {
       en: 'LLM-based evaluation with 3-way branching (pass/fail/commentary)',
       de: 'LLM-basierte Bewertung mit 3-Wege-Verzweigung (Pass/Fail/Kommentar)',
-      tr: '3 yönlü dallanma ile LLM tabanlı değerlendirme (geçti/kaldı/yorum)'
+      tr: '3 yönlü dallanma ile LLM tabanlı değerlendirme (geçti/kaldı/yorum)',
+      ko: '3방향 분기를 포함한 LLM 기반 평가 (통과/실패/코멘트)'
     },
     color: '#f59e0b', // amber
     icon: 'checklist_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -341,11 +347,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'image_evaluation',
     type: 'image_evaluation',
-    label: { en: 'Image Analysis', de: 'Bild-Analyse', tr: 'Görsel Analizi' },
+    label: { en: 'Image Analysis', de: 'Bild-Analyse', tr: 'Görsel Analizi', ko: '이미지 분석' },
     description: {
       en: 'Vision-LLM analysis of images',
       de: 'Vision-LLM Analyse von Bildern',
-      tr: 'Görsellerin Vision-LLM analizi'
+      tr: 'Görsellerin Vision-LLM analizi',
+      ko: '비전-LLM 이미지 분석'
     },
     color: '#dc2626', // red
     icon: 'imagesmode_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -356,11 +363,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'display',
     type: 'display',
-    label: { en: 'Preview', de: 'Vorschau', tr: 'Önizleme' },
+    label: { en: 'Preview', de: 'Vorschau', tr: 'Önizleme', ko: '미리보기' },
     description: {
       en: 'Preview text or media inline (tap/observer, no output)',
       de: 'Vorschau von Text oder Medien inline (Tap/Observer, kein Output)',
-      tr: 'Metin veya medyayı satır içi önizle (gözlemci, çıktı yok)'
+      tr: 'Metin veya medyayı satır içi önizle (gözlemci, çıktı yok)',
+      ko: '텍스트 또는 미디어 인라인 미리보기 (관찰자, 출력 없음)'
     },
     color: '#10b981', // green
     icon: 'info_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -371,11 +379,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'comparison_evaluator',
     type: 'comparison_evaluator',
-    label: { en: 'Comparison', de: 'Vergleich', tr: 'Karşılaştırma' },
+    label: { en: 'Comparison', de: 'Vergleich', tr: 'Karşılaştırma', ko: '비교' },
     description: {
       en: 'Compare multiple text inputs with LLM analysis',
       de: 'Vergleiche mehrere Text-Inputs mit LLM-Analyse',
-      tr: 'LLM analizi ile birden fazla metin girdisini karşılaştır'
+      tr: 'LLM analizi ile birden fazla metin girdisini karşılaştır',
+      ko: 'LLM 분석으로 여러 텍스트 입력 비교'
     },
     color: '#f97316', // orange
     icon: 'analyze.svg',
@@ -386,11 +395,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'seed',
     type: 'seed',
-    label: { en: 'Seed', de: 'Seed', tr: 'Seed' },
+    label: { en: 'Seed', de: 'Seed', tr: 'Seed', ko: '시드' },
     description: {
       en: 'Control seed for reproducible media generation',
       de: 'Seed für reproduzierbare Mediengenerierung',
-      tr: 'Tekrarlanabilir medya üretimi için seed kontrolü'
+      tr: 'Tekrarlanabilir medya üretimi için seed kontrolü',
+      ko: '재현 가능한 미디어 생성을 위한 시드 제어'
     },
     color: '#6366f1', // indigo
     icon: 'potted_plant_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -401,11 +411,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'resolution',
     type: 'resolution',
-    label: { en: 'Resolution', de: 'Auflösung', tr: 'Çözünürlük' },
+    label: { en: 'Resolution', de: 'Auflösung', tr: 'Çözünürlük', ko: '해상도' },
     description: {
       en: 'Set width and height for image generation (ComfyUI only)',
       de: 'Breite und Höhe für Bildgenerierung (nur ComfyUI)',
-      tr: 'Görsel üretimi için genişlik ve yükseklik ayarla (yalnızca ComfyUI)'
+      tr: 'Görsel üretimi için genişlik ve yükseklik ayarla (yalnızca ComfyUI)',
+      ko: '이미지 생성을 위한 너비 및 높이 설정 (ComfyUI 전용)'
     },
     color: '#0ea5e9', // sky blue
     icon: 'display_settings_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -416,11 +427,12 @@ export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     id: 'quality',
     type: 'quality',
-    label: { en: 'Quality', de: 'Qualität', tr: 'Kalite' },
+    label: { en: 'Quality', de: 'Qualität', tr: 'Kalite', ko: '품질' },
     description: {
       en: 'Set steps and CFG for generation quality (ComfyUI only)',
       de: 'Steps und CFG für Generierungsqualität (nur ComfyUI)',
-      tr: 'Üretim kalitesi için adım ve CFG ayarla (yalnızca ComfyUI)'
+      tr: 'Üretim kalitesi için adım ve CFG ayarla (yalnızca ComfyUI)',
+      ko: '생성 품질을 위한 스텝 및 CFG 설정 (ComfyUI 전용)'
     },
     color: '#84cc16', // lime
     icon: 'display_settings_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg',
@@ -774,7 +786,7 @@ export interface RandomPromptPresetConfig {
 /** Random Prompt Presets with system prompts */
 export const RANDOM_PROMPT_PRESETS: Record<RandomPromptPreset, RandomPromptPresetConfig> = {
   clean_image: {
-    label: { en: 'Scenic Description', de: 'Szenische Beschreibung', tr: 'Sahne Açıklaması' },
+    label: { en: 'Scenic Description', de: 'Szenische Beschreibung', tr: 'Sahne Açıklaması', ko: '풍경 묘사' },
     systemPrompt: `You are an inventive creative. Your task is to invent a vivid, detailed image prompt.
 
 IMPORTANT - Generate CLEAN, MEDIA-NEUTRAL images:
@@ -793,7 +805,7 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER.`,
     userPromptTemplate: 'Generate a creative image prompt.'
   },
   photo: {
-    label: { en: 'Photo Prompt', de: 'Foto-Prompt', tr: 'Fotoğraf Komutu' },
+    label: { en: 'Photo Prompt', de: 'Foto-Prompt', tr: 'Fotoğraf Komutu', ko: '사진 프롬프트' },
     systemPrompt: `You are an inventive creative. Your task is to invent a REALISTIC photographic image prompt.
 
 Think globally. Avoid cultural clichés. Avoid "retro" style descriptions.
@@ -805,7 +817,7 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER.`,
     userPromptTemplate: 'Generate a creative photographic image prompt.'
   },
   artform: {
-    label: { en: 'Artform Transformation', de: 'Kunstform-Transformation', tr: 'Sanat Formu Dönüşümü' },
+    label: { en: 'Artform Transformation', de: 'Kunstform-Transformation', tr: 'Sanat Formu Dönüşümü', ko: '예술 형식 변환' },
     systemPrompt: `You generate artform transformation instructions from an artist practice perspective.
 
 IMPORTANT: NEVER use "in the style of" - instead frame as artistic practice, technique, or creative process.
@@ -826,7 +838,7 @@ Output ONLY the transformation instruction, nothing else.`,
     userPromptTemplate: 'Generate a creative artform transformation instruction.'
   },
   instruction: {
-    label: { en: 'Creative Instruction', de: 'Kreative Anweisung', tr: 'Yaratıcı Talimat' },
+    label: { en: 'Creative Instruction', de: 'Kreative Anweisung', tr: 'Yaratıcı Talimat', ko: '창의적 지시' },
     systemPrompt: `You generate creative transformation instructions.
 Your output is a single instruction that transforms content in an unusual, creative way.
 Examples: nature language, theatrical play, nostalgic robot voice, rhythmic rap, animal fable, alien explanation, philosophical versions (Wittgenstein, Heidegger, Adorno), ancient manuscript, bedtime story for post-human child, internal monologue of a tree, forgotten folk song lyrics, spy messages, protest chant, underwater civilization dialect, extinct animal conversation, dream sequence, poetic weather forecast, love letter to future generation, etc.
@@ -835,7 +847,7 @@ Output ONLY the transformation instruction, nothing else.`,
     userPromptTemplate: 'Generate a creative transformation instruction.'
   },
   language: {
-    label: { en: 'Language Suggestion', de: 'Sprach-Vorschlag', tr: 'Dil Önerisi' },
+    label: { en: 'Language Suggestion', de: 'Sprach-Vorschlag', tr: 'Dil Önerisi', ko: '언어 제안' },
     systemPrompt: `You suggest a random language from around the world.
 Choose from major world languages, regional languages, or less common languages.
 Consider: European, Asian, African, Indigenous American, Pacific languages.
