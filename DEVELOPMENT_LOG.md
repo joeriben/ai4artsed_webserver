@@ -1,5 +1,26 @@
 # Development Log
 
+## Session 187 - i18n Infrastructure: Generic 3rd-Language Readiness
+**Date:** 2026-02-20
+**Focus:** Make i18n infrastructure extensible so adding ANY language requires only "add translations" — no code changes needed.
+
+### Changes
+- **`LocalizedString` type + `localized()` helper** (i18n.ts): Central type for all bilingual string objects, with English fallback resolution
+- **Replaced hardcoded `'de' | 'en'` unions** with `SupportedLanguage` across 7 locations in api.ts, pipelineExecution.ts, configSelection.ts, ConfigTile.vue
+- **Replaced `{ en: string; de: string }` interface fields** with `LocalizedString` across 8 locations in types/canvas.ts, 3 in api.ts, 3 in configSelection.ts
+- **Converted ternary language lookups** (`locale === 'de' ? x.de : x.en`) to `localized(x, locale)` in ModulePalette.vue (2), ConfigSelectorModal.vue (4), CanvasWorkspace.vue (1), MusicTagSelector.vue (1)
+- **Fixed hardcoded `loadMetaPromptForLanguage('de')`** in image_transformation.vue and multi_image_transformation.vue — now uses actual user locale
+- **Backend fallback**: `build_safety_message()` in stage_orchestrator.py uses `.get(lang, ...['en'])` instead of direct key access — prevents KeyError on unknown languages
+- **Removed dead keys**: `language.switch` / `language.switchTo` from both DE and EN i18n sections (unused anywhere)
+
+### Scope discipline
+- 13 files, 57 insertions, 46 deletions — all targeted
+- NOT touched: doc components (255 ternaries, adult-facing), canvas/StageModule.vue (80 ternaries, advanced feature), backend Python code, safety-critical files
+- `npm run type-check` passes cleanly
+
+### Verification
+Adding a 3rd language to `SUPPORTED_LANGUAGES` now requires only: (1) add translations to i18n.ts message object, (2) add language entry to `SUPPORTED_LANGUAGES` array. All type lookups, config name resolution, and backend safety messages automatically fall back to English.
+
 ## Session 185 - i18n Batch 6: Infrastructure Code + LLM Meta-Prompts
 **Date:** 2026-02-20
 **Focus:** Final i18n sweep — convert remaining German strings in infrastructure code; convert LLM meta-prompts to English for better instruction adherence
