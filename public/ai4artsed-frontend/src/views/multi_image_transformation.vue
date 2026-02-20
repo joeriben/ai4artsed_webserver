@@ -7,7 +7,7 @@
       <section class="multi-image-section">
         <MediaInputBox
           icon="🖼️"
-          label="Bild 1"
+          :label="$t('multiImage.image1Label')"
           :value="uploadedImage1 ?? ''"
           @update:value="(val: string) => uploadedImage1 = val || undefined"
           input-type="image"
@@ -20,7 +20,7 @@
         />
         <MediaInputBox
           icon="➕"
-          label="Bild 2 (optional)"
+          :label="$t('multiImage.image2Label')"
           :value="uploadedImage2 ?? ''"
           @update:value="(val: string) => uploadedImage2 = val || undefined"
           input-type="image"
@@ -33,7 +33,7 @@
         />
         <MediaInputBox
           icon="➕"
-          label="Bild 3 (optional)"
+          :label="$t('multiImage.image3Label')"
           :value="uploadedImage3 ?? ''"
           @update:value="(val: string) => uploadedImage3 = val || undefined"
           input-type="image"

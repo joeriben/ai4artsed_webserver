@@ -215,6 +215,25 @@ const messages = {
       title: 'Perspektive wählen',
       close: 'Schließen'
     },
+    imageUpload: {
+      clickHere: 'Klicke hier',
+      orDragImage: 'oder ziehe ein Bild hierher',
+      formatHint: 'PNG, JPG, WEBP (max 10MB)',
+      invalidFormat: 'Ungültiges Dateiformat. Nur PNG, JPG und WEBP erlaubt.',
+      fileTooLarge: 'Datei zu groß. Maximum: {max}MB',
+      uploadFailed: 'Upload fehlgeschlagen',
+      infoOriginal: 'Original:',
+      infoSize: 'Größe:'
+    },
+    mediaInput: {
+      choosePreset: 'Perspektive wählen',
+      translateToEnglish: 'Ins Englische übersetzen',
+      copy: 'Kopieren',
+      paste: 'Einfügen',
+      delete: 'Löschen',
+      loading: 'Lädt...',
+      contentBlocked: 'Inhalt blockiert'
+    },
     nav: {
       about: 'Über das Projekt',
       impressum: 'Impressum',
@@ -239,7 +258,113 @@ const messages = {
       search: 'Suchen...',
       noResults: 'Keine Ergebnisse gefunden',
       dragHint: 'Klicke oder ziehe Module auf die Arbeitsfläche',
-      editNameHint: '(doppelklicken zum Bearbeiten)'
+      editNameHint: '(doppelklicken zum Bearbeiten)',
+      modules: 'Module',
+      toggleSidebar: 'Sidebar ein/aus',
+      dsgvoTooltip: 'Canvas-Workflows können externe LLM-APIs nutzen. Die DSGVO-Konformität liegt in der Verantwortung der Nutzer:innen.',
+      batchExecute: 'Batch-Ausführung',
+      batchExecution: 'Batch-Ausführung',
+      batchAbort: 'Batch abbrechen',
+      abort: 'Abbrechen',
+      cancel: 'Abbrechen',
+      loading: 'Laden...',
+      executingWorkflow: 'Workflow wird ausgeführt...',
+      starting: 'Starte...',
+      nodes: 'Knoten',
+      batchRunCount: 'Anzahl Runs',
+      batchUseSeed: 'Basis-Seed verwenden',
+      batchBaseSeed: 'Basis-Seed',
+      batchSeedHint: 'Jeder Run: Seed + Index',
+      batchStart: 'Batch starten',
+      stage: {
+        configSelectPlaceholder: 'Auswählen...',
+        evaluationCriteriaFallback: 'Bewertungskriterien...',
+        branchFalseDefault: 'Falsch',
+        branchTrueDefault: 'Wahr',
+        feedbackInputTitle: 'Feedback-Eingang',
+        deleteTitle: 'Löschen',
+        selectLlmPlaceholder: 'LLM wählen...',
+        resizeTitle: 'Größe ändern',
+        input: {
+          promptPlaceholder: 'Dein Prompt...'
+        },
+        imageInput: {
+          uploadLabel: 'Bild hochladen'
+        },
+        interception: {
+          contextPromptLabel: 'Context-Prompt',
+          contextPromptPlaceholder: 'Transformations-Anweisungen...'
+        },
+        translation: {
+          translationPromptLabel: 'Übersetzungs-Prompt',
+          translationPromptPlaceholder: 'Übersetzungsanweisungen...'
+        },
+        modelAdaption: {
+          targetModelLabel: 'Zielmodell',
+          noAdaptionOption: 'Keine Adaption',
+          videoModelsOption: 'Video-Modelle',
+          audioModelsOption: 'Audio-Modelle'
+        },
+        comparisonEvaluator: {
+          criteriaLabel: 'Vergleichs-Kriterien',
+          criteriaPlaceholder: 'z.B. Vergleiche nach Originalität, Klarheit, Detailreichtum...',
+          infoText: 'Verbinde bis zu 3 Text-Outputs'
+        },
+        seed: {
+          modeLabel: 'Modus',
+          modeFixed: 'Fest',
+          modeRandom: 'Zufällig',
+          valueLabel: 'Wert',
+          baseLabel: 'Basis'
+        },
+        resolution: {
+          customOption: 'Benutzerdefiniert',
+          widthLabel: 'Breite',
+          heightLabel: 'Höhe'
+        },
+        collector: {
+          emptyText: 'Warte auf Ausführung...'
+        },
+        evaluation: {
+          typeLabel: 'Bewertungstyp',
+          typeCreativity: 'Kreativität',
+          typeQuality: 'Qualität',
+          typeCustom: 'Eigene',
+          criteriaLabel: 'Bewertungskriterien',
+          outputTypeLabel: 'Ausgabe-Typ',
+          outputCommentary: 'Kommentar + Binary',
+          outputScore: 'Kommentar + Score + Binary',
+          outputAll: 'Alle',
+          enableBranching: 'Verzweigung aktivieren',
+          branchConditionLabel: 'Verzweigungsbedingung',
+          branchThresholdOption: 'Schwellwert (Score)',
+          thresholdLabel: 'Schwellwert (0-10)',
+          trueLabelFieldLabel: 'Label "Pass/True"',
+          trueLabelDefault: 'Bestanden',
+          trueLabelPlaceholder: 'z.B. Bestanden',
+          falseLabelFieldLabel: 'Label "Fail/False"',
+          falseLabelDefault: 'Revision nötig',
+          falseLabelPlaceholder: 'z.B. Revision nötig',
+          connectorPassthrough: 'Passthrough (OK - unverändert)',
+          connectorCommented: 'Kommentiert (FAIL - mit Feedback)',
+          connectorCommentary: 'Nur Kommentar (für Anzeige)'
+        },
+        imageEvaluation: {
+          visionModelPlaceholder: 'Vision-Modell wählen...',
+          frameworkLabel: 'Analyse-Framework',
+          frameworkPanofsky: 'Kunsthistorisch (Panofsky)',
+          frameworkEducational: 'Bildungstheoretisch',
+          frameworkEthical: 'Ethisch',
+          frameworkCritical: 'Kritisch/Dekolonial',
+          frameworkCustom: 'Eigene Anweisung',
+          customPromptLabel: 'Analyse-Prompt',
+          customPromptPlaceholder: 'Beschreibe, wie das Bild analysiert werden soll...'
+        },
+        display: {
+          imageAlt: 'Vorschau',
+          emptyText: 'Vorschau (nach Ausführung)'
+        }
+      }
     },
     about: {
       title: 'Über das UCDCAE AI LAB',
@@ -1288,6 +1413,25 @@ const messages = {
       title: 'Choose Perspective',
       close: 'Close'
     },
+    imageUpload: {
+      clickHere: 'Click here',
+      orDragImage: 'or drag an image here',
+      formatHint: 'PNG, JPG, WEBP (max 10MB)',
+      invalidFormat: 'Invalid file format. Only PNG, JPG, and WEBP allowed.',
+      fileTooLarge: 'File too large. Maximum: {max}MB',
+      uploadFailed: 'Upload failed',
+      infoOriginal: 'Original:',
+      infoSize: 'Size:'
+    },
+    mediaInput: {
+      choosePreset: 'Choose Perspective',
+      translateToEnglish: 'Translate to English',
+      copy: 'Copy',
+      paste: 'Paste',
+      delete: 'Delete',
+      loading: 'Loading...',
+      contentBlocked: 'Content blocked'
+    },
     nav: {
       about: 'About',
       impressum: 'Imprint',
@@ -1312,7 +1456,113 @@ const messages = {
       search: 'Search...',
       noResults: 'No results found',
       dragHint: 'Click or drag modules onto the canvas',
-      editNameHint: '(double-click to edit)'
+      editNameHint: '(double-click to edit)',
+      modules: 'Modules',
+      toggleSidebar: 'Toggle sidebar',
+      dsgvoTooltip: 'Canvas workflows may use external LLM APIs. GDPR compliance is the responsibility of the user.',
+      batchExecute: 'Batch Execute',
+      batchExecution: 'Batch Execution',
+      batchAbort: 'Abort Batch',
+      abort: 'Abort',
+      cancel: 'Cancel',
+      loading: 'Loading...',
+      executingWorkflow: 'Executing Workflow...',
+      starting: 'Starting...',
+      nodes: 'nodes',
+      batchRunCount: 'Number of Runs',
+      batchUseSeed: 'Use Base Seed',
+      batchBaseSeed: 'Base Seed',
+      batchSeedHint: 'Each run: seed + index',
+      batchStart: 'Start Batch',
+      stage: {
+        configSelectPlaceholder: 'Select...',
+        evaluationCriteriaFallback: 'Evaluation criteria...',
+        branchFalseDefault: 'False',
+        branchTrueDefault: 'True',
+        feedbackInputTitle: 'Feedback Input',
+        deleteTitle: 'Delete',
+        selectLlmPlaceholder: 'Select LLM...',
+        resizeTitle: 'Resize',
+        input: {
+          promptPlaceholder: 'Your prompt...'
+        },
+        imageInput: {
+          uploadLabel: 'Upload Image'
+        },
+        interception: {
+          contextPromptLabel: 'Context Prompt',
+          contextPromptPlaceholder: 'Transformation instructions...'
+        },
+        translation: {
+          translationPromptLabel: 'Translation Prompt',
+          translationPromptPlaceholder: 'Translation instructions...'
+        },
+        modelAdaption: {
+          targetModelLabel: 'Target Model',
+          noAdaptionOption: 'No Adaption',
+          videoModelsOption: 'Video Models',
+          audioModelsOption: 'Audio Models'
+        },
+        comparisonEvaluator: {
+          criteriaLabel: 'Comparison Criteria',
+          criteriaPlaceholder: 'e.g. Compare by originality, clarity, detail...',
+          infoText: 'Connect up to 3 text outputs'
+        },
+        seed: {
+          modeLabel: 'Mode',
+          modeFixed: 'Fixed',
+          modeRandom: 'Random',
+          valueLabel: 'Value',
+          baseLabel: 'Base'
+        },
+        resolution: {
+          customOption: 'Custom',
+          widthLabel: 'Width',
+          heightLabel: 'Height'
+        },
+        collector: {
+          emptyText: 'Waiting for execution...'
+        },
+        evaluation: {
+          typeLabel: 'Evaluation Type',
+          typeCreativity: 'Creativity',
+          typeQuality: 'Quality',
+          typeCustom: 'Custom',
+          criteriaLabel: 'Evaluation Criteria',
+          outputTypeLabel: 'Output Type',
+          outputCommentary: 'Commentary + Binary',
+          outputScore: 'Commentary + Score + Binary',
+          outputAll: 'All',
+          enableBranching: 'Enable Branching',
+          branchConditionLabel: 'Branch Condition',
+          branchThresholdOption: 'Threshold (Score)',
+          thresholdLabel: 'Threshold (0-10)',
+          trueLabelFieldLabel: 'True Path Label',
+          trueLabelDefault: 'Approved',
+          trueLabelPlaceholder: 'e.g. Approved',
+          falseLabelFieldLabel: 'False Path Label',
+          falseLabelDefault: 'Needs Revision',
+          falseLabelPlaceholder: 'e.g. Needs Revision',
+          connectorPassthrough: 'Passthrough (OK - unchanged)',
+          connectorCommented: 'Commented (FAIL - with feedback)',
+          connectorCommentary: 'Commentary only (for display)'
+        },
+        imageEvaluation: {
+          visionModelPlaceholder: 'Select Vision Model...',
+          frameworkLabel: 'Analysis Framework',
+          frameworkPanofsky: 'Art Historical (Panofsky)',
+          frameworkEducational: 'Educational Theory',
+          frameworkEthical: 'Ethical',
+          frameworkCritical: 'Critical/Decolonial',
+          frameworkCustom: 'Custom',
+          customPromptLabel: 'Analysis Prompt',
+          customPromptPlaceholder: 'Describe how the image should be analyzed...'
+        },
+        display: {
+          imageAlt: 'Preview',
+          emptyText: 'Preview (after execution)'
+        }
+      }
     },
     about: {
       title: 'About the UCDCAE AI LAB',
@@ -2361,6 +2611,25 @@ const messages = {
       title: 'Bakış Açısı Seçin',
       close: 'Kapat'
     },
+    imageUpload: {
+      clickHere: 'Buraya tıklayın',
+      orDragImage: 'veya bir görsel sürükleyin',
+      formatHint: 'PNG, JPG, WEBP (maks. 10MB)',
+      invalidFormat: 'Geçersiz dosya formatı. Yalnızca PNG, JPG ve WEBP kabul edilir.',
+      fileTooLarge: 'Dosya çok büyük. Maksimum: {max}MB',
+      uploadFailed: 'Yükleme başarısız',
+      infoOriginal: 'Orijinal:',
+      infoSize: 'Boyut:'
+    },
+    mediaInput: {
+      choosePreset: 'Bakış Açısı Seçin',
+      translateToEnglish: 'İngilizceye çevir',
+      copy: 'Kopyala',
+      paste: 'Yapıştır',
+      delete: 'Sil',
+      loading: 'Yükleniyor...',
+      contentBlocked: 'İçerik engellendi'
+    },
     nav: {
       about: 'Hakkında',
       impressum: 'Künye',
@@ -2385,7 +2654,113 @@ const messages = {
       search: 'Ara...',
       noResults: 'Sonuç bulunamadı',
       dragHint: 'Modülleri kanvasa tıklayın veya sürükleyin',
-      editNameHint: '(düzenlemek için çift tıklayın)'
+      editNameHint: '(düzenlemek için çift tıklayın)',
+      modules: 'Modüller',
+      toggleSidebar: 'Kenar çubuğunu aç/kapat',
+      dsgvoTooltip: 'Kanvas iş akışları harici LLM API\'larını kullanabilir. KVKK uyumluluğu kullanıcının sorumluluğundadır.',
+      batchExecute: 'Toplu Çalıştırma',
+      batchExecution: 'Toplu Çalıştırma',
+      batchAbort: 'Toplu işlemi iptal et',
+      abort: 'İptal',
+      cancel: 'İptal',
+      loading: 'Yükleniyor...',
+      executingWorkflow: 'İş akışı çalıştırılıyor...',
+      starting: 'Başlatılıyor...',
+      nodes: 'düğüm',
+      batchRunCount: 'Çalıştırma Sayısı',
+      batchUseSeed: 'Temel Seed Kullan',
+      batchBaseSeed: 'Temel Seed',
+      batchSeedHint: 'Her çalıştırma: seed + index',
+      batchStart: 'Toplu Başlat',
+      stage: {
+        configSelectPlaceholder: 'Seçin...',
+        evaluationCriteriaFallback: 'Değerlendirme kriterleri...',
+        branchFalseDefault: 'Yanlış',
+        branchTrueDefault: 'Doğru',
+        feedbackInputTitle: 'Geri Bildirim Girişi',
+        deleteTitle: 'Sil',
+        selectLlmPlaceholder: 'LLM Seçin...',
+        resizeTitle: 'Boyutlandır',
+        input: {
+          promptPlaceholder: 'Promptunuz...'
+        },
+        imageInput: {
+          uploadLabel: 'Görsel Yükle'
+        },
+        interception: {
+          contextPromptLabel: 'Bağlam Promptu',
+          contextPromptPlaceholder: 'Dönüşüm talimatları...'
+        },
+        translation: {
+          translationPromptLabel: 'Çeviri Promptu',
+          translationPromptPlaceholder: 'Çeviri talimatları...'
+        },
+        modelAdaption: {
+          targetModelLabel: 'Hedef Model',
+          noAdaptionOption: 'Adaptasyon Yok',
+          videoModelsOption: 'Video Modelleri',
+          audioModelsOption: 'Ses Modelleri'
+        },
+        comparisonEvaluator: {
+          criteriaLabel: 'Karşılaştırma Kriterleri',
+          criteriaPlaceholder: 'örn. Orijinallik, netlik, ayrıntıya göre karşılaştırın...',
+          infoText: 'En fazla 3 metin çıkışı bağlayın'
+        },
+        seed: {
+          modeLabel: 'Mod',
+          modeFixed: 'Sabit',
+          modeRandom: 'Rastgele',
+          valueLabel: 'Değer',
+          baseLabel: 'Temel'
+        },
+        resolution: {
+          customOption: 'Özel',
+          widthLabel: 'Genişlik',
+          heightLabel: 'Yükseklik'
+        },
+        collector: {
+          emptyText: 'Çalıştırma bekleniyor...'
+        },
+        evaluation: {
+          typeLabel: 'Değerlendirme Türü',
+          typeCreativity: 'Yaratıcılık',
+          typeQuality: 'Kalite',
+          typeCustom: 'Özel',
+          criteriaLabel: 'Değerlendirme Kriterleri',
+          outputTypeLabel: 'Çıkış Türü',
+          outputCommentary: 'Yorum + Binary',
+          outputScore: 'Yorum + Skor + Binary',
+          outputAll: 'Tümü',
+          enableBranching: 'Dallanmayı Etkinleştir',
+          branchConditionLabel: 'Dallanma Koşulu',
+          branchThresholdOption: 'Eşik Değeri (Skor)',
+          thresholdLabel: 'Eşik Değeri (0-10)',
+          trueLabelFieldLabel: 'Doğru Yol Etiketi',
+          trueLabelDefault: 'Onaylandı',
+          trueLabelPlaceholder: 'örn. Onaylandı',
+          falseLabelFieldLabel: 'Yanlış Yol Etiketi',
+          falseLabelDefault: 'Revizyon Gerekli',
+          falseLabelPlaceholder: 'örn. Revizyon Gerekli',
+          connectorPassthrough: 'Geçiş (OK - değiştirilmedi)',
+          connectorCommented: 'Yorumlandı (FAIL - geri bildirimli)',
+          connectorCommentary: 'Yalnızca Yorum (görüntüleme için)'
+        },
+        imageEvaluation: {
+          visionModelPlaceholder: 'Görüntü Modeli Seçin...',
+          frameworkLabel: 'Analiz Çerçevesi',
+          frameworkPanofsky: 'Sanat Tarihsel (Panofsky)',
+          frameworkEducational: 'Eğitim Teorisi',
+          frameworkEthical: 'Etik',
+          frameworkCritical: 'Eleştirel/Dekolonyal',
+          frameworkCustom: 'Özel Talimat',
+          customPromptLabel: 'Analiz Promptu',
+          customPromptPlaceholder: 'Görselin nasıl analiz edilmesi gerektiğini açıklayın...'
+        },
+        display: {
+          imageAlt: 'Önizleme',
+          emptyText: 'Önizleme (çalıştırmadan sonra)'
+        }
+      }
     },
     about: {
       title: 'UCDCAE AI LAB Hakkında',

@@ -37,7 +37,7 @@
       </span>
       <span class="bubble-label">{{ label }}</span>
       <div v-if="showActions" class="bubble-actions">
-        <button v-if="showPresetButton" @click="$emit('open-preset-selector')" class="action-btn preset-btn" :class="{ 'preset-suggesting': isRequired }" title="Perspektive wählen">
+        <button v-if="showPresetButton" @click="$emit('open-preset-selector')" class="action-btn preset-btn" :class="{ 'preset-suggesting': isRequired }" :title="t('mediaInput.choosePreset')">
           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
             <path d="M480-60q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T520-180q0-17-11.5-28.5T480-220q-17 0-28.5 11.5T440-180q0 17 11.5 28.5T480-140Zm-260-70q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm520 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm-520-80q17 0 28.5-11.5T260-330q0-17-11.5-28.5T220-370q-17 0-28.5 11.5T180-330q0 17 11.5 28.5T220-290Zm520 0q17 0 28.5-11.5T780-330q0-17-11.5-28.5T740-370q-17 0-28.5 11.5T700-330q0 17 11.5 28.5T740-290ZM220-510q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm520 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm-520-80q17 0 28.5-11.5T260-630q0-17-11.5-28.5T220-670q-17 0-28.5 11.5T180-630q0 17 11.5 28.5T220-590Zm520 0q17 0 28.5-11.5T780-630q0-17-11.5-28.5T740-670q-17 0-28.5 11.5T700-630q0 17 11.5 28.5T740-590Zm-260-70q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T520-780q0-17-11.5-28.5T480-820q-17 0-28.5 11.5T440-780q0 17 11.5 28.5T480-740Z"/>
           </svg>
@@ -48,7 +48,7 @@
           class="action-btn translate-btn"
           :class="{ translating: isTranslating }"
           :disabled="isTranslating || !value.trim()"
-          title="Translate to English"
+          :title="t('mediaInput.translateToEnglish')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" class="union-jack">
             <!-- Background (blue) -->
@@ -61,17 +61,17 @@
             <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/>
           </svg>
         </button>
-        <button v-if="showCopy" @click="$emit('copy')" class="action-btn" title="Kopieren">
+        <button v-if="showCopy" @click="$emit('copy')" class="action-btn" :title="t('mediaInput.copy')">
           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
             <path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/>
           </svg>
         </button>
-        <button v-if="showPaste" @click="$emit('paste')" class="action-btn" title="Einfügen">
+        <button v-if="showPaste" @click="$emit('paste')" class="action-btn" :title="t('mediaInput.paste')">
           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
             <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h167q11-35 43-57.5t70-22.5q40 0 71.5 22.5T594-840h166q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560h-80v120H280v-120h-80v560Zm280-560q17 0 28.5-11.5T520-800q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800q0 17 11.5 28.5T480-760Z"/>
           </svg>
         </button>
-        <button v-if="showClear" @click="$emit('clear')" class="action-btn" title="Löschen">
+        <button v-if="showClear" @click="$emit('clear')" class="action-btn" :title="t('mediaInput.delete')">
           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
             <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
           </svg>
@@ -83,7 +83,7 @@
     <div v-if="isLoading" class="preview-loading">
       <div class="spinner-large" :class="{ queued: queueStatus === 'waiting' }"></div>
       <p class="loading-text" :class="{ queued: queueStatus === 'waiting' }">
-        {{ queueStatus === 'waiting' ? queueMessage : loadingMessage }}
+        {{ queueStatus === 'waiting' ? queueMessage : (loadingMessage || t('mediaInput.loading')) }}
       </p>
     </div>
 
@@ -115,9 +115,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ImageUploadWidget from '@/components/ImageUploadWidget.vue'
 import { useSafetyEventStore } from '@/stores/safetyEvent'
 
+const { t } = useI18n()
 const safetyStore = useSafetyEventStore()
 
 // Template refs for parent access (like MediaOutputBox sectionRef)
@@ -179,7 +181,7 @@ const props = withDefaults(defineProps<Props>(), {
   isRequired: false,
   isFilled: false,
   isLoading: false,
-  loadingMessage: 'Lädt...',
+  loadingMessage: undefined,
   showActions: true,
   showCopy: true,
   showPaste: true,
@@ -295,7 +297,7 @@ async function checkSafety() {
     if (!data.safe) {
       // Blocked — clear content, Trashy explains why
       emit('update:value', '')
-      safetyStore.reportBlock(1, data.error_message || 'Inhalt blockiert', [])
+      safetyStore.reportBlock(1, data.error_message || t('mediaInput.contentBlocked'), [])
     }
   } catch {
     // Network error → fail-open, keep content
@@ -451,7 +453,7 @@ function startStreaming() {
       eventSource.value = null
     }
     stopBufferProcessor()
-    safetyStore.reportBlock(data.stage || 'safety', data.reason || 'Inhalt blockiert', data.found_terms || [])
+    safetyStore.reportBlock(data.stage || 'safety', data.reason || t('mediaInput.contentBlocked'), data.found_terms || [])
     emit('stream-complete', { blocked: true, reason: data.reason })
   })
 

@@ -40,9 +40,9 @@
           </svg>
         </div>
         <p class="upload-text">
-          <strong>Klicke hier</strong> oder ziehe ein Bild hierher
+          <strong>{{ t('imageUpload.clickHere') }}</strong> {{ t('imageUpload.orDragImage') }}
         </p>
-        <p class="upload-hint">PNG, JPG, WEBP (max 10MB)</p>
+        <p class="upload-hint">{{ t('imageUpload.formatHint') }}</p>
       </div>
     </div>
 
@@ -62,11 +62,11 @@
 
     <!-- Upload Info -->
     <div v-if="uploadInfo" class="upload-info">
-      <span class="info-label">Original:</span> {{ uploadInfo.original_size[0] }}×{{ uploadInfo.original_size[1] }}px
+      <span class="info-label">{{ t('imageUpload.infoOriginal') }}</span> {{ uploadInfo.original_size[0] }}×{{ uploadInfo.original_size[1] }}px
       <span v-if="wasResized" class="resize-badge">
         → {{ uploadInfo.resized_size[0] }}×{{ uploadInfo.resized_size[1] }}px
       </span>
-      <span class="info-label">Größe:</span> {{ (uploadInfo.file_size_bytes / 1024).toFixed(1) }}KB
+      <span class="info-label">{{ t('imageUpload.infoSize') }}</span> {{ (uploadInfo.file_size_bytes / 1024).toFixed(1) }}KB
       <!-- DEPRECATED 2025-12-15: Mask badge (not used) -->
       <!--
       <span v-if="hasMask" class="mask-badge">
@@ -177,14 +177,14 @@ async function processFile(file: File) {
 
   // Validate file type
   if (!ALLOWED_TYPES.includes(file.type)) {
-    error.value = 'Ungültiges Dateiformat. Nur PNG, JPG und WEBP erlaubt.'
+    error.value = t('imageUpload.invalidFormat')
     return
   }
 
   // Validate file size
   const maxBytes = props.maxSizeMB * 1024 * 1024
   if (file.size > maxBytes) {
-    error.value = `Datei zu groß. Maximum: ${props.maxSizeMB}MB`
+    error.value = t('imageUpload.fileTooLarge', { max: props.maxSizeMB })
     return
   }
 
@@ -248,12 +248,12 @@ async function processFile(file: File) {
         upload_info: response.data
       })
     } else {
-      error.value = 'Upload fehlgeschlagen'
+      error.value = t('imageUpload.uploadFailed')
       previewUrl.value = null
     }
   } catch (err: any) {
     console.error('Upload error:', err)
-    error.value = err.response?.data?.error || 'Upload fehlgeschlagen'
+    error.value = err.response?.data?.error || t('imageUpload.uploadFailed')
     previewUrl.value = null
   }
 }

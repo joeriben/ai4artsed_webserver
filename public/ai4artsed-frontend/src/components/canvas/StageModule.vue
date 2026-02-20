@@ -3,8 +3,9 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { CanvasNode, LLMModelSummary, RandomPromptPreset, PhotoFilmType, ModelAdaptionPreset, InterceptionPreset } from '@/types/canvas'
 import { getNodeTypeDefinition, RANDOM_PROMPT_PRESETS, PHOTO_FILM_TYPES, INTERCEPTION_PRESETS } from '@/types/canvas'
+import { localized } from '@/i18n'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 // Icon URL helper
 function getIconUrl(iconPath: string): string {
@@ -109,7 +110,7 @@ const nodeIconUrl = computed(() => {
 const nodeLabel = computed(() => {
   const def = nodeTypeDef.value
   if (!def) return props.node.type
-  return locale.value === 'de' ? def.label.de : def.label.en
+  return localized(def.label, locale.value)
 })
 
 // Source nodes (input, image_input, seed, resolution, quality) have no input connector
@@ -163,7 +164,7 @@ const isConfigured = computed(() => {
 const displayConfigName = computed(() => {
   if (props.configName) return props.configName
   if (props.node.configId) return props.node.configId
-  return locale.value === 'de' ? 'Auswählen...' : 'Select...'
+  return t('canvas.stage.configSelectPlaceholder')
 })
 
 // Output bubble: shows truncated output when node has executed
@@ -226,7 +227,7 @@ async function onInterceptionPresetChange(event: Event) {
       const response = await fetch(`/api/interception/${presetId}`)
       if (response.ok) {
         const data = await response.json()
-        const context = locale.value === 'de' ? data.context?.de : data.context?.en
+        const context = localized(data.context || {}, locale.value)
         emit('update-interception-preset', presetId, context || '')
       } else {
         // Fallback: just emit the preset ID with empty context
@@ -304,8 +305,8 @@ function getEvaluationPromptTemplate(evalType: string): string {
   }
 
   const template = templates[evalType]
-  if (!template) return locale.value === 'de' ? 'Bewertungskriterien...' : 'Evaluation criteria...'
-  return locale.value === 'de' ? template.de : template.en
+  if (!template) return t('canvas.stage.evaluationCriteriaFallback')
+  return localized(template, locale.value)
 }
 
 // Session 140: Random Prompt node handlers
@@ -359,12 +360,12 @@ function onThresholdChange(event: Event) {
 
 function onTrueLabelChange(event: Event) {
   const input = event.target as HTMLInputElement
-  emit('update-branch-labels', input.value, props.node.falseLabel || (locale.value === 'de' ? 'Falsch' : 'False'))
+  emit('update-branch-labels', input.value, props.node.falseLabel || t('canvas.stage.branchFalseDefault'))
 }
 
 function onFalseLabelChange(event: Event) {
   const input = event.target as HTMLInputElement
-  emit('update-branch-labels', props.node.trueLabel || (locale.value === 'de' ? 'Wahr' : 'True'), input.value)
+  emit('update-branch-labels', props.node.trueLabel || t('canvas.stage.branchTrueDefault'), input.value)
 }
 
 // Session 151: Parameter node handlers
@@ -596,7 +597,7 @@ const nodeHeight = computed(() => {
       :data-node-id="node.id"
       data-connector="feedback-input"
       @mouseup.stop="emit('end-connect-feedback')"
-      :title="locale === 'de' ? 'Feedback-Eingang' : 'Feedback Input'"
+      :title="$t('canvas.stage.feedbackInputTitle')"
     >
       <span class="feedback-label">FB</span>
     </div>
@@ -615,7 +616,7 @@ const nodeHeight = computed(() => {
         v-if="node.type !== 'collector'"
         class="delete-btn"
         @click.stop="emit('delete')"
-        :title="locale === 'de' ? 'Löschen' : 'Delete'"
+        :title="$t('canvas.stage.deleteTitle')"
       >
         ×
       </button>
@@ -627,11 +628,11 @@ const nodeHeight = computed(() => {
       <!-- INPUT NODE: Prompt text input (FIRST to ensure it matches) -->
       <template v-if="node.type === 'input'">
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Prompt' : 'Prompt' }}</label>
+          <label class="field-label">Prompt</label>
           <textarea
             class="prompt-textarea"
             :value="node.promptText || ''"
-            :placeholder="locale === 'de' ? 'Dein Prompt...' : 'Your prompt...'"
+            :placeholder="$t('canvas.stage.input.promptPlaceholder')"
             rows="4"
             @input="onPromptTextChange"
             @mousedown.stop
@@ -642,7 +643,7 @@ const nodeHeight = computed(() => {
       <!-- IMAGE_INPUT NODE: Image upload (Session 152) -->
       <template v-else-if="isImageInput">
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Bild hochladen' : 'Upload Image' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.imageInput.uploadLabel') }}</label>
           <!-- Preview if image uploaded -->
           <div v-if="node.imageData?.preview_url" class="image-preview">
             <img :src="node.imageData.preview_url" class="uploaded-image-thumb" />
@@ -675,7 +676,7 @@ const nodeHeight = computed(() => {
               :key="presetKey"
               :value="presetKey"
             >
-              {{ locale === 'de' ? config.label.de : config.label.en }}
+              {{ localized(config.label, locale) }}
             </option>
           </select>
         </div>
@@ -708,7 +709,7 @@ const nodeHeight = computed(() => {
             @change="onRandomPromptModelChange"
             @mousedown.stop
           >
-            <option value="" disabled>{{ locale === 'de' ? 'LLM wählen...' : 'Select LLM...' }}</option>
+            <option value="" disabled>{{ $t('canvas.stage.selectLlmPlaceholder') }}</option>
             <option
               v-for="model in llmModels"
               :key="model.id"
@@ -724,7 +725,7 @@ const nodeHeight = computed(() => {
       <!-- INTERCEPTION NODE: Preset dropdown + LLM dropdown + Context prompt (Session 146) -->
       <template v-else-if="isInterception">
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Interception' : 'Interception' }}</label>
+          <label class="field-label">Interception</label>
           <select
             class="llm-select"
             :value="node.interceptionPreset || 'user_defined'"
@@ -736,7 +737,7 @@ const nodeHeight = computed(() => {
               :key="presetKey"
               :value="presetKey"
             >
-              {{ locale === 'de' ? config.label.de : config.label.en }}
+              {{ localized(config.label, locale) }}
             </option>
           </select>
         </div>
@@ -748,7 +749,7 @@ const nodeHeight = computed(() => {
             @change="onLLMChange"
             @mousedown.stop
           >
-            <option value="" disabled>{{ locale === 'de' ? 'LLM wählen...' : 'Select LLM...' }}</option>
+            <option value="" disabled>{{ $t('canvas.stage.selectLlmPlaceholder') }}</option>
             <option
               v-for="model in llmModels"
               :key="model.id"
@@ -759,11 +760,11 @@ const nodeHeight = computed(() => {
           </select>
         </div>
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Context-Prompt' : 'Context Prompt' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.interception.contextPromptLabel') }}</label>
           <textarea
             class="prompt-textarea"
             :value="node.contextPrompt || ''"
-            :placeholder="locale === 'de' ? 'Transformations-Anweisungen...' : 'Transformation instructions...'"
+            :placeholder="$t('canvas.stage.interception.contextPromptPlaceholder')"
             rows="3"
             @input="onContextPromptChange"
             @mousedown.stop
@@ -781,7 +782,7 @@ const nodeHeight = computed(() => {
             @change="onLLMChange"
             @mousedown.stop
           >
-            <option value="" disabled>{{ locale === 'de' ? 'LLM wählen...' : 'Select LLM...' }}</option>
+            <option value="" disabled>{{ $t('canvas.stage.selectLlmPlaceholder') }}</option>
             <option
               v-for="model in llmModels"
               :key="model.id"
@@ -792,11 +793,11 @@ const nodeHeight = computed(() => {
           </select>
         </div>
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Übersetzungs-Prompt' : 'Translation Prompt' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.translation.translationPromptLabel') }}</label>
           <textarea
             class="prompt-textarea"
             :value="node.translationPrompt || ''"
-            :placeholder="locale === 'de' ? 'Übersetzungsanweisungen...' : 'Translation instructions...'"
+            :placeholder="$t('canvas.stage.translation.translationPromptPlaceholder')"
             rows="2"
             @input="onTranslationPromptChange"
             @mousedown.stop
@@ -807,18 +808,18 @@ const nodeHeight = computed(() => {
       <!-- MODEL ADAPTION NODE: Media model preset selector (Session 145) -->
       <template v-else-if="isModelAdaption">
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Zielmodell' : 'Target Model' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.modelAdaption.targetModelLabel') }}</label>
           <select
             class="llm-select"
             :value="node.modelAdaptionPreset || 'none'"
             @change="onModelAdaptionPresetChange"
             @mousedown.stop
           >
-            <option value="none">{{ locale === 'de' ? 'Keine Adaption' : 'No Adaption' }}</option>
+            <option value="none">{{ $t('canvas.stage.modelAdaption.noAdaptionOption') }}</option>
             <option value="sd35">Stable Diffusion 3.5</option>
             <option value="flux">Flux</option>
-            <option value="video">{{ locale === 'de' ? 'Video-Modelle' : 'Video Models' }}</option>
-            <option value="audio">{{ locale === 'de' ? 'Audio-Modelle' : 'Audio Models' }}</option>
+            <option value="video">{{ $t('canvas.stage.modelAdaption.videoModelsOption') }}</option>
+            <option value="audio">{{ $t('canvas.stage.modelAdaption.audioModelsOption') }}</option>
           </select>
         </div>
       </template>
@@ -833,7 +834,7 @@ const nodeHeight = computed(() => {
             @change="onComparisonLlmChange"
             @mousedown.stop
           >
-            <option value="" disabled>{{ locale === 'de' ? 'LLM wählen...' : 'Select LLM...' }}</option>
+            <option value="" disabled>{{ $t('canvas.stage.selectLlmPlaceholder') }}</option>
             <option
               v-for="model in llmModels"
               :key="model.id"
@@ -844,18 +845,18 @@ const nodeHeight = computed(() => {
           </select>
         </div>
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Vergleichs-Kriterien' : 'Comparison Criteria' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.comparisonEvaluator.criteriaLabel') }}</label>
           <textarea
             class="prompt-textarea"
             :value="node.comparisonCriteria || ''"
-            :placeholder="locale === 'de' ? 'z.B. Vergleiche nach Originalität, Klarheit, Detailreichtum...' : 'e.g. Compare by originality, clarity, detail...'"
+            :placeholder="$t('canvas.stage.comparisonEvaluator.criteriaPlaceholder')"
             rows="3"
             @input="onComparisonCriteriaChange"
             @mousedown.stop
           />
         </div>
         <div class="field-info">
-          {{ locale === 'de' ? 'Verbinde bis zu 3 Text-Outputs' : 'Connect up to 3 text outputs' }}
+          {{ $t('canvas.stage.comparisonEvaluator.infoText') }}
         </div>
       </template>
 
@@ -897,19 +898,19 @@ const nodeHeight = computed(() => {
       <template v-else-if="isSeed">
         <div class="seed-config">
           <div class="config-row">
-            <label>{{ locale === 'de' ? 'Modus' : 'Mode' }}</label>
+            <label>{{ $t('canvas.stage.seed.modeLabel') }}</label>
             <select
               :value="node.seedMode || 'fixed'"
               @change="emit('update-seed-mode', ($event.target as HTMLSelectElement).value as 'fixed' | 'random' | 'increment')"
               @mousedown.stop
             >
-              <option value="fixed">{{ locale === 'de' ? 'Fest' : 'Fixed' }}</option>
-              <option value="random">{{ locale === 'de' ? 'Zufällig' : 'Random' }}</option>
-              <option value="increment">{{ locale === 'de' ? 'Batch (+1)' : 'Batch (+1)' }}</option>
+              <option value="fixed">{{ $t('canvas.stage.seed.modeFixed') }}</option>
+              <option value="random">{{ $t('canvas.stage.seed.modeRandom') }}</option>
+              <option value="increment">Batch (+1)</option>
             </select>
           </div>
           <div v-if="node.seedMode === 'fixed' || !node.seedMode" class="config-row">
-            <label>{{ locale === 'de' ? 'Wert' : 'Value' }}</label>
+            <label>{{ $t('canvas.stage.seed.valueLabel') }}</label>
             <input
               type="number"
               :value="node.seedValue ?? 123456789"
@@ -920,7 +921,7 @@ const nodeHeight = computed(() => {
             />
           </div>
           <div v-if="node.seedMode === 'increment'" class="config-row">
-            <label>{{ locale === 'de' ? 'Basis' : 'Base' }}</label>
+            <label>{{ $t('canvas.stage.seed.baseLabel') }}</label>
             <input
               type="number"
               :value="node.seedBase ?? 0"
@@ -936,7 +937,7 @@ const nodeHeight = computed(() => {
       <template v-else-if="isResolution">
         <div class="resolution-config">
           <div class="config-row">
-            <label>{{ locale === 'de' ? 'Preset' : 'Preset' }}</label>
+            <label>Preset</label>
             <select
               :value="node.resolutionPreset || 'square_1024'"
               @change="emit('update-resolution-preset', ($event.target as HTMLSelectElement).value as 'square_1024' | 'portrait_768x1344' | 'landscape_1344x768' | 'custom')"
@@ -945,11 +946,11 @@ const nodeHeight = computed(() => {
               <option value="square_1024">1024 × 1024</option>
               <option value="portrait_768x1344">768 × 1344</option>
               <option value="landscape_1344x768">1344 × 768</option>
-              <option value="custom">{{ locale === 'de' ? 'Benutzerdefiniert' : 'Custom' }}</option>
+              <option value="custom">{{ $t('canvas.stage.resolution.customOption') }}</option>
             </select>
           </div>
           <div v-if="node.resolutionPreset === 'custom'" class="config-row">
-            <label>{{ locale === 'de' ? 'Breite' : 'Width' }}</label>
+            <label>{{ $t('canvas.stage.resolution.widthLabel') }}</label>
             <input
               type="number"
               :value="node.resolutionWidth ?? 1024"
@@ -961,7 +962,7 @@ const nodeHeight = computed(() => {
             />
           </div>
           <div v-if="node.resolutionPreset === 'custom'" class="config-row">
-            <label>{{ locale === 'de' ? 'Höhe' : 'Height' }}</label>
+            <label>{{ $t('canvas.stage.resolution.heightLabel') }}</label>
             <input
               type="number"
               :value="node.resolutionHeight ?? 1024"
@@ -982,7 +983,7 @@ const nodeHeight = computed(() => {
       <template v-else-if="isQuality">
         <div class="quality-config">
           <div class="config-row">
-            <label>{{ locale === 'de' ? 'Steps' : 'Steps' }}</label>
+            <label>Steps</label>
             <input
               type="number"
               :value="node.qualitySteps ?? 25"
@@ -1071,7 +1072,7 @@ const nodeHeight = computed(() => {
         </div>
         <div v-else class="collector-empty">
           <span class="module-type-info">
-            {{ locale === 'de' ? 'Warte auf Ausführung...' : 'Waiting for execution...' }}
+            {{ $t('canvas.stage.collector.emptyText') }}
           </span>
         </div>
       </template>
@@ -1080,18 +1081,18 @@ const nodeHeight = computed(() => {
       <template v-else-if="isEvaluation">
         <!-- Evaluation Type -->
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Bewertungstyp' : 'Evaluation Type' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.evaluation.typeLabel') }}</label>
           <select
             class="llm-select"
             :value="node.evaluationType || 'custom'"
             @change="onEvaluationTypeChange"
             @mousedown.stop
           >
-            <option value="fairness">{{ locale === 'de' ? 'Fairness' : 'Fairness' }}</option>
-            <option value="creativity">{{ locale === 'de' ? 'Kreativität' : 'Creativity' }}</option>
-            <option value="bias">{{ locale === 'de' ? 'Bias' : 'Bias' }}</option>
-            <option value="quality">{{ locale === 'de' ? 'Qualität' : 'Quality' }}</option>
-            <option value="custom">{{ locale === 'de' ? 'Eigene' : 'Custom' }}</option>
+            <option value="fairness">Fairness</option>
+            <option value="creativity">{{ $t('canvas.stage.evaluation.typeCreativity') }}</option>
+            <option value="bias">Bias</option>
+            <option value="quality">{{ $t('canvas.stage.evaluation.typeQuality') }}</option>
+            <option value="custom">{{ $t('canvas.stage.evaluation.typeCustom') }}</option>
           </select>
         </div>
 
@@ -1104,7 +1105,7 @@ const nodeHeight = computed(() => {
             @change="onLLMChange"
             @mousedown.stop
           >
-            <option value="" disabled>{{ locale === 'de' ? 'LLM wählen...' : 'Select LLM...' }}</option>
+            <option value="" disabled>{{ $t('canvas.stage.selectLlmPlaceholder') }}</option>
             <option
               v-for="model in llmModels"
               :key="model.id"
@@ -1117,7 +1118,7 @@ const nodeHeight = computed(() => {
 
         <!-- Evaluation Criteria -->
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Bewertungskriterien' : 'Evaluation Criteria' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.evaluation.criteriaLabel') }}</label>
           <textarea
             class="prompt-textarea"
             :value="node.evaluationPrompt || getEvaluationPromptTemplate(node.evaluationType || 'custom')"
@@ -1129,16 +1130,16 @@ const nodeHeight = computed(() => {
 
         <!-- Output Type (score optional) -->
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Ausgabe-Typ' : 'Output Type' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.evaluation.outputTypeLabel') }}</label>
           <select
             class="llm-select"
             :value="node.outputType || 'commentary'"
             @change="onOutputTypeChange"
             @mousedown.stop
           >
-            <option value="commentary">{{ locale === 'de' ? 'Kommentar + Binary' : 'Commentary + Binary' }}</option>
-            <option value="score">{{ locale === 'de' ? 'Kommentar + Score + Binary' : 'Commentary + Score + Binary' }}</option>
-            <option value="all">{{ locale === 'de' ? 'Alle' : 'All' }}</option>
+            <option value="commentary">{{ $t('canvas.stage.evaluation.outputCommentary') }}</option>
+            <option value="score">{{ $t('canvas.stage.evaluation.outputScore') }}</option>
+            <option value="all">{{ $t('canvas.stage.evaluation.outputAll') }}</option>
           </select>
         </div>
 
@@ -1151,7 +1152,7 @@ const nodeHeight = computed(() => {
               @change="onEnableBranchingChange"
               @mousedown.stop
             />
-            <span>{{ locale === 'de' ? 'Verzweigung aktivieren' : 'Enable Branching' }}</span>
+            <span>{{ $t('canvas.stage.evaluation.enableBranching') }}</span>
           </label>
         </div>
 
@@ -1159,20 +1160,20 @@ const nodeHeight = computed(() => {
         <template v-if="node.enableBranching">
           <div class="branching-section">
             <div class="field-group">
-              <label class="field-label">{{ locale === 'de' ? 'Verzweigungsbedingung' : 'Branch Condition' }}</label>
+              <label class="field-label">{{ $t('canvas.stage.evaluation.branchConditionLabel') }}</label>
               <select
                 class="llm-select"
                 :value="node.branchCondition || 'binary'"
                 @change="onBranchConditionChange"
                 @mousedown.stop
               >
-                <option value="binary">{{ locale === 'de' ? 'Binary (Pass/Fail)' : 'Binary (Pass/Fail)' }}</option>
-                <option value="threshold">{{ locale === 'de' ? 'Schwellwert (Score)' : 'Threshold (Score)' }}</option>
+                <option value="binary">Binary (Pass/Fail)</option>
+                <option value="threshold">{{ $t('canvas.stage.evaluation.branchThresholdOption') }}</option>
               </select>
             </div>
 
             <div v-if="node.branchCondition === 'threshold'" class="field-group">
-              <label class="field-label">{{ locale === 'de' ? 'Schwellwert (0-10)' : 'Threshold (0-10)' }}</label>
+              <label class="field-label">{{ $t('canvas.stage.evaluation.thresholdLabel') }}</label>
               <input
                 type="number"
                 min="0"
@@ -1186,24 +1187,24 @@ const nodeHeight = computed(() => {
             </div>
 
             <div class="field-group">
-              <label class="field-label">{{ locale === 'de' ? 'Label "Pass/True"' : 'True Path Label' }}</label>
+              <label class="field-label">{{ $t('canvas.stage.evaluation.trueLabelFieldLabel') }}</label>
               <input
                 type="text"
                 class="llm-select"
-                :value="node.trueLabel || (locale === 'de' ? 'Bestanden' : 'Approved')"
-                :placeholder="locale === 'de' ? 'z.B. Bestanden' : 'e.g. Approved'"
+                :value="node.trueLabel || $t('canvas.stage.evaluation.trueLabelDefault')"
+                :placeholder="$t('canvas.stage.evaluation.trueLabelPlaceholder')"
                 @input="onTrueLabelChange"
                 @mousedown.stop
               />
             </div>
 
             <div class="field-group">
-              <label class="field-label">{{ locale === 'de' ? 'Label "Fail/False"' : 'False Path Label' }}</label>
+              <label class="field-label">{{ $t('canvas.stage.evaluation.falseLabelFieldLabel') }}</label>
               <input
                 type="text"
                 class="llm-select"
-                :value="node.falseLabel || (locale === 'de' ? 'Revision nötig' : 'Needs Revision')"
-                :placeholder="locale === 'de' ? 'z.B. Revision nötig' : 'e.g. Needs Revision'"
+                :value="node.falseLabel || $t('canvas.stage.evaluation.falseLabelDefault')"
+                :placeholder="$t('canvas.stage.evaluation.falseLabelPlaceholder')"
                 @input="onFalseLabelChange"
                 @mousedown.stop
               />
@@ -1223,7 +1224,7 @@ const nodeHeight = computed(() => {
             @change="onVisionModelChange"
             @mousedown.stop
           >
-            <option value="" disabled>{{ locale === 'de' ? 'Vision-Modell wählen...' : 'Select Vision Model...' }}</option>
+            <option value="" disabled>{{ $t('canvas.stage.imageEvaluation.visionModelPlaceholder') }}</option>
             <option
               v-for="model in visionModels"
               :key="model.id"
@@ -1236,28 +1237,28 @@ const nodeHeight = computed(() => {
 
         <!-- Analysis Framework/Preset -->
         <div class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Analyse-Framework' : 'Analysis Framework' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.imageEvaluation.frameworkLabel') }}</label>
           <select
             class="llm-select"
             :value="node.imageEvaluationPreset || 'bildwissenschaftlich'"
             @change="onImageEvaluationPresetChange"
             @mousedown.stop
           >
-            <option value="bildwissenschaftlich">{{ locale === 'de' ? 'Kunsthistorisch (Panofsky)' : 'Art Historical (Panofsky)' }}</option>
-            <option value="bildungstheoretisch">{{ locale === 'de' ? 'Bildungstheoretisch' : 'Educational Theory' }}</option>
-            <option value="ethisch">{{ locale === 'de' ? 'Ethisch' : 'Ethical' }}</option>
-            <option value="kritisch">{{ locale === 'de' ? 'Kritisch/Dekolonial' : 'Critical/Decolonial' }}</option>
-            <option value="custom">{{ locale === 'de' ? 'Eigene Anweisung' : 'Custom' }}</option>
+            <option value="bildwissenschaftlich">{{ $t('canvas.stage.imageEvaluation.frameworkPanofsky') }}</option>
+            <option value="bildungstheoretisch">{{ $t('canvas.stage.imageEvaluation.frameworkEducational') }}</option>
+            <option value="ethisch">{{ $t('canvas.stage.imageEvaluation.frameworkEthical') }}</option>
+            <option value="kritisch">{{ $t('canvas.stage.imageEvaluation.frameworkCritical') }}</option>
+            <option value="custom">{{ $t('canvas.stage.imageEvaluation.frameworkCustom') }}</option>
           </select>
         </div>
 
         <!-- Custom Prompt (only if preset is 'custom') -->
         <div v-if="node.imageEvaluationPreset === 'custom'" class="field-group">
-          <label class="field-label">{{ locale === 'de' ? 'Analyse-Prompt' : 'Analysis Prompt' }}</label>
+          <label class="field-label">{{ $t('canvas.stage.imageEvaluation.customPromptLabel') }}</label>
           <textarea
             class="prompt-textarea"
             :value="node.imageEvaluationPrompt || ''"
-            :placeholder="locale === 'de' ? 'Beschreibe, wie das Bild analysiert werden soll...' : 'Describe how the image should be analyzed...'"
+            :placeholder="$t('canvas.stage.imageEvaluation.customPromptPlaceholder')"
             rows="4"
             @input="onImageEvaluationPromptChange"
             @mousedown.stop
@@ -1280,7 +1281,7 @@ const nodeHeight = computed(() => {
               v-if="(executionResult.output as any).media_type === 'image' || !(executionResult.output as any).media_type"
               :src="(executionResult.output as any).url"
               class="preview-image"
-              :alt="locale === 'de' ? 'Vorschau' : 'Preview'"
+              :alt="$t('canvas.stage.display.imageAlt')"
             />
             <div v-else class="preview-media-info">
               {{ (executionResult.output as any).media_type }}: {{ (executionResult.output as any).url }}
@@ -1294,7 +1295,7 @@ const nodeHeight = computed(() => {
         </div>
         <div v-else-if="!executionResult" class="preview-empty">
           <span class="module-type-info">
-            {{ locale === 'de' ? 'Vorschau (nach Ausführung)' : 'Preview (after execution)' }}
+            {{ $t('canvas.stage.display.emptyText') }}
           </span>
         </div>
       </template>
@@ -1326,7 +1327,7 @@ const nodeHeight = computed(() => {
         :data-node-id="node.id"
         data-connector="output-passthrough"
         @mousedown.stop="emit('start-connect-labeled', 'passthrough')"
-        :title="locale === 'de' ? 'Passthrough (OK - unverändert)' : 'Passthrough (OK - unchanged)'"
+        :title="$t('canvas.stage.evaluation.connectorPassthrough')"
       >
         <span class="connector-label">P</span>
       </div>
@@ -1335,7 +1336,7 @@ const nodeHeight = computed(() => {
         :data-node-id="node.id"
         data-connector="output-commented"
         @mousedown.stop="emit('start-connect-labeled', 'commented')"
-        :title="locale === 'de' ? 'Kommentiert (FAIL - mit Feedback)' : 'Commented (FAIL - with feedback)'"
+        :title="$t('canvas.stage.evaluation.connectorCommented')"
       >
         <span class="connector-label">C</span>
       </div>
@@ -1344,7 +1345,7 @@ const nodeHeight = computed(() => {
         :data-node-id="node.id"
         data-connector="output-commentary"
         @mousedown.stop="emit('start-connect-labeled', 'commentary')"
-        :title="locale === 'de' ? 'Nur Kommentar (für Anzeige)' : 'Commentary only (for display)'"
+        :title="$t('canvas.stage.evaluation.connectorCommentary')"
       >
         <span class="connector-label">→</span>
       </div>
@@ -1355,7 +1356,7 @@ const nodeHeight = computed(() => {
       v-if="isCollector || isDisplay"
       class="resize-handle"
       @mousedown.stop="startResize"
-      :title="locale === 'de' ? 'Größe ändern' : 'Resize'"
+      :title="$t('canvas.stage.resizeTitle')"
     />
   </div>
 </template>

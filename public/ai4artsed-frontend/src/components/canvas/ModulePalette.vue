@@ -72,7 +72,7 @@ function onDragStart(e: DragEvent, type: StageType) {
 
 <template>
   <div class="module-palette">
-    <h3>{{ locale === 'de' ? 'Module' : 'Modules' }}</h3>
+    <h3>{{ $t('canvas.modules') }}</h3>
 
     <div v-for="cat in categories" :key="cat.id" class="category">
       <h4>{{ cat.label }}</h4>

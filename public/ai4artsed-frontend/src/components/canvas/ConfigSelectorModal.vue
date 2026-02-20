@@ -83,7 +83,7 @@ watch(() => props.visible, (visible) => {
           <input
             v-model="searchQuery"
             type="text"
-            :placeholder="locale === 'de' ? 'Suchen...' : 'Search...'"
+            :placeholder="$t('canvas.search')"
             autofocus
           />
         </div>

@@ -244,10 +244,7 @@ function finishEditingName() {
 }
 
 function handleNewWorkflow() {
-  if (confirm(locale.value === 'de'
-    ? 'Aktuellen Workflow verwerfen?'
-    : 'Discard current workflow?'
-  )) {
+  if (confirm(t('canvas.discardWorkflow'))) {
     canvasStore.newWorkflow()
   }
 }
@@ -285,10 +282,7 @@ function handleImportWorkflow() {
       canvasStore.loadWorkflow(workflow)
     } catch (err) {
       console.error('Failed to import workflow:', err)
-      alert(locale.value === 'de'
-        ? 'Fehler beim Importieren der Datei'
-        : 'Failed to import file'
-      )
+      alert(t('canvas.importError'))
     }
   }
   input.click()
@@ -348,7 +342,7 @@ onUnmounted(() => {
           class="toolbar-btn"
           :class="{ active: showPalette }"
           @click="showPalette = !showPalette"
-          :title="locale === 'de' ? 'Sidebar ein/aus' : 'Toggle sidebar'"
+          :title="$t('canvas.toggleSidebar')"
         >
           <img src="@/assets/icons/thumbnail_bar_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.png" alt="" class="toolbar-icon" />
         </button>
@@ -368,7 +362,7 @@ onUnmounted(() => {
           </template>
           <template v-else>
             <span class="name-text">{{ canvasStore.workflow.name }}</span>
-            <span class="name-hint">{{ locale === 'de' ? '(doppelklicken zum Bearbeiten)' : '(double-click to edit)' }}</span>
+            <span class="name-hint">{{ $t('canvas.editNameHint') }}</span>
           </template>
         </div>
       </div>
@@ -379,8 +373,8 @@ onUnmounted(() => {
           class="validation-status"
           :class="{ valid: canvasStore.isWorkflowValid, invalid: !canvasStore.isWorkflowValid }"
         >
-          <span v-if="canvasStore.isWorkflowValid">✓ {{ locale === 'de' ? 'Bereit' : 'Ready' }}</span>
-          <span v-else>{{ canvasStore.validationErrors.length }} {{ locale === 'de' ? 'Fehler' : 'errors' }}</span>
+          <span v-if="canvasStore.isWorkflowValid">✓ {{ $t('canvas.ready') }}</span>
+          <span v-else>{{ canvasStore.validationErrors.length }} {{ $t('canvas.errors') }}</span>
         </div>
       </div>
 
@@ -388,9 +382,7 @@ onUnmounted(() => {
         <!-- DSGVO Warning Badge -->
         <span
           class="dsgvo-badge"
-          :title="locale === 'de'
-            ? 'Canvas-Workflows können externe LLM-APIs nutzen. Die DSGVO-Konformität liegt in der Verantwortung der Nutzer:innen.'
-            : 'Canvas workflows may use external LLM APIs. GDPR compliance is the responsibility of the user.'"
+          :title="$t('canvas.dsgvoTooltip')"
         >
           <s>DS-GVO</s>
         </span>
@@ -399,7 +391,7 @@ onUnmounted(() => {
         <button
           class="toolbar-btn"
           @click="handleNewWorkflow"
-          :title="locale === 'de' ? 'Neuer Workflow' : 'New workflow'"
+          :title="$t('canvas.newWorkflow')"
         >
           📄
         </button>
@@ -408,7 +400,7 @@ onUnmounted(() => {
         <button
           class="toolbar-btn"
           @click="handleImportWorkflow"
-          :title="locale === 'de' ? 'Importieren' : 'Import'"
+          :title="$t('canvas.importWorkflow')"
         >
           📥
         </button>
@@ -417,7 +409,7 @@ onUnmounted(() => {
         <button
           class="toolbar-btn"
           @click="handleExportWorkflow"
-          :title="locale === 'de' ? 'Exportieren' : 'Export'"
+          :title="$t('canvas.exportWorkflow')"
         >
           📤
         </button>
@@ -427,9 +419,9 @@ onUnmounted(() => {
           class="toolbar-btn primary"
           :disabled="!canvasStore.isWorkflowValid || canvasStore.isExecuting || canvasStore.isBatchExecuting"
           @click="canvasStore.executeWorkflow()"
-          :title="locale === 'de' ? 'Ausführen' : 'Execute'"
+          :title="$t('canvas.execute')"
         >
-          ▶️ {{ locale === 'de' ? 'Ausführen' : 'Execute' }}
+          ▶️ {{ $t('canvas.execute') }}
         </button>
 
         <!-- Session 149: Batch Execute -->
@@ -437,7 +429,7 @@ onUnmounted(() => {
           class="toolbar-btn batch"
           :disabled="!canvasStore.isWorkflowValid || canvasStore.isExecuting || canvasStore.isBatchExecuting"
           @click="showBatchModal = true"
-          :title="locale === 'de' ? 'Batch-Ausführung' : 'Batch Execute'"
+          :title="$t('canvas.batchExecute')"
         >
           🔄 Batch
         </button>
@@ -447,17 +439,17 @@ onUnmounted(() => {
     <!-- Session 149: Batch Progress Indicator -->
     <div v-if="canvasStore.isBatchExecuting" class="batch-progress-bar">
       <div class="batch-progress-info">
-        <span>{{ locale === 'de' ? 'Batch-Ausführung' : 'Batch Execution' }}: {{ canvasStore.batchCompletedRuns }}/{{ canvasStore.batchTotalRuns }}</span>
+        <span>{{ $t('canvas.batchExecution') }}: {{ canvasStore.batchCompletedRuns }}/{{ canvasStore.batchTotalRuns }}</span>
         <span v-if="canvasStore.batchCurrentRun >= 0">
-          ({{ locale === 'de' ? 'Run' : 'Run' }} {{ canvasStore.batchCurrentRun + 1 }})
+          (Run {{ canvasStore.batchCurrentRun + 1 }})
         </span>
         <!-- Session 150: Batch Abort Button -->
         <button
           class="batch-abort-btn"
           @click="canvasStore.abortBatch()"
-          :title="locale === 'de' ? 'Batch abbrechen' : 'Abort Batch'"
+          :title="$t('canvas.batchAbort')"
         >
-          ⏹️ {{ locale === 'de' ? 'Abbrechen' : 'Abort' }}
+          ⏹️ {{ $t('canvas.abort') }}
         </button>
       </div>
       <div class="batch-progress-track">
@@ -553,7 +545,7 @@ onUnmounted(() => {
     <!-- Loading overlay -->
     <div v-if="canvasStore.isLoading" class="loading-overlay">
       <div class="loading-spinner">
-        {{ locale === 'de' ? 'Laden...' : 'Loading...' }}
+        {{ $t('canvas.loading') }}
       </div>
     </div>
 
@@ -563,17 +555,17 @@ onUnmounted(() => {
         <div class="progress-spinner-ring"></div>
         <div class="progress-content">
           <div class="progress-title">
-            {{ locale === 'de' ? 'Workflow wird ausgeführt...' : 'Executing Workflow...' }}
+            {{ $t('canvas.executingWorkflow') }}
           </div>
           <div v-if="canvasStore.currentProgress" class="progress-detail">
             <span class="progress-message">{{ canvasStore.currentProgress.message }}</span>
           </div>
           <div v-else class="progress-detail">
-            <span class="progress-message">{{ locale === 'de' ? 'Starte...' : 'Starting...' }}</span>
+            <span class="progress-message">{{ $t('canvas.starting') }}</span>
           </div>
           <div v-if="canvasStore.totalNodes > 0" class="progress-counter">
             {{ canvasStore.completedNodes }} / {{ canvasStore.totalNodes }}
-            {{ locale === 'de' ? 'Knoten' : 'nodes' }}
+            {{ $t('canvas.nodes') }}
           </div>
         </div>
       </div>
@@ -583,32 +575,32 @@ onUnmounted(() => {
     <div v-if="showBatchModal" class="modal-overlay" @click.self="showBatchModal = false">
       <div class="batch-modal">
         <div class="batch-modal-header">
-          <h3>{{ locale === 'de' ? 'Batch-Ausführung' : 'Batch Execution' }}</h3>
+          <h3>{{ $t('canvas.batchExecution') }}</h3>
           <button class="close-btn" @click="showBatchModal = false">×</button>
         </div>
         <div class="batch-modal-content">
           <div class="batch-field">
-            <label>{{ locale === 'de' ? 'Anzahl Runs' : 'Number of Runs' }}</label>
+            <label>{{ $t('canvas.batchRunCount') }}</label>
             <input type="number" v-model.number="batchCount" min="1" max="100" />
           </div>
           <div class="batch-field checkbox">
             <label>
               <input type="checkbox" v-model="batchUseSeed" />
-              {{ locale === 'de' ? 'Basis-Seed verwenden' : 'Use Base Seed' }}
+              {{ $t('canvas.batchUseSeed') }}
             </label>
           </div>
           <div v-if="batchUseSeed" class="batch-field">
-            <label>{{ locale === 'de' ? 'Basis-Seed' : 'Base Seed' }}</label>
+            <label>{{ $t('canvas.batchBaseSeed') }}</label>
             <input type="number" v-model.number="batchBaseSeed" placeholder="123456789" />
-            <small>{{ locale === 'de' ? 'Jeder Run: Seed + Index' : 'Each run: seed + index' }}</small>
+            <small>{{ $t('canvas.batchSeedHint') }}</small>
           </div>
         </div>
         <div class="batch-modal-footer">
           <button class="btn secondary" @click="showBatchModal = false">
-            {{ locale === 'de' ? 'Abbrechen' : 'Cancel' }}
+            {{ $t('canvas.cancel') }}
           </button>
           <button class="btn primary" @click="handleStartBatch">
-            🔄 {{ locale === 'de' ? 'Batch starten' : 'Start Batch' }}
+            🔄 {{ $t('canvas.batchStart') }}
           </button>
         </div>
       </div>
