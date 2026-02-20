@@ -5,25 +5,25 @@
   <!-- Settings Content (only show if authenticated) -->
   <div v-if="authenticated" class="settings-container">
     <div class="settings-header">
-      <h1>Administration</h1>
+      <h1>{{ $t('settings.title') }}</h1>
       <div class="tabs">
         <button
           :class="['tab-btn', { active: activeTab === 'export' }]"
           @click="activeTab = 'export'"
         >
-          Session Export
+          {{ $t('settings.tabs.export') }}
         </button>
         <button
           :class="['tab-btn', { active: activeTab === 'config' }]"
           @click="activeTab = 'config'"
         >
-          Configuration
+          {{ $t('settings.tabs.config') }}
         </button>
         <button
           :class="['tab-btn', { active: activeTab === 'matrix' }]"
           @click="activeTab = 'matrix'"
         >
-          Model Matrix
+          {{ $t('settings.tabs.matrix') }}
         </button>
       </div>
     </div>
@@ -35,59 +35,59 @@
 
     <!-- Configuration Tab -->
     <div v-if="activeTab === 'config'">
-      <div v-if="loading" class="loading">Loading settings...</div>
-      <div v-else-if="error" class="error">Error: {{ error }}</div>
+      <div v-if="loading" class="loading">{{ $t('settings.loading') }}</div>
+      <div v-else-if="error" class="error">{{ $t('common.error') }}: {{ error }}</div>
 
       <div v-else class="settings-content">
       <!-- Quick-Fill Hint -->
       <div class="section">
-        <h2>Model Presets</h2>
+        <h2>{{ $t('settings.presets.title') }}</h2>
         <p class="help">
-          Use the <strong>Model Matrix</strong> tab to see all available presets and apply them with one click.
+          <span v-html="$t('settings.presets.help')"></span>
           <span v-if="gpuInfo.detected" class="gpu-detected" style="display: block; margin-top: 8px;">
-            Detected: {{ gpuInfo.gpu_name }} ({{ gpuInfo.vram_gb }} GB)
+            {{ gpuInfo.gpu_name }} ({{ gpuInfo.vram_gb }} GB)
           </span>
         </p>
         <button @click="activeTab = 'matrix'" class="action-btn" style="margin-top: 10px;">
-          Open Model Matrix
+          {{ $t('settings.presets.openMatrix') }}
         </button>
       </div>
 
       <!-- Testing Tools for Educators -->
       <div class="section">
-        <h2>🎮 Testing Tools für Pädagog*innen</h2>
+        <h2>{{ $t('settings.testingTools.title') }}</h2>
         <p class="help">
-          Testen und erkunden Sie die pädagogischen Minigames und Animationen, bevor Sie sie mit Lernenden nutzen.
+          {{ $t('settings.testingTools.help') }}
         </p>
         <button @click="$router.push('/animation-test')" class="action-btn" style="margin-top: 10px;">
-          ▶️ Minigame Preview öffnen
+          {{ $t('settings.testingTools.openPreview') }}
         </button>
         <button @click="$router.push('/dev/pixel-editor')" class="action-btn" style="margin-top: 10px; margin-left: 10px;">
-          🎨 Pixel Template Editor
+          {{ $t('settings.testingTools.pixelEditor') }}
         </button>
         <p class="help" style="margin-top: 10px; font-size: 12px; color: #888;">
-          Enthält: Pixel-Animation, Eisberg-Schmelzen, Wald-Spiel, <strong>Seltene Erden</strong>
+          {{ $t('settings.testingTools.includes') }}
         </p>
       </div>
 
       <!-- General Settings -->
       <div class="section">
-        <h2>General Configuration</h2>
+        <h2>{{ $t('settings.general.title') }}</h2>
         <table class="config-table">
           <tbody>
             <tr>
-              <td class="label-cell">UI Mode</td>
+              <td class="label-cell">{{ $t('settings.general.uiMode') }}</td>
               <td class="value-cell">
                 <select v-model="settings.UI_MODE">
-                  <option value="kids">Kids (8-12)</option>
-                  <option value="youth">Youth (13-17)</option>
-                  <option value="expert">Expert</option>
+                  <option value="kids">{{ $t('settings.general.kids') }}</option>
+                  <option value="youth">{{ $t('settings.general.youth') }}</option>
+                  <option value="expert">{{ $t('settings.general.expert') }}</option>
                 </select>
-                <span class="help-text">Interface complexity level</span>
+                <span class="help-text">{{ $t('settings.general.uiModeHelp') }}</span>
               </td>
             </tr>
             <tr>
-              <td class="label-cell">Safety Level</td>
+              <td class="label-cell">{{ $t('settings.general.safetyLevel') }}</td>
               <td class="value-cell">
                 <select v-model="settings.DEFAULT_SAFETY_LEVEL">
                   <option value="kids">Kids</option>
@@ -97,29 +97,30 @@
                 </select>
 
                 <div v-if="settings.DEFAULT_SAFETY_LEVEL === 'kids'" class="info-box info-box-success" style="margin-top: 8px; padding: 8px 12px;">
-                  <strong style="margin-bottom: 4px;">Kinder (8-12)</strong>
-                  <p style="margin: 2px 0;">Alle Filter aktiv: §86a, DSGVO, Jugendschutz (altersgerechte Parameter), VLM-Bildcheck</p>
+                  <strong style="margin-bottom: 4px;">{{ $t('settings.safety.kidsTitle') }}</strong>
+                  <p style="margin: 2px 0;">{{ $t('settings.safety.kidsDesc') }}</p>
                 </div>
                 <div v-else-if="settings.DEFAULT_SAFETY_LEVEL === 'youth'" class="info-box info-box-success" style="margin-top: 8px; padding: 8px 12px;">
-                  <strong style="margin-bottom: 4px;">Jugend (13-17)</strong>
-                  <p style="margin: 2px 0;">Alle Filter aktiv: §86a, DSGVO, Jugendschutz (Youth-Parameter), VLM-Bildcheck</p>
+                  <strong style="margin-bottom: 4px;">{{ $t('settings.safety.youthTitle') }}</strong>
+                  <p style="margin: 2px 0;">{{ $t('settings.safety.youthDesc') }}</p>
                 </div>
                 <div v-else-if="settings.DEFAULT_SAFETY_LEVEL === 'adult'" class="info-box" style="margin-top: 8px; padding: 8px 12px; border-color: #ff9800;">
-                  <strong style="margin-bottom: 4px;">Erwachsene</strong>
-                  <p style="margin: 2px 0;">§86a + DSGVO aktiv. Kein Jugendschutz, kein VLM-Bildcheck.</p>
+                  <strong style="margin-bottom: 4px;">{{ $t('settings.safety.adultTitle') }}</strong>
+                  <p style="margin: 2px 0;">{{ $t('settings.safety.adultDesc') }}</p>
                 </div>
                 <div v-else-if="settings.DEFAULT_SAFETY_LEVEL === 'research'" class="info-box" style="margin-top: 8px; padding: 8px 12px; border-color: #c62828; border-left: 4px solid #c62828; background: #ffebee;">
-                  <strong style="margin-bottom: 4px; color: #c62828;">Forschungsmodus</strong>
-                  <p style="margin: 2px 0;">KEINE Sicherheitsfilter aktiv. Ausschließlich zur Nutzung durch Forschungseinrichtungen im Rahmen wissenschaftlicher Forschungsprojekte zulässig.</p>
+                  <strong style="margin-bottom: 4px; color: #c62828;">{{ $t('settings.safety.researchTitle') }}</strong>
+                  <p style="margin: 2px 0;">{{ $t('settings.safety.researchDesc') }}</p>
                 </div>
               </td>
             </tr>
             <tr>
-              <td class="label-cell">Default Language</td>
+              <td class="label-cell">{{ $t('settings.general.defaultLanguage') }}</td>
               <td class="value-cell">
                 <select v-model="settings.DEFAULT_LANGUAGE">
-                  <option value="de">German (de)</option>
-                  <option value="en">English (en)</option>
+                  <option value="de">{{ $t('settings.general.germanDe') }}</option>
+                  <option value="en">{{ $t('settings.general.englishEn') }}</option>
+                  <option value="tr">{{ $t('settings.general.turkishTr') }}</option>
                 </select>
               </td>
             </tr>
@@ -129,35 +130,35 @@
 
       <!-- Safety Models (local Ollama only) -->
       <div class="section">
-        <h2>Local Safety Models</h2>
-        <p class="help">Lokal via Ollama — Personennamen und Safety-Checks verlassen nie das System</p>
+        <h2>{{ $t('settings.safetyModels.title') }}</h2>
+        <p class="help">{{ $t('settings.safetyModels.help') }}</p>
         <table class="config-table">
           <tbody>
             <tr>
-              <td class="label-cell">Safety Model</td>
+              <td class="label-cell">{{ $t('settings.safetyModels.safetyModel') }}</td>
               <td class="value-cell">
                 <select v-model="settings.SAFETY_MODEL">
-                  <option value="llama-guard3:1b">llama-guard3:1b (schnell, minimal)</option>
+                  <option value="llama-guard3:1b">llama-guard3:1b ({{ $t('settings.safetyModels.fast') }})</option>
                   <option value="llama-guard3:latest">llama-guard3:latest</option>
                   <option value="llama-guard3:8b">llama-guard3:8b</option>
-                  <option value="gpt-OSS:20b">gpt-OSS:20b (Standard)</option>
-                  <option value="gpt-OSS:120b">gpt-OSS:120b (beste Qualität)</option>
+                  <option value="gpt-OSS:20b">gpt-OSS:20b ({{ $t('settings.safetyModels.standard') }})</option>
+                  <option value="gpt-OSS:120b">gpt-OSS:120b ({{ $t('settings.safetyModels.bestQuality') }})</option>
                 </select>
-                <span class="help-text">Guard-Modell für Content-Safety (§86a, Jugendschutz)</span>
+                <span class="help-text">{{ $t('settings.safetyModels.safetyModelHelp') }}</span>
               </td>
             </tr>
             <tr>
-              <td class="label-cell">DSGVO-Verify Model</td>
+              <td class="label-cell">{{ $t('settings.safetyModels.dsgvoModel') }}</td>
               <td class="value-cell">
                 <select v-model="settings.DSGVO_VERIFY_MODEL">
-                  <option value="qwen3:1.7b">qwen3:1.7b (~1.5 GB VRAM, empfohlen)</option>
+                  <option value="qwen3:1.7b">qwen3:1.7b (~1.5 GB VRAM, {{ $t('settings.safetyModels.recommended') }})</option>
                   <option value="gemma3:1b">gemma3:1b (~1.0 GB VRAM)</option>
                   <option value="qwen2.5:1.5b">qwen2.5:1.5b (~1.2 GB VRAM)</option>
                   <option value="llama3.2:1b">llama3.2:1b (~1.3 GB VRAM)</option>
                   <option value="qwen3:0.6b">qwen3:0.6b (~0.6 GB VRAM, minimal)</option>
                   <option value="gpt-OSS:20b">gpt-OSS:20b (20 GB VRAM)</option>
                 </select>
-                <span class="help-text">General-Purpose-Modell für DSGVO-NER-Verifikation (kein Guard-Modell)</span>
+                <span class="help-text">{{ $t('settings.safetyModels.dsgvoModelHelp') }}</span>
               </td>
             </tr>
           </tbody>
@@ -166,21 +167,21 @@
 
       <!-- DSGVO Warning -->
       <div v-if="hasDsgvoWarning" class="section dsgvo-warning">
-        <h2>⚠️ DSGVO Warning</h2>
-        <p>The following models are <strong>NOT DSGVO-compliant</strong> (data processed outside EU):</p>
+        <h2>{{ $t('settings.dsgvo.title') }}</h2>
+        <p v-html="$t('settings.dsgvo.notCompliant')"></p>
         <ul>
           <li v-for="model in nonDsgvoModels" :key="model">{{ model }}</li>
         </ul>
-        <p class="help">DSGVO-compliant options: <code>local/*</code> (local models) or <code>mistral/*</code> (EU-based)</p>
+        <p class="help">{{ $t('settings.dsgvo.compliantHint') }} <code>local/*</code> | <code>mistral/*</code></p>
       </div>
 
       <!-- Model Configuration -->
       <div class="section">
-        <h2>Model Configuration</h2>
-        <p class="help">Model identifiers with provider prefix: local/, mistral/, anthropic/, openai/, openrouter/</p>
-        <p class="help">Use of Model Matrix is advised. However, you may configure your settings here freely.</p>
+        <h2>{{ $t('settings.models.title') }}</h2>
+        <p class="help">{{ $t('settings.models.help') }}</p>
+        <p class="help">{{ $t('settings.models.matrixAdvised') }}</p>
         <p v-if="ollamaModels.length > 0" class="help" style="color: #4CAF50;">
-          {{ ollamaModels.length }} Ollama models available (type or select from dropdown)
+          {{ $t('settings.models.ollamaAvailable', { count: ollamaModels.length }) }}
         </p>
 
         <table class="config-table">
@@ -207,17 +208,17 @@
 
       <!-- API Configuration -->
       <div class="section">
-        <h2>API Configuration</h2>
+        <h2>{{ $t('settings.api.title') }}</h2>
         <table class="config-table">
           <tbody>
             <tr>
-              <td class="label-cell">LLM Provider</td>
+              <td class="label-cell">{{ $t('settings.api.llmProvider') }}</td>
             <td class="value-cell">
               <select v-model="settings.LLM_PROVIDER">
                 <option value="ollama">Ollama</option>
                 <option value="lmstudio">LM Studio</option>
               </select>
-              <span class="help-text">Local LLM framework</span>
+              <span class="help-text">{{ $t('settings.api.localFramework') }}</span>
             </td>
           </tr>
           <tr>
@@ -233,41 +234,41 @@
             </td>
           </tr>
           <tr>
-            <td class="label-cell">External LLM Provider</td>
+            <td class="label-cell">{{ $t('settings.api.externalProvider') }}</td>
             <td class="value-cell">
               <select v-model="settings.EXTERNAL_LLM_PROVIDER">
-                <option value="none">None (Local only, DSGVO)</option>
-                <option value="mistral">Mistral AI (EU-based, DSGVO)</option>
-                <option value="anthropic">Anthropic Direct API (NOT DSGVO)</option>
-                <option value="openai">OpenAI Direct API (NOT DSGVO)</option>
-                <option value="openrouter">OpenRouter (NOT DSGVO, EU routing available)</option>
+                <option value="none">{{ $t('settings.api.noneLocal') }}</option>
+                <option value="mistral">{{ $t('settings.api.mistralEu') }}</option>
+                <option value="anthropic">{{ $t('settings.api.anthropicDirect') }}</option>
+                <option value="openai">{{ $t('settings.api.openaiDirect') }}</option>
+                <option value="openrouter">{{ $t('settings.api.openrouterDirect') }}</option>
               </select>
-              <span class="help-text">Cloud LLM provider - requires API key</span>
+              <span class="help-text">{{ $t('settings.api.cloudProvider') }}</span>
 
               <!-- Provider info boxes -->
               <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'mistral'" class="info-box info-box-success" style="margin-top: 12px;">
-                <strong>Mistral AI (EU-based)</strong>
-                <p>✅ DSGVO-compliant (EU infrastructure)</p>
+                <strong>{{ $t('settings.api.mistralInfo') }}</strong>
+                <p>{{ $t('settings.api.mistralDsgvo') }}</p>
                 <p>API Base URL: https://api.mistral.ai/v1</p>
-                <p>Get your API key at: <a href="https://console.mistral.ai/" target="_blank">console.mistral.ai</a></p>
+                <p>API Key: <a href="https://console.mistral.ai/" target="_blank">console.mistral.ai</a></p>
               </div>
 
               <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'anthropic'" class="info-box" style="margin-top: 12px; border-color: #ff9800;">
-                <strong>Anthropic Direct API</strong>
-                <p>⚠️ NOT DSGVO-compliant</p>
-                <p>Data processed outside EU. Use only for non-educational contexts.</p>
+                <strong>{{ $t('settings.api.anthropicInfo') }}</strong>
+                <p>{{ $t('settings.api.anthropicNotDsgvo') }}</p>
+                <p>{{ $t('settings.api.anthropicWarning') }}</p>
               </div>
 
               <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'openai'" class="info-box" style="margin-top: 12px; border-color: #ff9800;">
-                <strong>OpenAI Direct API</strong>
-                <p>⚠️ NOT DSGVO-compliant (US-based)</p>
-                <p>Data processed in United States. Use only for non-educational contexts.</p>
+                <strong>{{ $t('settings.api.openaiInfo') }}</strong>
+                <p>{{ $t('settings.api.openaiNotDsgvo') }}</p>
+                <p>{{ $t('settings.api.openaiWarning') }}</p>
               </div>
 
               <div v-if="settings.EXTERNAL_LLM_PROVIDER === 'openrouter'" class="info-box" style="margin-top: 12px; border-color: #ff9800;">
-                <strong>OpenRouter</strong>
-                <p>⚠️ NOT DSGVO-compliant (US company)</p>
-                <p>EU server routing configurable in OpenRouter settings, but company is US-based.</p>
+                <strong>{{ $t('settings.api.openrouterInfo') }}</strong>
+                <p>{{ $t('settings.api.openrouterNotDsgvo') }}</p>
+                <p>{{ $t('settings.api.openrouterWarning') }}</p>
               </div>
             </td>
           </tr>
@@ -281,8 +282,8 @@
                 placeholder="sk-or-v1-..."
                 class="text-input"
               />
-              <span class="help-text" v-if="openrouterKeyMasked">Current: {{ openrouterKeyMasked }}</span>
-              <span class="help-text">Stored in devserver/openrouter.key</span>
+              <span class="help-text" v-if="openrouterKeyMasked">{{ $t('settings.api.currentKey') }}: {{ openrouterKeyMasked }}</span>
+              <span class="help-text">{{ $t('settings.api.storedIn') }} devserver/openrouter.key</span>
             </td>
           </tr>
 
@@ -295,8 +296,8 @@
                 placeholder="sk-ant-api03-..."
                 class="text-input"
               />
-              <span class="help-text" v-if="anthropicKeyMasked">Current: {{ anthropicKeyMasked }}</span>
-              <span class="help-text">Stored in devserver/anthropic.key</span>
+              <span class="help-text" v-if="anthropicKeyMasked">{{ $t('settings.api.currentKey') }}: {{ anthropicKeyMasked }}</span>
+              <span class="help-text">{{ $t('settings.api.storedIn') }} devserver/anthropic.key</span>
             </td>
           </tr>
 
@@ -309,8 +310,8 @@
                 placeholder="sk-proj-..."
                 class="text-input"
               />
-              <span class="help-text" v-if="openaiKeyMasked">Current: {{ openaiKeyMasked }}</span>
-              <span class="help-text">Stored in devserver/openai.key</span>
+              <span class="help-text" v-if="openaiKeyMasked">{{ $t('settings.api.currentKey') }}: {{ openaiKeyMasked }}</span>
+              <span class="help-text">{{ $t('settings.api.storedIn') }} devserver/openai.key</span>
             </td>
           </tr>
 
@@ -323,8 +324,8 @@
                 placeholder="..."
                 class="text-input"
               />
-              <span class="help-text" v-if="mistralKeyMasked">Current: {{ mistralKeyMasked }}</span>
-              <span class="help-text">Stored in devserver/mistral.key</span>
+              <span class="help-text" v-if="mistralKeyMasked">{{ $t('settings.api.currentKey') }}: {{ mistralKeyMasked }}</span>
+              <span class="help-text">{{ $t('settings.api.storedIn') }} devserver/mistral.key</span>
             </td>
           </tr>
 
@@ -335,7 +336,7 @@
       <!-- Save & Apply Button -->
       <div class="button-row">
         <button @click="saveAndApply" class="save-btn" :disabled="saveInProgress">
-          {{ saveInProgress ? 'Saving...' : 'Save & Apply' }}
+          {{ saveInProgress ? $t('settings.save.saving') : $t('settings.save.saveApply') }}
         </button>
         <span v-if="saveMessage" :class="{'save-message': true, 'error-message': !saveSuccess}">
           {{ saveMessage }}
@@ -346,8 +347,8 @@
 
     <!-- Model Matrix Tab -->
     <div v-if="activeTab === 'matrix'">
-      <div v-if="loading" class="loading">Loading settings...</div>
-      <div v-else-if="error" class="error">Error: {{ error }}</div>
+      <div v-if="loading" class="loading">{{ $t('settings.loading') }}</div>
+      <div v-else-if="error" class="error">{{ $t('common.error') }}: {{ error }}</div>
       <ModelMatrixTab
         v-else
         :matrix="matrix"
@@ -366,6 +367,9 @@ import SessionExportView from '../components/SessionExportView.vue'
 import SettingsAuthModal from '../components/SettingsAuthModal.vue'
 import ModelMatrixTab from '../components/ModelMatrixTab.vue'
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 // Authentication state
 const authenticated = ref(false)
@@ -391,27 +395,36 @@ const saveSuccess = ref(true)
 const saveInProgress = ref(false)
 const ollamaModels = ref([])  // Session 133: Ollama model dropdown
 
-const modelLabels = {
-  'STAGE1_TEXT_MODEL': 'Stage 1 - Text Model',
-  'STAGE1_VISION_MODEL': 'Stage 1 - Vision Model',
-  'STAGE2_INTERCEPTION_MODEL': 'Stage 2 - Interception Model',
-  'STAGE2_OPTIMIZATION_MODEL': 'Stage 2 - Optimization Model',
-  'STAGE3_MODEL': 'Stage 3 - Translation/Safety Model',
-  'STAGE4_LEGACY_MODEL': 'Stage 4 - Legacy Model',
-  'CHAT_HELPER_MODEL': 'Chat Helper Model',
-  'IMAGE_ANALYSIS_MODEL': 'Image Analysis Model',
-  'CODING_MODEL': 'Code Generation (Tone.js, p5.js)'
+const modelLabelKeys = {
+  'STAGE1_TEXT_MODEL': 'settings.models.stage1Text',
+  'STAGE1_VISION_MODEL': 'settings.models.stage1Vision',
+  'STAGE2_INTERCEPTION_MODEL': 'settings.models.stage2Interception',
+  'STAGE2_OPTIMIZATION_MODEL': 'settings.models.stage2Optimization',
+  'STAGE3_MODEL': 'settings.models.stage3',
+  'STAGE4_LEGACY_MODEL': 'settings.models.stage4Legacy',
+  'CHAT_HELPER_MODEL': 'settings.models.chatHelper',
+  'IMAGE_ANALYSIS_MODEL': 'settings.models.imageAnalysis',
+  'CODING_MODEL': 'settings.models.coding'
 }
+
+const modelLabels = computed(() => {
+  const result = {}
+  for (const [key, i18nKey] of Object.entries(modelLabelKeys)) {
+    result[key] = t(i18nKey)
+  }
+  return result
+})
 
 // Check for non-DSGVO-compliant models
 // DSGVO-compliant: local/ (local models), mistral/ (EU-based)
 // NOT DSGVO-compliant: anthropic/, openai/, openrouter/, google/, etc.
 const nonDsgvoModels = computed(() => {
   const problematic = []
-  Object.keys(modelLabels).forEach(key => {
+  const labels = modelLabels.value
+  Object.keys(modelLabelKeys).forEach(key => {
     const modelValue = settings.value[key] || ''
     if (modelValue && !modelValue.startsWith('local/') && !modelValue.startsWith('mistral/')) {
-      problematic.push(`${modelLabels[key]}: ${modelValue}`)
+      problematic.push(`${labels[key]}: ${modelValue}`)
     }
   })
   return problematic
@@ -536,7 +549,7 @@ async function handleMatrixPresetApply(provider) {
     const preset = await response.json()
 
     // Apply all model fields from preset
-    Object.keys(modelLabels).forEach(key => {
+    Object.keys(modelLabelKeys).forEach(key => {
       if (preset.models && preset.models[key]) {
         settings.value[key] = preset.models[key]
       }
@@ -545,7 +558,7 @@ async function handleMatrixPresetApply(provider) {
     // Apply provider setting
     settings.value.EXTERNAL_LLM_PROVIDER = preset.EXTERNAL_LLM_PROVIDER
 
-    saveMessage.value = `✓ Applied preset: ${preset.label}`
+    saveMessage.value = `✓ ${t('settings.save.presetApplied', { preset: preset.label })}`
     saveSuccess.value = true
     setTimeout(() => { saveMessage.value = '' }, 3000)
 
@@ -593,7 +606,7 @@ async function handleAwsCsvUpload(event) {
 async function saveAndApply() {
   try {
     saveInProgress.value = true
-    saveMessage.value = 'Saving...'
+    saveMessage.value = t('settings.save.saving')
     saveSuccess.value = true
 
     // Build payload
@@ -626,7 +639,7 @@ async function saveAndApply() {
     }
 
     // Step 2: Apply settings (hot-reload)
-    saveMessage.value = 'Applying...'
+    saveMessage.value = t('settings.save.applying')
     const applyResponse = await fetch('/api/settings/reload-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -637,7 +650,7 @@ async function saveAndApply() {
       throw new Error(`Apply failed: HTTP ${applyResponse.status}`)
     }
 
-    saveMessage.value = '✓ Settings saved and applied'
+    saveMessage.value = `✓ ${t('settings.save.success')}`
     saveSuccess.value = true
 
     // Clear API key inputs and reload masked versions after successful save
