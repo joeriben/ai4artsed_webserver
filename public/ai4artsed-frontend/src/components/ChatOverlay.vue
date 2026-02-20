@@ -586,23 +586,17 @@ Suggest ONE creative alternative prompt that keeps the user's core idea but avoi
     })
 
     // Replace loading message in-place
-    const idx = messages.value.findIndex(m => m.id === loadingId)
-    if (idx !== -1) {
-      messages.value[idx] = {
-        ...messages.value[idx],
-        content: response.data.reply
-      }
+    const msg = messages.value.find(m => m.id === loadingId)
+    if (msg) {
+      msg.content = response.data.reply
     }
   } catch (error) {
     console.error('[ChatOverlay] Error generating safety suggestion:', error)
 
     // Replace loading message with error
-    const idx = messages.value.findIndex(m => m.id === loadingId)
-    if (idx !== -1) {
-      messages.value[idx] = {
-        ...messages.value[idx],
-        content: t('safetyBlocked.suggestionError')
-      }
+    const msg = messages.value.find(m => m.id === loadingId)
+    if (msg) {
+      msg.content = t('safetyBlocked.suggestionError')
     }
   }
 
