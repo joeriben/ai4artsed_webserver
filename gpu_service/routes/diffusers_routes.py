@@ -29,6 +29,13 @@ def _get_backend():
     return get_diffusers_backend()
 
 
+@diffusers_bp.route('/api/diffusers/progress', methods=['GET'])
+def generation_progress():
+    """Current generation step progress for frontend polling."""
+    from services.diffusers_backend import get_generation_progress
+    return jsonify(get_generation_progress())
+
+
 @diffusers_bp.route('/api/diffusers/available', methods=['GET'])
 def available():
     """Check if Diffusers backend is available."""

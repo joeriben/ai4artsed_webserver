@@ -449,6 +449,18 @@ def get_gpu_info():
     return jsonify(gpu_info), 200
 
 
+@settings_bp.route('/generation-progress', methods=['GET'])
+def get_generation_progress():
+    """Proxy generation step progress from GPU service."""
+    try:
+        resp = requests.get(f"{config.GPU_SERVICE_URL}/api/diffusers/progress", timeout=2)
+        if resp.ok:
+            return jsonify(resp.json())
+    except Exception:
+        pass
+    return jsonify({"step": 0, "total_steps": 0, "active": False})
+
+
 @settings_bp.route('/gpu-realtime', methods=['GET'])
 def get_gpu_realtime():
     """

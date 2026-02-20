@@ -35,6 +35,14 @@ warnings.filterwarnings("ignore", message=".*slow tokenizers.*")
 
 logger = logging.getLogger(__name__)
 
+# Module-level generation progress (thread-safe via GIL for simple dict ops)
+_generation_progress = {"step": 0, "total_steps": 0, "active": False}
+
+
+def get_generation_progress() -> dict:
+    """Return current generation progress for polling endpoint."""
+    return dict(_generation_progress)
+
 
 class DiffusersImageGenerator:
     """
@@ -452,8 +460,10 @@ class DiffusersImageGenerator:
 
                 logger.info(f"[DIFFUSERS] Generating: steps={steps}, size={width}x{height}, seed={seed}")
 
-                # Prepare callback wrapper for async compatibility
-                def step_callback(pipe, step, timestep, callback_kwargs):
+                # Always wire progress callback for polling endpoint
+                def step_callback(pipe_inst, step, timestep, callback_kwargs):
+                    _generation_progress["step"] = step + 1  # 0-indexed → 1-indexed
+                    _generation_progress["total_steps"] = steps
                     if callback:
                         try:
                             callback(step, steps, callback_kwargs.get("latents"))
@@ -463,27 +473,30 @@ class DiffusersImageGenerator:
 
                 # Run inference in thread to avoid blocking event loop
                 def _generate():
-                    # Build generation kwargs
-                    gen_kwargs = {
-                        "prompt": prompt,
-                        "negative_prompt": negative_prompt if negative_prompt else None,
-                        "width": width,
-                        "height": height,
-                        "num_inference_steps": steps,
-                        "guidance_scale": cfg_scale,
-                        "generator": generator,
-                    }
+                    _generation_progress.update({"step": 0, "total_steps": steps, "active": True})
+                    try:
+                        # Build generation kwargs
+                        gen_kwargs = {
+                            "prompt": prompt,
+                            "negative_prompt": negative_prompt if negative_prompt else None,
+                            "width": width,
+                            "height": height,
+                            "num_inference_steps": steps,
+                            "guidance_scale": cfg_scale,
+                            "generator": generator,
+                        }
 
-                    # SD3.5: Set max_sequence_length=512 for T5-XXL encoder
-                    if hasattr(pipe, 'tokenizer_3'):  # SD3 has tokenizer_3 for T5
-                        gen_kwargs["max_sequence_length"] = 512
+                        # SD3.5: Set max_sequence_length=512 for T5-XXL encoder
+                        if hasattr(pipe, 'tokenizer_3'):  # SD3 has tokenizer_3 for T5
+                            gen_kwargs["max_sequence_length"] = 512
 
-                    if callback:
                         gen_kwargs["callback_on_step_end"] = step_callback
                         gen_kwargs["callback_on_step_end_tensor_inputs"] = ["latents"]
 
-                    result = pipe(**gen_kwargs)
-                    return result.images[0]
+                        result = pipe(**gen_kwargs)
+                        return result.images[0]
+                    finally:
+                        _generation_progress["active"] = False
 
                 image = await asyncio.to_thread(_generate)
 
@@ -560,21 +573,32 @@ class DiffusersImageGenerator:
                     f"size={width}x{height}, frames={num_frames}, seed={seed}"
                 )
 
+                def video_step_callback(pipe_inst, step, timestep, callback_kwargs):
+                    _generation_progress["step"] = step + 1
+                    _generation_progress["total_steps"] = steps
+                    return callback_kwargs
+
                 def _generate():
-                    gen_kwargs = {
-                        "prompt": prompt,
-                        "negative_prompt": negative_prompt if negative_prompt else None,
-                        "width": width,
-                        "height": height,
-                        "num_frames": num_frames,
-                        "num_inference_steps": steps,
-                        "guidance_scale": cfg_scale,
-                        "generator": generator,
-                    }
-                    result = pipe(**gen_kwargs)
-                    if not hasattr(result, 'frames') or not result.frames:
-                        raise ValueError("Pipeline returned no video frames")
-                    return result.frames[0]
+                    _generation_progress.update({"step": 0, "total_steps": steps, "active": True})
+                    try:
+                        gen_kwargs = {
+                            "prompt": prompt,
+                            "negative_prompt": negative_prompt if negative_prompt else None,
+                            "width": width,
+                            "height": height,
+                            "num_frames": num_frames,
+                            "num_inference_steps": steps,
+                            "guidance_scale": cfg_scale,
+                            "generator": generator,
+                            "callback_on_step_end": video_step_callback,
+                            "callback_on_step_end_tensor_inputs": ["latents"],
+                        }
+                        result = pipe(**gen_kwargs)
+                        if not hasattr(result, 'frames') or not result.frames:
+                            raise ValueError("Pipeline returned no video frames")
+                        return result.frames[0]
+                    finally:
+                        _generation_progress["active"] = False
 
                 frames = await asyncio.to_thread(_generate)
 
@@ -733,50 +757,55 @@ class DiffusersImageGenerator:
                     return fused_embeds, pooled
 
                 def _generate():
-                    # Effective T5 prompt: expanded if provided, else original
-                    effective_t5_prompt = t5_prompt if t5_prompt else prompt
+                    _generation_progress.update({"step": 0, "total_steps": steps, "active": True})
+                    try:
+                        # Effective T5 prompt: expanded if provided, else original
+                        effective_t5_prompt = t5_prompt if t5_prompt else prompt
 
-                    # Fuse positive prompt (CLIP-L gets original, T5 gets expanded)
-                    pos_embeds, pos_pooled = _fuse_prompt(prompt, effective_t5_prompt)
+                        # Fuse positive prompt (CLIP-L gets original, T5 gets expanded)
+                        pos_embeds, pos_pooled = _fuse_prompt(prompt, effective_t5_prompt)
 
-                    # Fuse negative prompt (no expansion — same text for both)
-                    neg_text = negative_prompt if negative_prompt else ""
-                    neg_embeds, neg_pooled = _fuse_prompt(neg_text, neg_text)
+                        # Fuse negative prompt (no expansion — same text for both)
+                        neg_text = negative_prompt if negative_prompt else ""
+                        neg_embeds, neg_pooled = _fuse_prompt(neg_text, neg_text)
 
-                    logger.info(
-                        f"[DIFFUSERS-FUSION] Token-level fusion: alpha={alpha_factor}, "
-                        f"LERP first {min(77, pos_embeds.shape[1])} tokens, "
-                        f"appending {max(0, pos_embeds.shape[1] - 77)} T5 anchor tokens, "
-                        f"shape={pos_embeds.shape}"
-                    )
+                        logger.info(
+                            f"[DIFFUSERS-FUSION] Token-level fusion: alpha={alpha_factor}, "
+                            f"LERP first {min(77, pos_embeds.shape[1])} tokens, "
+                            f"appending {max(0, pos_embeds.shape[1] - 77)} T5 anchor tokens, "
+                            f"shape={pos_embeds.shape}"
+                        )
 
-                    # Build generation kwargs — all 4 embedding tensors bypass encode_prompt
-                    gen_kwargs = {
-                        "prompt_embeds": pos_embeds,
-                        "negative_prompt_embeds": neg_embeds,
-                        "pooled_prompt_embeds": pos_pooled,
-                        "negative_pooled_prompt_embeds": neg_pooled,
-                        "width": width,
-                        "height": height,
-                        "num_inference_steps": steps,
-                        "guidance_scale": cfg_scale,
-                        "generator": generator,
-                        "max_sequence_length": 512,
-                    }
-
-                    if callback:
-                        def step_callback(pipe, step, timestep, callback_kwargs):
-                            try:
-                                callback(step, steps, callback_kwargs.get("latents"))
-                            except Exception as e:
-                                logger.warning(f"[DIFFUSERS-FUSION] Callback error: {e}")
+                        def fusion_step_callback(pipe_inst, step, timestep, callback_kwargs):
+                            _generation_progress["step"] = step + 1
+                            _generation_progress["total_steps"] = steps
+                            if callback:
+                                try:
+                                    callback(step, steps, callback_kwargs.get("latents"))
+                                except Exception as e:
+                                    logger.warning(f"[DIFFUSERS-FUSION] Callback error: {e}")
                             return callback_kwargs
 
-                        gen_kwargs["callback_on_step_end"] = step_callback
-                        gen_kwargs["callback_on_step_end_tensor_inputs"] = ["latents"]
+                        # Build generation kwargs — all 4 embedding tensors bypass encode_prompt
+                        gen_kwargs = {
+                            "prompt_embeds": pos_embeds,
+                            "negative_prompt_embeds": neg_embeds,
+                            "pooled_prompt_embeds": pos_pooled,
+                            "negative_pooled_prompt_embeds": neg_pooled,
+                            "width": width,
+                            "height": height,
+                            "num_inference_steps": steps,
+                            "guidance_scale": cfg_scale,
+                            "generator": generator,
+                            "max_sequence_length": 512,
+                            "callback_on_step_end": fusion_step_callback,
+                            "callback_on_step_end_tensor_inputs": ["latents"],
+                        }
 
-                    result = pipe(**gen_kwargs)
-                    return result.images[0]
+                        result = pipe(**gen_kwargs)
+                        return result.images[0]
+                    finally:
+                        _generation_progress["active"] = False
 
                 image = await asyncio.to_thread(_generate)
 
@@ -969,6 +998,7 @@ class DiffusersImageGenerator:
                 )
 
                 def _generate():
+                    _generation_progress.update({"step": 0, "total_steps": steps, "active": True})
                     # Install attention capture processors
                     original_processors = install_attention_capture(pipe, store, capture_layers)
 
@@ -979,6 +1009,8 @@ class DiffusersImageGenerator:
                         # Step 0's forward pass uses the initial current_step=0 (set below).
                         def step_callback(pipe_instance, step, timestep, callback_kwargs):
                             store.current_step = step + 1
+                            _generation_progress["step"] = step + 1
+                            _generation_progress["total_steps"] = steps
                             if callback:
                                 try:
                                     callback(step, steps, callback_kwargs.get("latents"))
@@ -1005,6 +1037,7 @@ class DiffusersImageGenerator:
                         result = pipe(**gen_kwargs)
                         return result.images[0]
                     finally:
+                        _generation_progress["active"] = False
                         # Always restore original processors
                         restore_attention_processors(pipe, original_processors, capture_layers)
 
@@ -1677,8 +1710,11 @@ class DiffusersImageGenerator:
 
                 def _generate():
                     from diffusers.image_processor import VaeImageProcessor
+                    _generation_progress.update({"step": 0, "total_steps": steps, "active": True})
 
                     def step_callback(pipe_instance, step, timestep, callback_kwargs):
+                        _generation_progress["step"] = step + 1
+                        _generation_progress["total_steps"] = steps
                         if capture_every_n > 1 and step % capture_every_n != 0:
                             return callback_kwargs
 
@@ -1708,23 +1744,26 @@ class DiffusersImageGenerator:
 
                         return callback_kwargs
 
-                    gen_kwargs = {
-                        "prompt": prompt,
-                        "negative_prompt": negative_prompt if negative_prompt else None,
-                        "width": width,
-                        "height": height,
-                        "num_inference_steps": steps,
-                        "guidance_scale": cfg_scale,
-                        "generator": generator,
-                        "callback_on_step_end": step_callback,
-                        "callback_on_step_end_tensor_inputs": ["latents"],
-                    }
+                    try:
+                        gen_kwargs = {
+                            "prompt": prompt,
+                            "negative_prompt": negative_prompt if negative_prompt else None,
+                            "width": width,
+                            "height": height,
+                            "num_inference_steps": steps,
+                            "guidance_scale": cfg_scale,
+                            "generator": generator,
+                            "callback_on_step_end": step_callback,
+                            "callback_on_step_end_tensor_inputs": ["latents"],
+                        }
 
-                    if hasattr(pipe, 'tokenizer_3'):
-                        gen_kwargs["max_sequence_length"] = 512
+                        if hasattr(pipe, 'tokenizer_3'):
+                            gen_kwargs["max_sequence_length"] = 512
 
-                    result = pipe(**gen_kwargs)
-                    return result.images[0]
+                        result = pipe(**gen_kwargs)
+                        return result.images[0]
+                    finally:
+                        _generation_progress["active"] = False
 
                 image = await asyncio.to_thread(_generate)
 

@@ -53,6 +53,14 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
   // Once true, stays true until generation ends
   const summaryShown = ref(false)
 
+  // ==================== Backend Generation Progress ====================
+  const backendProgress = ref<{ step: number; total_steps: number; active: boolean }>({
+    step: 0, total_steps: 0, active: false
+  })
+  // Once true for this generation, never fall back to time-based loop
+  // (inference done → hold progress while safety check runs)
+  let hasSeenBackendProgress = false
+
   // ==================== GPU/Energy State ====================
   const gpuStats = ref<GpuRealtimeStats>({ available: false })
   const elapsedSeconds = ref(0)
@@ -121,6 +129,19 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     }
   }
 
+  // ==================== Generation Progress Fetching ====================
+
+  async function fetchGenerationProgress(): Promise<void> {
+    try {
+      const response = await fetch('/api/settings/generation-progress')
+      if (response.ok) {
+        backendProgress.value = await response.json()
+      }
+    } catch {
+      /* fail-open: keep using time-based fallback */
+    }
+  }
+
   // ==================== Energy Tracking ====================
 
   function updateEnergy(): void {
@@ -154,6 +175,7 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     updateEnergy()
     if (tickCount % 2 === 0) {
       fetchGpuStats()
+      fetchGenerationProgress()
     }
   }
 
@@ -162,21 +184,30 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
   function animationLoop(currentTime: number): void {
     if (!isActive.value) return
 
-    const durationMs = (typeof estimatedSeconds.value === 'number'
-      ? estimatedSeconds.value
-      : 30) * 1000
-
-    const elapsed = currentTime - animationStartTime
-    const progress = (elapsed / durationMs) * 100
-
-    if (progress >= 100) {
-      // Loop: reset to 0 and continue
-      internalProgress.value = 0
-      cycleCount.value++
-      animationStartTime = currentTime
-      // Summary trigger is now purely time-based (5s) in updateEnergy()
+    if (backendProgress.value.active && backendProgress.value.total_steps > 0) {
+      // Real Diffusers progress — use step/total_steps directly
+      hasSeenBackendProgress = true
+      internalProgress.value = (backendProgress.value.step / backendProgress.value.total_steps) * 100
+    } else if (hasSeenBackendProgress) {
+      // Inference finished (active→false) but generation SSE not yet complete
+      // (safety check running). Hold at last value — don't reset or loop.
     } else {
-      internalProgress.value = progress
+      // Time-based fallback (ComfyUI, GPU service down, non-Diffusers)
+      const durationMs = (typeof estimatedSeconds.value === 'number'
+        ? estimatedSeconds.value
+        : 30) * 1000
+
+      const elapsed = currentTime - animationStartTime
+      const progress = (elapsed / durationMs) * 100
+
+      if (progress >= 100) {
+        // Loop: reset to 0 and continue
+        internalProgress.value = 0
+        cycleCount.value++
+        animationStartTime = currentTime
+      } else {
+        internalProgress.value = progress
+      }
     }
 
     animationFrameId = requestAnimationFrame(animationLoop)
@@ -193,6 +224,7 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
   function start(): void {
     internalProgress.value = 0
     summaryShown.value = false
+    hasSeenBackendProgress = false
 
     if (cycleCount.value === 0) {
       elapsedSeconds.value = 0
@@ -233,6 +265,7 @@ export function useAnimationProgress(options: UseAnimationProgressOptions) {
     simulatedTemp.value = 55
     tickCount = 0
     summaryShown.value = false
+    hasSeenBackendProgress = false
   }
 
   // ==================== Watch isActive ====================
