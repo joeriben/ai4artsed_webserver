@@ -50,12 +50,15 @@
         <div class="start-button-container">
           <button
             class="start-button"
-            :class="{ disabled: !inputText || inputBoxRef?.isCheckingSafety || contextBoxRef?.isCheckingSafety }"
-            :disabled="!inputText || inputBoxRef?.isCheckingSafety || contextBoxRef?.isCheckingSafety"
+            :class="{
+              disabled: !inputText && !isAnySafetyChecking,
+              'checking-safety': isAnySafetyChecking
+            }"
+            :disabled="!inputText || isAnySafetyChecking"
             @click="runInterception()"
           >
             <span class="button-arrows button-arrows-left">>>></span>
-            <span class="button-text">Start</span>
+            <span class="button-text">{{ isAnySafetyChecking ? $t('common.checkingSafety') : 'Start' }}</span>
             <span class="button-arrows button-arrows-right">>>></span>
           </button>
 
@@ -588,6 +591,7 @@ const categorySectionRef = ref<HTMLElement | null>(null)
 const inputSectionRef = ref<HTMLElement | null>(null)
 const inputBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
 const contextBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
+const isAnySafetyChecking = computed(() => !!(inputBoxRef.value?.isCheckingSafety || contextBoxRef.value?.isCheckingSafety))
 const interceptionSectionRef = ref<HTMLElement | null>(null)
 const optimizationSectionRef = ref<HTMLElement | null>(null)
 

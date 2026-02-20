@@ -27,19 +27,27 @@
         <div class="action-chips">
           <button
             class="action-chip"
-            :class="{ active: activeLyricsAction === 'expand', disabled: !lyricsInput }"
-            :disabled="!lyricsInput || isLyricsProcessing || lyricsBoxRef?.isCheckingSafety"
+            :class="{
+              active: activeLyricsAction === 'expand',
+              disabled: !lyricsInput && !isAnySafetyChecking,
+              'checking-safety': isAnySafetyChecking
+            }"
+            :disabled="!lyricsInput || isLyricsProcessing || isAnySafetyChecking"
             @click="runLyricsAction('expand')"
           >
-            {{ $t('musicGenV2.themeToLyrics') }}
+            {{ isAnySafetyChecking ? $t('common.checkingSafety') : $t('musicGenV2.themeToLyrics') }}
           </button>
           <button
             class="action-chip"
-            :class="{ active: activeLyricsAction === 'refine', disabled: !lyricsInput }"
-            :disabled="!lyricsInput || isLyricsProcessing || lyricsBoxRef?.isCheckingSafety"
+            :class="{
+              active: activeLyricsAction === 'refine',
+              disabled: !lyricsInput && !isAnySafetyChecking,
+              'checking-safety': isAnySafetyChecking
+            }"
+            :disabled="!lyricsInput || isLyricsProcessing || isAnySafetyChecking"
             @click="runLyricsAction('refine')"
           >
-            {{ $t('musicGenV2.refineLyrics') }}
+            {{ isAnySafetyChecking ? $t('common.checkingSafety') : $t('musicGenV2.refineLyrics') }}
           </button>
         </div>
 
@@ -152,12 +160,15 @@
         </div>
         <button
           class="start-button"
-          :class="{ disabled: !canGenerate || lyricsBoxRef?.isCheckingSafety }"
-          :disabled="!canGenerate || lyricsBoxRef?.isCheckingSafety"
+          :class="{
+            disabled: !canGenerate && !isAnySafetyChecking,
+            'checking-safety': isAnySafetyChecking
+          }"
+          :disabled="!canGenerate || isAnySafetyChecking"
           @click="startGeneration"
         >
           <span class="button-arrows button-arrows-left">>>></span>
-          <span class="button-text">{{ batchCount > 1 ? `${batchCurrent}/${batchCount}` : '' }} {{ $t('musicGenV2.generateButton') }}</span>
+          <span class="button-text">{{ isAnySafetyChecking ? $t('common.checkingSafety') : (batchCount > 1 ? `${batchCurrent}/${batchCount} ` : '') + $t('musicGenV2.generateButton') }}</span>
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
 
@@ -336,6 +347,7 @@ const audioLengthDisplay = computed(() => {
 
 const mainContainerRef = ref<HTMLElement | null>(null)
 const lyricsBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
+const isAnySafetyChecking = computed(() => !!lyricsBoxRef.value?.isCheckingSafety)
 const outputSectionRef = ref<InstanceType<typeof MediaOutputBox> | null>(null)
 
 // ============================================================================
@@ -864,6 +876,19 @@ onMounted(() => {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
+}
+
+.start-button.checking-safety {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  animation: safety-check-pulse 1.2s ease-in-out infinite;
+}
+
+.action-chip.checking-safety {
+  opacity: 0.6;
+  cursor: not-allowed;
+  animation: safety-check-pulse 1.2s ease-in-out infinite;
 }
 
 .button-arrows {

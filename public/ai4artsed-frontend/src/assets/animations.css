@@ -104,3 +104,9 @@
     transform: translateY(0);
   }
 }
+
+/* Safety check pulse (button disabled but actively checking) */
+@keyframes safety-check-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 0.7; }
+}

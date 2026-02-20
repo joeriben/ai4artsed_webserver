@@ -45,12 +45,15 @@
       <div class="start-button-container">
         <button
           class="start-button"
-          :class="{ disabled: !lyricsInput || lyricsBoxRef?.isCheckingSafety || tagsBoxRef?.isCheckingSafety }"
-          :disabled="!lyricsInput || lyricsBoxRef?.isCheckingSafety || tagsBoxRef?.isCheckingSafety"
+          :class="{
+            disabled: !lyricsInput && !isAnySafetyChecking,
+            'checking-safety': isAnySafetyChecking
+          }"
+          :disabled="!lyricsInput || isAnySafetyChecking"
           @click="runDualInterception()"
         >
           <span class="button-arrows button-arrows-left">>>></span>
-          <span class="button-text">{{ $t('musicGen.refineButton') }}</span>
+          <span class="button-text">{{ isAnySafetyChecking ? $t('common.checkingSafety') : $t('musicGen.refineButton') }}</span>
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
       </div>
@@ -186,13 +189,16 @@
       <div class="start-button-container">
         <button
           class="start-button"
-          :class="{ disabled: !canGenerate || lyricsBoxRef?.isCheckingSafety || tagsBoxRef?.isCheckingSafety }"
-          :disabled="!canGenerate || lyricsBoxRef?.isCheckingSafety || tagsBoxRef?.isCheckingSafety"
+          :class="{
+            disabled: !canGenerate && !isAnySafetyChecking,
+            'checking-safety': isAnySafetyChecking
+          }"
+          :disabled="!canGenerate || isAnySafetyChecking"
           @click="startGeneration()"
           ref="startButtonRef"
         >
           <span class="button-arrows button-arrows-left">>>></span>
-          <span class="button-text">{{ $t('musicGen.generateButton') }}</span>
+          <span class="button-text">{{ isAnySafetyChecking ? $t('common.checkingSafety') : $t('musicGen.generateButton') }}</span>
           <span class="button-arrows button-arrows-right">>>></span>
         </button>
 
@@ -269,6 +275,7 @@ const mainContainerRef = ref<HTMLElement | null>(null)
 const inputSectionRef = ref<HTMLElement | null>(null)
 const lyricsBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
 const tagsBoxRef = ref<InstanceType<typeof MediaInputBox> | null>(null)
+const isAnySafetyChecking = computed(() => !!(lyricsBoxRef.value?.isCheckingSafety || tagsBoxRef.value?.isCheckingSafety))
 const interceptionSectionRef = ref<HTMLElement | null>(null)
 const startButtonRef = ref<HTMLButtonElement | null>(null)
 const outputSectionRef = ref<InstanceType<typeof MediaOutputBox> | null>(null)
@@ -1073,6 +1080,22 @@ onMounted(() => {
 .start-button:disabled .button-arrows {
   animation: none;
   opacity: 0.3;
+}
+
+.start-button.checking-safety,
+.start-button.checking-safety:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: none;
+  box-shadow: none;
+  text-shadow: none;
+  animation: safety-check-pulse 1.2s ease-in-out infinite;
+}
+
+.start-button.checking-safety .button-arrows {
+  animation: none;
+  opacity: 0.4;
 }
 
 /* ============================================================================

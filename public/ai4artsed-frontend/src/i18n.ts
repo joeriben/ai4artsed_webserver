@@ -146,7 +146,8 @@ const messages = {
       loading: 'Lädt...',
       error: 'Fehler',
       retry: 'Erneut versuchen',
-      cancel: 'Abbrechen'
+      cancel: 'Abbrechen',
+      checkingSafety: 'Prüft...'
     },
     gallery: {
       title: 'Favoriten',  // Session 145: "Meine" redundant mit Switch
@@ -163,7 +164,114 @@ const messages = {
       authPrompt: 'Bitte geben Sie das Passwort ein, um auf die Einstellungen zuzugreifen:',
       passwordPlaceholder: 'Passwort eingeben...',
       authenticate: 'Anmelden',
-      authenticating: 'Authentifiziere...'
+      authenticating: 'Authentifiziere...',
+      // Admin page
+      title: 'Administration',
+      tabs: {
+        export: 'Sitzungsexport',
+        config: 'Konfiguration',
+        matrix: 'Modell-Matrix'
+      },
+      loading: 'Einstellungen laden...',
+      presets: {
+        title: 'Modell-Presets',
+        help: 'Verwenden Sie den Reiter <strong>Modell-Matrix</strong>, um alle verfügbaren Presets zu sehen und mit einem Klick anzuwenden.',
+        openMatrix: 'Modell-Matrix öffnen'
+      },
+      testingTools: {
+        title: 'Testtools für Pädagog*innen',
+        help: 'Testen und erkunden Sie die pädagogischen Minigames und Animationen, bevor Sie sie mit Lernenden nutzen.',
+        openPreview: 'Minigame-Vorschau öffnen',
+        pixelEditor: 'Pixel Template Editor',
+        includes: 'Enthält: Pixel-Animation, Eisberg-Schmelzen, Wald-Spiel, Seltene Erden'
+      },
+      general: {
+        title: 'Allgemeine Konfiguration',
+        uiMode: 'UI-Modus',
+        uiModeHelp: 'Komplexitätsstufe der Oberfläche',
+        kids: 'Kinder (8–12)',
+        youth: 'Jugend (13–17)',
+        expert: 'Expert',
+        safetyLevel: 'Sicherheitsstufe',
+        defaultLanguage: 'Standardsprache',
+        germanDe: 'Deutsch (de)',
+        englishEn: 'Englisch (en)',
+        turkishTr: 'Türkisch (tr)'
+      },
+      safety: {
+        kidsTitle: 'Kinder (8–12)',
+        kidsDesc: 'Alle Filter aktiv: §86a, DSGVO, Jugendschutz (altersgerechte Parameter), VLM-Bildcheck',
+        youthTitle: 'Jugend (13–17)',
+        youthDesc: 'Alle Filter aktiv: §86a, DSGVO, Jugendschutz (Youth-Parameter), VLM-Bildcheck',
+        adultTitle: 'Erwachsene',
+        adultDesc: '§86a + DSGVO aktiv. Kein Jugendschutz, kein VLM-Bildcheck.',
+        researchTitle: 'Forschungsmodus',
+        researchDesc: 'KEINE Sicherheitsfilter aktiv. Ausschließlich zur Nutzung durch Forschungseinrichtungen im Rahmen wissenschaftlicher Forschungsprojekte zulässig.'
+      },
+      safetyModels: {
+        title: 'Lokale Sicherheitsmodelle',
+        help: 'Lokal via Ollama — Personennamen und Safety-Checks verlassen nie das System',
+        safetyModel: 'Sicherheitsmodell',
+        safetyModelHelp: 'Guard-Modell für Content-Safety (§86a, Jugendschutz)',
+        dsgvoModel: 'DSGVO-Verifikationsmodell',
+        dsgvoModelHelp: 'General-Purpose-Modell für DSGVO-NER-Verifikation (kein Guard-Modell)',
+        fast: 'schnell, minimal',
+        standard: 'Standard',
+        bestQuality: 'beste Qualität',
+        recommended: 'empfohlen'
+      },
+      dsgvo: {
+        title: 'DSGVO-Warnung',
+        notCompliant: 'Die folgenden Modelle sind <strong>NICHT DSGVO-konform</strong> (Daten werden außerhalb der EU verarbeitet):',
+        compliantHint: 'DSGVO-konforme Optionen:'
+      },
+      models: {
+        title: 'Modellkonfiguration',
+        help: 'Modell-Bezeichner mit Anbieter-Präfix: local/, mistral/, anthropic/, openai/, openrouter/',
+        matrixAdvised: 'Die Nutzung der Modell-Matrix wird empfohlen. Sie können Ihre Einstellungen hier aber frei konfigurieren.',
+        ollamaAvailable: '{count} Ollama-Modelle verfügbar (eingeben oder aus Dropdown wählen)',
+        stage1Text: 'Stufe 1 – Textmodell',
+        stage1Vision: 'Stufe 1 – Vision-Modell',
+        stage2Interception: 'Stufe 2 – Interception-Modell',
+        stage2Optimization: 'Stufe 2 – Optimierungsmodell',
+        stage3: 'Stufe 3 – Übersetzungs-/Sicherheitsmodell',
+        stage4Legacy: 'Stufe 4 – Legacy-Modell',
+        chatHelper: 'Chat-Hilfsmodell',
+        imageAnalysis: 'Bildanalyse-Modell',
+        coding: 'Code-Generierung (Tone.js, p5.js)'
+      },
+      api: {
+        title: 'API-Konfiguration',
+        llmProvider: 'LLM-Anbieter',
+        localFramework: 'Lokales LLM-Framework',
+        externalProvider: 'Externer LLM-Anbieter',
+        cloudProvider: 'Cloud-LLM-Anbieter – API-Schlüssel erforderlich',
+        noneLocal: 'Keine (nur lokal, DSGVO)',
+        mistralEu: 'Mistral AI (EU-basiert)',
+        anthropicDirect: 'Anthropic Direct API (NICHT DSGVO)',
+        openaiDirect: 'OpenAI Direct API (NICHT DSGVO)',
+        openrouterDirect: 'OpenRouter (NICHT DSGVO, EU-Routing verfügbar)',
+        mistralInfo: 'Mistral AI (EU-basiert)',
+        mistralDsgvo: 'DSGVO-konform (EU-Infrastruktur)',
+        anthropicInfo: 'Anthropic Direct API',
+        anthropicNotDsgvo: 'NICHT DSGVO-konform',
+        anthropicWarning: 'Daten werden außerhalb der EU verarbeitet. Nur für nicht-pädagogische Kontexte verwenden.',
+        openaiInfo: 'OpenAI Direct API',
+        openaiNotDsgvo: 'NICHT DSGVO-konform (US-basiert)',
+        openaiWarning: 'Daten werden in den USA verarbeitet. Nur für nicht-pädagogische Kontexte verwenden.',
+        openrouterInfo: 'OpenRouter',
+        openrouterNotDsgvo: 'NICHT DSGVO-konform (US-Unternehmen)',
+        openrouterWarning: 'EU-Server-Routing in den OpenRouter-Einstellungen konfigurierbar, aber Unternehmen sitzt in den USA.',
+        storedIn: 'Gespeichert in',
+        currentKey: 'Aktuell'
+      },
+      save: {
+        saveApply: 'Speichern & Anwenden',
+        saving: 'Speichere...',
+        applying: 'Anwenden...',
+        success: 'Einstellungen gespeichert und angewendet',
+        presetApplied: 'Preset angewendet: {preset}'
+      }
     },
     pipeline: {
       yourInput: 'Dein Input',
@@ -1344,7 +1452,8 @@ const messages = {
       loading: 'Loading...',
       error: 'Error',
       retry: 'Retry',
-      cancel: 'Cancel'
+      cancel: 'Cancel',
+      checkingSafety: 'Checking...'
     },
     gallery: {
       title: 'Favorites',  // Session 145: "My" redundant with switch
@@ -1361,7 +1470,114 @@ const messages = {
       authPrompt: 'Please enter the password to access settings:',
       passwordPlaceholder: 'Enter password...',
       authenticate: 'Sign In',
-      authenticating: 'Authenticating...'
+      authenticating: 'Authenticating...',
+      // Admin page
+      title: 'Administration',
+      tabs: {
+        export: 'Session Export',
+        config: 'Configuration',
+        matrix: 'Model Matrix'
+      },
+      loading: 'Loading settings...',
+      presets: {
+        title: 'Model Presets',
+        help: 'Use the <strong>Model Matrix</strong> tab to see all available presets and apply them with one click.',
+        openMatrix: 'Open Model Matrix'
+      },
+      testingTools: {
+        title: 'Testing Tools for Educators',
+        help: 'Test and explore the pedagogical minigames and animations before using them with learners.',
+        openPreview: 'Open Minigame Preview',
+        pixelEditor: 'Pixel Template Editor',
+        includes: 'Includes: Pixel Animation, Iceberg Melting, Forest Game, Rare Earths'
+      },
+      general: {
+        title: 'General Configuration',
+        uiMode: 'UI Mode',
+        uiModeHelp: 'Interface complexity level',
+        kids: 'Kids (8–12)',
+        youth: 'Youth (13–17)',
+        expert: 'Expert',
+        safetyLevel: 'Safety Level',
+        defaultLanguage: 'Default Language',
+        germanDe: 'German (de)',
+        englishEn: 'English (en)',
+        turkishTr: 'Turkish (tr)'
+      },
+      safety: {
+        kidsTitle: 'Children (8–12)',
+        kidsDesc: 'All filters active: §86a, DSGVO, Youth Protection (age-appropriate parameters), VLM image check',
+        youthTitle: 'Youth (13–17)',
+        youthDesc: 'All filters active: §86a, DSGVO, Youth Protection (youth parameters), VLM image check',
+        adultTitle: 'Adults',
+        adultDesc: '§86a + DSGVO active. No youth protection, no VLM image check.',
+        researchTitle: 'Research Mode',
+        researchDesc: 'NO safety filters active. Only permitted for use by research institutions in the context of scientific research projects.'
+      },
+      safetyModels: {
+        title: 'Local Safety Models',
+        help: 'Local via Ollama — person names and safety checks never leave the system',
+        safetyModel: 'Safety Model',
+        safetyModelHelp: 'Guard model for content safety (§86a, youth protection)',
+        dsgvoModel: 'DSGVO-Verify Model',
+        dsgvoModelHelp: 'General-purpose model for DSGVO NER verification (not a guard model)',
+        fast: 'fast, minimal',
+        standard: 'standard',
+        bestQuality: 'best quality',
+        recommended: 'recommended'
+      },
+      dsgvo: {
+        title: 'DSGVO Warning',
+        notCompliant: 'The following models are <strong>NOT DSGVO-compliant</strong> (data processed outside EU):',
+        compliantHint: 'DSGVO-compliant options:'
+      },
+      models: {
+        title: 'Model Configuration',
+        help: 'Model identifiers with provider prefix: local/, mistral/, anthropic/, openai/, openrouter/',
+        matrixAdvised: 'Use of Model Matrix is advised. However, you may configure your settings here freely.',
+        ollamaAvailable: '{count} Ollama models available (type or select from dropdown)',
+        stage1Text: 'Stage 1 - Text Model',
+        stage1Vision: 'Stage 1 - Vision Model',
+        stage2Interception: 'Stage 2 - Interception Model',
+        stage2Optimization: 'Stage 2 - Optimization Model',
+        stage3: 'Stage 3 - Translation/Safety Model',
+        stage4Legacy: 'Stage 4 - Legacy Model',
+        chatHelper: 'Chat Helper Model',
+        imageAnalysis: 'Image Analysis Model',
+        coding: 'Code Generation (Tone.js, p5.js)'
+      },
+      api: {
+        title: 'API Configuration',
+        llmProvider: 'LLM Provider',
+        localFramework: 'Local LLM framework',
+        externalProvider: 'External LLM Provider',
+        cloudProvider: 'Cloud LLM provider - requires API key',
+        noneLocal: 'None (Local only, DSGVO)',
+        mistralEu: 'Mistral AI (EU-based, DSGVO)',
+        anthropicDirect: 'Anthropic Direct API (NOT DSGVO)',
+        openaiDirect: 'OpenAI Direct API (NOT DSGVO)',
+        openrouterDirect: 'OpenRouter (NOT DSGVO, EU routing available)',
+        mistralInfo: 'Mistral AI (EU-based)',
+        mistralDsgvo: 'DSGVO-compliant (EU infrastructure)',
+        anthropicInfo: 'Anthropic Direct API',
+        anthropicNotDsgvo: 'NOT DSGVO-compliant',
+        anthropicWarning: 'Data processed outside EU. Use only for non-educational contexts.',
+        openaiInfo: 'OpenAI Direct API',
+        openaiNotDsgvo: 'NOT DSGVO-compliant (US-based)',
+        openaiWarning: 'Data processed in United States. Use only for non-educational contexts.',
+        openrouterInfo: 'OpenRouter',
+        openrouterNotDsgvo: 'NOT DSGVO-compliant (US company)',
+        openrouterWarning: 'EU server routing configurable in OpenRouter settings, but company is US-based.',
+        storedIn: 'Stored in',
+        currentKey: 'Current'
+      },
+      save: {
+        saveApply: 'Save & Apply',
+        saving: 'Saving...',
+        applying: 'Applying...',
+        success: 'Settings saved and applied',
+        presetApplied: 'Applied preset: {preset}'
+      }
     },
     pipeline: {
       yourInput: 'Your input',
@@ -2542,7 +2758,8 @@ const messages = {
       loading: 'Yükleniyor...',
       error: 'Hata',
       retry: 'Tekrar Dene',
-      cancel: 'İptal'
+      cancel: 'İptal',
+      checkingSafety: 'Kontrol ediyor...'
     },
     gallery: {
       title: 'Favoriler',
@@ -2559,7 +2776,114 @@ const messages = {
       authPrompt: 'Ayarlara erişmek için lütfen şifreyi girin:',
       passwordPlaceholder: 'Şifre girin...',
       authenticate: 'Giriş Yap',
-      authenticating: 'Kimlik doğrulanıyor...'
+      authenticating: 'Kimlik doğrulanıyor...',
+      // Admin page
+      title: 'Yönetim',
+      tabs: {
+        export: 'Oturum Dışa Aktarma',
+        config: 'Yapılandırma',
+        matrix: 'Model Matrisi'
+      },
+      loading: 'Ayarlar yükleniyor...',
+      presets: {
+        title: 'Model Ön Ayarları',
+        help: 'Mevcut tüm ön ayarları görmek ve tek tıkla uygulamak için <strong>Model Matrisi</strong> sekmesini kullanın.',
+        openMatrix: 'Model Matrisini Aç'
+      },
+      testingTools: {
+        title: 'Eğitimciler için Test Araçları',
+        help: 'Pedagojik mini oyunları ve animasyonları öğrencilerle kullanmadan önce test edin ve keşfedin.',
+        openPreview: 'Mini Oyun Önizlemesini Aç',
+        pixelEditor: 'Piksel Şablon Editörü',
+        includes: 'İçerir: Piksel Animasyonu, Buzdağı Erimesi, Orman Oyunu, Nadir Toprak Elementleri'
+      },
+      general: {
+        title: 'Genel Yapılandırma',
+        uiMode: 'Arayüz Modu',
+        uiModeHelp: 'Arayüz karmaşıklık seviyesi',
+        kids: 'Çocuklar (8–12)',
+        youth: 'Gençler (13–17)',
+        expert: 'Uzman',
+        safetyLevel: 'Güvenlik Seviyesi',
+        defaultLanguage: 'Varsayılan Dil',
+        germanDe: 'Almanca (de)',
+        englishEn: 'İngilizce (en)',
+        turkishTr: 'Türkçe (tr)'
+      },
+      safety: {
+        kidsTitle: 'Çocuklar (8–12)',
+        kidsDesc: 'Tüm filtreler aktif: §86a, KVKK, Çocuk Koruma (yaşa uygun parametreler), VLM görsel kontrolü',
+        youthTitle: 'Gençler (13–17)',
+        youthDesc: 'Tüm filtreler aktif: §86a, KVKK, Gençlik Koruma (gençlik parametreleri), VLM görsel kontrolü',
+        adultTitle: 'Yetişkinler',
+        adultDesc: '§86a + KVKK aktif. Gençlik koruması yok, VLM görsel kontrolü yok.',
+        researchTitle: 'Araştırma Modu',
+        researchDesc: 'HİÇBİR güvenlik filtresi aktif değil. Yalnızca bilimsel araştırma projeleri kapsamında araştırma kurumları tarafından kullanılabilir.'
+      },
+      safetyModels: {
+        title: 'Yerel Güvenlik Modelleri',
+        help: 'Ollama ile yerel — kişi adları ve güvenlik kontrolleri sistemi asla terk etmez',
+        safetyModel: 'Güvenlik Modeli',
+        safetyModelHelp: 'İçerik güvenliği için koruma modeli (§86a, gençlik koruma)',
+        dsgvoModel: 'KVKK Doğrulama Modeli',
+        dsgvoModelHelp: 'KVKK NER doğrulaması için genel amaçlı model (koruma modeli değil)',
+        fast: 'hızlı, minimal',
+        standard: 'standart',
+        bestQuality: 'en iyi kalite',
+        recommended: 'önerilen'
+      },
+      dsgvo: {
+        title: 'KVKK Uyarısı',
+        notCompliant: 'Aşağıdaki modeller <strong>KVKK uyumlu DEĞİLDİR</strong> (veriler AB dışında işlenir):',
+        compliantHint: 'KVKK uyumlu seçenekler:'
+      },
+      models: {
+        title: 'Model Yapılandırması',
+        help: 'Sağlayıcı önekiyle model tanımlayıcıları: local/, mistral/, anthropic/, openai/, openrouter/',
+        matrixAdvised: 'Model Matrisi kullanılması önerilir. Ancak ayarlarınızı burada serbestçe yapılandırabilirsiniz.',
+        ollamaAvailable: '{count} Ollama modeli mevcut (yazın veya açılır menüden seçin)',
+        stage1Text: 'Aşama 1 – Metin Modeli',
+        stage1Vision: 'Aşama 1 – Görüntü Modeli',
+        stage2Interception: 'Aşama 2 – Interception Modeli',
+        stage2Optimization: 'Aşama 2 – Optimizasyon Modeli',
+        stage3: 'Aşama 3 – Çeviri/Güvenlik Modeli',
+        stage4Legacy: 'Aşama 4 – Eski Model',
+        chatHelper: 'Sohbet Yardımcı Modeli',
+        imageAnalysis: 'Görsel Analiz Modeli',
+        coding: 'Kod Üretimi (Tone.js, p5.js)'
+      },
+      api: {
+        title: 'API Yapılandırması',
+        llmProvider: 'LLM Sağlayıcısı',
+        localFramework: 'Yerel LLM çerçevesi',
+        externalProvider: 'Harici LLM Sağlayıcısı',
+        cloudProvider: 'Bulut LLM sağlayıcısı – API anahtarı gerekli',
+        noneLocal: 'Yok (Yalnızca yerel, KVKK)',
+        mistralEu: 'Mistral AI (AB merkezli, KVKK)',
+        anthropicDirect: 'Anthropic Direct API (KVKK DEĞİL)',
+        openaiDirect: 'OpenAI Direct API (KVKK DEĞİL)',
+        openrouterDirect: 'OpenRouter (KVKK DEĞİL, AB yönlendirme mevcut)',
+        mistralInfo: 'Mistral AI (AB merkezli)',
+        mistralDsgvo: 'KVKK uyumlu (AB altyapısı)',
+        anthropicInfo: 'Anthropic Direct API',
+        anthropicNotDsgvo: 'KVKK uyumlu DEĞİL',
+        anthropicWarning: 'Veriler AB dışında işlenir. Yalnızca eğitim dışı bağlamlarda kullanın.',
+        openaiInfo: 'OpenAI Direct API',
+        openaiNotDsgvo: 'KVKK uyumlu DEĞİL (ABD merkezli)',
+        openaiWarning: 'Veriler ABD\'de işlenir. Yalnızca eğitim dışı bağlamlarda kullanın.',
+        openrouterInfo: 'OpenRouter',
+        openrouterNotDsgvo: 'KVKK uyumlu DEĞİL (ABD şirketi)',
+        openrouterWarning: 'AB sunucu yönlendirmesi OpenRouter ayarlarından yapılandırılabilir, ancak şirket ABD merkezlidir.',
+        storedIn: 'Kayıt yeri',
+        currentKey: 'Mevcut'
+      },
+      save: {
+        saveApply: 'Kaydet ve Uygula',
+        saving: 'Kaydediliyor...',
+        applying: 'Uygulanıyor...',
+        success: 'Ayarlar kaydedildi ve uygulandı',
+        presetApplied: 'Ön ayar uygulandı: {preset}'
+      }
     },
     pipeline: {
       yourInput: 'Girdiniz',
