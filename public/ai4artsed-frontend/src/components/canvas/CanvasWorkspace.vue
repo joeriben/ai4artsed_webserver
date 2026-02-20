@@ -239,9 +239,16 @@ function getNodeFeedbackInputCenter(nodeId: string): { x: number; y: number } {
 const connectionPaths = computed(() => {
   return props.connections.map(conn => {
     // For evaluation outputs with labels, use the specific labeled connector
-    const outputLabel = ['pass', 'fail', 'commentary'].includes(conn.label || '')
-      ? conn.label
-      : undefined
+    let outputLabel: string | undefined
+    if (['pass', 'fail', 'commentary'].includes(conn.label || '')) {
+      outputLabel = conn.label!
+    } else if (conn.label === 'feedback') {
+      // Feedback connections FROM evaluation nodes originate at the 'fail' port
+      const sourceNode = props.nodes.find(n => n.id === conn.sourceId)
+      if (sourceNode?.type === 'evaluation') {
+        outputLabel = 'fail'
+      }
+    }
     const source = getNodeOutputCenter(conn.sourceId, outputLabel)
 
     // Use feedback input position for connections with label 'feedback'
