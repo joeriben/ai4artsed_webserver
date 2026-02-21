@@ -119,8 +119,6 @@
                   <option value="llama-guard3:1b">llama-guard3:1b ({{ $t('settings.safetyModels.fast') }})</option>
                   <option value="llama-guard3:latest">llama-guard3:latest</option>
                   <option value="llama-guard3:8b">llama-guard3:8b</option>
-                  <option value="gpt-OSS:20b">gpt-OSS:20b ({{ $t('settings.safetyModels.standard') }})</option>
-                  <option value="gpt-OSS:120b">gpt-OSS:120b ({{ $t('settings.safetyModels.bestQuality') }})</option>
                 </select>
                 <span class="help-text">{{ $t('settings.safetyModels.safetyModelHelp') }}</span>
               </td>
@@ -134,9 +132,19 @@
                   <option value="qwen2.5:1.5b">qwen2.5:1.5b (~1.2 GB VRAM)</option>
                   <option value="llama3.2:1b">llama3.2:1b (~1.3 GB VRAM)</option>
                   <option value="qwen3:0.6b">qwen3:0.6b (~0.6 GB VRAM, minimal)</option>
-                  <option value="gpt-OSS:20b">gpt-OSS:20b (20 GB VRAM)</option>
                 </select>
                 <span class="help-text">{{ $t('settings.safetyModels.dsgvoModelHelp') }}</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">{{ $t('settings.safetyModels.vlmModel') }}</td>
+              <td class="value-cell">
+                <select v-model="settings.VLM_SAFETY_MODEL">
+                  <option value="qwen3-vl:2b">qwen3-vl:2b (~2 GB VRAM, {{ $t('settings.safetyModels.recommended') }})</option>
+                  <option value="qwen3-vl:8b">qwen3-vl:8b (~5 GB VRAM)</option>
+                  <option value="llama3.2-vision:latest">llama3.2-vision:latest (~8 GB VRAM)</option>
+                </select>
+                <span class="help-text">{{ $t('settings.safetyModels.vlmModelHelp') }}</span>
               </td>
             </tr>
           </tbody>

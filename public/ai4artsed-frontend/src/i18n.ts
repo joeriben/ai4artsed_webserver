@@ -222,9 +222,9 @@ const messages = {
         safetyModelHelp: 'Guard-Modell für Content-Safety (§86a, Jugendschutz)',
         dsgvoModel: 'DSGVO-Verifikationsmodell',
         dsgvoModelHelp: 'General-Purpose-Modell für DSGVO-NER-Verifikation (kein Guard-Modell)',
+        vlmModel: 'VLM-Sicherheitsmodell',
+        vlmModelHelp: 'Vision-Modell für Post-Generierungs-Bildsicherheitsprüfung (kids/youth)',
         fast: 'schnell, minimal',
-        standard: 'Standard',
-        bestQuality: 'beste Qualität',
         recommended: 'empfohlen'
       },
       dsgvo: {
@@ -1579,9 +1579,9 @@ const messages = {
         safetyModelHelp: 'Guard model for content safety (§86a, youth protection)',
         dsgvoModel: 'DSGVO-Verify Model',
         dsgvoModelHelp: 'General-purpose model for DSGVO NER verification (not a guard model)',
+        vlmModel: 'VLM Safety Model',
+        vlmModelHelp: 'Vision model for post-generation image safety check (kids/youth)',
         fast: 'fast, minimal',
-        standard: 'standard',
-        bestQuality: 'best quality',
         recommended: 'recommended'
       },
       dsgvo: {
@@ -2936,9 +2936,9 @@ const messages = {
         safetyModelHelp: 'İçerik güvenliği için koruma modeli (§86a, gençlik koruma)',
         dsgvoModel: 'KVKK Doğrulama Modeli',
         dsgvoModelHelp: 'KVKK NER doğrulaması için genel amaçlı model (koruma modeli değil)',
+        vlmModel: 'VLM Güvenlik Modeli',
+        vlmModelHelp: 'Üretim sonrası görüntü güvenlik kontrolü için görsel model (çocuklar/gençler)',
         fast: 'hızlı, minimal',
-        standard: 'standart',
-        bestQuality: 'en iyi kalite',
         recommended: 'önerilen'
       },
       dsgvo: {
@@ -4293,9 +4293,9 @@ const messages = {
         safetyModelHelp: '콘텐츠 안전을 위한 가드 모델 (§86a, 청소년 보호)',
         dsgvoModel: '개인정보보호법 검증 모델',
         dsgvoModelHelp: '개인정보보호법 NER 검증을 위한 범용 모델 (가드 모델 아님)',
+        vlmModel: 'VLM 안전 모델',
+        vlmModelHelp: '생성 후 이미지 안전 검사를 위한 비전 모델 (어린이/청소년)',
         fast: '빠름, 최소',
-        standard: '표준',
-        bestQuality: '최고 품질',
         recommended: '권장'
       },
       dsgvo: {
@@ -5650,9 +5650,9 @@ const messages = {
         safetyModelHelp: 'Guard-модель для безпеки контенту (§86a, захист молоді)',
         dsgvoModel: 'DSGVO-модель верифікації',
         dsgvoModelHelp: 'Модель загального призначення для верифікації NER за DSGVO (не guard-модель)',
+        vlmModel: 'VLM-модель безпеки',
+        vlmModelHelp: 'Візуальна модель для перевірки безпеки зображень після генерації (діти/підлітки)',
         fast: 'швидко, мінімально',
-        standard: 'стандартно',
-        bestQuality: 'найкраща якість',
         recommended: 'рекомендовано'
       },
       dsgvo: {
@@ -7006,9 +7006,9 @@ const messages = {
         safetyModelHelp: 'Modèle garde pour la sécurité du contenu (§86a, protection de la jeunesse)',
         dsgvoModel: 'Modèle de vérification RGPD',
         dsgvoModelHelp: 'Modèle généraliste pour la vérification NER RGPD (pas un modèle garde)',
+        vlmModel: 'Modèle VLM de sécurité',
+        vlmModelHelp: 'Modèle de vision pour la vérification de sécurité des images après génération (enfants/jeunes)',
         fast: 'rapide, minimal',
-        standard: 'standard',
-        bestQuality: 'meilleure qualité',
         recommended: 'recommandé'
       },
       dsgvo: {
