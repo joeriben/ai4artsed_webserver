@@ -562,6 +562,9 @@ class StableAudioGenerator:
                         generator=generator, device=self.device,
                         dtype=text_audio_duration_embeds.dtype,
                     )
+                    # Bug 1 fix: scale initial noise by init_noise_sigma
+                    # (sigma_max^2 + 1)^0.5 ≈ 80.006 for EDM scheduler
+                    latents = latents * pipe.scheduler.init_noise_sigma
 
                     # --- Scheduler (mirrors pipeline step 4) ---
                     pipe.scheduler.set_timesteps(total_steps, device=self.device)
@@ -578,17 +581,23 @@ class StableAudioGenerator:
                     final_cosine_sim = None
 
                     # --- Denoising loop (mirrors pipeline step 8) ---
+                    # Correct algorithm (Xing et al. CVPR 2024 + EDM math):
+                    # - Guidance modifies latents BEFORE scheduler.step()
+                    # - scheduler.step() ALWAYS runs to keep state consistent
+                    # - precondition_outputs() computes predicted clean sample (not DDPM formula)
                     for i, t in enumerate(timesteps):
                         is_warmup = i < warmup_steps
 
                         if is_warmup:
-                            latents.requires_grad_(True)
+                            latents = latents.detach().requires_grad_(True)
 
                         # Expand for CFG
                         latent_input = torch.cat([latents] * 2) if do_cfg else latents
                         latent_input = pipe.scheduler.scale_model_input(latent_input, t)
 
-                        # Transformer forward — matches pipeline exactly
+                        # Transformer forward — with grad during warmup for EDM gradient flow
+                        # At high sigma (early steps): c_skip ≈ 0, c_out ≈ 0.5
+                        # → predicted_clean ≈ 0.5 * noise_pred — gradient flows through transformer
                         if is_warmup:
                             noise_pred = pipe.transformer(
                                 latent_input,
@@ -614,20 +623,17 @@ class StableAudioGenerator:
                             noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                             noise_pred = noise_pred_uncond + cfg_scale * (noise_pred_text - noise_pred_uncond)
 
-                        # Scheduler step
+                        # --- Gradient guidance (warmup only) ---
                         if is_warmup:
-                            # Manual Euler step to preserve grad flow through latents
-                            sigma = pipe.scheduler.sigmas[i]
-                            sigma_next = pipe.scheduler.sigmas[i + 1] if i + 1 < len(pipe.scheduler.sigmas) else 0
-                            dt = sigma_next - sigma
-                            latents_new = latents + noise_pred * dt
-
-                            # Predict clean sample for guidance
-                            predicted_clean = latents - sigma * noise_pred
+                            # Bug 2 fix: Use EDM preconditioning to compute predicted clean sample
+                            # c_skip = σ_data² / (σ² + σ_data²), c_out = σ·σ_data / (σ² + σ_data²)^0.5
+                            # predicted_clean = c_skip * sample + c_out * model_output
+                            sigma = pipe.scheduler.sigmas[pipe.scheduler.step_index]
+                            predicted_clean = pipe.scheduler.precondition_outputs(
+                                latents, noise_pred, sigma
+                            )
 
                             # Decode to waveform for ImageBind
-                            # No torch.no_grad() here — gradient must flow
-                            # latents → predicted_clean → VAE decode → ImageBind → loss
                             audio_waveform = pipe.vae.decode(
                                 predicted_clean.to(pipe.vae.dtype)
                             ).sample  # [1, channels, audio_samples]
@@ -690,7 +696,8 @@ class StableAudioGenerator:
                                     loss, latents, retain_graph=False
                                 )[0]
 
-                                latents_new = latents_new.detach() - lambda_guidance * grad.detach()
+                                # Apply guidance: modify latents BEFORE scheduler.step()
+                                latents = (latents - lambda_guidance * grad).detach()
                                 final_cosine_sim = cos_sim.mean().item()
 
                                 logger.debug(
@@ -699,14 +706,17 @@ class StableAudioGenerator:
                                     f"grad_norm={grad.norm().item():.4f}"
                                 )
                             else:
-                                latents_new = latents_new.detach()
+                                latents = latents.detach()
 
-                            latents = latents_new.detach().requires_grad_(False)
-                        else:
-                            with torch.no_grad():
-                                latents = pipe.scheduler.step(
-                                    noise_pred, t, latents
-                                ).prev_sample
+                        # Bug 3+4 fix: ALWAYS call scheduler.step() to keep state consistent
+                        # This increments step_index, updates model_outputs buffer,
+                        # and uses the correct DPMSolver++ multi-step integration
+                        noise_pred_detached = noise_pred.detach()
+                        latents_detached = latents.detach()
+                        with torch.no_grad():
+                            latents = pipe.scheduler.step(
+                                noise_pred_detached, t, latents_detached
+                            ).prev_sample
 
                     # Final decode
                     with torch.no_grad():
