@@ -1185,8 +1185,8 @@ const messages = {
           }
         },
         mmaudio: {
-          imageUpload: 'Bild hochladen',
-          prompt: 'Text-Prompt',
+          imageUpload: 'Bild hochladen (optional)',
+          prompt: 'Text-Prompt (optional)',
           promptPlaceholder: 'z.B. Knisterndes Lagerfeuer',
           negativePrompt: 'Negativ-Prompt',
           duration: 'Dauer (s)',
@@ -2481,8 +2481,8 @@ const messages = {
           }
         },
         mmaudio: {
-          imageUpload: 'Upload image',
-          prompt: 'Text prompt',
+          imageUpload: 'Upload image (optional)',
+          prompt: 'Text prompt (optional)',
           promptPlaceholder: 'e.g. crackling campfire',
           negativePrompt: 'Negative prompt',
           duration: 'Duration (s)',
@@ -3777,8 +3777,8 @@ const messages = {
           }
         },
         mmaudio: {
-          imageUpload: 'Görsel yükle',
-          prompt: 'Metin promptu',
+          imageUpload: 'Görsel yükle (isteğe bağlı)',
+          prompt: 'Metin promptu (isteğe bağlı)',
           promptPlaceholder: 'örn. çatırdayan kamp ateşi',
           negativePrompt: 'Negatif prompt',
           duration: 'Süre (s)',
@@ -5073,8 +5073,8 @@ const messages = {
           }
         },
         mmaudio: {
-          imageUpload: '이미지 업로드',
-          prompt: '텍스트 프롬프트',
+          imageUpload: '이미지 업로드 (선택 사항)',
+          prompt: '텍스트 프롬프트 (선택 사항)',
           promptPlaceholder: '예: 타닥타닥 캠프파이어',
           negativePrompt: '네거티브 프롬프트',
           duration: '지속 시간 (초)',
@@ -6369,8 +6369,8 @@ const messages = {
           }
         },
         mmaudio: {
-          imageUpload: 'Завантажити зображення',
-          prompt: 'Текстовий промпт',
+          imageUpload: 'Завантажити зображення (необов\'язково)',
+          prompt: 'Текстовий промпт (необов\'язково)',
           promptPlaceholder: 'напр. потріскування вогнища',
           negativePrompt: 'Негативний промпт',
           duration: 'Тривалість (с)',

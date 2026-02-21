@@ -1923,6 +1923,29 @@ devserver/my_app/engine/*.py (Referenzen)
 
 ---
 
+## 📋 TODO: Latent Lab UX Improvements
+
+**Status:** 📋 **TODO**
+**Datum:** 2026-02-21
+**Priority:** MEDIUM (UX polish, not blocking functionality)
+
+### 1. Seed defaults: set to -1 (random) where hardcoded to 42
+Check all latent lab sub-pages (synth, MMAudio, ImageBind). Several have `seed: 42` as default — should be `-1` (random) so users get varied results without manually changing it.
+
+### 2. Sticky sub-tabs: crossmodal lab sub-tab should persist
+When navigating away from crossmodal lab and back, the active sub-tab (synth/mmaudio/guidance) resets to synth. Should persist via localStorage or route query param.
+
+### 3. Streamline "Erweiterte Einstellungen" collapse state across labs
+If one lab has a `<details>` for advanced settings, the open/closed state should be consistent and ideally persist across sessions (localStorage).
+
+### 4. "Ausführliche Erklärung" mandatory for all latent lab elements
+Every slider, parameter, and input in the latent lab should have a tooltip or expandable explanation. Currently inconsistent — some have `slider-hint`, some don't. Audit and fill gaps.
+
+### 5. Scientific references with DOI in all labs
+All latent lab tabs reference published research (MMAudio = CVPR 2025, ImageBind = CVPR 2023, Stable Audio = ICML 2024). Add DOI links and brief citations accessible via info buttons or tab descriptions.
+
+---
+
 **Created:** 2025-10-26
 **Last Major Cleanup:** 2025-11-02 Session 14
 **Status:** Clean and concise (down from 1406 lines to ~230 lines)

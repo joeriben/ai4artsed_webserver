@@ -571,14 +571,14 @@
     <div v-if="error" class="output-area">
       <div class="error-message">{{ error }}</div>
     </div>
-    <div v-if="activeTab !== 'synth' && (resultAudio || cosineSimilarity !== null)" class="output-area">
-      <h3>{{ t('latentLab.crossmodal.result') }}</h3>
-
-      <div v-if="resultAudio" class="output-audio-container">
-        <audio :src="resultAudio" controls class="output-audio" />
-      </div>
-
-      <div class="result-meta">
+    <div v-if="activeTab !== 'synth'" class="output-section">
+      <MediaOutputBox
+        :output-image="resultAudio"
+        media-type="audio"
+        :is-executing="generating"
+        @download="downloadResultAudio"
+      />
+      <div v-if="resultSeed !== null || generationTimeMs || cosineSimilarity !== null" class="result-meta">
         <span v-if="resultSeed !== null" class="meta-item">{{ t('latentLab.crossmodal.seed') }}: {{ resultSeed }}</span>
         <span v-if="generationTimeMs" class="meta-item">{{ t('latentLab.crossmodal.generationTime') }}: {{ generationTimeMs }}ms</span>
         <span v-if="cosineSimilarity !== null" class="meta-item">{{ t('latentLab.crossmodal.guidance.cosineSimilarity') }}: {{ cosineSimilarity.toFixed(4) }}</span>
@@ -595,6 +595,7 @@ import { useWavetableOsc } from '@/composables/useWavetableOsc'
 import { useEnvelope } from '@/composables/useEnvelope'
 import { useWebMidi } from '@/composables/useWebMidi'
 import MediaInputBox from '@/components/MediaInputBox.vue'
+import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
 
 const { t } = useI18n()
@@ -1204,6 +1205,15 @@ function downloadBlob(blob: Blob, filename: string) {
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function downloadResultAudio() {
+  if (!resultAudio.value) return
+  const a = document.createElement('a')
+  a.href = resultAudio.value
+  const prefix = activeTab.value === 'mmaudio' ? 'mmaudio' : 'imagebind'
+  a.download = `${prefix}_${resultSeed.value ?? 0}.wav`
+  a.click()
 }
 
 function saveRaw() {
@@ -1921,12 +1931,6 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
-.output-area h3 {
-  font-size: 1rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-
 .error-message {
   color: #ff5252;
   font-size: 0.85rem;
@@ -1936,12 +1940,8 @@ onUnmounted(() => {
   margin-bottom: 1rem;
 }
 
-.output-audio-container {
-  margin-bottom: 1rem;
-}
-
-.output-audio {
-  width: 100%;
+.output-section {
+  margin-top: 1rem;
 }
 
 .result-meta {
