@@ -1944,11 +1944,8 @@ If one lab has a `<details>` for advanced settings, the open/closed state should
 **4a. ✅ Parameter hints (slider-hint / control-hint) on every input**
 Done in `22bf825`: ~30 new i18n hint keys (6 languages), hint spans added to all 6 Vue files (attention_cartography, concept_algebra, feature_probing, denoising_archaeology, crossmodal_lab, latent_text_lab). Shared hints for negative/steps/CFG/seed reused across image-generation labs.
 
-**4b. Add `explanationToggle` section to crossmodal_lab.vue**
-The only Latent Lab page without the "Ausführliche Erklärung anzeigen" collapsible explanation block. All other 5 pages (attention_cartography, concept_algebra, feature_probing, denoising_archaeology, latent_text_lab) already have it. Needs:
-- i18n keys: `crossmodal.explanationToggle`, `crossmodal.explainWhatTitle/Text`, `crossmodal.explainHowTitle/Text` (6 languages)
-- Template: `<details class="explanation-section">` block with 2-3 Q&A pairs per sub-tab (synth, MMAudio, guidance), explaining what the tool does and how to use it
-- Pattern: Follow attention_cartography.vue structure
+**4b. ✅ Add `explanationToggle` section to crossmodal_lab.vue**
+Done: Added collapsible explanation block with 4 Q&A sections (overview + one per sub-tab: Synth, MMAudio, ImageBind Guidance). i18n keys in all 6 languages, CSS matches green accent of crossmodal lab. Type check passes.
 
 ### 5. Scientific references with DOI in all labs
 All latent lab tabs reference published research (MMAudio = CVPR 2025, ImageBind = CVPR 2023, Stable Audio = ICML 2024). Add DOI links and brief citations accessible via info buttons or tab descriptions.

@@ -25,6 +25,20 @@
       <h3>{{ t('latentLab.crossmodal.tabs.synth.title') }}</h3>
       <p class="tab-description">{{ t('latentLab.crossmodal.tabs.synth.description') }}</p>
 
+      <details class="explanation-details">
+        <summary>{{ t('latentLab.crossmodal.explanationToggle') }}</summary>
+        <div class="explanation-body">
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.crossmodal.synth.explainWhatTitle') }}</h4>
+            <p>{{ t('latentLab.crossmodal.synth.explainWhatText') }}</p>
+          </div>
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.crossmodal.synth.explainHowTitle') }}</h4>
+            <p>{{ t('latentLab.crossmodal.synth.explainHowText') }}</p>
+          </div>
+        </div>
+      </details>
+
       <!-- Prompt A -->
       <MediaInputBox
         icon="💡"
@@ -431,6 +445,20 @@
       <h3>{{ t('latentLab.crossmodal.tabs.mmaudio.title') }}</h3>
       <p class="tab-description">{{ t('latentLab.crossmodal.tabs.mmaudio.description') }}</p>
 
+      <details class="explanation-details">
+        <summary>{{ t('latentLab.crossmodal.explanationToggle') }}</summary>
+        <div class="explanation-body">
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.crossmodal.mmaudio.explainWhatTitle') }}</h4>
+            <p>{{ t('latentLab.crossmodal.mmaudio.explainWhatText') }}</p>
+          </div>
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.crossmodal.mmaudio.explainHowTitle') }}</h4>
+            <p>{{ t('latentLab.crossmodal.mmaudio.explainHowText') }}</p>
+          </div>
+        </div>
+      </details>
+
       <MediaInputBox
         inputType="image"
         icon="🖼️"
@@ -504,6 +532,20 @@
     <div v-if="activeTab === 'guidance'" class="tab-panel">
       <h3>{{ t('latentLab.crossmodal.tabs.guidance.title') }}</h3>
       <p class="tab-description">{{ t('latentLab.crossmodal.tabs.guidance.description') }}</p>
+
+      <details class="explanation-details">
+        <summary>{{ t('latentLab.crossmodal.explanationToggle') }}</summary>
+        <div class="explanation-body">
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.crossmodal.guidance.explainWhatTitle') }}</h4>
+            <p>{{ t('latentLab.crossmodal.guidance.explainWhatText') }}</p>
+          </div>
+          <div class="explanation-section">
+            <h4>{{ t('latentLab.crossmodal.guidance.explainHowTitle') }}</h4>
+            <p>{{ t('latentLab.crossmodal.guidance.explainHowText') }}</p>
+          </div>
+        </div>
+      </details>
 
       <MediaInputBox
         inputType="image"
@@ -1416,6 +1458,46 @@ onUnmounted(() => {
 .page-subtitle {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+
+.explanation-details {
+  background: rgba(76, 175, 80, 0.06);
+  border: 1px solid rgba(76, 175, 80, 0.15);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.explanation-details summary {
+  padding: 0.65rem 1rem;
+  color: rgba(76, 175, 80, 0.8);
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.explanation-details summary:hover {
+  color: #4CAF50;
+}
+
+.explanation-body {
+  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.explanation-section h4 {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+  margin: 0 0 0.25rem;
+}
+
+.explanation-section p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin: 0;
 }
 
 /* Tab Navigation */
