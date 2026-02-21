@@ -1,5 +1,32 @@
 # Development Log
 
+## Session 189 - Fix Cross-Aesthetic Guided Audio Generation (ImageBind + StableAudio)
+**Date:** 2026-02-21
+**Focus:** Fix 4 critical bugs in `_guided_generate()` that caused the denoising loop to produce only noise/chaos
+
+### Problem
+The custom guided denoising loop in `stable_audio_backend.py` reimplemented the EDMDPMSolverMultistep scheduler incorrectly. ImageBind mel-spec encoding was already fixed (Session ~174), but the denoising math had 4 bugs making output completely broken regardless of guidance quality.
+
+### Bugs Fixed
+1. **Missing `init_noise_sigma` scaling** (~80x magnitude error): Pipeline multiplies initial noise by `(σ_max² + 1)^0.5 ≈ 80.006`, custom code skipped this entirely → latents started at wrong noise level
+2. **Wrong `predicted_clean` formula**: Used `latents - sigma * noise_pred` (DDPM) instead of EDM preconditioning (`c_skip * sample + c_out * model_output` via `scheduler.precondition_outputs()`) → garbage decoded audio for ImageBind
+3. **Manual Euler step instead of `scheduler.step()`**: First-order Euler on raw output vs DPMSolver++ with preconditioning + multi-step integration → wrong solver, numerical instability
+4. **Scheduler state corruption**: `scheduler.step()` was only called during non-warmup → `step_index` never incremented during warmup → all subsequent steps used wrong sigma values + empty model_outputs buffer
+
+### Architecture Change
+Guidance now modifies latents **before** `scheduler.step()` (per Xing et al. CVPR 2024), and `scheduler.step()` runs on **every** iteration. No manual Euler needed.
+
+### Reference
+- Xing et al., "Seeing and Hearing: Open-domain Visual-Audio Generation with Diffusion Latent Aligners" (CVPR 2024)
+- ImageBind (Girdhar et al., CVPR 2023) — joint embedding space
+- Pipeline source: `diffusers/pipelines/stable_audio/pipeline_stable_audio.py:445,736`
+- Scheduler source: `diffusers/schedulers/scheduling_edm_dpmsolver_multistep.py:192-206,632-708`
+
+### Changes
+- `gpu_service/services/stable_audio_backend.py` — 1 file, 32 insertions, 22 deletions
+
+---
+
 ## Session 188 - Session Export: Device-Filter statt User-Filter
 **Date:** 2026-02-21
 **Focus:** Replace non-functional user_id filter with device_id in Session Data Export (Forschungsdaten tab)
