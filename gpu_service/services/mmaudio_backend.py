@@ -281,37 +281,38 @@ class MMAudioBackend:
                     tmp_path = Path(f.name)
 
                 try:
-                    rng = torch.Generator(device='cuda')
-                    rng.manual_seed(seed)
+                    with torch.inference_mode():
+                        rng = torch.Generator(device='cuda')
+                        rng.manual_seed(seed)
 
-                    # Load and preprocess image using MMAudio's own transforms
-                    image_info = load_image(tmp_path)
-                    clip_frames = image_info.clip_frames.unsqueeze(0)  # [1, 3, H, W]
+                        # Load and preprocess image using MMAudio's own transforms
+                        image_info = load_image(tmp_path)
+                        clip_frames = image_info.clip_frames.unsqueeze(0)  # [1, 3, H, W]
 
-                    # Update sequence lengths for the requested duration
-                    self._seq_cfg.duration = duration_seconds
-                    self._net.update_seq_lengths(
-                        self._seq_cfg.latent_seq_len,
-                        self._seq_cfg.clip_seq_len,
-                        self._seq_cfg.sync_seq_len,
-                    )
+                        # Update sequence lengths for the requested duration
+                        self._seq_cfg.duration = duration_seconds
+                        self._net.update_seq_lengths(
+                            self._seq_cfg.latent_seq_len,
+                            self._seq_cfg.clip_seq_len,
+                            self._seq_cfg.sync_seq_len,
+                        )
 
-                    # Use num_steps from request
-                    self._fm.num_steps = num_steps
+                        # Use num_steps from request
+                        self._fm.num_steps = num_steps
 
-                    audios = generate(
-                        clip_frames,
-                        None,  # sync_frames not used for image input
-                        [prompt] if prompt else [''],
-                        negative_text=[negative_prompt] if negative_prompt else [''],
-                        feature_utils=self._feature_utils,
-                        net=self._net,
-                        fm=self._fm,
-                        rng=rng,
-                        cfg_strength=cfg_strength,
-                        image_input=True,
-                    )
-                    return audios.float().cpu()[0]  # [channels, T_audio]
+                        audios = generate(
+                            clip_frames,
+                            None,  # sync_frames not used for image input
+                            [prompt] if prompt else [''],
+                            negative_text=[negative_prompt] if negative_prompt else [''],
+                            feature_utils=self._feature_utils,
+                            net=self._net,
+                            fm=self._fm,
+                            rng=rng,
+                            cfg_strength=cfg_strength,
+                            image_input=True,
+                        )
+                        return audios.float().cpu()[0]  # [channels, T_audio]
                 finally:
                     tmp_path.unlink(missing_ok=True)
 
@@ -386,32 +387,33 @@ class MMAudioBackend:
             def _generate():
                 from mmaudio.eval_utils import generate
 
-                rng = torch.Generator(device='cuda')
-                rng.manual_seed(seed)
+                with torch.inference_mode():
+                    rng = torch.Generator(device='cuda')
+                    rng.manual_seed(seed)
 
-                # Update sequence lengths for the requested duration
-                self._seq_cfg.duration = duration_seconds
-                self._net.update_seq_lengths(
-                    self._seq_cfg.latent_seq_len,
-                    self._seq_cfg.clip_seq_len,
-                    self._seq_cfg.sync_seq_len,
-                )
+                    # Update sequence lengths for the requested duration
+                    self._seq_cfg.duration = duration_seconds
+                    self._net.update_seq_lengths(
+                        self._seq_cfg.latent_seq_len,
+                        self._seq_cfg.clip_seq_len,
+                        self._seq_cfg.sync_seq_len,
+                    )
 
-                # Use num_steps from request
-                self._fm.num_steps = num_steps
+                    # Use num_steps from request
+                    self._fm.num_steps = num_steps
 
-                audios = generate(
-                    None,  # clip_video
-                    None,  # sync_video
-                    [prompt],
-                    negative_text=[negative_prompt] if negative_prompt else [''],
-                    feature_utils=self._feature_utils,
-                    net=self._net,
-                    fm=self._fm,
-                    rng=rng,
-                    cfg_strength=cfg_strength,
-                )
-                return audios.float().cpu()[0]
+                    audios = generate(
+                        None,  # clip_video
+                        None,  # sync_video
+                        [prompt],
+                        negative_text=[negative_prompt] if negative_prompt else [''],
+                        feature_utils=self._feature_utils,
+                        net=self._net,
+                        fm=self._fm,
+                        rng=rng,
+                        cfg_strength=cfg_strength,
+                    )
+                    return audios.float().cpu()[0]
 
             audio_tensor = await asyncio.to_thread(_generate)
 
