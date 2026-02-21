@@ -11,7 +11,7 @@
       {{ errorMessage }}
     </div>
 
-    <!-- Tab navigation -->
+    <!-- Tab navigation (card-style, matching crossmodal) -->
     <div class="tab-nav">
       <button
         v-for="tab in tabs"
@@ -20,7 +20,8 @@
         :class="{ active: activeTab === tab.id }"
         @click="activeTab = tab.id"
       >
-        {{ t(tab.labelKey) }}
+        <span class="tab-label">{{ t(`latentLab.textLab.tabs.${tab.id}.label`) }}</span>
+        <span class="tab-short">{{ t(`latentLab.textLab.tabs.${tab.id}.short`) }}</span>
       </button>
     </div>
 
@@ -149,37 +150,41 @@
           <h4 class="subsection-title">{{ t('latentLab.textLab.repeng.testTitle') }}</h4>
           <p class="subsection-subtitle">{{ t('latentLab.textLab.repeng.testSubtitle') }}</p>
           <div class="tool-inputs">
-            <label class="control-label">
-              {{ t('latentLab.textLab.repeng.testPromptLabel') }}
-              <input
-                v-model="repTestText"
-                type="text"
-                class="control-input"
-                :placeholder="t('latentLab.textLab.repeng.testPromptPlaceholder')"
-                :disabled="repGenerating"
-              />
-            </label>
-            <div class="control-row">
-              <label class="control-label control-small">
-                {{ t('latentLab.textLab.repeng.alphaLabel') }}: {{ repAlpha.toFixed(1) }}
-                <input v-model.number="repAlpha" type="range" min="-3" max="3" step="0.1" class="control-range" />
-                <div class="control-hint">{{ t('latentLab.textLab.repeng.alphaHint') }}</div>
-              </label>
-              <label class="control-label control-small">
-                {{ t('latentLab.textLab.repeng.temperatureLabel') }}: {{ repTemp.toFixed(1) }}
-                <input v-model.number="repTemp" type="range" min="0.1" max="2.0" step="0.1" class="control-range" />
-                <div class="control-hint">{{ t('latentLab.textLab.temperatureHint') }}</div>
-              </label>
-              <label class="control-label control-small">
-                {{ t('latentLab.textLab.repeng.maxTokensLabel') }}: {{ repMaxTokens }}
-                <input v-model.number="repMaxTokens" type="range" min="10" max="200" step="10" class="control-range" />
-                <div class="control-hint">{{ t('latentLab.textLab.maxTokensHint') }}</div>
-              </label>
-              <label class="control-label control-small">
-                {{ t('latentLab.textLab.repeng.seedLabel') }}
-                <input v-model.number="repSeed" type="number" min="-1" class="control-input control-narrow" />
-                <div class="control-hint">{{ t('latentLab.textLab.textSeedHint') }}</div>
-              </label>
+            <MediaInputBox
+              icon="💡"
+              :label="t('latentLab.textLab.repeng.testPromptLabel')"
+              :placeholder="t('latentLab.textLab.repeng.testPromptPlaceholder')"
+              :value="repTestText"
+              @update:value="repTestText = $event"
+              :rows="2"
+              :isEmpty="!repTestText"
+              :isFilled="!!repTestText"
+              :disabled="repGenerating"
+              @copy="copyRepTestText"
+              @paste="pasteRepTestText"
+              @clear="clearRepTestText"
+            />
+            <div class="params-row">
+              <div class="param">
+                <label>{{ t('latentLab.textLab.repeng.alphaLabel') }}</label>
+                <input v-model.number="repAlpha" type="range" min="-3" max="3" step="0.1" />
+                <span class="param-hint">{{ repAlpha.toFixed(1) }} — {{ t('latentLab.textLab.repeng.alphaHint') }}</span>
+              </div>
+              <div class="param">
+                <label>{{ t('latentLab.textLab.repeng.temperatureLabel') }}</label>
+                <input v-model.number="repTemp" type="range" min="0.1" max="2.0" step="0.1" />
+                <span class="param-hint">{{ repTemp.toFixed(1) }} — {{ t('latentLab.textLab.temperatureHint') }}</span>
+              </div>
+              <div class="param">
+                <label>{{ t('latentLab.textLab.repeng.maxTokensLabel') }}</label>
+                <input v-model.number="repMaxTokens" type="range" min="10" max="200" step="10" />
+                <span class="param-hint">{{ repMaxTokens }} — {{ t('latentLab.textLab.maxTokensHint') }}</span>
+              </div>
+              <div class="param">
+                <label>{{ t('latentLab.textLab.repeng.seedLabel') }}</label>
+                <input v-model.number="repSeed" type="number" min="-1" />
+                <span class="param-hint">{{ t('latentLab.textLab.textSeedHint') }}</span>
+              </div>
             </div>
             <button
               class="action-btn"
@@ -239,120 +244,126 @@
           </div>
         </details>
 
-        <!-- Model A (from inline preset selector) -->
-        <div class="subsection model-a-panel">
-          <h4 class="subsection-title">{{ t('latentLab.textLab.compare.modelATitle') }}</h4>
-          <div class="model-status">
-            <label class="control-label control-small">
-              {{ t('latentLab.textLab.modelPanel.presetLabel') }}
-              <select v-model="selectedPreset" class="control-select">
-                <option
-                  v-for="(info, key) in presets"
-                  :key="key"
-                  :value="key"
-                  :disabled="info.suggested_quant === null"
-                >
-                  {{ presetLabel(key, info) }}
-                </option>
-              </select>
-            </label>
-            <span v-if="availableVram !== null" class="vram-info">{{ availableVram }}GB VRAM</span>
-            <span class="status-text" v-if="presets[selectedPreset]">
-              {{ presets[selectedPreset]?.description }}
-            </span>
+        <!-- Model A / Model B side-by-side -->
+        <div class="params-row">
+          <div class="param" style="flex: 1;">
+            <label>{{ t('latentLab.textLab.compare.modelALabel') }}</label>
+            <select v-model="selectedPreset" class="control-select">
+              <option
+                v-for="(info, key) in presets"
+                :key="key"
+                :value="key"
+                :disabled="info.suggested_quant === null"
+              >
+                {{ key }} ({{ info.vram_gb }}GB)
+              </option>
+            </select>
+          </div>
+          <div class="param" style="flex: 1;">
+            <label>{{ t('latentLab.textLab.compare.modelBLabel') }}</label>
+            <select v-model="cmpPresetB" class="control-select" :disabled="cmpLoadingB">
+              <option value="">{{ t('latentLab.textLab.modelPanel.presetNone') }}</option>
+              <option
+                v-for="(info, key) in presets"
+                :key="key"
+                :value="key"
+                :disabled="info.suggested_quant === null"
+              >
+                {{ key }} ({{ info.vram_gb }}GB)
+              </option>
+            </select>
           </div>
         </div>
 
-        <!-- Model B Selector -->
-        <div class="subsection model-b-panel">
-          <h4 class="subsection-title">{{ t('latentLab.textLab.compare.modelBTitle') }}</h4>
-          <div class="control-row">
-            <label class="control-label">
-              {{ t('latentLab.textLab.compare.modelBPresetLabel') }}
-              <select v-model="cmpPresetB" class="control-select" :disabled="cmpLoadingB">
-                <option value="">{{ t('latentLab.textLab.modelPanel.presetNone') }}</option>
-                <option
-                  v-for="(info, key) in presets"
-                  :key="key"
-                  :value="key"
-                  :disabled="info.suggested_quant === null"
-                >
-                  {{ presetLabel(key, info) }} — {{ info.description }}
-                </option>
-              </select>
-            </label>
-            <label v-if="!cmpPresetB" class="control-label">
-              {{ t('latentLab.textLab.compare.modelBCustomLabel') }}
-              <input
-                v-model="cmpCustomB"
-                type="text"
-                class="control-input"
-                :placeholder="t('latentLab.textLab.compare.modelBCustomPlaceholder')"
-                :disabled="cmpLoadingB"
-              />
-            </label>
-            <button
-              class="action-btn"
-              :disabled="!cmpModelBId || cmpLoadingB"
-              @click="loadModelB"
-            >
-              <span v-if="cmpLoadingB" class="spinner"></span>
-              <span v-else>{{ t('latentLab.textLab.compare.modelBLoadBtn') }}</span>
-            </button>
-          </div>
-          <div class="model-status">
-            <template v-if="loadedModelB">
-              <span class="status-dot loaded"></span>
-              <span class="status-text">
-                {{ t('latentLab.textLab.compare.modelBLoaded') }}:
-                <strong>{{ loadedModelB.model_id }}</strong>
-                ({{ loadedModelB.quantization }}) — {{ loadedModelB.vram_mb }}MB
-              </span>
-            </template>
-            <template v-else>
-              <span class="status-dot"></span>
-              <span class="status-text muted">{{ t('latentLab.textLab.compare.modelBNone') }}</span>
-            </template>
-          </div>
+        <!-- Custom model input + load button (when no preset selected for B) -->
+        <div v-if="!cmpPresetB" class="control-row" style="margin-bottom: 1rem;">
+          <label class="control-label">
+            {{ t('latentLab.textLab.compare.modelBCustomLabel') }}
+            <input
+              v-model="cmpCustomB"
+              type="text"
+              class="control-input"
+              :placeholder="t('latentLab.textLab.compare.modelBCustomPlaceholder')"
+              :disabled="cmpLoadingB"
+            />
+          </label>
+          <button
+            class="action-btn"
+            :disabled="!cmpModelBId || cmpLoadingB"
+            @click="loadModelB"
+          >
+            <span v-if="cmpLoadingB" class="spinner"></span>
+            <span v-else>{{ t('latentLab.textLab.compare.modelBLoadBtn') }}</span>
+          </button>
+        </div>
+        <div v-else class="control-row" style="margin-bottom: 1rem;">
+          <button
+            class="action-btn"
+            :disabled="!cmpModelBId || cmpLoadingB"
+            @click="loadModelB"
+          >
+            <span v-if="cmpLoadingB" class="spinner"></span>
+            <span v-else>{{ t('latentLab.textLab.compare.modelBLoadBtn') }}</span>
+          </button>
+        </div>
+
+        <!-- Model B status -->
+        <div class="model-status" style="margin-bottom: 1rem;">
+          <template v-if="loadedModelB">
+            <span class="status-dot loaded"></span>
+            <span class="status-text">
+              {{ t('latentLab.textLab.compare.modelBLoaded') }}:
+              <strong>{{ loadedModelB.model_id }}</strong>
+              ({{ loadedModelB.quantization }}) — {{ loadedModelB.vram_mb }}MB
+            </span>
+          </template>
+          <template v-else>
+            <span class="status-dot"></span>
+            <span class="status-text muted">{{ t('latentLab.textLab.compare.modelBNone') }}</span>
+          </template>
         </div>
 
         <!-- Compare Controls -->
         <div class="tool-inputs">
-          <label class="control-label">
-            {{ t('latentLab.textLab.compare.promptLabel') }}
-            <input
-              v-model="cmpText"
-              type="text"
-              class="control-input"
-              :placeholder="t('latentLab.textLab.compare.promptPlaceholder')"
-              :disabled="cmpLoading"
-            />
-          </label>
-          <div class="control-row">
-            <label class="control-label control-small">
-              {{ t('latentLab.textLab.compare.seedLabel') }}
-              <input v-model.number="cmpSeed" type="number" min="0" class="control-input control-narrow" />
-              <div class="control-hint">{{ t('latentLab.textLab.textSeedHint') }}</div>
-            </label>
-            <label class="control-label control-small">
-              {{ t('latentLab.textLab.compare.temperatureLabel') }}: {{ cmpTemp.toFixed(1) }}
-              <input v-model.number="cmpTemp" type="range" min="0.1" max="2.0" step="0.1" class="control-range" />
-              <div class="control-hint">{{ t('latentLab.textLab.temperatureHint') }}</div>
-            </label>
-            <label class="control-label control-small">
-              {{ t('latentLab.textLab.compare.maxTokensLabel') }}: {{ cmpMaxTokens }}
-              <input v-model.number="cmpMaxTokens" type="range" min="10" max="200" step="10" class="control-range" />
-              <div class="control-hint">{{ t('latentLab.textLab.maxTokensHint') }}</div>
-            </label>
-            <button
-              class="action-btn"
-              :disabled="!cmpText.trim() || !loadedModelB || cmpLoading"
-              @click="runComparison"
-            >
-              <span v-if="cmpLoading" class="spinner"></span>
-              <span v-else>{{ t('latentLab.textLab.compare.compareBtn') }}</span>
-            </button>
+          <MediaInputBox
+            icon="💡"
+            :label="t('latentLab.textLab.compare.promptLabel')"
+            :placeholder="t('latentLab.textLab.compare.promptPlaceholder')"
+            :value="cmpText"
+            @update:value="cmpText = $event"
+            :rows="2"
+            :isEmpty="!cmpText"
+            :isFilled="!!cmpText"
+            :disabled="cmpLoading"
+            @copy="copyCmpText"
+            @paste="pasteCmpText"
+            @clear="clearCmpText"
+          />
+          <div class="params-row">
+            <div class="param">
+              <label>{{ t('latentLab.textLab.compare.temperatureLabel') }}</label>
+              <input v-model.number="cmpTemp" type="range" min="0.1" max="2.0" step="0.1" />
+              <span class="param-hint">{{ cmpTemp.toFixed(1) }} — {{ t('latentLab.textLab.temperatureHint') }}</span>
+            </div>
+            <div class="param">
+              <label>{{ t('latentLab.textLab.compare.maxTokensLabel') }}</label>
+              <input v-model.number="cmpMaxTokens" type="range" min="10" max="200" step="10" />
+              <span class="param-hint">{{ cmpMaxTokens }} — {{ t('latentLab.textLab.maxTokensHint') }}</span>
+            </div>
+            <div class="param">
+              <label>{{ t('latentLab.textLab.compare.seedLabel') }}</label>
+              <input v-model.number="cmpSeed" type="number" min="-1" />
+              <span class="param-hint">{{ t('latentLab.textLab.textSeedHint') }}</span>
+            </div>
           </div>
+          <button
+            class="action-btn"
+            :disabled="!cmpText.trim() || !loadedModelB || cmpLoading"
+            @click="runComparison"
+          >
+            <span v-if="cmpLoading" class="spinner"></span>
+            <span v-else>{{ t('latentLab.textLab.compare.compareBtn') }}</span>
+          </button>
         </div>
 
         <!-- CKA Heatmap -->
@@ -478,37 +489,42 @@
             </div>
           </template>
 
-          <!-- Prompt + Controls -->
-          <label class="control-label">
-            {{ t('latentLab.textLab.bias.promptLabel') }}
-            <input
-              v-model="biasPrompt"
-              type="text"
-              class="control-input"
-              :placeholder="t('latentLab.textLab.bias.promptPlaceholder')"
-              :disabled="biasLoading"
-            />
-          </label>
-          <div class="control-row">
-            <label class="control-label control-small">
-              {{ t('latentLab.textLab.bias.numSamplesLabel') }}: {{ biasSamples }}
-              <input v-model.number="biasSamples" type="range" min="1" max="5" class="control-range" />
-            </label>
-            <label class="control-label control-small">
-              {{ t('latentLab.textLab.bias.temperatureLabel') }}: {{ biasTemp.toFixed(1) }}
-              <input v-model.number="biasTemp" type="range" min="0.1" max="2.0" step="0.1" class="control-range" />
-              <div class="control-hint">{{ t('latentLab.textLab.temperatureHint') }}</div>
-            </label>
-            <label class="control-label control-small">
-              {{ t('latentLab.textLab.bias.maxTokensLabel') }}: {{ biasMaxTokens }}
-              <input v-model.number="biasMaxTokens" type="range" min="10" max="200" step="10" class="control-range" />
-              <div class="control-hint">{{ t('latentLab.textLab.maxTokensHint') }}</div>
-            </label>
-            <label class="control-label control-small">
-              {{ t('latentLab.textLab.bias.seedLabel') }}
-              <input v-model.number="biasSeed" type="number" min="0" class="control-input control-narrow" />
-              <div class="control-hint">{{ t('latentLab.textLab.textSeedHint') }}</div>
-            </label>
+          <!-- Prompt -->
+          <MediaInputBox
+            icon="💡"
+            :label="t('latentLab.textLab.bias.promptLabel')"
+            :placeholder="t('latentLab.textLab.bias.promptPlaceholder')"
+            :value="biasPrompt"
+            @update:value="biasPrompt = $event"
+            :rows="2"
+            :isEmpty="!biasPrompt"
+            :isFilled="!!biasPrompt"
+            :disabled="biasLoading"
+            @copy="copyBiasPrompt"
+            @paste="pasteBiasPrompt"
+            @clear="clearBiasPrompt"
+          />
+          <div class="params-row">
+            <div class="param">
+              <label>{{ t('latentLab.textLab.bias.numSamplesLabel') }}</label>
+              <input v-model.number="biasSamples" type="range" min="1" max="5" />
+              <span class="param-hint">{{ biasSamples }}</span>
+            </div>
+            <div class="param">
+              <label>{{ t('latentLab.textLab.bias.temperatureLabel') }}</label>
+              <input v-model.number="biasTemp" type="range" min="0.1" max="2.0" step="0.1" />
+              <span class="param-hint">{{ biasTemp.toFixed(1) }} — {{ t('latentLab.textLab.temperatureHint') }}</span>
+            </div>
+            <div class="param">
+              <label>{{ t('latentLab.textLab.bias.maxTokensLabel') }}</label>
+              <input v-model.number="biasMaxTokens" type="range" min="10" max="200" step="10" />
+              <span class="param-hint">{{ biasMaxTokens }} — {{ t('latentLab.textLab.maxTokensHint') }}</span>
+            </div>
+            <div class="param">
+              <label>{{ t('latentLab.textLab.bias.seedLabel') }}</label>
+              <input v-model.number="biasSeed" type="number" min="-1" />
+              <span class="param-hint">{{ t('latentLab.textLab.textSeedHint') }}</span>
+            </div>
           </div>
           <button
             class="action-btn"
@@ -565,8 +581,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import MediaInputBox from '@/components/MediaInputBox.vue'
+import { useAppClipboard } from '@/composables/useAppClipboard'
 
 const { t } = useI18n()
+const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 const apiBase = import.meta.env.DEV ? 'http://localhost:17802' : ''
 
@@ -584,13 +603,31 @@ function showError(msg: string) {
 // Tabs
 // =========================================================================
 const tabs = [
-  { id: 'repeng', labelKey: 'latentLab.textLab.tabs.repeng' },
-  { id: 'compare', labelKey: 'latentLab.textLab.tabs.compare' },
-  { id: 'bias', labelKey: 'latentLab.textLab.tabs.bias' },
+  { id: 'repeng' },
+  { id: 'compare' },
+  { id: 'bias' },
 ] as const
 
 type TabId = typeof tabs[number]['id']
 const activeTab = ref<TabId>('repeng')
+
+// =========================================================================
+// Clipboard handlers
+// =========================================================================
+// RepEng test prompt
+function copyRepTestText() { copyToClipboard(repTestText.value) }
+function pasteRepTestText() { repTestText.value = pasteFromClipboard() }
+function clearRepTestText() { repTestText.value = '' }
+
+// Compare prompt
+function copyCmpText() { copyToClipboard(cmpText.value) }
+function pasteCmpText() { cmpText.value = pasteFromClipboard() }
+function clearCmpText() { cmpText.value = '' }
+
+// Bias prompt
+function copyBiasPrompt() { copyToClipboard(biasPrompt.value) }
+function pasteBiasPrompt() { biasPrompt.value = pasteFromClipboard() }
+function clearBiasPrompt() { biasPrompt.value = '' }
 
 // =========================================================================
 // A. Model Management (shared across tabs)
@@ -693,7 +730,7 @@ function projectionBarStyle(projection: number): Record<string, string> {
   )
   const pct = (projection / maxProj) * 45
   if (pct >= 0) {
-    return { left: '50%', width: pct + '%', background: 'rgba(74, 222, 128, 0.5)' }
+    return { left: '50%', width: pct + '%', background: 'rgba(255, 183, 77, 0.5)' }
   } else {
     return { left: (50 + pct) + '%', width: Math.abs(pct) + '%', background: 'rgba(248, 113, 113, 0.5)' }
   }
@@ -824,7 +861,7 @@ const cmpCustomB = ref('')
 const cmpLoadingB = ref(false)
 const loadedModelB = ref<ModelInfo | null>(null)
 const cmpText = ref('')
-const cmpSeed = ref(42)
+const cmpSeed = ref(-1)
 const cmpTemp = ref(0.7)
 const cmpMaxTokens = ref(50)
 const cmpLoading = ref(false)
@@ -1067,7 +1104,7 @@ const biasCustomSuppress = ref('')
 const biasSamples = ref(3)
 const biasTemp = ref(0.7)
 const biasMaxTokens = ref(50)
-const biasSeed = ref(42)
+const biasSeed = ref(-1)
 const biasLoading = ref(false)
 const biasResult = ref<BiasResult | null>(null)
 const biasInterpretation = ref<string | null>(null)
@@ -1153,7 +1190,7 @@ onMounted(() => {
 <style scoped>
 .latent-text-lab {
   padding: 1rem 2rem 4rem;
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -1161,13 +1198,15 @@ onMounted(() => {
 .page-header { text-align: center; margin-bottom: 2rem; }
 .page-title { font-size: 1.4rem; color: rgba(255, 255, 255, 0.9); margin-bottom: 0.5rem; }
 .page-subtitle { font-size: 0.9rem; color: rgba(255, 255, 255, 0.5); max-width: 700px; margin: 0 auto 1rem; line-height: 1.5; }
-.explanation-details { margin-bottom: 1rem; }
-.explanation-details summary { cursor: pointer; color: rgba(102, 126, 234, 0.7); font-size: 0.85rem; }
-.explanation-body { margin-top: 0.75rem; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); }
-.explanation-section { margin-bottom: 1rem; }
-.explanation-section:last-child { margin-bottom: 0; }
-.explanation-section h4 { color: rgba(255, 255, 255, 0.7); font-size: 0.85rem; margin-bottom: 0.3rem; }
-.explanation-section p { color: rgba(255, 255, 255, 0.45); font-size: 0.8rem; line-height: 1.6; }
+
+/* Explanation details (orange-themed) */
+.explanation-details { background: rgba(255, 152, 0, 0.06); border: 1px solid rgba(255, 152, 0, 0.15); border-radius: 10px; overflow: hidden; margin-bottom: 1rem; }
+.explanation-details summary { padding: 0.65rem 1rem; color: rgba(255, 152, 0, 0.8); font-size: 0.85rem; cursor: pointer; user-select: none; }
+.explanation-details summary:hover { color: #FF9800; }
+.explanation-body { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.explanation-section { margin-bottom: 0; }
+.explanation-section h4 { color: rgba(255, 255, 255, 0.85); font-size: 0.85rem; margin: 0 0 0.25rem; }
+.explanation-section p { color: rgba(255, 255, 255, 0.6); font-size: 0.82rem; line-height: 1.6; margin: 0; }
 
 /* Error banner */
 .error-banner { background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.3); color: #fca5a5; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; cursor: pointer; font-size: 0.85rem; }
@@ -1185,30 +1224,32 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-/* Tab navigation */
+/* Tab navigation (card-style, matching crossmodal) */
 .tab-nav {
   display: flex;
-  gap: 0;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.5rem;
+  margin-bottom: 2rem;
 }
 .tab-btn {
-  padding: 0.75rem 1.25rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
+  flex: 1;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
+  text-align: left;
   font-family: inherit;
 }
-.tab-btn:hover { color: rgba(255, 255, 255, 0.7); }
+.tab-btn:hover { background: rgba(255, 255, 255, 0.08); }
 .tab-btn.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
+  background: rgba(255, 152, 0, 0.1);
+  border-color: rgba(255, 152, 0, 0.4);
+  color: #ffffff;
 }
+.tab-label { font-size: 1rem; font-weight: 700; display: block; margin-bottom: 0.3rem; }
+.tab-short { font-size: 0.72rem; opacity: 0.7; }
 
 /* Tool sections */
 .tool-section { margin-bottom: 2rem; padding: 1.25rem; background: rgba(255, 255, 255, 0.02); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.06); }
@@ -1221,30 +1262,68 @@ onMounted(() => {
 .subsection-title { font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); margin-bottom: 0.25rem; }
 .subsection-subtitle { font-size: 0.8rem; color: rgba(255, 255, 255, 0.35); margin-bottom: 0.75rem; }
 
-/* Controls */
+/* Params row (crossmodal pattern) */
+.params-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.param {
+  flex: 1;
+  min-width: 100px;
+}
+.param label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.3rem;
+}
+.param input,
+.param select {
+  width: 100%;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.85rem;
+  box-sizing: border-box;
+}
+.param input:focus,
+.param select:focus {
+  outline: none;
+  border-color: rgba(255, 152, 0, 0.5);
+}
+.param-hint {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.3);
+  display: block;
+  margin-top: 0.2rem;
+}
+
+/* Controls (retained for non-param uses) */
 .tool-inputs { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
 .control-row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
 .control-label { display: flex; flex-direction: column; gap: 0.3rem; color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; flex: 1; min-width: 140px; }
 .control-small { flex: 0 1 180px; }
 .control-input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: #fff; padding: 0.5rem 0.75rem; font-size: 0.85rem; font-family: inherit; }
-.control-input:focus { outline: none; border-color: rgba(102, 126, 234, 0.5); }
-.control-narrow { width: 80px; flex: none; }
+.control-input:focus { outline: none; border-color: rgba(255, 152, 0, 0.5); }
 .control-select { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: #fff; padding: 0.5rem 0.75rem; font-size: 0.85rem; font-family: inherit; }
 .control-select option { background: #1a1a1a; color: #fff; }
-.control-range { width: 100%; accent-color: #667eea; }
 
-.model-status { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+.model-status { display: flex; align-items: center; gap: 0.5rem; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); flex-shrink: 0; }
-.status-dot.loaded { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.4); }
+.status-dot.loaded { background: #FFB74D; box-shadow: 0 0 6px rgba(255, 152, 0, 0.4); }
 .status-text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.7); }
 .status-text.muted { color: rgba(255, 255, 255, 0.3); }
 
 /* Buttons */
-.action-btn { padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 600; border: none; border-radius: 8px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(102, 126, 234, 0.15)); color: #667eea; cursor: pointer; transition: all 0.2s ease; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
-.action-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+.action-btn { padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 600; border: none; border-radius: 8px; background: rgba(255, 152, 0, 0.2); border: 1px solid rgba(255, 152, 0, 0.4); color: #FF9800; cursor: pointer; transition: all 0.2s ease; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
+.action-btn:hover:not(:disabled) { background: rgba(255, 152, 0, 0.3); }
 .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 /* Spinner */
-.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(102, 126, 234, 0.3); border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255, 152, 0, 0.3); border-top-color: #FF9800; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Contrast Pairs */
@@ -1254,12 +1333,12 @@ onMounted(() => {
 .pair-separator { color: rgba(255, 255, 255, 0.3); font-size: 0.85rem; flex-shrink: 0; }
 .remove-btn { width: 28px; height: 28px; border: none; border-radius: 6px; background: rgba(220, 38, 38, 0.15); color: #f87171; cursor: pointer; font-size: 0.85rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .add-btn { align-self: flex-start; padding: 0.4rem 0.8rem; font-size: 0.8rem; border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 6px; background: none; color: rgba(255, 255, 255, 0.4); cursor: pointer; font-family: inherit; }
-.add-btn:hover { border-color: rgba(102, 126, 234, 0.4); color: rgba(102, 126, 234, 0.7); }
+.add-btn:hover { border-color: rgba(255, 152, 0, 0.4); color: rgba(255, 152, 0, 0.7); }
 
 /* Direction Result */
-.direction-result { margin-top: 1rem; padding: 1rem; background: rgba(74, 222, 128, 0.05); border: 1px solid rgba(74, 222, 128, 0.15); border-radius: 8px; }
+.direction-result { margin-top: 1rem; padding: 1rem; background: rgba(255, 152, 0, 0.05); border: 1px solid rgba(255, 152, 0, 0.15); border-radius: 8px; }
 .result-header { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
-.result-badge { background: rgba(74, 222, 128, 0.15); color: #4ade80; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.result-badge { background: rgba(255, 152, 0, 0.15); color: #FFB74D; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
 .result-stat { font-size: 0.8rem; color: rgba(255, 255, 255, 0.5); font-family: monospace; }
 
 /* Projections */
@@ -1268,14 +1347,14 @@ onMounted(() => {
 .projection-bar-container { height: 16px; background: rgba(255, 255, 255, 0.04); border-radius: 3px; position: relative; overflow: hidden; }
 .projection-bar { position: absolute; top: 0; height: 100%; border-radius: 3px; transition: all 0.3s ease; }
 .projection-labels { display: flex; justify-content: space-between; align-items: center; margin-top: 0.2rem; font-size: 0.75rem; }
-.proj-positive { color: rgba(74, 222, 128, 0.7); flex: 1; }
+.proj-positive { color: rgba(255, 183, 77, 0.7); flex: 1; }
 .proj-value { color: rgba(255, 255, 255, 0.5); font-family: monospace; text-align: center; flex: 0; padding: 0 0.5rem; }
 .proj-negative { color: rgba(248, 113, 113, 0.7); flex: 1; text-align: right; }
 
 /* Generation Comparison */
 .generation-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
 .gen-column { padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); }
-.gen-column.manipulated { border-color: rgba(102, 126, 234, 0.2); }
+.gen-column.manipulated { border-color: rgba(255, 152, 0, 0.2); }
 .gen-label { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); margin-bottom: 0.5rem; font-weight: 600; }
 .gen-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 
@@ -1285,50 +1364,44 @@ onMounted(() => {
 .canvas-tooltip { position: absolute; background: rgba(0, 0, 0, 0.85); color: #fff; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-family: monospace; pointer-events: none; white-space: nowrap; z-index: 10; }
 .legend-text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); line-height: 1.6; }
 
-/* Model A/B Panels */
-.model-a-panel { background: rgba(255, 255, 255, 0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.15); }
-.model-a-hint { font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); margin-left: auto; font-style: italic; }
-.model-b-panel { background: rgba(255, 255, 255, 0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); }
-
 /* Bias Results */
 .bias-results { margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
 .bias-group { padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); }
 .bias-group-title { font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); margin-bottom: 0.5rem; }
 .group-mode { font-weight: 400; color: rgba(255, 255, 255, 0.4); font-size: 0.8rem; }
 .group-tokens { font-size: 0.75rem; color: rgba(255, 255, 255, 0.35); margin-bottom: 0.75rem; }
-.group-tokens code { color: rgba(102, 126, 234, 0.7); background: rgba(102, 126, 234, 0.1); padding: 0.1rem 0.3rem; border-radius: 3px; }
+.group-tokens code { color: rgba(255, 152, 0, 0.7); background: rgba(255, 152, 0, 0.1); padding: 0.1rem 0.3rem; border-radius: 3px; }
 .bias-sample { margin-bottom: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; }
 .bias-sample:last-child { margin-bottom: 0; }
-.sample-seed { font-family: monospace; font-size: 0.7rem; color: rgba(102, 126, 234, 0.6); }
+.sample-seed { font-family: monospace; font-size: 0.7rem; color: rgba(255, 152, 0, 0.6); }
 .sample-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin-top: 0.25rem; }
 
 /* Experiment Guide */
 .experiment-guide { padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; margin-bottom: 1rem; }
 .guide-text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.55); line-height: 1.7; }
-.guide-hint { font-size: 0.75rem; color: rgba(102, 126, 234, 0.6); margin-top: 0.5rem; font-style: italic; }
 
 /* Interpretation */
-.bias-interpretation { padding: 1rem; background: rgba(102, 126, 234, 0.05); border: 1px solid rgba(102, 126, 234, 0.15); border-radius: 8px; }
+.bias-interpretation { padding: 1rem; background: rgba(255, 152, 0, 0.05); border: 1px solid rgba(255, 152, 0, 0.15); border-radius: 8px; }
 .interpretation-loading { display: flex; align-items: center; gap: 0.75rem; }
 .interpretation-loading-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.4); font-style: italic; }
 .interpretation-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.75); line-height: 1.7; white-space: pre-wrap; }
 .interpretation-error { font-size: 0.8rem; color: rgba(255, 255, 255, 0.3); font-style: italic; }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .latent-text-lab { padding: 1rem; }
-  .control-row { flex-direction: column; }
-  .control-small { flex: 1; }
-  .generation-comparison { grid-template-columns: 1fr; }
-  .model-status { margin-left: 0; margin-top: 0.5rem; }
-  .pair-row { flex-direction: column; }
-  .pair-separator { display: none; }
-  .tab-nav { overflow-x: auto; }
-}
-
 .control-hint {
   color: rgba(255, 255, 255, 0.3);
   font-size: 0.7rem;
   line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .latent-text-lab { padding: 1rem; }
+  .control-row { flex-direction: column; }
+  .params-row { flex-direction: column; }
+  .generation-comparison { grid-template-columns: 1fr; }
+  .model-status { margin-left: 0; margin-top: 0.5rem; }
+  .pair-row { flex-direction: column; }
+  .pair-separator { display: none; }
+  .tab-nav { flex-direction: column; }
 }
 </style>
