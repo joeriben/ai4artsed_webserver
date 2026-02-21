@@ -5,11 +5,13 @@
     "en": "One World",
     "de": "Eine Welt",
     "tr": "Bir Dünya",
-    "ko": "하나의 세계"
+    "ko": "하나의 세계",
+    "uk": "Один світ"
   },
   "description": {
     "en": "Reimagines image prompts through perspectives that do not exclude the Global South. Deconstructs Western visual norms and challenges AI's inherent biases toward white-coded subjects, consumerist aesthetics, and Western cultural references.",
-    "de": "Denkt Bild-Prompts neu unter Einbezug von Perspektiven des Globalen Südens. Dekonstruiert westliche visuelle Normen und hinterfragt die inhärenten Biases der KI gegenüber als 'weiß' gelesenen Subjekten, Konsumästhetik und westlichen Kulturreferenzen."
+    "de": "Denkt Bild-Prompts neu unter Einbezug von Perspektiven des Globalen Südens. Dekonstruiert westliche visuelle Normen und hinterfragt die inhärenten Biases der KI gegenüber als 'weiß' gelesenen Subjekten, Konsumästhetik und westlichen Kulturreferenzen.",
+    "uk": "Глобальна перспектива"
   },
   "category": {
     "de": "Kritisches Denken",

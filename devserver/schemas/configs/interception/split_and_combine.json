@@ -5,11 +5,13 @@
     "en": "Split and Combine",
     "de": "Teilen und Kombinieren",
     "tr": "Böl ve Birleştir",
-    "ko": "나누고 합치기"
+    "ko": "나누고 합치기",
+    "uk": "Розділити і з'єднати"
   },
   "description": {
     "en": "Split your prompt into two semantic parts and explore how they interact. This workflow creates four images: the original scene with both elements, each element separately, and a final recombination showing how AI understands their relationship. Perfect for exploring how concepts blend in neural networks.",
-    "de": "Teile deinen Prompt in zwei semantische Teile und erkunde, wie sie interagieren. Dieser Workflow erzeugt vier Bilder: die ursprüngliche Szene mit beiden Elementen, jedes Element separat, und eine finale Rekombination, die zeigt, wie die KI ihre Beziehung versteht. Perfekt, um zu erforschen, wie Konzepte in neuronalen Netzwerken verschmelzen."
+    "de": "Teile deinen Prompt in zwei semantische Teile und erkunde, wie sie interagieren. Dieser Workflow erzeugt vier Bilder: die ursprüngliche Szene mit beiden Elementen, jedes Element separat, und eine finale Rekombination, die zeigt, wie die KI ihre Beziehung versteht. Perfekt, um zu erforschen, wie Konzepte in neuronalen Netzwerken verschmelzen.",
+    "uk": "Семантичне векторне злиття"
   },
   "category": {
     "de": "Forschung",

@@ -5,11 +5,13 @@
     "en": "Technical",
     "de": "Technisch",
     "tr": "Teknik",
-    "ko": "기술적"
+    "ko": "기술적",
+    "uk": "Технічний"
   },
   "description": {
     "en": "Translates everything into cold engineering language. Living beings become mechanical assemblies, emotions become operational states, and poetry becomes technical specifications.",
-    "de": "Übersetzt alles in kühle Ingenieursprache. Lebewesen werden zu mechanischen Baugruppen, Emotionen zu Betriebszuständen und Poesie zu technischen Spezifikationen."
+    "de": "Übersetzt alles in kühle Ingenieursprache. Lebewesen werden zu mechanischen Baugruppen, Emotionen zu Betriebszuständen und Poesie zu technischen Spezifikationen.",
+    "uk": "Технічне креслення"
   },
   "category": {
     "de": "Kreative Verwandlungen",

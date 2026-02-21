@@ -5,11 +5,13 @@
     "en": "Music Composer",
     "de": "Musikkomponist",
     "tr": "Müzik Bestecisi",
-    "ko": "음악 작곡가"
+    "ko": "음악 작곡가",
+    "uk": "Музичний композитор"
   },
   "description": {
     "en": "Transforms scene or mood descriptions into structured musical concepts with rhythm, bass, harmony, melody, and texture layers. Perfect for additive musical construction.",
-    "de": "Verwandelt Szenen- oder Stimmungsbeschreibungen in strukturierte musikalische Konzepte mit Rhythmus, Bass, Harmonie, Melodie und Texturschichten. Perfekt fuer additiven musikalischen Aufbau."
+    "de": "Verwandelt Szenen- oder Stimmungsbeschreibungen in strukturierte musikalische Konzepte mit Rhythmus, Bass, Harmonie, Melodie und Texturschichten. Perfekt fuer additiven musikalischen Aufbau.",
+    "uk": "Композиція Tone.js"
   },
   "category": {
     "de": "Kreative Verwandlungen",

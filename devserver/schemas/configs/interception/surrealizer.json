@@ -5,11 +5,13 @@
     "en": "Hallucinator",
     "de": "Hallucinator",
     "tr": "Hallucinator",
-    "ko": "Hallucinator"
+    "ko": "Hallucinator",
+    "uk": "Галюцинатор"
   },
   "description": {
     "en": "Two AI 'brains' (CLIP and T5) each read your text — the slider pushes the image far beyond what either would normally produce, into unexplored territory where surreal, dreamlike compositions emerge.",
-    "de": "Zwei KI-'Gehirne' (CLIP und T5) lesen deinen Text — der Regler schiebt das Bild weit über das hinaus, was beide normalerweise erzeugen würden, in unerforschtes Terrain, in dem surrealistische, traumhafte Kompositionen entstehen."
+    "de": "Zwei KI-'Gehirne' (CLIP und T5) lesen deinen Text — der Regler schiebt das Bild weit über das hinaus, was beide normalerweise erzeugen würden, in unerforschtes Terrain, in dem surrealistische, traumhafte Kompositionen entstehen.",
+    "uk": "Екстраполяція за межі відомого"
   },
   "category": {
     "de": "Forschung",

@@ -5,11 +5,13 @@
     "en": "rationa",
     "de": "Bauhaus",
     "tr": "rationa",
-    "ko": "rationa"
+    "ko": "rationa",
+    "uk": "Баухаус"
   },
   "description": {
     "en": "Reduces everything to basic geometric shapes and primary colors. Focuses on function and clear structure, stripping away decoration.",
-    "de": "Reduziert alles auf geometrische Grundformen und Primärfarben. Konzentriert sich auf Funktion und klare Struktur, ohne Dekoration."
+    "de": "Reduziert alles auf geometrische Grundformen und Primärfarben. Konzentriert sich auf Funktion und klare Struktur, ohne Dekoration.",
+    "uk": "Геометричний дизайн Баухаусу"
   },
   "category": {
     "de": "Kunstgeschichte",

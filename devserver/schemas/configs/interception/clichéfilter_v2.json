@@ -5,11 +5,13 @@
     "en": "De-Kitsch",
     "de": "Ent­kitscher",
     "tr": "Klişe Kırıcı",
-    "ko": "키치 제거기"
+    "ko": "키치 제거기",
+    "uk": "Декітч"
   },
   "description": {
     "en": "Removes overused phrases and stereotypical descriptions. Helps you avoid clichés and find more original ways to express your ideas.",
-    "de": "Entfernt abgenutzte Phrasen und stereotype Beschreibungen. Hilft dir, Klischees zu vermeiden und originellere Ausdrucksweisen zu finden."
+    "de": "Entfernt abgenutzte Phrasen und stereotype Beschreibungen. Hilft dir, Klischees zu vermeiden und originellere Ausdrucksweisen zu finden.",
+    "uk": "Фільтр проти кітчу"
   },
   "category": {
     "de": "Kreative Verwandlungen",

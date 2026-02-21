@@ -5,11 +5,13 @@
     "en": "Multi-Image Transformation",
     "de": "Mehrfach-Bild-Transformation",
     "tr": "Çoklu Görüntü Dönüşümü",
-    "ko": "다중 이미지 변환"
+    "ko": "다중 이미지 변환",
+    "uk": "Злиття зображень"
   },
   "description": {
     "en": "Fuse multiple images with AI guidance",
-    "de": "Fusioniere mehrere Bilder mit KI-Führung"
+    "de": "Fusioniere mehrere Bilder mit KI-Führung",
+    "uk": "Злиття кількох зображень"
   },
   "category": {
     "de": "System",

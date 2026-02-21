@@ -5,11 +5,13 @@
     "en": "Listifier",
     "de": "Auflister",
     "tr": "Listeleyici",
-    "ko": "목록화기"
+    "ko": "목록화기",
+    "uk": "Перелічувач"
   },
   "description": {
     "en": "Transforms scene descriptions into ordered lists of primitive elements organized by depth layers (background, middle ground, foreground). Perfect for additive visual construction.",
-    "de": "Verwandelt Szenenbeschreibungen in geordnete Listen primitiver Elemente, organisiert nach Tiefenschichten (Hintergrund, Mittelgrund, Vordergrund). Perfekt für additiven visuellen Aufbau."
+    "de": "Verwandelt Szenenbeschreibungen in geordnete Listen primitiver Elemente, organisiert nach Tiefenschichten (Hintergrund, Mittelgrund, Vordergrund). Perfekt für additiven visuellen Aufbau.",
+    "uk": "Генерація коду p5.js"
   },
   "category": {
     "de": "Kreative Verwandlungen",

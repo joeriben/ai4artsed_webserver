@@ -5,11 +5,13 @@
     "en": "Word Game",
     "de": "Sprachspiel",
     "tr": "Kelime Oyunu",
-    "ko": "말놀이"
+    "ko": "말놀이",
+    "uk": "Мовна гра"
   },
   "description": {
     "en": "Transforms text into Pig Latin by moving consonants to the end and adding 'ay'. A playful language game that makes familiar words sound strange.",
-    "de": "Verwandelt Text in Pig Latin, indem Konsonanten ans Ende verschoben und 'ay' angehängt wird. Ein spielerisches Sprachspiel, das vertraute Wörter fremd klingen lässt."
+    "de": "Verwandelt Text in Pig Latin, indem Konsonanten ans Ende verschoben und 'ay' angehängt wird. Ein spielerisches Sprachspiel, das vertraute Wörter fremd klingen lässt.",
+    "uk": "Лінгвістична трансформація"
   },
   "category": {
     "de": "Kreative Verwandlungen",

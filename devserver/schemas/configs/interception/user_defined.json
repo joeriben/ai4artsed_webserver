@@ -5,11 +5,13 @@
     "en": "Your Call!",
     "de": "Du bestimmst!",
     "tr": "Sen Karar Ver!",
-    "ko": "네가 정해!"
+    "ko": "네가 정해!",
+    "uk": "Ти вирішуєш"
   },
   "description": {
     "en": "When you make art, you decide what you want to use and how you want to do it. Here, you can tell the AI what to use and what rules to follow.",
-    "de": "Wenn Du Kunst machst, entscheidest Du, was Du benutzen willst und wie Du es machen möchtest. Hier kannst Du der KI sagen, was sie benutzen und nach welchen Regeln sie arbeiten soll."
+    "de": "Wenn Du Kunst machst, entscheidest Du, was Du benutzen willst und wie Du es machen möchtest. Hier kannst Du der KI sagen, was sie benutzen und nach welchen Regeln sie arbeiten soll.",
+    "uk": "Власна інструкція"
   },
   "category": {
     "de": "Kunst & Kultur",

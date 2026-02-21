@@ -5,11 +5,13 @@
     "en": "Literati",
     "de": "Literati",
     "tr": "Literati",
-    "ko": "문인화"
+    "ko": "문인화",
+    "uk": "Літераті"
   },
   "description": {
     "en": "Critical examination tool: Tests how AI handles complex cultural knowledge. Reveals AI's limitations in understanding Confucian literati culture - not for authentic representation, but to critically investigate how generative AI deals with cultural specifics.",
-    "de": "Kritisches Untersuchungswerkzeug: Prüft wie KI mit komplexem kulturellem Wissen umgeht. Zeigt die Grenzen der KI im Verständnis konfuzianischer Gelehrtenkultur - nicht zur authentischen Darstellung, sondern zur kritischen Untersuchung wie generative KI mit kulturellen Feinheiten umgeht."
+    "de": "Kritisches Untersuchungswerkzeug: Prüft wie KI mit komplexem kulturellem Wissen umgeht. Zeigt die Grenzen der KI im Verständnis konfuzianischer Gelehrtenkultur - nicht zur authentischen Darstellung, sondern zur kritischen Untersuchung wie generative KI mit kulturellen Feinheiten umgeht.",
+    "uk": "Конфуціанський стиль літераті"
   },
   "category": {
     "de": "Kunstgeschichte",

@@ -5,11 +5,13 @@
     "en": "Telephone",
     "de": "Stille Post",
     "tr": "Kulaktan Kulağa",
-    "ko": "전화 게임"
+    "ko": "전화 게임",
+    "uk": "Зіпсований телефон"
   },
   "description": {
     "en": "Passes your text through 8 random languages like a game of telephone. Creates surprising changes as meaning shifts through multiple translations.",
-    "de": "Schickt deinen Text durch 8 zufällige Sprachen wie bei Stille Post. Erzeugt überraschende Veränderungen, während die Bedeutung durch mehrere Übersetzungen wandert."
+    "de": "Schickt deinen Text durch 8 zufällige Sprachen wie bei Stille Post. Erzeugt überraschende Veränderungen, während die Bedeutung durch mehrere Übersetzungen wandert.",
+    "uk": "Ітеративна трансформація"
   },
   "category": {
     "de": "Kreative Verwandlungen",

@@ -5,11 +5,13 @@
     "en": "Latent Lab",
     "de": "Latent Lab",
     "tr": "Latent Lab",
-    "ko": "Latent Lab"
+    "ko": "Latent Lab",
+    "uk": "Латентна лабораторія"
   },
   "description": {
     "en": "Deconstructive platform for exploring vector and latent spaces. Reveals how generative models construct meaning internally through attention maps, feature probing, concept algebra, and more.",
-    "de": "Dekonstruktive Plattform zur Erforschung von Vektor- und Latenträumen. Zeigt, wie generative Modelle intern Bedeutung konstruieren — durch Attention Maps, Feature Probing, Concept Algebra und mehr."
+    "de": "Dekonstruktive Plattform zur Erforschung von Vektor- und Latenträumen. Zeigt, wie generative Modelle intern Bedeutung konstruieren — durch Attention Maps, Feature Probing, Concept Algebra und mehr.",
+    "uk": "Дослідження латентного простору"
   },
   "category": {
     "de": "Forschung",

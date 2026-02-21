@@ -5,11 +5,13 @@
     "en": "HeartMuLa Music",
     "de": "HeartMuLa Musik",
     "tr": "HeartMuLa Müzik",
-    "ko": "HeartMuLa 음악"
+    "ko": "HeartMuLa 음악",
+    "uk": "Генерація музики"
   },
   "description": {
     "en": "Generate music from lyrics and style tags using HeartMuLa AI. Supports English, Chinese, Japanese, Korean, and Spanish lyrics.",
-    "de": "Musik aus Lyrics und Style-Tags mit HeartMuLa AI generieren. Unterstützt Englisch, Chinesisch, Japanisch, Koreanisch und Spanisch."
+    "de": "Musik aus Lyrics und Style-Tags mit HeartMuLa AI generieren. Unterstützt Englisch, Chinesisch, Japanisch, Koreanisch und Spanisch.",
+    "uk": "Генерація музики за допомогою ШІ"
   },
   "category": {
     "de": "Sound",

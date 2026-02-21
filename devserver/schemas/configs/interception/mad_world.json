@@ -5,11 +5,13 @@
     "en": "mad world",
     "de": "verrückt",
     "tr": "çılgın dünya",
-    "ko": "미친 세상"
+    "ko": "미친 세상",
+    "uk": "Божевільний світ"
   },
   "description": {
     "en": "Responds to input from a world in which familiar meanings, explanations, and orders no longer hold. Uses language, logic, and form as damaged but still operative materials, bringing out the absurd tensions evoked by the input. The result may appear playful, humorous, or sober, but always exposes the fragility of sense-making rather than repairing it.",
-    "de": "Reagiert auf den Input aus einer Perspektive, in der vertraute Bedeutungen, Erklärungen und Ordnungen nicht mehr tragen. Nutzt Sprache, Logik und Form als beschädigte, aber weiterhin verfügbare Mittel und arbeitet präzise die absurden Spannungen heraus, die der Input evoziert. Das Ergebnis kann spielerisch, humorvoll oder nüchtern wirken, macht jedoch stets die Fragilität von Sinn sichtbar, statt sie zu reparieren."
+    "de": "Reagiert auf den Input aus einer Perspektive, in der vertraute Bedeutungen, Erklärungen und Ordnungen nicht mehr tragen. Nutzt Sprache, Logik und Form als beschädigte, aber weiterhin verfügbare Mittel und arbeitet präzise die absurden Spannungen heraus, die der Input evoziert. Das Ergebnis kann spielerisch, humorvoll oder nüchtern wirken, macht jedoch stets die Fragilität von Sinn sichtbar, statt sie zu reparieren.",
+    "uk": "Божевільна трансформація"
   },
   "category": {
     "de": "Haltungen",

@@ -5,11 +5,13 @@
     "en": "On the Contrary!",
     "de": "Im Gegenteil!",
     "tr": "Tam Tersine!",
-    "ko": "정반대로!"
+    "ko": "정반대로!",
+    "uk": "Навпаки"
   },
   "description": {
     "en": "Flips everything to its exact opposite. Bright becomes dark, happy becomes sad, and all relationships reverse completely.",
-    "de": "Kehrt alles ins genaue Gegenteil um. Hell wird dunkel, fröhlich wird traurig, und alle Beziehungen werden komplett umgedreht."
+    "de": "Kehrt alles ins genaue Gegenteil um. Hell wird dunkel, fröhlich wird traurig, und alle Beziehungen werden komplett umgedreht.",
+    "uk": "Протилежна перспектива"
   },
   "category": {
     "de": "Kreative Verwandlungen",

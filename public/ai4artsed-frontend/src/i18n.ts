@@ -5,6 +5,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'tr', label: 'Türkçe' },
   { code: 'ko', label: '한국어' },
+  { code: 'uk', label: 'Українська' },
 ] as const
 
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number]['code']
@@ -198,7 +199,8 @@ const messages = {
         germanDe: 'Deutsch (de)',
         englishEn: 'Englisch (en)',
         turkishTr: 'Türkisch (tr)',
-        koreanKo: 'Koreanisch (ko)'
+        koreanKo: 'Koreanisch (ko)',
+        ukrainianUk: 'Ukrainisch (uk)'
       },
       safety: {
         kidsTitle: 'Kinder (8–12)',
@@ -1102,7 +1104,7 @@ const messages = {
             label: 'MMAudio',
             short: 'Bild/Text zu Audio (CVPR 2025)',
             title: 'MMAudio — Video/Image to Audio',
-            description: 'MMAudio (CVPR 2025) ist ein dediziertes crossmodales Modell, das auf beiden Modalitaeten trainiert wurde. 157M Parameter, generiert 8s Audio in ~1.2s. Genuiner crossmodaler Transfer statt naive Feature-Projektion.'
+            description: 'MMAudio (CVPR 2025): 157M Parameter, gemeinsam auf Video und Audio trainiert. Generiert bis zu 8s bei 44.1kHz in ~1.2s.'
           },
           guidance: {
             label: 'ImageBind Guidance',
@@ -1493,7 +1495,8 @@ const messages = {
         germanDe: 'German (de)',
         englishEn: 'English (en)',
         turkishTr: 'Turkish (tr)',
-        koreanKo: 'Korean (ko)'
+        koreanKo: 'Korean (ko)',
+        ukrainianUk: 'Ukrainian (uk)'
       },
       safety: {
         kidsTitle: 'Children (8–12)',
@@ -2397,7 +2400,7 @@ const messages = {
             label: 'MMAudio',
             short: 'Image/text to audio (CVPR 2025)',
             title: 'MMAudio — Video/Image to Audio',
-            description: 'MMAudio (CVPR 2025) is a dedicated crossmodal model trained on both modalities. 157M parameters, generates 8s audio in ~1.2s. Genuine crossmodal transfer instead of naive feature projection.'
+            description: 'MMAudio (CVPR 2025): 157M parameters, jointly trained on video and audio. Generates up to 8s at 44.1kHz in ~1.2s.'
           },
           guidance: {
             label: 'ImageBind Guidance',
@@ -2788,7 +2791,8 @@ const messages = {
         germanDe: 'Almanca (de)',
         englishEn: 'İngilizce (en)',
         turkishTr: 'Türkçe (tr)',
-        koreanKo: '한국어 (ko)'
+        koreanKo: '한국어 (ko)',
+        ukrainianUk: 'Українська (uk)'
       },
       safety: {
         kidsTitle: 'Çocuklar (8–12)',
@@ -3692,7 +3696,7 @@ const messages = {
             label: 'MMAudio',
             short: 'Görsel/metinden ses (CVPR 2025)',
             title: 'MMAudio — Video/Görselden Ses',
-            description: 'MMAudio (CVPR 2025), her iki modalite üzerinde eğitilmiş özel bir çapraz modal modeldir. 157M parametre, ~1,2s\'de 8s ses üretir. Naif özellik projeksiyonu yerine gerçek çapraz modal aktarım.'
+            description: 'MMAudio (CVPR 2025): 157M parametre, video ve ses üzerinde birlikte eğitilmiş. 44,1kHz\'de 8s\'ye kadar ses üretir, ~1,2s\'de.'
           },
           guidance: {
             label: 'ImageBind Rehberliği',
@@ -4083,7 +4087,8 @@ const messages = {
         germanDe: '독일어 (de)',
         englishEn: '영어 (en)',
         turkishTr: '터키어 (tr)',
-        koreanKo: '한국어 (ko)'
+        koreanKo: '한국어 (ko)',
+        ukrainianUk: 'Українська (uk)'
       },
       safety: {
         kidsTitle: '어린이 (8-12세)',
@@ -4987,7 +4992,7 @@ const messages = {
             label: 'MMAudio',
             short: '이미지/텍스트를 오디오로 (CVPR 2025)',
             title: 'MMAudio — 비디오/이미지를 오디오로',
-            description: 'MMAudio (CVPR 2025)는 두 모달리티에서 학습된 전용 크로스모달 모델입니다. 1억 5700만 매개변수, ~1.2초 안에 8초 오디오 생성.'
+            description: 'MMAudio (CVPR 2025): 1억 5700만 매개변수, 비디오와 오디오로 공동 학습. 44.1kHz에서 최대 8초 오디오를 ~1.2초 만에 생성.'
           },
           guidance: {
             label: 'ImageBind 가이던스',
@@ -5198,6 +5203,1301 @@ const messages = {
       }
     }
 
+  },
+  uk: {
+    app: {
+      title: 'UCDCAE AI LAB',
+      subtitle: 'Креативні ШІ-трансформації'
+    },
+    form: {
+      inputLabel: 'Твій текст',
+      inputPlaceholder: 'напр. Квітка на лузі',
+      schemaLabel: 'Стиль трансформації',
+      executeModeLabel: 'Режим виконання',
+      safetyLabel: 'Рівень безпеки',
+      generateButton: 'Згенерувати'
+    },
+    schemas: {
+      dada: 'Дада (Випадковий і абсурдний)',
+      bauhaus: 'Баухаус (Геометричний)',
+      stillepost: 'Зіпсований телефон (Ітеративний)'
+    },
+    executionModes: {
+      eco: 'Еко (Швидко)',
+      fast: 'Швидкий (Збалансований)',
+      best: 'Найкращий (Якість)'
+    },
+    safetyLevels: {
+      kids: 'Діти',
+      youth: 'Підлітки',
+      adult: 'Дорослі',
+      research: 'Дослідження'
+    },
+    stages: {
+      pipeline_starting: 'Конвеєр запускається',
+      translation_and_safety: 'Переклад і безпека',
+      interception: 'Трансформація',
+      pre_output_safety: 'Безпека виводу',
+      media_generation: 'Генерація зображення',
+      completed: 'Завершено'
+    },
+    status: {
+      idle: 'Готово',
+      executing: 'Конвеєр працює...',
+      connectionSlow: 'З\'єднання повільне, повторна спроба...',
+      completed: 'Конвеєр завершено!',
+      error: 'Виникла помилка'
+    },
+    entities: {
+      input: 'Введення',
+      translation: 'Переклад',
+      safety: 'Перевірка безпеки',
+      interception: 'Трансформація',
+      safety_pre_output: 'Безпека виводу',
+      media: 'Згенероване зображення'
+    },
+    properties: {
+      chill: 'спокійний',
+      chaotic: 'дикий',
+      narrative: 'розповідати історії',
+      algorithmic: 'за правилами',
+      historical: 'історія',
+      contemporary: 'сучасність',
+      explore: 'тестувати ШІ',
+      create: 'створювати мистецтво',
+      playful: 'грайливий',
+      serious: 'серйозний'
+    },
+    phase2: {
+      title: 'Введення промпту',
+      userInput: 'Твоє введення',
+      yourInput: 'Твоє введення',
+      yourIdea: 'Твоя ідея: ПРО ЩО це має бути?',
+      rules: 'Твої правила: ЯК реалізувати твою ідею?',
+      yourInstructions: 'Твої інструкції',
+      what: 'ЩО',
+      how: 'ЯК',
+      userInputPlaceholder: 'напр. Квітка на лузі',
+      inputPlaceholder: 'Тут з\'явиться твій текст...',
+      metaPrompt: 'Мистецька інструкція',
+      instruction: 'Інструкція',
+      transformation: 'Мистецька трансформація',
+      metaPromptPlaceholder: 'Опиши трансформацію...',
+      result: 'Результат',
+      expectedResult: 'Очікуваний результат',
+      execute: 'Запустити конвеєр',
+      executing: 'Виконується...',
+      transforming: 'LLM трансформує...',
+      startTransformation: 'Почати трансформацію',
+      letsGo: 'Добре, поїхали!',
+      modified: 'Змінено',
+      reset: 'Скинути',
+      loadingConfig: 'Завантаження конфігурації...',
+      loadingMetaPrompt: 'Завантаження мета-промпту...',
+      errorLoadingConfig: 'Помилка завантаження конфігурації',
+      errorLoadingMetaPrompt: 'Помилка завантаження мета-промпту',
+      threeForces: '3 сили працюють разом',
+      twoForces: 'ЩО + ЯК → LLM → Результат',
+      yourPrompt: 'Твій промпт:',
+      writeYourText: 'Напиши свій текст...',
+      examples: 'Приклади',
+      estimatedTime: '~12 секунд',
+      stage12Time: '~5-10 секунд',
+      willAppearAfterExecution: 'З\'явиться після виконання...',
+      back: 'Назад',
+      retry: 'Спробувати знову',
+      transformedPrompt: 'Трансформований промпт',
+      notYetTransformed: 'Ще не трансформовано...',
+      transform: 'Трансформувати',
+      reTransform: 'Спробувати інакше',
+      startAI: 'ШІ, обробити моє введення',
+      aiWorking: 'ШІ працює...',
+      continueToMedia: 'Продовжити до генерації зображення',
+      readyForMedia: 'Готово до генерації зображення',
+      stage1: 'Етап 1: Переклад + безпека...',
+      stage2: 'Етап 2: Трансформація...',
+      selectMedia: 'Обери свій медіум:',
+      mediaImage: 'Зображення',
+      mediaAudio: 'Аудіо',
+      mediaVideo: 'Відео',
+      media3D: '3D',
+      comingSoon: 'Незабаром',
+      generateMedia: 'Старт!'
+    },
+    phase3: {
+      generating: 'Зображення генерується...',
+      generatingHint: '~30 секунд'
+    },
+    common: {
+      back: 'Назад',
+      loading: 'Завантаження...',
+      error: 'Помилка',
+      retry: 'Повторити',
+      cancel: 'Скасувати',
+      checkingSafety: 'Перевірка...'
+    },
+    gallery: {
+      title: 'Обране',
+      empty: 'Поки що нічого в обраному',
+      favorite: 'Додати до обраного',
+      unfavorite: 'Видалити з обраного',
+      continue: 'Продовжити редагування',
+      restore: 'Відновити сесію',
+      viewMine: 'Моє обране',
+      viewAll: 'Усе обране'
+    },
+    settings: {
+      authRequired: 'Потрібна автентифікація',
+      authPrompt: 'Будь ласка, введіть пароль для доступу до налаштувань:',
+      passwordPlaceholder: 'Введіть пароль...',
+      authenticate: 'Увійти',
+      authenticating: 'Автентифікація...',
+      title: 'Адміністрування',
+      tabs: {
+        export: 'Експорт сесії',
+        config: 'Конфігурація',
+        matrix: 'Матриця моделей'
+      },
+      loading: 'Завантаження налаштувань...',
+      presets: {
+        title: 'Набори моделей',
+        help: 'Використовуйте вкладку <strong>Матриця моделей</strong>, щоб переглянути всі доступні набори та застосувати їх одним кліком.',
+        openMatrix: 'Відкрити матрицю моделей'
+      },
+      testingTools: {
+        title: 'Інструменти тестування для педагогів',
+        help: 'Тестуйте та досліджуйте педагогічні мініігри та анімації перед використанням з учнями.',
+        openPreview: 'Відкрити попередній перегляд мініігор',
+        pixelEditor: 'Піксельний редактор шаблонів',
+        includes: 'Включає: Піксельну анімацію, Танення айсберга, Гру з лісом, Рідкісні землі'
+      },
+      general: {
+        title: 'Загальна конфігурація',
+        uiMode: 'Режим інтерфейсу',
+        uiModeHelp: 'Рівень складності інтерфейсу',
+        kids: 'Діти (8–12)',
+        youth: 'Підлітки (13–17)',
+        expert: 'Експерт',
+        safetyLevel: 'Рівень безпеки',
+        defaultLanguage: 'Мова за замовчуванням',
+        germanDe: 'Німецька (de)',
+        englishEn: 'Англійська (en)',
+        turkishTr: 'Турецька (tr)',
+        koreanKo: '한국어 (ko)',
+        ukrainianUk: 'Українська (uk)'
+      },
+      safety: {
+        kidsTitle: 'Діти (8–12)',
+        kidsDesc: 'Усі фільтри активні: §86a, DSGVO, захист дітей (вікові параметри), VLM-перевірка зображень',
+        youthTitle: 'Підлітки (13–17)',
+        youthDesc: 'Усі фільтри активні: §86a, DSGVO, захист молоді (параметри для підлітків), VLM-перевірка зображень',
+        adultTitle: 'Дорослі',
+        adultDesc: '§86a + DSGVO активні. Без захисту молоді, без VLM-перевірки зображень.',
+        researchTitle: 'Режим дослідження',
+        researchDesc: 'ЖОДНИХ фільтрів безпеки не активовано. Дозволено лише для використання дослідницькими установами в контексті наукових проєктів.'
+      },
+      safetyModels: {
+        title: 'Локальні моделі безпеки',
+        help: 'Локально через Ollama — імена людей і перевірки безпеки ніколи не залишають систему',
+        safetyModel: 'Модель безпеки',
+        safetyModelHelp: 'Guard-модель для безпеки контенту (§86a, захист молоді)',
+        dsgvoModel: 'DSGVO-модель верифікації',
+        dsgvoModelHelp: 'Модель загального призначення для верифікації NER за DSGVO (не guard-модель)',
+        fast: 'швидко, мінімально',
+        standard: 'стандартно',
+        bestQuality: 'найкраща якість',
+        recommended: 'рекомендовано'
+      },
+      dsgvo: {
+        title: 'Попередження DSGVO',
+        notCompliant: 'Наступні моделі <strong>НЕ відповідають DSGVO</strong> (дані обробляються за межами ЄС):',
+        compliantHint: 'Варіанти, що відповідають DSGVO:'
+      },
+      models: {
+        title: 'Конфігурація моделей',
+        help: 'Ідентифікатори моделей з префіксом провайдера: local/, mistral/, anthropic/, openai/, openrouter/',
+        matrixAdvised: 'Рекомендується використовувати матрицю моделей. Однак ви можете вільно налаштовувати тут.',
+        ollamaAvailable: '{count} моделей Ollama доступно (введіть або оберіть зі списку)',
+        stage1Text: 'Етап 1 - Текстова модель',
+        stage1Vision: 'Етап 1 - Модель зору',
+        stage2Interception: 'Етап 2 - Модель перехоплення',
+        stage2Optimization: 'Етап 2 - Модель оптимізації',
+        stage3: 'Етап 3 - Модель перекладу/безпеки',
+        stage4Legacy: 'Етап 4 - Застаріла модель',
+        chatHelper: 'Модель чат-помічника',
+        imageAnalysis: 'Модель аналізу зображень',
+        coding: 'Генерація коду (Tone.js, p5.js)'
+      },
+      api: {
+        title: 'Конфігурація API',
+        llmProvider: 'Провайдер LLM',
+        localFramework: 'Локальний LLM-фреймворк',
+        externalProvider: 'Зовнішній провайдер LLM',
+        cloudProvider: 'Хмарний провайдер LLM — потрібен API-ключ',
+        noneLocal: 'Без (тільки локально, DSGVO)',
+        mistralEu: 'Mistral AI (базується в ЄС, DSGVO)',
+        anthropicDirect: 'Anthropic Direct API (НЕ DSGVO)',
+        openaiDirect: 'OpenAI Direct API (НЕ DSGVO)',
+        openrouterDirect: 'OpenRouter (НЕ DSGVO, маршрутизація через ЄС доступна)',
+        mistralInfo: 'Mistral AI (базується в ЄС)',
+        mistralDsgvo: 'Відповідає DSGVO (інфраструктура ЄС)',
+        anthropicInfo: 'Anthropic Direct API',
+        anthropicNotDsgvo: 'НЕ відповідає DSGVO',
+        anthropicWarning: 'Дані обробляються за межами ЄС. Використовуйте лише в необосвітніх контекстах.',
+        openaiInfo: 'OpenAI Direct API',
+        openaiNotDsgvo: 'НЕ відповідає DSGVO (базується в США)',
+        openaiWarning: 'Дані обробляються у Сполучених Штатах. Використовуйте лише в необосвітніх контекстах.',
+        openrouterInfo: 'OpenRouter',
+        openrouterNotDsgvo: 'НЕ відповідає DSGVO (компанія зі США)',
+        openrouterWarning: 'Маршрутизацію через сервери ЄС можна налаштувати в OpenRouter, але компанія знаходиться в США.',
+        storedIn: 'Збережено у',
+        currentKey: 'Поточний'
+      },
+      save: {
+        saveApply: 'Зберегти і застосувати',
+        saving: 'Збереження...',
+        applying: 'Застосування...',
+        success: 'Налаштування збережено та застосовано',
+        presetApplied: 'Застосовано набір: {preset}'
+      }
+    },
+    pipeline: {
+      yourInput: 'Твоє введення',
+      result: 'Результат',
+      generatedMedia: 'Згенероване зображення'
+    },
+    landing: {
+      subtitlePrefix: 'Педагогічно-мистецька експериментальна платформа',
+      subtitleSuffix: 'для дослідницького використання генеративного ШІ в культурно-естетичній медіаосвіті',
+      research: '',
+      features: {
+        textTransformation: {
+          title: 'Текстова трансформація',
+          description: 'Зміна перспективи через ШІ — твій промпт трансформується через мистецько-педагогічні лінзи в зображення, відео та звук.'
+        },
+        imageTransformation: {
+          title: 'Трансформація зображень',
+          description: 'Трансформуй зображення через різні моделі та перспективи в нові зображення та відео.'
+        },
+        multiImage: {
+          title: 'Злиття зображень',
+          description: 'Комбінуй декілька зображень та зливай їх у нові композиції через моделі ШІ.'
+        },
+        canvas: {
+          title: 'Canvas Workflow',
+          description: 'Візуальна композиція робочих процесів — з\'єднуй модулі через перетягування у власні ШІ-конвеєри.'
+        },
+        music: {
+          title: 'Генерація музики',
+          description: 'Створення музики за допомогою ШІ з текстами пісень, тегами та стильовим контролем.'
+        },
+        latentLab: {
+          title: 'Латентна лабораторія',
+          description: 'Дослідження векторного простору — сюрреалізація, елімінація вимірів, інтерполяція вкладень.'
+        }
+      }
+    },
+    research: {
+      locked: 'Доступно лише в режимі дослідження',
+      lockedHint: 'Потрібен рівень безпеки "Дорослі" або "Дослідження" (config.py)',
+      complianceTitle: 'Повідомлення про режим дослідження',
+      complianceWarning: 'У режимі дослідження фільтри безпеки не активні для промптів або згенерованих зображень. Можуть виникнути неочікувані або невідповідні результати.',
+      complianceAge: 'Цей режим не рекомендується для осіб молодше 16 років.',
+      complianceConfirm: 'Я підтверджую, що зрозумів(ла) повідомлення',
+      complianceCancel: 'Скасувати',
+      complianceProceed: 'Продовжити'
+    },
+    presetOverlay: {
+      title: 'Обери перспективу',
+      close: 'Закрити'
+    },
+    imageUpload: {
+      clickHere: 'Натисни тут',
+      orDragImage: 'або перетягни зображення сюди',
+      formatHint: 'PNG, JPG, WEBP (макс. 10МБ)',
+      invalidFormat: 'Невірний формат файлу. Дозволені лише PNG, JPG та WEBP.',
+      fileTooLarge: 'Файл занадто великий. Максимум: {max}МБ',
+      uploadFailed: 'Помилка завантаження',
+      infoOriginal: 'Оригінал:',
+      infoSize: 'Розмір:'
+    },
+    mediaInput: {
+      choosePreset: 'Обери перспективу',
+      translateToEnglish: 'Перекласти англійською',
+      copy: 'Копіювати',
+      paste: 'Вставити',
+      delete: 'Видалити',
+      loading: 'Завантаження...',
+      contentBlocked: 'Контент заблоковано'
+    },
+    nav: {
+      about: 'Про нас',
+      impressum: 'Імпресум',
+      privacy: 'Конфіденційність',
+      docs: 'Документація',
+      language: 'Змінити мову',
+      settings: 'Налаштування',
+      canvas: 'Canvas Workflow'
+    },
+    canvas: {
+      title: 'Canvas Workflow',
+      newWorkflow: 'Новий робочий процес',
+      importWorkflow: 'Імпорт',
+      exportWorkflow: 'Експорт',
+      execute: 'Виконати',
+      ready: 'Готово',
+      errors: 'помилки',
+      discardWorkflow: 'Відкинути поточний робочий процес?',
+      importError: 'Не вдалося імпортувати файл',
+      selectTransformation: 'Обрати трансформацію',
+      selectOutput: 'Обрати вихідну модель',
+      search: 'Пошук...',
+      noResults: 'Нічого не знайдено',
+      dragHint: 'Натисни або перетягни модулі на полотно',
+      editNameHint: '(подвійний клік для редагування)',
+      modules: 'Модулі',
+      toggleSidebar: 'Перемкнути бічну панель',
+      dsgvoTooltip: 'Canvas-процеси можуть використовувати зовнішні LLM API. Відповідність DSGVO — відповідальність користувача.',
+      batchExecute: 'Пакетне виконання',
+      batchExecution: 'Пакетне виконання',
+      batchAbort: 'Перервати пакет',
+      abort: 'Перервати',
+      cancel: 'Скасувати',
+      loading: 'Завантаження...',
+      executingWorkflow: 'Виконання робочого процесу...',
+      starting: 'Запуск...',
+      nodes: 'вузли',
+      batchRunCount: 'Кількість запусків',
+      batchUseSeed: 'Використати базовий Seed',
+      batchBaseSeed: 'Базовий Seed',
+      batchSeedHint: 'Кожний запуск: seed + індекс',
+      batchStart: 'Почати пакет',
+      stage: {
+        configSelectPlaceholder: 'Обрати...',
+        evaluationCriteriaFallback: 'Критерії оцінювання...',
+        feedbackInputTitle: 'Введення зворотного зв\'язку',
+        deleteTitle: 'Видалити',
+        selectLlmPlaceholder: 'Обрати LLM...',
+        resizeTitle: 'Змінити розмір',
+        input: {
+          promptPlaceholder: 'Твій промпт...'
+        },
+        imageInput: {
+          uploadLabel: 'Завантажити зображення'
+        },
+        interception: {
+          contextPromptLabel: 'Контекстний промпт',
+          contextPromptPlaceholder: 'Інструкції трансформації...'
+        },
+        translation: {
+          translationPromptLabel: 'Промпт перекладу',
+          translationPromptPlaceholder: 'Інструкції перекладу...'
+        },
+        modelAdaption: {
+          targetModelLabel: 'Цільова модель',
+          noAdaptionOption: 'Без адаптації',
+          videoModelsOption: 'Відео-моделі',
+          audioModelsOption: 'Аудіо-моделі'
+        },
+        comparisonEvaluator: {
+          criteriaLabel: 'Критерії порівняння',
+          criteriaPlaceholder: 'напр. Порівняти за оригінальністю, чіткістю, деталізацією...',
+          infoText: 'Підключіть до 3 текстових виходів'
+        },
+        seed: {
+          modeLabel: 'Режим',
+          modeFixed: 'Фіксований',
+          modeRandom: 'Випадковий',
+          valueLabel: 'Значення',
+          baseLabel: 'Базове'
+        },
+        resolution: {
+          customOption: 'Власний',
+          widthLabel: 'Ширина',
+          heightLabel: 'Висота'
+        },
+        collector: {
+          emptyText: 'Очікування виконання...'
+        },
+        evaluation: {
+          typeLabel: 'Тип оцінювання',
+          typeCreativity: 'Креативність',
+          typeQuality: 'Якість',
+          typeCustom: 'Власний',
+          criteriaLabel: 'Критерії оцінювання',
+          outputTypeLabel: 'Тип виводу',
+          outputCommentary: 'Коментар + Бінарний',
+          outputScore: 'Коментар + Бал + Бінарний',
+          outputAll: 'Усе',
+          evalPassTitle: 'Прийнято (вперед)',
+          evalFailTitle: 'Зворотний зв\'язок (назад)',
+          evalCommentaryTitle: 'Коментар (вперед)'
+        },
+        imageEvaluation: {
+          visionModelPlaceholder: 'Обрати Vision-модель...',
+          frameworkLabel: 'Рамка аналізу',
+          frameworkPanofsky: 'Мистецтвознавча (Панофський)',
+          frameworkEducational: 'Освітня теорія',
+          frameworkEthical: 'Етична',
+          frameworkCritical: 'Критична/деколоніальна',
+          frameworkCustom: 'Власна',
+          customPromptLabel: 'Промпт аналізу',
+          customPromptPlaceholder: 'Опишіть, як слід аналізувати зображення...'
+        },
+        display: {
+          imageAlt: 'Попередній перегляд',
+          emptyText: 'Попередній перегляд (після виконання)'
+        }
+      }
+    },
+    about: {
+      title: 'Про UCDCAE AI LAB',
+      intro: 'UCDCAE AI LAB — це педагогічно-мистецька експериментальна платформа Кафедри ЮНЕСКО з цифрової культури та мистецтва в освіті для дослідницького використання генеративного штучного інтелекту в культурно-естетичній медіаосвіті. Вона була розроблена в рамках проєктів AI4ArtsEd та COMeARTS.',
+      project: {
+        title: 'Проєкт',
+        description: 'ШІ трансформує суспільство та світ праці; він дедалі більше стає предметом освіти. Проєкт досліджує можливості, умови та межі педагогічного використання штучного інтелекту (ШІ) в умовах культурної різноманітності культурної освіти.',
+        paragraph2: 'У трьох підпроєктах — Загальна педагогіка (TPap), Інформатика (TPinf) та Мистецька освіта (TPkp) — тісно переплітаються орієнтоване на креативність педагогічне дослідження практики ШІ та інформатична концепція й програмування ШІ. Проєкт від початку систематично залучає мистецько-педагогічних практиків до процесу проєктування.',
+        paragraph3: 'Партисипативний процес проєктування тривалістю близько двох років має на меті створити технологію ШІ з відкритим вихідним кодом, яка досліджує, наскільки системи ШІ вже можуть враховувати мистецько-педагогічні принципи на структурному рівні за сприятливих реальних умов.',
+        paragraph4: 'Фокус зосереджено на: a) майбутній застосовності та доданій вартості високоінноваційних технологій для культурної освіти, b) обсязі та межах ШІ-грамотності вчителів і учнів, та c) загальному питанні оцінюваності та оцінки трансформації педагогічних умов складними нелюдськими акторами з точки зору педагогічної етики та оцінки технологій.',
+        moreInfo: 'Більше інформації:'
+      },
+      subproject: {
+        title: 'Підпроєкт «Загальна педагогіка»',
+        description: 'Підпроєкт «Загальна педагогіка» досліджує можливості та межі мистецько-педагогічного процесу проєктування ШІ на основі партисипативного дослідження практики в рамках спільного дослідницького питання. З цією метою у першому проєктному році проводяться серії досліджень, аналізів, експертних семінарів та відкритих просторів.'
+      },
+      team: {
+        title: 'Команда',
+        projectLead: 'Керівник проєкту',
+        leadName: 'Проф. д-р Бенджамін Йоріссен',
+        leadInstitute: 'Інститут педагогіки',
+        leadChair: 'Кафедра педагогіки з фокусом на культуру та естетичну освіту',
+        leadUnesco: 'Кафедра ЮНЕСКО з цифрової культури та мистецтва в освіті',
+        researcher: 'Наукова співробітниця',
+        researcherName: 'Ванесса Бауманн',
+        researcherInstitute: 'Інститут педагогіки',
+        researcherChair: 'Кафедра педагогіки з фокусом на культуру та естетичну освіту',
+        researcherUnesco: 'Кафедра ЮНЕСКО з цифрової культури та мистецтва в освіті'
+      },
+      funding: {
+        title: 'За підтримки'
+      }
+    },
+    legal: {
+      impressum: {
+        title: 'Імпресум',
+        publisher: 'Видавець',
+        represented: 'Представлений президентом',
+        responsible: 'Відповідальний за зміст',
+        authority: 'Наглядовий орган',
+        moreInfo: 'Додаткова інформація',
+        moreInfoText: 'Повний імпресум FAU:',
+        funding: 'За підтримки'
+      },
+      privacy: {
+        title: 'Політика конфіденційності',
+        notice: 'Примітка: Згенерований контент зберігається на сервері для дослідницьких цілей. Жодні дані користувачів або IP-адреси не збираються. Завантажені зображення не зберігаються.',
+        usage: 'Використання цієї платформи дозволено виключно для зареєстрованих партнерів UCDCAE AI LAB. Діють домовленості про захист даних, укладені в цьому контексті. Якщо у вас є питання, зверніться до vanessa.baumann@fau.de.'
+      }
+    },
+    docs: {
+      title: 'Документація та посібник',
+      intro: {
+        title: 'Ласкаво просимо',
+        content: 'Креативні експерименти з ШІ-трансформаціями.'
+      },
+      gettingStarted: {
+        title: 'Початок роботи',
+        step1: 'Обери властивості з квадрантів',
+        step2: 'Введи текст або зображення',
+        step3: 'Запусти трансформацію'
+      },
+      modes: {
+        title: 'Режими',
+        mode1: { name: 'Прямий', desc: 'Швидкі експерименти' },
+        mode2: { name: 'Текст', desc: 'Текстові трансформації' },
+        mode3: { name: 'Зображення', desc: 'Процедури на основі зображень' }
+      },
+      support: {
+        title: 'Підтримка',
+        content: 'Для запитань:'
+      },
+      wikipedia: {
+        title: 'Дослідження Wikipedia',
+        subtitle: 'Знання про світ як частина мистецьких процесів',
+        feature: 'Мистецькі процеси потребують не лише естетичних знань, а й знань про факти у світі. ШІ досліджує Wikipedia під час трансформації, щоб знайти фактичну інформацію.',
+        languages: 'Підтримується понад 70 мов',
+        languagesDesc: 'ШІ автоматично обирає відповідну мовну Wikipedia для кожної теми:',
+        examples: {
+          nigeria: 'Тема про Нігерію → хауса, йоруба, ігбо або англійська',
+          india: 'Тема про Індію → гінді, тамільська, бенгальська або інші регіональні мови',
+          indigenous: 'Корінні культури → кечуа, маорі, інуктитут тощо'
+        },
+        why: 'Прозорість: Що знає ШІ?',
+        whyDesc: 'Система показує всі спроби дослідження: як знайдені статті (у вигляді посилань), так і терміни, для яких нічого не знайдено. Це робить видимим, що ШІ вважає відомим — і що ні.',
+        culturalRespect: 'Запрошення дослідити самостійно',
+        culturalRespectDesc: 'Показані посилання Wikipedia — це запрошення дізнатися більше самостійно. Натисніть на посилання, щоб перевірити джерела та розширити власні знання.',
+        limitations: 'Дослідження ШІ — це допомога, а не заміна власного занурення в тему.'
+      }
+    },
+    multiImage: {
+      image1Label: 'Зображення 1',
+      image2Label: 'Зображення 2 (необов\'язково)',
+      image3Label: 'Зображення 3 (необов\'язково)',
+      contextLabel: 'Опишіть, що ви хочете зробити з зображеннями',
+      contextPlaceholder: 'напр. Вставте будинок із зображення 2 і коня із зображення 3 у зображення 1. Збережіть кольори та стиль із зображення 1.',
+      modeTitle: 'Кілька зображень → Зображення',
+      selectConfig: 'Обери модель:',
+      generating: 'Зображення зливаються...'
+    },
+    imageTransform: {
+      imageLabel: 'Твоє зображення',
+      contextLabel: 'Опиши, що ти хочеш змінити в зображенні',
+      contextPlaceholder: 'напр. Перетвори в олійний живопис... Зроби яскравішим... Додай захід сонця...'
+    },
+    textTransform: {
+      inputLabel: 'Твоя ідея = ЩО?',
+      inputTooltip: 'Введи, про що має бути твій витвір.',
+      inputPlaceholder: 'напр. Свято на моїй вулиці: ...',
+      contextLabel: 'Твої правила = ЯК?',
+      contextTooltip: 'Введи, як має бути представлена твоя ідея, або натисни на значок кола!',
+      contextPlaceholder: 'напр. Опиши все так, як це сприймають птахи на деревах!',
+      resultLabel: 'Ідея + Правила = Промпт',
+      resultPlaceholder: 'Промпт з\'явиться після натискання старт (або введи свій текст)',
+      optimizedLabel: 'Оптимізований для моделі промпт',
+      optimizedPlaceholder: 'Оптимізований промпт з\'явиться після вибору моделі.'
+    },
+    training: {
+      info: {
+        title: 'Про навчання LoRA',
+        studioDescription: 'Навчайте власні LoRA-моделі для Stable Diffusion 3.5 Large зі своїми зображеннями.',
+        description: 'Це вбудоване навчання призначене для швидких тестів.',
+        limitations: 'Обмеження',
+        limitationDuration: 'Навчання триває 1-3 години',
+        limitationBlocking: 'Блокує генерацію зображень під час навчання',
+        limitationConfig: 'Обмежені можливості конфігурації',
+        showMore: 'Дізнатися більше',
+        showLess: 'Показати менше'
+      },
+      placeholders: {
+        projectName: 'напр. Наша шкільна будівля',
+        triggerWords: 'напр. наша_школа, шкільний_двір, клас'
+      },
+      labels: {
+        projectName: 'Назва проєкту',
+        triggerWords: 'Тригерні слова',
+        triggerHelp: 'Теги через кому. Перший = основний тригер, решта = додаткові теги для кожного зображення.',
+        images: 'Навчальні зображення (рекомендовано 10–50)',
+        dropZone: 'Натисніть або перетягніть зображення сюди',
+        imagesSelected: '{count} зображень обрано',
+        logs: 'Журнал навчання',
+        waiting: 'Очікування початку навчання...'
+      },
+      buttons: {
+        start: 'Почати навчання',
+        stop: 'Зупинити',
+        inProgress: 'Навчання виконується...',
+        delete: 'Видалити файли проєкту (DSGVO)',
+        cancel: 'Скасувати'
+      },
+      vram: {
+        title: 'Перевірка VRAM GPU',
+        checking: 'Перевірка VRAM...',
+        used: 'використано',
+        free: 'вільно',
+        notEnough: 'Недостатньо вільної VRAM для навчання (потрібно {gb} ГБ).',
+        clearQuestion: 'Очистити VRAM для продовження?',
+        enough: 'Достатньо VRAM для навчання.',
+        clearing: 'Очищення VRAM...',
+        newFree: 'Нове вільне',
+        clearBtn: 'Очистити VRAM ComfyUI + Ollama'
+      }
+    },
+    safetyBadges: {
+      '§86a': '§86a',
+      '86a_filter': '§86a',
+      age_filter: 'Віковий фільтр',
+      dsgvo_ner: 'DSGVO',
+      dsgvo_llm: 'DSGVO',
+      translation: '\u2192 EN',
+      fast_filter: 'Контент',
+      llm_context_check: 'Контент (LLM)',
+      llm_safety_check: 'Захист молоді',
+      llm_check_failed: 'Перевірка не вдалася',
+      disabled: '\u2014'
+    },
+    safetyBlocked: {
+      vlm: 'Твій промпт був нормальний, але згенероване зображення було позначене як невідповідне ШІ-аналізом зображень. Таке трапляється — генерація зображень не завжди передбачувана. Просто спробуй ще раз, кожна генерація інша!',
+      para86a: 'Твій промпт було заблоковано, бо він містить символи або терміни, заборонені за німецьким законодавством (§86a КК). Це правило захищає нас усіх від ненависті та насильства. Спробуй іншу тему!',
+      dsgvo: 'Твій промпт було заблоковано, бо він містить щось схоже на ім\'я людини. Це захищено Загальним регламентом захисту даних (DSGVO). Використовуй описи, як «дівчинка» або «старий чоловік», замість імен.',
+      kids: 'Твій промпт було заблоковано фільтром безпеки для дітей. Деякі терміни не підходять для дітей, бо можуть лякати або бентежити. Спробуй описати свою ідею дружнішими словами!',
+      youth: 'Твій промпт було заблоковано фільтром захисту молоді. Деякий контент не підходить і для підлітків. Спробуй переформулювати свою ідею!',
+      generic: 'Твій промпт було заблоковано системою безпеки. Система захищає тебе від невідповідного контенту. Спробуй інше формулювання!',
+      inputImage: 'Завантажене зображення було позначене як невідповідне ШІ-аналізом зображень. Будь ласка, використай інше зображення.',
+      vlmSaw: 'ШІ побачив',
+      systemUnavailable: 'Система безпеки (Ollama) не відповідає, тому подальша обробка неможлива. Зверніться до системного адміністратора.',
+      suggestionLoading: 'Зачекай, у мене є ідея...',
+      suggestionError: 'Зараз не вдалося згенерувати пропозицію. Просто спробуй ще раз іншими словами!'
+    },
+    splitCombine: {
+      infoTitle: 'Split & Combine — Семантичне векторне злиття',
+      infoDescription: 'Цей робочий процес зливає два промпти на рівні семантичних векторів. Результат — не просте змішування, а глибше математичне з\'єднання просторів значень.',
+      purposeTitle: 'Педагогічна мета',
+      purposeText: 'Досліджуй, як моделі ШІ представляють значення у вигляді числових просторів. Що відбувається, коли ми математично зливаємо різні концепції?',
+      techTitle: 'Технічні деталі',
+      techText: 'Модель: SD3.5 Large | Кодувальник: DualCLIP (CLIP-G + T5-XXL)'
+    },
+    partialElimination: {
+      infoTitle: 'Часткова елімінація — Деконструкція вектора',
+      infoDescription: 'Цей робочий процес цілеспрямовано маніпулює частинами семантичного вектора. Елімінуючи певні виміри, ми можемо спостерігати, які аспекти значення втрачаються.',
+      purposeTitle: 'Педагогічна мета',
+      purposeText: 'Зрозумій, як значення кодується через різні виміри векторного простору. Що залишається, коли ми «вимикаємо» частини?',
+      techTitle: 'Технічні деталі',
+      techText: 'Модель: SD3.5 Large | Кодувальник: TripleCLIP (CLIP-L + CLIP-G + T5-XXL)',
+      encoderLabel: 'Текстовий кодувальник',
+      modeLabel: 'Режим елімінації',
+      dimensionRange: 'Діапазон вимірів',
+      selected: 'Обрано',
+      dimensions: 'Виміри',
+      emptyTitle: 'Очікування генерації...',
+      emptySubtitle: 'Результати з\'являться тут',
+      referenceLabel: 'Еталонне зображення',
+      referenceDesc: 'Без маніпуляцій (оригінал)',
+      innerLabel: 'Внутрішній діапазон елімінований',
+      outerLabel: 'Зовнішній діапазон елімінований'
+    },
+    surrealizer: {
+      infoTitle: 'Галюцинатор — Екстраполяція за межі відомого',
+      infoDescription: 'Два ШІ-«мозки» читають твій текст: CLIP-L розуміє мову через зображення, T5 — суто лінгвістично. Повзунок не просто змішує між ними — він штовхає зображення далеко за межі того, що T5 сам по собі створив би. ШІ має інтерпретувати вектори, яких він ніколи не зустрічав під час навчання. Результат: ШІ-галюцинації — зображення, які жоден промпт не міг би створити безпосередньо.',
+      purposeTitle: 'Повзунок',
+      purposeText: 'α < 0: CLIP-L підсилений, T5 інвертований — верхні 3328 вимірів (де CLIP-L заповнений нулями) отримують інвертовані вектори T5. Паттерни крос-уваги в трансформері перевертаються: візуально зумовлені галюцинації. ◆ α = 0: чистий CLIP-L — нормальне зображення. ◆ α = 1: чистий T5-XXL — ще нормально, але інша якість. ◆ α > 1: екстраполяція за T5. При α = 20 формула штовхає вкладення у 19× далі за T5 у незвіданий векторний простір — лінгвістично зумовлені галюцинації. ◆ Оптимальна зона: α = 15–35.',
+      techTitle: 'Як це працює',
+      techText: 'Твій промпт відправляється через два кодувальники окремо: CLIP-L (візуально навчений, 77 токенів, 768 вимірів → доповнений до 4096) та T5-XXL (лінгвістично навчений, 512 токенів, 4096 вимірів). Перші 77 позицій токенів зливаються: (1-α)·CLIP-L + α·T5. Решта токенів T5 (78–512) залишаються без змін як семантичний якір — вони прив\'язують зображення до тексту незалежно від екстремальності α. При α > 1 це не змішування, а екстраполяція: вектори, яких жодне навчання ніколи не створювало. При α < 0 T5 інвертується, а CLIP-L підсилюється — якісно інші галюцинації, тому що паттерни крос-уваги в трансформері інвертовані.',
+      sliderLabel: 'Екстраполяція (α)',
+      sliderNormal: 'нормально',
+      sliderWeird: 'дивно',
+      sliderCrazy: 'божевільно',
+      sliderExtremeWeird: 'супер дивно',
+      sliderExtremeCrazy: 'супер божевільно',
+      sliderHint: "α<0: за CLIP {'|'} α=0: чистий CLIP {'|'} α=1: чистий T5 {'|'} α>1: за T5",
+      expandLabel: 'Розширити промпт для T5',
+      expandSuggest: 'Виявлено короткий промпт — розширення T5 значно покращує результати з малою кількістю слів.',
+      expandHint: 'Твій промпт має мало слів (~{count} токенів CLIP). Для оптимальних галюцинацій ШІ може наративно розширити контекст T5.',
+      expandActive: 'Розширення промпту...',
+      expandResultLabel: 'Розширення T5 (лише кодувальник T5)',
+      advancedLabel: 'Розширені налаштування',
+      negativeLabel: 'Негативний промпт',
+      negativeHint: 'Екстрапольований з тим самим α. Визначає, від чого зображення екстраполюється ГЕТЬ — різні негативні промпти створюють принципово різну естетику.',
+      cfgLabel: 'CFG Scale',
+      cfgHint: 'Classifier-Free Guidance: сила впливу промпту. Вище = сильніший ефект, менше варіацій.'
+    },
+    musicGeneration: {
+      infoTitle: 'Генерація музики',
+      infoDescription: 'Створюй музику з тексту та стильових тегів. ШІ генерує мелодії, ритми та гармонії на основі твоїх текстів та жанрових вказівок.',
+      purposeTitle: 'Педагогічна мета',
+      purposeText: 'Досліджуй, як ШІ інтерпретує музичні концепції. Як вибір слів у тексті впливає на мелодію?',
+      lyricsLabel: 'Текст пісні',
+      lyricsPlaceholder: '[Verse]\nТвій текст тут...\n\n[Chorus]\nПриспів...',
+      tagsLabel: 'Стильові теги',
+      tagsPlaceholder: 'pop, piano, upbeat, female vocal, 120bpm',
+      selectModel: 'Обери музичну модель:',
+      generate: 'Згенерувати музику',
+      generating: 'Генерація музики...'
+    },
+    musicGen: {
+      simpleMode: 'Простий',
+      advancedMode: 'Розширений',
+      lyricsLabel: 'Текст',
+      lyricsPlaceholder: 'Напиши текст пісні з маркерами структури, такими як [Verse], [Chorus], [Bridge]...\n\nПриклад:\n[Verse]\nду ду ду ду\nбла бла бла бла\n\n[Chorus]\nце все що я хочу тобі заспівати',
+      tagsLabel: 'Стильові теги',
+      tagsPlaceholder: 'Жанр, настрій, інструменти...\n\nПриклад: ska, aggressive, upbeat, high definition, bass and sax trio',
+      refineButton: 'Покращити текст і теги',
+      refinedLyricsLabel: 'Покращений текст',
+      refinedLyricsPlaceholder: 'Покращений текст з\'явиться тут...',
+      refiningLyricsMessage: 'ШІ покращує текст пісні...',
+      refinedTagsLabel: 'Покращені теги',
+      refinedTagsPlaceholder: 'Покращені стильові теги з\'являться тут...',
+      refiningTagsMessage: 'ШІ генерує відповідні стильові теги...',
+      selectModel: 'Обери музичну модель',
+      generateButton: 'Згенерувати музику',
+      quality: 'Якість'
+    },
+    musicGenV2: {
+      lyricsWorkshop: 'Майстерня текстів',
+      lyricsInput: 'Твій текст',
+      lyricsPlaceholder: 'Напиши текст, тему, ключові слова або настрій...',
+      themeToLyrics: 'Ключові слова → Текст пісні',
+      refineLyrics: 'Структурувати текст пісні',
+      resultLabel: 'Результат',
+      resultPlaceholder: 'Текст пісні з\'явиться тут...',
+      expandingTheme: 'ШІ пише текст пісні з твоїх ключових слів...',
+      refiningLyrics: 'ШІ структурує текст пісні...',
+      soundExplorer: 'Звуковий дослідник',
+      suggestFromLyrics: 'Запропонувати з тексту',
+      suggestingTags: 'ШІ аналізує текст...',
+      mostImportant: 'найважливіше',
+      dimGenre: 'Жанр',
+      dimTimbre: 'Тембр',
+      dimGender: 'Голос',
+      dimMood: 'Настрій',
+      dimInstrument: 'Інструменти',
+      dimScene: 'Сцена',
+      dimRegion: 'Регіон (ЮНЕСКО)',
+      dimTopic: 'Тема',
+      audioLength: 'Тривалість аудіо',
+      generateButton: 'Згенерувати музику',
+      selectModel: 'Модель',
+      customTags: 'Власні теги',
+      customTagsPlaceholder: 'напр. acoustic,dreamy,summer_vibes'
+    },
+    latentLab: {
+      tabs: {
+        attention: 'Картографія уваги',
+        probing: 'Зондування ознак',
+        algebra: 'Алгебра концептів',
+        fusion: 'Злиття кодувальників',
+        archaeology: 'Археологія шумоочищення',
+        textlab: 'Латентна текстова лабораторія',
+        crossmodal: 'Крос-модальна лабораторія'
+      },
+      comingSoon: 'Цей інструмент буде реалізований у майбутній версії.',
+      attention: {
+        headerTitle: 'Картографія уваги — Яке слово керує якою частиною зображення?',
+        headerSubtitle: 'Для кожного слова промпту теплова карта на згенерованому зображенні показує, ДЕ саме це слово мало найбільший вплив. Це розкриває, як модель просторово розподіляє семантичні концепції.',
+        explanationToggle: 'Показати детальне пояснення',
+        explainWhatTitle: 'Що показує цей інструмент?',
+        explainWhatText: 'Коли дифузійна модель генерує зображення, вона не читає промпт слово за словом як набір інструкцій. Натомість механізм «увага» розподіляє вплив кожного слова по різних областях зображення. Слово «будинок» переважно впливає на область, де з\'являється будинок — але також на сусідні ділянки, бо модель розуміє контекст усієї сцени. Цей інструмент робить цей розподіл видимим: натисни на слово і подивись, які частини зображення підсвічуються.',
+        explainHowTitle: 'Як читати теплову карту?',
+        explainHowText: 'Яскравий, насичений колір = сильний вплив слова на цю область. Темний або відсутній колір = слабкий вплив. При виборі кількох слів вони з\'являються в різних кольорах. Зауваж: карти НЕ мають ідеально чітких меж — це не помилка, а показує, що модель обробляє концепції контекстуально, а не ізольовано.',
+        explainReadTitle: 'Що розкривають два повзунки?',
+        explainReadText: 'Повзунок кроку шумоочищення показує, КОЛИ у 25-кроковому процесі генерації ви переглядаєте увагу. Ранні кроки показують планування грубої композиції, пізні — присвоєння деталей. Селектор глибини мережі показує, ДЕ в трансформері вимірюється увага: мілкі шари (ближче до входу) показують планування глобальної композиції, середні — семантичне присвоєння, глибокі — тонке налаштування.',
+        techTitle: 'Технічні деталі',
+        techText: 'SD3.5 використовує MMDiT (Мультимодальний дифузійний трансформер) зі спільною увагою: токени зображення та тексту взаємодіють через 24 блоки трансформера. Ми замінюємо стандартний SDPA-процесор на ручний softmax(QK^T/√d) процесор у 3 обраних блоках для вилучення підматриці уваги текст→зображення. Карти мають роздільність 64x64 (сітка патчів), збільшену до роздільності зображення через білінійну інтерполяцію.',
+        promptLabel: 'Промпт',
+        promptPlaceholder: 'напр. Будинок стоїть у ландшафті, оточений сільськогосподарськими угіддями, природою та тваринами. Видно кількох людей.',
+        generate: 'Згенерувати + Аналізувати',
+        generating: 'Генерація зображення та вилучення уваги...',
+        emptyHint: 'Введи промпт і натисни Згенерувати, щоб візуалізувати карти уваги моделі.',
+        advancedLabel: 'Розширені налаштування',
+        negativeLabel: 'Негативний промпт',
+        stepsLabel: 'Кроки',
+        cfgLabel: 'CFG',
+        seedLabel: 'Seed',
+        tokensLabel: 'Токени',
+        tokensHint: 'Натисни на одне або більше слів. Підслівні токени (напр. «Бу»+«ди»+«нок») об\'єднуються автоматично. Декілька слів з\'являються різними кольорами.',
+        timestepLabel: 'Крок шумоочищення',
+        timestepHint: 'Дифузійні моделі генерують зображення за 25 кроків від шуму до зображення. Ранні кроки встановлюють грубу структуру, пізні — уточнюють деталі. Цей повзунок показує, на що модель звертає увагу на кожному кроці.',
+        step: 'Крок',
+        layerLabel: 'Глибина мережі',
+        layerHint: 'На кожному кроці шумоочищення сигнал проходить через усі 24 шари трансформера. Мілкі шари (ближче до входу) фіксують глобальну композицію, середні — семантичне присвоєння, глибокі (ближче до виходу) — дрібні деталі.',
+        layerEarly: 'Мілкий (Композиція)',
+        layerMid: 'Середній (Семантика)',
+        layerLate: 'Глибокий (Деталі)',
+        opacityLabel: 'Теплова карта',
+        opacityHint: 'Інтенсивність кольорового накладення на зображення.',
+        baseImageLabel: 'Базове зображення',
+        baseColor: 'Колір',
+        baseBW: 'Ч/Б',
+        baseOff: 'Вимк.',
+        baseImageHint: 'Колір показує оригінальне зображення. Ч/Б знебарвлює його, щоб кольори теплової карти виділялися. Вимк. ховає зображення повністю і показує лише карту уваги.',
+        encoderLabel: 'Текстовий кодувальник',
+        encoderClipL: 'CLIP-L (77 токенів)',
+        encoderT5: 'T5-XXL (512 токенів)',
+        encoderHint: 'SD3.5 використовує два текстових кодувальники з різною токенізацією. CLIP-L використовує BPE (Byte-Pair Encoding), T5-XXL — SentencePiece. Порівняйте, як обидва кодувальники обробляють один промпт і якими областями зображення кожен керує.',
+        download: 'Завантажити зображення'
+      },
+      probing: {
+        headerTitle: 'Зондування ознак — Які виміри що кодують?',
+        headerSubtitle: 'Порівняйте два промпти і дізнайтеся, які виміри вкладень кодують семантичну різницю. Вибірково переносіть окремі виміри, щоб побачити їх вплив на зображення.',
+        explanationToggle: 'Показати детальне пояснення',
+        explainWhatTitle: 'Що показує цей інструмент?',
+        explainWhatText: 'Кожне слово перетворюється текстовим кодувальником у високовимірний вектор (напр. 4096 вимірів для T5). Коли ви змінюєте слово в промпті — напр. «червоний» на «синій» — певні виміри змінюються більше за інші. Цей інструмент показує, ЯКІ виміри змінюються найбільше, і дозволяє вибірково переносити окремі виміри з промпту B в промпт A.',
+        explainHowTitle: 'Як працює перенесення?',
+        explainHowText: 'Стовпчаста діаграма показує всі виміри, відсортовані за величиною різниці. Використовуйте елементи управління діапазоном рангів (Від/До), щоб обрати вікно — напр. лише топ-100 або конкретно ранги 880–920. Натискання «Перенести» регенерує зображення з тими ж налаштуваннями (той самий seed!) — але з обраними вимірами від промпту B.',
+        explainReadTitle: 'Як читати стовпчасту діаграму?',
+        explainReadText: 'Кожна стовпчик представляє один вимір вкладення. Довжина показує, наскільки цей вимір відрізняється між промптами A і B. Виміри з великими різницями — найімовірніші носії семантичної зміни. Але зауважте: вкладення розподілені — часто для видимої зміни потрібно декілька вимірів одночасно.',
+        techTitle: 'Технічні деталі',
+        techText: 'SD3.5 використовує три текстових кодувальники: CLIP-L (768 вимірів), CLIP-G (1280 вимірів) та T5-XXL (4096 вимірів). Можна зондувати кожен окремо. Різниця обчислюється як середнє абсолютне відхилення по всіх позиціях токенів.',
+        promptALabel: 'Промпт A (Оригінал)',
+        promptBLabel: 'Промпт B (Порівняння)',
+        promptAPlaceholder: 'напр. Червоний будинок біля озера',
+        promptBPlaceholder: 'напр. Синій будинок біля озера',
+        encoderLabel: 'Кодувальник',
+        encoderAll: 'Усі (рекомендовано)',
+        encoderClipL: 'CLIP-L (768 вимірів)',
+        encoderClipG: 'CLIP-G (1280 вимірів)',
+        encoderT5: 'T5-XXL (4096 вимірів)',
+        analyzeBtn: 'Аналізувати',
+        analyzing: 'Кодування та порівняння промптів...',
+        transferBtn: 'Перенести обрані векторні виміри з промпту B у згенероване зображення',
+        transferring: 'Генерація зображення зі зміненим вкладенням...',
+        rankFromLabel: 'Від рангу',
+        rankToLabel: 'До рангу',
+        sliderLabel: 'Обрати виміри з промпту B',
+        range1Label: 'Діапазон 1',
+        range2Label: 'Діапазон 2',
+        addRange: 'Додати діапазон',
+        selectionDesc: '{count} вимірів з промпту B обрано (ранг {ranges} з {total})',
+        listTitle: '{count} вимірів з промпту B з найбільшою різницею до промпту A',
+        sortAsc: 'За зростанням',
+        sortDesc: 'За спаданням',
+        originalLabel: 'Оригінал (промпт A)',
+        modifiedLabel: 'Змінений (перенесення з промпту B)',
+        modifiedHint: 'Оберіть діапазон рангів нижче та натисніть «Перенести» — тут з\'явиться промпт A з перенесеними вимірами з B (той самий seed).',
+        noDifference: 'Вкладення ідентичні — змініть промпт B.',
+        advancedLabel: 'Розширені налаштування',
+        negativeLabel: 'Негативний промпт',
+        stepsLabel: 'Кроки',
+        cfgLabel: 'CFG',
+        seedLabel: 'Seed',
+        selectAll: 'Усі',
+        selectNone: 'Жоден',
+        downloadOriginal: 'Завантажити оригінал',
+        downloadModified: 'Завантажити змінений'
+      },
+      algebra: {
+        headerTitle: 'Алгебра концептів — Векторна арифметика на вкладеннях зображень',
+        headerSubtitle: 'Застосування відомої аналогії word2vec до генерації зображень: Король \u2212 Чоловік + Жінка \u2248 Королева. Три промпти кодуються та алгебраїчно комбінуються.',
+        explanationToggle: 'Показати детальне пояснення',
+        explainWhatTitle: 'Що показує цей інструмент?',
+        explainWhatText: 'У 2013 році Міколов показав, що вкладення слів кодують семантичні зв\'язки як лінійні напрямки: вектор «Король» мінус «Чоловік» плюс «Жінка» дає вектор, близький до «Королева». Цей інструмент застосовує цю ідею до текстових кодувальників SD3.5.',
+        explainHowTitle: 'Як працює алгебра — і чому не просто негативний промпт?',
+        explainHowText: 'Ви вводите три промпти: A (база), B (відняти) та C (додати). Формула: Результат = A \u2212 Масштаб\u2081\u00d7B + Масштаб\u2082\u00d7C. Повзунки масштабу контролюють інтенсивність. Негативний промпт робить щось принципово інше: він керує процесом шумоочищення ГЕТЬ від B на КОЖНОМУ з 25 кроків. Алгебра концептів натомість обчислює новий вектор ДО генерації зображення: віднімання відбувається у просторі вкладень, а не в процесі дифузії.',
+        explainReadTitle: 'Що означають результати?',
+        explainReadText: 'Зліва — еталонне зображення (лише промпт A, той самий seed). Справа — результат алгебри. Якщо аналогія працює, праве зображення має показувати концепт A, але зі семантичною зміною B→C.',
+        techTitle: 'Технічні деталі',
+        techText: 'Алгебра виконується на вкладеннях обраного кодувальника: CLIP-L (768 вимірів), CLIP-G (1280 вимірів), T5-XXL (4096 вимірів) або усі разом. Та сама операція також застосовується до об\'єднаних вкладень (2048 вимірів). Обидва зображення використовують той самий seed для справедливого порівняння.',
+        promptALabel: 'Промпт A (База)',
+        promptAPlaceholder: 'напр. Захід сонця на пляжі з пальмами',
+        promptBLabel: 'Промпт B (Відняти)',
+        promptBPlaceholder: 'напр. Пляж з пальмами',
+        promptCLabel: 'Промпт C (Додати)',
+        promptCPlaceholder: 'напр. Засніжені гори',
+        formulaLabel: 'A \u2212 B + C = ?',
+        encoderLabel: 'Кодувальник',
+        encoderAll: 'Усі (рекомендовано)',
+        encoderClipL: 'CLIP-L (768 вимірів)',
+        encoderClipG: 'CLIP-G (1280 вимірів)',
+        encoderT5: 'T5-XXL (4096 вимірів)',
+        generateBtn: 'Обчислити',
+        generating: 'Обчислення вкладень та генерація зображень...',
+        referenceLabel: 'Еталон (промпт A)',
+        resultLabel: 'Результат (A \u2212 B + C)',
+        l2Label: 'L2 відстань від оригіналу',
+        advancedLabel: 'Розширені налаштування',
+        negativeLabel: 'Негативний промпт',
+        stepsLabel: 'Кроки',
+        cfgLabel: 'CFG',
+        seedLabel: 'Seed',
+        scaleSubLabel: 'Масштаб віднімання',
+        scaleAddLabel: 'Масштаб додавання',
+        downloadReference: 'Завантажити еталон',
+        downloadResult: 'Завантажити результат',
+        resultHint: 'Введіть три промпти та натисніть Обчислити — результат векторної арифметики з\'явиться тут.'
+      },
+      archaeology: {
+        headerTitle: 'Археологія шумоочищення — Як шум стає зображенням?',
+        headerSubtitle: 'Спостерігай кожен крок шумоочищення. Дифузійні моделі не малюють зліва направо — вони працюють скрізь одночасно, від грубих форм до дрібних деталей.',
+        explanationToggle: 'Показати детальне пояснення',
+        explainWhatTitle: 'Що показує цей інструмент?',
+        explainWhatText: 'Дифузійна модель створює зображення, поступово видаляючи шум. На відміну від малювання зліва направо, модель працює над УСІМА областями зображення одночасно. На перших кроках виникають грубі структури: де верх, де низ? Де горизонт? На середніх кроках з\'являється семантичний зміст: об\'єкти, форми, кольори. Останні кроки уточнюють текстури та деталі.',
+        explainHowTitle: 'Як користуватися цим інструментом?',
+        explainHowText: 'Введи промпт і натисни Згенерувати. Модель створить 25 проміжних зображень (одне на крок шумоочищення). Вони з\'являться як стрічка знизу. Натисни на мініатюру або використай повзунок часової шкали для перегляду кожного кроку у повному розмірі.',
+        explainReadTitle: 'Що розкривають три фази?',
+        explainReadText: 'Ранні кроки (1–8): Глобальна композиція — базова структура, розподіл кольорів, планування макету. Середні кроки (9–17): Семантичне виникнення — об\'єкти стають розпізнаваними, форми кристалізуються. Пізні кроки (18–25): Уточнення деталей — текстури, краї, дрібні візерунки.',
+        techTitle: 'Технічні деталі',
+        techText: 'SD3.5 Large використовує Rectified Flow як планувальник з 25 кроками за замовчуванням. На кожному кроці поточні латентні вектори декодуються через VAE (1024\u00d71024 JPEG). VAE перетворює математичний латентний простір у пікселі.',
+        promptLabel: 'Промпт',
+        promptPlaceholder: 'напр. Ринок у середньовічному місті з людьми, будівлями та фонтаном',
+        generate: 'Згенерувати',
+        generating: 'Генерація зображення — запис кожного кроку...',
+        emptyHint: 'Введи промпт і натисни Згенерувати, щоб візуалізувати процес шумоочищення.',
+        advancedLabel: 'Розширені налаштування',
+        negativeLabel: 'Негативний промпт',
+        stepsLabel: 'Кроки',
+        cfgLabel: 'CFG',
+        seedLabel: 'Seed',
+        filmstripLabel: 'Стрічка шумоочищення',
+        timelineLabel: 'Крок',
+        phaseEarly: 'Композиція',
+        phaseMid: 'Семантика',
+        phaseLate: 'Деталі',
+        phaseEarlyDesc: 'Виникає глобальна структура та розподіл кольорів',
+        phaseMidDesc: 'Об\'єкти та форми стають розпізнаваними',
+        phaseLateDesc: 'Текстури та дрібні деталі уточнюються',
+        finalImageLabel: 'Кінцеве зображення (повна роздільність)',
+        download: 'Завантажити зображення'
+      },
+      textLab: {
+        headerTitle: 'Латентна текстова лабораторія — Наукова деконструкція LLM',
+        headerSubtitle: 'Representation Engineering, порівняльна модельна археологія та систематичний аналіз упередженості: три дослідницькі інструменти для вивчення мовних моделей.',
+        explanationToggle: 'Показати наукові основи',
+        explainWhatTitle: 'Що показує цей інструмент?',
+        explainWhatText: 'Цей інструмент реалізує три сучасні дослідницькі підходи до інтерпретованості LLM: Representation Engineering (Zou та ін. 2023) знаходить напрямки концептів у просторі активацій та цілеспрямовано маніпулює поведінкою моделі.',
+        explainHowTitle: 'Як користуватися цим інструментом?',
+        explainHowText: 'Спочатку завантажте модель через панель моделей (маленьку для швидких тестів, 3B+ для чистих напрямків концептів). Доступні три вкладки: Вкладка 1 (RepEng) визначає контрастні пари та знаходить напрямки концептів. Вкладка 2 (Порівняння) завантажує дві моделі та порівнює їх внутрішні представлення. Вкладка 3 (Упередженість) запускає систематичні експерименти з упередженістю.',
+        modelPanel: {
+          title: 'Управління моделями',
+          presetLabel: 'Набір',
+          presetNone: 'Без набору (власний ID)',
+          customModelLabel: 'ID моделі HuggingFace',
+          customModelPlaceholder: 'напр. meta-llama/Llama-3.2-1B',
+          quantizationLabel: 'Квантизація',
+          quantAuto: 'Авто',
+          loadBtn: 'Завантажити',
+          unloadBtn: 'Вивантажити',
+          loading: 'Завантаження моделі...',
+          statusLoaded: 'Завантажено',
+          statusNone: 'Модель не завантажена',
+          vramLabel: 'VRAM',
+          noModelWarning: 'Спочатку завантажте модель для використання інструментів.'
+        },
+        tabs: {
+          repeng: 'Representation Engineering',
+          compare: 'Порівняння моделей',
+          bias: 'Археологія упередженості'
+        },
+        repeng: {
+          title: 'Representation Engineering',
+          subtitle: 'Знайдіть напрямки концептів у просторі активацій та керуйте генерацією',
+          guide: 'Цей експеримент витягує «напрямок істини» з моделі. Попередньо заповнені контрастні пари містять по одному правдивому та хибному твердженню. З різниць в активаціях система обчислює напрямок у високовимірному просторі. Коли цей напрямок інвертується (α = -1), модель має генерувати неправильну відповідь на фактичний промпт — навіть якщо вона «знає» правильну.',
+          languageHint: 'Рекомендація: Англійські промпти працюють значно краще, оскільки більшість відкритих LLM (LLaMA, Mistral) навчалися переважно на англійських даних.',
+          expectedResults: 'Очікувані результати: При α = 0 (базовий) модель генерує правильну відповідь. При α = -1 (інверсія) має з\'явитися неправильна відповідь. При α = +1 мало що змінюється. За межами |α| > 2 домінують артефакти.',
+          science: 'На основі Zou та ін. (2023) «Representation Engineering» та Li та ін. (2024) «Inference-Time Intervention». Основна ідея: LLM кодують абстрактні концепти (істина, сентимент, етика) як напрямки у високовимірному просторі активацій.',
+          pairsTitle: 'Контрастні пари',
+          pairsSubtitle: 'Рекомендовано щонайменше 3 пари. Кожна пара має відрізнятися лише в цільовому концепті (правда vs. брехня).',
+          positiveLabel: 'Позитивне (правда)',
+          negativeLabel: 'Негативне (брехня)',
+          positivePlaceholder: 'напр. The capital of France is Paris',
+          negativePlaceholder: 'напр. The capital of France is Berlin',
+          addPair: 'Додати пару',
+          removePair: 'Видалити',
+          targetLayerLabel: 'Цільовий шар',
+          targetLayerAuto: 'Останній шар',
+          findDirection: 'Знайти напрямок',
+          finding: 'Обчислення напрямку концепту...',
+          directionFound: 'Напрямок концепту знайдено',
+          varianceLabel: 'Пояснена дисперсія',
+          dimLabel: 'Виміри',
+          projectionsTitle: 'Проєкції контрастних пар',
+          testTitle: 'Тест + Маніпуляція',
+          testSubtitle: 'Введіть речення та керуйте генерацією вздовж напрямку концепту',
+          testPromptLabel: 'Тестовий промпт',
+          testPromptPlaceholder: 'напр. The capital of Germany is',
+          alphaLabel: 'Сила маніпуляції (α)',
+          temperatureLabel: 'Температура',
+          maxTokensLabel: 'Макс. токенів',
+          seedLabel: 'Seed (-1 = випадковий)',
+          generateBtn: 'Згенерувати з маніпуляцією',
+          generating: 'Виконання маніпульованої генерації...',
+          baselineLabel: 'Базовий (без маніпуляції)',
+          manipulatedLabel: 'Маніпульований (α = {alpha})',
+          projectionLabel: 'Проєкція на напрямок концепту',
+          interpretationTitle: 'Інтерпретація',
+          interpreting: 'Аналіз результатів...',
+          interpretationError: 'Не вдалося згенерувати інтерпретацію'
+        },
+        compare: {
+          title: 'Порівняльна модельна археологія',
+          subtitle: 'Завантажте дві моделі та систематично порівняйте їх внутрішні представлення',
+          science: 'На основі Belinkov (2022) «Probing Classifiers» та Olsson та ін. (2022) «In-Context Learning and Induction Heads». Теплова карта показує CKA (Centered Kernel Alignment) між шарами обох моделей.',
+          modelATitle: 'Модель A (завантажена вище)',
+          modelAHint: 'Змініть через панель моделей вище',
+          modelBTitle: 'Модель B (друга модель)',
+          modelBPresetLabel: 'Набір',
+          modelBCustomLabel: 'ID моделі HuggingFace',
+          modelBCustomPlaceholder: 'напр. TinyLlama/TinyLlama-1.1B-Chat-v1.0',
+          modelBLoadBtn: 'Завантажити модель B',
+          modelBLoaded: 'Модель B завантажена',
+          modelBNone: 'Модель B не завантажена',
+          promptLabel: 'Промпт',
+          promptPlaceholder: 'напр. The cat sat on the mat and watched the birds',
+          seedLabel: 'Seed',
+          temperatureLabel: 'Температура',
+          maxTokensLabel: 'Макс. токенів',
+          compareBtn: 'Порівняти',
+          comparing: 'Порівняння моделей...',
+          heatmapTitle: 'Вирівнювання шарів (CKA)',
+          heatmapAxisA: 'Модель A — Шари',
+          heatmapAxisB: 'Модель B — Шари',
+          heatmapExplain: 'Яскраві комірки = висока подібність представлень. Діагональні патерни показують, що моделі обробляють інформацію у подібному порядку.',
+          attentionTitle: 'Порівняння уваги (останній шар)',
+          modelALabel: 'Модель A',
+          modelBLabel: 'Модель B',
+          generationTitle: 'Порівняння генерації (той самий seed)',
+          layerStatsTitle: 'Статистика шарів',
+          interpretationTitle: 'Інтерпретація',
+          interpreting: 'Аналіз результатів...',
+          interpretationError: 'Не вдалося згенерувати інтерпретацію'
+        },
+        bias: {
+          title: 'Археологія упередженості',
+          subtitle: 'Систематичні експерименти з упередженістю через контрольовану маніпуляцію токенами',
+          science: 'На основі Zou та ін. (2023) «Representation Engineering» та Bricken та ін. (2023) «Towards Monosemanticity». Замість вільної маніпуляції цей інструмент досліджує систематичні упередження.',
+          presetLabel: 'Тип експерименту',
+          presetGender: 'Гендер — Пригнічення гендерованих займенників',
+          presetSentiment: 'Сентимент — Підсилення позитивного/негативного',
+          presetDomain: 'Домен — Підсилення наукового/поетичного',
+          presetCustom: 'Власний експеримент',
+          promptLabel: 'Промпт',
+          promptPlaceholder: 'напр. The doctor said to the patient',
+          customBoostLabel: 'Підсилити токени (через кому)',
+          customBoostPlaceholder: 'напр. dark,shadow,night',
+          customSuppressLabel: 'Пригнічити токени (через кому)',
+          customSuppressPlaceholder: 'напр. light,sun,bright',
+          numSamplesLabel: 'Зразків на умову',
+          temperatureLabel: 'Температура',
+          maxTokensLabel: 'Макс. токенів',
+          seedLabel: 'Базовий seed',
+          runBtn: 'Запустити експеримент',
+          running: 'Виконання експерименту з упередженістю...',
+          baselineTitle: 'Базовий (без маніпуляції)',
+          groupTitle: 'Група: {name}',
+          modeSuppress: 'пригнічено',
+          modeBoost: 'підсилено',
+          tokensLabel: 'Токени',
+          sampleSeedLabel: 'Seed',
+          genderDesc: 'Пригнічує всі гендеровані займенники та спостерігає, які значення за замовчуванням обирає модель.',
+          sentimentDesc: 'Підсилює позитивні або негативні слова та вимірює, наскільки сильно це впливає на весь текстовий потік.',
+          domainDesc: 'Підсилює наукову або поетичну лексику та спостерігає зміни регістру.',
+          interpretationTitle: 'Інтерпретація',
+          interpreting: 'Аналіз результатів...',
+          interpretationError: 'Не вдалося згенерувати інтерпретацію'
+        },
+        error: {
+          gpuUnreachable: 'GPU-сервіс недоступний. Чи він запущений?',
+          loadFailed: 'Не вдалося завантажити модель.',
+          operationFailed: 'Операція не вдалася.'
+        }
+      },
+      crossmodal: {
+        headerTitle: 'Крос-модальна лабораторія',
+        headerSubtitle: 'Звук з латентних просторів: маніпуляція вкладеннями T5, генерація аудіо з зображень, крос-модальний перенос',
+        generate: 'Згенерувати',
+        generating: 'Генерація...',
+        result: 'Результат',
+        seed: 'Seed',
+        generationTime: 'Час генерації',
+        tabs: {
+          synth: {
+            label: 'Латентний аудіосинтезатор',
+            short: 'Маніпуляція вкладеннями T5',
+            title: 'Латентний аудіосинтезатор',
+            description: 'Пряма маніпуляція простором кондиціонування T5 Stable Audio (768 вимірів). Інтерполяція між промптами, екстраполяція за межі промпту, масштабування вкладень та ін\'єкція шуму.'
+          },
+          mmaudio: {
+            label: 'MMAudio',
+            short: 'Зображення/текст у аудіо (CVPR 2025)',
+            title: 'MMAudio — Відео/зображення у аудіо',
+            description: 'MMAudio (CVPR 2025): 157M параметрів, спільно навчена на відео та аудіо. Генерує до 8с при 44,1кГц за ~1,2с.'
+          },
+          guidance: {
+            label: 'ImageBind Guidance',
+            short: 'Градієнтне керування зображенням',
+            title: 'ImageBind Gradient Guidance',
+            description: 'Градієнтне керування під час процесу шумоочищення Stable Audio. ImageBind надає спільний 1024-вимірний простір для зображення та аудіо — градієнт косинусної подібності спрямовує генерацію аудіо до вкладення зображення.'
+          }
+        },
+        synth: {
+          promptA: 'Промпт A (База)',
+          promptAPlaceholder: 'напр. океанські хвилі',
+          promptB: 'Промпт B (Необов\'язково, для інтерполяції)',
+          promptBPlaceholder: 'напр. мелодія фортепіано',
+          alpha: 'Альфа (Інтерполяція)',
+          alphaHint: '0 = лише A, 1 = лише B, між = суміш, >1 або <0 = екстраполяція',
+          magnitude: 'Магнітуда (Масштабування)',
+          magnitudeHint: 'Глобальне масштабування вкладення (1.0 = без змін)',
+          noise: 'Шум',
+          noiseHint: 'Гауссів шум на вкладенні (0 = без шуму)',
+          duration: 'Тривалість (с)',
+          steps: 'Кроки',
+          cfg: 'CFG',
+          loop: 'Циклічне відтворення',
+          loopOn: 'Цикл увімк.',
+          loopOff: 'Цикл вимк.',
+          stop: 'Стоп',
+          looping: 'Циклічне',
+          playing: 'Відтворення',
+          stopped: 'Зупинено',
+          transpose: 'Транспонування (півтони)',
+          midiSection: 'Управління MIDI',
+          midiUnsupported: 'Web MIDI не підтримується цим браузером.',
+          midiInput: 'MIDI-вхід',
+          midiNone: '(немає)',
+          midiMappings: 'CC-маппінги',
+          midiNoteC3: 'Нота (C3 = еталон)',
+          midiGenerate: 'Згенерувати + Транспонувати',
+          midiPitch: 'Висота відн. C3',
+          loopInterval: 'Інтервал циклу',
+          loopOptimize: 'Автооптимізація',
+          loopPingPong: 'Пінг-понг',
+          loopIntervalHint: 'Початок/кінець області циклу — скоротіть кінець, щоб обрізати затухання Stable Audio',
+          modeLoop: 'Цикл',
+          modePingPong: 'Пінг-Понг',
+          modeWavetable: 'Хвильова таблиця',
+          modeRate: 'Темп (швидко)',
+          modePitch: 'Висота (OLA)',
+          wavetableScan: 'Позиція сканування',
+          wavetableScanHint: 'Морфінг між фреймами (0 = початок, 1 = кінець)',
+          wavetableFrames: '{count} фреймів',
+          midiScan: 'Позиція сканування',
+          adsrTitle: 'Огинаюча ADSR',
+          adsrAttack: 'A',
+          adsrDecay: 'D',
+          adsrSustain: 'S',
+          adsrRelease: 'R',
+          adsrHint: 'Огинаюча для MIDI-нот (Attack/Decay/Sustain/Release)',
+          play: 'Відтворити',
+          normalize: 'Нормалізувати гучність',
+          peak: 'Пік',
+          crossfade: 'Крос-фейд',
+          saveRaw: 'Зберегти raw',
+          saveLoop: 'Зберегти цикл',
+          embeddingStats: 'Статистика вкладень',
+          dimensions: {
+            section: 'Дослідник вимірів',
+            hint: 'Перетягніть стовпчики = встановити зсув. Горизонтальний мазок = кілька вимірів.',
+            resetAll: 'Скинути все',
+            hoverActivation: 'Активація',
+            hoverOffset: 'Зсув',
+            rightClickReset: 'ПКМ = скинути',
+            sortDiff: 'Сортовано за різницею промптів',
+            sortMagnitude: 'Сортовано за активацією',
+            activeOffsets: '{count} зсувів активних',
+            applyAndGenerate: 'Застосувати та перегенерувати',
+            undo: 'Скасувати',
+            redo: 'Повторити'
+          }
+        },
+        mmaudio: {
+          imageUpload: 'Завантажити зображення',
+          prompt: 'Текстовий промпт',
+          promptPlaceholder: 'напр. потріскування вогнища',
+          negativePrompt: 'Негативний промпт',
+          duration: 'Тривалість (с)',
+          maxDuration: 'Макс. 8с (обмеження моделі)',
+          cfg: 'CFG',
+          steps: 'Кроки',
+          compareHint: 'Порівняти: лише текст vs. зображення + текст'
+        },
+        guidance: {
+          imageUpload: 'Завантажити зображення',
+          prompt: 'Базовий промпт (необов\'язково)',
+          promptPlaceholder: 'напр. ambient soundscape',
+          lambda: 'Сила керування',
+          lambdaHint: 'Наскільки сильно зображення керує генерацією аудіо',
+          warmupSteps: 'Кроки прогріву',
+          warmupHint: 'Градієнтне керування лише протягом перших N кроків',
+          totalSteps: 'Загальні кроки',
+          duration: 'Тривалість (с)',
+          cfg: 'CFG',
+          cosineSimilarity: 'Косинусна подібність (близькість зображення-аудіо)'
+        }
+      }
+    },
+    edutainment: {
+      ui: {
+        didYouKnow: 'Чи знаєш ти?',
+        learnMore: 'Дізнатися більше',
+        currentlyHappening: 'Зараз відбувається:',
+        energyUsed: 'Використано енергії',
+        co2Produced: 'Вироблено CO\u2082'
+      },
+      energy: {
+        kids_1: 'ШІ-зображення потребують електрики — стільки ж, як зарядка телефону протягом 3 годин!',
+        kids_2: 'GPU — це як суперкалькулятор, який споживає багато енергії!',
+        kids_3: 'Кожне зображення потребує стільки енергії, як LED-лампочка протягом 10 хвилин!',
+        youth_1: 'GPU споживає {watts} Вт під час генерації — як невеликий обігрівач!',
+        youth_2: 'Одне зображення використовує приблизно 0.01-0.02 кВт·год — звучить мало, але накопичується!',
+        youth_3: 'GPU зараз нагрівається до {temp}°C — тому йому потрібне охолодження!',
+        expert_1: 'Реальний час: {watts} Вт при {util}% завантаженні = {kwh} кВт·год досі',
+        expert_2: 'Ліміт TDP: {tdp} Вт | Поточне: {watts} Вт ({percent}% від ліміту)',
+        expert_3: 'VRAM: {used}/{total} ГБ ({percent}%) — модель + активації'
+      },
+      data: {
+        kids_1: 'GPU зараз обчислює 10 мільярдів разів — швидше, ніж ти зможеш порахувати!',
+        kids_2: 'Зображення створюється за 50 маленьких кроків — як пазл, що складається сам!',
+        kids_3: 'Мільйони чисел зараз летять через GPU!',
+        youth_1: 'Кожне зображення проходить ~50 «кроків шумоочищення» — 50 раундів видалення шуму!',
+        youth_2: '8 мільярдів параметрів опитуються — на кожне зображення!',
+        youth_3: 'ШІ «думає» у векторах з тисячами вимірів — як координати у просторі.',
+        expert_1: 'MMDiT: Мультимодальний дифузійний трансформер — текст + зображення у спільних шарах уваги',
+        expert_2: 'Self-Attention: O(n\u00b2) складність — кожен токен «бачить» усі інші',
+        expert_3: 'Classifier-Free Guidance: баланс впливу промпту vs. креативності'
+      },
+      model: {
+        kids_1: 'ШІ-модель переглянула мільйони зображень, щоб навчитися малювати!',
+        kids_2: 'ШІ — як художник, який ніколи не забуває побачене!',
+        kids_3: '8 мільярдів з\'єднань у моделі — більше, ніж зірок, які можна побачити на небі!',
+        youth_1: 'SD3.5 Large має 8 мільярдів параметрів — як 8 мільярдів вузлів прийняття рішень.',
+        youth_2: '3 текстових кодувальники працюють разом: CLIP-L, CLIP-G та T5-XXL',
+        youth_3: 'Модель потребує {vram} ГБ VRAM лише для завантаження!',
+        expert_1: 'Архітектура: Rectified Flow + MMDiT з 38 блоками трансформера',
+        expert_2: 'FP16/FP8 квантизація: компроміс між точністю та VRAM',
+        expert_3: 'LoRA: Low-Rank Adaptation — перенавчається лише 0.1% параметрів'
+      },
+      ethics: {
+        kids_1: 'ШІ вчиться з зображень в інтернеті — тому важливо бути справедливим до чужого мистецтва!',
+        kids_2: 'Не всіх художників запитали, чи може ШІ вчитися на їхніх роботах.',
+        kids_3: 'Хороший ШІ поважає роботу людей!',
+        youth_1: 'Навчальні дані часто беруться з інтернету. Художники дискутують: Fair Use чи копіювання?',
+        youth_2: 'EU AI Act вимагає прозорості: Звідки беруться навчальні дані?',
+        youth_3: 'Питання: Кому насправді належить ШІ-згенероване зображення?',
+        expert_1: 'LAION-5B був частково створений без згоди авторів — правова сіра зона.',
+        expert_2: 'EU AI Act Ст. 52: Вимога маркування ШІ-згенерованого контенту',
+        expert_3: 'Model Cards & Datasheets: Найкращі практики прозорості ML'
+      },
+      environment: {
+        kids_1: 'Кожне ШІ-зображення виробляє трохи CO\u2082 — як поїздка на автомобілі, але менше!',
+        kids_2: 'Подумай: Чи варте це зображення електрики?',
+        kids_3: 'Енергія для ШІ часто надходить з електростанцій — деякі чисті, деякі ні.',
+        youth_1: 'Німецька електромережа: ~400 г CO\u2082 на кВт·год — це накопичується!',
+        youth_2: '{co2} г CO\u2082 за це зображення — при 1000 зображеннях це було б {totalKg} кг!',
+        youth_3: 'Порада: Генеруй менше зображень, але обдуманіше — економить енергію та CO\u2082.',
+        expert_1: 'Розрахунок: {watts} Вт \u00d7 {seconds} с \u00f7 3600 \u00d7 400 г/кВт·год = {co2} г CO\u2082',
+        expert_2: 'Scope 2 емісії: місцезнаходження дата-центру є вирішальним',
+        expert_3: 'PUE (Power Usage Effectiveness): Додаткові витрати енергії на охолодження'
+      },
+      iceberg: {
+        drawPrompt: 'ШІ-генерація використовує багато енергії. Намалюй айсберги і подивись, що станеться...',
+        redraw: 'Перемалювати',
+        startMelting: 'Почати танення',
+        melting: 'Айсберг тане...',
+        melted: 'Розтанув!',
+        meltedMessage: '{co2} г CO\u2082 вироблено',
+        comparison: 'Ця кількість CO\u2082 розтоплює приблизно {volume} см\u00b3 арктичного льоду.',
+        comparisonInfo: '(Кожна тонна CO\u2082 = приблизно 6 м\u00b3 втрати морського льоду)',
+        gpuPower: 'Споживання відеокарти',
+        gpuTemp: 'Температура відеокарти',
+        co2Info: 'Емісії CO\u2082 від споживання електроенергії (на основі німецького енергомікса)',
+        drawAgain: 'Намалюй ще айсбергів...'
+      },
+      pixel: {
+        grafikkarte: 'Відеокарта',
+        energieverbrauch: 'Споживання енергії',
+        co2Menge: 'Кількість CO\u2082',
+        smartphoneComparison: 'Тобі довелося б тримати телефон вимкненим {minutes} хвилин, щоб компенсувати це CO\u2082!',
+        clickToProcess: 'Натисни на піксель даних, щоб згенерувати мінізображення!'
+      },
+      forest: {
+        trees: 'Дерева',
+        clickToPlant: 'Натисни, щоб посадити дерева! Де ти посадиш дерево, там зникне фабрика.',
+        gameOver: 'Ліс загублений!',
+        treesPlanted: 'Ти посадив(ла) {count} дерев.',
+        complete: 'Генерація завершена',
+        comparison: 'Середньому дереву потрібно {minutes} хвилин, щоб поглинути цю кількість CO\u2082.'
+      },
+      rareearth: {
+        clickToClean: 'Натисни на озеро, щоб видалити токсичний шлам!',
+        sludgeRemoved: 'Шлам видалено',
+        environmentHealth: 'Довкілля',
+        gameOverInactive: 'Ти здався(лась)... видобуток продовжується',
+        infoBanner: 'Видобуток рідкісних земель для чіпів GPU залишає токсичний шлам та руйнує екосистеми. Твої зусилля з очищення не можуть встигнути за швидкістю видобутку.',
+        instructionsCooldown: '\u23f3 {seconds} с',
+        statsGpu: 'GPU',
+        statsHealth: 'Довкілля',
+        statsSludge: 'Шлам видалено'
+      }
+    }
   }
 }
 
