@@ -105,3 +105,9 @@ devserver/schemas/configs/tmp/
 aws_bedrock.key
 setup_aws_env.sh
 aws_credentials.json
+
+# -------------------------------------
+# GPU Service: model weights & checkpoints (large binaries)
+gpu_service/.checkpoints/
+gpu_service/ext_weights/
+gpu_service/weights/
