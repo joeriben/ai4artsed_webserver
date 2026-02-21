@@ -56,6 +56,7 @@
               <option value="int8">int8</option>
               <option value="int4">int4</option>
             </select>
+            <div class="control-hint">{{ t('latentLab.textLab.modelPanel.quantizationHint') }}</div>
           </label>
         </div>
         <div class="control-row model-actions">
@@ -169,6 +170,7 @@
               <option :value="-1">{{ t('latentLab.textLab.repeng.targetLayerAuto') }}</option>
               <option v-for="i in repLayerCount" :key="i" :value="i - 1">{{ i - 1 }}</option>
             </select>
+            <div class="control-hint">{{ t('latentLab.textLab.repeng.targetLayerHint') }}</div>
           </label>
           <button
             class="action-btn"
@@ -228,18 +230,22 @@
               <label class="control-label control-small">
                 {{ t('latentLab.textLab.repeng.alphaLabel') }}: {{ repAlpha.toFixed(1) }}
                 <input v-model.number="repAlpha" type="range" min="-3" max="3" step="0.1" class="control-range" />
+                <div class="control-hint">{{ t('latentLab.textLab.repeng.alphaHint') }}</div>
               </label>
               <label class="control-label control-small">
                 {{ t('latentLab.textLab.repeng.temperatureLabel') }}: {{ repTemp.toFixed(1) }}
                 <input v-model.number="repTemp" type="range" min="0.1" max="2.0" step="0.1" class="control-range" />
+                <div class="control-hint">{{ t('latentLab.textLab.temperatureHint') }}</div>
               </label>
               <label class="control-label control-small">
                 {{ t('latentLab.textLab.repeng.maxTokensLabel') }}: {{ repMaxTokens }}
                 <input v-model.number="repMaxTokens" type="range" min="10" max="200" step="10" class="control-range" />
+                <div class="control-hint">{{ t('latentLab.textLab.maxTokensHint') }}</div>
               </label>
               <label class="control-label control-small">
                 {{ t('latentLab.textLab.repeng.seedLabel') }}
                 <input v-model.number="repSeed" type="number" min="-1" class="control-input control-narrow" />
+                <div class="control-hint">{{ t('latentLab.textLab.textSeedHint') }}</div>
               </label>
             </div>
             <button
@@ -368,14 +374,17 @@
             <label class="control-label control-small">
               {{ t('latentLab.textLab.compare.seedLabel') }}
               <input v-model.number="cmpSeed" type="number" min="0" class="control-input control-narrow" />
+              <div class="control-hint">{{ t('latentLab.textLab.textSeedHint') }}</div>
             </label>
             <label class="control-label control-small">
               {{ t('latentLab.textLab.compare.temperatureLabel') }}: {{ cmpTemp.toFixed(1) }}
               <input v-model.number="cmpTemp" type="range" min="0.1" max="2.0" step="0.1" class="control-range" />
+              <div class="control-hint">{{ t('latentLab.textLab.temperatureHint') }}</div>
             </label>
             <label class="control-label control-small">
               {{ t('latentLab.textLab.compare.maxTokensLabel') }}: {{ cmpMaxTokens }}
               <input v-model.number="cmpMaxTokens" type="range" min="10" max="200" step="10" class="control-range" />
+              <div class="control-hint">{{ t('latentLab.textLab.maxTokensHint') }}</div>
             </label>
             <button
               class="action-btn"
@@ -502,14 +511,17 @@
             <label class="control-label control-small">
               {{ t('latentLab.textLab.bias.temperatureLabel') }}: {{ biasTemp.toFixed(1) }}
               <input v-model.number="biasTemp" type="range" min="0.1" max="2.0" step="0.1" class="control-range" />
+              <div class="control-hint">{{ t('latentLab.textLab.temperatureHint') }}</div>
             </label>
             <label class="control-label control-small">
               {{ t('latentLab.textLab.bias.maxTokensLabel') }}: {{ biasMaxTokens }}
               <input v-model.number="biasMaxTokens" type="range" min="10" max="200" step="10" class="control-range" />
+              <div class="control-hint">{{ t('latentLab.textLab.maxTokensHint') }}</div>
             </label>
             <label class="control-label control-small">
               {{ t('latentLab.textLab.bias.seedLabel') }}
               <input v-model.number="biasSeed" type="number" min="0" class="control-input control-narrow" />
+              <div class="control-hint">{{ t('latentLab.textLab.textSeedHint') }}</div>
             </label>
           </div>
           <button
@@ -1379,5 +1391,11 @@ onMounted(() => {
   .pair-row { flex-direction: column; }
   .pair-separator { display: none; }
   .tab-nav { overflow-x: auto; }
+}
+
+.control-hint {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.7rem;
+  line-height: 1.4;
 }
 </style>

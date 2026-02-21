@@ -800,6 +800,12 @@ const messages = {
         }
       },
       comingSoon: 'Dieses Tool wird in einer zukünftigen Version implementiert.',
+      shared: {
+        negativeHint: 'Begriffe, die das Modell aktiv vermeiden soll (z.B. "verschwommen, Text")',
+        stepsHint: 'Mehr Schritte = höhere Qualität, aber längere Generierung',
+        cfgHint: 'Classifier-Free Guidance: höher = stärker am Prompt orientiert, weniger Variation',
+        seedHint: '-1 = zufällig, fester Wert = reproduzierbares Ergebnis',
+      },
       attention: {
         headerTitle: 'Attention Cartography — Welches Wort steuert welche Bildregion?',
         headerSubtitle: 'Für jedes Wort im Prompt zeigt eine Heatmap-Überlagerung auf dem generierten Bild, WO im Bild dieses Wort den größten Einfluss hatte. So wird sichtbar, wie das Modell semantische Konzepte räumlich verteilt.',
@@ -891,6 +897,9 @@ const messages = {
         seedLabel: 'Seed',
         selectAll: 'Alle',
         selectNone: 'Keine',
+        encoderHint: 'All = alle Encoder gleichzeitig. CLIP-L/CLIP-G/T5 = isoliert einen einzelnen Encoder für die Analyse.',
+        sliderHint: 'Wähle einen Rangbereich der wichtigsten Embedding-Dimensionen (sortiert nach Unterschied zwischen A und B).',
+        transferHint: 'Überträgt die ausgewählten Dimensionen von Prompt B auf Prompt A und generiert ein neues Bild.',
         downloadOriginal: 'Original herunterladen',
         downloadModified: 'Modifiziert herunterladen'
       },
@@ -930,6 +939,10 @@ const messages = {
         seedLabel: 'Seed',
         scaleSubLabel: 'Subtraktions-Skalierung',
         scaleAddLabel: 'Additions-Skalierung',
+        encoderHint: 'All = alle Encoder gleichzeitig. CLIP-L/CLIP-G/T5 = isoliert einen einzelnen Encoder für die Arithmetik.',
+        scaleSubHint: 'Gewicht der Subtraktion (B). Höher = stärkere Entfernung von Konzept B.',
+        scaleAddHint: 'Gewicht der Addition (C). Höher = stärkere Hinzufügung von Konzept C.',
+        l2Hint: 'Euklidischer Abstand im Embedding-Raum. Kleiner = ähnlicher, größer = unterschiedlicher.',
         downloadReference: 'Referenz herunterladen',
         downloadResult: 'Ergebnis herunterladen',
         resultHint: 'Gib drei Prompts ein und klicke auf Berechnen \u2014 hier erscheint das Ergebnis der Vektor-Arithmetik.'
@@ -965,6 +978,7 @@ const messages = {
         phaseMidDesc: 'Objekte und Formen werden erkennbar',
         phaseLateDesc: 'Texturen und feine Details werden gesch\u00e4rft',
         finalImageLabel: 'Finales Bild (volle Aufl\u00f6sung)',
+        timelineHint: 'Scrubbt durch die Entrauschungsschritte — zeigt wie das Bild vom Rauschen zur fertigen Komposition entsteht.',
         download: 'Bild herunterladen'
       },
       textLab: {
@@ -989,8 +1003,12 @@ const messages = {
           statusLoaded: 'Geladen',
           statusNone: 'Kein Modell geladen',
           vramLabel: 'VRAM',
-          noModelWarning: 'Lade zuerst ein Modell, um die Werkzeuge zu verwenden.'
+          noModelWarning: 'Lade zuerst ein Modell, um die Werkzeuge zu verwenden.',
+          quantizationHint: 'bf16 = volle Qualität, int8 = halb so viel VRAM, int4 = minimal VRAM aber niedrigste Qualität',
         },
+        temperatureHint: 'Zufälligkeit der Textgenerierung. Niedrig = deterministisch, hoch = kreativer.',
+        maxTokensHint: 'Maximale Anzahl generierter Tokens (Wortteile).',
+        textSeedHint: '-1 = zufällig, fester Wert = reproduzierbares Ergebnis',
         tabs: {
           repeng: 'Representation Engineering',
           compare: 'Modell-Vergleich',
@@ -1012,6 +1030,7 @@ const messages = {
           addPair: 'Paar hinzuf\u00fcgen',
           removePair: 'Entfernen',
           targetLayerLabel: 'Ziel-Schicht',
+          targetLayerHint: 'Welche Transformer-Schicht den Steuerungsvektor erhält. Verschiedene Schichten beeinflussen verschiedene Aspekte der Textgenerierung.',
           targetLayerAuto: 'Letzte Schicht',
           findDirection: 'Richtung finden',
           finding: 'Konzept-Richtung wird berechnet...',
@@ -1024,6 +1043,7 @@ const messages = {
           testPromptLabel: 'Test-Prompt',
           testPromptPlaceholder: 'z.B. The capital of Germany is',
           alphaLabel: 'Manipulationsst\u00e4rke (\u03b1)',
+          alphaHint: 'Stärke des Steuerungsvektors. 0 = kein Effekt, höher = stärkerer Einfluss der Kontrastpaare.',
           temperatureLabel: 'Temperatur',
           maxTokensLabel: 'Max. Tokens',
           seedLabel: 'Seed (-1 = zuf\u00e4llig)',
@@ -1151,6 +1171,10 @@ const messages = {
           duration: 'Dauer (s)',
           steps: 'Schritte',
           cfg: 'CFG',
+          durationHint: 'Länge des generierten Audio-Clips in Sekunden',
+          stepsHint: 'Entrauschungsschritte. Mehr = höhere Qualität.',
+          cfgHint: 'Classifier-Free Guidance für die Audiogenerierung',
+          seedHint: '-1 = zufällig, fester Wert = reproduzierbares Ergebnis',
           loop: 'Loop-Wiedergabe',
           loopOn: 'Loop An',
           loopOff: 'Loop Aus',
@@ -1190,6 +1214,9 @@ const messages = {
           normalize: 'Lautheit normalisieren',
           peak: 'Peak',
           crossfade: 'Crossfade',
+          transposeHint: 'Verschiebt die Tonhöhe in Halbtönen',
+          crossfadeHint: 'Überblendzeit an der Loop-Grenze (ms)',
+          normalizeHint: 'Normalisiert die Lautstärke auf maximale Amplitude',
           saveRaw: 'Raw speichern',
           saveLoop: 'Loop speichern',
           embeddingStats: 'Embedding-Statistiken',
@@ -1230,6 +1257,8 @@ const messages = {
           totalSteps: 'Gesamt-Schritte',
           duration: 'Dauer (s)',
           cfg: 'CFG',
+          totalStepsHint: 'Gesamte Entrauschungsschritte. Mehr = höhere Qualität.',
+          durationHint: 'Länge des generierten Audio-Clips in Sekunden',
           cosineSimilarity: 'Cosine-Similarity (Bild-Audio-Naehe)'
         }
       }
@@ -2119,6 +2148,12 @@ const messages = {
         }
       },
       comingSoon: 'This tool will be implemented in a future version.',
+      shared: {
+        negativeHint: 'Terms the model should actively avoid (e.g. "blurry, text")',
+        stepsHint: 'More steps = higher quality but longer generation time',
+        cfgHint: 'Classifier-Free Guidance: higher = stronger prompt adherence, less variation',
+        seedHint: '-1 = random, fixed value = reproducible result',
+      },
       attention: {
         headerTitle: 'Attention Cartography — Which word steers which image region?',
         headerSubtitle: 'For each word in the prompt, a heatmap overlay on the generated image shows WHERE in the image that word had the most influence. This reveals how the model spatially distributes semantic concepts.',
@@ -2210,6 +2245,9 @@ const messages = {
         seedLabel: 'Seed',
         selectAll: 'All',
         selectNone: 'None',
+        encoderHint: 'All = all encoders combined. CLIP-L/CLIP-G/T5 = isolates one encoder for the analysis.',
+        sliderHint: 'Select a rank range of the most important embedding dimensions (sorted by difference between A and B).',
+        transferHint: 'Transfers the selected dimensions from Prompt B onto Prompt A and generates a new image.',
         downloadOriginal: 'Download Original',
         downloadModified: 'Download Modified'
       },
@@ -2249,6 +2287,10 @@ const messages = {
         seedLabel: 'Seed',
         scaleSubLabel: 'Subtraction scale',
         scaleAddLabel: 'Addition scale',
+        encoderHint: 'All = all encoders combined. CLIP-L/CLIP-G/T5 = isolates one encoder for the arithmetic.',
+        scaleSubHint: 'Weight of subtraction (B). Higher = stronger removal of concept B.',
+        scaleAddHint: 'Weight of addition (C). Higher = stronger injection of concept C.',
+        l2Hint: 'Euclidean distance in embedding space. Smaller = more similar, larger = more different.',
         downloadReference: 'Download Reference',
         downloadResult: 'Download Result',
         resultHint: 'Enter three prompts and click Compute \u2014 the result of the vector arithmetic will appear here.'
@@ -2284,6 +2326,7 @@ const messages = {
         phaseMidDesc: 'Objects and shapes become recognizable',
         phaseLateDesc: 'Textures and fine details are sharpened',
         finalImageLabel: 'Final image (full resolution)',
+        timelineHint: 'Scrubs through denoising steps — shows how the image emerges from noise to final composition.',
         download: 'Download Image'
       },
       textLab: {
@@ -2308,8 +2351,12 @@ const messages = {
           statusLoaded: 'Loaded',
           statusNone: 'No model loaded',
           vramLabel: 'VRAM',
-          noModelWarning: 'Load a model first to use the tools.'
+          noModelWarning: 'Load a model first to use the tools.',
+          quantizationHint: 'bf16 = full quality, int8 = half VRAM, int4 = minimal VRAM but lowest quality',
         },
+        temperatureHint: 'Randomness of text generation. Low = deterministic, high = more creative.',
+        maxTokensHint: 'Maximum number of generated tokens (word pieces).',
+        textSeedHint: '-1 = random, fixed value = reproducible result',
         tabs: {
           repeng: 'Representation Engineering',
           compare: 'Model Comparison',
@@ -2331,6 +2378,7 @@ const messages = {
           addPair: 'Add pair',
           removePair: 'Remove',
           targetLayerLabel: 'Target layer',
+          targetLayerHint: 'Which transformer layer receives the steering vector. Different layers influence different aspects of text generation.',
           targetLayerAuto: 'Last layer',
           findDirection: 'Find direction',
           finding: 'Computing concept direction...',
@@ -2343,6 +2391,7 @@ const messages = {
           testPromptLabel: 'Test prompt',
           testPromptPlaceholder: 'e.g. The capital of Germany is',
           alphaLabel: 'Manipulation strength (\u03b1)',
+          alphaHint: 'Strength of the steering vector. 0 = no effect, higher = stronger influence of contrast pairs.',
           temperatureLabel: 'Temperature',
           maxTokensLabel: 'Max tokens',
           seedLabel: 'Seed (-1 = random)',
@@ -2470,6 +2519,10 @@ const messages = {
           duration: 'Duration (s)',
           steps: 'Steps',
           cfg: 'CFG',
+          durationHint: 'Length of the generated audio clip in seconds',
+          stepsHint: 'Denoising steps. More = higher quality.',
+          cfgHint: 'Classifier-Free Guidance for audio generation',
+          seedHint: '-1 = random, fixed value = reproducible result',
           loop: 'Loop playback',
           loopOn: 'Loop On',
           loopOff: 'Loop Off',
@@ -2509,6 +2562,9 @@ const messages = {
           normalize: 'Normalize loudness',
           peak: 'Peak',
           crossfade: 'Crossfade',
+          transposeHint: 'Shifts pitch in semitones',
+          crossfadeHint: 'Crossfade time at loop boundary (ms)',
+          normalizeHint: 'Normalizes volume to maximum amplitude',
           saveRaw: 'Save raw',
           saveLoop: 'Save loop',
           embeddingStats: 'Embedding statistics',
@@ -2549,6 +2605,8 @@ const messages = {
           totalSteps: 'Total steps',
           duration: 'Duration (s)',
           cfg: 'CFG',
+          totalStepsHint: 'Total denoising steps. More = higher quality.',
+          durationHint: 'Length of the generated audio clip in seconds',
           cosineSimilarity: 'Cosine similarity (image-audio proximity)'
         }
       }
@@ -3438,6 +3496,12 @@ const messages = {
         }
       },
       comingSoon: 'Bu araç gelecek bir sürümde hayata geçirilecek.',
+      shared: {
+        negativeHint: 'Modelin aktif olarak kaçınması gereken terimler (ör. "bulanık, metin")',
+        stepsHint: 'Daha fazla adım = daha yüksek kalite ama daha uzun üretim süresi',
+        cfgHint: 'Classifier-Free Guidance: yüksek = prompt\'a daha bağlı, daha az varyasyon',
+        seedHint: '-1 = rastgele, sabit değer = tekrarlanabilir sonuç',
+      },
       attention: {
         headerTitle: 'Dikkat Kartografisi — Hangi kelime hangi görsel bölgeyi yönlendirir?',
         headerSubtitle: 'Prompttaki her kelime için, oluşturulan görsel üzerinde bir ısı haritası katmanı, o kelimenin görüntünün hangi bölgesinde en fazla etkisi olduğunu gösterir. Bu, modelin anlamsal kavramları uzamsal olarak nasıl dağıttığını ortaya koyar.',
@@ -3529,6 +3593,9 @@ const messages = {
         seedLabel: 'Tohum',
         selectAll: 'Tümü',
         selectNone: 'Hiçbiri',
+        encoderHint: 'Tümü = tüm kodlayıcılar birlikte. CLIP-L/CLIP-G/T5 = analiz için tek bir kodlayıcıyı izole eder.',
+        sliderHint: 'En önemli gömme boyutlarının sıra aralığını seçin (A ve B arasındaki farka göre sıralanmış).',
+        transferHint: 'Seçilen boyutları Prompt B\'den Prompt A\'ya aktarır ve yeni bir görüntü üretir.',
         downloadOriginal: 'Orijinali İndir',
         downloadModified: 'Değiştirilmişi İndir'
       },
@@ -3568,6 +3635,10 @@ const messages = {
         seedLabel: 'Tohum',
         scaleSubLabel: 'Çıkarma ölçeği',
         scaleAddLabel: 'Ekleme ölçeği',
+        encoderHint: 'Tümü = tüm kodlayıcılar birlikte. CLIP-L/CLIP-G/T5 = aritmetik için tek bir kodlayıcıyı izole eder.',
+        scaleSubHint: 'Çıkarma ağırlığı (B). Yüksek = B kavramının daha güçlü kaldırılması.',
+        scaleAddHint: 'Toplama ağırlığı (C). Yüksek = C kavramının daha güçlü eklenmesi.',
+        l2Hint: 'Gömme uzayında Öklid mesafesi. Küçük = daha benzer, büyük = daha farklı.',
         downloadReference: 'Referansı İndir',
         downloadResult: 'Sonucu İndir',
         resultHint: 'Üç prompt girin ve Hesapla\'ya tıklayın \u2014 vektör aritmetiğinin sonucu burada görünecek.'
@@ -3603,6 +3674,7 @@ const messages = {
         phaseMidDesc: 'Nesneler ve şekiller tanınabilir hale geliyor',
         phaseLateDesc: 'Dokular ve ince detaylar keskinleştiriliyor',
         finalImageLabel: 'Son görsel (tam çözünürlük)',
+        timelineHint: 'Gürültü giderme adımları arasında gezinir — görüntünün gürültüden son kompozisyona nasıl oluştuğunu gösterir.',
         download: 'Görseli İndir'
       },
       textLab: {
@@ -3627,8 +3699,12 @@ const messages = {
           statusLoaded: 'Yüklendi',
           statusNone: 'Yüklü model yok',
           vramLabel: 'VRAM',
-          noModelWarning: 'Araçları kullanmak için önce bir model yükleyin.'
+          noModelWarning: 'Araçları kullanmak için önce bir model yükleyin.',
+          quantizationHint: 'bf16 = tam kalite, int8 = yarı VRAM, int4 = minimum VRAM ama en düşük kalite',
         },
+        temperatureHint: 'Metin üretiminin rastgeleliği. Düşük = deterministik, yüksek = daha yaratıcı.',
+        maxTokensHint: 'Üretilen maksimum token sayısı (kelime parçaları).',
+        textSeedHint: '-1 = rastgele, sabit değer = tekrarlanabilir sonuç',
         tabs: {
           repeng: 'Temsil Mühendisliği',
           compare: 'Model Karşılaştırması',
@@ -3650,6 +3726,7 @@ const messages = {
           addPair: 'Çift ekle',
           removePair: 'Kaldır',
           targetLayerLabel: 'Hedef katman',
+          targetLayerHint: 'Hangi transformer katmanının yönlendirme vektörünü aldığı. Farklı katmanlar metin üretiminin farklı yönlerini etkiler.',
           targetLayerAuto: 'Son katman',
           findDirection: 'Yön bul',
           finding: 'Kavram yönü hesaplanıyor...',
@@ -3662,6 +3739,7 @@ const messages = {
           testPromptLabel: 'Test promptu',
           testPromptPlaceholder: 'örn. Almanya\'nın başkenti',
           alphaLabel: 'Manipülasyon gücü (α)',
+          alphaHint: 'Yönlendirme vektörünün gücü. 0 = etki yok, yüksek = kontrast çiftlerinin daha güçlü etkisi.',
           temperatureLabel: 'Sıcaklık',
           maxTokensLabel: 'Maks token',
           seedLabel: 'Tohum (-1 = rastgele)',
@@ -3789,6 +3867,10 @@ const messages = {
           duration: 'Süre (s)',
           steps: 'Adımlar',
           cfg: 'CFG',
+          durationHint: 'Üretilen ses klibinin saniye cinsinden uzunluğu',
+          stepsHint: 'Gürültü giderme adımları. Daha fazla = daha yüksek kalite.',
+          cfgHint: 'Ses üretimi için Classifier-Free Guidance',
+          seedHint: '-1 = rastgele, sabit değer = tekrarlanabilir sonuç',
           loop: 'Döngü oynatma',
           loopOn: 'Döngü Açık',
           loopOff: 'Döngü Kapalı',
@@ -3828,6 +3910,9 @@ const messages = {
           normalize: 'Ses seviyesini normalleştir',
           peak: 'Zirve',
           crossfade: 'Geçiş',
+          transposeHint: 'Tonu yarım ton cinsinden kaydırır',
+          crossfadeHint: 'Döngü sınırında geçiş süresi (ms)',
+          normalizeHint: 'Ses seviyesini maksimum genliğe normalleştirir',
           saveRaw: 'Ham kaydet',
           saveLoop: 'Döngü kaydet',
           embeddingStats: 'Gömme istatistikleri',
@@ -3868,6 +3953,8 @@ const messages = {
           totalSteps: 'Toplam adımlar',
           duration: 'Süre (s)',
           cfg: 'CFG',
+          totalStepsHint: 'Toplam gürültü giderme adımları. Daha fazla = daha yüksek kalite.',
+          durationHint: 'Üretilen ses klibinin saniye cinsinden uzunluğu',
           cosineSimilarity: 'Kosinüs benzerliği (görsel-ses yakınlığı)'
         }
       }
@@ -4757,6 +4844,12 @@ const messages = {
         }
       },
       comingSoon: '이 도구는 향후 버전에서 구현될 예정입니다.',
+      shared: {
+        negativeHint: '모델이 적극적으로 피해야 할 용어 (예: "흐릿한, 텍스트")',
+        stepsHint: '더 많은 단계 = 더 높은 품질이지만 더 긴 생성 시간',
+        cfgHint: 'Classifier-Free Guidance: 높을수록 = 프롬프트에 더 충실, 변형 감소',
+        seedHint: '-1 = 무작위, 고정값 = 재현 가능한 결과',
+      },
       attention: {
         headerTitle: '어텐션 지도 — 어떤 단어가 어떤 이미지 영역을 조종하나요?',
         headerSubtitle: '프롬프트의 각 단어에 대해 생성된 이미지 위에 히트맵 오버레이가 해당 단어가 이미지의 어디에 가장 큰 영향을 미쳤는지 보여줍니다.',
@@ -4848,6 +4941,9 @@ const messages = {
         seedLabel: '시드',
         selectAll: '전체',
         selectNone: '없음',
+        encoderHint: '전체 = 모든 인코더 결합. CLIP-L/CLIP-G/T5 = 분석을 위해 하나의 인코더를 분리합니다.',
+        sliderHint: '가장 중요한 임베딩 차원의 순위 범위를 선택합니다 (A와 B 사이의 차이로 정렬).',
+        transferHint: '선택한 차원을 프롬프트 B에서 프롬프트 A로 전송하고 새 이미지를 생성합니다.',
         downloadOriginal: '원본 다운로드',
         downloadModified: '수정본 다운로드'
       },
@@ -4887,6 +4983,10 @@ const messages = {
         seedLabel: '시드',
         scaleSubLabel: '빼기 스케일',
         scaleAddLabel: '더하기 스케일',
+        encoderHint: '전체 = 모든 인코더 결합. CLIP-L/CLIP-G/T5 = 연산을 위해 하나의 인코더를 분리합니다.',
+        scaleSubHint: '빼기 가중치 (B). 높을수록 = 개념 B의 더 강한 제거.',
+        scaleAddHint: '더하기 가중치 (C). 높을수록 = 개념 C의 더 강한 주입.',
+        l2Hint: '임베딩 공간에서의 유클리드 거리. 작을수록 = 더 유사, 클수록 = 더 다름.',
         downloadReference: '참조 다운로드',
         downloadResult: '결과 다운로드',
         resultHint: '세 프롬프트를 입력하고 계산을 클릭하세요 — 벡터 산술의 결과가 여기에 나타납니다.'
@@ -4922,6 +5022,7 @@ const messages = {
         phaseMidDesc: '객체와 형태가 인식 가능해짐',
         phaseLateDesc: '텍스처와 미세한 세부 사항 선명해짐',
         finalImageLabel: '최종 이미지 (전체 해상도)',
+        timelineHint: '디노이징 단계를 스크럽합니다 — 이미지가 노이즈에서 최종 구성으로 어떻게 나타나는지 보여줍니다.',
         download: '이미지 다운로드'
       },
       textLab: {
@@ -4946,8 +5047,12 @@ const messages = {
           statusLoaded: '로드됨',
           statusNone: '로드된 모델 없음',
           vramLabel: 'VRAM',
-          noModelWarning: '도구를 사용하려면 먼저 모델을 로드하세요.'
+          noModelWarning: '도구를 사용하려면 먼저 모델을 로드하세요.',
+          quantizationHint: 'bf16 = 최대 품질, int8 = VRAM 절반, int4 = 최소 VRAM이지만 최저 품질',
         },
+        temperatureHint: '텍스트 생성의 무작위성. 낮음 = 결정적, 높음 = 더 창의적.',
+        maxTokensHint: '생성되는 최대 토큰 수 (단어 조각).',
+        textSeedHint: '-1 = 무작위, 고정값 = 재현 가능한 결과',
         tabs: {
           repeng: 'Representation Engineering',
           compare: '모델 비교',
@@ -4969,6 +5074,7 @@ const messages = {
           addPair: '쌍 추가',
           removePair: '제거',
           targetLayerLabel: '대상 레이어',
+          targetLayerHint: '어떤 트랜스포머 레이어가 조종 벡터를 받는지. 다른 레이어는 텍스트 생성의 다른 측면에 영향을 줍니다.',
           targetLayerAuto: '마지막 레이어',
           findDirection: '방향 찾기',
           finding: '개념 방향 계산 중...',
@@ -4981,6 +5087,7 @@ const messages = {
           testPromptLabel: '테스트 프롬프트',
           testPromptPlaceholder: '예: 독일의 수도는',
           alphaLabel: '조작 강도 (α)',
+          alphaHint: '조종 벡터의 강도. 0 = 효과 없음, 높을수록 = 대조 쌍의 더 강한 영향.',
           temperatureLabel: '온도',
           maxTokensLabel: '최대 토큰',
           seedLabel: '시드 (-1 = 랜덤)',
@@ -5108,6 +5215,10 @@ const messages = {
           duration: '지속 시간 (초)',
           steps: '스텝',
           cfg: 'CFG',
+          durationHint: '생성된 오디오 클립의 길이(초)',
+          stepsHint: '디노이징 단계. 더 많을수록 = 더 높은 품질.',
+          cfgHint: '오디오 생성을 위한 Classifier-Free Guidance',
+          seedHint: '-1 = 무작위, 고정값 = 재현 가능한 결과',
           loop: '루프 재생',
           loopOn: '루프 켜기',
           loopOff: '루프 끄기',
@@ -5147,6 +5258,9 @@ const messages = {
           normalize: '라우드니스 정규화',
           peak: '피크',
           crossfade: '크로스페이드',
+          transposeHint: '반음 단위로 피치를 이동',
+          crossfadeHint: '루프 경계에서의 크로스페이드 시간 (ms)',
+          normalizeHint: '볼륨을 최대 진폭으로 정규화',
           saveRaw: '원본 저장',
           saveLoop: '루프 저장',
           embeddingStats: '임베딩 통계',
@@ -5187,6 +5301,8 @@ const messages = {
           totalSteps: '총 스텝',
           duration: '지속 시간 (초)',
           cfg: 'CFG',
+          totalStepsHint: '총 디노이징 단계. 더 많을수록 = 더 높은 품질.',
+          durationHint: '생성된 오디오 클립의 길이(초)',
           cosineSimilarity: '코사인 유사도 (이미지-오디오 근접도)'
         }
       }
@@ -6076,6 +6192,12 @@ const messages = {
         }
       },
       comingSoon: 'Цей інструмент буде реалізований у майбутній версії.',
+      shared: {
+        negativeHint: 'Терміни, яких модель має активно уникати (напр. "розмите, текст")',
+        stepsHint: 'Більше кроків = вища якість, але довший час генерації',
+        cfgHint: 'Classifier-Free Guidance: вище = сильніша відповідність промпту, менше варіацій',
+        seedHint: '-1 = випадково, фіксоване значення = відтворюваний результат',
+      },
       attention: {
         headerTitle: 'Картографія уваги — Яке слово керує якою частиною зображення?',
         headerSubtitle: 'Для кожного слова промпту теплова карта на згенерованому зображенні показує, ДЕ саме це слово мало найбільший вплив. Це розкриває, як модель просторово розподіляє семантичні концепції.',
@@ -6167,6 +6289,9 @@ const messages = {
         seedLabel: 'Seed',
         selectAll: 'Усі',
         selectNone: 'Жоден',
+        encoderHint: 'Усі = всі енкодери разом. CLIP-L/CLIP-G/T5 = ізолює один енкодер для аналізу.',
+        sliderHint: 'Виберіть діапазон рангів найважливіших вимірів ембедингу (відсортовано за різницею між A та B).',
+        transferHint: 'Переносить обрані виміри з промпту B на промпт A та генерує нове зображення.',
         downloadOriginal: 'Завантажити оригінал',
         downloadModified: 'Завантажити змінений'
       },
@@ -6206,6 +6331,10 @@ const messages = {
         seedLabel: 'Seed',
         scaleSubLabel: 'Масштаб віднімання',
         scaleAddLabel: 'Масштаб додавання',
+        encoderHint: 'Усі = всі енкодери разом. CLIP-L/CLIP-G/T5 = ізолює один енкодер для арифметики.',
+        scaleSubHint: 'Вага віднімання (B). Вище = сильніше видалення концепту B.',
+        scaleAddHint: 'Вага додавання (C). Вище = сильніше додавання концепту C.',
+        l2Hint: 'Евклідова відстань у просторі ембедингів. Менше = більш схожі, більше = більш різні.',
         downloadReference: 'Завантажити еталон',
         downloadResult: 'Завантажити результат',
         resultHint: 'Введіть три промпти та натисніть Обчислити — результат векторної арифметики з\'явиться тут.'
@@ -6241,6 +6370,7 @@ const messages = {
         phaseMidDesc: 'Об\'єкти та форми стають розпізнаваними',
         phaseLateDesc: 'Текстури та дрібні деталі уточнюються',
         finalImageLabel: 'Кінцеве зображення (повна роздільність)',
+        timelineHint: 'Прокручує крізь кроки видалення шуму — показує, як зображення виникає від шуму до фінальної композиції.',
         download: 'Завантажити зображення'
       },
       textLab: {
@@ -6265,8 +6395,12 @@ const messages = {
           statusLoaded: 'Завантажено',
           statusNone: 'Модель не завантажена',
           vramLabel: 'VRAM',
-          noModelWarning: 'Спочатку завантажте модель для використання інструментів.'
+          noModelWarning: 'Спочатку завантажте модель для використання інструментів.',
+          quantizationHint: 'bf16 = повна якість, int8 = половина VRAM, int4 = мінімум VRAM але найнижча якість',
         },
+        temperatureHint: 'Випадковість генерації тексту. Низько = детерміновано, високо = креативніше.',
+        maxTokensHint: 'Максимальна кількість згенерованих токенів (частин слів).',
+        textSeedHint: '-1 = випадково, фіксоване значення = відтворюваний результат',
         tabs: {
           repeng: 'Representation Engineering',
           compare: 'Порівняння моделей',
@@ -6288,6 +6422,7 @@ const messages = {
           addPair: 'Додати пару',
           removePair: 'Видалити',
           targetLayerLabel: 'Цільовий шар',
+          targetLayerHint: 'Який шар трансформера отримує вектор керування. Різні шари впливають на різні аспекти генерації тексту.',
           targetLayerAuto: 'Останній шар',
           findDirection: 'Знайти напрямок',
           finding: 'Обчислення напрямку концепту...',
@@ -6300,6 +6435,7 @@ const messages = {
           testPromptLabel: 'Тестовий промпт',
           testPromptPlaceholder: 'напр. The capital of Germany is',
           alphaLabel: 'Сила маніпуляції (α)',
+          alphaHint: 'Сила вектора керування. 0 = без ефекту, вище = сильніший вплив контрастних пар.',
           temperatureLabel: 'Температура',
           maxTokensLabel: 'Макс. токенів',
           seedLabel: 'Seed (-1 = випадковий)',
@@ -6427,6 +6563,10 @@ const messages = {
           duration: 'Тривалість (с)',
           steps: 'Кроки',
           cfg: 'CFG',
+          durationHint: 'Тривалість згенерованого аудіокліпу в секундах',
+          stepsHint: 'Кроки видалення шуму. Більше = вища якість.',
+          cfgHint: 'Classifier-Free Guidance для генерації аудіо',
+          seedHint: '-1 = випадково, фіксоване значення = відтворюваний результат',
           loop: 'Циклічне відтворення',
           loopOn: 'Цикл увімк.',
           loopOff: 'Цикл вимк.',
@@ -6466,6 +6606,9 @@ const messages = {
           normalize: 'Нормалізувати гучність',
           peak: 'Пік',
           crossfade: 'Крос-фейд',
+          transposeHint: 'Зсуває висоту тону на півтони',
+          crossfadeHint: 'Час крос-фейду на межі циклу (мс)',
+          normalizeHint: 'Нормалізує гучність до максимальної амплітуди',
           saveRaw: 'Зберегти raw',
           saveLoop: 'Зберегти цикл',
           embeddingStats: 'Статистика вкладень',
@@ -6506,6 +6649,8 @@ const messages = {
           totalSteps: 'Загальні кроки',
           duration: 'Тривалість (с)',
           cfg: 'CFG',
+          totalStepsHint: 'Загальні кроки видалення шуму. Більше = вища якість.',
+          durationHint: 'Тривалість згенерованого аудіокліпу в секундах',
           cosineSimilarity: 'Косинусна подібність (близькість зображення-аудіо)'
         }
       }
@@ -7394,6 +7539,12 @@ const messages = {
         }
       },
       comingSoon: 'Cet outil sera implémenté dans une version future.',
+      shared: {
+        negativeHint: 'Termes que le modèle doit activement éviter (ex. "flou, texte")',
+        stepsHint: 'Plus d\'étapes = meilleure qualité mais temps de génération plus long',
+        cfgHint: 'Classifier-Free Guidance : plus élevé = plus fidèle au prompt, moins de variation',
+        seedHint: '-1 = aléatoire, valeur fixe = résultat reproductible',
+      },
       attention: {
         headerTitle: 'Cartographie d\'attention — Quel mot dirige quelle région de l\'image ?',
         headerSubtitle: 'Pour chaque mot du prompt, une heatmap superposée à l\'image générée montre OÙ dans l\'image ce mot a eu le plus d\'influence. Cela révèle comment le modèle distribue spatialement les concepts sémantiques.',
@@ -7485,6 +7636,9 @@ const messages = {
         seedLabel: 'Seed',
         selectAll: 'Tout',
         selectNone: 'Aucun',
+        encoderHint: 'Tous = tous les encodeurs combinés. CLIP-L/CLIP-G/T5 = isole un seul encodeur pour l\'analyse.',
+        sliderHint: 'Sélectionnez une plage de rangs des dimensions d\'embedding les plus importantes (triées par différence entre A et B).',
+        transferHint: 'Transfère les dimensions sélectionnées du Prompt B vers le Prompt A et génère une nouvelle image.',
         downloadOriginal: 'Télécharger l\'original',
         downloadModified: 'Télécharger le modifié'
       },
@@ -7524,6 +7678,10 @@ const messages = {
         seedLabel: 'Seed',
         scaleSubLabel: 'Échelle de soustraction',
         scaleAddLabel: 'Échelle d\'addition',
+        encoderHint: 'Tous = tous les encodeurs combinés. CLIP-L/CLIP-G/T5 = isole un seul encodeur pour l\'arithmétique.',
+        scaleSubHint: 'Poids de la soustraction (B). Plus élevé = suppression plus forte du concept B.',
+        scaleAddHint: 'Poids de l\'addition (C). Plus élevé = injection plus forte du concept C.',
+        l2Hint: 'Distance euclidienne dans l\'espace d\'embedding. Plus petit = plus similaire, plus grand = plus différent.',
         downloadReference: 'Télécharger la référence',
         downloadResult: 'Télécharger le résultat',
         resultHint: 'Entrez trois prompts et cliquez sur Calculer \u2014 le résultat de l\'arithmétique vectorielle apparaîtra ici.'
@@ -7559,6 +7717,7 @@ const messages = {
         phaseMidDesc: 'Les objets et les formes deviennent reconnaissables',
         phaseLateDesc: 'Les textures et les détails fins sont affinés',
         finalImageLabel: 'Image finale (pleine résolution)',
+        timelineHint: 'Parcourt les étapes de débruitage — montre comment l\'image émerge du bruit vers la composition finale.',
         download: 'Télécharger l\'image'
       },
       textLab: {
@@ -7583,8 +7742,12 @@ const messages = {
           statusLoaded: 'Chargé',
           statusNone: 'Aucun modèle chargé',
           vramLabel: 'VRAM',
-          noModelWarning: 'Chargez d\'abord un modèle pour utiliser les outils.'
+          noModelWarning: 'Chargez d\'abord un modèle pour utiliser les outils.',
+          quantizationHint: 'bf16 = qualité maximale, int8 = moitié de VRAM, int4 = VRAM minimal mais qualité la plus basse',
         },
+        temperatureHint: 'Aléatoire de la génération de texte. Bas = déterministe, haut = plus créatif.',
+        maxTokensHint: 'Nombre maximum de tokens générés (morceaux de mots).',
+        textSeedHint: '-1 = aléatoire, valeur fixe = résultat reproductible',
         tabs: {
           repeng: 'Ingénierie de représentation',
           compare: 'Comparaison de modèles',
@@ -7606,6 +7769,7 @@ const messages = {
           addPair: 'Ajouter une paire',
           removePair: 'Supprimer',
           targetLayerLabel: 'Couche cible',
+          targetLayerHint: 'Quelle couche du transformer reçoit le vecteur de direction. Différentes couches influencent différents aspects de la génération de texte.',
           targetLayerAuto: 'Dernière couche',
           findDirection: 'Trouver la direction',
           finding: 'Calcul de la direction du concept...',
@@ -7618,6 +7782,7 @@ const messages = {
           testPromptLabel: 'Prompt de test',
           testPromptPlaceholder: 'p. ex. La capitale de l\'Allemagne est',
           alphaLabel: 'Force de manipulation (α)',
+          alphaHint: 'Force du vecteur de direction. 0 = aucun effet, plus élevé = influence plus forte des paires de contraste.',
           temperatureLabel: 'Température',
           maxTokensLabel: 'Tokens max',
           seedLabel: 'Seed (-1 = aléatoire)',
@@ -7745,6 +7910,10 @@ const messages = {
           duration: 'Durée (s)',
           steps: 'Étapes',
           cfg: 'CFG',
+          durationHint: 'Durée du clip audio généré en secondes',
+          stepsHint: 'Étapes de débruitage. Plus = meilleure qualité.',
+          cfgHint: 'Classifier-Free Guidance pour la génération audio',
+          seedHint: '-1 = aléatoire, valeur fixe = résultat reproductible',
           loop: 'Lecture en boucle',
           loopOn: 'Boucle activée',
           loopOff: 'Boucle désactivée',
@@ -7784,6 +7953,9 @@ const messages = {
           normalize: 'Normaliser le volume',
           peak: 'Crête',
           crossfade: 'Fondu enchaîné',
+          transposeHint: 'Décale la hauteur en demi-tons',
+          crossfadeHint: 'Durée du fondu enchaîné à la frontière de boucle (ms)',
+          normalizeHint: 'Normalise le volume à l\'amplitude maximale',
           saveRaw: 'Enregistrer brut',
           saveLoop: 'Enregistrer boucle',
           embeddingStats: 'Statistiques d\'embedding',
@@ -7824,6 +7996,8 @@ const messages = {
           totalSteps: 'Étapes totales',
           duration: 'Durée (s)',
           cfg: 'CFG',
+          totalStepsHint: 'Étapes totales de débruitage. Plus = meilleure qualité.',
+          durationHint: 'Durée du clip audio généré en secondes',
           cosineSimilarity: 'Similarité cosinus (proximité image-audio)'
         }
       }

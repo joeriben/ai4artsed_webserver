@@ -90,18 +90,22 @@
         <div class="param">
           <label>{{ t('latentLab.crossmodal.synth.duration') }}</label>
           <input v-model.number="synth.duration" type="number" min="0.1" max="5" step="0.1" />
+          <span class="param-hint">{{ t('latentLab.crossmodal.synth.durationHint') }}</span>
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.synth.steps') }}</label>
           <input v-model.number="synth.steps" type="number" min="10" max="100" step="5" />
+          <span class="param-hint">{{ t('latentLab.crossmodal.synth.stepsHint') }}</span>
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.synth.cfg') }}</label>
           <input v-model.number="synth.cfg" type="number" min="1" max="15" step="0.5" />
+          <span class="param-hint">{{ t('latentLab.crossmodal.synth.cfgHint') }}</span>
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.seed') }}</label>
           <input v-model.number="synth.seed" type="number" />
+          <span class="param-hint">{{ t('latentLab.crossmodal.synth.seedHint') }}</span>
         </div>
       </div>
 
@@ -295,6 +299,7 @@
             @input="onTransposeInput"
           />
           <span class="transpose-value">{{ formatTranspose(looper.transposeSemitones.value) }}</span>
+          <span class="param-hint">{{ t('latentLab.crossmodal.synth.transposeHint') }}</span>
         </div>
         <div v-if="playbackMode !== 'wavetable'" class="transpose-mode-row">
           <label class="inline-toggle" :class="{ active: looper.transposeMode.value === 'rate' }">
@@ -331,6 +336,7 @@
             @input="onCrossfadeInput"
           />
           <span class="transpose-value">{{ looper.crossfadeMs.value }}ms</span>
+          <span class="param-hint">{{ t('latentLab.crossmodal.synth.crossfadeHint') }}</span>
         </div>
         <!-- Normalize + Peak -->
         <div class="normalize-row">
@@ -338,6 +344,7 @@
             <input type="checkbox" :checked="looper.normalizeOn.value" :disabled="!looper.hasAudio.value" @change="onNormalizeChange" />
             {{ t('latentLab.crossmodal.synth.normalize') }}
           </label>
+          <span class="param-hint">{{ t('latentLab.crossmodal.synth.normalizeHint') }}</span>
           <span v-if="looper.peakAmplitude.value > 0" class="peak-display">
             {{ t('latentLab.crossmodal.synth.peak') }}: {{ looper.peakAmplitude.value.toFixed(3) }}
           </span>
@@ -474,14 +481,17 @@
         <div class="param">
           <label>{{ t('latentLab.crossmodal.mmaudio.cfg') }}</label>
           <input v-model.number="mmaudio.cfg" type="number" min="1" max="15" step="0.5" />
+          <span class="param-hint">{{ t('latentLab.shared.cfgHint') }}</span>
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.mmaudio.steps') }}</label>
           <input v-model.number="mmaudio.steps" type="number" min="10" max="50" step="5" />
+          <span class="param-hint">{{ t('latentLab.shared.stepsHint') }}</span>
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.seed') }}</label>
           <input v-model.number="mmaudio.seed" type="number" />
+          <span class="param-hint">{{ t('latentLab.shared.seedHint') }}</span>
         </div>
       </div>
 
@@ -547,18 +557,22 @@
         <div class="param">
           <label>{{ t('latentLab.crossmodal.guidance.totalSteps') }}</label>
           <input v-model.number="guidance.totalSteps" type="number" min="20" max="150" step="10" />
+          <span class="param-hint">{{ t('latentLab.crossmodal.guidance.totalStepsHint') }}</span>
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.guidance.duration') }}</label>
           <input v-model.number="guidance.duration" type="number" min="1" max="30" step="1" />
+          <span class="param-hint">{{ t('latentLab.crossmodal.guidance.durationHint') }}</span>
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.guidance.cfg') }}</label>
           <input v-model.number="guidance.cfg" type="number" min="1" max="15" step="0.5" />
+          <span class="param-hint">{{ t('latentLab.shared.cfgHint') }}</span>
         </div>
         <div class="param">
           <label>{{ t('latentLab.crossmodal.seed') }}</label>
           <input v-model.number="guidance.seed" type="number" />
+          <span class="param-hint">{{ t('latentLab.shared.seedHint') }}</span>
         </div>
       </div>
 

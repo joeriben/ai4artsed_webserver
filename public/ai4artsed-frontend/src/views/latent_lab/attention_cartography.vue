@@ -58,18 +58,22 @@
           <label>
             {{ t('latentLab.attention.negativeLabel') }}
             <input v-model="negativePrompt" type="text" class="setting-input" />
+            <div class="control-hint">{{ t('latentLab.shared.negativeHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.attention.stepsLabel') }}
             <input v-model.number="steps" type="number" min="10" max="50" class="setting-input setting-small" />
+            <div class="control-hint">{{ t('latentLab.shared.stepsHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.attention.cfgLabel') }}
             <input v-model.number="cfgScale" type="number" min="1" max="20" step="0.5" class="setting-input setting-small" />
+            <div class="control-hint">{{ t('latentLab.shared.cfgHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.attention.seedLabel') }}
             <input v-model.number="seed" type="number" min="-1" class="setting-input setting-seed" />
+            <div class="control-hint">{{ t('latentLab.shared.seedHint') }}</div>
           </label>
         </div>
       </details>

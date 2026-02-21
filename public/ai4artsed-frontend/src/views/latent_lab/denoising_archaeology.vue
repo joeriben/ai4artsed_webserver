@@ -58,18 +58,22 @@
           <label>
             {{ t('latentLab.archaeology.negativeLabel') }}
             <input v-model="negativePrompt" type="text" class="setting-input" />
+            <div class="control-hint">{{ t('latentLab.shared.negativeHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.archaeology.stepsLabel') }}
             <input v-model.number="steps" type="number" min="10" max="50" class="setting-input setting-small" />
+            <div class="control-hint">{{ t('latentLab.shared.stepsHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.archaeology.cfgLabel') }}
             <input v-model.number="cfgScale" type="number" min="1" max="20" step="0.5" class="setting-input setting-small" />
+            <div class="control-hint">{{ t('latentLab.shared.cfgHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.archaeology.seedLabel') }}
             <input v-model.number="seed" type="number" min="-1" class="setting-input setting-seed" />
+            <div class="control-hint">{{ t('latentLab.shared.seedHint') }}</div>
           </label>
         </div>
       </details>
@@ -112,6 +116,7 @@
             />
             <span class="slider-value">{{ currentStepLabel }}</span>
           </div>
+          <div class="control-hint">{{ t('latentLab.archaeology.timelineHint') }}</div>
         </div>
         <!-- Phase markers -->
         <div class="phase-markers">
@@ -864,5 +869,11 @@ onUnmounted(() => {
   color: rgba(244, 67, 54, 0.6);
   font-size: 1.2rem;
   cursor: pointer;
+}
+
+.control-hint {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.7rem;
+  line-height: 1.4;
 }
 </style>

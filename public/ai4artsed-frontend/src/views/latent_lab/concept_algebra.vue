@@ -97,6 +97,7 @@
               {{ t(`latentLab.algebra.${enc.labelKey}`) }}
             </button>
           </div>
+          <div class="control-hint">{{ t('latentLab.algebra.encoderHint') }}</div>
         </div>
         <button
           class="generate-btn"
@@ -115,26 +116,32 @@
           <label>
             {{ t('latentLab.algebra.negativeLabel') }}
             <input v-model="negativePrompt" type="text" class="setting-input" />
+            <div class="control-hint">{{ t('latentLab.shared.negativeHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.algebra.stepsLabel') }}
             <input v-model.number="steps" type="number" min="10" max="50" class="setting-input setting-small" />
+            <div class="control-hint">{{ t('latentLab.shared.stepsHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.algebra.cfgLabel') }}
             <input v-model.number="cfgScale" type="number" min="1" max="20" step="0.5" class="setting-input setting-small" />
+            <div class="control-hint">{{ t('latentLab.shared.cfgHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.algebra.seedLabel') }}
             <input v-model.number="seed" type="number" min="-1" class="setting-input setting-seed" />
+            <div class="control-hint">{{ t('latentLab.shared.seedHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.algebra.scaleSubLabel') }}
             <input v-model.number="scaleSub" type="number" min="0" max="3" step="0.1" class="setting-input setting-small" />
+            <div class="control-hint">{{ t('latentLab.algebra.scaleSubHint') }}</div>
           </label>
           <label>
             {{ t('latentLab.algebra.scaleAddLabel') }}
             <input v-model.number="scaleAdd" type="number" min="0" max="3" step="0.1" class="setting-input setting-small" />
+            <div class="control-hint">{{ t('latentLab.algebra.scaleAddHint') }}</div>
           </label>
         </div>
       </details>
@@ -178,6 +185,7 @@
       <div v-if="l2Distance !== null" class="metadata-row">
         <span class="metadata-label">{{ t('latentLab.algebra.l2Label') }}:</span>
         <span class="metadata-value">{{ l2Distance.toFixed(4) }}</span>
+        <div class="control-hint">{{ t('latentLab.algebra.l2Hint') }}</div>
       </div>
       <div v-if="actualSeed !== null" class="seed-display">
         Seed: {{ actualSeed }}
@@ -593,6 +601,12 @@ onUnmounted(() => {
   .image-pair { grid-template-columns: 1fr; }
   .action-row { flex-direction: column; align-items: stretch; }
   .control-group { flex-direction: column; align-items: flex-start; }
+}
+
+.control-hint {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.7rem;
+  line-height: 1.4;
 }
 </style>
 
