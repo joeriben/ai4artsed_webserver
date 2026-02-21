@@ -10,16 +10,13 @@ from config import (
     OLLAMA_API_BASE_URL,
     LMSTUDIO_API_BASE_URL,
     OLLAMA_TIMEOUT,
-    TRANSLATION_MODEL,
+    STAGE3_MODEL,
     SAFETY_MODEL,
-    ANALYSIS_MODEL,
+    IMAGE_ANALYSIS_MODEL,
     ANALYSIS_SYSTEM_PROMPT,
     PROMPT_CACHE,
     TRANSLATION_PROMPT,
     NO_TRANSLATE,
-    GPT_OSS_MODEL,
-    GPT_OSS_SAFETY_SYSTEM_PROMPT,
-    GPT_OSS_TRANSLATION_SYSTEM_PROMPT
 )
 
 logger = logging.getLogger(__name__)
@@ -111,7 +108,7 @@ class OllamaService:
         Returns:
             Tuple of (LM Studio payload, LM Studio endpoint)
         """
-        model = ollama_payload.get("model", "openai/gpt-oss-20b")
+        model = ollama_payload.get("model", "")
         prompt = ollama_payload.get("prompt", "")
         system = ollama_payload.get("system", "")
 
@@ -167,7 +164,7 @@ class OllamaService:
         prompt = TRANSLATION_PROMPT.format(text=text)
         
         payload = {
-            "model": TRANSLATION_MODEL,
+            "model": STAGE3_MODEL,
             "prompt": prompt,
             "stream": False,
             "keep_alive": "0s"
@@ -212,67 +209,6 @@ class OllamaService:
                 "reason": f"Sorry, your prompt has been rejected due to potential issues: {', '.join(sorted(list(set(reasons))))}"
             }
 
-    def check_safety_gpt_oss(self, text: str, keep_alive: str = "10m") -> Dict[str, Any]:
-        """
-        Check if text is safe using GPT-OSS-20b with §86a StGB compliance
-
-        Args:
-            text: Text to check (German or English)
-            keep_alive: How long to keep model in VRAM (default: 10m for Stage 1-3)
-
-        Returns:
-            Dictionary with:
-            - 'is_safe': Boolean
-            - 'translated_text': If safe, the translated text
-            - 'reason': If unsafe, the §86a blocking reason
-            - 'symbol': If unsafe, the specific symbol/organization
-        """
-        prompt = f"Check this text for safety under §86a StGB:\n\n{text}"
-
-        payload = {
-            "model": GPT_OSS_MODEL,
-            "prompt": prompt,
-            "system": GPT_OSS_SAFETY_SYSTEM_PROMPT,
-            "stream": False,
-            "keep_alive": keep_alive
-        }
-
-        result = self._make_request("api/generate", payload)
-        if not result:
-            logger.error("GPT-OSS safety check failed, falling back to llama-guard3")
-            # Fallback to legacy safety check
-            return self.check_safety(text)
-
-        response = result.get("response", "").strip()
-
-        # Parse response format: "SAFE: [text]" or "BLOCKED: §86a StGB - [symbol] - [explanation]"
-        if response.startswith("SAFE:"):
-            translated_text = response[5:].strip()  # Remove "SAFE: " prefix
-            return {
-                "is_safe": True,
-                "translated_text": translated_text
-            }
-        elif response.startswith("BLOCKED:"):
-            # Parse: "BLOCKED: §86a StGB - ISIS symbols - ISIS is a terrorist organization"
-            blocked_parts = response[8:].strip()  # Remove "BLOCKED: " prefix
-
-            # Extract symbol and reason
-            parts = blocked_parts.split(" - ", 2)
-            law_reference = parts[0] if len(parts) > 0 else "§86a StGB"
-            symbol = parts[1] if len(parts) > 1 else "extremist content"
-            explanation = parts[2] if len(parts) > 2 else "This content violates German law"
-
-            return {
-                "is_safe": False,
-                "reason": f"⚠️ Dein Prompt wurde blockiert\n\nGRUND: {law_reference} - {symbol}\n\n{explanation}\n\nWARUM DIESE REGEL?\nDiese Symbole werden benutzt, um Gewalt und Hass zu verbreiten.\nWir schützen dich und andere vor gefährlichen Inhalten.",
-                "symbol": symbol,
-                "law_reference": law_reference
-            }
-        else:
-            # Unexpected format - log and fallback
-            logger.warning(f"GPT-OSS returned unexpected format: {response[:100]}")
-            return self.check_safety(text)
-    
     def analyze_image(self, image_data: str) -> Optional[str]:
         """
         Analyze an image using Ollama's vision model
@@ -288,7 +224,7 @@ class OllamaService:
             image_data = image_data.split(',', 1)[-1]
         
         payload = {
-            "model": ANALYSIS_MODEL,
+            "model": IMAGE_ANALYSIS_MODEL,
             "prompt": "Analyze the image.",
             "system": ANALYSIS_SYSTEM_PROMPT,
             "images": [image_data],
@@ -296,7 +232,7 @@ class OllamaService:
             "keep_alive": "0s"  # Unload model immediately after use
         }
         
-        logger.info(f"Sending image to Ollama model: {ANALYSIS_MODEL} (will unload after).")
+        logger.info(f"Sending image to Ollama model: {IMAGE_ANALYSIS_MODEL} (will unload after).")
         result = self._make_request("api/generate", payload)
         
         if result:
@@ -444,43 +380,12 @@ class OllamaService:
         prompt = TRANSLATION_PROMPT.format(text=text)
 
         payload = {
-            "model": TRANSLATION_MODEL,
+            "model": STAGE3_MODEL,
             "prompt": prompt,
             "keep_alive": "0s"
         }
 
         logger.info(f"Starting translation stream for text: {text[:50]}...")
-        yield from self._make_streaming_request("api/generate", payload)
-
-    def check_safety_gpt_oss_stream(self, text: str, keep_alive: str = "10m"):
-        """
-        Stream safety check using GPT-OSS-20b with §86a StGB compliance
-        Yields text chunks as they are generated
-
-        Note: Safety checks typically return short responses (SAFE/BLOCKED),
-        so streaming may not provide significant UX benefit. This method is
-        provided for consistency with other streaming methods.
-
-        Args:
-            text: Text to check (German or English)
-            keep_alive: How long to keep model in VRAM (default: 10m)
-
-        Yields:
-            Text chunks as they are generated
-
-        Raises:
-            Exception: If streaming fails
-        """
-        prompt = f"Check this text for safety under §86a StGB:\n\n{text}"
-
-        payload = {
-            "model": GPT_OSS_MODEL,
-            "prompt": prompt,
-            "system": GPT_OSS_SAFETY_SYSTEM_PROMPT,
-            "keep_alive": keep_alive
-        }
-
-        logger.info(f"Starting safety check stream for text: {text[:50]}...")
         yield from self._make_streaming_request("api/generate", payload)
 
 
