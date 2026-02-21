@@ -258,7 +258,7 @@ def detect_gpu_vram() -> dict:
             (80, "vram_96"),   # 80+ GB → 96 tier (qwen2.5vl:72b single model)
             (40, "vram_48"),   # 40-79 GB → 48 tier (qwen2.5vl:72b single model)
             (28, "vram_32"),   # 28-39 GB → 32 tier (qwen3:32b + vision:11b)
-            (20, "vram_24"),   # 20-27 GB → 24 tier (gpt-OSS:20b + vision:11b)
+            (20, "vram_24"),   # 20-27 GB → 24 tier (qwen3:14b + vision:11b)
             (12, "vram_16"),   # 12-19 GB → 16 tier (mistral-nemo + vision:11b)
             (0, "vram_8"),     # 0-11 GB → 8 tier
         ]
@@ -626,6 +626,7 @@ def get_settings():
             "CODING_MODEL": config.CODING_MODEL,
             "SAFETY_MODEL": config.SAFETY_MODEL,
             "DSGVO_VERIFY_MODEL": config.DSGVO_VERIFY_MODEL,
+            "VLM_SAFETY_MODEL": config.VLM_SAFETY_MODEL,
 
             # API Configuration
             "LLM_PROVIDER": config.LLM_PROVIDER,
