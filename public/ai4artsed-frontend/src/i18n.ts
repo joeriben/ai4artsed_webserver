@@ -173,6 +173,7 @@ const messages = {
       tabs: {
         export: 'Sitzungsexport',
         config: 'Konfiguration',
+        demos: 'Minigame-Demo',
         matrix: 'Modell-Matrix'
       },
       loading: 'Einstellungen laden...',
@@ -1132,6 +1133,7 @@ const messages = {
       crossmodal: {
         headerTitle: 'Crossmodal Lab',
         headerSubtitle: 'Klang aus latenten Raeumen: T5-Embedding-Manipulation, bildgesteuerte Audiogenerierung, crossmodaler Transfer',
+        explanationToggle: 'Ausf\u00fchrliche Erkl\u00e4rung anzeigen',
         generate: 'Generieren',
         generating: 'Generiere...',
         result: 'Ergebnis',
@@ -1158,6 +1160,10 @@ const messages = {
           }
         },
         synth: {
+          explainWhatTitle: 'Was macht der Latent Audio Synth?',
+          explainWhatText: 'Stable Audio erzeugt Klang aus Text. Der Text wird dabei von einem T5-Encoder in einen Zahlenvektor mit 768 Dimensionen umgewandelt \u2014 diesen Vektor kannst du hier direkt manipulieren. Statt nur \u201ewas\u201c das Modell erzeugt zu \u00e4ndern (durch den Prompt), \u00e4nderst du \u201ewie\u201c das Modell den Text intern versteht. Zwei Prompts, die \u00e4hnlich klingen, k\u00f6nnen in diesem Raum weit auseinander liegen \u2014 und umgekehrt.',
+          explainHowTitle: 'Wie benutze ich das Tool?',
+          explainHowText: 'Gib in Prompt A einen Text ein \u2014 das bestimmt den Grundklang. Optional: Prompt B als Zielpunkt. Der Alpha-Regler steuert die Mischung: Bei 0 h\u00f6rst du nur A, bei 1 nur B, bei 0.5 eine Mischung. Werte \u00fcber 1 extrapolieren \u00fcber B hinaus (der Klang wird extremer), Werte unter 0 gehen in die entgegengesetzte Richtung. Magnitude skaliert das gesamte Embedding \u2014 h\u00f6here Werte erzeugen intensivere Kl\u00e4nge. Noise injiziert Zufall und erzeugt unvorhersehbare Variationen. Die Spectral Strip (unter dem Generate-Button) zeigt alle 768 Dimensionen als Balken. Du kannst einzelne Dimensionen per Mausklick verschieben und so gezielt den Klang manipulieren. Rechtsklick setzt eine Dimension zur\u00fcck.',
           promptA: 'Prompt A (Basis)',
           promptAPlaceholder: 'z.B. Meereswellen',
           promptB: 'Prompt B (Optional, fuer Interpolation)',
@@ -1236,6 +1242,10 @@ const messages = {
           }
         },
         mmaudio: {
+          explainWhatTitle: 'Was macht MMAudio?',
+          explainWhatText: 'MMAudio (Cheng et al., CVPR 2025) wurde gemeinsam auf Video und Audio trainiert. Es \u00fcbersetzt ein Bild nicht erst in Text und dann in Klang, sondern verarbeitet Bild und Text als parallele Signale im selben Netzwerk. Das Modell hat gelernt, welche Kl\u00e4nge zu welchen visuellen Szenen geh\u00f6ren \u2014 ein Wald erzeugt Vogelgezwitscher, eine Stra\u00dfe Verkehrsl\u00e4rm, eine Gitarre Zupfkl\u00e4nge.',
+          explainHowTitle: 'Wie benutze ich das Tool?',
+          explainHowText: 'Lade ein Bild hoch und/oder gib einen Text-Prompt ein \u2014 beides zusammen ergibt die reichsten Ergebnisse. Das Bild allein erzeugt Kl\u00e4nge passend zum visuellen Inhalt. Der Text-Prompt kann den Klang zus\u00e4tzlich lenken oder ohne Bild allein verwendet werden. Im Negativ-Prompt beschreibst du Kl\u00e4nge, die du NICHT h\u00f6ren willst (z.B. \u201eSprache, Musik\u201c). Duration bestimmt die L\u00e4nge (1\u20138 Sekunden). CFG Strength steuert, wie streng das Modell dem Prompt folgt \u2014 niedrige Werte (2\u20133) erzeugen vielf\u00e4ltigere, h\u00f6here Werte (6\u20138) prompt-treuere Ergebnisse.',
           imageUpload: 'Bild hochladen (optional)',
           prompt: 'Text-Prompt (optional)',
           promptPlaceholder: 'z.B. Knisterndes Lagerfeuer',
@@ -1247,6 +1257,10 @@ const messages = {
           compareHint: 'Vergleiche: Nur Text vs. Bild + Text'
         },
         guidance: {
+          explainWhatTitle: 'Was macht ImageBind Guidance?',
+          explainWhatText: 'ImageBind (Girdhar et al., CVPR 2023) bringt sechs Sinne \u2014 Bild, Klang, Text, Tiefe, W\u00e4rme, Bewegung \u2014 in eine gemeinsame \u201eSprache\u201c. Dieses Tool nutzt diese Gemeinsamkeit: W\u00e4hrend der Klang Schritt f\u00fcr Schritt entsteht, vergleicht es st\u00e4ndig \u201eKlingt das schon nach dem Bild?\u201c und korrigiert die Richtung. Im Ergebnis zeigt die Cosine-Similarity, wie nah der erzeugte Klang dem Bild-Inhalt kam.',
+          explainHowTitle: 'Wie benutze ich das Tool?',
+          explainHowText: 'Lade ein Bild hoch \u2014 das ist die Zielrichtung f\u00fcr den Klang. Optional: Ein Text-Prompt als zus\u00e4tzliche Lenkung. Der Regler \u201e\u03bb Guidance Strength\u201c ist der wichtigste Parameter: Niedrige Werte (0.01\u20130.05) lassen dem Klang viel Freiheit, hohe Werte (0.3\u20131.0) binden ihn eng an das Bild. \u201eWarmup Steps\u201c bestimmt, ab welchem Schritt die Bildlenkung einsetzt \u2014 niedrige Werte starten sofort, h\u00f6here lassen die Grundstruktur erst ungesteuert entstehen. Total Steps und Duration steuern Qualit\u00e4t und L\u00e4nge.',
           imageUpload: 'Bild hochladen',
           prompt: 'Basis-Prompt (optional)',
           promptPlaceholder: 'z.B. Umgebungsklanglandschaft',
@@ -1521,6 +1535,7 @@ const messages = {
       tabs: {
         export: 'Session Export',
         config: 'Configuration',
+        demos: 'Minigame Demo',
         matrix: 'Model Matrix'
       },
       loading: 'Loading settings...',
@@ -2480,6 +2495,7 @@ const messages = {
       crossmodal: {
         headerTitle: 'Crossmodal Lab',
         headerSubtitle: 'Sound from latent spaces: T5 embedding manipulation, image-guided audio generation, crossmodal transfer',
+        explanationToggle: 'Show detailed explanation',
         generate: 'Generate',
         generating: 'Generating...',
         result: 'Result',
@@ -2506,6 +2522,10 @@ const messages = {
           }
         },
         synth: {
+          explainWhatTitle: 'What does the Latent Audio Synth do?',
+          explainWhatText: 'Stable Audio generates sound from text. The text is converted by a T5 encoder into a numerical vector with 768 dimensions \u2014 this vector is what you manipulate here. Instead of just changing \u201cwhat\u201d the model generates (via the prompt), you change \u201chow\u201d the model internally understands the text. Two prompts that sound similar can be far apart in this space \u2014 and vice versa.',
+          explainHowTitle: 'How do I use this tool?',
+          explainHowText: 'Enter text in Prompt A \u2014 this determines the base sound. Optional: Prompt B as a target point. The Alpha slider controls the mix: at 0 you hear only A, at 1 only B, at 0.5 a blend. Values above 1 extrapolate beyond B (the sound becomes more extreme), values below 0 go in the opposite direction. Magnitude scales the entire embedding \u2014 higher values produce more intense sounds. Noise injects randomness and creates unpredictable variations. The Spectral Strip (below the Generate button) shows all 768 dimensions as bars. You can shift individual dimensions by clicking and dragging, directly manipulating the sound. Right-click resets a dimension.',
           promptA: 'Prompt A (Base)',
           promptAPlaceholder: 'e.g. ocean waves',
           promptB: 'Prompt B (Optional, for interpolation)',
@@ -2584,6 +2604,10 @@ const messages = {
           }
         },
         mmaudio: {
+          explainWhatTitle: 'What does MMAudio do?',
+          explainWhatText: 'MMAudio (Cheng et al., CVPR 2025) was jointly trained on video and audio. It doesn\'t translate an image into text and then into sound, but processes image and text as parallel signals in the same network. The model learned which sounds belong to which visual scenes \u2014 a forest produces birdsong, a street produces traffic noise, a guitar produces plucking sounds.',
+          explainHowTitle: 'How do I use this tool?',
+          explainHowText: 'Upload an image and/or enter a text prompt \u2014 using both together yields the richest results. The image alone generates sounds matching the visual content. The text prompt can additionally steer the sound or be used alone without an image. In the Negative Prompt, describe sounds you do NOT want to hear (e.g. \u201cspeech, music\u201d). Duration sets the length (1\u20138 seconds). CFG Strength controls how strictly the model follows the prompt \u2014 low values (2\u20133) produce more varied results, higher values (6\u20138) are more prompt-faithful.',
           imageUpload: 'Upload image (optional)',
           prompt: 'Text prompt (optional)',
           promptPlaceholder: 'e.g. crackling campfire',
@@ -2595,6 +2619,10 @@ const messages = {
           compareHint: 'Compare: Text only vs. Image + Text'
         },
         guidance: {
+          explainWhatTitle: 'What does ImageBind Guidance do?',
+          explainWhatText: 'ImageBind (Girdhar et al., CVPR 2023) brings six senses \u2014 image, sound, text, depth, heat, motion \u2014 into a shared \u201clanguage\u201d. This tool uses that common ground: as the sound is generated step by step, it constantly asks \u201cDoes this sound like the image yet?\u201d and corrects the direction. The cosine similarity in the result shows how close the generated sound came to the image content.',
+          explainHowTitle: 'How do I use this tool?',
+          explainHowText: 'Upload an image \u2014 this is the target direction for the sound. Optional: a text prompt for additional steering. The \u201c\u03bb Guidance Strength\u201d slider is the most important parameter: low values (0.01\u20130.05) give the sound a lot of freedom, high values (0.3\u20131.0) tie it closely to the image. \u201cWarmup Steps\u201d determines from which step the image guidance kicks in \u2014 low values start immediately, higher values let the basic structure emerge unguided first. Total Steps and Duration control quality and length.',
           imageUpload: 'Upload image',
           prompt: 'Base prompt (optional)',
           promptPlaceholder: 'e.g. ambient soundscape',
@@ -2869,6 +2897,7 @@ const messages = {
       tabs: {
         export: 'Oturum Dışa Aktarma',
         config: 'Yapılandırma',
+        demos: 'Minigame Demo',
         matrix: 'Model Matrisi'
       },
       loading: 'Ayarlar yükleniyor...',
@@ -3828,6 +3857,7 @@ const messages = {
       crossmodal: {
         headerTitle: 'Çapraz Modal Laboratuvar',
         headerSubtitle: 'Latent uzaylardan ses: T5 gömme manipülasyonu, görsel rehberli ses üretimi, çapraz modal aktarım',
+        explanationToggle: 'Ayr\u0131nt\u0131l\u0131 a\u00e7\u0131klamay\u0131 g\u00f6ster',
         generate: 'Oluştur',
         generating: 'Oluşturuluyor...',
         result: 'Sonuç',
@@ -3854,8 +3884,12 @@ const messages = {
           }
         },
         synth: {
+          explainWhatTitle: 'Latent Ses Sentezci ne yapar?',
+          explainWhatText: 'Stable Audio metinden ses \u00fcretir. Metin, bir T5 kodlay\u0131c\u0131 taraf\u0131ndan 768 boyutlu say\u0131sal bir vekt\u00f6re d\u00f6n\u00fc\u015ft\u00fcr\u00fcl\u00fcr \u2014 burada do\u011frudan bu vekt\u00f6r\u00fc manip\u00fcle edebilirsiniz. Modelin \u201cne\u201d \u00fcretti\u011fini de\u011fi\u015ftirmek (prompt arac\u0131l\u0131\u011f\u0131yla) yerine, modelin metni i\u00e7sel olarak \u201cnas\u0131l\u201d anlad\u0131\u011f\u0131n\u0131 de\u011fi\u015ftirirsiniz. Benzer g\u00f6r\u00fcnen iki prompt bu uzayda birbirinden \u00e7ok uzak olabilir \u2014 ve tam tersi.',
+          explainHowTitle: 'Bu arac\u0131 nas\u0131l kullan\u0131r\u0131m?',
+          explainHowText: 'Prompt A\'ya bir metin girin \u2014 bu temel sesi belirler. \u0130ste\u011fe ba\u011fl\u0131: Prompt B hedef nokta olarak. Alpha kayd\u0131r\u0131c\u0131s\u0131 kar\u0131\u015f\u0131m\u0131 kontrol eder: 0\'da yaln\u0131zca A, 1\'de yaln\u0131zca B, 0.5\'te bir kar\u0131\u015f\u0131m duyars\u0131n\u0131z. 1\'in \u00fczerindeki de\u011ferler B\'nin \u00f6tesine ekstrapolasyon yapar (ses daha a\u015f\u0131r\u0131 hale gelir), 0\'\u0131n alt\u0131ndaki de\u011ferler z\u0131t y\u00f6ne gider. Magnitude t\u00fcm g\u00f6mmeyi \u00f6l\u00e7ekler \u2014 daha y\u00fcksek de\u011ferler daha yo\u011fun sesler \u00fcretir. Noise rastgelelik enjekte eder ve \u00f6ng\u00f6r\u00fclemez varyasyonlar olu\u015fturur. Spectral Strip (Generate butonunun alt\u0131nda) t\u00fcm 768 boyutu \u00e7ubuk olarak g\u00f6sterir. Tek tek boyutlar\u0131 t\u0131klay\u0131p s\u00fcr\u00fckleyerek kayd\u0131rabilir ve sesi do\u011frudan manip\u00fcle edebilirsiniz. Sa\u011f t\u0131klama bir boyutu s\u0131f\u0131rlar.',
           promptA: 'Prompt A (Temel)',
-          promptAPlaceholder: 'örn. okyanus dalgaları',
+          promptAPlaceholder: '\u00f6rn. okyanus dalgalar\u0131',
           promptB: 'Prompt B (İsteğe bağlı, interpolasyon için)',
           promptBPlaceholder: 'örn. piyano melodisi',
           alpha: 'Alpha (İnterpolasyon)',
@@ -3932,9 +3966,13 @@ const messages = {
           }
         },
         mmaudio: {
-          imageUpload: 'Görsel yükle (isteğe bağlı)',
-          prompt: 'Metin promptu (isteğe bağlı)',
-          promptPlaceholder: 'örn. çatırdayan kamp ateşi',
+          explainWhatTitle: 'MMAudio ne yapar?',
+          explainWhatText: 'MMAudio (Cheng vd., CVPR 2025) video ve ses \u00fczerinde birlikte e\u011fitilmi\u015ftir. Bir g\u00f6r\u00fcnt\u00fcy\u00fc metne, sonra sese \u00e7evirmez \u2014 g\u00f6r\u00fcnt\u00fc ve metni ayn\u0131 a\u011fda paralel sinyaller olarak i\u015fler. Model, hangi seslerin hangi g\u00f6rsel sahnelere ait oldu\u011funu \u00f6\u011frenmi\u015ftir \u2014 bir orman ku\u015f c\u0131v\u0131lt\u0131s\u0131, bir cadde trafik g\u00fcr\u00fclt\u00fcs\u00fc, bir gitar t\u0131ng\u0131rdama sesleri \u00fcretir.',
+          explainHowTitle: 'Bu arac\u0131 nas\u0131l kullan\u0131r\u0131m?',
+          explainHowText: 'Bir g\u00f6rsel y\u00fckleyin ve/veya bir metin promptu girin \u2014 ikisini birlikte kullanmak en zengin sonu\u00e7lar\u0131 verir. G\u00f6rsel tek ba\u015f\u0131na g\u00f6rsel i\u00e7eri\u011fe uygun sesler \u00fcretir. Metin promptu sesi ek olarak y\u00f6nlendirebilir veya g\u00f6rsel olmadan tek ba\u015f\u0131na kullan\u0131labilir. Negatif Prompt\'ta duymak \u0130STEMED\u0130\u011e\u0130N\u0130Z sesleri tan\u0131mlay\u0131n (\u00f6rn. \u201ckon\u015fma, m\u00fczik\u201d). Duration uzunlu\u011fu belirler (1\u20138 saniye). CFG Strength modelin promptu ne kadar s\u0131k\u0131 takip etti\u011fini kontrol eder \u2014 d\u00fc\u015f\u00fck de\u011ferler (2\u20133) daha \u00e7e\u015fitli, y\u00fcksek de\u011ferler (6\u20138) daha prompt-sad\u0131k sonu\u00e7lar \u00fcretir.',
+          imageUpload: 'G\u00f6rsel y\u00fckle (iste\u011fe ba\u011fl\u0131)',
+          prompt: 'Metin promptu (iste\u011fe ba\u011fl\u0131)',
+          promptPlaceholder: '\u00f6rn. \u00e7at\u0131rdayan kamp ate\u015fi',
           negativePrompt: 'Negatif prompt',
           duration: 'Süre (s)',
           maxDuration: 'Maks 8s (model sınırı)',
@@ -4217,6 +4255,7 @@ const messages = {
       tabs: {
         export: '세션 내보내기',
         config: '설정',
+        demos: '미니게임 데모',
         matrix: '모델 매트릭스'
       },
       loading: '설정 불러오는 중...',
@@ -5176,6 +5215,15 @@ const messages = {
       crossmodal: {
         headerTitle: '크로스모달 랩',
         headerSubtitle: '잠재 공간의 소리: T5 임베딩 조작, 이미지 유도 오디오 생성, 크로스모달 전송',
+        explanationToggle: '자세한 설명 보기',
+        explainWhatTitle: '크로스모달 랩이란?',
+        explainWhatText: '크로스모달 랩은 서로 다른 감각 모달리티 \u2014 주로 이미지와 소리 \u2014 사이의 연결을 탐구합니다. 세 가지 도구는 AI 모델이 보이는 것과 들리는 것 사이에 다리를 놓는 다양한 방법을 보여줍니다: 직접 임베딩 조작, 멀티모달 학습, 그래디언트 기반 조종.',
+        explainSynthTitle: 'Latent 오디오 신스 \u2014 문장은 왜 소리가 나나요?',
+        explainSynthText: '텍스트는 T5 인코더에 의해 768차원 벡터로 변환됩니다. 일반적으로 이 벡터는 변경 없이 오디오 생성을 구동합니다. 여기서는 이 벡터에 직접 개입할 수 있습니다: 두 프롬프트 사이의 보간, 프롬프트 너머의 외삽, 또는 스펙트럼 스트립을 통한 개별 차원 이동. 모든 변경은 다른 소리를 만들어내며 \u2014 인코더가 실제로 무엇을 인코딩하는지 들을 수 있게 합니다.',
+        explainMMAudioTitle: 'MMAudio \u2014 이미지에 소리가 있을 때',
+        explainMMAudioText: 'MMAudio (Cheng et al., CVPR 2025)는 비디오와 오디오로 공동 학습되었습니다. 이미지를 텍스트로, 그다음 소리로 변환하는 것이 아니라, 같은 네트워크에서 이미지와 텍스트를 병렬 신호로 처리합니다. 결과: 서핑 사진은 파도 소리를 만들고, 기타 이미지는 현 소리를 만듭니다. 추가 텍스트로 소리를 특정 방향으로 유도할 수 있습니다.',
+        explainGuidanceTitle: 'ImageBind 가이던스 \u2014 이미지가 소리를 이끈다',
+        explainGuidanceText: 'ImageBind (Girdhar et al., CVPR 2023)는 여섯 가지 감각 \u2014 이미지, 소리, 텍스트, 깊이, 열, 움직임 \u2014 을 공유 \u201c언어\u201d로 통합합니다. 이 도구는 그 공통 기반을 활용합니다: 소리가 단계별로 생성되는 동안 \u201c이 소리가 이미지와 닮았나?\u201d를 계속 묻고 방향을 수정합니다. \u201c\u03bb Guidance Strength\u201d 슬라이더는 이미지가 소리에 얼마나 강하게 영향을 미치는지 제어합니다 \u2014 낮은 값은 우연에 더 많은 여지를 남기고, 높은 값은 소리를 이미지에 밀접하게 연결합니다.',
         generate: '생성',
         generating: '생성 중...',
         result: '결과',
@@ -5565,6 +5613,7 @@ const messages = {
       tabs: {
         export: 'Експорт сесії',
         config: 'Конфігурація',
+        demos: 'Демо мінігри',
         matrix: 'Матриця моделей'
       },
       loading: 'Завантаження налаштувань...',
@@ -6524,6 +6573,15 @@ const messages = {
       crossmodal: {
         headerTitle: 'Крос-модальна лабораторія',
         headerSubtitle: 'Звук з латентних просторів: маніпуляція вкладеннями T5, генерація аудіо з зображень, крос-модальний перенос',
+        explanationToggle: 'Показати детальне пояснення',
+        explainWhatTitle: 'Що таке Крос-модальна лабораторія?',
+        explainWhatText: 'Крос-модальна лабораторія досліджує зв\'язок між різними сенсорними модальностями \u2014 насамперед між зображенням та звуком. Три інструменти показують різні способи, як моделі ШІ будують мости між видимим та чутним: пряма маніпуляція вкладеннями, мультимодальне навчання та градієнтне керування.',
+        explainSynthTitle: 'Латентний аудіосинтезатор \u2014 Чому речення звучить?',
+        explainSynthText: 'Текст перетворюється кодувальником T5 у 768-вимірний вектор. Зазвичай цей вектор керує генерацією аудіо без змін. Тут ви можете втручатися безпосередньо: інтерполювати між двома промптами, екстраполювати за межі промпту або зсувати окремі виміри через спектральну смужку. Кожна зміна створює інший звук \u2014 роблячи чутним те, що кодувальник насправді кодує.',
+        explainMMAudioTitle: 'MMAudio \u2014 Коли зображення має звук',
+        explainMMAudioText: 'MMAudio (Cheng та ін., CVPR 2025) навчався спільно на відео та аудіо. Він не перекладає зображення в текст, а потім у звук \u2014 а обробляє зображення та текст як паралельні сигнали в одній мережі. Результат: фото прибою створює шум хвиль, зображення гітари створює звуки щипка. Додатковий текст може скерувати звук у певному напрямку.',
+        explainGuidanceTitle: 'ImageBind Guidance \u2014 Зображення спрямовує звук',
+        explainGuidanceText: 'ImageBind (Girdhar та ін., CVPR 2023) об\'єднує шість відчуттів \u2014 зображення, звук, текст, глибину, тепло, рух \u2014 у спільну \u201cмову\u201d. Цей інструмент використовує цю спільність: поки звук створюється крок за кроком, він постійно запитує \u201cЧи звучить це вже як зображення?\u201d і коригує напрямок. Повзунок \u201c\u03bb Guidance Strength\u201d визначає, наскільки сильно зображення впливає на звук \u2014 низькі значення залишають більше простору для випадковості, високі значення тісно прив\'язують звук до зображення.',
         generate: 'Згенерувати',
         generating: 'Генерація...',
         result: 'Результат',
@@ -6912,6 +6970,7 @@ const messages = {
       tabs: {
         export: 'Export de session',
         config: 'Configuration',
+        demos: 'Démo minijeu',
         matrix: 'Matrice de modèles'
       },
       loading: 'Chargement des paramètres...',
@@ -7871,6 +7930,15 @@ const messages = {
       crossmodal: {
         headerTitle: 'Laboratoire crossmodal',
         headerSubtitle: 'Son à partir d\'espaces latents : manipulation d\'embeddings T5, génération audio guidée par image, transfert crossmodal',
+        explanationToggle: 'Afficher l\'explication détaillée',
+        explainWhatTitle: 'Qu\'est-ce que le Laboratoire crossmodal ?',
+        explainWhatText: 'Le Laboratoire crossmodal explore la connexion entre différentes modalités sensorielles \u2014 principalement entre l\'image et le son. Les trois outils montrent différentes façons dont les modèles d\'IA établissent des ponts entre le visible et l\'audible : par manipulation directe des embeddings, apprentissage multimodal et guidage par gradient.',
+        explainSynthTitle: 'Synthé audio latent \u2014 Pourquoi une phrase a-t-elle un son ?',
+        explainSynthText: 'Le texte est converti par un encodeur T5 en un vecteur de 768 dimensions. Normalement, ce vecteur pilote la génération audio sans modification. Ici, vous pouvez intervenir directement dans ce vecteur : interpoler entre deux prompts, extrapoler au-delà du prompt, ou décaler des dimensions individuelles via la bande spectrale. Chaque changement produit un son différent \u2014 rendant audible ce que l\'encodeur encode réellement.',
+        explainMMAudioTitle: 'MMAudio \u2014 Quand une image a un son',
+        explainMMAudioText: 'MMAudio (Cheng et al., CVPR 2025) a été entraîné conjointement sur la vidéo et l\'audio. Il ne traduit pas une image en texte puis en son, mais traite image et texte comme des signaux parallèles dans le même réseau. Le résultat : une photo de surf produit un bruit de vagues, une image de guitare produit des sons de pincement. Du texte supplémentaire peut orienter le son dans une direction spécifique.',
+        explainGuidanceTitle: 'Guidage ImageBind \u2014 Une image dirige le son',
+        explainGuidanceText: 'ImageBind (Girdhar et al., CVPR 2023) réunit six sens \u2014 image, son, texte, profondeur, chaleur, mouvement \u2014 dans un \u00ab langage \u00bb commun. Cet outil exploite ce terrain commun : pendant que le son se génère étape par étape, il demande constamment \u00ab Est-ce que ça ressemble à l\'image ? \u00bb et corrige la direction. Le curseur \u00ab \u03bb Guidance Strength \u00bb détermine l\'intensité de l\'influence de l\'image sur le son \u2014 des valeurs basses laissent plus de place au hasard, des valeurs élevées lient étroitement le son à l\'image.',
         generate: 'Générer',
         generating: 'Génération...',
         result: 'Résultat',

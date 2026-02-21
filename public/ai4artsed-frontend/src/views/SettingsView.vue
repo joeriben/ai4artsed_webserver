@@ -20,6 +20,12 @@
           {{ $t('settings.tabs.config') }}
         </button>
         <button
+          :class="['tab-btn', { active: activeTab === 'demos' }]"
+          @click="activeTab = 'demos'"
+        >
+          {{ $t('settings.tabs.demos') }}
+        </button>
+        <button
           :class="['tab-btn', { active: activeTab === 'matrix' }]"
           @click="activeTab = 'matrix'"
         >
@@ -39,37 +45,6 @@
       <div v-else-if="error" class="error">{{ $t('common.error') }}: {{ error }}</div>
 
       <div v-else class="settings-content">
-      <!-- Quick-Fill Hint -->
-      <div class="section">
-        <h2>{{ $t('settings.presets.title') }}</h2>
-        <p class="help">
-          <span v-html="$t('settings.presets.help')"></span>
-          <span v-if="gpuInfo.detected" class="gpu-detected" style="display: block; margin-top: 8px;">
-            {{ gpuInfo.gpu_name }} ({{ gpuInfo.vram_gb }} GB)
-          </span>
-        </p>
-        <button @click="activeTab = 'matrix'" class="action-btn" style="margin-top: 10px;">
-          {{ $t('settings.presets.openMatrix') }}
-        </button>
-      </div>
-
-      <!-- Testing Tools for Educators -->
-      <div class="section">
-        <h2>{{ $t('settings.testingTools.title') }}</h2>
-        <p class="help">
-          {{ $t('settings.testingTools.help') }}
-        </p>
-        <button @click="$router.push('/animation-test')" class="action-btn" style="margin-top: 10px;">
-          {{ $t('settings.testingTools.openPreview') }}
-        </button>
-        <button @click="$router.push('/dev/pixel-editor')" class="action-btn" style="margin-top: 10px; margin-left: 10px;">
-          {{ $t('settings.testingTools.pixelEditor') }}
-        </button>
-        <p class="help" style="margin-top: 10px; font-size: 12px; color: #888;">
-          {{ $t('settings.testingTools.includes') }}
-        </p>
-      </div>
-
       <!-- General Settings -->
       <div class="section">
         <h2>{{ $t('settings.general.title') }}</h2>
@@ -181,8 +156,16 @@
       <!-- Model Configuration -->
       <div class="section">
         <h2>{{ $t('settings.models.title') }}</h2>
+        <p class="help">
+          <span v-html="$t('settings.presets.help')"></span>
+          <span v-if="gpuInfo.detected" class="gpu-detected" style="display: block; margin-top: 8px;">
+            {{ gpuInfo.gpu_name }} ({{ gpuInfo.vram_gb }} GB)
+          </span>
+        </p>
+        <button @click="activeTab = 'matrix'" class="action-btn" style="margin-bottom: 12px;">
+          {{ $t('settings.presets.openMatrix') }}
+        </button>
         <p class="help">{{ $t('settings.models.help') }}</p>
-        <p class="help">{{ $t('settings.models.matrixAdvised') }}</p>
         <p v-if="ollamaModels.length > 0" class="help" style="color: #4CAF50;">
           {{ $t('settings.models.ollamaAvailable', { count: ollamaModels.length }) }}
         </p>
@@ -345,6 +328,25 @@
           {{ saveMessage }}
         </span>
       </div>
+      </div>
+    </div>
+
+    <!-- Minigame Demo Tab -->
+    <div v-if="activeTab === 'demos'" class="settings-content">
+      <div class="section">
+        <h2>{{ $t('settings.testingTools.title') }}</h2>
+        <p class="help">
+          {{ $t('settings.testingTools.help') }}
+        </p>
+        <button @click="$router.push('/animation-test')" class="action-btn" style="margin-top: 10px;">
+          {{ $t('settings.testingTools.openPreview') }}
+        </button>
+        <button @click="$router.push('/dev/pixel-editor')" class="action-btn" style="margin-top: 10px; margin-left: 10px;">
+          {{ $t('settings.testingTools.pixelEditor') }}
+        </button>
+        <p class="help" style="margin-top: 10px; font-size: 12px; color: #888;">
+          {{ $t('settings.testingTools.includes') }}
+        </p>
       </div>
     </div>
 
