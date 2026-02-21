@@ -1,5 +1,23 @@
 # Development Log
 
+## Session 188 - Session Export: Device-Filter statt User-Filter
+**Date:** 2026-02-21
+**Focus:** Replace non-functional user_id filter with device_id in Session Data Export (Forschungsdaten tab)
+
+### Problem
+The "User" filter in session export was useless — `user_id` is almost always "anonymous". Meanwhile, `device_id` (from the favorites/browser-ID system) is stored in every `metadata.json` and uniquely identifies devices.
+
+### Changes
+- **Backend** (`settings_routes.py`): Query param `user_id` → `device_id`, filter logic, session summary field, sortable fields, unique filter collection, response key `"devices"` instead of `"users"`
+- **Frontend** (`SessionExportView.vue`): Stats card, filter dropdown (truncated to 8 chars), state/clearFilters, URL params, table header+row, detail modal, both PDF export functions (single + ZIP)
+
+### Verification
+- `npm run type-check` passes cleanly
+- No remaining `user_id`/`unique_users`/`.users` references in either file
+- 2 files changed, 30 insertions, 30 deletions
+
+---
+
 ## Session 187 - i18n Infrastructure: Generic 3rd-Language Readiness
 **Date:** 2026-02-20
 **Focus:** Make i18n infrastructure extensible so adding ANY language requires only "add translations" — no code changes needed.

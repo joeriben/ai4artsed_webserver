@@ -29,6 +29,26 @@
 
 ---
 
+## 🔬 Session Export: Device-ID statt User-ID als Filter (2026-02-21)
+
+**Kontext:** Der "User"-Filter im Session Data Export (Forschungsdaten-Tab) war funktionslos — `user_id` ist fast immer "anonymous". Die Plattform hat aber ein Device-ID-System (Favorites/Browser-ID), das Sessions eindeutig einem Gerät zuordnet. `device_id` wird bereits in jeder `metadata.json` gespeichert (`pipeline_recorder.py`).
+
+**Decision:** `user_id`-Filter komplett durch `device_id`-Filter ersetzen (Backend + Frontend).
+
+**Begründung:**
+- `user_id` = "anonymous" in 99%+ der Sessions → kein Filterwert
+- `device_id` = pro Browser eindeutig → ermöglicht Gerät-basierte Analyse (z.B. "alle Sessions von iPad #1 im Kurs")
+- Device-Dropdown zeigt nur Geräte im aktuellen Filter-Fokus (Datum/Config/Safety), da Backend unique values NACH Filterung sammelt
+
+**Details:**
+- Backend: Query-Param `user_id` → `device_id`, Filterung auf `metadata.get('device_id')`, Response `"devices"` statt `"users"`
+- Frontend: Stats, Filter-Dropdown (gekürzt auf 8 Zeichen), Tabelle, Detail-Modal, PDF-Export
+- Kein Breaking Change für bestehende `metadata.json` (Feld `device_id` war schon immer gespeichert)
+
+**Affected Files:** `settings_routes.py`, `SessionExportView.vue`
+
+---
+
 ## 🧠 LATENT TEXT LAB: Dekonstruktive LLM-Introspektion als GPU-Service-Proxy (2026-02-15)
 
 **Kontext:** Die Plattform hatte dekonstruktive Tools für Bildmodelle (Attention Cartography, Feature Probing, Concept Algebra, Denoising Archaeology), aber keine Werkzeuge für Sprachmodelle. Lehrkräfte und Schüler konnten nicht beobachten, wie LLMs intern funktionieren — welche Biases kodiert sind, wie verschiedene Modelle dieselbe Information repräsentieren, oder wie sich gezielte Manipulationen auswirken.
