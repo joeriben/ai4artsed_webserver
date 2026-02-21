@@ -35,6 +35,9 @@
         :rows="2"
         :isEmpty="!synth.promptA"
         :isFilled="!!synth.promptA"
+        @copy="copySynthPromptA"
+        @paste="pasteSynthPromptA"
+        @clear="clearSynthPromptA"
       />
 
       <!-- Prompt B (optional) -->
@@ -47,6 +50,9 @@
         :rows="2"
         :isEmpty="!synth.promptB"
         :isFilled="!!synth.promptB"
+        @copy="copySynthPromptB"
+        @paste="pasteSynthPromptB"
+        @clear="clearSynthPromptB"
       />
 
       <!-- Sliders -->
@@ -425,6 +431,10 @@
         value=""
         :initial-image="imagePreview"
         @image-uploaded="handleImageUpload"
+        @image-removed="clearImage"
+        @copy="copyImage"
+        @paste="pasteImage"
+        @clear="clearImage"
       />
 
       <MediaInputBox
@@ -436,6 +446,9 @@
         :rows="2"
         :isEmpty="!mmaudio.prompt"
         :isFilled="!!mmaudio.prompt"
+        @copy="copyMMAudioPrompt"
+        @paste="pasteMMAudioPrompt"
+        @clear="clearMMAudioPrompt"
       />
 
       <MediaInputBox
@@ -447,6 +460,9 @@
         :isEmpty="!mmaudio.negativePrompt"
         :isFilled="!!mmaudio.negativePrompt"
         :showTranslate="false"
+        @copy="copyMMAudioNeg"
+        @paste="pasteMMAudioNeg"
+        @clear="clearMMAudioNeg"
       />
 
       <div class="params-row">
@@ -486,6 +502,10 @@
         value=""
         :initial-image="imagePreview"
         @image-uploaded="handleImageUpload"
+        @image-removed="clearImage"
+        @copy="copyImage"
+        @paste="pasteImage"
+        @clear="clearImage"
       />
 
       <MediaInputBox
@@ -497,6 +517,9 @@
         :rows="2"
         :isEmpty="!guidance.prompt"
         :isFilled="!!guidance.prompt"
+        @copy="copyGuidancePrompt"
+        @paste="pasteGuidancePrompt"
+        @clear="clearGuidancePrompt"
       />
 
       <!-- Guidance sliders -->
@@ -572,8 +595,10 @@ import { useWavetableOsc } from '@/composables/useWavetableOsc'
 import { useEnvelope } from '@/composables/useEnvelope'
 import { useWebMidi } from '@/composables/useWebMidi'
 import MediaInputBox from '@/components/MediaInputBox.vue'
+import { useAppClipboard } from '@/composables/useAppClipboard'
 
 const { t } = useI18n()
+const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
 
 const API_BASE = import.meta.env.DEV ? 'http://localhost:17802' : ''
 
@@ -1029,6 +1054,44 @@ function clearResults() {
 function handleImageUpload(data: any) {
   imagePath.value = data.image_path
   imagePreview.value = data.preview_url
+}
+
+// ===== Clipboard handlers =====
+
+// Synth Prompt A
+function copySynthPromptA() { copyToClipboard(synth.promptA) }
+function pasteSynthPromptA() { synth.promptA = pasteFromClipboard() }
+function clearSynthPromptA() { synth.promptA = '' }
+
+// Synth Prompt B
+function copySynthPromptB() { copyToClipboard(synth.promptB) }
+function pasteSynthPromptB() { synth.promptB = pasteFromClipboard() }
+function clearSynthPromptB() { synth.promptB = '' }
+
+// MMAudio Prompt
+function copyMMAudioPrompt() { copyToClipboard(mmaudio.prompt) }
+function pasteMMAudioPrompt() { mmaudio.prompt = pasteFromClipboard() }
+function clearMMAudioPrompt() { mmaudio.prompt = '' }
+
+// MMAudio Negative Prompt
+function copyMMAudioNeg() { copyToClipboard(mmaudio.negativePrompt) }
+function pasteMMAudioNeg() { mmaudio.negativePrompt = pasteFromClipboard() }
+function clearMMAudioNeg() { mmaudio.negativePrompt = '' }
+
+// Guidance Prompt
+function copyGuidancePrompt() { copyToClipboard(guidance.prompt) }
+function pasteGuidancePrompt() { guidance.prompt = pasteFromClipboard() }
+function clearGuidancePrompt() { guidance.prompt = '' }
+
+// Shared image (used by both MMAudio + Guidance)
+function copyImage() { copyToClipboard(imagePreview.value) }
+function pasteImage() {
+  const content = pasteFromClipboard()
+  if (content) imagePreview.value = content
+}
+function clearImage() {
+  imagePath.value = ''
+  imagePreview.value = ''
 }
 
 async function apiPost(path: string, body: Record<string, unknown>) {
