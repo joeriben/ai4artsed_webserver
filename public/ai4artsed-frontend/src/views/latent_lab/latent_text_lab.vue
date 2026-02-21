@@ -62,7 +62,7 @@
               </option>
             </select>
           </label>
-          <span v-if="availableVram !== null" class="vram-info">{{ availableVram }}GB VRAM</span>
+          <span v-if="freeVram !== null" class="vram-info">{{ freeVram }} / {{ totalVram }} GB VRAM</span>
         </div>
 
         <!-- Contrast Pair Editor -->
@@ -255,7 +255,7 @@
                 :value="key"
                 :disabled="info.suggested_quant === null"
               >
-                {{ key }} ({{ info.vram_gb }}GB)
+                {{ presetLabel(key, info) }}
               </option>
             </select>
           </div>
@@ -269,11 +269,12 @@
                 :value="key"
                 :disabled="info.suggested_quant === null"
               >
-                {{ key }} ({{ info.vram_gb }}GB)
+                {{ presetLabel(key, info) }}
               </option>
             </select>
           </div>
         </div>
+        <span v-if="freeVram !== null" class="vram-info" style="margin-bottom: 1rem; display: block;">{{ freeVram }} / {{ totalVram }} GB VRAM</span>
 
         <!-- Custom model input + load button (when no preset selected for B) -->
         <div v-if="!cmpPresetB" class="control-row" style="margin-bottom: 1rem;">
@@ -443,7 +444,7 @@
               </option>
             </select>
           </label>
-          <span v-if="availableVram !== null" class="vram-info">{{ availableVram }}GB VRAM</span>
+          <span v-if="freeVram !== null" class="vram-info">{{ freeVram }} / {{ totalVram }} GB VRAM</span>
         </div>
 
         <div class="tool-inputs">
@@ -650,7 +651,8 @@ interface PresetInfo {
 }
 
 const presets = ref<Record<string, PresetInfo>>({})
-const availableVram = ref<number | null>(null)
+const freeVram = ref<number | null>(null)
+const totalVram = ref<number | null>(null)
 const selectedPreset = ref('small')
 const customModelId = ref('')
 const quantization = ref('')
@@ -667,16 +669,17 @@ async function fetchPresets() {
     if (resp.ok) {
       const data = await resp.json()
       presets.value = data.presets || {}
-      availableVram.value = data.available_vram_gb ?? null
+      freeVram.value = data.free_vram_gb ?? null
+      totalVram.value = data.total_vram_gb ?? null
     }
   } catch { /* GPU service may not be running */ }
 }
 
 function presetLabel(key: string, info: PresetInfo): string {
   const quant = info.suggested_quant
-  if (quant === null || quant === undefined) return `${key} (${info.vram_gb}GB) — won't fit`
-  if (quant === 'bf16') return `${key} (${info.vram_gb}GB)`
-  return `${key} (${info.vram_gb}GB → ${quant})`
+  if (quant === null || quant === undefined) return `${info.id} — won't fit`
+  if (quant === 'bf16') return info.id
+  return `${info.id} (→${quant})`
 }
 
 // =========================================================================

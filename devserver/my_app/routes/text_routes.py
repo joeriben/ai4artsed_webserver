@@ -63,10 +63,10 @@ def list_models():
 
 @text_bp.route('/presets', methods=['GET'])
 def list_presets():
-    """List available model presets."""
+    """List available model presets with VRAM info."""
     client = _get_client()
-    presets = _run_async(client.get_presets())
-    return jsonify({"presets": presets})
+    data = _run_async(client.get_presets())
+    return jsonify(data)
 
 
 @text_bp.route('/load', methods=['POST'])

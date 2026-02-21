@@ -142,21 +142,24 @@ def list_presets():
                 },
                 ...
             },
-            "available_vram_gb": 22.3
+            "free_vram_gb": 22.3,
+            "total_vram_gb": 24.0
         }
     """
     from config import TEXT_MODEL_PRESETS
-    from services.text_backend import get_text_backend, estimate_model_vram
+    from services.text_backend import estimate_model_vram
+    from services.vram_coordinator import get_vram_coordinator
 
-    backend = get_text_backend()
-    free_vram = backend._get_free_vram_gb()
+    coordinator = get_vram_coordinator()
+    free_vram_gb = coordinator.get_free_vram_mb() / 1024
+    total_vram_gb = coordinator.get_total_vram_mb() / 1024
 
     enriched = {}
     for key, preset in TEXT_MODEL_PRESETS.items():
         p = dict(preset)
-        p["fits_bf16"] = estimate_model_vram(preset["id"], "bf16") * 1.1 < free_vram
-        p["fits_int8"] = estimate_model_vram(preset["id"], "int8") * 1.1 < free_vram
-        p["fits_int4"] = estimate_model_vram(preset["id"], "int4") * 1.1 < free_vram
+        p["fits_bf16"] = estimate_model_vram(preset["id"], "bf16") * 1.1 < free_vram_gb
+        p["fits_int8"] = estimate_model_vram(preset["id"], "int8") * 1.1 < free_vram_gb
+        p["fits_int4"] = estimate_model_vram(preset["id"], "int4") * 1.1 < free_vram_gb
         p["suggested_quant"] = (
             "bf16" if p["fits_bf16"] else
             "int8" if p["fits_int8"] else
@@ -167,7 +170,8 @@ def list_presets():
 
     return jsonify({
         "presets": enriched,
-        "available_vram_gb": round(free_vram, 1),
+        "free_vram_gb": round(free_vram_gb, 1),
+        "total_vram_gb": round(total_vram_gb, 1),
     })
 
 
