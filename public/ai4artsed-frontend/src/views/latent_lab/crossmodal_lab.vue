@@ -576,6 +576,7 @@
         :output-image="resultAudio"
         media-type="audio"
         :is-executing="generating"
+        :progress="0"
         @download="downloadResultAudio"
       />
       <div v-if="resultSeed !== null || generationTimeMs || cosineSimilarity !== null" class="result-meta">
