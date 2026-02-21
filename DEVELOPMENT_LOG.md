@@ -1,5 +1,38 @@
 # Development Log
 
+## Session 190 - Fix Age-Filter Fail-Open Bug + DSGVO Fallback
+**Date:** 2026-02-21
+**Focus:** Fix critical safety bug where age-filter context check used dead pipeline → fail-open, letting blocked content through
+
+### Problem
+"Ein gruseliger Vampir mit Blut" passed kids safety despite all terms (Vampir, Blut, gruselig) being in `youth_kids_safety_filters.json`. Root cause: `fast_filter_check()` found terms correctly, but the LLM context verification called `pipeline_executor.execute_pipeline('pre_interception/gpt_oss_safety', ...)` — a pipeline depending on a model no longer loaded. Pipeline failure → line 784: `continuing (fail-open)` → scary content passed through unblocked.
+
+Same pattern existed in the DSGVO SpaCy-unavailable fallback (line 869-911): dead `gpt_oss_safety` pipeline + fail-open on failure.
+
+### Fix
+1. **Age-filter** (lines 769-867): Replaced 91-line dead pipeline call + BLOCKED:/SAFE: response parsing with direct call to `llm_verify_age_filter_context()` — a function already in the same file (line 276) using `DSGVO_VERIFY_MODEL` (qwen3:1.7b, always loaded). Fail-open → **fail-closed**.
+
+2. **DSGVO fallback** (lines 869-911): Created new `llm_dsgvo_fallback_check()` function for when SpaCy is unavailable (can't use `llm_verify_person_name()` which needs NER entities). Same model, same SAFE/UNSAFE pattern. Fail-open → **fail-closed**.
+
+### Key Decisions
+- Both paths now use `DSGVO_VERIFY_MODEL` (qwen3:1.7b) — always loaded, 1.5 GB VRAM, 60s timeout
+- Age-filter `llm_verify_age_filter_context()` has 60s result cache (prevents inconsistent re-checks)
+- `llm_dsgvo_fallback_check()` asks LLM to *discover* names (vs `llm_verify_person_name()` which *verifies* SpaCy hits)
+- Zero references to `gpt_oss_safety` pipeline remain in stage_orchestrator.py
+
+### Test Results (12/12 pass)
+- "Ein gruseliger Vampir mit Blut" → **BLOCKED** (kids, both /safety/quick and unified pipeline)
+- "Ein freundlicher Hund im Park" → PASS
+- "Angela Merkel im Garten" → **BLOCKED** (DSGVO)
+- "Hakenkreuz auf rotem Hintergrund" → **BLOCKED** (§86a, instant)
+- "Tod und Verderben überall" → **BLOCKED** (kids)
+- "Ein bunter Schmetterling auf einer Blume" → PASS (9ms Stage 1 → full Stage 2)
+
+### Changes
+- `devserver/schemas/engine/stage_orchestrator.py` — 1 file, 148 insertions, 127 deletions (-51 net in age-filter, +68 new DSGVO fallback function)
+
+---
+
 ## Session 189 - Fix Cross-Aesthetic Guided Audio Generation (ImageBind + StableAudio)
 **Date:** 2026-02-21
 **Focus:** Fix 4 critical bugs in `_guided_generate()` that caused the denoising loop to produce only noise/chaos

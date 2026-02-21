@@ -267,6 +267,87 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
         return None
 
 
+def llm_dsgvo_fallback_check(text: str) -> Optional[bool]:
+    """
+    Direct LLM check for personal names when SpaCy is unavailable.
+
+    Unlike llm_verify_person_name() (which verifies SpaCy NER hits),
+    this function asks the LLM to *discover* personal names in the text.
+    Used only as a fallback when SpaCy models can't be loaded.
+
+    Uses DSGVO_VERIFY_MODEL (local Ollama) — personal names must NEVER
+    leave the local system.
+
+    Returns:
+        True if LLM finds personal names (block).
+        False if no personal names found (safe).
+        None if LLM unavailable (fail-closed).
+    """
+    import requests
+    import config
+
+    model = config.DSGVO_VERIFY_MODEL
+    ollama_model = model.replace("local/", "") if model.startswith("local/") else model
+
+    prompt = (
+        f"Does the following text contain real person names (first names, last names, "
+        f"or full names of real people)?\n\n"
+        f"Text: \"{text}\"\n\n"
+        f"Rules:\n"
+        f"- Real person names (Angela Merkel, Hans Müller, etc.) = UNSAFE\n"
+        f"- Fictional/fantasy names in creative context = SAFE\n"
+        f"- Descriptions, adjectives, places, objects = SAFE\n"
+        f"- No names at all = SAFE\n\n"
+        f"Answer ONLY with SAFE or UNSAFE."
+    )
+    messages = [{"role": "user", "content": prompt}]
+
+    try:
+        start = _time.time()
+        response = requests.post(
+            f"{config.OLLAMA_API_BASE_URL}/api/chat",
+            json={
+                "model": ollama_model,
+                "messages": messages,
+                "stream": False,
+                "keep_alive": "10m",
+                "options": {"temperature": 0.0, "num_predict": 500}
+            },
+            timeout=60
+        )
+        response.raise_for_status()
+        msg = response.json().get("message", {})
+        result = msg.get("content", "").strip()
+        duration_ms = (_time.time() - start) * 1000
+
+        # Thinking model fallback
+        if not result:
+            thinking = msg.get("thinking", "").strip()
+            if thinking:
+                logger.info(f"[DSGVO-LLM-FALLBACK] content empty, checking thinking field ({len(thinking)} chars)")
+                thinking_upper = thinking.upper()
+                if "UNSAFE" in thinking_upper:
+                    result = "UNSAFE"
+                elif "SAFE" in thinking_upper:
+                    result = "SAFE"
+
+        if not result:
+            logger.error(f"[DSGVO-LLM-FALLBACK] LLM ({ollama_model}) returned EMPTY ({duration_ms:.0f}ms) — fail-closed")
+            return None
+
+        result_upper = result.upper().strip()
+        has_names = result_upper.startswith("UNSAFE")
+        logger.info(
+            f"[DSGVO-LLM-FALLBACK] LLM={result!r} → "
+            f"{'UNSAFE — personal names found' if has_names else 'SAFE'} ({duration_ms:.0f}ms)"
+        )
+        return has_names
+
+    except Exception as e:
+        logger.error(f"[DSGVO-LLM-FALLBACK] LLM failed ({ollama_model}): {e} — fail-closed")
+        return None
+
+
 # Cache for age-filter LLM verification results (prevents inconsistent re-checks)
 # Key: (text, safety_level), Value: (result, timestamp)
 _AGE_VERIFY_CACHE: Dict[tuple, tuple] = {}
@@ -770,101 +851,50 @@ async def execute_stage1_safety_unified(
             # Terms found → LLM context check (prevents false positives like "cute vampire")
             logger.info(f"[STAGE1] Age-filter hit: {found_age_terms[:3]} → LLM context check ({age_time*1000:.1f}ms)")
 
-            # Call LLM for context-aware age-check
-            text_with_metadata = f"[SAFETY: {safety_level}]\n{text}"
             llm_start = _time.time()
-            result = await pipeline_executor.execute_pipeline(
-                'pre_interception/gpt_oss_safety',
-                text_with_metadata,
-                execution_mode=execution_mode
-            )
+            verify_result = llm_verify_age_filter_context(text, found_age_terms, safety_level)
             llm_time = _time.time() - llm_start
 
-            if not result.success:
-                logger.warning(f"[STAGE1] LLM age-check failed: {result.error}, continuing (fail-open)")
-                # Fall through to DSGVO check
-            else:
-                response = result.final_output.strip()
+            if verify_result is None:
+                # LLM unavailable → fail-closed (kids safety errs on caution)
+                terms_str = ', '.join(found_age_terms[:5])
+                error_message = (
+                    f"⚠️ Dein Prompt wurde blockiert\n\n"
+                    f"GRUND: Sicherheitssystem nicht erreichbar\n\n"
+                    f"Gefundene Begriffe: {terms_str}\n\n"
+                    f"Das Sicherheitssystem konnte die Begriffe nicht im Kontext prüfen.\n"
+                    f"Bitte versuche es erneut oder formuliere deinen Prompt um."
+                )
+                logger.warning(f"[STAGE1] Age-filter LLM unavailable → fail-closed ({llm_time:.1f}s)")
+                return (False, text, error_message, ['§86a', 'age_filter'])
 
-                if response.startswith("BLOCKED:"):
-                    blocked_parts = response[8:].strip()
-
-                    if "Kids-Filter" in blocked_parts:
-                        parts = blocked_parts.split(" - ", 2)
-                        found_terms_str = parts[1] if len(parts) > 1 else "inappropriate content"
-                        explanation = parts[2] if len(parts) > 2 else "Prompt contains terms inappropriate for children"
-
-                        error_message = (
-                            f"⚠️ Dein Prompt wurde blockiert\n\n"
-                            f"GRUND: Kinder-Schutzfilter (6-12 Jahre)\n\n"
-                            f"{explanation}\n\n"
-                            f"Gefundene Begriffe: {found_terms_str}\n\n"
-                            f"WARUM DIESE REGEL?\n"
-                            f"Dein Prompt enthält Begriffe, die für Kinder erschreckend oder verstörend sein können.\n"
-                            f"Wir schützen dich vor Inhalten, die Angst machen oder ungeeignet für dein Alter sind."
-                        )
-                        logger.warning(f"[STAGE1] BLOCKED Kids-Filter (LLM confirmed, {llm_time:.1f}s)")
-                        return (False, text, error_message, ['§86a', 'age_filter'])
-
-                    elif "Youth-Filter" in blocked_parts:
-                        parts = blocked_parts.split(" - ", 2)
-                        found_terms_str = parts[1] if len(parts) > 1 else "inappropriate content"
-                        explanation = parts[2] if len(parts) > 2 else "Prompt contains terms inappropriate for youth"
-
-                        error_message = (
-                            f"⚠️ Dein Prompt wurde blockiert\n\n"
-                            f"GRUND: Jugendschutzfilter (13-17 Jahre)\n\n"
-                            f"{explanation}\n\n"
-                            f"Gefundene Begriffe: {found_terms_str}\n\n"
-                            f"WARUM DIESE REGEL?\n"
-                            f"Dein Prompt enthält explizite Begriffe, die für Jugendliche ungeeignet sind."
-                        )
-                        logger.warning(f"[STAGE1] BLOCKED Youth-Filter (LLM confirmed, {llm_time:.1f}s)")
-                        return (False, text, error_message, ['§86a', 'age_filter'])
-
-                    elif "§86a StGB" in blocked_parts:
-                        parts = blocked_parts.split(" - ", 2)
-                        law_reference = parts[0] if len(parts) > 0 else "§86a StGB"
-                        symbol = parts[1] if len(parts) > 1 else "extremist content"
-                        explanation = parts[2] if len(parts) > 2 else "This content violates German law"
-
-                        error_message = (
-                            f"⚠️ Dein Prompt wurde blockiert\n\n"
-                            f"GRUND: {law_reference} - {symbol}\n\n"
-                            f"{explanation}\n\n"
-                            f"WARUM DIESE REGEL?\n"
-                            f"Diese Symbole werden benutzt, um Gewalt und Hass zu verbreiten.\n"
-                            f"Wir schützen dich und andere vor gefährlichen Inhalten."
-                        )
-                        logger.warning(f"[STAGE1] BLOCKED §86a (LLM, {llm_time:.1f}s)")
-                        return (False, text, error_message, ['§86a'])
-
-                    elif "DSGVO" in blocked_parts:
-                        error_message = (
-                            f"⚠️ Dein Prompt wurde blockiert\n\n"
-                            f"GRUND: DSGVO - Persönliche Daten erkannt\n\n"
-                            f"{blocked_parts}\n\n"
-                            f"Bitte verwende keine echten Namen, Adressen oder andere persönliche Daten."
-                        )
-                        logger.warning(f"[STAGE1] BLOCKED DSGVO (LLM, {llm_time:.1f}s)")
-                        return (False, text, error_message, ['§86a', 'age_filter', 'dsgvo_llm'])
-
-                    else:
-                        error_message = (
-                            f"⚠️ Dein Prompt wurde blockiert\n\n"
-                            f"GRUND: Sicherheitsfilter\n\n"
-                            f"{blocked_parts}"
-                        )
-                        logger.warning(f"[STAGE1] BLOCKED (unknown type, LLM, {llm_time:.1f}s)")
-                        return (False, text, error_message, ['§86a', 'age_filter'])
-
-                elif response.startswith("SAFE:"):
-                    # LLM says safe — false positive (e.g., "cute vampire")
-                    logger.info(f"[STAGE1] Age-filter false positive confirmed by LLM ({llm_time:.1f}s)")
-                    # Fall through to DSGVO check
+            elif verify_result:
+                # LLM confirmed inappropriate → BLOCK with age-appropriate message
+                terms_str = ', '.join(found_age_terms[:5])
+                if safety_level == 'kids':
+                    error_message = (
+                        f"⚠️ Dein Prompt wurde blockiert\n\n"
+                        f"GRUND: Kinder-Schutzfilter (6-12 Jahre)\n\n"
+                        f"Gefundene Begriffe: {terms_str}\n\n"
+                        f"WARUM DIESE REGEL?\n"
+                        f"Dein Prompt enthält Begriffe, die für Kinder erschreckend oder verstörend sein können.\n"
+                        f"Wir schützen dich vor Inhalten, die Angst machen oder ungeeignet für dein Alter sind."
+                    )
                 else:
-                    # Unexpected format — fail-open, fall through to DSGVO check
-                    logger.warning(f"[STAGE1] Unexpected LLM response format: {response[:80]}, fail-open")
+                    error_message = (
+                        f"⚠️ Dein Prompt wurde blockiert\n\n"
+                        f"GRUND: Jugendschutzfilter (13-17 Jahre)\n\n"
+                        f"Gefundene Begriffe: {terms_str}\n\n"
+                        f"WARUM DIESE REGEL?\n"
+                        f"Dein Prompt enthält explizite Begriffe, die für Jugendliche ungeeignet sind."
+                    )
+                logger.warning(f"[STAGE1] BLOCKED age-filter (LLM confirmed, {llm_time:.1f}s)")
+                return (False, text, error_message, ['§86a', 'age_filter'])
+
+            else:
+                # LLM says benign context (false positive like "cute vampire") → allow
+                logger.info(f"[STAGE1] Age-filter false positive confirmed by LLM ({llm_time:.1f}s)")
+                # Fall through to DSGVO check
     else:
         logger.debug(f"[STAGE1] Age-filter skipped (safety_level={safety_level})")
 
@@ -918,48 +948,39 @@ async def execute_stage1_safety_unified(
         checks_passed.append('dsgvo_ner')
 
     elif not spacy_available:
-        # SpaCy NOT available → LLM Fallback for DSGVO check
+        # SpaCy NOT available → direct LLM check for personal names
         logger.warning(f"[STAGE1] SpaCy unavailable → LLM fallback for DSGVO check")
-        text_with_metadata = f"[SAFETY: {safety_level}]\n{text}"
         llm_start = _time.time()
-        result = await pipeline_executor.execute_pipeline(
-            'pre_interception/gpt_oss_safety',
-            text_with_metadata,
-            execution_mode=execution_mode
-        )
+        dsgvo_result = llm_dsgvo_fallback_check(text)
         llm_time = _time.time() - llm_start
 
-        if result.success:
-            response = result.final_output.strip()
-            if response.startswith("BLOCKED:") and "DSGVO" in response:
-                error_message = (
-                    f"⚠️ Dein Prompt wurde blockiert\n\n"
-                    f"GRUND: DSGVO - Persönliche Daten erkannt\n\n"
-                    f"{response[8:].strip()}\n\n"
-                    f"Bitte verwende Phantasienamen oder beschreibe Personen ohne echte Namen."
-                )
-                checks_passed.append('dsgvo_llm')
-                logger.warning(f"[STAGE1] BLOCKED DSGVO (LLM fallback, {llm_time:.1f}s)")
-                return (False, text, error_message, checks_passed)
-            elif response.startswith("BLOCKED:"):
-                # LLM caught something else (§86a or age) that fast-filter missed
-                blocked_parts = response[8:].strip()
-                error_message = (
-                    f"⚠️ Dein Prompt wurde blockiert\n\n"
-                    f"GRUND: Sicherheitsfilter\n\n"
-                    f"{blocked_parts}"
-                )
-                checks_passed.append('dsgvo_llm')
-                logger.warning(f"[STAGE1] BLOCKED by LLM fallback: {response[:80]} ({llm_time:.1f}s)")
-                return (False, text, error_message, checks_passed)
-            else:
-                # LLM says safe
-                checks_passed.append('dsgvo_llm')
-                logger.info(f"[STAGE1] DSGVO LLM fallback: SAFE ({llm_time:.1f}s)")
-        else:
-            # LLM failed — fail-open but log warning
+        if dsgvo_result is None:
+            # LLM unavailable → fail-closed
+            error_message = (
+                "Sicherheitssystem (Ollama) reagiert nicht, daher kann keine weitere "
+                "Verarbeitung erfolgen. Bitte den Systemadministrator kontaktieren."
+            )
             checks_passed.append('dsgvo_llm')
-            logger.warning(f"[STAGE1] DSGVO LLM fallback failed: {result.error}, continuing (fail-open)")
+            logger.warning(f"[STAGE1] DSGVO LLM fallback unavailable → fail-closed ({llm_time:.1f}s)")
+            return (False, text, error_message, checks_passed)
+        elif dsgvo_result:
+            # LLM found personal names → BLOCK
+            error_message = (
+                f"⚠️ Dein Prompt wurde blockiert\n\n"
+                f"GRUND: DSGVO - Persönliche Daten erkannt\n\n"
+                f"Dein Prompt enthält möglicherweise persönliche Daten.\n\n"
+                f"WARUM DIESE REGEL?\n"
+                f"Der Schutz persönlicher Daten (DSGVO) verbietet die Verarbeitung von Namen, "
+                f"Adressen und Kontaktdaten ohne Einwilligung.\n"
+                f"Bitte verwende Phantasienamen oder beschreibe Personen ohne echte Namen."
+            )
+            checks_passed.append('dsgvo_llm')
+            logger.warning(f"[STAGE1] BLOCKED DSGVO (LLM fallback confirmed, {llm_time:.1f}s)")
+            return (False, text, error_message, checks_passed)
+        else:
+            # LLM says no personal names → safe
+            checks_passed.append('dsgvo_llm')
+            logger.info(f"[STAGE1] DSGVO LLM fallback: SAFE ({llm_time:.1f}s)")
 
     # ── ALL CHECKS PASSED ──────────────────────────────────────────────
     total_time = _time.time() - total_start
