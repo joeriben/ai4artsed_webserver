@@ -23,7 +23,7 @@ from schemas.engine.instruction_selector import get_instruction
 from schemas.engine.stage_orchestrator import (
     execute_stage1_translation,
     execute_stage1_safety,
-    execute_stage1_gpt_oss_unified,
+    execute_stage1_safety_unified,
     execute_stage3_safety,
     execute_stage3_safety_code,
     build_safety_message,
@@ -902,7 +902,7 @@ def execute_stage2():
         logger.info(f"[OLLAMA-QUEUE] Stage 2 Endpoint: Waiting for queue slot...")
         with ollama_queue_semaphore:
             logger.info(f"[OLLAMA-QUEUE] Stage 2 Endpoint: Acquired slot, executing Stage 1")
-            is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
+            is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_safety_unified(
                 input_text,
                 safety_level,
                 execution_mode,
@@ -1948,7 +1948,7 @@ def safety_check():
 
         if check_type == 'input':
             # Stage 1 style: §86a check on user input
-            is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
+            is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_safety_unified(
                 text,
                 safety_level,
                 'eco',  # execution_mode
@@ -3422,7 +3422,7 @@ def legacy_workflow():
         # ====================================================================
         logger.info(f"[LEGACY-ENDPOINT] Stage 1: Safety check (level: {safety_level})")
 
-        is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
+        is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_safety_unified(
             prompt,
             safety_level,
             'eco',
@@ -4083,12 +4083,12 @@ def interception_pipeline():
                 recorder.save_entity('input', input_text)
                 logger.info(f"[RECORDER] Saved input entity")
 
-                # Stage 1: GPT-OSS Safety Check (No Translation)
+                # Stage 1: Safety Check (No Translation)
                 # OLLAMA QUEUE: Wrap Stage 1 execution
                 logger.info(f"[OLLAMA-QUEUE] Unified Pipeline: Waiting for queue slot...")
                 with ollama_queue_semaphore:
                     logger.info(f"[OLLAMA-QUEUE] Unified Pipeline: Acquired slot, executing Stage 1")
-                    is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_gpt_oss_unified(
+                    is_safe, checked_text, error_message, checks_passed = asyncio.run(execute_stage1_safety_unified(
                         input_text,
                         safety_level,
                         execution_mode,
@@ -4099,7 +4099,7 @@ def interception_pipeline():
                 current_input = checked_text
 
                 if not is_safe:
-                    logger.warning(f"[4-STAGE] Stage 1 BLOCKED by GPT-OSS §86a")
+                    logger.warning(f"[4-STAGE] Stage 1 BLOCKED by safety check")
 
                     # SESSION 29: Save checked text (even if blocked)
                     recorder.save_entity('stage1_output', checked_text)
@@ -4127,7 +4127,7 @@ def interception_pipeline():
                         'error': error_message,
                         'metadata': {
                             'stage': 'pre_interception',
-                            'safety_codes': ['§86a'],  # Blocked by GPT-OSS §86a StGB check
+                            'safety_codes': ['§86a'],  # Blocked by §86a StGB safety check
                             'checks_passed': checks_passed
                         }
                     }), 403
@@ -4136,7 +4136,7 @@ def interception_pipeline():
                 recorder.save_entity('stage1_output', checked_text)
                 recorder.save_entity('safety', {
                     'safe': True,
-                    'method': 'gpt_oss_safety',
+                    'method': 'safety_check',
                     'codes_checked': ['§86a'],
                     'safety_level': safety_level
                 })
