@@ -3380,7 +3380,7 @@ def legacy_workflow():
         expand_prompt = data.get('expand_prompt', False)
         safety_level = config.DEFAULT_SAFETY_LEVEL
 
-        # Hallucinator-specific parameters
+        # Surrealizer-specific parameters
         negative_prompt = data.get('negative_prompt')
         cfg = data.get('cfg')
 

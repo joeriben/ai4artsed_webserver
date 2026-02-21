@@ -684,7 +684,7 @@ const messages = {
       outerLabel: 'Äußerer Bereich eliminiert'
     },
     surrealizer: {
-      infoTitle: 'Hallucinator — Extrapolation jenseits des Bekannten',
+      infoTitle: 'Surrealisierer — Extrapolation jenseits des Bekannten',
       infoDescription: 'Zwei KI-"Gehirne" lesen deinen Text: CLIP-L versteht Sprache durch Bilder, T5 versteht sie rein sprachlich. Der Regler mischt nicht einfach zwischen beiden — er schiebt das Bild weit über das hinaus, was T5 allein erzeugen würde. Die KI muss dann Vektoren interpretieren, die sie im Training nie gesehen hat. Das Ergebnis: KI-Halluzinationen — Bilder, die kein Prompt direkt erzeugen könnte.',
       purposeTitle: 'Der Regler',
       purposeText: 'α < 0: CLIP-L wird verstärkt, T5 negiert — die oberen 3328 Dimensionen (wo CLIP-L nur Nullen hat) erhalten invertierte T5-Vektoren. Die Cross-Attention-Muster im Transformer kehren sich um: visuell getriebene Halluzinationen. ◆ α = 0: reines CLIP-L — normales Bild. ◆ α = 1: reines T5-XXL — noch normal, aber andere Qualität. ◆ α > 1: Extrapolation über T5 hinaus. Bei α = 20 schiebt die Formel das Embedding 19× über T5 hinweg in unerforschten Vektorraum — sprachlich getriebene Halluzinationen. ◆ Sweet Spot: α = 15–35.',
@@ -2003,7 +2003,7 @@ const messages = {
       outerLabel: 'Outer range eliminated'
     },
     surrealizer: {
-      infoTitle: 'Hallucinator — Extrapolation Beyond the Known',
+      infoTitle: 'Surrealizer — Extrapolation Beyond the Known',
       infoDescription: 'Two AI "brains" read your text: CLIP-L understands language through images, T5 understands it purely linguistically. The slider doesn\'t simply blend between them — it pushes the image far beyond what T5 alone would produce. The AI must then interpret vectors it has never encountered during training. The result: AI hallucinations — images that no prompt could directly produce.',
       purposeTitle: 'The Slider',
       purposeText: 'α < 0: CLIP-L amplified, T5 negated — the upper 3328 dimensions (where CLIP-L is zero-padded) receive inverted T5 vectors. Cross-attention patterns in the transformer flip: visually driven hallucinations. ◆ α = 0: pure CLIP-L — normal image. ◆ α = 1: pure T5-XXL — still normal, but different quality. ◆ α > 1: extrapolation past T5. At α = 20 the formula pushes the embedding 19× beyond T5 into unexplored vector space — linguistically driven hallucinations. ◆ Sweet spot: α = 15–35.',
@@ -3322,7 +3322,7 @@ const messages = {
       outerLabel: 'Dış aralık elendi'
     },
     surrealizer: {
-      infoTitle: 'Halüsinatör — Bilinenden Ötesine Ekstrapolasyon',
+      infoTitle: 'Gerçeküstüleştirici — Bilinenden Ötesine Ekstrapolasyon',
       infoDescription: 'İki yapay zeka "beyni" metninizi okur: CLIP-L dili görseller aracılığıyla, T5 ise onu saf dilbilimsel olarak anlar. Kaydırıcı sadece aralarında karıştırmaz — görseli T5\'in tek başına üretebileceğinin çok ötesine iter. Yapay zekanın ardından eğitim sırasında hiç karşılaşmadığı vektörleri yorumlaması gerekir. Sonuç: Yapay zeka halüsinasyonları — hiçbir promptun doğrudan üretemeyeceği görseller.',
       purposeTitle: 'Kaydırıcı',
       purposeText: 'α < 0: CLIP-L yükseltildi, T5 olumsuzlandı — üst 3328 boyut (CLIP-L\'nin sıfırla doldurulduğu) ters çevrilmiş T5 vektörleri alır. Transformatördeki çapraz dikkat örüntüleri tersine döner: görsel odaklı halüsinasyonlar. ◆ α = 0: saf CLIP-L — normal görsel. ◆ α = 1: saf T5-XXL — hâlâ normal, ancak farklı kalite. ◆ α > 1: T5\'in ötesine ekstrapolasyon. α = 20\'de formül gömmeyi T5\'in 19 katı ötesinde keşfedilmemiş vektör uzayına iter — dilbilimsel odaklı halüsinasyonlar. ◆ En iyi nokta: α = 15–35.',
@@ -4641,7 +4641,7 @@ const messages = {
       outerLabel: '외부 범위 제거됨'
     },
     surrealizer: {
-      infoTitle: 'Hallucinator — 알려진 것을 넘어선 외삽',
+      infoTitle: '초현실화기 — 알려진 것을 넘어선 외삽',
       infoDescription: '두 개의 AI "두뇌"가 텍스트를 읽습니다: CLIP-L은 이미지를 통해 언어를 이해하고, T5는 순수하게 언어적으로 이해합니다. 슬라이더는 단순히 혼합하지 않고 — T5만으로 생성할 수 있는 것을 훨씬 넘어서 이미지를 밀어냅니다. AI는 학습 중에 한 번도 접하지 못한 벡터를 해석해야 합니다. 결과: AI 환각 — 어떤 프롬프트로도 직접 생성할 수 없는 이미지.',
       purposeTitle: '슬라이더',
       purposeText: 'α < 0: CLIP-L 증폭, T5 부정 — 상위 3328차원(CLIP-L이 제로패딩된 곳)이 반전된 T5 벡터를 받습니다. 트랜스포머의 교차 어텐션 패턴이 뒤집힙니다: 시각 주도 환각. ◆ α = 0: 순수 CLIP-L — 일반 이미지. ◆ α = 1: 순수 T5-XXL — 여전히 일반적이지만 다른 품질. ◆ α > 1: T5를 넘어선 외삽. α = 20에서 공식은 임베딩을 T5 너머 탐험되지 않은 벡터 공간으로 19배 밀어냅니다 — 언어 주도 환각. ◆ 최적 범위: α = 15-35.',
@@ -5960,7 +5960,7 @@ const messages = {
       outerLabel: 'Зовнішній діапазон елімінований'
     },
     surrealizer: {
-      infoTitle: 'Галюцинатор — Екстраполяція за межі відомого',
+      infoTitle: 'Сюрреалізатор — Екстраполяція за межі відомого',
       infoDescription: 'Два ШІ-«мозки» читають твій текст: CLIP-L розуміє мову через зображення, T5 — суто лінгвістично. Повзунок не просто змішує між ними — він штовхає зображення далеко за межі того, що T5 сам по собі створив би. ШІ має інтерпретувати вектори, яких він ніколи не зустрічав під час навчання. Результат: ШІ-галюцинації — зображення, які жоден промпт не міг би створити безпосередньо.',
       purposeTitle: 'Повзунок',
       purposeText: 'α < 0: CLIP-L підсилений, T5 інвертований — верхні 3328 вимірів (де CLIP-L заповнений нулями) отримують інвертовані вектори T5. Паттерни крос-уваги в трансформері перевертаються: візуально зумовлені галюцинації. ◆ α = 0: чистий CLIP-L — нормальне зображення. ◆ α = 1: чистий T5-XXL — ще нормально, але інша якість. ◆ α > 1: екстраполяція за T5. При α = 20 формула штовхає вкладення у 19× далі за T5 у незвіданий векторний простір — лінгвістично зумовлені галюцинації. ◆ Оптимальна зона: α = 15–35.',
@@ -7278,7 +7278,7 @@ const messages = {
       outerLabel: 'Plage extérieure éliminée'
     },
     surrealizer: {
-      infoTitle: 'Hallucinator — Extrapolation au-delà du connu',
+      infoTitle: 'Surréalisateur — Extrapolation au-delà du connu',
       infoDescription: 'Deux « cerveaux » d\'IA lisent votre texte : CLIP-L comprend le langage à travers les images, T5 le comprend de manière purement linguistique. Le curseur ne fait pas simplement un mélange — il pousse l\'image bien au-delà de ce que T5 seul produirait. L\'IA doit alors interpréter des vecteurs qu\'elle n\'a jamais rencontrés pendant l\'entraînement. Le résultat : des hallucinations d\'IA — des images qu\'aucun prompt ne pourrait produire directement.',
       purposeTitle: 'Le curseur',
       purposeText: 'α < 0 : CLIP-L amplifié, T5 inversé — les 3328 dimensions supérieures (où CLIP-L est rempli de zéros) reçoivent des vecteurs T5 inversés. Les patterns d\'attention croisée dans le transformer s\'inversent : hallucinations pilotées visuellement. ◆ α = 0 : CLIP-L pur — image normale. ◆ α = 1 : T5-XXL pur — encore normal, mais qualité différente. ◆ α > 1 : extrapolation au-delà de T5. À α = 20, la formule pousse l\'embedding 19× au-delà de T5 dans un espace vectoriel inexploré — hallucinations pilotées linguistiquement. ◆ Sweet spot : α = 15–35.',

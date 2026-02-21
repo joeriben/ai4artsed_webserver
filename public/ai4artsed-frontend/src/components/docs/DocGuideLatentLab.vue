@@ -8,9 +8,9 @@
       ? 'Verfügbar nur bei Sicherheitsstufe "Erwachsene" oder "Forschung" \u2014 aus technischen Gründen sind Text- und Bildergebnisse unvorhersehbar. "Erwachsene" meint hier nicht "FSK 18", sondern verweist auf die Notwendigkeit mündiger Verantwortlichkeit der Bedienenden. Das kann auch bedeuten: zentral im Unterricht unter Aufsicht oder durch Lehrende bedient.'
       : 'Available only at Safety Level "Adult" or "Research" \u2014 for technical reasons, text and image results are unpredictable. "Adult" here does not mean age-restricted content, but refers to the need for responsible, informed operation. This can also mean: used centrally in class under supervision or operated by teachers.' }}</p>
 
-    <!-- Hallucinator -->
+    <!-- Surrealizer -->
     <div class="experiment-card surrealizer">
-      <h3>Hallucinator</h3>
+      <h3>Surrealizer</h3>
       <div class="experiment-what">
         <strong>{{ currentLanguage === 'de' ? 'Was passiert hier?' : 'What happens here?' }}</strong>
         <p>{{ currentLanguage === 'de'
@@ -37,12 +37,12 @@
       </div>
 
       <!-- Deep Dive: Mathematics -->
-      <button class="deep-dive-toggle" @click="showHallucinatorMath = !showHallucinatorMath">
+      <button class="deep-dive-toggle" @click="showSurrealizerMath = !showSurrealizerMath">
         {{ currentLanguage === 'de' ? '\ud83d\udcd0 Die Mathematik im Detail' : '\ud83d\udcd0 The Mathematics in Detail' }}
-        <span class="toggle-arrow">{{ showHallucinatorMath ? '\u25b2' : '\u25bc' }}</span>
+        <span class="toggle-arrow">{{ showSurrealizerMath ? '\u25b2' : '\u25bc' }}</span>
       </button>
 
-      <div v-if="showHallucinatorMath" class="deep-dive-content">
+      <div v-if="showSurrealizerMath" class="deep-dive-content">
         <!-- Section 1: Two Worlds -->
         <h4>{{ currentLanguage === 'de' ? 'CLIP-L vs T5-XXL: Zwei verschiedene "Welten"' : 'CLIP-L vs T5-XXL: Two Different "Worlds"' }}</h4>
         <p>{{ currentLanguage === 'de'
@@ -309,7 +309,7 @@ import { ref } from 'vue'
 
 defineProps<{ currentLanguage: string }>()
 
-const showHallucinatorMath = ref(false)
+const showSurrealizerMath = ref(false)
 const showAttentionMath = ref(false)
 const showProbingMath = ref(false)
 const showAlgebraMath = ref(false)
