@@ -1104,7 +1104,7 @@ const messages = {
             label: 'MMAudio',
             short: 'Bild/Text zu Audio (CVPR 2025)',
             title: 'MMAudio — Video/Image to Audio',
-            description: 'MMAudio (CVPR 2025): 157M Parameter, gemeinsam auf Video und Audio trainiert. Generiert bis zu 8s bei 44.1kHz in ~1.2s.'
+            description: 'Bild und Text fliessen als getrennte Signale in dasselbe Netzwerk ein — das Bild wird nicht in Sprache uebersetzt, sondern beide steuern die Klangerzeugung gleichzeitig. Das Modell wurde gemeinsam auf Video und Audio trainiert und lernt dadurch direkte Zusammenhaenge zwischen Sichtbarem und Hoerbarem. Bis 8s, 44.1kHz, ~1.2s Rechenzeit. (Cheng et al., CVPR 2025, doi:10.48550/arXiv.2412.15322)'
           },
           guidance: {
             label: 'ImageBind Guidance',
@@ -2400,7 +2400,7 @@ const messages = {
             label: 'MMAudio',
             short: 'Image/text to audio (CVPR 2025)',
             title: 'MMAudio — Video/Image to Audio',
-            description: 'MMAudio (CVPR 2025): 157M parameters, jointly trained on video and audio. Generates up to 8s at 44.1kHz in ~1.2s.'
+            description: 'Image and text enter the same network as separate signals — the image is not translated into language, both guide sound generation simultaneously. The model was jointly trained on video and audio, learning direct associations between what is seen and what is heard. Up to 8s, 44.1kHz, ~1.2s compute time. (Cheng et al., CVPR 2025, doi:10.48550/arXiv.2412.15322)'
           },
           guidance: {
             label: 'ImageBind Guidance',
@@ -3696,7 +3696,7 @@ const messages = {
             label: 'MMAudio',
             short: 'Görsel/metinden ses (CVPR 2025)',
             title: 'MMAudio — Video/Görselden Ses',
-            description: 'MMAudio (CVPR 2025): 157M parametre, video ve ses üzerinde birlikte eğitilmiş. 44,1kHz\'de 8s\'ye kadar ses üretir, ~1,2s\'de.'
+            description: 'Görsel ve metin aynı ağa ayrı sinyaller olarak girer — görsel dile çevrilmez, ikisi birlikte ses üretimini yönlendirir. Model, video ve ses üzerinde birlikte eğitilmiştir ve görülen ile duyulan arasındaki doğrudan ilişkileri öğrenir. 8s\'ye kadar, 44,1kHz, ~1,2s hesaplama süresi. (Cheng vd., CVPR 2025, doi:10.48550/arXiv.2412.15322)'
           },
           guidance: {
             label: 'ImageBind Rehberliği',
@@ -4992,7 +4992,7 @@ const messages = {
             label: 'MMAudio',
             short: '이미지/텍스트를 오디오로 (CVPR 2025)',
             title: 'MMAudio — 비디오/이미지를 오디오로',
-            description: 'MMAudio (CVPR 2025): 1억 5700만 매개변수, 비디오와 오디오로 공동 학습. 44.1kHz에서 최대 8초 오디오를 ~1.2초 만에 생성.'
+            description: '이미지와 텍스트가 별도의 신호로 같은 네트워크에 입력됩니다 — 이미지는 언어로 변환되지 않으며, 둘 다 동시에 소리 생성을 안내합니다. 모델은 비디오와 오디오로 공동 학습되어 보이는 것과 들리는 것 사이의 직접적인 연관성을 학습합니다. 최대 8초, 44.1kHz, ~1.2초 계산 시간. (Cheng et al., CVPR 2025, doi:10.48550/arXiv.2412.15322)'
           },
           guidance: {
             label: 'ImageBind 가이던스',
@@ -6288,7 +6288,7 @@ const messages = {
             label: 'MMAudio',
             short: 'Зображення/текст у аудіо (CVPR 2025)',
             title: 'MMAudio — Відео/зображення у аудіо',
-            description: 'MMAudio (CVPR 2025): 157M параметрів, спільно навчена на відео та аудіо. Генерує до 8с при 44,1кГц за ~1,2с.'
+            description: 'Зображення та текст надходять в одну мережу як окремі сигнали — зображення не перекладається у мову, обидва одночасно спрямовують генерацію звуку. Модель навчалась спільно на відео та аудіо, засвоюючи прямі зв\'язки між видимим та чутним. До 8с, 44,1кГц, ~1,2с обчислень. (Cheng et al., CVPR 2025, doi:10.48550/arXiv.2412.15322)'
           },
           guidance: {
             label: 'ImageBind Guidance',
