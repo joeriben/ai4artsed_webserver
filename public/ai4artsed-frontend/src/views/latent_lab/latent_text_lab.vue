@@ -24,89 +24,16 @@
       {{ errorMessage }}
     </div>
 
-    <!-- Compact Model Bar -->
-    <div class="model-bar">
-      <div class="model-bar-status">
-        <template v-if="isLoadingModel">
-          <span class="spinner"></span>
-          <span class="model-bar-text muted">{{ t('latentLab.textLab.modelPanel.loading') }}</span>
-        </template>
-        <template v-else-if="loadedModel">
-          <span class="status-dot loaded"></span>
-          <span class="model-bar-text">
-            <strong>{{ loadedModel.model_id }}</strong>
-            ({{ loadedModel.quantization }})
-            — {{ loadedModel.vram_mb }}MB
-          </span>
-        </template>
-        <template v-else-if="autoLoadFailed">
-          <span class="status-dot error"></span>
-          <span class="model-bar-text muted">{{ t('latentLab.textLab.modelPanel.autoLoadFailed') }}</span>
-        </template>
-        <template v-else>
-          <span class="status-dot"></span>
-          <span class="model-bar-text muted">{{ t('latentLab.textLab.modelPanel.statusNone') }}</span>
-        </template>
-      </div>
-      <details class="model-bar-toggle">
-        <summary>{{ t('latentLab.textLab.modelPanel.switchModel') }}</summary>
-        <div class="model-bar-expanded">
-          <div class="control-row">
-            <label class="control-label">
-              {{ t('latentLab.textLab.modelPanel.presetLabel') }}
-              <select v-model="selectedPreset" class="control-select" :disabled="isLoadingModel">
-                <option value="">{{ t('latentLab.textLab.modelPanel.presetNone') }}</option>
-                <option v-for="(info, key) in presets" :key="key" :value="key">
-                  {{ key }} ({{ info.vram_gb }}GB) — {{ info.description }}
-                </option>
-              </select>
-            </label>
-            <label v-if="!selectedPreset" class="control-label">
-              {{ t('latentLab.textLab.modelPanel.customModelLabel') }}
-              <input
-                v-model="customModelId"
-                type="text"
-                class="control-input"
-                :placeholder="t('latentLab.textLab.modelPanel.customModelPlaceholder')"
-                :disabled="isLoadingModel"
-              />
-            </label>
-            <label class="control-label">
-              {{ t('latentLab.textLab.modelPanel.quantizationLabel') }}
-              <select v-model="quantization" class="control-select" :disabled="isLoadingModel">
-                <option value="">{{ t('latentLab.textLab.modelPanel.quantAuto') }}</option>
-                <option value="bf16">bf16</option>
-                <option value="int8">int8</option>
-                <option value="int4">int4</option>
-              </select>
-              <div class="control-hint">{{ t('latentLab.textLab.modelPanel.quantizationHint') }}</div>
-            </label>
-          </div>
-          <div class="control-row model-bar-actions">
-            <button
-              class="action-btn load-btn"
-              :disabled="!canLoad || isLoadingModel"
-              @click="loadModel"
-            >
-              <span v-if="isLoadingModel" class="spinner"></span>
-              <span v-else>{{ t('latentLab.textLab.modelPanel.loadBtn') }}</span>
-            </button>
-            <button
-              class="action-btn unload-btn"
-              :disabled="!isModelLoaded || isLoadingModel"
-              @click="unloadModel"
-            >
-              {{ t('latentLab.textLab.modelPanel.unloadBtn') }}
-            </button>
-          </div>
-        </div>
-      </details>
-    </div>
-
-    <!-- Auto-loading banner -->
-    <div v-if="isLoadingModel && !loadedModel" class="model-loading-banner">
-      <span class="spinner"></span>
-      <span>{{ t('latentLab.textLab.modelPanel.autoLoading') }}</span>
+    <!-- Model Selector -->
+    <div class="model-selector-row">
+      <label class="control-label control-small">
+        {{ t('latentLab.textLab.modelPanel.presetLabel') }}
+        <select v-model="selectedPreset" class="control-select">
+          <option v-for="(info, key) in presets" :key="key" :value="key">
+            {{ key }} ({{ info.vram_gb }}GB)
+          </option>
+        </select>
+      </label>
     </div>
 
     <!-- Tab navigation -->
@@ -184,7 +111,7 @@
           </label>
           <button
             class="action-btn"
-            :disabled="!hasValidPairs || repLoading || !isModelLoaded"
+            :disabled="!hasValidPairs || repLoading"
             @click="findDirection"
           >
             <span v-if="repLoading" class="spinner"></span>
@@ -260,7 +187,7 @@
             </div>
             <button
               class="action-btn"
-              :disabled="!repTestText.trim() || repGenerating || !isModelLoaded"
+              :disabled="!repTestText.trim() || repGenerating"
               @click="runRepGeneration"
             >
               <span v-if="repGenerating" class="spinner"></span>
@@ -306,23 +233,17 @@
           <p class="science-text">{{ t('latentLab.textLab.compare.science') }}</p>
         </details>
 
-        <!-- Model A (from shared panel) -->
+        <!-- Model A (from shared preset selector) -->
         <div class="subsection model-a-panel">
           <h4 class="subsection-title">{{ t('latentLab.textLab.compare.modelATitle') }}</h4>
           <div class="model-status">
-            <template v-if="loadedModel">
-              <span class="status-dot loaded"></span>
-              <span class="status-text">
-                <strong>{{ loadedModel.model_id }}</strong>
-                ({{ loadedModel.quantization }})
-                — {{ loadedModel.vram_mb }}MB
-              </span>
-              <span class="model-a-hint">{{ t('latentLab.textLab.compare.modelAHint') }}</span>
-            </template>
-            <template v-else>
-              <span class="status-dot"></span>
-              <span class="status-text muted">{{ t('latentLab.textLab.modelPanel.statusNone') }}</span>
-            </template>
+            <span class="status-text">
+              <strong>{{ selectedPreset }}</strong>
+              <template v-if="presets[selectedPreset]">
+                ({{ presets[selectedPreset]?.vram_gb }}GB) — {{ presets[selectedPreset]?.description }}
+              </template>
+            </span>
+            <span class="model-a-hint">{{ t('latentLab.textLab.compare.modelAHint') }}</span>
           </div>
         </div>
 
@@ -404,7 +325,7 @@
             </label>
             <button
               class="action-btn"
-              :disabled="!cmpText.trim() || !loadedModelB || cmpLoading || !isModelLoaded"
+              :disabled="!cmpText.trim() || !loadedModelB || cmpLoading"
               @click="runComparison"
             >
               <span v-if="cmpLoading" class="spinner"></span>
@@ -542,7 +463,7 @@
           </div>
           <button
             class="action-btn"
-            :disabled="!biasPrompt.trim() || biasLoading || !isModelLoaded"
+            :disabled="!biasPrompt.trim() || biasLoading"
             @click="runBiasProbe"
           >
             <span v-if="biasLoading" class="spinner"></span>
@@ -593,7 +514,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -639,22 +560,15 @@ interface PresetInfo {
 }
 
 const presets = ref<Record<string, PresetInfo>>({})
-const selectedPreset = ref('')
+const selectedPreset = ref('small')
 const customModelId = ref('')
 const quantization = ref('')
-const isLoadingModel = ref(false)
-const loadedModel = ref<ModelInfo | null>(null)
-const autoLoadFailed = ref(false)
 
-const isModelLoaded = computed(() => loadedModel.value !== null)
-
-const effectiveModelId = computed(() => {
+const activeModelId = computed(() => {
   const preset = selectedPreset.value ? presets.value[selectedPreset.value] : undefined
   if (preset) return preset.id
   return customModelId.value.trim()
 })
-
-const canLoad = computed(() => effectiveModelId.value.length > 0)
 
 async function fetchPresets() {
   try {
@@ -664,66 +578,6 @@ async function fetchPresets() {
       presets.value = data.presets || {}
     }
   } catch { /* GPU service may not be running */ }
-}
-
-async function fetchModels() {
-  try {
-    const resp = await fetch(`${apiBase}/api/text/models`)
-    if (resp.ok) {
-      const data = await resp.json()
-      const models: ModelInfo[] = data.models || []
-      loadedModel.value = models[0] ?? null
-    }
-  } catch { /* GPU service may not be running */ }
-}
-
-async function loadModel() {
-  if (!canLoad.value || isLoadingModel.value) return
-  isLoadingModel.value = true
-  errorMessage.value = ''
-  autoLoadFailed.value = false
-  try {
-    const resp = await fetch(`${apiBase}/api/text/load`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model_id: effectiveModelId.value,
-        quantization: quantization.value || undefined,
-      }),
-    })
-    const data = await resp.json()
-    if (data.error) {
-      showError(data.error)
-    } else {
-      loadedModel.value = {
-        model_id: data.model_id,
-        quantization: data.quantization,
-        vram_mb: data.vram_mb,
-      }
-    }
-  } catch {
-    showError(t('latentLab.textLab.error.gpuUnreachable'))
-  } finally {
-    isLoadingModel.value = false
-  }
-}
-
-async function unloadModel() {
-  if (!loadedModel.value) return
-  isLoadingModel.value = true
-  try {
-    const resp = await fetch(`${apiBase}/api/text/unload`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model_id: loadedModel.value.model_id }),
-    })
-    const data = await resp.json()
-    if (!data.error) loadedModel.value = null
-  } catch {
-    showError(t('latentLab.textLab.error.gpuUnreachable'))
-  } finally {
-    isLoadingModel.value = false
-  }
 }
 
 // =========================================================================
@@ -784,7 +638,7 @@ function projectionBarStyle(projection: number): Record<string, string> {
 }
 
 async function findDirection() {
-  if (!hasValidPairs.value || !loadedModel.value || repLoading.value) return
+  if (!hasValidPairs.value || !activeModelId.value || repLoading.value) return
   repLoading.value = true
   errorMessage.value = ''
   repGenResult.value = null
@@ -797,7 +651,7 @@ async function findDirection() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contrast_pairs: validPairs,
-        model_id: loadedModel.value.model_id,
+        model_id: activeModelId.value,
         target_layer: repTargetLayer.value,
       }),
     })
@@ -839,7 +693,7 @@ async function interpretRepEngResults(data: RepResult) {
 }
 
 async function runRepGeneration() {
-  if (!repTestText.value.trim() || !loadedModel.value || repGenerating.value) return
+  if (!repTestText.value.trim() || !activeModelId.value || repGenerating.value) return
   repGenerating.value = true
   errorMessage.value = ''
   repInterpretation.value = null
@@ -853,7 +707,7 @@ async function runRepGeneration() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contrast_pairs: validPairs,
-        model_id: loadedModel.value.model_id,
+        model_id: activeModelId.value,
         target_layer: repTargetLayer.value,
         test_text: repTestText.value,
         alpha: repAlpha.value,
@@ -980,7 +834,7 @@ async function interpretCompareResults(data: CompareResult) {
 }
 
 async function runComparison() {
-  if (!cmpText.value.trim() || !loadedModel.value || !loadedModelB.value || cmpLoading.value) return
+  if (!cmpText.value.trim() || !activeModelId.value || !loadedModelB.value || cmpLoading.value) return
   cmpLoading.value = true
   errorMessage.value = ''
   cmpInterpretation.value = null
@@ -991,7 +845,7 @@ async function runComparison() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: cmpText.value,
-        model_id_a: loadedModel.value.model_id,
+        model_id_a: activeModelId.value,
         model_id_b: loadedModelB.value.model_id,
         max_new_tokens: cmpMaxTokens.value,
         temperature: cmpTemp.value,
@@ -1182,7 +1036,7 @@ async function interpretBiasResults(data: BiasResult) {
 }
 
 async function runBiasProbe() {
-  if (!biasPrompt.value.trim() || !loadedModel.value || biasLoading.value) return
+  if (!biasPrompt.value.trim() || !activeModelId.value || biasLoading.value) return
   biasLoading.value = true
   errorMessage.value = ''
   biasResult.value = null
@@ -1191,7 +1045,7 @@ async function runBiasProbe() {
 
   const payload: Record<string, unknown> = {
     prompt: biasPrompt.value,
-    model_id: loadedModel.value.model_id,
+    model_id: activeModelId.value,
     bias_type: biasType.value,
     num_samples: biasSamples.value,
     temperature: biasTemp.value,
@@ -1227,47 +1081,10 @@ async function runBiasProbe() {
 }
 
 // =========================================================================
-// Auto-load default model
-// =========================================================================
-async function autoLoadDefaultModel() {
-  const smallPreset = presets.value['small']
-  if (!smallPreset) return
-  selectedPreset.value = 'small'
-  isLoadingModel.value = true
-  try {
-    const resp = await fetch(`${apiBase}/api/text/load`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model_id: smallPreset.id,
-        quantization: undefined,
-      }),
-    })
-    const data = await resp.json()
-    if (data.error) {
-      autoLoadFailed.value = true
-    } else {
-      loadedModel.value = {
-        model_id: data.model_id,
-        quantization: data.quantization,
-        vram_mb: data.vram_mb,
-      }
-    }
-  } catch {
-    autoLoadFailed.value = true
-  } finally {
-    isLoadingModel.value = false
-  }
-}
-
-// =========================================================================
 // Lifecycle
 // =========================================================================
-onMounted(async () => {
-  await Promise.all([fetchPresets(), fetchModels()])
-  if (!loadedModel.value) {
-    autoLoadDefaultModel()
-  }
+onMounted(() => {
+  fetchPresets()
 })
 </script>
 
@@ -1293,71 +1110,12 @@ onMounted(async () => {
 /* Error banner */
 .error-banner { background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.3); color: #fca5a5; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; cursor: pointer; font-size: 0.85rem; }
 
-/* Compact model bar */
-.model-bar {
+/* Model selector row */
+.model-selector-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
   margin-bottom: 1rem;
-}
-.model-bar-status {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-.model-bar-text {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-}
-.model-bar-text.muted { color: rgba(255, 255, 255, 0.3); }
-.model-bar-toggle {
-  flex-shrink: 0;
-}
-.model-bar-toggle summary {
-  cursor: pointer;
-  color: rgba(102, 126, 234, 0.7);
-  font-size: 0.8rem;
-  user-select: none;
-}
-.model-bar-toggle summary:hover { color: #667eea; }
-.model-bar-expanded {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 0.5rem);
-  z-index: 20;
-  background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 1rem;
-  min-width: 400px;
-  max-width: 600px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.model-bar-toggle { position: relative; }
-.model-bar-actions { align-items: center; }
-.status-dot.error { background: #f87171; box-shadow: 0 0 6px rgba(248, 113, 113, 0.4); }
-
-/* Auto-loading banner */
-.model-loading-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 1rem;
-  background: rgba(102, 126, 234, 0.06);
-  border: 1px solid rgba(102, 126, 234, 0.12);
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
 }
 
 /* Tab navigation */
@@ -1423,9 +1181,6 @@ onMounted(async () => {
 .action-btn { padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 600; border: none; border-radius: 8px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(102, 126, 234, 0.15)); color: #667eea; cursor: pointer; transition: all 0.2s ease; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
 .action-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
 .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.unload-btn { background: rgba(220, 38, 38, 0.15); color: #f87171; }
-.unload-btn:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2); }
-
 /* Spinner */
 .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(102, 126, 234, 0.3); border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1504,8 +1259,6 @@ onMounted(async () => {
   .control-small { flex: 1; }
   .generation-comparison { grid-template-columns: 1fr; }
   .model-status { margin-left: 0; margin-top: 0.5rem; }
-  .model-bar { flex-direction: column; align-items: flex-start; }
-  .model-bar-expanded { position: static; min-width: unset; max-width: 100%; box-shadow: none; border: 1px solid rgba(255, 255, 255, 0.08); margin-top: 0.5rem; }
   .pair-row { flex-direction: column; }
   .pair-separator { display: none; }
   .tab-nav { overflow-x: auto; }
