@@ -945,11 +945,11 @@ def get_sessions():
     - per_page: Items per page (default: 50, max: 500)
     - date_from: Filter by start date (YYYY-MM-DD)
     - date_to: Filter by end date (YYYY-MM-DD)
-    - user_id: Filter by user ID
+    - device_id: Filter by device ID
     - config_name: Filter by config name
     - safety_level: Filter by safety level
     - search: Search in run_id
-    - sort: Sort field (timestamp, user_id, config_name, default: timestamp)
+    - sort: Sort field (timestamp, device_id, config_name, default: timestamp)
     - order: Sort order (asc, desc, default: desc)
     """
     try:
@@ -958,7 +958,7 @@ def get_sessions():
         per_page = min(request.args.get('per_page', 50, type=int), 500)
         date_from = request.args.get('date_from', None)
         date_to = request.args.get('date_to', None)
-        user_filter = request.args.get('user_id', None)
+        device_filter = request.args.get('device_id', None)
         config_filter = request.args.get('config_name', None)
         safety_filter = request.args.get('safety_level', None)
         search_filter = request.args.get('search', None)
@@ -1067,8 +1067,8 @@ def get_sessions():
                     except:
                         pass
 
-                # Apply user filter
-                if user_filter and metadata.get('user_id') != user_filter:
+                # Apply device filter
+                if device_filter and metadata.get('device_id') != device_filter:
                     continue
 
                 # Apply config filter
@@ -1118,7 +1118,7 @@ def get_sessions():
                     'output_mode': output_mode,
                     'execution_mode': metadata.get('execution_mode'),
                     'safety_level': metadata.get('safety_level'),
-                    'user_id': metadata.get('user_id'),
+                    'device_id': metadata.get('device_id'),
                     'stage': metadata.get('current_state', {}).get('stage'),
                     'step': metadata.get('current_state', {}).get('step'),
                     'entity_count': len(metadata.get('entities', [])),
@@ -1136,7 +1136,7 @@ def get_sessions():
 
         # Sort sessions
         reverse = (sort_order == 'desc')
-        if sort_field in ['timestamp', 'user_id', 'config_name', 'safety_level']:
+        if sort_field in ['timestamp', 'device_id', 'config_name', 'safety_level']:
             all_sessions.sort(key=lambda x: x.get(sort_field, ''), reverse=reverse)
 
         # Pagination
@@ -1147,7 +1147,7 @@ def get_sessions():
         paginated_sessions = all_sessions[start:end]
 
         # Collect unique values for filters
-        unique_users = sorted(set(s['user_id'] for s in all_sessions if s.get('user_id')))
+        unique_devices = sorted(set(s['device_id'] for s in all_sessions if s.get('device_id')))
         unique_configs = sorted(set(s['config_name'] for s in all_sessions if s.get('config_name')))
         unique_safety_levels = sorted(set(s['safety_level'] for s in all_sessions if s.get('safety_level')))
 
@@ -1158,7 +1158,7 @@ def get_sessions():
             "per_page": per_page,
             "total_pages": total_pages,
             "filters": {
-                "users": unique_users,
+                "devices": unique_devices,
                 "configs": unique_configs,
                 "safety_levels": unique_safety_levels
             }

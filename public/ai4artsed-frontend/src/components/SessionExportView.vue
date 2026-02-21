@@ -12,8 +12,8 @@
         <div class="stat-label">Total Sessions</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">{{ stats.users }}</div>
-        <div class="stat-label">Users</div>
+        <div class="stat-number">{{ stats.devices }}</div>
+        <div class="stat-label">Devices</div>
       </div>
       <div class="stat-card">
         <div class="stat-number">{{ stats.configs }}</div>
@@ -82,11 +82,11 @@
         </div>
 
         <div class="filter-group">
-          <label>User</label>
-          <select v-model="filters.user_id" @change="applyFilters">
-            <option value="">All Users</option>
-            <option v-for="user in availableFilters.users" :key="user" :value="user">
-              {{ user }}
+          <label>Device</label>
+          <select v-model="filters.device_id" @change="applyFilters">
+            <option value="">All Devices</option>
+            <option v-for="device in availableFilters.devices" :key="device" :value="device">
+              {{ device.substring(0, 8) }}...
             </option>
           </select>
         </div>
@@ -191,9 +191,9 @@
               Timestamp
               <span v-if="sortField === 'timestamp'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
             </th>
-            <th @click="sortBy('user_id')" class="sortable">
-              User
-              <span v-if="sortField === 'user_id'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            <th @click="sortBy('device_id')" class="sortable">
+              Device
+              <span v-if="sortField === 'device_id'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
             </th>
             <th @click="sortBy('config_name')" class="sortable">
               Stage2-Config
@@ -223,7 +223,7 @@
               </div>
             </td>
             <td>{{ formatTimestamp(session.timestamp) }}</td>
-            <td>{{ session.user_id }}</td>
+            <td>{{ session.device_id ? session.device_id.substring(0, 8) + '...' : 'N/A' }}</td>
             <td><span class="config-badge">{{ session.config_name }}</span></td>
             <td><span class="mode-badge">{{ session.output_mode || 'N/A' }}</span></td>
             <td><span class="safety-badge" :class="`safety-${session.safety_level}`">{{ session.safety_level }}</span></td>
@@ -276,8 +276,8 @@
                   <td>{{ selectedSession.config_name }}</td>
                 </tr>
                 <tr>
-                  <td><strong>User:</strong></td>
-                  <td>{{ selectedSession.user_id }}</td>
+                  <td><strong>Device:</strong></td>
+                  <td>{{ selectedSession.device_id || 'N/A' }}</td>
                 </tr>
                 <tr>
                   <td><strong>Safety Level:</strong></td>
@@ -335,7 +335,7 @@ const sortOrder = ref('desc')
 const filters = ref({
   date_from: new Date().toISOString().split('T')[0], // Today by default
   date_to: new Date().toISOString().split('T')[0],   // Today by default
-  user_id: '',
+  device_id: '',
   config_name: '',
   safety_level: '',
   search: ''
@@ -345,14 +345,14 @@ const availableDates = ref([])
 const showAllDates = ref(false)
 
 const availableFilters = ref({
-  users: [],
+  devices: [],
   configs: [],
   safety_levels: []
 })
 
 const stats = ref({
   total: 0,
-  users: 0,
+  devices: 0,
   configs: 0,
   media: 0
 })
@@ -429,7 +429,7 @@ async function loadSessions() {
       order: sortOrder.value,
       ...(filters.value.date_from && { date_from: filters.value.date_from }),
       ...(filters.value.date_to && { date_to: filters.value.date_to }),
-      ...(filters.value.user_id && { user_id: filters.value.user_id }),
+      ...(filters.value.device_id && { device_id: filters.value.device_id }),
       ...(filters.value.config_name && { config_name: filters.value.config_name }),
       ...(filters.value.safety_level && { safety_level: filters.value.safety_level }),
       ...(filters.value.search && { search: filters.value.search })
@@ -450,7 +450,7 @@ async function loadSessions() {
 
     // Update available filters
     availableFilters.value = data.filters
-    stats.value.users = data.filters.users.length
+    stats.value.devices = data.filters.devices.length
     stats.value.configs = data.filters.configs.length
     stats.value.media = data.sessions.reduce((sum, s) => sum + s.media_count, 0)
 
@@ -478,7 +478,7 @@ function clearFilters() {
   filters.value = {
     date_from: today,
     date_to: today,
-    user_id: '',
+    device_id: '',
     config_name: '',
     safety_level: '',
     search: ''
@@ -672,7 +672,7 @@ async function downloadSessionAsPDF(runId) {
     doc.setFont('helvetica', 'normal')
     const basicInfo = [
       `Timestamp: ${formatTimestamp(data.timestamp)}`,
-      `User ID: ${data.user_id}`,
+      `Device: ${data.device_id || 'N/A'}`,
       `Stage2-Config: ${data.config_name}`,
       `Output Mode: ${data.output_mode || 'N/A'}`,
       `Safety Level: ${data.safety_level}`,
@@ -1058,7 +1058,7 @@ async function exportFilteredAsZipPDF() {
         doc.setFont('helvetica', 'normal')
         const basicInfo = [
           `Timestamp: ${formatTimestamp(data.timestamp)}`,
-          `User ID: ${data.user_id}`,
+          `Device: ${data.device_id || 'N/A'}`,
           `Stage2-Config: ${data.config_name}`,
           `Output Mode: ${data.output_mode || 'N/A'}`,
           `Safety Level: ${data.safety_level}`,
