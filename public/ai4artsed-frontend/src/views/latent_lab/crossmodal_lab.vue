@@ -2,7 +2,13 @@
   <div class="crossmodal-lab">
     <!-- Header -->
     <div class="page-header">
-      <h2 class="page-title">{{ t('latentLab.crossmodal.headerTitle') }}</h2>
+      <h2 class="page-title">
+        {{ t('latentLab.crossmodal.headerTitle') }}
+        <span v-if="isRecording" class="recording-indicator" :title="t('latentLab.shared.recordingTooltip')">
+          <span class="recording-dot"></span>
+          <span v-if="recordCount > 0" class="recording-count">{{ recordCount }}</span>
+        </span>
+      </h2>
       <p class="page-subtitle">{{ t('latentLab.crossmodal.headerSubtitle') }}</p>
     </div>
 
@@ -654,9 +660,11 @@ import { useWebMidi } from '@/composables/useWebMidi'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useLatentLabRecorder } from '@/composables/useLatentLabRecorder'
 
 const { t } = useI18n()
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+const { record: labRecord, isRecording, recordCount } = useLatentLabRecorder('crossmodal_lab')
 
 const API_BASE = import.meta.env.DEV ? 'http://localhost:17802' : ''
 
@@ -1328,6 +1336,15 @@ async function runSynth() {
       await looper.play(result.audio_base64)
       lastSynthFingerprint.value = synthFingerprint()
 
+      // Record for research export
+      labRecord({
+        parameters: { tab: 'synth', prompt_a: synth.promptA, prompt_b: synth.promptB,
+          alpha: synth.alpha, magnitude: synth.magnitude, noise_sigma: synth.noise,
+          duration: synth.duration, steps: synth.steps, cfg: synth.cfg, seed: synth.seed },
+        results: { seed: result.seed, generation_time_ms: result.generation_time_ms },
+        outputs: [{ type: 'audio', format: 'wav', dataBase64: result.audio_base64 }],
+      })
+
       // In wavetable mode, extract frames from the new buffer
       if (playbackMode.value === 'wavetable') {
         const buf = looper.getOriginalBuffer()
@@ -1369,6 +1386,14 @@ async function runMMAudio() {
       resultAudio.value = base64ToDataUrl(result.audio_base64, 'audio/wav')
       resultSeed.value = result.seed
       generationTimeMs.value = result.generation_time_ms
+
+      labRecord({
+        parameters: { tab: 'mmaudio', prompt: mmaudio.prompt, negative_prompt: mmaudio.negativePrompt,
+          duration: mmaudio.duration, cfg: mmaudio.cfg, steps: mmaudio.steps, seed: mmaudio.seed,
+          has_image: !!imagePath.value },
+        results: { seed: result.seed, generation_time_ms: result.generation_time_ms },
+        outputs: [{ type: 'audio', format: 'wav', dataBase64: result.audio_base64 }],
+      })
     } else {
       error.value = result.error || 'MMAudio generation failed'
     }
@@ -1399,6 +1424,16 @@ async function runGuidance() {
       resultSeed.value = result.seed
       generationTimeMs.value = result.generation_time_ms
       cosineSimilarity.value = result.cosine_similarity ?? null
+
+      labRecord({
+        parameters: { tab: 'guidance', prompt: guidance.prompt,
+          lambda: guidance.lambda, warmup_steps: guidance.warmupSteps,
+          total_steps: guidance.totalSteps, duration: guidance.duration,
+          cfg: guidance.cfg, seed: guidance.seed, has_image: !!imagePath.value },
+        results: { seed: result.seed, generation_time_ms: result.generation_time_ms,
+          cosine_similarity: result.cosine_similarity },
+        outputs: [{ type: 'audio', format: 'wav', dataBase64: result.audio_base64 }],
+      })
     } else {
       error.value = result.error || 'Guided generation failed'
     }
@@ -2368,4 +2403,9 @@ onUnmounted(() => {
   text-align: right;
   flex-shrink: 0;
 }
+
+.recording-indicator { display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem; vertical-align: middle; }
+.recording-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: recording-pulse 1.5s ease-in-out infinite; }
+@keyframes recording-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.recording-count { font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); font-weight: 400; }
 </style>

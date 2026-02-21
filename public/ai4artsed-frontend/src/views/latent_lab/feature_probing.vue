@@ -2,7 +2,13 @@
   <div class="feature-probing">
     <!-- Header (always visible) -->
     <div class="page-header">
-      <h2 class="page-title">{{ t('latentLab.probing.headerTitle') }}</h2>
+      <h2 class="page-title">
+        {{ t('latentLab.probing.headerTitle') }}
+        <span v-if="isRecording" class="recording-indicator" :title="t('latentLab.shared.recordingTooltip')">
+          <span class="recording-dot"></span>
+          <span v-if="recordCount > 0" class="recording-count">{{ recordCount }}</span>
+        </span>
+      </h2>
       <p class="page-subtitle">{{ t('latentLab.probing.headerSubtitle') }}</p>
       <details class="explanation-details">
         <summary>{{ t('latentLab.probing.explanationToggle') }}</summary>
@@ -262,12 +268,14 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useLatentLabRecorder } from '@/composables/useLatentLabRecorder'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 const { t } = useI18n()
 const pageContextStore = usePageContextStore()
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+const { record: labRecord, isRecording, recordCount } = useLatentLabRecorder('feature_probing')
 
 // Constants
 const MAX_RANGES = 4
@@ -501,6 +509,20 @@ async function analyze() {
         ranges.value = [{ from: 1, to: nonzero }]
 
         analysisComplete.value = true
+
+        // Record analysis for research export
+        labRecord({
+          parameters: {
+            action: 'analyze',
+            prompt_a: promptA.value, prompt_b: promptB.value,
+            encoder: selectedEncoder.value, negative_prompt: negativePrompt.value,
+            steps: steps.value, cfg: cfgScale.value, seed: seed.value,
+          },
+          results: { seed: actualSeed.value, top_dims_count: topDims.value.length },
+          outputs: originalImage.value
+            ? [{ type: 'image', format: 'png', dataBase64: originalImage.value }]
+            : undefined,
+        })
       } else {
         errorMessage.value = 'No probing data in response'
       }
@@ -539,6 +561,18 @@ async function transfer() {
       const probData = response.data.probing_data
       if (probData?.image_base64) {
         modifiedImage.value = probData.image_base64
+
+        // Record transfer for research export
+        labRecord({
+          parameters: {
+            action: 'transfer',
+            prompt_a: promptA.value, prompt_b: promptB.value,
+            encoder: selectedEncoder.value, transfer_dims: Array.from(selectedDims.value),
+            steps: steps.value, cfg: cfgScale.value, seed: actualSeed.value ?? seed.value,
+          },
+          results: { dims_transferred: selectedDims.value.size },
+          outputs: [{ type: 'image', format: 'png', dataBase64: modifiedImage.value }],
+        })
       } else {
         errorMessage.value = 'No image in transfer response'
       }
@@ -1090,6 +1124,11 @@ onUnmounted(() => {
   font-size: 0.7rem;
   line-height: 1.4;
 }
+
+.recording-indicator { display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem; vertical-align: middle; }
+.recording-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: recording-pulse 1.5s ease-in-out infinite; }
+@keyframes recording-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.recording-count { font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); font-weight: 400; }
 </style>
 
 <style>

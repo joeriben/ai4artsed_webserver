@@ -2,7 +2,13 @@
   <div class="attention-cartography">
     <!-- Header (always visible) -->
     <div class="page-header">
-      <h2 class="page-title">{{ t('latentLab.attention.headerTitle') }}</h2>
+      <h2 class="page-title">
+        {{ t('latentLab.attention.headerTitle') }}
+        <span v-if="isRecording" class="recording-indicator" :title="t('latentLab.shared.recordingTooltip')">
+          <span class="recording-dot"></span>
+          <span v-if="recordCount > 0" class="recording-count">{{ recordCount }}</span>
+        </span>
+      </h2>
       <p class="page-subtitle">{{ t('latentLab.attention.headerSubtitle') }}</p>
       <details class="explanation-details">
         <summary>{{ t('latentLab.attention.explanationToggle') }}</summary>
@@ -260,6 +266,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useLatentLabRecorder } from '@/composables/useLatentLabRecorder'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
@@ -267,6 +274,7 @@ const { t } = useI18n()
 const route = useRoute()
 const pageContextStore = usePageContextStore()
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+const { record: labRecord, isRecording, recordCount } = useLatentLabRecorder('attention_cartography')
 
 // State
 const promptText = ref('')
@@ -486,6 +494,24 @@ async function generate() {
         if (wordGroups.value.length > 0) {
           selectedWords.value = [0]
         }
+
+        // Record for research export (attention maps are too large for base64 export — record params + output image only)
+        labRecord({
+          parameters: {
+            prompt: promptText.value, negative_prompt: negativePrompt.value,
+            steps: steps.value, cfg: cfgScale.value, seed: seed.value,
+          },
+          results: {
+            seed: actualSeed.value,
+            token_count_clip: tokens.value.length,
+            token_count_t5: tokensT5.value.length,
+            capture_steps: captureSteps.value,
+            capture_layers: captureLayers.value,
+          },
+          outputs: imageData.value
+            ? [{ type: 'image', format: 'png', dataBase64: imageData.value }]
+            : undefined,
+        })
       } else {
         errorMessage.value = 'No attention data in response'
       }
@@ -1088,4 +1114,9 @@ onUnmounted(() => {
   font-size: 1.2rem;
   cursor: pointer;
 }
+
+.recording-indicator { display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem; vertical-align: middle; }
+.recording-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: recording-pulse 1.5s ease-in-out infinite; }
+@keyframes recording-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.recording-count { font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); font-weight: 400; }
 </style>

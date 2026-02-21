@@ -2,7 +2,13 @@
   <div class="concept-algebra">
     <!-- Header -->
     <div class="page-header">
-      <h2 class="page-title">{{ t('latentLab.algebra.headerTitle') }}</h2>
+      <h2 class="page-title">
+        {{ t('latentLab.algebra.headerTitle') }}
+        <span v-if="isRecording" class="recording-indicator" :title="t('latentLab.shared.recordingTooltip')">
+          <span class="recording-dot"></span>
+          <span v-if="recordCount > 0" class="recording-count">{{ recordCount }}</span>
+        </span>
+      </h2>
       <p class="page-subtitle">{{ t('latentLab.algebra.headerSubtitle') }}</p>
       <details class="explanation-details">
         <summary>{{ t('latentLab.algebra.explanationToggle') }}</summary>
@@ -206,12 +212,14 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useLatentLabRecorder } from '@/composables/useLatentLabRecorder'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 const { t } = useI18n()
 const pageContextStore = usePageContextStore()
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+const { record: labRecord, isRecording, recordCount } = useLatentLabRecorder('concept_algebra')
 
 // Encoder options
 type EncoderId = 'all' | 'clip_l' | 'clip_g' | 't5'
@@ -336,6 +344,21 @@ async function compute() {
         resultImage.value = algData.result_image || ''
         l2Distance.value = algData.l2_distance ?? null
         actualSeed.value = response.data.media_output?.seed ?? algData.seed ?? null
+
+        // Record for research export
+        const outputs: { type: 'image'; format: string; dataBase64: string }[] = []
+        if (referenceImage.value) outputs.push({ type: 'image', format: 'png', dataBase64: referenceImage.value })
+        if (resultImage.value) outputs.push({ type: 'image', format: 'png', dataBase64: resultImage.value })
+        labRecord({
+          parameters: {
+            prompt_a: promptA.value, prompt_b: promptB.value, prompt_c: promptC.value,
+            encoder: selectedEncoder.value, negative_prompt: negativePrompt.value,
+            steps: steps.value, cfg: cfgScale.value, seed: seed.value,
+            scale_sub: scaleSub.value, scale_add: scaleAdd.value,
+          },
+          results: { seed: actualSeed.value, l2_distance: l2Distance.value },
+          outputs,
+        })
       } else {
         errorMessage.value = 'No algebra data in response'
       }
@@ -608,6 +631,11 @@ onUnmounted(() => {
   font-size: 0.7rem;
   line-height: 1.4;
 }
+
+.recording-indicator { display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem; vertical-align: middle; }
+.recording-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: recording-pulse 1.5s ease-in-out infinite; }
+@keyframes recording-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.recording-count { font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); font-weight: 400; }
 </style>
 
 <style>

@@ -161,6 +161,7 @@ import SpriteProgressAnimation from '@/components/SpriteProgressAnimation.vue'
 import MediaOutputBox from '@/components/MediaOutputBox.vue'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useLatentLabRecorder } from '@/composables/useLatentLabRecorder'
 import { useDeviceId } from '@/composables/useDeviceId'
 import { usePageContextStore } from '@/stores/pageContext'
 import { useFavoritesStore } from '@/stores/favorites'
@@ -197,6 +198,7 @@ const infoExpanded = ref(false)
 
 // Global clipboard
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+const { record: labRecord, isRecording, recordCount } = useLatentLabRecorder('surrealizer')
 
 // Router for navigation
 const router = useRouter()
@@ -407,6 +409,16 @@ async function executeWorkflow() {
         if (imageOutput) {
           primaryOutput.value = imageOutput
         }
+
+        // Record for research export (image already saved by pipeline recorder)
+        labRecord({
+          parameters: {
+            prompt: inputText.value, alpha_factor: mappedAlpha.value,
+            seed: currentSeed.value, expand_prompt: expandPrompt.value,
+            negative_prompt: negativePrompt.value, cfg: cfgScale.value,
+          },
+          results: { run_id: runId, t5_expansion: expandedT5Text.value || null },
+        })
       } else {
         clearInterval(progressInterval)
         console.error('[Direct] No run_id in response')

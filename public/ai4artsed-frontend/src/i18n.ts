@@ -806,6 +806,9 @@ const messages = {
         stepsHint: 'Mehr Schritte = höhere Qualität, aber längere Generierung',
         cfgHint: 'Classifier-Free Guidance: höher = stärker am Prompt orientiert, weniger Variation',
         seedHint: '-1 = zufällig, fester Wert = reproduzierbares Ergebnis',
+        recordingActive: 'Aufzeichnung aktiv',
+        recordingCount: '{count} Aufzeichnung | {count} Aufzeichnungen',
+        recordingTooltip: 'Forschungsdaten werden automatisch gespeichert',
       },
       attention: {
         headerTitle: 'Attention Cartography — Welches Wort steuert welche Bildregion?',
@@ -2163,6 +2166,9 @@ const messages = {
         stepsHint: 'More steps = higher quality but longer generation time',
         cfgHint: 'Classifier-Free Guidance: higher = stronger prompt adherence, less variation',
         seedHint: '-1 = random, fixed value = reproducible result',
+        recordingActive: 'Recording active',
+        recordingCount: '{count} recording | {count} recordings',
+        recordingTooltip: 'Research data is saved automatically',
       },
       attention: {
         headerTitle: 'Attention Cartography — Which word steers which image region?',
@@ -3520,6 +3526,9 @@ const messages = {
         stepsHint: 'Daha fazla adım = daha yüksek kalite ama daha uzun üretim süresi',
         cfgHint: 'Classifier-Free Guidance: yüksek = prompt\'a daha bağlı, daha az varyasyon',
         seedHint: '-1 = rastgele, sabit değer = tekrarlanabilir sonuç',
+        recordingActive: 'Kayıt aktif',
+        recordingCount: '{count} kayıt',
+        recordingTooltip: 'Araştırma verileri otomatik olarak kaydedilir',
       },
       attention: {
         headerTitle: 'Dikkat Kartografisi — Hangi kelime hangi görsel bölgeyi yönlendirir?',
@@ -4877,6 +4886,9 @@ const messages = {
         stepsHint: '더 많은 단계 = 더 높은 품질이지만 더 긴 생성 시간',
         cfgHint: 'Classifier-Free Guidance: 높을수록 = 프롬프트에 더 충실, 변형 감소',
         seedHint: '-1 = 무작위, 고정값 = 재현 가능한 결과',
+        recordingActive: '녹화 활성',
+        recordingCount: '{count}개 기록',
+        recordingTooltip: '연구 데이터가 자동으로 저장됩니다',
       },
       attention: {
         headerTitle: '어텐션 지도 — 어떤 단어가 어떤 이미지 영역을 조종하나요?',
@@ -6234,6 +6246,9 @@ const messages = {
         stepsHint: 'Більше кроків = вища якість, але довший час генерації',
         cfgHint: 'Classifier-Free Guidance: вище = сильніша відповідність промпту, менше варіацій',
         seedHint: '-1 = випадково, фіксоване значення = відтворюваний результат',
+        recordingActive: 'Запис активний',
+        recordingCount: '{count} запис | {count} записів',
+        recordingTooltip: 'Дослідницькі дані зберігаються автоматично',
       },
       attention: {
         headerTitle: 'Картографія уваги — Яке слово керує якою частиною зображення?',
@@ -7590,6 +7605,9 @@ const messages = {
         stepsHint: 'Plus d\'étapes = meilleure qualité mais temps de génération plus long',
         cfgHint: 'Classifier-Free Guidance : plus élevé = plus fidèle au prompt, moins de variation',
         seedHint: '-1 = aléatoire, valeur fixe = résultat reproductible',
+        recordingActive: 'Enregistrement actif',
+        recordingCount: '{count} enregistrement | {count} enregistrements',
+        recordingTooltip: 'Les données de recherche sont sauvegardées automatiquement',
       },
       attention: {
         headerTitle: 'Cartographie d\'attention — Quel mot dirige quelle région de l\'image ?',

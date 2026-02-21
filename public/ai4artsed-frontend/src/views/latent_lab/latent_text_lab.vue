@@ -2,7 +2,13 @@
   <div class="latent-text-lab">
     <!-- Header -->
     <div class="page-header">
-      <h2 class="page-title">{{ t('latentLab.textLab.headerTitle') }}</h2>
+      <h2 class="page-title">
+        {{ t('latentLab.textLab.headerTitle') }}
+        <span v-if="isRecording" class="recording-indicator" :title="t('latentLab.shared.recordingTooltip')">
+          <span class="recording-dot"></span>
+          <span v-if="recordCount > 0" class="recording-count">{{ recordCount }}</span>
+        </span>
+      </h2>
       <p class="page-subtitle">{{ t('latentLab.textLab.headerSubtitle') }}</p>
     </div>
 
@@ -584,9 +590,11 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useLatentLabRecorder } from '@/composables/useLatentLabRecorder'
 
 const { t } = useI18n()
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+const { record: labRecord, isRecording, recordCount } = useLatentLabRecorder('latent_text_lab')
 
 const apiBase = import.meta.env.DEV ? 'http://localhost:17802' : ''
 
@@ -763,6 +771,13 @@ async function findDirection() {
     } else {
       repResult.value = data
       if (data.num_layers) repLayerCount.value = data.num_layers
+
+      labRecord({
+        parameters: { tab: 'repeng', action: 'find_direction',
+          model_id: activeModelId.value, target_layer: repTargetLayer.value,
+          pair_count: validPairs.length },
+        results: { explained_variance: data.explained_variance, embedding_dim: data.embedding_dim },
+      })
     }
   } catch {
     showError(t('latentLab.textLab.error.operationFailed'))
@@ -823,6 +838,16 @@ async function runRepGeneration() {
       showError(data.error)
     } else {
       repGenResult.value = data
+
+      labRecord({
+        parameters: { tab: 'repeng', action: 'generate',
+          model_id: activeModelId.value, target_layer: repTargetLayer.value,
+          alpha: repAlpha.value, temperature: repTemp.value,
+          max_new_tokens: repMaxTokens.value, seed: repSeed.value,
+          test_text: repTestText.value },
+        results: { baseline_length: data.baseline_text?.length, manipulated_length: data.manipulated_text?.length },
+      })
+
       interpretRepEngResults(data)
     }
   } catch {
@@ -959,6 +984,14 @@ async function runComparison() {
       showError(data.error)
     } else {
       cmpResult.value = data
+
+      labRecord({
+        parameters: { tab: 'compare', text: cmpText.value,
+          model_a: activeModelId.value, model_b: loadedModelB.value.model_id,
+          temperature: cmpTemp.value, max_new_tokens: cmpMaxTokens.value, seed: cmpSeed.value },
+        results: { similarity_matrix_size: `${data.similarity_matrix?.length}x${data.similarity_matrix?.[0]?.length}` },
+      })
+
       await nextTick()
       drawCkaHeatmap()
       interpretCompareResults(data)
@@ -1173,6 +1206,15 @@ async function runBiasProbe() {
       showError(data.error)
     } else {
       biasResult.value = data
+
+      labRecord({
+        parameters: { tab: 'bias', prompt: biasPrompt.value,
+          model_id: activeModelId.value, bias_type: biasType.value,
+          num_samples: biasSamples.value, temperature: biasTemp.value,
+          max_new_tokens: biasMaxTokens.value, seed: biasSeed.value },
+        results: { group_count: data.groups?.length },
+      })
+
       interpretBiasResults(data)
     }
   } catch {
@@ -1407,4 +1449,9 @@ onMounted(() => {
   .pair-separator { display: none; }
   .tab-nav { flex-direction: column; }
 }
+
+.recording-indicator { display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem; vertical-align: middle; }
+.recording-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: recording-pulse 1.5s ease-in-out infinite; }
+@keyframes recording-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.recording-count { font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); font-weight: 400; }
 </style>

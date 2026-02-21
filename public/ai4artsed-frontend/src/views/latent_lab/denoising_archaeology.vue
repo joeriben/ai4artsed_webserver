@@ -2,7 +2,13 @@
   <div class="denoising-archaeology">
     <!-- Header -->
     <div class="page-header">
-      <h2 class="page-title">{{ t('latentLab.archaeology.headerTitle') }}</h2>
+      <h2 class="page-title">
+        {{ t('latentLab.archaeology.headerTitle') }}
+        <span v-if="isRecording" class="recording-indicator" :title="t('latentLab.shared.recordingTooltip')">
+          <span class="recording-dot"></span>
+          <span v-if="recordCount > 0" class="recording-count">{{ recordCount }}</span>
+        </span>
+      </h2>
       <p class="page-subtitle">{{ t('latentLab.archaeology.headerSubtitle') }}</p>
       <details class="explanation-details">
         <summary>{{ t('latentLab.archaeology.explanationToggle') }}</summary>
@@ -197,12 +203,14 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import MediaInputBox from '@/components/MediaInputBox.vue'
 import { useAppClipboard } from '@/composables/useAppClipboard'
+import { useLatentLabRecorder } from '@/composables/useLatentLabRecorder'
 import { usePageContextStore } from '@/stores/pageContext'
 import type { PageContext, FocusHint } from '@/composables/usePageContext'
 
 const { t } = useI18n()
 const pageContextStore = usePageContextStore()
 const { copy: copyToClipboard, paste: pasteFromClipboard } = useAppClipboard()
+const { record: labRecord, isRecording, recordCount } = useLatentLabRecorder('denoising_archaeology')
 
 interface StepImage {
   step: number
@@ -365,6 +373,25 @@ async function generate() {
         actualSeed.value = archData.seed || response.data.media_output?.seed || 0
         // Start at first step
         selectedStepIndex.value = 0
+
+        // Record for research export
+        labRecord({
+          parameters: {
+            prompt: promptText.value,
+            negative_prompt: negativePrompt.value,
+            steps: steps.value,
+            cfg: cfgScale.value,
+            seed: seed.value,
+          },
+          results: { seed: actualSeed.value, total_steps: totalSteps.value },
+          outputs: finalImage.value
+            ? [{ type: 'image', format: 'png', dataBase64: finalImage.value }]
+            : undefined,
+          steps: stepImages.value.map(s => ({
+            format: 'jpg',
+            dataBase64: s.image_base64,
+          })),
+        })
       } else {
         errorMessage.value = 'No archaeology data in response'
       }
@@ -875,5 +902,33 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.3);
   font-size: 0.7rem;
   line-height: 1.4;
+}
+
+/* Recording indicator */
+.recording-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: recording-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.recording-count {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
 }
 </style>
