@@ -16,11 +16,7 @@
     </div>
 
     <!-- Conditional rendering of tab components -->
-    <AttentionCartography v-if="activeTab === 'attention'" />
-    <FeatureProbing v-else-if="activeTab === 'probing'" />
-    <ConceptAlgebra v-else-if="activeTab === 'algebra'" />
-    <Surrealizer v-else-if="activeTab === 'fusion'" />
-    <DenoisingArchaeology v-else-if="activeTab === 'archaeology'" />
+    <ImageLab v-if="activeTab === 'image'" />
     <LatentTextLab v-else-if="activeTab === 'textlab'" />
     <CrossmodalLab v-else-if="activeTab === 'crossmodal'" />
   </div>
@@ -29,31 +25,26 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import AttentionCartography from './latent_lab/attention_cartography.vue'
-import FeatureProbing from './latent_lab/feature_probing.vue'
-import ConceptAlgebra from './latent_lab/concept_algebra.vue'
-import DenoisingArchaeology from './latent_lab/denoising_archaeology.vue'
-import Surrealizer from './surrealizer.vue'
+import ImageLab from './latent_lab/image_lab.vue'
 import LatentTextLab from './latent_lab/latent_text_lab.vue'
 import CrossmodalLab from './latent_lab/crossmodal_lab.vue'
 
 const { t } = useI18n()
 
-type TabId = 'attention' | 'probing' | 'algebra' | 'fusion' | 'archaeology' | 'textlab' | 'crossmodal'
+type TabId = 'image' | 'textlab' | 'crossmodal'
 
 const STORAGE_KEY = 'latent_lab_tab'
 
+// Old tab IDs that should migrate to 'image'
+const IMAGE_TAB_IDS = ['attention', 'probing', 'algebra', 'fusion', 'archaeology']
+
 const tabs: { id: TabId }[] = [
-  { id: 'attention' },
-  { id: 'probing' },
-  { id: 'algebra' },
-  { id: 'fusion' },
-  { id: 'archaeology' },
+  { id: 'image' },
   { id: 'textlab' },
   { id: 'crossmodal' },
 ]
 
-const activeTab = ref<TabId>('attention')
+const activeTab = ref<TabId>('image')
 
 function setTab(tabId: TabId) {
   activeTab.value = tabId
@@ -62,8 +53,14 @@ function setTab(tabId: TabId) {
 
 onMounted(() => {
   const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved && tabs.some(t => t.id === saved)) {
-    activeTab.value = saved as TabId
+  if (saved) {
+    // Backward-compatible migration: old image-related tab IDs → 'image'
+    if (IMAGE_TAB_IDS.includes(saved)) {
+      activeTab.value = 'image'
+      localStorage.setItem(STORAGE_KEY, 'image')
+    } else if (tabs.some(t => t.id === saved)) {
+      activeTab.value = saved as TabId
+    }
   }
 })
 </script>
@@ -118,28 +115,5 @@ onMounted(() => {
   background: rgba(102, 126, 234, 0.25);
   color: #667eea;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-}
-
-.placeholder-tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-}
-
-.placeholder-content {
-  text-align: center;
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.placeholder-content h2 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.placeholder-content p {
-  font-size: 1rem;
-  font-style: italic;
 }
 </style>

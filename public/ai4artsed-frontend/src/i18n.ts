@@ -769,13 +769,35 @@ const messages = {
     },
     latentLab: {
       tabs: {
-        attention: 'Attention Cartography',
-        probing: 'Feature Probing',
-        algebra: 'Concept Algebra',
-        fusion: 'Encoder Fusion',
-        archaeology: 'Denoising Archaeology',
+        image: 'Image Lab',
         textlab: 'Latent Text Lab',
         crossmodal: 'Crossmodal Lab'
+      },
+      imageLab: {
+        headerTitle: 'Image Lab — Visuelle Vektorraumforschung',
+        headerSubtitle: 'Fünf Werkzeuge zur Untersuchung, wie Diffusionsmodelle Bilder aus Text erzeugen: von der Entrauschung über Attention und Fusion bis zur Vektorarithmetik.',
+        tabs: {
+          archaeology: {
+            label: 'Denoising Archaeology',
+            short: 'Dem Modell beim Arbeiten zusehen'
+          },
+          attention: {
+            label: 'Attention Cartography',
+            short: 'Sehen, wohin das Modell schaut'
+          },
+          fusion: {
+            label: 'Encoder Fusion',
+            short: 'Surrealistische Verschmelzung'
+          },
+          probing: {
+            label: 'Feature Probing',
+            short: 'Dimensionsanalyse'
+          },
+          algebra: {
+            label: 'Concept Algebra',
+            short: 'Vektorarithmetik'
+          }
+        }
       },
       comingSoon: 'Dieses Tool wird in einer zukünftigen Version implementiert.',
       attention: {
@@ -2066,13 +2088,35 @@ const messages = {
     },
     latentLab: {
       tabs: {
-        attention: 'Attention Cartography',
-        probing: 'Feature Probing',
-        algebra: 'Concept Algebra',
-        fusion: 'Encoder Fusion',
-        archaeology: 'Denoising Archaeology',
+        image: 'Image Lab',
         textlab: 'Latent Text Lab',
         crossmodal: 'Crossmodal Lab'
+      },
+      imageLab: {
+        headerTitle: 'Image Lab — Visual Vector Space Research',
+        headerSubtitle: 'Five tools for investigating how diffusion models generate images from text: from denoising through attention and fusion to vector arithmetic.',
+        tabs: {
+          archaeology: {
+            label: 'Denoising Archaeology',
+            short: 'Watch the model work'
+          },
+          attention: {
+            label: 'Attention Cartography',
+            short: 'See where the model looks'
+          },
+          fusion: {
+            label: 'Encoder Fusion',
+            short: 'Surrealistic blending'
+          },
+          probing: {
+            label: 'Feature Probing',
+            short: 'Dimension-level analysis'
+          },
+          algebra: {
+            label: 'Concept Algebra',
+            short: 'Vector arithmetic'
+          }
+        }
       },
       comingSoon: 'This tool will be implemented in a future version.',
       attention: {
@@ -3363,13 +3407,35 @@ const messages = {
     },
     latentLab: {
       tabs: {
-        attention: 'Dikkat Kartografisi',
-        probing: 'Özellik Araştırması',
-        algebra: 'Kavram Cebiri',
-        fusion: 'Kodlayıcı Füzyonu',
-        archaeology: 'Gürültü Giderme Arkeolojisi',
+        image: 'Görsel Laboratuvarı',
         textlab: 'Latent Metin Laboratuvarı',
         crossmodal: 'Çapraz Modal Laboratuvar'
+      },
+      imageLab: {
+        headerTitle: 'Görsel Laboratuvarı — Görsel Vektör Uzayı Araştırması',
+        headerSubtitle: 'Difüzyon modellerinin metinden nasıl görsel oluşturduğunu araştırmak için beş araç: gürültü gidermeden dikkat ve füzyona, vektör aritmetiğine kadar.',
+        tabs: {
+          archaeology: {
+            label: 'Gürültü Giderme Arkeolojisi',
+            short: 'Modelin çalışmasını izleyin'
+          },
+          attention: {
+            label: 'Dikkat Kartografisi',
+            short: 'Modelin nereye baktığını görün'
+          },
+          fusion: {
+            label: 'Kodlayıcı Füzyonu',
+            short: 'Gerçeküstü harmanlama'
+          },
+          probing: {
+            label: 'Özellik Araştırması',
+            short: 'Boyut düzeyinde analiz'
+          },
+          algebra: {
+            label: 'Kavram Cebiri',
+            short: 'Vektör aritmetiği'
+          }
+        }
       },
       comingSoon: 'Bu araç gelecek bir sürümde hayata geçirilecek.',
       attention: {
@@ -4660,13 +4726,35 @@ const messages = {
     },
     latentLab: {
       tabs: {
-        attention: '어텐션 지도',
-        probing: '특성 프로빙',
-        algebra: '개념 대수학',
-        fusion: '인코더 융합',
-        archaeology: '디노이징 고고학',
+        image: '이미지 랩',
         textlab: 'Latent 텍스트 랩',
         crossmodal: '크로스모달 랩'
+      },
+      imageLab: {
+        headerTitle: '이미지 랩 — 시각적 벡터 공간 연구',
+        headerSubtitle: '디퓨전 모델이 텍스트에서 이미지를 생성하는 방법을 조사하는 다섯 가지 도구: 디노이징에서 어텐션과 융합, 벡터 산술까지.',
+        tabs: {
+          archaeology: {
+            label: '디노이징 고고학',
+            short: '모델의 작업 과정 관찰'
+          },
+          attention: {
+            label: '어텐션 지도',
+            short: '모델이 어디를 보는지 확인'
+          },
+          fusion: {
+            label: '인코더 융합',
+            short: '초현실적 블렌딩'
+          },
+          probing: {
+            label: '특성 프로빙',
+            short: '차원 수준 분석'
+          },
+          algebra: {
+            label: '개념 대수학',
+            short: '벡터 산술'
+          }
+        }
       },
       comingSoon: '이 도구는 향후 버전에서 구현될 예정입니다.',
       attention: {
@@ -5957,13 +6045,35 @@ const messages = {
     },
     latentLab: {
       tabs: {
-        attention: 'Картографія уваги',
-        probing: 'Зондування ознак',
-        algebra: 'Алгебра концептів',
-        fusion: 'Злиття кодувальників',
-        archaeology: 'Археологія шумоочищення',
+        image: 'Лабораторія зображень',
         textlab: 'Латентна текстова лабораторія',
         crossmodal: 'Крос-модальна лабораторія'
+      },
+      imageLab: {
+        headerTitle: 'Лабораторія зображень — Візуальне дослідження векторного простору',
+        headerSubtitle: 'П\'ять інструментів для дослідження того, як дифузійні моделі генерують зображення з тексту: від шумоочищення через увагу та злиття до векторної арифметики.',
+        tabs: {
+          archaeology: {
+            label: 'Археологія шумоочищення',
+            short: 'Спостерігайте за роботою моделі'
+          },
+          attention: {
+            label: 'Картографія уваги',
+            short: 'Подивіться, куди дивиться модель'
+          },
+          fusion: {
+            label: 'Злиття кодувальників',
+            short: 'Сюрреалістичне змішування'
+          },
+          probing: {
+            label: 'Зондування ознак',
+            short: 'Аналіз на рівні вимірів'
+          },
+          algebra: {
+            label: 'Алгебра концептів',
+            short: 'Векторна арифметика'
+          }
+        }
       },
       comingSoon: 'Цей інструмент буде реалізований у майбутній версії.',
       attention: {
@@ -7253,13 +7363,35 @@ const messages = {
     },
     latentLab: {
       tabs: {
-        attention: 'Cartographie d\'attention',
-        probing: 'Sondage de caractéristiques',
-        algebra: 'Algèbre de concepts',
-        fusion: 'Fusion d\'encodeurs',
-        archaeology: 'Archéologie du débruitage',
+        image: 'Laboratoire d\'images',
         textlab: 'Latent Text Lab',
         crossmodal: 'Laboratoire crossmodal'
+      },
+      imageLab: {
+        headerTitle: 'Laboratoire d\'images — Recherche visuelle en espace vectoriel',
+        headerSubtitle: 'Cinq outils pour explorer comment les modèles de diffusion génèrent des images à partir de texte : du débruitage à l\'attention et la fusion, jusqu\'à l\'arithmétique vectorielle.',
+        tabs: {
+          archaeology: {
+            label: 'Archéologie du débruitage',
+            short: 'Observer le modèle travailler'
+          },
+          attention: {
+            label: 'Cartographie d\'attention',
+            short: 'Voir où le modèle regarde'
+          },
+          fusion: {
+            label: 'Fusion d\'encodeurs',
+            short: 'Mélange surréaliste'
+          },
+          probing: {
+            label: 'Sondage de caractéristiques',
+            short: 'Analyse dimensionnelle'
+          },
+          algebra: {
+            label: 'Algèbre de concepts',
+            short: 'Arithmétique vectorielle'
+          }
+        }
       },
       comingSoon: 'Cet outil sera implémenté dans une version future.',
       attention: {
