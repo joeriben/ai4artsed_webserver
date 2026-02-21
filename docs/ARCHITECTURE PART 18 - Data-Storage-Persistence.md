@@ -9,11 +9,13 @@
 
 ## Overview
 
-**v2.0.0-alpha.1 Status:** As of Session 37, DevServer uses **two active data persistence systems**:
+**v2.0.0-alpha.1 Status:** DevServer uses **four active data persistence systems**:
 
 1. **Execution History** (Sessions 19-24) - Research data tracking [ACTIVE]
 2. **LivePipelineRecorder** (Session 29, enhanced Session 37) - Real-time entity tracking + media storage [PRIMARY]
-3. ~~**Unified Media Storage** (Session 27)~~ - **REMOVED in Session 37**
+3. **CanvasRecorder** (Session 149) - Canvas workflow recording [ACTIVE]
+4. **LatentLabRecorder** (Session 192) - Latent Lab experiment recording [ACTIVE]
+5. ~~**Unified Media Storage** (Session 27)~~ - **REMOVED in Session 37**
 
 **Critical Architecture:** Both active systems use a **unified `run_id`** (Session 29 fix).
 
@@ -531,20 +533,70 @@ elif is_base64(output_value):
 
 ---
 
+## 4. LatentLabRecorder (Session 192)
+
+### Purpose
+
+Research data export for Latent Lab experiments. The Latent Lab bypasses the 4-Stage Orchestrator, so `LivePipelineRecorder` cannot capture its data. `LatentLabRecorder` is a frontend-primary hybrid: the Vue composable POSTs parameters + base64 outputs to a lightweight backend recorder.
+
+### Architecture
+
+- **Frontend:** `useLatentLabRecorder(toolType)` composable with lazy start (no empty folders)
+- **Backend:** `LatentLabRecorder` class writes to same folder structure as Canvas/Pipeline
+- **Endpoints:** `POST /api/latent-lab/record/{start,save,end}`
+- **Folder:** `exports/json/YYYY-MM-DD/device_id/run_xxx/`
+
+### Key Difference from LivePipelineRecorder
+
+| Aspect | LivePipelineRecorder | LatentLabRecorder |
+|--------|---------------------|-------------------|
+| Data source | Backend (orchestrator) | Frontend (POST) |
+| Stage tracking | Yes (4 stages) | No |
+| Expected outputs | Pre-declared | Dynamic |
+| Lazy start | No (created at pipeline start) | Yes (created on first record) |
+| metadata.type | varies | `"latent_lab"` |
+
+### Integration
+
+7 Latent Lab views + Surrealizer. Each view imports the composable and calls `record()` after successful generation. See **ARCHITECTURE PART 28 (Latent Lab)** for per-tool details.
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `devserver/my_app/services/latent_lab_recorder.py` | Recorder class + active registry |
+| `devserver/my_app/routes/latent_lab_recorder_routes.py` | Flask blueprint (3 endpoints) |
+| `public/.../composables/useLatentLabRecorder.ts` | Vue composable |
+
+---
+
 ## Storage Locations Summary (v2.0.0-alpha.1)
 
 ```
 Project Root
 ├── exports/
-│   ├── json/                          # LivePipelineRecorder (Session 37+)
-│   │   └── {run_id}/                  # PRIMARY STORAGE LOCATION
-│   │       ├── metadata.json
-│   │       ├── 01_input.txt
-│   │       ├── 02_translation.txt
-│   │       ├── 03_safety.json
-│   │       ├── 04_interception.txt
-│   │       ├── 05_safety_pre_output.json
-│   │       └── 06_output_image.png
+│   ├── json/                          # Shared location for ALL recorders
+│   │   └── YYYY-MM-DD/
+│   │       └── {device_id}/
+│   │           ├── run_xxx/           # LivePipelineRecorder (4-Stage Pipeline)
+│   │           │   ├── metadata.json
+│   │           │   ├── final/
+│   │           │   │   └── 01_output_image.png
+│   │           │   └── prompting_process/
+│   │           │       └── 001_input.txt
+│   │           │
+│   │           ├── run_yyy_canvas/    # CanvasRecorder (Canvas Workflows)
+│   │           │   ├── metadata.json  # type: "canvas_workflow"
+│   │           │   ├── workflow.json
+│   │           │   └── final/
+│   │           │
+│   │           └── run_zzz/           # LatentLabRecorder (Latent Lab)
+│   │               ├── metadata.json  # type: "latent_lab"
+│   │               ├── final/
+│   │               │   └── 01_output_image.png
+│   │               └── prompting_process/
+│   │                   ├── 001_parameters.json
+│   │                   └── 002_step_01.jpg
 │   │
 │   └── pipeline_runs/                 # Execution History (Sessions 21-22)
 │       └── exec_20251104_*.json      # Research data export format

@@ -627,6 +627,99 @@ All three tabs share a single model management panel (top of page). Loading a mo
 
 ---
 
-**Document Status:** Active (2026-02-15)
+## Research Data Export (LatentLabRecorder)
+
+### Problem
+
+Canvas records research data via `CanvasRecorder` / `LivePipelineRecorder` because it runs through the 4-Stage Orchestrator — natural recording chokepoints exist. The Latent Lab bypasses this flow entirely: 11 tool types across 3 backend services with direct API calls. There is no backend chokepoint for a recorder.
+
+### Solution: Frontend-Primary Hybrid
+
+The frontend knows the full context (parameters, tab, tool type). After each generation, it POSTs to a lightweight backend endpoint which writes to disk.
+
+**Phase 1** (current): Write to `exports/json/` — same folder structure as Canvas, always active.
+**Phase 2** (future): QDA-compatible research format in `exports/research/` for analysis software.
+
+### Architecture
+
+```
+┌─────────────────────────────────────┐
+│  Vue Component (e.g. denoising)     │
+│  useLatentLabRecorder('tool_name')  │
+│                                     │
+│  onMounted → isRecording = true     │
+│  generate() → record({params, ...}) │  ←── Lazy start: backend run
+│  onUnmounted → endRun()            │      created on first record()
+└─────────────┬───────────────────────┘
+              │ POST /api/latent-lab/record/{start,save,end}
+              ▼
+┌─────────────────────────────────────┐
+│  LatentLabRecorder (Python)         │
+│  - Creates run folder on start      │
+│  - Writes params → prompting_process│
+│  - Writes outputs → final/          │
+│  - Writes steps → prompting_process │
+│  - metadata.json compatible with    │
+│    LivePipelineRecorder/Canvas      │
+└─────────────────────────────────────┘
+              │
+              ▼
+exports/json/YYYY-MM-DD/device_id/
+  run_<timestamp>_<hash>/
+    metadata.json
+    final/
+      01_output_image.png
+    prompting_process/
+      001_parameters.json
+      002_step_01.jpg  (denoising steps)
+      002_step_02.jpg
+```
+
+### Lazy Start
+
+Run folders are only created when the first `record()` call happens. Navigating between Latent Lab tabs without generating creates no empty folders.
+
+### metadata.json
+
+```json
+{
+  "run_id": "run_1771664748800_abc123",
+  "timestamp": "2026-02-21T10:05:48",
+  "type": "latent_lab",
+  "latent_lab_tool": "denoising_archaeology",
+  "device_id": "38db259e-...",
+  "user_id": "anonymous",
+  "entities": [
+    { "sequence": 1, "type": "latent_lab_params", "filename": "prompting_process/001_parameters.json" },
+    { "sequence": 2, "type": "output_image", "filename": "01_output_image.png" }
+  ]
+}
+```
+
+Compatible with `SessionExportView.vue` — Latent Lab runs appear alongside Canvas runs.
+
+### Integration per Tool
+
+| Tool | Generation Functions | Recorded Data |
+|------|---------------------|---------------|
+| Denoising Archaeology | `generate()` | params + final PNG + all step JPGs |
+| Concept Algebra | `compute()` | params + reference + result images |
+| Feature Probing | `analyze()`, `transfer()` | params + original/modified images |
+| Attention Cartography | `generate()` | params + output image |
+| Crossmodal Lab | `runSynth()`, `runMMAudio()`, `runGuidance()` | params + audio WAV |
+| Latent Text Lab | `findDirection()`, `runRepGeneration()`, `runComparison()`, `runBiasProbe()` | params + result metadata |
+| Surrealizer | `executeWorkflow()` | params only (image in pipeline recorder) |
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `devserver/my_app/services/latent_lab_recorder.py` | LatentLabRecorder class + registry |
+| `devserver/my_app/routes/latent_lab_recorder_routes.py` | 3 Flask endpoints (start/save/end) |
+| `public/.../composables/useLatentLabRecorder.ts` | Vue composable with lazy lifecycle |
+
+---
+
+**Document Status:** Active (2026-02-22)
 **Maintainer:** AI4ArtsEd Development Team
-**Last Updated:** Session 178 (Latent Text Lab documentation, LLM interpretation)
+**Last Updated:** Session 192 (LatentLabRecorder research data export)

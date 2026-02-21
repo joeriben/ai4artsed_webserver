@@ -1,5 +1,57 @@
 # Development Log
 
+## Session 192 - Latent Lab Research Data Export (LatentLabRecorder)
+**Date:** 2026-02-22
+**Focus:** Research data recording for all Latent Lab experiments
+
+### Problem
+Canvas records research data via `CanvasRecorder`/`LivePipelineRecorder` because it runs through the 4-Stage Orchestrator. The Latent Lab bypasses this flow — 11 tool types across 3 backend services (GPU Service, Ollama, DevServer) with direct API calls. No backend chokepoint exists for a recorder.
+
+### Solution: Frontend-Primary Hybrid
+Frontend knows the full context (parameters, tab, tool type). After each generation, it POSTs to a new lightweight backend endpoint which writes to disk in the same folder structure as Canvas (`exports/json/YYYY-MM-DD/device_id/run_xxx/`).
+
+### Implementation
+
+**Backend (2 new files):**
+- `latent_lab_recorder.py` — Lightweight `LatentLabRecorder` class (no stage tracking, no expected_outputs)
+- `latent_lab_recorder_routes.py` — 3 endpoints: `POST /api/latent-lab/record/{start,save,end}`
+
+**Frontend (1 new file):**
+- `useLatentLabRecorder.ts` — Vue composable with lazy lifecycle (run folder created on first `record()`, not on mount)
+
+**Integration (7 views + 1 child):**
+- `denoising_archaeology.vue` — params + final PNG + all step JPGs
+- `concept_algebra.vue` — params + reference + result images
+- `feature_probing.vue` — params + original/modified images (both analyze + transfer)
+- `attention_cartography.vue` — params + output image (attention maps too large for export)
+- `crossmodal_lab.vue` — 3 tabs: synth/mmaudio/guidance, params + audio WAV
+- `latent_text_lab.vue` — 4 functions: findDirection/repGen/compare/biasProbe, params + metadata
+- `surrealizer.vue` — params only (image already recorded by pipeline recorder)
+
+**i18n:** 3 keys (`recordingActive`, `recordingCount`, `recordingTooltip`) across 6 languages
+
+### Key Design Decision: Lazy Start
+Initial implementation created a run folder on every `onMounted()` — navigating between tabs created empty folders. Fixed by deferring `startRun()` to the first actual `record()` call. `isRecording` indicator still shows immediately.
+
+### metadata.json Format
+```json
+{
+  "type": "latent_lab",
+  "latent_lab_tool": "denoising_archaeology",
+  "entities": [
+    { "type": "latent_lab_params", "filename": "prompting_process/001_parameters.json" },
+    { "type": "output_image", "filename": "01_output_image.png" }
+  ]
+}
+```
+Compatible with `SessionExportView.vue` — Latent Lab runs appear alongside Canvas/Pipeline runs.
+
+### Commits
+- `b8c7665` feat(latent-lab): Add research data export with LatentLabRecorder
+- `83b6e7a` fix(latent-lab): Lazy-start recorder to avoid empty run folders
+
+---
+
 ## Session 190 - Fix Age-Filter Fail-Open Bug + DSGVO Fallback
 **Date:** 2026-02-21
 **Focus:** Fix critical safety bug where age-filter context check used dead pipeline → fail-open, letting blocked content through
