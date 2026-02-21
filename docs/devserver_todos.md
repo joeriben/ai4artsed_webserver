@@ -1929,8 +1929,8 @@ devserver/my_app/engine/*.py (Referenzen)
 **Datum:** 2026-02-21
 **Priority:** MEDIUM (UX polish, not blocking functionality)
 
-### 1. Seed defaults: set to -1 (random) where hardcoded to 42
-Check all latent lab sub-pages (synth, MMAudio, ImageBind). Several have `seed: 42` as default — should be `-1` (random) so users get varied results without manually changing it.
+### 1. ✅ Seed defaults: set to -1 (random) where hardcoded to 42
+Fixed in crossmodal_lab.vue (synth, MMAudio, guidance). Other labs already used -1.
 
 ### 2. Sticky sub-tabs: crossmodal lab sub-tab should persist
 When navigating away from crossmodal lab and back, the active sub-tab (synth/mmaudio/guidance) resets to synth. Should persist via localStorage or route query param.

@@ -758,7 +758,7 @@ const synth = reactive({
   duration: 1.0,
   steps: 20,
   cfg: 3.5,
-  seed: 42,
+  seed: -1,
   loop: true,
 })
 
@@ -769,7 +769,7 @@ const mmaudio = reactive({
   duration: 8,
   cfg: 4.5,
   steps: 25,
-  seed: 42,
+  seed: -1,
 })
 
 // ImageBind Guidance params
@@ -780,7 +780,7 @@ const guidance = reactive({
   totalSteps: 50,
   duration: 10,
   cfg: 7.0,
-  seed: 42,
+  seed: -1,
 })
 
 // ===== Dimension Explorer =====
