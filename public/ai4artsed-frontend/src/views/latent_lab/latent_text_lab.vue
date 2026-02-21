@@ -4,36 +4,11 @@
     <div class="page-header">
       <h2 class="page-title">{{ t('latentLab.textLab.headerTitle') }}</h2>
       <p class="page-subtitle">{{ t('latentLab.textLab.headerSubtitle') }}</p>
-      <details class="explanation-details">
-        <summary>{{ t('latentLab.textLab.explanationToggle') }}</summary>
-        <div class="explanation-body">
-          <div class="explanation-section">
-            <h4>{{ t('latentLab.textLab.explainWhatTitle') }}</h4>
-            <p>{{ t('latentLab.textLab.explainWhatText') }}</p>
-          </div>
-          <div class="explanation-section">
-            <h4>{{ t('latentLab.textLab.explainHowTitle') }}</h4>
-            <p>{{ t('latentLab.textLab.explainHowText') }}</p>
-          </div>
-        </div>
-      </details>
     </div>
 
     <!-- Error Banner -->
     <div v-if="errorMessage" class="error-banner" @click="errorMessage = ''">
       {{ errorMessage }}
-    </div>
-
-    <!-- Model Selector -->
-    <div class="model-selector-row">
-      <label class="control-label control-small">
-        {{ t('latentLab.textLab.modelPanel.presetLabel') }}
-        <select v-model="selectedPreset" class="control-select">
-          <option v-for="(info, key) in presets" :key="key" :value="key">
-            {{ key }} ({{ info.vram_gb }}GB)
-          </option>
-        </select>
-      </label>
     </div>
 
     <!-- Tab navigation -->
@@ -57,16 +32,37 @@
         <h3 class="section-title">{{ t('latentLab.textLab.repeng.title') }}</h3>
         <p class="section-subtitle">{{ t('latentLab.textLab.repeng.subtitle') }}</p>
 
-        <!-- Experiment Guide -->
-        <div class="experiment-guide">
-          <p class="guide-text">{{ t('latentLab.textLab.repeng.guide') }}</p>
-          <p class="guide-hint">{{ t('latentLab.textLab.repeng.languageHint') }}</p>
-        </div>
-
-        <details class="science-details">
-          <summary class="science-toggle">Zou et al. 2023 + Li et al. 2024</summary>
-          <p class="science-text">{{ t('latentLab.textLab.repeng.science') }}</p>
+        <details class="explanation-details">
+          <summary>{{ t('latentLab.textLab.explanationToggle') }}</summary>
+          <div class="explanation-body">
+            <div class="explanation-section">
+              <h4>{{ t('latentLab.textLab.repeng.explainWhatTitle') }}</h4>
+              <p>{{ t('latentLab.textLab.repeng.explainWhatText') }}</p>
+            </div>
+            <div class="explanation-section">
+              <h4>{{ t('latentLab.textLab.repeng.explainHowTitle') }}</h4>
+              <p>{{ t('latentLab.textLab.repeng.explainHowText') }}</p>
+            </div>
+          </div>
         </details>
+
+        <!-- Inline Preset Selector -->
+        <div class="inline-preset-row">
+          <label class="control-label control-small">
+            {{ t('latentLab.textLab.modelPanel.presetLabel') }}
+            <select v-model="selectedPreset" class="control-select">
+              <option
+                v-for="(info, key) in presets"
+                :key="key"
+                :value="key"
+                :disabled="info.suggested_quant === null"
+              >
+                {{ presetLabel(key, info) }}
+              </option>
+            </select>
+          </label>
+          <span v-if="availableVram !== null" class="vram-info">{{ availableVram }}GB VRAM</span>
+        </div>
 
         <!-- Contrast Pair Editor -->
         <div class="subsection">
@@ -228,22 +224,42 @@
       <section class="tool-section">
         <h3 class="section-title">{{ t('latentLab.textLab.compare.title') }}</h3>
         <p class="section-subtitle">{{ t('latentLab.textLab.compare.subtitle') }}</p>
-        <details class="science-details">
-          <summary class="science-toggle">Belinkov 2022 + Olsson et al. 2022</summary>
-          <p class="science-text">{{ t('latentLab.textLab.compare.science') }}</p>
+
+        <details class="explanation-details">
+          <summary>{{ t('latentLab.textLab.explanationToggle') }}</summary>
+          <div class="explanation-body">
+            <div class="explanation-section">
+              <h4>{{ t('latentLab.textLab.compare.explainWhatTitle') }}</h4>
+              <p>{{ t('latentLab.textLab.compare.explainWhatText') }}</p>
+            </div>
+            <div class="explanation-section">
+              <h4>{{ t('latentLab.textLab.compare.explainHowTitle') }}</h4>
+              <p>{{ t('latentLab.textLab.compare.explainHowText') }}</p>
+            </div>
+          </div>
         </details>
 
-        <!-- Model A (from shared preset selector) -->
+        <!-- Model A (from inline preset selector) -->
         <div class="subsection model-a-panel">
           <h4 class="subsection-title">{{ t('latentLab.textLab.compare.modelATitle') }}</h4>
           <div class="model-status">
-            <span class="status-text">
-              <strong>{{ selectedPreset }}</strong>
-              <template v-if="presets[selectedPreset]">
-                ({{ presets[selectedPreset]?.vram_gb }}GB) — {{ presets[selectedPreset]?.description }}
-              </template>
+            <label class="control-label control-small">
+              {{ t('latentLab.textLab.modelPanel.presetLabel') }}
+              <select v-model="selectedPreset" class="control-select">
+                <option
+                  v-for="(info, key) in presets"
+                  :key="key"
+                  :value="key"
+                  :disabled="info.suggested_quant === null"
+                >
+                  {{ presetLabel(key, info) }}
+                </option>
+              </select>
+            </label>
+            <span v-if="availableVram !== null" class="vram-info">{{ availableVram }}GB VRAM</span>
+            <span class="status-text" v-if="presets[selectedPreset]">
+              {{ presets[selectedPreset]?.description }}
             </span>
-            <span class="model-a-hint">{{ t('latentLab.textLab.compare.modelAHint') }}</span>
           </div>
         </div>
 
@@ -255,8 +271,13 @@
               {{ t('latentLab.textLab.compare.modelBPresetLabel') }}
               <select v-model="cmpPresetB" class="control-select" :disabled="cmpLoadingB">
                 <option value="">{{ t('latentLab.textLab.modelPanel.presetNone') }}</option>
-                <option v-for="(info, key) in presets" :key="key" :value="key">
-                  {{ key }} ({{ info.vram_gb }}GB) — {{ info.description }}
+                <option
+                  v-for="(info, key) in presets"
+                  :key="key"
+                  :value="key"
+                  :disabled="info.suggested_quant === null"
+                >
+                  {{ presetLabel(key, info) }} — {{ info.description }}
                 </option>
               </select>
             </label>
@@ -381,10 +402,38 @@
       <section class="tool-section">
         <h3 class="section-title">{{ t('latentLab.textLab.bias.title') }}</h3>
         <p class="section-subtitle">{{ t('latentLab.textLab.bias.subtitle') }}</p>
-        <details class="science-details">
-          <summary class="science-toggle">Zou et al. 2023 + Bricken et al. 2023</summary>
-          <p class="science-text">{{ t('latentLab.textLab.bias.science') }}</p>
+
+        <details class="explanation-details">
+          <summary>{{ t('latentLab.textLab.explanationToggle') }}</summary>
+          <div class="explanation-body">
+            <div class="explanation-section">
+              <h4>{{ t('latentLab.textLab.bias.explainWhatTitle') }}</h4>
+              <p>{{ t('latentLab.textLab.bias.explainWhatText') }}</p>
+            </div>
+            <div class="explanation-section">
+              <h4>{{ t('latentLab.textLab.bias.explainHowTitle') }}</h4>
+              <p>{{ t('latentLab.textLab.bias.explainHowText') }}</p>
+            </div>
+          </div>
         </details>
+
+        <!-- Inline Preset Selector -->
+        <div class="inline-preset-row">
+          <label class="control-label control-small">
+            {{ t('latentLab.textLab.modelPanel.presetLabel') }}
+            <select v-model="selectedPreset" class="control-select">
+              <option
+                v-for="(info, key) in presets"
+                :key="key"
+                :value="key"
+                :disabled="info.suggested_quant === null"
+              >
+                {{ presetLabel(key, info) }}
+              </option>
+            </select>
+          </label>
+          <span v-if="availableVram !== null" class="vram-info">{{ availableVram }}GB VRAM</span>
+        </div>
 
         <div class="tool-inputs">
           <!-- Bias Type Selector -->
@@ -557,9 +606,14 @@ interface PresetInfo {
   id: string
   vram_gb: number
   description: string
+  fits_bf16?: boolean
+  fits_int8?: boolean
+  fits_int4?: boolean
+  suggested_quant?: string | null
 }
 
 const presets = ref<Record<string, PresetInfo>>({})
+const availableVram = ref<number | null>(null)
 const selectedPreset = ref('small')
 const customModelId = ref('')
 const quantization = ref('')
@@ -576,8 +630,16 @@ async function fetchPresets() {
     if (resp.ok) {
       const data = await resp.json()
       presets.value = data.presets || {}
+      availableVram.value = data.available_vram_gb ?? null
     }
   } catch { /* GPU service may not be running */ }
+}
+
+function presetLabel(key: string, info: PresetInfo): string {
+  const quant = info.suggested_quant
+  if (quant === null || quant === undefined) return `${key} (${info.vram_gb}GB) — won't fit`
+  if (quant === 'bf16') return `${key} (${info.vram_gb}GB)`
+  return `${key} (${info.vram_gb}GB → ${quant})`
 }
 
 // =========================================================================
@@ -1099,8 +1161,8 @@ onMounted(() => {
 .page-header { text-align: center; margin-bottom: 2rem; }
 .page-title { font-size: 1.4rem; color: rgba(255, 255, 255, 0.9); margin-bottom: 0.5rem; }
 .page-subtitle { font-size: 0.9rem; color: rgba(255, 255, 255, 0.5); max-width: 700px; margin: 0 auto 1rem; line-height: 1.5; }
-.explanation-details { text-align: left; max-width: 700px; margin: 0 auto; }
-.explanation-details summary { cursor: pointer; color: rgba(102, 126, 234, 0.7); font-size: 0.85rem; text-align: center; }
+.explanation-details { margin-bottom: 1rem; }
+.explanation-details summary { cursor: pointer; color: rgba(102, 126, 234, 0.7); font-size: 0.85rem; }
 .explanation-body { margin-top: 0.75rem; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); }
 .explanation-section { margin-bottom: 1rem; }
 .explanation-section:last-child { margin-bottom: 0; }
@@ -1110,12 +1172,17 @@ onMounted(() => {
 /* Error banner */
 .error-banner { background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.3); color: #fca5a5; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; cursor: pointer; font-size: 0.85rem; }
 
-/* Model selector row */
-.model-selector-row {
+/* Inline preset selector (per-tab) */
+.inline-preset-row {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+.vram-info {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
 }
 
 /* Tab navigation */
@@ -1148,11 +1215,6 @@ onMounted(() => {
 .section-title { font-size: 1.05rem; color: rgba(255, 255, 255, 0.85); margin-bottom: 0.25rem; }
 .section-subtitle { font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); margin-bottom: 0.5rem; }
 .section-explain { font-size: 0.8rem; color: rgba(255, 255, 255, 0.35); line-height: 1.6; margin-bottom: 1rem; max-width: 700px; }
-
-/* Science details */
-.science-details { margin-bottom: 1rem; }
-.science-toggle { cursor: pointer; color: rgba(102, 126, 234, 0.6); font-size: 0.8rem; font-style: italic; }
-.science-text { margin-top: 0.5rem; font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); line-height: 1.6; padding: 0.75rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.04); }
 
 /* Subsections */
 .subsection { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.06); }

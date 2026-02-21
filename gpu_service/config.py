@@ -74,29 +74,24 @@ TEXT_VRAM_RESERVE_MB = int(os.environ.get("TEXT_VRAM_RESERVE_MB", "2048"))
 # Used for auto-quantization decisions
 TEXT_MODEL_PRESETS = {
     "tiny": {
-        "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-        "vram_gb": 2.5,
-        "description": "TinyLlama 1.1B - Fast iteration, limited capability"
+        "id": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        "vram_gb": 4.0,
+        "description": "SmolLM2 1.7B - Fast iteration"
     },
     "small": {
-        "id": "meta-llama/Llama-3.2-3B-Instruct",
+        "id": "Qwen/Qwen2.5-3B-Instruct",
         "vram_gb": 7.0,
-        "description": "Llama 3.2 3B - Good balance of speed and quality"
+        "description": "Qwen 2.5 3B - Different tokenizer"
     },
-    "medium": {
-        "id": "meta-llama/Llama-3.2-8B-Instruct",
-        "vram_gb": 17.0,
-        "description": "Llama 3.2 8B - High quality, reasonable speed"
+    "nemo": {
+        "id": "mistralai/Mistral-Nemo-Instruct-2407",
+        "vram_gb": 24.0,
+        "description": "Mistral Nemo 12B - Sliding window attention"
     },
     "large": {
-        "id": "meta-llama/Llama-3.1-70B-Instruct",
-        "vram_gb": 140.0,
-        "description": "Llama 3.1 70B - Best quality, requires quantization"
-    },
-    "qwen-72b": {
-        "id": "Qwen/Qwen2.5-72B-Instruct",
-        "vram_gb": 144.0,
-        "description": "Qwen 2.5 72B - Excellent multilingual, requires quantization"
+        "id": "Qwen/Qwen2.5-14B-Instruct",
+        "vram_gb": 30.0,
+        "description": "Qwen 2.5 14B - Best quality"
     },
 }
 

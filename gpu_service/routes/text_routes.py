@@ -48,7 +48,7 @@ def load_model():
 
     Request:
         {
-            "model_id": "meta-llama/Llama-3.2-8B-Instruct",
+            "model_id": "Qwen/Qwen2.5-3B-Instruct",
             "quantization": "bf16"  // optional: bf16, fp16, int8, int4, nf4
         }
 
@@ -90,7 +90,7 @@ def unload_model():
     Unload a specific model.
 
     Request:
-        {"model_id": "meta-llama/Llama-3.2-8B-Instruct"}
+        {"model_id": "Qwen/Qwen2.5-3B-Instruct"}
     """
     data = request.get_json() or {}
     model_id = data.get("model_id")
@@ -130,18 +130,45 @@ def list_models():
 @text_bp.route('/presets', methods=['GET'])
 def list_presets():
     """
-    List available model presets.
+    List available model presets with VRAM fit status.
 
     Response:
         {
             "presets": {
-                "tiny": {"id": "...", "vram_gb": 2.5, "description": "..."},
+                "tiny": {
+                    "id": "...", "vram_gb": 4.0, "description": "...",
+                    "fits_bf16": true, "fits_int8": true, "fits_int4": true,
+                    "suggested_quant": "bf16"
+                },
                 ...
-            }
+            },
+            "available_vram_gb": 22.3
         }
     """
     from config import TEXT_MODEL_PRESETS
-    return jsonify({"presets": TEXT_MODEL_PRESETS})
+    from services.text_backend import get_text_backend, estimate_model_vram
+
+    backend = get_text_backend()
+    free_vram = backend._get_free_vram_gb()
+
+    enriched = {}
+    for key, preset in TEXT_MODEL_PRESETS.items():
+        p = dict(preset)
+        p["fits_bf16"] = estimate_model_vram(preset["id"], "bf16") * 1.1 < free_vram
+        p["fits_int8"] = estimate_model_vram(preset["id"], "int8") * 1.1 < free_vram
+        p["fits_int4"] = estimate_model_vram(preset["id"], "int4") * 1.1 < free_vram
+        p["suggested_quant"] = (
+            "bf16" if p["fits_bf16"] else
+            "int8" if p["fits_int8"] else
+            "int4" if p["fits_int4"] else
+            None
+        )
+        enriched[key] = p
+
+    return jsonify({
+        "presets": enriched,
+        "available_vram_gb": round(free_vram, 1),
+    })
 
 
 # =============================================================================
@@ -156,7 +183,7 @@ def get_embedding():
     Request:
         {
             "text": "Hello world",
-            "model_id": "meta-llama/Llama-3.2-8B-Instruct",
+            "model_id": "Qwen/Qwen2.5-3B-Instruct",
             "layer": -1  // optional, default: last layer
         }
     """

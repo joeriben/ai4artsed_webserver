@@ -15,7 +15,7 @@ Features:
 
 Usage:
     backend = get_text_backend()
-    await backend.load_model("meta-llama/Llama-3.2-8B-Instruct")
+    await backend.load_model("Qwen/Qwen2.5-3B-Instruct")
     result = await backend.generate_with_token_surgery(
         prompt="Write a poem about nature",
         boost_tokens=["dark", "shadow"],
