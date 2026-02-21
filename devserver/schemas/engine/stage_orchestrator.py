@@ -234,7 +234,7 @@ def llm_verify_person_name(text: str, ner_entities: list) -> Optional[bool]:
         result = msg.get("content", "").strip()
         duration_ms = (_time.time() - start) * 1000
 
-        # Thinking model fallback: gpt-OSS puts reasoning in 'thinking', answer in 'content'.
+        # Thinking model fallback: Thinking models put reasoning in 'thinking', answer in 'content'.
         # Under VRAM pressure, 'content' may be empty — extract SAFE/UNSAFE from 'thinking'.
         if not result:
             thinking = msg.get("thinking", "").strip()
@@ -418,7 +418,7 @@ def load_filter_terms() -> Dict[str, List[str]]:
     return _FILTER_TERMS_CACHE
 
 def load_bilingual_86a_terms() -> List[str]:
-    """Load bilingual §86a critical terms for pre/post GPT-OSS filtering (cached)"""
+    """Load bilingual §86a critical terms for pre/post safety filtering (cached)"""
     global _BILINGUAL_86A_CACHE
 
     if _BILINGUAL_86A_CACHE is None:
@@ -705,7 +705,7 @@ async def execute_stage1_safety(
         logger.warning(f"[STAGE1-SAFETY] Llama-Guard failed: {result.error}, continuing (fail-open)")
         return (True, [])  # Fail-open
 
-async def execute_stage1_gpt_oss_unified(
+async def execute_stage1_safety_unified(
     text: str,
     safety_level: str,
     execution_mode: str,
@@ -723,7 +723,7 @@ async def execute_stage1_gpt_oss_unified(
     3. DSGVO SpaCy NER (~50-100ms)
        → No entities? → SAFE (done, no LLM needed)
        → Entities found? → BLOCK with explanation
-       → SpaCy unavailable? → LLM Fallback (DSGVO is in GPT-OSS prompt)
+       → SpaCy unavailable? → LLM Fallback (DSGVO check via safety pipeline)
 
     Args:
         text: Input text to safety-check (in original language)
@@ -770,7 +770,7 @@ async def execute_stage1_gpt_oss_unified(
             # Terms found → LLM context check (prevents false positives like "cute vampire")
             logger.info(f"[STAGE1] Age-filter hit: {found_age_terms[:3]} → LLM context check ({age_time*1000:.1f}ms)")
 
-            # Call GPT-OSS for context-aware age-check
+            # Call LLM for context-aware age-check
             text_with_metadata = f"[SAFETY: {safety_level}]\n{text}"
             llm_start = _time.time()
             result = await pipeline_executor.execute_pipeline(
