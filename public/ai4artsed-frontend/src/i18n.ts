@@ -171,7 +171,7 @@ const messages = {
       // Admin page
       title: 'Administration',
       tabs: {
-        export: 'Sitzungsexport',
+        export: 'Forschungsdaten',
         config: 'Konfiguration',
         demos: 'Minigame-Demo',
         matrix: 'Modell-Matrix'
@@ -1533,7 +1533,7 @@ const messages = {
       // Admin page
       title: 'Administration',
       tabs: {
-        export: 'Session Export',
+        export: 'Research Data',
         config: 'Configuration',
         demos: 'Minigame Demo',
         matrix: 'Model Matrix'
@@ -2895,7 +2895,7 @@ const messages = {
       // Admin page
       title: 'Yönetim',
       tabs: {
-        export: 'Oturum Dışa Aktarma',
+        export: 'Araştırma Verileri',
         config: 'Yapılandırma',
         demos: 'Minigame Demo',
         matrix: 'Model Matrisi'
@@ -4253,7 +4253,7 @@ const messages = {
       authenticating: '인증 중...',
       title: '관리',
       tabs: {
-        export: '세션 내보내기',
+        export: '연구 데이터',
         config: '설정',
         demos: '미니게임 데모',
         matrix: '모델 매트릭스'
@@ -5611,7 +5611,7 @@ const messages = {
       authenticating: 'Автентифікація...',
       title: 'Адміністрування',
       tabs: {
-        export: 'Експорт сесії',
+        export: 'Дослідницькі дані',
         config: 'Конфігурація',
         demos: 'Демо мінігри',
         matrix: 'Матриця моделей'
@@ -6968,7 +6968,7 @@ const messages = {
       authenticating: 'Authentification...',
       title: 'Administration',
       tabs: {
-        export: 'Export de session',
+        export: 'Données de recherche',
         config: 'Configuration',
         demos: 'Démo minijeu',
         matrix: 'Matrice de modèles'

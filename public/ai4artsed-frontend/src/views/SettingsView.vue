@@ -8,16 +8,16 @@
       <h1>{{ $t('settings.title') }}</h1>
       <div class="tabs">
         <button
-          :class="['tab-btn', { active: activeTab === 'export' }]"
-          @click="activeTab = 'export'"
-        >
-          {{ $t('settings.tabs.export') }}
-        </button>
-        <button
           :class="['tab-btn', { active: activeTab === 'config' }]"
           @click="activeTab = 'config'"
         >
           {{ $t('settings.tabs.config') }}
+        </button>
+        <button
+          :class="['tab-btn', { active: activeTab === 'matrix' }]"
+          @click="activeTab = 'matrix'"
+        >
+          {{ $t('settings.tabs.matrix') }}
         </button>
         <button
           :class="['tab-btn', { active: activeTab === 'demos' }]"
@@ -26,10 +26,10 @@
           {{ $t('settings.tabs.demos') }}
         </button>
         <button
-          :class="['tab-btn', { active: activeTab === 'matrix' }]"
-          @click="activeTab = 'matrix'"
+          :class="['tab-btn', { active: activeTab === 'export' }]"
+          @click="activeTab = 'export'"
         >
-          {{ $t('settings.tabs.matrix') }}
+          {{ $t('settings.tabs.export') }}
         </button>
       </div>
     </div>
@@ -380,7 +380,7 @@ const { t } = useI18n()
 const authenticated = ref(false)
 const showAuthModal = ref(false)
 
-const activeTab = ref('export')
+const activeTab = ref('config')
 const loading = ref(true)
 const error = ref(null)
 const settings = ref({})
