@@ -148,7 +148,7 @@ class StableAudioGenerator:
             def _load():
                 pipe = StableAudioPipeline.from_pretrained(
                     self.model_id,
-                    dtype=torch_dtype,
+                    torch_dtype=torch_dtype,
                 )
                 pipe = pipe.to(self.device)
                 return pipe
@@ -504,111 +504,132 @@ class StableAudioGenerator:
                     return None
 
                 # Run the guided denoising loop
+                # This mirrors StableAudioPipeline.__call__ exactly, but with
+                # gradient guidance injected during warmup steps.
                 def _guided_generate():
+                    from diffusers.models.embeddings import get_1d_rotary_pos_embed
+
                     pipe = self._pipeline
                     generator = torch.Generator(device=self.device).manual_seed(seed)
-
-                    # Encode text prompt (or empty string)
+                    do_cfg = cfg_scale > 1.0
                     text_input = prompt if prompt else ""
 
-                    # Use pipeline's encode_prompt
+                    # --- Encode prompt (mirrors pipeline step 3) ---
+                    # With do_cfg=True and no negative_prompt, encode_prompt returns
+                    # just the positive prompt_embeds (no concatenation).
+                    # The pipeline handles the uncond case separately below.
                     prompt_embeds = pipe.encode_prompt(
                         prompt=text_input,
                         device=self.device,
+                        do_classifier_free_guidance=do_cfg,
                     )
-                    # For CFG: also encode negative (empty)
-                    negative_embeds = pipe.encode_prompt(
-                        prompt="",
+
+                    # --- Encode duration (mirrors pipeline's encode_duration) ---
+                    seconds_start_hidden_states, seconds_end_hidden_states = pipe.encode_duration(
+                        audio_start_in_s=0.0,
+                        audio_end_in_s=duration_seconds,
                         device=self.device,
+                        do_classifier_free_guidance=False,  # don't double — we handle CFG below
+                        batch_size=1,
                     )
 
-                    # Get duration conditioning
-                    audio_start = torch.tensor([0.0], device=self.device)
-                    audio_end = torch.tensor([duration_seconds], device=self.device)
+                    # --- Build text_audio_duration_embeds and audio_duration_embeds ---
+                    # text_audio_duration_embeds: [B, seq+2, dim] — cross-attention input
+                    # audio_duration_embeds: [B, 1, 2*dim] — global conditioning input
+                    text_audio_duration_embeds = torch.cat(
+                        [prompt_embeds, seconds_start_hidden_states, seconds_end_hidden_states], dim=1
+                    )
+                    audio_duration_embeds = torch.cat(
+                        [seconds_start_hidden_states, seconds_end_hidden_states], dim=2
+                    )
 
-                    # Prepare initial latent noise
-                    # Stable Audio latent shape depends on duration
-                    waveform_length = int(duration_seconds * self.sample_rate)
-                    # VAE compression ratio: hop_length = 2048 for Oobleck
-                    latent_length = waveform_length // 2048
+                    # CFG without negative prompt: uncond = zeros (mirrors pipeline logic)
+                    if do_cfg:
+                        negative_text_audio_duration_embeds = torch.zeros_like(text_audio_duration_embeds)
+                        # Pipeline order: [uncond, cond]
+                        text_audio_duration_embeds = torch.cat(
+                            [negative_text_audio_duration_embeds, text_audio_duration_embeds], dim=0
+                        )
+                        audio_duration_embeds = torch.cat(
+                            [audio_duration_embeds, audio_duration_embeds], dim=0
+                        )
+
+                    # --- Prepare latents (mirrors pipeline step 5) ---
+                    waveform_length = int(pipe.transformer.config.sample_size)
                     latent_channels = pipe.transformer.config.in_channels
-
                     latents = torch.randn(
-                        1, latent_channels, latent_length,
+                        1, latent_channels, waveform_length,
                         generator=generator, device=self.device,
-                        dtype=pipe.transformer.dtype,
+                        dtype=text_audio_duration_embeds.dtype,
                     )
 
-                    # Set up scheduler
+                    # --- Scheduler (mirrors pipeline step 4) ---
                     pipe.scheduler.set_timesteps(total_steps, device=self.device)
                     timesteps = pipe.scheduler.timesteps
 
-                    # Compute seconds_start/end embeddings via projection model
-                    projection = pipe.projection_model
-                    seconds_start_emb = projection.encode_duration(audio_start.unsqueeze(0))
-                    seconds_end_emb = projection.encode_duration(audio_end.unsqueeze(0))
-
-                    # Build encoder_hidden_states for transformer
-                    # Concatenate: [prompt_embeds, seconds_start_emb, seconds_end_emb]
-                    # Shape: [B, seq+2, 768]
-                    cond_hidden = torch.cat([
-                        prompt_embeds, seconds_start_emb, seconds_end_emb
-                    ], dim=1)
-                    uncond_hidden = torch.cat([
-                        negative_embeds, seconds_start_emb, seconds_end_emb
-                    ], dim=1)
+                    # --- Rotary embedding (mirrors pipeline step 7) ---
+                    rotary_embedding = get_1d_rotary_pos_embed(
+                        pipe.rotary_embed_dim,
+                        latents.shape[2] + audio_duration_embeds.shape[1],
+                        use_real=True,
+                        repeat_interleave_real=False,
+                    )
 
                     final_cosine_sim = None
 
+                    # --- Denoising loop (mirrors pipeline step 8) ---
                     for i, t in enumerate(timesteps):
                         is_warmup = i < warmup_steps
 
                         if is_warmup:
                             latents.requires_grad_(True)
 
-                        # CFG: concat cond + uncond
-                        latent_input = torch.cat([latents] * 2)
+                        # Expand for CFG
+                        latent_input = torch.cat([latents] * 2) if do_cfg else latents
                         latent_input = pipe.scheduler.scale_model_input(latent_input, t)
 
-                        hidden_input = torch.cat([cond_hidden, uncond_hidden], dim=0)
-
-                        # Noise prediction
+                        # Transformer forward — matches pipeline exactly
                         if is_warmup:
                             noise_pred = pipe.transformer(
                                 latent_input,
-                                t.unsqueeze(0).expand(2),
-                                encoder_hidden_states=hidden_input,
-                            ).sample
+                                t.unsqueeze(0),
+                                encoder_hidden_states=text_audio_duration_embeds,
+                                global_hidden_states=audio_duration_embeds,
+                                rotary_embedding=rotary_embedding,
+                                return_dict=False,
+                            )[0]
                         else:
                             with torch.no_grad():
                                 noise_pred = pipe.transformer(
                                     latent_input,
-                                    t.unsqueeze(0).expand(2),
-                                    encoder_hidden_states=hidden_input,
-                                ).sample
+                                    t.unsqueeze(0),
+                                    encoder_hidden_states=text_audio_duration_embeds,
+                                    global_hidden_states=audio_duration_embeds,
+                                    rotary_embedding=rotary_embedding,
+                                    return_dict=False,
+                                )[0]
 
-                        # CFG
-                        noise_cond, noise_uncond = noise_pred.chunk(2)
-                        noise_pred = noise_uncond + cfg_scale * (noise_cond - noise_uncond)
+                        # CFG — pipeline order is [uncond, cond]
+                        if do_cfg:
+                            noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                            noise_pred = noise_pred_uncond + cfg_scale * (noise_pred_text - noise_pred_uncond)
 
                         # Scheduler step
                         if is_warmup:
-                            # Don't use scheduler.step during warmup (need grad flow)
-                            # Manual Euler step for EDM scheduler
+                            # Manual Euler step to preserve grad flow through latents
                             sigma = pipe.scheduler.sigmas[i]
                             sigma_next = pipe.scheduler.sigmas[i + 1] if i + 1 < len(pipe.scheduler.sigmas) else 0
                             dt = sigma_next - sigma
                             latents_new = latents + noise_pred * dt
 
                             # Predict clean sample for guidance
-                            # x0 = latents - sigma * noise_pred (simplified)
                             predicted_clean = latents - sigma * noise_pred
 
                             # Decode to waveform for ImageBind
                             with torch.no_grad():
                                 audio_waveform = pipe.vae.decode(
                                     predicted_clean.to(pipe.vae.dtype)
-                                ).sample  # [1, 2, audio_samples]
+                                ).sample  # [1, channels, audio_samples]
 
                             # Mono, first 2 seconds at 16kHz for ImageBind
                             mono = audio_waveform.mean(dim=1)  # [1, samples]
@@ -617,7 +638,6 @@ class StableAudioGenerator:
                             ib_audio_emb = None
                             try:
                                 import torchaudio
-                                # Resample 44.1k -> 16k
                                 resampler = torchaudio.transforms.Resample(
                                     self.sample_rate, 16000
                                 ).to(mono.device)
@@ -627,7 +647,6 @@ class StableAudioGenerator:
                                 max_samples = 2 * 16000
                                 mono_16k = mono_16k[:, :max_samples]
 
-                                # ImageBind audio encoding (needs file, use raw tensor approach)
                                 from imagebind.data import load_and_transform_audio_data
                                 from imagebind.models.imagebind_model import ModalityType
                                 import tempfile
@@ -645,7 +664,6 @@ class StableAudioGenerator:
                                             [tmp_path], "cuda"
                                         ),
                                     }
-                                    # No grad for ImageBind forward (only need grad on latents)
                                     ib_audio_emb = ib_model(inputs)[ModalityType.AUDIO]
                                 finally:
                                     os.unlink(tmp_path)
@@ -654,18 +672,15 @@ class StableAudioGenerator:
                                 logger.warning(f"[STABLE-AUDIO] ImageBind audio encoding failed at step {i}: {e}")
 
                             if ib_audio_emb is not None:
-                                # Cosine similarity loss
                                 cos_sim = F.cosine_similarity(
                                     ib_audio_emb, ib_image_emb.detach()
                                 )
                                 loss = 1.0 - cos_sim.mean()
 
-                                # Gradient on latents
                                 grad = torch.autograd.grad(
                                     loss, latents, retain_graph=False
                                 )[0]
 
-                                # Apply gradient guidance
                                 latents_new = latents_new.detach() - lambda_guidance * grad.detach()
                                 final_cosine_sim = cos_sim.mean().item()
 
@@ -689,6 +704,11 @@ class StableAudioGenerator:
                         audio = pipe.vae.decode(
                             latents.to(pipe.vae.dtype)
                         ).sample
+
+                    # Trim to requested duration (mirrors pipeline step 9)
+                    waveform_start = 0
+                    waveform_end = int(duration_seconds * self.sample_rate)
+                    audio = audio[:, :, waveform_start:waveform_end]
 
                     return audio.squeeze(0), final_cosine_sim  # [channels, samples], float
 
