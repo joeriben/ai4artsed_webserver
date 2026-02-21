@@ -32,7 +32,6 @@ import asyncio
 # Suppress noisy HuggingFace tokenizer deprecation warnings
 warnings.filterwarnings("ignore", message=".*add_prefix_space.*")
 warnings.filterwarnings("ignore", message=".*slow tokenizers.*")
-warnings.filterwarnings("ignore", message=".*torch_dtype.*is deprecated.*")
 warnings.filterwarnings("ignore", message=".*Token indices sequence length is longer than.*")
 
 logger = logging.getLogger(__name__)

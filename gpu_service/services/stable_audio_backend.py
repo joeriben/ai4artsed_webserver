@@ -148,7 +148,7 @@ class StableAudioGenerator:
             def _load():
                 pipe = StableAudioPipeline.from_pretrained(
                     self.model_id,
-                    torch_dtype=torch_dtype,
+                    dtype=torch_dtype,
                 )
                 pipe = pipe.to(self.device)
                 return pipe
