@@ -4,7 +4,7 @@ Instruction Type Selector for Prompt Interception
 Mirrors the architecture of model_selector.py but for TASK instructions.
 Provides instruction templates that tell LLMs HOW to perform transformations.
 
-Partly compressed for use with GPT-OSS:20b. Original: instruction_selector_original.txt
+Partly compressed for use with small local models. Original: instruction_selector_original.txt
 """
 
 INSTRUCTION_TYPES = {

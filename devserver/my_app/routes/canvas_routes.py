@@ -264,7 +264,7 @@ def get_llm_models():
     ollama_count = 0
 
     # Get default model from settings (Stage 2 Interception Model)
-    # Note: config value already includes provider prefix (e.g., "local/gpt-OSS:20b")
+    # Note: config value already includes provider prefix (e.g., "local/qwen3:4b")
     default_model_id = config.STAGE2_INTERCEPTION_MODEL
 
     # 1. Dynamic Ollama models (all locally installed models)
