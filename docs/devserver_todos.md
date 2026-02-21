@@ -1932,14 +1932,23 @@ devserver/my_app/engine/*.py (Referenzen)
 ### 1. ✅ Seed defaults: set to -1 (random) where hardcoded to 42
 Fixed in crossmodal_lab.vue (synth, MMAudio, guidance). Other labs already used -1.
 
-### 2. Sticky sub-tabs: crossmodal lab sub-tab should persist
-When navigating away from crossmodal lab and back, the active sub-tab (synth/mmaudio/guidance) resets to synth. Should persist via localStorage or route query param.
+### 2. ✅ Sticky sub-tabs: crossmodal lab sub-tab should persist
+Solved by reorganization (`63dcc50`): `image_lab.vue` and `crossmodal_lab.vue` both use `localStorage` for tab persistence.
 
 ### 3. Streamline "Erweiterte Einstellungen" collapse state across labs
 If one lab has a `<details>` for advanced settings, the open/closed state should be consistent and ideally persist across sessions (localStorage).
 
-### 4. "Ausführliche Erklärung" mandatory for all latent lab elements
-Every slider, parameter, and input in the latent lab should have a tooltip or expandable explanation. Currently inconsistent — some have `slider-hint`, some don't. Audit and fill gaps.
+### 4. Parameter hints for all latent lab elements
+~~Every slider, parameter, and input in the latent lab should have a tooltip or expandable explanation. Currently inconsistent — some have `slider-hint`, some don't. Audit and fill gaps.~~
+
+**4a. ✅ Parameter hints (slider-hint / control-hint) on every input**
+Done in `22bf825`: ~30 new i18n hint keys (6 languages), hint spans added to all 6 Vue files (attention_cartography, concept_algebra, feature_probing, denoising_archaeology, crossmodal_lab, latent_text_lab). Shared hints for negative/steps/CFG/seed reused across image-generation labs.
+
+**4b. Add `explanationToggle` section to crossmodal_lab.vue**
+The only Latent Lab page without the "Ausführliche Erklärung anzeigen" collapsible explanation block. All other 5 pages (attention_cartography, concept_algebra, feature_probing, denoising_archaeology, latent_text_lab) already have it. Needs:
+- i18n keys: `crossmodal.explanationToggle`, `crossmodal.explainWhatTitle/Text`, `crossmodal.explainHowTitle/Text` (6 languages)
+- Template: `<details class="explanation-section">` block with 2-3 Q&A pairs per sub-tab (synth, MMAudio, guidance), explaining what the tool does and how to use it
+- Pattern: Follow attention_cartography.vue structure
 
 ### 5. Scientific references with DOI in all labs
 All latent lab tabs reference published research (MMAudio = CVPR 2025, ImageBind = CVPR 2023, Stable Audio = ICML 2024). Add DOI links and brief citations accessible via info buttons or tab descriptions.
