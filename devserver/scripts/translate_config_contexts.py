@@ -3,7 +3,7 @@
 Config Context Translation Helper
 
 Translates English context strings in interception configs to German
-using GPT-OSS:20b (Ollama). Generates translations for human review.
+using a local Ollama model. Generates translations for human review.
 
 Usage:
     python3 scripts/translate_config_contexts.py [--dry-run] [--config CONFIG_NAME]
@@ -32,7 +32,7 @@ from typing import Dict, Optional
 
 # Configuration
 OLLAMA_API_BASE_URL = "http://localhost:11434"
-GPT_OSS_MODEL = "gpt-OSS:20b"  # Note: capital 'OSS'
+TRANSLATION_MODEL = "qwen3:4b"
 TIMEOUT = 120  # Longer timeout for translation
 
 TRANSLATION_SYSTEM_PROMPT = """You are a professional translator specialized in educational content about art and AI.
@@ -54,7 +54,7 @@ Translate ONLY the content, do NOT add explanations or comments."""
 
 def translate_with_ollama(text: str) -> Optional[str]:
     """
-    Translate English text to German using GPT-OSS:20b via Ollama API
+    Translate English text to German using local Ollama model
 
     Args:
         text: English text to translate
@@ -65,7 +65,7 @@ def translate_with_ollama(text: str) -> Optional[str]:
     prompt = f"Translate this educational text from English to German:\n\n{text}"
 
     payload = {
-        "model": GPT_OSS_MODEL,
+        "model": TRANSLATION_MODEL,
         "prompt": prompt,
         "system": TRANSLATION_SYSTEM_PROMPT,
         "stream": False,
@@ -163,7 +163,7 @@ def translate_config(config_path: Path, dry_run: bool = False, auto: bool = Fals
         return
 
     # Translate
-    print("\n🔄 Translating with GPT-OSS:20b...")
+    print(f"\n🔄 Translating with {TRANSLATION_MODEL}...")
     translated = translate_with_ollama(context)
 
     if not translated:
@@ -222,7 +222,7 @@ def main():
 
     print("🚀 Config Context Translation Helper")
     print(f"📂 Configs directory: {configs_path}")
-    print(f"🤖 Model: {GPT_OSS_MODEL}")
+    print(f"🤖 Model: {TRANSLATION_MODEL}")
     print(f"🔧 Mode: {'DRY RUN' if args.dry_run else 'AUTO' if args.auto else 'REVIEW'}")
 
     # Get list of configs to process
@@ -258,12 +258,12 @@ def main():
         try:
             models = response.json().get("models", [])
             model_names = [m.get("name", "") for m in models]
-            if not any(GPT_OSS_MODEL in name for name in model_names):
-                print(f"⚠️  Model {GPT_OSS_MODEL} not found in Ollama")
+            if not any(TRANSLATION_MODEL in name for name in model_names):
+                print(f"⚠️  Model {TRANSLATION_MODEL} not found in Ollama")
                 print(f"   Available models: {', '.join(model_names)}")
-                print(f"   Pull model: ollama pull {GPT_OSS_MODEL}")
+                print(f"   Pull model: ollama pull {TRANSLATION_MODEL}")
                 sys.exit(1)
-            print(f"✅ Model {GPT_OSS_MODEL} is available\n")
+            print(f"✅ Model {TRANSLATION_MODEL} is available\n")
         except Exception as e:
             print(f"⚠️  Could not verify model availability: {e}\n")
 
