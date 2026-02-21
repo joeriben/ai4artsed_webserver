@@ -6,12 +6,14 @@
     "de": "\u00dcber\u00ADtreiber!",
     "tr": "Abartıcı!",
     "ko": "증폭기!",
-    "uk": "Підсилювач"
+    "uk": "Підсилювач",
+    "fr": "Amplificateur !"
   },
   "description": {
     "en": "Overdrive. Inspired by the guitar effect of the same name. Drives visual elements to and beyond their limits. Amplifies colors, contrasts and structures to the point of distortion.",
     "de": "Overdrive. Inspiriert vom gleichnamigen Gitarreneffekt. Treibt visuelle Elemente an und über ihre Grenzen. Verstärkt Farben, Kontraste und Strukturen bis zur Verzerrung.",
-    "uk": "Підсилена трансформація"
+    "uk": "Підсилена трансформація",
+    "fr": "Overdrive. Inspiré de l'effet de guitare du même nom. Pousse les éléments visuels à leurs limites et au-delà. Amplifie les couleurs, les contrastes et les structures jusqu'à la distorsion."
   },
   "category": {
     "de": "Kreative Verwandlungen",

@@ -6,12 +6,14 @@
     "de": "Planeta\u00ADrisierer",
     "tr": "Gezegenselleştirici",
     "ko": "행성화기",
-    "uk": "Планетаризатор"
+    "uk": "Планетаризатор",
+    "fr": "Planétariseur"
   },
   "description": {
     "en": "Reimagines image prompts through planetary perspectives in the anthropocene. Deconstructs capitalist consumerist norms and challenges AI's inherent biases toward capitalist subjects and consumerist aesthetics.",
     "de": "Denkt Bild-Prompts neu aus planetaren Perspektiven im Anthropozän. Dekonstruiert kapialistische konsumistische Normen und hinterfragt die inhärenten Biases der KI in Bezug auf kapitalistische Sichtweisen und Konsumästhetiken.",
-    "uk": "Планетарна перспектива"
+    "uk": "Планетарна перспектива",
+    "fr": "Réimagine les prompts d'images à travers des perspectives planétaires dans l'anthropocène. Déconstruit les normes consuméristes capitalistes et questionne les biais inhérents de l'IA envers les sujets capitalistes et l'esthétique consumériste."
   },
   "category": {
     "de": "Kritisches Denken",

@@ -6,12 +6,14 @@
     "de": "Jugend­slang",
     "tr": "Gençlik Argosu",
     "ko": "청소년 슬랭",
-    "uk": "Молодіжний сленг"
+    "uk": "Молодіжний сленг",
+    "fr": "Argot jeune"
   },
   "description": {
     "en": "Tries to rewrote everything in UK street slang as it could be used by teens in urban areas. Uses words from Drill, Grime, and Trap culture.",
     "de": "Versucht, alles in urbanen Jugend-Slang umzuschreiben. Drill-, Grime- und Trap-Kultur.",
-    "uk": "Молодіжна мова"
+    "uk": "Молодіжна мова",
+    "fr": "Tente de tout réécrire en argot de rue tel qu'il pourrait être utilisé par les jeunes en milieu urbain. Utilise des mots issus de la culture Drill, Grime et Trap."
   },
   "category": {
     "de": "Kreative Verwandlungen",

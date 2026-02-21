@@ -6,12 +6,14 @@
     "de": "Bild-Transformation",
     "tr": "Görüntü Dönüşümü",
     "ko": "이미지 변환",
-    "uk": "Трансформація зображення"
+    "uk": "Трансформація зображення",
+    "fr": "Transformation d'image"
   },
   "description": {
     "en": "Transform images with AI-guided editing",
     "de": "Transformiere Bilder mit KI-geführter Bearbeitung",
-    "uk": "Трансформуй завантажене зображення"
+    "uk": "Трансформуй завантажене зображення",
+    "fr": "Transforme les images avec l'édition guidée par IA"
   },
   "category": {
     "de": "System",

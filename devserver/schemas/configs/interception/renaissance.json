@@ -6,12 +6,14 @@
     "de": "Renaissance",
     "tr": "Rönesans",
     "ko": "르네상스",
-    "uk": "Ренесанс"
+    "uk": "Ренесанс",
+    "fr": "Renaissance"
   },
   "description": {
     "en": "Creates descriptions using Renaissance principles: balanced composition, mathematical proportion, and harmonious light. Focuses on order, human dignity, and perspective.",
     "de": "Erstellt Beschreibungen nach Renaissance-Prinzipien: ausgewogene Komposition, mathematische Proportion und harmonisches Licht. Konzentriert sich auf Ordnung, menschliche Würde und Perspektive.",
-    "uk": "Перспектива Ренесансу"
+    "uk": "Перспектива Ренесансу",
+    "fr": "Crée des descriptions selon les principes de la Renaissance : composition équilibrée, proportion mathématique et lumière harmonieuse. Se concentre sur l'ordre, la dignité humaine et la perspective."
   },
   "category": {
     "de": "Kunstgeschichte",

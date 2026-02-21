@@ -6,12 +6,14 @@
     "de": "Partielle Elimination",
     "tr": "Kısmi Eleme",
     "ko": "부분 제거",
-    "uk": "Часткова елімінація"
+    "uk": "Часткова елімінація",
+    "fr": "Élimination partielle"
   },
   "description": {
     "en": "What happens when we 'switch off' parts of the AI's understanding? This workflow creates three images: one normal, and two where we've removed different halves of the AI's internal representation of your prompt. By comparing them, you can see which semantic features (objects, colors, moods) are stored in which parts of the neural network's 'memory'.",
     "de": "Was passiert, wenn wir Teile des KI-Verständnisses 'ausschalten'? Dieser Workflow erzeugt drei Bilder: eines normal, und zwei, bei denen wir verschiedene Hälften der internen Repräsentation deines Prompts entfernt haben. Durch den Vergleich siehst du, welche semantischen Features (Objekte, Farben, Stimmungen) in welchen Teilen des neuronalen Netzwerk-'Gedächtnisses' gespeichert sind.",
-    "uk": "Деконструкція вектора"
+    "uk": "Деконструкція вектора",
+    "fr": "Que se passe-t-il quand on « désactive » des parties de la compréhension de l'IA ? Ce workflow crée trois images : une normale, et deux où nous avons supprimé différentes moitiés de la représentation interne de ton prompt par l'IA. En les comparant, tu peux voir quelles caractéristiques sémantiques (objets, couleurs, ambiances) sont stockées dans quelles parties de la « mémoire » du réseau neuronal."
   },
   "category": {
     "de": "Forschung",
