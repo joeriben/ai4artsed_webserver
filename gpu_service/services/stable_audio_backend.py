@@ -626,47 +626,56 @@ class StableAudioGenerator:
                             predicted_clean = latents - sigma * noise_pred
 
                             # Decode to waveform for ImageBind
-                            with torch.no_grad():
-                                audio_waveform = pipe.vae.decode(
-                                    predicted_clean.to(pipe.vae.dtype)
-                                ).sample  # [1, channels, audio_samples]
+                            # No torch.no_grad() here — gradient must flow
+                            # latents → predicted_clean → VAE decode → ImageBind → loss
+                            audio_waveform = pipe.vae.decode(
+                                predicted_clean.to(pipe.vae.dtype)
+                            ).sample  # [1, channels, audio_samples]
 
                             # Mono, first 2 seconds at 16kHz for ImageBind
                             mono = audio_waveform.mean(dim=1)  # [1, samples]
 
-                            # Encode audio via ImageBind
+                            # Encode audio via ImageBind (direct tensor path, no file I/O)
                             ib_audio_emb = None
                             try:
                                 import torchaudio
+                                from torchvision import transforms as tv_transforms
+                                from imagebind.data import waveform2melspec, get_clip_timepoints
+                                from imagebind.models.imagebind_model import ModalityType
+                                from pytorchvideo.data.clip_sampling import ConstantClipsPerVideoSampler
+
                                 resampler = torchaudio.transforms.Resample(
                                     self.sample_rate, 16000
                                 ).to(mono.device)
                                 mono_16k = resampler(mono.float())
 
-                                # Take first 2s (ImageBind window)
+                                # Take first 2s (ImageBind clip duration)
                                 max_samples = 2 * 16000
                                 mono_16k = mono_16k[:, :max_samples]
 
-                                from imagebind.data import load_and_transform_audio_data
-                                from imagebind.models.imagebind_model import ModalityType
-                                import tempfile
-                                import os
+                                # Build mel spectrograms directly (bypasses torchaudio.load/torchcodec)
+                                clip_sampler = ConstantClipsPerVideoSampler(
+                                    clip_duration=2, clips_per_video=3
+                                )
+                                duration_s = mono_16k.size(1) / 16000
+                                clip_timepoints = get_clip_timepoints(clip_sampler, duration_s)
 
-                                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
-                                    torchaudio.save(f.name, mono_16k.cpu(), 16000)
-                                    tmp_path = f.name
+                                all_clips = []
+                                for start, end in clip_timepoints:
+                                    clip = mono_16k[:, int(start * 16000):int(end * 16000)]
+                                    # waveform2melspec expects [channels, samples], returns [1, 128, 204]
+                                    melspec = waveform2melspec(clip, 16000, 128, 204)
+                                    all_clips.append(melspec)
 
-                                try:
-                                    from services.imagebind_backend import get_imagebind_backend
-                                    ib_model = get_imagebind_backend()._model
-                                    inputs = {
-                                        ModalityType.AUDIO: load_and_transform_audio_data(
-                                            [tmp_path], "cuda"
-                                        ),
-                                    }
-                                    ib_audio_emb = ib_model(inputs)[ModalityType.AUDIO]
-                                finally:
-                                    os.unlink(tmp_path)
+                                normalize = tv_transforms.Normalize(mean=-4.268, std=9.138)
+                                all_clips = [normalize(ac).to(self.device) for ac in all_clips]
+                                # Stack: [clips=3, 1, 128, 204] → unsqueeze → [1, 3, 1, 128, 204]
+                                mel_tensor = torch.stack(all_clips, dim=0).unsqueeze(0)
+
+                                from services.imagebind_backend import get_imagebind_backend
+                                ib_model = get_imagebind_backend()._model
+                                inputs = {ModalityType.AUDIO: mel_tensor}
+                                ib_audio_emb = ib_model(inputs)[ModalityType.AUDIO]
 
                             except Exception as e:
                                 logger.warning(f"[STABLE-AUDIO] ImageBind audio encoding failed at step {i}: {e}")
