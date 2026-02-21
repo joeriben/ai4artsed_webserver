@@ -20,7 +20,7 @@
     "system_pipeline": true,
     "stage": "pre_interception",
     "task_type": "security",
-    "gpt_oss_safety": true,
+    "legacy_safety_pipeline": true,
     "visible_in_browser": false
   }
 }

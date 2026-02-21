@@ -20,7 +20,7 @@
     "system_pipeline": true,
     "stage": "pre_interception",
     "task_type": "security_translation",
-    "gpt_oss_unified": true,
+    "legacy_unified_pipeline": true,
     "visible_in_browser": false
   }
 }
